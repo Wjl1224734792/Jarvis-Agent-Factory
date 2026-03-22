@@ -1,0 +1,143 @@
+import { API_ROUTES } from "@feijia/shared";
+import { describe, expect, it } from "vitest";
+import { app } from "../src/app";
+
+function extractCookie(setCookie: string | null): string {
+  if (!setCookie) {
+    throw new Error("missing set-cookie header");
+  }
+  return setCookie.split(";")[0];
+}
+
+describe("auth flows", () => {
+  it("supports web captcha + sms + login + me + logout flow", async () => {
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    expect(captchaResponse.status).toBe(200);
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138000",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    expect(smsResponse.status).toBe(200);
+    const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+    expect(smsPayload.mockCode).toBeDefined();
+
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138000",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText,
+        smsCode: smsPayload.mockCode
+      })
+    });
+    expect(loginResponse.status).toBe(200);
+    const userCookie = extractCookie(loginResponse.headers.get("set-cookie"));
+
+    const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: userCookie }
+    });
+    expect(meResponse.status).toBe(200);
+    const mePayload = (await meResponse.json()) as {
+      user: { role: string } | null;
+    };
+    expect(mePayload.user?.role).toBe("user");
+
+    const logoutResponse = await app.request(API_ROUTES.auth.logout, {
+      method: "POST",
+      headers: { cookie: userCookie }
+    });
+    expect(logoutResponse.status).toBe(200);
+
+    const meAfterLogout = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: userCookie }
+    });
+    const meAfterPayload = (await meAfterLogout.json()) as { user: unknown };
+    expect(meAfterPayload.user).toBeNull();
+  });
+
+  it("rejects protected route without session", async () => {
+    const response = await app.request(API_ROUTES.auth.protectedPing, {
+      method: "GET"
+    });
+    expect(response.status).toBe(401);
+  });
+
+  it("supports admin login and enforces admin-only access", async () => {
+    const userCaptchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const userCaptcha = (await userCaptchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+    const userSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138001",
+        captchaChallengeId: userCaptcha.challengeId,
+        captchaCode: userCaptcha.imageOrText
+      })
+    });
+    const userSms = (await userSmsResponse.json()) as { mockCode?: string };
+    const userLogin = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138001",
+        captchaChallengeId: userCaptcha.challengeId,
+        captchaCode: userCaptcha.imageOrText,
+        smsCode: userSms.mockCode
+      })
+    });
+    const userCookie = extractCookie(userLogin.headers.get("set-cookie"));
+
+    const forbiddenResponse = await app.request(API_ROUTES.auth.adminProtectedPing, {
+      method: "GET",
+      headers: { cookie: userCookie }
+    });
+    expect(forbiddenResponse.status).toBe(403);
+
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    expect(adminLoginResponse.status).toBe(200);
+    const adminCookie = extractCookie(adminLoginResponse.headers.get("set-cookie"));
+
+    const adminMe = await app.request(API_ROUTES.auth.adminCurrentUser, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminMe.status).toBe(200);
+    const adminMePayload = (await adminMe.json()) as {
+      user: { role: string } | null;
+    };
+    expect(adminMePayload.user?.role).toBe("admin");
+
+    const adminProtected = await app.request(API_ROUTES.auth.adminProtectedPing, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminProtected.status).toBe(200);
+  });
+});
