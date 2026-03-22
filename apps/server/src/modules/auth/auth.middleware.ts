@@ -34,7 +34,7 @@ function forbidden(context: Context) {
 
 export async function attachCurrentUser(context: Context, next: Next) {
   const sessionId = getCookie(context, SESSION_COOKIE_NAME);
-  const user = authService.getCurrentUser(sessionId);
+  const user = await authService.getCurrentUser(sessionId);
   context.set("currentUser", user);
   await next();
 }

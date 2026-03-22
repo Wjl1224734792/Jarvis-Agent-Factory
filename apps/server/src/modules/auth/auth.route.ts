@@ -40,6 +40,7 @@ authRoute.post(API_ROUTES.auth.captchaChallenge, (context) => {
 
 authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
   const input = smsCodeRequestSchema.parse(await context.req.json());
+
   try {
     const payload = smsCodeResponseSchema.parse(authService.requestSmsCode(input));
     return context.json(payload);
@@ -53,14 +54,16 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
         400
       );
     }
+
     throw error;
   }
 });
 
 authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
   const input = webLoginRequestSchema.parse(await context.req.json());
+
   try {
-    const result = authService.loginWeb(input);
+    const result = await authService.loginWeb(input);
     setSessionCookie(context, result.sessionId);
     return context.json(authSuccessResponseSchema.parse({ user: result.user }));
   } catch (error) {
@@ -73,14 +76,16 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
         400
       );
     }
+
     throw error;
   }
 });
 
 authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
   const input = adminLoginRequestSchema.parse(await context.req.json());
+
   try {
-    const result = authService.loginAdmin(input);
+    const result = await authService.loginAdmin(input);
     setSessionCookie(context, result.sessionId);
     return context.json(authSuccessResponseSchema.parse({ user: result.user }));
   } catch (error) {
@@ -93,6 +98,7 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
         400
       );
     }
+
     throw error;
   }
 });
@@ -116,16 +122,16 @@ authRoute.get(API_ROUTES.auth.adminCurrentUser, (context) => {
   );
 });
 
-authRoute.post(API_ROUTES.auth.logout, (context) => {
+authRoute.post(API_ROUTES.auth.logout, async (context) => {
   const sessionId = getCookie(context, SESSION_COOKIE_NAME);
-  const payload = currentUserResponseSchema.parse(authService.logout(sessionId));
+  const payload = currentUserResponseSchema.parse(await authService.logout(sessionId));
   deleteCookie(context, SESSION_COOKIE_NAME, { path: "/" });
   return context.json(payload);
 });
 
-authRoute.post(API_ROUTES.auth.adminLogout, (context) => {
+authRoute.post(API_ROUTES.auth.adminLogout, async (context) => {
   const sessionId = getCookie(context, SESSION_COOKIE_NAME);
-  const payload = currentUserResponseSchema.parse(authService.logout(sessionId));
+  const payload = currentUserResponseSchema.parse(await authService.logout(sessionId));
   deleteCookie(context, SESSION_COOKIE_NAME, { path: "/" });
   return context.json(payload);
 });

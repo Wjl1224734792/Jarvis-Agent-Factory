@@ -10,9 +10,11 @@
     "test": "vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/auth.test.ts apps/server/tests/health.test.ts"
   },
   "dependencies": {
+    "@feijia/db": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
     "@hono/node-server": "^1.13.7",
+    "drizzle-orm": "^0.44.5",
     "hono": "^4.6.16"
   }
 }

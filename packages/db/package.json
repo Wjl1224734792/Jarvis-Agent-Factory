@@ -1,0 +1,21 @@
+{
+  "name": "@feijia/db",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "generate": "drizzle-kit generate --config drizzle.config.ts",
+    "migrate": "bun run ./src/migrate.cli.ts",
+    "seed": "bun run ./src/seed.cli.ts"
+  },
+  "dependencies": {
+    "drizzle-kit": "^0.31.10",
+    "drizzle-orm": "^0.44.5",
+    "pg": "^8.16.3"
+  }
+}

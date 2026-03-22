@@ -1,5 +1,7 @@
+import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
-import { describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { authRepo } from "../src/modules/auth/auth.repo";
 import { app } from "../src/app";
 
 function extractCookie(setCookie: string | null): string {
@@ -8,6 +10,20 @@ function extractCookie(setCookie: string | null): string {
   }
   return setCookie.split(";")[0];
 }
+
+beforeAll(async () => {
+  await runMigrations();
+});
+
+beforeEach(async () => {
+  authRepo.resetEphemeralState();
+  await resetDatabaseState();
+  await seedDatabase();
+});
+
+afterAll(async () => {
+  await dbPool.end();
+});
 
 describe("auth flows", () => {
   it("supports web captcha + sms + login + me + logout flow", async () => {
