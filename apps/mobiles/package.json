@@ -1,0 +1,9 @@
+{
+  "name": "@feijia/mobiles",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "typecheck": "bun -e \"console.log('mobiles placeholder has no typecheck task yet')\""
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "name": "@feijia/schemas",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@feijia/shared": "workspace:*",
+    "zod": "latest"
+  }
+}
