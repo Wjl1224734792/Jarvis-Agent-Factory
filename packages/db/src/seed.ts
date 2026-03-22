@@ -31,17 +31,22 @@ async function ensureAdminUser() {
 }
 
 async function ensureAircraftSeed() {
-  const category = await db
-    .select()
-    .from(aircraftCategoriesTable)
-    .where(eq(aircraftCategoriesTable.slug, "drone"))
-    .limit(1);
+  const categoryId = createId("cat");
+  const brandId = createId("brand");
+  const modelId = createId("model");
 
-  let categoryId = category[0]?.id;
+  await db.transaction(async (tx) => {
+    const model = await tx
+      .select()
+      .from(aircraftModelsTable)
+      .where(eq(aircraftModelsTable.slug, "mini-4-pro"))
+      .limit(1);
 
-  if (!categoryId) {
-    categoryId = createId("cat");
-    await db.insert(aircraftCategoriesTable).values({
+    if (model.length > 0) {
+      return;
+    }
+
+    await tx.insert(aircraftCategoriesTable).values({
       id: categoryId,
       slug: "drone",
       name: "无人机",
@@ -49,26 +54,7 @@ async function ensureAircraftSeed() {
       isEnabled: true
     });
 
-    const insertedCategory = await db
-      .select()
-      .from(aircraftCategoriesTable)
-      .where(eq(aircraftCategoriesTable.slug, "drone"))
-      .limit(1);
-
-    categoryId = insertedCategory[0]?.id;
-  }
-
-  const brand = await db
-    .select()
-    .from(brandsTable)
-    .where(eq(brandsTable.slug, "dji"))
-    .limit(1);
-
-  let brandId = brand[0]?.id;
-
-  if (!brandId) {
-    brandId = createId("brand");
-    await db.insert(brandsTable).values({
+    await tx.insert(brandsTable).values({
       id: brandId,
       slug: "dji",
       name: "DJI",
@@ -77,33 +63,22 @@ async function ensureAircraftSeed() {
       isEnabled: true
     });
 
-    const insertedBrand = await db
-      .select()
-      .from(brandsTable)
-      .where(eq(brandsTable.slug, "dji"))
-      .limit(1);
-
-    brandId = insertedBrand[0]?.id;
-  }
-
-  const model = await db
-    .select()
-    .from(aircraftModelsTable)
-    .where(eq(aircraftModelsTable.slug, "mini-4-pro"))
-    .limit(1);
-
-  if (model.length === 0) {
-    await db.insert(aircraftModelsTable).values({
-      id: createId("model"),
+    await tx.insert(aircraftModelsTable).values({
+      id: modelId,
       slug: "mini-4-pro",
       name: "DJI Mini 4 Pro",
       categoryId,
       brandId,
       powerType: "electric",
       summary: "轻量级航拍无人机",
+      description: "适合轻量化航拍场景",
+      maxFlightTimeMinutes: 45,
+      maxRangeKilometers: 18,
+      maxSpeedKph: 58,
+      takeoffWeightGrams: 249,
       isPublished: true
     });
-  }
+  });
 }
 
 export async function resetDatabaseState() {
@@ -114,7 +89,11 @@ export async function resetDatabaseState() {
   );
 }
 
-export async function seedDatabase() {
+export async function seedAuthDatabase() {
   await ensureAdminUser();
+}
+
+export async function seedDatabase() {
+  await seedAuthDatabase();
   await ensureAircraftSeed();
 }

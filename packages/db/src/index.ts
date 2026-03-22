@@ -8,4 +8,4 @@ export {
 } from "./schema.js";
 export { createId, hashPassword } from "./helpers.js";
 export { runMigrations } from "./migrate.js";
-export { resetDatabaseState, seedDatabase } from "./seed.js";
+export { resetDatabaseState, seedAuthDatabase, seedDatabase } from "./seed.js";

@@ -4,6 +4,9 @@ import { AdminLoginPage } from "./features/auth/admin-login-page";
 import { AdminOverviewPage } from "./features/auth/admin-overview-page";
 import { AdminProtectedRoute } from "./features/auth/admin-protected-route";
 import { AdminShell } from "./features/auth/admin-shell";
+import { BrandsPage } from "./features/models/brands-page";
+import { CategoriesPage } from "./features/models/categories-page";
+import { ModelsPage } from "./features/models/models-page";
 
 const router = createBrowserRouter([
   {
@@ -21,6 +24,18 @@ const router = createBrowserRouter([
       {
         index: true,
         element: <AdminOverviewPage />
+      },
+      {
+        path: APP_ROUTES.adminCategories.slice("/admin/".length),
+        element: <CategoriesPage />
+      },
+      {
+        path: APP_ROUTES.adminBrands.slice("/admin/".length),
+        element: <BrandsPage />
+      },
+      {
+        path: APP_ROUTES.adminModels.slice("/admin/".length),
+        element: <ModelsPage />
       }
     ]
   }

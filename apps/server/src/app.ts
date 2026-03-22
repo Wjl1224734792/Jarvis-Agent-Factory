@@ -1,8 +1,11 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { APP_ROUTES } from "@feijia/shared";
+import { API_ROUTES, APP_ROUTES } from "@feijia/shared";
 
+import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.route";
 import { authRoute } from "./modules/auth/auth.route";
+import { brandsRoute } from "./modules/brands/brands.route";
+import { categoriesRoute } from "./modules/categories/categories.route";
 import { healthRoute } from "./routes/health";
 
 export const app = new Hono();
@@ -22,6 +25,9 @@ app.get("/", (c) =>
 
 app.route(APP_ROUTES.health, healthRoute);
 app.route("/", authRoute);
+app.route("/", aircraftModelsRoute);
+app.route(API_ROUTES.models.categories, categoriesRoute);
+app.route(API_ROUTES.models.brands, brandsRoute);
 
 app.notFound((context) =>
   context.json(

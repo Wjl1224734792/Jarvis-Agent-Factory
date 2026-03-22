@@ -11,10 +11,15 @@ export const DEFAULT_PORTS = APP_PORTS;
 export const APP_ROUTES = {
   home: "/",
   health: "/health",
+  models: "/models",
+  modelDetail: "/models/:slug",
   webLogin: "/login",
   webProfile: "/me",
   adminLogin: "/admin/login",
-  adminHome: "/admin"
+  adminHome: "/admin",
+  adminCategories: "/admin/categories",
+  adminBrands: "/admin/brands",
+  adminModels: "/admin/models"
 } as const;
 
 export const API_ROUTES = {
@@ -30,6 +35,16 @@ export const API_ROUTES = {
     adminLogout: "/auth/admin/logout",
     adminCurrentUser: "/auth/admin/me",
     adminProtectedPing: "/auth/admin/protected/ping"
+  },
+  models: {
+    list: "/models",
+    detail: (slug: string) => `/models/${slug}`,
+    categories: "/admin/categories",
+    brands: "/admin/brands",
+    adminList: "/admin/models",
+    adminDetail: (id: string) => `/admin/models/${id}`,
+    adminCategoryDetail: (id: string) => `/admin/categories/${id}`,
+    adminBrandDetail: (id: string) => `/admin/brands/${id}`
   }
 } as const;
 

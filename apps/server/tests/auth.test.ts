@@ -1,4 +1,4 @@
-import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
+import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
@@ -18,7 +18,7 @@ beforeAll(async () => {
 beforeEach(async () => {
   authRepo.resetEphemeralState();
   await resetDatabaseState();
-  await seedDatabase();
+  await seedAuthDatabase();
 });
 
 afterAll(async () => {

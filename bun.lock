@@ -25,6 +25,7 @@
         "@feijia/http-client": "workspace:*",
         "@feijia/schemas": "workspace:*",
         "@feijia/shared": "workspace:*",
+        "@tanstack/react-query": "^5.62.16",
         "lucide-react": "^0.469.0",
         "react": "^19.0.0",
         "react-dom": "^19.0.0",

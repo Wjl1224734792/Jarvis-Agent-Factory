@@ -7,6 +7,8 @@ import { ProfilePage } from "./features/auth/profile-page";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { HomePage } from "./routes/home-page";
+import { ModelDetailPage } from "./routes/model-detail-page";
+import { ModelsPage } from "./routes/models-page";
 
 const router = createBrowserRouter([
   {
@@ -28,6 +30,14 @@ const router = createBrowserRouter([
             <ProfilePage />
           </ProtectedRoute>
         )
+      },
+      {
+        path: APP_ROUTES.models.slice(1),
+        element: <ModelsPage />
+      },
+      {
+        path: APP_ROUTES.modelDetail.slice(1),
+        element: <ModelDetailPage />
       }
     ]
   }

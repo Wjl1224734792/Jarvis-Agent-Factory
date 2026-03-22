@@ -89,6 +89,11 @@ export const aircraftModelsTable = pgTable(
       .references(() => brandsTable.id, { onDelete: "restrict" }),
     powerType: text("power_type").notNull(),
     summary: text("summary"),
+    description: text("description"),
+    maxFlightTimeMinutes: integer("max_flight_time_minutes"),
+    maxRangeKilometers: integer("max_range_kilometers"),
+    maxSpeedKph: integer("max_speed_kph"),
+    takeoffWeightGrams: integer("takeoff_weight_grams"),
     isPublished: boolean("is_published").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
