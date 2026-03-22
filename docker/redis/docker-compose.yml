@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    container_name: feijia-redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+      --requirepass qwertyuiop
+      --appendonly yes
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+
+volumes:
+  redis_data:

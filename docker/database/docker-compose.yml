@@ -1,0 +1,37 @@
+services:
+  postgres:
+    image: postgres:18.1
+    container_name: feijia-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: feijia
+      POSTGRES_USER: user
+      POSTGRES_PASSWORD: qwertyuiop
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+      TZ: Asia/Shanghai
+      POSTGRES_HOST_AUTH_METHOD: md5
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql
+    command: >
+      postgres
+      -c listen_addresses='*'
+      -c max_connections=200
+      -c password_encryption=md5
+      -c log_destination='stderr'
+      -c logging_collector=on
+      -c log_directory='log'
+      -c log_filename='postgresql-%Y-%m-%d_%H%M%S.log'
+      -c log_rotation_age=1d
+      -c log_rotation_size=100MB
+      -c log_truncate_on_rotation=on
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d feijia"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+volumes:
+  postgres_data:
