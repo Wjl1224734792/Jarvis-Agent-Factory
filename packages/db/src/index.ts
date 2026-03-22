@@ -2,6 +2,7 @@ export { db, dbPool } from "./client.js";
 export {
   aircraftCategoriesTable,
   aircraftModelsTable,
+  aircraftReviewsTable,
   brandsTable,
   sessionsTable,
   usersTable

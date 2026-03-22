@@ -6,9 +6,21 @@ import {
   Heart,
   Info,
   MessageSquareText,
-  RadioTower
+  RadioTower,
+  Star
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { useAuthStore } from "../features/auth/auth-store";
+import {
+  buildSubmitReviewInput,
+  createReviewFormState,
+  isReviewFormValid,
+  syncReviewFormState,
+  updateReviewContent,
+  updateReviewRating,
+  type ReviewFormState
+} from "./model-review-form";
 import { apiClient } from "../lib/api-client";
 
 const powerTypeLabels = {
@@ -20,30 +32,73 @@ const powerTypeLabels = {
 const placeholderActions = [
   {
     label: "收藏",
-    hint: "第 4 阶段再接真实收藏写入",
+    hint: "后续迭代再接真实收藏写入",
     icon: Bookmark
   },
   {
     label: "想买",
-    hint: "第 4 阶段再接真实意向写入",
+    hint: "后续迭代再接真实意向写入",
     icon: Heart
-  },
-  {
-    label: "写点评",
-    hint: "第 4 阶段再接评分点评链路",
-    icon: MessageSquareText
   }
 ] as const;
+
+function ReviewStars({
+  rating,
+  onSelect
+}: {
+  rating: number;
+  onSelect?: (value: number) => void;
+}) {
+  return (
+    <div className="flex items-center gap-1">
+      {[1, 2, 3, 4, 5].map((value) => (
+        <button
+          className="rounded-full p-1 text-amber-500"
+          key={value}
+          onClick={() => {
+            onSelect?.(value);
+          }}
+          type="button"
+        >
+          <Star
+            className="h-5 w-5"
+            fill={value <= rating ? "currentColor" : "none"}
+            strokeWidth={1.75}
+          />
+        </button>
+      ))}
+    </div>
+  );
+}
 
 export function ModelDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug ?? "";
+  const authStatus = useAuthStore((state) => state.status);
 
   const detailQuery = useQuery({
     queryKey: ["model-detail", slug],
     queryFn: () => apiClient.getModelDetail(slug),
     enabled: Boolean(slug)
   });
+
+  const reviewsQuery = useQuery({
+    queryKey: ["model-reviews", slug, authStatus],
+    queryFn: () => apiClient.listModelReviews(slug),
+    enabled: Boolean(slug)
+  });
+
+  const [formState, setFormState] = useState<ReviewFormState>(() =>
+    createReviewFormState(null)
+  );
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    setFormState((current) =>
+      syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null)
+    );
+  }, [reviewsQuery.data?.summary.myReview]);
 
   if (!slug) {
     return (
@@ -53,10 +108,10 @@ export function ModelDetailPage() {
     );
   }
 
-  if (detailQuery.isLoading) {
+  if (detailQuery.isLoading || reviewsQuery.isLoading) {
     return (
       <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-        正在加载机型详情……
+        正在加载机型详情与口碑……
       </div>
     );
   }
@@ -69,9 +124,18 @@ export function ModelDetailPage() {
     );
   }
 
-  const item = detailQuery.data?.item;
+  if (reviewsQuery.isError) {
+    return (
+      <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
+        {reviewsQuery.error.message}
+      </div>
+    );
+  }
 
-  if (!item) {
+  const item = detailQuery.data?.item;
+  const reviewPayload = reviewsQuery.data;
+
+  if (!item || !reviewPayload) {
     return (
       <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
         当前机型详情暂无可展示数据。
@@ -183,9 +247,104 @@ export function ModelDetailPage() {
               </tbody>
             </table>
           </div>
+        </article>
+      </section>
 
-          <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-            本轮只保留详情页行为入口位。真实的收藏、想买和写点评提交会在下一迭代接入。
+      <section className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
+        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.35)]">
+          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Rating Summary</p>
+          <div className="mt-4 flex items-end gap-3">
+            <span className="text-4xl font-semibold text-slate-950">
+              {reviewPayload.summary.averageScore.toFixed(1)}
+            </span>
+            <span className="pb-1 text-sm text-slate-500">/ 10 分</span>
+          </div>
+          <p className="mt-2 text-sm text-slate-600">
+            共 {reviewPayload.summary.totalReviews} 条有效点评
+          </p>
+
+          <div className="mt-6 border-t border-slate-200 pt-5">
+            <div className="flex items-center gap-2 text-slate-950">
+              <MessageSquareText className="h-5 w-5" />
+              <h3 className="text-lg font-semibold">写点评</h3>
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <ReviewStars
+                onSelect={(value) => {
+                  setFormState((current) => updateReviewRating(current, value));
+                }}
+                rating={formState.rating}
+              />
+
+              <textarea
+                className="min-h-28 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-sky-400"
+                onChange={(event) => {
+                  setFormState((current) => updateReviewContent(current, event.target.value));
+                }}
+                placeholder="这台机型最打动你的地方是什么？也可以只打分不写文字。"
+                value={formState.content}
+              />
+
+              {submitError ? <p className="text-sm text-rose-600">{submitError}</p> : null}
+
+              <button
+                className="w-full rounded-2xl bg-sky-600 px-4 py-3 text-sm font-medium text-white transition hover:bg-sky-500 disabled:cursor-not-allowed disabled:bg-slate-300"
+                disabled={authStatus !== "authenticated" || !isReviewFormValid(formState) || isSubmitting}
+                onClick={() => {
+                  setSubmitError(null);
+                  setIsSubmitting(true);
+
+                  void apiClient
+                    .submitModelReview(slug, buildSubmitReviewInput(formState))
+                    .then(() => {
+                      setFormState((current) => ({ ...current, dirty: false }));
+                      reviewsQuery.refetch();
+                    })
+                    .catch((reason: unknown) => {
+                      setSubmitError(reason instanceof Error ? reason.message : "提交点评失败");
+                    })
+                    .finally(() => {
+                      setIsSubmitting(false);
+                    });
+                }}
+                type="button"
+              >
+                {authStatus !== "authenticated"
+                  ? "登录后可提交点评"
+                  : isSubmitting
+                    ? "提交中"
+                    : "提交 / 更新点评"}
+              </button>
+            </div>
+          </div>
+        </article>
+
+        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.35)]">
+          <h3 className="text-lg font-semibold text-slate-950">点评列表</h3>
+          <div className="mt-5 space-y-4">
+            {reviewPayload.items.map((review) => (
+              <article className="rounded-2xl border border-slate-200 bg-slate-50 p-4" key={review.id}>
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <div className="font-medium text-slate-950">{review.author.displayName}</div>
+                    <div className="mt-1 text-xs text-slate-500">
+                      {new Date(review.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+                    </div>
+                  </div>
+                  <ReviewStars rating={review.rating} />
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-700">
+                  {review.content ?? "该用户仅进行了快速评分。"}
+                </p>
+              </article>
+            ))}
+
+            {reviewPayload.items.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
+                还没有公开点评，欢迎留下第一条真实口碑。
+              </div>
+            ) : null}
           </div>
         </article>
       </section>

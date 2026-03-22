@@ -5,6 +5,8 @@ import {
   adminCategoryInputSchema,
   adminModelInputSchema,
   adminModelResponseSchema,
+  adminReviewResponseSchema,
+  adminReviewsResponseSchema,
   adminLoginRequestSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
@@ -16,8 +18,12 @@ import {
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
+  modelReviewsResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
+  submitModelReviewInputSchema,
+  submitModelReviewResponseSchema,
+  updateReviewStatusInputSchema,
   webLoginRequestSchema,
   type HealthResponse,
   type UserSummary
@@ -35,6 +41,8 @@ type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
 type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
+type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
+type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -218,6 +226,21 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, modelDetailResponseSchema);
     },
+    async listModelReviews(slug: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviews(slug)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, modelReviewsResponseSchema);
+    },
+    async submitModelReview(slug: string, input: SubmitReviewInput) {
+      return postJson(
+        API_ROUTES.models.reviews(slug),
+        submitModelReviewResponseSchema,
+        submitModelReviewInputSchema.parse(input)
+      );
+    },
     async createCategory(input: AdminCategoryInput) {
       return postJson(
         API_ROUTES.models.categories,
@@ -244,6 +267,21 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.models.adminDetail(id),
         adminModelResponseSchema,
         adminModelInputSchema.parse(input)
+      );
+    },
+    async listAdminReviews() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.adminReviews}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminReviewsResponseSchema);
+    },
+    async updateReviewStatus(id: string, input: UpdateReviewStatusInput) {
+      return putJson(
+        API_ROUTES.models.adminReviewDetail(id),
+        adminReviewResponseSchema,
+        updateReviewStatusInputSchema.parse(input)
       );
     }
   };

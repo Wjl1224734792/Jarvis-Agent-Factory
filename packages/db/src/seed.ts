@@ -20,14 +20,17 @@ async function ensureAdminUser() {
     return;
   }
 
-  await db.insert(usersTable).values({
-    id: createId("admin"),
-    role: "admin",
-    displayName: "系统管理员",
-    phone: null,
-    account: "admin",
-    passwordHash: hashPassword("Admin#123")
-  });
+  await db
+    .insert(usersTable)
+    .values({
+      id: createId("admin"),
+      role: "admin",
+      displayName: "系统管理员",
+      phone: null,
+      account: "admin",
+      passwordHash: hashPassword("Admin#123")
+    })
+    .onConflictDoNothing();
 }
 
 async function ensureAircraftSeed() {
@@ -46,38 +49,67 @@ async function ensureAircraftSeed() {
       return;
     }
 
-    await tx.insert(aircraftCategoriesTable).values({
-      id: categoryId,
-      slug: "drone",
-      name: "无人机",
-      sortOrder: 1,
-      isEnabled: true
-    });
+    await tx
+      .insert(aircraftCategoriesTable)
+      .values({
+        id: categoryId,
+        slug: "drone",
+        name: "无人机",
+        sortOrder: 1,
+        isEnabled: true
+      })
+      .onConflictDoNothing();
 
-    await tx.insert(brandsTable).values({
-      id: brandId,
-      slug: "dji",
-      name: "DJI",
-      categoryId,
-      sortOrder: 1,
-      isEnabled: true
-    });
+    const persistedCategory = await tx
+      .select()
+      .from(aircraftCategoriesTable)
+      .where(eq(aircraftCategoriesTable.slug, "drone"))
+      .limit(1);
 
-    await tx.insert(aircraftModelsTable).values({
-      id: modelId,
-      slug: "mini-4-pro",
-      name: "DJI Mini 4 Pro",
-      categoryId,
-      brandId,
-      powerType: "electric",
-      summary: "轻量级航拍无人机",
-      description: "适合轻量化航拍场景",
-      maxFlightTimeMinutes: 45,
-      maxRangeKilometers: 18,
-      maxSpeedKph: 58,
-      takeoffWeightGrams: 249,
-      isPublished: true
-    });
+    const persistedCategoryId = persistedCategory[0]?.id;
+
+    await tx
+      .insert(brandsTable)
+      .values({
+        id: brandId,
+        slug: "dji",
+        name: "DJI",
+        categoryId: persistedCategoryId ?? null,
+        sortOrder: 1,
+        isEnabled: true
+      })
+      .onConflictDoNothing();
+
+    const persistedBrand = await tx
+      .select()
+      .from(brandsTable)
+      .where(eq(brandsTable.slug, "dji"))
+      .limit(1);
+
+    const persistedBrandId = persistedBrand[0]?.id;
+
+    if (!persistedCategoryId || !persistedBrandId) {
+      return;
+    }
+
+    await tx
+      .insert(aircraftModelsTable)
+      .values({
+        id: modelId,
+        slug: "mini-4-pro",
+        name: "DJI Mini 4 Pro",
+        categoryId: persistedCategoryId,
+        brandId: persistedBrandId,
+        powerType: "electric",
+        summary: "轻量级航拍无人机",
+        description: "适合轻量化航拍场景",
+        maxFlightTimeMinutes: 45,
+        maxRangeKilometers: 18,
+        maxSpeedKph: 58,
+        takeoffWeightGrams: 249,
+        isPublished: true
+      })
+      .onConflictDoNothing();
   });
 }
 

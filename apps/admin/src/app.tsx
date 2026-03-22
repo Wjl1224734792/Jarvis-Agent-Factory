@@ -7,6 +7,7 @@ import { AdminShell } from "./features/auth/admin-shell";
 import { BrandsPage } from "./features/models/brands-page";
 import { CategoriesPage } from "./features/models/categories-page";
 import { ModelsPage } from "./features/models/models-page";
+import { ReviewsPage } from "./features/reviews/reviews-page";
 
 const router = createBrowserRouter([
   {
@@ -36,6 +37,10 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.adminModels.slice("/admin/".length),
         element: <ModelsPage />
+      },
+      {
+        path: APP_ROUTES.adminReviews.slice("/admin/".length),
+        element: <ReviewsPage />
       }
     ]
   }

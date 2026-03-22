@@ -6,6 +6,7 @@ import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.r
 import { authRoute } from "./modules/auth/auth.route";
 import { brandsRoute } from "./modules/brands/brands.route";
 import { categoriesRoute } from "./modules/categories/categories.route";
+import { reviewsRoute } from "./modules/reviews/reviews.route";
 import { healthRoute } from "./routes/health";
 
 export const app = new Hono();
@@ -26,6 +27,7 @@ app.get("/", (c) =>
 app.route(APP_ROUTES.health, healthRoute);
 app.route("/", authRoute);
 app.route("/", aircraftModelsRoute);
+app.route("/", reviewsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
 

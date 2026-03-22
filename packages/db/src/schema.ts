@@ -103,3 +103,31 @@ export const aircraftModelsTable = pgTable(
     slugUnique: uniqueIndex("aircraft_models_slug_unique").on(table.slug)
   })
 );
+
+export const aircraftReviewsTable = pgTable(
+  "aircraft_reviews",
+  {
+    id: text("id").primaryKey(),
+    modelId: text("model_id")
+      .notNull()
+      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    content: text("content"),
+    status: text("status").default("visible").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    modelUserUnique: uniqueIndex("aircraft_reviews_model_user_unique").on(
+      table.modelId,
+      table.userId
+    )
+  })
+);

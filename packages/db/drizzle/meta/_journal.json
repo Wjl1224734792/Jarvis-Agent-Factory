@@ -15,6 +15,13 @@
       "when": 1774194112747,
       "tag": "0001_clever_yellowjacket",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774196368527,
+      "tag": "0002_robust_black_bolt",
+      "breakpoints": true
     }
   ]
 }

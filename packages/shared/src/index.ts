@@ -19,7 +19,8 @@ export const APP_ROUTES = {
   adminHome: "/admin",
   adminCategories: "/admin/categories",
   adminBrands: "/admin/brands",
-  adminModels: "/admin/models"
+  adminModels: "/admin/models",
+  adminReviews: "/admin/reviews"
 } as const;
 
 export const API_ROUTES = {
@@ -39,12 +40,15 @@ export const API_ROUTES = {
   models: {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
+    reviews: (slug: string) => `/models/${slug}/reviews`,
     categories: "/admin/categories",
     brands: "/admin/brands",
     adminList: "/admin/models",
     adminDetail: (id: string) => `/admin/models/${id}`,
     adminCategoryDetail: (id: string) => `/admin/categories/${id}`,
-    adminBrandDetail: (id: string) => `/admin/brands/${id}`
+    adminBrandDetail: (id: string) => `/admin/brands/${id}`,
+    adminReviews: "/admin/reviews",
+    adminReviewDetail: (id: string) => `/admin/reviews/${id}`
   }
 } as const;
 
