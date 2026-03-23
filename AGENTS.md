@@ -1,4 +1,4 @@
-# AGENTS_zh.md
+# AGENTS.md
 
 ## 仓库预期
 

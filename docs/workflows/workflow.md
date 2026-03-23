@@ -1,4 +1,4 @@
-# docs/plans/workflow_zh.md
+# docs/workflows/workflow.md
 
 ## 目的
 
