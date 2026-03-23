@@ -1,8 +1,15 @@
 import {
+  actionSuccessResponseSchema,
   adminBrandResponseSchema,
   adminBrandInputSchema,
   adminCategoryResponseSchema,
   adminCategoryInputSchema,
+  adminPostCommentResponseSchema,
+  adminPostCommentsResponseSchema,
+  adminPostCommentStatusUpdateInputSchema,
+  adminPostResponseSchema,
+  adminPostsResponseSchema,
+  adminPostStatusUpdateInputSchema,
   adminModelInputSchema,
   adminModelResponseSchema,
   adminReviewResponseSchema,
@@ -11,14 +18,22 @@ import {
   authErrorResponseSchema,
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
+  createPostCommentInputSchema,
+  createPostCommentResponseSchema,
+  createPostInputSchema,
+  createPostResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
+  feedTabSchema,
   healthResponseSchema,
   healthRoute,
+  homeFeedResponseSchema,
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
   modelReviewsResponseSchema,
+  postDetailResponseSchema,
+  reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   submitModelReviewInputSchema,
@@ -41,6 +56,13 @@ type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
 type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
+type FeedTabInput = Parameters<typeof feedTabSchema.parse>[0];
+type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
+type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
+type ReportPostInput = Parameters<typeof reportPostInputSchema.parse>[0];
+type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSchema.parse>[0];
+type UpdateAdminPostCommentStatusInput =
+  Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 
@@ -206,6 +228,95 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, currentUserResponseSchema);
+    },
+    async listHomeFeed(tab: FeedTabInput) {
+      const parsedTab = feedTabSchema.parse(tab);
+      const response = await fetch(`${baseUrl}${API_ROUTES.feed}?tab=${parsedTab}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, homeFeedResponseSchema);
+    },
+    async createPost(input: CreatePostInput) {
+      return postJson(
+        API_ROUTES.posts.create,
+        createPostResponseSchema,
+        createPostInputSchema.parse(input)
+      );
+    },
+    async getPostDetail(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, postDetailResponseSchema);
+    },
+    async createPostComment(postId: string, input: CreatePostCommentInput) {
+      return postJson(
+        API_ROUTES.posts.comments(postId),
+        createPostCommentResponseSchema,
+        createPostCommentInputSchema.parse(input)
+      );
+    },
+    async deletePost(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async deletePostComment(postId: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.commentDetail(postId, commentId)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportPost(id: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.posts.report(id),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
+    },
+    async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminList}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminPostsResponseSchema);
+    },
+    async updateAdminPostStatus(id: string, input: UpdateAdminPostStatusInput) {
+      return putJson(
+        API_ROUTES.posts.adminDetail(id),
+        adminPostResponseSchema,
+        adminPostStatusUpdateInputSchema.parse(input)
+      );
+    },
+    async listAdminPostComments(status?: "visible" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminComments}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminPostCommentsResponseSchema);
+    },
+    async updateAdminPostCommentStatus(
+      id: string,
+      input: UpdateAdminPostCommentStatusInput
+    ) {
+      return putJson(
+        API_ROUTES.posts.adminCommentDetail(id),
+        adminPostCommentResponseSchema,
+        adminPostCommentStatusUpdateInputSchema.parse(input)
+      );
     },
     async listModels(input: ModelsQueryInput = {}) {
       const response = await fetch(

@@ -17,7 +17,7 @@ export function WebLayout() {
             </div>
             <nav className="flex items-center gap-2">
               {[
-                { to: APP_ROUTES.home, label: "首页" },
+                { to: APP_ROUTES.feedHome, label: "首页" },
                 { to: APP_ROUTES.models, label: "机型库" }
               ].map((item) => (
                 <NavLink

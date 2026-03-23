@@ -1,5 +1,6 @@
 import {
   boolean,
+  foreignKey,
   integer,
   pgTable,
   text,
@@ -128,6 +129,76 @@ export const aircraftReviewsTable = pgTable(
     modelUserUnique: uniqueIndex("aircraft_reviews_model_user_unique").on(
       table.modelId,
       table.userId
+    )
+  })
+);
+
+export const postsTable = pgTable("posts", {
+  id: text("id").primaryKey(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  status: text("status").default("pending").notNull(),
+  commentCount: integer("comment_count").default(0).notNull(),
+  reportCount: integer("report_count").default(0).notNull(),
+  publishedAt: timestamp("published_at", { withTimezone: true }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const postCommentsTable = pgTable(
+  "post_comments",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
+    content: text("content").notNull(),
+    status: text("status").default("visible").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    parentCommentFk: foreignKey({
+      columns: [table.parentCommentId],
+      foreignColumns: [table.id]
+    }).onDelete("cascade")
+  })
+);
+
+export const postReportsTable = pgTable(
+  "post_reports",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    reporterId: text("reporter_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    reason: text("reason").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    postReporterUnique: uniqueIndex("post_reports_post_reporter_unique").on(
+      table.postId,
+      table.reporterId
     )
   })
 );

@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { queryClient } from "./lib/query-client";
 import { LoginPage } from "./features/auth/login-page";
 import { ProfilePage } from "./features/auth/profile-page";
@@ -9,6 +9,7 @@ import { WebLayout } from "./features/auth/web-layout";
 import { HomePage } from "./routes/home-page";
 import { ModelDetailPage } from "./routes/model-detail-page";
 import { ModelsPage } from "./routes/models-page";
+import { PostDetailPage } from "./routes/post-detail-page";
 
 const router = createBrowserRouter([
   {
@@ -17,6 +18,10 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <Navigate replace to={APP_ROUTES.feedHome} />
+      },
+      {
+        path: APP_ROUTES.feedHome.slice(1),
         element: <HomePage />
       },
       {
@@ -38,6 +43,10 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.modelDetail.slice(1),
         element: <ModelDetailPage />
+      },
+      {
+        path: APP_ROUTES.postDetail.slice(1),
+        element: <PostDetailPage />
       }
     ]
   }

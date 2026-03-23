@@ -4,6 +4,9 @@ import {
   aircraftCategoriesTable,
   aircraftModelsTable,
   brandsTable,
+  postCommentsTable,
+  postsTable,
+  postReportsTable,
   sessionsTable,
   usersTable
 } from "./schema.js";
@@ -113,10 +116,79 @@ async function ensureAircraftSeed() {
   });
 }
 
+async function ensureCommunitySeed() {
+  const authorId = createId("user");
+  const commenterId = createId("user");
+  const publishedPostId = createId("post");
+  const pendingPostId = createId("post");
+  const commentId = createId("comment");
+
+  await db.transaction(async (tx) => {
+    const existingPost = await tx.select().from(postsTable).limit(1);
+
+    if (existingPost.length > 0) {
+      return;
+    }
+
+    await tx.insert(usersTable).values([
+      {
+        id: authorId,
+        role: "user",
+        displayName: "飞友阿澈",
+        phone: "13800138088",
+        account: null,
+        passwordHash: null
+      },
+      {
+        id: commenterId,
+        role: "user",
+        displayName: "飞友北斗",
+        phone: "13800138089",
+        account: null,
+        passwordHash: null
+      }
+    ]);
+
+    const publishedAt = new Date();
+
+    await tx.insert(postsTable).values([
+      {
+        id: publishedPostId,
+        authorId,
+        title: "海边试飞日志",
+        content: "今天在海边试飞，侧风偏大，但返航和悬停都很稳。",
+        status: "published",
+        commentCount: 1,
+        reportCount: 0,
+        publishedAt
+      },
+      {
+        id: pendingPostId,
+        authorId: commenterId,
+        title: "周末练习计划",
+        content: "准备周末去空旷草地继续练习绕点飞行。",
+        status: "pending",
+        commentCount: 0,
+        reportCount: 0,
+        publishedAt: null
+      }
+    ]);
+
+    await tx.insert(postCommentsTable).values({
+      id: commentId,
+      postId: publishedPostId,
+      authorId: commenterId,
+      parentCommentId: null,
+      content: "这条经验很实用，下次我也试试海边风场。",
+      status: "visible"
+    });
+  });
+}
+
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "aircraft_models", "brands", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      'TRUNCATE TABLE "post_reports", "post_comments", "posts", "aircraft_reviews", "aircraft_models", "brands", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }
@@ -128,4 +200,5 @@ export async function seedAuthDatabase() {
 export async function seedDatabase() {
   await seedAuthDatabase();
   await ensureAircraftSeed();
+  await ensureCommunitySeed();
 }

@@ -24,7 +24,9 @@ export function AdminShell() {
                 { to: APP_ROUTES.adminCategories, label: "分类" },
                 { to: APP_ROUTES.adminBrands, label: "品牌" },
                 { to: APP_ROUTES.adminModels, label: "机型" },
-                { to: APP_ROUTES.adminReviews, label: "点评" }
+                { to: APP_ROUTES.adminReviews, label: "点评" },
+                { to: APP_ROUTES.adminPosts, label: "帖子" },
+                { to: APP_ROUTES.adminPostComments, label: "评论" }
               ].map((item) => (
                 <Link
                   className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200"

@@ -1,5 +1,5 @@
 import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
-import { API_ROUTES } from "@feijia/shared";
+import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { app } from "../src/app";
@@ -26,6 +26,38 @@ afterAll(async () => {
 });
 
 describe("auth flows", () => {
+  it("returns credential-friendly CORS headers for web and admin origins", async () => {
+    const webOrigin = `http://localhost:${APP_PORTS.web}`;
+    const adminOrigin = `http://localhost:${APP_PORTS.admin}`;
+
+    const preflightResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "OPTIONS",
+      headers: {
+        origin: webOrigin,
+        "access-control-request-method": "POST",
+        "access-control-request-headers": "content-type"
+      }
+    });
+
+    expect(preflightResponse.status).toBe(204);
+    expect(preflightResponse.headers.get("access-control-allow-origin")).toBe(webOrigin);
+    expect(preflightResponse.headers.get("access-control-allow-credentials")).toBe("true");
+    expect(preflightResponse.headers.get("access-control-allow-methods")).toContain("POST");
+    expect(preflightResponse.headers.get("access-control-allow-headers")).toContain(
+      "content-type"
+    );
+
+    const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: {
+        origin: adminOrigin
+      }
+    });
+
+    expect(meResponse.headers.get("access-control-allow-origin")).toBe(adminOrigin);
+    expect(meResponse.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
   it("supports web captcha + sms + login + me + logout flow", async () => {
     const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
       method: "POST"

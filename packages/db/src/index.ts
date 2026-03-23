@@ -4,6 +4,9 @@ export {
   aircraftModelsTable,
   aircraftReviewsTable,
   brandsTable,
+  postCommentsTable,
+  postReportsTable,
+  postsTable,
   sessionsTable,
   usersTable
 } from "./schema.js";
