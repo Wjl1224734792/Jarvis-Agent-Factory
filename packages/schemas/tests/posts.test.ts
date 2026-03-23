@@ -6,32 +6,35 @@ import {
   feedTabSchema,
   postCommentStatusSchema,
   postStatusSchema,
-  reportPostInputSchema
+  reportPostInputSchema,
+  uploadPostImageResponseSchema
 } from "../src/posts";
 
 describe("posts contract", () => {
   it("accepts the supported home feed tabs", () => {
     expect(feedTabSchema.parse("recommended")).toBe("recommended");
     expect(feedTabSchema.parse("latest")).toBe("latest");
-    expect(feedTabSchema.safeParse("following").success).toBe(false);
+    expect(feedTabSchema.parse("following")).toBe("following");
   });
 
-  it("parses the create post payload", () => {
+  it("parses the create post payload with uploaded images", () => {
     const payload = createPostInputSchema.parse({
-      title: "御风笔记",
-      content: "今天第一次飞这台机型，抗风表现比预期稳很多。"
+      title: "Crosswind notes",
+      content: "This airframe held trim better than expected in gusty conditions.",
+      imageIds: ["image_1", "image_2"]
     });
 
-    expect(payload.title).toBe("御风笔记");
-    expect(payload.content).toContain("抗风");
+    expect(payload.title).toBe("Crosswind notes");
+    expect(payload.content).toContain("gusty");
+    expect(payload.imageIds).toEqual(["image_1", "image_2"]);
   });
 
-  it("parses comment and reply payloads", () => {
+  it("parses comment payloads for nested replies", () => {
     const topLevel = createPostCommentInputSchema.parse({
-      content: "这条经验很有帮助。"
+      content: "Helpful field notes."
     });
     const reply = createPostCommentInputSchema.parse({
-      content: "我也有同感。",
+      content: "Replying deeper in the thread.",
       parentCommentId: "comment_1"
     });
 
@@ -50,10 +53,25 @@ describe("posts contract", () => {
       status: "published"
     });
     const report = reportPostInputSchema.parse({
-      reason: "广告引流内容"
+      reason: "Looks like spam promotion."
     });
 
     expect(update.status).toBe("published");
-    expect(report.reason).toContain("广告");
+    expect(report.reason).toContain("spam");
+  });
+
+  it("parses uploaded image metadata", () => {
+    const payload = uploadPostImageResponseSchema.parse({
+      item: {
+        id: "image_1",
+        url: "data:image/png;base64,Zm9v",
+        fileName: "cover.png",
+        mimeType: "image/png",
+        byteSize: 128
+      }
+    });
+
+    expect(payload.item.fileName).toBe("cover.png");
+    expect(payload.item.mimeType).toBe("image/png");
   });
 });

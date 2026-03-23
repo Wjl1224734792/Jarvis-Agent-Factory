@@ -12,7 +12,9 @@ import {
   createPostResponseSchema,
   homeFeedResponseSchema,
   postDetailResponseSchema,
-  reportPostInputSchema
+  postInteractionTypeSchema,
+  reportPostInputSchema,
+  uploadPostImageResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -24,14 +26,56 @@ import {
 } from "../auth/auth.middleware";
 import { postsService } from "./posts.service";
 
+const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+
 export const postsRoute = new Hono<{ Variables: AuthVariables }>();
 
 postsRoute.use("*", attachCurrentUser);
 
 postsRoute.get(API_ROUTES.feed, async (context) => {
-  const tab = context.req.query("tab") === "recommended" ? "recommended" : "latest";
-  const payload = await postsService.listFeed(tab);
+  const tabQuery = context.req.query("tab");
+  const tab =
+    tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
+  const payload = await postsService.listFeed(tab, context.get("currentUser"));
   return context.json(homeFeedResponseSchema.parse(payload));
+});
+
+postsRoute.post(API_ROUTES.uploads.images, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const formData = await context.req.formData();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing image file." }, 400);
+  }
+
+  if (!file.type.startsWith("image/")) {
+    return context.json({ code: "BAD_REQUEST", message: "Only image upload is supported." }, 400);
+  }
+
+  if (file.size > MAX_IMAGE_SIZE_BYTES) {
+    return context.json({ code: "BAD_REQUEST", message: "Image size exceeds limit." }, 400);
+  }
+
+  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
+  const payload = await postsService.uploadImage({
+    ownerId: currentUser.id,
+    fileName: file.name || "image",
+    mimeType: file.type,
+    byteSize: file.size,
+    dataUrl
+  });
+
+  if (!payload) {
+    return context.json({ code: "INTERNAL_ERROR", message: "Failed to save image." }, 500);
+  }
+
+  return context.json(uploadPostImageResponseSchema.parse(payload));
 });
 
 postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
@@ -45,14 +89,19 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
   const payload = await postsService.createPost({
     authorId: currentUser.id,
     title: input.title,
-    content: input.content
+    content: input.content,
+    imageIds: input.imageIds
   });
 
-  if (!payload) {
+  if (payload.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded images." }, 400);
+  }
+
+  if (payload.kind === "not_found") {
     return context.json({ code: "INTERNAL_ERROR", message: "Failed to create post." }, 500);
   }
 
-  return context.json(createPostResponseSchema.parse(payload));
+  return context.json(createPostResponseSchema.parse({ item: payload.item }));
 });
 
 postsRoute.get(API_ROUTES.posts.detail(":id"), async (context) => {
@@ -86,15 +135,39 @@ postsRoute.post(API_ROUTES.posts.comments(":id"), requireAuth, async (context) =
   const input = createPostCommentInputSchema.parse(await context.req.json());
   const result = await postsService.createComment(id, currentUser, input);
 
-  if (result.kind === "invalid_parent") {
-    return context.json({ code: "BAD_REQUEST", message: "Only one reply level is supported." }, 400);
-  }
-
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Post or comment not found." }, 404);
   }
 
   return context.json(createPostCommentResponseSchema.parse({ item: result.item }));
+});
+
+postsRoute.post(API_ROUTES.posts.interaction(":id", ":type"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const type = context.req.param("type");
+  const currentUser = context.get("currentUser");
+
+  if (!id || !type) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id or type." }, 400);
+  }
+
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const parsedType = postInteractionTypeSchema.safeParse(type);
+
+  if (!parsedType.success) {
+    return context.json({ code: "BAD_REQUEST", message: "Unsupported interaction type." }, 400);
+  }
+
+  const result = await postsService.toggleInteraction(id, currentUser, parsedType.data);
+
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
 postsRoute.delete(API_ROUTES.posts.commentDetail(":postId", ":commentId"), requireAuth, async (context) => {

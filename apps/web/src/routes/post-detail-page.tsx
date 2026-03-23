@@ -4,11 +4,9 @@ import { AlertTriangle, ArrowLeft, MessageSquareText, Send, Trash2 } from "lucid
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { useAuthStore } from "../features/auth/auth-store";
+import { PostCommentThread } from "../features/posts/post-comment-thread";
+import { PostInteractionBar } from "../features/posts/post-interaction-bar";
 import { apiClient } from "../lib/api-client";
-
-function postDetailPath(id: string) {
-  return APP_ROUTES.postDetail.replace(":id", id);
-}
 
 export function PostDetailPage() {
   const params = useParams<{ id: string }>();
@@ -18,8 +16,6 @@ export function PostDetailPage() {
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
   const [commentContent, setCommentContent] = useState("");
-  const [replyTargetId, setReplyTargetId] = useState<string | null>(null);
-  const [replyContent, setReplyContent] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -58,12 +54,13 @@ export function PostDetailPage() {
   if (!item) {
     return (
       <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-        当前帖子不存在或还未公开。
+        当前帖子不存在或尚未公开。
       </div>
     );
   }
 
   const isAuthor = currentUser?.id === item.author.id;
+  const canComment = authStatus === "authenticated" && item.status === "published";
 
   return (
     <main className="space-y-6">
@@ -76,7 +73,7 @@ export function PostDetailPage() {
       </Link>
 
       <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_25px_70px_-45px_rgba(15,23,42,0.35)]">
-        <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-wrap items-start justify-between gap-6">
           <div className="max-w-3xl">
             <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-slate-400">
               <span>{item.author.displayName}</span>
@@ -95,6 +92,7 @@ export function PostDetailPage() {
                 当前状态：{item.status}
               </span>
             ) : null}
+
             {authStatus === "authenticated" && !isAuthor ? (
               <button
                 className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
@@ -107,8 +105,8 @@ export function PostDetailPage() {
                     .then(() => {
                       void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
                     })
-                    .catch((error: unknown) => {
-                      setActionError(error instanceof Error ? error.message : "举报失败");
+                    .catch((value: unknown) => {
+                      setActionError(value instanceof Error ? value.message : "举报失败");
                     });
                 }}
                 type="button"
@@ -117,6 +115,7 @@ export function PostDetailPage() {
                 举报
               </button>
             ) : null}
+
             {isAuthor ? (
               <button
                 className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
@@ -128,8 +127,8 @@ export function PostDetailPage() {
                       void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
                       navigate(APP_ROUTES.feedHome, { replace: true });
                     })
-                    .catch((error: unknown) => {
-                      setActionError(error instanceof Error ? error.message : "删帖失败");
+                    .catch((value: unknown) => {
+                      setActionError(value instanceof Error ? value.message : "删除帖子失败");
                     });
                 }}
                 type="button"
@@ -139,6 +138,31 @@ export function PostDetailPage() {
               </button>
             ) : null}
           </div>
+        </div>
+
+        {item.images.length > 0 ? (
+          <div className="mt-8 grid gap-4 md:grid-cols-2">
+            {item.images.map((image) => (
+              <img
+                alt={image.fileName}
+                className="h-72 w-full rounded-[28px] object-cover"
+                key={image.id}
+                src={image.url}
+              />
+            ))}
+          </div>
+        ) : null}
+
+        <div className="mt-6">
+          <PostInteractionBar
+            authorId={item.author.id}
+            favoriteCount={item.engagement.favoriteCount}
+            isPublished={item.status === "published"}
+            likeCount={item.engagement.likeCount}
+            postId={item.id}
+            shareCount={item.engagement.shareCount}
+            viewer={item.engagement.viewer}
+          />
         </div>
 
         {actionError ? (
@@ -155,11 +179,11 @@ export function PostDetailPage() {
 
           {authStatus !== "authenticated" ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-              登录后即可参与评论和回复。
+              登录后即可参与评论、回复、点赞和关注。
             </div>
           ) : item.status !== "published" ? (
             <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-              只有已发布帖子可继续评论。
+              只有已发布帖子才允许继续评论。
             </div>
           ) : (
             <div className="mt-5 space-y-4">
@@ -184,11 +208,14 @@ export function PostDetailPage() {
                     })
                     .then(() => {
                       setCommentContent("");
-                      void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                      void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
+                      return Promise.all([
+                        queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
+                        queryClient.invalidateQueries({ queryKey: ["home-feed"] }),
+                        queryClient.invalidateQueries({ queryKey: ["notifications"] })
+                      ]);
                     })
-                    .catch((error: unknown) => {
-                      setActionError(error instanceof Error ? error.message : "评论失败");
+                    .catch((value: unknown) => {
+                      setActionError(value instanceof Error ? value.message : "评论失败");
                     })
                     .finally(() => {
                       setIsSubmitting(false);
@@ -207,172 +234,18 @@ export function PostDetailPage() {
           <h3 className="text-lg font-semibold text-slate-950">评论区</h3>
 
           <div className="mt-5 space-y-4">
-            {item.comments.map((comment) => {
-              const canDeleteComment = currentUser?.id === comment.author.id;
-
-              return (
-                <article className="rounded-3xl border border-slate-200 bg-slate-50 p-5" key={comment.id}>
-                  <div className="flex flex-wrap items-start justify-between gap-3">
-                    <div>
-                      <div className="font-medium text-slate-950">{comment.author.displayName}</div>
-                      <div className="mt-1 text-xs text-slate-500">
-                        {new Date(comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-                      </div>
-                    </div>
-
-                    <div className="flex flex-wrap gap-2">
-                      {authStatus === "authenticated" && item.status === "published" ? (
-                        <button
-                          className="rounded-full border border-slate-200 px-3 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
-                          onClick={() => {
-                            setReplyTargetId((current) => (current === comment.id ? null : comment.id));
-                            setReplyContent("");
-                          }}
-                          type="button"
-                        >
-                          回复
-                        </button>
-                      ) : null}
-                      {canDeleteComment ? (
-                        <button
-                          className="rounded-full border border-rose-200 px-3 py-2 text-xs text-rose-600 transition hover:border-rose-300"
-                          onClick={() => {
-                            setActionError(null);
-                            void apiClient
-                              .deletePostComment(item.id, comment.id)
-                              .then(() => {
-                                void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                                void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
-                              })
-                              .catch((error: unknown) => {
-                                setActionError(
-                                  error instanceof Error ? error.message : "删除评论失败"
-                                );
-                              });
-                          }}
-                          type="button"
-                        >
-                          删除
-                        </button>
-                      ) : null}
-                    </div>
-                  </div>
-
-                  <p className="mt-4 text-sm leading-7 text-slate-700">{comment.content}</p>
-
-                  {replyTargetId === comment.id ? (
-                    <div className="mt-4 space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-                      <textarea
-                        className="min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-sky-400"
-                        onChange={(event) => {
-                          setReplyContent(event.target.value);
-                        }}
-                        placeholder={`回复 ${comment.author.displayName}`}
-                        value={replyContent}
-                      />
-                      <div className="flex gap-2">
-                        <button
-                          className="rounded-full bg-slate-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                          disabled={!replyContent.trim()}
-                          onClick={() => {
-                            setActionError(null);
-                            void apiClient
-                              .createPostComment(item.id, {
-                                content: replyContent,
-                                parentCommentId: comment.id
-                              })
-                              .then(() => {
-                                setReplyTargetId(null);
-                                setReplyContent("");
-                                void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                                void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
-                              })
-                              .catch((error: unknown) => {
-                                setActionError(
-                                  error instanceof Error ? error.message : "回复失败"
-                                );
-                              });
-                          }}
-                          type="button"
-                        >
-                          回复这条评论
-                        </button>
-                        <button
-                          className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
-                          onClick={() => {
-                            setReplyTargetId(null);
-                            setReplyContent("");
-                          }}
-                          type="button"
-                        >
-                          取消
-                        </button>
-                      </div>
-                    </div>
-                  ) : null}
-
-                  {comment.replies.length > 0 ? (
-                    <div className="mt-4 space-y-3 border-l border-slate-200 pl-4">
-                      {comment.replies.map((reply) => {
-                        const canDeleteReply = currentUser?.id === reply.author.id;
-
-                        return (
-                          <div className="rounded-2xl bg-white p-4" key={reply.id}>
-                            <div className="flex flex-wrap items-start justify-between gap-3">
-                              <div>
-                                <div className="font-medium text-slate-900">{reply.author.displayName}</div>
-                                <div className="mt-1 text-xs text-slate-500">
-                                  {new Date(reply.updatedAt).toLocaleString("zh-CN", {
-                                    hour12: false
-                                  })}
-                                </div>
-                              </div>
-
-                              {canDeleteReply ? (
-                                <button
-                                  className="rounded-full border border-rose-200 px-3 py-2 text-xs text-rose-600 transition hover:border-rose-300"
-                                  onClick={() => {
-                                    setActionError(null);
-                                    void apiClient
-                                      .deletePostComment(item.id, reply.id)
-                                      .then(() => {
-                                        void queryClient.invalidateQueries({
-                                          queryKey: ["post-detail", id]
-                                        });
-                                        void queryClient.invalidateQueries({
-                                          queryKey: ["home-feed"]
-                                        });
-                                      })
-                                      .catch((error: unknown) => {
-                                        setActionError(
-                                          error instanceof Error
-                                            ? error.message
-                                            : "删除回复失败"
-                                        );
-                                      });
-                                  }}
-                                  type="button"
-                                >
-                                  删除
-                                </button>
-                              ) : null}
-                            </div>
-
-                            <p className="mt-3 text-sm leading-7 text-slate-700">{reply.content}</p>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : null}
-                </article>
-              );
-            })}
-
-            {item.comments.length === 0 ? (
+            {item.comments.length > 0 ? (
+              <PostCommentThread
+                canInteract={canComment}
+                comments={item.comments}
+                currentUserId={currentUser?.id}
+                postId={item.id}
+              />
+            ) : (
               <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
                 还没有人参与这条讨论，欢迎留下第一条评论。
               </div>
-            ) : null}
+            )}
           </div>
         </article>
       </section>

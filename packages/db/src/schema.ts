@@ -143,6 +143,9 @@ export const postsTable = pgTable("posts", {
   status: text("status").default("pending").notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
   reportCount: integer("report_count").default(0).notNull(),
+  likeCount: integer("like_count").default(0).notNull(),
+  favoriteCount: integer("favorite_count").default(0).notNull(),
+  shareCount: integer("share_count").default(0).notNull(),
   publishedAt: timestamp("published_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -202,3 +205,81 @@ export const postReportsTable = pgTable(
     )
   })
 );
+
+export const postImagesTable = pgTable("post_images", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  dataUrl: text("data_url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const userFollowsTable = pgTable(
+  "user_follows",
+  {
+    id: text("id").primaryKey(),
+    followerId: text("follower_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    followeeId: text("followee_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    followerFolloweeUnique: uniqueIndex("user_follows_follower_followee_unique").on(
+      table.followerId,
+      table.followeeId
+    )
+  })
+);
+
+export const postInteractionsTable = pgTable(
+  "post_interactions",
+  {
+    id: text("id").primaryKey(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => postsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    postUserTypeUnique: uniqueIndex("post_interactions_post_user_type_unique").on(
+      table.postId,
+      table.userId,
+      table.type
+    )
+  })
+);
+
+export const notificationsTable = pgTable("notifications", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  actorId: text("actor_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  type: text("type").notNull(),
+  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
+  commentId: text("comment_id").references(() => postCommentsTable.id, { onDelete: "cascade" }),
+  isRead: boolean("is_read").default(false).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});

@@ -4,10 +4,14 @@ export {
   aircraftModelsTable,
   aircraftReviewsTable,
   brandsTable,
+  notificationsTable,
   postCommentsTable,
+  postImagesTable,
+  postInteractionsTable,
   postReportsTable,
   postsTable,
   sessionsTable,
+  userFollowsTable,
   usersTable
 } from "./schema.js";
 export { createId, hashPassword } from "./helpers.js";

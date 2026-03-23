@@ -1,4 +1,15 @@
+import { socialService } from "../social/social.service";
 import { postsRepo } from "./posts.repo";
+
+type CurrentUser = {
+  id: string;
+  role: "user" | "admin";
+};
+
+type FeedTab = "recommended" | "latest" | "following";
+type PostStatus = "pending" | "published" | "rejected" | "hidden";
+type PostCommentStatus = "visible" | "hidden";
+type PostInteractionType = "like" | "favorite" | "share";
 
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
@@ -8,7 +19,90 @@ function toPreview(content: string) {
   return content.length > 140 ? `${content.slice(0, 140)}...` : content;
 }
 
-function serializePostFeedItem(item: Awaited<ReturnType<typeof postsRepo.getPostById>>) {
+function serializeImage(
+  image: Awaited<ReturnType<typeof postsRepo.getImageUploadById>>
+) {
+  if (!image) {
+    return null;
+  }
+
+  return {
+    id: image.id,
+    url: image.url,
+    fileName: image.fileName,
+    mimeType: image.mimeType,
+    byteSize: image.byteSize
+  };
+}
+
+function buildImagesByPostId(
+  images: Awaited<ReturnType<typeof postsRepo.listPostImages>>
+) {
+  const imagesByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>[]>();
+
+  for (const image of images) {
+    if (!image.postId) {
+      continue;
+    }
+
+    const serialized = serializeImage(image);
+
+    if (!serialized) {
+      continue;
+    }
+
+    const bucket = imagesByPostId.get(image.postId) ?? [];
+    bucket.push(serialized);
+    imagesByPostId.set(image.postId, bucket);
+  }
+
+  return imagesByPostId;
+}
+
+function buildInteractionMap(
+  interactions: Awaited<ReturnType<typeof postsRepo.listViewerInteractions>>
+) {
+  const interactionMap = new Map<string, Set<PostInteractionType>>();
+
+  for (const item of interactions) {
+    if (item.type !== "like" && item.type !== "favorite" && item.type !== "share") {
+      continue;
+    }
+
+    const bucket = interactionMap.get(item.postId) ?? new Set<PostInteractionType>();
+    bucket.add(item.type);
+    interactionMap.set(item.postId, bucket);
+  }
+
+  return interactionMap;
+}
+
+function toViewerState(input: {
+  authorId: string;
+  currentUser?: CurrentUser | null;
+  followingAuthorIds?: Set<string>;
+  interactionTypes?: Set<PostInteractionType>;
+}) {
+  const isAuthor = input.currentUser?.id === input.authorId;
+
+  return {
+    isAuthor,
+    isFollowingAuthor: input.currentUser
+      ? input.followingAuthorIds?.has(input.authorId) ?? false
+      : false,
+    hasLiked: input.interactionTypes?.has("like") ?? false,
+    hasFavorited: input.interactionTypes?.has("favorite") ?? false,
+    hasShared: input.interactionTypes?.has("share") ?? false
+  };
+}
+
+function serializePostListItem(
+  item: Awaited<ReturnType<typeof postsRepo.getPostById>>,
+  options: {
+    images: NonNullable<ReturnType<typeof serializeImage>>[];
+    viewer: ReturnType<typeof toViewerState>;
+  }
+) {
   if (!item) {
     return null;
   }
@@ -17,7 +111,7 @@ function serializePostFeedItem(item: Awaited<ReturnType<typeof postsRepo.getPost
     id: item.id,
     title: item.title,
     contentPreview: toPreview(item.content),
-    status: item.status as "pending" | "published" | "rejected" | "hidden",
+    status: item.status as PostStatus,
     commentCount: item.commentCount,
     reportCount: item.reportCount,
     createdAt: item.createdAt.toISOString(),
@@ -27,17 +121,94 @@ function serializePostFeedItem(item: Awaited<ReturnType<typeof postsRepo.getPost
       id: item.author.id,
       displayName: item.author.displayName,
       role: item.author.role as "user" | "admin"
+    },
+    images: options.images,
+    engagement: {
+      likeCount: item.likeCount,
+      favoriteCount: item.favoriteCount,
+      shareCount: item.shareCount,
+      viewer: options.viewer
     }
   };
 }
 
-function serializeCommentThread(items: Awaited<ReturnType<typeof postsRepo.listVisibleComments>>) {
-  return items.map((item) => ({
+function serializeCommentTree(
+  comments: Awaited<ReturnType<typeof postsRepo.listVisibleComments>>
+) {
+  const nodesById = new Map<
+    string,
+    {
+      id: string;
+      postId: string;
+      parentCommentId: string | null;
+      content: string;
+      status: PostCommentStatus;
+      createdAt: string;
+      updatedAt: string;
+      author: {
+        id: string;
+        displayName: string;
+        role: "user" | "admin";
+      };
+      replies: Array<any>;
+    }
+  >();
+
+  for (const comment of comments) {
+    nodesById.set(comment.id, {
+      id: comment.id,
+      postId: comment.postId,
+      parentCommentId: comment.parentCommentId,
+      content: comment.content,
+      status: comment.status as PostCommentStatus,
+      createdAt: comment.createdAt.toISOString(),
+      updatedAt: comment.updatedAt.toISOString(),
+      author: {
+        id: comment.author.id,
+        displayName: comment.author.displayName,
+        role: comment.author.role as "user" | "admin"
+      },
+      replies: []
+    });
+  }
+
+  const roots: Array<(typeof nodesById extends Map<any, infer T> ? T : never)> = [];
+
+  for (const comment of comments) {
+    const node = nodesById.get(comment.id);
+
+    if (!node) {
+      continue;
+    }
+
+    const parentNode = comment.parentCommentId
+      ? nodesById.get(comment.parentCommentId)
+      : null;
+
+    if (parentNode) {
+      parentNode.replies.push(node);
+      continue;
+    }
+
+    roots.push(node);
+  }
+
+  return roots;
+}
+
+function serializeSingleComment(
+  item: Awaited<ReturnType<typeof postsRepo.getCommentById>>
+) {
+  if (!item) {
+    return null;
+  }
+
+  return {
     id: item.id,
     postId: item.postId,
     parentCommentId: item.parentCommentId,
     content: item.content,
-    status: item.status as "visible" | "hidden",
+    status: item.status as PostCommentStatus,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     author: {
@@ -45,33 +216,54 @@ function serializeCommentThread(items: Awaited<ReturnType<typeof postsRepo.listV
       displayName: item.author.displayName,
       role: item.author.role as "user" | "admin"
     },
-    replies: item.replies.map((reply) => ({
-      id: reply.id,
-      postId: reply.postId,
-      parentCommentId: reply.parentCommentId!,
-      content: reply.content,
-      status: reply.status as "visible" | "hidden",
-      createdAt: reply.createdAt.toISOString(),
-      updatedAt: reply.updatedAt.toISOString(),
-      author: {
-        id: reply.author.id,
-        displayName: reply.author.displayName,
-        role: reply.author.role as "user" | "admin"
-      }
-    }))
-  }));
+    replies: []
+  };
 }
 
 export const postsService = {
-  async listFeed(tab: "recommended" | "latest") {
-    const items = await postsRepo.listFeed(tab);
+  async uploadImage(input: {
+    ownerId: string;
+    fileName: string;
+    mimeType: string;
+    byteSize: number;
+    dataUrl: string;
+  }) {
+    const item = await postsRepo.createImageUpload(input);
+    const serialized = serializeImage(item);
+
+    if (!serialized) {
+      return null;
+    }
+
+    return {
+      item: serialized
+    };
+  },
+  async listFeed(tab: FeedTab, currentUser?: CurrentUser | null) {
+    const items = await postsRepo.listFeed(tab, currentUser?.id);
+    const postIds = items.map((item) => item.id);
+    const authorIds = items.map((item) => item.author.id);
+    const [images, interactions, followingAuthorIds] = await Promise.all([
+      postsRepo.listPostImages(postIds),
+      currentUser ? postsRepo.listViewerInteractions(postIds, currentUser.id) : [],
+      currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
+    ]);
+
+    const imagesByPostId = buildImagesByPostId(images);
+    const interactionMap = buildInteractionMap(interactions);
 
     return {
       tab,
       items: items
         .map((item) =>
-          serializePostFeedItem({
-            ...item
+          serializePostListItem(item, {
+            images: imagesByPostId.get(item.id) ?? [],
+            viewer: toViewerState({
+              authorId: item.author.id,
+              currentUser,
+              followingAuthorIds,
+              interactionTypes: interactionMap.get(item.id)
+            })
           })
         )
         .filter((item): item is NonNullable<typeof item> => item !== null)
@@ -81,19 +273,35 @@ export const postsService = {
     authorId: string;
     title: string;
     content: string;
+    imageIds: string[];
   }) {
-    const item = await postsRepo.createPost(input);
+    const uniqueImageIds = Array.from(new Set(input.imageIds));
+    const images = await postsRepo.listOwnedUnattachedImages(input.authorId, uniqueImageIds);
 
-    if (!item) {
-      return null;
+    if (images.length !== uniqueImageIds.length) {
+      return { kind: "invalid_images" as const };
     }
 
+    const item = await postsRepo.createPost({
+      authorId: input.authorId,
+      title: input.title,
+      content: input.content,
+      imageIds: uniqueImageIds
+    });
+
+    if (!item) {
+      return { kind: "not_found" as const };
+    }
+
+    const attachedImages = await postsRepo.listPostImages([item.id]);
+
     return {
+      kind: "ok" as const,
       item: {
         id: item.id,
         title: item.title,
         content: item.content,
-        status: item.status as "pending" | "published" | "rejected" | "hidden",
+        status: item.status as PostStatus,
         commentCount: item.commentCount,
         reportCount: item.reportCount,
         createdAt: item.createdAt.toISOString(),
@@ -104,11 +312,24 @@ export const postsService = {
           displayName: item.author.displayName,
           role: item.author.role as "user" | "admin"
         },
+        images: buildImagesByPostId(attachedImages).get(item.id) ?? [],
+        engagement: {
+          likeCount: item.likeCount,
+          favoriteCount: item.favoriteCount,
+          shareCount: item.shareCount,
+          viewer: {
+            isAuthor: true,
+            isFollowingAuthor: false,
+            hasLiked: false,
+            hasFavorited: false,
+            hasShared: false
+          }
+        },
         comments: []
       }
     };
   },
-  async getPostDetail(id: string, currentUser?: { id: string; role: "user" | "admin" } | null) {
+  async getPostDetail(id: string, currentUser?: CurrentUser | null) {
     const item = await postsRepo.getPostById(id);
 
     if (!item) {
@@ -122,14 +343,23 @@ export const postsService = {
       return null;
     }
 
-    const comments = await postsRepo.listVisibleComments(id);
+    const [comments, images, interactions, followingAuthorIds] = await Promise.all([
+      postsRepo.listVisibleComments(id),
+      postsRepo.listPostImages([id]),
+      currentUser ? postsRepo.listViewerInteractions([id], currentUser.id) : [],
+      currentUser
+        ? socialService.listFollowingStateSet(currentUser.id, [item.author.id])
+        : new Set<string>()
+    ]);
+
+    const interactionMap = buildInteractionMap(interactions);
 
     return {
       item: {
         id: item.id,
         title: item.title,
         content: item.content,
-        status: item.status as "pending" | "published" | "rejected" | "hidden",
+        status: item.status as PostStatus,
         commentCount: item.commentCount,
         reportCount: item.reportCount,
         createdAt: item.createdAt.toISOString(),
@@ -140,30 +370,67 @@ export const postsService = {
           displayName: item.author.displayName,
           role: item.author.role as "user" | "admin"
         },
-        comments: serializeCommentThread(comments)
+        images: buildImagesByPostId(images).get(item.id) ?? [],
+        engagement: {
+          likeCount: item.likeCount,
+          favoriteCount: item.favoriteCount,
+          shareCount: item.shareCount,
+          viewer: toViewerState({
+            authorId: item.author.id,
+            currentUser,
+            followingAuthorIds,
+            interactionTypes: interactionMap.get(item.id)
+          })
+        },
+        comments: serializeCommentTree(comments)
       }
     };
   },
-  async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
+  async listAdminPosts(status?: PostStatus) {
     const items = await postsRepo.listAdminPosts(status);
+    const images = await postsRepo.listPostImages(items.map((item) => item.id));
+    const imagesByPostId = buildImagesByPostId(images);
 
     return {
       items: items
         .map((item) =>
-          serializePostFeedItem({
-            ...item
+          serializePostListItem(item, {
+            images: imagesByPostId.get(item.id) ?? [],
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
           })
         )
         .filter((item): item is NonNullable<typeof item> => item !== null)
     };
   },
-  async updatePostStatus(id: string, status: "pending" | "published" | "rejected" | "hidden") {
+  async updatePostStatus(id: string, status: PostStatus) {
     const item = await postsRepo.updatePostStatus(id, status);
-    return item ? serializePostFeedItem(item) : null;
+
+    if (!item) {
+      return null;
+    }
+
+    const images = await postsRepo.listPostImages([item.id]);
+
+    return serializePostListItem(item, {
+      images: buildImagesByPostId(images).get(item.id) ?? [],
+      viewer: {
+        isAuthor: false,
+        isFollowingAuthor: false,
+        hasLiked: false,
+        hasFavorited: false,
+        hasShared: false
+      }
+    });
   },
   async createComment(
     postId: string,
-    currentUser: { id: string; role: "user" | "admin" },
+    currentUser: CurrentUser,
     input: {
       content: string;
       parentCommentId?: string;
@@ -175,15 +442,13 @@ export const postsService = {
       return { kind: "not_found" as const };
     }
 
+    let parentComment: Awaited<ReturnType<typeof postsRepo.getCommentById>> | null = null;
+
     if (input.parentCommentId) {
-      const parent = await postsRepo.getCommentById(input.parentCommentId);
+      parentComment = await postsRepo.getCommentById(input.parentCommentId);
 
-      if (!parent || parent.postId !== postId || parent.status !== "visible") {
+      if (!parentComment || parentComment.postId !== postId || parentComment.status !== "visible") {
         return { kind: "not_found" as const };
-      }
-
-      if (parent.parentCommentId !== null) {
-        return { kind: "invalid_parent" as const };
       }
     }
 
@@ -194,54 +459,36 @@ export const postsService = {
       parentCommentId: input.parentCommentId
     });
 
-    if (!item) {
+    const serialized = serializeSingleComment(item);
+
+    if (!serialized) {
       return { kind: "not_found" as const };
     }
 
-    if (item.parentCommentId) {
-      return {
-        kind: "ok" as const,
-        item: {
-          id: item.id,
-          postId: item.postId,
-          parentCommentId: item.parentCommentId,
-          content: item.content,
-          status: item.status as "visible" | "hidden",
-          createdAt: item.createdAt.toISOString(),
-          updatedAt: item.updatedAt.toISOString(),
-          author: {
-            id: item.author.id,
-            displayName: item.author.displayName,
-            role: item.author.role as "user" | "admin"
-          }
-        }
-      };
+    if (parentComment) {
+      await socialService.recordNotification({
+        userId: parentComment.author.id,
+        actorId: currentUser.id,
+        type: "comment_replied",
+        postId,
+        commentId: item?.id ?? null
+      });
+    } else {
+      await socialService.recordNotification({
+        userId: post.author.id,
+        actorId: currentUser.id,
+        type: "post_commented",
+        postId,
+        commentId: item?.id ?? null
+      });
     }
 
     return {
       kind: "ok" as const,
-      item: {
-        id: item.id,
-        postId: item.postId,
-        parentCommentId: null,
-        content: item.content,
-        status: item.status as "visible" | "hidden",
-        createdAt: item.createdAt.toISOString(),
-        updatedAt: item.updatedAt.toISOString(),
-        author: {
-          id: item.author.id,
-          displayName: item.author.displayName,
-          role: item.author.role as "user" | "admin"
-        },
-        replies: []
-      }
+      item: serialized
     };
   },
-  async deleteComment(
-    postId: string,
-    commentId: string,
-    currentUser: { id: string; role: "user" | "admin" }
-  ) {
+  async deleteComment(postId: string, commentId: string, currentUser: CurrentUser) {
     const comment = await postsRepo.getCommentById(commentId);
 
     if (!comment || comment.postId !== postId) {
@@ -259,7 +506,7 @@ export const postsService = {
 
     return { kind: "ok" as const };
   },
-  async deletePost(id: string, currentUser: { id: string; role: "user" | "admin" }) {
+  async deletePost(id: string, currentUser: CurrentUser) {
     const post = await postsRepo.getPostById(id);
 
     if (!post) {
@@ -273,6 +520,40 @@ export const postsService = {
     }
 
     await postsRepo.deletePost(id);
+
+    return { kind: "ok" as const };
+  },
+  async toggleInteraction(
+    postId: string,
+    currentUser: CurrentUser,
+    type: PostInteractionType
+  ) {
+    const post = await postsRepo.getPostById(postId);
+
+    if (!post || post.status !== "published") {
+      return { kind: "not_found" as const };
+    }
+
+    const result = await postsRepo.toggleInteraction({
+      postId,
+      userId: currentUser.id,
+      type
+    });
+
+    if (result.active) {
+      const notificationType = {
+        like: "post_liked",
+        favorite: "post_favorited",
+        share: "post_shared"
+      } satisfies Record<PostInteractionType, "post_liked" | "post_favorited" | "post_shared">;
+
+      await socialService.recordNotification({
+        userId: post.author.id,
+        actorId: currentUser.id,
+        type: notificationType[type],
+        postId
+      });
+    }
 
     return { kind: "ok" as const };
   },
@@ -291,7 +572,7 @@ export const postsService = {
 
     return { kind: "ok" as const };
   },
-  async listAdminComments(status?: "visible" | "hidden") {
+  async listAdminComments(status?: PostCommentStatus) {
     const items = await postsRepo.listAdminComments(status);
 
     return {
@@ -301,7 +582,7 @@ export const postsService = {
         postTitle: item.postTitle,
         parentCommentId: item.parentCommentId,
         content: item.content,
-        status: item.status as "visible" | "hidden",
+        status: item.status as PostCommentStatus,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         author: {
@@ -312,7 +593,7 @@ export const postsService = {
       }))
     };
   },
-  async updateCommentStatus(id: string, status: "visible" | "hidden") {
+  async updateCommentStatus(id: string, status: PostCommentStatus) {
     const item = await postsRepo.updateCommentStatus(id, status);
 
     if (!item) {
@@ -327,7 +608,7 @@ export const postsService = {
       postTitle: post?.title ?? "",
       parentCommentId: item.parentCommentId,
       content: item.content,
-      status: item.status as "visible" | "hidden",
+      status: item.status as PostCommentStatus,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
       author: {
