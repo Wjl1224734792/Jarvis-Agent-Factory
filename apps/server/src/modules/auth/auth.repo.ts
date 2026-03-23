@@ -1,5 +1,12 @@
+import {
+  createId,
+  db,
+  hashPassword,
+  sessionsTable,
+  usersTable
+} from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
-import { randomUUID } from "node:crypto";
+import { and, eq } from "drizzle-orm";
 import type { UserRecord } from "../users/users.schema";
 
 type SessionScope = "web" | "admin";
@@ -25,19 +32,27 @@ type SmsCodeRecord = {
   expiresAt: number;
 };
 
-const usersById = new Map<string, UserRecord>();
-const usersByPhone = new Map<string, string>();
-const usersByAccount = new Map<string, string>();
-
-const sessionsById = new Map<string, SessionRecord>();
 const captchaById = new Map<string, CaptchaChallenge>();
 const smsByPhone = new Map<string, SmsCodeRecord>();
 
-const DEV_ADMIN_ACCOUNT = "admin";
-const DEV_ADMIN_PASSWORD = "Admin#123";
 const CAPTCHA_TTL_MS = 5 * 60 * 1000;
 const SMS_TTL_MS = 5 * 60 * 1000;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+
+function now() {
+  return Date.now();
+}
+
+function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
+  return {
+    id: user.id,
+    role: user.role as AuthRole,
+    displayName: user.displayName,
+    phone: user.phone,
+    account: user.account,
+    password: user.passwordHash
+  };
+}
 
 function toUserSummary(user: UserRecord): UserSummary {
   return {
@@ -47,32 +62,14 @@ function toUserSummary(user: UserRecord): UserSummary {
   };
 }
 
-function now() {
-  return Date.now();
-}
-
-function ensureDevAdmin() {
-  const existingId = usersByAccount.get(DEV_ADMIN_ACCOUNT);
-  if (existingId) {
-    return;
-  }
-
-  const id = `admin_${randomUUID()}`;
-  usersById.set(id, {
-    id,
-    role: "admin",
-    displayName: "系统管理员",
-    phone: null,
-    account: DEV_ADMIN_ACCOUNT,
-    password: DEV_ADMIN_PASSWORD
-  });
-  usersByAccount.set(DEV_ADMIN_ACCOUNT, id);
-}
-
 export const authRepo = {
+  resetEphemeralState() {
+    captchaById.clear();
+    smsByPhone.clear();
+  },
   createCaptchaChallenge() {
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
-    const challengeId = `captcha_${randomUUID()}`;
+    const challengeId = createId("captcha");
     const record: CaptchaChallenge = {
       challengeId,
       code,
@@ -98,7 +95,7 @@ export const authRepo = {
   },
   createSmsCode(phone: string) {
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
-    const requestId = `sms_${randomUUID()}`;
+    const requestId = createId("sms");
     const record: SmsCodeRecord = {
       requestId,
       phone,
@@ -123,75 +120,134 @@ export const authRepo = {
     }
     return matched;
   },
-  findOrCreateUserByPhone(phone: string): UserRecord {
-    const existingId = usersByPhone.get(phone);
-    if (existingId) {
-      return usersById.get(existingId)!;
+  async findOrCreateUserByPhone(phone: string): Promise<UserRecord> {
+    const existing = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.phone, phone))
+      .limit(1);
+
+    if (existing.length > 0) {
+      return toUserRecord(existing[0]);
     }
 
-    const id = `user_${randomUUID()}`;
-    const user: UserRecord = {
+    const id = createId("user");
+    const displayName = `飞友${phone.slice(-4)}`;
+
+    await db.insert(usersTable).values({
       id,
       role: "user",
-      displayName: `飞友${phone.slice(-4)}`,
+      displayName,
+      phone,
+      account: null,
+      passwordHash: null
+    });
+
+    return {
+      id,
+      role: "user",
+      displayName,
       phone,
       account: null,
       password: null
     };
-    usersById.set(id, user);
-    usersByPhone.set(phone, id);
+  },
+  async findAdminByCredentials(account: string, password: string): Promise<UserRecord | null> {
+    const admin = await db
+      .select()
+      .from(usersTable)
+      .where(and(eq(usersTable.account, account), eq(usersTable.role, "admin")))
+      .limit(1);
+
+    if (admin.length === 0) {
+      return null;
+    }
+
+    const user = toUserRecord(admin[0]);
+
+    if (user.password !== hashPassword(password)) {
+      return null;
+    }
+
     return user;
   },
-  findAdminByCredentials(account: string, password: string): UserRecord | null {
-    ensureDevAdmin();
-    const adminId = usersByAccount.get(account);
-    if (!adminId) {
-      return null;
-    }
-    const admin = usersById.get(adminId);
-    if (!admin || admin.role !== "admin") {
-      return null;
-    }
-    if (admin.password !== password) {
-      return null;
-    }
-    return admin;
-  },
-  createSession(user: UserRecord, scope: SessionScope) {
+  async createSession(user: UserRecord, scope: SessionScope): Promise<SessionRecord> {
     const session: SessionRecord = {
-      id: `sess_${randomUUID()}`,
+      id: createId("sess"),
       userId: user.id,
       role: user.role,
       scope,
       expiresAt: now() + SESSION_TTL_MS
     };
-    sessionsById.set(session.id, session);
+
+    await db.insert(sessionsTable).values({
+      id: session.id,
+      userId: session.userId,
+      scope: session.scope,
+      expiresAt: new Date(session.expiresAt)
+    });
+
     return session;
   },
-  getSession(sessionId: string): SessionRecord | null {
-    const session = sessionsById.get(sessionId);
+  async getSession(sessionId: string): Promise<SessionRecord | null> {
+    const session = await db
+      .select()
+      .from(sessionsTable)
+      .where(eq(sessionsTable.id, sessionId))
+      .limit(1);
+
+    if (session.length === 0) {
+      return null;
+    }
+
+    const current = session[0];
+    const expiresAt = current.expiresAt.getTime();
+
+    if (expiresAt < now()) {
+      await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
+      return null;
+    }
+
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, current.userId))
+      .limit(1);
+
+    if (user.length === 0) {
+      await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
+      return null;
+    }
+
+    return {
+      id: current.id,
+      userId: current.userId,
+      role: user[0].role as AuthRole,
+      scope: current.scope as SessionScope,
+      expiresAt
+    };
+  },
+  async deleteSession(sessionId: string) {
+    await db.delete(sessionsTable).where(eq(sessionsTable.id, sessionId));
+  },
+  async getUserSummaryBySession(sessionId: string): Promise<UserSummary | null> {
+    const session = await this.getSession(sessionId);
+
     if (!session) {
       return null;
     }
-    if (session.expiresAt < now()) {
-      sessionsById.delete(session.id);
+
+    const user = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.id, session.userId))
+      .limit(1);
+
+    if (user.length === 0) {
+      await this.deleteSession(sessionId);
       return null;
     }
-    return session;
-  },
-  deleteSession(sessionId: string) {
-    sessionsById.delete(sessionId);
-  },
-  getUserSummaryBySession(sessionId: string): UserSummary | null {
-    const session = this.getSession(sessionId);
-    if (!session) {
-      return null;
-    }
-    const user = usersById.get(session.userId);
-    if (!user) {
-      sessionsById.delete(sessionId);
-      return null;
-    }
-    return toUserSummary(user);
+
+    return toUserSummary(toUserRecord(user[0]));
   }
 };

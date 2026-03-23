@@ -44,7 +44,7 @@ export function UserMenu() {
             .logout()
             .then(() => {
               setAnonymous();
-              navigate(APP_ROUTES.home);
+              navigate(APP_ROUTES.feedHome);
             })
             .catch((error: unknown) => {
               setError(error instanceof Error ? error.message : "退出失败");

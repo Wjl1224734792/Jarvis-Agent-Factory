@@ -7,12 +7,14 @@
     "dev": "bun --watch src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/auth.test.ts apps/server/tests/health.test.ts"
+    "test": "vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/health.test.ts && vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/auth.test.ts && vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/models.test.ts && vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/reviews.test.ts && vitest run --root ../../ --config ../../vitest.config.ts apps/server/tests/posts.test.ts"
   },
   "dependencies": {
+    "@feijia/db": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
     "@hono/node-server": "^1.13.7",
+    "drizzle-orm": "^0.44.5",
     "hono": "^4.6.16"
   }
 }

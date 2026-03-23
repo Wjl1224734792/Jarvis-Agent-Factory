@@ -13,9 +13,30 @@ export function AdminShell() {
     <div className="min-h-screen bg-[linear-gradient(160deg,#020617_0%,#0f172a_45%,#111827_100%)] text-white">
       <header className="border-b border-white/10 bg-slate-950/60 backdrop-blur">
         <div className="mx-auto flex w-full max-w-6xl items-center justify-between px-6 py-4">
-          <div>
-            <p className="text-xs uppercase tracking-[0.22em] text-emerald-300/70">Admin</p>
-            <h1 className="text-lg font-semibold">{APP_NAME}</h1>
+          <div className="flex items-center gap-6">
+            <div>
+              <p className="text-xs uppercase tracking-[0.22em] text-emerald-300/70">Admin</p>
+              <h1 className="text-lg font-semibold">{APP_NAME}</h1>
+            </div>
+            <nav className="flex items-center gap-2">
+              {[
+                { to: APP_ROUTES.adminHome, label: "概览" },
+                { to: APP_ROUTES.adminCategories, label: "分类" },
+                { to: APP_ROUTES.adminBrands, label: "品牌" },
+                { to: APP_ROUTES.adminModels, label: "机型" },
+                { to: APP_ROUTES.adminReviews, label: "点评" },
+                { to: APP_ROUTES.adminPosts, label: "帖子" },
+                { to: APP_ROUTES.adminPostComments, label: "评论" }
+              ].map((item) => (
+                <Link
+                  className="rounded-full border border-white/10 px-4 py-2 text-sm text-slate-200"
+                  key={item.to}
+                  to={item.to}
+                >
+                  {item.label}
+                </Link>
+              ))}
+            </nav>
           </div>
           <div className="flex items-center gap-3">
             <Link

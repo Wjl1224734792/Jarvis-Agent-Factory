@@ -1,14 +1,44 @@
 import {
+  actionSuccessResponseSchema,
+  adminBrandResponseSchema,
+  adminBrandInputSchema,
+  adminCategoryResponseSchema,
+  adminCategoryInputSchema,
+  adminPostCommentResponseSchema,
+  adminPostCommentsResponseSchema,
+  adminPostCommentStatusUpdateInputSchema,
+  adminPostResponseSchema,
+  adminPostsResponseSchema,
+  adminPostStatusUpdateInputSchema,
+  adminModelInputSchema,
+  adminModelResponseSchema,
+  adminReviewResponseSchema,
+  adminReviewsResponseSchema,
   adminLoginRequestSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
+  createPostCommentInputSchema,
+  createPostCommentResponseSchema,
+  createPostInputSchema,
+  createPostResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
+  feedTabSchema,
   healthResponseSchema,
   healthRoute,
+  homeFeedResponseSchema,
+  modelDetailResponseSchema,
+  modelListQuerySchema,
+  modelListResponseSchema,
+  modelReviewsResponseSchema,
+  postDetailResponseSchema,
+  reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
+  submitModelReviewInputSchema,
+  submitModelReviewResponseSchema,
+  updateReviewStatusInputSchema,
   webLoginRequestSchema,
   type HealthResponse,
   type UserSummary
@@ -22,6 +52,19 @@ type ApiClientOptions = {
 type WebLoginInput = Parameters<typeof webLoginRequestSchema.parse>[0];
 type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
+type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
+type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
+type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
+type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
+type FeedTabInput = Parameters<typeof feedTabSchema.parse>[0];
+type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
+type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
+type ReportPostInput = Parameters<typeof reportPostInputSchema.parse>[0];
+type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSchema.parse>[0];
+type UpdateAdminPostCommentStatusInput =
+  Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
+type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
+type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -55,6 +98,28 @@ async function readJson<T>(
   return parser.parse(await response.json());
 }
 
+function buildQueryString(input: ModelsQueryInput): string {
+  const query = modelListQuerySchema.parse(input ?? {});
+  const search = new URLSearchParams();
+
+  if (query.categorySlug) {
+    search.set("categorySlug", query.categorySlug);
+  }
+
+  if (query.brandSlug) {
+    search.set("brandSlug", query.brandSlug);
+  }
+
+  if (query.powerTypes?.length) {
+    for (const powerType of query.powerTypes) {
+      search.append("powerType", powerType);
+    }
+  }
+
+  const queryString = search.toString();
+  return queryString ? `?${queryString}` : "";
+}
+
 export function createApiClient(options: ApiClientOptions) {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
 
@@ -65,6 +130,23 @@ export function createApiClient(options: ApiClientOptions) {
   ): Promise<TOutput> {
     const response = await fetch(`${baseUrl}${path}`, {
       method: "POST",
+      credentials: "include",
+      headers: {
+        "content-type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    return readJson(response, parser);
+  }
+
+  async function putJson<TInput, TOutput>(
+    path: string,
+    parser: { parse: (input: unknown) => TOutput },
+    body: TInput
+  ): Promise<TOutput> {
+    const response = await fetch(`${baseUrl}${path}`, {
+      method: "PUT",
       credentials: "include",
       headers: {
         "content-type": "application/json"
@@ -146,6 +228,172 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, currentUserResponseSchema);
+    },
+    async listHomeFeed(tab: FeedTabInput) {
+      const parsedTab = feedTabSchema.parse(tab);
+      const response = await fetch(`${baseUrl}${API_ROUTES.feed}?tab=${parsedTab}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, homeFeedResponseSchema);
+    },
+    async createPost(input: CreatePostInput) {
+      return postJson(
+        API_ROUTES.posts.create,
+        createPostResponseSchema,
+        createPostInputSchema.parse(input)
+      );
+    },
+    async getPostDetail(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, postDetailResponseSchema);
+    },
+    async createPostComment(postId: string, input: CreatePostCommentInput) {
+      return postJson(
+        API_ROUTES.posts.comments(postId),
+        createPostCommentResponseSchema,
+        createPostCommentInputSchema.parse(input)
+      );
+    },
+    async deletePost(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async deletePostComment(postId: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.commentDetail(postId, commentId)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportPost(id: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.posts.report(id),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
+    },
+    async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminList}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminPostsResponseSchema);
+    },
+    async updateAdminPostStatus(id: string, input: UpdateAdminPostStatusInput) {
+      return putJson(
+        API_ROUTES.posts.adminDetail(id),
+        adminPostResponseSchema,
+        adminPostStatusUpdateInputSchema.parse(input)
+      );
+    },
+    async listAdminPostComments(status?: "visible" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminComments}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminPostCommentsResponseSchema);
+    },
+    async updateAdminPostCommentStatus(
+      id: string,
+      input: UpdateAdminPostCommentStatusInput
+    ) {
+      return putJson(
+        API_ROUTES.posts.adminCommentDetail(id),
+        adminPostCommentResponseSchema,
+        adminPostCommentStatusUpdateInputSchema.parse(input)
+      );
+    },
+    async listModels(input: ModelsQueryInput = {}) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, modelListResponseSchema);
+    },
+    async getModelDetail(slug: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.detail(slug)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, modelDetailResponseSchema);
+    },
+    async listModelReviews(slug: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviews(slug)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, modelReviewsResponseSchema);
+    },
+    async submitModelReview(slug: string, input: SubmitReviewInput) {
+      return postJson(
+        API_ROUTES.models.reviews(slug),
+        submitModelReviewResponseSchema,
+        submitModelReviewInputSchema.parse(input)
+      );
+    },
+    async createCategory(input: AdminCategoryInput) {
+      return postJson(
+        API_ROUTES.models.categories,
+        adminCategoryResponseSchema,
+        adminCategoryInputSchema.parse(input)
+      );
+    },
+    async createBrand(input: AdminBrandInput) {
+      return postJson(
+        API_ROUTES.models.brands,
+        adminBrandResponseSchema,
+        adminBrandInputSchema.parse(input)
+      );
+    },
+    async createModel(input: AdminModelInput) {
+      return postJson(
+        API_ROUTES.models.adminList,
+        adminModelResponseSchema,
+        adminModelInputSchema.parse(input)
+      );
+    },
+    async updateModel(id: string, input: AdminModelInput) {
+      return putJson(
+        API_ROUTES.models.adminDetail(id),
+        adminModelResponseSchema,
+        adminModelInputSchema.parse(input)
+      );
+    },
+    async listAdminReviews() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.adminReviews}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminReviewsResponseSchema);
+    },
+    async updateReviewStatus(id: string, input: UpdateReviewStatusInput) {
+      return putJson(
+        API_ROUTES.models.adminReviewDetail(id),
+        adminReviewResponseSchema,
+        updateReviewStatusInputSchema.parse(input)
+      );
     }
   };
 }

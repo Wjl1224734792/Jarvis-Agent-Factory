@@ -24,6 +24,8 @@ bun run dev:admin
 - Admin: `http://localhost:3001`
 - Server: `http://localhost:3002`
 
+请使用上面的 `localhost` 地址联调。当前服务端只对默认的 Web/Admin 开发来源开放带凭证的跨域请求，用于写入和恢复 `HttpOnly Cookie` 会话。
+
 ## 默认开发登录方式
 
 ### Web
@@ -51,6 +53,6 @@ bun run check
 
 ## 当前限制
 
-- 验证码、用户和 session 采用内存存储
-- 服务重启后登录态与验证码会失效
+- 图形验证码与短信验证码仍采用内存存储，服务重启后会失效
+- 用户与 session 已落数据库，服务端重启后可继续复用
 - 短信验证码为开发态 mock，不接真实短信服务

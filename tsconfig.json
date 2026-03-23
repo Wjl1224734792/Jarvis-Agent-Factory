@@ -11,6 +11,9 @@
       "path": "./packages/http-client"
     },
     {
+      "path": "./packages/db"
+    },
+    {
       "path": "./apps/server"
     },
     {
