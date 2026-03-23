@@ -59,8 +59,6 @@ export function UserMenu() {
       </Button>
 
       <Button
-        variant="outline"
-        size="lg"
         className="rounded-lg"
         onClick={() => {
           void apiClient
@@ -73,7 +71,9 @@ export function UserMenu() {
               setError(error instanceof Error ? error.message : "退出失败");
             });
         }}
+        size="lg"
         type="button"
+        variant="outline"
       >
         <LogOutIcon data-icon="inline-start" />
         <span className="hidden sm:inline">退出</span>

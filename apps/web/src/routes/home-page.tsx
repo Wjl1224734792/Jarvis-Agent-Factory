@@ -82,7 +82,7 @@ export function HomePage() {
         <div className="flex flex-col gap-5 rounded-lg bg-card px-6 py-7 ring-1 ring-border/80 shadow-sm">
           <div className="flex flex-wrap items-center gap-2">
             <Badge>社区首页</Badge>
-            <Badge variant="outline">PC 优先</Badge>
+            <Badge variant="outline">内容优先</Badge>
           </div>
           <div className="max-w-3xl">
             <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
@@ -362,6 +362,20 @@ export function HomePage() {
                   </p>
                 </div>
 
+                {item.images.length > 0 ? (
+                  <div className="overflow-hidden rounded-md border border-border/80 bg-secondary/20">
+                    <img
+                      alt={item.images[0]!.fileName}
+                      className="max-h-[320px] w-full object-cover"
+                      src={item.images[0]!.url}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-dashed border-border/80 bg-secondary/20 p-4 text-sm text-muted-foreground">
+                    纯文字内容
+                  </div>
+                )}
+
                 <div className="flex flex-wrap gap-3">
                   <Button asChild>
                     <Link to={postDetailPath(item.id)}>
@@ -386,19 +400,6 @@ export function HomePage() {
                   shareCount={item.engagement.shareCount}
                   viewer={item.engagement.viewer}
                 />
-                {item.images.length > 0 ? (
-                  <div className="overflow-hidden rounded-md border border-border/80 bg-secondary/20">
-                    <img
-                      alt={item.images[0]!.fileName}
-                      className="max-h-[320px] w-full object-cover"
-                      src={item.images[0]!.url}
-                    />
-                  </div>
-                ) : (
-                  <div className="rounded-md border border-dashed border-border/80 bg-secondary/20 p-4 text-sm text-muted-foreground">
-                    纯文字内容
-                  </div>
-                )}
               </div>
             </article>
           ))}

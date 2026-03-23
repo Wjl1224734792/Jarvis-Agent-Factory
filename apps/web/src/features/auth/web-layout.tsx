@@ -26,30 +26,10 @@ import { useAuthStore } from "./auth-store";
 import { UserMenu } from "./user-menu";
 
 const navItems = [
-  {
-    to: APP_ROUTES.feedHome,
-    label: "首页",
-    icon: Rows3Icon,
-    requiresAuth: false
-  },
-  {
-    to: APP_ROUTES.models,
-    label: "飞行器库",
-    icon: LibraryBigIcon,
-    requiresAuth: false
-  },
-  {
-    to: APP_ROUTES.notifications,
-    label: "通知",
-    icon: BellIcon,
-    requiresAuth: true
-  },
-  {
-    to: APP_ROUTES.webProfile,
-    label: "我的",
-    icon: UserRoundIcon,
-    requiresAuth: true
-  }
+  { to: APP_ROUTES.feedHome, label: "首页", icon: Rows3Icon, requiresAuth: false },
+  { to: APP_ROUTES.models, label: "飞行器库", icon: LibraryBigIcon, requiresAuth: false },
+  { to: APP_ROUTES.notifications, label: "通知", icon: BellIcon, requiresAuth: true },
+  { to: APP_ROUTES.webProfile, label: "我的", icon: UserRoundIcon, requiresAuth: true }
 ] as const;
 
 function Navigation({
@@ -62,11 +42,12 @@ function Navigation({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="flex flex-col gap-2">
+    <nav className="flex flex-col gap-1.5">
       {navItems
         .filter((item) => (item.requiresAuth ? authenticated : true))
         .map((item) => {
           const Icon = item.icon;
+
           return (
             <NavLink
               className={({ isActive }) =>
@@ -86,7 +67,7 @@ function Navigation({
                 {item.label}
               </span>
               {item.to === APP_ROUTES.notifications && unreadCount > 0 ? (
-                <Badge className="ml-1">{unreadCount > 99 ? "99+" : unreadCount}</Badge>
+                <Badge>{unreadCount > 99 ? "99+" : unreadCount}</Badge>
               ) : null}
             </NavLink>
           );
@@ -111,12 +92,12 @@ export function WebLayout() {
 
   return (
     <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/92 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 border-b border-border/80 bg-background/95 backdrop-blur-xl">
         <div className="mx-auto flex max-w-[1320px] items-center justify-between gap-4 px-4 py-4 sm:px-6 xl:px-8">
           <div className="flex items-center gap-3">
             <Sheet>
               <SheetTrigger asChild>
-                <Button className="rounded-lg lg:hidden" size="icon-lg" variant="outline">
+                <Button className="rounded-lg xl:hidden" size="icon-lg" variant="outline">
                   <MenuIcon />
                   <span className="sr-only">打开导航</span>
                 </Button>
@@ -131,7 +112,7 @@ export function WebLayout() {
                 </SheetHeader>
                 <div className="flex flex-col gap-5 pt-4">
                   <Navigation authenticated={authenticated} onNavigate={undefined} unreadCount={unreadCount} />
-                  <div className="rounded-xl border border-border/80 bg-secondary/40 p-4 text-sm leading-7 text-muted-foreground">
+                  <div className="rounded-lg border border-border/80 bg-secondary/40 p-4 text-sm leading-7 text-muted-foreground">
                     先浏览首页和机型库，再决定是否继续发帖、评论和关注作者。
                   </div>
                 </div>
@@ -139,7 +120,7 @@ export function WebLayout() {
             </Sheet>
 
             <NavLink className="flex items-center gap-3" to={APP_ROUTES.feedHome}>
-              <div className="flex size-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground">
+              <div className="flex size-10 items-center justify-center rounded-lg bg-primary text-primary-foreground">
                 飞
               </div>
               <div className="min-w-0">
@@ -151,7 +132,7 @@ export function WebLayout() {
             </NavLink>
           </div>
 
-          <div className="hidden min-w-0 flex-1 justify-center lg:flex">
+          <div className="hidden min-w-0 flex-1 justify-center xl:flex">
             <div className="w-full max-w-xl rounded-lg border border-border/80 bg-card px-5 py-3 text-sm text-muted-foreground shadow-sm">
               搜索入口预留：机型、帖子、作者与品牌
             </div>
