@@ -2,6 +2,12 @@
   "extends": "../../packages/config/tsconfig.react.json",
   "compilerOptions": {
     "composite": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./src/*"
+      ]
+    },
     "types": [
       "vite/client"
     ]

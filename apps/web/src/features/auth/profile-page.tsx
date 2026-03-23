@@ -1,72 +1,77 @@
-import { APP_ROUTES } from "@feijia/shared";
 import {
-  Bell,
-  Compass,
-  History,
-  LayoutDashboard,
-  MessageSquareText,
-  Settings2,
-  Sparkles,
-  Star,
-  Waypoints
+  BellIcon,
+  CompassIcon,
+  HistoryIcon,
+  MessageSquareTextIcon,
+  Settings2Icon,
+  SparklesIcon,
+  StarIcon,
+  WaypointsIcon
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
+import { APP_ROUTES } from "@feijia/shared";
 import { useAuthStore } from "./auth-store";
 
 const quickActions = [
   {
-    title: "继续浏览信息流",
-    description: "回到首页，查看推荐、最新和关注内容。",
+    title: "继续浏览首页",
+    description: "回到信息流，看推荐、最新和关注内容。",
     to: APP_ROUTES.feedHome,
-    icon: LayoutDashboard
+    icon: CompassIcon
   },
   {
     title: "进入飞行器库",
     description: "继续按分类、品牌和动力类型筛选机型。",
     to: APP_ROUTES.models,
-    icon: Compass
+    icon: WaypointsIcon
   },
   {
     title: "查看消息通知",
-    description: "管理关注、互动和评论回复的站内提醒。",
+    description: "集中处理关注、互动和评论回复提醒。",
     to: APP_ROUTES.notifications,
-    icon: Bell
+    icon: BellIcon
   }
 ] as const;
 
 const capabilityItems = [
   {
-    label: "已接入能力",
-    value: "发帖 / 图片上传 / 点赞 / 收藏 / 分享",
-    icon: Sparkles
+    label: "内容能力",
+    value: "发帖、图片上传、评论回复",
+    icon: SparklesIcon
   },
   {
     label: "口碑能力",
-    value: "机型评分与唯一点评规则",
-    icon: Star
+    value: "机型评分与单机唯一点评",
+    icon: StarIcon
   },
   {
-    label: "互动能力",
-    value: "关注作者、评论与楼中回复",
-    icon: MessageSquareText
+    label: "社交能力",
+    value: "关注作者、通知流与互动记录",
+    icon: MessageSquareTextIcon
   }
 ] as const;
 
 const roadmapItems = [
   {
-    title: "我的点评与内容资产",
-    description: "后续可继续聚合为“我的帖子 / 我的点评 / 我的收藏”的统一内容库。",
-    icon: History
+    title: "我的内容资产",
+    description: "后续可继续聚合为我的帖子、我的点评和我的收藏。",
+    icon: HistoryIcon
   },
   {
-    title: "偏好与账户设置",
-    description: "当前已具备身份恢复能力，后续可继续扩展隐私设置和会话管理。",
-    icon: Settings2
-  },
-  {
-    title: "消息与飞行关系",
-    description: "通知流已成型，后续可继续延伸到更完整的社交与消息中心。",
-    icon: Waypoints
+    title: "偏好与设置",
+    description: "当前已具备身份恢复链路，后续可补充隐私和账户设置。",
+    icon: Settings2Icon
   }
 ] as const;
 
@@ -76,147 +81,133 @@ export function ProfilePage() {
   const error = useAuthStore((state) => state.error);
 
   const displayName = user?.displayName ?? "访客";
-  const sessionLabel = status === "authenticated" && user ? "已登录会话" : "访客模式";
   const roleLabel = user?.role === "admin" ? "管理员账户" : "飞友成员";
+  const sessionLabel = status === "authenticated" && user ? "已登录会话" : "访客浏览模式";
 
   return (
-    <main className="space-y-6">
-      <section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a_0%,#164e63_42%,#1e88e5_100%)] p-6 text-white shadow-[0_35px_90px_-45px_rgba(15,23,42,0.75)] sm:p-8">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
+    <main className="flex flex-col gap-8">
+      <section className="overflow-hidden rounded-[2rem] border border-border/80 bg-[linear-gradient(150deg,rgba(15,23,42,0.96)_0%,rgba(25,80,129,0.92)_48%,rgba(59,130,246,0.82)_100%)] p-6 text-primary-foreground shadow-[0_40px_90px_-58px_rgba(15,23,42,0.95)] sm:p-8">
+        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-sky-100/90">
-              <Sparkles className="h-4 w-4" />
-              Profile Hub
-            </p>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
-              {displayName} 的飞行档案与站内入口
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-sky-100/85">
-              这一页不再只是身份占位，而是把当前已经可用的浏览、互动、通知和内容能力收拢成一个真正的个人中心入口。
-            </p>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-white/14 text-white hover:bg-white/14">Profile Hub</Badge>
+              <Badge variant="outline" className="border-white/18 bg-white/8 text-white">
+                Station Entry
+              </Badge>
+            </div>
 
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/75">Session</p>
-                <p className="mt-3 text-lg font-medium">{sessionLabel}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/75">Role</p>
-                <p className="mt-3 text-lg font-medium">{roleLabel}</p>
-              </div>
-              <div className="rounded-[24px] border border-white/10 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/75">Focus</p>
-                <p className="mt-3 text-lg font-medium">机型口碑 + 社区互动</p>
+            <div className="mt-6 flex items-center gap-4">
+              <Avatar size="lg" className="size-16 ring-2 ring-white/20">
+                <AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-4xl font-semibold tracking-tight text-white">{displayName}</h1>
+                <p className="mt-2 text-sm uppercase tracking-[0.16em] text-sky-100/75">
+                  {roleLabel}
+                </p>
               </div>
             </div>
+
+            <p className="mt-6 max-w-2xl text-base leading-8 text-sky-50/86">
+              个人中心现在不再只是身份占位，而是把当前已经打通的浏览、互动、通知和口碑入口收拢成一块飞友工作台。
+            </p>
           </div>
 
-          <div className="rounded-[28px] border border-white/12 bg-slate-950/25 p-5 backdrop-blur">
-            <p className="text-xs uppercase tracking-[0.18em] text-sky-100/75">Current Scope</p>
-            <div className="mt-4 space-y-3">
+          <Card className="rounded-[1.75rem] border-white/10 bg-white/8 text-white shadow-none backdrop-blur">
+            <CardHeader>
+              <CardDescription className="text-sky-100/70">Session Snapshot</CardDescription>
+              <CardTitle className="text-2xl text-white">{sessionLabel}</CardTitle>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
               {capabilityItems.map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
-                    className="rounded-[22px] border border-white/10 bg-white/8 p-4"
+                    className="flex items-start gap-4 rounded-[1.25rem] border border-white/10 bg-white/8 p-4"
                     key={item.label}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-sky-100">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <p className="text-xs uppercase tracking-[0.16em] text-sky-100/70">
-                          {item.label}
-                        </p>
-                        <p className="mt-1 text-sm leading-6 text-white">{item.value}</p>
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white">
+                      <Icon className="size-4.5" />
+                    </span>
+                    <div>
+                      <div className="text-xs uppercase tracking-[0.14em] text-sky-100/65">
+                        {item.label}
                       </div>
+                      <div className="mt-2 text-sm leading-7 text-white">{item.value}</div>
                     </div>
                   </div>
                 );
               })}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
-      <section className="grid gap-5 xl:grid-cols-[1.05fr_0.95fr]">
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Quick Actions</p>
-              <h3 className="mt-2 text-2xl font-semibold text-slate-950">站内主链路入口</h3>
-            </div>
-            <span className="rounded-full bg-sky-50 px-3 py-1 text-xs font-medium text-sky-700">
-              PC 优先 / 移动可用
-            </span>
-          </div>
-
-          <div className="mt-6 grid gap-4">
+      <section className="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
+        <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-2xl">主站快捷入口</CardTitle>
+            <CardDescription>先从最常用的三条路径继续往下走。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             {quickActions.map((item) => {
               const Icon = item.icon;
-
               return (
-                <Link
-                  className="group rounded-[24px] border border-slate-200 bg-[linear-gradient(180deg,#ffffff_0%,#f8fbff_100%)] p-5 transition hover:border-sky-200 hover:shadow-[0_28px_65px_-42px_rgba(30,136,229,0.45)]"
+                <Button
+                  asChild
+                  className="h-auto justify-start rounded-[1.4rem] px-4 py-4"
                   key={item.to}
-                  to={item.to}
+                  variant="outline"
                 >
-                  <div className="flex items-start gap-4">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-sky-50 text-sky-700 transition group-hover:bg-sky-100">
-                      <Icon className="h-5 w-5" />
+                  <Link to={item.to}>
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
+                      <Icon className="size-4.5" />
                     </span>
-                    <div>
-                      <h4 className="text-base font-semibold text-slate-950">{item.title}</h4>
-                      <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
-                    </div>
-                  </div>
-                </Link>
+                    <span className="flex flex-col gap-1 text-left">
+                      <span className="text-sm font-medium text-foreground">{item.title}</span>
+                      <span className="text-sm text-muted-foreground">{item.description}</span>
+                    </span>
+                  </Link>
+                </Button>
               );
             })}
-          </div>
-        </article>
+          </CardContent>
+        </Card>
 
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
-          <div className="flex items-center justify-between gap-4">
-            <div>
-              <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Roadmap</p>
-              <h3 className="mt-2 text-2xl font-semibold text-slate-950">后续可扩展方向</h3>
-            </div>
-            <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-medium text-slate-600">
-              不影响当前闭环
-            </span>
-          </div>
-
-          <div className="mt-6 space-y-4">
-            {roadmapItems.map((item) => {
+        <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-2xl">后续扩展方向</CardTitle>
+            <CardDescription>这些能力暂时不阻塞当前闭环，但值得后续补齐。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {roadmapItems.map((item, index) => {
               const Icon = item.icon;
 
               return (
-                <div
-                  className="rounded-[22px] border border-slate-200 bg-slate-50/80 p-5"
-                  key={item.title}
-                >
-                  <div className="flex items-start gap-4">
-                    <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-[0_16px_40px_-30px_rgba(15,23,42,0.35)]">
-                      <Icon className="h-4.5 w-4.5" />
+                <div className="flex flex-col gap-4" key={item.title}>
+                  <div className="flex items-start gap-4 rounded-[1.25rem] bg-secondary/45 p-4">
+                    <span className="flex size-11 items-center justify-center rounded-2xl bg-card text-primary shadow-sm">
+                      <Icon className="size-4.5" />
                     </span>
                     <div>
-                      <h4 className="text-base font-semibold text-slate-950">{item.title}</h4>
-                      <p className="mt-2 text-sm leading-7 text-slate-600">{item.description}</p>
+                      <div className="text-base font-medium text-foreground">{item.title}</div>
+                      <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {item.description}
+                      </div>
                     </div>
                   </div>
+                  {index < roadmapItems.length - 1 ? <Separator /> : null}
                 </div>
               );
             })}
-          </div>
 
-          {error ? (
-            <div className="mt-5 rounded-[20px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700">
-              {error}
-            </div>
-          ) : null}
-        </article>
+            {error ? (
+              <Card className="rounded-[1.25rem] border-destructive/20 bg-destructive/5 shadow-none">
+                <CardContent className="px-4 py-4 text-sm text-destructive">{error}</CardContent>
+              </Card>
+            ) : null}
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

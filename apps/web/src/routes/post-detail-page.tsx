@@ -1,8 +1,25 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { AlertTriangle, ArrowLeft, MessageSquareText, Send, Trash2 } from "lucide-react";
+import {
+  AlertTriangleIcon,
+  ArrowLeftIcon,
+  MessageSquareTextIcon,
+  SendIcon,
+  Trash2Icon
+} from "lucide-react";
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "../features/auth/auth-store";
 import { PostCommentThread } from "../features/posts/post-comment-thread";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
@@ -27,25 +44,29 @@ export function PostDetailPage() {
 
   if (!id) {
     return (
-      <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
-        缺少帖子标识，无法加载详情。
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>缺少帖子标识</AlertTitle>
+        <AlertDescription>当前 URL 不完整，无法加载帖子详情。</AlertDescription>
+      </Alert>
     );
   }
 
   if (postQuery.isLoading) {
     return (
-      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-        正在加载帖子详情...
-      </div>
+      <Card className="rounded-[1.125rem] border-border/80">
+        <CardContent className="px-6 py-8 text-sm text-muted-foreground">
+          正在加载帖子详情...
+        </CardContent>
+      </Card>
     );
   }
 
   if (postQuery.isError) {
     return (
-      <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
-        {postQuery.error.message}
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>帖子加载失败</AlertTitle>
+        <AlertDescription>{postQuery.error.message}</AlertDescription>
+      </Alert>
     );
   }
 
@@ -53,9 +74,10 @@ export function PostDetailPage() {
 
   if (!item) {
     return (
-      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-        当前帖子不存在或尚未公开。
-      </div>
+      <Alert>
+        <AlertTitle>当前帖子不可见</AlertTitle>
+        <AlertDescription>这条帖子不存在或尚未公开。</AlertDescription>
+      </Alert>
     );
   }
 
@@ -63,39 +85,35 @@ export function PostDetailPage() {
   const canComment = authStatus === "authenticated" && item.status === "published";
 
   return (
-    <main className="space-y-6">
-      <Link
-        className="inline-flex items-center gap-2 text-sm font-medium text-slate-600 transition hover:text-slate-950"
-        to={APP_ROUTES.feedHome}
-      >
-        <ArrowLeft className="h-4 w-4" />
-        返回首页内容流
-      </Link>
+    <main className="flex flex-col gap-8">
+      <Button asChild className="w-fit" variant="ghost">
+        <Link to={APP_ROUTES.feedHome}>
+          <ArrowLeftIcon data-icon="inline-start" />
+          返回首页内容流
+        </Link>
+      </Button>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white p-8 shadow-[0_25px_70px_-45px_rgba(15,23,42,0.35)]">
-        <div className="flex flex-wrap items-start justify-between gap-6">
-          <div className="max-w-3xl">
-            <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-              <span>{item.author.displayName}</span>
-              <span>{new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}</span>
-              <span>评论 {item.commentCount}</span>
-            </div>
-            <h2 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
-              {item.title}
-            </h2>
-            <p className="mt-5 text-base leading-8 text-slate-700">{item.content}</p>
+      <section className="grid gap-6 xl:grid-cols-[1.08fr_0.92fr]">
+        <div className="flex flex-col gap-5 rounded-[1.25rem] bg-card px-6 py-7 ring-1 ring-border/80 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge variant="secondary">{item.author.displayName}</Badge>
+            <Badge variant="outline">
+              {new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}
+            </Badge>
+            <Badge variant="outline">评论 {item.commentCount}</Badge>
+            {item.status !== "published" ? <Badge>{item.status}</Badge> : null}
           </div>
 
-          <div className="flex flex-wrap gap-2">
-            {item.status !== "published" ? (
-              <span className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-700">
-                当前状态：{item.status}
-              </span>
-            ) : null}
+          <div>
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              {item.title}
+            </h1>
+            <p className="mt-4 text-base leading-8 text-muted-foreground">{item.content}</p>
+          </div>
 
+          <div className="flex flex-wrap gap-3">
             {authStatus === "authenticated" && !isAuthor ? (
-              <button
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-2 text-sm text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
+              <Button
                 onClick={() => {
                   setActionError(null);
                   void apiClient
@@ -110,15 +128,15 @@ export function PostDetailPage() {
                     });
                 }}
                 type="button"
+                variant="outline"
               >
-                <AlertTriangle className="h-4 w-4" />
+                <AlertTriangleIcon data-icon="inline-start" />
                 举报
-              </button>
+              </Button>
             ) : null}
 
             {isAuthor ? (
-              <button
-                className="inline-flex items-center gap-2 rounded-full border border-rose-200 px-4 py-2 text-sm text-rose-600 transition hover:border-rose-300 hover:text-rose-700"
+              <Button
                 onClick={() => {
                   setActionError(null);
                   void apiClient
@@ -132,108 +150,128 @@ export function PostDetailPage() {
                     });
                 }}
                 type="button"
+                variant="outline"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2Icon data-icon="inline-start" />
                 删除帖子
-              </button>
+              </Button>
             ) : null}
           </div>
         </div>
 
         {item.images.length > 0 ? (
-          <div className="mt-8 grid gap-4 md:grid-cols-2">
-            {item.images.map((image) => (
-              <img
-                alt={image.fileName}
-                className="h-72 w-full rounded-[28px] object-cover"
-                key={image.id}
-                src={image.url}
-              />
-            ))}
+          <div className="overflow-hidden rounded-[1.25rem] border border-border/80 bg-card shadow-sm">
+            <img
+              alt={item.images[0]!.fileName}
+              className="h-full max-h-[420px] w-full object-cover"
+              src={item.images[0]!.url}
+            />
           </div>
-        ) : null}
-
-        <div className="mt-6">
-          <PostInteractionBar
-            authorId={item.author.id}
-            favoriteCount={item.engagement.favoriteCount}
-            isPublished={item.status === "published"}
-            likeCount={item.engagement.likeCount}
-            postId={item.id}
-            shareCount={item.engagement.shareCount}
-            viewer={item.engagement.viewer}
-          />
-        </div>
-
-        {actionError ? (
-          <p className="mt-5 rounded-2xl bg-rose-50 px-4 py-3 text-sm text-rose-700">{actionError}</p>
-        ) : null}
+        ) : (
+          <Card className="rounded-[1.25rem] border-border/80 shadow-sm">
+            <CardContent className="flex h-full min-h-[260px] items-center justify-center px-6 py-8 text-sm text-muted-foreground">
+              这是一条纯文字内容。
+            </CardContent>
+          </Card>
+        )}
       </section>
 
-      <section className="grid gap-5 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.35)]">
-          <div className="flex items-center gap-2 text-slate-950">
-            <MessageSquareText className="h-5 w-5" />
-            <h3 className="text-lg font-semibold">发表评论</h3>
-          </div>
+      {actionError ? (
+        <Alert variant="destructive">
+          <AlertTitle>帖子操作失败</AlertTitle>
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      ) : null}
 
-          {authStatus !== "authenticated" ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-              登录后即可参与评论、回复、点赞和关注。
-            </div>
-          ) : item.status !== "published" ? (
-            <div className="mt-5 rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-              只有已发布帖子才允许继续评论。
-            </div>
-          ) : (
-            <div className="mt-5 space-y-4">
-              <textarea
-                className="min-h-32 w-full rounded-3xl border border-slate-200 px-4 py-4 text-sm leading-7 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-sky-400"
-                onChange={(event) => {
-                  setCommentContent(event.target.value);
-                }}
-                placeholder="写下你的看法、补充经验或不同观点。"
-                value={commentContent}
+      <section className="grid gap-6 xl:grid-cols-[1fr_400px]">
+        <div className="flex flex-col gap-6">
+          <Card className="rounded-[1.125rem] border-border/80 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl">帖子互动</CardTitle>
+              <CardDescription>继续点赞、收藏、分享，或关注作者。</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <PostInteractionBar
+                authorId={item.author.id}
+                favoriteCount={item.engagement.favoriteCount}
+                isPublished={item.status === "published"}
+                likeCount={item.engagement.likeCount}
+                postId={item.id}
+                shareCount={item.engagement.shareCount}
+                viewer={item.engagement.viewer}
               />
-              <button
-                className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-sm font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
-                disabled={!commentContent.trim() || isSubmitting}
-                onClick={() => {
-                  setActionError(null);
-                  setIsSubmitting(true);
+            </CardContent>
+          </Card>
 
-                  void apiClient
-                    .createPostComment(item.id, {
-                      content: commentContent
-                    })
-                    .then(() => {
-                      setCommentContent("");
-                      return Promise.all([
-                        queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
-                        queryClient.invalidateQueries({ queryKey: ["home-feed"] }),
-                        queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                      ]);
-                    })
-                    .catch((value: unknown) => {
-                      setActionError(value instanceof Error ? value.message : "评论失败");
-                    })
-                    .finally(() => {
-                      setIsSubmitting(false);
-                    });
-                }}
-                type="button"
-              >
-                <Send className="h-4 w-4" />
-                {isSubmitting ? "提交中..." : "提交评论"}
-              </button>
-            </div>
-          )}
-        </article>
+          <Card className="rounded-[1.125rem] border-border/80 shadow-sm">
+            <CardHeader>
+              <CardTitle className="text-xl">发表评论</CardTitle>
+              <CardDescription>补充经验、提出异议或继续追问都可以。</CardDescription>
+            </CardHeader>
+            <CardContent className="flex flex-col gap-4">
+              {authStatus !== "authenticated" ? (
+                <Alert>
+                  <AlertTitle>需要登录</AlertTitle>
+                  <AlertDescription>登录后即可参与评论、回复、点赞和关注。</AlertDescription>
+                </Alert>
+              ) : item.status !== "published" ? (
+                <Alert>
+                  <AlertTitle>帖子暂不可评论</AlertTitle>
+                  <AlertDescription>只有已发布帖子才允许继续评论。</AlertDescription>
+                </Alert>
+              ) : (
+                <>
+                  <Textarea
+                    aria-label="帖子评论内容"
+                    className="min-h-28"
+                    onChange={(event) => {
+                      setCommentContent(event.target.value);
+                    }}
+                    placeholder="写下你的看法、补充经验或不同观点。"
+                    value={commentContent}
+                  />
+                  <Button
+                    disabled={!commentContent.trim() || isSubmitting}
+                    onClick={() => {
+                      setActionError(null);
+                      setIsSubmitting(true);
 
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_20px_50px_-35px_rgba(15,23,42,0.35)]">
-          <h3 className="text-lg font-semibold text-slate-950">评论区</h3>
+                      void apiClient
+                        .createPostComment(item.id, {
+                          content: commentContent
+                        })
+                        .then(() => {
+                          setCommentContent("");
+                          return Promise.all([
+                            queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
+                            queryClient.invalidateQueries({ queryKey: ["home-feed"] }),
+                            queryClient.invalidateQueries({ queryKey: ["notifications"] })
+                          ]);
+                        })
+                        .catch((value: unknown) => {
+                          setActionError(value instanceof Error ? value.message : "评论失败");
+                        })
+                        .finally(() => {
+                          setIsSubmitting(false);
+                        });
+                    }}
+                    type="button"
+                  >
+                    <SendIcon data-icon="inline-start" />
+                    {isSubmitting ? "提交中..." : "提交评论"}
+                  </Button>
+                </>
+              )}
+            </CardContent>
+          </Card>
+        </div>
 
-          <div className="mt-5 space-y-4">
+        <Card className="rounded-[1.125rem] border-border/80 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">评论区</CardTitle>
+            <CardDescription>当前共有 {item.commentCount} 条评论。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
             {item.comments.length > 0 ? (
               <PostCommentThread
                 canInteract={canComment}
@@ -242,12 +280,13 @@ export function PostDetailPage() {
                 postId={item.id}
               />
             ) : (
-              <div className="rounded-2xl border border-dashed border-slate-300 bg-slate-50 p-4 text-sm text-slate-500">
-                还没有人参与这条讨论，欢迎留下第一条评论。
-              </div>
+              <Alert>
+                <AlertTitle>还没有评论</AlertTitle>
+                <AlertDescription>欢迎留下第一条评论。</AlertDescription>
+              </Alert>
             )}
-          </div>
-        </article>
+          </CardContent>
+        </Card>
       </section>
     </main>
   );

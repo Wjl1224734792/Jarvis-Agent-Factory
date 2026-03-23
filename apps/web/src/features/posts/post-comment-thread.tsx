@@ -1,6 +1,13 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Send, Trash2 } from "lucide-react";
+import { CornerDownRight, Send, Trash2 } from "lucide-react";
 import { useState } from "react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 
 type CommentNode = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"]["comments"][number];
@@ -38,35 +45,57 @@ function CommentItem(props: NodeProps) {
 
   return (
     <article
-      className="space-y-4 rounded-3xl border border-slate-200 bg-slate-50 p-5"
-      style={{ marginLeft: `${Math.min(props.depth, 5) * 16}px` }}
+      className={cn(
+        "relative flex flex-col gap-4 rounded-[1.5rem] border border-border/60 bg-white/80 p-5 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.28)]",
+        props.depth > 0 && "ml-4 sm:ml-6"
+      )}
+      style={{ marginLeft: `${Math.min(props.depth, 4) * 18}px` }}
     >
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <div className="font-medium text-slate-950">{props.comment.author.displayName}</div>
-          <div className="mt-1 text-xs text-slate-500">
-            {new Date(props.comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+      {props.depth > 0 ? (
+        <span className="absolute -left-3 top-7 hidden h-px w-3 bg-border sm:block" />
+      ) : null}
+
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex min-w-0 items-start gap-3">
+          <Avatar className="bg-muted" size="lg">
+            <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
+          </Avatar>
+          <div className="min-w-0">
+            <div className="flex flex-wrap items-center gap-2">
+              <p className="text-sm font-medium text-foreground">
+                {props.comment.author.displayName}
+              </p>
+              {props.depth > 0 ? (
+                <Badge variant="secondary">
+                  <CornerDownRight data-icon="inline-start" />
+                  楼中回复
+                </Badge>
+              ) : null}
+            </div>
+            <p className="mt-1 text-xs uppercase tracking-[0.14em] text-muted-foreground">
+              {new Date(props.comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+            </p>
           </div>
         </div>
 
-        <div className="flex flex-wrap gap-2">
+        <div className="flex items-center gap-2">
           {props.canInteract ? (
-            <button
-              className="rounded-full border border-slate-200 px-3 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
+            <Button
               onClick={() => {
                 setReplying((value) => !value);
                 setReplyContent("");
                 setError(null);
               }}
+              size="sm"
               type="button"
+              variant="ghost"
             >
               回复
-            </button>
+            </Button>
           ) : null}
 
           {canDelete ? (
-            <button
-              className="inline-flex items-center gap-1 rounded-full border border-rose-200 px-3 py-2 text-xs text-rose-600 transition hover:border-rose-300"
+            <Button
               disabled={busy !== null}
               onClick={() => {
                 setBusy("delete");
@@ -82,30 +111,30 @@ function CommentItem(props: NodeProps) {
                     setBusy(null);
                   });
               }}
+              size="sm"
               type="button"
+              variant="outline"
             >
-              <Trash2 className="h-3.5 w-3.5" />
+              <Trash2 data-icon="inline-start" />
               删除
-            </button>
+            </Button>
           ) : null}
         </div>
       </div>
 
-      <p className="text-sm leading-7 text-slate-700">{props.comment.content}</p>
+      <p className="text-sm leading-7 text-foreground/80">{props.comment.content}</p>
 
       {replying ? (
-        <div className="space-y-3 rounded-2xl border border-slate-200 bg-white p-4">
-          <textarea
-            className="min-h-24 w-full rounded-2xl border border-slate-200 px-4 py-3 text-sm leading-7 text-slate-900 outline-none transition focus:border-sky-400"
+        <div className="flex flex-col gap-3 rounded-[1.25rem] border border-border/60 bg-background/70 p-4">
+          <Textarea
             onChange={(event) => {
               setReplyContent(event.target.value);
             }}
             placeholder={`回复 ${props.comment.author.displayName}`}
             value={replyContent}
           />
-          <div className="flex flex-wrap gap-2">
-            <button
-              className="inline-flex items-center gap-2 rounded-full bg-slate-950 px-4 py-2 text-xs font-medium text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:bg-slate-300"
+          <div className="flex flex-wrap items-center gap-2">
+            <Button
               disabled={!replyContent.trim() || busy !== null}
               onClick={() => {
                 setBusy("reply");
@@ -130,39 +159,47 @@ function CommentItem(props: NodeProps) {
               }}
               type="button"
             >
-              <Send className="h-3.5 w-3.5" />
+              <Send data-icon="inline-start" />
               发送回复
-            </button>
-            <button
-              className="rounded-full border border-slate-200 px-4 py-2 text-xs text-slate-600 transition hover:border-slate-300 hover:text-slate-950"
+            </Button>
+            <Button
               onClick={() => {
                 setReplying(false);
                 setReplyContent("");
                 setError(null);
               }}
               type="button"
+              variant="outline"
             >
               取消
-            </button>
+            </Button>
           </div>
         </div>
       ) : null}
 
-      {error ? <p className="text-sm text-rose-600">{error}</p> : null}
+      {error ? (
+        <Alert className="border-rose-200 bg-rose-50 text-rose-900" variant="destructive">
+          <AlertTitle>评论操作失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {props.comment.replies.length > 0 ? (
-        <div className="space-y-3 border-l border-slate-200 pl-3">
-          {props.comment.replies.map((reply: CommentNode) => (
-            <CommentItem
-              canInteract={props.canInteract}
-              comment={reply}
-              currentUserId={props.currentUserId}
-              depth={props.depth + 1}
-              key={reply.id}
-              postId={props.postId}
-            />
-          ))}
-        </div>
+        <>
+          <Separator />
+          <div className="relative flex flex-col gap-3 before:absolute before:bottom-0 before:left-3 before:top-0 before:w-px before:bg-border/70">
+            {props.comment.replies.map((reply: CommentNode) => (
+              <CommentItem
+                canInteract={props.canInteract}
+                comment={reply}
+                currentUserId={props.currentUserId}
+                depth={props.depth + 1}
+                key={reply.id}
+                postId={props.postId}
+              />
+            ))}
+          </div>
+        </>
       ) : null}
     </article>
   );
@@ -170,7 +207,7 @@ function CommentItem(props: NodeProps) {
 
 export function PostCommentThread(props: ThreadProps) {
   return (
-    <div className="space-y-4">
+    <div className="flex flex-col gap-4">
       {props.comments.map((comment) => (
         <CommentItem
           canInteract={props.canInteract}

@@ -1,14 +1,24 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
-  Bell,
-  BellRing,
-  Compass,
-  MessageSquareText,
-  RefreshCcw,
-  ShieldCheck,
-  Sparkles,
-  Users
+  BellIcon,
+  BellRingIcon,
+  MessageSquareTextIcon,
+  RefreshCcwIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  UsersIcon
 } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { apiClient } from "../lib/api-client";
 
 function notificationLabel(
@@ -59,267 +69,208 @@ export function NotificationsPage() {
 
   if (notificationsQuery.isLoading) {
     return (
-      <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-        正在加载通知...
-      </div>
+      <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
+        <CardContent className="px-6 py-8 text-sm text-muted-foreground">
+          正在加载通知中心...
+        </CardContent>
+      </Card>
     );
   }
 
   if (notificationsQuery.isError) {
     return (
-      <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
-        {notificationsQuery.error.message}
-      </div>
+      <Alert variant="destructive">
+        <AlertTitle>通知加载失败</AlertTitle>
+        <AlertDescription>{notificationsQuery.error.message}</AlertDescription>
+      </Alert>
     );
   }
 
   const payload = notificationsQuery.data;
   const unreadCount = payload?.unreadCount ?? 0;
   const totalCount = payload?.items.length ?? 0;
-  const socialCount =
-    payload?.items.filter((item) => item.type === "followed").length ?? 0;
+  const socialCount = payload?.items.filter((item) => item.type === "followed").length ?? 0;
   const discussionCount =
     payload?.items.filter(
       (item) => item.type === "post_commented" || item.type === "comment_replied"
     ).length ?? 0;
 
   return (
-    <main className="space-y-6">
-      <section className="overflow-hidden rounded-[32px] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a_0%,#1d4ed8_48%,#38bdf8_100%)] p-6 text-white shadow-[0_35px_90px_-45px_rgba(15,23,42,0.75)] sm:p-8">
-        <div className="grid gap-8 lg:grid-cols-[1.15fr_0.85fr]">
+    <main className="flex flex-col gap-8">
+      <section className="overflow-hidden rounded-[2rem] border border-border/80 bg-[linear-gradient(150deg,rgba(15,23,42,0.96)_0%,rgba(25,80,129,0.92)_48%,rgba(59,130,246,0.82)_100%)] p-6 text-primary-foreground shadow-[0_40px_90px_-58px_rgba(15,23,42,0.95)] sm:p-8">
+        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
           <div>
-            <p className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-sky-100/85">
-              <BellRing className="h-4 w-4" />
-              Notification Center
-            </p>
-            <h2 className="mt-5 text-3xl font-semibold tracking-tight sm:text-4xl">
-              关注、互动与回复，统一在这里收口
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-sky-100/85">
-              当前通知中心聚合了关注关系、帖子互动和评论链路，让用户可以快速回到真正发生内容变化的地方。
-            </p>
-
-            <div className="mt-8 grid gap-3 sm:grid-cols-3">
-              <div className="rounded-[22px] border border-white/12 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/70">Unread</p>
-                <p className="mt-3 text-3xl font-semibold">{unreadCount}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/12 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/70">Social</p>
-                <p className="mt-3 text-3xl font-semibold">{socialCount}</p>
-              </div>
-              <div className="rounded-[22px] border border-white/12 bg-white/10 p-4 backdrop-blur">
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/70">Discussion</p>
-                <p className="mt-3 text-3xl font-semibold">{discussionCount}</p>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge className="bg-white/14 text-white hover:bg-white/14">Notification Center</Badge>
+              <Badge variant="outline" className="border-white/18 bg-white/8 text-white">
+                社区反馈回流
+              </Badge>
             </div>
+            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-white sm:text-5xl">
+              把关注、互动与回复统一收口在一个地方。
+            </h1>
+            <p className="mt-5 max-w-2xl text-base leading-8 text-sky-50/86">
+              通知中心负责把真正与你有关的变化提炼出来，让你直接回到帖子、评论和关系更新发生的位置。
+            </p>
           </div>
 
-          <div className="rounded-[28px] border border-white/12 bg-slate-950/25 p-5 backdrop-blur">
-            <div className="flex items-center justify-between gap-3">
-              <div>
-                <p className="text-xs uppercase tracking-[0.18em] text-sky-100/70">Control</p>
-                <h3 className="mt-2 text-xl font-semibold">消息收纳动作</h3>
-              </div>
-              <span className="rounded-full bg-white/10 px-3 py-1 text-xs uppercase tracking-[0.16em] text-sky-100/80">
-                Total {totalCount}
-              </span>
-            </div>
-
-            <div className="mt-5 grid gap-3">
-              <button
-                className="inline-flex items-center justify-center gap-2 rounded-[22px] bg-white px-4 py-3 text-sm font-medium text-slate-950 shadow-[0_24px_55px_-30px_rgba(255,255,255,0.45)] transition hover:bg-slate-100"
-                onClick={() => {
-                  void apiClient.markAllNotificationsRead().then(() => {
-                    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-                  });
-                }}
-                type="button"
-              >
-                <ShieldCheck className="h-4 w-4" />
-                全部标记为已读
-              </button>
-              <button
-                className="inline-flex items-center justify-center gap-2 rounded-[22px] border border-white/15 bg-white/10 px-4 py-3 text-sm font-medium text-white transition hover:bg-white/15"
-                onClick={() => {
-                  void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-                }}
-                type="button"
-              >
-                <RefreshCcw className="h-4 w-4" />
-                刷新提醒列表
-              </button>
-            </div>
-
-            <div className="mt-5 space-y-3">
+          <Card className="rounded-[1.75rem] border-white/10 bg-white/8 text-white shadow-none backdrop-blur">
+            <CardHeader>
+              <CardDescription className="text-sky-100/70">Live Snapshot</CardDescription>
+              <CardTitle className="text-2xl text-white">消息概况</CardTitle>
+            </CardHeader>
+            <CardContent className="grid gap-3 sm:grid-cols-3">
               {[
-                {
-                  label: "关注提醒",
-                  value: "让关系链更新被看见",
-                  icon: Users
-                },
-                {
-                  label: "互动提醒",
-                  value: "点赞、收藏、分享统一收纳",
-                  icon: Sparkles
-                },
-                {
-                  label: "讨论提醒",
-                  value: "评论与回复回到帖子上下文",
-                  icon: MessageSquareText
-                }
+                { label: "未读", value: unreadCount, icon: BellRingIcon },
+                { label: "关注", value: socialCount, icon: UsersIcon },
+                { label: "评论", value: discussionCount, icon: MessageSquareTextIcon }
               ].map((item) => {
                 const Icon = item.icon;
                 return (
                   <div
-                    className="rounded-[20px] border border-white/10 bg-white/8 p-4"
+                    className="rounded-[1.25rem] border border-white/10 bg-white/8 p-4"
                     key={item.label}
                   >
-                    <div className="flex items-center gap-3">
-                      <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/10 text-sky-100">
-                        <Icon className="h-4 w-4" />
-                      </span>
-                      <div>
-                        <p className="text-sm font-medium text-white">{item.label}</p>
-                        <p className="mt-1 text-xs uppercase tracking-[0.14em] text-sky-100/70">
-                          {item.value}
-                        </p>
-                      </div>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="text-sm text-white">{item.label}</div>
+                      <Icon className="size-4.5 text-sky-100/80" />
                     </div>
+                    <div className="mt-4 text-3xl font-semibold text-white">{item.value}</div>
                   </div>
                 );
               })}
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       </section>
 
       <section className="grid gap-5 xl:grid-cols-[0.88fr_1.12fr]">
-        <article className="rounded-[28px] border border-slate-200 bg-white p-6 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.35)]">
-          <p className="text-xs uppercase tracking-[0.2em] text-slate-400">Message Summary</p>
-          <h3 className="mt-2 text-2xl font-semibold text-slate-950">本次通知侧重点</h3>
+        <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
+          <CardHeader>
+            <CardTitle className="text-2xl">通知动作</CardTitle>
+            <CardDescription>先处理状态，再返回真正有内容变化的地方。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            <Button
+              onClick={() => {
+                void apiClient.markAllNotificationsRead().then(() => {
+                  void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                });
+              }}
+              size="lg"
+              type="button"
+            >
+              <ShieldCheckIcon data-icon="inline-start" />
+              全部标记为已读
+            </Button>
 
-          <div className="mt-6 space-y-3">
+            <Button
+              onClick={() => {
+                void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+              }}
+              size="lg"
+              type="button"
+              variant="outline"
+            >
+              <RefreshCcwIcon data-icon="inline-start" />
+              刷新提醒列表
+            </Button>
+
+            <Separator />
+
             {[
               {
-                label: "未读消息",
-                value: unreadCount,
-                tone: "bg-sky-50 text-sky-700 border-sky-100",
-                icon: BellRing
+                title: "关注提醒",
+                description: "让新的关系变化被及时看见。",
+                icon: UsersIcon
               },
               {
-                label: "全部通知",
-                value: totalCount,
-                tone: "bg-slate-50 text-slate-700 border-slate-200",
-                icon: Bell
+                title: "互动提醒",
+                description: "点赞、收藏和分享会回流到这里。",
+                icon: SparklesIcon
               },
               {
-                label: "评论链路",
-                value: discussionCount,
-                tone: "bg-cyan-50 text-cyan-700 border-cyan-100",
-                icon: MessageSquareText
-              },
-              {
-                label: "关系变化",
-                value: socialCount,
-                tone: "bg-indigo-50 text-indigo-700 border-indigo-100",
-                icon: Compass
+                title: "评论提醒",
+                description: "评论和回复会带你回到具体上下文。",
+                icon: MessageSquareTextIcon
               }
             ].map((item) => {
               const Icon = item.icon;
               return (
                 <div
-                  className={`flex items-center justify-between rounded-[22px] border px-4 py-4 ${item.tone}`}
-                  key={item.label}
+                  className="flex items-start gap-4 rounded-[1.25rem] bg-secondary/45 p-4"
+                  key={item.title}
                 >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/70">
-                      <Icon className="h-4.5 w-4.5" />
-                    </span>
-                    <span className="text-sm font-medium">{item.label}</span>
+                  <span className="flex size-11 items-center justify-center rounded-2xl bg-card text-primary shadow-sm">
+                    <Icon className="size-4.5" />
+                  </span>
+                  <div>
+                    <div className="font-medium text-foreground">{item.title}</div>
+                    <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                      {item.description}
+                    </div>
                   </div>
-                  <span className="text-2xl font-semibold">{item.value}</span>
                 </div>
               );
             })}
-          </div>
-        </article>
+          </CardContent>
+        </Card>
 
-        <section className="space-y-4">
+        <div className="flex flex-col gap-4">
           {payload && payload.items.length > 0 ? (
             payload.items.map((item) => (
-              <article
-                className={`rounded-[28px] border p-6 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.32)] transition ${
-                  item.isRead
-                    ? "border-slate-200 bg-white"
-                    : "border-sky-200 bg-[linear-gradient(180deg,#f7fbff_0%,#eef7ff_100%)]"
-                }`}
+              <Card
+                className="rounded-[1.8rem] border-border/80 bg-card/82 shadow-[0_28px_80px_-52px_rgba(15,23,42,0.35)]"
                 key={item.id}
               >
-                <div className="flex items-start gap-4">
-                  <div
-                    className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl ${
-                      item.isRead
-                        ? "bg-slate-100 text-slate-500"
-                        : "bg-sky-100 text-sky-700"
-                    }`}
-                  >
-                    {item.isRead ? (
-                      <Bell className="h-5 w-5" />
-                    ) : (
-                      <BellRing className="h-5 w-5" />
-                    )}
+                <CardHeader>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="secondary">{notificationGroupLabel(item.type)}</Badge>
+                    {!item.isRead ? <Badge>未读</Badge> : <Badge variant="outline">已读</Badge>}
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-3">
-                      <span className="rounded-full bg-slate-950 px-3 py-1 text-[11px] uppercase tracking-[0.16em] text-white">
-                        {notificationGroupLabel(item.type)}
-                      </span>
-                      {!item.isRead ? (
-                        <span className="rounded-full bg-sky-100 px-3 py-1 text-[11px] font-medium text-sky-700">
-                          未读
-                        </span>
-                      ) : null}
-                    </div>
-                    <h3 className="mt-4 text-lg font-semibold text-slate-950">
-                      {notificationLabel(item)}
-                    </h3>
-                    <p className="mt-2 text-sm text-slate-500">
-                      {new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}
-                    </p>
-
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                      {item.post ? (
-                        <div className="rounded-[20px] border border-slate-200 bg-white/80 p-4">
-                          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
-                            相关帖子
-                          </p>
-                          <p className="mt-2 text-sm font-medium leading-6 text-slate-950">
-                            {item.post.title}
-                          </p>
-                        </div>
-                      ) : null}
-                      {item.comment ? (
-                        <div className="rounded-[20px] border border-slate-200 bg-white/80 p-4">
-                          <p className="text-xs uppercase tracking-[0.14em] text-slate-400">
-                            评论摘录
-                          </p>
-                          <p className="mt-2 text-sm leading-6 text-slate-700">
-                            {item.comment.contentPreview}
-                          </p>
-                        </div>
-                      ) : null}
+                  <div className="flex items-start gap-4 pt-2">
+                    <span className="flex size-12 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
+                      {item.isRead ? <BellIcon className="size-4.5" /> : <BellRingIcon className="size-4.5" />}
+                    </span>
+                    <div>
+                      <CardTitle className="text-xl">{notificationLabel(item)}</CardTitle>
+                      <CardDescription className="mt-2">
+                        {new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}
+                      </CardDescription>
                     </div>
                   </div>
-                </div>
-              </article>
+                </CardHeader>
+                <CardContent className="flex flex-col gap-3">
+                  {item.post ? (
+                    <div className="rounded-[1.2rem] border border-border/80 bg-secondary/40 p-4">
+                      <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                        相关帖子
+                      </div>
+                      <div className="mt-2 text-sm font-medium text-foreground">{item.post.title}</div>
+                    </div>
+                  ) : null}
+                  {item.comment ? (
+                    <div className="rounded-[1.2rem] border border-border/80 bg-secondary/40 p-4">
+                      <div className="text-xs uppercase tracking-[0.14em] text-muted-foreground">
+                        评论摘录
+                      </div>
+                      <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {item.comment.contentPreview}
+                      </div>
+                    </div>
+                  ) : null}
+                </CardContent>
+              </Card>
             ))
           ) : (
-            <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-              还没有新的站内通知。当前会在有人关注你、与你互动或回复评论时进入这里。
-            </div>
+            <Alert>
+              <AlertTitle>还没有新的通知</AlertTitle>
+              <AlertDescription>
+                当前会在有人关注你、与你互动或回复评论时进入这里。
+              </AlertDescription>
+            </Alert>
           )}
-        </section>
+        </div>
       </section>
     </main>
   );

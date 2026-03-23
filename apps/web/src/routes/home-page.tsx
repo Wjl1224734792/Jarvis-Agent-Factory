@@ -1,40 +1,39 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
-  ArrowRight,
-  Clock3,
-  Compass,
-  Flame,
-  ImagePlus,
-  PenSquare,
-  Users,
-  X
+  ArrowRightIcon,
+  CompassIcon,
+  FlameIcon,
+  ImagePlusIcon,
+  PenSquareIcon,
+  Rows3Icon,
+  UsersIcon,
+  XIcon
 } from "lucide-react";
-import { startTransition, useState } from "react";
+import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
 import { useAuthStore } from "../features/auth/auth-store";
 import { apiClient } from "../lib/api-client";
 
 const tabItems = [
-  {
-    id: "recommended",
-    label: "推荐",
-    icon: Flame,
-    hint: "按简化热度和发布时间排序"
-  },
-  {
-    id: "latest",
-    label: "最新",
-    icon: Clock3,
-    hint: "查看刚进入社区广场的最新内容"
-  },
-  {
-    id: "following",
-    label: "关注",
-    icon: Users,
-    hint: "只看你关注作者发布的帖子"
-  }
+  { id: "recommended", label: "推荐", icon: FlameIcon, hint: "正在被讨论的内容" },
+  { id: "latest", label: "最新", icon: Rows3Icon, hint: "刚刚发布的内容" },
+  { id: "following", label: "关注", icon: UsersIcon, hint: "你关注作者的动态" }
 ] as const;
 
 type FeedTab = (typeof tabItems)[number]["id"];
@@ -46,14 +45,14 @@ function postDetailPath(id: string) {
 
 function emptyFeedMessage(tab: FeedTab, authenticated: boolean) {
   if (tab === "following" && !authenticated) {
-    return "登录后即可查看关注流，并根据作者建立自己的内容面板。";
+    return "登录后即可查看关注作者的动态。";
   }
 
   if (tab === "following") {
-    return "你还没有关注任何作者，先去帖子详情页关注几位飞友吧。";
+    return "你还没有关注任何作者，先去内容详情里关注几位飞友吧。";
   }
 
-  return "当前还没有公开内容。你可以先登录发一条帖子，或浏览机型库参与讨论。";
+  return "当前还没有公开内容。你可以先发布一条记录，或去机型库继续浏览。";
 }
 
 export function HomePage() {
@@ -74,155 +73,151 @@ export function HomePage() {
     queryFn: () => apiClient.listHomeFeed(activeTab)
   });
 
+  const authenticated = status === "authenticated" && Boolean(user);
   const canSubmit = title.trim().length >= 2 && content.trim().length > 0 && !isUploading;
 
   return (
-    <main className="space-y-6">
-      <section className="overflow-hidden rounded-[36px] border border-slate-200 bg-[linear-gradient(135deg,#020617_0%,#0f172a_56%,#164e63_100%)] px-8 py-9 text-white shadow-[0_35px_90px_-45px_rgba(2,6,23,0.85)]">
-        <div className="grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
-          <article>
-            <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-cyan-100/80">
-              <Compass className="h-4 w-4" />
-              Feijia Community
+    <main className="flex flex-col gap-8">
+      <section className="max-w-[760px]">
+        <div className="flex flex-col gap-5 rounded-lg bg-card px-6 py-7 ring-1 ring-border/80 shadow-sm">
+          <div className="flex flex-wrap items-center gap-2">
+            <Badge>社区首页</Badge>
+            <Badge variant="outline">PC 优先</Badge>
+          </div>
+          <div className="max-w-3xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
+              一个更容易浏览的飞行器社区，从参数到讨论放在一起。
+            </h1>
+            <p className="mt-4 text-base leading-8 text-muted-foreground">
+              {APP_NAME} 把飞行器资料、真实点评和飞友内容流放在同一站内。你可以先浏览，再判断，
+              最后决定是否继续参与讨论。
             </p>
-            <h2 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-white">
-              在同一个站点里看机型参数、读真实口碑，再和飞友继续聊下去。
-            </h2>
-            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              {APP_NAME} 连接飞行器数据库与社区内容流。你可以先浏览参数和点评，再进入帖子、评论、
-              关注和通知链路，把选型、体验和交流放在一个连续场景里。
-            </p>
-
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link
-                className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-3 text-sm font-medium text-slate-950 transition hover:bg-slate-100"
-                to={APP_ROUTES.models}
-              >
-                去机型库看看
-                <ArrowRight className="h-4 w-4" />
+          </div>
+          <div className="flex flex-wrap gap-3">
+            <Button asChild size="lg">
+              <Link to={APP_ROUTES.models}>
+                <CompassIcon data-icon="inline-start" />
+                去机型库浏览
               </Link>
-              {status === "authenticated" && user ? (
-                <span className="inline-flex items-center rounded-full border border-white/15 px-4 py-3 text-sm text-slate-200">
-                  当前登录：{user.displayName}
-                </span>
-              ) : (
-                <Link
-                  className="inline-flex items-center rounded-full border border-white/15 px-4 py-3 text-sm text-slate-100 transition hover:border-white/30 hover:bg-white/5"
-                  to={APP_ROUTES.webLogin}
-                >
-                  登录后即可发帖、关注和互动
-                </Link>
-              )}
-            </div>
-          </article>
-
-          <article className="rounded-[30px] border border-white/10 bg-white/8 p-6 backdrop-blur">
-            <div className="flex items-center gap-2 text-sm text-cyan-100/80">
-              <PenSquare className="h-4 w-4" />
-              发布一条帖子
-            </div>
-
-            {status !== "authenticated" || !user ? (
-              <div className="mt-6 rounded-3xl border border-dashed border-white/15 bg-black/10 p-5 text-sm leading-7 text-slate-300">
-                游客可以浏览广场内容；发帖、上传图片、关注作者和评论回复需要登录。
-              </div>
+            </Button>
+            {authenticated ? (
+              <Button asChild size="lg" variant="outline">
+                <Link to={APP_ROUTES.webProfile}>查看我的入口</Link>
+              </Button>
             ) : (
-              <div className="mt-6 space-y-4">
-                <input
+              <Button asChild size="lg" variant="outline">
+                <Link to={APP_ROUTES.webLogin}>登录后参与互动</Link>
+              </Button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-[760px]">
+        <Card className="rounded-lg border-border/80 bg-card/90 shadow-sm">
+          <CardHeader>
+            <CardTitle className="text-xl">发布一条飞行记录</CardTitle>
+            <CardDescription>写下经验、观察或一次真实试飞感受。</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-4">
+            {!authenticated ? (
+              <Alert>
+                <AlertTitle>当前为只读模式</AlertTitle>
+                <AlertDescription>登录后即可发帖、上传图片、评论和关注作者。</AlertDescription>
+              </Alert>
+            ) : (
+              <>
+                <Input
                   aria-label="帖子标题"
-                  className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70"
                   onChange={(event) => {
                     setTitle(event.target.value);
                   }}
                   placeholder="给这次飞行记录起个标题"
                   value={title}
                 />
-                <textarea
+                <Textarea
                   aria-label="帖子内容"
-                  className="min-h-36 w-full rounded-3xl border border-white/10 bg-slate-950/40 px-4 py-4 text-sm leading-7 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70"
+                  className="min-h-32"
                   onChange={(event) => {
                     setContent(event.target.value);
                   }}
-                  placeholder="分享今天的飞行记录、避坑经验，或一条你正在关注的行业变化。"
+                  placeholder="分享飞行记录、避坑经验，或你最近正在关注的行业变化。"
                   value={content}
                 />
 
-                <div className="rounded-3xl border border-white/10 bg-slate-950/30 p-4">
-                  <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex flex-col gap-3 rounded-lg border border-border/80 bg-secondary/40 p-4">
+                  <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="text-sm font-medium text-white">上传图片</p>
-                      <p className="mt-1 text-xs text-slate-400">最多 4 张，仅支持图片文件。</p>
+                      <div className="text-sm font-medium text-foreground">上传图片</div>
+                      <div className="text-sm text-muted-foreground">最多 4 张，仅支持图片文件。</div>
                     </div>
+                    <Button asChild type="button" variant="outline">
+                      <label className="cursor-pointer">
+                        <ImagePlusIcon data-icon="inline-start" />
+                        {isUploading ? "上传中..." : "添加图片"}
+                        <input
+                          accept="image/*"
+                          className="hidden"
+                          multiple
+                          onChange={(event) => {
+                            const files = Array.from(event.target.files ?? []);
+                            event.target.value = "";
 
-                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-full border border-cyan-300/30 px-4 py-2 text-sm text-cyan-100 transition hover:border-cyan-200/60 hover:bg-white/5">
-                      <ImagePlus className="h-4 w-4" />
-                      {isUploading ? "上传中..." : "添加图片"}
-                      <input
-                        accept="image/*"
-                        className="hidden"
-                        multiple
-                        onChange={(event) => {
-                          const files = Array.from(event.target.files ?? []);
-                          event.target.value = "";
+                            if (files.length === 0) {
+                              return;
+                            }
 
-                          if (files.length === 0) {
-                            return;
-                          }
+                            if (uploadedImages.length + files.length > 4) {
+                              setSubmitError("最多上传 4 张图片");
+                              return;
+                            }
 
-                          if (uploadedImages.length + files.length > 4) {
-                            setSubmitError("最多上传 4 张图片");
-                            return;
-                          }
+                            setSubmitError(null);
+                            setIsUploading(true);
 
-                          setSubmitError(null);
-                          setIsUploading(true);
-
-                          void Promise.all(files.map((file) => apiClient.uploadPostImage(file)))
-                            .then((payload) => {
-                              setUploadedImages((current) => [
-                                ...current,
-                                ...payload.map((item) => item.item)
-                              ]);
-                            })
-                            .catch((value: unknown) => {
-                              setSubmitError(
-                                value instanceof Error ? value.message : "图片上传失败"
-                              );
-                            })
-                            .finally(() => {
-                              setIsUploading(false);
-                            });
-                        }}
-                        type="file"
-                      />
-                    </label>
+                            void Promise.all(files.map((file) => apiClient.uploadPostImage(file)))
+                              .then((payload) => {
+                                setUploadedImages((current) => [
+                                  ...current,
+                                  ...payload.map((item) => item.item)
+                                ]);
+                              })
+                              .catch((value: unknown) => {
+                                setSubmitError(value instanceof Error ? value.message : "图片上传失败");
+                              })
+                              .finally(() => {
+                                setIsUploading(false);
+                              });
+                          }}
+                          type="file"
+                        />
+                      </label>
+                    </Button>
                   </div>
 
                   {uploadedImages.length > 0 ? (
-                    <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                    <div className="grid gap-3 sm:grid-cols-2">
                       {uploadedImages.map((image) => (
                         <div
-                          className="overflow-hidden rounded-2xl border border-white/10 bg-slate-950/50"
+                          className="overflow-hidden rounded-md border border-border/80 bg-background"
                           key={image.id}
                         >
-                          <img
-                            alt={image.fileName}
-                            className="h-36 w-full object-cover"
-                            src={image.url}
-                          />
-                          <div className="flex items-center justify-between gap-3 px-3 py-3 text-xs text-slate-300">
-                            <span className="truncate">{image.fileName}</span>
-                            <button
-                              className="rounded-full border border-white/10 p-1.5 text-slate-300 transition hover:border-white/30 hover:text-white"
+                          <img alt={image.fileName} className="h-28 w-full object-cover" src={image.url} />
+                          <div className="flex items-center justify-between gap-3 px-3 py-2">
+                            <span className="truncate text-xs text-muted-foreground">{image.fileName}</span>
+                            <Button
                               onClick={() => {
                                 setUploadedImages((current) =>
                                   current.filter((item) => item.id !== image.id)
                                 );
                               }}
+                              size="icon-sm"
                               type="button"
+                              variant="ghost"
                             >
-                              <X className="h-3.5 w-3.5" />
-                            </button>
+                              <XIcon />
+                              <span className="sr-only">移除图片</span>
+                            </Button>
                           </div>
                         </div>
                       ))}
@@ -231,13 +226,13 @@ export function HomePage() {
                 </div>
 
                 {submitError ? (
-                  <p className="rounded-2xl bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
-                    {submitError}
-                  </p>
+                  <Alert variant="destructive">
+                    <AlertTitle>提交失败</AlertTitle>
+                    <AlertDescription>{submitError}</AlertDescription>
+                  </Alert>
                 ) : null}
 
-                <button
-                  className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-cyan-400 px-4 py-3 text-sm font-medium text-slate-950 transition hover:bg-cyan-300 disabled:cursor-not-allowed disabled:bg-slate-500 disabled:text-slate-300"
+                <Button
                   disabled={!canSubmit || isSubmitting}
                   onClick={() => {
                     setSubmitError(null);
@@ -263,121 +258,151 @@ export function HomePage() {
                         setIsSubmitting(false);
                       });
                   }}
+                  size="lg"
                   type="button"
                 >
+                  <PenSquareIcon data-icon="inline-start" />
                   {isSubmitting ? "提交中..." : "提交帖子"}
-                </button>
-              </div>
+                </Button>
+              </>
             )}
-          </article>
-        </div>
+          </CardContent>
+        </Card>
       </section>
 
-      <section className="rounded-[32px] border border-slate-200 bg-white/85 p-5 shadow-[0_20px_60px_-40px_rgba(15,23,42,0.3)] backdrop-blur">
-        <div className="flex flex-wrap items-center gap-3">
-          {tabItems.map((item) => {
-            const Icon = item.icon;
-            const active = item.id === activeTab;
-
-            return (
-              <button
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-3 text-sm font-medium transition ${
-                  active
-                    ? "bg-slate-950 text-white"
-                    : "bg-slate-100 text-slate-600 hover:bg-slate-200 hover:text-slate-950"
-                }`}
-                key={item.id}
-                onClick={() => {
-                  startTransition(() => {
-                    setActiveTab(item.id);
-                  });
-                }}
-                type="button"
-              >
-                <Icon className="h-4 w-4" />
-                {item.label}
-              </button>
-            );
-          })}
-          <p className="text-sm text-slate-500">
-            {tabItems.find((item) => item.id === activeTab)?.hint}
-          </p>
-        </div>
-      </section>
-
-      <section className="grid gap-4">
-        {feedQuery.isLoading ? (
-          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm text-slate-500">
-            正在加载首页内容流...
-          </div>
-        ) : null}
-
-        {feedQuery.isError ? (
-          <div className="rounded-[28px] border border-rose-200 bg-rose-50 p-8 text-sm text-rose-700">
-            {feedQuery.error.message}
-          </div>
-        ) : null}
-
-        {!feedQuery.isLoading && !feedQuery.isError && feedQuery.data?.items.length === 0 ? (
-          <div className="rounded-[28px] border border-dashed border-slate-300 bg-white/70 p-8 text-sm leading-7 text-slate-500">
-            {emptyFeedMessage(activeTab, status === "authenticated")}
-          </div>
-        ) : null}
-
-        {feedQuery.data?.items.map((item) => (
-          <article
-            className="space-y-5 rounded-[30px] border border-slate-200 bg-white p-6 shadow-[0_25px_70px_-45px_rgba(15,23,42,0.35)]"
-            key={item.id}
-          >
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div className="flex flex-wrap items-center gap-3 text-xs uppercase tracking-[0.18em] text-slate-400">
-                <span>{item.author.displayName}</span>
-                <span>评论 {item.commentCount}</span>
-                <span>
-                  {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
-                    hour12: false
-                  })}
-                </span>
-              </div>
-              <Link
-                className="inline-flex items-center gap-2 rounded-full border border-slate-200 px-4 py-3 text-sm font-medium text-slate-700 transition hover:border-slate-300 hover:text-slate-950"
-                to={postDetailPath(item.id)}
-              >
-                查看详情
-                <ArrowRight className="h-4 w-4" />
-              </Link>
-            </div>
-
+      <section className="max-w-[760px]">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
             <div>
-              <h3 className="text-2xl font-semibold text-slate-950">{item.title}</h3>
-              <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-600">{item.contentPreview}</p>
+              <h2 className="text-2xl font-semibold text-foreground">内容流</h2>
+              <p className="mt-2 text-sm leading-7 text-muted-foreground">
+                从推荐、最新和关注三条路径继续浏览。
+              </p>
             </div>
+            <Tabs
+              className="gap-0"
+              onValueChange={(value) => {
+                setActiveTab(value as FeedTab);
+              }}
+              value={activeTab}
+            >
+              <TabsList variant="default">
+                {tabItems.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <TabsTrigger key={item.id} value={item.id}>
+                      <Icon data-icon="inline-start" />
+                      {item.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
 
-            {item.images.length > 0 ? (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-                {item.images.slice(0, 3).map((image) => (
-                  <img
-                    alt={image.fileName}
-                    className="h-52 w-full rounded-3xl object-cover"
-                    key={image.id}
-                    src={image.url}
-                  />
-                ))}
+          <div className="text-sm text-muted-foreground">
+            {tabItems.find((item) => item.id === activeTab)?.hint}
+          </div>
+        </div>
+      </section>
+
+      <section className="max-w-[760px]">
+        <div className="flex flex-col gap-4">
+          {feedQuery.isLoading ? (
+            Array.from({ length: 3 }).map((_, index) => (
+              <Card className="rounded-lg border-border/80" key={index}>
+                <CardHeader>
+                  <div className="h-4 w-24 animate-pulse rounded bg-muted" />
+                  <div className="h-8 w-3/5 animate-pulse rounded bg-muted" />
+                </CardHeader>
+                <CardContent>
+                  <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                  <div className="mt-3 h-4 w-2/3 animate-pulse rounded bg-muted" />
+                </CardContent>
+              </Card>
+            ))
+          ) : null}
+
+          {feedQuery.isError ? (
+            <Alert variant="destructive">
+              <AlertTitle>内容流加载失败</AlertTitle>
+              <AlertDescription>{feedQuery.error.message}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {!feedQuery.isLoading && !feedQuery.isError && feedQuery.data?.items.length === 0 ? (
+            <Alert>
+              <AlertTitle>当前内容为空</AlertTitle>
+              <AlertDescription>{emptyFeedMessage(activeTab, authenticated)}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {feedQuery.data?.items.map((item) => (
+            <article
+              className="overflow-hidden rounded-lg border border-border/80 bg-card shadow-sm"
+              key={item.id}
+            >
+              <div className="flex flex-col gap-5 p-6">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="secondary">{item.author.displayName}</Badge>
+                  <Badge variant="outline">
+                    {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
+                      hour12: false
+                    })}
+                  </Badge>
+                  <Badge variant="outline">评论 {item.commentCount}</Badge>
+                </div>
+
+                <div>
+                  <h3 className="text-2xl font-semibold tracking-tight text-foreground">
+                    {item.title}
+                  </h3>
+                  <p className="mt-3 text-base leading-8 text-muted-foreground">
+                    {item.contentPreview}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-3">
+                  <Button asChild>
+                    <Link to={postDetailPath(item.id)}>
+                      查看详情
+                      <ArrowRightIcon data-icon="inline-end" />
+                    </Link>
+                  </Button>
+                  <Button asChild variant="outline">
+                    <Link to={APP_ROUTES.models}>继续浏览机型</Link>
+                  </Button>
+                </div>
+
+                <Separator />
+
+                <PostInteractionBar
+                  authorId={item.author.id}
+                  compact
+                  favoriteCount={item.engagement.favoriteCount}
+                  isPublished={item.status === "published"}
+                  likeCount={item.engagement.likeCount}
+                  postId={item.id}
+                  shareCount={item.engagement.shareCount}
+                  viewer={item.engagement.viewer}
+                />
+                {item.images.length > 0 ? (
+                  <div className="overflow-hidden rounded-md border border-border/80 bg-secondary/20">
+                    <img
+                      alt={item.images[0]!.fileName}
+                      className="max-h-[320px] w-full object-cover"
+                      src={item.images[0]!.url}
+                    />
+                  </div>
+                ) : (
+                  <div className="rounded-md border border-dashed border-border/80 bg-secondary/20 p-4 text-sm text-muted-foreground">
+                    纯文字内容
+                  </div>
+                )}
               </div>
-            ) : null}
-
-            <PostInteractionBar
-              authorId={item.author.id}
-              compact
-              favoriteCount={item.engagement.favoriteCount}
-              isPublished={item.status === "published"}
-              likeCount={item.engagement.likeCount}
-              postId={item.id}
-              shareCount={item.engagement.shareCount}
-              viewer={item.engagement.viewer}
-            />
-          </article>
-        ))}
+            </article>
+          ))}
+        </div>
       </section>
     </main>
   );
