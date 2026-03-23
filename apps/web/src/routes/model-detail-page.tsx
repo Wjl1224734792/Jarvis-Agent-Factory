@@ -32,12 +32,12 @@ const powerTypeLabels = {
 const placeholderActions = [
   {
     label: "收藏",
-    hint: "后续迭代再接真实收藏写入",
+    hint: "收藏夹能力正在整理中",
     icon: Bookmark
   },
   {
     label: "想买",
-    hint: "后续迭代再接真实意向写入",
+    hint: "心愿单能力即将开放",
     icon: Heart
   }
 ] as const;
@@ -164,7 +164,9 @@ export function ModelDetailPage() {
               {item.name}
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              {item.description ?? item.summary ?? "当前详情页优先展示最小可读参数。"}
+              {item.description ??
+                item.summary ??
+                "查看核心参数、真实口碑和当前公开的社区评价，帮助你更快完成判断。"}
             </p>
           </div>
 
@@ -174,12 +176,17 @@ export function ModelDetailPage() {
 
               return (
                 <button
-                  className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)] transition hover:border-slate-300 hover:text-slate-950"
+                  aria-disabled
+                  className="inline-flex cursor-default items-center gap-2 rounded-full border border-slate-200 bg-white px-4 py-3 text-sm font-medium text-slate-700 shadow-[0_18px_40px_-32px_rgba(15,23,42,0.45)]"
                   key={action.label}
+                  title={action.hint}
                   type="button"
                 >
                   <Icon className="h-4 w-4" />
                   {action.label}
+                  <span className="rounded-full bg-slate-100 px-2 py-0.5 text-[11px] font-medium text-slate-500">
+                    规划中
+                  </span>
                 </button>
               );
             })}
@@ -211,10 +218,16 @@ export function ModelDetailPage() {
             </div>
             <div className="rounded-2xl bg-slate-50 px-4 py-3">
               <dt className="text-xs uppercase tracking-[0.18em] text-slate-400">最大续航距离</dt>
+                  <dd className="mt-2 text-base font-medium text-slate-950">
+                    {item.parameters.maxRangeKilometers
+                      ? `${item.parameters.maxRangeKilometers} km`
+                      : "待补充"}
+                  </dd>
+            </div>
+            <div className="rounded-2xl bg-slate-50 px-4 py-3">
+              <dt className="text-xs uppercase tracking-[0.18em] text-slate-400">口碑状态</dt>
               <dd className="mt-2 text-base font-medium text-slate-950">
-                {item.parameters.maxRangeKilometers
-                  ? `${item.parameters.maxRangeKilometers} km`
-                  : "待补充"}
+                {reviewPayload.summary.totalReviews > 0 ? "已有真实点评" : "等待首批评价"}
               </dd>
             </div>
           </dl>

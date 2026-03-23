@@ -192,13 +192,14 @@ export function ModelsPage() {
           <div className="max-w-3xl">
             <p className="inline-flex items-center gap-2 rounded-full border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-medium text-sky-700">
               <Plane className="h-4 w-4" />
-              MVP 第 3 迭代飞行器库主链路
+              Aircraft Atlas
             </p>
             <h2 className="mt-4 text-4xl font-semibold tracking-tight text-slate-950">
-              先把“可浏览、可筛选、可查看详情”的飞行器数据库读链路跑通。
+              从分类、品牌和动力类型切入，快速找到值得深入了解的飞行器。
             </h2>
             <p className="mt-4 text-sm leading-7 text-slate-600">
-              当前页面只承接机型库主链路。收藏、想买、写点评仍是入口位占位，不在本轮真实提交范围内。
+              这里汇集了飞加网当前公开的机型主数据与真实口碑入口。你可以先筛选，再进入详情页查看核心参数、
+              综合评分和用户点评。
             </p>
           </div>
 
@@ -318,7 +319,7 @@ export function ModelsPage() {
                   </div>
 
                   <p className="mt-4 text-sm leading-6 text-slate-600">
-                    {model.summary ?? "暂无摘要，先以最小可读信息展示。"}
+                    {model.summary ?? "参数卡与真实点评已开放，适合进一步查看详细信息。"}
                   </p>
 
                   <div className="mt-5 flex flex-wrap gap-2">

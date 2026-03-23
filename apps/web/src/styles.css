@@ -1,13 +1,45 @@
 :root {
   color: #0f172a;
-  background: #f8fafc;
-  font-family: "Segoe UI", sans-serif;
+  background:
+    radial-gradient(circle at top, rgba(30, 136, 229, 0.18), transparent 28%),
+    linear-gradient(180deg, #eef5ff 0%, #f8fbff 38%, #f4f7fb 100%);
+  font-family:
+    "Aptos",
+    "PingFang SC",
+    "Microsoft YaHei UI",
+    sans-serif;
+  color-scheme: light;
+}
+
+html {
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top, rgba(30, 136, 229, 0.18), transparent 28%),
+    linear-gradient(180deg, #eef5ff 0%, #f8fbff 38%, #f4f7fb 100%);
 }
 
 body {
   margin: 0;
+  min-height: 100vh;
+  background: transparent;
+}
+
+#root {
+  min-height: 100vh;
 }
 
 * {
   box-sizing: border-box;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+::selection {
+  background: rgba(30, 136, 229, 0.18);
+  color: #0f172a;
 }

@@ -83,14 +83,14 @@ export function HomePage() {
           <article>
             <p className="inline-flex items-center gap-2 rounded-full border border-cyan-300/20 bg-cyan-300/10 px-3 py-1 text-xs uppercase tracking-[0.24em] text-cyan-100/80">
               <Compass className="h-4 w-4" />
-              Social Iteration
+              Feijia Community
             </p>
             <h2 className="mt-5 max-w-3xl text-4xl font-semibold tracking-tight text-white">
-              {APP_NAME} 已接入图片帖子、关注流、互动按钮和站内通知。
+              在同一个站点里看机型参数、读真实口碑，再和飞友继续聊下去。
             </h2>
             <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300">
-              当前版本围绕社区主链路做最小闭环扩展：发帖可带图片，内容流支持关注筛选，
-              帖子详情支持点赞、收藏、分享和递归评论回复。
+              {APP_NAME} 连接飞行器数据库与社区内容流。你可以先浏览参数和点评，再进入帖子、评论、
+              关注和通知链路，把选型、体验和交流放在一个连续场景里。
             </p>
 
             <div className="mt-8 flex flex-wrap gap-3">
@@ -129,19 +129,21 @@ export function HomePage() {
             ) : (
               <div className="mt-6 space-y-4">
                 <input
+                  aria-label="帖子标题"
                   className="w-full rounded-2xl border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70"
                   onChange={(event) => {
                     setTitle(event.target.value);
                   }}
-                  placeholder="给这条帖子起个标题"
+                  placeholder="给这次飞行记录起个标题"
                   value={title}
                 />
                 <textarea
+                  aria-label="帖子内容"
                   className="min-h-36 w-full rounded-3xl border border-white/10 bg-slate-950/40 px-4 py-4 text-sm leading-7 text-white outline-none transition placeholder:text-slate-500 focus:border-cyan-300/70"
                   onChange={(event) => {
                     setContent(event.target.value);
                   }}
-                  placeholder="分享今天的飞行记录、踩坑经验，或一条正在观察的行业变化。"
+                  placeholder="分享今天的飞行记录、避坑经验，或一条你正在关注的行业变化。"
                   value={content}
                 />
 
