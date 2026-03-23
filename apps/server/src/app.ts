@@ -8,6 +8,7 @@ import { brandsRoute } from "./modules/brands/brands.route";
 import { categoriesRoute } from "./modules/categories/categories.route";
 import { postsRoute } from "./modules/posts/posts.route";
 import { reviewsRoute } from "./modules/reviews/reviews.route";
+import { socialRoute } from "./modules/social/social.route";
 import { healthRoute } from "./routes/health";
 
 export const app = new Hono();
@@ -34,6 +35,7 @@ app.get("/", (c) =>
 app.route(APP_ROUTES.health, healthRoute);
 app.route("/", authRoute);
 app.route("/", postsRoute);
+app.route("/", socialRoute);
 app.route("/", aircraftModelsRoute);
 app.route("/", reviewsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);

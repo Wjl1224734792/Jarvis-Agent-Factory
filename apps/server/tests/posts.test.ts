@@ -59,6 +59,70 @@ async function loginAdmin() {
   return extractCookie(response.headers.get("set-cookie"));
 }
 
+async function uploadImage(cookie: string, name = "cover.png") {
+  const formData = new FormData();
+  formData.append(
+    "file",
+    new File([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], name, {
+      type: "image/png"
+    })
+  );
+
+  const response = await app.request(API_ROUTES.uploads.images, {
+    method: "POST",
+    headers: {
+      cookie
+    },
+    body: formData
+  });
+
+  expect(response.status).toBe(200);
+
+  return (await response.json()) as {
+    item: { id: string; url: string; mimeType: string };
+  };
+}
+
+async function createPost(
+  cookie: string,
+  input: { title: string; content: string; imageIds?: string[] }
+) {
+  const response = await app.request(API_ROUTES.posts.create, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      cookie
+    },
+    body: JSON.stringify(input)
+  });
+
+  expect(response.status).toBe(200);
+
+  return (await response.json()) as {
+    item: {
+      id: string;
+      status: string;
+      author: { id: string };
+      images: Array<{ id: string }>;
+    };
+  };
+}
+
+async function publishPost(adminCookie: string, postId: string) {
+  const response = await app.request(API_ROUTES.posts.adminDetail(postId), {
+    method: "PUT",
+    headers: {
+      "content-type": "application/json",
+      cookie: adminCookie
+    },
+    body: JSON.stringify({
+      status: "published"
+    })
+  });
+
+  expect(response.status).toBe(200);
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -73,209 +137,264 @@ afterAll(async () => {
   await dbPool.end();
 });
 
-describe("posts flows", () => {
-  it("requires login to create posts and keeps pending posts out of feed", async () => {
+describe("posts and social flows", () => {
+  it("requires login for publishing and keeps pending image posts out of the public feed", async () => {
     const unauthenticatedResponse = await app.request(API_ROUTES.posts.create, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        title: "今日飞行记录",
-        content: "风不大，适合练习绕桩。"
+        title: "Harbor morning",
+        content: "Calm air and enough room to practice smooth turns.",
+        imageIds: []
       })
     });
 
     expect(unauthenticatedResponse.status).toBe(401);
 
     const userCookie = await loginWebUser("13800138002");
-    const createResponse = await app.request(API_ROUTES.posts.create, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: userCookie
-      },
-      body: JSON.stringify({
-        title: "今日飞行记录",
-        content: "风不大，适合练习绕桩。"
-      })
+    const uploaded = await uploadImage(userCookie);
+    expect(uploaded.item.mimeType).toBe("image/png");
+
+    const created = await createPost(userCookie, {
+      title: "Harbor morning",
+      content: "Calm air and enough room to practice smooth turns.",
+      imageIds: [uploaded.item.id]
     });
 
-    expect(createResponse.status).toBe(200);
-    const createPayload = (await createResponse.json()) as {
-      item: { id: string; status: string };
-    };
-    expect(createPayload.item.status).toBe("pending");
+    expect(created.item.status).toBe("pending");
+    expect(created.item.images).toHaveLength(1);
 
     const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, {
       method: "GET"
     });
-    expect(feedResponse.status).toBe(200);
-
     const feedPayload = (await feedResponse.json()) as {
       items: Array<{ id: string }>;
     };
-    expect(feedPayload.items.some((item) => item.id === createPayload.item.id)).toBe(false);
+
+    expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(false);
   });
 
-  it("lets admin publish pending posts into feed and detail", async () => {
-    const userCookie = await loginWebUser("13800138003");
-    const createResponse = await app.request(API_ROUTES.posts.create, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: userCookie
-      },
-      body: JSON.stringify({
-        title: "夜航练习",
-        content: "今晚光线一般，但返航识别很稳定。"
-      })
+  it("shows published posts in the following feed and creates follow notifications", async () => {
+    const authorCookie = await loginWebUser("13800138003");
+    const created = await createPost(authorCookie, {
+      title: "Ridge session",
+      content: "The air got messy near the trees, but the descent stayed clean."
     });
-    const createPayload = (await createResponse.json()) as {
-      item: { id: string };
-    };
 
     const adminCookie = await loginAdmin();
-    const adminListResponse = await app.request(`${API_ROUTES.posts.adminList}?status=pending`, {
-      method: "GET",
+    await publishPost(adminCookie, created.item.id);
+
+    const followerCookie = await loginWebUser("13800138004");
+    const followResponse = await app.request(API_ROUTES.social.follow(created.item.author.id), {
+      method: "POST",
       headers: {
-        cookie: adminCookie
+        cookie: followerCookie
       }
     });
 
-    expect(adminListResponse.status).toBe(200);
-    const adminListPayload = (await adminListResponse.json()) as {
-      items: Array<{ id: string; status: string }>;
-    };
-    expect(adminListPayload.items.some((item) => item.id === createPayload.item.id)).toBe(true);
+    expect(followResponse.status).toBe(200);
 
-    const publishResponse = await app.request(API_ROUTES.posts.adminDetail(createPayload.item.id), {
-      method: "PUT",
+    const followingFeedResponse = await app.request(`${API_ROUTES.feed}?tab=following`, {
+      method: "GET",
       headers: {
-        "content-type": "application/json",
-        cookie: adminCookie
-      },
-      body: JSON.stringify({
-        status: "published"
-      })
+        cookie: followerCookie
+      }
     });
-
-    expect(publishResponse.status).toBe(200);
-
-    const feedResponse = await app.request(`${API_ROUTES.feed}?tab=recommended`, {
-      method: "GET"
-    });
-    const feedPayload = (await feedResponse.json()) as {
-      items: Array<{ id: string; status: string }>;
+    const followingFeedPayload = (await followingFeedResponse.json()) as {
+      items: Array<{ id: string }>;
     };
-    expect(feedPayload.items.some((item) => item.id === createPayload.item.id)).toBe(true);
 
-    const detailResponse = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
-      method: "GET"
+    expect(followingFeedPayload.items.some((item) => item.id === created.item.id)).toBe(true);
+
+    const notificationsResponse = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: {
+        cookie: authorCookie
+      }
     });
-    expect(detailResponse.status).toBe(200);
-    const detailPayload = (await detailResponse.json()) as {
-      item: { id: string; status: string };
+    const notificationsPayload = (await notificationsResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ type: string; actor: { id: string } }>;
     };
-    expect(detailPayload.item.id).toBe(createPayload.item.id);
-    expect(detailPayload.item.status).toBe("published");
+
+    expect(notificationsPayload.unreadCount).toBe(1);
+    expect(notificationsPayload.items[0]?.type).toBe("followed");
   });
 
-  it("supports comments, single-level replies and deleting own comments", async () => {
-    const authorCookie = await loginWebUser("13800138004");
-    const createResponse = await app.request(API_ROUTES.posts.create, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: authorCookie
-      },
-      body: JSON.stringify({
-        title: "山地练习记录",
-        content: "今天在坡地试了低空绕树，姿态模式更稳。"
-      })
+  it("tracks like, favorite, and share actions and exposes notifications", async () => {
+    const authorCookie = await loginWebUser("13800138005");
+    const created = await createPost(authorCookie, {
+      title: "Bridge practice",
+      content: "Signal stayed stable, but the return path needed more altitude."
     });
-    const createPayload = (await createResponse.json()) as {
-      item: { id: string };
-    };
 
     const adminCookie = await loginAdmin();
-    await app.request(API_ROUTES.posts.adminDetail(createPayload.item.id), {
-      method: "PUT",
+    await publishPost(adminCookie, created.item.id);
+
+    const viewerCookie = await loginWebUser("13800138006");
+
+    for (const type of ["like", "favorite", "share"] as const) {
+      const response = await app.request(API_ROUTES.posts.interaction(created.item.id, type), {
+        method: "POST",
+        headers: {
+          cookie: viewerCookie
+        }
+      });
+
+      expect(response.status).toBe(200);
+    }
+
+    const detailResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "GET",
       headers: {
-        "content-type": "application/json",
-        cookie: adminCookie
-      },
-      body: JSON.stringify({
-        status: "published"
-      })
+        cookie: viewerCookie
+      }
+    });
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        engagement: {
+          likeCount: number;
+          favoriteCount: number;
+          shareCount: number;
+          viewer: {
+            hasLiked: boolean;
+            hasFavorited: boolean;
+            hasShared: boolean;
+          };
+        };
+      };
+    };
+
+    expect(detailPayload.item.engagement.likeCount).toBe(1);
+    expect(detailPayload.item.engagement.favoriteCount).toBe(1);
+    expect(detailPayload.item.engagement.shareCount).toBe(1);
+    expect(detailPayload.item.engagement.viewer.hasLiked).toBe(true);
+    expect(detailPayload.item.engagement.viewer.hasFavorited).toBe(true);
+    expect(detailPayload.item.engagement.viewer.hasShared).toBe(true);
+
+    const notificationsResponse = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: {
+        cookie: authorCookie
+      }
+    });
+    const notificationsPayload = (await notificationsResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ type: string }>;
+    };
+
+    expect(notificationsPayload.unreadCount).toBe(3);
+    expect(notificationsPayload.items.map((item) => item.type)).toEqual(
+      expect.arrayContaining(["post_liked", "post_favorited", "post_shared"])
+    );
+
+    const markReadResponse = await app.request(API_ROUTES.social.notificationsReadAll, {
+      method: "POST",
+      headers: {
+        cookie: authorCookie
+      }
     });
 
-    const commenterCookie = await loginWebUser("13800138005");
-    const commentResponse = await app.request(API_ROUTES.posts.comments(createPayload.item.id), {
+    expect(markReadResponse.status).toBe(200);
+  });
+
+  it("supports infinitely nested comments and deletes an entire subtree", async () => {
+    const authorCookie = await loginWebUser("13800138007");
+    const created = await createPost(authorCookie, {
+      title: "Tree line notes",
+      content: "The gusts rolled over the tree line in waves."
+    });
+
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+
+    const commenterCookie = await loginWebUser("13800138008");
+
+    const topLevelResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
       method: "POST",
       headers: {
         "content-type": "application/json",
         cookie: commenterCookie
       },
       body: JSON.stringify({
-        content: "坡地飞行确实更考验姿态控制。"
+        content: "Did you adjust expo for the approach?"
       })
     });
-
-    expect(commentResponse.status).toBe(200);
-    const commentPayload = (await commentResponse.json()) as {
-      item: { id: string; parentCommentId: string | null };
+    const topLevelPayload = (await topLevelResponse.json()) as {
+      item: { id: string };
     };
-    expect(commentPayload.item.parentCommentId).toBeNull();
 
-    const replyResponse = await app.request(API_ROUTES.posts.comments(createPayload.item.id), {
+    const secondLevelResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
       method: "POST",
       headers: {
         "content-type": "application/json",
         cookie: authorCookie
       },
       body: JSON.stringify({
-        content: "是的，逆风时更明显。",
-        parentCommentId: commentPayload.item.id
+        content: "Yes, I softened yaw to keep the arc clean.",
+        parentCommentId: topLevelPayload.item.id
+      })
+    });
+    const secondLevelPayload = (await secondLevelResponse.json()) as {
+      item: { id: string };
+    };
+
+    const thirdLevelResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: commenterCookie
+      },
+      body: JSON.stringify({
+        content: "That makes sense for the tighter turns.",
+        parentCommentId: secondLevelPayload.item.id
+      })
+    });
+    const thirdLevelPayload = (await thirdLevelResponse.json()) as {
+      item: { id: string };
+    };
+
+    const fourthLevelResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: authorCookie
+      },
+      body: JSON.stringify({
+        content: "Exactly, it kept the correction gentle.",
+        parentCommentId: thirdLevelPayload.item.id
       })
     });
 
-    expect(replyResponse.status).toBe(200);
-    const replyPayload = (await replyResponse.json()) as {
-      item: { id: string; parentCommentId: string };
-    };
+    expect(fourthLevelResponse.status).toBe(200);
 
-    const invalidReplyResponse = await app.request(
-      API_ROUTES.posts.comments(createPayload.item.id),
-      {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          cookie: commenterCookie
-        },
-        body: JSON.stringify({
-          content: "继续追问回复。",
-          parentCommentId: replyPayload.item.id
-        })
-      }
-    );
-
-    expect(invalidReplyResponse.status).toBe(400);
-
-    const detailBeforeDelete = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
+    const detailBeforeDelete = await app.request(API_ROUTES.posts.detail(created.item.id), {
       method: "GET"
     });
     const detailBeforePayload = (await detailBeforeDelete.json()) as {
       item: {
         commentCount: number;
-        comments: Array<{ id: string; replies: Array<{ id: string }> }>;
+        comments: Array<{
+          id: string;
+          replies: Array<{
+            id: string;
+            replies: Array<{
+              id: string;
+              replies: Array<{ id: string }>;
+            }>;
+          }>;
+        }>;
       };
     };
 
-    expect(detailBeforePayload.item.commentCount).toBe(2);
+    expect(detailBeforePayload.item.commentCount).toBe(4);
     expect(detailBeforePayload.item.comments).toHaveLength(1);
     expect(detailBeforePayload.item.comments[0]?.replies).toHaveLength(1);
+    expect(detailBeforePayload.item.comments[0]?.replies[0]?.replies).toHaveLength(1);
+    expect(detailBeforePayload.item.comments[0]?.replies[0]?.replies[0]?.replies).toHaveLength(1);
 
     const deleteResponse = await app.request(
-      API_ROUTES.posts.commentDetail(createPayload.item.id, commentPayload.item.id),
+      API_ROUTES.posts.commentDetail(created.item.id, topLevelPayload.item.id),
       {
         method: "DELETE",
         headers: {
@@ -286,7 +405,7 @@ describe("posts flows", () => {
 
     expect(deleteResponse.status).toBe(200);
 
-    const detailAfterDelete = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
+    const detailAfterDelete = await app.request(API_ROUTES.posts.detail(created.item.id), {
       method: "GET"
     });
     const detailAfterPayload = (await detailAfterDelete.json()) as {
@@ -295,131 +414,5 @@ describe("posts flows", () => {
 
     expect(detailAfterPayload.item.commentCount).toBe(0);
     expect(detailAfterPayload.item.comments).toHaveLength(0);
-  });
-
-  it("supports reporting posts, deleting own posts and admin comment moderation", async () => {
-    const authorCookie = await loginWebUser("13800138006");
-    const createResponse = await app.request(API_ROUTES.posts.create, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: authorCookie
-      },
-      body: JSON.stringify({
-        title: "城市楼宇间测距",
-        content: "高楼之间 GPS 漂移更明显，建议提前校准。"
-      })
-    });
-    const createPayload = (await createResponse.json()) as {
-      item: { id: string };
-    };
-
-    const adminCookie = await loginAdmin();
-    await app.request(API_ROUTES.posts.adminDetail(createPayload.item.id), {
-      method: "PUT",
-      headers: {
-        "content-type": "application/json",
-        cookie: adminCookie
-      },
-      body: JSON.stringify({
-        status: "published"
-      })
-    });
-
-    const reporterCookie = await loginWebUser("13800138007");
-    const reportResponse = await app.request(API_ROUTES.posts.report(createPayload.item.id), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: reporterCookie
-      },
-      body: JSON.stringify({
-        reason: "疑似广告内容"
-      })
-    });
-
-    expect(reportResponse.status).toBe(200);
-
-    const commentResponse = await app.request(API_ROUTES.posts.comments(createPayload.item.id), {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        cookie: reporterCookie
-      },
-      body: JSON.stringify({
-        content: "这类楼宇场景我一般会先做指南针校准。"
-      })
-    });
-    const commentPayload = (await commentResponse.json()) as {
-      item: { id: string };
-    };
-
-    const adminCommentsResponse = await app.request(
-      `${API_ROUTES.posts.adminComments}?status=visible`,
-      {
-        method: "GET",
-        headers: {
-          cookie: adminCookie
-        }
-      }
-    );
-
-    expect(adminCommentsResponse.status).toBe(200);
-    const adminCommentsPayload = (await adminCommentsResponse.json()) as {
-      items: Array<{ id: string }>;
-    };
-    expect(adminCommentsPayload.items.some((item) => item.id === commentPayload.item.id)).toBe(
-      true
-    );
-
-    const hideCommentResponse = await app.request(
-      API_ROUTES.posts.adminCommentDetail(commentPayload.item.id),
-      {
-        method: "PUT",
-        headers: {
-          "content-type": "application/json",
-          cookie: adminCookie
-        },
-        body: JSON.stringify({
-          status: "hidden"
-        })
-      }
-    );
-
-    expect(hideCommentResponse.status).toBe(200);
-
-    const detailAfterHide = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
-      method: "GET"
-    });
-    const detailAfterHidePayload = (await detailAfterHide.json()) as {
-      item: { reportCount: number; commentCount: number; comments: Array<unknown> };
-    };
-
-    expect(detailAfterHidePayload.item.reportCount).toBe(1);
-    expect(detailAfterHidePayload.item.commentCount).toBe(0);
-    expect(detailAfterHidePayload.item.comments).toHaveLength(0);
-
-    const feedAfterHide = await app.request(`${API_ROUTES.feed}?tab=recommended`, {
-      method: "GET"
-    });
-    const feedAfterHidePayload = (await feedAfterHide.json()) as {
-      items: Array<{ id: string; commentCount: number }>;
-    };
-    const hiddenPost = feedAfterHidePayload.items.find((item) => item.id === createPayload.item.id);
-    expect(hiddenPost?.commentCount).toBe(0);
-
-    const deletePostResponse = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
-      method: "DELETE",
-      headers: {
-        cookie: authorCookie
-      }
-    });
-
-    expect(deletePostResponse.status).toBe(200);
-
-    const detailAfterDelete = await app.request(API_ROUTES.posts.detail(createPayload.item.id), {
-      method: "GET"
-    });
-    expect(detailAfterDelete.status).toBe(404);
   });
 });

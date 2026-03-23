@@ -15,6 +15,7 @@ export const APP_ROUTES = {
   models: "/models",
   modelDetail: "/models/:slug",
   postDetail: "/posts/:id",
+  notifications: "/notifications",
   webLogin: "/login",
   webProfile: "/me",
   adminLogin: "/admin/login",
@@ -47,11 +48,20 @@ export const API_ROUTES = {
     detail: (id: string) => `/posts/${id}`,
     comments: (id: string) => `/posts/${id}/comments`,
     commentDetail: (postId: string, commentId: string) => `/posts/${postId}/comments/${commentId}`,
+    interaction: (id: string, type: string) => `/posts/${id}/interactions/${type}`,
     report: (id: string) => `/posts/${id}/report`,
     adminList: "/admin/posts",
     adminDetail: (id: string) => `/admin/posts/${id}`,
     adminComments: "/admin/post-comments",
     adminCommentDetail: (id: string) => `/admin/post-comments/${id}`
+  },
+  uploads: {
+    images: "/uploads/images"
+  },
+  social: {
+    follow: (userId: string) => `/users/${userId}/follow`,
+    notifications: "/notifications",
+    notificationsReadAll: "/notifications/read-all"
   },
   models: {
     list: "/models",

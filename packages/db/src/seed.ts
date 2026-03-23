@@ -188,7 +188,7 @@ async function ensureCommunitySeed() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "post_reports", "post_comments", "posts", "aircraft_reviews", "aircraft_models", "brands", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      'TRUNCATE TABLE "notifications", "post_interactions", "user_follows", "post_images", "post_reports", "post_comments", "posts", "aircraft_reviews", "aircraft_models", "brands", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }

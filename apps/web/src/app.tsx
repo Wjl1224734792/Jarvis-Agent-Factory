@@ -9,6 +9,7 @@ import { WebLayout } from "./features/auth/web-layout";
 import { HomePage } from "./routes/home-page";
 import { ModelDetailPage } from "./routes/model-detail-page";
 import { ModelsPage } from "./routes/models-page";
+import { NotificationsPage } from "./routes/notifications-page";
 import { PostDetailPage } from "./routes/post-detail-page";
 
 const router = createBrowserRouter([
@@ -39,6 +40,14 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.models.slice(1),
         element: <ModelsPage />
+      },
+      {
+        path: APP_ROUTES.notifications.slice(1),
+        element: (
+          <ProtectedRoute>
+            <NotificationsPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: APP_ROUTES.modelDetail.slice(1),

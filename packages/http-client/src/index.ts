@@ -32,12 +32,15 @@ import {
   modelListQuerySchema,
   modelListResponseSchema,
   modelReviewsResponseSchema,
+  notificationsResponseSchema,
   postDetailResponseSchema,
+  postInteractionTypeSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
+  uploadPostImageResponseSchema,
   updateReviewStatusInputSchema,
   webLoginRequestSchema,
   type HealthResponse,
@@ -59,6 +62,7 @@ type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
 type FeedTabInput = Parameters<typeof feedTabSchema.parse>[0];
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
+type PostInteractionTypeInput = Parameters<typeof postInteractionTypeSchema.parse>[0];
 type ReportPostInput = Parameters<typeof reportPostInputSchema.parse>[0];
 type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSchema.parse>[0];
 type UpdateAdminPostCommentStatusInput =
@@ -245,6 +249,18 @@ export function createApiClient(options: ApiClientOptions) {
         createPostInputSchema.parse(input)
       );
     },
+    async uploadPostImage(file: File) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${baseUrl}${API_ROUTES.uploads.images}`, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+      });
+
+      return readJson(response, uploadPostImageResponseSchema);
+    },
     async getPostDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
         method: "GET",
@@ -282,6 +298,39 @@ export function createApiClient(options: ApiClientOptions) {
         actionSuccessResponseSchema,
         reportPostInputSchema.parse(input)
       );
+    },
+    async togglePostInteraction(id: string, type: PostInteractionTypeInput) {
+      const parsedType = postInteractionTypeSchema.parse(type);
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.interaction(id, parsedType)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async toggleFollow(userId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.social.follow(userId)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async listNotifications() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.social.notifications}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, notificationsResponseSchema);
+    },
+    async markAllNotificationsRead() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.social.notificationsReadAll}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
     },
     async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
       const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
