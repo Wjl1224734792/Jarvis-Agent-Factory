@@ -11,7 +11,7 @@
 ## 2. 任务文档路径
 
 - `E:/CodeStore/feijia/.worktrees/mvp2-auth-identity/docs/tasks/2026-03-22-mvp2-auth-identity-tasks.md`
-- `E:/CodeStore/feijia/.worktrees/mvp2-auth-identity/docs/superpowers/specs/2026-03-22-auth-identity-design.md`
+- `E:/CodeStore/feijia/.worktrees/mvp2-auth-identity/docs/requirements/2026-03-22-auth-identity-design.md`
 
 ## 3. 当前轮次目标
 

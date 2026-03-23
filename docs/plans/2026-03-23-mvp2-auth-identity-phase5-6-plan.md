@@ -6,7 +6,7 @@
 - `docs/project/mvp/MVP 第1-第6迭代的每轮验收口径.md`
 
 ## 2. 任务文档路径
-- `docs/superpowers/plans/2026-03-22-mvp2-auth-identity.md`
+- `docs/plans/2026-03-22-mvp2-auth-identity-plan.md`
 - `docs/workflows/workflow.md`
 
 ## 3. 当前轮次目标

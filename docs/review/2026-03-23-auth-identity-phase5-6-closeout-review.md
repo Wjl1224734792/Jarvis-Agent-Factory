@@ -7,12 +7,12 @@
 
 ## 2. 任务文档
 - `docs/tasks/2026-03-22-mvp2-auth-identity-tasks.md`
-- `docs/superpowers/plans/2026-03-22-mvp2-auth-identity.md`
+- `docs/plans/2026-03-22-mvp2-auth-identity-plan.md`
 - `docs/workflows/workflow.md`
 
 ## 3. 计划文档
 - `docs/plans/2026-03-23-mvp2-auth-identity-phase5-6-plan.md`
-- `docs/superpowers/plans/2026-03-22-auth-identity-plan.md`
+- `docs/plans/2026-03-22-auth-identity-plan.md`
 
 ## 4. 前端实现文档
 - 未发现本轮独立前端实现文档，`docs/implementation/` 下无 mvp2 auth-identity 对应文档。
@@ -82,7 +82,7 @@
 - 无
 
 ### 低
-- 历史设计/实现计划文档仍保留“`users/sessions` 为内存态”的旧表述，例如 `docs/superpowers/specs/2026-03-22-mvp2-auth-identity-design.md` 与 `docs/superpowers/plans/2026-03-22-mvp2-auth-identity.md`。这与当前代码现实及 README 不一致，但这些文档属于历史设计/计划材料，不影响本轮 closeout 通过。
+- 历史设计/实现计划文档仍保留“`users/sessions` 为内存态”的旧表述，例如 `docs/requirements/2026-03-22-mvp2-auth-identity-design.md` 与 `docs/plans/2026-03-22-mvp2-auth-identity-plan.md`。这与当前代码现实及 README 不一致，但这些文档属于历史设计/计划材料，不影响本轮 closeout 通过。
 - 自动化测试当前只锁定了允许来源的正向场景，尚未把“非白名单来源不返回 `Access-Control-Allow-Origin`”写成回归测试。审查补充探针表明当前行为正确，因此暂定为低风险验证缺口。
 
 ## 12. 必须修复项
