@@ -1,214 +1,210 @@
-import {
-  BellIcon,
-  CompassIcon,
-  HistoryIcon,
-  MessageSquareTextIcon,
-  Settings2Icon,
-  SparklesIcon,
-  StarIcon,
-  WaypointsIcon
-} from "lucide-react";
+import { APP_ROUTES } from "@feijia/shared";
+import { HeartIcon, MessageSquareIcon, PenSquareIcon, TrendingUpIcon } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import {
+  SitePage,
+  SitePanel,
+  SitePanelBody
+} from "@/components/site-shell";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
-import { APP_ROUTES } from "@feijia/shared";
+  getAvatarImage,
+  getEditorialImage,
+  getProfileBanner
+} from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 
-const quickActions = [
-  {
-    title: "继续浏览首页",
-    description: "回到信息流，看推荐、最新和关注内容。",
-    to: APP_ROUTES.feedHome,
-    icon: CompassIcon
-  },
-  {
-    title: "进入飞行器库",
-    description: "继续按分类、品牌和动力类型筛选机型。",
-    to: APP_ROUTES.models,
-    icon: WaypointsIcon
-  },
-  {
-    title: "查看消息通知",
-    description: "集中处理关注、互动和评论回复提醒。",
-    to: APP_ROUTES.notifications,
-    icon: BellIcon
-  }
-] as const;
+const profileTabs = ["all", "images", "video", "drafts"] as const;
 
-const capabilityItems = [
+const showcaseCards: Array<{
+  eyebrow: string;
+  title: string;
+  summary: string;
+  imageSeed?: string;
+  metrics?: string;
+  comments?: string;
+  action: string;
+}> = [
   {
-    label: "内容能力",
-    value: "发帖、图片上传、评论回复",
-    icon: SparklesIcon
+    eyebrow: "Flightlog",
+    title: "Dawn Patrol: Chasing the light over the Cascades",
+    summary:
+      "The visibility was perfect this morning. Took the Cessna out for a quick 200nm loop before the clouds rolled in...",
+    imageSeed: "profile-dawn",
+    metrics: "124",
+    comments: "18",
+    action: "Edit Post"
   },
   {
-    label: "口碑能力",
-    value: "机型评分与单机唯一点评",
-    icon: StarIcon
+    eyebrow: "Review",
+    title: "Upgrading the Avionics: Garmin G1000 NXi Hands-on",
+    summary:
+      "After 50 hours with the new NXi suite, here is why the situational awareness is a total game-changer for IFR flight...",
+    imageSeed: "profile-garmin",
+    metrics: "892",
+    comments: "56",
+    action: "Edit Post"
   },
   {
-    label: "社交能力",
-    value: "关注作者、通知流与互动记录",
-    icon: MessageSquareTextIcon
-  }
-] as const;
-
-const roadmapItems = [
-  {
-    title: "我的内容资产",
-    description: "后续可继续聚合为我的帖子、我的点评和我的收藏。",
-    icon: HistoryIcon
-  },
-  {
-    title: "偏好与设置",
-    description: "当前已具备身份恢复链路，后续可补充隐私和账户设置。",
-    icon: Settings2Icon
+    eyebrow: "Travelogue",
+    title: "The Best Island Runways in the Southeast",
+    summary:
+      "Landing at Cedar Key is always an adventure. The runway seems to rise right out of the water and the breeze keeps you honest...",
+    action: "Continue Writing"
   }
 ] as const;
 
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
-  const status = useAuthStore((state) => state.status);
-  const error = useAuthStore((state) => state.error);
-
-  const displayName = user?.displayName ?? "访客";
-  const roleLabel = user?.role === "admin" ? "管理员账户" : "飞友成员";
-  const sessionLabel = status === "authenticated" && user ? "已登录会话" : "访客浏览模式";
+  const displayName = user?.displayName ?? "Aero_Explorer";
 
   return (
-    <main className="flex flex-col gap-8">
-      <section className="overflow-hidden rounded-[2rem] border border-border/80 bg-[linear-gradient(150deg,rgba(15,23,42,0.96)_0%,rgba(25,80,129,0.92)_48%,rgba(59,130,246,0.82)_100%)] p-6 text-primary-foreground shadow-[0_40px_90px_-58px_rgba(15,23,42,0.95)] sm:p-8">
-        <div className="grid gap-8 xl:grid-cols-[1.1fr_0.9fr]">
-          <div>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge className="bg-white/14 text-white hover:bg-white/14">Profile Hub</Badge>
-              <Badge variant="outline" className="border-white/18 bg-white/8 text-white">
-                Station Entry
-              </Badge>
-            </div>
-
-            <div className="mt-6 flex items-center gap-4">
-              <Avatar size="lg" className="size-16 ring-2 ring-white/20">
-                <AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-4xl font-semibold tracking-tight text-white">{displayName}</h1>
-                <p className="mt-2 text-sm uppercase tracking-[0.16em] text-sky-100/75">
-                  {roleLabel}
-                </p>
+    <SitePage>
+      <SitePanel>
+        <div className="relative h-56 overflow-hidden border-b border-border/80">
+          <img
+            alt="profile banner"
+            className="h-full w-full object-cover"
+            src={getProfileBanner(displayName)}
+          />
+        </div>
+        <SitePanelBody className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_auto] xl:items-center">
+          <div className="flex flex-col gap-5 lg:flex-row lg:items-end">
+            <Avatar className="-mt-20 size-36 rounded-[calc(var(--radius-panel)-0.15rem)] ring-4 ring-white" size="lg">
+              <AvatarImage alt={displayName} src={getAvatarImage(displayName)} />
+              <AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback>
+            </Avatar>
+            <div className="flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="eyebrow">Aviation Precision</Badge>
+                <Badge variant="outline">Pilot Journal</Badge>
               </div>
+              <p className="mt-4 max-w-3xl text-lg leading-8 text-muted-foreground">
+                Private pilot & aviation enthusiast. Capturing the world from 10,000 feet. Always
+                looking for the next runway.
+              </p>
             </div>
-
-            <p className="mt-6 max-w-2xl text-base leading-8 text-sky-50/86">
-              个人中心现在不再只是身份占位，而是把当前已经打通的浏览、互动、通知和口碑入口收拢成一块飞友工作台。
-            </p>
           </div>
 
-          <Card className="rounded-[1.75rem] border-white/10 bg-white/8 text-white shadow-none backdrop-blur">
-            <CardHeader>
-              <CardDescription className="text-sky-100/70">Session Snapshot</CardDescription>
-              <CardTitle className="text-2xl text-white">{sessionLabel}</CardTitle>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-4">
-              {capabilityItems.map((item) => {
-                const Icon = item.icon;
-                return (
-                  <div
-                    className="flex items-start gap-4 rounded-[1.25rem] border border-white/10 bg-white/8 p-4"
-                    key={item.label}
-                  >
-                    <span className="flex size-11 items-center justify-center rounded-2xl bg-white/10 text-white">
-                      <Icon className="size-4.5" />
-                    </span>
-                    <div>
-                      <div className="text-xs uppercase tracking-[0.14em] text-sky-100/65">
-                        {item.label}
-                      </div>
-                      <div className="mt-2 text-sm leading-7 text-white">{item.value}</div>
-                    </div>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
-        </div>
-      </section>
-
-      <section className="grid gap-5 xl:grid-cols-[1.08fr_0.92fr]">
-        <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-2xl">主站快捷入口</CardTitle>
-            <CardDescription>先从最常用的三条路径继续往下走。</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {quickActions.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button
-                  asChild
-                  className="h-auto justify-start rounded-[1.4rem] px-4 py-4"
-                  key={item.to}
-                  variant="outline"
-                >
-                  <Link to={item.to}>
-                    <span className="flex size-11 items-center justify-center rounded-2xl bg-secondary text-secondary-foreground">
-                      <Icon className="size-4.5" />
-                    </span>
-                    <span className="flex flex-col gap-1 text-left">
-                      <span className="text-sm font-medium text-foreground">{item.title}</span>
-                      <span className="text-sm text-muted-foreground">{item.description}</span>
-                    </span>
-                  </Link>
-                </Button>
-              );
-            })}
-          </CardContent>
-        </Card>
-
-        <Card className="rounded-[1.8rem] border-border/80 bg-card/80">
-          <CardHeader>
-            <CardTitle className="text-2xl">后续扩展方向</CardTitle>
-            <CardDescription>这些能力暂时不阻塞当前闭环，但值得后续补齐。</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col gap-4">
-            {roadmapItems.map((item, index) => {
-              const Icon = item.icon;
-
-              return (
-                <div className="flex flex-col gap-4" key={item.title}>
-                  <div className="flex items-start gap-4 rounded-[1.25rem] bg-secondary/45 p-4">
-                    <span className="flex size-11 items-center justify-center rounded-2xl bg-card text-primary shadow-sm">
-                      <Icon className="size-4.5" />
-                    </span>
-                    <div>
-                      <div className="text-base font-medium text-foreground">{item.title}</div>
-                      <div className="mt-2 text-sm leading-7 text-muted-foreground">
-                        {item.description}
-                      </div>
-                    </div>
-                  </div>
-                  {index < roadmapItems.length - 1 ? <Separator /> : null}
+          <div className="flex flex-wrap gap-6">
+            {[
+              { value: "1.2k", label: "Followers" },
+              { value: "482", label: "Following" },
+              { value: "8.5k", label: "Likes" }
+            ].map((item) => (
+              <div className="min-w-[110px]" key={item.label}>
+                <div className="text-4xl font-semibold text-primary">{item.value}</div>
+                <div className="mt-2 text-sm uppercase tracking-[0.18em] text-muted-foreground">
+                  {item.label}
                 </div>
-              );
-            })}
+              </div>
+            ))}
+            <Button size="lg" type="button" variant="panel">
+              Edit Profile
+            </Button>
+          </div>
+        </SitePanelBody>
+      </SitePanel>
 
-            {error ? (
-              <Card className="rounded-[1.25rem] border-destructive/20 bg-destructive/5 shadow-none">
-                <CardContent className="px-4 py-4 text-sm text-destructive">{error}</CardContent>
-              </Card>
-            ) : null}
+      <Tabs defaultValue="all" value="all">
+        <TabsList variant="line">
+          {profileTabs.map((tab) => (
+            <TabsTrigger key={tab} value={tab}>
+              {tab === "all" ? "All" : tab.charAt(0).toUpperCase() + tab.slice(1)}
+            </TabsTrigger>
+          ))}
+        </TabsList>
+      </Tabs>
+
+      <div className="grid gap-[var(--page-gap)] xl:grid-cols-2">
+        {showcaseCards.slice(0, 2).map((card, index) => (
+          <SitePanel key={card.title}>
+            <div className="overflow-hidden border-b border-border/80">
+              <img
+                alt={card.title}
+                className="h-72 w-full object-cover transition duration-500 hover:scale-[1.03]"
+                src={getEditorialImage(card.imageSeed!, index)}
+              />
+            </div>
+            <SitePanelBody className="space-y-4">
+              <Badge variant="eyebrow">{card.eyebrow}</Badge>
+              <h2 className="text-4xl font-semibold leading-tight tracking-tight text-foreground">
+                {card.title}
+              </h2>
+              <p className="text-base leading-8 text-muted-foreground">{card.summary}</p>
+              <div className="flex items-center justify-between gap-4">
+                <div className="flex items-center gap-5 text-muted-foreground">
+                  <span className="inline-flex items-center gap-2">
+                    <HeartIcon className="size-4" />
+                    {card.metrics}
+                  </span>
+                  <span className="inline-flex items-center gap-2">
+                    <MessageSquareIcon className="size-4" />
+                    {card.comments}
+                  </span>
+                </div>
+                <Button type="button" variant="ghost">
+                  {card.action}
+                </Button>
+              </div>
+            </SitePanelBody>
+          </SitePanel>
+        ))}
+
+        <Card variant="muted">
+          <CardContent className="flex h-full flex-col justify-between py-7">
+            <div>
+              <Badge variant="eyebrow">{showcaseCards[2]!.eyebrow} · Draft</Badge>
+              <h2 className="mt-4 text-4xl font-semibold leading-tight tracking-tight text-foreground">
+                {showcaseCards[2]!.title}
+              </h2>
+              <p className="mt-4 text-base leading-8 text-muted-foreground">
+                "{showcaseCards[2]!.summary}"
+              </p>
+            </div>
+            <div className="mt-8 flex items-center justify-between gap-4">
+              <div className="rounded-full bg-background/72 px-4 py-2 text-sm text-muted-foreground">
+                LAST EDITED: OCT 24
+              </div>
+              <Button asChild variant="hero">
+                <Link to={APP_ROUTES.compose}>
+                  <PenSquareIcon data-icon="inline-start" />
+                  {showcaseCards[2]!.action}
+                </Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
-      </section>
-    </main>
+
+        <SitePanel className="xl:col-start-2" variant="highlight">
+          <SitePanelBody className="space-y-6">
+            <div className="flex size-14 items-center justify-center rounded-[calc(var(--radius-control)+0.1rem)] bg-white/14">
+              <TrendingUpIcon className="size-7" />
+            </div>
+            <div className="text-4xl font-semibold">Monthly Activity Reach</div>
+            <p className="text-base leading-8 text-panel-highlight-foreground/86">
+              Your posts reached 12.4k aviation fans this month. That’s up 15% from September.
+            </p>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {[
+                { value: "2.4k", label: "Views" },
+                { value: "152", label: "Shares" }
+              ].map((item) => (
+                <div className="rounded-[calc(var(--radius-panel)-0.2rem)] bg-white/10 px-6 py-6" key={item.label}>
+                  <div className="text-5xl font-semibold">{item.value}</div>
+                  <div className="mt-2 text-sm uppercase tracking-[0.24em] text-sky-100/78">
+                    {item.label}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SitePanelBody>
+        </SitePanel>
+      </div>
+    </SitePage>
   );
 }

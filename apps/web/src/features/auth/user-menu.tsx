@@ -16,12 +16,9 @@ export function UserMenu() {
 
   if (status === "idle" || status === "loading") {
     return (
-      <div className="flex items-center gap-3 rounded-lg border border-border/70 bg-card/80 px-3 py-2 shadow-sm backdrop-blur">
-        <RadarIcon className="text-primary" />
-        <div className="flex flex-col gap-0.5">
-          <span className="text-sm font-medium text-foreground">恢复会话中</span>
-          <span className="text-xs text-muted-foreground">正在同步身份状态</span>
-        </div>
+      <div className="flex items-center gap-3 rounded-full border border-border/80 bg-card/88 px-4 py-2 text-sm text-muted-foreground shadow-sm">
+        <RadarIcon className="size-4 text-primary" />
+        正在恢复会话
       </div>
     );
   }
@@ -29,10 +26,10 @@ export function UserMenu() {
   if (status !== "authenticated" || !user) {
     return (
       <div className="flex items-center gap-3">
-        <Badge variant="outline" className="hidden md:inline-flex">
+        <Badge className="hidden rounded-full px-3 py-1 lg:inline-flex" variant="outline">
           游客模式
         </Badge>
-        <Button asChild size="lg">
+        <Button asChild className="rounded-2xl px-5" size="lg">
           <Link to={APP_ROUTES.webLogin}>
             <SparklesIcon data-icon="inline-start" />
             登录 / 注册
@@ -44,14 +41,14 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-3">
-      <Button asChild variant="outline" size="lg" className="rounded-lg px-3.5">
+      <Button asChild className="h-11 rounded-full px-2.5" size="lg" variant="outline">
         <Link to={APP_ROUTES.webProfile}>
           <Avatar size="lg">
             <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
-          <span className="hidden text-left sm:flex sm:flex-col">
+          <span className="hidden pr-1 text-left sm:flex sm:flex-col">
             <span className="text-sm font-medium text-foreground">{user.displayName}</span>
-            <span className="text-xs uppercase tracking-[0.16em] text-muted-foreground">
+            <span className="text-xs text-muted-foreground">
               {user.role === "admin" ? "Admin Session" : "Flight Member"}
             </span>
           </span>
@@ -59,7 +56,7 @@ export function UserMenu() {
       </Button>
 
       <Button
-        className="rounded-lg"
+        className="rounded-full"
         onClick={() => {
           void apiClient
             .logout()
@@ -71,12 +68,12 @@ export function UserMenu() {
               setError(error instanceof Error ? error.message : "退出失败");
             });
         }}
-        size="lg"
+        size="icon-lg"
         type="button"
         variant="outline"
       >
-        <LogOutIcon data-icon="inline-start" />
-        <span className="hidden sm:inline">退出</span>
+        <LogOutIcon />
+        <span className="sr-only">退出登录</span>
       </Button>
     </div>
   );

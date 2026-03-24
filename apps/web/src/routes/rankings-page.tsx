@@ -1,55 +1,31 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { CommunityRanking, RankingItem } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  ArrowRightIcon,
-  MessageSquareTextIcon,
-  SparklesIcon,
-  StarIcon,
-  TrophyIcon
-} from "lucide-react";
-import { useState } from "react";
+import { PlusIcon, SparklesIcon, StarIcon, TrendingUpIcon } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import {
+  SiteGrid,
+  SitePage,
+  SitePageEyebrow,
+  SitePanel,
+  SitePanelBody,
+  SiteRail
+} from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle
-} from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "../features/auth/auth-store";
 import { apiClient } from "../lib/api-client";
+import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+import { useAuthStore } from "../features/auth/auth-store";
 
-const reputationToneClasses: Record<string, string> = {
-  neutral: "border-slate-200 bg-slate-100 text-slate-700",
-  featured: "border-primary/20 bg-primary/10 text-primary",
-  positive: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  caution: "border-amber-200 bg-amber-50 text-amber-700",
-  negative: "border-rose-200 bg-rose-50 text-rose-700"
-};
-
-const powerTypeLabels = {
-  electric: "电动",
-  fuel: "燃油",
-  hybrid: "混动"
-} as const;
-
-function getPowerTypeLabel(powerType: string) {
-  if (powerType in powerTypeLabels) {
-    return powerTypeLabels[powerType as keyof typeof powerTypeLabels];
-  }
-
-  return powerType;
-}
-
-function modelDetailPath(slug: string) {
-  return APP_ROUTES.modelDetail.replace(":slug", slug);
-}
+const officialCardLabels = [
+  { eyebrow: "效率", title: "续航之王" },
+  { eyebrow: "价值", title: "性价比之选" },
+  { eyebrow: "实用性", title: "载重先锋" }
+] as const;
 
 function QuickRatingStars({
   rating,
@@ -63,22 +39,17 @@ function QuickRatingStars({
   onRate?: (value: number) => void;
 }) {
   return (
-    <div className="flex items-center gap-1">
+    <div className="flex items-center gap-1 text-amber-500">
       {[1, 2, 3, 4, 5].map((value) => (
         <button
-          className={cn(
-            "rounded-full p-1 text-amber-500 transition-transform",
-            disabled ? "cursor-not-allowed opacity-60" : "hover:scale-110"
-          )}
+          className="rounded-full p-1 transition hover:scale-110 disabled:cursor-not-allowed disabled:opacity-50"
           disabled={disabled || busy}
           key={value}
-          onClick={() => {
-            onRate?.(value);
-          }}
+          onClick={() => onRate?.(value)}
           type="button"
         >
           <StarIcon
-            className="size-4.5"
+            className="size-5"
             fill={value <= (rating ?? 0) ? "currentColor" : "none"}
             strokeWidth={1.75}
           />
@@ -88,139 +59,132 @@ function QuickRatingStars({
   );
 }
 
-function ScoreBadges({ item }: { item: RankingItem }) {
-  return (
-    <div className="flex flex-wrap items-center gap-2">
-      <Badge className="h-auto rounded-full px-3 py-1" variant="secondary">
-        综合 {item.bayesianScore.toFixed(1)}
-      </Badge>
-      <Badge className="h-auto rounded-full px-3 py-1" variant="outline">
-        口碑 {item.averageScore.toFixed(1)}
-      </Badge>
-      <Badge className="h-auto rounded-full px-3 py-1" variant="outline">
-        点评 {item.totalReviews}
-      </Badge>
-      <Badge
-        className={cn(
-          "h-auto rounded-full border px-3 py-1",
-          reputationToneClasses[item.reputation.tone]
-        )}
-      >
-        {item.reputation.label}
-      </Badge>
-    </div>
-  );
-}
-
-function RankingRow({
-  item,
-  busy,
-  disabled,
-  note,
-  onRate
-}: {
-  item: RankingItem;
-  busy?: boolean;
-  disabled?: boolean;
-  note?: string | null;
-  onRate?: (value: number) => void;
-}) {
-  return (
-    <article className="rounded-[1.5rem] border border-border/80 bg-card/90 px-5 py-5 shadow-sm">
-      <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
-        <div className="flex min-w-0 gap-4">
-          <div className="flex size-14 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-lg font-semibold text-primary">
-            {item.rank}
-          </div>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="secondary">{item.model.brand.name}</Badge>
-              <Badge variant="outline">{item.model.category.name}</Badge>
-              <Badge variant="outline">{getPowerTypeLabel(item.model.powerType)}</Badge>
-            </div>
-            <h3 className="mt-3 text-2xl font-semibold tracking-tight text-foreground">
-              {item.model.name}
-            </h3>
-            <p className="mt-3 text-sm leading-7 text-muted-foreground">
-              {note ?? item.highlight ?? item.model.summary ?? "查看详情页获取更多参数与真实点评。"}
-            </p>
-            <div className="mt-4">
-              <ScoreBadges item={item} />
-            </div>
-          </div>
-        </div>
-
-        <div className="flex w-full max-w-xs flex-col gap-4 rounded-[1.25rem] border border-border/70 bg-background/70 p-4">
-          <div>
-            <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-              快速评分
-            </div>
-            <div className="mt-2 flex items-center justify-between gap-3">
-              <QuickRatingStars
-                busy={busy}
-                disabled={disabled}
-                onRate={onRate}
-                rating={item.myRating}
-              />
-              <div className="text-sm text-muted-foreground">
-                {item.myRating ? `已评 ${item.myRating} 星` : "未评分"}
-              </div>
-            </div>
-          </div>
-
-          <Button asChild className="w-full rounded-2xl" variant="outline">
-            <Link to={modelDetailPath(item.model.slug)}>
-              写详细点评
-              <ArrowRightIcon data-icon="inline-end" />
-            </Link>
-          </Button>
-        </div>
-      </div>
-    </article>
-  );
-}
-
-function CommunityRankingCard({
-  ranking,
+function RankingCard({
+  eyebrow,
+  title,
+  items,
   pendingSlug,
   disabled,
   onRate
 }: {
-  ranking: CommunityRanking;
+  eyebrow: string;
+  title: string;
+  items: RankingItem[];
   pendingSlug: string | null;
   disabled: boolean;
   onRate: (slug: string, value: number) => void;
 }) {
   return (
-    <Card className="rounded-[1.75rem] border-border/80 bg-card/90 shadow-sm">
-      <CardHeader>
-        <div className="flex flex-wrap items-center justify-between gap-3">
+    <SitePanel>
+      <SitePanelBody className="space-y-6">
+        <div className="flex items-center justify-between gap-3">
           <div>
-            <CardTitle className="text-2xl">{ranking.title}</CardTitle>
-            <CardDescription className="mt-2 text-sm leading-7">
-              {ranking.description}
-            </CardDescription>
+            <SitePageEyebrow className="text-primary">{eyebrow}</SitePageEyebrow>
+            <div className="mt-3 text-[2rem] font-semibold leading-tight text-foreground">
+              {title}
+            </div>
           </div>
-          <Badge className="h-auto rounded-full px-3 py-1" variant="outline">
-            {ranking.curator.name} · {ranking.curator.role}
-          </Badge>
+          <Badge variant="tone">神机</Badge>
         </div>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
-        {ranking.items.map((item) => (
-          <RankingRow
-            busy={pendingSlug === item.model.slug}
-            disabled={disabled}
-            item={item}
-            key={`${ranking.id}-${item.model.slug}`}
-            note={item.note}
-            onRate={(value) => {
-              onRate(item.model.slug, value);
-            }}
-          />
-        ))}
-      </CardContent>
-    </Card>
+
+        <div className="space-y-5">
+          {items.map((item) => (
+            <div
+              className="grid grid-cols-[52px_64px_minmax(0,1fr)_72px] items-center gap-4"
+              key={item.model.slug}
+            >
+              <div className="text-5xl font-semibold italic text-primary/30">
+                {item.rank.toString().padStart(2, "0")}
+              </div>
+              <img
+                alt={item.model.name}
+                className="size-16 rounded-[calc(var(--radius-control)-0.05rem)] object-cover"
+                src={getModelImage(item.model.slug, item.model.powerType)}
+              />
+              <div className="min-w-0">
+                <div className="truncate text-2xl font-semibold text-foreground">
+                  {item.model.name}
+                </div>
+                <div className="mt-2 text-sm text-muted-foreground">
+                  {item.model.brand.name} · {item.averageScore.toFixed(1)}
+                </div>
+                <QuickRatingStars
+                  busy={pendingSlug === item.model.slug}
+                  disabled={disabled}
+                  onRate={(value) => onRate(item.model.slug, value)}
+                  rating={item.myRating}
+                />
+              </div>
+              <div className="text-right">
+                <div className="text-4xl font-semibold text-amber-700">
+                  {item.bayesianScore.toFixed(1)}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="border-t border-border/80 pt-6">
+          <div className="text-sm text-muted-foreground">为当前领头者快速评分</div>
+          <div className="mt-4 flex items-center justify-between gap-3">
+            <QuickRatingStars
+              busy={pendingSlug === items[0]?.model.slug}
+              disabled={disabled}
+              onRate={(value) => items[0] && onRate(items[0].model.slug, value)}
+              rating={items[0]?.myRating ?? null}
+            />
+            <Button asChild size="sm" variant="panel">
+              <Link to={APP_ROUTES.modelDetail.replace(":slug", items[0]?.model.slug ?? "")}>
+                发布点评
+              </Link>
+            </Button>
+          </div>
+        </div>
+      </SitePanelBody>
+    </SitePanel>
+  );
+}
+
+function CommunityCard({ ranking }: { ranking: CommunityRanking }) {
+  return (
+    <SitePanel variant="muted">
+      <SitePanelBody className="space-y-5">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <SitePageEyebrow className="text-primary">{ranking.curator.role}</SitePageEyebrow>
+            <div className="mt-3 text-[2rem] font-semibold leading-tight text-foreground">
+              {ranking.title}
+            </div>
+          </div>
+          <Badge variant="outline">{ranking.curator.name}</Badge>
+        </div>
+
+        <p className="text-sm leading-7 text-muted-foreground">{ranking.description}</p>
+
+        <div className="space-y-4">
+          {ranking.items.slice(0, 3).map((item) => (
+            <div className="flex items-center gap-4" key={item.model.slug}>
+              <div className="flex size-12 items-center justify-center rounded-xl bg-primary/10 text-lg font-semibold text-primary">
+                {item.rank}
+              </div>
+              <img
+                alt={item.model.name}
+                className="size-14 rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
+                src={getModelImage(item.model.slug, item.model.powerType)}
+              />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-lg font-semibold text-foreground">
+                  {item.model.name}
+                </div>
+                <div className="text-sm text-muted-foreground">
+                  {item.note ?? item.highlight ?? "社区精选推荐"}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </SitePanelBody>
+    </SitePanel>
   );
 }
 
@@ -237,6 +201,11 @@ export function RankingsPage() {
     queryFn: () => apiClient.listRankings()
   });
 
+  const officialGroups = useMemo(() => {
+    const items = rankingsQuery.data?.official.items ?? [];
+    return [items.slice(0, 3), items.slice(1, 4), items.slice(2, 5)];
+  }, [rankingsQuery.data?.official.items]);
+
   function handleQuickRating(slug: string, rating: number) {
     if (!isAuthenticated) {
       return;
@@ -246,10 +215,7 @@ export function RankingsPage() {
     setPendingSlug(slug);
 
     void apiClient
-      .submitModelReview(slug, {
-        rating,
-        content: null
-      })
+      .submitModelReview(slug, { rating, content: null })
       .then(async () => {
         await Promise.all([
           queryClient.invalidateQueries({ queryKey: ["rankings"] }),
@@ -266,38 +232,23 @@ export function RankingsPage() {
   }
 
   return (
-    <main className="flex flex-col gap-8">
-      <section className="overflow-hidden rounded-[1.75rem] border border-border/80 bg-card/90 px-6 py-8 shadow-sm">
-        <div className="flex flex-wrap items-center gap-2">
-          <Badge>榜单</Badge>
-          <Badge variant="outline">官方榜 + 用户榜</Badge>
-        </div>
-        <div className="mt-6 max-w-4xl">
-          <h1 className="text-4xl font-semibold tracking-tight text-foreground sm:text-5xl">
-            先看真实口碑排序，再看不同飞友视角下的推荐清单。
-          </h1>
-          <p className="mt-4 text-base leading-8 text-muted-foreground">
-            官方榜按综合评分和点评人数生成，用户榜先以精选榜单形式落地。你可以直接在这里做快速评分，评分会即时回流到榜单排序与机型口碑。
-          </p>
-        </div>
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Badge className="h-auto rounded-full px-3 py-1" variant="secondary">
-            <SparklesIcon />
-            口碑标签自动映射
-          </Badge>
-          <Badge className="h-auto rounded-full px-3 py-1" variant="outline">
-            <MessageSquareTextIcon />
-            榜单页支持快速评分
-          </Badge>
-        </div>
-      </section>
+    <SitePage className="relative">
+      <div className="flex justify-end">
+        <Tabs
+          onValueChange={(value) => setActiveTab(value as "official" | "community")}
+          value={activeTab}
+        >
+          <TabsList className="w-full" variant="pills">
+            <TabsTrigger value="official">全站榜单</TabsTrigger>
+            <TabsTrigger value="community">用户榜单</TabsTrigger>
+          </TabsList>
+        </Tabs>
+      </div>
 
       {!isAuthenticated ? (
         <Alert>
           <AlertTitle>登录后可参与快速评分</AlertTitle>
-          <AlertDescription>
-            当前可以先浏览官方榜和用户榜。登录后，你就能在榜单里直接点星评分，并同步刷新机型口碑。
-          </AlertDescription>
+          <AlertDescription>当前可先浏览榜单，登录后就能直接点星评分并同步刷新排序。</AlertDescription>
         </Alert>
       ) : null}
 
@@ -308,37 +259,17 @@ export function RankingsPage() {
         </Alert>
       ) : null}
 
-      <section className="flex flex-col gap-4">
-        <Tabs
-          className="gap-0"
-          onValueChange={(value) => {
-            setActiveTab(value as "official" | "community");
-          }}
-          value={activeTab}
-        >
-          <TabsList variant="default">
-            <TabsTrigger value="official">官方榜</TabsTrigger>
-            <TabsTrigger value="community">用户榜</TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </section>
-
       {rankingsQuery.isLoading ? (
-        <section className="grid gap-5">
+        <div className="grid gap-5 md:grid-cols-2">
           {Array.from({ length: 3 }).map((_, index) => (
-            <Card className="rounded-[1.75rem] border-border/80" key={index}>
-              <CardHeader>
-                <div className="h-5 w-24 animate-pulse rounded bg-muted" />
-                <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
-              </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="h-24 w-full animate-pulse rounded-2xl bg-muted" />
-                <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
+            <Card key={index}>
+              <CardContent className="space-y-4 py-6">
+                <div className="h-10 w-48 animate-pulse rounded bg-muted" />
+                <div className="h-48 w-full animate-pulse rounded-[calc(var(--radius-panel)-0.2rem)] bg-muted" />
               </CardContent>
             </Card>
           ))}
-        </section>
+        </div>
       ) : null}
 
       {rankingsQuery.isError ? (
@@ -348,83 +279,103 @@ export function RankingsPage() {
         </Alert>
       ) : null}
 
-      {rankingsQuery.isSuccess && activeTab === "official" ? (
-        <section className="flex flex-col gap-6">
-          {rankingsQuery.data.official.spotlight ? (
-            <Card className="overflow-hidden rounded-[1.75rem] border-border/80 bg-card/90 shadow-sm">
-              <CardContent className="grid gap-6 px-6 py-6 xl:grid-cols-[1.05fr_0.95fr]">
-                <div className="rounded-[1.5rem] border border-border/70 bg-[linear-gradient(135deg,rgba(30,136,229,0.18),rgba(14,165,233,0.08))] px-5 py-5">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Badge>{rankingsQuery.data.official.title}</Badge>
-                    <Badge variant="outline">榜首机型</Badge>
-                  </div>
-                  <h2 className="mt-4 text-3xl font-semibold tracking-tight text-foreground">
-                    {rankingsQuery.data.official.spotlight.model.name}
-                  </h2>
-                  <p className="mt-3 text-sm leading-7 text-muted-foreground">
-                    {rankingsQuery.data.official.spotlight.highlight}
-                  </p>
-                  <div className="mt-5">
-                    <ScoreBadges item={rankingsQuery.data.official.spotlight} />
-                  </div>
-                  <Button asChild className="mt-6 rounded-2xl">
-                    <Link to={modelDetailPath(rankingsQuery.data.official.spotlight.model.slug)}>
-                      查看机型详情
-                      <ArrowRightIcon data-icon="inline-end" />
-                    </Link>
-                  </Button>
-                </div>
+      {rankingsQuery.isSuccess ? (
+        <SiteGrid variant="sidebar">
+          <div className="grid gap-[var(--page-gap)] md:grid-cols-2">
+            {activeTab === "official"
+              ? officialGroups.map((group, index) =>
+                  group.length > 0 ? (
+                    <RankingCard
+                      disabled={!isAuthenticated}
+                      eyebrow={officialCardLabels[index]?.eyebrow ?? "精选"}
+                      items={group}
+                      key={officialCardLabels[index]?.title ?? index}
+                      onRate={handleQuickRating}
+                      pendingSlug={pendingSlug}
+                      title={officialCardLabels[index]?.title ?? "飞行榜单"}
+                    />
+                  ) : null
+                )
+              : rankingsQuery.data.community.map((ranking) => (
+                  <CommunityCard key={ranking.id} ranking={ranking} />
+                ))}
+          </div>
 
-                <div className="rounded-[1.5rem] border border-border/70 bg-background/70 px-5 py-5">
-                  <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                    <TrophyIcon className="size-4.5 text-primary" />
-                    排序说明
+          <SiteRail>
+            {rankingsQuery.data.official.spotlight ? (
+              <SitePanel variant="muted">
+                <SitePanelBody className="space-y-5">
+                  <Badge variant="tone">热门趋势</Badge>
+                  <div className="text-[2rem] font-semibold leading-tight text-foreground">
+                    设计大赏
                   </div>
-                  <p className="mt-4 text-sm leading-7 text-muted-foreground">
-                    {rankingsQuery.data.official.algorithmNote}
+                  <p className="text-sm leading-7 text-muted-foreground">
+                    由社区投票选出的、符合人体工程学控制和机身美学的飞行器。
                   </p>
-                  <div className="mt-6 rounded-2xl border border-border/70 bg-card px-4 py-4">
-                    <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                      更新时间
+
+                  <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] border border-border/80">
+                    <img
+                      alt={rankingsQuery.data.official.spotlight.model.name}
+                      className="h-56 w-full object-cover"
+                      src={getEditorialImage(rankingsQuery.data.official.spotlight.model.slug)}
+                    />
+                  </div>
+
+                  <div className="flex items-start justify-between gap-4">
+                    <div>
+                      <div className="text-3xl font-semibold text-foreground">
+                        {rankingsQuery.data.official.spotlight.model.name}
+                      </div>
+                      <div className="mt-2 text-sm leading-7 text-muted-foreground">
+                        {rankingsQuery.data.official.spotlight.highlight}
+                      </div>
                     </div>
-                    <div className="mt-2 text-sm font-medium text-foreground">
-                      {new Date(rankingsQuery.data.official.generatedAt).toLocaleString("zh-CN", {
-                        hour12: false
-                      })}
+                    <div className="rounded-[calc(var(--radius-control)-0.05rem)] bg-secondary/42 px-4 py-3 text-4xl font-semibold text-amber-700">
+                      {rankingsQuery.data.official.spotlight.bayesianScore.toFixed(1)}
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ) : null}
+                </SitePanelBody>
+              </SitePanel>
+            ) : null}
 
-          {rankingsQuery.data.official.items.map((item) => (
-            <RankingRow
-              busy={pendingSlug === item.model.slug}
-              disabled={!isAuthenticated}
-              item={item}
-              key={item.model.slug}
-              onRate={(value) => {
-                handleQuickRating(item.model.slug, value);
-              }}
-            />
-          ))}
-        </section>
+            <SitePanel variant="muted">
+              <SitePanelBody className="space-y-4">
+                <div className="flex items-center gap-3 text-xl font-semibold text-foreground">
+                  <TrendingUpIcon className="size-5 text-primary" />
+                  加入评审团
+                </div>
+                <p className="text-sm leading-7 text-muted-foreground">
+                  通过认证后，你可以对榜单候选项进行加权评分，并参与每周专题榜单评审。
+                </p>
+                <Button asChild className="w-full" size="xl" variant="hero">
+                  <Link to={APP_ROUTES.rankingEditor}>创建榜单</Link>
+                </Button>
+              </SitePanelBody>
+            </SitePanel>
+
+            <SitePanel variant="highlight">
+              <SitePanelBody className="space-y-4">
+                <div className="flex size-14 items-center justify-center rounded-[calc(var(--radius-control)+0.1rem)] bg-white/14">
+                  <SparklesIcon className="size-6" />
+                </div>
+                <div className="text-[2rem] font-semibold leading-tight">
+                  让你的榜单也出现在首页右栏
+                </div>
+                <p className="text-sm leading-7 text-panel-highlight-foreground/84">
+                  只要结构清晰、点评有依据，我们会优先推荐到飞友圈专题区域。
+                </p>
+              </SitePanelBody>
+            </SitePanel>
+          </SiteRail>
+        </SiteGrid>
       ) : null}
 
-      {rankingsQuery.isSuccess && activeTab === "community" ? (
-        <section className="flex flex-col gap-6">
-          {rankingsQuery.data.community.map((ranking) => (
-            <CommunityRankingCard
-              disabled={!isAuthenticated}
-              key={ranking.id}
-              onRate={handleQuickRating}
-              pendingSlug={pendingSlug}
-              ranking={ranking}
-            />
-          ))}
-        </section>
-      ) : null}
-    </main>
+      <Button asChild className="fixed bottom-8 right-8" size="icon-lg" variant="hero">
+        <Link to={APP_ROUTES.rankingEditor}>
+          <PlusIcon className="size-8" />
+          <span className="sr-only">创建榜单</span>
+        </Link>
+      </Button>
+    </SitePage>
   );
 }
