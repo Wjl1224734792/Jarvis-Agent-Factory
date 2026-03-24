@@ -76,7 +76,7 @@ describe("reviews flows", () => {
   it("allows a logged-in user to create or update a unique review", async () => {
     const cookie = await loginUser("13800138000");
 
-    const createResponse = await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    const createResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
       headers: {
         cookie,
@@ -97,7 +97,7 @@ describe("reviews flows", () => {
     expect(created.summary.totalReviews).toBe(1);
     expect(created.summary.averageScore).toBe(8);
 
-    const updateResponse = await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    const updateResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
       headers: {
         cookie,
@@ -123,7 +123,7 @@ describe("reviews flows", () => {
   it("returns review list, summary and myReview on detail reviews endpoint", async () => {
     const cookie = await loginUser("13800138000");
 
-    await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
       headers: {
         cookie,
@@ -135,7 +135,7 @@ describe("reviews flows", () => {
       })
     });
 
-    const response = await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    const response = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "GET",
       headers: {
         cookie
@@ -156,7 +156,7 @@ describe("reviews flows", () => {
   it("allows admin to hide a review from public list", async () => {
     const userCookie = await loginUser("13800138000");
 
-    await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    const createdResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
       headers: {
         cookie: userCookie,
@@ -167,6 +167,9 @@ describe("reviews flows", () => {
         content: "需要进一步调校。"
       })
     });
+    const createdPayload = (await createdResponse.json()) as {
+      item: { id: string };
+    };
 
     const adminCookie = await loginAdmin();
     const adminListResponse = await app.request(API_ROUTES.models.adminReviews, {
@@ -179,7 +182,7 @@ describe("reviews flows", () => {
       items: Array<{ id: string; status: string }>;
     };
 
-    const reviewId = adminListPayload.items[0]?.id;
+    const reviewId = adminListPayload.items.find((item) => item.id === createdPayload.item.id)?.id;
     expect(reviewId).toBeTruthy();
 
     const updateResponse = await app.request(API_ROUTES.models.adminReviewDetail(reviewId!), {
@@ -195,7 +198,7 @@ describe("reviews flows", () => {
 
     expect(updateResponse.status).toBe(200);
 
-    const publicResponse = await app.request(API_ROUTES.models.reviews("mini-4-pro"), {
+    const publicResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "GET",
       headers: {
         cookie: userCookie

@@ -13,6 +13,7 @@ export const APP_ROUTES = {
   feedHome: "/home",
   health: "/health",
   models: "/models",
+  rankings: "/rankings",
   modelDetail: "/models/:slug",
   postDetail: "/posts/:id",
   notifications: "/notifications",
@@ -62,6 +63,9 @@ export const API_ROUTES = {
     follow: (userId: string) => `/users/${userId}/follow`,
     notifications: "/notifications",
     notificationsReadAll: "/notifications/read-all"
+  },
+  rankings: {
+    overview: "/rankings"
   },
   models: {
     list: "/models",

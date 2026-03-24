@@ -35,6 +35,7 @@ import {
   notificationsResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
+  rankingsResponseSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
@@ -331,6 +332,14 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, actionSuccessResponseSchema);
+    },
+    async listRankings() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.overview}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, rankingsResponseSchema);
     },
     async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
       const suffix = status ? `?status=${encodeURIComponent(status)}` : "";

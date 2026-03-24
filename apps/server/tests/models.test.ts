@@ -74,8 +74,8 @@ describe("models flows", () => {
         cookie: adminCookie
       },
       body: JSON.stringify({
-        slug: "evtol",
-        name: "eVTOL",
+        slug: "tiltrotor",
+        name: "倾转旋翼",
         sortOrder: 2,
         isEnabled: true
       })
@@ -91,8 +91,8 @@ describe("models flows", () => {
         cookie: adminCookie
       },
       body: JSON.stringify({
-        slug: "ehang",
-        name: "EHang",
+        slug: "beta-technologies",
+        name: "BETA",
         categoryId: categoryPayload.item.id,
         sortOrder: 1,
         isEnabled: true
@@ -109,13 +109,13 @@ describe("models flows", () => {
         cookie: adminCookie
       },
       body: JSON.stringify({
-        slug: "eh216-s",
-        name: "EH216-S",
+        slug: "alia-250",
+        name: "ALIA-250",
         categoryId: categoryPayload.item.id,
         brandId: brandPayload.item.id,
         powerType: "electric",
-        summary: "双座自动驾驶载人航空器",
-        description: "适合城市空中交通试点",
+        summary: "面向低空物流与载人场景的倾转旋翼机型",
+        description: "适合验证新类别和品牌的管理流转",
         maxFlightTimeMinutes: 25,
         maxRangeKilometers: 35,
         maxSpeedKph: 130,
@@ -126,6 +126,6 @@ describe("models flows", () => {
 
     expect(modelResponse.status).toBe(200);
     const modelPayload = (await modelResponse.json()) as { item: { slug: string } };
-    expect(modelPayload.item.slug).toBe("eh216-s");
+    expect(modelPayload.item.slug).toBe("alia-250");
   });
 });
