@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
+  EyeIcon,
   MessageSquareTextIcon,
   SendIcon,
   Trash2Icon
@@ -90,9 +91,9 @@ export function PostDetailPage() {
   return (
     <SitePage>
       <Button asChild className="w-fit rounded-full" variant="ghost">
-        <Link to={APP_ROUTES.feedHome}>
+        <Link to={APP_ROUTES.flightCircle}>
           <ArrowLeftIcon data-icon="inline-start" />
-          返回首页内容流
+          返回飞友圈
         </Link>
       </Button>
 
@@ -133,15 +134,74 @@ export function PostDetailPage() {
               </h1>
               <p className="text-base leading-8 text-muted-foreground">{item.content}</p>
 
-              <PostInteractionBar
-                authorId={item.author.id}
-                favoriteCount={item.engagement.favoriteCount}
-                isPublished={item.status === "published"}
-                likeCount={item.engagement.likeCount}
-                postId={item.id}
-                shareCount={item.engagement.shareCount}
-                viewer={item.engagement.viewer}
-              />
+              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/80 pt-5">
+                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                  <EyeIcon className="size-4" />
+                  {Math.max(
+                    item.engagement.likeCount * 14 + item.commentCount * 9 + item.engagement.shareCount * 12,
+                    24
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  <PostInteractionBar
+                    compact
+                    hideFollow
+                    iconOnly
+                    authorId={item.author.id}
+                    favoriteCount={item.engagement.favoriteCount}
+                    isPublished={item.status === "published"}
+                    likeCount={item.engagement.likeCount}
+                    postId={item.id}
+                    shareCount={item.engagement.shareCount}
+                    viewer={item.engagement.viewer}
+                  />
+
+                  {authStatus === "authenticated" && !isAuthor ? (
+                    <Button
+                      onClick={() => {
+                        setActionError(null);
+                        void apiClient
+                          .reportPost(item.id, {
+                            reason: "疑似广告或不当内容"
+                          })
+                          .then(() => {
+                            void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
+                          })
+                          .catch((value: unknown) => {
+                            setActionError(value instanceof Error ? value.message : "举报失败");
+                          });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <AlertTriangleIcon />
+                    </Button>
+                  ) : null}
+
+                  {isAuthor ? (
+                    <Button
+                      onClick={() => {
+                        setActionError(null);
+                        void apiClient
+                          .deletePost(item.id)
+                          .then(() => {
+                            void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
+                            navigate(APP_ROUTES.flightCircle, { replace: true });
+                          })
+                          .catch((value: unknown) => {
+                            setActionError(value instanceof Error ? value.message : "删除帖子失败");
+                          });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Trash2Icon />
+                    </Button>
+                  ) : null}
+                </div>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
@@ -223,59 +283,6 @@ export function PostDetailPage() {
         </div>
 
         <SiteRail>
-          <Card variant="muted">
-            <CardContent className="space-y-4">
-              <div className="text-2xl font-semibold text-foreground">帖子操作</div>
-
-              {authStatus === "authenticated" && !isAuthor ? (
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setActionError(null);
-                    void apiClient
-                      .reportPost(item.id, {
-                        reason: "疑似广告或不当内容"
-                      })
-                      .then(() => {
-                        void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                      })
-                      .catch((value: unknown) => {
-                        setActionError(value instanceof Error ? value.message : "举报失败");
-                      });
-                  }}
-                  type="button"
-                  variant="outline"
-                >
-                  <AlertTriangleIcon data-icon="inline-start" />
-                  举报
-                </Button>
-              ) : null}
-
-              {isAuthor ? (
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    setActionError(null);
-                    void apiClient
-                      .deletePost(item.id)
-                      .then(() => {
-                        void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
-                        navigate(APP_ROUTES.feedHome, { replace: true });
-                      })
-                      .catch((value: unknown) => {
-                        setActionError(value instanceof Error ? value.message : "删除帖子失败");
-                      });
-                  }}
-                  type="button"
-                  variant="outline"
-                >
-                  <Trash2Icon data-icon="inline-start" />
-                  删除帖子
-                </Button>
-              ) : null}
-            </CardContent>
-          </Card>
-
           <Card variant="muted">
             <CardContent className="space-y-5">
               <div>

@@ -94,12 +94,12 @@ function getHeaderCopy(pathname: string) {
 function ShellBrand() {
   return (
     <div className="flex items-center gap-3">
-      <div className="flex size-12 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)+0.15rem)] bg-primary text-lg font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
+      <div className="flex size-10 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)-0.05rem)] bg-primary text-base font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
         飞
       </div>
       <div className="min-w-0">
-        <div className="text-[1.65rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
-        <div className="text-[0.7rem] font-medium uppercase tracking-[0.28em] text-muted-foreground">
+        <div className="text-[1.45rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
+        <div className="text-[0.64rem] font-medium uppercase tracking-[0.24em] text-muted-foreground">
           Precision aviation
         </div>
       </div>
@@ -175,7 +175,7 @@ export function WebLayout() {
       style={{ ["--shell-sidebar-width" as string]: "242px" }}
     >
       <header className="sticky top-0 z-40 border-b border-border/75 bg-background/92 backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-4 px-4 py-4 xl:px-6">
+        <div className="flex items-center justify-between gap-4 px-4 py-3 xl:px-6">
           <div className="flex items-center gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
               <SheetTrigger asChild>
@@ -220,7 +220,7 @@ export function WebLayout() {
               <div className="relative">
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  className="h-12 rounded-[calc(var(--radius-control)+0.15rem)] border-border/80 bg-card/90 pl-11 shadow-[var(--shadow-soft)]"
+                  className="h-10 rounded-[calc(var(--radius-control)-0.05rem)] border-border/80 bg-card/90 pl-11 shadow-[var(--shadow-soft)]"
                   placeholder={headerCopy.placeholder}
                   readOnly
                 />

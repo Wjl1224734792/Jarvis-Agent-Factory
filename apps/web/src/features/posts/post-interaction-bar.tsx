@@ -7,7 +7,7 @@ import {
   UserCheck,
   UserPlus
 } from "lucide-react";
-import { useState, type ComponentType, type SVGProps } from "react";
+import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -30,6 +30,9 @@ type Props = {
   favoriteCount: number;
   shareCount: number;
   compact?: boolean;
+  iconOnly?: boolean;
+  hideFollow?: boolean;
+  plain?: boolean;
 };
 
 type BusyAction = "follow" | "like" | "favorite" | "share" | null;
@@ -40,6 +43,8 @@ type ActionButtonProps = {
   active?: boolean;
   disabled?: boolean;
   compact?: boolean;
+  iconOnly?: boolean;
+  plain?: boolean;
   onClick: () => void;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
 };
@@ -50,6 +55,8 @@ function ActionButton({
   active = false,
   disabled = false,
   compact,
+  iconOnly,
+  plain,
   onClick,
   icon: Icon
 }: ActionButtonProps) {
@@ -57,21 +64,29 @@ function ActionButton({
     <Button
       className={cn(
         "rounded-full",
+        plain && "h-auto border-0 bg-transparent px-0 py-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground",
         active &&
           "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
       )}
       disabled={disabled}
-      onClick={onClick}
-      size={compact ? "sm" : "default"}
+      onClick={(event: MouseEvent<HTMLButtonElement>) => {
+        event.stopPropagation();
+        onClick();
+      }}
+      size={plain ? undefined : compact ? "sm" : "default"}
       type="button"
-      variant={active ? "secondary" : "outline"}
+      variant={plain ? "ghost" : active ? "secondary" : "outline"}
     >
       <Icon data-icon="inline-start" />
-      <span>{label}</span>
+      {!iconOnly ? <span>{label}</span> : null}
       {typeof count === "number" ? (
-        <Badge className="ml-1" variant={active ? "default" : "secondary"}>
-          {count}
-        </Badge>
+        iconOnly ? (
+          <span className="text-xs">{count}</span>
+        ) : (
+          <Badge className="ml-1" variant={active ? "default" : "secondary"}>
+            {count}
+          </Badge>
+        )
       ) : null}
     </Button>
   );
@@ -114,12 +129,14 @@ export function PostInteractionBar(props: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
-        {!props.viewer.isAuthor ? (
+        {!props.hideFollow && !props.viewer.isAuthor ? (
           <ActionButton
             active={props.viewer.isFollowingAuthor}
             compact={props.compact}
             disabled={busyAction !== null}
             icon={props.viewer.isFollowingAuthor ? UserCheck : UserPlus}
+            iconOnly={props.iconOnly}
+            plain={props.plain}
             label={props.viewer.isFollowingAuthor ? "已关注" : "关注作者"}
             onClick={() => {
               void ensureAuthenticated().then((ready) => {
@@ -141,6 +158,8 @@ export function PostInteractionBar(props: Props) {
           count={props.likeCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Heart}
+          iconOnly={props.iconOnly}
+          plain={props.plain}
           label="点赞"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -161,6 +180,8 @@ export function PostInteractionBar(props: Props) {
           count={props.favoriteCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Bookmark}
+          iconOnly={props.iconOnly}
+          plain={props.plain}
           label="收藏"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -181,6 +202,8 @@ export function PostInteractionBar(props: Props) {
           count={props.shareCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Share2}
+          iconOnly={props.iconOnly}
+          plain={props.plain}
           label="分享"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {

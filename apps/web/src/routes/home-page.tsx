@@ -3,24 +3,15 @@ import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   EyeIcon,
   FlameIcon,
-  HeartIcon,
   ImageIcon,
-  MessageCircleIcon,
   PlaySquareIcon,
   Rows3Icon,
-  Share2Icon,
   SquarePenIcon,
   UsersIcon
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  SiteGrid,
-  SitePage,
-  SitePanel,
-  SitePanelBody,
-  SiteRail
-} from "@/components/site-shell";
+import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -140,22 +131,18 @@ export function HomePage() {
             </SitePanelBody>
           </SitePanel>
 
-          {feedQuery.isLoading ? (
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-              {Array.from({ length: 4 }).map((_, index) => (
-                  <div key={index}>
-                  <Card className="mx-auto max-w-[15.5rem]" variant="muted">
-                    <CardContent className="space-y-4">
-                      <div className="h-6 w-28 animate-pulse rounded bg-muted" />
-                      <div className={`w-full animate-pulse rounded-[calc(var(--radius-panel)-0.2rem)] bg-muted ${index % 2 === 0 ? "h-44" : "h-56"}`} />
-                      <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
-                      <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                    </CardContent>
-                  </Card>
-                  </div>
-              ))}
-            </div>
-          ) : null}
+          {feedQuery.isLoading
+            ? Array.from({ length: 2 }).map((_, index) => (
+                <Card key={index} variant="muted">
+                  <CardContent className="space-y-4">
+                    <div className="h-10 w-48 animate-pulse rounded bg-muted" />
+                    <div className="h-80 w-full animate-pulse rounded-[calc(var(--radius-panel)-0.2rem)] bg-muted" />
+                    <div className="h-8 w-2/3 animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                  </CardContent>
+                </Card>
+              ))
+            : null}
 
           {feedQuery.isError ? (
             <Alert variant="destructive">
@@ -164,83 +151,72 @@ export function HomePage() {
             </Alert>
           ) : null}
 
-          {feedItems.length > 0 ? (
-            <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">
-              {feedItems.map((item, index) => (
-                <div key={item.id}>
-                  <Card
-                    className="mx-auto max-w-[15.5rem] overflow-hidden"
-                    variant={index % 3 === 0 ? "default" : "muted"}
-                  >
-                    <button
-                      className="block w-full text-left"
-                      onClick={() => openArticle(item.id)}
-                      type="button"
-                    >
-                      <div className="overflow-hidden border-b border-border/80 bg-surface-2">
-                        <img
-                          alt={item.title}
-                          className={`w-full object-cover transition duration-500 hover:scale-[1.03] ${index % 3 === 0 ? "h-[11rem]" : index % 3 === 1 ? "h-[14rem]" : "h-[10rem]"}`}
-                          src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
-                        />
-                      </div>
-                    </button>
-
-                    <CardContent className="space-y-3 pt-3">
-                      <div className="min-h-0">
-                        <button className="block w-full text-left" onClick={() => openArticle(item.id)} type="button">
-                          <h2 className="text-[0.98rem] leading-snug font-semibold tracking-[-0.02em] text-foreground">
-                            {item.title}
-                          </h2>
-                        </button>
-                      </div>
-
-                      <div className="flex items-center gap-3">
-                        <Avatar size="sm">
-                          <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
-                          <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
-                        </Avatar>
-                        <div className="min-w-0">
-                          <div className="truncate text-[0.82rem] font-medium text-foreground">
-                            {item.author.displayName}
-                          </div>
-                          <div className="text-[0.74rem] text-muted-foreground">
-                            {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
-                              hour12: false
-                            })}
-                          </div>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center justify-between gap-3 text-xs text-muted-foreground">
-                        <span className="inline-flex items-center gap-1.5">
-                          <EyeIcon className="size-3.5" />
-                          {Math.max(
-                            item.engagement.likeCount * 12 + item.commentCount * 8 + item.engagement.shareCount * 10,
-                            18
-                          )}
-                        </span>
-                        <div className="flex items-center gap-3">
-                          <span className="inline-flex items-center gap-1.5">
-                            <HeartIcon className="size-3.5" />
-                            {item.engagement.likeCount}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <MessageCircleIcon className="size-3.5" />
-                            {item.commentCount}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <Share2Icon className="size-3.5" />
-                            {item.engagement.shareCount}
-                          </span>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
+          {feedItems.map((item, index) => (
+            <SitePanel key={item.id} variant={index === 0 ? "floating" : "default"}>
+              <SitePanelBody className="space-y-5">
+                <div className="flex items-center gap-3">
+                  <Avatar size="lg">
+                    <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
+                    <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
+                  </Avatar>
+                  <div className="min-w-0">
+                    <div className="truncate text-lg font-semibold text-foreground">
+                      {item.author.displayName}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
+                        hour12: false
+                      })}
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
-          ) : null}
+
+                <button className="block w-full text-left" onClick={() => openArticle(item.id)} type="button">
+                  <div className="site-chip-row">
+                    <Badge variant="eyebrow">{spotlightTopics[index % spotlightTopics.length]}</Badge>
+                    <Badge variant="tone">长文</Badge>
+                  </div>
+
+                  <h2 className="mt-4 text-[2rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
+                    {item.title}
+                  </h2>
+                  <p className="mt-4 line-clamp-4 text-base leading-8 text-muted-foreground">
+                    {item.contentPreview}
+                  </p>
+
+                  <div className="mt-6 overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] bg-surface-2">
+                    <img
+                      alt={item.title}
+                      className="h-[380px] w-full object-cover"
+                      src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
+                    />
+                  </div>
+                </button>
+
+                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/70 pt-4">
+                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
+                    <EyeIcon className="size-4" />
+                    {Math.max(
+                      item.engagement.likeCount * 12 + item.commentCount * 8 + item.engagement.shareCount * 10,
+                      18
+                    )}
+                  </div>
+                  <PostInteractionBar
+                    compact
+                    hideFollow
+                    iconOnly
+                    authorId={item.author.id}
+                    favoriteCount={item.engagement.favoriteCount}
+                    isPublished={item.status === "published"}
+                    likeCount={item.engagement.likeCount}
+                    postId={item.id}
+                    shareCount={item.engagement.shareCount}
+                    viewer={item.engagement.viewer}
+                  />
+                </div>
+              </SitePanelBody>
+            </SitePanel>
+          ))}
 
           {!feedQuery.isLoading && !feedQuery.isError && feedItems.length === 0 ? (
             <Alert>
