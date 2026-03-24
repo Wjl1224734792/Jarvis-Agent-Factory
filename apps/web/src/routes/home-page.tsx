@@ -3,10 +3,14 @@ import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   EyeIcon,
   FlameIcon,
+  HeartIcon,
   ImageIcon,
+  MessageCircleIcon,
   PlaySquareIcon,
   Rows3Icon,
+  Share2Icon,
   SquarePenIcon,
+  BookmarkIcon,
   UsersIcon
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -34,6 +38,10 @@ const feedTabs = [
 const spotlightTopics = ["资讯", "测评", "航拍", "技术"] as const;
 
 type FeedTab = (typeof feedTabs)[number]["id"];
+
+function articleViewCount(likeCount: number, commentCount: number, shareCount: number) {
+  return Math.max(likeCount * 12 + commentCount * 8 + shareCount * 10, 18);
+}
 
 export function HomePage() {
   const queryClient = useQueryClient();
@@ -99,134 +107,132 @@ export function HomePage() {
   return (
     <SitePage>
       <SiteGrid variant="sidebar">
-        <div className="flex min-w-0 flex-col gap-[var(--page-gap)]">
-          <SitePanel variant="muted">
-            <SitePanelBody className="flex flex-wrap items-center justify-between gap-4">
-              <Tabs
-                onValueChange={(value) => {
-                  setActiveTab(value as FeedTab);
-                }}
-                value={activeTab}
-              >
-                <TabsList className="w-full justify-start overflow-x-auto" variant="pills">
-                  {feedTabs.map((item) => {
-                    const Icon = item.icon;
-                    return (
-                      <TabsTrigger key={item.id} value={item.id}>
-                        <Icon data-icon="inline-start" />
-                        {item.label}
-                      </TabsTrigger>
-                    );
-                  })}
-                </TabsList>
-              </Tabs>
-
-              <div className="site-chip-row">
-                {spotlightTopics.map((topic) => (
-                  <Badge key={topic} variant="eyebrow">
-                    {topic}
-                  </Badge>
-                ))}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
+        <div className="flex min-w-0 flex-col gap-0 overflow-hidden rounded-[1rem] border border-border/70 bg-background shadow-[0_10px_26px_-24px_rgba(15,23,42,0.16)]">
+          <div className="border-b border-border/70 px-5 py-4">
+            <Tabs
+              onValueChange={(value) => {
+                setActiveTab(value as FeedTab);
+              }}
+              value={activeTab}
+            >
+              <TabsList className="w-full justify-start overflow-x-auto" variant="line">
+                {feedTabs.map((item) => {
+                  const Icon = item.icon;
+                  return (
+                    <TabsTrigger key={item.id} value={item.id}>
+                      <Icon data-icon="inline-start" />
+                      {item.label}
+                    </TabsTrigger>
+                  );
+                })}
+              </TabsList>
+            </Tabs>
+          </div>
 
           {feedQuery.isLoading
-            ? Array.from({ length: 2 }).map((_, index) => (
-                <Card key={index} variant="muted">
-                  <CardContent className="space-y-4">
-                    <div className="h-10 w-48 animate-pulse rounded bg-muted" />
-                    <div className="h-80 w-full animate-pulse rounded-[calc(var(--radius-panel)-0.2rem)] bg-muted" />
-                    <div className="h-8 w-2/3 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                  </CardContent>
-                </Card>
+            ? Array.from({ length: 4 }).map((_, index) => (
+                <div className="border-b border-border/70 px-5 py-6 last:border-b-0" key={index}>
+                  <div className="grid gap-5 md:grid-cols-[200px_minmax(0,1fr)]">
+                    <div className="h-32 animate-pulse rounded-[0.9rem] bg-muted" />
+                    <div className="space-y-3">
+                      <div className="h-8 w-5/6 animate-pulse rounded bg-muted" />
+                      <div className="h-5 w-full animate-pulse rounded bg-muted" />
+                      <div className="h-5 w-4/5 animate-pulse rounded bg-muted" />
+                      <div className="flex gap-4 pt-2">
+                        <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+                        <div className="h-8 w-24 animate-pulse rounded bg-muted" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
               ))
             : null}
 
           {feedQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertTitle>首页内容加载失败</AlertTitle>
-              <AlertDescription>{feedQuery.error.message}</AlertDescription>
-            </Alert>
+            <div className="px-5 py-5">
+              <Alert variant="destructive">
+                <AlertTitle>首页内容加载失败</AlertTitle>
+                <AlertDescription>{feedQuery.error.message}</AlertDescription>
+              </Alert>
+            </div>
           ) : null}
 
           {feedItems.map((item, index) => (
-            <SitePanel key={item.id} variant={index === 0 ? "floating" : "default"}>
-              <SitePanelBody className="space-y-5">
-                <div className="flex items-center gap-3">
-                  <Avatar size="lg">
-                    <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
-                    <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
-                  </Avatar>
-                  <div className="min-w-0">
-                    <div className="truncate text-lg font-semibold text-foreground">
-                      {item.author.displayName}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
-                        hour12: false
-                      })}
-                    </div>
-                  </div>
-                </div>
-
-                <button className="block w-full text-left" onClick={() => openArticle(item.id)} type="button">
-                  <div className="site-chip-row">
-                    <Badge variant="eyebrow">{spotlightTopics[index % spotlightTopics.length]}</Badge>
-                    <Badge variant="tone">长文</Badge>
-                  </div>
-
-                  <h2 className="mt-4 text-[2rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
-                    {item.title}
-                  </h2>
-                  <p className="mt-4 line-clamp-4 text-base leading-8 text-muted-foreground">
-                    {item.contentPreview}
-                  </p>
-
-                  <div className="mt-6 overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] bg-surface-2">
+            <article className="border-b border-border/70 px-5 py-6 last:border-b-0" key={item.id}>
+              <button className="block w-full text-left" onClick={() => openArticle(item.id)} type="button">
+                <div className="grid gap-5 md:grid-cols-[200px_minmax(0,1fr)] md:items-start">
+                  <div className="overflow-hidden rounded-[0.95rem] bg-surface-2">
                     <img
                       alt={item.title}
-                      className="h-[380px] w-full object-cover"
+                      className="h-32 w-full object-cover"
                       src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
                     />
                   </div>
-                </button>
 
-                <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/70 pt-4">
-                  <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                    <EyeIcon className="size-4" />
-                    {Math.max(
-                      item.engagement.likeCount * 12 + item.commentCount * 8 + item.engagement.shareCount * 10,
-                      18
-                    )}
+                  <div className="min-w-0">
+                    <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                      <span>{item.author.displayName}</span>
+                      <span>·</span>
+                      <span>
+                        {new Date(item.publishedAt ?? item.createdAt).toLocaleString("zh-CN", {
+                          hour12: false
+                        })}
+                      </span>
+                      <Badge variant="eyebrow">{spotlightTopics[index % spotlightTopics.length]}</Badge>
+                    </div>
+
+                    <h2 className="mt-3 text-[2rem] leading-tight font-semibold tracking-[-0.03em] text-foreground">
+                      {item.title}
+                    </h2>
+
+                    <p className="mt-4 line-clamp-3 text-[1.05rem] leading-8 text-foreground/82">
+                      {item.contentPreview}
+                      <span className="ml-2 text-primary">阅读全文</span>
+                    </p>
                   </div>
-                  <PostInteractionBar
-                    compact
-                    hideFollow
-                    iconOnly
-                    authorId={item.author.id}
-                    favoriteCount={item.engagement.favoriteCount}
-                    isPublished={item.status === "published"}
-                    likeCount={item.engagement.likeCount}
-                    postId={item.id}
-                    shareCount={item.engagement.shareCount}
-                    viewer={item.engagement.viewer}
-                  />
                 </div>
-              </SitePanelBody>
-            </SitePanel>
+              </button>
+
+              <div className="mt-5 flex flex-wrap items-center gap-5 text-[0.98rem] text-muted-foreground">
+                <span className="inline-flex items-center gap-2">
+                  <HeartIcon className="size-4" />
+                  喜欢 {item.engagement.likeCount}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <MessageCircleIcon className="size-4" />
+                  {item.commentCount} 条评论
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <BookmarkIcon className="size-4" />
+                  {item.engagement.favoriteCount}
+                </span>
+                <span className="inline-flex items-center gap-2">
+                  <Share2Icon className="size-4" />
+                  分享
+                </span>
+                <span className="ml-auto inline-flex items-center gap-2">
+                  <EyeIcon className="size-4" />
+                  {articleViewCount(
+                    item.engagement.likeCount,
+                    item.commentCount,
+                    item.engagement.shareCount
+                  )}
+                </span>
+              </div>
+            </article>
           ))}
 
           {!feedQuery.isLoading && !feedQuery.isError && feedItems.length === 0 ? (
-            <Alert>
-              <AlertTitle>首页还没有内容</AlertTitle>
-              <AlertDescription>
-                {isAuthenticated
-                  ? "切换到飞友圈浏览动态，或直接发布你的第一条飞行记录。"
-                  : `${APP_NAME} 还没有公开内容，登录后可以先发布一条动态。`}
-              </AlertDescription>
-            </Alert>
+            <div className="px-5 py-5">
+              <Alert>
+                <AlertTitle>首页还没有内容</AlertTitle>
+                <AlertDescription>
+                  {isAuthenticated
+                    ? "切换到飞友圈浏览动态，或直接发布你的第一条飞行记录。"
+                    : `${APP_NAME} 还没有公开内容，登录后可以先发布一条动态。`}
+                </AlertDescription>
+              </Alert>
+            </div>
           ) : null}
         </div>
 
@@ -337,36 +343,11 @@ export function HomePage() {
 
       {articleId ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/62 p-4 backdrop-blur-sm">
-          <div className="grid h-[min(88vh,860px)] w-full max-w-[1360px] overflow-hidden rounded-[1.75rem] bg-background shadow-[0_40px_120px_-48px_rgba(15,23,42,0.5)] xl:grid-cols-[minmax(0,0.95fr)_minmax(420px,0.7fr)]">
-            <div className="overflow-hidden bg-surface-2">
-              {articleDetailQuery.isLoading ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
-                  正在加载文章...
-                </div>
-              ) : articleDetailQuery.isError ? (
-                <div className="flex h-full items-center justify-center p-8 text-sm text-destructive">
-                  {articleDetailQuery.error.message}
-                </div>
-              ) : (
-                <img
-                  alt={articleItem?.title ?? "article cover"}
-                  className="h-full w-full object-cover"
-                  src={articleItem?.images[0]?.url ?? getEditorialImage(articleId)}
-                />
-              )}
-            </div>
-
-            <div className="flex min-h-0 flex-col">
-              <div className="flex items-center justify-between gap-4 border-b border-border/80 px-6 py-5">
-                <div className="text-sm uppercase tracking-[0.24em] text-muted-foreground">Article</div>
-                <Button onClick={closeArticle} size="sm" type="button" variant="ghost">
-                  关闭
-                </Button>
-              </div>
-
-              {articleItem ? (
-                <>
-                  <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6">
+          <div className="grid h-[min(88vh,900px)] w-full max-w-[1440px] overflow-hidden rounded-[1.5rem] bg-background shadow-[0_40px_120px_-48px_rgba(15,23,42,0.5)] xl:grid-cols-[minmax(0,1fr)_420px]">
+            {articleItem ? (
+              <>
+                <div className="min-h-0 overflow-y-auto border-r border-border/70 bg-background">
+                  <div className="mx-auto max-w-[820px] px-8 py-8">
                     <div className="flex items-center justify-between gap-4">
                       <div className="flex items-center gap-3">
                         <Avatar size="lg">
@@ -382,54 +363,74 @@ export function HomePage() {
                           </div>
                         </div>
                       </div>
-                      <Button size="sm" type="button" variant="hero">
-                        关注
+                      <Button onClick={closeArticle} size="sm" type="button" variant="ghost">
+                        关闭
                       </Button>
                     </div>
 
-                    <div className="mt-6 space-y-5">
-                      <h2 className="text-[2rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
+                    <div className="mt-8">
+                      <h2 className="text-[2.4rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
                         {articleItem.title}
                       </h2>
-                      <p className="whitespace-pre-wrap text-base leading-8 text-foreground/88">
-                        {articleItem.content}
-                      </p>
-                    </div>
-
-                    <div className="mt-8 border-t border-border/80 pt-6">
-                      <div className="text-lg font-semibold text-foreground">评论区</div>
-                      <div className="mt-1 text-sm text-muted-foreground">共 {articleItem.commentCount} 条评论</div>
-
-                      <div className="mt-5">
-                        {articleItem.comments.length > 0 ? (
-                          <PostCommentThread
-                            canInteract={isAuthenticated && articleItem.status === "published"}
-                            comments={articleItem.comments}
-                            currentUserId={currentUser?.id}
-                            postId={articleItem.id}
-                          />
-                        ) : (
-                          <Alert>
-                            <AlertTitle>还没有评论</AlertTitle>
-                            <AlertDescription>欢迎留下第一条评论。</AlertDescription>
-                          </Alert>
-                        )}
+                      <div className="mt-4 flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
+                        <Badge variant="eyebrow">长文</Badge>
+                        <span>{articleViewCount(articleItem.engagement.likeCount, articleItem.commentCount, articleItem.engagement.shareCount)} 浏览</span>
+                        <span>{articleItem.commentCount} 条评论</span>
                       </div>
                     </div>
+
+                    <div className="mt-8 overflow-hidden rounded-[1.1rem] bg-surface-2">
+                      <img
+                        alt={articleItem.title}
+                        className="w-full object-cover"
+                        src={articleItem.images[0]?.url ?? getEditorialImage(articleId)}
+                      />
+                    </div>
+
+                    <article className="prose prose-slate mt-8 max-w-none">
+                      <p className="whitespace-pre-wrap text-[1.06rem] leading-9 text-foreground/88">
+                        {articleItem.content}
+                      </p>
+                    </article>
+                  </div>
+                </div>
+
+                <div className="flex min-h-0 flex-col bg-background">
+                  <div className="border-b border-border/70 px-5 py-5">
+                    <div className="text-lg font-semibold text-foreground">评论区</div>
+                    <div className="mt-1 text-sm text-muted-foreground">共 {articleItem.commentCount} 条评论</div>
                   </div>
 
-                  <div className="border-t border-border/80 px-6 py-4">
-                    <div className="mb-4">
-                      <PostInteractionBar
-                        authorId={articleItem.author.id}
-                        compact
-                        favoriteCount={articleItem.engagement.favoriteCount}
-                        isPublished={articleItem.status === "published"}
-                        likeCount={articleItem.engagement.likeCount}
+                  <div className="min-h-0 flex-1 overflow-y-auto px-5 py-5">
+                    {articleItem.comments.length > 0 ? (
+                      <PostCommentThread
+                        canInteract={isAuthenticated && articleItem.status === "published"}
+                        comments={articleItem.comments}
+                        currentUserId={currentUser?.id}
                         postId={articleItem.id}
-                        shareCount={articleItem.engagement.shareCount}
-                        viewer={articleItem.engagement.viewer}
                       />
+                    ) : (
+                      <Alert>
+                        <AlertTitle>还没有评论</AlertTitle>
+                        <AlertDescription>欢迎留下第一条评论。</AlertDescription>
+                      </Alert>
+                    )}
+                  </div>
+
+                  <div className="border-t border-border/70 px-5 py-4">
+                    <div className="mb-4 flex flex-wrap items-center gap-5 text-sm text-muted-foreground">
+                      <span className="inline-flex items-center gap-2">
+                        <HeartIcon className="size-4" />
+                        喜欢 {articleItem.engagement.likeCount}
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <BookmarkIcon className="size-4" />
+                        收藏 {articleItem.engagement.favoriteCount}
+                      </span>
+                      <span className="inline-flex items-center gap-2">
+                        <Share2Icon className="size-4" />
+                        分享 {articleItem.engagement.shareCount}
+                      </span>
                     </div>
 
                     {isAuthenticated && articleItem.status === "published" ? (
@@ -437,7 +438,7 @@ export function HomePage() {
                         <Textarea
                           className="min-h-20"
                           onChange={(event) => setArticleComment(event.target.value)}
-                          placeholder="说点什么..."
+                          placeholder="写下你的评论..."
                           value={articleComment}
                         />
                         <Button
@@ -478,9 +479,17 @@ export function HomePage() {
                       </Alert>
                     ) : null}
                   </div>
-                </>
-              ) : null}
-            </div>
+                </div>
+              </>
+            ) : articleDetailQuery.isLoading ? (
+              <div className="col-span-2 flex h-full items-center justify-center text-sm text-muted-foreground">
+                正在加载文章...
+              </div>
+            ) : (
+              <div className="col-span-2 flex h-full items-center justify-center p-8 text-sm text-destructive">
+                {articleDetailQuery.error?.message}
+              </div>
+            )}
           </div>
         </div>
       ) : null}

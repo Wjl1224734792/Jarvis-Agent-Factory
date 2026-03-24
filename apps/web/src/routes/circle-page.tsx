@@ -132,12 +132,12 @@ export function CirclePage() {
         onValueChange={(value) => {
           setActiveTab(value as FeedTab);
         }}
-        value={activeTab}
-      >
-        <TabsList className="w-full justify-start overflow-x-auto gap-8 px-1" variant="line">
-          {feedTabs.map((item) => {
-            return (
-              <TabsTrigger className="px-0 text-base" key={item.id} value={item.id}>
+            value={activeTab}
+          >
+            <TabsList className="w-full justify-start overflow-x-auto overflow-y-hidden gap-8 px-1 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden" variant="line">
+              {feedTabs.map((item) => {
+                return (
+                  <TabsTrigger className="px-0 text-base" key={item.id} value={item.id}>
                 {item.label}
               </TabsTrigger>
             );
