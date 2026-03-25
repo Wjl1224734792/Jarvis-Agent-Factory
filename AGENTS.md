@@ -53,6 +53,7 @@
 - 除非任务明确需要变更，否则保持公共接口稳定。
 - 当变更共享合约、模式、配置或类型时，先检查下游影响。
 - 避免占位符逻辑、推测性抽象和死代码。
+- **Tailwind CSS**：组件与页面样式**仅允许**通过标记上的**内联类名**表达（如 `className="..."`，必要时常与 `cn` / `clsx` 等在**同一 TSX/模板处**拼出字符串）；**禁止** `@apply`、在 `.css` / CSS Module 中用工具类冒充组件样式、或任何不依托内联类名的等价写法。各应用入口样式表中为 Tailwind 工程服务的 `@import "tailwindcss"`、`@theme`、全局基础层等**配置性**内容除外，不在此限。
 
 ## 并行工作
 
@@ -89,13 +90,16 @@ feijia/
 ├── packages/                 # 共享库与数据库包 → packages/AGENTS.md
 ├── docker/                   # 本地 PG / Redis / MinIO → docker/AGENTS.md
 ├── docs/                     # 产品、计划、工作流文档
-└── .codex/                   # Codex 技能与代理侧配置
+├── .claude/                  # Claude Code：子代理见 agents/
+│   └── agents/               # 与 AGENTS.md 路由名对应的子代理 Markdown 定义
+└── .codex/                   # Codex：技能与 TOML 代理（.codex/agents/）
 ```
 
 ## 代码层级指引
 
 - 应用总览与 `apps/` 树：`apps/AGENTS.md`；共享包与 `packages/` 树：`packages/AGENTS.md`。
 - 本地基础设施：`docker/AGENTS.md`；各应用子目录内另有对应 `AGENTS.md`。
+- **Claude Code 子代理**：`.claude/agents/*.md`（与本文「多智能体路由」各角色一一对应）；**Codex 代理**：`.codex/agents/*.toml`。
 
 ## 文档
 
