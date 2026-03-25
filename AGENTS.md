@@ -88,7 +88,7 @@ feijia/
 ├── apps/                     # 可运行应用 → apps/AGENTS.md
 ├── packages/                 # 共享库与数据库包 → packages/AGENTS.md
 ├── docker/                   # 本地 PG / Redis / MinIO → docker/AGENTS.md
-├── docs/                     # 产品、计划、工作流文档（约定不在此目录放 AGENTS.md）
+├── docs/                     # 产品、计划、工作流文档
 └── .codex/                   # Codex 技能与代理侧配置
 ```
 
