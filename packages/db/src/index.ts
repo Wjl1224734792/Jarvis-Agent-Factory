@@ -1,15 +1,22 @@
 export { db, dbPool } from "./client.js";
 export {
+  aircraftSubmissionsTable,
   aircraftCategoriesTable,
   aircraftModelsTable,
   aircraftReviewsTable,
   brandsTable,
+  contentCategoriesTable,
   notificationsTable,
   postCommentsTable,
   postImagesTable,
   postInteractionsTable,
   postReportsTable,
   postsTable,
+  rankingCommentsTable,
+  rankingItemCommentsTable,
+  rankingItemRatingsTable,
+  rankingItemsTable,
+  rankingsTable,
   sessionsTable,
   userFollowsTable,
   usersTable

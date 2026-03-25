@@ -1,27 +1,39 @@
 import {
   actionSuccessResponseSchema,
-  adminBrandResponseSchema,
   adminBrandInputSchema,
-  adminCategoryResponseSchema,
+  adminBrandResponseSchema,
   adminCategoryInputSchema,
+  adminCategoryResponseSchema,
+  adminContentCategoryInputSchema,
+  adminContentCategoryResponseSchema,
+  adminModelInputSchema,
+  adminModelResponseSchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
   adminPostCommentStatusUpdateInputSchema,
   adminPostResponseSchema,
   adminPostsResponseSchema,
   adminPostStatusUpdateInputSchema,
-  adminModelInputSchema,
-  adminModelResponseSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
   adminLoginRequestSchema,
+  aircraftSubmissionResponseSchema,
+  aircraftSubmissionsResponseSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
+  circleFeedResponseSchema,
+  contentCategoriesResponseSchema,
+  createAircraftSubmissionInputSchema,
   createPostCommentInputSchema,
   createPostCommentResponseSchema,
   createPostInputSchema,
   createPostResponseSchema,
+  createRankingCommentInputSchema,
+  createRankingCommentResponseSchema,
+  createRankingInputSchema,
+  createRankingItemCommentInputSchema,
+  createRankingItemCommentResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
   feedTabSchema,
@@ -35,14 +47,19 @@ import {
   notificationsResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
+  rankingItemDetailResponseSchema,
+  rankingResponseSchema,
   rankingsResponseSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
-  uploadPostImageResponseSchema,
+  submitRankingItemRatingInputSchema,
+  submitRankingItemRatingResponseSchema,
+  updateAircraftSubmissionStatusInputSchema,
   updateReviewStatusInputSchema,
+  uploadPostImageResponseSchema,
   webLoginRequestSchema,
   type HealthResponse,
   type UserSummary
@@ -60,7 +77,8 @@ type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
 type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
-type FeedTabInput = Parameters<typeof feedTabSchema.parse>[0];
+type AdminContentCategoryInput = Parameters<typeof adminContentCategoryInputSchema.parse>[0];
+type FeedTabInput = "recommended" | "latest" | "following";
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
 type PostInteractionTypeInput = Parameters<typeof postInteractionTypeSchema.parse>[0];
@@ -70,6 +88,14 @@ type UpdateAdminPostCommentStatusInput =
   Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
+type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
+type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
+type CreateRankingCommentInput = Parameters<typeof createRankingCommentInputSchema.parse>[0];
+type CreateRankingItemCommentInput = Parameters<typeof createRankingItemCommentInputSchema.parse>[0];
+type SubmitRankingItemRatingInput = Parameters<typeof submitRankingItemRatingInputSchema.parse>[0];
+type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
+type UpdateAircraftSubmissionStatusInput =
+  Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -92,10 +118,7 @@ async function parseError(response: Response): Promise<Error> {
   return new Error(`Request failed with status ${response.status}`);
 }
 
-async function readJson<T>(
-  response: Response,
-  parser: { parse: (input: unknown) => T }
-): Promise<T> {
+async function readJson<T>(response: Response, parser: { parse: (input: unknown) => T }): Promise<T> {
   if (!response.ok) {
     throw await parseError(response);
   }
@@ -234,21 +257,35 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, currentUserResponseSchema);
     },
-    async listHomeFeed(tab: FeedTabInput) {
-      const parsedTab = feedTabSchema.parse(tab);
-      const response = await fetch(`${baseUrl}${API_ROUTES.feed}?tab=${parsedTab}`, {
+    async listHomeFeed(input: HomeFeedInput) {
+      const normalized =
+        typeof input === "string"
+          ? { tab: input, categorySlug: undefined }
+          : { tab: input.tab, categorySlug: input.categorySlug };
+      const parsedTab = feedTabSchema.parse(normalized.tab);
+      const search = new URLSearchParams({ tab: parsedTab });
+      if (normalized.categorySlug) {
+        search.set("categorySlug", normalized.categorySlug);
+      }
+
+      const response = await fetch(`${baseUrl}${API_ROUTES.feed}?${search.toString()}`, {
         method: "GET",
         credentials: "include"
       });
 
       return readJson(response, homeFeedResponseSchema);
     },
+    async listCircleFeed(tab: FeedTabInput) {
+      const parsedTab = feedTabSchema.parse(tab);
+      const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?tab=${parsedTab}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, circleFeedResponseSchema);
+    },
     async createPost(input: CreatePostInput) {
-      return postJson(
-        API_ROUTES.posts.create,
-        createPostResponseSchema,
-        createPostInputSchema.parse(input)
-      );
+      return postJson(API_ROUTES.posts.create, createPostResponseSchema, createPostInputSchema.parse(input));
     },
     async uploadPostImage(file: File) {
       const formData = new FormData();
@@ -333,6 +370,66 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, actionSuccessResponseSchema);
     },
+    async listContentCategories() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.content.categories}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, contentCategoriesResponseSchema);
+    },
+    async listAdminContentCategories() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.content.adminCategories}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, contentCategoriesResponseSchema);
+    },
+    async createContentCategory(input: AdminContentCategoryInput) {
+      return postJson(
+        API_ROUTES.content.adminCategories,
+        adminContentCategoryResponseSchema,
+        adminContentCategoryInputSchema.parse(input)
+      );
+    },
+    async updateContentCategory(id: string, input: AdminContentCategoryInput) {
+      return putJson(
+        API_ROUTES.content.adminCategoryDetail(id),
+        adminContentCategoryResponseSchema,
+        adminContentCategoryInputSchema.parse(input)
+      );
+    },
+    async createAircraftSubmission(input: CreateAircraftSubmissionInput) {
+      return postJson(
+        API_ROUTES.submissions.create,
+        aircraftSubmissionResponseSchema,
+        createAircraftSubmissionInputSchema.parse(input)
+      );
+    },
+    async getAircraftSubmission(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.submissions.detail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, aircraftSubmissionResponseSchema);
+    },
+    async listAdminAircraftSubmissions() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.submissions.adminList}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, aircraftSubmissionsResponseSchema);
+    },
+    async updateAircraftSubmissionStatus(id: string, input: UpdateAircraftSubmissionStatusInput) {
+      return putJson(
+        API_ROUTES.submissions.adminDetail(id),
+        aircraftSubmissionResponseSchema,
+        updateAircraftSubmissionStatusInputSchema.parse(input)
+      );
+    },
     async listRankings() {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.overview}`, {
         method: "GET",
@@ -340,6 +437,50 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, rankingsResponseSchema);
+    },
+    async createRanking(input: CreateRankingInput) {
+      return postJson(
+        API_ROUTES.rankings.create,
+        rankingResponseSchema,
+        createRankingInputSchema.parse(input)
+      );
+    },
+    async getRankingDetail(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.detail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, rankingResponseSchema);
+    },
+    async createRankingComment(id: string, input: CreateRankingCommentInput) {
+      return postJson(
+        API_ROUTES.rankings.comments(id),
+        createRankingCommentResponseSchema,
+        createRankingCommentInputSchema.parse(input)
+      );
+    },
+    async getRankingItemDetail(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.itemDetail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, rankingItemDetailResponseSchema);
+    },
+    async submitRankingItemRating(id: string, input: SubmitRankingItemRatingInput) {
+      return postJson(
+        API_ROUTES.rankings.itemRatings(id),
+        submitRankingItemRatingResponseSchema,
+        submitRankingItemRatingInputSchema.parse(input)
+      );
+    },
+    async createRankingItemComment(id: string, input: CreateRankingItemCommentInput) {
+      return postJson(
+        API_ROUTES.rankings.itemComments(id),
+        createRankingItemCommentResponseSchema,
+        createRankingItemCommentInputSchema.parse(input)
+      );
     },
     async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
       const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
@@ -366,10 +507,7 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminPostCommentsResponseSchema);
     },
-    async updateAdminPostCommentStatus(
-      id: string,
-      input: UpdateAdminPostCommentStatusInput
-    ) {
+    async updateAdminPostCommentStatus(id: string, input: UpdateAdminPostCommentStatusInput) {
       return putJson(
         API_ROUTES.posts.adminCommentDetail(id),
         adminPostCommentResponseSchema,
@@ -377,13 +515,10 @@ export function createApiClient(options: ApiClientOptions) {
       );
     },
     async listModels(input: ModelsQueryInput = {}) {
-      const response = await fetch(
-        `${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`,
-        {
-          method: "GET",
-          credentials: "include"
-        }
-      );
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`, {
+        method: "GET",
+        credentials: "include"
+      });
 
       return readJson(response, modelListResponseSchema);
     },

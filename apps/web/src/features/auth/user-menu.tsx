@@ -1,4 +1,3 @@
-import { APP_ROUTES } from "@feijia/shared";
 import { LogOutIcon, RadarIcon, SparklesIcon } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -30,7 +29,7 @@ export function UserMenu() {
           游客模式
         </Badge>
         <Button asChild className="rounded-2xl px-5" size="lg">
-          <Link to={APP_ROUTES.webLogin}>
+          <Link to="/login">
             <SparklesIcon data-icon="inline-start" />
             登录 / 注册
           </Link>
@@ -41,19 +40,17 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-3">
-      <Button asChild className="h-11 rounded-full px-2.5" size="lg" variant="outline">
-        <Link to={APP_ROUTES.webProfile}>
-          <Avatar size="lg">
-            <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
-          </Avatar>
-          <span className="hidden pr-1 text-left sm:flex sm:flex-col">
-            <span className="text-sm font-medium text-foreground">{user.displayName}</span>
-            <span className="text-xs text-muted-foreground">
-              {user.role === "admin" ? "Admin Session" : "Flight Member"}
-            </span>
+      <div className="flex items-center gap-2 rounded-full border border-border/80 bg-card/88 px-2.5 py-1.5 shadow-sm">
+        <Avatar size="lg">
+          <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
+        </Avatar>
+        <span className="hidden pr-1 text-left sm:flex sm:flex-col">
+          <span className="text-sm font-medium text-foreground">{user.displayName}</span>
+          <span className="text-xs text-muted-foreground">
+            {user.role === "admin" ? "Admin Session" : "Flight Member"}
           </span>
-        </Link>
-      </Button>
+        </span>
+      </div>
 
       <Button
         className="rounded-full"
@@ -62,7 +59,7 @@ export function UserMenu() {
             .logout()
             .then(() => {
               setAnonymous();
-              navigate(APP_ROUTES.feedHome);
+              navigate("/home");
             })
             .catch((error: unknown) => {
               setError(error instanceof Error ? error.message : "退出失败");

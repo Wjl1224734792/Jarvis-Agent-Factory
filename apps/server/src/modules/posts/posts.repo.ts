@@ -1,4 +1,5 @@
 import {
+  contentCategoriesTable,
   createId,
   db,
   postCommentsTable,
@@ -9,10 +10,11 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 type FeedTab = "recommended" | "latest" | "following";
 type PostStatus = "pending" | "published" | "rejected" | "hidden";
+type PostType = "article" | "moment";
 type PostCommentStatus = "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
 
@@ -31,8 +33,11 @@ function buildFeedOrder(tab: FeedTab) {
 function postSelection() {
   return {
     id: postsTable.id,
+    type: postsTable.type,
     title: postsTable.title,
     content: postsTable.content,
+    contentHtml: postsTable.contentHtml,
+    contentPlainText: postsTable.contentPlainText,
     status: postsTable.status,
     commentCount: postsTable.commentCount,
     reportCount: postsTable.reportCount,
@@ -46,6 +51,11 @@ function postSelection() {
       id: usersTable.id,
       displayName: usersTable.displayName,
       role: usersTable.role
+    },
+    contentCategory: {
+      id: contentCategoriesTable.id,
+      slug: contentCategoriesTable.slug,
+      name: contentCategoriesTable.name
     }
   };
 }
@@ -63,15 +73,27 @@ function imageSelection() {
 }
 
 export const postsRepo = {
+  async listUsersByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        role: usersTable.role
+      })
+      .from(usersTable)
+      .where(inArray(usersTable.id, ids));
+  },
   async syncPostCommentCount(postId: string) {
     const rows = await db
       .select({
         count: sql<number>`count(*)`
       })
       .from(postCommentsTable)
-      .where(
-        and(eq(postCommentsTable.postId, postId), eq(postCommentsTable.status, "visible"))
-      );
+      .where(and(eq(postCommentsTable.postId, postId), eq(postCommentsTable.status, "visible")));
 
     await db
       .update(postsTable)
@@ -91,11 +113,7 @@ export const postsRepo = {
       .where(eq(postInteractionsTable.postId, postId))
       .groupBy(postInteractionsTable.type);
 
-    const counts = {
-      like: 0,
-      favorite: 0,
-      share: 0
-    };
+    const counts = { like: 0, favorite: 0, share: 0 };
 
     for (const row of rows) {
       if (row.type === "like" || row.type === "favorite" || row.type === "share") {
@@ -166,9 +184,7 @@ export const postsRepo = {
 
     await db
       .update(postImagesTable)
-      .set({
-        postId
-      })
+      .set({ postId })
       .where(
         and(
           eq(postImagesTable.ownerId, ownerId),
@@ -199,14 +215,16 @@ export const postsRepo = {
         type: postInteractionsTable.type
       })
       .from(postInteractionsTable)
-      .where(
-        and(eq(postInteractionsTable.userId, userId), inArray(postInteractionsTable.postId, postIds))
-      );
+      .where(and(eq(postInteractionsTable.userId, userId), inArray(postInteractionsTable.postId, postIds)));
   },
   async createPost(input: {
     authorId: string;
+    type: PostType;
     title: string;
     content: string;
+    contentHtml: string | null;
+    contentPlainText: string;
+    contentCategoryId: string | null;
     imageIds: string[];
   }) {
     const id = createId("post");
@@ -214,8 +232,12 @@ export const postsRepo = {
     await db.insert(postsTable).values({
       id,
       authorId: input.authorId,
+      type: input.type,
       title: input.title,
       content: input.content,
+      contentHtml: input.contentHtml,
+      contentPlainText: input.contentPlainText,
+      contentCategoryId: input.contentCategoryId,
       status: "pending",
       commentCount: 0,
       reportCount: 0,
@@ -226,7 +248,6 @@ export const postsRepo = {
     });
 
     await this.attachImagesToPost(id, input.authorId, input.imageIds);
-
     return this.getPostById(id);
   },
   async getPostById(id: string) {
@@ -234,20 +255,36 @@ export const postsRepo = {
       .select(postSelection())
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+      .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
       .where(eq(postsTable.id, id))
       .limit(1);
 
     return rows[0] ?? null;
   },
-  async listFeed(tab: FeedTab, currentUserId?: string | null) {
+  async listFeed(input: {
+    tab: FeedTab;
+    type: PostType;
+    currentUserId?: string | null;
+    contentCategorySlug?: string;
+  }) {
+    const conditions = [
+      eq(postsTable.status, "published"),
+      eq(postsTable.type, input.type)
+    ];
+
+    if (input.type === "article" && input.contentCategorySlug) {
+      conditions.push(eq(contentCategoriesTable.slug, input.contentCategorySlug));
+    }
+
     const baseQuery = db
       .select(postSelection())
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
-      .where(eq(postsTable.status, "published"));
+      .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
+      .where(and(...conditions));
 
-    if (tab === "following") {
-      if (!currentUserId) {
+    if (input.tab === "following") {
+      if (!input.currentUserId) {
         return [];
       }
 
@@ -256,19 +293,20 @@ export const postsRepo = {
           userFollowsTable,
           and(
             eq(userFollowsTable.followeeId, postsTable.authorId),
-            eq(userFollowsTable.followerId, currentUserId)
+            eq(userFollowsTable.followerId, input.currentUserId)
           )
         )
-        .orderBy(...buildFeedOrder(tab));
+        .orderBy(...buildFeedOrder(input.tab));
     }
 
-    return baseQuery.orderBy(...buildFeedOrder(tab));
+    return baseQuery.orderBy(...buildFeedOrder(input.tab));
   },
   async listAdminPosts(status?: PostStatus) {
     const query = db
       .select(postSelection())
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+      .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
       .orderBy(desc(postsTable.updatedAt));
 
     if (status) {
@@ -279,7 +317,6 @@ export const postsRepo = {
   },
   async updatePostStatus(id: string, status: PostStatus) {
     const existing = await this.getPostById(id);
-
     if (!existing) {
       return null;
     }
@@ -288,10 +325,7 @@ export const postsRepo = {
       .update(postsTable)
       .set({
         status,
-        publishedAt:
-          status === "published"
-            ? existing.publishedAt ?? new Date()
-            : existing.publishedAt,
+        publishedAt: status === "published" ? existing.publishedAt ?? new Date() : existing.publishedAt,
         updatedAt: new Date()
       })
       .where(eq(postsTable.id, id));
@@ -303,7 +337,10 @@ export const postsRepo = {
       .select({
         id: postCommentsTable.id,
         postId: postCommentsTable.postId,
+        authorId: postCommentsTable.authorId,
         parentCommentId: postCommentsTable.parentCommentId,
+        replyToCommentId: postCommentsTable.replyToCommentId,
+        replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
         createdAt: postCommentsTable.createdAt,
@@ -316,12 +353,10 @@ export const postsRepo = {
       })
       .from(postCommentsTable)
       .innerJoin(usersTable, eq(postCommentsTable.authorId, usersTable.id))
-      .where(
-        and(eq(postCommentsTable.postId, postId), eq(postCommentsTable.status, "visible"))
-      )
-      .orderBy(postCommentsTable.createdAt);
+      .where(and(eq(postCommentsTable.postId, postId), eq(postCommentsTable.status, "visible")))
+      .orderBy(asc(postCommentsTable.createdAt));
   },
-  async listCommentTreeEntries(postId: string) {
+  async listCommentThreadEntries(postId: string) {
     return db
       .select({
         id: postCommentsTable.id,
@@ -337,6 +372,8 @@ export const postsRepo = {
         postId: postCommentsTable.postId,
         authorId: postCommentsTable.authorId,
         parentCommentId: postCommentsTable.parentCommentId,
+        replyToCommentId: postCommentsTable.replyToCommentId,
+        replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
         createdAt: postCommentsTable.createdAt,
@@ -357,8 +394,10 @@ export const postsRepo = {
   async createComment(input: {
     postId: string;
     authorId: string;
+    parentCommentId: string | null;
+    replyToCommentId: string | null;
+    replyToUserId: string | null;
     content: string;
-    parentCommentId?: string;
   }) {
     const id = createId("comment");
 
@@ -366,28 +405,36 @@ export const postsRepo = {
       id,
       postId: input.postId,
       authorId: input.authorId,
-      parentCommentId: input.parentCommentId ?? null,
+      parentCommentId: input.parentCommentId,
+      replyToCommentId: input.replyToCommentId,
+      replyToUserId: input.replyToUserId,
       content: input.content,
       status: "visible"
     });
 
     await this.syncPostCommentCount(input.postId);
-
     return this.getCommentById(id);
   },
   async deleteCommentThread(commentId: string, postId: string) {
     const existing = await this.getCommentById(commentId);
-
     if (!existing || existing.postId !== postId) {
       return 0;
     }
 
+    const threadRootId = existing.parentCommentId ?? existing.id;
     await db
       .delete(postCommentsTable)
-      .where(and(eq(postCommentsTable.id, commentId), eq(postCommentsTable.postId, postId)));
+      .where(
+        and(
+          eq(postCommentsTable.postId, postId),
+          or(
+            eq(postCommentsTable.id, threadRootId),
+            eq(postCommentsTable.parentCommentId, threadRootId)
+          )
+        )
+      );
 
     await this.syncPostCommentCount(postId);
-
     return 1;
   },
   async deletePost(id: string) {
@@ -399,9 +446,7 @@ export const postsRepo = {
     type: PostInteractionType;
   }) {
     const existing = await db
-      .select({
-        id: postInteractionsTable.id
-      })
+      .select({ id: postInteractionsTable.id })
       .from(postInteractionsTable)
       .where(
         and(
@@ -415,9 +460,7 @@ export const postsRepo = {
     let active = false;
 
     if (existing.length > 0) {
-      await db
-        .delete(postInteractionsTable)
-        .where(eq(postInteractionsTable.id, existing[0].id));
+      await db.delete(postInteractionsTable).where(eq(postInteractionsTable.id, existing[0].id));
     } else {
       await db.insert(postInteractionsTable).values({
         id: createId("react"),
@@ -429,7 +472,6 @@ export const postsRepo = {
     }
 
     await this.syncPostInteractionCounts(input.postId);
-
     return { active };
   },
   async createReport(input: { postId: string; reporterId: string; reason: string }) {
@@ -445,38 +487,22 @@ export const postsRepo = {
       })
       .onConflictDoNothing();
 
-    const rows = await db
+    const totals = await db
       .select({
         count: sql<number>`count(*)`
       })
       .from(postReportsTable)
-      .where(
-        and(
-          eq(postReportsTable.postId, input.postId),
-          eq(postReportsTable.reporterId, input.reporterId)
-        )
-      );
+      .where(eq(postReportsTable.postId, input.postId));
 
-    const exists = Number(rows[0]?.count ?? 0) > 0;
+    await db
+      .update(postsTable)
+      .set({
+        reportCount: Number(totals[0]?.count ?? 0),
+        updatedAt: new Date()
+      })
+      .where(eq(postsTable.id, input.postId));
 
-    if (exists) {
-      const totals = await db
-        .select({
-          count: sql<number>`count(*)`
-        })
-        .from(postReportsTable)
-        .where(eq(postReportsTable.postId, input.postId));
-
-      await db
-        .update(postsTable)
-        .set({
-          reportCount: Number(totals[0]?.count ?? 0),
-          updatedAt: new Date()
-        })
-        .where(eq(postsTable.id, input.postId));
-    }
-
-    return exists;
+    return true;
   },
   async listAdminComments(status?: PostCommentStatus) {
     const query = db
@@ -485,6 +511,8 @@ export const postsRepo = {
         postId: postCommentsTable.postId,
         postTitle: postsTable.title,
         parentCommentId: postCommentsTable.parentCommentId,
+        replyToCommentId: postCommentsTable.replyToCommentId,
+        replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
         createdAt: postCommentsTable.createdAt,
@@ -508,47 +536,25 @@ export const postsRepo = {
   },
   async updateCommentStatus(id: string, status: PostCommentStatus) {
     const existing = await this.getCommentById(id);
-
     if (!existing) {
       return null;
     }
 
-    const treeEntries = await this.listCommentTreeEntries(existing.postId);
-    const childrenByParent = new Map<string | null, string[]>();
-
-    for (const entry of treeEntries) {
-      const siblings = childrenByParent.get(entry.parentCommentId) ?? [];
-      siblings.push(entry.id);
-      childrenByParent.set(entry.parentCommentId, siblings);
-    }
-
-    const stack = [id];
-    const descendantIds: string[] = [];
-
-    while (stack.length > 0) {
-      const currentId = stack.pop();
-
-      if (!currentId) {
-        continue;
-      }
-
-      descendantIds.push(currentId);
-
-      for (const childId of childrenByParent.get(currentId) ?? []) {
-        stack.push(childId);
-      }
-    }
-
+    const rootId = existing.parentCommentId ?? existing.id;
     await db
       .update(postCommentsTable)
       .set({
         status,
         updatedAt: new Date()
       })
-      .where(inArray(postCommentsTable.id, descendantIds));
+      .where(
+        and(
+          eq(postCommentsTable.postId, existing.postId),
+          or(eq(postCommentsTable.id, rootId), eq(postCommentsTable.parentCommentId, rootId))
+        )
+      );
 
     await this.syncPostCommentCount(existing.postId);
-
     return this.getCommentById(id);
   }
 };

@@ -105,6 +105,23 @@ export const aircraftModelsTable = pgTable(
   })
 );
 
+export const contentCategoriesTable = pgTable(
+  "content_categories",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    isEnabled: boolean("is_enabled").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("content_categories_slug_unique").on(table.slug)
+  })
+);
+
 export const aircraftReviewsTable = pgTable(
   "aircraft_reviews",
   {
@@ -138,8 +155,14 @@ export const postsTable = pgTable("posts", {
   authorId: text("author_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
+  type: text("type").default("moment").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
+  contentHtml: text("content_html"),
+  contentPlainText: text("content_plain_text"),
+  contentCategoryId: text("content_category_id").references(() => contentCategoriesTable.id, {
+    onDelete: "set null"
+  }),
   status: text("status").default("pending").notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
   reportCount: integer("report_count").default(0).notNull(),
@@ -166,6 +189,10 @@ export const postCommentsTable = pgTable(
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
     parentCommentId: text("parent_comment_id"),
+    replyToCommentId: text("reply_to_comment_id"),
+    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
+      onDelete: "set null"
+    }),
     content: text("content").notNull(),
     status: text("status").default("visible").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -178,6 +205,10 @@ export const postCommentsTable = pgTable(
   (table) => ({
     parentCommentFk: foreignKey({
       columns: [table.parentCommentId],
+      foreignColumns: [table.id]
+    }).onDelete("cascade"),
+    replyToCommentFk: foreignKey({
+      columns: [table.replyToCommentId],
       foreignColumns: [table.id]
     }).onDelete("cascade")
   })
@@ -280,6 +311,136 @@ export const notificationsTable = pgTable("notifications", {
   commentId: text("comment_id").references(() => postCommentsTable.id, { onDelete: "cascade" }),
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
+  id: text("id").primaryKey(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  status: text("status").default("submitted").notNull(),
+  brandName: text("brand_name").notNull(),
+  modelName: text("model_name").notNull(),
+  aircraftType: text("aircraft_type").notNull(),
+  powerType: text("power_type").notNull(),
+  summary: text("summary"),
+  description: text("description"),
+  coverImageUrl: text("cover_image_url"),
+  galleryImageUrls: text("gallery_image_urls").default("[]").notNull(),
+  videoUrl: text("video_url"),
+  maxFlightTimeMinutes: integer("max_flight_time_minutes"),
+  maxRangeKilometers: integer("max_range_kilometers"),
+  maxSpeedKph: integer("max_speed_kph"),
+  takeoffWeightGrams: integer("takeoff_weight_grams"),
+  approvedModelId: text("approved_model_id").references(() => aircraftModelsTable.id, {
+    onDelete: "set null"
+  }),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const rankingsTable = pgTable("rankings", {
+  id: text("id").primaryKey(),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  type: text("type").default("community").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  coverImageUrl: text("cover_image_url"),
+  commentCount: integer("comment_count").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const rankingItemsTable = pgTable("ranking_items", {
+  id: text("id").primaryKey(),
+  rankingId: text("ranking_id")
+    .notNull()
+    .references(() => rankingsTable.id, { onDelete: "cascade" }),
+  linkedModelId: text("linked_model_id").references(() => aircraftModelsTable.id, {
+    onDelete: "set null"
+  }),
+  rank: integer("rank").notNull(),
+  title: text("title").notNull(),
+  summary: text("summary"),
+  imageUrl: text("image_url"),
+  brandName: text("brand_name"),
+  commentCount: integer("comment_count").default(0).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const rankingCommentsTable = pgTable("ranking_comments", {
+  id: text("id").primaryKey(),
+  rankingId: text("ranking_id")
+    .notNull()
+    .references(() => rankingsTable.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
+export const rankingItemRatingsTable = pgTable(
+  "ranking_item_ratings",
+  {
+    id: text("id").primaryKey(),
+    rankingItemId: text("ranking_item_id")
+      .notNull()
+      .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    rating: integer("rating").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    rankingItemUserUnique: uniqueIndex("ranking_item_ratings_item_user_unique").on(
+      table.rankingItemId,
+      table.userId
+    )
+  })
+);
+
+export const rankingItemCommentsTable = pgTable("ranking_item_comments", {
+  id: text("id").primaryKey(),
+  rankingItemId: text("ranking_item_id")
+    .notNull()
+    .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+  authorId: text("author_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
 });

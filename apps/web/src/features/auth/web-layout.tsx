@@ -1,17 +1,13 @@
-import { useQuery } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
-  BellIcon,
+  ChevronDownIcon,
   CompassIcon,
   HouseIcon,
   LibraryBigIcon,
-  MailIcon,
   MenuIcon,
-  PlusCircleIcon,
+  PlusIcon,
   SearchIcon,
-  Settings2Icon,
-  TrophyIcon,
-  UserRoundIcon
+  TrophyIcon
 } from "lucide-react";
 import { useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
@@ -27,68 +23,46 @@ import {
   SheetTrigger
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
-import { apiClient } from "../../lib/api-client";
+import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
-import { useAuthStore } from "./auth-store";
 import { UserMenu } from "./user-menu";
 
 const navItems = [
   { to: APP_ROUTES.feedHome, label: "首页", icon: HouseIcon },
   { to: APP_ROUTES.flightCircle, label: "飞友圈", icon: CompassIcon },
   { to: APP_ROUTES.models, label: "飞行器库", icon: LibraryBigIcon },
-  { to: APP_ROUTES.rankings, label: "榜单", icon: TrophyIcon },
-  { to: APP_ROUTES.webProfile, label: "个人中心", icon: UserRoundIcon }
+  { to: APP_ROUTES.rankings, label: "榜单", icon: TrophyIcon }
 ] as const;
 
-const utilityItems = [{ to: APP_ROUTES.webSettings, label: "设置", icon: Settings2Icon }] as const;
+const publishEntries = [
+  { to: WEB_ROUTE_PATHS.publishArticle, label: "发布文章" },
+  { to: WEB_ROUTE_PATHS.publishMoment, label: "发布动态" },
+  { to: WEB_ROUTE_PATHS.publishAircraft, label: "发布飞行器" },
+  { to: APP_ROUTES.rankingEditor, label: "创建榜单" }
+] as const;
 
 function getHeaderCopy(pathname: string) {
-  if (pathname.startsWith(APP_ROUTES.rankingEditor)) {
-    return {
-      placeholder: "继续完善榜单标题、描述和候选机型...",
-      actionLabel: "返回榜单"
-    };
+  if (pathname.startsWith(WEB_ROUTE_PATHS.publishArticle)) {
+    return "搜索文章标题、栏目或关键词...";
   }
 
-  if (pathname.startsWith(APP_ROUTES.models)) {
-    return {
-      placeholder: "搜索飞行器、机型或评测...",
-      actionLabel: "发布内容"
-    };
+  if (pathname.startsWith(WEB_ROUTE_PATHS.publishMoment)) {
+    return "搜索动态、飞行记录或作者...";
+  }
+
+  if (pathname.startsWith(WEB_ROUTE_PATHS.publishAircraft)) {
+    return "搜索机型、品牌或参数字段...";
   }
 
   if (pathname.startsWith(APP_ROUTES.rankings)) {
-    return {
-      placeholder: "搜索榜单、机型或测评标签...",
-      actionLabel: "创建榜单"
-    };
+    return "搜索榜单、条目或点评...";
   }
 
-  if (pathname.startsWith(APP_ROUTES.webProfile)) {
-    return {
-      placeholder: "搜索飞行器、资讯、飞友...",
-      actionLabel: "发布内容"
-    };
+  if (pathname.startsWith(APP_ROUTES.models)) {
+    return "搜索机型、品牌或评分...";
   }
 
-  if (pathname.startsWith(APP_ROUTES.webSettings)) {
-    return {
-      placeholder: "搜索机型、资讯或飞友...",
-      actionLabel: "发布内容"
-    };
-  }
-
-  if (pathname.startsWith(APP_ROUTES.compose)) {
-    return {
-      placeholder: "继续完善你的标题、封面和标签...",
-      actionLabel: "返回首页"
-    };
-  }
-
-  return {
-    placeholder: "搜索无人机、航拍地、飞友或机型...",
-    actionLabel: "发布内容"
-  };
+  return "搜索无人机、航拍地、飞友或机型...";
 }
 
 function ShellBrand() {
@@ -148,32 +122,12 @@ export function WebLayout() {
   useBootstrapAuth();
 
   const location = useLocation();
-  const authStatus = useAuthStore((state) => state.status);
-  const authenticated = authStatus === "authenticated";
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
-
-  const notificationsQuery = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => apiClient.listNotifications(),
-    enabled: authenticated
-  });
-
-  const unreadCount = authenticated ? (notificationsQuery.data?.unreadCount ?? 0) : 0;
-  const headerCopy = getHeaderCopy(location.pathname);
-  const primaryActionTarget =
-    location.pathname.startsWith(APP_ROUTES.rankingEditor)
-      ? APP_ROUTES.rankings
-      : location.pathname.startsWith(APP_ROUTES.rankings)
-        ? APP_ROUTES.rankingEditor
-        : location.pathname.startsWith(APP_ROUTES.compose)
-          ? APP_ROUTES.feedHome
-          : APP_ROUTES.compose;
+  const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
+  const headerPlaceholder = getHeaderCopy(location.pathname);
 
   return (
-    <div
-      className="min-h-screen"
-      style={{ ["--shell-sidebar-width" as string]: "242px" }}
-    >
+    <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "242px" }}>
       <header className="sticky top-0 z-40 border-b border-border/75 bg-background/92 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-4 px-4 py-3 xl:px-6">
           <div className="flex items-center gap-3">
@@ -190,18 +144,11 @@ export function WebLayout() {
               >
                 <SheetHeader className="px-0">
                   <SheetTitle>{APP_NAME}</SheetTitle>
-                  <SheetDescription>社区、机型库和榜单入口</SheetDescription>
+                  <SheetDescription>首页、飞友圈、飞行器库和榜单入口</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-5 pt-4">
                   <NavButtons
                     items={navItems}
-                    onNavigate={() => {
-                      setIsMobileNavOpen(false);
-                    }}
-                  />
-                  <div className="site-rule" />
-                  <NavButtons
-                    items={utilityItems}
                     onNavigate={() => {
                       setIsMobileNavOpen(false);
                     }}
@@ -221,7 +168,7 @@ export function WebLayout() {
                 <SearchIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="h-10 rounded-[calc(var(--radius-control)-0.05rem)] border-border/80 bg-card/90 pl-11 shadow-[var(--shadow-soft)]"
-                  placeholder={headerCopy.placeholder}
+                  placeholder={headerPlaceholder}
                   readOnly
                 />
               </div>
@@ -229,35 +176,45 @@ export function WebLayout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <Button asChild className="max-sm:px-0" size="lg" variant="hero">
-              <Link to={primaryActionTarget}>
-                <PlusCircleIcon data-icon="inline-start" />
-                <span className="hidden sm:inline">{headerCopy.actionLabel}</span>
-              </Link>
-            </Button>
-
-            <Button asChild className="relative" size="icon-lg" variant="ghost">
-              <Link to={APP_ROUTES.notifications}>
-                <BellIcon />
-                {unreadCount > 0 ? (
-                  <span className="absolute right-2.5 top-2.5 size-2 rounded-full bg-red-500" />
-                ) : null}
-                <span className="sr-only">通知</span>
-              </Link>
-            </Button>
-
-            <span
-              aria-disabled="true"
-              className={buttonVariants({
-                size: "icon-lg",
-                variant: "ghost",
-                className: "opacity-70"
-              })}
-              title="消息功能即将上线"
+            <div
+              className="relative"
+              onMouseEnter={() => setIsPublishMenuOpen(true)}
+              onMouseLeave={() => setIsPublishMenuOpen(false)}
             >
-              <MailIcon />
-              <span className="sr-only">消息功能即将上线</span>
-            </span>
+              <Button
+                className="rounded-full max-sm:px-0"
+                onClick={() => {
+                  setIsPublishMenuOpen((value) => !value);
+                }}
+                size="lg"
+                type="button"
+                variant="hero"
+              >
+                <PlusIcon />
+                <span className="hidden sm:inline">发布</span>
+                <ChevronDownIcon className="hidden size-4 sm:inline" />
+              </Button>
+
+              {isPublishMenuOpen ? (
+                <div className="absolute right-0 top-[calc(100%+0.65rem)] z-50 min-w-46 border border-border/70 bg-background/96 p-2 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
+                  <div className="space-y-1">
+                    {publishEntries.map((entry) => (
+                      <Link
+                        className="flex items-center justify-between px-3 py-2 text-sm text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                        key={entry.to}
+                        onClick={() => {
+                          setIsPublishMenuOpen(false);
+                        }}
+                        to={entry.to}
+                      >
+                        <span>{entry.label}</span>
+                        <PlusIcon className="size-3.5 text-primary/75" />
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
 
             <UserMenu />
           </div>
@@ -269,10 +226,6 @@ export function WebLayout() {
           <SitePanel className="flex w-full flex-col" variant="muted">
             <SitePanelBody className="flex h-full flex-col gap-4">
               <NavButtons items={navItems} />
-              <div className="mt-auto">
-                <div className="site-rule mb-4" />
-                <NavButtons items={utilityItems} />
-              </div>
             </SitePanelBody>
           </SitePanel>
         </div>

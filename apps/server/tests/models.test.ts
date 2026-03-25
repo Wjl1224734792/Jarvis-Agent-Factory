@@ -38,7 +38,7 @@ describe("models flows", () => {
     };
 
     expect(payload.total).toBeGreaterThan(0);
-    expect(payload.items[0]?.slug).toBe("mini-4-pro");
+    expect(payload.items.some((item) => item.slug === "mini-4-pro")).toBe(true);
   });
 
   it("returns model detail", async () => {

@@ -28,8 +28,6 @@ const feedTabs = [
   { id: "latest", label: "最新" }
 ] as const;
 
-const topicTabs = ["资讯", "测评", "航拍", "技术", "指南"] as const;
-
 type FeedTab = (typeof feedTabs)[number]["id"];
 
 function articleViewCount(likeCount: number, commentCount: number, shareCount: number) {
@@ -52,11 +50,15 @@ export function HomePage() {
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
-  const [activeTopic, setActiveTopic] = useState<(typeof topicTabs)[number]>("资讯");
+  const [activeTopicSlug, setActiveTopicSlug] = useState<string | null>(null);
 
   const feedQuery = useQuery({
-    queryKey: ["home-shell-feed", activeTab],
-    queryFn: () => apiClient.listHomeFeed(activeTab)
+    queryKey: ["home-shell-feed", activeTab, activeTopicSlug],
+    queryFn: () =>
+      apiClient.listHomeFeed({
+        tab: activeTab,
+        categorySlug: activeTopicSlug ?? undefined
+      })
   });
 
   const modelsQuery = useQuery({
@@ -71,14 +73,16 @@ export function HomePage() {
 
   const recommendedAuthors = useMemo(() => {
     const authors =
-      feedQuery.data?.items.map((item) => item.author).filter((author, index, source) => {
-        return source.findIndex((entry) => entry.id === author.id) === index;
-      }) ?? [];
+      feedQuery.data?.items
+        .map((item) => item.author)
+        .filter((author, index, source) => source.findIndex((entry) => entry.id === author.id) === index) ?? [];
 
     return authors.slice(0, 2);
   }, [feedQuery.data?.items]);
 
   const feedItems = feedQuery.data?.items ?? [];
+  const contentCategories = feedQuery.data?.categories ?? [];
+  const effectiveTopicSlug = activeTopicSlug ?? feedQuery.data?.activeCategorySlug ?? contentCategories[0]?.slug ?? null;
   const hotModels = modelsQuery.data?.items.slice(0, 2) ?? [];
   const risingTopics = rankingsQuery.data?.official.items.slice(0, 3) ?? [];
 
@@ -105,20 +109,20 @@ export function HomePage() {
                 </button>
               ))}
 
-              {topicTabs.map((topic) => (
+              {contentCategories.map((topic) => (
                 <button
                   className={`px-0 py-4 text-[1.02rem] transition-colors ${
-                    activeTopic === topic
+                    effectiveTopicSlug === topic.slug
                       ? "font-medium text-foreground"
                       : "text-foreground/72 hover:text-foreground"
                   }`}
-                  key={topic}
+                  key={topic.id}
                   onClick={() => {
-                    setActiveTopic(topic);
+                    setActiveTopicSlug(topic.slug);
                   }}
                   type="button"
                 >
-                  {topic}
+                  {topic.name}
                 </button>
               ))}
             </div>
@@ -130,7 +134,7 @@ export function HomePage() {
                 ? Array.from({ length: 3 }).map((_, index) => (
                     <div className="border-b border-border/60 px-4 py-7 last:border-b-0 md:px-5" key={index}>
                       <div className="grid gap-5 md:grid-cols-[268px_minmax(0,1fr)] md:items-start">
-                        <div className="h-[176px] animate-pulse rounded-[0.2rem] bg-muted" />
+                        <div className="h-[176px] animate-pulse bg-muted" />
                         <div className="space-y-4">
                           <div className="h-10 w-4/5 animate-pulse rounded bg-muted" />
                           <div className="h-6 w-full animate-pulse rounded bg-muted" />
@@ -156,15 +160,12 @@ export function HomePage() {
               ) : null}
 
               {feedItems.map((item, index) => (
-                <article
-                  className="border-b border-border/60 px-4 py-7 last:border-b-0 md:px-5"
-                  key={item.id}
-                >
+                <article className="border-b border-border/60 px-4 py-7 last:border-b-0 md:px-5" key={item.id}>
                   <Link
                     className="grid gap-5 md:grid-cols-[268px_minmax(0,1fr)] md:items-start"
                     to={APP_ROUTES.postDetail.replace(":id", item.id)}
                   >
-                    <div className="overflow-hidden rounded-[0.15rem] bg-slate-100">
+                    <div className="overflow-hidden bg-slate-100">
                       <img
                         alt={item.title}
                         className="h-[176px] w-full object-cover"
@@ -173,7 +174,10 @@ export function HomePage() {
                     </div>
 
                     <div className="flex min-h-[176px] min-w-0 flex-col">
-                      <h2 className="max-w-[33rem] text-[1.65rem] leading-[1.2] font-semibold tracking-[-0.04em] text-foreground md:text-[1.95rem]">
+                      <div className="text-sm text-primary">
+                        {item.contentCategory?.name ?? contentCategories.find((entry) => entry.slug === effectiveTopicSlug)?.name ?? "文章"}
+                      </div>
+                      <h2 className="mt-2 max-w-[33rem] text-[1.65rem] leading-[1.2] font-semibold tracking-[-0.04em] text-foreground md:text-[1.95rem]">
                         {item.title}
                       </h2>
 
@@ -181,7 +185,7 @@ export function HomePage() {
                         {item.contentPreview}
                       </p>
 
-                      <div className="mt-auto pt-7 flex flex-wrap items-center gap-x-8 gap-y-3 text-[0.98rem] text-foreground/78">
+                      <div className="mt-auto flex flex-wrap items-center gap-x-8 gap-y-3 pt-7 text-[0.98rem] text-foreground/78">
                         <span className="inline-flex items-center gap-2">
                           <HeartIcon className="size-4" />
                           {formatCount(item.engagement.likeCount)}
@@ -219,7 +223,7 @@ export function HomePage() {
                     <AlertTitle>首页还没有内容</AlertTitle>
                     <AlertDescription>
                       {isAuthenticated
-                        ? "可以切换到飞友圈浏览动态，或直接发布你的第一条飞行记录。"
+                        ? "可以切换到飞友圈浏览动态，或直接发布你的第一篇文章。"
                         : `${APP_NAME} 还没有公开内容，登录后可以先发布一条动态。`}
                     </AlertDescription>
                   </Alert>
@@ -233,13 +237,13 @@ export function HomePage() {
           <SitePanel variant="highlight">
             <SitePanelBody className="space-y-5">
               <div>
-                <div className="text-3xl font-semibold leading-tight">开启你的飞行记录</div>
+                <div className="text-3xl font-semibold leading-tight">开始你的内容创作</div>
                 <p className="mt-3 text-sm leading-7 text-panel-highlight-foreground/80">
-                  分享你的最新作品，连接全球飞友社区。
+                  发布文章、动态、飞行器投稿或创建榜单，逐步建立完整内容闭环。
                 </p>
               </div>
               <Button asChild size="xl" variant="panel">
-                <Link to={APP_ROUTES.compose}>
+                <Link to={APP_ROUTES.publishArticle}>
                   <SquarePenIcon data-icon="inline-start" />
                   立即发布
                 </Link>
@@ -280,7 +284,7 @@ export function HomePage() {
                   <div className="min-w-0">
                     <div className="truncate text-lg font-semibold text-foreground">{model.name}</div>
                     <div className="text-sm text-muted-foreground">
-                      {model.brand.name} · {model.category.name}
+                      {model.brand.name} · {model.ratingSummary.averageScore.toFixed(1)}
                     </div>
                   </div>
                 </div>
@@ -292,14 +296,16 @@ export function HomePage() {
             <CardContent className="space-y-4">
               <div className="text-xl font-semibold text-foreground">实时飙升榜</div>
               {risingTopics.map((item) => (
-                <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3" key={item.model.slug}>
+                <div className="grid grid-cols-[2rem_minmax(0,1fr)] gap-3" key={item.id}>
                   <div className="text-3xl font-semibold italic text-primary/40">
                     {item.rank.toString().padStart(2, "0")}
                   </div>
                   <div>
-                    <div className="text-lg font-semibold text-foreground">{item.model.name}</div>
+                    <div className="text-lg font-semibold text-foreground">
+                      {item.linkedModel?.name ?? item.title}
+                    </div>
                     <div className="mt-1 text-sm text-muted-foreground">
-                      {item.totalReviews.toLocaleString("zh-CN")} 条真实点评
+                      {item.totalRatings.toLocaleString("zh-CN")} 条评分
                     </div>
                   </div>
                 </div>
@@ -318,10 +324,8 @@ export function HomePage() {
                       <AvatarFallback>{author.displayName.slice(0, 1)}</AvatarFallback>
                     </Avatar>
                     <div className="min-w-0">
-                      <div className="truncate text-base font-medium text-foreground">
-                        {author.displayName}
-                      </div>
-                      <div className="text-sm text-muted-foreground">资深航拍飞手</div>
+                      <div className="truncate text-base font-medium text-foreground">{author.displayName}</div>
+                      <div className="text-sm text-muted-foreground">航空内容创作者</div>
                     </div>
                   </div>
                   <Button size="sm" variant="panel">

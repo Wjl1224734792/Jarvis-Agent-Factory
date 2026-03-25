@@ -14,11 +14,16 @@ export const APP_ROUTES = {
   flightCircle: "/circle",
   health: "/health",
   models: "/models",
+  modelDetail: "/models/:slug",
   rankings: "/rankings",
   rankingEditor: "/rankings/create",
-  modelDetail: "/models/:slug",
+  rankingDetail: "/rankings/:id",
+  rankingItemDetail: "/ranking-items/:id",
   postDetail: "/posts/:id",
   compose: "/compose",
+  publishArticle: "/publish/article",
+  publishMoment: "/publish/moment",
+  publishAircraft: "/publish/aircraft",
   notifications: "/notifications",
   webLogin: "/login",
   webProfile: "/me",
@@ -30,12 +35,15 @@ export const APP_ROUTES = {
   adminModels: "/admin/models",
   adminReviews: "/admin/reviews",
   adminPosts: "/admin/posts",
-  adminPostComments: "/admin/post-comments"
+  adminPostComments: "/admin/post-comments",
+  adminContentCategories: "/admin/content-categories",
+  adminAircraftSubmissions: "/admin/aircraft-submissions"
 } as const;
 
 export const API_ROUTES = {
   health: "/health",
   feed: "/home/feed",
+  circleFeed: "/circle/feed",
   auth: {
     captchaChallenge: "/auth/captcha/challenge",
     smsRequest: "/auth/sms/request",
@@ -60,6 +68,17 @@ export const API_ROUTES = {
     adminComments: "/admin/post-comments",
     adminCommentDetail: (id: string) => `/admin/post-comments/${id}`
   },
+  content: {
+    categories: "/content-categories",
+    adminCategories: "/admin/content-categories",
+    adminCategoryDetail: (id: string) => `/admin/content-categories/${id}`
+  },
+  submissions: {
+    create: "/aircraft-submissions",
+    detail: (id: string) => `/aircraft-submissions/${id}`,
+    adminList: "/admin/aircraft-submissions",
+    adminDetail: (id: string) => `/admin/aircraft-submissions/${id}`
+  },
   uploads: {
     images: "/uploads/images"
   },
@@ -69,7 +88,13 @@ export const API_ROUTES = {
     notificationsReadAll: "/notifications/read-all"
   },
   rankings: {
-    overview: "/rankings"
+    overview: "/rankings",
+    create: "/rankings",
+    detail: (id: string) => `/rankings/${id}`,
+    comments: (id: string) => `/rankings/${id}/comments`,
+    itemDetail: (id: string) => `/ranking-items/${id}`,
+    itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
+    itemComments: (id: string) => `/ranking-items/${id}/comments`
   },
   models: {
     list: "/models",

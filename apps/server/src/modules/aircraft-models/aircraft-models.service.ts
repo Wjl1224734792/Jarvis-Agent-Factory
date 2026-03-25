@@ -30,6 +30,10 @@ export const aircraftModelsService = {
     const item = await aircraftModelsRepo.findBySlug(slug);
     return item;
   },
+  async getModelDetailById(id: string) {
+    const item = await aircraftModelsRepo.findById(id);
+    return item;
+  },
   async createModel(input: {
     slug: string;
     name: string;

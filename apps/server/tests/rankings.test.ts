@@ -13,9 +13,7 @@ function extractCookie(setCookie: string | null) {
 }
 
 async function loginUser(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
+  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
   const captchaPayload = (await captchaResponse.json()) as {
     challengeId: string;
     imageOrText: string;
@@ -61,62 +59,96 @@ afterAll(async () => {
 });
 
 describe("rankings flows", () => {
-  it("returns official and community rankings", async () => {
-    const response = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET"
-    });
+  it("returns official rankings plus persisted community rankings", async () => {
+    const response = await app.request(API_ROUTES.rankings.overview, { method: "GET" });
 
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
       official: {
-        items: Array<{
-          bayesianScore: number;
-          totalReviews: number;
-          reputation: { label: string };
-        }>;
+        items: Array<{ id: string; averageScore: number; linkedModel: { slug: string } | null }>;
       };
-      community: Array<{ items: Array<{ model: { slug: string } }> }>;
+      community: Array<{ id: string; items: Array<{ id: string; title: string }> }>;
     };
 
     expect(payload.official.items.length).toBeGreaterThanOrEqual(5);
-    expect(payload.official.items[0]!.bayesianScore).toBeGreaterThanOrEqual(
-      payload.official.items[1]!.bayesianScore
+    expect(payload.official.items[0]?.averageScore).toBeGreaterThanOrEqual(
+      payload.official.items[1]?.averageScore ?? 0
     );
-    expect(payload.official.items.some((item) => item.totalReviews === 0)).toBe(true);
-    expect(payload.official.items.some((item) => item.reputation.label === "神机")).toBe(true);
-    expect(payload.community.length).toBeGreaterThanOrEqual(2);
-    expect(payload.community[0]!.items.length).toBeGreaterThan(0);
+    expect(payload.community.length).toBeGreaterThanOrEqual(1);
+    expect(payload.community[0]?.items.length).toBeGreaterThan(0);
   });
 
-  it("includes the current user's quick rating in ranking items", async () => {
+  it("supports ranking detail, item detail, rating and comments", async () => {
     const cookie = await loginUser("13800138000");
 
-    await app.request(API_ROUTES.models.reviews("joby-s4"), {
+    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const overviewPayload = (await overviewResponse.json()) as {
+      community: Array<{ id: string; items: Array<{ id: string }> }>;
+    };
+    const rankingId = overviewPayload.community[0]?.id;
+    const rankingItemId = overviewPayload.community[0]?.items[0]?.id;
+
+    expect(rankingId).toBeTruthy();
+    expect(rankingItemId).toBeTruthy();
+
+    const rankingDetailResponse = await app.request(API_ROUTES.rankings.detail(rankingId!), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(rankingDetailResponse.status).toBe(200);
+
+    const rankingCommentResponse = await app.request(API_ROUTES.rankings.comments(rankingId!), {
       method: "POST",
       headers: {
         cookie,
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 5,
-        content: null
+        content: "这份榜单对我选购城市航拍设备很有帮助。"
       })
     });
+    expect(rankingCommentResponse.status).toBe(200);
 
-    const response = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET",
+    const ratingResponse = await app.request(API_ROUTES.rankings.itemRatings(rankingItemId!), {
+      method: "POST",
       headers: {
-        cookie
-      }
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 5
+      })
     });
+    expect(ratingResponse.status).toBe(200);
 
-    expect(response.status).toBe(200);
-    const payload = (await response.json()) as {
-      official: {
-        items: Array<{ model: { slug: string }; myRating: number | null }>;
+    const itemCommentResponse = await app.request(API_ROUTES.rankings.itemComments(rankingItemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "这一项放在榜首完全合理。"
+      })
+    });
+    expect(itemCommentResponse.status).toBe(200);
+
+    const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(rankingItemId!), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(itemDetailResponse.status).toBe(200);
+    const itemDetailPayload = (await itemDetailResponse.json()) as {
+      item: {
+        myRating: number | null;
+        comments: Array<{ content: string }>;
       };
     };
 
-    expect(payload.official.items.find((item) => item.model.slug === "joby-s4")?.myRating).toBe(5);
+    expect(itemDetailPayload.item.myRating).toBe(5);
+    expect(itemDetailPayload.item.comments.some((item) => item.content.includes("榜首"))).toBe(true);
   });
 });

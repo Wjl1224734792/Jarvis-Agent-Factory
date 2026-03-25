@@ -6,6 +6,7 @@ import {
   adminPostResponseSchema,
   adminPostsResponseSchema,
   adminPostStatusUpdateInputSchema,
+  circleFeedResponseSchema,
   createPostCommentInputSchema,
   createPostCommentResponseSchema,
   createPostInputSchema,
@@ -34,10 +35,24 @@ postsRoute.use("*", attachCurrentUser);
 
 postsRoute.get(API_ROUTES.feed, async (context) => {
   const tabQuery = context.req.query("tab");
-  const tab =
-    tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
-  const payload = await postsService.listFeed(tab, context.get("currentUser"));
+  const categorySlug = context.req.query("categorySlug") || undefined;
+  const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
+  const payload = await postsService.listFeed(tab, context.get("currentUser"), {
+    type: "article",
+    contentCategorySlug: categorySlug
+  });
+
   return context.json(homeFeedResponseSchema.parse(payload));
+});
+
+postsRoute.get(API_ROUTES.circleFeed, async (context) => {
+  const tabQuery = context.req.query("tab");
+  const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
+  const payload = await postsService.listFeed(tab, context.get("currentUser"), {
+    type: "moment"
+  });
+
+  return context.json(circleFeedResponseSchema.parse(payload));
 });
 
 postsRoute.post(API_ROUTES.uploads.images, requireAuth, async (context) => {
@@ -88,13 +103,20 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
   const input = createPostInputSchema.parse(await context.req.json());
   const payload = await postsService.createPost({
     authorId: currentUser.id,
+    type: input.type,
     title: input.title,
     content: input.content,
+    contentHtml: input.contentHtml ?? null,
+    contentCategoryId: input.contentCategoryId ?? null,
     imageIds: input.imageIds
   });
 
   if (payload.kind === "invalid_images") {
     return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded images." }, 400);
+  }
+
+  if (payload.kind === "invalid_category") {
+    return context.json({ code: "BAD_REQUEST", message: "Article category is required." }, 400);
   }
 
   if (payload.kind === "not_found") {
@@ -106,13 +128,11 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
 
 postsRoute.get(API_ROUTES.posts.detail(":id"), async (context) => {
   const id = context.req.param("id");
-
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
   const payload = await postsService.getPostDetail(id, context.get("currentUser"));
-
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }
@@ -142,34 +162,6 @@ postsRoute.post(API_ROUTES.posts.comments(":id"), requireAuth, async (context) =
   return context.json(createPostCommentResponseSchema.parse({ item: result.item }));
 });
 
-postsRoute.post(API_ROUTES.posts.interaction(":id", ":type"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  const type = context.req.param("type");
-  const currentUser = context.get("currentUser");
-
-  if (!id || !type) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id or type." }, 400);
-  }
-
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
-  }
-
-  const parsedType = postInteractionTypeSchema.safeParse(type);
-
-  if (!parsedType.success) {
-    return context.json({ code: "BAD_REQUEST", message: "Unsupported interaction type." }, 400);
-  }
-
-  const result = await postsService.toggleInteraction(id, currentUser, parsedType.data);
-
-  if (result.kind === "not_found") {
-    return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
-  }
-
-  return context.json(actionSuccessResponseSchema.parse({ success: true }));
-});
-
 postsRoute.delete(API_ROUTES.posts.commentDetail(":postId", ":commentId"), requireAuth, async (context) => {
   const postId = context.req.param("postId");
   const commentId = context.req.param("commentId");
@@ -178,19 +170,16 @@ postsRoute.delete(API_ROUTES.posts.commentDetail(":postId", ":commentId"), requi
   if (!postId || !commentId) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
-
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
   const result = await postsService.deleteComment(postId, commentId, currentUser);
-
-  if (result.kind === "forbidden") {
-    return context.json({ code: "FORBIDDEN", message: "Cannot delete other user's content." }, 403);
-  }
-
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -199,21 +188,38 @@ postsRoute.delete(API_ROUTES.posts.commentDetail(":postId", ":commentId"), requi
 postsRoute.delete(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
   const id = context.req.param("id");
   const currentUser = context.get("currentUser");
-
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
-
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
   const result = await postsService.deletePost(id, currentUser);
-
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+  }
   if (result.kind === "forbidden") {
-    return context.json({ code: "FORBIDDEN", message: "Cannot delete other user's content." }, 403);
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   }
 
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+postsRoute.post(API_ROUTES.posts.interaction(":id", ":type"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  const type = context.req.param("type");
+
+  if (!id || !type) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const parsedType = postInteractionTypeSchema.parse(type);
+  const result = await postsService.toggleInteraction(id, currentUser, parsedType);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }
@@ -228,14 +234,12 @@ postsRoute.post(API_ROUTES.posts.report(":id"), requireAuth, async (context) => 
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
-
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
   const input = reportPostInputSchema.parse(await context.req.json());
   const result = await postsService.reportPost(id, currentUser.id, input.reason);
-
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }
@@ -259,14 +263,12 @@ postsRoute.get(API_ROUTES.posts.adminList, requireAdmin, async (context) => {
 
 postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context) => {
   const id = context.req.param("id");
-
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
   const input = adminPostStatusUpdateInputSchema.parse(await context.req.json());
   const item = await postsService.updatePostStatus(id, input.status);
-
   if (!item) {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }
@@ -276,22 +278,19 @@ postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context
 
 postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => {
   const statusQuery = context.req.query("status");
-  const status =
-    statusQuery === "visible" || statusQuery === "hidden" ? statusQuery : undefined;
+  const status = statusQuery === "visible" || statusQuery === "hidden" ? statusQuery : undefined;
   const payload = await postsService.listAdminComments(status);
   return context.json(adminPostCommentsResponseSchema.parse(payload));
 });
 
 postsRoute.put(API_ROUTES.posts.adminCommentDetail(":id"), requireAdmin, async (context) => {
   const id = context.req.param("id");
-
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
   const input = adminPostCommentStatusUpdateInputSchema.parse(await context.req.json());
   const item = await postsService.updateCommentStatus(id, input.status);
-
   if (!item) {
     return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
   }

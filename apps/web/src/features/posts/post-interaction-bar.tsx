@@ -10,7 +10,6 @@ import {
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
@@ -77,16 +76,10 @@ function ActionButton({
       type="button"
       variant={plain ? "ghost" : active ? "secondary" : "outline"}
     >
-      <Icon data-icon="inline-start" />
-      {!iconOnly ? <span>{label}</span> : null}
+      <Icon className={cn("size-4", !iconOnly && "mr-0")} />
+      <span className="sr-only">{label}</span>
       {typeof count === "number" ? (
-        iconOnly ? (
-          <span className="text-xs">{count}</span>
-        ) : (
-          <Badge className="ml-1" variant={active ? "default" : "secondary"}>
-            {count}
-          </Badge>
-        )
+        <span className={cn("text-xs tabular-nums", !plain && "ml-1")}>{count}</span>
       ) : null}
     </Button>
   );
@@ -115,7 +108,8 @@ export function PostInteractionBar(props: Props) {
     try {
       await task();
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["home-feed"] }),
+        queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
+        queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
         queryClient.invalidateQueries({ queryKey: ["post-detail", props.postId] }),
         queryClient.invalidateQueries({ queryKey: ["notifications"] })
       ]);
@@ -135,7 +129,7 @@ export function PostInteractionBar(props: Props) {
             compact={props.compact}
             disabled={busyAction !== null}
             icon={props.viewer.isFollowingAuthor ? UserCheck : UserPlus}
-            iconOnly={props.iconOnly}
+            iconOnly
             plain={props.plain}
             label={props.viewer.isFollowingAuthor ? "已关注" : "关注作者"}
             onClick={() => {
@@ -158,7 +152,7 @@ export function PostInteractionBar(props: Props) {
           count={props.likeCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Heart}
-          iconOnly={props.iconOnly}
+          iconOnly
           plain={props.plain}
           label="点赞"
           onClick={() => {
@@ -180,7 +174,7 @@ export function PostInteractionBar(props: Props) {
           count={props.favoriteCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Bookmark}
-          iconOnly={props.iconOnly}
+          iconOnly
           plain={props.plain}
           label="收藏"
           onClick={() => {
@@ -202,7 +196,7 @@ export function PostInteractionBar(props: Props) {
           count={props.shareCount}
           disabled={!props.isPublished || busyAction !== null}
           icon={Share2}
-          iconOnly={props.iconOnly}
+          iconOnly
           plain={props.plain}
           label="分享"
           onClick={() => {

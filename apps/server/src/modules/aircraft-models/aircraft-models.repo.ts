@@ -1,11 +1,12 @@
 import {
   aircraftCategoriesTable,
   aircraftModelsTable,
+  aircraftReviewsTable,
   brandsTable,
   createId,
   db
 } from "@feijia/db";
-import { and, eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 
 type ListFilters = {
   categorySlug?: string;
@@ -36,6 +37,10 @@ export const aircraftModelsRepo = {
         name: aircraftModelsTable.name,
         summary: aircraftModelsTable.summary,
         powerType: aircraftModelsTable.powerType,
+        ratingSummary: {
+          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+          totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
+        },
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,
@@ -52,7 +57,13 @@ export const aircraftModelsRepo = {
         aircraftCategoriesTable,
         eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id)
       )
-      .innerJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id));
+      .innerJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
+      .leftJoin(aircraftReviewsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
+      .groupBy(
+        aircraftModelsTable.id,
+        aircraftCategoriesTable.id,
+        brandsTable.id
+      );
 
     if (conditions.length > 0) {
       return query.where(and(...conditions));
@@ -70,6 +81,10 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
+        ratingSummary: {
+          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+          totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
+        },
         maxFlightTimeMinutes: aircraftModelsTable.maxFlightTimeMinutes,
         maxRangeKilometers: aircraftModelsTable.maxRangeKilometers,
         maxSpeedKph: aircraftModelsTable.maxSpeedKph,
@@ -91,7 +106,13 @@ export const aircraftModelsRepo = {
         eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id)
       )
       .innerJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
+      .leftJoin(aircraftReviewsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
       .where(eq(aircraftModelsTable.slug, slug))
+      .groupBy(
+        aircraftModelsTable.id,
+        aircraftCategoriesTable.id,
+        brandsTable.id
+      )
       .limit(1);
 
     return items[0] ?? null;
@@ -177,6 +198,10 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
+        ratingSummary: {
+          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+          totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
+        },
         maxFlightTimeMinutes: aircraftModelsTable.maxFlightTimeMinutes,
         maxRangeKilometers: aircraftModelsTable.maxRangeKilometers,
         maxSpeedKph: aircraftModelsTable.maxSpeedKph,
@@ -198,7 +223,13 @@ export const aircraftModelsRepo = {
         eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id)
       )
       .innerJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
+      .leftJoin(aircraftReviewsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
       .where(eq(aircraftModelsTable.id, id))
+      .groupBy(
+        aircraftModelsTable.id,
+        aircraftCategoriesTable.id,
+        brandsTable.id
+      )
       .limit(1);
 
     return items[0] ?? null;

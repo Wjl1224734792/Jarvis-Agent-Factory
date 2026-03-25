@@ -1,44 +1,12 @@
 import type {
-  CommunityRanking,
-  CommunityRankingItem,
-  OfficialRanking,
-  RankingItem
+  RankingDetail,
+  RankingItem,
+  RankingListItem
 } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
 
 const BAYESIAN_BASELINE_REVIEW_COUNT = 5;
-
-const curatedRankingDefinitions = [
-  {
-    id: "rookie-friendly",
-    title: "新手友好榜",
-    description: "更看重轻量、稳定和上手门槛，适合第一次认真选飞行器的用户。",
-    curator: {
-      name: "飞加编辑部",
-      role: "平台精选"
-    },
-    items: [
-      { slug: "mini-4-pro", note: "轻量级机身和成熟生态，上手门槛最低。" },
-      { slug: "evo-lite-plus", note: "画质和续航平衡，适合想稳妥进阶的用户。" },
-      { slug: "mavic-3-pro", note: "预算充足时，一步到位的高完成度选择。" }
-    ]
-  },
-  {
-    id: "future-mobility",
-    title: "低空通勤想象榜",
-    description: "聚焦低空经济与城市通勤的未来感机型，适合关注行业趋势的飞友。",
-    curator: {
-      name: "飞友北斗",
-      role: "资深观察者"
-    },
-    items: [
-      { slug: "eh216-s", note: "载人 eVTOL 里完成度靠前，讨论热度高。" },
-      { slug: "joby-s4", note: "工程化成熟度值得持续关注，等待更多真实口碑。" },
-      { slug: "vision-jet-g2-plus", note: "固定翼个人航空的现实样本，便于横向比较。" }
-    ]
-  }
-] as const;
 
 function toTenPointScore(rawAverage: number): number {
   if (rawAverage <= 0) {
@@ -48,89 +16,91 @@ function toTenPointScore(rawAverage: number): number {
   return Number((rawAverage * 2).toFixed(1));
 }
 
-function getReputation(score: number, totalReviews: number) {
-  if (totalReviews === 0) {
-    return {
-      label: "待评价",
-      tone: "neutral"
-    } as const;
+function average(values: number[]) {
+  if (values.length === 0) {
+    return 0;
   }
 
-  if (score >= 9) {
-    return {
-      label: "神机",
-      tone: "featured"
-    } as const;
-  }
+  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
+}
 
-  if (score >= 8) {
-    return {
-      label: "真香",
-      tone: "positive"
-    } as const;
-  }
-
-  if (score >= 7) {
-    return {
-      label: "中规中矩",
-      tone: "neutral"
-    } as const;
-  }
-
-  if (score >= 6) {
-    return {
-      label: "有遗憾",
-      tone: "caution"
-    } as const;
-  }
+function serializeRankingItem(
+  item: Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>[number],
+  aggregateMap: Map<string, { totalRatings: number; averageRaw: number }>,
+  userRatingMap: Map<string, number | null>
+): RankingItem {
+  const aggregate = aggregateMap.get(item.id) ?? {
+    totalRatings: 0,
+    averageRaw: 0
+  };
 
   return {
-    label: "差评",
-    tone: "negative"
-  } as const;
+    id: item.id,
+    rankingId: item.rankingId,
+    rank: item.rank,
+    title: item.title,
+    summary: item.summary,
+    imageUrl: item.imageUrl,
+    brandName: item.brandName,
+    linkedModel: item.linkedModel?.id
+      ? {
+          id: item.linkedModel.id,
+          slug: item.linkedModel.slug,
+          name: item.linkedModel.name,
+          summary: item.linkedModel.summary,
+          powerType: powerTypeSchema.parse(item.linkedModel.powerType),
+          category: item.linkedModel.category,
+          brand: item.linkedModel.brand
+        }
+      : null,
+    averageScore: toTenPointScore(aggregate.averageRaw),
+    totalRatings: aggregate.totalRatings,
+    commentCount: item.commentCount,
+    myRating: userRatingMap.get(item.id) ?? null
+  };
 }
 
-function buildHighlight(
-  model: {
-    brand: { name: string };
-    category: { name: string };
-    summary: string | null;
-  },
-  totalReviews: number
+function serializeRankingComment(
+  item: Awaited<ReturnType<typeof rankingsRepo.listRankingComments>>[number]
 ) {
-  if (model.summary) {
-    return model.summary;
-  }
-
-  if (totalReviews === 0) {
-    return "还没有公开点评，等待第一批真实飞友留下口碑。";
-  }
-
-  return `${model.brand.name} 在 ${model.category.name} 场景里已经积累了首批真实反馈。`;
+  return {
+    id: item.id,
+    rankingId: item.rankingId,
+    content: item.content,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    author: {
+      id: item.author.id,
+      displayName: item.author.displayName,
+      role: item.author.role as "user" | "admin"
+    }
+  };
 }
 
-function compareRankingItems(a: RankingItem, b: RankingItem) {
-  if (b.bayesianScore !== a.bayesianScore) {
-    return b.bayesianScore - a.bayesianScore;
-  }
-
-  if (b.totalReviews !== a.totalReviews) {
-    return b.totalReviews - a.totalReviews;
-  }
-
-  if (b.averageScore !== a.averageScore) {
-    return b.averageScore - a.averageScore;
-  }
-
-  return a.model.name.localeCompare(b.model.name, "zh-CN");
+function serializeRankingItemComment(
+  item: Awaited<ReturnType<typeof rankingsRepo.listRankingItemComments>>[number]
+) {
+  return {
+    id: item.id,
+    rankingItemId: item.rankingItemId,
+    content: item.content,
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    author: {
+      id: item.author.id,
+      displayName: item.author.displayName,
+      role: item.author.role as "user" | "admin"
+    }
+  };
 }
 
 export const rankingsService = {
   async listRankings(currentUserId?: string) {
-    const [models, aggregates, currentUserRatings] = await Promise.all([
+    const [models, aggregates, currentUserRatings, rankings] = await Promise.all([
       rankingsRepo.listPublishedModels(),
       rankingsRepo.listVisibleReviewAggregates(),
-      currentUserId ? rankingsRepo.listUserRatings(currentUserId) : Promise.resolve([])
+      currentUserId ? rankingsRepo.listUserRatings(currentUserId) : Promise.resolve([]),
+      rankingsRepo.listRankings()
     ]);
 
     const aggregateMap = new Map(
@@ -146,85 +116,273 @@ export const rankingsService = {
     const visibleAggregates = Array.from(aggregateMap.values()).filter((item) => item.totalReviews > 0);
     const globalAverageRaw =
       visibleAggregates.length > 0
-        ? visibleAggregates.reduce((sum, item) => sum + item.averageRaw, 0) /
-          visibleAggregates.length
+        ? visibleAggregates.reduce((sum, item) => sum + item.averageRaw, 0) / visibleAggregates.length
         : 0;
 
     const officialItems: RankingItem[] = models
-      .map((model) => {
-        const aggregate = aggregateMap.get(model.id) ?? {
-          totalReviews: 0,
-          averageRaw: 0
-        };
-        const averageScore = toTenPointScore(aggregate.averageRaw);
+      .map((model, index) => {
+        const aggregate = aggregateMap.get(model.id) ?? { totalReviews: 0, averageRaw: 0 };
         const bayesianRaw =
           aggregate.totalReviews > 0
-            ? (aggregate.averageRaw * aggregate.totalReviews +
-                globalAverageRaw * BAYESIAN_BASELINE_REVIEW_COUNT) /
+            ? (aggregate.averageRaw * aggregate.totalReviews + globalAverageRaw * BAYESIAN_BASELINE_REVIEW_COUNT) /
               (aggregate.totalReviews + BAYESIAN_BASELINE_REVIEW_COUNT)
             : 0;
 
         return {
-          rank: 0,
-          model: {
+          id: `official-${model.id}`,
+          rankingId: "official",
+          rank: index + 1,
+          title: model.name,
+          summary: model.summary,
+          imageUrl: null,
+          brandName: model.brand.name,
+          linkedModel: {
             ...model,
             powerType: powerTypeSchema.parse(model.powerType)
           },
-          averageScore,
-          bayesianScore: toTenPointScore(bayesianRaw),
-          totalReviews: aggregate.totalReviews,
-          myRating: ratingMap.get(model.id) ?? null,
-          reputation: getReputation(averageScore, aggregate.totalReviews),
-          highlight: buildHighlight(model, aggregate.totalReviews)
+          averageScore: toTenPointScore(bayesianRaw),
+          totalRatings: aggregate.totalReviews,
+          commentCount: 0,
+          myRating: ratingMap.get(model.id) ?? null
         } satisfies RankingItem;
       })
-      .sort(compareRankingItems)
-      .map((item, index) => ({
-        ...item,
-        rank: index + 1
-      }));
+      .sort((a, b) => b.averageScore - a.averageScore || b.totalRatings - a.totalRatings);
 
-    const officialBySlug = new Map(officialItems.map((item) => [item.model.slug, item]));
-
-    const community = curatedRankingDefinitions
-      .map((definition) => {
-        const items = definition.items.reduce<CommunityRankingItem[]>((result, item, index) => {
-            const source = officialBySlug.get(item.slug);
-
-            if (!source) {
-              return result;
-            }
-
-            result.push({
-              ...source,
-              rank: index + 1,
-              note: item.note
-            });
-
-            return result;
-          }, []);
-
-        return {
-          id: definition.id,
-          title: definition.title,
-          description: definition.description,
-          curator: definition.curator,
-          items
-        } satisfies CommunityRanking;
+    const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>>();
+    await Promise.all(
+      rankings.map(async (ranking) => {
+        const items = await rankingsRepo.listRankingItems(ranking.id);
+        rankingItemsByRanking.set(ranking.id, items);
       })
-      .filter((item) => item.items.length > 0);
+    );
+
+    const allRankingItemIds = Array.from(rankingItemsByRanking.values()).flat().map((item) => item.id);
+    const [itemAggregates, userItemRatings] = await Promise.all([
+      rankingsRepo.listRankingItemRatingAggregates(allRankingItemIds),
+      currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, allRankingItemIds) : Promise.resolve([])
+    ]);
+    const itemAggregateMap = new Map(
+      itemAggregates.map((item) => [
+        item.rankingItemId,
+        {
+          totalRatings: Number(item.totalRatings ?? 0),
+          averageRaw: Number(item.averageRaw ?? 0)
+        }
+      ])
+    );
+    const userItemRatingMap = new Map(userItemRatings.map((item) => [item.rankingItemId, item.rating]));
+
+    const community: RankingListItem[] = rankings.map((ranking) => {
+      const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
+        serializeRankingItem(item, itemAggregateMap, userItemRatingMap)
+      );
+      const averageScore = average(items.map((item) => item.averageScore).filter((value) => value > 0));
+
+      return {
+        id: ranking.id,
+        type: ranking.type as "official" | "community",
+        title: ranking.title,
+        description: ranking.description,
+        coverImageUrl: ranking.coverImageUrl,
+        averageScore,
+        commentCount: ranking.commentCount,
+        itemCount: items.length,
+        createdAt: ranking.createdAt.toISOString(),
+        author: {
+          id: ranking.author.id,
+          displayName: ranking.author.displayName,
+          role: ranking.author.role as "user" | "admin"
+        },
+        items: items.slice(0, 3)
+      };
+    });
 
     return {
       official: {
         title: "飞行器官方榜",
-        description: "按综合评分与点评人数生成，优先展示已有真实口碑支撑的机型。",
-        algorithmNote:
-          "榜单使用综合评分和点评人数联合排序，并对低点评量机型做基础平滑，避免单条高分直接冲顶。",
+        description: "按综合评分与点评人数生成，优先展示已形成真实口碑的机型。",
+        algorithmNote: "官方榜基于机型点评聚合与基础平滑计算。",
         generatedAt: new Date().toISOString(),
         spotlight: officialItems[0] ?? null,
         items: officialItems
-      } satisfies OfficialRanking,
+      },
       community
     };
+  },
+  async createRanking(
+    currentUserId: string,
+    input: {
+      title: string;
+      description: string;
+      coverImageUrl: string | null;
+      items: Array<{
+        title: string;
+        summary: string | null;
+        imageUrl: string | null;
+        brandName: string | null;
+        linkedModelSlug: string | null;
+      }>;
+    }
+  ) {
+    const models = await rankingsRepo.listPublishedModels();
+    const modelBySlug = new Map(models.map((item) => [item.slug, item]));
+    const ranking = await rankingsRepo.createRanking({
+      authorId: currentUserId,
+      title: input.title,
+      description: input.description,
+      coverImageUrl: input.coverImageUrl
+    });
+
+    if (!ranking) {
+      return null;
+    }
+
+    await rankingsRepo.createRankingItems(
+      ranking.id,
+      input.items.map((item, index) => ({
+        rank: index + 1,
+        title: item.title,
+        summary: item.summary,
+        imageUrl: item.imageUrl,
+        brandName: item.brandName,
+        linkedModelId: item.linkedModelSlug ? modelBySlug.get(item.linkedModelSlug)?.id ?? null : null
+      }))
+    );
+
+    return this.getRankingDetail(ranking.id, currentUserId);
+  },
+  async getRankingDetail(id: string, currentUserId?: string): Promise<{ item: RankingDetail } | null> {
+    const ranking = await rankingsRepo.getRankingById(id);
+    if (!ranking) {
+      return null;
+    }
+
+    const items = await rankingsRepo.listRankingItems(id);
+    const [comments, aggregates, userRatings] = await Promise.all([
+      rankingsRepo.listRankingComments(id),
+      rankingsRepo.listRankingItemRatingAggregates(items.map((item) => item.id)),
+      currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, items.map((item) => item.id)) : Promise.resolve([])
+    ]);
+    const aggregateMap = new Map(
+      aggregates.map((item) => [item.rankingItemId, { totalRatings: Number(item.totalRatings ?? 0), averageRaw: Number(item.averageRaw ?? 0) }])
+    );
+    const userRatingMap = new Map(userRatings.map((item) => [item.rankingItemId, item.rating]));
+    const serializedItems = items.map((item) => serializeRankingItem(item, aggregateMap, userRatingMap));
+
+    return {
+      item: {
+        id: ranking.id,
+        type: ranking.type as "official" | "community",
+        title: ranking.title,
+        description: ranking.description,
+        coverImageUrl: ranking.coverImageUrl,
+        averageScore: average(serializedItems.map((item) => item.averageScore).filter((value) => value > 0)),
+        commentCount: ranking.commentCount,
+        itemCount: serializedItems.length,
+        createdAt: ranking.createdAt.toISOString(),
+        author: {
+          id: ranking.author.id,
+          displayName: ranking.author.displayName,
+          role: ranking.author.role as "user" | "admin"
+        },
+        comments: comments.map(serializeRankingComment),
+        items: serializedItems
+      }
+    };
+  },
+  async createRankingComment(rankingId: string, currentUserId: string, content: string) {
+    const ranking = await rankingsRepo.getRankingById(rankingId);
+    if (!ranking) {
+      return null;
+    }
+
+    const item = await rankingsRepo.createRankingComment({
+      rankingId,
+      authorId: currentUserId,
+      content
+    });
+
+    return item ? { item: serializeRankingComment(item) } : null;
+  },
+  async getRankingItemDetail(id: string, currentUserId?: string) {
+    const item = await rankingsRepo.getRankingItemById(id);
+    if (!item) {
+      return null;
+    }
+
+    const ranking = await rankingsRepo.getRankingById(item.rankingId);
+    if (!ranking) {
+      return null;
+    }
+
+    const [aggregates, userRatings, comments] = await Promise.all([
+      rankingsRepo.listRankingItemRatingAggregates([id]),
+      currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, [id]) : Promise.resolve([]),
+      rankingsRepo.listRankingItemComments(id)
+    ]);
+    const aggregateMap = new Map(
+      aggregates.map((entry) => [entry.rankingItemId, { totalRatings: Number(entry.totalRatings ?? 0), averageRaw: Number(entry.averageRaw ?? 0) }])
+    );
+    const userRatingMap = new Map(userRatings.map((entry) => [entry.rankingItemId, entry.rating]));
+    const serializedItem = serializeRankingItem(item, aggregateMap, userRatingMap);
+
+    return {
+      item: {
+        ...serializedItem,
+        ranking: {
+          id: ranking.id,
+          title: ranking.title
+        },
+        comments: comments.map(serializeRankingItemComment)
+      }
+    };
+  },
+  async submitRankingItemRating(id: string, currentUserId: string, rating: number) {
+    const existing = await rankingsRepo.getRankingItemById(id);
+    if (!existing) {
+      return null;
+    }
+
+    await rankingsRepo.upsertRankingItemRating({
+      rankingItemId: id,
+      userId: currentUserId,
+      rating
+    });
+
+    const payload = await this.getRankingItemDetail(id, currentUserId);
+    if (!payload) {
+      return null;
+    }
+
+    return {
+      item: {
+        id: payload.item.id,
+        rankingId: payload.item.rankingId,
+        rank: payload.item.rank,
+        title: payload.item.title,
+        summary: payload.item.summary,
+        imageUrl: payload.item.imageUrl,
+        brandName: payload.item.brandName,
+        linkedModel: payload.item.linkedModel,
+        averageScore: payload.item.averageScore,
+        totalRatings: payload.item.totalRatings,
+        commentCount: payload.item.commentCount,
+        myRating: payload.item.myRating
+      }
+    };
+  },
+  async createRankingItemComment(id: string, currentUserId: string, content: string) {
+    const existing = await rankingsRepo.getRankingItemById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const item = await rankingsRepo.createRankingItemComment({
+      rankingItemId: id,
+      authorId: currentUserId,
+      content
+    });
+
+    return item ? { item: serializeRankingItemComment(item) } : null;
   }
 };

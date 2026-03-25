@@ -25,6 +25,10 @@ export const modelListItemSchema = z.object({
   name: z.string().min(1),
   summary: z.string().nullable(),
   powerType: powerTypeSchema,
+  ratingSummary: z.object({
+    averageScore: z.number().min(0).max(10),
+    totalReviews: z.number().int().nonnegative()
+  }),
   category: aircraftCategorySchema.pick({
     id: true,
     slug: true,

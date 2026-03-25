@@ -7,7 +7,7 @@
     "dev": "bun --watch src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc -p tsconfig.json",
-    "test": "vitest run --root ../.. --config vitest.config.ts apps/server/tests/health.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/auth.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/models.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/reviews.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/rankings.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/posts.test.ts"
+    "test": "vitest run --root ../.. --config vitest.config.ts apps/server/tests/health.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/auth.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/models.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/reviews.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/rankings.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/posts.test.ts && vitest run --root ../.. --config vitest.config.ts apps/server/tests/content-closure.test.ts"
   },
   "dependencies": {
     "@feijia/db": "workspace:*",

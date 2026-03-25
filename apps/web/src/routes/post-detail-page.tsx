@@ -5,8 +5,6 @@ import {
   ArrowLeftIcon,
   BookmarkIcon,
   EyeIcon,
-  MessageCircleIcon,
-  SendIcon,
   Share2Icon,
   Trash2Icon
 } from "lucide-react";
@@ -17,8 +15,8 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "../features/auth/auth-store";
+import { InlineCommentComposer } from "../features/posts/inline-comment-composer";
 import { PostCommentThread } from "../features/posts/post-comment-thread";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
 import { apiClient } from "../lib/api-client";
@@ -156,24 +154,18 @@ export function PostDetailPage() {
               src={item.images[0]?.url ?? getEditorialImage(item.id)}
             />
           </div>
-          <figcaption className="text-xs text-muted-foreground">
-            FeiJia flight systems preview
-          </figcaption>
+          <figcaption className="text-xs text-muted-foreground">FeiJia flight systems preview</figcaption>
         </figure>
 
         <div className="space-y-8">
-          <p className="max-w-[38rem] text-[1.2rem] leading-9 text-foreground/68 italic">
-            {leadParagraph}
-          </p>
+          <p className="max-w-[38rem] text-[1.2rem] leading-9 text-foreground/68 italic">{leadParagraph}</p>
 
           {bodyParagraphs.length > 0 ? (
             <section className="space-y-6">
               {bodyParagraphs.map((paragraph, index) => (
                 <div className="space-y-3" key={`${index}-${paragraph.slice(0, 24)}`}>
                   {index === 0 ? (
-                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-foreground">
-                      文章正文
-                    </h2>
+                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-foreground">文章正文</h2>
                   ) : null}
                   <p className="text-[1.04rem] leading-8 text-foreground/82">{paragraph}</p>
                 </div>
@@ -205,10 +197,6 @@ export function PostDetailPage() {
               ))}
             </div>
           </div>
-
-          <p className="text-[1.01rem] leading-8 text-foreground/82">
-            当前内容页已经切换为更适合长文阅读的单栏结构，重点放在标题、主图、正文节奏和评论讨论，让页面从信息展示转为阅读体验本身。
-          </p>
         </div>
       </article>
 
@@ -218,7 +206,7 @@ export function PostDetailPage() {
             <PostInteractionBar
               compact
               hideFollow
-              iconOnly={false}
+              iconOnly
               authorId={item.author.id}
               favoriteCount={item.engagement.favoriteCount}
               isPublished={item.status === "published"}
@@ -322,50 +310,40 @@ export function PostDetailPage() {
           </Alert>
         ) : (
           <div className="border border-border/60 bg-muted/20 p-4 md:p-5">
-            <div className="space-y-3">
-              <Textarea
-                aria-label="帖子评论内容"
-                className="min-h-28 rounded-none border-0 bg-white"
-                onChange={(event) => {
-                  setCommentContent(event.target.value);
-                }}
-                placeholder="Add your perspective to the flight briefing..."
-                value={commentContent}
-              />
-              <div className="flex justify-end">
-                <Button
-                  className="px-5"
-                  disabled={!commentContent.trim() || isSubmitting}
-                  onClick={() => {
-                    setActionError(null);
-                    setIsSubmitting(true);
+            <InlineCommentComposer
+              busy={isSubmitting}
+              disabled={false}
+              onChange={setCommentContent}
+              onSubmit={() => {
+                if (!commentContent.trim()) {
+                  return;
+                }
 
-                    void apiClient
-                      .createPostComment(item.id, {
-                        content: commentContent
-                      })
-                      .then(() => {
-                        setCommentContent("");
-                        return Promise.all([
-                          queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
-                          queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-                          queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                        ]);
-                      })
-                      .catch((value: unknown) => {
-                        setActionError(value instanceof Error ? value.message : "评论失败");
-                      })
-                      .finally(() => {
-                        setIsSubmitting(false);
-                      });
-                  }}
-                  type="button"
-                >
-                  <SendIcon className="mr-2 size-4" />
-                  {isSubmitting ? "提交中..." : "Post Comment"}
-                </Button>
-              </div>
-            </div>
+                setActionError(null);
+                setIsSubmitting(true);
+
+                void apiClient
+                  .createPostComment(item.id, {
+                    content: commentContent
+                  })
+                  .then(() => {
+                    setCommentContent("");
+                    return Promise.all([
+                      queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
+                      queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
+                      queryClient.invalidateQueries({ queryKey: ["notifications"] })
+                    ]);
+                  })
+                  .catch((value: unknown) => {
+                    setActionError(value instanceof Error ? value.message : "评论失败");
+                  })
+                  .finally(() => {
+                    setIsSubmitting(false);
+                  });
+              }}
+              placeholder="Add your perspective to the flight briefing..."
+              value={commentContent}
+            />
           </div>
         )}
       </section>

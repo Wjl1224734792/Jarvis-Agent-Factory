@@ -3,9 +3,11 @@ import { cors } from "hono/cors";
 import { API_ROUTES, APP_PORTS, APP_ROUTES } from "@feijia/shared";
 
 import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.route";
+import { aircraftSubmissionsRoute } from "./modules/aircraft-submissions/aircraft-submissions.route";
 import { authRoute } from "./modules/auth/auth.route";
 import { brandsRoute } from "./modules/brands/brands.route";
 import { categoriesRoute } from "./modules/categories/categories.route";
+import { contentCategoriesRoute } from "./modules/content-categories/content-categories.route";
 import { postsRoute } from "./modules/posts/posts.route";
 import { rankingsRoute } from "./modules/rankings/rankings.route";
 import { reviewsRoute } from "./modules/reviews/reviews.route";
@@ -84,9 +86,11 @@ app.route("/", postsRoute);
 app.route("/", socialRoute);
 app.route("/", rankingsRoute);
 app.route("/", aircraftModelsRoute);
+app.route("/", aircraftSubmissionsRoute);
 app.route("/", reviewsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
+app.route("/", contentCategoriesRoute);
 
 app.notFound((context) =>
   context.json(

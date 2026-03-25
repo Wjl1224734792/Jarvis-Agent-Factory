@@ -1,19 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import type { AircraftCategory, Brand, ModelListItem } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  ArrowRightIcon,
-  SearchCheckIcon,
-  SlidersHorizontalIcon
-} from "lucide-react";
+import { SearchCheckIcon, SlidersHorizontalIcon, StarIcon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import {
-  SiteGrid,
-  SitePage,
-  SitePanel,
-  SitePanelBody
-} from "@/components/site-shell";
+import { SiteGrid, SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,59 +40,49 @@ function getBrandGroups(brands: Brand[]) {
   return Array.from(groups.entries()).sort(([a], [b]) => a.localeCompare(b, "en-US"));
 }
 
-function ModelCard({ model, index }: { model: ModelListItem; index: number }) {
+function ModelCard({
+  model,
+  index,
+  score
+}: {
+  model: ModelListItem;
+  index: number;
+  score: number;
+}) {
   const detailPath = APP_ROUTES.modelDetail.replace(":slug", model.slug);
 
   return (
-    <Card className="transition duration-300 hover:-translate-y-1 hover:shadow-[var(--shadow-float)]" variant="default">
-      <div className="overflow-hidden border-b border-border/80">
-        <img
-          alt={model.name}
-          className="h-60 w-full object-cover transition duration-500 hover:scale-[1.03]"
-          src={getModelImage(model.slug, model.powerType, index)}
-        />
-      </div>
+    <Link
+      className="flex min-w-[280px] max-w-[460px] flex-col overflow-hidden rounded-[0.75rem] border border-border/60 bg-white transition hover:-translate-y-1 hover:shadow-[0_20px_40px_-28px_rgba(15,23,42,0.28)]"
+      to={detailPath}
+    >
+      <img
+        alt={model.name}
+        className="h-56 w-full object-cover"
+        src={getModelImage(model.slug, model.powerType, index)}
+      />
 
-      <CardContent className="space-y-5">
-        <div className="flex items-start justify-between gap-4">
-          <div>
-            <div className="text-sm uppercase tracking-[0.22em] text-muted-foreground">
-              {model.brand.name}
-            </div>
-            <h3 className="mt-2 text-[2rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
-              {model.name}
-            </h3>
+      <div className="space-y-3 p-4">
+        <div className="text-sm uppercase tracking-[0.22em] text-muted-foreground">{model.brand.name}</div>
+        <h3 className="text-[1.8rem] leading-tight font-semibold tracking-[-0.04em] text-foreground">
+          {model.name}
+        </h3>
+
+        <div className="flex items-center justify-between gap-4 text-sm">
+          <div className="flex items-center gap-1.5 text-amber-500">
+            {Array.from({ length: 5 }).map((_, starIndex) => (
+              <StarIcon
+                className="size-4"
+                fill={starIndex < Math.round(score / 2) ? "currentColor" : "none"}
+                key={starIndex}
+              />
+            ))}
+            <span className="ml-1 text-foreground/78">{score.toFixed(1)}</span>
           </div>
-          <Badge variant="eyebrow">{model.category.name}</Badge>
+          <span className="text-muted-foreground">{getPowerTypeLabel(model.powerType)}</span>
         </div>
-
-        <div className="grid gap-3 sm:grid-cols-2">
-          {[
-            { label: "分类", value: model.category.name },
-            { label: "动力", value: getPowerTypeLabel(model.powerType) }
-          ].map((item) => (
-            <div className="rounded-[calc(var(--radius-panel)-0.35rem)] bg-surface-2 px-4 py-4" key={item.label}>
-              <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">{item.label}</div>
-              <div className="mt-2 text-xl font-semibold text-foreground">{item.value}</div>
-            </div>
-          ))}
-        </div>
-
-        <p className="min-h-16 text-sm leading-7 text-muted-foreground">
-          {model.summary ?? "查看这台飞行器的参数、口碑趋势与相似机型。"}
-        </p>
-
-        <div className="flex items-center justify-between gap-4">
-          <div className="text-sm text-muted-foreground">{getPowerTypeLabel(model.powerType)} 驱动</div>
-          <Button asChild variant="panel">
-            <Link to={detailPath}>
-              View Specs
-              <ArrowRightIcon data-icon="inline-end" />
-            </Link>
-          </Button>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </Link>
   );
 }
 
@@ -199,10 +180,7 @@ export function ModelsPage() {
           <div className="grid gap-4 md:grid-cols-[5rem_minmax(0,1fr)] md:items-center">
             <div className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">分类</div>
             <div className="site-chip-row">
-              <Button
-                onClick={() => updateParams({ categorySlug: null, brandSlug: null })}
-                variant={!categorySlug ? "hero" : "panel"}
-              >
+              <Button onClick={() => updateParams({ categorySlug: null, brandSlug: null })} variant={!categorySlug ? "hero" : "panel"}>
                 全部
               </Button>
               {(filters?.categories ?? []).map((category: AircraftCategory) => (
@@ -220,10 +198,7 @@ export function ModelsPage() {
           <div className="grid gap-4 md:grid-cols-[5rem_minmax(0,1fr)] md:items-center">
             <div className="text-sm font-medium uppercase tracking-[0.2em] text-muted-foreground">动力</div>
             <div className="site-chip-row">
-              <Button
-                onClick={() => updateParams({ powerTypes: [] })}
-                variant={!powerTypes.length ? "hero" : "panel"}
-              >
+              <Button onClick={() => updateParams({ powerTypes: [] })} variant={!powerTypes.length ? "hero" : "panel"}>
                 全部
               </Button>
               {(filters?.powerTypes ?? []).map((powerType) => (
@@ -243,17 +218,11 @@ export function ModelsPage() {
       <SiteGrid className="xl:grid-cols-[5.5rem_minmax(0,1fr)]">
         <SitePanel className="xl:sticky xl:top-26 xl:h-fit" variant="muted">
           <SitePanelBody className="space-y-4 px-3 py-5">
-            <div className="text-center text-sm font-semibold uppercase tracking-[0.24em] text-primary">
-              Hot
-            </div>
+            <div className="text-center text-sm font-semibold uppercase tracking-[0.24em] text-primary">Hot</div>
             <div className="flex flex-col gap-2">
               {brandGroups.map(([letter]) => (
                 <button
-                  className={`rounded-full px-2 py-2 text-sm transition ${
-                    activeLetter === letter
-                      ? "bg-primary/10 font-semibold text-primary"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
+                  className={`px-2 py-2 text-sm transition ${activeLetter === letter ? "bg-primary/10 font-semibold text-primary" : "text-muted-foreground hover:text-foreground"}`}
                   key={letter}
                   onClick={() => {
                     setActiveLetter(letter);
@@ -288,11 +257,7 @@ export function ModelsPage() {
                   <SlidersHorizontalIcon />
                   品牌索引 {activeLetter}
                 </Badge>
-                <Button
-                  onClick={() => updateParams({ brandSlug: null })}
-                  size="sm"
-                  variant={!brandSlug ? "hero" : "panel"}
-                >
+                <Button onClick={() => updateParams({ brandSlug: null })} size="sm" variant={!brandSlug ? "hero" : "panel"}>
                   不限品牌
                 </Button>
                 {visibleBrands.slice(0, 8).map((brand) => (
@@ -310,13 +275,13 @@ export function ModelsPage() {
           </SitePanel>
 
           {modelsQuery.isLoading ? (
-            <div className="grid gap-[var(--page-gap)] md:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[var(--page-gap)]">
               {Array.from({ length: 6 }).map((_, index) => (
-                <Card key={index} variant="muted">
+                <Card className="overflow-hidden rounded-[0.75rem]" key={index} variant="muted">
                   <CardContent className="space-y-4">
-                    <div className="h-56 animate-pulse rounded-[calc(var(--radius-panel)-0.2rem)] bg-muted" />
+                    <div className="h-56 animate-pulse bg-muted" />
                     <div className="h-8 w-2/3 animate-pulse rounded bg-muted" />
-                    <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                    <div className="h-4 w-1/2 animate-pulse rounded bg-muted" />
                   </CardContent>
                 </Card>
               ))}
@@ -338,9 +303,14 @@ export function ModelsPage() {
           ) : null}
 
           {modelsQuery.isSuccess ? (
-            <div className="grid gap-[var(--page-gap)] md:grid-cols-2 2xl:grid-cols-3">
+            <div className="grid grid-cols-[repeat(auto-fit,minmax(280px,1fr))] gap-[var(--page-gap)]">
               {modelsQuery.data.items.map((model, index) => (
-                <ModelCard index={index} key={model.id} model={model} />
+                <ModelCard
+                  index={index}
+                  key={model.id}
+                  model={model}
+                  score={model.ratingSummary.averageScore}
+                />
               ))}
             </div>
           ) : null}

@@ -1,7 +1,9 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
+import { contentCategorySchema } from "./content-categories";
 
 export const feedTabSchema = z.enum(["recommended", "latest", "following"]);
+export const postTypeSchema = z.enum(["article", "moment"]);
 export const postStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
 export const postCommentStatusSchema = z.enum(["visible", "hidden"]);
 export const postInteractionTypeSchema = z.enum(["like", "favorite", "share"]);
@@ -30,9 +32,12 @@ export const postEngagementSchema = z.object({
 });
 
 export const createPostInputSchema = z.object({
-  title: z.string().trim().min(2).max(60),
-  content: z.string().trim().min(1).max(2000),
-  imageIds: z.array(z.string().min(1)).max(4).default([])
+  type: postTypeSchema,
+  title: z.string().trim().min(1).max(100),
+  content: z.string().trim().min(1).max(8000),
+  contentHtml: z.string().trim().max(32000).nullable().optional(),
+  contentCategoryId: z.string().min(1).nullable().optional(),
+  imageIds: z.array(z.string().min(1)).max(6).default([])
 });
 
 export const createPostCommentInputSchema = z.object({
@@ -48,10 +53,18 @@ export const uploadPostImageResponseSchema = z.object({
   item: postImageSchema
 });
 
+const postContentCategorySummarySchema = contentCategorySchema.pick({
+  id: true,
+  slug: true,
+  name: true
+});
+
 export const postFeedItemSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(2),
+  type: postTypeSchema,
+  title: z.string().min(1),
   contentPreview: z.string().min(1),
+  contentHtml: z.string().nullable().optional(),
   status: postStatusSchema,
   commentCount: z.number().int().nonnegative(),
   reportCount: z.number().int().nonnegative(),
@@ -60,27 +73,34 @@ export const postFeedItemSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   images: z.array(postImageSchema),
+  contentCategory: postContentCategorySummarySchema.nullable(),
   engagement: postEngagementSchema
 });
 
-export const postCommentSchema: z.ZodType<any> = z.lazy(() =>
-  z.object({
-    id: z.string().min(1),
-    postId: z.string().min(1),
-    parentCommentId: z.string().min(1).nullable(),
-    content: z.string().min(1),
-    status: postCommentStatusSchema,
-    createdAt: z.string().datetime(),
-    updatedAt: z.string().datetime(),
-    author: userSummarySchema,
-    replies: z.array(postCommentSchema)
-  })
-);
+export const postCommentReplySchema = z.object({
+  id: z.string().min(1),
+  postId: z.string().min(1),
+  parentCommentId: z.string().min(1).nullable(),
+  replyToCommentId: z.string().min(1).nullable(),
+  content: z.string().min(1),
+  status: postCommentStatusSchema,
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  author: userSummarySchema,
+  replyToUser: userSummarySchema.nullable()
+});
+
+export const postCommentThreadSchema = postCommentReplySchema.extend({
+  replyCount: z.number().int().nonnegative(),
+  replies: z.array(postCommentReplySchema)
+});
 
 export const postDetailSchema = z.object({
   id: z.string().min(1),
-  title: z.string().min(2),
+  type: postTypeSchema,
+  title: z.string().min(1),
   content: z.string().min(1),
+  contentHtml: z.string().nullable(),
   status: postStatusSchema,
   commentCount: z.number().int().nonnegative(),
   reportCount: z.number().int().nonnegative(),
@@ -89,11 +109,19 @@ export const postDetailSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   images: z.array(postImageSchema),
+  contentCategory: postContentCategorySummarySchema.nullable(),
   engagement: postEngagementSchema,
-  comments: z.array(postCommentSchema)
+  comments: z.array(postCommentThreadSchema)
 });
 
 export const homeFeedResponseSchema = z.object({
+  tab: feedTabSchema,
+  activeCategorySlug: z.string().nullable(),
+  categories: z.array(contentCategorySchema),
+  items: z.array(postFeedItemSchema)
+});
+
+export const circleFeedResponseSchema = z.object({
   tab: feedTabSchema,
   items: z.array(postFeedItemSchema)
 });
@@ -107,7 +135,7 @@ export const postDetailResponseSchema = z.object({
 });
 
 export const createPostCommentResponseSchema = z.object({
-  item: postCommentSchema
+  item: postCommentReplySchema
 });
 
 export const actionSuccessResponseSchema = z.object({
@@ -133,13 +161,15 @@ export const adminPostResponseSchema = z.object({
 export const adminPostCommentListItemSchema = z.object({
   id: z.string().min(1),
   postId: z.string().min(1),
-  postTitle: z.string().min(2),
+  postTitle: z.string().min(1),
   parentCommentId: z.string().min(1).nullable(),
+  replyToCommentId: z.string().min(1).nullable(),
   content: z.string().min(1),
   status: postCommentStatusSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  author: userSummarySchema
+  author: userSummarySchema,
+  replyToUser: userSummarySchema.nullable()
 });
 
 export const adminPostCommentsResponseSchema = z.object({
@@ -155,6 +185,7 @@ export const adminPostCommentResponseSchema = z.object({
 });
 
 export type FeedTab = z.infer<typeof feedTabSchema>;
+export type PostType = z.infer<typeof postTypeSchema>;
 export type PostStatus = z.infer<typeof postStatusSchema>;
 export type PostCommentStatus = z.infer<typeof postCommentStatusSchema>;
 export type PostInteractionType = z.infer<typeof postInteractionTypeSchema>;
