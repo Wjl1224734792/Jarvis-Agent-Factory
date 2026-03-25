@@ -2,7 +2,8 @@ import { createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
-const baseUrl = import.meta.env.VITE_API_BASE_URL ?? fallbackBaseUrl;
+const baseUrl =
+  import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() || fallbackBaseUrl;
 
 const sharedClient = createApiClient({
   baseUrl
