@@ -50,8 +50,8 @@
   --radius-md: calc(var(--radius) - 4px);
   --radius-lg: var(--radius);
   --radius-xl: var(--radius-panel);
-  --radius-2xl: calc(var(--radius-panel) + 0.45rem);
-  --radius-3xl: calc(var(--radius-panel) + 0.8rem);
+  --radius-2xl: calc(var(--radius-panel) + 0.3rem);
+  --radius-3xl: calc(var(--radius-panel) + 0.55rem);
 }
 
 :root {
@@ -88,9 +88,9 @@
   --chart-3: oklch(0.78 0.11 156.8);
   --chart-4: oklch(0.8 0.13 90.7);
   --chart-5: oklch(0.72 0.16 28.1);
-  --radius: 1rem;
-  --radius-control: 1.05rem;
-  --radius-panel: 1.5rem;
+  --radius: 0.75rem;
+  --radius-control: 0.8rem;
+  --radius-panel: 1rem;
   --page-width: 84rem;
   --page-gap: clamp(1rem, 1vw + 0.8rem, 1.75rem);
   --page-pad-x: clamp(1rem, 1vw + 0.75rem, 2rem);
