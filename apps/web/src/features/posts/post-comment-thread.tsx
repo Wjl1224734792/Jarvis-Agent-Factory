@@ -46,7 +46,7 @@ function CommentItem(props: NodeProps) {
   return (
     <article
       className={cn(
-        "relative flex flex-col gap-4 rounded-[1.5rem] border border-border/60 bg-white/80 p-5 shadow-[0_18px_50px_-40px_rgba(15,23,42,0.28)]",
+        "relative flex flex-col gap-4 border-b border-border/60 py-5",
         props.depth > 0 && "ml-4 sm:ml-6"
       )}
       style={{ marginLeft: `${Math.min(props.depth, 4) * 18}px` }}
@@ -125,8 +125,9 @@ function CommentItem(props: NodeProps) {
       <p className="text-sm leading-7 text-foreground/80">{props.comment.content}</p>
 
       {replying ? (
-        <div className="flex flex-col gap-3 rounded-[1.25rem] border border-border/60 bg-background/70 p-4">
+        <div className="flex flex-col gap-3 border-l border-border/60 pl-4">
           <Textarea
+            className="rounded-none"
             onChange={(event) => {
               setReplyContent(event.target.value);
             }}
@@ -187,7 +188,7 @@ function CommentItem(props: NodeProps) {
       {props.comment.replies.length > 0 ? (
         <>
           <Separator />
-          <div className="relative flex flex-col gap-3 before:absolute before:bottom-0 before:left-3 before:top-0 before:w-px before:bg-border/70">
+          <div className="relative flex flex-col before:absolute before:bottom-0 before:left-3 before:top-0 before:w-px before:bg-border/70">
             {props.comment.replies.map((reply: CommentNode) => (
               <CommentItem
                 canInteract={props.canInteract}
@@ -207,7 +208,7 @@ function CommentItem(props: NodeProps) {
 
 export function PostCommentThread(props: ThreadProps) {
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col">
       {props.comments.map((comment) => (
         <CommentItem
           canInteract={props.canInteract}

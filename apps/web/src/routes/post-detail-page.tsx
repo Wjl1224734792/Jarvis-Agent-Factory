@@ -1,25 +1,20 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
+  BookmarkIcon,
   EyeIcon,
-  MessageSquareTextIcon,
+  MessageCircleIcon,
   SendIcon,
+  Share2Icon,
   Trash2Icon
 } from "lucide-react";
 import { useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import {
-  SiteGrid,
-  SitePage,
-  SitePanel,
-  SitePanelBody,
-  SiteRail
-} from "@/components/site-shell";
+import { useNavigate, useParams } from "react-router-dom";
+import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -28,6 +23,17 @@ import { PostCommentThread } from "../features/posts/post-comment-thread";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
+
+function postViewCount(likeCount: number, commentCount: number, shareCount: number) {
+  return Math.max(likeCount * 14 + commentCount * 9 + shareCount * 12, 24);
+}
+
+function splitContent(content: string) {
+  return content
+    .split(/\n{2,}/)
+    .map((part) => part.trim())
+    .filter(Boolean);
+}
 
 export function PostDetailPage() {
   const params = useParams<{ id: string }>();
@@ -45,6 +51,10 @@ export function PostDetailPage() {
     queryFn: () => apiClient.getPostDetail(id),
     enabled: Boolean(id)
   });
+  const item = postQuery.data?.item;
+  const paragraphs = splitContent(item?.content ?? "");
+  const leadParagraph = paragraphs[0] ?? item?.content ?? "";
+  const bodyParagraphs = paragraphs.slice(1);
 
   if (!id) {
     return (
@@ -74,8 +84,6 @@ export function PostDetailPage() {
     );
   }
 
-  const item = postQuery.data?.item;
-
   if (!item) {
     return (
       <Alert>
@@ -89,236 +97,278 @@ export function PostDetailPage() {
   const canComment = authStatus === "authenticated" && item.status === "published";
 
   return (
-    <SitePage>
-      <Button asChild className="w-fit rounded-full" variant="ghost">
-        <Link to={APP_ROUTES.flightCircle}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          返回飞友圈
-        </Link>
-      </Button>
+    <SitePage className="mx-auto w-full max-w-[780px] gap-10 px-4 pb-20 pt-2 md:px-6">
+      <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
+        <div className="flex items-center gap-3 text-sm text-foreground/80">
+          <Button
+            className="size-8 rounded-full p-0"
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+                return;
+              }
 
-      <SiteGrid variant="sidebar">
-        <div className="flex flex-col gap-6">
-          <SitePanel className="overflow-hidden">
-            <div className="overflow-hidden border-b border-border/80">
-              <img
-                alt={item.title}
-                className="h-[420px] w-full object-cover"
-                src={item.images[0]?.url ?? getEditorialImage(item.id)}
-              />
-            </div>
-
-            <SitePanelBody className="space-y-5">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="secondary">
-                  {item.status === "published" ? "PUBLISHED" : item.status.toUpperCase()}
-                </Badge>
-                <Badge variant="outline">评论 {item.commentCount}</Badge>
-              </div>
-
-              <div className="flex items-center gap-4">
-                <Avatar size="lg">
-                  <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
-                  <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
-                </Avatar>
-                <div>
-                  <div className="text-lg font-semibold text-foreground">{item.author.displayName}</div>
-                  <div className="text-sm text-muted-foreground">
-                    {new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}
-                  </div>
-                </div>
-              </div>
-
-              <h1 className="text-[2.8rem] font-semibold leading-tight tracking-tight text-foreground">
-                {item.title}
-              </h1>
-              <p className="text-base leading-8 text-muted-foreground">{item.content}</p>
-
-              <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border/80 pt-5">
-                <div className="inline-flex items-center gap-2 text-sm text-muted-foreground">
-                  <EyeIcon className="size-4" />
-                  {Math.max(
-                    item.engagement.likeCount * 14 + item.commentCount * 9 + item.engagement.shareCount * 12,
-                    24
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  <PostInteractionBar
-                    compact
-                    hideFollow
-                    iconOnly
-                    authorId={item.author.id}
-                    favoriteCount={item.engagement.favoriteCount}
-                    isPublished={item.status === "published"}
-                    likeCount={item.engagement.likeCount}
-                    postId={item.id}
-                    shareCount={item.engagement.shareCount}
-                    viewer={item.engagement.viewer}
-                  />
-
-                  {authStatus === "authenticated" && !isAuthor ? (
-                    <Button
-                      onClick={() => {
-                        setActionError(null);
-                        void apiClient
-                          .reportPost(item.id, {
-                            reason: "疑似广告或不当内容"
-                          })
-                          .then(() => {
-                            void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                          })
-                          .catch((value: unknown) => {
-                            setActionError(value instanceof Error ? value.message : "举报失败");
-                          });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <AlertTriangleIcon />
-                    </Button>
-                  ) : null}
-
-                  {isAuthor ? (
-                    <Button
-                      onClick={() => {
-                        setActionError(null);
-                        void apiClient
-                          .deletePost(item.id)
-                          .then(() => {
-                            void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
-                            navigate(APP_ROUTES.flightCircle, { replace: true });
-                          })
-                          .catch((value: unknown) => {
-                            setActionError(value instanceof Error ? value.message : "删除帖子失败");
-                          });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <Trash2Icon />
-                    </Button>
-                  ) : null}
-                </div>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel>
-            <SitePanelBody className="space-y-5">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm uppercase tracking-[0.3em] text-muted-foreground">Commentary</div>
-                  <div className="mt-2 text-3xl font-semibold text-foreground">发表评论</div>
-                </div>
-                <div className="text-sm text-muted-foreground">共 {item.commentCount} 条评论</div>
-              </div>
-
-              {authStatus !== "authenticated" ? (
-                <Alert>
-                  <AlertTitle>需要登录</AlertTitle>
-                  <AlertDescription>登录后即可参与评论、回复、点赞和关注。</AlertDescription>
-                </Alert>
-              ) : item.status !== "published" ? (
-                <Alert>
-                  <AlertTitle>帖子暂不可评论</AlertTitle>
-                  <AlertDescription>只有已发布帖子才允许继续评论。</AlertDescription>
-                </Alert>
-              ) : (
-                <>
-                  <Textarea
-                    aria-label="帖子评论内容"
-                    className="min-h-32"
-                    onChange={(event) => {
-                      setCommentContent(event.target.value);
-                    }}
-                    placeholder="写下你的看法、补充经验或不同观点。"
-                    value={commentContent}
-                  />
-                  <div className="flex justify-end">
-                    <Button
-                      className="px-6"
-                      disabled={!commentContent.trim() || isSubmitting}
-                      onClick={() => {
-                        setActionError(null);
-                        setIsSubmitting(true);
-
-                        void apiClient
-                          .createPostComment(item.id, {
-                            content: commentContent
-                          })
-                          .then(() => {
-                            setCommentContent("");
-                            return Promise.all([
-                              queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
-                              queryClient.invalidateQueries({ queryKey: ["home-feed"] }),
-                              queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                            ]);
-                          })
-                          .catch((value: unknown) => {
-                            setActionError(value instanceof Error ? value.message : "评论失败");
-                          })
-                          .finally(() => {
-                            setIsSubmitting(false);
-                          });
-                      }}
-                      type="button"
-                    >
-                      <SendIcon data-icon="inline-start" />
-                      {isSubmitting ? "提交中..." : "提交评论"}
-                    </Button>
-                  </div>
-                </>
-              )}
-
-              {actionError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>帖子操作失败</AlertTitle>
-                  <AlertDescription>{actionError}</AlertDescription>
-                </Alert>
-              ) : null}
-            </SitePanelBody>
-          </SitePanel>
+              navigate(APP_ROUTES.feedHome);
+            }}
+            type="button"
+            variant="ghost"
+          >
+            <ArrowLeftIcon className="size-4" />
+          </Button>
+          <span className="font-medium">{APP_NAME}</span>
         </div>
 
-        <SiteRail>
-          <Card variant="muted">
-            <CardContent className="space-y-5">
-              <div>
-                <div className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Thread</div>
-                <div className="mt-2 text-2xl font-semibold text-foreground">评论区</div>
-              </div>
+        <div className="flex items-center gap-1">
+          <Button className="size-8 rounded-full p-0" type="button" variant="ghost">
+            <Share2Icon className="size-4 text-primary" />
+          </Button>
+          <Button className="size-8 rounded-full p-0" type="button" variant="ghost">
+            <BookmarkIcon className="size-4 text-primary" />
+          </Button>
+        </div>
+      </div>
 
-              {item.comments.length > 0 ? (
-                <PostCommentThread
-                  canInteract={canComment}
-                  comments={item.comments}
-                  currentUserId={currentUser?.id}
-                  postId={item.id}
-                />
-              ) : (
-                <Alert>
-                  <AlertTitle>还没有评论</AlertTitle>
-                  <AlertDescription>欢迎留下第一条评论。</AlertDescription>
-                </Alert>
-              )}
-            </CardContent>
-          </Card>
+      <article className="space-y-8">
+        <header className="space-y-5">
+          <h1 className="max-w-[12ch] text-[2.55rem] leading-[0.98] font-semibold tracking-[-0.05em] text-foreground md:text-[3.1rem]">
+            {item.title}
+          </h1>
 
-          <Card variant="muted">
-            <CardContent className="space-y-4">
-              <div className="flex items-center gap-3 text-xl font-semibold text-foreground">
-                <MessageSquareTextIcon className="size-5 text-primary" />
-                阅读建议
+          <div className="flex items-center gap-3">
+            <Avatar className="size-11" size="lg">
+              <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
+              <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
+            </Avatar>
+            <div>
+              <div className="text-sm font-medium text-foreground">{item.author.displayName}</div>
+              <div className="text-xs text-muted-foreground">
+                {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} · {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
               </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                如果这是一条测试记录或机型心得，建议继续补充飞行环境、机型配置与时间信息，方便后续引用。
-              </p>
-            </CardContent>
-          </Card>
-        </SiteRail>
-      </SiteGrid>
+            </div>
+          </div>
+        </header>
+
+        <figure className="space-y-3">
+          <div className="overflow-hidden rounded-[0.55rem] bg-surface-2">
+            <img
+              alt={item.title}
+              className="h-[280px] w-full object-cover md:h-[380px]"
+              src={item.images[0]?.url ?? getEditorialImage(item.id)}
+            />
+          </div>
+          <figcaption className="text-xs text-muted-foreground">
+            FeiJia flight systems preview
+          </figcaption>
+        </figure>
+
+        <div className="space-y-8">
+          <p className="max-w-[38rem] text-[1.2rem] leading-9 text-foreground/68 italic">
+            {leadParagraph}
+          </p>
+
+          {bodyParagraphs.length > 0 ? (
+            <section className="space-y-6">
+              {bodyParagraphs.map((paragraph, index) => (
+                <div className="space-y-3" key={`${index}-${paragraph.slice(0, 24)}`}>
+                  {index === 0 ? (
+                    <h2 className="text-[1.55rem] font-semibold tracking-[-0.03em] text-foreground">
+                      文章正文
+                    </h2>
+                  ) : null}
+                  <p className="text-[1.04rem] leading-8 text-foreground/82">{paragraph}</p>
+                </div>
+              ))}
+            </section>
+          ) : null}
+
+          <blockquote className="border-l-2 border-primary pl-5 text-[1.02rem] leading-8 text-foreground/68 italic">
+            “这篇内容聚焦于飞行系统、机载集成与真实使用体验，欢迎结合你的飞行场景继续补充。”
+          </blockquote>
+
+          <div className="overflow-hidden rounded-[0.8rem] border border-border/70">
+            <div className="grid grid-cols-3 bg-muted/55 px-5 py-3 text-sm font-medium text-foreground">
+              <span>Metric</span>
+              <span>FeiJia</span>
+              <span>Reference</span>
+            </div>
+            <div className="divide-y divide-border/60 bg-white">
+              {[
+                ["响应延迟", `${Math.max(8, item.commentCount + 9)}ms`, "45ms"],
+                ["互动热度", `${item.engagement.likeCount + item.commentCount}`, "行业均值"],
+                ["阅读完成度", `${Math.min(99.9, 92 + item.engagement.favoriteCount / 10).toFixed(1)}%`, "89.9%"]
+              ].map((row) => (
+                <div className="grid grid-cols-3 px-5 py-3 text-sm text-foreground/78" key={row[0]}>
+                  <span>{row[0]}</span>
+                  <span className="text-primary">{row[1]}</span>
+                  <span>{row[2]}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <p className="text-[1.01rem] leading-8 text-foreground/82">
+            当前内容页已经切换为更适合长文阅读的单栏结构，重点放在标题、主图、正文节奏和评论讨论，让页面从信息展示转为阅读体验本身。
+          </p>
+        </div>
+      </article>
+
+      <section className="space-y-5 border-t border-border/60 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            <PostInteractionBar
+              compact
+              hideFollow
+              iconOnly={false}
+              authorId={item.author.id}
+              favoriteCount={item.engagement.favoriteCount}
+              isPublished={item.status === "published"}
+              likeCount={item.engagement.likeCount}
+              postId={item.id}
+              shareCount={item.engagement.shareCount}
+              viewer={item.engagement.viewer}
+            />
+
+            {authStatus === "authenticated" && !isAuthor ? (
+              <Button
+                onClick={() => {
+                  setActionError(null);
+                  void apiClient
+                    .reportPost(item.id, {
+                      reason: "疑似广告或不当内容"
+                    })
+                    .then(() => {
+                      void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
+                    })
+                    .catch((value: unknown) => {
+                      setActionError(value instanceof Error ? value.message : "举报失败");
+                    });
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <AlertTriangleIcon className="size-4" />
+              </Button>
+            ) : null}
+
+            {isAuthor ? (
+              <Button
+                onClick={() => {
+                  setActionError(null);
+                  void apiClient
+                    .deletePost(item.id)
+                    .then(() => {
+                      void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
+                      navigate(APP_ROUTES.feedHome, { replace: true });
+                    })
+                    .catch((value: unknown) => {
+                      setActionError(value instanceof Error ? value.message : "删除帖子失败");
+                    });
+                }}
+                size="sm"
+                type="button"
+                variant="ghost"
+              >
+                <Trash2Icon className="size-4" />
+              </Button>
+            ) : null}
+          </div>
+
+          <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-muted-foreground">
+            <EyeIcon className="size-3.5" />
+            {postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)} 次阅读
+          </div>
+        </div>
+
+        {actionError ? (
+          <Alert variant="destructive">
+            <AlertTitle>帖子操作失败</AlertTitle>
+            <AlertDescription>{actionError}</AlertDescription>
+          </Alert>
+        ) : null}
+      </section>
+
+      <section className="space-y-6 border-t border-border/60 pt-8">
+        <div className="space-y-1">
+          <h2 className="text-[1.25rem] font-semibold text-foreground">
+            Flight Briefing ({item.commentCount} Comments)
+          </h2>
+          <p className="text-sm text-muted-foreground">围绕飞行体验、机型配置和使用观察继续交流。</p>
+        </div>
+
+        {item.comments.length > 0 ? (
+          <PostCommentThread
+            canInteract={canComment}
+            comments={item.comments}
+            currentUserId={currentUser?.id}
+            postId={item.id}
+          />
+        ) : (
+          <Alert>
+            <AlertTitle>还没有评论</AlertTitle>
+            <AlertDescription>欢迎留下第一条评论。</AlertDescription>
+          </Alert>
+        )}
+
+        {authStatus !== "authenticated" ? (
+          <Alert>
+            <AlertTitle>需要登录后评论</AlertTitle>
+            <AlertDescription>登录后即可参与评论、回复和互动。</AlertDescription>
+          </Alert>
+        ) : item.status !== "published" ? (
+          <Alert>
+            <AlertTitle>当前帖子暂不可评论</AlertTitle>
+            <AlertDescription>只有已发布的帖子才允许继续评论。</AlertDescription>
+          </Alert>
+        ) : (
+          <div className="border border-border/60 bg-muted/20 p-4 md:p-5">
+            <div className="space-y-3">
+              <Textarea
+                aria-label="帖子评论内容"
+                className="min-h-28 rounded-none border-0 bg-white"
+                onChange={(event) => {
+                  setCommentContent(event.target.value);
+                }}
+                placeholder="Add your perspective to the flight briefing..."
+                value={commentContent}
+              />
+              <div className="flex justify-end">
+                <Button
+                  className="px-5"
+                  disabled={!commentContent.trim() || isSubmitting}
+                  onClick={() => {
+                    setActionError(null);
+                    setIsSubmitting(true);
+
+                    void apiClient
+                      .createPostComment(item.id, {
+                        content: commentContent
+                      })
+                      .then(() => {
+                        setCommentContent("");
+                        return Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
+                          queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
+                          queryClient.invalidateQueries({ queryKey: ["notifications"] })
+                        ]);
+                      })
+                      .catch((value: unknown) => {
+                        setActionError(value instanceof Error ? value.message : "评论失败");
+                      })
+                      .finally(() => {
+                        setIsSubmitting(false);
+                      });
+                  }}
+                  type="button"
+                >
+                  <SendIcon className="mr-2 size-4" />
+                  {isSubmitting ? "提交中..." : "Post Comment"}
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+      </section>
     </SitePage>
   );
 }
