@@ -53,6 +53,27 @@
 - 清晰地指出假设、风险和后续工作。
 - 保持最终总结简洁且聚焦于实现。
 
+## 仓库目录架构
+
+顶层布局（随迭代会增删文件，以仓库实际为准）：
+
+```
+feijia/
+├── AGENTS.md                 # 本文件：代理协作与完成标准
+├── package.json              # workspace 根脚本（dev / typecheck / test / build）
+├── vitest.config.ts          # 跨 packages/schemas 与 apps/server 的测试入口
+├── apps/                     # 可运行应用 → apps/AGENTS.md
+├── packages/                 # 共享库 → packages/AGENTS.md
+├── docker/                   # 本地 PG / Redis / MinIO → docker/AGENTS.md
+├── docs/                     # 产品、计划、工作流文档（约定不在此目录放 AGENTS.md）
+└── .codex/                   # Codex 技能与代理侧配置
+```
+
+## 代码层级指引
+
+- 应用总览与 `apps/` 树：`apps/AGENTS.md`；共享包与 `packages/` 树：`packages/AGENTS.md`。
+- 本地基础设施：`docker/AGENTS.md`；各应用子目录内另有对应 `AGENTS.md`。
+
 ## 文档
 
 - 当行为、合约、设置或开发者工作流变更时，更新附近的文档。
