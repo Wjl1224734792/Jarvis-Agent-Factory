@@ -60,10 +60,10 @@
 ```
 feijia/
 ├── AGENTS.md                 # 本文件：代理协作与完成标准
-├── package.json              # workspace 根脚本（dev / typecheck / test / build）
-├── vitest.config.ts          # 跨 packages/schemas 与 apps/server 的测试入口
+├── package.json              # workspace 根脚本（dev / typecheck / test / build / db:*）
+├── vitest.config.ts          # schemas、http-client、web 等与 server 测试入口
 ├── apps/                     # 可运行应用 → apps/AGENTS.md
-├── packages/                 # 共享库 → packages/AGENTS.md
+├── packages/                 # 共享库与数据库包 → packages/AGENTS.md
 ├── docker/                   # 本地 PG / Redis / MinIO → docker/AGENTS.md
 ├── docs/                     # 产品、计划、工作流文档（约定不在此目录放 AGENTS.md）
 └── .codex/                   # Codex 技能与代理侧配置

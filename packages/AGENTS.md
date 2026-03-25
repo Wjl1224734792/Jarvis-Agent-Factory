@@ -11,28 +11,41 @@ packages/
 │   ├── tsconfig.base.json
 │   ├── tsconfig.react.json
 │   └── tsconfig.server.json
-├── shared/              # 跨端常量与工具
+├── shared/              # 应用名、端口、前后端路由常量等
 │   └── src/
-├── schemas/             # Zod 合约 + 类型
+├── schemas/             # Zod 合约与类型（API / 表单的单一事实来源）
 │   ├── src/
 │   │   ├── index.ts
 │   │   ├── auth.ts
-│   │   └── health.ts
+│   │   ├── health.ts
+│   │   ├── models.ts
+│   │   ├── posts.ts
+│   │   ├── rankings.ts
+│   │   ├── reviews.ts
+│   │   └── social.ts
 │   └── tests/
-│       ├── auth.test.ts
-│       └── health.test.ts
-└── http-client/         # 面向前端的 HTTP 封装
-    └── src/
+├── http-client/         # 基于 schemas 的 HTTP 封装（前端调用后端）
+│   ├── src/
+│   └── tests/
+└── db/                  # Drizzle schema、迁移、种子、PG 客户端
+    ├── src/
+    │   ├── client.ts
+    │   ├── schema.ts
+    │   ├── migrate.ts / migrate.cli.ts
+    │   ├── seed.ts / seed.cli.ts
+    │   └── helpers.ts
+    └── drizzle/         # SQL 迁移与 drizzle-kit 元数据
 ```
 
 ## 成员
 
 | 包 | 作用 |
 |----|------|
-| `@feijia/config` | 共享 `tsconfig` 片段（`exports` 子路径），无业务逻辑 |
-| `@feijia/shared` | 跨端常量与工具（如路由前缀等），尽量保持轻量 |
-| `@feijia/schemas` | Zod 模式与类型，API/表单的单一事实来源；含单测 |
-| `@feijia/http-client` | 基于 schemas 的 HTTP 封装，供前端调用后端 |
+| `@feijia/config` | 共享 `tsconfig`（`exports` 子路径），无业务逻辑 |
+| `@feijia/shared` | 跨端常量：`APP_PORTS`、`APP_ROUTES`、`API_ROUTES` 等 |
+| `@feijia/schemas` | Zod 模式与推导类型；含单测 |
+| `@feijia/http-client` | 封装对 `server` 的请求，与 schemas 对齐 |
+| `@feijia/db` | PostgreSQL + Drizzle：`schema`、迁移 CLI、种子 |
 
 ## 依赖方向（示意）
 
@@ -41,11 +54,13 @@ config（独立）
 shared
   ↑
 schemas → http-client
+db（独立：Drizzle + pg；由 server 等引用，见各 package.json）
 ```
 
-应用侧：`server` 使用 `shared` + `schemas`；`web` / `admin` 使用 `http-client` + `schemas` + `shared`。
+`apps/server` 使用 `shared`、`schemas`、`db` 等；`web` / `admin` 使用 `http-client`、`schemas`、`shared`。
 
 ## 编辑指引
 
-- 变更对外类型或校验规则时，优先改 `schemas`，再适配 `http-client` 与 `server`。
+- 变更对外校验或类型时优先改 `schemas`，再适配 `http-client`、`db`（如表结构）与 `server`。
+- 表结构变更走 `db` 的 generate/migrate 流程，避免手写与 `schema.ts` 不一致的 SQL。
 - 避免在 `shared` 中堆积仅某一 app 使用的逻辑。
