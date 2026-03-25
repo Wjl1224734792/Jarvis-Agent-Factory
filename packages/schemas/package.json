@@ -13,6 +13,6 @@
   },
   "dependencies": {
     "@feijia/shared": "workspace:*",
-    "zod": "latest"
+    "zod": "^4.3.6"
   }
 }

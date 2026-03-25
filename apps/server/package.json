@@ -13,8 +13,8 @@
     "@feijia/db": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
-    "@hono/node-server": "^1.13.7",
-    "drizzle-orm": "^0.44.5",
-    "hono": "^4.6.16"
+    "@hono/node-server": "^1.19.11",
+    "drizzle-orm": "^0.45.1",
+    "hono": "^4.12.9"
   }
 }

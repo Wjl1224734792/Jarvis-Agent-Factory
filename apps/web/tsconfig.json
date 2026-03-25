@@ -2,6 +2,7 @@
   "extends": "../../packages/config/tsconfig.react.json",
   "compilerOptions": {
     "composite": true,
+    "ignoreDeprecations": "6.0",
     "baseUrl": ".",
     "paths": {
       "@/*": [
