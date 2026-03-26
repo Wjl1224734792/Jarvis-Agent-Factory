@@ -1,5 +1,6 @@
 import type { UserSummary } from "@feijia/schemas";
 import { authRepo } from "./auth.repo";
+import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
 
 export class AuthError extends Error {
   constructor(
@@ -7,6 +8,7 @@ export class AuthError extends Error {
       | "INVALID_CAPTCHA"
       | "INVALID_SMS_CODE"
       | "INVALID_CREDENTIALS"
+      | "SMS_PROVIDER_UNAVAILABLE"
       | "SESSION_EXPIRED"
       | "UNAUTHORIZED"
       | "FORBIDDEN",
@@ -25,7 +27,7 @@ export const authService = {
       expiresInSeconds: 300
     };
   },
-  requestSmsCode(input: {
+  async requestSmsCode(input: {
     phone: string;
     captchaChallengeId: string;
     captchaCode: string;
@@ -40,11 +42,24 @@ export const authService = {
     }
 
     const sms = authRepo.createSmsCode(input.phone);
+    const smsSender = createSmsSender(resolveSmsProviderConfig());
+    let sendResult;
+    try {
+      sendResult = await smsSender.sendCode({
+        phone: input.phone,
+        code: sms.code
+      });
+    } catch (error) {
+      throw new AuthError(
+        "SMS_PROVIDER_UNAVAILABLE",
+        error instanceof Error ? error.message : "短信服务当前不可用"
+      );
+    }
 
     return {
-      requestId: sms.requestId,
+      requestId: sendResult.requestId,
       expiresInSeconds: 300,
-      mockCode: sms.code
+      mockCode: sendResult.mockCode
     };
   },
   async loginWeb(input: {

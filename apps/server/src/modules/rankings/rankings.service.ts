@@ -50,6 +50,18 @@ function serializeRankingItem(
     totalRatings: 0,
     averageRaw: 0
   };
+  const hasLinkedModel = Boolean(
+    item.linkedModelId &&
+      item.linkedModelSlug &&
+      item.linkedModelName &&
+      item.linkedModelPowerType &&
+      item.linkedModelCategoryId &&
+      item.linkedModelCategorySlug &&
+      item.linkedModelCategoryName &&
+      item.linkedModelBrandId &&
+      item.linkedModelBrandSlug &&
+      item.linkedModelBrandName
+  );
 
   return {
     id: item.id,
@@ -59,15 +71,23 @@ function serializeRankingItem(
     summary: item.summary,
     imageUrl: item.imageUrl,
     brandName: item.brandName,
-    linkedModel: item.linkedModel?.id
+    linkedModel: hasLinkedModel
       ? {
-          id: item.linkedModel.id,
-          slug: item.linkedModel.slug,
-          name: item.linkedModel.name,
-          summary: item.linkedModel.summary,
-          powerType: powerTypeSchema.parse(item.linkedModel.powerType),
-          category: item.linkedModel.category,
-          brand: item.linkedModel.brand
+          id: item.linkedModelId!,
+          slug: item.linkedModelSlug!,
+          name: item.linkedModelName!,
+          summary: item.linkedModelSummary,
+          powerType: powerTypeSchema.parse(item.linkedModelPowerType!),
+          category: {
+            id: item.linkedModelCategoryId!,
+            slug: item.linkedModelCategorySlug!,
+            name: item.linkedModelCategoryName!
+          },
+          brand: {
+            id: item.linkedModelBrandId!,
+            slug: item.linkedModelBrandSlug!,
+            name: item.linkedModelBrandName!
+          }
         }
       : null,
     averageScore: toTenPointScore(aggregate.averageRaw),

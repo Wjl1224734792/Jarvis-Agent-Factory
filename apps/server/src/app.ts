@@ -12,8 +12,11 @@ import { postsRoute } from "./modules/posts/posts.route";
 import { rankingsRoute } from "./modules/rankings/rankings.route";
 import { reviewsRoute } from "./modules/reviews/reviews.route";
 import { socialRoute } from "./modules/social/social.route";
+import { ensureServerEnvLoaded } from "./lib/load-env";
 import { logger } from "./lib/logger";
 import { healthRoute } from "./routes/health";
+
+ensureServerEnvLoaded();
 
 export const app = new Hono();
 

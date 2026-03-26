@@ -14,8 +14,10 @@
     "seed": "bun run ./src/seed.cli.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.901.0",
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
-    "pg": "^8.20.0"
+    "pg": "^8.20.0",
+    "redis": "^5.8.2"
   }
 }

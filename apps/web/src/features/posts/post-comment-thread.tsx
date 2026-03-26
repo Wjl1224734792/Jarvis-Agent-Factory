@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 
 type CommentNode = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"]["comments"][number];
+type CommentReply = CommentNode["replies"][number];
 
 type ThreadProps = {
   postId: string;
@@ -24,17 +25,15 @@ type ReplyView = {
   replyToDisplayName?: string;
 };
 
-function flattenReplies(nodes: CommentNode[], replyToDisplayName?: string): ReplyView[] {
-  return nodes.flatMap((node) => [
-    {
-      id: node.id,
-      content: node.content,
-      updatedAt: node.updatedAt,
-      author: node.author,
-      replyToDisplayName
-    },
-    ...flattenReplies(node.replies, node.author.displayName)
-  ]);
+function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): ReplyView[] {
+  return nodes.map((node) => ({
+    id: node.id,
+    content: node.content,
+    updatedAt: node.updatedAt,
+    author: node.author,
+    replyToDisplayName:
+      node.replyToUser?.displayName ?? replyToDisplayName
+  }));
 }
 
 function formatTime(value: string) {

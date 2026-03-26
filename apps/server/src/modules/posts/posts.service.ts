@@ -1,6 +1,11 @@
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { socialService } from "../social/social.service";
 import { postsRepo } from "./posts.repo";
+import {
+  createStorageUploader,
+  isStorageProviderExplicitlyConfigured,
+  resolveStorageProviderConfig
+} from "./storage-provider";
 
 type CurrentUser = {
   id: string;
@@ -235,9 +240,36 @@ export const postsService = {
     fileName: string;
     mimeType: string;
     byteSize: number;
+    bytes: Uint8Array;
     dataUrl: string;
   }) {
-    const item = await postsRepo.createImageUpload(input);
+    let resolvedUrl = input.dataUrl;
+    let uploader:
+      | ReturnType<typeof createStorageUploader>
+      | null = null;
+
+    try {
+      uploader = createStorageUploader(resolveStorageProviderConfig());
+    } catch (error) {
+      if (isStorageProviderExplicitlyConfigured()) {
+        throw error;
+      }
+    }
+
+    if (uploader) {
+      const objectKey = `posts/${input.ownerId}/${Date.now()}-${input.fileName.replace(/\s+/g, "-")}`;
+      const uploaded = await uploader.upload({
+        key: objectKey,
+        contentType: input.mimeType,
+        body: input.bytes
+      });
+      resolvedUrl = uploaded.url;
+    }
+
+    const item = await postsRepo.createImageUpload({
+      ...input,
+      dataUrl: resolvedUrl
+    });
     const serialized = serializeImage(item);
     return serialized ? { item: serialized } : null;
   },

@@ -77,20 +77,27 @@ postsRoute.post(API_ROUTES.uploads.images, requireAuth, async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Image size exceeds limit." }, 400);
   }
 
-  const dataUrl = `data:${file.type};base64,${Buffer.from(await file.arrayBuffer()).toString("base64")}`;
-  const payload = await postsService.uploadImage({
-    ownerId: currentUser.id,
-    fileName: file.name || "image",
-    mimeType: file.type,
-    byteSize: file.size,
-    dataUrl
-  });
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
+  try {
+    const payload = await postsService.uploadImage({
+      ownerId: currentUser.id,
+      fileName: file.name || "image",
+      mimeType: file.type,
+      byteSize: file.size,
+      bytes,
+      dataUrl
+    });
 
-  if (!payload) {
-    return context.json({ code: "INTERNAL_ERROR", message: "Failed to save image." }, 500);
+    if (!payload) {
+      return context.json({ code: "INTERNAL_ERROR", message: "Failed to save image." }, 500);
+    }
+
+    return context.json(uploadPostImageResponseSchema.parse(payload));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to save image.";
+    return context.json({ code: "INTERNAL_ERROR", message }, 500);
   }
-
-  return context.json(uploadPostImageResponseSchema.parse(payload));
 });
 
 postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {

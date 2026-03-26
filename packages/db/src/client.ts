@@ -1,6 +1,9 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import { Pool } from "pg";
+import { ensureDbEnvLoaded } from "./env.js";
 import * as schema from "./schema.js";
+
+ensureDbEnvLoaded();
 
 const databaseUrl =
   process.env.DATABASE_URL ?? "postgres://user:qwertyuiop@localhost:5432/feijia";

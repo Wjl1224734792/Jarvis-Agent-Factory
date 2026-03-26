@@ -24,3 +24,4 @@ export {
 export { createId, hashPassword } from "./helpers.js";
 export { runMigrations } from "./migrate.js";
 export { resetDatabaseState, seedAuthDatabase, seedDatabase } from "./seed.js";
+export { seedRuntimeArtifacts } from "./runtime-seed.js";

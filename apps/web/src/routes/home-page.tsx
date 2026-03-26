@@ -94,7 +94,15 @@ export function HomePage() {
   );
 
   function isActive(tab: HomeTabState) {
-    return tab.kind === activeTab.kind && (tab.kind === "fixed" ? tab.id === activeTab.id : tab.slug === activeTab.slug);
+    if (tab.kind !== activeTab.kind) {
+      return false;
+    }
+
+    if (tab.kind === "fixed") {
+      return activeTab.kind === "fixed" && tab.id === activeTab.id;
+    }
+
+    return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
   return (

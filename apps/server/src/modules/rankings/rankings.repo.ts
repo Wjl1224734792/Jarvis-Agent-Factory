@@ -229,23 +229,17 @@ export const rankingsRepo = {
         imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,
-        linkedModel: {
-          id: aircraftModelsTable.id,
-          slug: aircraftModelsTable.slug,
-          name: aircraftModelsTable.name,
-          summary: aircraftModelsTable.summary,
-          powerType: aircraftModelsTable.powerType,
-          category: {
-            id: aircraftCategoriesTable.id,
-            slug: aircraftCategoriesTable.slug,
-            name: aircraftCategoriesTable.name
-          },
-          brand: {
-            id: brandsTable.id,
-            slug: brandsTable.slug,
-            name: brandsTable.name
-          }
-        }
+        linkedModelId: aircraftModelsTable.id,
+        linkedModelSlug: aircraftModelsTable.slug,
+        linkedModelName: aircraftModelsTable.name,
+        linkedModelSummary: aircraftModelsTable.summary,
+        linkedModelPowerType: aircraftModelsTable.powerType,
+        linkedModelCategoryId: aircraftCategoriesTable.id,
+        linkedModelCategorySlug: aircraftCategoriesTable.slug,
+        linkedModelCategoryName: sql<string | null>`${aircraftCategoriesTable.name}`,
+        linkedModelBrandId: brandsTable.id,
+        linkedModelBrandSlug: brandsTable.slug,
+        linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
       .from(rankingItemsTable)
       .leftJoin(aircraftModelsTable, eq(rankingItemsTable.linkedModelId, aircraftModelsTable.id))
@@ -265,23 +259,17 @@ export const rankingsRepo = {
         imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,
-        linkedModel: {
-          id: aircraftModelsTable.id,
-          slug: aircraftModelsTable.slug,
-          name: aircraftModelsTable.name,
-          summary: aircraftModelsTable.summary,
-          powerType: aircraftModelsTable.powerType,
-          category: {
-            id: aircraftCategoriesTable.id,
-            slug: aircraftCategoriesTable.slug,
-            name: aircraftCategoriesTable.name
-          },
-          brand: {
-            id: brandsTable.id,
-            slug: brandsTable.slug,
-            name: brandsTable.name
-          }
-        }
+        linkedModelId: aircraftModelsTable.id,
+        linkedModelSlug: aircraftModelsTable.slug,
+        linkedModelName: aircraftModelsTable.name,
+        linkedModelSummary: aircraftModelsTable.summary,
+        linkedModelPowerType: aircraftModelsTable.powerType,
+        linkedModelCategoryId: aircraftCategoriesTable.id,
+        linkedModelCategorySlug: aircraftCategoriesTable.slug,
+        linkedModelCategoryName: sql<string | null>`${aircraftCategoriesTable.name}`,
+        linkedModelBrandId: brandsTable.id,
+        linkedModelBrandSlug: brandsTable.slug,
+        linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
       .from(rankingItemsTable)
       .leftJoin(aircraftModelsTable, eq(rankingItemsTable.linkedModelId, aircraftModelsTable.id))

@@ -42,16 +42,17 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
   const input = smsCodeRequestSchema.parse(await context.req.json());
 
   try {
-    const payload = smsCodeResponseSchema.parse(authService.requestSmsCode(input));
+    const payload = smsCodeResponseSchema.parse(await authService.requestSmsCode(input));
     return context.json(payload);
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "SMS_PROVIDER_UNAVAILABLE" ? 503 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 
