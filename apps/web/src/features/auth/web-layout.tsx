@@ -182,7 +182,7 @@ export function WebLayout() {
               onMouseLeave={() => setIsPublishMenuOpen(false)}
             >
               <Button
-                className="rounded-full max-sm:px-0"
+                className="min-w-[10.25rem] justify-center gap-2.5 rounded-full px-5 max-sm:min-w-[2.75rem] max-sm:px-0"
                 onClick={() => {
                   setIsPublishMenuOpen((value) => !value);
                 }}
@@ -196,19 +196,21 @@ export function WebLayout() {
               </Button>
 
               {isPublishMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+0.65rem)] z-50 min-w-46 border border-border/70 bg-background/96 p-2 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
-                  <div className="space-y-1">
+                <div className="absolute right-0 top-[calc(100%+0.65rem)] z-50 w-[13.5rem] rounded-[1.4rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
+                  <div className="space-y-0.5">
                     {publishEntries.map((entry) => (
                       <Link
-                        className="flex items-center justify-between px-3 py-2 text-sm text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                        className="grid h-11 grid-cols-[1fr_auto] items-center gap-3 rounded-[1rem] px-3.5 text-left text-sm text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
                         key={entry.to}
                         onClick={() => {
                           setIsPublishMenuOpen(false);
                         }}
                         to={entry.to}
                       >
-                        <span>{entry.label}</span>
-                        <PlusIcon className="size-3.5 text-primary/75" />
+                        <span className="truncate text-[0.98rem] font-medium tracking-[0.01em] text-foreground">
+                          {entry.label}
+                        </span>
+                        <PlusIcon className="size-3.5 text-primary/72" />
                       </Link>
                     ))}
                   </div>
