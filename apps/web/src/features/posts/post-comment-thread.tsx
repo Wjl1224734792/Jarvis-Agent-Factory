@@ -2,9 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CornerDownRightIcon, Trash2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
@@ -39,6 +37,10 @@ function flattenReplies(nodes: CommentNode[], replyToDisplayName?: string): Repl
   ]);
 }
 
+function formatTime(value: string) {
+  return new Date(value).toLocaleString("zh-CN", { hour12: false });
+}
+
 function RootCommentItem(props: {
   postId: string;
   comment: CommentNode;
@@ -47,7 +49,7 @@ function RootCommentItem(props: {
 }) {
   const queryClient = useQueryClient();
   const canDelete = props.currentUserId === props.comment.author.id;
-  const allReplies = useMemo(() => flattenReplies(props.comment.replies), [props.comment.replies]);
+  const replies = useMemo(() => flattenReplies(props.comment.replies), [props.comment.replies]);
   const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
   const [replyContent, setReplyContent] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -70,26 +72,20 @@ function RootCommentItem(props: {
   }
 
   return (
-    <article className="border-b border-border/60 py-5 last:border-b-0">
+    <article className="border-b border-border/70 py-4 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-4">
-        <div className="flex min-w-0 items-start gap-3">
-          <Avatar className="bg-muted" size="lg">
-            <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
-          </Avatar>
-          <div className="min-w-0">
-            <div className="flex flex-wrap items-center gap-2">
-              <p className="text-sm font-medium text-foreground">{props.comment.author.displayName}</p>
-              <p className="text-xs text-muted-foreground">
-                {new Date(props.comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-              </p>
-            </div>
-            <p className="mt-2 text-sm leading-7 text-foreground/80">{props.comment.content}</p>
+        <div className="min-w-0 flex-1 space-y-1.5">
+          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+            <span className="font-medium text-foreground">{props.comment.author.displayName}</span>
+            <span className="text-xs text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
           </div>
+          <p className="text-sm leading-7 text-foreground/82">{props.comment.content}</p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-1">
           {props.canInteract ? (
             <Button
+              className="h-7 rounded-none px-0 text-xs text-muted-foreground"
               onClick={() => openReply(props.comment.id, props.comment.author.displayName)}
               size="sm"
               type="button"
@@ -101,6 +97,7 @@ function RootCommentItem(props: {
 
           {canDelete ? (
             <Button
+              className="h-7 rounded-none px-0 text-xs text-muted-foreground"
               disabled={busy !== null}
               onClick={() => {
                 setBusy("delete");
@@ -120,51 +117,44 @@ function RootCommentItem(props: {
               type="button"
               variant="ghost"
             >
-              <Trash2Icon className="size-4" />
+              <Trash2Icon className="size-3.5" />
             </Button>
           ) : null}
         </div>
       </div>
 
-      {allReplies.length > 0 ? (
-        <div className="mt-4 border-l border-border/60 pl-4">
+      {replies.length > 0 ? (
+        <div className="mt-3 border-l border-border/70 pl-4">
           <button
             className="text-xs font-medium text-primary"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
-            {expanded ? "收起回复" : `展开全部回复 (${allReplies.length})`}
+            {expanded ? "收起回复" : `展开全部回复 (${replies.length})`}
           </button>
 
           {expanded ? (
-            <div className="mt-3 flex flex-col">
-              {allReplies.map((reply, index) => (
-                <div
-                  className={cn(
-                    "py-3",
-                    index !== allReplies.length - 1 && "border-b border-border/50"
-                  )}
-                  key={reply.id}
-                >
+            <div className="mt-3">
+              {replies.map((reply) => (
+                <div className="border-t border-border/60 py-3 first:border-t-0 first:pt-0" key={reply.id}>
                   <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0 space-y-1">
-                      <div className="flex flex-wrap items-center gap-2 text-sm">
+                    <div className="min-w-0 flex-1 space-y-1.5">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
                         <span className="font-medium text-foreground">{reply.author.displayName}</span>
                         {reply.replyToDisplayName ? (
-                          <span className="inline-flex items-center gap-1 text-primary">
+                          <span className="inline-flex items-center gap-1 text-primary/82">
                             <CornerDownRightIcon className="size-3.5" />
                             @{reply.replyToDisplayName}
                           </span>
                         ) : null}
-                        <span className="text-xs text-muted-foreground">
-                          {new Date(reply.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-                        </span>
+                        <span className="text-xs text-muted-foreground">{formatTime(reply.updatedAt)}</span>
                       </div>
-                      <p className="text-sm leading-7 text-foreground/76">{reply.content}</p>
+                      <p className="text-sm leading-7 text-foreground/78">{reply.content}</p>
                     </div>
 
                     {props.canInteract ? (
                       <Button
+                        className="h-7 rounded-none px-0 text-xs text-muted-foreground"
                         onClick={() => openReply(reply.id, reply.author.displayName)}
                         size="sm"
                         type="button"
@@ -182,7 +172,7 @@ function RootCommentItem(props: {
       ) : null}
 
       {replyingTo ? (
-        <div className="mt-4">
+        <div className="mt-3">
           <InlineCommentComposer
             busy={busy === "reply"}
             disabled={!props.canInteract}
@@ -220,7 +210,7 @@ function RootCommentItem(props: {
       ) : null}
 
       {error ? (
-        <Alert className="mt-4 border-rose-200 bg-rose-50 text-rose-900" variant="destructive">
+        <Alert className="mt-3 rounded-none border-border/80 bg-transparent text-foreground" variant="destructive">
           <AlertTitle>评论操作失败</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
@@ -231,17 +221,15 @@ function RootCommentItem(props: {
 
 export function PostCommentThread(props: ThreadProps) {
   return (
-    <div className="flex flex-col">
-      {props.comments.map((comment, index) => (
-        <div key={comment.id}>
-          <RootCommentItem
-            canInteract={props.canInteract}
-            comment={comment}
-            currentUserId={props.currentUserId}
-            postId={props.postId}
-          />
-          {index !== props.comments.length - 1 ? <Separator /> : null}
-        </div>
+    <div className={cn("border-y border-border/70", props.comments.length === 0 && "border-none")}>
+      {props.comments.map((comment) => (
+        <RootCommentItem
+          canInteract={props.canInteract}
+          comment={comment}
+          currentUserId={props.currentUserId}
+          key={comment.id}
+          postId={props.postId}
+        />
       ))}
     </div>
   );

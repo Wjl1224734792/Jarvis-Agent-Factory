@@ -32,6 +32,9 @@ import {
   createRankingCommentInputSchema,
   createRankingCommentResponseSchema,
   createRankingInputSchema,
+  addRankingItemInputSchema,
+  rankingItemResponseSchema,
+  updateRankingInputSchema,
   createRankingItemCommentInputSchema,
   createRankingItemCommentResponseSchema,
   currentUserResponseSchema,
@@ -57,6 +60,8 @@ import {
   submitModelReviewResponseSchema,
   submitRankingItemRatingInputSchema,
   submitRankingItemRatingResponseSchema,
+  submitRankingItemReviewInputSchema,
+  submitRankingItemReviewResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
   updateReviewStatusInputSchema,
   uploadPostImageResponseSchema,
@@ -90,9 +95,12 @@ type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
+type UpdateRankingInput = Parameters<typeof updateRankingInputSchema.parse>[0];
+type AddRankingItemInput = Parameters<typeof addRankingItemInputSchema.parse>[0];
 type CreateRankingCommentInput = Parameters<typeof createRankingCommentInputSchema.parse>[0];
 type CreateRankingItemCommentInput = Parameters<typeof createRankingItemCommentInputSchema.parse>[0];
 type SubmitRankingItemRatingInput = Parameters<typeof submitRankingItemRatingInputSchema.parse>[0];
+type SubmitRankingItemReviewInput = Parameters<typeof submitRankingItemReviewInputSchema.parse>[0];
 type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
 type UpdateAircraftSubmissionStatusInput =
   Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
@@ -445,6 +453,20 @@ export function createApiClient(options: ApiClientOptions) {
         createRankingInputSchema.parse(input)
       );
     },
+    async updateRanking(id: string, input: UpdateRankingInput) {
+      return putJson(
+        API_ROUTES.rankings.update(id),
+        rankingResponseSchema,
+        updateRankingInputSchema.parse(input)
+      );
+    },
+    async addRankingItem(id: string, input: AddRankingItemInput) {
+      return postJson(
+        API_ROUTES.rankings.items(id),
+        rankingItemResponseSchema,
+        addRankingItemInputSchema.parse(input)
+      );
+    },
     async getRankingDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.detail(id)}`, {
         method: "GET",
@@ -473,6 +495,13 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.rankings.itemRatings(id),
         submitRankingItemRatingResponseSchema,
         submitRankingItemRatingInputSchema.parse(input)
+      );
+    },
+    async submitRankingItemReview(id: string, input: SubmitRankingItemReviewInput) {
+      return postJson(
+        API_ROUTES.rankings.itemReview(id),
+        submitRankingItemReviewResponseSchema,
+        submitRankingItemReviewInputSchema.parse(input)
       );
     },
     async createRankingItemComment(id: string, input: CreateRankingItemCommentInput) {

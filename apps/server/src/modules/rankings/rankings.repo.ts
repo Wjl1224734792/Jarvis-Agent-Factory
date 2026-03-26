@@ -72,6 +72,7 @@ export const rankingsRepo = {
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageUrl: rankingsTable.coverImageUrl,
+        itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
         createdAt: rankingsTable.createdAt,
         updatedAt: rankingsTable.updatedAt,
@@ -93,6 +94,7 @@ export const rankingsRepo = {
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageUrl: rankingsTable.coverImageUrl,
+        itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
         createdAt: rankingsTable.createdAt,
         updatedAt: rankingsTable.updatedAt,
@@ -114,6 +116,7 @@ export const rankingsRepo = {
     title: string;
     description: string;
     coverImageUrl: string | null;
+    itemAddPolicy: "public" | "owner";
   }) {
     const id = createId("ranking");
     await db.insert(rankingsTable).values({
@@ -123,10 +126,36 @@ export const rankingsRepo = {
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
+      itemAddPolicy: input.itemAddPolicy,
       commentCount: 0
     });
 
     return this.getRankingById(id);
+  },
+  async updateRanking(
+    id: string,
+    input: {
+      title: string;
+      description: string;
+      coverImageUrl: string | null;
+      itemAddPolicy: "public" | "owner";
+    }
+  ) {
+    await db
+      .update(rankingsTable)
+      .set({
+        title: input.title,
+        description: input.description,
+        coverImageUrl: input.coverImageUrl,
+        itemAddPolicy: input.itemAddPolicy,
+        updatedAt: new Date()
+      })
+      .where(eq(rankingsTable.id, id));
+
+    return this.getRankingById(id);
+  },
+  async deleteRankingItems(rankingId: string) {
+    await db.delete(rankingItemsTable).where(eq(rankingItemsTable.rankingId, rankingId));
   },
   async createRankingItems(
     rankingId: string,
@@ -156,6 +185,38 @@ export const rankingsRepo = {
         commentCount: 0
       }))
     );
+  },
+  async countRankingItems(rankingId: string) {
+    const rows = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(rankingItemsTable)
+      .where(eq(rankingItemsTable.rankingId, rankingId));
+
+    return Number(rows[0]?.count ?? 0);
+  },
+  async addRankingItem(input: {
+    rankingId: string;
+    title: string;
+    summary: string | null;
+    imageUrl: string | null;
+    brandName: string | null;
+    linkedModelId: string | null;
+  }) {
+    const rank = (await this.countRankingItems(input.rankingId)) + 1;
+    const id = createId("ritem");
+    await db.insert(rankingItemsTable).values({
+      id,
+      rankingId: input.rankingId,
+      linkedModelId: input.linkedModelId,
+      rank,
+      title: input.title,
+      summary: input.summary,
+      imageUrl: input.imageUrl,
+      brandName: input.brandName,
+      commentCount: 0
+    });
+
+    return this.getRankingItemById(id);
   },
   async listRankingItems(rankingId: string) {
     return db
@@ -349,6 +410,75 @@ export const rankingsRepo = {
       .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
       .where(eq(rankingItemCommentsTable.rankingItemId, rankingItemId))
       .orderBy(asc(rankingItemCommentsTable.createdAt));
+  },
+  async listRankingItemReviews(rankingItemId: string) {
+    return db
+      .select({
+        id: rankingItemCommentsTable.id,
+        rankingItemId: rankingItemCommentsTable.rankingItemId,
+        content: rankingItemCommentsTable.content,
+        rating: rankingItemRatingsTable.rating,
+        createdAt: rankingItemCommentsTable.createdAt,
+        updatedAt: rankingItemCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          role: usersTable.role
+        }
+      })
+      .from(rankingItemCommentsTable)
+      .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
+      .leftJoin(
+        rankingItemRatingsTable,
+        and(
+          eq(rankingItemRatingsTable.rankingItemId, rankingItemCommentsTable.rankingItemId),
+          eq(rankingItemRatingsTable.userId, rankingItemCommentsTable.authorId)
+        )
+      )
+      .where(eq(rankingItemCommentsTable.rankingItemId, rankingItemId))
+      .orderBy(desc(rankingItemCommentsTable.updatedAt));
+  },
+  async upsertRankingItemReview(input: {
+    rankingItemId: string;
+    authorId: string;
+    rating: number;
+    content: string;
+  }) {
+    await this.upsertRankingItemRating({
+      rankingItemId: input.rankingItemId,
+      userId: input.authorId,
+      rating: input.rating
+    });
+
+    const existingComment = await db
+      .select({ id: rankingItemCommentsTable.id })
+      .from(rankingItemCommentsTable)
+      .where(
+        and(
+          eq(rankingItemCommentsTable.rankingItemId, input.rankingItemId),
+          eq(rankingItemCommentsTable.authorId, input.authorId)
+        )
+      )
+      .limit(1);
+
+    if (existingComment.length > 0) {
+      await db
+        .update(rankingItemCommentsTable)
+        .set({
+          content: input.content,
+          updatedAt: new Date()
+        })
+        .where(eq(rankingItemCommentsTable.id, existingComment[0].id));
+    } else {
+      await db.insert(rankingItemCommentsTable).values({
+        id: createId("ricom"),
+        rankingItemId: input.rankingItemId,
+        authorId: input.authorId,
+        content: input.content
+      });
+    }
+
+    await this.syncRankingItemCommentCount(input.rankingItemId);
   },
   async createRankingItemComment(input: {
     rankingItemId: string;

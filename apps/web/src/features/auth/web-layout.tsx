@@ -1,15 +1,13 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
-  ChevronDownIcon,
   CompassIcon,
   HouseIcon,
   LibraryBigIcon,
   MenuIcon,
-  PlusIcon,
   SearchIcon,
   TrophyIcon
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
@@ -124,7 +122,36 @@ export function WebLayout() {
   const location = useLocation();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
+
+  useEffect(() => {
+    return () => {
+      if (closeTimerRef.current) {
+        clearTimeout(closeTimerRef.current);
+      }
+    };
+  }, []);
+
+  function openPublishMenu() {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
+    }
+
+    setIsPublishMenuOpen(true);
+  }
+
+  function scheduleClosePublishMenu() {
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+    }
+
+    closeTimerRef.current = setTimeout(() => {
+      setIsPublishMenuOpen(false);
+      closeTimerRef.current = null;
+    }, 160);
+  }
 
   return (
     <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "242px" }}>
@@ -178,11 +205,11 @@ export function WebLayout() {
           <div className="flex items-center gap-2 sm:gap-3">
             <div
               className="relative"
-              onMouseEnter={() => setIsPublishMenuOpen(true)}
-              onMouseLeave={() => setIsPublishMenuOpen(false)}
+              onMouseEnter={openPublishMenu}
+              onMouseLeave={scheduleClosePublishMenu}
             >
               <Button
-                className="min-w-[10.25rem] justify-center gap-2.5 rounded-full px-5 max-sm:min-w-[2.75rem] max-sm:px-0"
+                className="min-w-[6.8rem] justify-center rounded-full px-5 text-sm font-semibold max-sm:min-w-[4.6rem]"
                 onClick={() => {
                   setIsPublishMenuOpen((value) => !value);
                 }}
@@ -190,27 +217,26 @@ export function WebLayout() {
                 type="button"
                 variant="hero"
               >
-                <PlusIcon />
-                <span className="hidden sm:inline">发布</span>
-                <ChevronDownIcon className="hidden size-4 sm:inline" />
+                发布
               </Button>
 
               {isPublishMenuOpen ? (
-                <div className="absolute right-0 top-[calc(100%+0.65rem)] z-50 w-[13.5rem] rounded-[1.4rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
+                <div
+                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[12.5rem] rounded-[1.1rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
+                  onMouseEnter={openPublishMenu}
+                  onMouseLeave={scheduleClosePublishMenu}
+                >
                   <div className="space-y-0.5">
                     {publishEntries.map((entry) => (
                       <Link
-                        className="grid h-11 grid-cols-[1fr_auto] items-center gap-3 rounded-[1rem] px-3.5 text-left text-sm text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                        className="flex h-10 items-center rounded-[0.85rem] px-3.5 text-left text-sm font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
                         key={entry.to}
                         onClick={() => {
                           setIsPublishMenuOpen(false);
                         }}
                         to={entry.to}
                       >
-                        <span className="truncate text-[0.98rem] font-medium tracking-[0.01em] text-foreground">
-                          {entry.label}
-                        </span>
-                        <PlusIcon className="size-3.5 text-primary/72" />
+                        <span className="truncate">{entry.label}</span>
                       </Link>
                     ))}
                   </div>

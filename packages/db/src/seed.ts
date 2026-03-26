@@ -277,7 +277,9 @@ async function seedUsersAndReviews() {
     ["vision-jet-g2-plus", "13800138102", 4, "个人航空体验很完整，但门槛高。"]
   ] as const;
 
-  await db.insert(aircraftReviewsTable).values(
+  await db
+    .insert(aircraftReviewsTable)
+    .values(
     reviewSeeds.map(([slug, phone, rating, content], index) => ({
       id: createId("review"),
       modelId: modelIdBySlug.get(slug)!,
@@ -288,7 +290,8 @@ async function seedUsersAndReviews() {
       createdAt: new Date(Date.UTC(2026, 2, 20, 8, index, 0)),
       updatedAt: new Date(Date.UTC(2026, 2, 20, 12, index, 0))
     }))
-  );
+    )
+    .onConflictDoNothing();
 }
 
 async function seedPostsAndComments() {
@@ -488,6 +491,7 @@ async function seedRankingsAndItems() {
     title: "2026 城市航拍装备推荐榜",
     description: "围绕城市航拍、便携性和稳定性做的一份混合条目榜单。",
     coverImageUrl: null,
+    itemAddPolicy: "owner",
     commentCount: 1
   });
 

@@ -1,331 +1,354 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  CameraIcon,
-  GripVerticalIcon,
-  LightbulbIcon,
-  SearchIcon,
-  Settings2Icon
-} from "lucide-react";
-import { useMemo, useState } from "react";
-import { Link } from "react-router-dom";
-import {
-  SiteGrid,
-  SitePage,
-  SitePageEyebrow,
-  SitePanel,
-  SitePanelBody,
-  SiteRail
-} from "@/components/site-shell";
-import { Badge } from "@/components/ui/badge";
+import { CameraIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { SitePage } from "@/components/site-shell";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
-const rankingCategories = ["商务航空", "航拍无人机", "通航培训", "载重运输"] as const;
-const visibilityOptions = ["Public (Everyone)", "Followers Only", "Private Draft"] as const;
+type DraftItem = {
+  id: string;
+  title: string;
+  summary: string;
+  imageUrl: string;
+  brandName: string;
+  linkedModelSlug: string | null;
+};
+
+function emptyDraftItem(): DraftItem {
+  return {
+    id: crypto.randomUUID(),
+    title: "",
+    summary: "",
+    imageUrl: "",
+    brandName: "",
+    linkedModelSlug: null
+  };
+}
 
 export function RankingEditorPage() {
-  const [name, setName] = useState("Top 10 Mid-Size Business Jets 2024");
-  const [description, setDescription] = useState(
-    "分享这份榜单的评判标准、使用场景与个人视角，让读者知道它为什么值得收藏。"
-  );
-  const [category, setCategory] = useState<string>(rankingCategories[0]!);
-  const [visibility, setVisibility] = useState<string>(visibilityOptions[0]!);
-  const [sortOrder, setSortOrder] = useState<"DESC" | "ASC">("DESC");
-  const [coverImage, setCoverImage] = useState(getEditorialImage("ranking-editor"));
-  const [selectedModelSlugs, setSelectedModelSlugs] = useState<string[]>([]);
-  const [lastSavedAt, setLastSavedAt] = useState("14:23");
+  const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
+  const addMode = searchParams.get("add") === "1";
+  const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [itemAddPolicy, setItemAddPolicy] = useState<"public" | "owner">("owner");
+  const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const modelsQuery = useQuery({
     queryKey: ["ranking-editor-models"],
     queryFn: () => apiClient.listModels()
   });
+  const detailQuery = useQuery({
+    queryKey: ["ranking-detail", editId],
+    queryFn: () => apiClient.getRankingDetail(editId!),
+    enabled: Boolean(editId)
+  });
 
-  const selectedModels =
-    modelsQuery.data?.items.filter((model) => selectedModelSlugs.includes(model.slug)) ?? [];
+  useEffect(() => {
+    if (!detailQuery.data?.item) {
+      return;
+    }
 
-  const availableModels =
-    modelsQuery.data?.items.filter((model) => !selectedModelSlugs.includes(model.slug)).slice(0, 8) ??
-    [];
+    const ranking = detailQuery.data.item;
+    setTitle(ranking.title);
+    setDescription(ranking.description);
+    setCoverImageUrl(ranking.coverImageUrl ?? "");
+    setItemAddPolicy(ranking.itemAddPolicy);
+    setDraftItems(
+      ranking.items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        summary: item.summary ?? "",
+        imageUrl: item.imageUrl ?? "",
+        brandName: item.brandName ?? item.linkedModel?.brand.name ?? "",
+        linkedModelSlug: item.linkedModel?.slug ?? null
+      }))
+    );
+  }, [detailQuery.data?.item]);
 
-  const previewItems = useMemo(() => selectedModels.slice(0, 5), [selectedModels]);
+  const selectedModelSlugs = useMemo(
+    () => new Set(draftItems.map((item) => item.linkedModelSlug).filter(Boolean)),
+    [draftItems]
+  );
+  const suggestedModels =
+    modelsQuery.data?.items.filter((model) => !selectedModelSlugs.has(model.slug)).slice(0, 8) ?? [];
 
-  function addModel(slug: string) {
-    setSelectedModelSlugs((current) => (current.includes(slug) ? current : [...current, slug]));
+  function appendModel(slug: string, name: string, brandName: string, imageUrl: string) {
+    setDraftItems((items) => [
+      ...items,
+      {
+        id: crypto.randomUUID(),
+        title: name,
+        summary: "",
+        imageUrl,
+        brandName,
+        linkedModelSlug: slug
+      }
+    ]);
   }
 
-  function removeModel(slug: string) {
-    setSelectedModelSlugs((current) => current.filter((item) => item !== slug));
+  function appendCustomItem() {
+    setDraftItems((items) => [...items, emptyDraftItem()]);
   }
+
+  function updateItem(id: string, patch: Partial<DraftItem>) {
+    setDraftItems((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }
+
+  function removeItem(id: string) {
+    setDraftItems((items) => items.filter((item) => item.id !== id));
+  }
+
+  const isFormValid =
+    title.trim().length >= 2 &&
+    description.trim().length > 0 &&
+    draftItems.length > 0 &&
+    draftItems.every((item) => item.title.trim().length > 0);
 
   return (
-    <SitePage>
-      <SiteGrid className="xl:grid-cols-[minmax(0,1fr)_420px]">
-        <div className="flex flex-col gap-6">
-          <SitePanel>
-            <SitePanelBody className="space-y-8">
-              <div className="grid gap-6">
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-muted-foreground">Ranking Name</label>
-                  <Input className="h-12" onChange={(event) => setName(event.target.value)} value={name} />
-                </div>
+    <SitePage className="mx-auto w-full max-w-[1080px] gap-6">
+      <div className="flex items-center justify-between gap-4">
+        <div>
+          <div className="text-sm text-primary">{editId ? (addMode ? "新增排行对象" : "编辑榜单") : "创建榜单"}</div>
+          <h1 className="mt-2 text-[2rem] font-semibold tracking-[-0.05em] text-foreground">
+            {editId ? "维护榜单内容" : "创建新的榜单"}
+          </h1>
+        </div>
+        <Button asChild variant="ghost">
+          <Link to={APP_ROUTES.rankings}>返回榜单</Link>
+        </Button>
+      </div>
 
-                <div className="space-y-3">
-                  <label className="text-sm font-medium text-muted-foreground">Bio / Description</label>
-                  <Textarea
-                    className="min-h-36"
-                    onChange={(event) => setDescription(event.target.value)}
-                    value={description}
-                  />
-                </div>
+      {detailQuery.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>榜单数据加载失败</AlertTitle>
+          <AlertDescription>{detailQuery.error.message}</AlertDescription>
+        </Alert>
+      ) : null}
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-muted-foreground">Category</label>
-                    <div className="grid gap-2">
-                      {rankingCategories.map((item) => (
-                        <button
-                          className={`rounded-[var(--radius-control)] border px-4 py-3 text-left transition ${
-                            category === item
-                              ? "border-primary/20 bg-primary/8 text-primary"
-                              : "border-border/80 bg-background text-foreground"
-                          }`}
-                          key={item}
-                          onClick={() => setCategory(item)}
-                          type="button"
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="space-y-3">
-                    <label className="text-sm font-medium text-muted-foreground">Visibility</label>
-                    <div className="grid gap-2">
-                      {visibilityOptions.map((item) => (
-                        <button
-                          className={`rounded-[var(--radius-control)] border px-4 py-3 text-left transition ${
-                            visibility === item
-                              ? "border-primary/20 bg-primary/8 text-primary"
-                              : "border-border/80 bg-background text-foreground"
-                          }`}
-                          key={item}
-                          onClick={() => setVisibility(item)}
-                          type="button"
-                        >
-                          {item}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Cover Image</div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">Upload ranking hero</div>
-                </div>
-                <Button
-                  onClick={() => setCoverImage(getEditorialImage(`${name}-${Date.now()}`))}
-                  type="button"
-                  variant="panel"
-                >
-                  <CameraIcon data-icon="inline-start" />
-                  Refresh Cover
-                </Button>
-              </div>
-
-              <div className="overflow-hidden rounded-[var(--radius-control)] border border-dashed border-border/80">
-                <img alt="ranking cover" className="h-72 w-full object-cover" src={coverImage} />
-              </div>
-
-              <div className="flex items-center justify-between gap-3 rounded-[var(--radius-control)] bg-background/72 px-5 py-4">
-                <div>
-                  <div className="text-xl font-semibold text-foreground">Sort Order</div>
-                  <div className="mt-1 text-sm text-muted-foreground">
-                    Determine how items are displayed by default
-                  </div>
-                </div>
-                <div className="flex gap-2 rounded-[var(--radius-control)] border border-border/80 bg-background p-1">
-                  {(["DESC", "ASC"] as const).map((item) => (
-                    <button
-                      className={`rounded-[calc(var(--radius-control)-0.2rem)] px-4 py-2 text-sm font-medium transition ${
-                        sortOrder === item ? "bg-primary text-primary-foreground" : "text-muted-foreground"
-                      }`}
-                      key={item}
-                      onClick={() => setSortOrder(item)}
-                      type="button"
-                    >
-                      {item}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel>
-            <SitePanelBody className="space-y-6">
-              <div className="flex items-center justify-between gap-4">
-                <div>
-                  <div className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Add Aircraft To List</div>
-                  <div className="mt-2 text-2xl font-semibold text-foreground">Curate the ranking</div>
-                </div>
-                <Badge className="rounded-full px-3 py-1" variant="secondary">
-                  {selectedModels.length} Items Added
-                </Badge>
-              </div>
-
-              <div className="rounded-[var(--radius-control)] border border-border/80 bg-background px-4 py-3 text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <SearchIcon className="size-4" />
-                  Search Aircraft Library...
-                </div>
-              </div>
-
-              <div className="grid gap-4">
-                {selectedModels.map((model, index) => (
-                  <div
-                    className="flex items-center gap-4 rounded-[var(--radius-control)] border border-border/80 bg-background/82 px-4 py-4"
-                    key={model.slug}
-                  >
-                    <div className="flex size-12 items-center justify-center rounded-[var(--radius-control)] bg-primary/10 text-lg font-semibold text-primary">
-                      {(index + 1).toString().padStart(2, "0")}
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-lg font-semibold text-foreground">{model.name}</div>
-                      <div className="mt-1 text-sm uppercase tracking-[0.2em] text-muted-foreground">
-                        {model.category.name}
-                      </div>
-                    </div>
-                    <Button onClick={() => removeModel(model.slug)} size="sm" type="button" variant="outline">
-                      Remove
-                    </Button>
-                    <GripVerticalIcon className="size-4 text-muted-foreground" />
-                  </div>
-                ))}
-
-                {selectedModels.length === 0 ? (
-                  <div className="rounded-[var(--radius-control)] border border-dashed border-border/80 bg-background/72 px-4 py-6 text-sm text-muted-foreground">
-                    先从下方候选机型里加入 3-5 个项目，右侧预览会实时更新。
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="text-sm uppercase tracking-[0.28em] text-muted-foreground">Available Picks</div>
-              <div className="grid gap-4 md:grid-cols-2">
-                {availableModels.map((model) => (
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_360px]">
+        <div className="space-y-8">
+          <section className="space-y-4 border border-border/60 p-4">
+            <div className="text-lg font-semibold text-foreground">基础信息</div>
+            <Input onChange={(event) => setTitle(event.target.value)} placeholder="榜单标题" value={title} />
+            <Textarea
+              className="min-h-32"
+              onChange={(event) => setDescription(event.target.value)}
+              placeholder="榜单简介"
+              value={description}
+            />
+            <div className="space-y-2">
+              <div className="text-sm font-medium text-foreground/72">谁可新增排行对象</div>
+              <div className="flex flex-wrap gap-2">
+                {[
+                  { value: "public", label: "访问用户可新增" },
+                  { value: "owner", label: "只有自己可新增" }
+                ].map((item) => (
                   <button
-                    className="flex items-center gap-4 rounded-[var(--radius-control)] border border-border/80 bg-background/82 p-4 text-left transition hover:border-primary/20 hover:bg-primary/4"
-                    key={model.slug}
-                    onClick={() => addModel(model.slug)}
+                    className={`rounded-full border px-3 py-1.5 text-sm transition ${
+                      itemAddPolicy === item.value
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border/70 text-foreground/72"
+                    }`}
+                    key={item.value}
+                    onClick={() => setItemAddPolicy(item.value as "public" | "owner")}
                     type="button"
                   >
-                    <img
-                      alt={model.name}
-                      className="h-20 w-24 rounded-[var(--radius-control)] object-cover"
-                      src={getModelImage(model.slug, model.powerType)}
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-base font-semibold text-foreground">{model.name}</div>
-                      <div className="mt-1 text-sm text-muted-foreground">{model.brand.name}</div>
-                    </div>
+                    {item.label}
                   </button>
                 ))}
               </div>
-            </SitePanelBody>
-          </SitePanel>
+            </div>
+          </section>
 
-          <SitePanel variant="muted">
-            <SitePanelBody className="flex items-center justify-between gap-4">
-              <div className="text-sm text-muted-foreground">All changes autosaved at {lastSavedAt}</div>
-              <div className="flex gap-3">
-                <Button
+          <section className="space-y-4 border border-border/60 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-lg font-semibold text-foreground">封面图</div>
+              <Button
+                onClick={() => setCoverImageUrl(getEditorialImage(`ranking-cover-${Date.now()}`))}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <CameraIcon data-icon="inline-start" />
+                换一张
+              </Button>
+            </div>
+            <div className="overflow-hidden rounded-[0.95rem]">
+              <img
+                alt="ranking cover"
+                className="h-[240px] w-full object-cover"
+                src={coverImageUrl || getEditorialImage("ranking-editor")}
+              />
+            </div>
+          </section>
+
+          <section className="space-y-4 border border-border/60 p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-lg font-semibold text-foreground">排行对象</div>
+              <Button onClick={appendCustomItem} size="sm" type="button" variant="outline">
+                <PlusIcon data-icon="inline-start" />
+                新增自定义条目
+              </Button>
+            </div>
+
+            <div className="space-y-4">
+              {draftItems.map((item, index) => (
+                <div className="space-y-3 border-b border-border/60 pb-4 last:border-b-0" key={item.id}>
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-foreground">#{index + 1}</div>
+                    <Button onClick={() => removeItem(item.id)} size="sm" type="button" variant="ghost">
+                      <Trash2Icon className="size-4" />
+                    </Button>
+                  </div>
+                  <Input
+                    onChange={(event) => updateItem(item.id, { title: event.target.value })}
+                    placeholder="标题"
+                    value={item.title}
+                  />
+                  <Input
+                    onChange={(event) => updateItem(item.id, { brandName: event.target.value })}
+                    placeholder="品牌 / 标签"
+                    value={item.brandName}
+                  />
+                  <Textarea
+                    className="min-h-24"
+                    onChange={(event) => updateItem(item.id, { summary: event.target.value })}
+                    placeholder="摘要"
+                    value={item.summary}
+                  />
+                  <Input
+                    onChange={(event) => updateItem(item.id, { imageUrl: event.target.value })}
+                    placeholder="图片地址（可留空）"
+                    value={item.imageUrl}
+                  />
+                </div>
+              ))}
+            </div>
+
+            {draftItems.length === 0 ? (
+              <div className="text-sm text-muted-foreground">先从下方飞行器库中选择，或新增一个自定义条目。</div>
+            ) : null}
+          </section>
+
+          <section className="space-y-4 border border-border/60 p-4">
+            <div className="text-lg font-semibold text-foreground">从飞行器库添加</div>
+            <div className="grid gap-3 md:grid-cols-2">
+              {suggestedModels.map((model, index) => (
+                <button
+                  className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 border border-border/60 p-3 text-left transition hover:border-primary/30 hover:bg-primary/3"
+                  key={model.id}
                   onClick={() =>
-                    setLastSavedAt(
-                      new Date().toLocaleTimeString("zh-CN", {
-                        hour: "2-digit",
-                        minute: "2-digit"
-                      })
+                    appendModel(
+                      model.slug,
+                      model.name,
+                      model.brand.name,
+                      getModelImage(model.slug, model.powerType, index)
                     )
                   }
                   type="button"
-                  variant="panel"
                 >
-                  Save Draft
-                </Button>
-                <Button asChild variant="hero">
-                  <Link to={APP_ROUTES.rankings}>Publish Ranking</Link>
-                </Button>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
+                  <img
+                    alt={model.name}
+                    className="h-[88px] w-full rounded-[0.8rem] object-cover"
+                    src={getModelImage(model.slug, model.powerType, index)}
+                  />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-foreground">{model.name}</div>
+                    <div className="text-xs text-muted-foreground">{model.brand.name}</div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </section>
+
+          {submitError ? (
+            <Alert variant="destructive">
+              <AlertTitle>榜单提交失败</AlertTitle>
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          <div className="flex flex-wrap justify-end gap-3">
+            <Button
+              disabled={!isFormValid || isSubmitting}
+              onClick={() => {
+                setSubmitError(null);
+                setIsSubmitting(true);
+                const payload = {
+                  title,
+                  description,
+                  coverImageUrl: coverImageUrl || null,
+                  itemAddPolicy,
+                  items: draftItems.map((item) => ({
+                    title: item.title.trim(),
+                    summary: item.summary.trim() ? item.summary.trim() : null,
+                    imageUrl: item.imageUrl.trim() ? item.imageUrl.trim() : null,
+                    brandName: item.brandName.trim() ? item.brandName.trim() : null,
+                    linkedModelSlug: item.linkedModelSlug
+                  }))
+                };
+
+                const request = editId
+                  ? apiClient.updateRanking(editId, payload)
+                  : apiClient.createRanking(payload);
+
+                void request
+                  .then((response) => {
+                    navigate(APP_ROUTES.rankingDetail.replace(":id", response.item.id));
+                  })
+                  .catch((reason: unknown) => {
+                    setSubmitError(reason instanceof Error ? reason.message : "榜单提交失败");
+                  })
+                  .finally(() => {
+                    setIsSubmitting(false);
+                  });
+              }}
+              type="button"
+              variant="hero"
+            >
+              {isSubmitting ? "提交中..." : editId ? "保存榜单" : "发布榜单"}
+            </Button>
+          </div>
         </div>
 
-        <SiteRail>
-          <SitePanel>
-            <div className="px-[var(--panel-padding)] pt-[var(--panel-padding)]">
-              <SitePageEyebrow>Real-Time Preview</SitePageEyebrow>
+        <div className="space-y-4">
+          <div className="text-lg font-semibold text-foreground">实时预览</div>
+          <div className="overflow-hidden rounded-[0.95rem] border border-border/60">
+            <img
+              alt="preview cover"
+              className="h-[220px] w-full object-cover"
+              src={coverImageUrl || getEditorialImage("ranking-preview")}
+            />
+          </div>
+          <div className="space-y-2">
+            <div className="text-[1.4rem] font-semibold text-foreground">{title || "榜单标题"}</div>
+            <div className="text-sm leading-7 text-muted-foreground">
+              {description || "榜单简介会显示在这里。"}
             </div>
-            <div className="mx-[var(--panel-padding)] mt-4 overflow-hidden rounded-[var(--radius-control)]">
-              <img alt="preview cover" className="h-64 w-full object-cover" src={coverImage} />
-            </div>
-            <SitePanelBody className="space-y-4">
-              <Badge className="rounded-full px-3 py-1" variant="secondary">
-                {category}
-              </Badge>
-              <div className="text-[2rem] font-semibold leading-tight text-foreground">{name}</div>
-              <div className="text-sm leading-7 text-muted-foreground">{description}</div>
-              <div className="space-y-3">
-                {previewItems.map((model, index) => (
-                  <div
-                    className="flex items-center gap-4 rounded-[var(--radius-control)] border border-border/80 bg-background/72 px-4 py-4"
-                    key={model.slug}
-                  >
-                    <div className="flex size-9 items-center justify-center rounded-[calc(var(--radius-control)-0.25rem)] bg-primary/10 text-sm font-semibold text-primary">
-                      {index + 1}
-                    </div>
-                    <div className="font-medium text-foreground">{model.name}</div>
-                  </div>
-                ))}
-                {previewItems.length === 0 ? (
-                  <div className="rounded-[var(--radius-control)] border border-dashed border-border/80 bg-background/72 px-4 py-5 text-sm text-muted-foreground">
-                    Search and add aircraft to populate the preview ranking.
-                  </div>
-                ) : null}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="highlight">
-            <SitePanelBody className="flex items-start gap-4">
-              <LightbulbIcon className="mt-1 size-5" />
-              <div>
-                <div className="text-xl font-semibold">Pro Tip: Editor’s Choice</div>
-                <div className="mt-2 text-sm leading-7 text-panel-highlight-foreground/86">
-                  Adding detailed bios for each aircraft increases engagement by 45% in the Flight Circle.
+          </div>
+          <div className="space-y-3">
+            {draftItems.slice(0, 5).map((item, index) => (
+              <div className="border-b border-border/60 pb-3 last:border-b-0" key={item.id}>
+                <div className="text-sm font-medium text-foreground">
+                  #{index + 1} {item.title || "未命名条目"}
                 </div>
+                <div className="text-xs text-muted-foreground">{item.brandName || "待补充品牌"}</div>
               </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
-            <SitePanelBody className="flex items-center gap-3 text-sm text-muted-foreground">
-              <Settings2Icon className="size-5 text-primary" />
-              这版先实现布局与实时预览，后续如果你需要，我可以继续把榜单提交接口一并接上。
-            </SitePanelBody>
-          </SitePanel>
-        </SiteRail>
-      </SiteGrid>
+            ))}
+          </div>
+        </div>
+      </div>
     </SitePage>
   );
 }

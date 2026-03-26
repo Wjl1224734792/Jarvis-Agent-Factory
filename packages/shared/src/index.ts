@@ -90,9 +90,12 @@ export const API_ROUTES = {
   rankings: {
     overview: "/rankings",
     create: "/rankings",
+    update: (id: string) => `/rankings/${id}`,
     detail: (id: string) => `/rankings/${id}`,
+    items: (id: string) => `/rankings/${id}/items`,
     comments: (id: string) => `/rankings/${id}/comments`,
     itemDetail: (id: string) => `/ranking-items/${id}`,
+    itemReview: (id: string) => `/ranking-items/${id}/review`,
     itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
     itemComments: (id: string) => `/ranking-items/${id}/comments`
   },

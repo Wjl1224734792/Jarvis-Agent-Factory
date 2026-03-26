@@ -1,14 +1,19 @@
 import {
+  addRankingItemInputSchema,
   createRankingCommentInputSchema,
   createRankingCommentResponseSchema,
   createRankingInputSchema,
   createRankingItemCommentInputSchema,
   createRankingItemCommentResponseSchema,
   rankingItemDetailResponseSchema,
+  rankingItemResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
   submitRankingItemRatingInputSchema,
-  submitRankingItemRatingResponseSchema
+  submitRankingItemRatingResponseSchema,
+  submitRankingItemReviewInputSchema,
+  submitRankingItemReviewResponseSchema,
+  updateRankingInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -44,6 +49,28 @@ rankingsRoute.post(API_ROUTES.rankings.create, requireAuth, async (context) => {
   return context.json(rankingResponseSchema.parse(payload));
 });
 
+rankingsRoute.put(API_ROUTES.rankings.update(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = updateRankingInputSchema.parse(await context.req.json());
+  const result = await rankingsService.updateRanking(id, currentUser.id, input);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(rankingResponseSchema.parse(result.payload));
+});
+
 rankingsRoute.get(API_ROUTES.rankings.detail(":id"), async (context) => {
   const id = context.req.param("id");
   if (!id) {
@@ -56,6 +83,28 @@ rankingsRoute.get(API_ROUTES.rankings.detail(":id"), async (context) => {
   }
 
   return context.json(rankingResponseSchema.parse(payload));
+});
+
+rankingsRoute.post(API_ROUTES.rankings.items(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = addRankingItemInputSchema.parse(await context.req.json());
+  const result = await rankingsService.addRankingItem(id, currentUser.id, input);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(rankingItemResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.comments(":id"), requireAuth, async (context) => {
@@ -89,6 +138,25 @@ rankingsRoute.get(API_ROUTES.rankings.itemDetail(":id"), async (context) => {
   }
 
   return context.json(rankingItemDetailResponseSchema.parse(payload));
+});
+
+rankingsRoute.post(API_ROUTES.rankings.itemReview(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = submitRankingItemReviewInputSchema.parse(await context.req.json());
+  const payload = await rankingsService.submitRankingItemReview(id, currentUser.id, input);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
+  }
+
+  return context.json(submitRankingItemReviewResponseSchema.parse(payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.itemRatings(":id"), requireAuth, async (context) => {

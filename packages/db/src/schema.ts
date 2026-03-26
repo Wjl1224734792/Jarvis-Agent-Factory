@@ -354,6 +354,7 @@ export const rankingsTable = pgTable("rankings", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   coverImageUrl: text("cover_image_url"),
+  itemAddPolicy: text("item_add_policy").default("owner").notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -428,19 +429,28 @@ export const rankingItemRatingsTable = pgTable(
   })
 );
 
-export const rankingItemCommentsTable = pgTable("ranking_item_comments", {
-  id: text("id").primaryKey(),
-  rankingItemId: text("ranking_item_id")
-    .notNull()
-    .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
-  authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  content: text("content").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .defaultNow()
-    .notNull()
-});
+export const rankingItemCommentsTable = pgTable(
+  "ranking_item_comments",
+  {
+    id: text("id").primaryKey(),
+    rankingItemId: text("ranking_item_id")
+      .notNull()
+      .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    rankingItemAuthorUnique: uniqueIndex("ranking_item_comments_item_author_unique").on(
+      table.rankingItemId,
+      table.authorId
+    )
+  })
+);
