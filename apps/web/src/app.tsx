@@ -82,6 +82,10 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.compose.slice(1),
         element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
+      },
+      {
+        path: "*",
+        element: <Navigate replace to={APP_ROUTES.feedHome} />
       }
     ]
   }

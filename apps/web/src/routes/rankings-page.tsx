@@ -8,6 +8,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { buildRankingDetailPath } from "@/lib/web-routes";
 import { apiClient } from "../lib/api-client";
+import { getModelImage } from "../lib/aviation-media";
 
 const officialCardLabels = [
   { id: "official-endurance", eyebrow: "效率", title: "续航之王", startIndex: 0 },
@@ -38,7 +39,7 @@ function OfficialRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex min-w-0 flex-col gap-4 border border-border/65 px-4 py-4 transition hover:border-primary/35 hover:bg-primary/[0.03]"
+      className="flex min-w-0 flex-col gap-3 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
       to={buildRankingDetailPath(props.id)}
     >
       <div className="space-y-1">
@@ -48,8 +49,19 @@ function OfficialRankingCard(props: {
 
       <div className="space-y-3">
         {props.items.slice(0, 3).map((item) => (
-          <div className="grid grid-cols-[1.7rem_minmax(0,1fr)] gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0" key={item.id}>
+          <div
+            className="grid grid-cols-[1.3rem_3rem_minmax(0,1fr)] items-center gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0"
+            key={item.id}
+          >
             <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
+            <img
+              alt={item.title}
+              className="h-12 w-12 rounded-[0.8rem] object-cover"
+              src={
+                item.imageUrl ??
+                getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
+              }
+            />
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-foreground">{item.title}</div>
               <div className="mt-1">
@@ -68,7 +80,7 @@ function CommunityRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex min-w-0 flex-col gap-4 border border-border/65 px-4 py-4 transition hover:border-primary/35 hover:bg-primary/[0.03]"
+      className="flex min-w-0 flex-col gap-3 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
       to={buildRankingDetailPath(props.ranking.id)}
     >
       <div className="space-y-1">
@@ -80,8 +92,19 @@ function CommunityRankingCard(props: {
 
       <div className="space-y-3">
         {props.ranking.items.slice(0, 3).map((item) => (
-          <div className="grid grid-cols-[1.7rem_minmax(0,1fr)] gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0" key={item.id}>
+          <div
+            className="grid grid-cols-[1.3rem_3rem_minmax(0,1fr)] items-center gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0"
+            key={item.id}
+          >
             <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
+            <img
+              alt={item.title}
+              className="h-12 w-12 rounded-[0.8rem] object-cover"
+              src={
+                item.imageUrl ??
+                getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
+              }
+            />
             <div className="min-w-0">
               <div className="truncate text-sm font-medium text-foreground">{item.title}</div>
               <div className="mt-1">

@@ -158,7 +158,10 @@ export function HomePage() {
             ) : null}
 
             {feedItems.map((item, index) => (
-              <article className="border-b border-border/60 py-4 last:border-b-0" key={item.id}>
+              <article
+                className="mb-4 rounded-[1rem] border border-border/60 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition duration-200 hover:border-primary/25 hover:bg-sky-50/65 hover:shadow-[0_26px_55px_-42px_rgba(37,99,235,0.3)] last:mb-0"
+                key={item.id}
+              >
                 <Link
                   className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-start"
                   to={APP_ROUTES.postDetail.replace(":id", item.id)}

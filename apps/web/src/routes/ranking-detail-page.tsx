@@ -53,50 +53,48 @@ export function RankingDetailPage() {
       {!id || (!rankingQuery.isLoading && !ranking) ? (
         <Alert>
           <AlertTitle>榜单详情不可用</AlertTitle>
-          <AlertDescription>当前榜单不存在，或还没有可展示的数据。</AlertDescription>
+          <AlertDescription>当前榜单不存在，或者还没有可展示的数据。</AlertDescription>
         </Alert>
       ) : null}
 
       {ranking ? (
         <>
-          <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_360px]">
-            <div className="space-y-4">
-              <div className="overflow-hidden rounded-[0.95rem]">
-                <img
-                  alt={ranking.title}
-                  className="h-[260px] w-full object-cover md:h-[320px]"
-                  src={ranking.coverImageUrl ?? getEditorialImage(ranking.id)}
-                />
-              </div>
+          <div className="grid gap-5 rounded-[1rem] border border-border/65 bg-white p-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[minmax(0,520px)_minmax(0,1fr)] md:p-6">
+            <div className="overflow-hidden rounded-[0.95rem]">
+              <img
+                alt={ranking.title}
+                className="h-[260px] w-full object-cover md:h-[320px]"
+                src={ranking.coverImageUrl ?? getEditorialImage(ranking.id)}
+              />
+            </div>
 
-              <div className="space-y-3">
-                <div className="text-sm text-primary">{ranking.type === "official" ? "官方榜单" : ranking.author.displayName}</div>
+            <div className="flex min-w-0 flex-col justify-between gap-5">
+              <div className="space-y-4">
+                <div className="text-sm text-primary">
+                  {ranking.type === "official" ? "官方榜单" : ranking.author.displayName}
+                </div>
                 <h1 className="text-[2.1rem] leading-[1.05] font-semibold tracking-[-0.05em] text-foreground">
                   {ranking.title}
                 </h1>
-                <p className="max-w-[48rem] text-[0.98rem] leading-8 text-foreground/72">{ranking.description}</p>
+                <p className="text-[0.98rem] leading-8 text-foreground/72">{ranking.description}</p>
                 <RatingStars score={ranking.averageScore} />
               </div>
-            </div>
 
-            <div className="space-y-3 border border-border/60 p-4">
-              <div className="text-lg font-semibold text-foreground">榜单操作</div>
-              {ranking.viewer.canEdit ? (
-                <Button asChild className="w-full" variant="hero">
-                  <Link to={`${APP_ROUTES.rankingEditor}?edit=${ranking.id}`}>编辑榜单</Link>
-                </Button>
-              ) : null}
-              {ranking.viewer.canAddItems ? (
-                <Button asChild className="w-full" variant="outline">
-                  <Link to={`${APP_ROUTES.rankingEditor}?edit=${ranking.id}&add=1`}>
-                    <PlusIcon data-icon="inline-start" />
-                    新增排行对象
-                  </Link>
-                </Button>
-              ) : null}
-              {!ranking.viewer.canEdit && !ranking.viewer.canAddItems ? (
-                <div className="text-sm leading-7 text-muted-foreground">
-                  当前榜单为只读状态。点击下方排行项可查看评分与点评。
+              {ranking.viewer.canEdit || ranking.viewer.canAddItems ? (
+                <div className="flex flex-wrap gap-3">
+                  {ranking.viewer.canEdit ? (
+                    <Button asChild variant="hero">
+                      <Link to={`${APP_ROUTES.rankingEditor}?edit=${ranking.id}`}>编辑榜单</Link>
+                    </Button>
+                  ) : null}
+                  {ranking.viewer.canAddItems ? (
+                    <Button asChild variant="outline">
+                      <Link to={`${APP_ROUTES.rankingEditor}?edit=${ranking.id}&add=1`}>
+                        <PlusIcon data-icon="inline-start" />
+                        新增排行项
+                      </Link>
+                    </Button>
+                  ) : null}
                 </div>
               ) : null}
             </div>
@@ -107,23 +105,30 @@ export function RankingDetailPage() {
             <div className="space-y-4">
               {ranking.items.map((item) => (
                 <Link
-                  className="grid gap-4 border-b border-border/60 pb-4 last:border-b-0 md:grid-cols-[52px_108px_minmax(0,1fr)]"
+                  className="grid gap-4 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_14px_38px_-40px_rgba(15,23,42,0.25)] transition hover:border-primary/30 hover:bg-sky-50/60 md:grid-cols-[52px_108px_minmax(0,1fr)]"
                   key={item.id}
                   to={`${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >
-                  <div className="text-[1.8rem] font-semibold italic text-primary/46">{String(item.rank).padStart(2, "0")}</div>
+                  <div className="text-[1.8rem] font-semibold italic text-primary/46">
+                    {String(item.rank).padStart(2, "0")}
+                  </div>
                   <img
                     alt={item.title}
                     className="h-[88px] w-full rounded-[0.85rem] object-cover"
                     src={
                       item.imageUrl ??
-                      getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
+                      getModelImage(
+                        item.linkedModel?.slug ?? item.id,
+                        item.linkedModel?.powerType ?? "electric"
+                      )
                     }
                   />
                   <div className="space-y-2">
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
-                        <div className="truncate text-[1.04rem] font-semibold text-foreground">{item.title}</div>
+                        <div className="truncate text-[1.04rem] font-semibold text-foreground">
+                          {item.title}
+                        </div>
                         <div className="text-sm text-muted-foreground">
                           {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                         </div>

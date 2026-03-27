@@ -49,7 +49,7 @@ export function LoginPage() {
   const redirectTo =
     searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
       ? searchParams.get("redirect")
-      : APP_ROUTES.webProfile;
+      : APP_ROUTES.feedHome;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 px-4 py-8 backdrop-blur-md">
@@ -240,7 +240,7 @@ export function LoginPage() {
                     })
                     .then((response) => {
                       setAuthenticated(response.user);
-                      navigate(redirectTo ?? APP_ROUTES.webProfile, { replace: true });
+                      navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
                     })
                     .catch((error: unknown) => {
                       setSubmitError(error instanceof Error ? error.message : "登录失败");
