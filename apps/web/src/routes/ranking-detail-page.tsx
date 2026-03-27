@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -19,6 +20,10 @@ export function RankingDetailPage() {
   });
 
   const ranking = rankingQuery.data?.item;
+
+  if (rankingQuery.isLoading) {
+    return <DetailPageSkeleton />;
+  }
 
   return (
     <SitePage className="mx-auto w-full max-w-[1120px] gap-5">

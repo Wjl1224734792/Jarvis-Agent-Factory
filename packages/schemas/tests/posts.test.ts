@@ -19,6 +19,7 @@ describe("posts contract", () => {
 
   it("parses the create post payload with uploaded images", () => {
     const payload = createPostInputSchema.parse({
+      type: "article",
       title: "Crosswind notes",
       content: "This airframe held trim better than expected in gusty conditions.",
       imageIds: ["image_1", "image_2"]

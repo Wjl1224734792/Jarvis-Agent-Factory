@@ -2,6 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { HeartIcon, MessageCircleIcon, Share2Icon, UserCheckIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { ListPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -10,6 +11,7 @@ import { InlineCommentComposer } from "@/features/posts/inline-comment-composer"
 import { PostCommentThread } from "@/features/posts/post-comment-thread";
 import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
 import { useAuthStore } from "../features/auth/auth-store";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
 
@@ -37,6 +39,7 @@ export function CirclePage() {
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
+  const promptLogin = useLoginPrompt();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
   const [commentContent, setCommentContent] = useState("");
@@ -76,13 +79,17 @@ export function CirclePage() {
     setActionError(null);
   }
 
+  if (feedQuery.isLoading && !selectedNoteId) {
+    return <ListPageSkeleton rows={6} />;
+  }
+
   return (
     <SitePage className="gap-4">
       <div className="border-b border-border/60">
         <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {feedTabs.map((tab) => (
             <button
-              className={`border-b-2 px-0 py-2.5 text-[0.92rem] transition-colors ${
+              className={`site-tab-trigger border-b-2 px-0 py-2.5 text-[0.92rem] transition-colors ${
                 activeTab === tab.id
                   ? "border-primary font-semibold text-primary"
                   : "border-transparent text-foreground/62 hover:text-foreground"
@@ -129,7 +136,7 @@ export function CirclePage() {
       ) : null}
 
       {posts.length > 0 ? (
-        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
+        <div className="site-tab-panel max-w-[680px]" key={activeTab} style={{ columnWidth: "208px", columnGap: "12px" }}>
           {posts.map((item, index) => (
             <button
               className={`mb-3 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
@@ -208,13 +215,22 @@ export function CirclePage() {
                         <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
                           {new Date(selectedNote.publishedAt ?? selectedNote.createdAt).toLocaleDateString("zh-CN")}
                         </div>
-                      </div>
+                        登录后评论
+                      </Button>
                     </div>
 
                     {!selectedNote.engagement.viewer.isAuthor ? (
                       <Button
                         className="rounded-full"
                         onClick={() => {
+                          if (
+                            !promptLogin({
+                              title: "登录后才能关注作者",
+                              description: "关注前请先登录。"
+                            })
+                          ) {
+                            return;
+                          }
                           setActionError(null);
                           void apiClient
                             .toggleFollow(selectedNote.author.id)
@@ -335,7 +351,18 @@ export function CirclePage() {
                         value={commentContent}
                       />
                     ) : (
-                      <div className="rounded-[0.8rem] border border-border px-3 py-2 text-[0.82rem] text-muted-foreground">
+                      <Button
+                        className="w-full"
+                        onClick={() => {
+                          promptLogin({
+                            title: "登录后才能评论",
+                            description: "评论前请先登录。"
+                          });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
                         登录后可参与评论。
                       </div>
                     )}

@@ -26,6 +26,10 @@ describe("models contract", () => {
           name: "DJI Mini 4 Pro",
           summary: "轻量级航拍无人机",
           powerType: "electric",
+          ratingSummary: {
+            averageScore: 8.8,
+            totalReviews: 12
+          },
           category: {
             id: "cat_1",
             slug: "drone",
@@ -73,9 +77,13 @@ describe("models contract", () => {
         slug: "mini-4-pro",
         name: "DJI Mini 4 Pro",
         summary: "轻量级航拍无人机",
-        description: "适合轻量化航拍场景",
+        description: "适合轻量化航拍场景。",
         powerType: "electric",
         isPublished: true,
+        ratingSummary: {
+          averageScore: 8.8,
+          totalReviews: 12
+        },
         category: {
           id: "cat_1",
           slug: "drone",
@@ -102,7 +110,7 @@ describe("models contract", () => {
       brandId: "brand_1",
       powerType: "electric",
       summary: "轻量级航拍无人机",
-      description: "适合轻量化航拍场景",
+      description: "适合轻量化航拍场景。",
       maxFlightTimeMinutes: 45,
       maxRangeKilometers: 18,
       maxSpeedKph: 58,

@@ -1,30 +1,13 @@
 import type { RankingDetail, RankingItem, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
-import { reviewsRepo } from "../reviews/reviews.repo";
 import { rankingsRepo } from "./rankings.repo";
 
-const BAYESIAN_BASELINE_REVIEW_COUNT = 5;
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
-const OFFICIAL_RANKING_DEFINITIONS = [
-  {
-    id: "official-endurance",
-    title: "续航之王",
-    description: "聚合续航、稳定性与真实口碑形成的官方只读榜单。",
-    startIndex: 0
-  },
-  {
-    id: "official-value",
-    title: "性价比之选",
-    description: "围绕综合投入产出比整理的官方只读榜单。",
-    startIndex: 1
-  },
-  {
-    id: "official-utility",
-    title: "实用优先",
-    description: "偏向日常飞行与高频使用场景的官方只读榜单。",
-    startIndex: 2
-  }
-] as const;
+
+type CurrentUser = {
+  id: string;
+  role: "user" | "admin";
+};
 
 function toTenPointScore(rawAverage: number): number {
   if (rawAverage <= 0) {
@@ -53,15 +36,6 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
   const scoreCountMap = new Map<number, number>(
     rows.map((row) => [row.score, Number(row.count ?? 0)])
   );
-  return buildRatingBreakdown(scoreCountMap);
-}
-
-function buildRatingBreakdownFromRatings(ratings: number[]) {
-  const scoreCountMap = new Map<number, number>();
-  for (const rating of ratings) {
-    scoreCountMap.set(rating, (scoreCountMap.get(rating) ?? 0) + 1);
-  }
-
   return buildRatingBreakdown(scoreCountMap);
 }
 
@@ -161,270 +135,106 @@ function serializeRankingItemReview(
 }
 
 function toRankingViewer(input: {
-  currentUserId?: string;
+  currentUser?: CurrentUser;
   authorId: string;
   itemAddPolicy: "public" | "owner";
-  isOfficial?: boolean;
+  type: "official" | "community";
 }) {
-  if (input.isOfficial) {
-    return {
-      canEdit: false,
-      canAddItems: false
-    };
-  }
+  const isAdmin = input.currentUser?.role === "admin";
+  const canEdit =
+    input.type === "official"
+      ? isAdmin
+      : Boolean(input.currentUser && input.currentUser.id === input.authorId);
 
-  const canEdit = Boolean(input.currentUserId && input.currentUserId === input.authorId);
   return {
     canEdit,
-    canAddItems: Boolean(input.currentUserId) && (canEdit || input.itemAddPolicy === "public")
+    canAddItems: Boolean(input.currentUser) && (canEdit || input.itemAddPolicy === "public")
   };
 }
 
-async function listOfficialRankingItems(currentUserId?: string) {
-  const [models, aggregates, currentUserRatings] = await Promise.all([
-    rankingsRepo.listPublishedModels(),
-    rankingsRepo.listVisibleReviewAggregates(),
-    currentUserId ? rankingsRepo.listUserRatings(currentUserId) : Promise.resolve([])
+async function buildRankingListItems(currentUser?: CurrentUser) {
+  const rankings = await rankingsRepo.listRankings();
+
+  const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>>();
+  await Promise.all(
+    rankings.map(async (ranking) => {
+      const items = await rankingsRepo.listRankingItems(ranking.id);
+      rankingItemsByRanking.set(ranking.id, items);
+    })
+  );
+
+  const allRankingItemIds = Array.from(rankingItemsByRanking.values())
+    .flat()
+    .map((item) => item.id);
+  const [itemAggregates, userItemRatings] = await Promise.all([
+    rankingsRepo.listRankingItemRatingAggregates(allRankingItemIds),
+    currentUser
+      ? rankingsRepo.listUserRankingItemRatings(currentUser.id, allRankingItemIds)
+      : Promise.resolve([])
   ]);
 
-  const aggregateMap = new Map(
-    aggregates.map((item) => [
-      item.modelId,
+  const itemAggregateMap = new Map(
+    itemAggregates.map((item) => [
+      item.rankingItemId,
       {
-        totalReviews: Number(item.totalReviews ?? 0),
+        totalRatings: Number(item.totalRatings ?? 0),
         averageRaw: Number(item.averageRaw ?? 0)
       }
     ])
   );
-  const ratingMap = new Map(currentUserRatings.map((item) => [item.modelId, item.rating]));
-  const visibleAggregates = Array.from(aggregateMap.values()).filter((item) => item.totalReviews > 0);
-  const globalAverageRaw =
-    visibleAggregates.length > 0
-      ? visibleAggregates.reduce((sum, item) => sum + item.averageRaw, 0) / visibleAggregates.length
-      : 0;
+  const userItemRatingMap = new Map(userItemRatings.map((item) => [item.rankingItemId, item.rating]));
 
-  return models
-    .map((model, index) => {
-      const aggregate = aggregateMap.get(model.id) ?? { totalReviews: 0, averageRaw: 0 };
-      const bayesianRaw =
-        aggregate.totalReviews > 0
-          ? (aggregate.averageRaw * aggregate.totalReviews + globalAverageRaw * BAYESIAN_BASELINE_REVIEW_COUNT) /
-            (aggregate.totalReviews + BAYESIAN_BASELINE_REVIEW_COUNT)
-          : 0;
+  const all = rankings.map((ranking) => {
+    const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
+      serializeRankingItem(item, itemAggregateMap, userItemRatingMap)
+    );
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const itemAddPolicy =
+      rankingType === "official"
+        ? "owner"
+        : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
 
-      return {
-        id: `official-${model.id}`,
-        rankingId: "official",
-        rank: index + 1,
-        title: model.name,
-        summary: model.summary,
-        imageUrl: null,
-        brandName: model.brand.name,
-        linkedModel: {
-          ...model,
-          powerType: powerTypeSchema.parse(model.powerType)
-        },
-        averageScore: toTenPointScore(bayesianRaw),
-        totalRatings: aggregate.totalReviews,
-        commentCount: 0,
-        myRating: ratingMap.get(model.id) ?? null
-      } satisfies RankingItem;
-    })
-    .sort((a, b) => b.averageScore - a.averageScore || b.totalRatings - a.totalRatings);
-}
-
-function buildOfficialRankingDetail(
-  id: string,
-  currentUserId: string | undefined,
-  officialItems: RankingItem[]
-): { item: RankingDetail } | null {
-  const definition =
-    OFFICIAL_RANKING_DEFINITIONS.find((item) => item.id === id) ??
-    (id === "official" ? OFFICIAL_RANKING_DEFINITIONS[0] : null);
-
-  if (!definition) {
-    return null;
-  }
-
-  const items = officialItems.slice(definition.startIndex, definition.startIndex + 6);
-
-  return {
-    item: {
-      id: definition.id,
-      type: "official",
-      title: definition.title,
-      description: definition.description,
-      coverImageUrl: null,
-      itemAddPolicy: "owner",
-      viewer: toRankingViewer({
-        currentUserId,
-        authorId: "official-system",
-        itemAddPolicy: "owner",
-        isOfficial: true
-      }),
+    return {
+      id: ranking.id,
+      type: rankingType,
+      title: ranking.title,
+      description: ranking.description,
+      coverImageUrl: ranking.coverImageUrl,
+      itemAddPolicy,
       averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
-      commentCount: 0,
+      commentCount: ranking.commentCount,
       itemCount: items.length,
-      createdAt: new Date().toISOString(),
+      createdAt: ranking.createdAt.toISOString(),
       author: {
-        id: "official-system",
-        displayName: "官方榜单",
-        role: "admin"
+        id: ranking.author.id,
+        displayName: ranking.author.displayName,
+        role: ranking.author.role as "user" | "admin"
       },
-      comments: [],
-      items
-    }
-  };
-}
-
-async function getOfficialRankingItemDetail(id: string, currentUserId?: string) {
-  if (!id.startsWith("official-")) {
-    return null;
-  }
-
-  const modelId = id.slice("official-".length);
-  const [officialItems, models] = await Promise.all([
-    listOfficialRankingItems(currentUserId),
-    rankingsRepo.listPublishedModels()
-  ]);
-  const officialItem = officialItems.find((item) => item.id === id);
-  const model = models.find((item) => item.id === modelId);
-
-  if (!officialItem || !model) {
-    return null;
-  }
-
-  const [reviews, myReview] = await Promise.all([
-    reviewsRepo.listVisibleReviewsByModel(model.id),
-    currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
-  ]);
-  const ratingBreakdown = buildRatingBreakdownFromRatings(reviews.map((review) => review.rating));
-
-  const serializedReviews = reviews
-    .filter((review) => review.content && review.content.trim().length > 0)
-    .map((review) => ({
-      id: review.id,
-      rankingItemId: id,
-      content: review.content!,
-      rating: review.rating,
-      createdAt: review.createdAt.toISOString(),
-      updatedAt: review.updatedAt.toISOString(),
-      author: {
-        id: review.author.id,
-        displayName: review.author.displayName,
-        role: review.author.role as "user" | "admin"
-      }
-    }));
+      viewer: toRankingViewer({
+        currentUser,
+        authorId: ranking.author.id,
+        itemAddPolicy,
+        type: rankingType
+      }),
+      items: items.slice(0, 3)
+    } satisfies RankingListItem;
+  });
 
   return {
-    item: {
-      ...officialItem,
-      ranking: {
-        id: "official-endurance",
-        title: "续航之王"
-      },
-      comments: serializedReviews,
-      ratingBreakdown,
-      myReview:
-        myReview && myReview.content
-          ? {
-              id: myReview.id,
-              rankingItemId: id,
-              content: myReview.content,
-              rating: myReview.rating,
-              createdAt: myReview.createdAt.toISOString(),
-              updatedAt: myReview.updatedAt.toISOString(),
-              author: {
-                id: myReview.author.id,
-                displayName: myReview.author.displayName,
-                role: myReview.author.role as "user" | "admin"
-              }
-            }
-          : null
-    }
+    official: all.filter((item) => item.type === "official"),
+    community: all.filter((item) => item.type === "community")
   };
 }
 
 export const rankingsService = {
-  async listRankings(currentUserId?: string) {
-    const [officialItems, rankings] = await Promise.all([
-      listOfficialRankingItems(currentUserId),
-      rankingsRepo.listRankings()
-    ]);
-
-    const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>>();
-    await Promise.all(
-      rankings.map(async (ranking) => {
-        const items = await rankingsRepo.listRankingItems(ranking.id);
-        rankingItemsByRanking.set(ranking.id, items);
-      })
-    );
-
-    const allRankingItemIds = Array.from(rankingItemsByRanking.values())
-      .flat()
-      .map((item) => item.id);
-    const [itemAggregates, userItemRatings] = await Promise.all([
-      rankingsRepo.listRankingItemRatingAggregates(allRankingItemIds),
-      currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, allRankingItemIds) : Promise.resolve([])
-    ]);
-    const itemAggregateMap = new Map(
-      itemAggregates.map((item) => [
-        item.rankingItemId,
-        {
-          totalRatings: Number(item.totalRatings ?? 0),
-          averageRaw: Number(item.averageRaw ?? 0)
-        }
-      ])
-    );
-    const userItemRatingMap = new Map(userItemRatings.map((item) => [item.rankingItemId, item.rating]));
-
-    const community: RankingListItem[] = rankings.map((ranking) => {
-      const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
-        serializeRankingItem(item, itemAggregateMap, userItemRatingMap)
-      );
-      const itemAddPolicy = (ranking.itemAddPolicy as "public" | "owner") ?? "owner";
-
-      return {
-        id: ranking.id,
-        type: ranking.type as "official" | "community",
-        title: ranking.title,
-        description: ranking.description,
-        coverImageUrl: ranking.coverImageUrl,
-        itemAddPolicy,
-        averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
-        commentCount: ranking.commentCount,
-        itemCount: items.length,
-        createdAt: ranking.createdAt.toISOString(),
-        author: {
-          id: ranking.author.id,
-          displayName: ranking.author.displayName,
-          role: ranking.author.role as "user" | "admin"
-        },
-        viewer: toRankingViewer({
-          currentUserId,
-          authorId: ranking.author.id,
-          itemAddPolicy
-        }),
-        items: items.slice(0, 3)
-      };
-    });
-
-    return {
-      official: {
-        title: "飞行器官方榜",
-        description: "按综合评分与点评人数生成，优先展示已形成真实口碑的机型。",
-        algorithmNote: "官方榜基于机型点评聚合与基础平滑计算。",
-        generatedAt: new Date().toISOString(),
-        spotlight: officialItems[0] ?? null,
-        items: officialItems
-      },
-      community
-    };
+  async listRankings(currentUser?: CurrentUser) {
+    return buildRankingListItems(currentUser);
   },
 
   async createRanking(
-    currentUserId: string,
+    currentUser: CurrentUser,
     input: {
+      type: "official" | "community";
       title: string;
       description: string;
       coverImageUrl: string | null;
@@ -438,18 +248,23 @@ export const rankingsService = {
       }>;
     }
   ) {
+    if (input.type === "official" && currentUser.role !== "admin") {
+      return { kind: "forbidden" as const };
+    }
+
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
     const ranking = await rankingsRepo.createRanking({
-      authorId: currentUserId,
+      authorId: currentUser.id,
+      type: input.type,
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
-      itemAddPolicy: input.itemAddPolicy
+      itemAddPolicy: input.type === "official" ? "owner" : input.itemAddPolicy
     });
 
     if (!ranking) {
-      return null;
+      return { kind: "internal_error" as const };
     }
 
     await rankingsRepo.createRankingItems(
@@ -464,13 +279,19 @@ export const rankingsService = {
       }))
     );
 
-    return this.getRankingDetail(ranking.id, currentUserId);
+    const payload = await this.getRankingDetail(ranking.id, currentUser);
+    if (!payload) {
+      return { kind: "internal_error" as const };
+    }
+
+    return { kind: "ok" as const, payload };
   },
 
   async updateRanking(
     rankingId: string,
-    currentUserId: string,
+    currentUser: CurrentUser,
     input: {
+      type: "official" | "community";
       title: string;
       description: string;
       coverImageUrl: string | null;
@@ -489,7 +310,16 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    if (ranking.type === "official" || ranking.author.id !== currentUserId) {
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    if (input.type !== rankingType) {
+      return { kind: "forbidden" as const };
+    }
+
+    if (rankingType === "official") {
+      if (currentUser.role !== "admin") {
+        return { kind: "forbidden" as const };
+      }
+    } else if (ranking.author.id !== currentUser.id) {
       return { kind: "forbidden" as const };
     }
 
@@ -500,7 +330,7 @@ export const rankingsService = {
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
-      itemAddPolicy: input.itemAddPolicy
+      itemAddPolicy: rankingType === "official" ? "owner" : input.itemAddPolicy
     });
     await rankingsRepo.deleteRankingItems(rankingId);
     await rankingsRepo.createRankingItems(
@@ -515,7 +345,7 @@ export const rankingsService = {
       }))
     );
 
-    const payload = await this.getRankingDetail(rankingId, currentUserId);
+    const payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
     }
@@ -525,7 +355,7 @@ export const rankingsService = {
 
   async addRankingItem(
     rankingId: string,
-    currentUserId: string,
+    currentUser: CurrentUser,
     input: {
       title: string;
       summary: string | null;
@@ -539,14 +369,17 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    if (ranking.type === "official") {
-      return { kind: "forbidden" as const };
-    }
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const itemAddPolicy =
+      rankingType === "official"
+        ? "owner"
+        : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
 
     const viewer = toRankingViewer({
-      currentUserId,
+      currentUser,
       authorId: ranking.author.id,
-      itemAddPolicy: (ranking.itemAddPolicy as "public" | "owner") ?? "owner"
+      itemAddPolicy,
+      type: rankingType
     });
     if (!viewer.canAddItems) {
       return { kind: "forbidden" as const };
@@ -563,7 +396,7 @@ export const rankingsService = {
       linkedModelId: input.linkedModelSlug ? modelBySlug.get(input.linkedModelSlug)?.id ?? null : null
     });
 
-    const payload = await this.getRankingDetail(rankingId, currentUserId);
+    const payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
     }
@@ -571,11 +404,7 @@ export const rankingsService = {
     return { kind: "ok" as const, payload };
   },
 
-  async getRankingDetail(id: string, currentUserId?: string): Promise<{ item: RankingDetail } | null> {
-    if (id.startsWith("official")) {
-      return buildOfficialRankingDetail(id, currentUserId, await listOfficialRankingItems(currentUserId));
-    }
-
+  async getRankingDetail(id: string, currentUser?: CurrentUser): Promise<{ item: RankingDetail } | null> {
     const ranking = await rankingsRepo.getRankingById(id);
     if (!ranking) {
       return null;
@@ -585,7 +414,9 @@ export const rankingsService = {
     const [comments, aggregates, userRatings] = await Promise.all([
       rankingsRepo.listRankingComments(id),
       rankingsRepo.listRankingItemRatingAggregates(items.map((item) => item.id)),
-      currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, items.map((item) => item.id)) : Promise.resolve([])
+      currentUser
+        ? rankingsRepo.listUserRankingItemRatings(currentUser.id, items.map((item) => item.id))
+        : Promise.resolve([])
     ]);
     const aggregateMap = new Map(
       aggregates.map((item) => [
@@ -598,20 +429,25 @@ export const rankingsService = {
     );
     const userRatingMap = new Map(userRatings.map((item) => [item.rankingItemId, item.rating]));
     const serializedItems = items.map((item) => serializeRankingItem(item, aggregateMap, userRatingMap));
-    const itemAddPolicy = (ranking.itemAddPolicy as "public" | "owner") ?? "owner";
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const itemAddPolicy =
+      rankingType === "official"
+        ? "owner"
+        : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
 
     return {
       item: {
         id: ranking.id,
-        type: ranking.type as "official" | "community",
+        type: rankingType,
         title: ranking.title,
         description: ranking.description,
         coverImageUrl: ranking.coverImageUrl,
         itemAddPolicy,
         viewer: toRankingViewer({
-          currentUserId,
+          currentUser,
           authorId: ranking.author.id,
-          itemAddPolicy
+          itemAddPolicy,
+          type: rankingType
         }),
         averageScore: average(serializedItems.map((item) => item.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
@@ -629,10 +465,6 @@ export const rankingsService = {
   },
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {
-    if (rankingId.startsWith("official")) {
-      return null;
-    }
-
     const ranking = await rankingsRepo.getRankingById(rankingId);
     if (!ranking) {
       return null;
@@ -650,7 +482,7 @@ export const rankingsService = {
   async getRankingItemDetail(id: string, currentUserId?: string) {
     const item = await rankingsRepo.getRankingItemById(id);
     if (!item) {
-      return getOfficialRankingItemDetail(id, currentUserId);
+      return null;
     }
 
     const ranking = await rankingsRepo.getRankingById(item.rankingId);
@@ -665,12 +497,12 @@ export const rankingsService = {
       rankingsRepo.listRankingItemRatingBreakdown(id)
     ]);
     const aggregateMap = new Map(
-      aggregates.map((item) => [
-        item.rankingItemId,
-        { totalRatings: Number(item.totalRatings ?? 0), averageRaw: Number(item.averageRaw ?? 0) }
+      aggregates.map((entry) => [
+        entry.rankingItemId,
+        { totalRatings: Number(entry.totalRatings ?? 0), averageRaw: Number(entry.averageRaw ?? 0) }
       ])
     );
-    const userRatingMap = new Map(userRatings.map((item) => [item.rankingItemId, item.rating]));
+    const userRatingMap = new Map(userRatings.map((entry) => [entry.rankingItemId, entry.rating]));
     const serializedItem = serializeRankingItem(item, aggregateMap, userRatingMap);
     const serializedReviews = reviews
       .map((entry) => serializeRankingItemReview(entry))
@@ -703,18 +535,7 @@ export const rankingsService = {
   ) {
     const existing = await rankingsRepo.getRankingItemById(id);
     if (!existing) {
-      if (!id.startsWith("official-")) {
-        return null;
-      }
-
-      const modelId = id.slice("official-".length);
-      await reviewsRepo.upsertReview({
-        modelId,
-        userId: currentUserId,
-        rating: input.rating,
-        content: input.content
-      });
-      return this.getRankingItemDetail(id, currentUserId);
+      return null;
     }
 
     await rankingsRepo.upsertRankingItemReview({
@@ -730,39 +551,7 @@ export const rankingsService = {
   async submitRankingItemRating(id: string, currentUserId: string, rating: number) {
     const existing = await rankingsRepo.getRankingItemById(id);
     if (!existing) {
-      if (!id.startsWith("official-")) {
-        return null;
-      }
-
-      const modelId = id.slice("official-".length);
-      const currentReview = await reviewsRepo.getUserReview(modelId, currentUserId);
-      await reviewsRepo.upsertReview({
-        modelId,
-        userId: currentUserId,
-        rating,
-        content: currentReview?.content ?? null
-      });
-      const detail = await this.getRankingItemDetail(id, currentUserId);
-      if (!detail) {
-        return null;
-      }
-
-      return {
-        item: {
-          id: detail.item.id,
-          rankingId: detail.item.rankingId,
-          rank: detail.item.rank,
-          title: detail.item.title,
-          summary: detail.item.summary,
-          imageUrl: detail.item.imageUrl,
-          brandName: detail.item.brandName,
-          linkedModel: detail.item.linkedModel,
-          averageScore: detail.item.averageScore,
-          totalRatings: detail.item.totalRatings,
-          commentCount: detail.item.commentCount,
-          myRating: detail.item.myRating
-        }
-      };
+      return null;
     }
 
     await rankingsRepo.upsertRankingItemRating({

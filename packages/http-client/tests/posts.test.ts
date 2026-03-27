@@ -7,22 +7,22 @@ describe("posts api client", () => {
   });
 
   it("requests the home feed with tab query and credentials", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            tab: "recommended",
-            items: []
-          }),
-          {
-            status: 200,
-            headers: {
-              "content-type": "application/json"
-            }
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "recommended",
+          activeCategorySlug: null,
+          categories: [],
+          items: []
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
           }
-        )
-      );
+        }
+      )
+    );
 
     const client = createApiClient({
       baseUrl: "http://localhost:3002"
@@ -41,35 +41,34 @@ describe("posts api client", () => {
   });
 
   it("posts comments with the expected payload", async () => {
-    const fetchMock = vi
-      .spyOn(globalThis, "fetch")
-      .mockResolvedValue(
-        new Response(
-          JSON.stringify({
-            item: {
-              id: "comment_1",
-              postId: "post_1",
-              parentCommentId: null,
-              content: "这条帖子很实用。",
-              status: "visible",
-              createdAt: "2026-03-23T00:00:00.000Z",
-              updatedAt: "2026-03-23T00:00:00.000Z",
-              author: {
-                id: "user_1",
-                displayName: "飞友",
-                role: "user"
-              },
-              replies: []
-            }
-          }),
-          {
-            status: 200,
-            headers: {
-              "content-type": "application/json"
-            }
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          item: {
+            id: "comment_1",
+            postId: "post_1",
+            parentCommentId: null,
+            replyToCommentId: null,
+            content: "这条帖子很实用。",
+            status: "visible",
+            createdAt: "2026-03-23T00:00:00.000Z",
+            updatedAt: "2026-03-23T00:00:00.000Z",
+            author: {
+              id: "user_1",
+              displayName: "飞友",
+              role: "user"
+            },
+            replyToUser: null
           }
-        )
-      );
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
 
     const client = createApiClient({
       baseUrl: "http://localhost:3002"

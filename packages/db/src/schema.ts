@@ -321,9 +321,14 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   status: text("status").default("submitted").notNull(),
-  brandName: text("brand_name").notNull(),
+  categoryId: text("category_id")
+    .notNull()
+    .references(() => aircraftCategoriesTable.id, { onDelete: "restrict" }),
+  brandId: text("brand_id").references(() => brandsTable.id, {
+    onDelete: "set null"
+  }),
+  proposedBrandName: text("proposed_brand_name"),
   modelName: text("model_name").notNull(),
-  aircraftType: text("aircraft_type").notNull(),
   powerType: text("power_type").notNull(),
   summary: text("summary"),
   description: text("description"),

@@ -44,6 +44,19 @@ async function loginUser(phone: string) {
   return extractCookie(loginResponse.headers.get("set-cookie"));
 }
 
+async function loginAdmin() {
+  const response = await app.request(API_ROUTES.auth.adminLogin, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      account: "admin",
+      password: "Admin#123"
+    })
+  });
+
+  return extractCookie(response.headers.get("set-cookie"));
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -59,7 +72,7 @@ afterAll(async () => {
 });
 
 describe("content closure flows", () => {
-  it("exposes content categories and auto-approves aircraft submissions into the model library", async () => {
+  it("creates aircraft submission as submitted and does not auto-create model", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     expect(categoriesResponse.status).toBe(200);
 
@@ -67,6 +80,18 @@ describe("content closure flows", () => {
       items: Array<{ slug: string }>;
     };
     expect(categoriesPayload.items.length).toBeGreaterThanOrEqual(5);
+
+    const modelsBeforeResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsBefore = (await modelsBeforeResponse.json()) as {
+      items: Array<{ name: string }>;
+      filters: {
+        categories: Array<{ id: string; slug: string }>;
+      };
+    };
+    const droneCategoryId =
+      modelsBefore.filters.categories.find((item) => item.slug === "drone")?.id ??
+      modelsBefore.filters.categories[0]?.id;
+    expect(droneCategoryId).toBeTruthy();
 
     const cookie = await loginUser("13800138199");
     const submissionResponse = await app.request(API_ROUTES.submissions.create, {
@@ -76,12 +101,13 @@ describe("content closure flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        brandName: "FeiJia Labs",
+        categoryId: droneCategoryId,
+        brandId: null,
+        proposedBrandName: "FeiJia Labs",
         modelName: "Sky Weaver X1",
-        aircraftType: "无人机",
         powerType: "electric",
-        summary: "自动审核直过的投稿样本",
-        description: "用于验证飞行器投稿会进入模型库。",
+        summary: "submission sample",
+        description: "submission should stay pending review",
         coverImageUrl: null,
         galleryImageUrls: [],
         videoUrl: null,
@@ -94,19 +120,173 @@ describe("content closure flows", () => {
 
     expect(submissionResponse.status).toBe(200);
     const submissionPayload = (await submissionResponse.json()) as {
-      item: { status: string; approvedModelSlug: string | null };
+      item: {
+        status: string;
+        approvedModelId: string | null;
+        approvedModelSlug: string | null;
+        proposedBrandName: string | null;
+      };
     };
 
-    expect(submissionPayload.item.status).toBe("approved");
-    expect(submissionPayload.item.approvedModelSlug).toBeTruthy();
+    expect(submissionPayload.item.status).toBe("submitted");
+    expect(submissionPayload.item.approvedModelId).toBeNull();
+    expect(submissionPayload.item.approvedModelSlug).toBeNull();
+    expect(submissionPayload.item.proposedBrandName).toBe("FeiJia Labs");
 
     const modelsResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
     const modelsPayload = (await modelsResponse.json()) as {
-      items: Array<{ slug: string }>;
+      items: Array<{ name: string }>;
+    };
+
+    expect(modelsPayload.items.some((item) => item.name === "Sky Weaver X1")).toBe(false);
+  });
+
+  it("admin approve creates brand and model based on proposedBrandName", async () => {
+    const modelsResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsPayload = (await modelsResponse.json()) as {
+      filters: {
+        categories: Array<{ id: string; slug: string }>;
+      };
+    };
+    const categoryId =
+      modelsPayload.filters.categories.find((item) => item.slug === "drone")?.id ??
+      modelsPayload.filters.categories[0]?.id;
+    expect(categoryId).toBeTruthy();
+
+    const cookie = await loginUser("13800138198");
+    const createResponse = await app.request(API_ROUTES.submissions.create, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        categoryId,
+        brandId: null,
+        proposedBrandName: "SkyMaker Labs",
+        modelName: "Sky Weaver X2",
+        powerType: "electric",
+        summary: null,
+        description: null,
+        coverImageUrl: null,
+        galleryImageUrls: [],
+        videoUrl: null,
+        maxFlightTimeMinutes: 40,
+        maxRangeKilometers: 28,
+        maxSpeedKph: 70,
+        takeoffWeightGrams: 980
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as { item: { id: string } };
+
+    const adminCookie = await loginAdmin();
+    const approveResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved"
+      })
+    });
+
+    expect(approveResponse.status).toBe(200);
+    const approvePayload = (await approveResponse.json()) as {
+      item: {
+        status: string;
+        approvedModelId: string | null;
+        approvedModelSlug: string | null;
+        brand: { name: string } | null;
+      };
+    };
+
+    expect(approvePayload.item.status).toBe("approved");
+    expect(approvePayload.item.approvedModelId).toBeTruthy();
+    expect(approvePayload.item.approvedModelSlug).toBeTruthy();
+    expect(approvePayload.item.brand?.name).toBe("SkyMaker Labs");
+
+    const modelsAfterResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsAfter = (await modelsAfterResponse.json()) as {
+      items: Array<{ name: string; brand: { name: string } }>;
     };
 
     expect(
-      modelsPayload.items.some((item) => item.slug === submissionPayload.item.approvedModelSlug)
+      modelsAfter.items.some(
+        (item) => item.name === "Sky Weaver X2" && item.brand.name === "SkyMaker Labs"
+      )
     ).toBe(true);
+  });
+
+  it("admin reject only updates status and does not create model", async () => {
+    const modelsResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsPayload = (await modelsResponse.json()) as {
+      filters: {
+        categories: Array<{ id: string; slug: string }>;
+        brands: Array<{ id: string; slug: string }>;
+      };
+    };
+    const categoryId =
+      modelsPayload.filters.categories.find((item) => item.slug === "drone")?.id ??
+      modelsPayload.filters.categories[0]?.id;
+    const brandId =
+      modelsPayload.filters.brands.find((item) => item.slug === "dji")?.id ??
+      modelsPayload.filters.brands[0]?.id;
+
+    const cookie = await loginUser("13800138197");
+    const createResponse = await app.request(API_ROUTES.submissions.create, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        categoryId,
+        brandId,
+        proposedBrandName: null,
+        modelName: "Sky Weaver Reject",
+        powerType: "electric",
+        summary: null,
+        description: null,
+        coverImageUrl: null,
+        galleryImageUrls: [],
+        videoUrl: null,
+        maxFlightTimeMinutes: 30,
+        maxRangeKilometers: 20,
+        maxSpeedKph: 60,
+        takeoffWeightGrams: 700
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as { item: { id: string } };
+
+    const adminCookie = await loginAdmin();
+    const rejectResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "rejected"
+      })
+    });
+
+    expect(rejectResponse.status).toBe(200);
+    const rejectPayload = (await rejectResponse.json()) as {
+      item: {
+        status: string;
+        approvedModelId: string | null;
+      };
+    };
+    expect(rejectPayload.item.status).toBe("rejected");
+    expect(rejectPayload.item.approvedModelId).toBeNull();
+
+    const modelsAfterResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsAfter = (await modelsAfterResponse.json()) as {
+      items: Array<{ name: string }>;
+    };
+    expect(modelsAfter.items.some((item) => item.name === "Sky Weaver Reject")).toBe(false);
   });
 });

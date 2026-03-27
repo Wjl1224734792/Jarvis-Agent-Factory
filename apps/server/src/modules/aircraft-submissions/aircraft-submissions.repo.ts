@@ -1,5 +1,7 @@
 import {
+  aircraftCategoriesTable,
   aircraftSubmissionsTable,
+  brandsTable,
   createId,
   db,
   usersTable
@@ -10,9 +12,10 @@ function selection() {
   return {
     id: aircraftSubmissionsTable.id,
     status: aircraftSubmissionsTable.status,
-    brandName: aircraftSubmissionsTable.brandName,
+    categoryId: aircraftSubmissionsTable.categoryId,
+    brandId: aircraftSubmissionsTable.brandId,
+    proposedBrandName: aircraftSubmissionsTable.proposedBrandName,
     modelName: aircraftSubmissionsTable.modelName,
-    aircraftType: aircraftSubmissionsTable.aircraftType,
     powerType: aircraftSubmissionsTable.powerType,
     summary: aircraftSubmissionsTable.summary,
     description: aircraftSubmissionsTable.description,
@@ -30,6 +33,16 @@ function selection() {
       id: usersTable.id,
       displayName: usersTable.displayName,
       role: usersTable.role
+    },
+    category: {
+      id: aircraftCategoriesTable.id,
+      slug: aircraftCategoriesTable.slug,
+      name: aircraftCategoriesTable.name
+    },
+    brand: {
+      id: brandsTable.id,
+      slug: brandsTable.slug,
+      name: brandsTable.name
     }
   };
 }
@@ -38,9 +51,10 @@ export const aircraftSubmissionsRepo = {
   async create(input: {
     authorId: string;
     status: string;
-    brandName: string;
+    categoryId: string;
+    brandId: string | null;
+    proposedBrandName: string | null;
     modelName: string;
-    aircraftType: string;
     powerType: string;
     summary: string | null;
     description: string | null;
@@ -66,6 +80,11 @@ export const aircraftSubmissionsRepo = {
       .select(selection())
       .from(aircraftSubmissionsTable)
       .innerJoin(usersTable, eq(aircraftSubmissionsTable.authorId, usersTable.id))
+      .innerJoin(
+        aircraftCategoriesTable,
+        eq(aircraftSubmissionsTable.categoryId, aircraftCategoriesTable.id)
+      )
+      .leftJoin(brandsTable, eq(aircraftSubmissionsTable.brandId, brandsTable.id))
       .where(eq(aircraftSubmissionsTable.id, id))
       .limit(1);
 
@@ -76,14 +95,31 @@ export const aircraftSubmissionsRepo = {
       .select(selection())
       .from(aircraftSubmissionsTable)
       .innerJoin(usersTable, eq(aircraftSubmissionsTable.authorId, usersTable.id))
+      .innerJoin(
+        aircraftCategoriesTable,
+        eq(aircraftSubmissionsTable.categoryId, aircraftCategoriesTable.id)
+      )
+      .leftJoin(brandsTable, eq(aircraftSubmissionsTable.brandId, brandsTable.id))
       .orderBy(desc(aircraftSubmissionsTable.updatedAt));
   },
-  async updateStatus(id: string, status: string, approvedModelId: string | null) {
+  async updateStatusOnly(id: string, status: string) {
     await db
       .update(aircraftSubmissionsTable)
       .set({
         status,
+        updatedAt: new Date()
+      })
+      .where(eq(aircraftSubmissionsTable.id, id));
+
+    return this.findById(id);
+  },
+  async approveSubmission(id: string, approvedModelId: string, brandId: string | null) {
+    await db
+      .update(aircraftSubmissionsTable)
+      .set({
+        status: "approved",
         approvedModelId,
+        brandId,
         updatedAt: new Date()
       })
       .where(eq(aircraftSubmissionsTable.id, id));

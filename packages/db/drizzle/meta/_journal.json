@@ -1,55 +1,62 @@
 {
-  "version": "7",
-  "dialect": "postgresql",
-  "entries": [
-    {
-      "idx": 0,
-      "version": "7",
-      "when": 1774192322415,
-      "tag": "0000_minor_moonstone",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1774194112747,
-      "tag": "0001_clever_yellowjacket",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1774196368527,
-      "tag": "0002_robust_black_bolt",
-      "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1774202644945,
-      "tag": "0003_dizzy_frog_thor",
-      "breakpoints": true
-    },
-    {
-      "idx": 4,
-      "version": "7",
-      "when": 1774271481830,
-      "tag": "0004_greedy_psylocke",
-      "breakpoints": true
-    },
-    {
-      "idx": 5,
-      "version": "7",
-      "when": 1774453900490,
-      "tag": "0005_reflective_king_cobra",
-      "breakpoints": true
-    },
-    {
-      "idx": 6,
-      "version": "7",
-      "when": 1774499800000,
-      "tag": "0006_giant_oracle",
-      "breakpoints": true
-    }
-  ]
+    "version":  "7",
+    "dialect":  "postgresql",
+    "entries":  [
+                    {
+                        "idx":  0,
+                        "version":  "7",
+                        "when":  1774192322415,
+                        "tag":  "0000_minor_moonstone",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  1,
+                        "version":  "7",
+                        "when":  1774194112747,
+                        "tag":  "0001_clever_yellowjacket",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  2,
+                        "version":  "7",
+                        "when":  1774196368527,
+                        "tag":  "0002_robust_black_bolt",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  3,
+                        "version":  "7",
+                        "when":  1774202644945,
+                        "tag":  "0003_dizzy_frog_thor",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  4,
+                        "version":  "7",
+                        "when":  1774271481830,
+                        "tag":  "0004_greedy_psylocke",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  5,
+                        "version":  "7",
+                        "when":  1774453900490,
+                        "tag":  "0005_reflective_king_cobra",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  6,
+                        "version":  "7",
+                        "when":  1774499800000,
+                        "tag":  "0006_giant_oracle",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  7,
+                        "version":  "7",
+                        "when":  1774621800000,
+                        "tag":  "0007_neat_orb",
+                        "breakpoints":  true
+                    }
+                ]
 }

@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingBreakdown } from "@/components/rating-breakdown";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
@@ -11,6 +12,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { useAuthStore } from "../features/auth/auth-store";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage, getModelImage } from "../lib/aviation-media";
 
@@ -20,6 +22,7 @@ export function RankingItemDetailPage() {
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
+  const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
   const [selectedRating, setSelectedRating] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -43,6 +46,10 @@ export function RankingItemDetailPage() {
       setSelectedRating(item.myRating);
     }
   }, [item?.myRating, item?.myReview]);
+
+  if (detailQuery.isLoading) {
+    return <DetailPageSkeleton />;
+  }
 
   return (
     <SitePage className="mx-auto w-full max-w-[1080px] gap-5">
@@ -184,10 +191,22 @@ export function RankingItemDetailPage() {
                   />
                 </div>
               ) : (
-                <Alert>
+                <Button
+                  className="w-full"
+                  onClick={() => {
+                    promptLogin({
+                      title: "登录后才能点评",
+                      description: "点评前请先登录。"
+                    });
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
                   <AlertTitle>登录后可点评</AlertTitle>
                   <AlertDescription>需要先登录，才能选择星级并发布点评。</AlertDescription>
-                </Alert>
+                  登录后点评
+                </Button>
               )}
 
               {actionError ? (

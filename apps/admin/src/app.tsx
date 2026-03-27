@@ -10,6 +10,8 @@ import { CategoriesPage } from "./features/models/categories-page";
 import { ModelsPage } from "./features/models/models-page";
 import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
+import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
+import { RankingsPage } from "./features/rankings/rankings-page";
 import { ReviewsPage } from "./features/reviews/reviews-page";
 import { queryClient } from "./lib/query-client";
 
@@ -53,6 +55,18 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.adminPostComments.slice("/admin/".length),
         element: <PostCommentsPage />
+      },
+      {
+        path: APP_ROUTES.adminRankings.slice("/admin/".length),
+        element: <RankingsPage />
+      },
+      {
+        path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/new`,
+        element: <RankingEditorPage />
+      },
+      {
+        path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/:id`,
+        element: <RankingEditorPage />
       }
     ]
   }

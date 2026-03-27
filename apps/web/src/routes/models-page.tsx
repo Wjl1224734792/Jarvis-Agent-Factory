@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { Link, useSearchParams } from "react-router-dom";
+import { ListPageSkeleton } from "@/components/page-skeletons";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -152,6 +153,10 @@ export function ModelsPage() {
     updateParams({ powerTypes: nextPowerTypes });
   }
 
+  if (modelsQuery.isLoading) {
+    return <ListPageSkeleton rows={6} />;
+  }
+
   return (
     <SitePage className="gap-5">
       <div className="space-y-3 border-b border-border/60 pb-4">
@@ -194,21 +199,6 @@ export function ModelsPage() {
           ))}
         </div>
       </div>
-
-      {modelsQuery.isLoading ? (
-        <div
-          className="grid justify-start gap-x-4 gap-y-5"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
-        >
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div className="space-y-3" key={index}>
-              <div className="aspect-square animate-pulse rounded-[0.9rem] bg-muted" />
-              <div className="h-4 w-2/5 animate-pulse rounded bg-muted" />
-              <div className="h-5 w-4/5 animate-pulse rounded bg-muted" />
-            </div>
-          ))}
-        </div>
-      ) : null}
 
       {modelsQuery.isError ? (
         <Alert variant="destructive">

@@ -89,15 +89,6 @@ export const rankingListItemSchema = z.object({
   items: z.array(rankingItemSchema).max(3)
 });
 
-export const officialRankingSchema = z.object({
-  title: z.string().min(1),
-  description: z.string().min(1),
-  algorithmNote: z.string().min(1),
-  generatedAt: z.string().datetime(),
-  spotlight: rankingItemSchema.nullable(),
-  items: z.array(rankingItemSchema)
-});
-
 export const rankingDetailSchema = rankingListItemSchema.extend({
   comments: z.array(rankingCommentSchema),
   items: z.array(rankingItemSchema)
@@ -114,7 +105,7 @@ export const rankingItemDetailSchema = rankingItemSchema.extend({
 });
 
 export const rankingsResponseSchema = z.object({
-  official: officialRankingSchema,
+  official: z.array(rankingListItemSchema),
   community: z.array(rankingListItemSchema)
 });
 
@@ -127,6 +118,7 @@ const rankingDraftItemSchema = z.object({
 });
 
 export const createRankingInputSchema = z.object({
+  type: rankingTypeSchema,
   title: z.string().trim().min(2).max(120),
   description: z.string().trim().min(1).max(2000),
   coverImageUrl: z.string().trim().min(1).nullable(),

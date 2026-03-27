@@ -113,6 +113,7 @@ export const rankingsRepo = {
   },
   async createRanking(input: {
     authorId: string;
+    type: "official" | "community";
     title: string;
     description: string;
     coverImageUrl: string | null;
@@ -122,7 +123,7 @@ export const rankingsRepo = {
     await db.insert(rankingsTable).values({
       id,
       authorId: input.authorId,
-      type: "community",
+      type: input.type,
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,

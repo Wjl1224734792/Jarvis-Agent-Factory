@@ -6,6 +6,7 @@ import {
   LogOut,
   MessageSquareMore,
   Plane,
+  ScrollText,
   ShieldCheck,
   Star,
   Tags
@@ -44,6 +45,12 @@ const navItems = [
     label: "点评",
     hint: "口碑治理与展示",
     icon: Star
+  },
+  {
+    to: APP_ROUTES.adminRankings,
+    label: "榜单",
+    hint: "官方榜单与排行条目",
+    icon: ScrollText
   },
   {
     to: APP_ROUTES.adminPosts,
@@ -111,9 +118,9 @@ export function AdminShell() {
             <div className="flex h-full flex-col rounded-[32px] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.92)_0%,rgba(2,6,23,0.88)_100%)] p-5 shadow-[0_35px_90px_-50px_rgba(0,0,0,0.8)]">
               <div className="rounded-[28px] border border-cyan-300/10 bg-[linear-gradient(145deg,rgba(15,23,42,0.96)_0%,rgba(8,47,73,0.9)_55%,rgba(8,145,178,0.85)_100%)] p-5 shadow-[0_24px_70px_-40px_rgba(34,211,238,0.45)]">
                 <p className="text-xs uppercase tracking-[0.22em] text-cyan-100/70">Governance Console</p>
-                <h2 className="mt-3 text-xl font-semibold text-white">内容、口碑与机型治理台</h2>
+                <h2 className="mt-3 text-xl font-semibold text-white">内容、口碑、机型与榜单治理台</h2>
                 <p className="mt-3 text-sm leading-7 text-cyan-50/85">
-                  后台优先强调清晰层级、风险可见性和操作稳定性，不追求主站式展示感。
+                  以最小操作链路处理审核、分类、品牌、机型、榜单和评论。
                 </p>
               </div>
 
@@ -159,7 +166,7 @@ export function AdminShell() {
                   </p>
                 </div>
                 <div className="rounded-[22px] border border-dashed border-white/10 bg-white/4 p-4 text-sm leading-7 text-slate-400">
-                  当前后台聚焦最小治理闭环：内容审核、评论处理、点评展示与机型维护。
+                  当前后台聚焦最小治理闭环：内容审核、评论处理、点评展示、机型与官方榜单维护。
                 </div>
               </div>
             </div>

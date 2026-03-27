@@ -1,13 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
 import { Bookmark, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
-import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
-import { useAuthStore } from "../auth/auth-store";
+import { useLoginPrompt } from "../auth/use-login-prompt";
 
 type FeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
 type PostDetail = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"];
@@ -96,18 +94,21 @@ function ActionButton({
 }
 
 export function PostInteractionBar(props: Props) {
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authStatus = useAuthStore((state) => state.status);
+  const promptLogin = useLoginPrompt();
   const [busyAction, setBusyAction] = useState<BusyAction>(null);
   const [error, setError] = useState<string | null>(null);
 
   async function ensureAuthenticated() {
-    if (authStatus === "authenticated") {
+    if (
+      promptLogin({
+        title: "登录后才能互动",
+        description: "关注、点赞、收藏、分享都需要登录后才能继续。"
+      })
+    ) {
       return true;
     }
 
-    navigate(APP_ROUTES.webLogin);
     return false;
   }
 

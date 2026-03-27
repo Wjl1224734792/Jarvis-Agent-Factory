@@ -30,7 +30,7 @@ rankingsRoute.use("*", attachCurrentUser);
 
 rankingsRoute.get(API_ROUTES.rankings.overview, async (context) => {
   const currentUser = context.get("currentUser");
-  const payload = await rankingsService.listRankings(currentUser?.id);
+  const payload = await rankingsService.listRankings(currentUser ?? undefined);
   return context.json(rankingsResponseSchema.parse(payload));
 });
 
@@ -41,12 +41,15 @@ rankingsRoute.post(API_ROUTES.rankings.create, requireAuth, async (context) => {
   }
 
   const input = createRankingInputSchema.parse(await context.req.json());
-  const payload = await rankingsService.createRanking(currentUser.id, input);
-  if (!payload) {
+  const result = await rankingsService.createRanking(currentUser, input);
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+  if (result.kind !== "ok") {
     return context.json({ code: "INTERNAL_ERROR", message: "Failed to create ranking." }, 500);
   }
 
-  return context.json(rankingResponseSchema.parse(payload));
+  return context.json(rankingResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.put(API_ROUTES.rankings.update(":id"), requireAuth, async (context) => {
@@ -60,7 +63,7 @@ rankingsRoute.put(API_ROUTES.rankings.update(":id"), requireAuth, async (context
   }
 
   const input = updateRankingInputSchema.parse(await context.req.json());
-  const result = await rankingsService.updateRanking(id, currentUser.id, input);
+  const result = await rankingsService.updateRanking(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
   }
@@ -77,7 +80,7 @@ rankingsRoute.get(API_ROUTES.rankings.detail(":id"), async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  const payload = await rankingsService.getRankingDetail(id, context.get("currentUser")?.id);
+  const payload = await rankingsService.getRankingDetail(id, context.get("currentUser") ?? undefined);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
   }
@@ -96,7 +99,7 @@ rankingsRoute.post(API_ROUTES.rankings.items(":id"), requireAuth, async (context
   }
 
   const input = addRankingItemInputSchema.parse(await context.req.json());
-  const result = await rankingsService.addRankingItem(id, currentUser.id, input);
+  const result = await rankingsService.addRankingItem(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
   }

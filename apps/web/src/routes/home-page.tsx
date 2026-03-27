@@ -12,12 +12,14 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { ListPageSkeleton } from "@/components/page-skeletons";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
@@ -49,6 +51,7 @@ function formatCount(value: number) {
 export function HomePage() {
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
+  const promptLogin = useLoginPrompt();
   const [activeTab, setActiveTab] = useState<HomeTabState>({
     kind: "fixed",
     id: "recommended"
@@ -110,6 +113,10 @@ export function HomePage() {
     return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
+  if (feedQuery.isLoading || modelsQuery.isLoading || rankingsQuery.isLoading) {
+    return <ListPageSkeleton rows={4} withRail />;
+  }
+
   return (
     <SitePage>
       <SiteGrid className="items-start gap-4" variant="sidebar">
@@ -119,7 +126,7 @@ export function HomePage() {
               {allTabs.map((tab) => (
                 <button
                   className={cn(
-                    "relative border-b-2 border-transparent px-0 py-2.5 text-[0.9rem] text-foreground/70 transition-colors",
+                    "site-tab-trigger relative border-b-2 border-transparent px-0 py-2.5 text-[0.9rem] text-foreground/70 transition-colors",
                     isActive(tab.state) && "border-primary font-semibold text-primary"
                   )}
                   key={tab.key}
@@ -134,22 +141,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white">
-            {feedQuery.isLoading
-              ? Array.from({ length: 4 }).map((_, index) => (
-                  <div className="border-b border-border px-3 py-2.5" key={index}>
-                    <div className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)]">
-                      <div className="h-[96px] animate-pulse rounded-[0.8rem] bg-muted" />
-                      <div className="space-y-2">
-                        <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
-                        <div className="h-3.5 w-full animate-pulse rounded bg-muted" />
-                        <div className="h-3.5 w-4/5 animate-pulse rounded bg-muted" />
-                      </div>
-                    </div>
-                  </div>
-                ))
-              : null}
-
+          <section className="site-tab-panel mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white" key={activeTab.kind === "fixed" ? activeTab.id : activeTab.slug}>
             {feedQuery.isError ? (
               <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
@@ -231,7 +223,19 @@ export function HomePage() {
             <SitePanelBody className="space-y-2.5">
               <div className="text-base font-semibold text-foreground">发布入口</div>
               <Button asChild className="w-full" variant="hero">
-                <Link to={APP_ROUTES.publishArticle}>
+                <Link
+                  onClick={(event) => {
+                    if (isAuthenticated) {
+                      return;
+                    }
+                    event.preventDefault();
+                    promptLogin({
+                      title: "登录后才能创建内容",
+                      description: "发布文章前请先登录。"
+                    });
+                  }}
+                  to={APP_ROUTES.publishArticle}
+                >
                   <SquarePenIcon data-icon="inline-start" />
                   发布文章
                 </Link>

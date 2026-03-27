@@ -13,6 +13,7 @@ import { PostDetailPage } from "./routes/post-detail-page";
 import { PublishAircraftPage } from "./routes/publish-aircraft-page";
 import { PublishArticlePage } from "./routes/publish-article-page";
 import { PublishMomentPage } from "./routes/publish-moment-page";
+import { PublishStatusPage } from "./routes/publish-status-page";
 import { RankingDetailPage } from "./routes/ranking-detail-page";
 import { RankingEditorPage } from "./routes/ranking-editor-page";
 import { RankingItemDetailPage } from "./routes/ranking-item-detail-page";
@@ -78,6 +79,10 @@ const router = createBrowserRouter([
       {
         path: WEB_ROUTE_PATHS.publishAircraft.slice(1),
         element: <PublishAircraftPage />
+      },
+      {
+        path: WEB_ROUTE_PATHS.publishStatus.slice(1),
+        element: <PublishStatusPage />
       },
       {
         path: APP_ROUTES.compose.slice(1),

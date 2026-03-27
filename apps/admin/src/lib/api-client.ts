@@ -58,6 +58,109 @@ async function getJson<T>(path: string): Promise<T> {
   return parseResponse<T>(response);
 }
 
+type AdminRankingItem = {
+  id: string;
+  rank: number;
+  title: string;
+  summary: string | null;
+  imageUrl: string | null;
+  brandName: string | null;
+  averageScore: number;
+  linkedModel: {
+    slug: string;
+    name: string;
+    brand: {
+      name: string;
+    };
+  } | null;
+};
+
+type AdminRankingListItem = {
+  id: string;
+  type: "official" | "community";
+  title: string;
+  description: string;
+  coverImageUrl: string | null;
+  averageScore: number;
+  commentCount: number;
+  itemCount: number;
+  items: AdminRankingItem[];
+};
+
+type AdminRankingDetail = AdminRankingListItem & {
+  itemAddPolicy: "public" | "owner";
+  viewer: {
+    canEdit: boolean;
+    canAddItems: boolean;
+  };
+};
+
+type RankingDraftItemInput = {
+  title: string;
+  summary: string | null;
+  imageUrl: string | null;
+  brandName: string | null;
+  linkedModelSlug: string | null;
+};
+
+type OfficialRankingUpsertInput = {
+  type: "official";
+  title: string;
+  description: string;
+  coverImageUrl: string | null;
+  itemAddPolicy: "owner";
+  items: RankingDraftItemInput[];
+};
+
+const legacyOfficialDefinitions = [
+  {
+    id: "official-endurance",
+    title: "续航之王",
+    description: "官方排序"
+  },
+  {
+    id: "official-value",
+    title: "性价比之选",
+    description: "官方排序"
+  },
+  {
+    id: "official-utility",
+    title: "实用优先",
+    description: "官方排序"
+  }
+] as const;
+
+function averageScore(items: AdminRankingItem[]) {
+  if (items.length === 0) {
+    return 0;
+  }
+
+  return items.reduce((sum, item) => sum + item.averageScore, 0) / items.length;
+}
+
+function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
+  const official = payload.official as unknown;
+  if (Array.isArray(official)) {
+    return official as AdminRankingListItem[];
+  }
+
+  const legacyOfficial = official as { items: AdminRankingItem[] };
+  return legacyOfficialDefinitions.map((definition, index) => {
+    const items = legacyOfficial.items.slice(index, index + 3) as AdminRankingItem[];
+    return {
+      id: definition.id,
+      type: "official" as const,
+      title: definition.title,
+      description: definition.description,
+      coverImageUrl: null,
+      averageScore: averageScore(items),
+      commentCount: 0,
+      itemCount: items.length,
+      items
+    };
+  });
+}
+
 export const apiClient = {
   ...sharedClient,
   listCategories() {
@@ -130,5 +233,25 @@ export const apiClient = {
       API_ROUTES.models.adminBrandDetail(id),
       input
     );
+  },
+  listOfficialRankings() {
+    return sharedClient.listRankings().then((payload) => ({
+      items: normalizeOfficialRankings(payload)
+    }));
+  },
+  getRankingDetail(id: string) {
+    return getJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.detail(id));
+  },
+  createRanking(input: OfficialRankingUpsertInput) {
+    return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.create, input);
+  },
+  updateRanking(id: string, input: OfficialRankingUpsertInput) {
+    return putJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.update(id), input);
+  },
+  addRankingItem(id: string, input: RankingDraftItemInput) {
+    return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.items(id), input);
+  },
+  uploadImage(file: File) {
+    return sharedClient.uploadPostImage(file);
   }
 };

@@ -37,7 +37,8 @@ export const APP_ROUTES = {
   adminPosts: "/admin/posts",
   adminPostComments: "/admin/post-comments",
   adminContentCategories: "/admin/content-categories",
-  adminAircraftSubmissions: "/admin/aircraft-submissions"
+  adminAircraftSubmissions: "/admin/aircraft-submissions",
+  adminRankings: "/admin/rankings"
 } as const;
 
 export const API_ROUTES = {

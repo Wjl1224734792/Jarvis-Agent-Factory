@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
-import { powerTypeSchema } from "./models";
+import { aircraftCategorySchema, brandSchema, powerTypeSchema } from "./models";
 
 export const aircraftSubmissionStatusSchema = z.enum([
   "draft",
@@ -19,15 +19,27 @@ export const aircraftSubmissionParametersSchema = z.object({
 export const aircraftSubmissionSchema = z.object({
   id: z.string().min(1),
   status: aircraftSubmissionStatusSchema,
-  brandName: z.string().min(1),
+  category: aircraftCategorySchema.pick({
+    id: true,
+    slug: true,
+    name: true
+  }),
+  brand: brandSchema
+    .pick({
+      id: true,
+      slug: true,
+      name: true
+    })
+    .nullable(),
+  proposedBrandName: z.string().nullable(),
   modelName: z.string().min(1),
-  aircraftType: z.string().min(1),
   powerType: powerTypeSchema,
   summary: z.string().nullable(),
   description: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
   galleryImageUrls: z.array(z.string().min(1)),
   videoUrl: z.string().nullable(),
+  approvedModelId: z.string().nullable(),
   approvedModelSlug: z.string().nullable(),
   author: userSummarySchema,
   parameters: aircraftSubmissionParametersSchema,
@@ -36,9 +48,10 @@ export const aircraftSubmissionSchema = z.object({
 });
 
 export const createAircraftSubmissionInputSchema = z.object({
-  brandName: z.string().trim().min(1).max(80),
+  categoryId: z.string().trim().min(1),
+  brandId: z.string().trim().min(1).nullable().optional().default(null),
+  proposedBrandName: z.string().trim().min(1).max(80).nullable().optional().default(null),
   modelName: z.string().trim().min(1).max(120),
-  aircraftType: z.string().trim().min(1).max(80),
   powerType: powerTypeSchema,
   summary: z.string().trim().max(200).nullable(),
   description: z.string().trim().max(4000).nullable(),
@@ -52,7 +65,7 @@ export const createAircraftSubmissionInputSchema = z.object({
 });
 
 export const updateAircraftSubmissionStatusInputSchema = z.object({
-  status: aircraftSubmissionStatusSchema
+  status: z.enum(["approved", "rejected"])
 });
 
 export const aircraftSubmissionResponseSchema = z.object({

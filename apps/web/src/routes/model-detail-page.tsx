@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingBreakdown } from "@/components/rating-breakdown";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import {
@@ -26,6 +27,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "../features/auth/auth-store";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getModelGallery, getModelImage } from "../lib/aviation-media";
 import {
@@ -50,6 +52,7 @@ export function ModelDetailPage() {
   const slug = params.slug ?? "";
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
+  const promptLogin = useLoginPrompt();
 
   const detailQuery = useQuery({
     queryKey: ["model-detail", slug],
@@ -92,7 +95,7 @@ export function ModelDetailPage() {
   }
 
   if (detailQuery.isLoading || reviewsQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">正在加载机型详情...</div>;
+    return <DetailPageSkeleton withRail />;
   }
 
   if (detailQuery.isError) {
@@ -264,12 +267,30 @@ export function ModelDetailPage() {
 
                 <div className="mt-auto rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-surface-1 p-3">
                   <div className="grid gap-2.5 sm:grid-cols-2">
-                    <Button size="sm" type="button" variant="hero">
+                    <Button
+                      onClick={() => {
+                        promptLogin({
+                          title: "登录后才能互动",
+                          description: "想买前请先登录。"
+                        });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="hero"
+                    >
                       <HeartIcon data-icon="inline-start" />
                       想买
                     </Button>
                     <Button
                       onClick={() => {
+                        if (
+                          !promptLogin({
+                            title: "登录后才能写点评",
+                            description: "点评前请先登录。"
+                          })
+                        ) {
+                          return;
+                        }
                         document.getElementById("model-reviews")?.scrollIntoView({
                           behavior: "smooth",
                           block: "start"
@@ -284,12 +305,30 @@ export function ModelDetailPage() {
                     </Button>
                   </div>
                   <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-                    <Button size="sm" type="button" variant="outline">
+                    <Button
+                      onClick={() => {
+                        promptLogin({
+                          title: "登录后才能收藏",
+                          description: "收藏前请先登录。"
+                        });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
                       <BookmarkIcon data-icon="inline-start" />
                       收藏
                     </Button>
                     <Button
                       onClick={() => {
+                        if (
+                          !promptLogin({
+                            title: "登录后才能分享",
+                            description: "分享前请先登录。"
+                          })
+                        ) {
+                          return;
+                        }
                         if (typeof navigator !== "undefined" && navigator.clipboard) {
                           void navigator.clipboard.writeText(window.location.href);
                         }
@@ -406,10 +445,20 @@ export function ModelDetailPage() {
                   ) : null}
 
                   {!isAuthenticated ? (
-                    <Alert className="mt-3">
-                      <AlertTitle>登录后可写点评</AlertTitle>
-                      <AlertDescription>当前未登录，只能浏览公开评论。</AlertDescription>
-                    </Alert>
+                    <Button
+                      className="mt-3 w-full"
+                      onClick={() => {
+                        promptLogin({
+                          title: "登录后才能写点评",
+                          description: "点评前请先登录。"
+                        });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      登录后写点评
+                    </Button>
                   ) : null}
 
                   <Button
@@ -466,6 +515,14 @@ export function ModelDetailPage() {
                             <button
                               className="text-[0.72rem] text-primary"
                               onClick={() => {
+                                if (
+                                  !promptLogin({
+                                    title: "登录后才能回复点评",
+                                    description: "回复前请先登录。"
+                                  })
+                                ) {
+                                  return;
+                                }
                                 setReplyTarget(review.author.displayName);
                                 setFormState((current) =>
                                   updateReviewContent(

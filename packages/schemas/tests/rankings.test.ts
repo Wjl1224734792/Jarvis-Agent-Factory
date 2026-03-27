@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  createRankingInputSchema,
   rankingItemDetailResponseSchema,
+  rankingsResponseSchema,
   submitRankingItemReviewResponseSchema
 } from "../src/rankings";
 
@@ -51,6 +53,92 @@ function buildDetailPayload() {
 }
 
 describe("rankings contract", () => {
+  it("parses rankings response when official is a persisted ranking list", () => {
+    const payload = rankingsResponseSchema.parse({
+      official: [
+        {
+          id: "ranking_official_1",
+          type: "official",
+          title: "Official Endurance",
+          description: "Persisted official ranking.",
+          coverImageUrl: null,
+          itemAddPolicy: "owner",
+          averageScore: 8.8,
+          commentCount: 0,
+          itemCount: 1,
+          createdAt: "2026-03-27T00:00:00.000Z",
+          author: {
+            id: "admin_1",
+            displayName: "Admin",
+            role: "admin"
+          },
+          viewer: {
+            canEdit: false,
+            canAddItems: false
+          },
+          items: [
+            {
+              id: "ranking_item_1",
+              rankingId: "ranking_official_1",
+              rank: 1,
+              title: "DJI Mini 4 Pro",
+              summary: null,
+              imageUrl: null,
+              brandName: "DJI",
+              linkedModel: null,
+              averageScore: 8.8,
+              totalRatings: 10,
+              commentCount: 0,
+              myRating: null
+            }
+          ]
+        }
+      ],
+      community: []
+    });
+
+    expect(payload.official).toHaveLength(1);
+    expect(payload.official[0]?.type).toBe("official");
+  });
+
+  it("requires ranking type for create input", () => {
+    const payload = createRankingInputSchema.parse({
+      type: "community",
+      title: "My ranking",
+      description: "desc",
+      coverImageUrl: null,
+      itemAddPolicy: "public",
+      items: [
+        {
+          title: "item 1",
+          summary: null,
+          imageUrl: null,
+          brandName: null,
+          linkedModelSlug: null
+        }
+      ]
+    });
+
+    expect(payload.type).toBe("community");
+    expect(() =>
+      createRankingInputSchema.parse({
+        title: "missing type",
+        description: "desc",
+        coverImageUrl: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "item 1",
+            summary: null,
+            imageUrl: null,
+            brandName: null,
+            linkedModelSlug: null
+          }
+        ]
+      })
+    ).toThrow();
+  });
+
   it("parses ranking item detail response with ordered fixed ratingBreakdown", () => {
     const payload = rankingItemDetailResponseSchema.parse(buildDetailPayload());
 

@@ -6,10 +6,16 @@ import {
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
-import { requireAdmin, requireAuth, type AuthVariables } from "../auth/auth.middleware";
+import {
+  attachCurrentUser,
+  requireAdmin,
+  requireAuth,
+  type AuthVariables
+} from "../auth/auth.middleware";
 import { aircraftSubmissionsService } from "./aircraft-submissions.service";
 
 export const aircraftSubmissionsRoute = new Hono<{ Variables: AuthVariables }>();
+aircraftSubmissionsRoute.use("*", attachCurrentUser);
 
 aircraftSubmissionsRoute.post(API_ROUTES.submissions.create, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");

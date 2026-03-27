@@ -1,9 +1,6 @@
-import { aircraftSubmissionsRepo } from "./aircraft-submissions.repo";
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
-import { categoriesService } from "../categories/categories.service";
-
-const AUTO_APPROVE_SUBMISSIONS = true;
+import { aircraftSubmissionsRepo } from "./aircraft-submissions.repo";
 
 function slugify(value: string) {
   return value
@@ -31,18 +28,33 @@ function serializeSubmission(
     return null;
   }
 
+  const brandRecord = item.brand;
+  const hasBrand = Boolean(brandRecord && brandRecord.id && brandRecord.slug && brandRecord.name);
+
   return {
     id: item.id,
     status: item.status as "draft" | "submitted" | "approved" | "rejected",
-    brandName: item.brandName,
+    category: {
+      id: item.category.id,
+      slug: item.category.slug,
+      name: item.category.name
+    },
+    brand: hasBrand
+      ? {
+          id: brandRecord!.id!,
+          slug: brandRecord!.slug!,
+          name: brandRecord!.name!
+        }
+      : null,
+    proposedBrandName: item.proposedBrandName,
     modelName: item.modelName,
-    aircraftType: item.aircraftType,
-    powerType: item.powerType as "electric" | "fuel" | "hybrid",
+    powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
     summary: item.summary,
     description: item.description,
     coverImageUrl: item.coverImageUrl,
     galleryImageUrls: parseGallery(item.galleryImageUrls),
     videoUrl: item.videoUrl,
+    approvedModelId: item.approvedModelId,
     approvedModelSlug,
     author: {
       id: item.author.id,
@@ -60,12 +72,49 @@ function serializeSubmission(
   };
 }
 
+async function buildUniqueModelSlug(modelName: string) {
+  const base = slugify(modelName) || "custom-model";
+  let nextSlug = base;
+  let suffix = 2;
+
+  while (await aircraftModelsService.getModelDetail(nextSlug)) {
+    nextSlug = `${base}-${suffix}`;
+    suffix += 1;
+  }
+
+  return nextSlug;
+}
+
+async function createBrandForSubmission(categoryId: string, proposedBrandName: string) {
+  const brands = await brandsService.listBrands();
+  const baseSlug = slugify(proposedBrandName) || "custom-brand";
+  const usedSlugs = new Set(brands.map((item) => item.slug));
+
+  let nextSlug = baseSlug;
+  let suffix = 2;
+  while (usedSlugs.has(nextSlug)) {
+    nextSlug = `${baseSlug}-${suffix}`;
+    suffix += 1;
+  }
+
+  const createdBrand = await brandsService.createBrand({
+    slug: nextSlug,
+    name: proposedBrandName,
+    categoryId,
+    sortOrder: brands.length + 1,
+    isEnabled: true
+  });
+
+  return createdBrand.id;
+}
+
 export const aircraftSubmissionsService = {
   async createSubmission(input: {
     authorId: string;
-    brandName: string;
+    categoryId: string;
+    brandId: string | null;
+    proposedBrandName: string | null;
     modelName: string;
-    aircraftType: string;
     powerType: "electric" | "fuel" | "hybrid" | "other";
     summary: string | null;
     description: string | null;
@@ -77,70 +126,13 @@ export const aircraftSubmissionsService = {
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
-    let approvedModelSlug: string | null = null;
-    let approvedModelId: string | null = null;
-    let status: "submitted" | "approved" = "submitted";
-
-    if (AUTO_APPROVE_SUBMISSIONS) {
-      const categories = await categoriesService.listCategories();
-      const brands = await brandsService.listBrands();
-      const existingCategory =
-        categories.find((item) => item.name === input.aircraftType) ??
-        categories.find((item) => item.slug === slugify(input.aircraftType));
-      const category =
-        existingCategory ??
-        (await categoriesService.createCategory({
-          slug: slugify(input.aircraftType) || "custom-aircraft",
-          name: input.aircraftType,
-          sortOrder: categories.length + 1,
-          isEnabled: true
-        }));
-      const existingBrand =
-        brands.find((item) => item.name === input.brandName) ??
-        brands.find((item) => item.slug === slugify(input.brandName));
-      const brand =
-        existingBrand ??
-        (await brandsService.createBrand({
-          slug: slugify(input.brandName) || "custom-brand",
-          name: input.brandName,
-          categoryId: category.id,
-          sortOrder: brands.length + 1,
-          isEnabled: true
-        }));
-
-      let nextSlug = slugify(input.modelName) || "custom-model";
-      let suffix = 2;
-      while (await aircraftModelsService.getModelDetail(nextSlug)) {
-        nextSlug = `${slugify(input.modelName) || "custom-model"}-${suffix}`;
-        suffix += 1;
-      }
-
-      const model = await aircraftModelsService.createModel({
-        slug: nextSlug,
-        name: input.modelName,
-        categoryId: category.id,
-        brandId: brand.id,
-        powerType: input.powerType,
-        summary: input.summary,
-        description: input.description,
-        maxFlightTimeMinutes: input.maxFlightTimeMinutes,
-        maxRangeKilometers: input.maxRangeKilometers,
-        maxSpeedKph: input.maxSpeedKph,
-        takeoffWeightGrams: input.takeoffWeightGrams,
-        isPublished: true
-      });
-
-      approvedModelSlug = model?.slug ?? null;
-      approvedModelId = model?.id ?? null;
-      status = "approved";
-    }
-
     const item = await aircraftSubmissionsRepo.create({
       authorId: input.authorId,
-      status,
-      brandName: input.brandName,
+      status: "submitted",
+      categoryId: input.categoryId,
+      brandId: input.brandId,
+      proposedBrandName: input.proposedBrandName,
       modelName: input.modelName,
-      aircraftType: input.aircraftType,
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
@@ -151,10 +143,10 @@ export const aircraftSubmissionsService = {
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
       takeoffWeightGrams: input.takeoffWeightGrams,
-      approvedModelId
+      approvedModelId: null
     });
 
-    return { item: serializeSubmission(item, approvedModelSlug)! };
+    return { item: serializeSubmission(item, null)! };
   },
   async getSubmission(id: string) {
     const item = await aircraftSubmissionsRepo.findById(id);
@@ -180,15 +172,54 @@ export const aircraftSubmissionsService = {
       )
     };
   },
-  async updateSubmissionStatus(
-    id: string,
-    status: "draft" | "submitted" | "approved" | "rejected"
-  ) {
-    const item = await aircraftSubmissionsRepo.updateStatus(id, status, null);
-    if (!item) {
+  async updateSubmissionStatus(id: string, status: "approved" | "rejected") {
+    const current = await aircraftSubmissionsRepo.findById(id);
+    if (!current) {
       return null;
     }
 
-    return { item: serializeSubmission(item, null)! };
+    if (status === "rejected") {
+      const item = await aircraftSubmissionsRepo.updateStatusOnly(id, "rejected");
+      const approvedModel = item?.approvedModelId
+        ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
+        : null;
+      return { item: serializeSubmission(item, approvedModel?.slug ?? null)! };
+    }
+
+    if (current.status === "approved" && current.approvedModelId) {
+      const approvedModel = await aircraftModelsService.getModelDetailById(current.approvedModelId);
+      return { item: serializeSubmission(current, approvedModel?.slug ?? null)! };
+    }
+
+    let brandId = current.brandId;
+    if (current.proposedBrandName && current.proposedBrandName.trim().length > 0) {
+      brandId = await createBrandForSubmission(current.categoryId, current.proposedBrandName.trim());
+    }
+
+    if (!brandId) {
+      throw new Error("Cannot approve submission without brandId or proposedBrandName.");
+    }
+
+    const model = await aircraftModelsService.createModel({
+      slug: await buildUniqueModelSlug(current.modelName),
+      name: current.modelName,
+      categoryId: current.categoryId,
+      brandId,
+      powerType: current.powerType,
+      summary: current.summary,
+      description: current.description,
+      maxFlightTimeMinutes: current.maxFlightTimeMinutes,
+      maxRangeKilometers: current.maxRangeKilometers,
+      maxSpeedKph: current.maxSpeedKph,
+      takeoffWeightGrams: current.takeoffWeightGrams,
+      isPublished: true
+    });
+
+    if (!model) {
+      return null;
+    }
+
+    const item = await aircraftSubmissionsRepo.approveSubmission(id, model.id, brandId);
+    return { item: serializeSubmission(item, model.slug)! };
   }
 };

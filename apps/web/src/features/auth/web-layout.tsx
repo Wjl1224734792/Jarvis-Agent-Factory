@@ -22,6 +22,9 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
+import { useAuthStore } from "./auth-store";
+import { AuthRequiredDialog } from "./auth-required-dialog";
+import { useLoginPrompt } from "./use-login-prompt";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
 import { UserMenu } from "./user-menu";
 
@@ -120,6 +123,8 @@ export function WebLayout() {
   useBootstrapAuth();
 
   const location = useLocation();
+  const authStatus = useAuthStore((state) => state.status);
+  const promptLogin = useLoginPrompt();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -211,6 +216,13 @@ export function WebLayout() {
               <Button
                 className="min-w-[6.2rem] justify-center rounded-full px-4.5 text-[0.82rem] font-semibold max-sm:min-w-[4.4rem]"
                 onClick={() => {
+                  if (authStatus !== "authenticated") {
+                    promptLogin({
+                      title: "登录后才能创建内容",
+                      description: "文章、动态、飞行器和榜单都需要登录后才能发布。"
+                    });
+                    return;
+                  }
                   setIsPublishMenuOpen((value) => !value);
                 }}
                 size="default"
@@ -231,7 +243,15 @@ export function WebLayout() {
                       <Link
                         className="flex h-8 items-center justify-center rounded-[0.8rem] px-3 text-center text-[0.82rem] font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
                         key={entry.to}
-                        onClick={() => {
+                        onClick={(event) => {
+                          if (authStatus !== "authenticated") {
+                            event.preventDefault();
+                            promptLogin({
+                              title: "登录后才能创建内容",
+                              description: "文章、动态、飞行器和榜单都需要登录后才能发布。"
+                            });
+                            return;
+                          }
                           setIsPublishMenuOpen(false);
                         }}
                         to={entry.to}
@@ -266,6 +286,7 @@ export function WebLayout() {
           </div>
         </SiteShell>
       </div>
+      <AuthRequiredDialog />
     </div>
   );
 }

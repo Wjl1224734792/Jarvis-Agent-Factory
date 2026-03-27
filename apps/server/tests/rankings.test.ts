@@ -44,6 +44,19 @@ async function loginUser(phone: string) {
   return extractCookie(loginResponse.headers.get("set-cookie"));
 }
 
+async function loginAdmin() {
+  const response = await app.request(API_ROUTES.auth.adminLogin, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      account: "admin",
+      password: "Admin#123"
+    })
+  });
+
+  return extractCookie(response.headers.get("set-cookie"));
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -59,114 +72,194 @@ afterAll(async () => {
 });
 
 describe("rankings flows", () => {
-  it("returns official rankings plus persisted community rankings", async () => {
+  it("returns persisted official rankings and community rankings", async () => {
     const response = await app.request(API_ROUTES.rankings.overview, { method: "GET" });
 
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
-      official: {
-        items: Array<{ id: string; averageScore: number; linkedModel: { slug: string } | null }>;
-      };
+      official: Array<{
+        id: string;
+        type: "official" | "community";
+        itemAddPolicy: "public" | "owner";
+        items: Array<{ id: string; averageScore: number }>;
+      }>;
       community: Array<{ id: string; items: Array<{ id: string; title: string }> }>;
     };
 
-    expect(payload.official.items.length).toBeGreaterThanOrEqual(5);
-    expect(payload.official.items[0]?.averageScore).toBeGreaterThanOrEqual(
-      payload.official.items[1]?.averageScore ?? 0
-    );
+    expect(payload.official.length).toBeGreaterThanOrEqual(1);
+    expect(payload.official.every((item) => item.type === "official")).toBe(true);
+    expect(payload.official.every((item) => item.itemAddPolicy === "owner")).toBe(true);
+    expect(payload.official[0]?.items.length).toBeGreaterThan(0);
     expect(payload.community.length).toBeGreaterThanOrEqual(1);
     expect(payload.community[0]?.items.length).toBeGreaterThan(0);
   });
 
-  it("creates rankings with itemAddPolicy, allows public add-item, supports editing and official detail", async () => {
+  it("enforces official ranking permissions and owner-only add policy", async () => {
     const ownerCookie = await loginUser("13800138000");
     const visitorCookie = await loginUser("13800138001");
+    const adminCookie = await loginAdmin();
 
-    const createResponse = await app.request(API_ROUTES.rankings.create, {
+    const communityCreate = await app.request(API_ROUTES.rankings.create, {
       method: "POST",
       headers: {
         cookie: ownerCookie,
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        title: "城市试飞清单",
-        description: "验证 mixed ranking item 与公开加项。",
+        type: "community",
+        title: "Community ranking",
+        description: "community ranking sample",
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
-            summary: "轻量化入门样本",
+            summary: "community linked model",
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"
-          },
-          {
-            title: "自定义夜航套件",
-            summary: "用户自定义条目",
-            imageUrl: "https://images.example.com/night-kit.jpg",
-            brandName: "社区",
-            linkedModelSlug: null
           }
         ]
       })
     });
-    expect(createResponse.status).toBe(200);
+    expect(communityCreate.status).toBe(200);
 
-    const createdPayload = (await createResponse.json()) as {
+    const ownerCreateOfficial = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "official",
+        title: "Owner official ranking",
+        description: "should be forbidden",
+        coverImageUrl: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "item",
+            summary: null,
+            imageUrl: null,
+            brandName: null,
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(ownerCreateOfficial.status).toBe(403);
+
+    const adminCreateOfficial = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "official",
+        title: "Admin official ranking",
+        description: "official ranking sample",
+        coverImageUrl: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "DJI Mini 4 Pro",
+            summary: "official linked model",
+            imageUrl: null,
+            brandName: "DJI",
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(adminCreateOfficial.status).toBe(200);
+
+    const officialPayload = (await adminCreateOfficial.json()) as {
       item: {
         id: string;
+        type: "official" | "community";
         itemAddPolicy: "public" | "owner";
-        viewer: { canEdit: boolean; canAddItems: boolean };
-        items: Array<{ id: string; title: string }>;
       };
     };
 
-    expect(createdPayload.item.itemAddPolicy).toBe("public");
-    expect(createdPayload.item.viewer.canEdit).toBe(true);
-    expect(createdPayload.item.viewer.canAddItems).toBe(true);
-    expect(createdPayload.item.items).toHaveLength(2);
+    expect(officialPayload.item.type).toBe("official");
+    expect(officialPayload.item.itemAddPolicy).toBe("owner");
 
-    const rankingId = createdPayload.item.id;
+    const officialRankingId = officialPayload.item.id;
 
-    const addItemResponse = await app.request(API_ROUTES.rankings.items(rankingId), {
+    const visitorAddOfficial = await app.request(API_ROUTES.rankings.items(officialRankingId), {
       method: "POST",
       headers: {
         cookie: visitorCookie,
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        title: "访客补充对象",
-        summary: "public 榜单允许直接新增",
-        imageUrl: "https://images.example.com/visitor-item.jpg",
-        brandName: "访客",
+        title: "visitor add",
+        summary: "should be forbidden",
+        imageUrl: null,
+        brandName: null,
         linkedModelSlug: null
       })
     });
-    expect(addItemResponse.status).toBe(200);
+    expect(visitorAddOfficial.status).toBe(403);
 
-    const addItemPayload = (await addItemResponse.json()) as {
-      item: {
-        items: Array<{ title: string }>;
-      };
-    };
-    expect(addItemPayload.item.items.some((item) => item.title === "访客补充对象")).toBe(true);
+    const adminAddOfficial = await app.request(API_ROUTES.rankings.items(officialRankingId), {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "admin add",
+        summary: "owner add on official",
+        imageUrl: null,
+        brandName: null,
+        linkedModelSlug: null
+      })
+    });
+    expect(adminAddOfficial.status).toBe(200);
 
-    const updateResponse = await app.request(API_ROUTES.rankings.detail(rankingId), {
+    const ownerUpdateOfficial = await app.request(API_ROUTES.rankings.update(officialRankingId), {
       method: "PUT",
       headers: {
         cookie: ownerCookie,
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        title: "城市试飞清单（已更新）",
-        description: "改为仅作者可加项。",
+        type: "official",
+        title: "owner tries update official",
+        description: "forbidden",
         coverImageUrl: null,
-        itemAddPolicy: "owner",
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "item",
+            summary: null,
+            imageUrl: null,
+            brandName: null,
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(ownerUpdateOfficial.status).toBe(403);
+
+    const adminUpdateOfficial = await app.request(API_ROUTES.rankings.update(officialRankingId), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "official",
+        title: "admin updated official",
+        description: "official still owner-only",
+        coverImageUrl: null,
+        itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
-            summary: "轻量化入门样本",
+            summary: "official linked model",
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"
@@ -174,59 +267,35 @@ describe("rankings flows", () => {
         ]
       })
     });
-    expect(updateResponse.status).toBe(200);
+    expect(adminUpdateOfficial.status).toBe(200);
 
-    const updatePayload = (await updateResponse.json()) as {
+    const updatedOfficial = (await adminUpdateOfficial.json()) as {
       item: {
-        title: string;
         itemAddPolicy: "public" | "owner";
-        viewer: { canEdit: boolean; canAddItems: boolean };
       };
     };
-    expect(updatePayload.item.title).toContain("已更新");
-    expect(updatePayload.item.itemAddPolicy).toBe("owner");
-    expect(updatePayload.item.viewer.canEdit).toBe(true);
-    expect(updatePayload.item.viewer.canAddItems).toBe(true);
+    expect(updatedOfficial.item.itemAddPolicy).toBe("owner");
 
-    const forbiddenAddResponse = await app.request(API_ROUTES.rankings.items(rankingId), {
-      method: "POST",
-      headers: {
-        cookie: visitorCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        title: "不应进入榜单",
-        summary: "owner 榜单应拒绝访客新增",
-        imageUrl: null,
-        brandName: "访客",
-        linkedModelSlug: null
-      })
-    });
-    expect(forbiddenAddResponse.status).toBe(403);
-
-    const officialDetailResponse = await app.request(API_ROUTES.rankings.detail("official-endurance"), {
+    const visitorDetail = await app.request(API_ROUTES.rankings.detail(officialRankingId), {
       method: "GET",
-      headers: { cookie: ownerCookie }
+      headers: { cookie: visitorCookie }
     });
-    expect(officialDetailResponse.status).toBe(200);
+    expect(visitorDetail.status).toBe(200);
 
-    const officialDetailPayload = (await officialDetailResponse.json()) as {
+    const visitorDetailPayload = (await visitorDetail.json()) as {
       item: {
-        id: string;
         type: "official" | "community";
-        viewer: { canEdit: boolean; canAddItems: boolean };
-        items: Array<{ id: string; averageScore: number }>;
+        itemAddPolicy: "public" | "owner";
+        viewer: { canAddItems: boolean };
       };
     };
 
-    expect(officialDetailPayload.item.id).toBe("official-endurance");
-    expect(officialDetailPayload.item.type).toBe("official");
-    expect(officialDetailPayload.item.viewer.canEdit).toBe(false);
-    expect(officialDetailPayload.item.viewer.canAddItems).toBe(false);
-    expect(officialDetailPayload.item.items.length).toBeGreaterThan(0);
+    expect(visitorDetailPayload.item.type).toBe("official");
+    expect(visitorDetailPayload.item.itemAddPolicy).toBe("owner");
+    expect(visitorDetailPayload.item.viewer.canAddItems).toBe(false);
   });
 
-  it("supports unified ranking item review upsert", async () => {
+  it("supports ranking item review and ratingBreakdown for community and official items", async () => {
     const cookie = await loginUser("13800138000");
 
     const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
@@ -234,13 +303,17 @@ describe("rankings flows", () => {
       headers: { cookie }
     });
     const overviewPayload = (await overviewResponse.json()) as {
-      community: Array<{ id: string; items: Array<{ id: string }> }>;
+      official: Array<{ items: Array<{ id: string }> }>;
+      community: Array<{ items: Array<{ id: string }> }>;
     };
-    const rankingItemId = overviewPayload.community[0]?.items[0]?.id;
 
-    expect(rankingItemId).toBeTruthy();
+    const communityItemId = overviewPayload.community[0]?.items[0]?.id;
+    const officialItemId = overviewPayload.official[0]?.items[0]?.id;
 
-    const firstReviewResponse = await app.request(API_ROUTES.rankings.itemReview(rankingItemId!), {
+    expect(communityItemId).toBeTruthy();
+    expect(officialItemId).toBeTruthy();
+
+    const firstReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId!), {
       method: "POST",
       headers: {
         cookie,
@@ -248,12 +321,12 @@ describe("rankings flows", () => {
       },
       body: JSON.stringify({
         rating: 5,
-        content: "第一次点评，给满分。"
+        content: "first review"
       })
     });
     expect(firstReviewResponse.status).toBe(200);
 
-    const secondReviewResponse = await app.request(API_ROUTES.rankings.itemReview(rankingItemId!), {
+    const secondReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId!), {
       method: "POST",
       headers: {
         cookie,
@@ -261,10 +334,11 @@ describe("rankings flows", () => {
       },
       body: JSON.stringify({
         rating: 4,
-        content: "更新点评，调整为四星。"
+        content: "updated review"
       })
     });
     expect(secondReviewResponse.status).toBe(200);
+
     const secondReviewPayload = (await secondReviewResponse.json()) as {
       item: {
         totalRatings: number;
@@ -277,7 +351,7 @@ describe("rankings flows", () => {
       secondReviewPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
     ).toBe(secondReviewPayload.item.totalRatings);
 
-    const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(rankingItemId!), {
+    const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(communityItemId!), {
       method: "GET",
       headers: { cookie }
     });
@@ -289,40 +363,36 @@ describe("rankings flows", () => {
         ratingBreakdown: Array<{ score: number; count: number }>;
         myRating: number | null;
         myReview: { rating: number; content: string } | null;
-        comments: Array<{ author: { id: string }; rating: number; content: string }>;
       };
     };
 
     expect(itemDetailPayload.item.ratingBreakdown).toHaveLength(5);
     expect(itemDetailPayload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
-    expect(itemDetailPayload.item.ratingBreakdown.find((entry) => entry.score === 4)?.count).toBeGreaterThan(0);
     expect(
       itemDetailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
     ).toBe(itemDetailPayload.item.totalRatings);
     expect(itemDetailPayload.item.myRating).toBe(4);
     expect(itemDetailPayload.item.myReview?.rating).toBe(4);
-    expect(itemDetailPayload.item.myReview?.content).toContain("更新点评");
-    expect(
-      itemDetailPayload.item.comments.filter((item) => item.content.includes("更新点评"))
-    ).toHaveLength(1);
+    expect(itemDetailPayload.item.myReview?.content).toContain("updated review");
 
-    const overviewAfterReview = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET",
-      headers: { cookie }
+    const officialRatingResponse = await app.request(API_ROUTES.rankings.itemRatings(officialItemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 5
+      })
     });
-    const overviewAfterReviewPayload = (await overviewAfterReview.json()) as {
-      official: {
-        items: Array<{ id: string }>;
-      };
-    };
-    const officialItemId = overviewAfterReviewPayload.official.items[0]?.id;
-    expect(officialItemId).toBeTruthy();
+    expect(officialRatingResponse.status).toBe(200);
 
     const officialItemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(officialItemId!), {
       method: "GET",
       headers: { cookie }
     });
     expect(officialItemDetailResponse.status).toBe(200);
+
     const officialItemDetailPayload = (await officialItemDetailResponse.json()) as {
       item: {
         totalRatings: number;

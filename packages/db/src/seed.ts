@@ -32,7 +32,7 @@ async function ensureAdminUser() {
   await db.insert(usersTable).values({
     id: createId("admin"),
     role: "admin",
-    displayName: "系统管理员",
+    displayName: "System Admin",
     phone: null,
     account: "admin",
     passwordHash: hashPassword("Admin#123")
@@ -41,11 +41,11 @@ async function ensureAdminUser() {
 
 async function seedContentCategories() {
   const seeds = [
-    { slug: "news", name: "资讯", sortOrder: 1 },
-    { slug: "review", name: "测评", sortOrder: 2 },
-    { slug: "aerial", name: "航拍", sortOrder: 3 },
-    { slug: "tech", name: "技术", sortOrder: 4 },
-    { slug: "guide", name: "指南", sortOrder: 5 }
+    { slug: "news", name: "News", sortOrder: 1 },
+    { slug: "review", name: "Review", sortOrder: 2 },
+    { slug: "aerial", name: "Aerial", sortOrder: 3 },
+    { slug: "tech", name: "Tech", sortOrder: 4 },
+    { slug: "guide", name: "Guide", sortOrder: 5 }
   ] as const;
 
   const existing = await db.select().from(contentCategoriesTable).limit(1);
@@ -66,10 +66,10 @@ async function seedContentCategories() {
 
 async function seedAircraftCatalog() {
   const categorySeeds = [
-    { slug: "drone", name: "无人机", sortOrder: 1 },
+    { slug: "drone", name: "Drone", sortOrder: 1 },
     { slug: "evtol", name: "eVTOL", sortOrder: 2 },
-    { slug: "helicopter", name: "直升机", sortOrder: 3 },
-    { slug: "business-jet", name: "公务机", sortOrder: 4 }
+    { slug: "helicopter", name: "Helicopter", sortOrder: 3 },
+    { slug: "business-jet", name: "Business Jet", sortOrder: 4 }
   ] as const;
 
   const brandSeeds = [
@@ -88,8 +88,8 @@ async function seedAircraftCatalog() {
       categorySlug: "drone",
       brandSlug: "dji",
       powerType: "electric",
-      summary: "轻量旗舰航拍无人机。",
-      description: "适合城市记录、轻旅行与高频随身航拍。",
+      summary: "Compact and stable flight model.",
+      description: "Suitable for travel and everyday aerial shooting.",
       maxFlightTimeMinutes: 45,
       maxRangeKilometers: 18,
       maxSpeedKph: 58,
@@ -101,8 +101,8 @@ async function seedAircraftCatalog() {
       categorySlug: "drone",
       brandSlug: "dji",
       powerType: "electric",
-      summary: "多镜头旗舰航拍机型。",
-      description: "更适合商业航拍和专业内容制作。",
+      summary: "Multi-lens flagship for commercial workflows.",
+      description: "High-end model for demanding image capture.",
       maxFlightTimeMinutes: 43,
       maxRangeKilometers: 28,
       maxSpeedKph: 75,
@@ -114,8 +114,8 @@ async function seedAircraftCatalog() {
       categorySlug: "drone",
       brandSlug: "autel",
       powerType: "electric",
-      summary: "兼顾画质与续航的消费级机型。",
-      description: "适合重视色彩表现与稳定飞行体验的用户。",
+      summary: "Balanced image quality and endurance.",
+      description: "Good low-light and stable handling.",
       maxFlightTimeMinutes: 40,
       maxRangeKilometers: 24,
       maxSpeedKph: 68,
@@ -127,8 +127,8 @@ async function seedAircraftCatalog() {
       categorySlug: "evtol",
       brandSlug: "ehang",
       powerType: "electric",
-      summary: "低空通勤话题 eVTOL。",
-      description: "适合关注低空经济与城市通勤场景的用户。",
+      summary: "Representative urban eVTOL sample.",
+      description: "Used as low-altitude mobility benchmark data.",
       maxFlightTimeMinutes: 25,
       maxRangeKilometers: 35,
       maxSpeedKph: 130,
@@ -140,8 +140,8 @@ async function seedAircraftCatalog() {
       categorySlug: "evtol",
       brandSlug: "joby",
       powerType: "electric",
-      summary: "商业化路线较成熟的五座 eVTOL。",
-      description: "适合长期观察低空商业化发展路径。",
+      summary: "Commercial-route eVTOL reference.",
+      description: "Long-term tracking target for eVTOL progress.",
       maxFlightTimeMinutes: 45,
       maxRangeKilometers: 240,
       maxSpeedKph: 320,
@@ -153,8 +153,8 @@ async function seedAircraftCatalog() {
       categorySlug: "business-jet",
       brandSlug: "cirrus",
       powerType: "fuel",
-      summary: "个人航空体验代表机型。",
-      description: "适合作为通航与低空出行的横向对比样本。",
+      summary: "General aviation personal jet sample.",
+      description: "Cross-category baseline for low-altitude transport.",
       maxFlightTimeMinutes: 300,
       maxRangeKilometers: 2300,
       maxSpeedKph: 576,
@@ -235,12 +235,12 @@ async function seedUsersAndReviews() {
   }
 
   const userSeeds = [
-    { phone: "13800138101", displayName: "飞友星野" },
-    { phone: "13800138102", displayName: "飞友海崖" },
-    { phone: "13800138103", displayName: "飞友洛川" },
-    { phone: "13800138104", displayName: "飞友白帆" },
-    { phone: "13800138105", displayName: "飞友向北" },
-    { phone: "13800138106", displayName: "飞友南栀" }
+    { phone: "13800138101", displayName: "Pilot One" },
+    { phone: "13800138102", displayName: "Pilot Two" },
+    { phone: "13800138103", displayName: "Pilot Three" },
+    { phone: "13800138104", displayName: "Pilot Four" },
+    { phone: "13800138105", displayName: "Pilot Five" },
+    { phone: "13800138106", displayName: "Pilot Six" }
   ] as const;
 
   await db
@@ -267,29 +267,29 @@ async function seedUsersAndReviews() {
   const modelIdBySlug = new Map(models.map((item) => [item.slug, item.id]));
 
   const reviewSeeds = [
-    ["mini-4-pro", "13800138101", 5, "轻巧稳定，旅行和随拍体验都很好。"],
-    ["mini-4-pro", "13800138102", 4, "风稍大时需要保守一些，但整体很好上手。"],
-    ["mavic-3-pro", "13800138103", 5, "多镜头覆盖很强，商业拍摄很省心。"],
-    ["mavic-3-pro", "13800138104", 5, "综合能力几乎拉满。"],
-    ["evo-lite-plus", "13800138105", 4, "夜景表现很稳，适合进阶用户。"],
-    ["eh216-s", "13800138106", 4, "低空通勤想象力很强，值得持续关注。"],
-    ["joby-s4", "13800138101", 5, "工程化成熟度最值得长期追踪。"],
-    ["vision-jet-g2-plus", "13800138102", 4, "个人航空体验很完整，但门槛高。"]
+    ["mini-4-pro", "13800138101", 5, "Lightweight and very stable."],
+    ["mini-4-pro", "13800138102", 4, "Good for beginners."],
+    ["mavic-3-pro", "13800138103", 5, "Great for commercial output."],
+    ["mavic-3-pro", "13800138104", 5, "Top overall performance."],
+    ["evo-lite-plus", "13800138105", 4, "Solid all-around option."],
+    ["eh216-s", "13800138106", 4, "Interesting low-altitude mobility sample."],
+    ["joby-s4", "13800138101", 5, "Most mature engineering route."],
+    ["vision-jet-g2-plus", "13800138102", 4, "Great personal jet experience."]
   ] as const;
 
   await db
     .insert(aircraftReviewsTable)
     .values(
-    reviewSeeds.map(([slug, phone, rating, content], index) => ({
-      id: createId("review"),
-      modelId: modelIdBySlug.get(slug)!,
-      userId: userIdByPhone.get(phone)!,
-      rating,
-      content,
-      status: "visible",
-      createdAt: new Date(Date.UTC(2026, 2, 20, 8, index, 0)),
-      updatedAt: new Date(Date.UTC(2026, 2, 20, 12, index, 0))
-    }))
+      reviewSeeds.map(([slug, phone, rating, content], index) => ({
+        id: createId("review"),
+        modelId: modelIdBySlug.get(slug)!,
+        userId: userIdByPhone.get(phone)!,
+        rating,
+        content,
+        status: "visible",
+        createdAt: new Date(Date.UTC(2026, 2, 20, 8, index, 0)),
+        updatedAt: new Date(Date.UTC(2026, 2, 20, 12, index, 0))
+      }))
     )
     .onConflictDoNothing();
 }
@@ -310,7 +310,7 @@ async function seedPostsAndComments() {
       {
         id: articleAuthorId,
         role: "user",
-        displayName: "飞友8007",
+        displayName: "Author 8007",
         phone: "13800138087",
         account: null,
         passwordHash: null
@@ -318,7 +318,7 @@ async function seedPostsAndComments() {
       {
         id: momentAuthorId,
         role: "user",
-        displayName: "飞友阿澜",
+        displayName: "Moment Author",
         phone: "13800138088",
         account: null,
         passwordHash: null
@@ -326,7 +326,7 @@ async function seedPostsAndComments() {
       {
         id: commenterId,
         role: "user",
-        displayName: "飞友北斗",
+        displayName: "Comment Pilot",
         phone: "13800138089",
         account: null,
         passwordHash: null
@@ -349,13 +349,10 @@ async function seedPostsAndComments() {
       id: articleOneId,
       authorId: articleAuthorId,
       type: "article",
-      title: "深度解析：2024款全球领先 eVTOL 飞行器气动布局优化报告",
-      content:
-        "随着低空经济的爆发，eVTOL 技术正在经历前所未有的快速更迭。\n\n本文从螺旋桨布局、机翼矢量推力以及碳纤维复合材料三个角度分析这代机型的关键改进。",
-      contentHtml:
-        "<p>随着低空经济的爆发，eVTOL 技术正在经历前所未有的快速更迭。</p><p>本文从螺旋桨布局、机翼矢量推力以及碳纤维复合材料三个角度分析这代机型的关键改进。</p>",
-      contentPlainText:
-        "随着低空经济的爆发，eVTOL 技术正在经历前所未有的快速更迭。本文从螺旋桨布局、机翼矢量推力以及碳纤维复合材料三个角度分析这代机型的关键改进。",
+      title: "2026 eVTOL aerodynamic snapshot",
+      content: "A concise summary of current eVTOL aerodynamic updates.",
+      contentHtml: "<p>A concise summary of current eVTOL aerodynamic updates.</p>",
+      contentPlainText: "A concise summary of current eVTOL aerodynamic updates.",
       contentCategoryId: categoryIdBySlug.get("news") ?? null,
       status: "published",
       commentCount: 2,
@@ -369,13 +366,10 @@ async function seedPostsAndComments() {
       id: articleTwoId,
       authorId: articleAuthorId,
       type: "article",
-      title: "在喜马拉雅山脉进行高海拔无人机摄影的5个实用技巧",
-      content:
-        "高海拔地区的空气稀薄和极端低温对无人机的电池性能和飞行稳定性是巨大的挑战。\n\n上周我在大本营附近进行了为期三天的实地测试，总结了几条最有效的参数调整经验。",
-      contentHtml:
-        "<p>高海拔地区的空气稀薄和极端低温对无人机的电池性能和飞行稳定性是巨大的挑战。</p><p>上周我在大本营附近进行了为期三天的实地测试，总结了几条最有效的参数调整经验。</p>",
-      contentPlainText:
-        "高海拔地区的空气稀薄和极端低温对无人机的电池性能和飞行稳定性是巨大的挑战。上周我在大本营附近进行了为期三天的实地测试，总结了几条最有效的参数调整经验。",
+      title: "High-altitude drone checklist",
+      content: "Five practical checks before high-altitude flights.",
+      contentHtml: "<p>Five practical checks before high-altitude flights.</p>",
+      contentPlainText: "Five practical checks before high-altitude flights.",
       contentCategoryId: categoryIdBySlug.get("guide") ?? null,
       status: "published",
       commentCount: 0,
@@ -389,10 +383,10 @@ async function seedPostsAndComments() {
       id: momentOneId,
       authorId: momentAuthorId,
       type: "moment",
-      title: "海边试飞日志",
-      content: "今天在海边试飞，侧风偏大，但返航和悬停都很稳。",
+      title: "Coastline test log",
+      content: "Wind was stronger than expected but return-to-home stayed stable.",
       contentHtml: null,
-      contentPlainText: "今天在海边试飞，侧风偏大，但返航和悬停都很稳。",
+      contentPlainText: "Wind was stronger than expected but return-to-home stayed stable.",
       contentCategoryId: null,
       status: "published",
       commentCount: 0,
@@ -406,10 +400,10 @@ async function seedPostsAndComments() {
       id: momentTwoId,
       authorId: momentAuthorId,
       type: "moment",
-      title: "树线风场记录",
-      content: "山谷风切明显，下降时需要更早预留缓冲高度。",
+      title: "Valley wind note",
+      content: "Reserve extra height before final descent in crosswind valleys.",
       contentHtml: null,
-      contentPlainText: "山谷风切明显，下降时需要更早预留缓冲高度。",
+      contentPlainText: "Reserve extra height before final descent in crosswind valleys.",
       contentCategoryId: null,
       status: "published",
       commentCount: 0,
@@ -429,7 +423,7 @@ async function seedPostsAndComments() {
       parentCommentId: null,
       replyToCommentId: null,
       replyToUserId: null,
-      content: "这份分析很有参考价值，尤其是对旋翼布局的比较。",
+      content: "Useful overview and clear structure.",
       status: "visible"
     },
     {
@@ -439,7 +433,7 @@ async function seedPostsAndComments() {
       parentCommentId: rootCommentId,
       replyToCommentId: rootCommentId,
       replyToUserId: commenterId,
-      content: "@飞友北斗 后续我会把低速姿态下的数据图也补上。",
+      content: "Thanks, I will add more low-speed test data.",
       status: "visible"
     }
   ]);
@@ -460,7 +454,7 @@ async function seedRankingsAndItems() {
       {
         id: authorId,
         role: "user",
-        displayName: "飞友排行官",
+        displayName: "Ranking Owner",
         phone: "13800138111",
         account: null,
         passwordHash: null
@@ -468,7 +462,7 @@ async function seedRankingsAndItems() {
       {
         id: commenterId,
         role: "user",
-        displayName: "飞友评分员",
+        displayName: "Ranking Reviewer",
         phone: "13800138112",
         account: null,
         passwordHash: null
@@ -479,63 +473,108 @@ async function seedRankingsAndItems() {
   const models = await db.select().from(aircraftModelsTable);
   const modelBySlug = new Map(models.map((item) => [item.slug, item]));
 
-  const rankingId = createId("ranking");
+  const adminUser = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.account, "admin"))
+    .limit(1);
+  const officialAuthorId = adminUser[0]?.id ?? authorId;
+
+  const communityRankingId = createId("ranking");
+  const officialRankingId = createId("ranking");
   const itemOneId = createId("ritem");
   const itemTwoId = createId("ritem");
   const itemThreeId = createId("ritem");
+  const officialItemOneId = createId("ritem");
+  const officialItemTwoId = createId("ritem");
 
-  await db.insert(rankingsTable).values({
-    id: rankingId,
-    authorId,
-    type: "community",
-    title: "2026 城市航拍装备推荐榜",
-    description: "围绕城市航拍、便携性和稳定性做的一份混合条目榜单。",
-    coverImageUrl: null,
-    itemAddPolicy: "owner",
-    commentCount: 1
-  });
+  await db.insert(rankingsTable).values([
+    {
+      id: communityRankingId,
+      authorId,
+      type: "community",
+      title: "2026 City Aerial Picks",
+      description: "Community shortlist for urban aerial workflows.",
+      coverImageUrl: null,
+      itemAddPolicy: "owner",
+      commentCount: 1
+    },
+    {
+      id: officialRankingId,
+      authorId: officialAuthorId,
+      type: "official",
+      title: "Official Endurance Ranking",
+      description: "Official board based on reviewed flight performance.",
+      coverImageUrl: null,
+      itemAddPolicy: "owner",
+      commentCount: 0
+    }
+  ]);
 
   await db.insert(rankingItemsTable).values([
     {
       id: itemOneId,
-      rankingId,
+      rankingId: communityRankingId,
       linkedModelId: modelBySlug.get("mini-4-pro")?.id ?? null,
       rank: 1,
       title: "DJI Mini 4 Pro",
-      summary: "便携性与画质的平衡点。",
+      summary: "Portable and balanced.",
       imageUrl: null,
       brandName: "DJI",
       commentCount: 1
     },
     {
       id: itemTwoId,
-      rankingId,
+      rankingId: communityRankingId,
       linkedModelId: modelBySlug.get("mavic-3-pro")?.id ?? null,
       rank: 2,
       title: "DJI Mavic 3 Pro",
-      summary: "多镜头系统适合高完成度商业内容。",
+      summary: "Strong production output.",
       imageUrl: null,
       brandName: "DJI",
       commentCount: 0
     },
     {
       id: itemThreeId,
-      rankingId,
+      rankingId: communityRankingId,
       linkedModelId: null,
       rank: 3,
-      title: "海岸线定制挂载方案",
-      summary: "用户自定义的混合拍摄条目，不绑定现有飞行器。",
-      imageUrl: "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=900&q=80",
+      title: "Custom coastal setup",
+      summary: "Community custom mixed item.",
+      imageUrl:
+        "https://images.unsplash.com/photo-1508614589041-895b88991e3e?auto=format&fit=crop&w=900&q=80",
       brandName: "Custom",
+      commentCount: 0
+    },
+    {
+      id: officialItemOneId,
+      rankingId: officialRankingId,
+      linkedModelId: modelBySlug.get("mini-4-pro")?.id ?? null,
+      rank: 1,
+      title: "DJI Mini 4 Pro",
+      summary: "Official reviewed item.",
+      imageUrl: null,
+      brandName: "DJI",
+      commentCount: 0
+    },
+    {
+      id: officialItemTwoId,
+      rankingId: officialRankingId,
+      linkedModelId: modelBySlug.get("mavic-3-pro")?.id ?? null,
+      rank: 2,
+      title: "DJI Mavic 3 Pro",
+      summary: "Official reviewed item.",
+      imageUrl: null,
+      brandName: "DJI",
       commentCount: 0
     }
   ]);
 
   await db.insert(rankingCommentsTable).values({
     id: createId("rcomment"),
-    rankingId,
+    rankingId: communityRankingId,
     authorId: commenterId,
-    content: "这份榜单很实用，尤其适合从轻量机型升级的用户。"
+    content: "Practical ranking for daily pilots."
   });
 
   await db.insert(rankingItemRatingsTable).values([
@@ -550,6 +589,12 @@ async function seedRankingsAndItems() {
       rankingItemId: itemTwoId,
       userId: authorId,
       rating: 4
+    },
+    {
+      id: createId("rir"),
+      rankingItemId: officialItemOneId,
+      userId: commenterId,
+      rating: 5
     }
   ]);
 
@@ -557,7 +602,7 @@ async function seedRankingsAndItems() {
     id: createId("ricom"),
     rankingItemId: itemOneId,
     authorId: commenterId,
-    content: "Mini 4 Pro 在城市环境里的安全边界控制确实更好。"
+    content: "Mini 4 Pro feels very safe in dense urban routes."
   });
 }
 
@@ -573,29 +618,35 @@ async function seedAircraftSubmission() {
     .values({
       id: authorId,
       role: "user",
-      displayName: "机库投稿员",
+      displayName: "Submission Pilot",
       phone: "13800138121",
       account: null,
       passwordHash: null
     })
     .onConflictDoNothing();
 
-  const approvedModel = await db
-    .select()
-    .from(aircraftModelsTable)
-    .where(eq(aircraftModelsTable.slug, "mini-4-pro"))
+  const category = await db
+    .select({ id: aircraftCategoriesTable.id })
+    .from(aircraftCategoriesTable)
+    .where(eq(aircraftCategoriesTable.slug, "drone"))
+    .limit(1);
+  const brand = await db
+    .select({ id: brandsTable.id })
+    .from(brandsTable)
+    .where(eq(brandsTable.slug, "dji"))
     .limit(1);
 
   await db.insert(aircraftSubmissionsTable).values({
     id: createId("submit"),
     authorId,
-    status: "approved",
-    brandName: "DJI",
+    status: "submitted",
+    categoryId: category[0]?.id ?? "",
+    brandId: brand[0]?.id ?? null,
+    proposedBrandName: null,
     modelName: "Mini 4 Pro",
-    aircraftType: "无人机",
     powerType: "electric",
-    summary: "用于示例的投稿记录。",
-    description: "默认自动通过的投稿样本，便于联调页面状态。",
+    summary: "Seeded submission sample.",
+    description: "Default sample remains submitted until admin review.",
     coverImageUrl: null,
     galleryImageUrls: "[]",
     videoUrl: null,
@@ -603,7 +654,7 @@ async function seedAircraftSubmission() {
     maxRangeKilometers: 18,
     maxSpeedKph: 58,
     takeoffWeightGrams: 249,
-    approvedModelId: approvedModel[0]?.id ?? null
+    approvedModelId: null
   });
 }
 

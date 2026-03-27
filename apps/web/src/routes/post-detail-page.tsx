@@ -10,11 +10,13 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "../features/auth/auth-store";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { InlineCommentComposer } from "../features/posts/inline-comment-composer";
 import { PostCommentThread } from "../features/posts/post-comment-thread";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
@@ -39,6 +41,7 @@ export function PostDetailPage() {
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
+  const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -63,7 +66,7 @@ export function PostDetailPage() {
   }
 
   if (postQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">正在加载帖子详情...</div>;
+    return <DetailPageSkeleton />;
   }
 
   if (postQuery.isError) {
@@ -135,12 +138,21 @@ export function PostDetailPage() {
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
                 </div>
               </div>
-            </div>
+              登录后评论
+            </Button>
 
             {!item.engagement.viewer.isAuthor ? (
               <Button
                 className="rounded-full"
                 onClick={() => {
+                  if (
+                    !promptLogin({
+                      title: "登录后才能关注作者",
+                      description: "关注前请先登录。"
+                    })
+                  ) {
+                    return;
+                  }
                   setActionError(null);
                   void apiClient
                     .toggleFollow(item.author.id)
@@ -284,7 +296,18 @@ export function PostDetailPage() {
       <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/96 px-4 pb-4 pt-3 backdrop-blur md:px-6 xl:left-[calc(var(--shell-sidebar-width)+2rem)]">
         <div className="mx-auto w-full max-w-[840px]">
           {authStatus !== "authenticated" ? (
-            <div className="border border-border/60 px-3 py-2 text-sm text-muted-foreground">
+            <Button
+              className="w-full"
+              onClick={() => {
+                promptLogin({
+                  title: "登录后才能评论",
+                  description: "评论前请先登录。"
+                });
+              }}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
               登录后即可参与评论。
             </div>
           ) : item.status !== "published" ? (

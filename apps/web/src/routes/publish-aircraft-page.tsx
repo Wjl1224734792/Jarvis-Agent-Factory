@@ -1,25 +1,25 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { CheckCircle2Icon, FileImageIcon, PlaneTakeoffIcon, SendHorizonalIcon } from "lucide-react";
+import {
+  CheckCircle2Icon,
+  FileImageIcon,
+  PlaneTakeoffIcon,
+  SendHorizonalIcon,
+  TagsIcon
+} from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import {
-  SiteGrid,
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle,
-  SitePanel,
-  SitePanelBody,
-  SiteRail
-} from "@/components/site-shell";
+import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { PublishShell } from "@/components/publish-shell";
+import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
+import { buildPublishStatusPath } from "../lib/web-routes";
 
 type UploadedImage = {
   id: string;
@@ -33,24 +33,17 @@ const powerTypeOptions = [
   { value: "other", label: "其他" }
 ] as const;
 
-function buildNamedOptions(items: Array<{ slug: string; name: string }>) {
-  if (items.some((item) => item.slug === "other")) {
-    return items;
-  }
-
-  return [...items, { slug: "other", name: "其他" }];
-}
-
 export function PublishAircraftPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const promptLogin = useLoginPrompt();
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [modelName, setModelName] = useState("");
-  const [selectedBrandSlug, setSelectedBrandSlug] = useState("other");
-  const [selectedCategorySlug, setSelectedCategorySlug] = useState("other");
+  const [selectedBrandId, setSelectedBrandId] = useState("");
+  const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedPowerType, setSelectedPowerType] = useState<string>("other");
-  const [customBrandName, setCustomBrandName] = useState("");
-  const [customCategoryName, setCustomCategoryName] = useState("");
+  const [brandMode, setBrandMode] = useState<"existing" | "proposed">("existing");
+  const [proposedBrandName, setProposedBrandName] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [videoUrl, setVideoUrl] = useState("");
@@ -63,22 +56,28 @@ export function PublishAircraftPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const filtersQuery = useQuery({
-    queryKey: ["aircraft-submission-filters"],
-    queryFn: () => apiClient.listModels()
+  const categoriesQuery = useQuery({
+    queryKey: ["aircraft-submission-categories"],
+    queryFn: () => apiClient.listAircraftCategories()
+  });
+  const brandsQuery = useQuery({
+    queryKey: ["aircraft-submission-brands"],
+    queryFn: () => apiClient.listBrands()
   });
 
-  const categories = useMemo(
-    () => buildNamedOptions((filtersQuery.data?.filters.categories ?? []).map((item) => ({ slug: item.slug, name: item.name }))),
-    [filtersQuery.data?.filters.categories]
-  );
-  const brands = useMemo(
-    () => buildNamedOptions((filtersQuery.data?.filters.brands ?? []).map((item) => ({ slug: item.slug, name: item.name }))),
-    [filtersQuery.data?.filters.brands]
-  );
+  const categories = categoriesQuery.data ?? [];
+  const brands = brandsQuery.data ?? [];
 
-  const selectedBrand = brands.find((item) => item.slug === selectedBrandSlug);
-  const selectedCategory = categories.find((item) => item.slug === selectedCategorySlug);
+  const filteredBrands = useMemo(() => {
+    if (!selectedCategoryId) {
+      return brands;
+    }
+
+    return brands.filter((item) => item.categoryId === null || item.categoryId === selectedCategoryId);
+  }, [brands, selectedCategoryId]);
+
+  const selectedBrand = filteredBrands.find((item) => item.id === selectedBrandId) ?? null;
+  const selectedCategory = categories.find((item) => item.id === selectedCategoryId) ?? null;
   const coverUrl = uploadedImages[0]?.url ?? getModelImage("mini-4-pro", "electric");
 
   async function handleImageUpload(files: FileList | null) {
@@ -114,128 +113,151 @@ export function PublishAircraftPage() {
     }
   }
 
-  function resolveBrandName() {
-    return selectedBrandSlug === "other" ? customBrandName.trim() || "其他" : selectedBrand?.name ?? "其他";
-  }
-
-  function resolveCategoryName() {
-    return selectedCategorySlug === "other"
-      ? customCategoryName.trim() || "其他"
-      : selectedCategory?.name ?? "其他";
+  if (categoriesQuery.isLoading || brandsQuery.isLoading) {
+    return <PublishFormSkeleton />;
   }
 
   return (
-    <SitePage className="gap-5">
-      <SitePageHead>
-        <SitePageEyebrow>Aircraft Submission</SitePageEyebrow>
-        <SitePageTitle className="text-[2.8rem]">发布飞行器</SitePageTitle>
-        <SitePageDescription>
-          可直接选择品牌、分类和动力，也可以选“其他”自行填写。提交后会进入审核流，审核通过后可自动进入机型库。
-        </SitePageDescription>
-      </SitePageHead>
+    <PublishShell
+      description="飞行器投稿"
+      eyebrow="飞行器"
+      main={
+        <>
+          {error ? (
+            <Alert variant="destructive">
+              <AlertTitle>飞行器提交失败</AlertTitle>
+              <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
 
-      {error ? (
-        <Alert variant="destructive">
-          <AlertTitle>飞行器发布失败</AlertTitle>
-          <AlertDescription>{error}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      <SiteGrid className="xl:grid-cols-[minmax(0,1fr)_320px]" variant="default">
-        <div className="space-y-5">
           <SitePanel>
             <SitePanelBody className="grid gap-4 md:grid-cols-2">
-              <select
-                className="h-11 rounded-[var(--radius-control)] border border-border/70 bg-white px-3 text-sm"
-                onChange={(event) => setSelectedBrandSlug(event.target.value)}
-                value={selectedBrandSlug}
-              >
-                {brands.map((brand) => (
-                  <option key={brand.slug} value={brand.slug}>
-                    {brand.name}
-                  </option>
-                ))}
-              </select>
-              <Input
-                onChange={(event) => setModelName(event.target.value)}
-                placeholder="机型名称，例如 Mini 4 Pro"
-                value={modelName}
-              />
-              {selectedBrandSlug === "other" ? (
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground/72">机型分类</div>
+                <select
+                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                  onChange={(event) => setSelectedCategoryId(event.target.value)}
+                  value={selectedCategoryId}
+                >
+                  <option value="">选择机型分类</option>
+                  {categories.map((category) => (
+                    <option key={category.id} value={category.id}>
+                      {category.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground/72">机型名称</div>
                 <Input
-                  onChange={(event) => setCustomBrandName(event.target.value)}
-                  placeholder="填写品牌名称"
-                  value={customBrandName}
+                  onChange={(event) => setModelName(event.target.value)}
+                  placeholder="例如 Mini 4 Pro"
+                  value={modelName}
                 />
+              </div>
+
+              <div className="space-y-2 md:col-span-2">
+                <div className="text-sm font-medium text-foreground/72">品牌</div>
+                <div className="flex flex-wrap gap-2">
+                  {[
+                    { id: "existing", label: "选择已有品牌" },
+                    { id: "proposed", label: "新增品牌提案" }
+                  ].map((item) => (
+                    <button
+                      className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.82rem] transition ${
+                        brandMode === item.id
+                          ? "border-primary bg-primary text-primary-foreground"
+                          : "border-border/70 text-foreground/72"
+                      }`}
+                      key={item.id}
+                      onClick={() => setBrandMode(item.id as "existing" | "proposed")}
+                      type="button"
+                    >
+                      {item.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {brandMode === "existing" ? (
+                <div className="space-y-2 md:col-span-2">
+                  <select
+                    className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                    onChange={(event) => setSelectedBrandId(event.target.value)}
+                    value={selectedBrandId}
+                  >
+                    <option value="">选择品牌</option>
+                    {filteredBrands.map((brand) => (
+                      <option key={brand.id} value={brand.id}>
+                        {brand.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
               ) : (
-                <div className="flex items-center rounded-[var(--radius-control)] border border-border/70 bg-muted/15 px-3 text-sm text-muted-foreground">
-                  已选择品牌：{selectedBrand?.name ?? "其他"}
+                <div className="space-y-2 md:col-span-2">
+                  <Input
+                    onChange={(event) => setProposedBrandName(event.target.value)}
+                    placeholder="输入品牌名称"
+                    value={proposedBrandName}
+                  />
                 </div>
               )}
 
-              <select
-                className="h-11 rounded-[var(--radius-control)] border border-border/70 bg-white px-3 text-sm"
-                onChange={(event) => setSelectedCategorySlug(event.target.value)}
-                value={selectedCategorySlug}
-              >
-                {categories.map((category) => (
-                  <option key={category.slug} value={category.slug}>
-                    {category.name}
-                  </option>
-                ))}
-              </select>
-
-              {selectedCategorySlug === "other" ? (
-                <Input
-                  onChange={(event) => setCustomCategoryName(event.target.value)}
-                  placeholder="填写机型分类"
-                  value={customCategoryName}
-                />
-              ) : (
-                <div className="flex items-center rounded-[var(--radius-control)] border border-border/70 bg-muted/15 px-3 text-sm text-muted-foreground">
-                  已选择分类：{selectedCategory?.name ?? "其他"}
-                </div>
-              )}
-
-              <select
-                className="h-11 rounded-[var(--radius-control)] border border-border/70 bg-white px-3 text-sm"
-                onChange={(event) => setSelectedPowerType(event.target.value)}
-                value={selectedPowerType}
-              >
-                {powerTypeOptions.map((item) => (
-                  <option key={item.value} value={item.value}>
-                    {item.label}
-                  </option>
-                ))}
-              </select>
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground/72">动力</div>
+                <select
+                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                  onChange={(event) => setSelectedPowerType(event.target.value)}
+                  value={selectedPowerType}
+                >
+                  {powerTypeOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-lg font-semibold text-foreground">封面与媒体资料</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-semibold text-foreground">封面与媒体</div>
+                <Button
+                  onClick={() => imageInputRef.current?.click()}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <FileImageIcon data-icon="inline-start" />
+                  {isUploading ? "上传中..." : "上传图片"}
+                </Button>
+              </div>
+
               <div className="grid gap-4 md:grid-cols-[180px_repeat(3,minmax(0,1fr))]">
                 <button
-                  className="flex h-44 items-center justify-center border border-dashed border-border/70 bg-muted/20"
+                  className="flex h-44 items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20"
                   onClick={() => imageInputRef.current?.click()}
                   type="button"
                 >
                   {uploadedImages[0] ? (
-                    <img
-                      alt="cover"
-                      className="h-full w-full object-cover"
-                      src={uploadedImages[0].url}
-                    />
+                    <img alt="cover" className="h-full w-full rounded-[0.95rem] object-cover" src={uploadedImages[0].url} />
                   ) : (
                     <FileImageIcon className="size-8 text-muted-foreground" />
                   )}
                 </button>
                 {Array.from({ length: 3 }).map((_, index) => (
-                  <div className="flex h-28 items-center justify-center border border-dashed border-border/70 bg-muted/20" key={index}>
+                  <div
+                    className="flex h-28 items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20"
+                    key={index}
+                  >
                     {uploadedImages[index + 1] ? (
                       <img
                         alt="gallery"
-                        className="h-full w-full object-cover"
+                        className="h-full w-full rounded-[0.95rem] object-cover"
                         src={uploadedImages[index + 1].url}
                       />
                     ) : (
@@ -244,6 +266,7 @@ export function PublishAircraftPage() {
                   </div>
                 ))}
               </div>
+
               <input
                 accept="image/*"
                 className="hidden"
@@ -254,9 +277,10 @@ export function PublishAircraftPage() {
                 ref={imageInputRef}
                 type="file"
               />
+
               <Input
                 onChange={(event) => setVideoUrl(event.target.value)}
-                placeholder="视频演示 URL（可选）"
+                placeholder="视频链接，可选"
                 value={videoUrl}
               />
             </SitePanelBody>
@@ -264,7 +288,7 @@ export function PublishAircraftPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-lg font-semibold text-foreground">参数</div>
+              <div className="text-base font-semibold text-foreground">参数</div>
               <div className="grid gap-3 md:grid-cols-4">
                 <Input
                   inputMode="numeric"
@@ -296,90 +320,116 @@ export function PublishAircraftPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-lg font-semibold text-foreground">机型介绍</div>
+              <div className="text-base font-semibold text-foreground">简介</div>
               <Textarea
-                className="min-h-28 rounded-none"
+                className="min-h-24"
                 onChange={(event) => setSummary(event.target.value)}
                 placeholder="一句话摘要"
                 value={summary}
               />
               <Textarea
-                className="min-h-48 rounded-none"
+                className="min-h-44"
                 onChange={(event) => setDescription(event.target.value)}
-                placeholder="描述机型特点、应用场景和核心参数..."
+                placeholder="描述机型特点、场景和参数..."
                 value={description}
               />
-              <div className="flex flex-wrap justify-end gap-3">
-                <Button asChild type="button" variant="outline">
-                  <Link to={APP_ROUTES.models}>取消</Link>
-                </Button>
-                <Button
-                  disabled={
-                    !modelName.trim() ||
-                    !resolveBrandName().trim() ||
-                    !resolveCategoryName().trim() ||
-                    isSubmitting ||
-                    isUploading
-                  }
-                  onClick={() => {
-                    setError(null);
-                    setIsSubmitting(true);
-
-                    void apiClient
-                      .createAircraftSubmission({
-                        brandName: resolveBrandName(),
-                        modelName: modelName.trim(),
-                        aircraftType: resolveCategoryName(),
-                        powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
-                        summary: summary.trim() || null,
-                        description: description.trim() || null,
-                        coverImageUrl: uploadedImages[0]?.url ?? null,
-                        galleryImageUrls: uploadedImages.slice(1).map((item) => item.url),
-                        videoUrl: videoUrl.trim() || null,
-                        maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
-                        maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
-                        maxSpeedKph: maxSpeedKph ? Number(maxSpeedKph) : null,
-                        takeoffWeightGrams: takeoffWeightGrams ? Number(takeoffWeightGrams) : null
-                      })
-                      .then((payload) => {
-                        void queryClient.invalidateQueries({ queryKey: ["models"] });
-                        navigate(APP_ROUTES.modelDetail.replace(":slug", payload.item.approvedModelSlug ?? "mini-4-pro"));
-                      })
-                      .catch((reason: unknown) => {
-                        setError(reason instanceof Error ? reason.message : "飞行器发布失败");
-                      })
-                      .finally(() => {
-                        setIsSubmitting(false);
-                      });
-                  }}
-                  type="button"
-                  variant="hero"
-                >
-                  <SendHorizonalIcon data-icon="inline-start" />
-                  {isSubmitting ? "提交中..." : "提交审核"}
-                </Button>
-              </div>
             </SitePanelBody>
           </SitePanel>
-        </div>
 
-        <SiteRail>
+          <SitePanel>
+            <SitePanelBody className="flex flex-wrap justify-end gap-3">
+              <Button asChild type="button" variant="outline">
+                <Link to={APP_ROUTES.models}>取消</Link>
+              </Button>
+              <Button
+                disabled={
+                  !modelName.trim() ||
+                  !selectedCategoryId ||
+                  (brandMode === "existing" ? !selectedBrandId : !proposedBrandName.trim()) ||
+                  isSubmitting ||
+                  isUploading
+                }
+                onClick={() => {
+                  if (
+                    !promptLogin({
+                      title: "登录后才能投稿飞行器",
+                      description: "投稿飞行器前请先登录。"
+                    })
+                  ) {
+                    return;
+                  }
+                  setError(null);
+                  setIsSubmitting(true);
+
+                  const compatibilityPayload = {
+                    categoryId: selectedCategoryId,
+                    brandId: brandMode === "existing" ? selectedBrandId || null : null,
+                    proposedBrandName: brandMode === "proposed" ? proposedBrandName.trim() || null : null,
+                    brandName:
+                      brandMode === "existing"
+                        ? selectedBrand?.name ?? "未命名品牌"
+                        : proposedBrandName.trim() || "未命名品牌",
+                    modelName: modelName.trim(),
+                    aircraftType: selectedCategory?.name ?? "飞行器",
+                    powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
+                    summary: summary.trim() || null,
+                    description: description.trim() || null,
+                    coverImageUrl: uploadedImages[0]?.url ?? null,
+                    galleryImageUrls: uploadedImages.slice(1).map((item) => item.url),
+                    videoUrl: videoUrl.trim() || null,
+                    maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
+                    maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
+                    maxSpeedKph: maxSpeedKph ? Number(maxSpeedKph) : null,
+                    takeoffWeightGrams: takeoffWeightGrams ? Number(takeoffWeightGrams) : null
+                  } as Parameters<typeof apiClient.createAircraftSubmission>[0];
+
+                  void apiClient
+                    .createAircraftSubmission(compatibilityPayload)
+                    .then((payload) => {
+                      void queryClient.invalidateQueries({ queryKey: ["models"] });
+                      navigate(buildPublishStatusPath("aircraft", payload.item.id), {
+                        state: {
+                          title: modelName.trim(),
+                          description: summary.trim(),
+                          imageUrl: uploadedImages[0]?.url ?? null
+                        }
+                      });
+                    })
+                    .catch((reason: unknown) => {
+                      setError(reason instanceof Error ? reason.message : "飞行器提交失败");
+                    })
+                    .finally(() => {
+                      setIsSubmitting(false);
+                    });
+                }}
+                type="button"
+                variant="hero"
+              >
+                <SendHorizonalIcon data-icon="inline-start" />
+                {isSubmitting ? "提交中..." : "提交审核"}
+              </Button>
+            </SitePanelBody>
+          </SitePanel>
+        </>
+      }
+      aside={
+        <>
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
-              <div className="text-sm uppercase tracking-[0.24em] text-muted-foreground">预览</div>
-              <img alt="model preview" className="h-48 w-full object-cover" src={coverUrl} />
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
+              <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
+              <img alt="model preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+              <div className="grid gap-3">
                 {[
-                  { label: "品牌", value: resolveBrandName() || "其他" },
-                  { label: "分类", value: resolveCategoryName() || "其他" },
+                  { label: "机型分类", value: selectedCategory?.name || "未选择" },
+                  { label: "品牌", value: brandMode === "existing" ? selectedBrand?.name || "未选择" : proposedBrandName || "未填写" },
                   {
                     label: "动力",
                     value: powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"
                   }
                 ].map((item) => (
-                  <div className="border border-border/60 p-3" key={item.label}>
-                    <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">{item.label}</div>
-                    <div className="mt-2 text-lg font-semibold text-foreground">{item.value}</div>
+                  <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3" key={item.label}>
+                    <div className="text-[0.72rem] uppercase tracking-[0.14em] text-muted-foreground">{item.label}</div>
+                    <div className="mt-1 text-sm font-medium text-foreground">{item.value}</div>
                   </div>
                 ))}
               </div>
@@ -388,15 +438,24 @@ export function PublishAircraftPage() {
 
           <SitePanel variant="highlight">
             <SitePanelBody className="space-y-4">
-              <CheckCircle2Icon className="size-6" />
-              <div className="text-2xl font-semibold">投稿规范</div>
-              <p className="text-sm leading-7 text-panel-highlight-foreground/84">
-                优先使用清晰封面图、完整参数和可验证的品牌/机型信息，未命中的分类与品牌可以直接选择“其他”。
+              <PlaneTakeoffIcon className="size-6" />
+              <div className="text-xl font-semibold">投稿说明</div>
+              <p className="text-sm leading-6 text-panel-highlight-foreground/86">
+                分类来自后台维护；品牌可直接选择，或在投稿时补充品牌提案。
               </p>
+              <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
+                <TagsIcon className="size-4" />
+                通过审核后再进入机型库
+              </div>
+              <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
+                <CheckCircle2Icon className="size-4" />
+                不需要额外后台开关
+              </div>
             </SitePanelBody>
           </SitePanel>
-        </SiteRail>
-      </SiteGrid>
-    </SitePage>
+        </>
+      }
+      title="发布飞行器"
+    />
   );
 }
