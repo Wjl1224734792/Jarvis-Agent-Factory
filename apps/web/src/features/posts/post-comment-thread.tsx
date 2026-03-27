@@ -2,8 +2,10 @@ import { useQueryClient } from "@tanstack/react-query";
 import { CornerDownRightIcon, Trash2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 
@@ -71,20 +73,28 @@ function RootCommentItem(props: {
   }
 
   return (
-    <article className="border-b border-border py-4 first:pt-0 last:border-b-0 last:pb-0">
-      <div className="flex items-start justify-between gap-4">
+    <article className="border-b border-border/85 py-3.5 first:pt-0 last:border-b-0 last:pb-0">
+      <div className="flex items-start gap-3">
+        <Avatar className="mt-0.5" size="sm">
+          <AvatarImage
+            alt={props.comment.author.displayName}
+            src={getAvatarImage(props.comment.author.id)}
+          />
+          <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
+        </Avatar>
+
         <div className="min-w-0 flex-1 space-y-1.5">
-          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+          <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
             <span className="font-medium text-foreground">{props.comment.author.displayName}</span>
-            <span className="text-xs text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
+            <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
           </div>
-          <p className="text-sm leading-7 text-foreground/82">{props.comment.content}</p>
+          <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
         </div>
 
-        <div className="flex shrink-0 items-center gap-1">
+        <div className="flex shrink-0 items-center gap-0.5">
           {props.canInteract ? (
             <Button
-              className="h-7 rounded-none px-0 text-xs text-muted-foreground"
+              className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
               onClick={() => openReply(props.comment.id, props.comment.author.displayName)}
               size="sm"
               type="button"
@@ -96,7 +106,7 @@ function RootCommentItem(props: {
 
           {canDelete ? (
             <Button
-              className="h-7 rounded-none px-0 text-xs text-muted-foreground"
+              className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
               disabled={busy !== null}
               onClick={() => {
                 setBusy("delete");
@@ -123,9 +133,9 @@ function RootCommentItem(props: {
       </div>
 
       {replies.length > 0 ? (
-        <div className="mt-3 border-l-2 border-border pl-4">
+        <div className="mt-3 border-l border-border/85 pl-4">
           <button
-            className="text-xs font-medium text-primary"
+            className="text-[0.72rem] font-medium text-primary"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
@@ -135,25 +145,30 @@ function RootCommentItem(props: {
           {expanded ? (
             <div className="mt-3">
               {replies.map((reply) => (
-                <div className="border-t border-border py-3 first:border-t-0 first:pt-0" key={reply.id}>
-                  <div className="flex items-start justify-between gap-3">
+                <div className="border-t border-border/80 py-3 first:border-t-0 first:pt-0" key={reply.id}>
+                  <div className="flex items-start gap-3">
+                    <Avatar className="mt-0.5" size="sm">
+                      <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
+                      <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
+                    </Avatar>
+
                     <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
+                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
                         <span className="font-medium text-foreground">{reply.author.displayName}</span>
                         {reply.replyToDisplayName ? (
-                          <span className="inline-flex items-center gap-1 text-primary/82">
-                            <CornerDownRightIcon className="size-3.5" />
+                          <span className="inline-flex items-center gap-1 text-[0.72rem] text-primary/82">
+                            <CornerDownRightIcon className="size-3.25" />
                             @{reply.replyToDisplayName}
                           </span>
                         ) : null}
-                        <span className="text-xs text-muted-foreground">{formatTime(reply.updatedAt)}</span>
+                        <span className="text-[0.72rem] text-muted-foreground">{formatTime(reply.updatedAt)}</span>
                       </div>
-                      <p className="text-sm leading-7 text-foreground/78">{reply.content}</p>
+                      <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
                     </div>
 
                     {props.canInteract ? (
                       <Button
-                        className="h-7 rounded-none px-0 text-xs text-muted-foreground"
+                        className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
                         onClick={() => openReply(reply.id, reply.author.displayName)}
                         size="sm"
                         type="button"

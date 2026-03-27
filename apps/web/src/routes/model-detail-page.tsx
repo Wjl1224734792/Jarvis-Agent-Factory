@@ -6,11 +6,12 @@ import {
   HeartIcon,
   MessageSquareTextIcon,
   Share2Icon,
-  StarIcon,
   XIcon
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { RatingBreakdown } from "@/components/rating-breakdown";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import {
   SiteGrid,
   SitePage,
@@ -43,37 +44,6 @@ const powerTypeLabels = {
   hybrid: "混动",
   other: "其他"
 } as const;
-
-function RatingStars({
-  value,
-  onSelect
-}: {
-  value: number;
-  onSelect?: (value: number) => void;
-}) {
-  const normalized = Math.round(value);
-  const toneClassName = value < 3 ? "text-destructive" : "text-rating-orange";
-
-  return (
-    <div className={toneClassName + " flex items-center gap-1"}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <button
-          className="rounded-full p-1 transition hover:scale-105 disabled:opacity-50"
-          disabled={!onSelect}
-          key={index}
-          onClick={() => onSelect?.(index + 1)}
-          type="button"
-        >
-          <StarIcon
-            className="size-5"
-            fill={index < normalized ? "currentColor" : "none"}
-            strokeWidth={1.75}
-          />
-        </button>
-      ))}
-    </div>
-  );
-}
 
 export function ModelDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -109,9 +79,7 @@ export function ModelDetailPage() {
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
 
   useEffect(() => {
-    setFormState((current) =>
-      syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null)
-    );
+    setFormState((current) => syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null));
   }, [reviewsQuery.data?.summary.myReview]);
 
   if (!slug) {
@@ -124,7 +92,7 @@ export function ModelDetailPage() {
   }
 
   if (detailQuery.isLoading || reviewsQuery.isLoading) {
-    return <div className="text-sm text-muted-foreground">正在加载机型详情与用户点评...</div>;
+    return <div className="text-sm text-muted-foreground">正在加载机型详情...</div>;
   }
 
   if (detailQuery.isError) {
@@ -152,7 +120,7 @@ export function ModelDetailPage() {
     return (
       <Alert>
         <AlertTitle>暂无可展示数据</AlertTitle>
-        <AlertDescription>这台机型的公开参数或口碑还没有准备好。</AlertDescription>
+        <AlertDescription>这台机型暂时没有公开参数或口碑。</AlertDescription>
       </Alert>
     );
   }
@@ -164,10 +132,53 @@ export function ModelDetailPage() {
     score,
     count: reviewPayload.items.filter((review) => review.rating === score).length
   }));
-  const maxRatingCount = Math.max(...ratingCounts.map((entry) => entry.count), 1);
+
+  const metrics = [
+    {
+      label: "续航",
+      value: item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} MIN` : "45 MIN"
+    },
+    {
+      label: "极速",
+      value: item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} KM/H` : "72 KM/H"
+    },
+    {
+      label: "载重",
+      value: item.parameters.takeoffWeightGrams
+        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} KG`
+        : "1.2 KG"
+    },
+    {
+      label: "航程",
+      value: item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} KM` : "15 KM"
+    }
+  ];
+
+  const specSections = [
+    {
+      title: "基础信息",
+      rows: [
+        [
+          "重量（含电池）",
+          item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "2,490 g"
+        ],
+        ["品牌", item.brand.name],
+        ["分类", item.category.name],
+        ["动力", powerTypeLabels[item.powerType]]
+      ]
+    },
+    {
+      title: "飞行表现",
+      rows: [
+        ["极速", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "8 m/s"],
+        ["航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "6,000 m"],
+        ["状态", item.isPublished ? "已发布" : "未发布"]
+      ]
+    }
+  ];
 
   return (
-    <SitePage className="rounded-none bg-white px-5 py-5">
+    <SitePage className="bg-white px-4 py-4 md:px-5">
       <Button asChild className="w-fit" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
@@ -178,19 +189,19 @@ export function ModelDetailPage() {
       <SiteGrid variant="detail">
         <div className="flex flex-col gap-[var(--page-gap)]">
           <SitePanel className="bg-white">
-            <SitePanelBody className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="space-y-4">
-                <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] border border-border">
+            <SitePanelBody className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+              <div className="space-y-3">
+                <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.15rem)] border border-border">
                   <img
                     alt={item.name}
-                    className="h-[360px] w-full object-cover"
+                    className="h-[300px] w-full object-cover md:h-[330px]"
                     src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
                   />
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-4 gap-2">
                   {gallery.map((image, index) => (
                     <button
-                      className={`overflow-hidden rounded-[calc(var(--radius-control)-0.1rem)] border transition ${
+                      className={`overflow-hidden rounded-[calc(var(--radius-control)-0.12rem)] border transition ${
                         activeGalleryIndex === index
                           ? "border-primary shadow-[var(--shadow-soft)]"
                           : "border-border"
@@ -199,17 +210,13 @@ export function ModelDetailPage() {
                       onClick={() => setActiveGalleryIndex(index)}
                       type="button"
                     >
-                      <img
-                        alt={`${item.name}-${index + 1}`}
-                        className="h-20 w-full object-cover"
-                        src={image}
-                      />
+                      <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
                     </button>
                   ))}
                 </div>
               </div>
 
-              <div className="flex h-full flex-col gap-5">
+              <div className="flex h-full flex-col gap-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="eyebrow">精选系列</Badge>
                   <Badge variant="outline">{item.brand.name}</Badge>
@@ -217,158 +224,109 @@ export function ModelDetailPage() {
                   <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
                 </div>
 
-                <div className="space-y-4">
-                  <h1 className="text-[2.4rem] leading-[1.04] font-semibold tracking-[-0.05em] text-foreground">
+                <div className="space-y-3 border-b border-border/75 pb-3.5">
+                  <h1 className="text-[2rem] leading-[1.02] font-semibold tracking-[-0.05em] text-foreground">
                     {item.name}
                   </h1>
-                  <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
-                    <div className="space-y-3">
-                      <RatingStars value={reviewPayload.summary.averageScore / 2} />
-                      <div className="text-sm text-muted-foreground">
+                  <div className="flex items-end justify-between gap-4">
+                    <div className="space-y-1.5">
+                      <RatingStars size="sm" value={toFiveStarRating(reviewPayload.summary.averageScore)} />
+                      <div className="text-[0.78rem] text-muted-foreground">
                         {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条点评
                       </div>
                     </div>
-                    <span className="text-[2.8rem] font-semibold leading-none text-rating-blue">
+                    <span className="text-[2.45rem] font-semibold leading-none text-rating-blue">
                       {reviewPayload.summary.averageScore.toFixed(1)}
                     </span>
                   </div>
-                  <p className="text-base leading-8 text-muted-foreground">
-                    {item.description ??
-                      item.summary ??
-                      "查看公开参数、飞友口碑与热门机型对比，用尽量少的切页完成判断。"}
-                  </p>
+                  {item.description ?? item.summary ? (
+                    <p className="text-[0.9rem] leading-6 text-foreground/72">
+                      {item.description ?? item.summary}
+                    </p>
+                  ) : null}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
-                  {[
-                    {
-                      label: "续航",
-                      value: item.parameters.maxFlightTimeMinutes
-                        ? `${item.parameters.maxFlightTimeMinutes} MIN`
-                        : "45 MIN"
-                    },
-                    {
-                      label: "极速",
-                      value: item.parameters.maxSpeedKph
-                        ? `${item.parameters.maxSpeedKph} KM/H`
-                        : "72 KM/H"
-                    },
-                    {
-                      label: "载重",
-                      value: item.parameters.takeoffWeightGrams
-                        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} KG`
-                        : "1.2 KG"
-                    },
-                    {
-                      label: "航程",
-                      value: item.parameters.maxRangeKilometers
-                        ? `${item.parameters.maxRangeKilometers} KM`
-                        : "15 KM"
-                    }
-                  ].map((metric) => (
-                    <div className="border border-border bg-muted/15 px-5 py-5" key={metric.label}>
-                      <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                <div className="grid gap-2.5 sm:grid-cols-2">
+                  {metrics.map((metric) => (
+                    <div
+                      className="rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-muted/15 px-4 py-3.5"
+                      key={metric.label}
+                    >
+                      <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                         {metric.label}
                       </div>
-                      <div className="mt-2 text-[2.2rem] font-semibold text-foreground">
+                      <div className="mt-1.5 text-[1.6rem] font-semibold leading-none text-foreground">
                         {metric.value}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-auto grid gap-3 sm:grid-cols-2">
-                  <Button size="lg" type="button" variant="hero">
-                    <HeartIcon data-icon="inline-start" />
-                    想买
-                  </Button>
-                  <Button size="lg" type="button" variant="panel">
-                    <MessageSquareTextIcon data-icon="inline-start" />
-                    写点评
-                  </Button>
-                  <Button type="button" variant="outline">
-                    <BookmarkIcon data-icon="inline-start" />
-                    收藏
-                  </Button>
-                  <Button type="button" variant="outline">
-                    <Share2Icon data-icon="inline-start" />
-                    分享
-                  </Button>
+                <div className="mt-auto rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-surface-1 p-3">
+                  <div className="grid gap-2.5 sm:grid-cols-2">
+                    <Button size="sm" type="button" variant="hero">
+                      <HeartIcon data-icon="inline-start" />
+                      想买
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        document.getElementById("model-reviews")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start"
+                        });
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="panel"
+                    >
+                      <MessageSquareTextIcon data-icon="inline-start" />
+                      写点评
+                    </Button>
+                  </div>
+                  <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
+                    <Button size="sm" type="button" variant="outline">
+                      <BookmarkIcon data-icon="inline-start" />
+                      收藏
+                    </Button>
+                    <Button
+                      onClick={() => {
+                        if (typeof navigator !== "undefined" && navigator.clipboard) {
+                          void navigator.clipboard.writeText(window.location.href);
+                        }
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <Share2Icon data-icon="inline-start" />
+                      分享
+                    </Button>
+                  </div>
                 </div>
               </div>
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel className="bg-white">
-            <SitePanelBody className="space-y-8">
+            <SitePanelBody className="space-y-6">
               <div>
                 <SitePageEyebrow>详细规格</SitePageEyebrow>
-                <div className="mt-6 space-y-6">
-                  {[
-                    {
-                      title: "基础信息",
-                      rows: [
-                        [
-                          "重量（含电池）",
-                          item.parameters.takeoffWeightGrams
-                            ? `${item.parameters.takeoffWeightGrams} g`
-                            : "2,490 g"
-                        ],
-                        ["品牌", item.brand.name],
-                        ["分类", item.category.name]
-                      ]
-                    },
-                    {
-                      title: "动力系统",
-                      rows: [
-                        ["动力类型", powerTypeLabels[item.powerType]],
-                        [
-                          "动力说明",
-                          item.powerType === "electric"
-                            ? "智能飞行电池 5000mAh"
-                            : item.powerType === "other"
-                              ? "按提交资料补充"
-                              : "高密度复合能源系统"
-                        ],
-                        [
-                          "补充说明",
-                          item.description ?? item.summary ?? "查看用户评论获取更多真实体验反馈。"
-                        ]
-                      ]
-                    },
-                    {
-                      title: "飞行表现",
-                      rows: [
-                        [
-                          "极速",
-                          item.parameters.maxSpeedKph
-                            ? `${item.parameters.maxSpeedKph} km/h`
-                            : "8 m/s"
-                        ],
-                        [
-                          "航程",
-                          item.parameters.maxRangeKilometers
-                            ? `${item.parameters.maxRangeKilometers} km`
-                            : "6,000 m"
-                        ],
-                        ["是否发布", item.isPublished ? "是" : "否"]
-                      ]
-                    }
-                  ].map((section) => (
+                <div className="mt-5 space-y-5">
+                  {specSections.map((section) => (
                     <div key={section.title}>
-                      <div className="text-sm uppercase tracking-[0.24em] text-primary">
+                      <div className="text-[0.78rem] font-semibold uppercase tracking-[0.2em] text-primary">
                         {section.title}
                       </div>
-                      <div className="mt-4 overflow-hidden border border-border">
+                      <div className="mt-3 overflow-hidden rounded-[0.9rem] border border-border">
                         {section.rows.map(([label, value], index) => (
                           <div
-                            className={`grid gap-3 px-5 py-4 md:grid-cols-[220px_minmax(0,1fr)] ${
+                            className={`grid gap-2 px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)] ${
                               index !== section.rows.length - 1 ? "border-b border-border" : ""
                             }`}
                             key={label}
                           >
-                            <div className="text-sm text-muted-foreground">{label}</div>
-                            <div className="text-sm font-medium leading-7 text-foreground">{value}</div>
+                            <div className="text-[0.8rem] text-muted-foreground">{label}</div>
+                            <div className="text-[0.82rem] font-medium leading-6 text-foreground">{value}</div>
                           </div>
                         ))}
                       </div>
@@ -379,82 +337,45 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <section className="space-y-5">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <SitePageEyebrow>用户口碑</SitePageEyebrow>
-                <h2 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
-                  用户口碑
-                </h2>
-                <p className="mt-2 text-base leading-8 text-muted-foreground">
-                  紧凑评论流与真实飞行反馈
-                </p>
-              </div>
-              <div className="flex gap-4 text-sm">
-                <button className="border-b-2 border-primary pb-1 text-primary" type="button">
-                  热门
-                </button>
-                <button className="pb-1 text-muted-foreground" type="button">
-                  最新
-                </button>
-                <button className="pb-1 text-muted-foreground" type="button">
-                  评分
-                </button>
-              </div>
+          <section className="space-y-4" id="model-reviews">
+            <div className="space-y-1">
+              <SitePageEyebrow>用户口碑</SitePageEyebrow>
+              <h2 className="text-[1.55rem] font-semibold tracking-tight text-foreground">用户口碑</h2>
             </div>
 
-            <div className="border border-border bg-white">
-              <div className="grid border-b border-border lg:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="border-r border-border px-6 py-6">
-                  <div className="text-[4.25rem] font-semibold leading-none text-foreground">
+            <div className="overflow-hidden rounded-[0.95rem] border border-border bg-white">
+              <div className="grid border-b border-border lg:grid-cols-[240px_minmax(0,1fr)]">
+                <div className="border-r border-border px-5 py-5">
+                  <div className="text-[3.4rem] font-semibold leading-none text-foreground">
                     {reviewPayload.summary.averageScore.toFixed(1)}
                   </div>
-                  <div className="mt-4">
-                    <RatingStars value={reviewPayload.summary.averageScore / 2} />
+                  <div className="mt-3">
+                    <RatingStars size="sm" value={toFiveStarRating(reviewPayload.summary.averageScore)} />
                   </div>
-                  <div className="mt-4 text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                  <div className="mt-3 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                     综合评分
                   </div>
                 </div>
 
-                <div className="px-6 py-6">
-                  <div className="space-y-4">
-                    {ratingCounts.map((entry) => (
-                      <div
-                        className="grid items-center gap-3 sm:grid-cols-[24px_minmax(0,1fr)_48px]"
-                        key={entry.score}
-                      >
-                        <div className="text-sm text-muted-foreground">{entry.score}</div>
-                        <div className="h-3 overflow-hidden rounded-full bg-muted">
-                          <div
-                            className="h-full rounded-full bg-rating-orange"
-                            style={{ width: `${(entry.count / maxRatingCount) * 100}%` }}
-                          />
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {reviewPayload.summary.totalReviews
-                            ? `${Math.round((entry.count / reviewPayload.summary.totalReviews) * 100)}%`
-                            : "0%"}
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                <div className="px-5 py-5">
+                  <RatingBreakdown entries={ratingCounts} totalCount={reviewPayload.summary.totalReviews} />
                 </div>
               </div>
 
-              <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
-                <div className="border-r border-border px-6 py-6">
-                  <div className="text-2xl font-semibold text-foreground">写点评</div>
-                  <div className="mt-4">
+              <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
+                <div className="border-r border-border px-5 py-5">
+                  <div className="text-[1.1rem] font-semibold text-foreground">写点评</div>
+                  <div className="mt-3">
                     <RatingStars
                       onSelect={(value) => {
                         setFormState((current) => updateReviewRating(current, value));
                       }}
+                      size="md"
                       value={formState.rating}
                     />
                   </div>
                   {replyTarget ? (
-                    <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                    <div className="mt-2.5 flex items-center justify-between text-[0.78rem] text-muted-foreground">
                       <span>正在回复 @{replyTarget}</span>
                       <button
                         className="text-destructive"
@@ -469,34 +390,30 @@ export function ModelDetailPage() {
                     </div>
                   ) : null}
                   <Textarea
-                    className="mt-4 min-h-32 rounded-none border-border"
+                    className="mt-3 min-h-28 border-border"
                     onChange={(event) => {
                       setFormState((current) => updateReviewContent(current, event.target.value));
                     }}
-                    placeholder={
-                      replyTarget
-                        ? `回复 @${replyTarget}`
-                        : "比如：避障系统在密林和近距绕飞中表现如何？"
-                    }
+                    placeholder={replyTarget ? `回复 @${replyTarget}` : "写下你的使用感受..."}
                     value={formState.content}
                   />
 
                   {submitError ? (
-                    <Alert className="mt-4" variant="destructive">
+                    <Alert className="mt-3" variant="destructive">
                       <AlertTitle>提交失败</AlertTitle>
                       <AlertDescription>{submitError}</AlertDescription>
                     </Alert>
                   ) : null}
 
                   {!isAuthenticated ? (
-                    <Alert className="mt-4">
+                    <Alert className="mt-3">
                       <AlertTitle>登录后可写点评</AlertTitle>
-                      <AlertDescription>当前未登录，只能浏览已有评分与公开评论。</AlertDescription>
+                      <AlertDescription>当前未登录，只能浏览公开评论。</AlertDescription>
                     </Alert>
                   ) : null}
 
                   <Button
-                    className="mt-4 w-full"
+                    className="mt-3 w-full"
                     disabled={!isAuthenticated || !isReviewFormValid(formState) || isSubmitting}
                     onClick={() => {
                       setSubmitError(null);
@@ -510,50 +427,44 @@ export function ModelDetailPage() {
                           void reviewsQuery.refetch();
                         })
                         .catch((reason: unknown) => {
-                          setSubmitError(
-                            reason instanceof Error ? reason.message : "提交点评失败"
-                          );
+                          setSubmitError(reason instanceof Error ? reason.message : "提交点评失败");
                         })
                         .finally(() => {
                           setIsSubmitting(false);
                         });
                     }}
+                    size="sm"
                     type="button"
                     variant="hero"
                   >
                     <MessageSquareTextIcon data-icon="inline-start" />
-                    {isSubmitting ? "提交中..." : "提交 / 更新点评"}
+                    {isSubmitting ? "提交中..." : "提交点评"}
                   </Button>
                 </div>
 
                 <div className="min-w-0">
                   {reviewPayload.items.length > 0 ? (
                     reviewPayload.items.map((review) => (
-                      <div className="border-b border-border px-6 py-5 last:border-b-0" key={review.id}>
-                        <div className="flex items-start justify-between gap-4">
+                      <div className="border-b border-border px-5 py-4 last:border-b-0" key={review.id}>
+                        <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <Avatar>
-                              <AvatarImage
-                                alt={review.author.displayName}
-                                src={getAvatarImage(review.author.id)}
-                              />
+                            <Avatar size="sm">
+                              <AvatarImage alt={review.author.displayName} src={getAvatarImage(review.author.id)} />
                               <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
                             </Avatar>
                             <div className="min-w-0">
-                              <div className="font-semibold text-foreground">
-                                {review.author.displayName}
-                              </div>
-                              <div className="text-sm text-muted-foreground">
+                              <div className="font-medium text-foreground">{review.author.displayName}</div>
+                              <div className="text-[0.72rem] text-muted-foreground">
                                 {new Date(review.updatedAt).toLocaleString("zh-CN", {
                                   hour12: false
                                 })}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-4">
-                            <RatingStars value={review.rating} />
+                          <div className="flex items-center gap-3">
+                            <RatingStars size="xs" value={review.rating} />
                             <button
-                              className="text-xs text-primary"
+                              className="text-[0.72rem] text-primary"
                               onClick={() => {
                                 setReplyTarget(review.author.displayName);
                                 setFormState((current) =>
@@ -561,7 +472,7 @@ export function ModelDetailPage() {
                                     current,
                                     current.content.startsWith(`@${review.author.displayName}`)
                                       ? current.content
-                                      : `@${review.author.displayName} ${current}`.trim()
+                                      : `@${review.author.displayName} ${current.content}`.trim()
                                   )
                                 );
                               }}
@@ -571,15 +482,13 @@ export function ModelDetailPage() {
                             </button>
                           </div>
                         </div>
-                        <p className="mt-3 text-sm leading-7 text-foreground/78">
-                          {review.content ?? "该用户只做了快速评分，没有补充文字。"}
+                        <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/78">
+                          {review.content ?? "只做了快速评分。"}
                         </p>
                       </div>
                     ))
                   ) : (
-                    <div className="px-6 py-6 text-sm text-muted-foreground">
-                      还没有公开点评，欢迎留下第一条真实口碑。
-                    </div>
+                    <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开点评。</div>
                   )}
                 </div>
               </div>
@@ -589,26 +498,27 @@ export function ModelDetailPage() {
 
         <SiteRail>
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
+            <SitePanelBody className="space-y-2.5">
               <SitePageEyebrow className="text-primary">热门机型</SitePageEyebrow>
               {hotModels.map((model, index) => (
                 <Link
-                  className="flex items-center gap-3 rounded-[calc(var(--radius-control)+0.05rem)] bg-background/72 p-3 transition hover:bg-secondary/42"
+                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.slug}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
                   <img
                     alt={model.name}
-                    className="h-16 w-20 rounded-[calc(var(--radius-control)-0.1rem)] object-cover"
+                    className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
                     src={getModelImage(model.slug, model.powerType, index)}
                   />
-                  <div className="min-w-0">
-                    <div className="truncate font-medium text-foreground">{model.name}</div>
-                    <div className="flex items-center justify-between gap-2 text-sm">
-                      <span className="text-muted-foreground">{model.brand.name}</span>
-                      <span className="font-semibold text-rating-blue">
-                        {model.ratingSummary.averageScore.toFixed(1)}
-                      </span>
+                  <div className="min-w-0 space-y-1">
+                    <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
+                    <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
+                    <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
+                      {model.ratingSummary.averageScore.toFixed(1)}
                     </div>
                   </div>
                 </Link>

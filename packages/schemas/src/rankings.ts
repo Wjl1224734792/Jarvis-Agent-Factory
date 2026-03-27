@@ -63,6 +63,16 @@ export const rankingItemCommentSchema = z.object({
   author: userSummarySchema
 });
 
+const ratingBreakdownCountSchema = z.number().int().nonnegative();
+
+export const rankingItemRatingBreakdownSchema = z.tuple([
+  z.object({ score: z.literal(5), count: ratingBreakdownCountSchema }),
+  z.object({ score: z.literal(4), count: ratingBreakdownCountSchema }),
+  z.object({ score: z.literal(3), count: ratingBreakdownCountSchema }),
+  z.object({ score: z.literal(2), count: ratingBreakdownCountSchema }),
+  z.object({ score: z.literal(1), count: ratingBreakdownCountSchema })
+]);
+
 export const rankingListItemSchema = z.object({
   id: z.string().min(1),
   type: rankingTypeSchema,
@@ -99,7 +109,8 @@ export const rankingItemDetailSchema = rankingItemSchema.extend({
     title: z.string().min(1)
   }),
   comments: z.array(rankingItemCommentSchema),
-  myReview: rankingItemCommentSchema.nullable()
+  myReview: rankingItemCommentSchema.nullable(),
+  ratingBreakdown: rankingItemRatingBreakdownSchema
 });
 
 export const rankingsResponseSchema = z.object({

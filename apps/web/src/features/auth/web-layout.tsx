@@ -65,13 +65,13 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="flex size-10 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)-0.05rem)] bg-primary text-base font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
+    <div className="flex items-center gap-2.5">
+      <div className="flex size-9 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)-0.05rem)] bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
         飞
       </div>
       <div className="min-w-0">
-        <div className="text-[1.45rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
-        <div className="text-[0.64rem] font-medium uppercase tracking-[0.24em] text-muted-foreground">
+        <div className="text-[1.32rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
+        <div className="text-[0.58rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">
           Precision aviation
         </div>
       </div>
@@ -87,7 +87,7 @@ function NavButtons({
   onNavigate?: () => void;
 }) {
   return (
-    <nav className="flex flex-col gap-2">
+    <nav className="flex flex-col gap-1.5">
       {items.map((item) => {
         const Icon = item.icon;
 
@@ -96,9 +96,9 @@ function NavButtons({
             className={({ isActive }) =>
               cn(
                 buttonVariants({
-                  size: "lg",
+                  size: "default",
                   variant: "nav",
-                  className: "w-full justify-start px-3.5"
+                  className: "w-full justify-start px-3"
                 }),
                 isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]"
               )
@@ -154,9 +154,9 @@ export function WebLayout() {
   }
 
   return (
-    <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "242px" }}>
+    <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
       <header className="sticky top-0 z-40 border-b border-border/75 bg-background/92 backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-4 px-4 py-3 xl:px-6">
+        <div className="flex items-center justify-between gap-4 px-4 py-2.5 xl:px-5">
           <div className="flex items-center gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
               <SheetTrigger asChild>
@@ -190,11 +190,11 @@ export function WebLayout() {
           </div>
 
           <div className="hidden min-w-0 flex-1 xl:flex">
-            <div className="mx-auto w-full max-w-[42rem]">
+            <div className="mx-auto w-full max-w-[39rem]">
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
-                  className="h-10 rounded-[calc(var(--radius-control)-0.05rem)] border-border/80 bg-card/90 pl-11 shadow-[var(--shadow-soft)]"
+                  className="rounded-[calc(var(--radius-control)-0.05rem)] border-border/80 bg-card/90 pl-10 shadow-[var(--shadow-soft)]"
                   placeholder={headerPlaceholder}
                   readOnly
                 />
@@ -209,11 +209,11 @@ export function WebLayout() {
               onMouseLeave={scheduleClosePublishMenu}
             >
               <Button
-                className="min-w-[6.8rem] justify-center rounded-full px-5 text-sm font-semibold max-sm:min-w-[4.6rem]"
+                className="min-w-[6.2rem] justify-center rounded-full px-4.5 text-[0.82rem] font-semibold max-sm:min-w-[4.4rem]"
                 onClick={() => {
                   setIsPublishMenuOpen((value) => !value);
                 }}
-                size="lg"
+                size="default"
                 type="button"
                 variant="hero"
               >
@@ -222,14 +222,14 @@ export function WebLayout() {
 
               {isPublishMenuOpen ? (
                 <div
-                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10.75rem] rounded-[1.1rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
+                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10rem] rounded-[0.95rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
                   onMouseEnter={openPublishMenu}
                   onMouseLeave={scheduleClosePublishMenu}
                 >
                   <div className="space-y-0.5">
                     {publishEntries.map((entry) => (
                       <Link
-                        className="flex h-9 items-center justify-center rounded-[0.85rem] px-3 text-center text-sm font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
+                        className="flex h-8 items-center justify-center rounded-[0.8rem] px-3 text-center text-[0.82rem] font-medium text-foreground/84 transition hover:bg-secondary/55 hover:text-foreground"
                         key={entry.to}
                         onClick={() => {
                           setIsPublishMenuOpen(false);
@@ -250,16 +250,16 @@ export function WebLayout() {
       </header>
 
       <aside className="hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)]">
-        <div className="flex w-full px-4 pb-6 pt-[90px]">
+        <div className="flex w-full px-4 pb-5 pt-[78px]">
           <SitePanel className="flex w-full flex-col" variant="muted">
-            <SitePanelBody className="flex h-full flex-col gap-4">
+            <SitePanelBody className="flex h-full flex-col gap-3">
               <NavButtons items={navItems} />
             </SitePanelBody>
           </SitePanel>
         </div>
       </aside>
 
-      <div className="px-[var(--page-pad-x)] py-6 xl:ml-[var(--shell-sidebar-width)] xl:px-8">
+      <div className="px-[var(--page-pad-x)] py-5 xl:ml-[var(--shell-sidebar-width)] xl:px-6">
         <SiteShell>
           <div className="min-w-0">
             <Outlet />

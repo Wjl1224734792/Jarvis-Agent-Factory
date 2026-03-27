@@ -2,7 +2,7 @@ name = "backend_implementer"
 description = "在 planner 已将后端任务包分配给你且计划/需求/任务依据齐全时使用；负责后端服务、接口、应用逻辑、数据访问、后端测试和后端实现文档。"
 nickname_candidates = ["API", "Backend", "Service"]
 model = "gpt-5.3-codex"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

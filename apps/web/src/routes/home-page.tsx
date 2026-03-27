@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { APP_NAME, APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES } from "@feijia/shared";
 import {
   BookmarkIcon,
   CompassIcon,
@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -111,14 +112,14 @@ export function HomePage() {
 
   return (
     <SitePage>
-      <SiteGrid className="items-start gap-5" variant="sidebar">
+      <SiteGrid className="items-start gap-4" variant="sidebar">
         <div className="mx-auto w-full max-w-[920px] min-w-0">
           <div className="border-b border-border px-1">
-            <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
+            <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
               {allTabs.map((tab) => (
                 <button
                   className={cn(
-                    "relative border-b-2 border-transparent px-0 py-3 text-[0.95rem] text-foreground/70 transition-colors",
+                    "relative border-b-2 border-transparent px-0 py-2.5 text-[0.9rem] text-foreground/70 transition-colors",
                     isActive(tab.state) && "border-primary font-semibold text-primary"
                   )}
                   key={tab.key}
@@ -133,16 +134,16 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="mt-3 overflow-hidden border-x border-border bg-white">
+          <section className="mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white">
             {feedQuery.isLoading
               ? Array.from({ length: 4 }).map((_, index) => (
-                  <div className="border-b border-border px-3 py-3" key={index}>
-                    <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)]">
-                      <div className="h-[108px] animate-pulse bg-muted" />
+                  <div className="border-b border-border px-3 py-2.5" key={index}>
+                    <div className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)]">
+                      <div className="h-[96px] animate-pulse rounded-[0.8rem] bg-muted" />
                       <div className="space-y-2">
-                        <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
-                        <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                        <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+                        <div className="h-5 w-3/4 animate-pulse rounded bg-muted" />
+                        <div className="h-3.5 w-full animate-pulse rounded bg-muted" />
+                        <div className="h-3.5 w-4/5 animate-pulse rounded bg-muted" />
                       </div>
                     </div>
                   </div>
@@ -158,31 +159,31 @@ export function HomePage() {
 
             {feedItems.map((item, index) => (
               <article
-                className="border-b border-border bg-white px-3 py-3 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
+                className="border-b border-border bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
                 key={item.id}
               >
                 <Link
-                  className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)] md:items-start"
+                  className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
                   to={APP_ROUTES.postDetail.replace(":id", item.id)}
                 >
-                  <div className="overflow-hidden bg-slate-100">
+                  <div className="overflow-hidden rounded-[0.8rem] bg-slate-100">
                     <img
                       alt={item.title}
-                      className="h-[108px] w-full object-cover"
+                      className="h-[96px] w-full object-cover"
                       src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
                     />
                   </div>
 
-                  <div className="flex min-h-[108px] min-w-0 flex-col">
-                    <h2 className="line-clamp-2 max-w-[30rem] text-[1.1rem] leading-[1.25] font-semibold text-foreground">
+                  <div className="flex min-h-[96px] min-w-0 flex-col">
+                    <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
                       {item.title}
                     </h2>
 
-                    <p className="mt-1.5 line-clamp-2 max-w-[34rem] text-[0.88rem] leading-6 text-foreground/72">
+                    <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
                       {item.contentPreview}
                     </p>
 
-                    <div className="mt-auto flex items-center gap-4 pt-3 text-[0.82rem] text-foreground/68">
+                    <div className="mt-auto flex items-center gap-3.5 pt-2.5 text-[0.76rem] text-foreground/68">
                       <span className="inline-flex items-center gap-1.5">
                         <HeartIcon className="size-3.5" />
                         {formatCount(item.engagement.likeCount)}
@@ -218,22 +219,17 @@ export function HomePage() {
               <Alert>
                 <AlertTitle>首页还没有公开内容</AlertTitle>
                 <AlertDescription>
-                  {isAuthenticated
-                    ? "可以先切换到飞友圈浏览动态，或者直接发布你的第一篇文章。"
-                    : `${APP_NAME} 还没有公开内容，登录后可以先发布一条动态。`}
+                  {isAuthenticated ? "可以先发布一篇内容。" : "登录后可发布动态。"}
                 </AlertDescription>
               </Alert>
             ) : null}
           </section>
         </div>
 
-        <SiteRail className="space-y-2.5">
+        <SiteRail className="space-y-2">
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="text-lg font-semibold text-foreground">发布入口</div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                文章、动态、飞行器和榜单分别独立发布，避免混在同一套表单里。
-              </p>
+            <SitePanelBody className="space-y-2.5">
+              <div className="text-base font-semibold text-foreground">发布入口</div>
               <Button asChild className="w-full" variant="hero">
                 <Link to={APP_ROUTES.publishArticle}>
                   <SquarePenIcon data-icon="inline-start" />
@@ -244,14 +240,11 @@ export function HomePage() {
           </SitePanel>
 
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <SitePanelBody className="space-y-2.5">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <CompassIcon className="size-4.5 text-primary" />
                 飞友圈
               </div>
-              <p className="text-sm leading-7 text-muted-foreground">
-                图片优先的动态流和弹窗详情页都集中在飞友圈。
-              </p>
               <Button asChild className="w-full" size="sm" variant="outline">
                 <Link to={APP_ROUTES.flightCircle}>进入飞友圈</Link>
               </Button>
@@ -259,8 +252,8 @@ export function HomePage() {
           </SitePanel>
 
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
+            <SitePanelBody className="space-y-2.5">
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <TrophyIcon className="size-4.5 text-primary" />
                 热门榜单
               </div>
@@ -285,23 +278,27 @@ export function HomePage() {
           </SitePanel>
 
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="text-lg font-semibold text-foreground">热门机型</div>
+            <SitePanelBody className="space-y-2.5">
+              <div className="text-base font-semibold text-foreground">热门机型</div>
               {hotModels.map((model, index) => (
                 <Link
-                  className="grid grid-cols-[64px_minmax(0,1fr)] gap-3"
+                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.id}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
                   <img
                     alt={model.name}
-                    className="h-[64px] w-full object-cover"
+                    className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
                     src={getModelImage(model.slug, model.powerType, index)}
                   />
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-foreground">{model.name}</div>
-                    <div className="text-xs text-muted-foreground">
-                      {model.brand.name} · {model.ratingSummary.averageScore.toFixed(1)}
+                  <div className="min-w-0 space-y-1">
+                    <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
+                    <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
+                    <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
+                  </div>
+                  <div className="text-right">
+                    <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
+                      {model.ratingSummary.averageScore.toFixed(1)}
                     </div>
                   </div>
                 </Link>

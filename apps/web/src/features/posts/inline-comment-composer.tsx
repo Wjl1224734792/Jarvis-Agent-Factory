@@ -13,9 +13,9 @@ type InlineCommentComposerProps = {
 
 export function InlineCommentComposer(props: InlineCommentComposerProps) {
   return (
-    <div className="flex items-center gap-2 border-b border-border/60 pb-2">
+    <div className="flex items-center gap-2 rounded-[calc(var(--radius-control)-0.05rem)] border border-border/80 bg-surface-1 px-2.5 py-2">
       <Input
-        className="h-10 rounded-none border-0 bg-transparent px-0 shadow-none focus-visible:ring-0"
+        className="h-6 rounded-none border-0 bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0 md:h-6"
         disabled={props.disabled}
         onChange={(event) => {
           props.onChange(event.target.value);
@@ -30,11 +30,12 @@ export function InlineCommentComposer(props: InlineCommentComposerProps) {
         value={props.value}
       />
       <Button
-        className="size-9 rounded-full p-0"
+        className="shrink-0 rounded-full"
         disabled={props.disabled || !props.value.trim() || props.busy}
         onClick={props.onSubmit}
+        size="icon-sm"
         type="button"
-        variant="ghost"
+        variant="hero"
       >
         <SendIcon className="size-4" />
         <span className="sr-only">发送评论</span>

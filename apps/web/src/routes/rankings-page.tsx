@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { PlusIcon, StarIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -16,22 +17,6 @@ const officialCardLabels = [
   { id: "official-utility", eyebrow: "实用", title: "实用优先", startIndex: 2 }
 ] as const;
 
-function RatingStars({ score }: { score: number }) {
-  const toneClassName = score < 6 ? "text-destructive" : "text-rating-orange";
-
-  return (
-    <div className={toneClassName + " inline-flex items-center gap-1"}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <StarIcon
-          className="size-3.5"
-          fill={index < Math.round(score / 2) ? "currentColor" : "none"}
-          key={index}
-        />
-      ))}
-    </div>
-  );
-}
-
 function OfficialRankingCard(props: {
   id: string;
   eyebrow: string;
@@ -40,36 +25,34 @@ function OfficialRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex w-[286px] min-w-0 flex-col gap-3 rounded-[1rem] border border-border bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
+      className="flex w-[276px] min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5 shadow-[var(--shadow-panel)] transition hover:border-primary/35 hover:bg-sky-50/70"
       to={buildRankingDetailPath(props.id)}
     >
       <div className="space-y-1">
-        <div className="text-[0.8rem] tracking-[0.18em] text-primary">{props.eyebrow}</div>
-        <div className="text-[1.1rem] font-semibold text-foreground">{props.title}</div>
+        <div className="text-[0.74rem] font-semibold tracking-[0.16em] text-primary">{props.eyebrow}</div>
+        <div className="text-[1rem] font-semibold text-foreground">{props.title}</div>
       </div>
 
       <div className="space-y-2.5">
         {props.items.slice(0, 3).map((item) => (
           <div
-            className="grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_3.5rem] items-center gap-3 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+            className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)_3.25rem] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
             key={item.id}
           >
-            <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
+            <div className="text-[0.82rem] font-semibold text-primary/76">{item.rank}</div>
             <img
               alt={item.title}
-              className="h-12 w-12 rounded-[0.8rem] object-cover"
+              className="h-11 w-11 rounded-[0.75rem] object-cover"
               src={
                 item.imageUrl ??
                 getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
               }
             />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">{item.title}</div>
-              <div className="mt-1">
-                <RatingStars score={item.averageScore} />
-              </div>
+            <div className="min-w-0 space-y-1">
+              <div className="truncate text-[0.82rem] font-medium text-foreground">{item.title}</div>
+              <RatingStars size="xs" value={toFiveStarRating(item.averageScore)} />
             </div>
-            <div className="text-right text-[1.7rem] font-semibold leading-none text-rating-blue">
+            <div className="text-right text-[1.35rem] font-semibold leading-none text-rating-blue">
               {item.averageScore.toFixed(1)}
             </div>
           </div>
@@ -84,12 +67,12 @@ function CommunityRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex w-[286px] min-w-0 flex-col gap-3 rounded-[1rem] border border-border bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
+      className="flex w-[276px] min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5 shadow-[var(--shadow-panel)] transition hover:border-primary/35 hover:bg-sky-50/70"
       to={buildRankingDetailPath(props.ranking.id)}
     >
       <div className="space-y-1">
-        <div className="text-[0.8rem] tracking-[0.18em] text-primary">社区榜单</div>
-        <div className="line-clamp-2 text-[1.1rem] leading-7 font-semibold text-foreground">
+        <div className="text-[0.74rem] font-semibold tracking-[0.16em] text-primary">社区榜单</div>
+        <div className="line-clamp-2 text-[1rem] leading-6 font-semibold text-foreground">
           {props.ranking.title}
         </div>
       </div>
@@ -97,25 +80,23 @@ function CommunityRankingCard(props: {
       <div className="space-y-2.5">
         {props.ranking.items.slice(0, 3).map((item) => (
           <div
-            className="grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_3.5rem] items-center gap-3 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+            className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)_3.25rem] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
             key={item.id}
           >
-            <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
+            <div className="text-[0.82rem] font-semibold text-primary/76">{item.rank}</div>
             <img
               alt={item.title}
-              className="h-12 w-12 rounded-[0.8rem] object-cover"
+              className="h-11 w-11 rounded-[0.75rem] object-cover"
               src={
                 item.imageUrl ??
                 getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
               }
             />
-            <div className="min-w-0">
-              <div className="truncate text-sm font-medium text-foreground">{item.title}</div>
-              <div className="mt-1">
-                <RatingStars score={item.averageScore} />
-              </div>
+            <div className="min-w-0 space-y-1">
+              <div className="truncate text-[0.82rem] font-medium text-foreground">{item.title}</div>
+              <RatingStars size="xs" value={toFiveStarRating(item.averageScore)} />
             </div>
-            <div className="text-right text-[1.7rem] font-semibold leading-none text-rating-blue">
+            <div className="text-right text-[1.35rem] font-semibold leading-none text-rating-blue">
               {item.averageScore.toFixed(1)}
             </div>
           </div>
@@ -143,15 +124,15 @@ export function RankingsPage() {
   }, [rankingsQuery.data?.official.items]);
 
   return (
-    <SitePage className="mx-auto w-full max-w-[1240px] gap-4 px-1">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
-        <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
+    <SitePage className="mx-auto w-full max-w-[1200px] gap-4 px-1">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
+        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {[
             { id: "official", label: "全站榜单" },
             { id: "community", label: "用户榜单" }
           ].map((tab) => (
             <button
-              className={`border-b-2 px-0 py-2 text-[1rem] transition-colors ${
+              className={`border-b-2 px-0 py-2 text-[0.94rem] transition-colors ${
                 activeTab === tab.id
                   ? "border-primary font-semibold text-primary"
                   : "border-transparent text-foreground/64 hover:text-foreground"
@@ -176,14 +157,14 @@ export function RankingsPage() {
       {rankingsQuery.isLoading ? (
         <div
           className="grid justify-start gap-3"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(286px, 286px))" }}
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(276px, 276px))" }}
         >
           {Array.from({ length: 6 }).map((_, index) => (
-            <div className="space-y-4 border border-border/60 px-4 py-4" key={index}>
-              <div className="h-6 w-1/2 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-3/4 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-2/3 animate-pulse rounded bg-muted" />
-              <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
+            <div className="space-y-3 rounded-[0.95rem] border border-border/60 px-4 py-4" key={index}>
+              <div className="h-5 w-1/2 animate-pulse rounded bg-muted" />
+              <div className="h-3.5 w-3/4 animate-pulse rounded bg-muted" />
+              <div className="h-3.5 w-2/3 animate-pulse rounded bg-muted" />
+              <div className="h-3.5 w-4/5 animate-pulse rounded bg-muted" />
             </div>
           ))}
         </div>
@@ -199,7 +180,7 @@ export function RankingsPage() {
       {rankingsQuery.isSuccess ? (
         <div
           className="grid justify-start gap-3"
-          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(286px, 286px))" }}
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(276px, 276px))" }}
         >
           {activeTab === "official"
             ? officialCards.map((card) => (

@@ -4,6 +4,7 @@ import { reviewsRepo } from "../reviews/reviews.repo";
 import { rankingsRepo } from "./rankings.repo";
 
 const BAYESIAN_BASELINE_REVIEW_COUNT = 5;
+const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
 const OFFICIAL_RANKING_DEFINITIONS = [
   {
     id: "official-endurance",
@@ -39,6 +40,29 @@ function average(values: number[]) {
   }
 
   return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
+}
+
+function buildRatingBreakdown(scoreCountMap: Map<number, number>) {
+  return RATING_BREAKDOWN_SCORES.map((score) => ({
+    score,
+    count: scoreCountMap.get(score) ?? 0
+  }));
+}
+
+function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number }>) {
+  const scoreCountMap = new Map<number, number>(
+    rows.map((row) => [row.score, Number(row.count ?? 0)])
+  );
+  return buildRatingBreakdown(scoreCountMap);
+}
+
+function buildRatingBreakdownFromRatings(ratings: number[]) {
+  const scoreCountMap = new Map<number, number>();
+  for (const rating of ratings) {
+    scoreCountMap.set(rating, (scoreCountMap.get(rating) ?? 0) + 1);
+  }
+
+  return buildRatingBreakdown(scoreCountMap);
 }
 
 function serializeRankingItem(
@@ -274,6 +298,7 @@ async function getOfficialRankingItemDetail(id: string, currentUserId?: string) 
     reviewsRepo.listVisibleReviewsByModel(model.id),
     currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
   ]);
+  const ratingBreakdown = buildRatingBreakdownFromRatings(reviews.map((review) => review.rating));
 
   const serializedReviews = reviews
     .filter((review) => review.content && review.content.trim().length > 0)
@@ -299,6 +324,7 @@ async function getOfficialRankingItemDetail(id: string, currentUserId?: string) 
         title: "续航之王"
       },
       comments: serializedReviews,
+      ratingBreakdown,
       myReview:
         myReview && myReview.content
           ? {
@@ -632,10 +658,11 @@ export const rankingsService = {
       return null;
     }
 
-    const [aggregates, userRatings, reviews] = await Promise.all([
+    const [aggregates, userRatings, reviews, ratingBreakdownRows] = await Promise.all([
       rankingsRepo.listRankingItemRatingAggregates([id]),
       currentUserId ? rankingsRepo.listUserRankingItemRatings(currentUserId, [id]) : Promise.resolve([]),
-      rankingsRepo.listRankingItemReviews(id)
+      rankingsRepo.listRankingItemReviews(id),
+      rankingsRepo.listRankingItemRatingBreakdown(id)
     ]);
     const aggregateMap = new Map(
       aggregates.map((item) => [
@@ -648,6 +675,7 @@ export const rankingsService = {
     const serializedReviews = reviews
       .map((entry) => serializeRankingItemReview(entry))
       .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    const ratingBreakdown = buildRatingBreakdownFromRows(ratingBreakdownRows);
 
     return {
       item: {
@@ -657,6 +685,7 @@ export const rankingsService = {
           title: ranking.title
         },
         comments: serializedReviews,
+        ratingBreakdown,
         myReview: currentUserId
           ? serializedReviews.find((entry) => entry.author.id === currentUserId) ?? null
           : null

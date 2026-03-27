@@ -295,6 +295,16 @@ export const rankingsRepo = {
       .where(inArray(rankingItemRatingsTable.rankingItemId, rankingItemIds))
       .groupBy(rankingItemRatingsTable.rankingItemId);
   },
+  async listRankingItemRatingBreakdown(rankingItemId: string) {
+    return db
+      .select({
+        score: rankingItemRatingsTable.rating,
+        count: sql<number>`count(*)`
+      })
+      .from(rankingItemRatingsTable)
+      .where(eq(rankingItemRatingsTable.rankingItemId, rankingItemId))
+      .groupBy(rankingItemRatingsTable.rating);
+  },
   async listUserRankingItemRatings(userId: string, rankingItemIds: string[]) {
     if (rankingItemIds.length === 0) {
       return [];

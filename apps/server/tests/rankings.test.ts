@@ -265,6 +265,17 @@ describe("rankings flows", () => {
       })
     });
     expect(secondReviewResponse.status).toBe(200);
+    const secondReviewPayload = (await secondReviewResponse.json()) as {
+      item: {
+        totalRatings: number;
+        ratingBreakdown: Array<{ score: number; count: number }>;
+      };
+    };
+    expect(secondReviewPayload.item.ratingBreakdown).toHaveLength(5);
+    expect(secondReviewPayload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
+    expect(
+      secondReviewPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
+    ).toBe(secondReviewPayload.item.totalRatings);
 
     const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(rankingItemId!), {
       method: "GET",
@@ -274,17 +285,54 @@ describe("rankings flows", () => {
 
     const itemDetailPayload = (await itemDetailResponse.json()) as {
       item: {
+        totalRatings: number;
+        ratingBreakdown: Array<{ score: number; count: number }>;
         myRating: number | null;
         myReview: { rating: number; content: string } | null;
         comments: Array<{ author: { id: string }; rating: number; content: string }>;
       };
     };
 
+    expect(itemDetailPayload.item.ratingBreakdown).toHaveLength(5);
+    expect(itemDetailPayload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
+    expect(itemDetailPayload.item.ratingBreakdown.find((entry) => entry.score === 4)?.count).toBeGreaterThan(0);
+    expect(
+      itemDetailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
+    ).toBe(itemDetailPayload.item.totalRatings);
     expect(itemDetailPayload.item.myRating).toBe(4);
     expect(itemDetailPayload.item.myReview?.rating).toBe(4);
     expect(itemDetailPayload.item.myReview?.content).toContain("更新点评");
     expect(
       itemDetailPayload.item.comments.filter((item) => item.content.includes("更新点评"))
     ).toHaveLength(1);
+
+    const overviewAfterReview = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const overviewAfterReviewPayload = (await overviewAfterReview.json()) as {
+      official: {
+        items: Array<{ id: string }>;
+      };
+    };
+    const officialItemId = overviewAfterReviewPayload.official.items[0]?.id;
+    expect(officialItemId).toBeTruthy();
+
+    const officialItemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(officialItemId!), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(officialItemDetailResponse.status).toBe(200);
+    const officialItemDetailPayload = (await officialItemDetailResponse.json()) as {
+      item: {
+        totalRatings: number;
+        ratingBreakdown: Array<{ score: number; count: number }>;
+      };
+    };
+    expect(officialItemDetailPayload.item.ratingBreakdown).toHaveLength(5);
+    expect(officialItemDetailPayload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
+    expect(
+      officialItemDetailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
+    ).toBe(officialItemDetailPayload.item.totalRatings);
   });
 });

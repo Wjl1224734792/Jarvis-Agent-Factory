@@ -77,12 +77,12 @@ export function CirclePage() {
   }
 
   return (
-    <SitePage className="gap-5">
+    <SitePage className="gap-4">
       <div className="border-b border-border/60">
-        <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
+        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {feedTabs.map((tab) => (
             <button
-              className={`border-b-2 px-0 py-3 text-[0.98rem] transition-colors ${
+              className={`border-b-2 px-0 py-2.5 text-[0.92rem] transition-colors ${
                 activeTab === tab.id
                   ? "border-primary font-semibold text-primary"
                   : "border-transparent text-foreground/62 hover:text-foreground"
@@ -98,12 +98,12 @@ export function CirclePage() {
       </div>
 
       {feedQuery.isLoading ? (
-        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "14px" }}>
+        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
           {Array.from({ length: 8 }).map((_, index) => (
-            <div className="mb-4 break-inside-avoid" key={index}>
+            <div className="mb-3 break-inside-avoid" key={index}>
               <div
-                className={`animate-pulse bg-muted ${
-                  index % 3 === 0 ? "h-[15rem]" : index % 3 === 1 ? "h-[12rem]" : "h-[13.5rem]"
+                className={`animate-pulse rounded-[0.85rem] bg-muted ${
+                  index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
                 }`}
               />
               <div className="mt-2 space-y-2">
@@ -124,37 +124,37 @@ export function CirclePage() {
       {!feedQuery.isLoading && !feedQuery.isError && posts.length === 0 ? (
         <Alert>
           <AlertTitle>飞友圈还没有新动态</AlertTitle>
-          <AlertDescription>先发一条动态，或者切换标签看别的内容。</AlertDescription>
+          <AlertDescription>先发一条动态试试。</AlertDescription>
         </Alert>
       ) : null}
 
       {posts.length > 0 ? (
-        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "14px" }}>
+        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
           {posts.map((item, index) => (
             <button
-              className={`mb-4 block w-full break-inside-avoid overflow-hidden border text-left transition ${
+              className={`mb-3 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
                 selectedNoteId === item.id
-                  ? "border-primary/50 bg-sky-50 shadow-[0_18px_40px_-34px_rgba(37,99,235,0.34)]"
+                  ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
                   : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"
               }`}
               key={item.id}
               onClick={() => openNote(item.id)}
               type="button"
             >
-              <div className="overflow-hidden bg-slate-100">
+              <div className="overflow-hidden rounded-[0.75rem] bg-slate-100 p-1.5">
                 <img
                   alt={item.title}
-                  className={`w-full object-cover ${
-                    index % 3 === 0 ? "h-[15rem]" : index % 3 === 1 ? "h-[12rem]" : "h-[13.5rem]"
+                  className={`w-full rounded-[0.7rem] object-cover ${
+                    index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
                   }`}
                   src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
                 />
               </div>
-              <div className="space-y-2 px-2.5 py-2.5">
-                <h2 className="line-clamp-1 text-[0.96rem] leading-6 font-semibold text-foreground">
+              <div className="space-y-2 px-2.5 pb-2.5 pt-1.5">
+                <h2 className="line-clamp-1 text-[0.9rem] leading-[1.35rem] font-semibold text-foreground">
                   {item.title}
                 </h2>
-                <div className="flex items-center justify-between text-[0.78rem] text-foreground/58">
+                <div className="flex items-center justify-between text-[0.74rem] text-foreground/58">
                   <span>{item.author.displayName}</span>
                   <span className="inline-flex items-center gap-1">
                     <HeartIcon className="size-3.5" />
@@ -169,53 +169,44 @@ export function CirclePage() {
 
       {selectedNoteId ? (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/42 p-4 backdrop-blur-[2px] transition-opacity"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/46 p-3 backdrop-blur-[2px] transition-opacity"
           onClick={closeNote}
         >
           <div
-            className="relative flex h-[min(88vh,760px)] w-full max-w-[1260px] overflow-hidden rounded-[1.25rem] bg-background shadow-[0_40px_120px_-48px_rgba(0,0,0,0.45)] transition-transform"
+            className="relative flex h-[min(88vh,720px)] w-full max-w-[1180px] overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] transition-transform"
             onClick={(event) => event.stopPropagation()}
           >
             <button
-              className="absolute right-4 top-4 z-20 inline-flex size-9 items-center justify-center rounded-full bg-background/88 text-foreground/72 shadow-[0_10px_30px_-18px_rgba(15,23,42,0.5)] transition hover:bg-background hover:text-foreground"
+              className="absolute right-3 top-3 z-20 inline-flex size-8 items-center justify-center rounded-full bg-background/88 text-foreground/72 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.5)] transition hover:bg-background hover:text-foreground"
               onClick={closeNote}
               type="button"
             >
-              <XIcon className="size-4.5" />
+              <XIcon className="size-4" />
             </button>
 
             <div className="hidden flex-1 bg-black md:block">
               <img
                 alt={selectedNote?.title ?? selectedPreview?.title ?? "飞友圈详情"}
                 className="h-full w-full object-cover"
-                src={
-                  selectedNote?.images[0]?.url ??
-                  selectedPreview?.images[0]?.url ??
-                  getEditorialImage(selectedNoteId)
-                }
+                src={selectedNote?.images[0]?.url ?? selectedPreview?.images[0]?.url ?? getEditorialImage(selectedNoteId)}
               />
             </div>
 
-            <div className="flex w-full min-w-0 flex-col bg-white md:w-[430px]">
-              <div className="border-b border-border/70 px-5 pb-4 pt-5 pr-16">
+            <div className="flex w-full min-w-0 flex-col bg-white md:w-[405px]">
+              <div className="border-b border-border/70 px-4 pb-3.5 pt-4 pr-14">
                 {selectedNote ? (
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <Avatar className="size-11" size="lg">
-                        <AvatarImage
-                          alt={selectedNote.author.displayName}
-                          src={getAvatarImage(selectedNote.author.id)}
-                        />
+                      <Avatar size="lg">
+                        <AvatarImage alt={selectedNote.author.displayName} src={getAvatarImage(selectedNote.author.id)} />
                         <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
                       </Avatar>
                       <div className="min-w-0">
                         <div className="truncate text-sm font-semibold text-foreground">
                           {selectedNote.author.displayName}
                         </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          {new Date(
-                            selectedNote.publishedAt ?? selectedNote.createdAt
-                          ).toLocaleDateString("zh-CN")}
+                        <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
+                          {new Date(selectedNote.publishedAt ?? selectedNote.createdAt).toLocaleDateString("zh-CN")}
                         </div>
                       </div>
                     </div>
@@ -255,12 +246,12 @@ export function CirclePage() {
               </div>
 
               <div className="flex min-h-0 flex-1 flex-col">
-                <div className="flex-1 overflow-y-auto px-5 py-5">
+                <div className="flex-1 overflow-y-auto px-4 py-4">
                   {noteQuery.isLoading ? (
                     <div className="space-y-4">
-                      <div className="h-7 w-3/5 animate-pulse rounded bg-muted" />
-                      <div className="h-5 w-full animate-pulse rounded bg-muted" />
-                      <div className="h-5 w-5/6 animate-pulse rounded bg-muted" />
+                      <div className="h-6 w-3/5 animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-full animate-pulse rounded bg-muted" />
+                      <div className="h-4 w-5/6 animate-pulse rounded bg-muted" />
                     </div>
                   ) : null}
 
@@ -272,21 +263,19 @@ export function CirclePage() {
                   ) : null}
 
                   {selectedNote ? (
-                    <div className="flex min-h-full flex-col justify-between gap-6">
+                    <div className="flex min-h-full flex-col justify-between gap-5">
                       <div className="space-y-3">
-                        <h1 className="text-[1.35rem] leading-[1.3] font-semibold text-foreground">
+                        <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                           {selectedNote.title}
                         </h1>
-                        <p className="text-[0.96rem] leading-8 text-foreground/72">
-                          {selectedNote.content}
-                        </p>
+                        <p className="text-[0.88rem] leading-6 text-foreground/72">{selectedNote.content}</p>
                       </div>
 
-                      <div className="border-t border-border pt-4">
-                        <div className="mb-4 text-sm font-semibold text-foreground">
+                      <div className="border-t border-border pt-3.5">
+                        <div className="mb-3 text-[0.84rem] font-semibold text-foreground">
                           评论区 {selectedNote.commentCount}
                         </div>
-                {selectedNote.comments.length > 0 ? (
+                        {selectedNote.comments.length > 0 ? (
                           <PostCommentThread
                             canInteract={canComment}
                             comments={selectedNote.comments}
@@ -294,7 +283,7 @@ export function CirclePage() {
                             postId={selectedNote.id}
                           />
                         ) : (
-                          <div className="text-sm text-muted-foreground">还没有评论。</div>
+                          <div className="text-[0.82rem] text-muted-foreground">还没有评论。</div>
                         )}
                       </div>
                     </div>
@@ -302,7 +291,7 @@ export function CirclePage() {
                 </div>
 
                 {selectedNote ? (
-                  <div className="border-t border-border bg-white px-4 pb-4 pt-3">
+                  <div className="border-t border-border bg-white px-4 pb-3.5 pt-3">
                     {actionError ? (
                       <Alert className="mb-3" variant="destructive">
                         <AlertTitle>评论失败</AlertTitle>
@@ -346,7 +335,7 @@ export function CirclePage() {
                         value={commentContent}
                       />
                     ) : (
-                      <div className="border border-border px-3 py-2 text-sm text-muted-foreground">
+                      <div className="rounded-[0.8rem] border border-border px-3 py-2 text-[0.82rem] text-muted-foreground">
                         登录后可参与评论。
                       </div>
                     )}
@@ -366,12 +355,12 @@ export function CirclePage() {
                           shareCount={selectedNote.engagement.shareCount}
                           viewer={selectedNote.engagement.viewer}
                         />
-                        <span className="inline-flex items-center gap-1.5 text-sm text-foreground/62">
+                        <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-foreground/62">
                           <MessageCircleIcon className="size-4" />
                           {formatCount(selectedNote.commentCount)}
                         </span>
                       </div>
-                      <span className="inline-flex items-center gap-1.5 text-sm text-foreground/62">
+                      <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-foreground/62">
                         <Share2Icon className="size-4" />
                         分享
                       </span>

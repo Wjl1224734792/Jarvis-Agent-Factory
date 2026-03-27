@@ -1,40 +1,18 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon, StarIcon } from "lucide-react";
+import { ArrowLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { RatingBreakdown } from "@/components/rating-breakdown";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { useAuthStore } from "../features/auth/auth-store";
 import { apiClient } from "../lib/api-client";
-import { getEditorialImage, getModelImage } from "../lib/aviation-media";
-
-function RatingStars({
-  value,
-  onSelect
-}: {
-  value: number;
-  onSelect?: (value: number) => void;
-}) {
-  const toneClassName = value < 3 ? "text-destructive" : "text-rating-orange";
-
-  return (
-    <div className={toneClassName + " flex items-center gap-1.5"}>
-      {Array.from({ length: 5 }).map((_, index) => (
-        <button
-          className="rounded-full p-0.5 transition hover:scale-105"
-          key={index}
-          onClick={() => onSelect?.(index + 1)}
-          type="button"
-        >
-          <StarIcon className="size-5" fill={index < value ? "currentColor" : "none"} />
-        </button>
-      ))}
-    </div>
-  );
-}
+import { getAvatarImage, getEditorialImage, getModelImage } from "../lib/aviation-media";
 
 export function RankingItemDetailPage() {
   const params = useParams<{ id: string }>();
@@ -67,7 +45,7 @@ export function RankingItemDetailPage() {
   }, [item?.myRating, item?.myReview]);
 
   return (
-    <SitePage className="mx-auto w-full max-w-[1120px] gap-6">
+    <SitePage className="mx-auto w-full max-w-[1080px] gap-5">
       <Button asChild className="w-fit" variant="ghost">
         <Link
           to={
@@ -93,17 +71,17 @@ export function RankingItemDetailPage() {
       {!id || (!detailQuery.isLoading && !item) ? (
         <Alert>
           <AlertTitle>排行项详情不可用</AlertTitle>
-          <AlertDescription>当前条目不存在，或者还没有可展示的数据。</AlertDescription>
+          <AlertDescription>当前条目不存在或暂无可展示数据。</AlertDescription>
         </Alert>
       ) : null}
 
       {item ? (
         <>
-          <div className="grid gap-6 rounded-[1rem] border border-border bg-white p-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[minmax(0,1fr)_420px]">
-            <div className="overflow-hidden rounded-[0.95rem]">
+          <div className="grid gap-4 rounded-[0.95rem] border border-border bg-white p-4 shadow-[var(--shadow-panel)] md:grid-cols-[300px_minmax(0,1fr)]">
+            <div className="overflow-hidden rounded-[0.85rem] border border-border/70">
               <img
                 alt={item.title}
-                className="h-[300px] w-full object-cover md:h-[420px]"
+                className="h-[220px] w-full object-cover md:h-[250px]"
                 src={
                   item.imageUrl ??
                   getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric") ??
@@ -112,48 +90,58 @@ export function RankingItemDetailPage() {
               />
             </div>
 
-            <div className="space-y-4">
-              <div className="text-sm text-primary">
-                {item.brandName ?? item.linkedModel?.brand.name ?? item.ranking.title}
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_248px]">
+              <div className="space-y-3">
+                <div className="text-[0.8rem] font-semibold tracking-[0.16em] text-primary">
+                  {item.brandName ?? item.linkedModel?.brand.name ?? item.ranking.title}
+                </div>
+                <h1 className="text-[1.9rem] leading-[1.04] font-semibold tracking-[-0.05em] text-foreground">
+                  {item.title}
+                </h1>
+                {item.summary ? (
+                  <p className="text-[0.9rem] leading-6 text-foreground/72">{item.summary}</p>
+                ) : null}
+                {item.linkedModel ? (
+                  <Button asChild size="sm" variant="outline">
+                    <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
+                  </Button>
+                ) : null}
               </div>
-              <h1 className="text-[2.15rem] leading-[1.04] font-semibold tracking-[-0.05em] text-foreground">
-                {item.title}
-              </h1>
-              <p className="text-[0.96rem] leading-8 text-foreground/72">
-                {item.summary ?? "这里展示排行项的综合评分、用户点评以及与机型详情的关联入口。"}
-              </p>
-              <div className="flex justify-end border-t border-border/70 pt-4">
-                <div className="text-right">
-                  <div className="text-[2.5rem] font-semibold leading-none text-rating-blue">
+
+              <div className="rounded-[0.85rem] border border-border bg-surface-1 px-4 py-4">
+                <div className="flex items-end justify-between gap-3">
+                  <div className="space-y-1.5">
+                    <RatingStars size="sm" value={toFiveStarRating(item.averageScore)} />
+                    <div className="text-[0.72rem] text-muted-foreground">{item.commentCount} 条点评</div>
+                  </div>
+                  <div className="text-[2.3rem] font-semibold leading-none text-rating-blue">
                     {item.averageScore.toFixed(1)}
                   </div>
-                  <div className="mt-3">
-                    <RatingStars value={Math.max(1, Math.round(item.averageScore / 2))} />
-                  </div>
+                </div>
+                <div className="mt-4">
+                  <RatingBreakdown entries={item.ratingBreakdown} />
                 </div>
               </div>
-              {item.linkedModel ? (
-                <Button asChild variant="outline">
-                  <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>
-                    查看飞行器详情
-                  </Link>
-                </Button>
-              ) : null}
             </div>
           </div>
 
-          <div className="space-y-5 border-t border-border/60 pt-6">
+          <div className="space-y-4 border-t border-border/60 pt-5">
             <div className="space-y-3">
-              <div className="text-lg font-semibold text-foreground">评分与点评</div>
+              <div className="text-base font-semibold text-foreground">评分与点评</div>
               <RatingStars
                 onSelect={(value) => {
                   setSelectedRating(value);
                 }}
+                size="md"
                 value={selectedRating}
               />
 
+              {replyTarget ? (
+                <div className="text-[0.78rem] text-muted-foreground">正在回复 @{replyTarget}</div>
+              ) : null}
+
               {authStatus === "authenticated" ? (
-                <div className="border border-border px-4 py-4">
+                <div className="rounded-[0.85rem] border border-border bg-white p-3">
                   <InlineCommentComposer
                     busy={busy}
                     disabled={selectedRating <= 0}
@@ -190,7 +178,7 @@ export function RankingItemDetailPage() {
                         ? replyTarget
                           ? `回复 @${replyTarget}`
                           : "写下你的点评..."
-                        : "请先选择星级评分"
+                        : "请先选择星级"
                     }
                     value={commentContent}
                   />
@@ -210,20 +198,26 @@ export function RankingItemDetailPage() {
               ) : null}
             </div>
 
-            <div className="space-y-0 border border-border">
+            <div className="overflow-hidden rounded-[0.95rem] border border-border bg-white">
               {item.comments.map((comment) => (
-                <div className="border-b border-border px-5 py-5 last:border-b-0" key={comment.id}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-sm font-medium text-foreground">{comment.author.displayName}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {new Date(comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+                <div className="border-b border-border px-5 py-4 last:border-b-0" key={comment.id}>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar size="sm">
+                        <AvatarImage alt={comment.author.displayName} src={getAvatarImage(comment.author.id)} />
+                        <AvatarFallback>{comment.author.displayName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
+                      <div>
+                        <div className="text-sm font-medium text-foreground">{comment.author.displayName}</div>
+                        <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
+                          {new Date(comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+                        </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <RatingStars value={comment.rating} />
+                    <div className="flex items-center gap-3">
+                      <RatingStars size="xs" value={comment.rating} />
                       <button
-                        className="text-xs text-primary"
+                        className="text-[0.72rem] text-primary"
                         onClick={() => {
                           setReplyTarget(comment.author.displayName);
                           setCommentContent((current) =>
@@ -238,14 +232,12 @@ export function RankingItemDetailPage() {
                       </button>
                     </div>
                   </div>
-                  <p className="mt-3 text-sm leading-7 text-foreground/76">{comment.content}</p>
+                  <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/76">{comment.content}</p>
                 </div>
               ))}
 
               {item.comments.length === 0 ? (
-                <div className="px-5 py-5 text-sm text-muted-foreground">
-                  还没有点评，欢迎留下第一条。
-                </div>
+                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有点评。</div>
               ) : null}
             </div>
           </div>
