@@ -17,7 +17,7 @@ export const brandSchema = z.object({
   isEnabled: z.boolean()
 });
 
-export const powerTypeSchema = z.enum(["electric", "fuel", "hybrid"]);
+export const powerTypeSchema = z.enum(["electric", "fuel", "hybrid", "other"]);
 
 export const modelListItemSchema = z.object({
   id: z.string().min(1),
@@ -118,5 +118,6 @@ export const adminModelResponseSchema = z.object({
 
 export type AircraftCategory = z.infer<typeof aircraftCategorySchema>;
 export type Brand = z.infer<typeof brandSchema>;
+export type PowerType = z.infer<typeof powerTypeSchema>;
 export type ModelListItem = z.infer<typeof modelListItemSchema>;
 export type ModelDetail = z.infer<typeof modelDetailSchema>;

@@ -1,4 +1,4 @@
-type PowerType = "electric" | "fuel" | "hybrid";
+type PowerType = "electric" | "fuel" | "hybrid" | "other";
 
 const modelMediaPools: Record<PowerType, string[]> = {
   electric: [
@@ -18,6 +18,12 @@ const modelMediaPools: Record<PowerType, string[]> = {
     "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1400&q=80"
+  ],
+  other: [
+    "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
+    "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80",
+    "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
+    "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1400&q=80"
   ]
 };
 

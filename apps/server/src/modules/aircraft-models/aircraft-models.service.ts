@@ -22,7 +22,7 @@ export const aircraftModelsService = {
       filters: {
         categories,
         brands,
-        powerTypes: ["electric", "fuel", "hybrid"] as const
+        powerTypes: ["electric", "fuel", "hybrid", "other"] as const
       }
     };
   },

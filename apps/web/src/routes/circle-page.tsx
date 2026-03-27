@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, MessageCircleIcon, Share2Icon, StarIcon, XIcon } from "lucide-react";
+import { HeartIcon, MessageCircleIcon, Share2Icon, UserCheckIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
@@ -14,9 +14,9 @@ import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
 
 const feedTabs = [
-  { id: "recommended", label: "鎺ㄨ崘" },
-  { id: "latest", label: "鏈€鏂?" },
-  { id: "following", label: "鍏虫敞" }
+  { id: "recommended", label: "推荐" },
+  { id: "latest", label: "最新" },
+  { id: "following", label: "关注" }
 ] as const;
 
 type FeedTab = (typeof feedTabs)[number]["id"];
@@ -79,10 +79,10 @@ export function CirclePage() {
   return (
     <SitePage className="gap-5">
       <div className="border-b border-border/60">
-        <div className="flex gap-7 overflow-x-auto whitespace-nowrap">
+        <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
           {feedTabs.map((tab) => (
             <button
-              className={`border-b-2 px-0 py-3 text-[1rem] transition-colors ${
+              className={`border-b-2 px-0 py-3 text-[0.98rem] transition-colors ${
                 activeTab === tab.id
                   ? "border-primary font-semibold text-primary"
                   : "border-transparent text-foreground/62 hover:text-foreground"
@@ -98,17 +98,16 @@ export function CirclePage() {
       </div>
 
       {feedQuery.isLoading ? (
-        <div className="[column-gap:18px]" style={{ columnWidth: "252px" }}>
+        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "14px" }}>
           {Array.from({ length: 8 }).map((_, index) => (
-            <div className="mb-5 break-inside-avoid" key={index}>
+            <div className="mb-4 break-inside-avoid" key={index}>
               <div
-                className={`animate-pulse rounded-[0.9rem] bg-muted ${
-                  index % 3 === 0 ? "h-[22rem]" : index % 3 === 1 ? "h-[18rem]" : "h-[20rem]"
+                className={`animate-pulse bg-muted ${
+                  index % 3 === 0 ? "h-[15rem]" : index % 3 === 1 ? "h-[12rem]" : "h-[13.5rem]"
                 }`}
               />
-              <div className="mt-3 space-y-2">
-                <div className="h-5 w-4/5 animate-pulse rounded bg-muted" />
-                <div className="h-4 w-3/5 animate-pulse rounded bg-muted" />
+              <div className="mt-2 space-y-2">
+                <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
               </div>
             </div>
           ))}
@@ -117,44 +116,45 @@ export function CirclePage() {
 
       {feedQuery.isError ? (
         <Alert variant="destructive">
-          <AlertTitle>椋炲弸鍦堝姞杞藉け璐?</AlertTitle>
+          <AlertTitle>飞友圈加载失败</AlertTitle>
           <AlertDescription>{feedQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
 
       {!feedQuery.isLoading && !feedQuery.isError && posts.length === 0 ? (
         <Alert>
-          <AlertTitle>椋炲弸鍦堣繕娌℃湁鏂板姩鎬?</AlertTitle>
-          <AlertDescription>鍏堝彂涓€鏉″姩鎬侊紝鎴栬€呭垏鎹㈡爣绛剧湅鍒殑鍐呭銆?</AlertDescription>
+          <AlertTitle>飞友圈还没有新动态</AlertTitle>
+          <AlertDescription>先发一条动态，或者切换标签看别的内容。</AlertDescription>
         </Alert>
       ) : null}
 
       {posts.length > 0 ? (
-        <div className="[column-gap:18px]" style={{ columnWidth: "252px" }}>
+        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "14px" }}>
           {posts.map((item, index) => (
             <button
-              className="mb-5 block w-full break-inside-avoid text-left"
+              className={`mb-4 block w-full break-inside-avoid overflow-hidden border text-left transition ${
+                selectedNoteId === item.id
+                  ? "border-primary/50 bg-sky-50 shadow-[0_18px_40px_-34px_rgba(37,99,235,0.34)]"
+                  : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"
+              }`}
               key={item.id}
               onClick={() => openNote(item.id)}
               type="button"
             >
-              <div className="overflow-hidden rounded-[0.9rem]">
+              <div className="overflow-hidden bg-slate-100">
                 <img
                   alt={item.title}
                   className={`w-full object-cover ${
-                    index % 3 === 0 ? "h-[22rem]" : index % 3 === 1 ? "h-[18rem]" : "h-[20rem]"
+                    index % 3 === 0 ? "h-[15rem]" : index % 3 === 1 ? "h-[12rem]" : "h-[13.5rem]"
                   }`}
                   src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
                 />
               </div>
-              <div className="mt-3 space-y-1.5">
-                <h2 className="line-clamp-2 text-[1rem] leading-6 font-medium text-foreground">
+              <div className="space-y-2 px-2.5 py-2.5">
+                <h2 className="line-clamp-1 text-[0.96rem] leading-6 font-semibold text-foreground">
                   {item.title}
                 </h2>
-                <p className="line-clamp-2 text-[0.86rem] leading-6 text-foreground/68">
-                  {item.contentPreview}
-                </p>
-                <div className="flex items-center justify-between pt-1 text-[0.8rem] text-foreground/56">
+                <div className="flex items-center justify-between text-[0.78rem] text-foreground/58">
                   <span>{item.author.displayName}</span>
                   <span className="inline-flex items-center gap-1">
                     <HeartIcon className="size-3.5" />
@@ -186,7 +186,7 @@ export function CirclePage() {
 
             <div className="hidden flex-1 bg-black md:block">
               <img
-                alt={selectedNote?.title ?? selectedPreview?.title ?? "椋炲弸鍦堣鎯?"}
+                alt={selectedNote?.title ?? selectedPreview?.title ?? "飞友圈详情"}
                 className="h-full w-full object-cover"
                 src={
                   selectedNote?.images[0]?.url ??
@@ -197,26 +197,59 @@ export function CirclePage() {
             </div>
 
             <div className="flex w-full min-w-0 flex-col bg-white md:w-[430px]">
-              <div className="border-b border-border/60 px-5 pb-4 pt-5 pr-16">
+              <div className="border-b border-border/70 px-5 pb-4 pt-5 pr-16">
                 {selectedNote ? (
-                  <div className="flex items-center gap-3">
-                    <Avatar className="size-11" size="lg">
-                      <AvatarImage
-                        alt={selectedNote.author.displayName}
-                        src={getAvatarImage(selectedNote.author.id)}
-                      />
-                      <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
-                    </Avatar>
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-foreground">
-                        {selectedNote.author.displayName}
-                      </div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {new Date(
-                          selectedNote.publishedAt ?? selectedNote.createdAt
-                        ).toLocaleDateString("zh-CN")}
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex min-w-0 items-center gap-3">
+                      <Avatar className="size-11" size="lg">
+                        <AvatarImage
+                          alt={selectedNote.author.displayName}
+                          src={getAvatarImage(selectedNote.author.id)}
+                        />
+                        <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
+                      <div className="min-w-0">
+                        <div className="truncate text-sm font-semibold text-foreground">
+                          {selectedNote.author.displayName}
+                        </div>
+                        <div className="mt-1 text-xs text-muted-foreground">
+                          {new Date(
+                            selectedNote.publishedAt ?? selectedNote.createdAt
+                          ).toLocaleDateString("zh-CN")}
+                        </div>
                       </div>
                     </div>
+
+                    {!selectedNote.engagement.viewer.isAuthor ? (
+                      <Button
+                        className="rounded-full"
+                        onClick={() => {
+                          setActionError(null);
+                          void apiClient
+                            .toggleFollow(selectedNote.author.id)
+                            .then(() => {
+                              return Promise.all([
+                                queryClient.invalidateQueries({ queryKey: ["post-detail", selectedNote.id] }),
+                                queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
+                                queryClient.invalidateQueries({ queryKey: ["notifications"] })
+                              ]);
+                            })
+                            .catch((reason: unknown) => {
+                              setActionError(reason instanceof Error ? reason.message : "关注失败");
+                            });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant={selectedNote.engagement.viewer.isFollowingAuthor ? "outline" : "hero"}
+                      >
+                        {selectedNote.engagement.viewer.isFollowingAuthor ? (
+                          <UserCheckIcon data-icon="inline-start" />
+                        ) : (
+                          <UserPlusIcon data-icon="inline-start" />
+                        )}
+                        {selectedNote.engagement.viewer.isFollowingAuthor ? "已关注" : "关注"}
+                      </Button>
+                    ) : null}
                   </div>
                 ) : null}
               </div>
@@ -233,7 +266,7 @@ export function CirclePage() {
 
                   {noteQuery.isError ? (
                     <Alert variant="destructive">
-                      <AlertTitle>鍔ㄦ€佽鎯呭姞杞藉け璐?</AlertTitle>
+                      <AlertTitle>动态详情加载失败</AlertTitle>
                       <AlertDescription>{noteQuery.error.message}</AlertDescription>
                     </Alert>
                   ) : null}
@@ -249,11 +282,11 @@ export function CirclePage() {
                         </p>
                       </div>
 
-                      <div className="border-t border-border/60 pt-4">
+                      <div className="border-t border-border pt-4">
                         <div className="mb-4 text-sm font-semibold text-foreground">
-                          璇勮 {selectedNote.commentCount}
+                          评论区 {selectedNote.commentCount}
                         </div>
-                        {selectedNote.comments.length > 0 ? (
+                {selectedNote.comments.length > 0 ? (
                           <PostCommentThread
                             canInteract={canComment}
                             comments={selectedNote.comments}
@@ -261,7 +294,7 @@ export function CirclePage() {
                             postId={selectedNote.id}
                           />
                         ) : (
-                          <div className="text-sm text-muted-foreground">杩樻病鏈夎瘎璁恒€?</div>
+                          <div className="text-sm text-muted-foreground">还没有评论。</div>
                         )}
                       </div>
                     </div>
@@ -269,10 +302,10 @@ export function CirclePage() {
                 </div>
 
                 {selectedNote ? (
-                  <div className="border-t border-border/60 bg-white px-4 pb-4 pt-3">
+                  <div className="border-t border-border bg-white px-4 pb-4 pt-3">
                     {actionError ? (
                       <Alert className="mb-3" variant="destructive">
-                        <AlertTitle>璇勮澶辫触</AlertTitle>
+                        <AlertTitle>评论失败</AlertTitle>
                         <AlertDescription>{actionError}</AlertDescription>
                       </Alert>
                     ) : null}
@@ -303,20 +336,18 @@ export function CirclePage() {
                               ]);
                             })
                             .catch((reason: unknown) => {
-                              setActionError(
-                                reason instanceof Error ? reason.message : "璇勮澶辫触"
-                              );
+                              setActionError(reason instanceof Error ? reason.message : "评论失败");
                             })
                             .finally(() => {
                               setIsSubmitting(false);
                             });
                         }}
-                        placeholder="璇寸偣浠€涔?.."
+                        placeholder="说点什么..."
                         value={commentContent}
                       />
                     ) : (
-                      <div className="border border-border/60 px-3 py-2 text-sm text-muted-foreground">
-                        鐧诲綍鍚庡彲鍙備笌璇勮銆?
+                      <div className="border border-border px-3 py-2 text-sm text-muted-foreground">
+                        登录后可参与评论。
                       </div>
                     )}
 
@@ -342,7 +373,7 @@ export function CirclePage() {
                       </div>
                       <span className="inline-flex items-center gap-1.5 text-sm text-foreground/62">
                         <Share2Icon className="size-4" />
-                        鍒嗕韩
+                        分享
                       </span>
                     </div>
                   </div>

@@ -17,8 +17,10 @@ const officialCardLabels = [
 ] as const;
 
 function RatingStars({ score }: { score: number }) {
+  const toneClassName = score < 6 ? "text-destructive" : "text-rating-orange";
+
   return (
-    <div className="inline-flex items-center gap-1 text-amber-500">
+    <div className={toneClassName + " inline-flex items-center gap-1"}>
       {Array.from({ length: 5 }).map((_, index) => (
         <StarIcon
           className="size-3.5"
@@ -26,7 +28,6 @@ function RatingStars({ score }: { score: number }) {
           key={index}
         />
       ))}
-      <span className="ml-1 text-[0.82rem] font-medium text-foreground/72">{score.toFixed(1)}</span>
     </div>
   );
 }
@@ -39,18 +40,18 @@ function OfficialRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex min-w-0 flex-col gap-3 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
+      className="flex w-[286px] min-w-0 flex-col gap-3 rounded-[1rem] border border-border bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
       to={buildRankingDetailPath(props.id)}
     >
       <div className="space-y-1">
-        <div className="text-[0.75rem] uppercase tracking-[0.24em] text-primary">{props.eyebrow}</div>
-        <div className="text-[1.25rem] font-semibold text-foreground">{props.title}</div>
+        <div className="text-[0.8rem] tracking-[0.18em] text-primary">{props.eyebrow}</div>
+        <div className="text-[1.1rem] font-semibold text-foreground">{props.title}</div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {props.items.slice(0, 3).map((item) => (
           <div
-            className="grid grid-cols-[1.3rem_3rem_minmax(0,1fr)] items-center gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0"
+            className="grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_3.5rem] items-center gap-3 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
             key={item.id}
           >
             <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
@@ -68,6 +69,9 @@ function OfficialRankingCard(props: {
                 <RatingStars score={item.averageScore} />
               </div>
             </div>
+            <div className="text-right text-[1.7rem] font-semibold leading-none text-rating-blue">
+              {item.averageScore.toFixed(1)}
+            </div>
           </div>
         ))}
       </div>
@@ -80,20 +84,20 @@ function CommunityRankingCard(props: {
 }) {
   return (
     <Link
-      className="flex min-w-0 flex-col gap-3 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
+      className="flex w-[286px] min-w-0 flex-col gap-3 rounded-[1rem] border border-border bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition hover:border-primary/35 hover:bg-sky-50/70 hover:shadow-[0_24px_50px_-42px_rgba(37,99,235,0.28)]"
       to={buildRankingDetailPath(props.ranking.id)}
     >
       <div className="space-y-1">
-        <div className="text-[0.75rem] uppercase tracking-[0.24em] text-primary">社区榜单</div>
-        <div className="line-clamp-2 text-[1.18rem] leading-7 font-semibold text-foreground">
+        <div className="text-[0.8rem] tracking-[0.18em] text-primary">社区榜单</div>
+        <div className="line-clamp-2 text-[1.1rem] leading-7 font-semibold text-foreground">
           {props.ranking.title}
         </div>
       </div>
 
-      <div className="space-y-3">
+      <div className="space-y-2.5">
         {props.ranking.items.slice(0, 3).map((item) => (
           <div
-            className="grid grid-cols-[1.3rem_3rem_minmax(0,1fr)] items-center gap-3 border-t border-border/60 pt-3 first:border-t-0 first:pt-0"
+            className="grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_3.5rem] items-center gap-3 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
             key={item.id}
           >
             <div className="text-sm font-semibold text-primary/80">{item.rank}</div>
@@ -110,6 +114,9 @@ function CommunityRankingCard(props: {
               <div className="mt-1">
                 <RatingStars score={item.averageScore} />
               </div>
+            </div>
+            <div className="text-right text-[1.7rem] font-semibold leading-none text-rating-blue">
+              {item.averageScore.toFixed(1)}
             </div>
           </div>
         ))}
@@ -136,7 +143,7 @@ export function RankingsPage() {
   }, [rankingsQuery.data?.official.items]);
 
   return (
-    <SitePage className="mx-auto w-full max-w-[1100px] gap-5">
+    <SitePage className="mx-auto w-full max-w-[1240px] gap-4 px-1">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
           {[
@@ -167,7 +174,10 @@ export function RankingsPage() {
       </div>
 
       {rankingsQuery.isLoading ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          className="grid justify-start gap-3"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(286px, 286px))" }}
+        >
           {Array.from({ length: 6 }).map((_, index) => (
             <div className="space-y-4 border border-border/60 px-4 py-4" key={index}>
               <div className="h-6 w-1/2 animate-pulse rounded bg-muted" />
@@ -187,7 +197,10 @@ export function RankingsPage() {
       ) : null}
 
       {rankingsQuery.isSuccess ? (
-        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+        <div
+          className="grid justify-start gap-3"
+          style={{ gridTemplateColumns: "repeat(auto-fill, minmax(286px, 286px))" }}
+        >
           {activeTab === "official"
             ? officialCards.map((card) => (
                 <OfficialRankingCard

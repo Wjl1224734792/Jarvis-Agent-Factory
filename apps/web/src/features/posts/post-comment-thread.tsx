@@ -71,7 +71,7 @@ function RootCommentItem(props: {
   }
 
   return (
-    <article className="border-b border-border/70 py-4 first:pt-0 last:border-b-0 last:pb-0">
+    <article className="border-b border-border py-4 first:pt-0 last:border-b-0 last:pb-0">
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -123,7 +123,7 @@ function RootCommentItem(props: {
       </div>
 
       {replies.length > 0 ? (
-        <div className="mt-3 border-l border-border/70 pl-4">
+        <div className="mt-3 border-l-2 border-border pl-4">
           <button
             className="text-xs font-medium text-primary"
             onClick={() => setExpanded((value) => !value)}
@@ -135,7 +135,7 @@ function RootCommentItem(props: {
           {expanded ? (
             <div className="mt-3">
               {replies.map((reply) => (
-                <div className="border-t border-border/60 py-3 first:border-t-0 first:pt-0" key={reply.id}>
+                <div className="border-t border-border py-3 first:border-t-0 first:pt-0" key={reply.id}>
                   <div className="flex items-start justify-between gap-3">
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm">
@@ -220,7 +220,7 @@ function RootCommentItem(props: {
 
 export function PostCommentThread(props: ThreadProps) {
   return (
-    <div className={cn("border-y border-border/70", props.comments.length === 0 && "border-none")}>
+    <div className={cn("border-y border-border", props.comments.length === 0 && "border-none")}>
       {props.comments.map((comment) => (
         <RootCommentItem
           canInteract={props.canInteract}

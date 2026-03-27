@@ -9,8 +9,10 @@ import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
 function RatingStars({ score }: { score: number }) {
+  const toneClassName = score < 6 ? "text-destructive" : "text-rating-orange";
+
   return (
-    <div className="flex items-center gap-1.5 text-amber-500">
+    <div className={toneClassName + " flex items-center gap-1.5"}>
       {Array.from({ length: 5 }).map((_, index) => (
         <StarIcon
           className="size-4"
@@ -18,7 +20,6 @@ function RatingStars({ score }: { score: number }) {
           key={index}
         />
       ))}
-      <span className="ml-1 text-sm text-foreground/68">{score.toFixed(1)}</span>
     </div>
   );
 }
@@ -35,7 +36,7 @@ export function RankingDetailPage() {
   const ranking = rankingQuery.data?.item;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[1080px] gap-6">
+    <SitePage className="mx-auto w-full max-w-[1180px] gap-6">
       <Button asChild className="w-fit" variant="ghost">
         <Link to={APP_ROUTES.rankings}>
           <ArrowLeftIcon data-icon="inline-start" />
@@ -59,7 +60,7 @@ export function RankingDetailPage() {
 
       {ranking ? (
         <>
-          <div className="grid gap-5 rounded-[1rem] border border-border/65 bg-white p-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[minmax(0,520px)_minmax(0,1fr)] md:p-6">
+          <div className="grid gap-6 rounded-[1rem] border border-border bg-white p-5 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] md:grid-cols-[minmax(0,540px)_minmax(0,1fr)]">
             <div className="overflow-hidden rounded-[0.95rem]">
               <img
                 alt={ranking.title}
@@ -77,7 +78,19 @@ export function RankingDetailPage() {
                   {ranking.title}
                 </h1>
                 <p className="text-[0.98rem] leading-8 text-foreground/72">{ranking.description}</p>
-                <RatingStars score={ranking.averageScore} />
+              </div>
+
+              <div className="flex justify-end border-t border-border/70 pt-5">
+                <div className="flex items-end gap-6">
+                  <div className="text-right">
+                    <div className="text-[2.6rem] font-semibold leading-none text-rating-blue">
+                      {ranking.averageScore.toFixed(1)}
+                    </div>
+                    <div className="mt-3">
+                      <RatingStars score={ranking.averageScore} />
+                    </div>
+                  </div>
+                </div>
               </div>
 
               {ranking.viewer.canEdit || ranking.viewer.canAddItems ? (
@@ -105,7 +118,7 @@ export function RankingDetailPage() {
             <div className="space-y-4">
               {ranking.items.map((item) => (
                 <Link
-                  className="grid gap-4 rounded-[1rem] border border-border/65 bg-white px-4 py-4 shadow-[0_14px_38px_-40px_rgba(15,23,42,0.25)] transition hover:border-primary/30 hover:bg-sky-50/60 md:grid-cols-[52px_108px_minmax(0,1fr)]"
+                  className="grid gap-4 rounded-[1rem] border border-border bg-white px-4 py-4 shadow-[0_14px_38px_-40px_rgba(15,23,42,0.25)] transition hover:border-primary/30 hover:bg-sky-50/60 md:grid-cols-[52px_108px_minmax(0,1fr)_110px]"
                   key={item.id}
                   to={`${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >
@@ -124,20 +137,25 @@ export function RankingDetailPage() {
                     }
                   />
                   <div className="space-y-2">
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="min-w-0">
-                        <div className="truncate text-[1.04rem] font-semibold text-foreground">
-                          {item.title}
-                        </div>
-                        <div className="text-sm text-muted-foreground">
-                          {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
-                        </div>
+                    <div className="min-w-0">
+                      <div className="truncate text-[1.04rem] font-semibold text-foreground">
+                        {item.title}
                       </div>
-                      <RatingStars score={item.averageScore} />
+                      <div className="text-sm text-muted-foreground">
+                        {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
+                      </div>
                     </div>
                     <p className="line-clamp-2 text-sm leading-6 text-foreground/66">
                       {item.summary ?? "进入条目详情页查看完整评分与点评。"}
                     </p>
+                  </div>
+                  <div className="flex flex-col items-end justify-center text-right">
+                    <div className="text-[1.7rem] font-semibold leading-none text-rating-blue">
+                      {item.averageScore.toFixed(1)}
+                    </div>
+                    <div className="mt-2">
+                      <RatingStars score={item.averageScore} />
+                    </div>
                   </div>
                 </Link>
               ))}

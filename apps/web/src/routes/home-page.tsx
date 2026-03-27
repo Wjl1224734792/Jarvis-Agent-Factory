@@ -83,7 +83,11 @@ export function HomePage() {
 
   const allTabs = useMemo(
     () => [
-      ...fixedTabs.map((tab) => ({ key: `fixed:${tab.id}`, label: tab.label, state: { kind: "fixed", id: tab.id } as HomeTabState })),
+      ...fixedTabs.map((tab) => ({
+        key: `fixed:${tab.id}`,
+        label: tab.label,
+        state: { kind: "fixed", id: tab.id } as HomeTabState
+      })),
       ...contentCategories.map((item) => ({
         key: `category:${item.slug}`,
         label: item.name,
@@ -107,14 +111,14 @@ export function HomePage() {
 
   return (
     <SitePage>
-      <SiteGrid className="items-start gap-8" variant="sidebar">
-        <div className="mx-auto w-full max-w-[980px] min-w-0">
-          <div className="border-b border-border/60 px-1">
-            <div className="flex gap-7 overflow-x-auto whitespace-nowrap">
+      <SiteGrid className="items-start gap-5" variant="sidebar">
+        <div className="mx-auto w-full max-w-[920px] min-w-0">
+          <div className="border-b border-border px-1">
+            <div className="flex gap-6 overflow-x-auto whitespace-nowrap">
               {allTabs.map((tab) => (
                 <button
                   className={cn(
-                    "relative border-b-2 border-transparent px-0 py-3 text-[0.98rem] text-foreground/68 transition-colors",
+                    "relative border-b-2 border-transparent px-0 py-3 text-[0.95rem] text-foreground/70 transition-colors",
                     isActive(tab.state) && "border-primary font-semibold text-primary"
                   )}
                   key={tab.key}
@@ -129,21 +133,16 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="mt-4">
+          <section className="mt-3 overflow-hidden border-x border-border bg-white">
             {feedQuery.isLoading
               ? Array.from({ length: 4 }).map((_, index) => (
-                  <div className="border-b border-border/60 py-4" key={index}>
-                    <div className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)]">
-                      <div className="h-[140px] animate-pulse rounded-[0.85rem] bg-muted" />
-                      <div className="space-y-3">
-                        <div className="h-8 w-3/4 animate-pulse rounded bg-muted" />
+                  <div className="border-b border-border px-3 py-3" key={index}>
+                    <div className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)]">
+                      <div className="h-[108px] animate-pulse bg-muted" />
+                      <div className="space-y-2">
+                        <div className="h-6 w-3/4 animate-pulse rounded bg-muted" />
                         <div className="h-4 w-full animate-pulse rounded bg-muted" />
-                        <div className="h-4 w-5/6 animate-pulse rounded bg-muted" />
-                        <div className="flex gap-5 pt-3">
-                          {Array.from({ length: 5 }).map((__, metricIndex) => (
-                            <div className="h-4 w-12 animate-pulse rounded bg-muted" key={metricIndex} />
-                          ))}
-                        </div>
+                        <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
                       </div>
                     </div>
                   </div>
@@ -159,45 +158,45 @@ export function HomePage() {
 
             {feedItems.map((item, index) => (
               <article
-                className="mb-4 rounded-[1rem] border border-border/60 bg-white px-4 py-4 shadow-[0_18px_45px_-40px_rgba(15,23,42,0.35)] transition duration-200 hover:border-primary/25 hover:bg-sky-50/65 hover:shadow-[0_26px_55px_-42px_rgba(37,99,235,0.3)] last:mb-0"
+                className="border-b border-border bg-white px-3 py-3 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
                 key={item.id}
               >
                 <Link
-                  className="grid gap-4 md:grid-cols-[220px_minmax(0,1fr)] md:items-start"
+                  className="grid gap-3 md:grid-cols-[160px_minmax(0,1fr)] md:items-start"
                   to={APP_ROUTES.postDetail.replace(":id", item.id)}
                 >
-                  <div className="overflow-hidden rounded-[0.9rem] bg-slate-100">
+                  <div className="overflow-hidden bg-slate-100">
                     <img
                       alt={item.title}
-                      className="h-[140px] w-full object-cover md:h-[148px]"
+                      className="h-[108px] w-full object-cover"
                       src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
                     />
                   </div>
 
-                  <div className="flex min-h-[140px] min-w-0 flex-col">
-                    <h2 className="line-clamp-2 max-w-[31rem] text-[1.25rem] leading-[1.25] font-semibold tracking-[-0.03em] text-foreground md:text-[1.45rem]">
+                  <div className="flex min-h-[108px] min-w-0 flex-col">
+                    <h2 className="line-clamp-2 max-w-[30rem] text-[1.1rem] leading-[1.25] font-semibold text-foreground">
                       {item.title}
                     </h2>
 
-                    <p className="mt-2 line-clamp-3 max-w-[36rem] text-[0.94rem] leading-7 text-foreground/72">
+                    <p className="mt-1.5 line-clamp-2 max-w-[34rem] text-[0.88rem] leading-6 text-foreground/72">
                       {item.contentPreview}
                     </p>
 
-                    <div className="mt-auto flex items-center gap-5 pt-4 text-[0.88rem] text-foreground/72">
+                    <div className="mt-auto flex items-center gap-4 pt-3 text-[0.82rem] text-foreground/68">
                       <span className="inline-flex items-center gap-1.5">
-                        <HeartIcon className="size-4" />
+                        <HeartIcon className="size-3.5" />
                         {formatCount(item.engagement.likeCount)}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <MessageCircleIcon className="size-4" />
+                        <MessageCircleIcon className="size-3.5" />
                         {formatCount(item.commentCount)}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <BookmarkIcon className="size-4" />
+                        <BookmarkIcon className="size-3.5" />
                         {formatCount(item.engagement.favoriteCount)}
                       </span>
                       <span className="inline-flex items-center gap-1.5">
-                        <EyeIcon className="size-4" />
+                        <EyeIcon className="size-3.5" />
                         {formatCount(
                           articleViewCount(
                             item.engagement.likeCount,
@@ -206,8 +205,8 @@ export function HomePage() {
                           )
                         )}
                       </span>
-                      <span className="ml-auto inline-flex items-center justify-center">
-                        <Share2Icon className="size-4.5" />
+                      <span className="ml-auto inline-flex items-center justify-center text-agree-gray">
+                        <Share2Icon className="size-4" />
                       </span>
                     </div>
                   </div>
@@ -220,7 +219,7 @@ export function HomePage() {
                 <AlertTitle>首页还没有公开内容</AlertTitle>
                 <AlertDescription>
                   {isAuthenticated
-                    ? "可以先切换到飞友圈浏览动态，或直接发布你的第一篇文章。"
+                    ? "可以先切换到飞友圈浏览动态，或者直接发布你的第一篇文章。"
                     : `${APP_NAME} 还没有公开内容，登录后可以先发布一条动态。`}
                 </AlertDescription>
               </Alert>
@@ -228,9 +227,9 @@ export function HomePage() {
           </section>
         </div>
 
-        <SiteRail className="space-y-4">
+        <SiteRail className="space-y-2.5">
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
+            <SitePanelBody className="space-y-3">
               <div className="text-lg font-semibold text-foreground">发布入口</div>
               <p className="text-sm leading-7 text-muted-foreground">
                 文章、动态、飞行器和榜单分别独立发布，避免混在同一套表单里。
@@ -245,13 +244,13 @@ export function HomePage() {
           </SitePanel>
 
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
+            <SitePanelBody className="space-y-3">
               <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                 <CompassIcon className="size-4.5 text-primary" />
                 飞友圈
               </div>
               <p className="text-sm leading-7 text-muted-foreground">
-                图片优先的动态流和弹窗详情页现在都集中在飞友圈。
+                图片优先的动态流和弹窗详情页都集中在飞友圈。
               </p>
               <Button asChild className="w-full" size="sm" variant="outline">
                 <Link to={APP_ROUTES.flightCircle}>进入飞友圈</Link>
@@ -260,15 +259,15 @@ export function HomePage() {
           </SitePanel>
 
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
+            <SitePanelBody className="space-y-3">
               <div className="flex items-center gap-2 text-lg font-semibold text-foreground">
                 <TrophyIcon className="size-4.5 text-primary" />
                 热门榜单
               </div>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {rankingCards.map((ranking) => (
                   <Link
-                    className="block border-b border-border/60 pb-3 last:border-b-0"
+                    className="block border-b border-border pb-2.5 last:border-b-0"
                     key={ranking.id}
                     to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
                   >
@@ -287,16 +286,16 @@ export function HomePage() {
 
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-3">
-              <div className="text-lg font-semibold text-foreground">飞行器库</div>
+              <div className="text-lg font-semibold text-foreground">热门机型</div>
               {hotModels.map((model, index) => (
                 <Link
-                  className="grid grid-cols-[72px_minmax(0,1fr)] gap-3"
+                  className="grid grid-cols-[64px_minmax(0,1fr)] gap-3"
                   key={model.id}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
                   <img
                     alt={model.name}
-                    className="h-[72px] w-full rounded-[0.75rem] object-cover"
+                    className="h-[64px] w-full object-cover"
                     src={getModelImage(model.slug, model.powerType, index)}
                   />
                   <div className="min-w-0">

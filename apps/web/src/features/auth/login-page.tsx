@@ -212,7 +212,7 @@ export function LoginPage() {
                 首次登录将自动注册
               </div>
               <div className="flex items-center gap-3">
-                <ShieldCheckIcon className="size-4 text-primary" />
+                <ShieldCheckIcon className="size-4 text-cert-gold" />
                 密码设置可稍后在安全中心完成
               </div>
             </div>

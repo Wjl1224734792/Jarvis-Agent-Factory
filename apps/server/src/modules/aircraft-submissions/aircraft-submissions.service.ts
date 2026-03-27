@@ -66,7 +66,7 @@ export const aircraftSubmissionsService = {
     brandName: string;
     modelName: string;
     aircraftType: string;
-    powerType: "electric" | "fuel" | "hybrid";
+    powerType: "electric" | "fuel" | "hybrid" | "other";
     summary: string | null;
     description: string | null;
     coverImageUrl: string | null;

@@ -6,7 +6,8 @@ import {
   HeartIcon,
   MessageSquareTextIcon,
   Share2Icon,
-  StarIcon
+  StarIcon,
+  XIcon
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -22,16 +23,10 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { useAuthStore } from "../features/auth/auth-store";
 import { apiClient } from "../lib/api-client";
-import {
-  getAvatarImage,
-  getEditorialImage,
-  getModelGallery,
-  getModelImage
-} from "../lib/aviation-media";
+import { getAvatarImage, getModelGallery, getModelImage } from "../lib/aviation-media";
 import {
   buildSubmitReviewInput,
   createReviewFormState,
@@ -45,7 +40,8 @@ import {
 const powerTypeLabels = {
   electric: "电动",
   fuel: "燃油",
-  hybrid: "混动"
+  hybrid: "混动",
+  other: "其他"
 } as const;
 
 function RatingStars({
@@ -56,9 +52,10 @@ function RatingStars({
   onSelect?: (value: number) => void;
 }) {
   const normalized = Math.round(value);
+  const toneClassName = value < 3 ? "text-destructive" : "text-rating-orange";
 
   return (
-    <div className="flex items-center gap-1 text-amber-500">
+    <div className={toneClassName + " flex items-center gap-1"}>
       {Array.from({ length: 5 }).map((_, index) => (
         <button
           className="rounded-full p-1 transition hover:scale-105 disabled:opacity-50"
@@ -96,8 +93,8 @@ export function ModelDetailPage() {
     enabled: Boolean(slug)
   });
 
-  const relatedModelsQuery = useQuery({
-    queryKey: ["related-models", detailQuery.data?.item.category.slug, slug],
+  const hotModelsQuery = useQuery({
+    queryKey: ["hot-models-sidebar", detailQuery.data?.item.category.slug, slug],
     queryFn: () =>
       apiClient.listModels({
         categorySlug: detailQuery.data?.item.category.slug
@@ -105,12 +102,11 @@ export function ModelDetailPage() {
     enabled: Boolean(detailQuery.data?.item.category.slug)
   });
 
-  const [formState, setFormState] = useState<ReviewFormState>(() =>
-    createReviewFormState(null)
-  );
+  const [formState, setFormState] = useState<ReviewFormState>(() => createReviewFormState(null));
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [replyTarget, setReplyTarget] = useState<string | null>(null);
 
   useEffect(() => {
     setFormState((current) =>
@@ -128,13 +124,7 @@ export function ModelDetailPage() {
   }
 
   if (detailQuery.isLoading || reviewsQuery.isLoading) {
-    return (
-      <Card>
-        <CardContent className="py-10 text-sm text-muted-foreground">
-          正在加载机型详情与用户点评...
-        </CardContent>
-      </Card>
-    );
+    return <div className="text-sm text-muted-foreground">正在加载机型详情与用户点评...</div>;
   }
 
   if (detailQuery.isError) {
@@ -168,8 +158,8 @@ export function ModelDetailPage() {
   }
 
   const gallery = getModelGallery(item.slug, item.powerType, 4);
-  const relatedModels =
-    relatedModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
+  const hotModels =
+    hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
   const ratingCounts = [5, 4, 3, 2, 1].map((score) => ({
     score,
     count: reviewPayload.items.filter((review) => review.rating === score).length
@@ -177,19 +167,20 @@ export function ModelDetailPage() {
   const maxRatingCount = Math.max(...ratingCounts.map((entry) => entry.count), 1);
 
   return (
-    <SitePage>
+    <SitePage className="rounded-none bg-white px-5 py-5">
       <Button asChild className="w-fit" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
           返回机型库
         </Link>
       </Button>
+
       <SiteGrid variant="detail">
         <div className="flex flex-col gap-[var(--page-gap)]">
-          <SitePanel>
-            <SitePanelBody className="grid gap-6 lg:grid-cols-[1.16fr_0.94fr]">
+          <SitePanel className="bg-white">
+            <SitePanelBody className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
               <div className="space-y-4">
-                <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] border border-border/80">
+                <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.2rem)] border border-border">
                   <img
                     alt={item.name}
                     className="h-[360px] w-full object-cover"
@@ -202,7 +193,7 @@ export function ModelDetailPage() {
                       className={`overflow-hidden rounded-[calc(var(--radius-control)-0.1rem)] border transition ${
                         activeGalleryIndex === index
                           ? "border-primary shadow-[var(--shadow-soft)]"
-                          : "border-border/80"
+                          : "border-border"
                       }`}
                       key={image}
                       onClick={() => setActiveGalleryIndex(index)}
@@ -218,28 +209,33 @@ export function ModelDetailPage() {
                 </div>
               </div>
 
-              <div className="space-y-6">
+              <div className="flex h-full flex-col gap-5">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="eyebrow">Premium Series</Badge>
+                  <Badge variant="eyebrow">精选系列</Badge>
                   <Badge variant="outline">{item.brand.name}</Badge>
                   <Badge variant="outline">{item.category.name}</Badge>
                   <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
                 </div>
 
                 <div className="space-y-4">
-                  <div className="flex flex-wrap items-center gap-3">
-                    <RatingStars value={reviewPayload.summary.averageScore / 2} />
-                    <span className="text-lg font-semibold text-amber-700">
+                  <h1 className="text-[2.4rem] leading-[1.04] font-semibold tracking-[-0.05em] text-foreground">
+                    {item.name}
+                  </h1>
+                  <div className="flex items-end justify-between gap-4 border-b border-border pb-4">
+                    <div className="space-y-3">
+                      <RatingStars value={reviewPayload.summary.averageScore / 2} />
+                      <div className="text-sm text-muted-foreground">
+                        {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条点评
+                      </div>
+                    </div>
+                    <span className="text-[2.8rem] font-semibold leading-none text-rating-blue">
                       {reviewPayload.summary.averageScore.toFixed(1)}
-                    </span>
-                    <span className="text-sm text-muted-foreground">
-                      {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条点评
                     </span>
                   </div>
                   <p className="text-base leading-8 text-muted-foreground">
                     {item.description ??
                       item.summary ??
-                      "查看公开参数、飞友口碑与相似机型，用尽量少的切页完成判断。"}
+                      "查看公开参数、飞友口碑与热门机型对比，用尽量少的切页完成判断。"}
                   </p>
                 </div>
 
@@ -270,18 +266,18 @@ export function ModelDetailPage() {
                         : "15 KM"
                     }
                   ].map((metric) => (
-                    <Card key={metric.label} size="sm" variant="muted">
-                      <CardContent className="space-y-2 py-5">
-                        <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
-                          {metric.label}
-                        </div>
-                        <div className="text-2xl font-semibold text-foreground">{metric.value}</div>
-                      </CardContent>
-                    </Card>
+                    <div className="border border-border bg-muted/15 px-5 py-5" key={metric.label}>
+                      <div className="text-xs uppercase tracking-[0.22em] text-muted-foreground">
+                        {metric.label}
+                      </div>
+                      <div className="mt-2 text-[2.2rem] font-semibold text-foreground">
+                        {metric.value}
+                      </div>
+                    </div>
                   ))}
                 </div>
 
-                <div className="grid gap-3 sm:grid-cols-2">
+                <div className="mt-auto grid gap-3 sm:grid-cols-2">
                   <Button size="lg" type="button" variant="hero">
                     <HeartIcon data-icon="inline-start" />
                     想买
@@ -303,105 +299,59 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-6">
-              <div>
-                <SitePageEyebrow>Core Performance Dashboard</SitePageEyebrow>
-                <div className="mt-4 grid gap-4 md:grid-cols-4">
-                  {[
-                    {
-                      label: "Endurance",
-                      value: item.parameters.maxFlightTimeMinutes
-                        ? `${item.parameters.maxFlightTimeMinutes} MIN`
-                        : "45 MIN"
-                    },
-                    {
-                      label: "Max Speed",
-                      value: item.parameters.maxSpeedKph
-                        ? `${item.parameters.maxSpeedKph} KM/H`
-                        : "72 KM/H"
-                    },
-                    {
-                      label: "Payload",
-                      value: item.parameters.takeoffWeightGrams
-                        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} KG`
-                        : "1.2 KG"
-                    },
-                    {
-                      label: "Range",
-                      value: item.parameters.maxRangeKilometers
-                        ? `${item.parameters.maxRangeKilometers} KM`
-                        : "15 KM"
-                    }
-                  ].map((metric) => (
-                    <div
-                      className="rounded-[calc(var(--radius-panel)-0.2rem)] bg-background/75 px-5 py-6"
-                      key={metric.label}
-                    >
-                      <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                        {metric.label}
-                      </div>
-                      <div className="mt-3 text-3xl font-semibold text-foreground">{metric.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel>
+          <SitePanel className="bg-white">
             <SitePanelBody className="space-y-8">
               <div>
-                <SitePageEyebrow>Detailed Technical Specifications</SitePageEyebrow>
+                <SitePageEyebrow>详细规格</SitePageEyebrow>
                 <div className="mt-6 space-y-6">
                   {[
                     {
-                      title: "Basic Information",
+                      title: "基础信息",
                       rows: [
                         [
-                          "Weight (Battery Included)",
+                          "重量（含电池）",
                           item.parameters.takeoffWeightGrams
                             ? `${item.parameters.takeoffWeightGrams} g`
                             : "2,490 g"
                         ],
-                        ["Brand", item.brand.name],
-                        ["Category", item.category.name]
+                        ["品牌", item.brand.name],
+                        ["分类", item.category.name]
                       ]
                     },
                     {
-                      title: "Power System",
+                      title: "动力系统",
                       rows: [
-                        ["Power Type", powerTypeLabels[item.powerType]],
+                        ["动力类型", powerTypeLabels[item.powerType]],
                         [
-                          "Battery Profile",
+                          "动力说明",
                           item.powerType === "electric"
                             ? "智能飞行电池 5000mAh"
-                            : "高密度复合能源系统"
+                            : item.powerType === "other"
+                              ? "按提交资料补充"
+                              : "高密度复合能源系统"
                         ],
                         [
-                          "Description",
-                          item.description ??
-                            item.summary ??
-                            "查看用户评论获取更多真实体验反馈。"
+                          "补充说明",
+                          item.description ?? item.summary ?? "查看用户评论获取更多真实体验反馈。"
                         ]
                       ]
                     },
                     {
-                      title: "Flight Performance",
+                      title: "飞行表现",
                       rows: [
                         [
-                          "Max Ascent Speed",
+                          "极速",
                           item.parameters.maxSpeedKph
                             ? `${item.parameters.maxSpeedKph} km/h`
                             : "8 m/s"
                         ],
                         [
-                          "Max Service Ceiling",
+                          "航程",
                           item.parameters.maxRangeKilometers
                             ? `${item.parameters.maxRangeKilometers} km`
                             : "6,000 m"
                         ],
-                        ["Published", item.isPublished ? "Yes" : "No"]
+                        ["是否发布", item.isPublished ? "是" : "否"]
                       ]
                     }
                   ].map((section) => (
@@ -409,11 +359,11 @@ export function ModelDetailPage() {
                       <div className="text-sm uppercase tracking-[0.24em] text-primary">
                         {section.title}
                       </div>
-                      <div className="mt-4 overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-border/80">
+                      <div className="mt-4 overflow-hidden border border-border">
                         {section.rows.map(([label, value], index) => (
                           <div
                             className={`grid gap-3 px-5 py-4 md:grid-cols-[220px_minmax(0,1fr)] ${
-                              index !== section.rows.length - 1 ? "border-b border-border/80" : ""
+                              index !== section.rows.length - 1 ? "border-b border-border" : ""
                             }`}
                             key={label}
                           >
@@ -429,213 +379,219 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <SitePanel>
-            <SitePanelBody className="space-y-8">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <SitePageEyebrow>User Reviews</SitePageEyebrow>
-                  <h2 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
-                    用户口碑
-                  </h2>
-                  <p className="mt-2 text-base leading-8 text-muted-foreground">
-                    Verified pilots sharing their flight experience
-                  </p>
-                </div>
-                <div className="flex gap-4 text-sm">
-                  <button className="border-b-2 border-primary pb-1 text-primary" type="button">
-                    Hottest
-                  </button>
-                  <button className="pb-1 text-muted-foreground" type="button">
-                    Newest
-                  </button>
-                  <button className="pb-1 text-muted-foreground" type="button">
-                    Rating
-                  </button>
-                </div>
+          <section className="space-y-5">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <SitePageEyebrow>用户口碑</SitePageEyebrow>
+                <h2 className="mt-3 text-4xl font-semibold tracking-tight text-foreground">
+                  用户口碑
+                </h2>
+                <p className="mt-2 text-base leading-8 text-muted-foreground">
+                  紧凑评论流与真实飞行反馈
+                </p>
               </div>
+              <div className="flex gap-4 text-sm">
+                <button className="border-b-2 border-primary pb-1 text-primary" type="button">
+                  热门
+                </button>
+                <button className="pb-1 text-muted-foreground" type="button">
+                  最新
+                </button>
+                <button className="pb-1 text-muted-foreground" type="button">
+                  评分
+                </button>
+              </div>
+            </div>
 
-              <div className="grid gap-8 xl:grid-cols-[320px_minmax(0,1fr)]">
-                <Card variant="muted">
-                  <CardContent className="space-y-4 py-6">
-                    <div className="text-6xl font-semibold text-foreground">
-                      {reviewPayload.summary.averageScore.toFixed(1)}
-                    </div>
+            <div className="border border-border bg-white">
+              <div className="grid border-b border-border lg:grid-cols-[280px_minmax(0,1fr)]">
+                <div className="border-r border-border px-6 py-6">
+                  <div className="text-[4.25rem] font-semibold leading-none text-foreground">
+                    {reviewPayload.summary.averageScore.toFixed(1)}
+                  </div>
+                  <div className="mt-4">
                     <RatingStars value={reviewPayload.summary.averageScore / 2} />
-                    <div className="text-sm uppercase tracking-[0.24em] text-muted-foreground">
-                      Overall Score
-                    </div>
-                  </CardContent>
-                </Card>
+                  </div>
+                  <div className="mt-4 text-sm uppercase tracking-[0.24em] text-muted-foreground">
+                    综合评分
+                  </div>
+                </div>
 
-                <div className="space-y-4">
-                  {ratingCounts.map((entry) => (
-                    <div
-                      className="grid items-center gap-3 sm:grid-cols-[24px_minmax(0,1fr)_48px]"
-                      key={entry.score}
-                    >
-                      <div className="text-sm text-muted-foreground">{entry.score}</div>
-                      <div className="h-3 overflow-hidden rounded-full bg-muted">
-                        <div
-                          className="h-full rounded-full bg-amber-500"
-                          style={{ width: `${(entry.count / maxRatingCount) * 100}%` }}
-                        />
+                <div className="px-6 py-6">
+                  <div className="space-y-4">
+                    {ratingCounts.map((entry) => (
+                      <div
+                        className="grid items-center gap-3 sm:grid-cols-[24px_minmax(0,1fr)_48px]"
+                        key={entry.score}
+                      >
+                        <div className="text-sm text-muted-foreground">{entry.score}</div>
+                        <div className="h-3 overflow-hidden rounded-full bg-muted">
+                          <div
+                            className="h-full rounded-full bg-rating-orange"
+                            style={{ width: `${(entry.count / maxRatingCount) * 100}%` }}
+                          />
+                        </div>
+                        <div className="text-sm text-muted-foreground">
+                          {reviewPayload.summary.totalReviews
+                            ? `${Math.round((entry.count / reviewPayload.summary.totalReviews) * 100)}%`
+                            : "0%"}
+                        </div>
                       </div>
-                      <div className="text-sm text-muted-foreground">
-                        {reviewPayload.summary.totalReviews
-                          ? `${Math.round((entry.count / reviewPayload.summary.totalReviews) * 100)}%`
-                          : "0%"}
-                      </div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
               </div>
 
-              <div className="grid gap-6 xl:grid-cols-[360px_minmax(0,1fr)]">
-                <Card variant="ghost">
-                  <CardContent className="space-y-4 py-6">
-                    <div className="text-2xl font-semibold text-foreground">写点评</div>
+              <div className="grid lg:grid-cols-[280px_minmax(0,1fr)]">
+                <div className="border-r border-border px-6 py-6">
+                  <div className="text-2xl font-semibold text-foreground">写点评</div>
+                  <div className="mt-4">
                     <RatingStars
                       onSelect={(value) => {
                         setFormState((current) => updateReviewRating(current, value));
                       }}
                       value={formState.rating}
                     />
-                    <Textarea
-                      className="min-h-32"
-                      onChange={(event) => {
-                        setFormState((current) =>
-                          updateReviewContent(current, event.target.value)
-                        );
-                      }}
-                      placeholder="比如：避障系统在密林和近距绕飞中表现如何？"
-                      value={formState.content}
-                    />
+                  </div>
+                  {replyTarget ? (
+                    <div className="mt-3 flex items-center justify-between text-sm text-muted-foreground">
+                      <span>正在回复 @{replyTarget}</span>
+                      <button
+                        className="text-destructive"
+                        onClick={() => {
+                          setReplyTarget(null);
+                          setFormState((current) => updateReviewContent(current, ""));
+                        }}
+                        type="button"
+                      >
+                        <XIcon className="size-4" />
+                      </button>
+                    </div>
+                  ) : null}
+                  <Textarea
+                    className="mt-4 min-h-32 rounded-none border-border"
+                    onChange={(event) => {
+                      setFormState((current) => updateReviewContent(current, event.target.value));
+                    }}
+                    placeholder={
+                      replyTarget
+                        ? `回复 @${replyTarget}`
+                        : "比如：避障系统在密林和近距绕飞中表现如何？"
+                    }
+                    value={formState.content}
+                  />
 
-                    {submitError ? (
-                      <Alert variant="destructive">
-                        <AlertTitle>提交失败</AlertTitle>
-                        <AlertDescription>{submitError}</AlertDescription>
-                      </Alert>
-                    ) : null}
+                  {submitError ? (
+                    <Alert className="mt-4" variant="destructive">
+                      <AlertTitle>提交失败</AlertTitle>
+                      <AlertDescription>{submitError}</AlertDescription>
+                    </Alert>
+                  ) : null}
 
-                    {!isAuthenticated ? (
-                      <Alert>
-                        <AlertTitle>登录后可写点评</AlertTitle>
-                        <AlertDescription>
-                          当前未登录，只能浏览已有评分与公开评论。
-                        </AlertDescription>
-                      </Alert>
-                    ) : null}
+                  {!isAuthenticated ? (
+                    <Alert className="mt-4">
+                      <AlertTitle>登录后可写点评</AlertTitle>
+                      <AlertDescription>当前未登录，只能浏览已有评分与公开评论。</AlertDescription>
+                    </Alert>
+                  ) : null}
 
-                    <Button
-                      className="w-full"
-                      disabled={
-                        !isAuthenticated || !isReviewFormValid(formState) || isSubmitting
-                      }
-                      onClick={() => {
-                        setSubmitError(null);
-                        setIsSubmitting(true);
+                  <Button
+                    className="mt-4 w-full"
+                    disabled={!isAuthenticated || !isReviewFormValid(formState) || isSubmitting}
+                    onClick={() => {
+                      setSubmitError(null);
+                      setIsSubmitting(true);
 
-                        void apiClient
-                          .submitModelReview(slug, buildSubmitReviewInput(formState))
-                          .then(() => {
-                            setFormState((current) => ({ ...current, dirty: false }));
-                            void reviewsQuery.refetch();
-                          })
-                          .catch((reason: unknown) => {
-                            setSubmitError(
-                              reason instanceof Error ? reason.message : "提交点评失败"
-                            );
-                          })
-                          .finally(() => {
-                            setIsSubmitting(false);
-                          });
-                      }}
-                      type="button"
-                      variant="hero"
-                    >
-                      <MessageSquareTextIcon data-icon="inline-start" />
-                      {isSubmitting ? "提交中..." : "提交 / 更新点评"}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      void apiClient
+                        .submitModelReview(slug, buildSubmitReviewInput(formState))
+                        .then(() => {
+                          setReplyTarget(null);
+                          setFormState((current) => ({ ...current, dirty: false }));
+                          void reviewsQuery.refetch();
+                        })
+                        .catch((reason: unknown) => {
+                          setSubmitError(
+                            reason instanceof Error ? reason.message : "提交点评失败"
+                          );
+                        })
+                        .finally(() => {
+                          setIsSubmitting(false);
+                        });
+                    }}
+                    type="button"
+                    variant="hero"
+                  >
+                    <MessageSquareTextIcon data-icon="inline-start" />
+                    {isSubmitting ? "提交中..." : "提交 / 更新点评"}
+                  </Button>
+                </div>
 
-                <div className="space-y-5">
+                <div className="min-w-0">
                   {reviewPayload.items.length > 0 ? (
                     reviewPayload.items.map((review) => (
-                      <Card key={review.id} variant="ghost">
-                        <CardContent className="space-y-5 py-6">
-                          <div className="flex items-start justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <Avatar>
-                                <AvatarImage
-                                  alt={review.author.displayName}
-                                  src={getAvatarImage(review.author.id)}
-                                />
-                                <AvatarFallback>
-                                  {review.author.displayName.slice(0, 1)}
-                                </AvatarFallback>
-                              </Avatar>
-                              <div>
-                                <div className="font-semibold text-foreground">
-                                  {review.author.displayName}
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {new Date(review.updatedAt).toLocaleString("zh-CN", {
-                                    hour12: false
-                                  })}
-                                </div>
+                      <div className="border-b border-border px-6 py-5 last:border-b-0" key={review.id}>
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex min-w-0 items-center gap-3">
+                            <Avatar>
+                              <AvatarImage
+                                alt={review.author.displayName}
+                                src={getAvatarImage(review.author.id)}
+                              />
+                              <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
+                            </Avatar>
+                            <div className="min-w-0">
+                              <div className="font-semibold text-foreground">
+                                {review.author.displayName}
+                              </div>
+                              <div className="text-sm text-muted-foreground">
+                                {new Date(review.updatedAt).toLocaleString("zh-CN", {
+                                  hour12: false
+                                })}
                               </div>
                             </div>
-                            <RatingStars value={review.rating} />
                           </div>
-                          <p className="text-sm leading-8 text-muted-foreground">
-                            {review.content ?? "该用户只做了快速评分，没有补充文字。"}
-                          </p>
-                        </CardContent>
-                      </Card>
+                          <div className="flex items-center gap-4">
+                            <RatingStars value={review.rating} />
+                            <button
+                              className="text-xs text-primary"
+                              onClick={() => {
+                                setReplyTarget(review.author.displayName);
+                                setFormState((current) =>
+                                  updateReviewContent(
+                                    current,
+                                    current.content.startsWith(`@${review.author.displayName}`)
+                                      ? current.content
+                                      : `@${review.author.displayName} ${current}`.trim()
+                                  )
+                                );
+                              }}
+                              type="button"
+                            >
+                              回复
+                            </button>
+                          </div>
+                        </div>
+                        <p className="mt-3 text-sm leading-7 text-foreground/78">
+                          {review.content ?? "该用户只做了快速评分，没有补充文字。"}
+                        </p>
+                      </div>
                     ))
                   ) : (
-                    <Alert>
-                      <AlertTitle>还没有公开点评</AlertTitle>
-                      <AlertDescription>
-                        欢迎留下第一条真实口碑，帮助后续用户判断。
-                      </AlertDescription>
-                    </Alert>
+                    <div className="px-6 py-6 text-sm text-muted-foreground">
+                      还没有公开点评，欢迎留下第一条真实口碑。
+                    </div>
                   )}
                 </div>
               </div>
-            </SitePanelBody>
-          </SitePanel>
+            </div>
+          </section>
         </div>
 
         <SiteRail>
           <SitePanel variant="muted">
-            <SitePanelBody className="space-y-5">
-              <SitePageEyebrow className="text-primary">Editor’s Choice</SitePageEyebrow>
-              {[0, 1].map((index) => (
-                <div key={index}>
-                  <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.25rem)] border border-border/80">
-                    <img
-                      alt="editorial"
-                      className="h-32 w-full object-cover"
-                      src={getEditorialImage(`${item.slug}-editorial`, index)}
-                    />
-                  </div>
-                  <div className="mt-3 text-sm leading-7 text-foreground">
-                    {index === 0
-                      ? `${item.name} 在零下 30 度极寒堡垒的控制表现如何？`
-                      : `${item.name} 的同级替代方案是否真的值得升级？`}
-                  </div>
-                </div>
-              ))}
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
-              <SitePageEyebrow className="text-primary">Similar Models</SitePageEyebrow>
-              {relatedModels.map((model, index) => (
+              <SitePageEyebrow className="text-primary">热门机型</SitePageEyebrow>
+              {hotModels.map((model, index) => (
                 <Link
                   className="flex items-center gap-3 rounded-[calc(var(--radius-control)+0.05rem)] bg-background/72 p-3 transition hover:bg-secondary/42"
                   key={model.slug}
@@ -648,26 +604,15 @@ export function ModelDetailPage() {
                   />
                   <div className="min-w-0">
                     <div className="truncate font-medium text-foreground">{model.name}</div>
-                    <div className="text-sm text-muted-foreground">{model.brand.name}</div>
+                    <div className="flex items-center justify-between gap-2 text-sm">
+                      <span className="text-muted-foreground">{model.brand.name}</span>
+                      <span className="font-semibold text-rating-blue">
+                        {model.ratingSummary.averageScore.toFixed(1)}
+                      </span>
+                    </div>
                   </div>
                 </Link>
               ))}
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="highlight">
-            <SitePanelBody className="space-y-4">
-              <div className="text-3xl font-semibold">飞友保险</div>
-              <p className="text-sm leading-7 text-panel-highlight-foreground/86">
-                无人机险、企业责任险与飞行计划助手现已开放预约。
-              </p>
-              <Button
-                className="bg-white text-slate-900 hover:bg-white/92"
-                type="button"
-                variant="panel"
-              >
-                Learn More
-              </Button>
             </SitePanelBody>
           </SitePanel>
         </SiteRail>

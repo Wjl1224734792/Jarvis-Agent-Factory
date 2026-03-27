@@ -51,6 +51,7 @@ export function PostDetailPage() {
 
   const item = postQuery.data?.item;
   const paragraphs = splitContent(item?.content ?? "");
+  const articleHtml = item?.type === "article" ? item.contentHtml?.trim() ?? "" : "";
 
   if (!id) {
     return (
@@ -88,7 +89,7 @@ export function PostDetailPage() {
   const isFollowingAuthor = item.engagement.viewer.isFollowingAuthor;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[840px] gap-8 px-4 pb-28 pt-2 md:px-6">
+    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-28 pt-2 md:px-6">
       <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div className="flex items-center gap-3 text-sm text-foreground/80">
           <Button
@@ -174,13 +175,20 @@ export function PostDetailPage() {
           />
         </div>
 
-        <div className="space-y-6">
-          {paragraphs.map((paragraph, index) => (
-            <p className="text-[1rem] leading-8 text-foreground/82" key={`${index}-${paragraph.slice(0, 20)}`}>
-              {paragraph}
-            </p>
-          ))}
-        </div>
+        {item.type === "article" && articleHtml ? (
+          <div
+            className="text-[1rem] leading-8 text-foreground/82 [&_a]:text-primary [&_blockquote]:my-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-5 [&_figure]:my-6 [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[1.55rem] [&_h2]:font-semibold [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_ul]:list-disc [&_ul]:pl-6 [&_video]:w-full [&_video]:rounded-[0.95rem]"
+            dangerouslySetInnerHTML={{ __html: articleHtml }}
+          />
+        ) : (
+          <div className="space-y-6">
+            {paragraphs.map((paragraph, index) => (
+              <p className="text-[1rem] leading-8 text-foreground/82" key={`${index}-${paragraph.slice(0, 20)}`}>
+                {paragraph}
+              </p>
+            ))}
+          </div>
+        )}
       </article>
 
       <section className="space-y-5 border-t border-border/60 pt-6">

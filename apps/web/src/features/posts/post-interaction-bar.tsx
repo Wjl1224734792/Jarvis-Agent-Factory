@@ -1,12 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  Bookmark,
-  Heart,
-  Share2,
-  UserCheck,
-  UserPlus
-} from "lucide-react";
+import { Bookmark, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { useNavigate } from "react-router-dom";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -46,6 +40,7 @@ type ActionButtonProps = {
   plain?: boolean;
   onClick: () => void;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
+  tone: "follow" | "like" | "favorite" | "share";
 };
 
 function ActionButton({
@@ -57,15 +52,26 @@ function ActionButton({
   iconOnly,
   plain,
   onClick,
-  icon: Icon
+  icon: Icon,
+  tone
 }: ActionButtonProps) {
+  const supportsFill = tone !== "follow";
+  const activeClassName =
+    tone === "like"
+      ? "border-rose-200 bg-rose-50 text-like-red hover:bg-rose-100 hover:text-like-red"
+      : tone === "favorite"
+        ? "border-orange-200 bg-orange-50 text-rating-orange hover:bg-orange-100 hover:text-rating-orange"
+        : tone === "follow"
+          ? "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+          : "border-sky-200 bg-sky-50 text-rating-blue hover:bg-sky-100 hover:text-rating-blue";
+
   return (
     <Button
       className={cn(
         "rounded-full",
-        plain && "h-auto border-0 bg-transparent px-0 py-0 text-muted-foreground shadow-none hover:bg-transparent hover:text-foreground",
-        active &&
-          "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
+        plain &&
+          "h-auto border-0 bg-transparent px-0 py-0 text-agree-gray shadow-none hover:bg-transparent hover:text-foreground",
+        active && activeClassName
       )}
       disabled={disabled}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -76,7 +82,11 @@ function ActionButton({
       type="button"
       variant={plain ? "ghost" : active ? "secondary" : "outline"}
     >
-      <Icon className={cn("size-4", !iconOnly && "mr-0")} />
+      <Icon
+        className={cn("size-4", !iconOnly && "mr-0")}
+        fill={active && supportsFill ? "currentColor" : "none"}
+        strokeWidth={active && supportsFill ? 1.7 : 2}
+      />
       <span className="sr-only">{label}</span>
       {typeof count === "number" ? (
         <span className={cn("text-xs tabular-nums", !plain && "ml-1")}>{count}</span>
@@ -130,8 +140,7 @@ export function PostInteractionBar(props: Props) {
             disabled={busyAction !== null}
             icon={props.viewer.isFollowingAuthor ? UserCheck : UserPlus}
             iconOnly
-            plain={props.plain}
-            label={props.viewer.isFollowingAuthor ? "已关注" : "关注作者"}
+            label={props.viewer.isFollowingAuthor ? "已关注作者" : "关注作者"}
             onClick={() => {
               void ensureAuthenticated().then((ready) => {
                 if (!ready) {
@@ -143,6 +152,8 @@ export function PostInteractionBar(props: Props) {
                 });
               });
             }}
+            plain={props.plain}
+            tone="follow"
           />
         ) : null}
 
@@ -153,7 +164,6 @@ export function PostInteractionBar(props: Props) {
           disabled={!props.isPublished || busyAction !== null}
           icon={Heart}
           iconOnly
-          plain={props.plain}
           label="点赞"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -166,6 +176,8 @@ export function PostInteractionBar(props: Props) {
               });
             });
           }}
+          plain={props.plain}
+          tone="like"
         />
 
         <ActionButton
@@ -175,7 +187,6 @@ export function PostInteractionBar(props: Props) {
           disabled={!props.isPublished || busyAction !== null}
           icon={Bookmark}
           iconOnly
-          plain={props.plain}
           label="收藏"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -188,6 +199,8 @@ export function PostInteractionBar(props: Props) {
               });
             });
           }}
+          plain={props.plain}
+          tone="favorite"
         />
 
         <ActionButton
@@ -197,7 +210,6 @@ export function PostInteractionBar(props: Props) {
           disabled={!props.isPublished || busyAction !== null}
           icon={Share2}
           iconOnly
-          plain={props.plain}
           label="分享"
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
@@ -220,12 +232,14 @@ export function PostInteractionBar(props: Props) {
               });
             });
           }}
+          plain={props.plain}
+          tone="share"
         />
       </div>
 
       {error ? (
         <Alert className="border-rose-200 bg-rose-50 text-rose-900" variant="destructive">
-          <AlertTitle>交互失败</AlertTitle>
+          <AlertTitle>互动失败</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
