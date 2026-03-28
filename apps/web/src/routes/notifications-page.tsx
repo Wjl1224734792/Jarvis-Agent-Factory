@@ -18,6 +18,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { APP_ROUTES } from "@feijia/shared";
+import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage } from "../lib/aviation-media";
 
@@ -101,6 +102,7 @@ function NotificationFeedSkeleton() {
 }
 
 function NotificationRow({ item }: { item: NotificationItem }) {
+  const unread = !item.isRead;
   return (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[auto_minmax(0,1fr)_8rem] md:items-start">
       <ProfileLink userId={item.actor.id}>
@@ -116,7 +118,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
           <Badge variant="secondary">{notificationGroupLabel(item.type)}</Badge>
-          {item.isRead ? <Badge variant="outline">已读</Badge> : <Badge>未读</Badge>}
+          {item.isRead ? <Badge variant="outline">已读</Badge> : <Badge variant="destructive">未读</Badge>}
         </div>
         <ProfileLink className="line-clamp-1 text-[0.95rem] font-semibold text-foreground" userId={item.actor.id}>
           {notificationLabel(item)}
@@ -133,7 +135,7 @@ function NotificationRow({ item }: { item: NotificationItem }) {
       </div>
 
       <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
-        <div className="flex size-9 items-center justify-center rounded-full bg-secondary/58 text-primary">
+        <div className={cn("flex size-9 items-center justify-center rounded-full", unread ? "bg-red-50 text-red-500" : "bg-secondary/58 text-primary")}>
           {item.isRead ? <BellIcon className="size-4" /> : <BellRingIcon className="size-4" />}
         </div>
         <Button asChild size="sm" type="button" variant="outline">
@@ -165,7 +167,7 @@ export function NotificationsPage() {
       ) : notificationsQuery.isError ? null : (
         <div className="grid gap-3 sm:grid-cols-3">
           {[
-            { label: "未读消息", value: unreadCount, icon: BellRingIcon },
+            { label: "未读消息", value: unreadCount, icon: BellRingIcon, tone: "danger" as const },
             { label: "关注提醒", value: socialCount, icon: UsersIcon },
             { label: "评论提醒", value: discussionCount, icon: MessageSquareTextIcon }
           ].map((item) => {
@@ -178,7 +180,7 @@ export function NotificationsPage() {
                     <div className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
                       {item.label}
                     </div>
-                    <Icon className="size-4 text-primary" />
+                    <Icon className={cn("size-4", item.tone === "danger" ? "text-red-500" : "text-primary")} />
                   </div>
                   <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
                     {item.value}

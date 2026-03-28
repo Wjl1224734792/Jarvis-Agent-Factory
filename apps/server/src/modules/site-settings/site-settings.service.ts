@@ -1,7 +1,10 @@
 import { siteSettingsRepo } from "./site-settings.repo";
 
 const defaultSiteSettings = {
-  postModerationEnabled: true
+  postModerationEnabled: true,
+  commentModerationEnabled: false,
+  reviewModerationEnabled: false,
+  submissionModerationEnabled: true
 } as const;
 
 export const siteSettingsService = {
@@ -12,18 +15,28 @@ export const siteSettingsService = {
     }
 
     return {
-      postModerationEnabled: current.postModerationEnabled
+      postModerationEnabled: current.postModerationEnabled,
+      commentModerationEnabled: current.commentModerationEnabled,
+      reviewModerationEnabled: current.reviewModerationEnabled,
+      submissionModerationEnabled: current.submissionModerationEnabled
     };
   },
-  async update(input: { postModerationEnabled: boolean }) {
+  async update(input: {
+    postModerationEnabled: boolean;
+    commentModerationEnabled: boolean;
+    reviewModerationEnabled: boolean;
+    submissionModerationEnabled: boolean;
+  }) {
     const updated = await siteSettingsRepo.upsert(input);
     if (!updated) {
       return null;
     }
 
     return {
-      postModerationEnabled: updated.postModerationEnabled
+      postModerationEnabled: updated.postModerationEnabled,
+      commentModerationEnabled: updated.commentModerationEnabled,
+      reviewModerationEnabled: updated.reviewModerationEnabled,
+      submissionModerationEnabled: updated.submissionModerationEnabled
     };
   }
 };
-

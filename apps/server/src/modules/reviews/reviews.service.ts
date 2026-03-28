@@ -1,4 +1,5 @@
 import { reviewsRepo } from "./reviews.repo";
+import { siteSettingsService } from "../site-settings/site-settings.service";
 
 function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review: T) {
   return {
@@ -111,7 +112,7 @@ export const reviewsService = {
     }
 
     const [items, aggregate, myReview] = await Promise.all([
-      reviewsRepo.listVisibleReviewsByModel(model.id),
+      reviewsRepo.listReviewsForViewer(model.id, currentUserId),
       reviewsRepo.getReviewAggregate(model.id),
       currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
     ]);
@@ -140,7 +141,8 @@ export const reviewsService = {
     const reviewId = await reviewsRepo.upsertReview({
       modelId: model.id,
       userId,
-      content: input.content
+      content: input.content,
+      status: (await siteSettingsService.getResolvedSettings()).reviewModerationEnabled ? "pending" : "visible"
     });
 
     const [item, summary] = await Promise.all([
@@ -162,7 +164,7 @@ export const reviewsService = {
       items: (await reviewsRepo.listAdminReviews()).map((item) => serializeReview(item))
     };
   },
-  async updateReviewStatus(id: string, status: "visible" | "hidden") {
+  async updateReviewStatus(id: string, status: "pending" | "visible" | "hidden") {
     const item = await reviewsRepo.updateReviewStatus(id, status);
     return item ? serializeReview(item) : null;
   },

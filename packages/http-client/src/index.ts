@@ -19,6 +19,7 @@ import {
   adminLoginRequestSchema,
   aircraftSubmissionResponseSchema,
   aircraftSubmissionsResponseSchema,
+  completeWebRegistrationRequestSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
@@ -80,6 +81,7 @@ import {
   uploadPostImageResponseSchema,
   uploadPostVideoResponseSchema,
   webLoginRequestSchema,
+  webLoginResponseSchema,
   siteSettingsResponseSchema,
   type HealthResponse,
   type UserSummary
@@ -91,6 +93,7 @@ type ApiClientOptions = {
 };
 
 type WebLoginInput = Parameters<typeof webLoginRequestSchema.parse>[0];
+type CompleteWebRegistrationInput = Parameters<typeof completeWebRegistrationRequestSchema.parse>[0];
 type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
@@ -242,8 +245,15 @@ export function createApiClient(options: ApiClientOptions) {
     async loginWeb(input: WebLoginInput) {
       return postJson(
         API_ROUTES.auth.webLogin,
-        authSuccessResponseSchema,
+        webLoginResponseSchema,
         webLoginRequestSchema.parse(input)
+      );
+    },
+    async completeWebRegistration(input: CompleteWebRegistrationInput) {
+      return postJson(
+        API_ROUTES.auth.webRegisterComplete,
+        authSuccessResponseSchema,
+        completeWebRegistrationRequestSchema.parse(input)
       );
     },
     async loginAdmin(input: AdminLoginInput) {

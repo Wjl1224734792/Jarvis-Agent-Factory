@@ -16,7 +16,7 @@ import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 type FeedTab = "recommended" | "latest" | "following";
 type PostStatus = "pending" | "published" | "rejected" | "hidden";
 type PostType = "article" | "moment";
-type PostCommentStatus = "visible" | "hidden";
+type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
 
 function buildFeedOrder(tab: FeedTab) {
@@ -422,7 +422,15 @@ export const postsRepo = {
 
     return this.getPostById(id);
   },
-  async listVisibleComments(postId: string) {
+  async listCommentsForViewer(postId: string, viewerId?: string | null) {
+    const baseConditions = [eq(postCommentsTable.postId, postId)];
+    const visibilityCondition = viewerId
+      ? or(
+          eq(postCommentsTable.status, "visible"),
+          and(eq(postCommentsTable.status, "pending"), eq(postCommentsTable.authorId, viewerId))
+        )
+      : eq(postCommentsTable.status, "visible");
+
     return db
       .select({
         id: postCommentsTable.id,
@@ -443,7 +451,7 @@ export const postsRepo = {
       })
       .from(postCommentsTable)
       .innerJoin(usersTable, eq(postCommentsTable.authorId, usersTable.id))
-      .where(and(eq(postCommentsTable.postId, postId), eq(postCommentsTable.status, "visible")))
+      .where(and(...baseConditions, visibilityCondition))
       .orderBy(asc(postCommentsTable.createdAt));
   },
   async listCommentThreadEntries(postId: string) {
@@ -488,6 +496,7 @@ export const postsRepo = {
     replyToCommentId: string | null;
     replyToUserId: string | null;
     content: string;
+    status: PostCommentStatus;
   }) {
     const id = createId("comment");
 
@@ -499,7 +508,7 @@ export const postsRepo = {
       replyToCommentId: input.replyToCommentId,
       replyToUserId: input.replyToUserId,
       content: input.content,
-      status: "visible"
+      status: input.status
     });
 
     await this.syncPostCommentCount(input.postId);

@@ -11,6 +11,11 @@ type AdminBrandsPayload = Awaited<ReturnType<typeof apiClient.listBrands>>;
 type OfficialArticlesPayload = Awaited<ReturnType<typeof apiClient.listOfficialArticles>>;
 type AircraftSubmissionsPayload = Awaited<ReturnType<typeof apiClient.listAdminAircraftSubmissions>>;
 type SiteSettingsPayload = Awaited<ReturnType<typeof apiClient.getSiteSettings>>;
+type ModerationKey = "posts" | "comments" | "reviews" | "submissions";
+
+function countByStatus(items: Array<{ status: string }>, status: string) {
+  return items.filter((item) => String(item.status) === status).length;
+}
 
 function formatDayLabel(date: Date) {
   return `${date.getMonth() + 1}/${date.getDate()}`;
@@ -53,10 +58,12 @@ export function buildAdminOverviewData(input: {
   submissions: AircraftSubmissionsPayload["items"];
   siteSettings: SiteSettingsPayload["item"] | null;
 }) {
-  const pendingPosts = input.posts.filter((item) => item.status === "pending").length;
-  const hiddenComments = input.comments.filter((item) => item.status === "hidden").length;
-  const hiddenReviews = input.reviews.filter((item) => item.status === "hidden").length;
-  const pendingSubmissions = input.submissions.filter((item) => item.status === "submitted").length;
+  const pendingPosts = countByStatus(input.posts, "pending");
+  const pendingComments = countByStatus(input.comments as Array<{ status: string }>, "pending");
+  const hiddenComments = countByStatus(input.comments as Array<{ status: string }>, "hidden");
+  const pendingReviews = countByStatus(input.reviews as Array<{ status: string }>, "pending");
+  const hiddenReviews = countByStatus(input.reviews as Array<{ status: string }>, "hidden");
+  const pendingSubmissions = countByStatus(input.submissions as Array<{ status: string }>, "submitted");
 
   const metrics = [
     {
@@ -87,8 +94,20 @@ export function buildAdminOverviewData(input: {
 
   const queueRows = [
     { key: "posts", label: "帖子审核", value: pendingPosts, action: APP_ROUTES.adminPosts },
-    { key: "comments", label: "评论治理", value: hiddenComments, action: APP_ROUTES.adminPostComments },
-    { key: "reviews", label: "点评治理", value: hiddenReviews, action: APP_ROUTES.adminReviews },
+    {
+      key: "comments",
+      label: "评论审核",
+      value: pendingComments,
+      secondaryValue: hiddenComments,
+      action: APP_ROUTES.adminPostComments
+    },
+    {
+      key: "reviews",
+      label: "点评审核",
+      value: pendingReviews,
+      secondaryValue: hiddenReviews,
+      action: APP_ROUTES.adminReviews
+    },
     { key: "submissions", label: "投稿审核", value: pendingSubmissions, action: ADMIN_ROUTE_PATHS.aircraftSubmissions }
   ];
 
@@ -151,12 +170,73 @@ export function buildAdminOverviewData(input: {
     }
   ];
 
+  const moderationCards: Array<{
+    key: ModerationKey;
+    settingKey:
+      | "postModerationEnabled"
+      | "commentModerationEnabled"
+      | "reviewModerationEnabled"
+      | "submissionModerationEnabled";
+    title: string;
+    description: string;
+    enabled: boolean;
+    autoCopy: string;
+    manualCopy: string;
+    actionHref: string;
+    pendingCount: number;
+  }> = [
+    {
+      key: "posts",
+      settingKey: "postModerationEnabled" as const,
+      title: "帖子审核",
+      description: "控制文章和动态是否直发。",
+      enabled: input.siteSettings?.postModerationEnabled ?? true,
+      autoCopy: "普通用户文章和动态直接公开。",
+      manualCopy: "普通用户文章和动态进入待审核队列。",
+      actionHref: APP_ROUTES.adminPosts,
+      pendingCount: pendingPosts
+    },
+    {
+      key: "comments",
+      settingKey: "commentModerationEnabled" as const,
+      title: "评论审核",
+      description: "控制评论和回复是否先待审。",
+      enabled: input.siteSettings?.commentModerationEnabled ?? true,
+      autoCopy: "评论和回复直接公开。",
+      manualCopy: "评论和回复提交后仅作者可见待审。",
+      actionHref: APP_ROUTES.adminPostComments,
+      pendingCount: pendingComments
+    },
+    {
+      key: "reviews",
+      settingKey: "reviewModerationEnabled" as const,
+      title: "点评审核",
+      description: "控制机型点评是否先待审。",
+      enabled: input.siteSettings?.reviewModerationEnabled ?? true,
+      autoCopy: "机型点评直接公开。",
+      manualCopy: "机型点评提交后仅作者可见待审。",
+      actionHref: APP_ROUTES.adminReviews,
+      pendingCount: pendingReviews
+    },
+    {
+      key: "submissions",
+      settingKey: "submissionModerationEnabled" as const,
+      title: "投稿审核",
+      description: "控制飞行器投稿是否自动通过。",
+      enabled: input.siteSettings?.submissionModerationEnabled ?? true,
+      autoCopy: "飞行器投稿自动通过并入库。",
+      manualCopy: "飞行器投稿保持人工审核。",
+      actionHref: ADMIN_ROUTE_PATHS.aircraftSubmissions,
+      pendingCount: pendingSubmissions
+    }
+  ];
+
   return {
     metrics,
     queueRows,
     recentRows,
     trendRows,
     quickActions,
-    moderationEnabled: input.siteSettings?.postModerationEnabled ?? true
+    moderationCards
   };
 }

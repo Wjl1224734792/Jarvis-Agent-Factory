@@ -16,7 +16,7 @@ type CurrentUser = {
 type FeedTab = "recommended" | "latest" | "following";
 type PostStatus = "pending" | "published" | "rejected" | "hidden";
 type PostType = "article" | "moment";
-type PostCommentStatus = "visible" | "hidden";
+type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
 
 function toIsoString(value: Date | null) {
@@ -205,7 +205,7 @@ function buildReplyToUserMap(
 }
 
 function serializeCommentThreads(
-  comments: Awaited<ReturnType<typeof postsRepo.listVisibleComments>>,
+  comments: Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>,
   replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>
 ) {
   const repliesByRootId = new Map<string, Array<any>>();
@@ -496,7 +496,7 @@ export const postsService = {
     }
 
     const [comments, images, videos, interactions, followingAuthorIds] = await Promise.all([
-      postsRepo.listVisibleComments(id),
+      postsRepo.listCommentsForViewer(id, currentUser?.id),
       postsRepo.listPostImages([id]),
       postsRepo.listPostVideos([id]),
       currentUser ? postsRepo.listViewerInteractions([id], currentUser.id) : [],
@@ -612,6 +612,8 @@ export const postsService = {
     if (!post || post.status !== "published") {
       return { kind: "not_found" as const };
     }
+    const moderation = await siteSettingsService.getResolvedSettings();
+    const status: PostCommentStatus = moderation.commentModerationEnabled ? "pending" : "visible";
 
     let parentComment: Awaited<ReturnType<typeof postsRepo.getCommentById>> | null = null;
     let threadRootId: string | null = null;
@@ -635,7 +637,8 @@ export const postsService = {
       parentCommentId: threadRootId,
       replyToCommentId,
       replyToUserId,
-      content: input.content
+      content: input.content,
+      status
     });
     const replyUsers = replyToUserId ? await postsRepo.listUsersByIds([replyToUserId]) : [];
     const serialized = serializeSingleComment(item, buildReplyToUserMap(replyUsers));
@@ -644,7 +647,7 @@ export const postsService = {
       return { kind: "not_found" as const };
     }
 
-    if (parentComment) {
+    if (status === "visible" && parentComment) {
       await socialService.recordNotification({
         userId: parentComment.author.id,
         actorId: currentUser.id,
@@ -652,7 +655,7 @@ export const postsService = {
         postId,
         commentId: item?.id ?? null
       });
-    } else {
+    } else if (status === "visible") {
       await socialService.recordNotification({
         userId: post.author.id,
         actorId: currentUser.id,

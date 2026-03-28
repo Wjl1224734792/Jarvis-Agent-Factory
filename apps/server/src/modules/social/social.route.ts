@@ -92,6 +92,9 @@ socialRoute.put(API_ROUTES.users.meProfile, requireAuth, async (context) => {
 
   const input = updateCurrentUserProfileInputSchema.parse(await context.req.json());
   const payload = await socialService.updateCurrentUserProfile(currentUser.id, input);
+  if (payload && "kind" in payload && payload.kind === "display_name_conflict") {
+    return context.json({ code: "CONFLICT", message: "用户名已被占用" }, 409);
+  }
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }
@@ -110,8 +113,11 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (cont
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }
+  if ("kind" in payload && payload.kind === "conflict") {
+    return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);
+  }
 
-  return context.json(phoneChangeRequestResponseSchema.parse(payload));
+  return context.json(phoneChangeRequestResponseSchema.parse(payload.payload));
 });
 
 socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (context) => {

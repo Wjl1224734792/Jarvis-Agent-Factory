@@ -625,9 +625,16 @@ export function ModelDetailPage() {
                           </Avatar>
                         </ProfileLink>
                         <div className="min-w-0">
-                          <ProfileLink className="font-medium text-foreground hover:text-primary" userId={review.author.id}>
-                            {review.author.displayName}
-                          </ProfileLink>
+                          <div className="flex flex-wrap items-center gap-2">
+                            <ProfileLink className="font-medium text-foreground hover:text-primary" userId={review.author.id}>
+                              {review.author.displayName}
+                            </ProfileLink>
+                            {review.status === "pending" ? (
+                              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-700">
+                                待审核
+                              </span>
+                            ) : null}
+                          </div>
                           <div className="text-[0.72rem] text-muted-foreground">
                             {new Date(review.updatedAt).toLocaleString("zh-CN", { hour12: false })}
                           </div>
@@ -637,8 +644,11 @@ export function ModelDetailPage() {
                     <p className="mt-3 text-[0.82rem] leading-6 text-foreground/78">
                       {review.content ?? "这条评论暂未填写正文。"}
                     </p>
+                    {review.status === "pending" ? (
+                      <p className="mt-2 text-[0.72rem] text-amber-700">这条评论仅你自己可见，审核通过后才会公开。</p>
+                    ) : null}
                     <ReviewCommentSection
-                      canInteract={isAuthenticated}
+                      canInteract={isAuthenticated && review.status === "visible"}
                       currentUserId={currentUserId}
                       reviewId={review.id}
                     />

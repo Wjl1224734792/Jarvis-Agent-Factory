@@ -24,6 +24,7 @@ export const usersTable = pgTable(
       .notNull()
   },
   (table) => ({
+    displayNameUnique: uniqueIndex("users_display_name_unique").on(table.displayName),
     phoneUnique: uniqueIndex("users_phone_unique").on(table.phone),
     accountUnique: uniqueIndex("users_account_unique").on(table.account)
   })
@@ -68,6 +69,9 @@ export const userSettingsTable = pgTable(
 export const siteSettingsTable = pgTable("site_settings", {
   id: text("id").primaryKey(),
   postModerationEnabled: boolean("post_moderation_enabled").default(true).notNull(),
+  commentModerationEnabled: boolean("comment_moderation_enabled").default(false).notNull(),
+  reviewModerationEnabled: boolean("review_moderation_enabled").default(false).notNull(),
+  submissionModerationEnabled: boolean("submission_moderation_enabled").default(true).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

@@ -26,6 +26,7 @@ export const reviewsRepo = {
     modelId: string;
     userId: string;
     content: string | null;
+    status: "pending" | "visible" | "hidden";
   }) {
     const existing = await db
       .select()
@@ -44,6 +45,7 @@ export const reviewsRepo = {
         .set({
           rating: null,
           content: input.content,
+          status: input.status,
           updatedAt: new Date()
         })
         .where(eq(aircraftReviewsTable.id, existing[0].id));
@@ -59,7 +61,7 @@ export const reviewsRepo = {
       userId: input.userId,
       rating: null,
       content: input.content,
-      status: "visible"
+      status: input.status
     });
 
     return id;
@@ -92,7 +94,14 @@ export const reviewsRepo = {
 
     return rows[0] ?? null;
   },
-  async listVisibleReviewsByModel(modelId: string) {
+  async listReviewsForViewer(modelId: string, viewerId?: string) {
+    const visibilityCondition = viewerId
+      ? or(
+          eq(aircraftReviewsTable.status, "visible"),
+          and(eq(aircraftReviewsTable.status, "pending"), eq(aircraftReviewsTable.userId, viewerId))
+        )
+      : eq(aircraftReviewsTable.status, "visible");
+
     return db
       .select({
         id: aircraftReviewsTable.id,
@@ -109,12 +118,7 @@ export const reviewsRepo = {
       })
       .from(aircraftReviewsTable)
       .innerJoin(usersTable, eq(aircraftReviewsTable.userId, usersTable.id))
-      .where(
-        and(
-          eq(aircraftReviewsTable.modelId, modelId),
-          eq(aircraftReviewsTable.status, "visible")
-        )
-      )
+      .where(and(eq(aircraftReviewsTable.modelId, modelId), visibilityCondition))
       .orderBy(desc(aircraftReviewsTable.updatedAt));
   },
   async getUserReview(modelId: string, userId: string) {
@@ -184,7 +188,7 @@ export const reviewsRepo = {
       .innerJoin(aircraftModelsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
       .orderBy(desc(aircraftReviewsTable.updatedAt));
   },
-  async updateReviewStatus(id: string, status: "visible" | "hidden") {
+  async updateReviewStatus(id: string, status: "pending" | "visible" | "hidden") {
     await db
       .update(aircraftReviewsTable)
       .set({

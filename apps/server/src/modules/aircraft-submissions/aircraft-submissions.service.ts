@@ -1,5 +1,6 @@
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
+import { siteSettingsService } from "../site-settings/site-settings.service";
 import { aircraftSubmissionsRepo } from "./aircraft-submissions.repo";
 
 function slugify(value: string) {
@@ -134,6 +135,7 @@ export const aircraftSubmissionsService = {
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
+    const moderation = await siteSettingsService.getResolvedSettings();
     if (input.videoAssetId) {
       const videoAsset = await aircraftSubmissionsRepo.getOwnedVideoAsset(
         input.authorId,
@@ -163,6 +165,15 @@ export const aircraftSubmissionsService = {
       takeoffWeightGrams: input.takeoffWeightGrams,
       approvedModelId: null
     });
+
+    if (!moderation.submissionModerationEnabled && item) {
+      const approved = await this.updateSubmissionStatus(item.id, "approved");
+      if (!approved) {
+        return { kind: "ok" as const, item: serializeSubmission(item, null)! };
+      }
+
+      return { kind: "ok" as const, item: approved.item };
+    }
 
     return { kind: "ok" as const, item: serializeSubmission(item, null)! };
   },

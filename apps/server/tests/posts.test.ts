@@ -12,6 +12,28 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function completeRegistrationIfNeeded(response: Response) {
+  const payload = (await response.json()) as
+    | { kind: "authenticated" }
+    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+
+  if (payload.kind === "authenticated") {
+    return extractCookie(response.headers.get("set-cookie"));
+  }
+
+  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      registrationToken: payload.registrationToken,
+      displayName: payload.suggestedDisplayName,
+      avatarUrl: null
+    })
+  });
+
+  return extractCookie(completeResponse.headers.get("set-cookie"));
+}
+
 async function loginWebUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
   const captchaPayload = (await captchaResponse.json()) as {
@@ -41,7 +63,7 @@ async function loginWebUser(phone: string) {
     })
   });
 
-  return extractCookie(authResponse.headers.get("set-cookie"));
+  return completeRegistrationIfNeeded(authResponse);
 }
 
 async function loginAdmin() {
@@ -164,12 +186,36 @@ async function updateSiteSettings(adminCookie: string, postModerationEnabled: bo
       "content-type": "application/json"
     },
     body: JSON.stringify({
-      postModerationEnabled
+      postModerationEnabled,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true
     })
   });
 
   expect(response.status).toBe(200);
   return response;
+}
+
+async function updateAllSiteSettings(
+  adminCookie: string,
+  input: {
+    postModerationEnabled: boolean;
+    commentModerationEnabled: boolean;
+    reviewModerationEnabled: boolean;
+    submissionModerationEnabled: boolean;
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  expect(response.status).toBe(200);
 }
 
 beforeAll(async () => {
@@ -456,6 +502,56 @@ describe("posts and social flows", () => {
     expect(detailPayload.item.comments[0]?.replyCount).toBe(2);
     expect(detailPayload.item.comments[0]?.replies).toHaveLength(2);
     expect(detailPayload.item.comments[0]?.replies[1]?.replyToUser?.displayName).toBeTruthy();
+  });
+
+  it("keeps comments pending for authors only when comment moderation is enabled", async () => {
+    const authorCookie = await loginWebUser("13800138090");
+    const created = await createPost(authorCookie, {
+      type: "moment",
+      title: "Pending comment source",
+      content: "Post used to verify comment moderation."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+    await updateAllSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true
+    });
+
+    const commenterCookie = await loginWebUser("13800138091");
+    const commentResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
+      method: "POST",
+      headers: {
+        cookie: commenterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "This should stay pending."
+      })
+    });
+    expect(commentResponse.status).toBe(200);
+    const commentPayload = (await commentResponse.json()) as { item: { status: string; id: string } };
+    expect(commentPayload.item.status).toBe("pending");
+
+    const authorView = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    const authorPayload = (await authorView.json()) as {
+      item: { comments: Array<{ id: string }> };
+    };
+    expect(authorPayload.item.comments.some((item) => item.id === commentPayload.item.id)).toBe(false);
+
+    const commenterView = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "GET",
+      headers: { cookie: commenterCookie }
+    });
+    const commenterPayload = (await commenterView.json()) as {
+      item: { comments: Array<{ id: string; status: string }> };
+    };
+    expect(commenterPayload.item.comments.some((item) => item.id === commentPayload.item.id && item.status === "pending")).toBe(true);
   });
 
   it("supports video uploads and attaches uploaded videos to posts", async () => {

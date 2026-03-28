@@ -13,7 +13,12 @@ export const siteSettingsRepo = {
 
     return rows[0] ?? null;
   },
-  async upsert(input: { postModerationEnabled: boolean }) {
+  async upsert(input: {
+    postModerationEnabled: boolean;
+    commentModerationEnabled: boolean;
+    reviewModerationEnabled: boolean;
+    submissionModerationEnabled: boolean;
+  }) {
     const existing = await this.get();
 
     if (existing) {
@@ -21,6 +26,9 @@ export const siteSettingsRepo = {
         .update(siteSettingsTable)
         .set({
           postModerationEnabled: input.postModerationEnabled,
+          commentModerationEnabled: input.commentModerationEnabled,
+          reviewModerationEnabled: input.reviewModerationEnabled,
+          submissionModerationEnabled: input.submissionModerationEnabled,
           updatedAt: new Date()
         })
         .where(eq(siteSettingsTable.id, SITE_SETTINGS_ROW_ID));
@@ -30,7 +38,10 @@ export const siteSettingsRepo = {
 
     await db.insert(siteSettingsTable).values({
       id: SITE_SETTINGS_ROW_ID,
-      postModerationEnabled: input.postModerationEnabled
+      postModerationEnabled: input.postModerationEnabled,
+      commentModerationEnabled: input.commentModerationEnabled,
+      reviewModerationEnabled: input.reviewModerationEnabled,
+      submissionModerationEnabled: input.submissionModerationEnabled
     });
 
     return this.get();

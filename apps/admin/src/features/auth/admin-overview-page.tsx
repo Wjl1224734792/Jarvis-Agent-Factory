@@ -9,6 +9,7 @@ import {
 } from "@ant-design/icons";
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminMetric, AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
@@ -86,12 +87,35 @@ export function AdminOverviewPage() {
     ...overview.trendRows.flatMap((item) => [item.content, item.submissions])
   );
 
-  async function updateModeration(postModerationEnabled: boolean) {
+  const currentSettings = {
+    postModerationEnabled: siteSettingsQuery.data?.item.postModerationEnabled ?? true,
+    commentModerationEnabled: siteSettingsQuery.data?.item.commentModerationEnabled ?? true,
+    reviewModerationEnabled: siteSettingsQuery.data?.item.reviewModerationEnabled ?? true,
+    submissionModerationEnabled: siteSettingsQuery.data?.item.submissionModerationEnabled ?? true
+  };
+
+  async function updateModeration(
+    key:
+      | "postModerationEnabled"
+      | "commentModerationEnabled"
+      | "reviewModerationEnabled"
+      | "submissionModerationEnabled",
+    enabled: boolean
+  ) {
     setIsSavingSettings(true);
     setSettingsError(null);
     try {
-      await apiClient.updateSiteSettings({ postModerationEnabled });
-      await Promise.all([siteSettingsQuery.refetch(), postsQuery.refetch()]);
+      await apiClient.updateSiteSettings({
+        ...currentSettings,
+        [key]: enabled
+      });
+      await Promise.all([
+        siteSettingsQuery.refetch(),
+        postsQuery.refetch(),
+        commentsQuery.refetch(),
+        reviewsQuery.refetch(),
+        submissionsQuery.refetch()
+      ]);
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
     } finally {
@@ -180,40 +204,28 @@ export function AdminOverviewPage() {
         </AdminPanel>
 
         <AdminPanel
-          description="前期没精力逐条盯审核时，可以先关闭帖子审核；机型投稿仍保留人工审核。"
-          title="帖子审核开关"
+          description="四类内容都可以独立切换自动审核，避免只能在一个入口里控制。"
+          title="自动审核开关"
         >
-          <div className="admin-moderation-card">
-            <div className="admin-moderation-card__status">
-              <span className={`admin-pill ${overview.moderationEnabled ? "is-on" : "is-off"}`}>
-                {overview.moderationEnabled ? "审核中" : "直发中"}
-              </span>
-              <div className="admin-moderation-card__description">
-                {overview.moderationEnabled
-                  ? "普通用户文章/动态会先进审核队列。"
-                  : "普通用户文章/动态会直接公开。"}
-              </div>
-            </div>
-            <div className="admin-moderation-card__actions">
-              <Button
-                disabled={isSavingSettings}
-                onClick={() => {
-                  void updateModeration(true);
+          <div className="admin-moderation-grid">
+            {overview.moderationCards.map((item) => (
+              <AdminModerationCard
+                autoCopy={item.autoCopy}
+                description={item.description}
+                enabled={item.enabled}
+                key={item.key}
+                loading={isSavingSettings}
+                manualCopy={item.manualCopy}
+                onDisable={() => {
+                  void updateModeration(item.settingKey, false);
                 }}
-                type={overview.moderationEnabled ? "primary" : "default"}
-              >
-                开启审核
-              </Button>
-              <Button
-                disabled={isSavingSettings}
-                onClick={() => {
-                  void updateModeration(false);
+                onEnable={() => {
+                  void updateModeration(item.settingKey, true);
                 }}
-                type={!overview.moderationEnabled ? "primary" : "default"}
-              >
-                关闭审核
-              </Button>
-            </div>
+                pendingCount={item.pendingCount}
+                title={item.title}
+              />
+            ))}
           </div>
         </AdminPanel>
       </div>

@@ -1,11 +1,13 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Select, Table } from "antd";
 import { useState } from "react";
+import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
 const statusOptions = [
   { label: "全部", value: "all" },
+  { label: "待审核", value: "pending" },
   { label: "可见", value: "visible" },
   { label: "已隐藏", value: "hidden" }
 ] as const;
@@ -16,10 +18,16 @@ type CommentRecord = Awaited<ReturnType<typeof apiClient.listAdminPostComments>>
 export function PostCommentsPage() {
   const [status, setStatus] = useState<CommentStatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const commentsQuery = useQuery({
     queryKey: ["admin-post-comments", status],
     queryFn: () => apiClient.listAdminPostComments(status === "all" ? undefined : status)
+  });
+  const siteSettingsQuery = useQuery({
+    queryKey: ["admin-post-comments", "site-settings"],
+    queryFn: () => apiClient.getSiteSettings()
   });
 
   function updateStatus(id: string, nextStatus: "visible" | "hidden") {
@@ -34,6 +42,25 @@ export function PostCommentsPage() {
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "更新评论状态失败");
       });
+  }
+
+  async function updateModeration(enabled: boolean) {
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const current = siteSettingsQuery.data?.item;
+      await apiClient.updateSiteSettings({
+        postModerationEnabled: current?.postModerationEnabled ?? true,
+        commentModerationEnabled: enabled,
+        reviewModerationEnabled: current?.reviewModerationEnabled ?? true,
+        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
+      });
+      await Promise.all([siteSettingsQuery.refetch(), commentsQuery.refetch()]);
+    } catch (reason: unknown) {
+      setSettingsError(reason instanceof Error ? reason.message : "更新评论审核开关失败");
+    } finally {
+      setIsSavingSettings(false);
+    }
   }
 
   return (
@@ -52,6 +79,28 @@ export function PostCommentsPage() {
       title="评论审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
+      {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
+
+      <AdminPanel
+        description="人工审核模式下，评论提交后只对作者本人显示待审状态。"
+        title="当前模式"
+      >
+        <AdminModerationCard
+          autoCopy="评论和回复直接公开。"
+          description="适合运营精力不足时快速放开。"
+          enabled={siteSettingsQuery.data?.item.commentModerationEnabled ?? true}
+          loading={isSavingSettings || siteSettingsQuery.isFetching}
+          manualCopy="评论和回复提交后先进入待审核。"
+          onDisable={() => {
+            void updateModeration(false);
+          }}
+          onEnable={() => {
+            void updateModeration(true);
+          }}
+          pendingCount={(commentsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          title="评论审核"
+        />
+      </AdminPanel>
 
       <AdminPanel title="评论列表">
         <Table
@@ -90,7 +139,7 @@ export function PostCommentsPage() {
                   size="small"
                   type={record.status === "visible" ? "default" : "primary"}
                 >
-                  {record.status === "visible" ? "隐藏" : "恢复显示"}
+                  {record.status === "visible" ? "隐藏" : "通过 / 恢复"}
                 </Button>
               ),
               title: "操作",

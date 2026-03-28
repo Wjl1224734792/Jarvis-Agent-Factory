@@ -339,7 +339,10 @@ postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context
 
 postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => {
   const statusQuery = context.req.query("status");
-  const status = statusQuery === "visible" || statusQuery === "hidden" ? statusQuery : undefined;
+  const status =
+    statusQuery === "pending" || statusQuery === "visible" || statusQuery === "hidden"
+      ? statusQuery
+      : undefined;
   const payload = await postsService.listAdminComments(status);
   return context.json(adminPostCommentsResponseSchema.parse(payload));
 });

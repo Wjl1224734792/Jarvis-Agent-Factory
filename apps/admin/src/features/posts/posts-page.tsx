@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Select, Space, Table } from "antd";
 import { useState } from "react";
+import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -18,10 +19,16 @@ type PostRecord = Awaited<ReturnType<typeof apiClient.listAdminPosts>>["items"][
 export function PostsPage() {
   const [status, setStatus] = useState<PostStatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", status],
     queryFn: () => apiClient.listAdminPosts(status === "all" ? undefined : status)
+  });
+  const siteSettingsQuery = useQuery({
+    queryKey: ["admin-posts", "site-settings"],
+    queryFn: () => apiClient.getSiteSettings()
   });
 
   function updateStatus(id: string, nextStatus: "published" | "rejected" | "hidden") {
@@ -36,6 +43,25 @@ export function PostsPage() {
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "更新帖子状态失败");
       });
+  }
+
+  async function updateModeration(enabled: boolean) {
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const current = siteSettingsQuery.data?.item;
+      await apiClient.updateSiteSettings({
+        postModerationEnabled: enabled,
+        commentModerationEnabled: current?.commentModerationEnabled ?? true,
+        reviewModerationEnabled: current?.reviewModerationEnabled ?? true,
+        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
+      });
+      await Promise.all([siteSettingsQuery.refetch(), postsQuery.refetch()]);
+    } catch (reason: unknown) {
+      setSettingsError(reason instanceof Error ? reason.message : "更新帖子审核开关失败");
+    } finally {
+      setIsSavingSettings(false);
+    }
   }
 
   return (
@@ -54,6 +80,28 @@ export function PostsPage() {
       title="帖子审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
+      {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
+
+      <AdminPanel
+        description="帖子和动态共用这一套自动审核规则。"
+        title="当前模式"
+      >
+        <AdminModerationCard
+          autoCopy="普通用户文章和动态直接公开。"
+          description="切换后会影响新提交的帖子内容。"
+          enabled={siteSettingsQuery.data?.item.postModerationEnabled ?? true}
+          loading={isSavingSettings || siteSettingsQuery.isFetching}
+          manualCopy="普通用户文章和动态进入待审核队列。"
+          onDisable={() => {
+            void updateModeration(false);
+          }}
+          onEnable={() => {
+            void updateModeration(true);
+          }}
+          pendingCount={(postsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          title="帖子审核"
+        />
+      </AdminPanel>
 
       <AdminPanel title="帖子列表">
         <Table

@@ -8,6 +8,7 @@ describe("buildOfficialArticlePayload", () => {
         {
           title: " Official bulletin ",
           content: " Ready for publish. ",
+          contentHtml: " <p>Ready for <strong>publish</strong>.</p> ",
           contentCategoryId: "cat_1"
         },
         ["img_1"]
@@ -15,6 +16,7 @@ describe("buildOfficialArticlePayload", () => {
     ).toEqual({
       title: "Official bulletin",
       content: "Ready for publish.",
+      contentHtml: "<p>Ready for <strong>publish</strong>.</p>",
       contentCategoryId: "cat_1",
       imageIds: ["img_1"]
     });

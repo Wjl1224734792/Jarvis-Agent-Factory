@@ -73,6 +73,7 @@ function RootCommentItem(props: {
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<"reply" | "delete" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const isPending = props.comment.status === "pending";
 
   async function refresh() {
     await Promise.all([
@@ -112,13 +113,15 @@ function RootCommentItem(props: {
             <ProfileLink className="font-medium text-foreground hover:text-primary" userId={props.comment.author.id}>
               {props.comment.author.displayName}
             </ProfileLink>
+            {isPending ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-700">待审核</span> : null}
             <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
           </div>
           <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
+          {isPending ? <p className="text-[0.72rem] text-amber-700">仅你自己可见，审核通过后会公开显示。</p> : null}
         </div>
 
         <div className="flex shrink-0 items-center gap-0.5">
-          {props.canInteract ? (
+          {props.canInteract && !isPending ? (
             <Button
               className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
               onClick={() => openReply(props.comment.id, props.comment.author.displayName)}
@@ -196,7 +199,7 @@ function RootCommentItem(props: {
                       <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
                     </div>
 
-                    {props.canInteract ? (
+                    {props.canInteract && !isPending ? (
                       <Button
                         className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
                         onClick={() => openReply(reply.id, reply.author.displayName)}
@@ -215,7 +218,7 @@ function RootCommentItem(props: {
         </div>
       ) : null}
 
-      {replyingTo ? (
+      {replyingTo && !isPending ? (
         <div className="mt-3">
           <InlineCommentComposer
             busy={busy === "reply"}

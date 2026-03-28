@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
 
-export const reviewStatusSchema = z.enum(["visible", "hidden"]);
+export const reviewStatusSchema = z.enum(["pending", "visible", "hidden"]);
 export const reviewRatingSchema = z.number().int().min(1).max(5);
 
 export const modelReviewSchema = z.object({

@@ -53,6 +53,7 @@ export const API_ROUTES = {
     captchaChallenge: "/auth/captcha/challenge",
     smsRequest: "/auth/sms/request",
     webLogin: "/auth/web/login",
+    webRegisterComplete: "/auth/web/register/complete",
     logout: "/auth/logout",
     currentUser: "/auth/me",
     protectedPing: "/auth/protected/ping",

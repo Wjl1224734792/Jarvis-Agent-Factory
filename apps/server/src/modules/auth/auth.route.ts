@@ -1,12 +1,14 @@
 import {
   adminLoginRequestSchema,
+  completeWebRegistrationRequestSchema,
   authErrorResponseSchema,
-  authSuccessResponseSchema,
   captchaChallengeResponseSchema,
   currentUserResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
-  webLoginRequestSchema
+  webLoginRequestSchema,
+  webLoginResponseSchema,
+  authSuccessResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono, type Context } from "hono";
@@ -65,6 +67,30 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
 
   try {
     const result = await authService.loginWeb(input);
+    if (result.kind === "authenticated") {
+      setSessionCookie(context, result.sessionId);
+    }
+    return context.json(webLoginResponseSchema.parse(result));
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        error.code === "PHONE_ALREADY_REGISTERED" ? 409 : 400
+      );
+    }
+
+    throw error;
+  }
+});
+
+authRoute.post(API_ROUTES.auth.webRegisterComplete, async (context) => {
+  const input = completeWebRegistrationRequestSchema.parse(await context.req.json());
+
+  try {
+    const result = await authService.completeWebRegistration(input);
     setSessionCookie(context, result.sessionId);
     return context.json(authSuccessResponseSchema.parse({ user: result.user }));
   } catch (error) {
@@ -74,7 +100,7 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
           code: error.code,
           message: error.message
         }),
-        400
+        error.code === "DISPLAY_NAME_TAKEN" || error.code === "PHONE_ALREADY_REGISTERED" ? 409 : 400
       );
     }
 

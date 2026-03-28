@@ -124,6 +124,50 @@ export function ModelGridSkeleton(props: { count?: number }) {
   );
 }
 
+export function ModelsPageSkeleton(props: { count?: number }) {
+  return (
+    <div className="grid gap-4 xl:grid-cols-[17.5rem_minmax(0,1fr)]">
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, index) => (
+          <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-3">
+                <Skeleton className="h-5 w-16" />
+                <Skeleton className="h-3 w-10" />
+              </div>
+              <Skeleton className="h-10 rounded-[0.8rem]" />
+              <div className="space-y-2">
+                {Array.from({ length: 4 }).map((__, innerIndex) => (
+                  <Skeleton className="h-10 rounded-[0.75rem]" key={innerIndex} />
+                ))}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className="space-y-4">
+        <div className="rounded-[0.95rem] border border-border bg-white p-4">
+          <div className="space-y-3">
+            <div className="flex items-center justify-between gap-3">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-3.5 w-48" />
+              </div>
+              <Skeleton className="h-3.5 w-14" />
+            </div>
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <Skeleton className="h-10 rounded-[0.8rem]" />
+              <Skeleton className="h-10 w-24 rounded-[0.8rem]" />
+            </div>
+            <Skeleton className="h-4 w-3/5" />
+          </div>
+        </div>
+        <ModelGridSkeleton count={props.count ?? 10} />
+      </div>
+    </div>
+  );
+}
+
 export function RankingCardGridSkeleton(props: { count?: number }) {
   return (
     <div className={RANKING_GRID_CLASS_NAME}>

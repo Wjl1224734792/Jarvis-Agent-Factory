@@ -72,7 +72,7 @@ describe("buildAdminOverviewData", () => {
           parentCommentId: null,
           replyToCommentId: null,
           content: "comment",
-          status: "hidden",
+          status: "pending",
           createdAt: "2026-03-28T08:00:00.000Z",
           updatedAt: "2026-03-28T08:00:00.000Z",
           author: { id: "user_2", displayName: "Commenter", avatarUrl: null, role: "user" },
@@ -83,7 +83,7 @@ describe("buildAdminOverviewData", () => {
         {
           id: "review_1",
           content: "review",
-          status: "hidden",
+          status: "pending",
           createdAt: "2026-03-28T08:00:00.000Z",
           updatedAt: "2026-03-28T08:00:00.000Z",
           author: { id: "user_3", displayName: "Reviewer", avatarUrl: null, role: "user" },
@@ -166,14 +166,24 @@ describe("buildAdminOverviewData", () => {
           updatedAt: "2026-03-28T08:00:00.000Z"
         }
       ],
-      siteSettings: { postModerationEnabled: false }
+      siteSettings: {
+        postModerationEnabled: false,
+        commentModerationEnabled: true,
+        reviewModerationEnabled: false,
+        submissionModerationEnabled: true
+      }
     });
 
     expect(result.metrics[0]?.value).toBe(2);
     expect(result.metrics[1]?.value).toBe(1);
     expect(result.queueRows.find((item) => item.key === "posts")?.value).toBe(1);
+    expect(result.queueRows.find((item) => item.key === "comments")?.value).toBe(1);
+    expect(result.queueRows.find((item) => item.key === "reviews")?.value).toBe(1);
     expect(result.queueRows.find((item) => item.key === "submissions")?.value).toBe(1);
     expect(result.quickActions).toHaveLength(4);
-    expect(result.moderationEnabled).toBe(false);
+    expect(result.moderationCards).toHaveLength(4);
+    expect(result.moderationCards.find((item) => item.key === "posts")?.enabled).toBe(false);
+    expect(result.moderationCards.find((item) => item.key === "comments")?.enabled).toBe(true);
+    expect(result.moderationCards.find((item) => item.key === "reviews")?.enabled).toBe(false);
   });
 });

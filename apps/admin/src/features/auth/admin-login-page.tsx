@@ -22,7 +22,7 @@ export function AdminLoginPage() {
     <main className="admin-login">
       <div className="admin-login__grid">
         <section className="admin-login__hero">
-          <Space direction="vertical" size="large">
+          <Space orientation="vertical" size="large">
             <Button icon={<SafetyCertificateOutlined />} type="primary">
               管理员身份校验
             </Button>

@@ -358,7 +358,13 @@ export const socialService = {
       return null;
     }
 
-    return authService.requestSmsCode(input);
+    const existingPhoneOwner = await socialRepo.findUserByPhone(input.phone);
+    if (existingPhoneOwner && existingPhoneOwner.id !== currentUserId) {
+      return { kind: "conflict" as const };
+    }
+
+    const payload = await authService.requestSmsCode(input);
+    return { kind: "ok" as const, payload };
   },
   async confirmPhoneChange(
     currentUserId: string,
@@ -415,6 +421,13 @@ export const socialService = {
     const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
     if (!currentProfile) {
       return null;
+    }
+    if (input.displayName !== undefined) {
+      const normalizedDisplayName = input.displayName.trim();
+      const existingDisplayNameOwner = await socialRepo.findUserByDisplayName(normalizedDisplayName);
+      if (existingDisplayNameOwner && existingDisplayNameOwner.id !== currentUserId) {
+        return { kind: "display_name_conflict" as const };
+      }
     }
     const currentSettings = await socialRepo.getResolvedUserSettings(currentUserId);
 

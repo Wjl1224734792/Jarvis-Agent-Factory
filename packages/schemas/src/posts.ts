@@ -5,7 +5,7 @@ import { contentCategorySchema } from "./content-categories";
 export const feedTabSchema = z.enum(["recommended", "latest", "following"]);
 export const postTypeSchema = z.enum(["article", "moment"]);
 export const postStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
-export const postCommentStatusSchema = z.enum(["visible", "hidden"]);
+export const postCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 export const postInteractionTypeSchema = z.enum(["like", "favorite", "share"]);
 
 export const postImageSchema = z.object({

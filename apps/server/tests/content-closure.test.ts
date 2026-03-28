@@ -12,6 +12,28 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function completeRegistrationIfNeeded(response: Response) {
+  const payload = (await response.json()) as
+    | { kind: "authenticated" }
+    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+
+  if (payload.kind === "authenticated") {
+    return extractCookie(response.headers.get("set-cookie"));
+  }
+
+  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      registrationToken: payload.registrationToken,
+      displayName: payload.suggestedDisplayName,
+      avatarUrl: null
+    })
+  });
+
+  return extractCookie(completeResponse.headers.get("set-cookie"));
+}
+
 async function loginUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
   const captchaPayload = (await captchaResponse.json()) as {
@@ -41,7 +63,7 @@ async function loginUser(phone: string) {
     })
   });
 
-  return extractCookie(loginResponse.headers.get("set-cookie"));
+  return completeRegistrationIfNeeded(loginResponse);
 }
 
 async function loginAdmin() {

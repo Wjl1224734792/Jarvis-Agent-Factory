@@ -11,6 +11,28 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function completeRegistrationIfNeeded(response: Response) {
+  const payload = (await response.json()) as
+    | { kind: "authenticated" }
+    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+
+  if (payload.kind === "authenticated") {
+    return extractCookie(response.headers.get("set-cookie"));
+  }
+
+  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      registrationToken: payload.registrationToken,
+      displayName: payload.suggestedDisplayName,
+      avatarUrl: null
+    })
+  });
+
+  return extractCookie(completeResponse.headers.get("set-cookie"));
+}
+
 async function loginWebUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
     method: "POST"
@@ -42,7 +64,7 @@ async function loginWebUser(phone: string) {
     })
   });
 
-  return extractCookie(loginResponse.headers.get("set-cookie"));
+  return completeRegistrationIfNeeded(loginResponse);
 }
 
 beforeAll(async () => {
@@ -126,7 +148,28 @@ describe("auth flows", () => {
       })
     });
     expect(loginResponse.status).toBe(200);
-    const userCookie = extractCookie(loginResponse.headers.get("set-cookie"));
+    const loginPayload = (await loginResponse.json()) as {
+      kind: "registration_required";
+      registrationToken: string;
+      suggestedDisplayName: string;
+      phone: string;
+    };
+    expect(loginPayload.kind).toBe("registration_required");
+    expect(loginPayload.phone).toBe("13800138000");
+    expect(loginPayload.registrationToken).toBeTruthy();
+    expect(loginResponse.headers.get("set-cookie")).toBeNull();
+
+    const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: loginPayload.registrationToken,
+        displayName: loginPayload.suggestedDisplayName,
+        avatarUrl: null
+      })
+    });
+    expect(completeResponse.status).toBe(200);
+    const userCookie = extractCookie(completeResponse.headers.get("set-cookie"));
 
     const meResponse = await app.request(API_ROUTES.auth.currentUser, {
       method: "GET",
@@ -151,6 +194,95 @@ describe("auth flows", () => {
     });
     const meAfterPayload = (await meAfterLogout.json()) as { user: unknown };
     expect(meAfterPayload.user).toBeNull();
+  });
+
+  it("logs in directly for an existing phone and enforces unique display names", async () => {
+    const firstCookie = await loginWebUser("13800138991");
+    const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: firstCookie }
+    });
+    const mePayload = (await meResponse.json()) as { user: { displayName: string } | null };
+    const existingDisplayName = mePayload.user?.displayName ?? "";
+    expect(existingDisplayName).toBeTruthy();
+
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+    const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138991",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138991",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText,
+        smsCode: smsPayload.mockCode
+      })
+    });
+    const loginPayload = (await loginResponse.json()) as {
+      kind: "authenticated";
+      user: { id: string };
+    };
+    expect(loginPayload.kind).toBe("authenticated");
+    expect(loginResponse.headers.get("set-cookie")).toBeTruthy();
+
+    const secondCaptchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const secondCaptchaPayload = (await secondCaptchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+    const secondSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138992",
+        captchaChallengeId: secondCaptchaPayload.challengeId,
+        captchaCode: secondCaptchaPayload.imageOrText
+      })
+    });
+    const secondSmsPayload = (await secondSmsResponse.json()) as { mockCode?: string };
+    const secondLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138992",
+        captchaChallengeId: secondCaptchaPayload.challengeId,
+        captchaCode: secondCaptchaPayload.imageOrText,
+        smsCode: secondSmsPayload.mockCode
+      })
+    });
+    const secondLoginPayload = (await secondLoginResponse.json()) as {
+      kind: "registration_required";
+      registrationToken: string;
+    };
+    expect(secondLoginPayload.kind).toBe("registration_required");
+
+    const duplicateNameResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: secondLoginPayload.registrationToken,
+        displayName: existingDisplayName,
+        avatarUrl: null
+      })
+    });
+    expect(duplicateNameResponse.status).toBe(409);
   });
 
   it("supports reading and updating current user profile and settings", async () => {
@@ -382,25 +514,13 @@ describe("auth flows", () => {
         captchaCode: captchaPayload.imageOrText
       })
     });
-    expect(requestResponse.status).toBe(200);
+    expect(requestResponse.status).toBe(409);
     const requestPayload = (await requestResponse.json()) as {
       requestId: string;
       mockCode?: string;
     };
 
-    const confirmResponse = await app.request(API_ROUTES.users.mePhoneChangeConfirm, {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        phone: "13800138039",
-        requestId: requestPayload.requestId,
-        smsCode: requestPayload.mockCode
-      })
-    });
-    expect(confirmResponse.status).toBe(409);
+    expect("requestId" in requestPayload).toBe(false);
   });
 
   it("rejects protected route without session", async () => {
@@ -438,7 +558,7 @@ describe("auth flows", () => {
         smsCode: userSms.mockCode
       })
     });
-    const userCookie = extractCookie(userLogin.headers.get("set-cookie"));
+    const userCookie = await completeRegistrationIfNeeded(userLogin);
 
     const forbiddenResponse = await app.request(API_ROUTES.auth.adminProtectedPing, {
       method: "GET",

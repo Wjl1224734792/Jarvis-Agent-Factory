@@ -3,7 +3,7 @@ import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/
 import { SearchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { ModelGridSkeleton } from "@/components/page-skeletons";
+import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { APP_ROUTES } from "@feijia/shared";
 import { Button } from "@/components/ui/button";
@@ -281,17 +281,18 @@ export function ModelsPage() {
         .join(" / ")
     : "全部动力";
 
+  if (isGridLoading) {
+    return (
+      <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
+        <ModelsPageSkeleton count={10} />
+      </SitePage>
+    );
+  }
+
   return (
     <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
       <div className="grid gap-4 xl:grid-cols-[17.5rem_minmax(0,1fr)]">
         <div className="space-y-3 xl:sticky xl:top-[5.5rem] xl:self-start">
-          <div className="space-y-1 border border-border/80 bg-white px-4 py-4">
-            <div className="text-sm font-semibold text-foreground">筛选飞行器</div>
-            <div className="text-[0.78rem] leading-5 text-muted-foreground">
-              把筛选收进左侧，让首屏优先展示机型结果。
-            </div>
-          </div>
-
           <FilterSection
             activeSlug={categorySlug}
             compact
@@ -364,6 +365,35 @@ export function ModelsPage() {
               左侧保留精确筛选，这里只负责快速定位，给结果卡片更多空间。
             </div>
           </div>
+
+          {modelsQuery.isSuccess ? (
+            <div className="relative">
+              <div className={MODEL_GRID_CLASS_NAME}>
+                {visibleModels.map((model, index) => (
+                  <ModelCard index={index} key={model.id} model={model} />
+                ))}
+              </div>
+
+              {isGridRefreshing ? (
+                <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
+                  <div className={MODEL_GRID_CLASS_NAME}>
+                    {Array.from({ length: 10 }).map((_, index) => (
+                      <div className="block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3" key={index}>
+                        <div className="animate-pulse">
+                          <div className="aspect-square w-full rounded-[0.9rem] bg-slate-200" />
+                          <div className="space-y-2 px-0.5 pb-0.5 pt-3">
+                            <div className="h-3.5 w-16 rounded bg-slate-200" />
+                            <div className="h-4 w-4/5 rounded bg-slate-200" />
+                            <div className="h-3.5 w-24 rounded bg-slate-200" />
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
 
@@ -372,26 +402,6 @@ export function ModelsPage() {
           <AlertTitle>飞行器库加载失败</AlertTitle>
           <AlertDescription>{modelsQuery.error.message}</AlertDescription>
         </Alert>
-      ) : null}
-
-      {(modelsQuery.isSuccess || isGridLoading) ? (
-        <div className="relative">
-          {isGridLoading ? (
-            <ModelGridSkeleton count={10} />
-          ) : (
-            <div className={MODEL_GRID_CLASS_NAME}>
-              {visibleModels.map((model, index) => (
-                <ModelCard index={index} key={model.id} model={model} />
-              ))}
-            </div>
-          )}
-
-          {isGridRefreshing ? (
-            <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
-              <ModelGridSkeleton count={10} />
-            </div>
-          ) : null}
-        </div>
       ) : null}
 
       {!isGridLoading && modelsQuery.data && visibleModels.length === 0 ? (

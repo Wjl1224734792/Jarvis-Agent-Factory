@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Table } from "antd";
 import { useState } from "react";
+import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -12,10 +13,57 @@ export function ReviewsPage() {
     queryFn: () => apiClient.listAdminReviews()
   });
   const [error, setError] = useState<string | null>(null);
+  const [settingsError, setSettingsError] = useState<string | null>(null);
+  const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const siteSettingsQuery = useQuery({
+    queryKey: ["admin-reviews", "site-settings"],
+    queryFn: () => apiClient.getSiteSettings()
+  });
+
+  async function updateModeration(enabled: boolean) {
+    setIsSavingSettings(true);
+    setSettingsError(null);
+    try {
+      const current = siteSettingsQuery.data?.item;
+      await apiClient.updateSiteSettings({
+        postModerationEnabled: current?.postModerationEnabled ?? true,
+        commentModerationEnabled: current?.commentModerationEnabled ?? true,
+        reviewModerationEnabled: enabled,
+        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
+      });
+      await Promise.all([siteSettingsQuery.refetch(), reviewsQuery.refetch()]);
+    } catch (reason: unknown) {
+      setSettingsError(reason instanceof Error ? reason.message : "更新点评审核开关失败");
+    } finally {
+      setIsSavingSettings(false);
+    }
+  }
 
   return (
     <AdminPage description="控制点评的可见性和公开展示状态。" title="点评治理">
       {error ? <div className="admin-login__error">{error}</div> : null}
+      {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
+
+      <AdminPanel
+        description="人工审核模式下，点评提交后只对作者本人显示待审状态。"
+        title="当前模式"
+      >
+        <AdminModerationCard
+          autoCopy="机型点评直接公开。"
+          description="切换后会影响新的点评提交。"
+          enabled={siteSettingsQuery.data?.item.reviewModerationEnabled ?? true}
+          loading={isSavingSettings || siteSettingsQuery.isFetching}
+          manualCopy="机型点评提交后先进入待审核。"
+          onDisable={() => {
+            void updateModeration(false);
+          }}
+          onEnable={() => {
+            void updateModeration(true);
+          }}
+          pendingCount={(reviewsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          title="点评审核"
+        />
+      </AdminPanel>
 
       <AdminPanel title="点评列表">
         <Table
@@ -63,7 +111,7 @@ export function ReviewsPage() {
                   size="small"
                   type={record.status === "visible" ? "default" : "primary"}
                 >
-                  {record.status === "visible" ? "隐藏" : "恢复显示"}
+                  {record.status === "visible" ? "隐藏" : "通过 / 恢复"}
                 </Button>
               ),
               title: "操作",

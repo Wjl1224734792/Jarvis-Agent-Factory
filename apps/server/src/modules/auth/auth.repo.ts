@@ -32,11 +32,20 @@ type SmsCodeRecord = {
   expiresAt: number;
 };
 
+type PendingRegistrationRecord = {
+  registrationToken: string;
+  phone: string;
+  suggestedDisplayName: string;
+  expiresAt: number;
+};
+
 const captchaById = new Map<string, CaptchaChallenge>();
 const smsByPhone = new Map<string, SmsCodeRecord>();
+const registrationByToken = new Map<string, PendingRegistrationRecord>();
 
 const CAPTCHA_TTL_MS = 5 * 60 * 1000;
 const SMS_TTL_MS = 5 * 60 * 1000;
+const REGISTRATION_TTL_MS = 10 * 60 * 1000;
 const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 
 function now() {
@@ -69,6 +78,7 @@ export const authRepo = {
   resetEphemeralState() {
     captchaById.clear();
     smsByPhone.clear();
+    registrationByToken.clear();
   },
   createCaptchaChallenge() {
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
@@ -145,6 +155,62 @@ export const authRepo = {
 
     return matched;
   },
+  async findUserByPhone(phone: string) {
+    const rows = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.phone, phone))
+      .limit(1);
+
+    return rows[0] ? toUserRecord(rows[0]) : null;
+  },
+  async findUserByDisplayName(displayName: string) {
+    const rows = await db
+      .select()
+      .from(usersTable)
+      .where(eq(usersTable.displayName, displayName))
+      .limit(1);
+
+    return rows[0] ? toUserRecord(rows[0]) : null;
+  },
+  async buildAvailableDisplayName(phone: string) {
+    const base = `飞友${phone.slice(-4)}`;
+    let candidate = base;
+    let suffix = 2;
+
+    while (await this.findUserByDisplayName(candidate)) {
+      candidate = `${base}${suffix}`;
+      suffix += 1;
+    }
+
+    return candidate;
+  },
+  async createPendingRegistration(phone: string) {
+    const registrationToken = createId("reg");
+    const suggestedDisplayName = await this.buildAvailableDisplayName(phone);
+    const record: PendingRegistrationRecord = {
+      registrationToken,
+      phone,
+      suggestedDisplayName,
+      expiresAt: now() + REGISTRATION_TTL_MS
+    };
+    registrationByToken.set(registrationToken, record);
+    return record;
+  },
+  consumePendingRegistration(registrationToken: string) {
+    const record = registrationByToken.get(registrationToken);
+    if (!record) {
+      return null;
+    }
+
+    if (record.expiresAt < now()) {
+      registrationByToken.delete(registrationToken);
+      return null;
+    }
+
+    registrationByToken.delete(registrationToken);
+    return record;
+  },
   async findOrCreateUserByPhone(phone: string): Promise<UserRecord> {
     const existing = await db
       .select()
@@ -173,6 +239,32 @@ export const authRepo = {
       role: "user",
       displayName,
       phone,
+      account: null,
+      password: null
+    };
+  },
+  async createUserByPhoneProfile(input: {
+    phone: string;
+    displayName: string;
+    avatarUrl?: string | null;
+  }): Promise<UserRecord> {
+    const id = createId("user");
+
+    await db.insert(usersTable).values({
+      id,
+      role: "user",
+      displayName: input.displayName,
+      phone: input.phone,
+      avatarUrl: input.avatarUrl ?? null,
+      account: null,
+      passwordHash: null
+    });
+
+    return {
+      id,
+      role: "user",
+      displayName: input.displayName,
+      phone: input.phone,
       account: null,
       password: null
     };

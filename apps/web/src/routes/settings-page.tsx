@@ -448,7 +448,7 @@ export function SettingsPage() {
               <CardTitle className="text-lg">账号安全</CardTitle>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid gap-3 border border-border/70 px-4 py-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-center">
+              <div className="grid gap-3 border border-border/70 px-4 py-4 md:grid-cols-[minmax(0,1fr)_180px] md:items-center">
                 <div className="space-y-1">
                   <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
                     当前手机号
@@ -459,6 +459,7 @@ export function SettingsPage() {
                   <div className="text-xs leading-5 text-muted-foreground">页面只展示后四位，换绑后立即更新。</div>
                 </div>
                 <Button
+                  className="h-11 w-full"
                   onClick={() => {
                     setIsPhonePanelOpen((current) => !current);
                     setPhoneActionError(null);
@@ -474,7 +475,7 @@ export function SettingsPage() {
 
               {isPhonePanelOpen ? (
                 <div className="space-y-4 border border-border/70 px-4 py-4">
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_148px]">
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
                         新手机号
@@ -491,7 +492,7 @@ export function SettingsPage() {
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-muted-foreground">图形验证码</div>
                       <Button
-                        className="h-10 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono tracking-[0.28em] text-white hover:bg-slate-900/92"
+                        className="h-12 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono tracking-[0.28em] text-white hover:bg-slate-900/92"
                         onClick={() => {
                           void refreshPhoneChallenge();
                         }}
@@ -502,7 +503,7 @@ export function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px]">
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground" htmlFor="settings-phone-captcha">
                         输入图形验证码
@@ -517,7 +518,7 @@ export function SettingsPage() {
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-transparent">操作</div>
                       <Button
-                        className="h-10 w-full"
+                        className="h-12 w-full"
                         disabled={
                           isRequestingPhoneCode ||
                           !canRequestPhoneRebind({
@@ -538,7 +539,7 @@ export function SettingsPage() {
                     </div>
                   </div>
 
-                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px]">
+                  <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                     <div className="space-y-2">
                       <label className="text-sm font-medium text-foreground" htmlFor="settings-phone-sms">
                         短信验证码
@@ -553,7 +554,7 @@ export function SettingsPage() {
                     <div className="space-y-2">
                       <div className="text-sm font-medium text-transparent">确认</div>
                       <Button
-                        className="h-10 w-full"
+                        className="h-12 w-full"
                         disabled={
                           isConfirmingPhone ||
                           !canConfirmPhoneRebind({

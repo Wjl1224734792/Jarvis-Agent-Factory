@@ -114,12 +114,16 @@ type OfficialRankingUpsertInput = {
 
 type SiteSettings = {
   postModerationEnabled: boolean;
+  commentModerationEnabled?: boolean;
+  reviewModerationEnabled?: boolean;
+  submissionModerationEnabled?: boolean;
   updatedAt?: string;
 };
 
 type OfficialArticleInput = {
   title: string;
   content: string;
+  contentHtml?: string | null;
   contentCategoryId: string;
   imageIds?: string[];
 };
@@ -246,6 +250,12 @@ export const apiClient = {
       input
     );
   },
+  listAdminPostComments(status?: "pending" | "visible" | "hidden") {
+    const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+    return getJson<Awaited<ReturnType<typeof sharedClient.listAdminPostComments>>>(
+      `${API_ROUTES.posts.adminComments}${suffix}`
+    );
+  },
   listOfficialRankings() {
     return sharedClient.listRankings().then((payload) => ({
       items: normalizeOfficialRankings(payload)
@@ -279,6 +289,7 @@ export const apiClient = {
       type: "article",
       title: input.title,
       content: input.content,
+      contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
       imageIds: input.imageIds ?? [],
       videoIds: []

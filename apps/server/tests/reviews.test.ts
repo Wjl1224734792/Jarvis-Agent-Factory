@@ -11,6 +11,28 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function completeRegistrationIfNeeded(response: Response) {
+  const payload = (await response.json()) as
+    | { kind: "authenticated" }
+    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+
+  if (payload.kind === "authenticated") {
+    return extractCookie(response.headers.get("set-cookie"));
+  }
+
+  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      registrationToken: payload.registrationToken,
+      displayName: payload.suggestedDisplayName,
+      avatarUrl: null
+    })
+  });
+
+  return extractCookie(completeResponse.headers.get("set-cookie"));
+}
+
 async function loginUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
   const captchaPayload = (await captchaResponse.json()) as {
@@ -40,7 +62,28 @@ async function loginUser(phone: string) {
     })
   });
 
-  return extractCookie(loginResponse.headers.get("set-cookie"));
+  return completeRegistrationIfNeeded(loginResponse);
+}
+
+async function updateSiteSettings(
+  adminCookie: string,
+  input: {
+    postModerationEnabled: boolean;
+    commentModerationEnabled: boolean;
+    reviewModerationEnabled: boolean;
+    submissionModerationEnabled: boolean;
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  expect(response.status).toBe(200);
 }
 
 async function loginAdmin() {
@@ -197,6 +240,52 @@ describe("reviews flows", () => {
     };
 
     expect(publicPayload.items.some((item) => item.id === createdPayload.item.id)).toBe(false);
+  });
+
+  it("keeps reviews pending for authors only when review moderation is enabled", async () => {
+    const adminCookie = await loginAdmin();
+    await updateSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true
+    });
+
+    const reviewerCookie = await loginUser("13800138040");
+    const createResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "POST",
+      headers: {
+        cookie: reviewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Pending review content"
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const createPayload = (await createResponse.json()) as {
+      item: { id: string; status: string };
+      summary: { myReview: { id: string; status: string } | null };
+    };
+    expect(createPayload.item.status).toBe("pending");
+    expect(createPayload.summary.myReview?.status).toBe("pending");
+
+    const publicResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "GET"
+    });
+    const publicPayload = (await publicResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    expect(publicPayload.items.some((item) => item.id === createPayload.item.id)).toBe(false);
+
+    const reviewerView = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "GET",
+      headers: { cookie: reviewerCookie }
+    });
+    const reviewerPayload = (await reviewerView.json()) as {
+      items: Array<{ id: string; status: string }>;
+    };
+    expect(reviewerPayload.items.some((item) => item.id === createPayload.item.id && item.status === "pending")).toBe(true);
   });
 
   it("supports review comment, reply and delete flows", async () => {

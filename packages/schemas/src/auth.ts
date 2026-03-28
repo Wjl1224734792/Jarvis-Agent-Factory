@@ -9,7 +9,11 @@ export const authErrorCodeSchema = z.enum([
   "SMS_PROVIDER_UNAVAILABLE",
   "SESSION_EXPIRED",
   "UNAUTHORIZED",
-  "FORBIDDEN"
+  "FORBIDDEN",
+  "DISPLAY_NAME_TAKEN",
+  "PHONE_ALREADY_REGISTERED",
+  "REGISTRATION_REQUIRED",
+  "INVALID_REGISTRATION_TOKEN"
 ]);
 
 export const userSummarySchema = z.object({
@@ -46,6 +50,29 @@ export const webLoginRequestSchema = z.object({
   captchaChallengeId: z.string().min(1),
   captchaCode: z.string().min(4).max(8),
   smsCode: z.string().length(6)
+});
+
+export const webLoginSuccessResponseSchema = z.object({
+  kind: z.literal("authenticated"),
+  user: userSummarySchema
+});
+
+export const webLoginRegistrationRequiredResponseSchema = z.object({
+  kind: z.literal("registration_required"),
+  registrationToken: z.string().min(1),
+  phone: z.string().regex(/^1\d{10}$/),
+  suggestedDisplayName: z.string().trim().min(1).max(50)
+});
+
+export const webLoginResponseSchema = z.discriminatedUnion("kind", [
+  webLoginSuccessResponseSchema,
+  webLoginRegistrationRequiredResponseSchema
+]);
+
+export const completeWebRegistrationRequestSchema = z.object({
+  registrationToken: z.string().min(1),
+  displayName: z.string().trim().min(1).max(50),
+  avatarUrl: z.string().trim().min(1).nullable().optional()
 });
 
 export const adminLoginRequestSchema = z.object({

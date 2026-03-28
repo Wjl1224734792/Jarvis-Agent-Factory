@@ -1,14 +1,16 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   BellIcon,
-  CompassIcon,
+  CircleUserRoundIcon,
   HouseIcon,
-  LibraryBigIcon,
   MenuIcon,
+  MessagesSquareIcon,
+  PlaneIcon,
   SearchIcon,
   Settings2Icon,
   TrophyIcon
 } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
@@ -24,6 +26,7 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
+import { apiClient } from "../../lib/api-client";
 import { useAuthStore } from "./auth-store";
 import { AuthRequiredDialog } from "./auth-required-dialog";
 import { useLoginPrompt } from "./use-login-prompt";
@@ -32,14 +35,14 @@ import { UserMenu } from "./user-menu";
 
 const navItems = [
   { to: APP_ROUTES.feedHome, label: "首页", icon: HouseIcon },
-  { to: APP_ROUTES.flightCircle, label: "飞友圈", icon: CompassIcon },
-  { to: APP_ROUTES.models, label: "飞行器库", icon: LibraryBigIcon },
+  { to: APP_ROUTES.flightCircle, label: "飞友圈", icon: MessagesSquareIcon },
+  { to: APP_ROUTES.models, label: "飞行器", icon: PlaneIcon },
   { to: APP_ROUTES.rankings, label: "榜单", icon: TrophyIcon }
 ] as const;
 
 const memberNavItems = [
   { to: APP_ROUTES.notifications, label: "消息", icon: BellIcon },
-  { to: APP_ROUTES.webProfile, label: "个人中心", icon: CompassIcon },
+  { to: APP_ROUTES.webProfile, label: "个人中心", icon: CircleUserRoundIcon },
   { to: APP_ROUTES.webSettings, label: "设置", icon: Settings2Icon }
 ] as const;
 
@@ -104,15 +107,18 @@ function ShellBrand() {
 
 function NavButtons({
   items,
-  onNavigate
+  onNavigate,
+  unreadNotifications
 }: {
   items: readonly { to: string; label: string; icon: typeof HouseIcon }[];
   onNavigate?: () => void;
+  unreadNotifications?: number;
 }) {
   return (
     <nav className="flex flex-col gap-1.5">
       {items.map((item) => {
         const Icon = item.icon;
+        const hasUnread = item.to === APP_ROUTES.notifications && (unreadNotifications ?? 0) > 0;
 
         return (
           <NavLink
@@ -123,14 +129,18 @@ function NavButtons({
                   variant: "nav",
                   className: "w-full justify-start px-3"
                 }),
-                isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]"
+                isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]",
+                hasUnread && "text-red-500 hover:text-red-600"
               )
             }
             key={item.to}
             onClick={onNavigate}
             to={item.to}
           >
-            <Icon className="size-4.5" />
+            <span className="relative inline-flex">
+              <Icon className={cn("size-4.5", hasUnread && "text-red-500")} />
+              {hasUnread ? <span className="absolute -right-1 -top-1 size-2 rounded-full bg-red-500" /> : null}
+            </span>
             {item.label}
           </NavLink>
         );
@@ -149,6 +159,12 @@ export function WebLayout() {
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
+  const notificationsQuery = useQuery({
+    queryKey: ["shell-notifications"],
+    queryFn: () => apiClient.listNotifications(),
+    enabled: authStatus === "authenticated"
+  });
+  const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
 
   useEffect(() => {
     return () => {
@@ -197,7 +213,7 @@ export function WebLayout() {
                 <SheetHeader className="px-0">
                   <SheetTitle>{APP_NAME}</SheetTitle>
                   <SheetDescription>
-                    首页、飞友圈、飞行器库、榜单与个人入口
+                    首页、飞友圈、飞行器、榜单与个人入口
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-5 pt-4">
@@ -217,6 +233,7 @@ export function WebLayout() {
                         onNavigate={() => {
                           setIsMobileNavOpen(false);
                         }}
+                        unreadNotifications={unreadNotifications}
                       />
                     </div>
                   ) : null}
@@ -318,7 +335,7 @@ export function WebLayout() {
                     <div className="px-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
                       我的
                     </div>
-                    <NavButtons items={memberNavItems} />
+                    <NavButtons items={memberNavItems} unreadNotifications={unreadNotifications} />
                   </div>
                 </>
               ) : null}
