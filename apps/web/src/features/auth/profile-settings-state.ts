@@ -1,3 +1,5 @@
+import { resolveMaskedPhone } from "./phone-rebind-state";
+
 export type ProfileVisibility = "community" | "followers" | "private";
 
 export type UserSettingsSnapshot = {
@@ -5,6 +7,7 @@ export type UserSettingsSnapshot = {
   bio: string | null;
   avatarUrl: string | null;
   phone: string | null;
+  phoneMasked?: string | null;
   profileVisibility: ProfileVisibility;
   notifyComments: boolean;
   notifyMentions: boolean;
@@ -17,6 +20,7 @@ export type SettingsDraft = {
   bio: string;
   avatarUrl: string;
   phone: string;
+  phoneMasked: string;
   profileVisibility: ProfileVisibility;
   notifyComments: boolean;
   notifyMentions: boolean;
@@ -38,6 +42,7 @@ export function createSettingsDraft(snapshot: UserSettingsSnapshot): SettingsDra
     bio: snapshot.bio ?? "",
     avatarUrl: snapshot.avatarUrl ?? "",
     phone: snapshot.phone ?? "",
+    phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
     profileVisibility: snapshot.profileVisibility,
     notifyComments: snapshot.notifyComments,
     notifyMentions: snapshot.notifyMentions,

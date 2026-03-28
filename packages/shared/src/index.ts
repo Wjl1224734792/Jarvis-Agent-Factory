@@ -46,6 +46,9 @@ export const API_ROUTES = {
   health: "/health",
   feed: "/home/feed",
   circleFeed: "/circle/feed",
+  admin: {
+    siteSettings: "/admin/site-settings"
+  },
   auth: {
     captchaChallenge: "/auth/captcha/challenge",
     smsRequest: "/auth/sms/request",
@@ -87,6 +90,8 @@ export const API_ROUTES = {
   },
   users: {
     meProfile: "/users/me/profile",
+    mePhoneChangeRequest: "/users/me/phone/change/request",
+    mePhoneChangeConfirm: "/users/me/phone/change/confirm",
     profile: (userId: string) => `/users/${userId}/profile`,
     content: (userId: string) => `/users/${userId}/content`
   },

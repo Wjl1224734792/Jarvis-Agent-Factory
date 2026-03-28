@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -11,12 +12,12 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
-function RatingMeta({ score, totalRatings }: { score: number; totalRatings: number }) {
+function RankingItemScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <span className="font-medium text-foreground">{score > 0 ? score.toFixed(1) : "暂无评分"}</span>
+    <div className="flex min-w-[6.25rem] flex-col items-end justify-center gap-1 text-right">
+      <RatingValue score={score} size="lg" />
       <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
-      {totalRatings > 0 ? <span>{totalRatings} 评</span> : null}
+      {totalRatings > 0 ? <span className="text-[0.72rem] text-muted-foreground">{totalRatings} 评</span> : null}
     </div>
   );
 }
@@ -79,10 +80,6 @@ export function RankingDetailPage() {
                   {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
                 </div>
                 <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{ranking.description}</p>
-                <RatingMeta
-                  score={ranking.averageScore}
-                  totalRatings={ranking.items.reduce((sum, item) => sum + item.totalRatings, 0)}
-                />
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">
@@ -140,17 +137,17 @@ export function RankingDetailPage() {
                       getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
                     }
                   />
-                  <div className="space-y-2">
-                    <div className="min-w-0">
+                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                    <div className="space-y-2">
                       <div className="truncate text-[0.96rem] font-semibold text-foreground">{item.title}</div>
                       <div className="text-[0.78rem] text-muted-foreground">
                         {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                       </div>
+                      {item.summary ? (
+                        <p className="line-clamp-2 text-[0.78rem] leading-5 text-foreground/68">{item.summary}</p>
+                      ) : null}
                     </div>
-                    <RatingMeta score={item.averageScore} totalRatings={item.totalRatings} />
-                    {item.summary ? (
-                      <p className="line-clamp-2 text-[0.78rem] leading-5 text-foreground/68">{item.summary}</p>
-                    ) : null}
+                    <RankingItemScore score={item.averageScore} totalRatings={item.totalRatings} />
                   </div>
                 </Link>
               ))}

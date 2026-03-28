@@ -11,6 +11,40 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function loginWebUser(phone: string) {
+  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+    method: "POST"
+  });
+  const captchaPayload = (await captchaResponse.json()) as {
+    challengeId: string;
+    imageOrText: string;
+  };
+
+  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      captchaChallengeId: captchaPayload.challengeId,
+      captchaCode: captchaPayload.imageOrText
+    })
+  });
+  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+
+  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      captchaChallengeId: captchaPayload.challengeId,
+      captchaCode: captchaPayload.imageOrText,
+      smsCode: smsPayload.mockCode
+    })
+  });
+
+  return extractCookie(loginResponse.headers.get("set-cookie"));
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -120,36 +154,7 @@ describe("auth flows", () => {
   });
 
   it("supports reading and updating current user profile and settings", async () => {
-    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-      method: "POST"
-    });
-    const captchaPayload = (await captchaResponse.json()) as {
-      challengeId: string;
-      imageOrText: string;
-    };
-
-    const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        phone: "13800138009",
-        captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
-      })
-    });
-    const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-
-    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        phone: "13800138009",
-        captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText,
-        smsCode: smsPayload.mockCode
-      })
-    });
-    const cookie = extractCookie(loginResponse.headers.get("set-cookie"));
+    const cookie = await loginWebUser("13800138009");
 
     const beforeResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "GET",
@@ -162,6 +167,7 @@ describe("auth flows", () => {
         bio: string | null;
         avatarUrl: string | null;
         phone: string | null;
+        phoneMasked: string | null;
         profileVisibility: "community" | "followers" | "private";
         notifyComments: boolean;
         notifyMentions: boolean;
@@ -173,6 +179,7 @@ describe("auth flows", () => {
     expect(beforePayload.item.bio).toBeNull();
     expect(beforePayload.item.avatarUrl).toBeNull();
     expect(beforePayload.item.phone).toBe("13800138009");
+    expect(beforePayload.item.phoneMasked).toMatch(/8009$/);
     expect(beforePayload.item.profileVisibility).toBe("community");
     expect(beforePayload.item.notifyComments).toBe(true);
     expect(beforePayload.item.notifyMentions).toBe(true);
@@ -205,6 +212,7 @@ describe("auth flows", () => {
         bio: string | null;
         avatarUrl: string | null;
         phone: string | null;
+        phoneMasked: string | null;
         profileVisibility: "community" | "followers" | "private";
         notifyComments: boolean;
         notifyMentions: boolean;
@@ -218,6 +226,7 @@ describe("auth flows", () => {
       "https://cdn.example.com/avatar/profile-pilot.png"
     );
     expect(updatedPayload.item.phone).toBe("13800139009");
+    expect(updatedPayload.item.phoneMasked).toMatch(/9009$/);
     expect(updatedPayload.item.profileVisibility).toBe("followers");
     expect(updatedPayload.item.notifyComments).toBe(false);
     expect(updatedPayload.item.notifyMentions).toBe(false);
@@ -246,6 +255,7 @@ describe("auth flows", () => {
         bio: string | null;
         avatarUrl: string | null;
         phone: string | null;
+        phoneMasked: string | null;
         profileVisibility: "community" | "followers" | "private";
         notifyComments: boolean;
         notifyMentions: boolean;
@@ -259,11 +269,138 @@ describe("auth flows", () => {
       "https://cdn.example.com/avatar/profile-pilot.png"
     );
     expect(afterPayload.item.phone).toBe("13800139009");
+    expect(afterPayload.item.phoneMasked).toMatch(/9009$/);
     expect(afterPayload.item.profileVisibility).toBe("followers");
     expect(afterPayload.item.notifyComments).toBe(true);
     expect(afterPayload.item.notifyMentions).toBe(false);
     expect(afterPayload.item.sessionAlerts).toBe(false);
     expect(afterPayload.item.emailDigest).toBe(true);
+  });
+
+  it("supports requesting and confirming a phone rebind with masked profile output", async () => {
+    const cookie = await loginWebUser("13800138019");
+
+    const beforeResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const beforePayload = (await beforeResponse.json()) as {
+      item: {
+        phone: string | null;
+        phoneMasked: string | null;
+      };
+    };
+    expect(beforePayload.item.phone).toBe("13800138019");
+    expect(beforePayload.item.phoneMasked).toMatch(/8019$/);
+
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const requestResponse = await app.request(API_ROUTES.users.mePhoneChangeRequest, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138119",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    expect(requestResponse.status).toBe(200);
+    const requestPayload = (await requestResponse.json()) as {
+      requestId: string;
+      expiresInSeconds: number;
+      mockCode?: string;
+    };
+    expect(requestPayload.requestId).toBeTruthy();
+    expect(requestPayload.mockCode).toBeTruthy();
+
+    const confirmResponse = await app.request(API_ROUTES.users.mePhoneChangeConfirm, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138119",
+        requestId: requestPayload.requestId,
+        smsCode: requestPayload.mockCode
+      })
+    });
+    expect(confirmResponse.status).toBe(200);
+    const confirmPayload = (await confirmResponse.json()) as {
+      item: {
+        phone: string | null;
+        phoneMasked: string | null;
+      };
+    };
+    expect(confirmPayload.item.phone).toBe("13800138119");
+    expect(confirmPayload.item.phoneMasked).toMatch(/8119$/);
+
+    const afterResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const afterPayload = (await afterResponse.json()) as {
+      item: {
+        phone: string | null;
+        phoneMasked: string | null;
+      };
+    };
+    expect(afterPayload.item.phone).toBe("13800138119");
+    expect(afterPayload.item.phoneMasked).toMatch(/8119$/);
+  });
+
+  it("rejects phone rebind confirmation when the target phone is already taken", async () => {
+    const cookie = await loginWebUser("13800138029");
+    await loginWebUser("13800138039");
+
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const requestResponse = await app.request(API_ROUTES.users.mePhoneChangeRequest, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138039",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    expect(requestResponse.status).toBe(200);
+    const requestPayload = (await requestResponse.json()) as {
+      requestId: string;
+      mockCode?: string;
+    };
+
+    const confirmResponse = await app.request(API_ROUTES.users.mePhoneChangeConfirm, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138039",
+        requestId: requestPayload.requestId,
+        smsCode: requestPayload.mockCode
+      })
+    });
+    expect(confirmResponse.status).toBe(409);
   });
 
   it("rejects protected route without session", async () => {

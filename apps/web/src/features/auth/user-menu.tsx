@@ -46,17 +46,33 @@ export function UserMenu() {
 
   return (
     <div className="flex items-center gap-2">
-      <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-card/88 px-2.5 py-1.5 shadow-sm md:flex">
-        <Avatar className="ring-2 ring-white/80" size="lg">
+      <Link
+        className="flex size-11 items-center justify-center rounded-full border border-border/80 bg-card/88 shadow-sm transition hover:border-primary/30 md:hidden"
+        to={APP_ROUTES.webProfile}
+      >
+        <Avatar className="size-8.5 ring-2 ring-white/80" size="sm">
           <AvatarImage alt={user.displayName} src={user.avatarUrl ?? getAvatarImage(user.id)} />
           <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
         </Avatar>
-        <span className="pr-1 text-left sm:flex sm:flex-col">
-          <span className="text-sm font-medium text-foreground">{user.displayName}</span>
-          <span className="text-xs text-muted-foreground">
-            {user.role === "admin" ? "管理后台会话" : "飞友身份"}
+        <span className="sr-only">进入个人中心</span>
+      </Link>
+
+      <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-card/88 px-2.5 py-1.5 shadow-sm md:flex">
+        <Link
+          className="flex items-center gap-2 rounded-full pr-1 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
+          to={APP_ROUTES.webProfile}
+        >
+          <Avatar className="ring-2 ring-white/80" size="lg">
+            <AvatarImage alt={user.displayName} src={user.avatarUrl ?? getAvatarImage(user.id)} />
+            <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
+          </Avatar>
+          <span className="text-left sm:flex sm:flex-col">
+            <span className="text-sm font-medium text-foreground">{user.displayName}</span>
+            <span className="text-xs text-muted-foreground">
+              {user.role === "admin" ? "进入个人中心" : "飞友身份"}
+            </span>
           </span>
-        </span>
+        </Link>
       </div>
 
       <Button

@@ -65,6 +65,17 @@ export const userSettingsTable = pgTable(
   })
 );
 
+export const siteSettingsTable = pgTable("site_settings", {
+  id: text("id").primaryKey(),
+  postModerationEnabled: boolean("post_moderation_enabled").default(true).notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
 export const aircraftCategoriesTable = pgTable(
   "aircraft_categories",
   {

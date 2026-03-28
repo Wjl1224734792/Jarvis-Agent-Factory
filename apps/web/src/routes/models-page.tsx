@@ -4,11 +4,12 @@ import { SearchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { ModelGridSkeleton } from "@/components/page-skeletons";
-import { ScrollArea } from "@/components/ui/scroll-area";
-import { Input } from "@/components/ui/input";
-import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { APP_ROUTES } from "@feijia/shared";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { SitePage } from "@/components/site-shell";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
 
@@ -44,9 +45,10 @@ function FilterSection(props: {
   searchable?: boolean;
   searchValue?: string;
   onSearchChange?: (value: string) => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+    <div className={`space-y-2.5 border border-border/80 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">{props.title}</div>
         <div className="text-[0.72rem] text-muted-foreground">{props.items.length} 项</div>
@@ -64,10 +66,10 @@ function FilterSection(props: {
         </div>
       ) : null}
 
-      <ScrollArea className="h-56 border border-border/70">
+      <ScrollArea className={`${props.compact ? "h-40" : "h-56"} border border-border/70`}>
         <div className="divide-y divide-border/70">
           <button
-            className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+            className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition ${
               props.activeSlug === null ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
             }`}
             onClick={() => props.onSelect(null)}
@@ -79,7 +81,7 @@ function FilterSection(props: {
 
           {props.items.map((item) => (
             <button
-              className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+              className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition ${
                 props.activeSlug === item.slug ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
               }`}
               key={item.id ?? item.slug}
@@ -101,9 +103,10 @@ function PowerSection(props: {
   activePowerTypes: string[];
   onToggle: (slug: string) => void;
   onReset: () => void;
+  compact?: boolean;
 }) {
   return (
-    <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+    <div className={`space-y-2.5 border border-border/80 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">动力</div>
         <button className="text-[0.72rem] text-primary" onClick={props.onReset} type="button">
@@ -111,14 +114,14 @@ function PowerSection(props: {
         </button>
       </div>
 
-      <ScrollArea className="h-56 border border-border/70">
+      <ScrollArea className={`${props.compact ? "h-40" : "h-56"} border border-border/70`}>
         <div className="divide-y divide-border/70">
           {props.options.map((option) => {
             const active = props.activePowerTypes.includes(option.slug);
 
             return (
               <button
-                className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+                className={`flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition ${
                   active ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
                 }`}
                 key={option.slug}
@@ -269,53 +272,97 @@ export function ModelsPage() {
 
   const isGridLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
+  const activeCategoryName =
+    categories.find((item) => item.slug === categorySlug)?.name ?? "全部分类";
+  const activeBrandName = brands.find((item) => item.slug === brandSlug)?.name ?? "全部品牌";
+  const activePowerLabel = powerTypes.length
+    ? powerTypes
+        .map((powerType) => powerTypeOptions.find((item) => item.slug === powerType)?.name ?? powerType)
+        .join(" / ")
+    : "全部动力";
 
   return (
     <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
-      <div className="grid gap-3 xl:grid-cols-[14rem_18rem_12rem_minmax(0,1fr)]">
-        <FilterSection
-          activeSlug={categorySlug}
-          items={visibleCategories}
-          onSearchChange={setCategorySearch}
-          onSelect={(slug) => updateParams({ categorySlug: slug })}
-          searchValue={categorySearch}
-          searchable
-          title="分类"
-        />
-        <FilterSection
-          activeSlug={brandSlug}
-          items={visibleBrands}
-          onSearchChange={setBrandSearch}
-          onSelect={(slug) => updateParams({ brandSlug: slug })}
-          searchValue={brandSearch}
-          searchable
-          title="品牌"
-        />
-        <PowerSection
-          activePowerTypes={powerTypes}
-          onReset={() => updateParams({ powerTypes: [] })}
-          onToggle={togglePowerType}
-          options={powerTypeOptions}
-        />
-
-        <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
-          <div className="flex items-center justify-between gap-3">
-            <div className="text-sm font-medium text-foreground">机型列表</div>
-            <div className="text-[0.72rem] text-muted-foreground">
-              {visibleModels.length} / {modelsQuery.data?.total ?? 0}
+      <div className="grid gap-4 xl:grid-cols-[17.5rem_minmax(0,1fr)]">
+        <div className="space-y-3 xl:sticky xl:top-[5.5rem] xl:self-start">
+          <div className="space-y-1 border border-border/80 bg-white px-4 py-4">
+            <div className="text-sm font-semibold text-foreground">筛选飞行器</div>
+            <div className="text-[0.78rem] leading-5 text-muted-foreground">
+              把筛选收进左侧，让首屏优先展示机型结果。
             </div>
           </div>
-          <div className="relative">
-            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input
-              className="pl-9"
-              onChange={(event) => setModelSearch(event.target.value)}
-              placeholder="搜索机型、品牌或摘要"
-              value={modelSearch}
-            />
-          </div>
-          <div className="text-sm text-muted-foreground">
-            用左侧列表筛选，用这里的搜索快速定位目标机型。
+
+          <FilterSection
+            activeSlug={categorySlug}
+            compact
+            items={visibleCategories}
+            onSearchChange={setCategorySearch}
+            onSelect={(slug) => updateParams({ categorySlug: slug })}
+            searchValue={categorySearch}
+            searchable
+            title="分类"
+          />
+          <FilterSection
+            activeSlug={brandSlug}
+            compact
+            items={visibleBrands}
+            onSearchChange={setBrandSearch}
+            onSelect={(slug) => updateParams({ brandSlug: slug })}
+            searchValue={brandSearch}
+            searchable
+            title="品牌"
+          />
+          <PowerSection
+            activePowerTypes={powerTypes}
+            compact
+            onReset={() => updateParams({ powerTypes: [] })}
+            onToggle={togglePowerType}
+            options={powerTypeOptions}
+          />
+        </div>
+
+        <div className="space-y-4">
+          <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-foreground">机型列表</div>
+                <div className="text-[0.78rem] leading-5 text-muted-foreground">
+                  {activeCategoryName} · {activeBrandName} · {activePowerLabel}
+                </div>
+              </div>
+              <div className="text-[0.72rem] text-muted-foreground">
+                {visibleModels.length} / {modelsQuery.data?.total ?? 0}
+              </div>
+            </div>
+
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+              <div className="relative">
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  className="pl-9"
+                  onChange={(event) => setModelSearch(event.target.value)}
+                  placeholder="搜索机型、品牌或摘要"
+                  value={modelSearch}
+                />
+              </div>
+              <Button
+                onClick={() => {
+                  setCategorySearch("");
+                  setBrandSearch("");
+                  setModelSearch("");
+                  setSearchParams(new URLSearchParams());
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                清空筛选
+              </Button>
+            </div>
+
+            <div className="text-sm text-muted-foreground">
+              左侧保留精确筛选，这里只负责快速定位，给结果卡片更多空间。
+            </div>
           </div>
         </div>
       </div>

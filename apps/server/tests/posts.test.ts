@@ -156,6 +156,22 @@ async function publishPost(adminCookie: string, postId: string) {
   expect(response.status).toBe(200);
 }
 
+async function updateSiteSettings(adminCookie: string, postModerationEnabled: boolean) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      postModerationEnabled
+    })
+  });
+
+  expect(response.status).toBe(200);
+  return response;
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -212,6 +228,98 @@ describe("posts and social flows", () => {
     };
 
     expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(false);
+  });
+
+  it("disables post moderation for regular users when the admin switch is turned off", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const beforeSettingsResponse = await app.request(API_ROUTES.admin.siteSettings, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(beforeSettingsResponse.status).toBe(200);
+    const beforeSettingsPayload = (await beforeSettingsResponse.json()) as {
+      item: {
+        postModerationEnabled: boolean;
+      };
+    };
+    expect(beforeSettingsPayload.item.postModerationEnabled).toBe(true);
+
+    await updateSiteSettings(adminCookie, false);
+
+    const userCookie = await loginWebUser("13800138072");
+    const created = await createPost(userCookie, {
+      type: "article",
+      title: "Direct publish article",
+      content: "This article should bypass moderation when the switch is off.",
+      contentCategoryId: articleCategoryId
+    });
+
+    expect(created.item.status).toBe("published");
+
+    const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, { method: "GET" });
+    expect(feedResponse.status).toBe(200);
+    const feedPayload = (await feedResponse.json()) as {
+      items: Array<{ id: string; status: string }>;
+    };
+    expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(true);
+  });
+
+  it("publishes admin-created official articles immediately and exposes admin authors in feed", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const createResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Official operations bulletin",
+        content: "This admin-authored article should publish immediately.",
+        imageIds: [],
+        videoIds: [],
+        contentCategoryId: articleCategoryId
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: {
+        id: string;
+        status: string;
+        author: {
+          role: string;
+        };
+      };
+    };
+    expect(created.item.status).toBe("published");
+    expect(created.item.author.role).toBe("admin");
+
+    const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, { method: "GET" });
+    expect(feedResponse.status).toBe(200);
+    const feedPayload = (await feedResponse.json()) as {
+      items: Array<{
+        id: string;
+        author: {
+          role: string;
+        };
+      }>;
+    };
+    const feedItem = feedPayload.items.find((item) => item.id === created.item.id);
+    expect(feedItem?.author.role).toBe("admin");
   });
 
   it("splits article and moment feeds correctly", async () => {

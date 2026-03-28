@@ -112,6 +112,18 @@ type OfficialRankingUpsertInput = {
   items: RankingDraftItemInput[];
 };
 
+type SiteSettings = {
+  postModerationEnabled: boolean;
+  updatedAt?: string;
+};
+
+type OfficialArticleInput = {
+  title: string;
+  content: string;
+  contentCategoryId: string;
+  imageIds?: string[];
+};
+
 const legacyOfficialDefinitions = [
   {
     id: "official-endurance",
@@ -239,6 +251,11 @@ export const apiClient = {
       items: normalizeOfficialRankings(payload)
     }));
   },
+  listOfficialArticles() {
+    return sharedClient.listAdminPosts().then((payload) => ({
+      items: payload.items.filter((item) => item.type === "article" && item.author.role === "admin")
+    }));
+  },
   getRankingDetail(id: string) {
     return getJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.detail(id));
   },
@@ -250,6 +267,22 @@ export const apiClient = {
   },
   addRankingItem(id: string, input: RankingDraftItemInput) {
     return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.items(id), input);
+  },
+  getSiteSettings() {
+    return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);
+  },
+  updateSiteSettings(input: SiteSettings) {
+    return putJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings, input);
+  },
+  createOfficialArticle(input: OfficialArticleInput) {
+    return sharedClient.createPost({
+      type: "article",
+      title: input.title,
+      content: input.content,
+      contentCategoryId: input.contentCategoryId,
+      imageIds: input.imageIds ?? [],
+      videoIds: []
+    });
   },
   uploadImage(file: File) {
     return sharedClient.uploadPostImage(file);

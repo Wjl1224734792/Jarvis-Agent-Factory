@@ -11,6 +11,7 @@ import { contentCategoriesRoute } from "./modules/content-categories/content-cat
 import { postsRoute } from "./modules/posts/posts.route";
 import { rankingsRoute } from "./modules/rankings/rankings.route";
 import { reviewsRoute } from "./modules/reviews/reviews.route";
+import { siteSettingsRoute } from "./modules/site-settings/site-settings.route";
 import { socialRoute } from "./modules/social/social.route";
 import { ensureServerEnvLoaded } from "./lib/load-env";
 import { logger } from "./lib/logger";
@@ -91,6 +92,7 @@ app.route("/", rankingsRoute);
 app.route("/", aircraftModelsRoute);
 app.route("/", aircraftSubmissionsRoute);
 app.route("/", reviewsRoute);
+app.route("/", siteSettingsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
 app.route("/", contentCategoriesRoute);

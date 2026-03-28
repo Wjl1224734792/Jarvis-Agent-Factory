@@ -78,6 +78,13 @@
                         "when":  1774695600000,
                         "tag":  "0010_silent_model_social",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  11,
+                        "version":  "7",
+                        "when":  1774706400000,
+                        "tag":  "0011_post_moderation_switch",
+                        "breakpoints":  true
                     }
                 ]
 }

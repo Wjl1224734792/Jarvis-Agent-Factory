@@ -20,6 +20,7 @@ export {
   rankingItemsTable,
   rankingsTable,
   sessionsTable,
+  siteSettingsTable,
   userFollowsTable,
   usersTable
 } from "./schema.js";

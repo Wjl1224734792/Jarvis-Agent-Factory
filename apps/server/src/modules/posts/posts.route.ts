@@ -158,6 +158,7 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
   const input = createPostInputSchema.parse(await context.req.json());
   const payload = await postsService.createPost({
     authorId: currentUser.id,
+    authorRole: currentUser.role,
     type: input.type,
     title: input.title,
     content: input.content,

@@ -422,6 +422,17 @@ export const socialRepo = {
 
     return rows[0] ?? null;
   },
+  async findUserByPhone(phone: string) {
+    const rows = await db
+      .select({
+        id: usersTable.id
+      })
+      .from(usersTable)
+      .where(eq(usersTable.phone, phone))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
   async getUserSettings(userId: string) {
     const rows = await db.execute(
       sql`

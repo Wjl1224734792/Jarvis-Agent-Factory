@@ -57,7 +57,7 @@ export const authService = {
     }
 
     return {
-      requestId: sendResult.requestId,
+      requestId: sms.requestId,
       expiresInSeconds: 300,
       mockCode: sendResult.mockCode
     };
@@ -85,6 +85,21 @@ export const authService = {
       sessionId: session.id,
       user: summary satisfies UserSummary
     };
+  },
+  verifySmsCodeForRequest(input: {
+    phone: string;
+    requestId: string;
+    smsCode: string;
+  }) {
+    const smsPassed = authRepo.validateSmsCodeByRequest(
+      input.phone,
+      input.requestId,
+      input.smsCode
+    );
+
+    if (!smsPassed) {
+      throw new AuthError("INVALID_SMS_CODE", "短信验证码无效或已过期");
+    }
   },
   async loginAdmin(input: { account: string; password: string }) {
     const admin = await authRepo.findAdminByCredentials(input.account, input.password);

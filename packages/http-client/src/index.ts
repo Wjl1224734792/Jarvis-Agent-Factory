@@ -53,6 +53,9 @@ import {
   createReviewCommentResponseSchema,
   modelReviewsResponseSchema,
   notificationsResponseSchema,
+  phoneChangeConfirmInputSchema,
+  phoneChangeRequestInputSchema,
+  phoneChangeRequestResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
   rankingItemDetailResponseSchema,
@@ -72,10 +75,12 @@ import {
   userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
   updateCurrentUserProfileInputSchema,
+  updateSiteSettingsInputSchema,
   updateReviewStatusInputSchema,
   uploadPostImageResponseSchema,
   uploadPostVideoResponseSchema,
   webLoginRequestSchema,
+  siteSettingsResponseSchema,
   type HealthResponse,
   type UserSummary
 } from "@feijia/schemas";
@@ -118,6 +123,9 @@ type UpdateAircraftSubmissionStatusInput =
   Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
 type UpdateCurrentUserProfileInput =
   Parameters<typeof updateCurrentUserProfileInputSchema.parse>[0];
+type PhoneChangeRequestInput = Parameters<typeof phoneChangeRequestInputSchema.parse>[0];
+type PhoneChangeConfirmInput = Parameters<typeof phoneChangeConfirmInputSchema.parse>[0];
+type UpdateSiteSettingsInput = Parameters<typeof updateSiteSettingsInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -427,6 +435,20 @@ export function createApiClient(options: ApiClientOptions) {
         updateCurrentUserProfileInputSchema.parse(input)
       );
     },
+    async requestPhoneChange(input: PhoneChangeRequestInput) {
+      return postJson(
+        API_ROUTES.users.mePhoneChangeRequest,
+        phoneChangeRequestResponseSchema,
+        phoneChangeRequestInputSchema.parse(input)
+      );
+    },
+    async confirmPhoneChange(input: PhoneChangeConfirmInput) {
+      return postJson(
+        API_ROUTES.users.mePhoneChangeConfirm,
+        currentUserProfileResponseSchema,
+        phoneChangeConfirmInputSchema.parse(input)
+      );
+    },
     async listUserContent(userId: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.users.content(userId)}`, {
         method: "GET",
@@ -598,6 +620,21 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.posts.adminCommentDetail(id),
         adminPostCommentResponseSchema,
         adminPostCommentStatusUpdateInputSchema.parse(input)
+      );
+    },
+    async getAdminSiteSettings() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.siteSettings}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, siteSettingsResponseSchema);
+    },
+    async updateAdminSiteSettings(input: UpdateSiteSettingsInput) {
+      return putJson(
+        API_ROUTES.admin.siteSettings,
+        siteSettingsResponseSchema,
+        updateSiteSettingsInputSchema.parse(input)
       );
     },
     async listModels(input: ModelsQueryInput = {}) {

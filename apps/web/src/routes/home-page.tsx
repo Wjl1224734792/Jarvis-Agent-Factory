@@ -14,6 +14,7 @@ import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -175,9 +176,12 @@ export function HomePage() {
                       </div>
 
                       <div className="flex min-h-[96px] min-w-0 flex-col">
-                        <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
-                          {item.title}
-                        </h2>
+                        <div className="flex items-start gap-2">
+                          <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
+                            {item.title}
+                          </h2>
+                          {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+                        </div>
 
                         <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
                           {item.contentPreview}

@@ -123,6 +123,28 @@ export const authRepo = {
     }
     return matched;
   },
+  validateSmsCodeByRequest(phone: string, requestId: string, code: string) {
+    const sms = smsByPhone.get(phone);
+    if (!sms) {
+      return false;
+    }
+
+    if (sms.requestId !== requestId) {
+      return false;
+    }
+
+    if (sms.expiresAt < now()) {
+      smsByPhone.delete(phone);
+      return false;
+    }
+
+    const matched = sms.code === code;
+    if (matched) {
+      smsByPhone.delete(phone);
+    }
+
+    return matched;
+  },
   async findOrCreateUserByPhone(phone: string): Promise<UserRecord> {
     const existing = await db
       .select()

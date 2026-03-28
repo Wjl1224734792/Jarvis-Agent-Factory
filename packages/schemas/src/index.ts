@@ -7,3 +7,4 @@ export * from "./reviews";
 export * from "./rankings";
 export * from "./posts";
 export * from "./social";
+export * from "./site-settings";

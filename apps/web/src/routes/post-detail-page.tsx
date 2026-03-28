@@ -15,6 +15,7 @@ import { ProfileLink } from "@/components/profile-link";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -136,9 +137,12 @@ export function PostDetailPage() {
                 </Avatar>
               </ProfileLink>
               <div className="min-w-0">
-                <ProfileLink className="text-sm font-medium text-foreground hover:text-primary" userId={item.author.id}>
-                  {item.author.displayName}
-                </ProfileLink>
+                <div className="flex flex-wrap items-center gap-2">
+                  <ProfileLink className="text-sm font-medium text-foreground hover:text-primary" userId={item.author.id}>
+                    {item.author.displayName}
+                  </ProfileLink>
+                  {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+                </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读

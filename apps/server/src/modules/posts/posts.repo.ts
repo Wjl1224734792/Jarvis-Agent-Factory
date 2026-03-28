@@ -311,6 +311,8 @@ export const postsRepo = {
     contentHtml: string | null;
     contentPlainText: string;
     contentCategoryId: string | null;
+    status: PostStatus;
+    publishedAt: Date | null;
     imageIds: string[];
     videoIds: string[];
   }) {
@@ -325,13 +327,13 @@ export const postsRepo = {
       contentHtml: input.contentHtml,
       contentPlainText: input.contentPlainText,
       contentCategoryId: input.contentCategoryId,
-      status: "pending",
+      status: input.status,
       commentCount: 0,
       reportCount: 0,
       likeCount: 0,
       favoriteCount: 0,
       shareCount: 0,
-      publishedAt: null
+      publishedAt: input.publishedAt
     });
 
     await this.attachImagesToPost(id, input.authorId, input.imageIds);

@@ -8,11 +8,14 @@ import { AdminShell } from "./features/auth/admin-shell";
 import { BrandsPage } from "./features/models/brands-page";
 import { CategoriesPage } from "./features/models/categories-page";
 import { ModelsPage } from "./features/models/models-page";
+import { OfficialArticlesPage } from "./features/posts/official-articles-page";
 import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
 import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
 import { RankingsPage } from "./features/rankings/rankings-page";
 import { ReviewsPage } from "./features/reviews/reviews-page";
+import { AircraftSubmissionsPage } from "./features/submissions/aircraft-submissions-page";
+import { ADMIN_ROUTE_PATHS } from "./lib/admin-routes";
 
 function AdminRouteError() {
   const error = useRouteError();
@@ -77,6 +80,14 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.adminPostComments.slice("/admin/".length),
         element: <PostCommentsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.officialArticles.slice("/admin/".length),
+        element: <OfficialArticlesPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.aircraftSubmissions.slice("/admin/".length),
+        element: <AircraftSubmissionsPage />
       },
       {
         path: APP_ROUTES.adminRankings.slice("/admin/".length),

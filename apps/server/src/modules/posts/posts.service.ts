@@ -1,4 +1,5 @@
 import { contentCategoriesService } from "../content-categories/content-categories.service";
+import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { postsRepo } from "./posts.repo";
 import {
@@ -407,6 +408,7 @@ export const postsService = {
   },
   async createPost(input: {
     authorId: string;
+    authorRole: "user" | "admin";
     type: PostType;
     title: string;
     content: string;
@@ -432,6 +434,11 @@ export const postsService = {
       return { kind: "invalid_category" as const };
     }
 
+    const moderation = await siteSettingsService.getResolvedSettings();
+    const shouldAutoPublish =
+      input.authorRole === "admin" || !moderation.postModerationEnabled;
+    const status: PostStatus = shouldAutoPublish ? "published" : "pending";
+
     const item = await postsRepo.createPost({
       authorId: input.authorId,
       type: input.type,
@@ -440,6 +447,8 @@ export const postsService = {
       contentHtml: input.contentHtml,
       contentPlainText: input.content,
       contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+      status,
+      publishedAt: shouldAutoPublish ? new Date() : null,
       imageIds: uniqueImageIds,
       videoIds: uniqueVideoIds
     });

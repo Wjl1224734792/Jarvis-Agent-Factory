@@ -4,6 +4,7 @@ import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RANKING_GRID_CLASS_NAME, RankingCardGridSkeleton } from "@/components/page-skeletons";
+import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -33,17 +34,21 @@ function mergeRankings(data: Awaited<ReturnType<typeof apiClient.listRankings>>)
   return { hot, latest };
 }
 
-function RatingMeta({ score, totalRatings }: { score: number; totalRatings: number }) {
+function RankingItemScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-      <span className="font-medium text-foreground">{score > 0 ? score.toFixed(1) : "暂无评分"}</span>
-      <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
-      {totalRatings > 0 ? <span>{totalRatings} 评</span> : null}
+    <div className="flex flex-col items-end gap-1 text-right">
+      <div className="flex items-center gap-2">
+        <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
+        <RatingValue className="min-w-[2.8rem] text-right" score={score} />
+      </div>
+      {totalRatings > 0 ? <span className="text-[0.72rem] text-muted-foreground">{totalRatings} 评</span> : null}
     </div>
   );
 }
 
 function RankingCard({ ranking }: { ranking: RankingListItem }) {
+  const previewItems = ranking.items.slice(0, 3);
+
   return (
     <Link
       className="flex min-w-0 flex-col gap-4 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/24 hover:bg-sky-50/40"
@@ -58,18 +63,14 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
             {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
           </div>
           <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">{ranking.description}</div>
-          <RatingMeta
-            score={ranking.averageScore}
-            totalRatings={ranking.items.reduce((sum, item) => sum + item.totalRatings, 0)}
-          />
         </div>
       </div>
 
       <div className="border-t border-border/70 pt-3">
-        {ranking.items.slice(0, 3).map((item, index) => (
+        {previewItems.map((item, index) => (
           <div
-            className={`grid grid-cols-[1.2rem_3rem_minmax(0,1fr)] items-center gap-3 py-2 ${
-              index < ranking.items.slice(0, 3).length - 1 ? "border-b border-border/60" : ""
+            className={`grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_auto] items-center gap-3 py-2 ${
+              index < previewItems.length - 1 ? "border-b border-border/60" : ""
             }`}
             key={item.id}
           >
@@ -87,8 +88,8 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
               <div className="text-xs text-muted-foreground">
                 {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
               </div>
-              <RatingMeta score={item.averageScore} totalRatings={item.totalRatings} />
             </div>
+            <RankingItemScore score={item.averageScore} totalRatings={item.totalRatings} />
           </div>
         ))}
       </div>

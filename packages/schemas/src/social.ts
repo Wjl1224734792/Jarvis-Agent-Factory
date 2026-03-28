@@ -69,6 +69,7 @@ export const currentUserProfileSchema = z.object({
   bio: z.string().trim().max(300).nullable(),
   avatarUrl: z.string().trim().min(1).nullable(),
   phone: z.string().trim().min(1).max(30).nullable(),
+  phoneMasked: z.string().trim().min(1).max(30).nullable(),
   profileVisibility: profileVisibilitySchema,
   notifyComments: z.boolean(),
   notifyMentions: z.boolean(),
@@ -78,6 +79,24 @@ export const currentUserProfileSchema = z.object({
 
 export const currentUserProfileResponseSchema = z.object({
   item: currentUserProfileSchema
+});
+
+export const phoneChangeRequestInputSchema = z.object({
+  phone: z.string().regex(/^1\d{10}$/),
+  captchaChallengeId: z.string().min(1),
+  captchaCode: z.string().min(4).max(8)
+});
+
+export const phoneChangeRequestResponseSchema = z.object({
+  requestId: z.string().min(1),
+  expiresInSeconds: z.number().int().positive(),
+  mockCode: z.string().length(6).optional()
+});
+
+export const phoneChangeConfirmInputSchema = z.object({
+  phone: z.string().regex(/^1\d{10}$/),
+  requestId: z.string().min(1),
+  smsCode: z.string().length(6)
 });
 
 export const updateCurrentUserProfileInputSchema = z

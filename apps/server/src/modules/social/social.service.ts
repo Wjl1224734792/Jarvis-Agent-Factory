@@ -1,7 +1,21 @@
 import { socialRepo } from "./social.repo";
+import { AuthError, authService } from "../auth/auth.service";
 
 function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
+}
+
+function toPhoneMasked(phone: string | null) {
+  if (!phone) {
+    return null;
+  }
+
+  const value = phone.trim();
+  if (value.length < 4) {
+    return value;
+  }
+
+  return `****${value.slice(-4)}`;
 }
 
 function canViewProfileContent(input: {
@@ -322,6 +336,7 @@ export const socialService = {
         bio: user.bio ?? null,
         avatarUrl: user.avatarUrl ?? null,
         phone: user.phone ?? null,
+        phoneMasked: toPhoneMasked(user.phone ?? null),
         profileVisibility: settings.profileVisibility,
         notifyComments: settings.notifyComments,
         notifyMentions: settings.notifyMentions,
@@ -329,6 +344,59 @@ export const socialService = {
         emailDigest: settings.emailDigest
       }
     };
+  },
+  async requestPhoneChange(
+    currentUserId: string,
+    input: {
+      phone: string;
+      captchaChallengeId: string;
+      captchaCode: string;
+    }
+  ) {
+    const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
+    if (!currentProfile) {
+      return null;
+    }
+
+    return authService.requestSmsCode(input);
+  },
+  async confirmPhoneChange(
+    currentUserId: string,
+    input: {
+      phone: string;
+      requestId: string;
+      smsCode: string;
+    }
+  ) {
+    const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
+    if (!currentProfile) {
+      return { kind: "not_found" as const };
+    }
+
+    try {
+      authService.verifySmsCodeForRequest(input);
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return { kind: "invalid_sms" as const };
+      }
+
+      throw error;
+    }
+
+    const existingPhoneOwner = await socialRepo.findUserByPhone(input.phone);
+    if (existingPhoneOwner && existingPhoneOwner.id !== currentUserId) {
+      return { kind: "conflict" as const };
+    }
+
+    await socialRepo.updateCurrentUserProfile(currentUserId, {
+      phone: input.phone
+    });
+    const refreshed = await this.getCurrentUserProfile(currentUserId);
+    if (!refreshed) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, payload: refreshed };
   },
   async updateCurrentUserProfile(
     currentUserId: string,

@@ -17,6 +17,7 @@ const sampleSnapshot: UserSettingsSnapshot = {
   bio: "Airport transfer and runway notes.",
   avatarUrl: "https://cdn.example.com/avatar.png",
   phone: "13800138000",
+  phoneMasked: "****8000",
   profileVisibility: "community",
   notifyComments: true,
   notifyMentions: true,
@@ -32,6 +33,7 @@ describe("profile settings state helpers", () => {
     expect(draft.bio).toBe("Airport transfer and runway notes.");
     expect(draft.avatarUrl).toBe("https://cdn.example.com/avatar.png");
     expect(draft.phone).toBe("13800138000");
+    expect(draft.phoneMasked).toBe("****8000");
     expect(draft.profileVisibility).toBe("community");
     expect(draft.hasPendingChanges).toBe(false);
   });

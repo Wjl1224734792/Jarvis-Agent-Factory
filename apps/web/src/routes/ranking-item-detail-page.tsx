@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingBreakdown } from "@/components/rating-breakdown";
+import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -133,10 +134,8 @@ export function RankingItemDetailPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="text-[2rem] font-semibold text-foreground">
-                      {item.averageScore > 0 ? item.averageScore.toFixed(1) : "暂无"}
-                    </div>
+                  <div className="flex flex-col items-start gap-2">
+                    <RatingValue className="tracking-[-0.04em]" score={item.averageScore} size="xl" />
                     <RatingStars size="md" tone="rating" value={toFiveStarRating(item.averageScore)} />
                   </div>
                   <div className="text-sm text-muted-foreground">

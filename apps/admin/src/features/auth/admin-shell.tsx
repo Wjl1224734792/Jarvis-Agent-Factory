@@ -1,7 +1,9 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   AppstoreOutlined,
+  CloudUploadOutlined,
   FileTextOutlined,
+  FlagOutlined,
   LogoutOutlined,
   MessageOutlined,
   RadarChartOutlined,
@@ -12,16 +14,19 @@ import {
 import { Button, Flex, Space } from "antd";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
+import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { useAdminAuthStore } from "./auth-store";
 
 const navItems = [
-  { to: APP_ROUTES.adminHome, label: "概览", hint: "治理总览", icon: RadarChartOutlined },
+  { to: APP_ROUTES.adminHome, label: "概览", hint: "运营总览", icon: RadarChartOutlined },
+  { to: ADMIN_ROUTE_PATHS.officialArticles, label: "官方文章", hint: "首页官方内容", icon: FlagOutlined },
+  { to: APP_ROUTES.adminPosts, label: "帖子审核", hint: "审核与隐藏", icon: FileTextOutlined },
+  { to: ADMIN_ROUTE_PATHS.aircraftSubmissions, label: "投稿审核", hint: "飞行器投稿", icon: CloudUploadOutlined },
   { to: APP_ROUTES.adminCategories, label: "分类", hint: "分类资产", icon: TagsOutlined },
   { to: APP_ROUTES.adminBrands, label: "品牌", hint: "品牌索引", icon: AppstoreOutlined },
   { to: APP_ROUTES.adminModels, label: "机型", hint: "机型主数据", icon: AppstoreOutlined },
   { to: APP_ROUTES.adminReviews, label: "点评", hint: "口碑治理", icon: StarOutlined },
   { to: APP_ROUTES.adminRankings, label: "榜单", hint: "官方榜单", icon: TrophyOutlined },
-  { to: APP_ROUTES.adminPosts, label: "帖子", hint: "内容审核", icon: FileTextOutlined },
   { to: APP_ROUTES.adminPostComments, label: "评论", hint: "评论治理", icon: MessageOutlined }
 ] as const;
 

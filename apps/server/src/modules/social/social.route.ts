@@ -2,6 +2,9 @@ import {
   actionSuccessResponseSchema,
   currentUserProfileResponseSchema,
   notificationsResponseSchema,
+  phoneChangeConfirmInputSchema,
+  phoneChangeRequestInputSchema,
+  phoneChangeRequestResponseSchema,
   updateCurrentUserProfileInputSchema,
   userContentResponseSchema,
   userProfileResponseSchema
@@ -94,6 +97,42 @@ socialRoute.put(API_ROUTES.users.meProfile, requireAuth, async (context) => {
   }
 
   return context.json(currentUserProfileResponseSchema.parse(payload));
+});
+
+socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = phoneChangeRequestInputSchema.parse(await context.req.json());
+  const payload = await socialService.requestPhoneChange(currentUser.id, input);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+
+  return context.json(phoneChangeRequestResponseSchema.parse(payload));
+});
+
+socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = phoneChangeConfirmInputSchema.parse(await context.req.json());
+  const result = await socialService.confirmPhoneChange(currentUser.id, input);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+  if (result.kind === "invalid_sms") {
+    return context.json({ code: "BAD_REQUEST", message: "短信验证码无效或已过期" }, 400);
+  }
+  if (result.kind === "conflict") {
+    return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);
+  }
+
+  return context.json(currentUserProfileResponseSchema.parse(result.payload));
 });
 
 socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {
