@@ -3,18 +3,23 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
-import {
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle
-} from "@/components/site-shell";
-import { Badge } from "@/components/ui/badge";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
+import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+
+function RatingMeta({ score, totalRatings }: { score: number; totalRatings: number }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="font-medium text-foreground">{score > 0 ? score.toFixed(1) : "暂无评分"}</span>
+      <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
+      {totalRatings > 0 ? <span>{totalRatings} 评</span> : null}
+    </div>
+  );
+}
 
 export function RankingDetailPage() {
   const params = useParams<{ id: string }>();
@@ -56,35 +61,37 @@ export function RankingDetailPage() {
 
       {ranking ? (
         <>
-          <SitePageHead>
-            <SitePageEyebrow>榜单详情</SitePageEyebrow>
-            <div className="flex flex-wrap items-center gap-2">
-              <SitePageTitle className="text-[1.9rem] md:text-[2.25rem]">{ranking.title}</SitePageTitle>
-              {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
-            </div>
-            <SitePageDescription>{ranking.description}</SitePageDescription>
-          </SitePageHead>
-
-          <div className="grid gap-4 rounded-[0.95rem] border border-border bg-white p-4 shadow-[var(--shadow-panel)] md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-            <div className="overflow-hidden rounded-[0.85rem]">
+          <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+            <div className="overflow-hidden">
               <img
                 alt={ranking.title}
-                className="h-[220px] w-full object-cover md:h-[280px]"
+                className="h-[220px] w-full object-cover md:h-[300px]"
                 src={ranking.coverImageUrl ?? getEditorialImage(ranking.id)}
               />
             </div>
 
-            <div className="flex min-w-0 flex-col justify-between gap-4">
+            <div className="flex min-w-0 flex-col justify-between gap-6">
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className="text-[1.9rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.25rem]">
+                    {ranking.title}
+                  </div>
+                  {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
+                </div>
+                <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{ranking.description}</p>
+                <RatingMeta
+                  score={ranking.averageScore}
+                  totalRatings={ranking.items.reduce((sum, item) => sum + item.totalRatings, 0)}
+                />
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-3">
                 {[
                   { label: "条目数", value: ranking.itemCount },
                   { label: "评论数", value: ranking.commentCount },
                   { label: "发布时间", value: new Date(ranking.createdAt).toLocaleDateString("zh-CN") }
                 ].map((item) => (
-                  <div
-                    className="rounded-[0.85rem] border border-border/70 bg-background/70 px-4 py-3"
-                    key={item.label}
-                  >
+                  <div className="border border-border/70 px-4 py-3" key={item.label}>
                     <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
                       {item.label}
                     </div>
@@ -118,7 +125,7 @@ export function RankingDetailPage() {
             <div className="space-y-3">
               {ranking.items.map((item) => (
                 <Link
-                  className="grid gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5 shadow-[var(--shadow-soft)] transition hover:border-primary/30 hover:bg-sky-50/60 md:grid-cols-[44px_88px_minmax(0,1fr)]"
+                  className="grid gap-3 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/30 hover:bg-sky-50/50 md:grid-cols-[44px_88px_minmax(0,1fr)]"
                   key={item.id}
                   to={`${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >
@@ -127,28 +134,22 @@ export function RankingDetailPage() {
                   </div>
                   <img
                     alt={item.title}
-                    className="h-[74px] w-full rounded-[0.8rem] object-cover"
+                    className="h-[74px] w-full object-cover"
                     src={
                       item.imageUrl ??
-                      getModelImage(
-                        item.linkedModel?.slug ?? item.id,
-                        item.linkedModel?.powerType ?? "electric"
-                      )
+                      getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
                     }
                   />
-                  <div className="space-y-1.5">
+                  <div className="space-y-2">
                     <div className="min-w-0">
-                      <div className="truncate text-[0.96rem] font-semibold text-foreground">
-                        {item.title}
-                      </div>
+                      <div className="truncate text-[0.96rem] font-semibold text-foreground">{item.title}</div>
                       <div className="text-[0.78rem] text-muted-foreground">
                         {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                       </div>
                     </div>
+                    <RatingMeta score={item.averageScore} totalRatings={item.totalRatings} />
                     {item.summary ? (
-                      <p className="line-clamp-2 text-[0.78rem] leading-5 text-foreground/68">
-                        {item.summary}
-                      </p>
+                      <p className="line-clamp-2 text-[0.78rem] leading-5 text-foreground/68">{item.summary}</p>
                     ) : null}
                   </div>
                 </Link>

@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Button, Form, Input, Modal, Select, Table } from "antd";
+import { useMemo, useState } from "react";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+
+type BrandRecord = Awaited<ReturnType<typeof apiClient.listBrands>>[number];
 
 export function BrandsPage() {
   const categoriesQuery = useQuery({
@@ -12,100 +16,218 @@ export function BrandsPage() {
     queryFn: () => apiClient.listBrands()
   });
 
-  const [name, setName] = useState("");
-  const [slug, setSlug] = useState("");
-  const [categoryId, setCategoryId] = useState("");
+  const categoryOptions = useMemo(
+    () => [
+      { label: "未关联分类", value: null },
+      ...((categoriesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })) as Array<{
+        label: string;
+        value: string | null;
+      }>)
+    ],
+    [categoriesQuery.data]
+  );
+
+  const [createForm] = Form.useForm<{
+    slug: string;
+    name: string;
+    categoryId: string | null;
+    sortOrder: number;
+    isEnabled: boolean;
+  }>();
+  const [editForm] = Form.useForm<{
+    slug: string;
+    name: string;
+    categoryId: string | null;
+    sortOrder: number;
+    isEnabled: boolean;
+  }>();
+  const [editing, setEditing] = useState<BrandRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function handleCreate(values: {
+    slug: string;
+    name: string;
+    categoryId: string | null;
+    sortOrder: number;
+    isEnabled: boolean;
+  }) {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.createBrand({
+        ...values,
+        sortOrder: Number(values.sortOrder ?? 0)
+      });
+      createForm.resetFields();
+      await brandsQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "创建品牌失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleUpdate(values: {
+    slug: string;
+    name: string;
+    categoryId: string | null;
+    sortOrder: number;
+    isEnabled: boolean;
+  }) {
+    if (!editing) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.updateBrand(editing.id, {
+        ...values,
+        sortOrder: Number(values.sortOrder ?? 0)
+      });
+      setEditing(null);
+      await brandsQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "更新品牌失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Brands</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">品牌管理</h2>
-      </header>
+    <AdminPage description="维护品牌与分类归属。" title="品牌管理">
+      {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <form
-          className="rounded-[28px] border border-white/10 bg-slate-900/70 p-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setError(null);
+      <div className="admin-split">
+        <AdminPanel description="新增品牌后可以立刻在机型页引用。" title="新增品牌">
+          <Form
+            form={createForm}
+            initialValues={{ sortOrder: 0, isEnabled: true, categoryId: null }}
+            layout="vertical"
+            onFinish={(values) => {
+              void handleCreate(values);
+            }}
+            variant="filled"
+          >
+            <Form.Item label="品牌名称" name="name" rules={[{ required: true, message: "请输入品牌名称" }]}>
+              <Input placeholder="例如：DJI" />
+            </Form.Item>
+            <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+              <Input placeholder="例如：dji" />
+            </Form.Item>
+            <Form.Item label="所属分类" name="categoryId">
+              <Select allowClear options={categoryOptions} placeholder="选择分类" />
+            </Form.Item>
+            <Form.Item label="排序" name="sortOrder">
+              <Input placeholder="0" type="number" />
+            </Form.Item>
+            <Form.Item label="状态" name="isEnabled">
+              <Select
+                options={[
+                  { label: "启用", value: true },
+                  { label: "停用", value: false }
+                ]}
+              />
+            </Form.Item>
+            <div className="admin-form-actions">
+              <Button htmlType="submit" loading={isSubmitting} type="primary">
+                新增品牌
+              </Button>
+            </div>
+          </Form>
+        </AdminPanel>
 
-            void apiClient
-              .createBrand({
-                slug,
-                name,
-                categoryId: categoryId || null,
-                sortOrder: 0,
-                isEnabled: true
-              })
-              .then(() => {
-                brandsQuery.refetch();
-                setName("");
-                setSlug("");
-                setCategoryId("");
-              })
-              .catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "创建品牌失败");
-              });
-          }}
-        >
-          <div className="space-y-4">
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              placeholder="品牌名称"
-              value={name}
-            />
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setSlug(event.target.value);
-              }}
-              placeholder="slug"
-              value={slug}
-            />
-            <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setCategoryId(event.target.value);
-              }}
-              value={categoryId}
-            >
-              <option value="">未关联分类</option>
-              {(categoriesQuery.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-            <button
-              className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"
-              type="submit"
-            >
-              新增品牌
-            </button>
-          </div>
-        </form>
-
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
-          <div className="space-y-3">
-            {(brandsQuery.data ?? []).map((item) => (
-              <article
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
-                key={item.id}
-              >
-                <div className="font-medium text-white">{item.name}</div>
-                <div className="mt-1 text-xs text-slate-400">{item.slug}</div>
-              </article>
-            ))}
-            {brandsQuery.isLoading ? <p className="text-sm text-slate-400">加载中…</p> : null}
-          </div>
-        </div>
+        <AdminPanel description="快速查看品牌和所属分类。" title="品牌列表">
+          <Table
+            bordered
+            columns={[
+              { dataIndex: "name", key: "name", title: "品牌" },
+              { dataIndex: "slug", key: "slug", title: "Slug" },
+              {
+                key: "category",
+                render: (_, record: BrandRecord) =>
+                  categoriesQuery.data?.find((item) => item.id === record.categoryId)?.name ?? "未关联",
+                title: "分类",
+                width: 140
+              },
+              {
+                dataIndex: "sortOrder",
+                key: "sortOrder",
+                title: "排序",
+                width: 100
+              },
+              {
+                key: "status",
+                render: (_, record: BrandRecord) => (record.isEnabled ? "启用" : "停用"),
+                title: "状态",
+                width: 100
+              },
+              {
+                key: "action",
+                render: (_, record: BrandRecord) => (
+                  <Button
+                    onClick={() => {
+                      setEditing(record);
+                      editForm.setFieldsValue({
+                        slug: record.slug,
+                        name: record.name,
+                        categoryId: record.categoryId,
+                        sortOrder: record.sortOrder,
+                        isEnabled: record.isEnabled
+                      });
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    编辑
+                  </Button>
+                ),
+                title: "操作",
+                width: 100
+              }
+            ]}
+            dataSource={brandsQuery.data ?? []}
+            loading={brandsQuery.isLoading || categoriesQuery.isLoading}
+            rowKey={(record) => record.id}
+            size="middle"
+          />
+        </AdminPanel>
       </div>
-    </section>
+
+      <Modal
+        centered
+        confirmLoading={isSubmitting}
+        onCancel={() => setEditing(null)}
+        onOk={() => {
+          void editForm.validateFields().then(handleUpdate);
+        }}
+        open={Boolean(editing)}
+        title="编辑品牌"
+      >
+        <Form form={editForm} layout="vertical" variant="filled">
+          <Form.Item label="品牌名称" name="name" rules={[{ required: true, message: "请输入品牌名称" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="所属分类" name="categoryId">
+            <Select allowClear options={categoryOptions} />
+          </Form.Item>
+          <Form.Item label="排序" name="sortOrder">
+            <Input type="number" />
+          </Form.Item>
+          <Form.Item label="状态" name="isEnabled">
+            <Select
+              options={[
+                { label: "启用", value: true },
+                { label: "停用", value: false }
+              ]}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </AdminPage>
   );
 }

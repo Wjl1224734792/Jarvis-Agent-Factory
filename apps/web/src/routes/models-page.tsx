@@ -1,23 +1,25 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/schemas";
-import { APP_ROUTES } from "@feijia/shared";
+import { SearchIcon } from "lucide-react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { MODEL_GRID_CLASS_NAME, ModelGridSkeleton } from "@/components/page-skeletons";
-import {
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle
-} from "@/components/site-shell";
+import { ModelGridSkeleton } from "@/components/page-skeletons";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Input } from "@/components/ui/input";
+import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { APP_ROUTES } from "@feijia/shared";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
 
 type FilterOption = {
   slug: string;
   name: string;
+  id?: string;
 };
+
+const MODEL_GRID_CLASS_NAME =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,11.5rem),1fr))] gap-x-3 gap-y-4";
 
 const powerTypeLabels: Record<PowerType, string> = {
   electric: "电动",
@@ -34,47 +36,127 @@ function ensureOtherOption<T extends FilterOption>(items: T[]): T[] {
   return [...items, { slug: "other", name: "其他" } as T];
 }
 
-function FilterLabel({ label }: { label: string }) {
-  return <span className="mr-1 text-[0.82rem] font-medium text-foreground/62">{label}</span>;
+function FilterSection(props: {
+  title: string;
+  items: FilterOption[];
+  activeSlug: string | null;
+  onSelect: (slug: string | null) => void;
+  searchable?: boolean;
+  searchValue?: string;
+  onSearchChange?: (value: string) => void;
+}) {
+  return (
+    <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium text-foreground">{props.title}</div>
+        <div className="text-[0.72rem] text-muted-foreground">{props.items.length} 项</div>
+      </div>
+
+      {props.searchable ? (
+        <div className="relative">
+          <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            onChange={(event) => props.onSearchChange?.(event.target.value)}
+            placeholder={`搜索${props.title}`}
+            value={props.searchValue}
+          />
+        </div>
+      ) : null}
+
+      <ScrollArea className="h-56 border border-border/70">
+        <div className="divide-y divide-border/70">
+          <button
+            className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+              props.activeSlug === null ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
+            }`}
+            onClick={() => props.onSelect(null)}
+            type="button"
+          >
+            <span>全部</span>
+            {props.activeSlug === null ? <span className="text-[0.72rem]">当前</span> : null}
+          </button>
+
+          {props.items.map((item) => (
+            <button
+              className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+                props.activeSlug === item.slug ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
+              }`}
+              key={item.id ?? item.slug}
+              onClick={() => props.onSelect(item.slug)}
+              type="button"
+            >
+              <span className="truncate">{item.name}</span>
+              {props.activeSlug === item.slug ? <span className="text-[0.72rem]">当前</span> : null}
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+    </div>
+  );
 }
 
-function FilterChip(props: { label: string; active: boolean; onClick: () => void }) {
+function PowerSection(props: {
+  options: Array<{ slug: string; name: string }>;
+  activePowerTypes: string[];
+  onToggle: (slug: string) => void;
+  onReset: () => void;
+}) {
   return (
-    <button
-      className={`rounded-full border px-2.5 py-1.5 text-[0.8rem] transition ${
-        props.active
-          ? "border-primary bg-primary text-primary-foreground"
-          : "border-border/70 text-foreground/72 hover:text-foreground"
-      }`}
-      onClick={props.onClick}
-      type="button"
-    >
-      {props.label}
-    </button>
+    <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium text-foreground">动力</div>
+        <button className="text-[0.72rem] text-primary" onClick={props.onReset} type="button">
+          清空
+        </button>
+      </div>
+
+      <ScrollArea className="h-56 border border-border/70">
+        <div className="divide-y divide-border/70">
+          {props.options.map((option) => {
+            const active = props.activePowerTypes.includes(option.slug);
+
+            return (
+              <button
+                className={`flex w-full items-center justify-between px-3 py-3 text-left text-sm transition ${
+                  active ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
+                }`}
+                key={option.slug}
+                onClick={() => props.onToggle(option.slug)}
+                type="button"
+              >
+                <span>{option.name}</span>
+                {active ? <span className="text-[0.72rem]">已选</span> : null}
+              </button>
+            );
+          })}
+        </div>
+      </ScrollArea>
+    </div>
   );
 }
 
 function ModelCard({ model, index }: { model: ModelListItem; index: number }) {
   return (
     <Link
-      className="group block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3 shadow-[var(--shadow-soft)] transition hover:border-primary/24 hover:bg-sky-50/45"
+      className="group block min-w-0 border border-border/80 bg-white px-2.5 py-2.5 transition hover:border-primary/24 hover:bg-sky-50/34"
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
-      <div className="overflow-hidden rounded-[0.9rem] border border-border/70">
+      <div className="overflow-hidden border border-border/70">
         <img
           alt={model.name}
-          className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+          className="aspect-[4/3] w-full object-cover transition duration-200 group-hover:scale-[1.02]"
           src={getModelImage(model.slug, model.powerType, index)}
         />
       </div>
-      <div className="space-y-2 px-0.5 pb-0.5 pt-3">
-        <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+      <div className="space-y-1.5 pt-2.5">
+        <div className="truncate text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted-foreground">
           {model.brand.name}
         </div>
-        <div className="line-clamp-2 text-[0.98rem] leading-6 font-semibold text-foreground">
+        <div className="line-clamp-2 text-[0.92rem] leading-5 font-semibold text-foreground">
           {model.name}
         </div>
-        <div className="text-sm leading-6 text-muted-foreground">
+        <div className="line-clamp-2 text-[0.8rem] leading-5 text-muted-foreground">
           {model.summary ?? `${model.category.name} · ${powerTypeLabels[model.powerType]}`}
         </div>
       </div>
@@ -84,6 +166,12 @@ function ModelCard({ model, index }: { model: ModelListItem; index: number }) {
 
 export function ModelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
+  const [categorySearch, setCategorySearch] = useState("");
+  const [brandSearch, setBrandSearch] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
+  const deferredCategorySearch = useDeferredValue(categorySearch.trim().toLowerCase());
+  const deferredBrandSearch = useDeferredValue(brandSearch.trim().toLowerCase());
+  const deferredModelSearch = useDeferredValue(modelSearch.trim().toLowerCase());
   const categorySlug = searchParams.get("categorySlug");
   const brandSlug = searchParams.get("brandSlug");
   const powerTypes = searchParams.getAll("powerType");
@@ -107,6 +195,37 @@ export function ModelsPage() {
       slug: item,
       name: powerTypeLabels[item]
     }))
+  );
+
+  const visibleCategories = useMemo(
+    () =>
+      categories.filter((item) =>
+        !deferredCategorySearch ? true : item.name.toLowerCase().includes(deferredCategorySearch)
+      ),
+    [categories, deferredCategorySearch]
+  );
+  const visibleBrands = useMemo(
+    () =>
+      brands.filter((item) =>
+        !deferredBrandSearch ? true : item.name.toLowerCase().includes(deferredBrandSearch)
+      ),
+    [brands, deferredBrandSearch]
+  );
+  const visibleModels = useMemo(
+    () =>
+      (modelsQuery.data?.items ?? []).filter((model) => {
+        if (!deferredModelSearch) {
+          return true;
+        }
+
+        const keyword = deferredModelSearch;
+        return (
+          model.name.toLowerCase().includes(keyword) ||
+          model.brand.name.toLowerCase().includes(keyword) ||
+          (model.summary ?? "").toLowerCase().includes(keyword)
+        );
+      }),
+    [modelsQuery.data?.items, deferredModelSearch]
   );
 
   function updateParams(next: {
@@ -152,51 +271,52 @@ export function ModelsPage() {
   const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <SitePageHead>
-        <SitePageEyebrow>飞行器库</SitePageEyebrow>
-        <SitePageTitle>机型与品牌</SitePageTitle>
-        <SitePageDescription>按分类、品牌和动力方式快速筛选，列表保持紧凑浏览。</SitePageDescription>
-      </SitePageHead>
+    <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
+      <div className="grid gap-3 xl:grid-cols-[14rem_18rem_12rem_minmax(0,1fr)]">
+        <FilterSection
+          activeSlug={categorySlug}
+          items={visibleCategories}
+          onSearchChange={setCategorySearch}
+          onSelect={(slug) => updateParams({ categorySlug: slug })}
+          searchValue={categorySearch}
+          searchable
+          title="分类"
+        />
+        <FilterSection
+          activeSlug={brandSlug}
+          items={visibleBrands}
+          onSearchChange={setBrandSearch}
+          onSelect={(slug) => updateParams({ brandSlug: slug })}
+          searchValue={brandSearch}
+          searchable
+          title="品牌"
+        />
+        <PowerSection
+          activePowerTypes={powerTypes}
+          onReset={() => updateParams({ powerTypes: [] })}
+          onToggle={togglePowerType}
+          options={powerTypeOptions}
+        />
 
-      <div className="space-y-3 rounded-[0.95rem] border border-border bg-white px-4 py-4 shadow-[var(--shadow-soft)]">
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterLabel label="分类" />
-          <FilterChip active={!categorySlug} label="全部" onClick={() => updateParams({ categorySlug: null })} />
-          {categories.map((category) => (
-            <FilterChip
-              active={categorySlug === category.slug}
-              key={category.id ?? category.slug}
-              label={category.name}
-              onClick={() => updateParams({ categorySlug: category.slug })}
+        <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+          <div className="flex items-center justify-between gap-3">
+            <div className="text-sm font-medium text-foreground">机型列表</div>
+            <div className="text-[0.72rem] text-muted-foreground">
+              {visibleModels.length} / {modelsQuery.data?.total ?? 0}
+            </div>
+          </div>
+          <div className="relative">
+            <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              className="pl-9"
+              onChange={(event) => setModelSearch(event.target.value)}
+              placeholder="搜索机型、品牌或摘要"
+              value={modelSearch}
             />
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterLabel label="品牌" />
-          <FilterChip active={!brandSlug} label="全部" onClick={() => updateParams({ brandSlug: null })} />
-          {brands.map((brand) => (
-            <FilterChip
-              active={brandSlug === brand.slug}
-              key={brand.id ?? brand.slug}
-              label={brand.name}
-              onClick={() => updateParams({ brandSlug: brand.slug })}
-            />
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
-          <FilterLabel label="动力" />
-          <FilterChip active={powerTypes.length === 0} label="全部" onClick={() => updateParams({ powerTypes: [] })} />
-          {powerTypeOptions.map((powerType) => (
-            <FilterChip
-              active={powerTypes.includes(powerType.slug)}
-              key={powerType.slug}
-              label={powerType.name}
-              onClick={() => togglePowerType(powerType.slug)}
-            />
-          ))}
+          </div>
+          <div className="text-sm text-muted-foreground">
+            用左侧列表筛选，用这里的搜索快速定位目标机型。
+          </div>
         </div>
       </div>
 
@@ -208,34 +328,30 @@ export function ModelsPage() {
       ) : null}
 
       {(modelsQuery.isSuccess || isGridLoading) ? (
-        <>
-          <div className="text-sm text-muted-foreground">当前共 {modelsQuery.data?.total ?? 0} 个机型</div>
+        <div className="relative">
+          {isGridLoading ? (
+            <ModelGridSkeleton count={10} />
+          ) : (
+            <div className={MODEL_GRID_CLASS_NAME}>
+              {visibleModels.map((model, index) => (
+                <ModelCard index={index} key={model.id} model={model} />
+              ))}
+            </div>
+          )}
 
-          <div className="relative">
-            {isGridLoading ? (
-              <ModelGridSkeleton count={8} />
-            ) : (
-              <div className={MODEL_GRID_CLASS_NAME}>
-                {modelsQuery.data?.items.map((model, index) => (
-                  <ModelCard index={index} key={model.id} model={model} />
-                ))}
-              </div>
-            )}
-
-            {isGridRefreshing ? (
-              <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
-                <ModelGridSkeleton count={8} />
-              </div>
-            ) : null}
-          </div>
-
-          {modelsQuery.data && modelsQuery.data.items.length === 0 ? (
-            <Alert>
-              <AlertTitle>没有匹配机型</AlertTitle>
-              <AlertDescription>可以清空筛选条件后重新浏览。</AlertDescription>
-            </Alert>
+          {isGridRefreshing ? (
+            <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
+              <ModelGridSkeleton count={10} />
+            </div>
           ) : null}
-        </>
+        </div>
+      ) : null}
+
+      {!isGridLoading && modelsQuery.data && visibleModels.length === 0 ? (
+        <Alert>
+          <AlertTitle>没有匹配机型</AlertTitle>
+          <AlertDescription>换个筛选组合，或者清空品牌和机型搜索再试试。</AlertDescription>
+        </Alert>
       ) : null}
     </SitePage>
   );

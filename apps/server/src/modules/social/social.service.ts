@@ -4,6 +4,26 @@ function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
 }
 
+function canViewProfileContent(input: {
+  profileVisibility: "community" | "followers" | "private";
+  isSelf: boolean;
+  isFollowing: boolean;
+}) {
+  if (input.isSelf) {
+    return true;
+  }
+
+  if (input.profileVisibility === "community") {
+    return true;
+  }
+
+  if (input.profileVisibility === "followers") {
+    return input.isFollowing;
+  }
+
+  return false;
+}
+
 export const socialService = {
   async toggleFollow(currentUserId: string, targetUserId: string) {
     if (currentUserId === targetUserId) {
@@ -42,6 +62,14 @@ export const socialService = {
     commentId?: string | null;
   }) {
     if (input.userId === input.actorId) {
+      return;
+    }
+
+    const settings = await socialRepo.getResolvedUserSettings(input.userId);
+    if (input.type === "post_commented" && !settings.notifyComments) {
+      return;
+    }
+    if (input.type === "comment_replied" && !settings.notifyMentions) {
       return;
     }
 
@@ -134,24 +162,34 @@ export const socialService = {
     }
 
     const [
+      settings,
       followerCount,
       followingCount,
-      favoriteCount,
+      favoritePostCount,
+      favoriteModelCount,
       postCount,
       rankingCount,
       aircraftCount,
       reviewCount,
       isFollowing
     ] = await Promise.all([
+      socialRepo.getResolvedUserSettings(targetUserId),
       socialRepo.countFollowers(targetUserId),
       socialRepo.countFollowing(targetUserId),
       socialRepo.countFavoritePosts(targetUserId),
+      socialRepo.countFavoriteModels(targetUserId),
       socialRepo.countPublishedPosts(targetUserId),
       socialRepo.countUserRankings(targetUserId),
       socialRepo.countUserAircraftSubmissions(targetUserId),
       socialRepo.countVisibleReviews(targetUserId),
       currentUserId ? socialRepo.isFollowing(currentUserId, targetUserId) : Promise.resolve(false)
     ]);
+    const isSelf = currentUserId === targetUserId;
+    const canViewContent = canViewProfileContent({
+      profileVisibility: settings.profileVisibility,
+      isSelf,
+      isFollowing
+    });
 
     return {
       item: {
@@ -163,14 +201,17 @@ export const socialService = {
         },
         followerCount,
         followingCount,
-        favoriteCount,
+        favoriteCount: favoritePostCount + favoriteModelCount,
         postCount,
         rankingCount,
         aircraftCount,
         reviewCount,
         viewer: {
-          isSelf: currentUserId === targetUserId,
-          isFollowing
+          isSelf,
+          isFollowing,
+          canFollow: Boolean(currentUserId) && !isSelf,
+          canViewProfile: true,
+          canViewContent
         }
       }
     };
@@ -178,14 +219,30 @@ export const socialService = {
   async listUserContent(targetUserId: string, currentUserId?: string | null) {
     const user = await socialRepo.getUserById(targetUserId);
     if (!user || user.role !== "user") {
-      return null;
+      return { kind: "not_found" as const };
+    }
+    const isSelf = currentUserId === targetUserId;
+    const [settings, isFollowing] = await Promise.all([
+      socialRepo.getResolvedUserSettings(targetUserId),
+      currentUserId && !isSelf
+        ? socialRepo.isFollowing(currentUserId, targetUserId)
+        : Promise.resolve(false)
+    ]);
+    const canViewContent = canViewProfileContent({
+      profileVisibility: settings.profileVisibility,
+      isSelf,
+      isFollowing
+    });
+    if (!canViewContent) {
+      return { kind: "forbidden" as const };
     }
 
-    const [posts, favoritePosts, rankings, aircraft, reviews] = await Promise.all([
+    const [posts, favoritePosts, favoriteModels, rankings, aircraft, reviews] = await Promise.all([
       socialRepo.listUserPublishedPosts(targetUserId),
       socialRepo.listUserFavoritedPosts(targetUserId),
+      socialRepo.listUserFavoritedModels(targetUserId),
       socialRepo.listUserRankings(targetUserId),
-      socialRepo.listUserAircraftSubmissions(targetUserId, currentUserId === targetUserId),
+      socialRepo.listUserAircraftSubmissions(targetUserId, isSelf),
       socialRepo.listUserVisibleReviews(targetUserId)
     ]);
 
@@ -207,6 +264,18 @@ export const socialService = {
         contentPreview: toPreview(post.content),
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString()
+      })),
+      ...favoriteModels.map((entry) => ({
+        type: "favorite-model" as const,
+        id: entry.id,
+        model: {
+          id: entry.modelId,
+          slug: entry.slug,
+          name: entry.name,
+          powerType: entry.powerType
+        },
+        createdAt: new Date(entry.createdAt).toISOString(),
+        updatedAt: new Date(entry.updatedAt).toISOString()
       })),
       ...rankings.map((ranking) => ({
         type: "ranking" as const,
@@ -235,10 +304,13 @@ export const socialService = {
       }))
     ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
-    return { items };
+    return { kind: "ok" as const, items };
   },
   async getCurrentUserProfile(currentUserId: string) {
-    const user = await socialRepo.getCurrentUserProfile(currentUserId);
+    const [user, settings] = await Promise.all([
+      socialRepo.getCurrentUserProfile(currentUserId),
+      socialRepo.getResolvedUserSettings(currentUserId)
+    ]);
     if (!user) {
       return null;
     }
@@ -248,26 +320,63 @@ export const socialService = {
         id: user.id,
         displayName: user.displayName,
         bio: user.bio ?? null,
-        avatarUrl: user.avatarUrl ?? null
+        avatarUrl: user.avatarUrl ?? null,
+        phone: user.phone ?? null,
+        profileVisibility: settings.profileVisibility,
+        notifyComments: settings.notifyComments,
+        notifyMentions: settings.notifyMentions,
+        sessionAlerts: settings.sessionAlerts,
+        emailDigest: settings.emailDigest
       }
     };
   },
   async updateCurrentUserProfile(
     currentUserId: string,
-    input: { displayName?: string; bio?: string | null; avatarUrl?: string | null }
+    input: {
+      displayName?: string;
+      bio?: string | null;
+      avatarUrl?: string | null;
+      phone?: string | null;
+      profileVisibility?: "community" | "followers" | "private";
+      notifyComments?: boolean;
+      notifyMentions?: boolean;
+      sessionAlerts?: boolean;
+      emailDigest?: boolean;
+    }
   ) {
-    const user = await socialRepo.updateCurrentUserProfile(currentUserId, input);
-    if (!user) {
+    const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
+    if (!currentProfile) {
       return null;
     }
+    const currentSettings = await socialRepo.getResolvedUserSettings(currentUserId);
 
-    return {
-      item: {
-        id: user.id,
-        displayName: user.displayName,
-        bio: user.bio ?? null,
-        avatarUrl: user.avatarUrl ?? null
-      }
+    const profilePatch = {
+      displayName: input.displayName,
+      bio: input.bio,
+      avatarUrl: input.avatarUrl,
+      phone: input.phone
     };
+    const hasProfilePatch = Object.values(profilePatch).some((value) => value !== undefined);
+    if (hasProfilePatch) {
+      await socialRepo.updateCurrentUserProfile(currentUserId, profilePatch);
+    }
+
+    const hasSettingsPatch =
+      input.profileVisibility !== undefined ||
+      input.notifyComments !== undefined ||
+      input.notifyMentions !== undefined ||
+      input.sessionAlerts !== undefined ||
+      input.emailDigest !== undefined;
+    if (hasSettingsPatch) {
+      await socialRepo.upsertUserSettings(currentUserId, {
+        profileVisibility: input.profileVisibility ?? currentSettings.profileVisibility,
+        notifyComments: input.notifyComments ?? currentSettings.notifyComments,
+        notifyMentions: input.notifyMentions ?? currentSettings.notifyMentions,
+        sessionAlerts: input.sessionAlerts ?? currentSettings.sessionAlerts,
+        emailDigest: input.emailDigest ?? currentSettings.emailDigest
+      });
+    }
+
+    return this.getCurrentUserProfile(currentUserId);
   }
 };

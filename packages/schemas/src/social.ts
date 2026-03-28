@@ -1,5 +1,8 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
+import { powerTypeSchema } from "./models";
+
+export const profileVisibilitySchema = z.enum(["community", "followers", "private"]);
 
 export const notificationTypeSchema = z.enum([
   "followed",
@@ -38,7 +41,10 @@ export const notificationsResponseSchema = z.object({
 
 export const userProfileViewerSchema = z.object({
   isSelf: z.boolean(),
-  isFollowing: z.boolean()
+  isFollowing: z.boolean(),
+  canFollow: z.boolean(),
+  canViewProfile: z.boolean(),
+  canViewContent: z.boolean()
 });
 
 export const userProfileSchema = z.object({
@@ -61,7 +67,13 @@ export const currentUserProfileSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
   bio: z.string().trim().max(300).nullable(),
-  avatarUrl: z.string().trim().min(1).nullable()
+  avatarUrl: z.string().trim().min(1).nullable(),
+  phone: z.string().trim().min(1).max(30).nullable(),
+  profileVisibility: profileVisibilitySchema,
+  notifyComments: z.boolean(),
+  notifyMentions: z.boolean(),
+  sessionAlerts: z.boolean(),
+  emailDigest: z.boolean()
 });
 
 export const currentUserProfileResponseSchema = z.object({
@@ -72,7 +84,13 @@ export const updateCurrentUserProfileInputSchema = z
   .object({
     displayName: z.string().trim().min(1).max(50).optional(),
     bio: z.string().trim().max(300).nullable().optional(),
-    avatarUrl: z.string().trim().min(1).nullable().optional()
+    avatarUrl: z.string().trim().min(1).nullable().optional(),
+    phone: z.string().trim().min(1).max(30).nullable().optional(),
+    profileVisibility: profileVisibilitySchema.optional(),
+    notifyComments: z.boolean().optional(),
+    notifyMentions: z.boolean().optional(),
+    sessionAlerts: z.boolean().optional(),
+    emailDigest: z.boolean().optional()
   })
   .refine((input) => Object.keys(input).length > 0, {
     message: "At least one profile field is required."
@@ -111,6 +129,19 @@ export const userContentReviewItemSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
+export const userContentFavoriteModelItemSchema = z.object({
+  type: z.literal("favorite-model"),
+  id: z.string().min(1),
+  model: z.object({
+    id: z.string().min(1),
+    slug: z.string().min(1),
+    name: z.string().min(1),
+    powerType: powerTypeSchema
+  }),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
 export const userContentRankingItemSchema = z.object({
   type: z.literal("ranking"),
   id: z.string().min(1),
@@ -133,6 +164,7 @@ export const userContentAircraftItemSchema = z.object({
 export const userContentItemSchema = z.discriminatedUnion("type", [
   userContentPostItemSchema,
   userContentFavoritePostItemSchema,
+  userContentFavoriteModelItemSchema,
   userContentReviewItemSchema,
   userContentRankingItemSchema,
   userContentAircraftItemSchema
@@ -143,3 +175,4 @@ export const userContentResponseSchema = z.object({
 });
 
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
+export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;

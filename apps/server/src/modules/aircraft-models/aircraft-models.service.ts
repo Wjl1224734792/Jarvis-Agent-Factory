@@ -26,9 +26,22 @@ export const aircraftModelsService = {
       }
     };
   },
-  async getModelDetail(slug: string) {
+  async getModelDetail(slug: string, currentUserId?: string) {
     const item = await aircraftModelsRepo.findBySlug(slug);
-    return item;
+    if (!item) {
+      return null;
+    }
+
+    const [interactionSummary, viewer] = await Promise.all([
+      aircraftModelsRepo.getInteractionSummary(item.id),
+      aircraftModelsRepo.getViewerInteractionState(item.id, currentUserId ?? null)
+    ]);
+
+    return {
+      ...item,
+      interactionSummary,
+      viewer
+    };
   },
   async getModelDetailById(id: string) {
     const item = await aircraftModelsRepo.findById(id);
@@ -68,5 +81,37 @@ export const aircraftModelsService = {
     }
   ) {
     return aircraftModelsRepo.update(id, input);
+  },
+  async interactModel(
+    slug: string,
+    userId: string,
+    type: "interested" | "favorite" | "share"
+  ) {
+    const item = await aircraftModelsRepo.findBySlug(slug);
+    if (!item) {
+      return null;
+    }
+
+    const result =
+      type === "share"
+        ? await aircraftModelsRepo.createShareInteraction(item.id, userId)
+        : await aircraftModelsRepo.toggleModelInteraction({
+            modelId: item.id,
+            userId,
+            type
+          });
+    const [summary, viewer] = await Promise.all([
+      aircraftModelsRepo.getInteractionSummary(item.id),
+      aircraftModelsRepo.getViewerInteractionState(item.id, userId)
+    ]);
+
+    return {
+      item: {
+        type,
+        active: result.active,
+        summary,
+        viewer
+      }
+    };
   }
 };

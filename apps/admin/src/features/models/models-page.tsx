@@ -1,6 +1,27 @@
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { Button, Form, Input, Modal, Select, Table } from "antd";
+import { useMemo, useState } from "react";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+
+type ModelRecord = Awaited<ReturnType<typeof apiClient.listModels>>["items"][number];
+
+const powerOptions = [
+  { label: "电动", value: "electric" },
+  { label: "燃油", value: "fuel" },
+  { label: "混动", value: "hybrid" },
+  { label: "其他", value: "other" }
+];
+
+type ModelFormValues = {
+  name: string;
+  slug: string;
+  categoryId: string;
+  brandId: string;
+  powerType: "electric" | "fuel" | "hybrid" | "other";
+  summary: string;
+  description: string;
+};
 
 export function ModelsPage() {
   const categoriesQuery = useQuery({
@@ -16,163 +37,222 @@ export function ModelsPage() {
     queryFn: () => apiClient.listModels()
   });
 
-  const [form, setForm] = useState({
-    name: "",
-    slug: "",
-    categoryId: "",
-    brandId: "",
-    powerType: "electric",
-    summary: "",
-    description: ""
-  });
+  const categoryOptions = useMemo(
+    () => (categoriesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [categoriesQuery.data]
+  );
+  const brandOptions = useMemo(
+    () => (brandsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })),
+    [brandsQuery.data]
+  );
+
+  const [createForm] = Form.useForm<ModelFormValues>();
+  const [editForm] = Form.useForm<ModelFormValues>();
+  const [editing, setEditing] = useState<ModelRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function createModel(values: ModelFormValues) {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.createModel({
+        slug: values.slug,
+        name: values.name,
+        categoryId: values.categoryId,
+        brandId: values.brandId,
+        powerType: values.powerType,
+        summary: values.summary.trim() ? values.summary.trim() : null,
+        description: values.description.trim() ? values.description.trim() : null,
+        maxFlightTimeMinutes: null,
+        maxRangeKilometers: null,
+        maxSpeedKph: null,
+        takeoffWeightGrams: null,
+        isPublished: true
+      });
+      createForm.resetFields();
+      await modelsQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "创建机型失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function updateModel(values: ModelFormValues) {
+    if (!editing) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.updateModel(editing.id, {
+        slug: values.slug,
+        name: values.name,
+        categoryId: values.categoryId,
+        brandId: values.brandId,
+        powerType: values.powerType,
+        summary: values.summary.trim() ? values.summary.trim() : null,
+        description: values.description.trim() ? values.description.trim() : null,
+        maxFlightTimeMinutes: null,
+        maxRangeKilometers: null,
+        maxSpeedKph: null,
+        takeoffWeightGrams: null,
+        isPublished: true
+      });
+      setEditing(null);
+      await modelsQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "更新机型失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Models</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">机型管理</h2>
-      </header>
+    <AdminPage description="维护机型基础数据和品牌归属。" title="机型管理">
+      {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[420px_minmax(0,1fr)]">
-        <form
-          className="rounded-[28px] border border-white/10 bg-slate-900/70 p-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setError(null);
+      <div className="admin-split">
+        <AdminPanel description="先创建基础信息，参数可以后续补齐。" title="新增机型">
+          <Form
+            form={createForm}
+            layout="vertical"
+            onFinish={(values) => {
+              void createModel(values);
+            }}
+            variant="filled"
+          >
+            <Form.Item label="机型名称" name="name" rules={[{ required: true, message: "请输入机型名称" }]}>
+              <Input placeholder="例如：DJI Mini 4 Pro" />
+            </Form.Item>
+            <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+              <Input placeholder="例如：mini-4-pro" />
+            </Form.Item>
+            <Form.Item label="分类" name="categoryId" rules={[{ required: true, message: "请选择分类" }]}>
+              <Select options={categoryOptions} placeholder="选择分类" />
+            </Form.Item>
+            <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
+              <Select options={brandOptions} placeholder="选择品牌" />
+            </Form.Item>
+            <Form.Item label="动力" name="powerType" rules={[{ required: true, message: "请选择动力" }]}>
+              <Select options={powerOptions} placeholder="选择动力" />
+            </Form.Item>
+            <Form.Item label="摘要" name="summary">
+              <Input placeholder="短摘要" />
+            </Form.Item>
+            <Form.Item label="详情描述" name="description">
+              <Input placeholder="详情描述" />
+            </Form.Item>
+            <div className="admin-form-actions">
+              <Button htmlType="submit" loading={isSubmitting} type="primary">
+                新增机型
+              </Button>
+            </div>
+          </Form>
+        </AdminPanel>
 
-            void apiClient
-              .createModel({
-                slug: form.slug,
-                name: form.name,
-                categoryId: form.categoryId,
-                brandId: form.brandId,
-                powerType: form.powerType as "electric" | "fuel" | "hybrid",
-                summary: form.summary || null,
-                description: form.description || null,
-                maxFlightTimeMinutes: null,
-                maxRangeKilometers: null,
-                maxSpeedKph: null,
-                takeoffWeightGrams: null,
-                isPublished: true
-              })
-              .then(() => {
-                modelsQuery.refetch();
-                setForm({
-                  name: "",
-                  slug: "",
-                  categoryId: "",
-                  brandId: "",
-                  powerType: "electric",
-                  summary: "",
-                  description: ""
-                });
-              })
-              .catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "创建机型失败");
-              });
-          }}
-        >
-          <div className="space-y-4">
-            {[
-              ["name", "机型名称"],
-              ["slug", "slug"],
-              ["summary", "摘要"],
-              ["description", "详情描述"]
-            ].map(([field, label]) => (
-              <input
-                className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-                key={field}
-                onChange={(event) => {
-                  setForm((current) => ({
-                    ...current,
-                    [field]: event.target.value
-                  }));
-                }}
-                placeholder={label}
-                value={form[field as keyof typeof form] as string}
-              />
-            ))}
-
-            <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setForm((current) => ({
-                  ...current,
-                  categoryId: event.target.value
-                }));
-              }}
-              value={form.categoryId}
-            >
-              <option value="">选择分类</option>
-              {(categoriesQuery.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setForm((current) => ({
-                  ...current,
-                  brandId: event.target.value
-                }));
-              }}
-              value={form.brandId}
-            >
-              <option value="">选择品牌</option>
-              {(brandsQuery.data ?? []).map((item) => (
-                <option key={item.id} value={item.id}>
-                  {item.name}
-                </option>
-              ))}
-            </select>
-
-            <select
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setForm((current) => ({
-                  ...current,
-                  powerType: event.target.value
-                }));
-              }}
-              value={form.powerType}
-            >
-              <option value="electric">电动</option>
-              <option value="fuel">燃油</option>
-              <option value="hybrid">混动</option>
-            </select>
-
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-
-            <button
-              className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"
-              type="submit"
-            >
-              新增机型
-            </button>
-          </div>
-        </form>
-
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
-          <div className="space-y-3">
-            {modelsQuery.data?.items.map((item) => (
-              <article
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
-                key={item.id}
-              >
-                <div className="font-medium text-white">{item.name}</div>
-                <div className="mt-1 text-xs text-slate-400">
-                  {item.brand.name} · {item.category.name} · {item.powerType}
-                </div>
-              </article>
-            )) ?? null}
-            {modelsQuery.isLoading ? <p className="text-sm text-slate-400">加载中…</p> : null}
-          </div>
-        </div>
+        <AdminPanel description="按品牌、分类和动力查看当前机型。" title="机型列表">
+          <Table
+            bordered
+            columns={[
+              {
+                key: "name",
+                render: (_, record: ModelRecord) => (
+                  <div className="admin-table-meta">
+                    <div className="admin-table-title">{record.name}</div>
+                    <div className="admin-table-subtitle">{record.slug}</div>
+                  </div>
+                ),
+                title: "机型"
+              },
+              {
+                key: "brand",
+                render: (_, record: ModelRecord) => record.brand.name,
+                title: "品牌",
+                width: 120
+              },
+              {
+                key: "category",
+                render: (_, record: ModelRecord) => record.category.name,
+                title: "分类",
+                width: 120
+              },
+              {
+                dataIndex: "powerType",
+                key: "powerType",
+                title: "动力",
+                width: 100
+              },
+              {
+                key: "action",
+                render: (_, record: ModelRecord) => (
+                  <Button
+                    onClick={() => {
+                      setEditing(record);
+                      editForm.setFieldsValue({
+                        name: record.name,
+                        slug: record.slug,
+                        categoryId: record.category.id,
+                        brandId: record.brand.id,
+                        powerType: record.powerType,
+                        summary: record.summary ?? "",
+                        description: ""
+                      });
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    编辑
+                  </Button>
+                ),
+                title: "操作",
+                width: 100
+              }
+            ]}
+            dataSource={modelsQuery.data?.items ?? []}
+            loading={modelsQuery.isLoading || categoriesQuery.isLoading || brandsQuery.isLoading}
+            rowKey={(record) => record.id}
+            size="middle"
+          />
+        </AdminPanel>
       </div>
-    </section>
+
+      <Modal
+        centered
+        confirmLoading={isSubmitting}
+        onCancel={() => setEditing(null)}
+        onOk={() => {
+          void editForm.validateFields().then(updateModel);
+        }}
+        open={Boolean(editing)}
+        title="编辑机型"
+      >
+        <Form form={editForm} layout="vertical" variant="filled">
+          <Form.Item label="机型名称" name="name" rules={[{ required: true, message: "请输入机型名称" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+            <Input />
+          </Form.Item>
+          <Form.Item label="分类" name="categoryId" rules={[{ required: true, message: "请选择分类" }]}>
+            <Select options={categoryOptions} />
+          </Form.Item>
+          <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
+            <Select options={brandOptions} />
+          </Form.Item>
+          <Form.Item label="动力" name="powerType">
+            <Select options={powerOptions} />
+          </Form.Item>
+          <Form.Item label="摘要" name="summary">
+            <Input />
+          </Form.Item>
+          <Form.Item label="详情描述" name="description">
+            <Input />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </AdminPage>
   );
 }

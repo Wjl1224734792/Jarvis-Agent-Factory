@@ -9,10 +9,12 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@ant-design/icons": "^6.1.1",
     "@feijia/http-client": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
     "@tanstack/react-query": "^5.95.2",
+    "antd": "^6.3.4",
     "lucide-react": "^1.6.0",
     "react": "^19.2.4",
     "react-dom": "^19.2.4",

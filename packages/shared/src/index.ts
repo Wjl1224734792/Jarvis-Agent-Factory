@@ -110,6 +110,7 @@ export const API_ROUTES = {
   models: {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
+    interactions: (slug: string, type: string) => `/models/${slug}/interactions/${type}`,
     reviews: (slug: string) => `/models/${slug}/reviews`,
     reviewComments: (reviewId: string) => `/reviews/${reviewId}/comments`,
     reviewCommentDetail: (reviewId: string, commentId: string) =>

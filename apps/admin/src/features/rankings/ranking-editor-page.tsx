@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon, CameraIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { Button, Form, Input, Select, Space, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { APP_ROUTES } from "@feijia/shared";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
 type DraftItem = {
@@ -29,10 +30,9 @@ export function RankingEditorPage() {
   const navigate = useNavigate();
   const params = useParams<{ id: string }>();
   const editId = params.id ?? "";
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [form] = Form.useForm<{ title: string; description: string; coverImageUrl: string }>();
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
+  const [selectedModelSlug, setSelectedModelSlug] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -52,9 +52,11 @@ export function RankingEditorPage() {
     }
 
     const ranking = detailQuery.data.item;
-    setTitle(ranking.title);
-    setDescription(ranking.description);
-    setCoverImageUrl(ranking.coverImageUrl ?? "");
+    form.setFieldsValue({
+      title: ranking.title,
+      description: ranking.description,
+      coverImageUrl: ranking.coverImageUrl ?? ""
+    });
     setDraftItems(
       ranking.items.map((item) => ({
         id: item.id,
@@ -65,27 +67,41 @@ export function RankingEditorPage() {
         linkedModelSlug: item.linkedModel?.slug ?? null
       }))
     );
-  }, [detailQuery.data?.item]);
+  }, [detailQuery.data?.item, form]);
 
   const selectedModelSlugs = useMemo(
     () => new Set(draftItems.map((item) => item.linkedModelSlug).filter(Boolean)),
     [draftItems]
   );
-  const suggestedModels =
-    modelsQuery.data?.items.filter((model) => !selectedModelSlugs.has(model.slug)).slice(0, 8) ?? [];
+  const modelOptions = useMemo(
+    () =>
+      (modelsQuery.data?.items ?? [])
+        .filter((model) => !selectedModelSlugs.has(model.slug))
+        .map((model) => ({
+          label: `${model.name} · ${model.brand.name}`,
+          value: model.slug
+        })),
+    [modelsQuery.data?.items, selectedModelSlugs]
+  );
 
-  function appendModel(slug: string, name: string, brandName: string) {
+  function appendModel(slug: string) {
+    const model = modelsQuery.data?.items.find((item) => item.slug === slug);
+    if (!model) {
+      return;
+    }
+
     setDraftItems((items) => [
       ...items,
       {
         id: crypto.randomUUID(),
-        title: name,
+        title: model.name,
         summary: "",
         imageUrl: "",
-        brandName,
-        linkedModelSlug: slug
+        brandName: model.brand.name,
+        linkedModelSlug: model.slug
       }
     ]);
+    setSelectedModelSlug(null);
   }
 
   function updateItem(id: string, patch: Partial<DraftItem>) {
@@ -93,200 +109,196 @@ export function RankingEditorPage() {
   }
 
   const isFormValid =
-    title.trim().length >= 2 &&
-    description.trim().length > 0 &&
-    draftItems.length > 0 &&
-    draftItems.every((item) => item.title.trim().length > 0);
-
-  const fieldClassName =
-    "w-full rounded-[18px] border border-white/10 bg-slate-950/40 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500";
+    draftItems.length > 0 && draftItems.every((item) => item.title.trim().length > 0);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-3">
-        <Link
-          className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
-          to={APP_ROUTES.adminRankings}
-        >
-          <ArrowLeftIcon className="mr-2 h-4 w-4" />
-          返回
-        </Link>
-        <div>
-          <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Official Ranking</p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">{editId ? "编辑官方榜单" : "新建官方榜单"}</h2>
-        </div>
-      </div>
+    <AdminPage
+      actions={
+        <Button href={APP_ROUTES.adminRankings}>
+          返回榜单列表
+        </Button>
+      }
+      description={editId ? "编辑现有官方榜单与条目。" : "创建新的官方榜单。"}
+      title={editId ? "编辑官方榜单" : "新建官方榜单"}
+    >
+      {submitError ? <div className="admin-login__error">{submitError}</div> : null}
 
-      {submitError ? (
-        <div className="rounded-2xl border border-rose-400/20 bg-rose-500/10 px-4 py-4 text-sm text-rose-100">
-          {submitError}
-        </div>
-      ) : null}
+      <div className="admin-split">
+        <div className="admin-field-stack">
+          <AdminPanel title="基本信息">
+            <Form form={form} layout="vertical" variant="filled">
+              <Form.Item label="榜单标题" name="title" rules={[{ required: true, message: "请输入榜单标题" }]}>
+                <Input placeholder="例如：官方续航榜" />
+              </Form.Item>
+              <Form.Item label="榜单简介" name="description" rules={[{ required: true, message: "请输入榜单简介" }]}>
+                <Input placeholder="一句话描述这份榜单的评选原则" />
+              </Form.Item>
+              <Form.Item label="封面 URL" name="coverImageUrl">
+                <Input placeholder="可选" />
+              </Form.Item>
+            </Form>
+          </AdminPanel>
 
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
-        <div className="space-y-6">
-          <section className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="text-lg font-semibold text-white">基本信息</div>
-            <input
-              className={fieldClassName}
-              onChange={(event) => setTitle(event.target.value)}
-              placeholder="榜单标题"
-              value={title}
-            />
-            <textarea
-              className={`${fieldClassName} min-h-32`}
-              onChange={(event) => setDescription(event.target.value)}
-              placeholder="榜单简介"
-              value={description}
-            />
-          </section>
-
-          <section className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold text-white">封面</div>
-              <button
-                className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
-                onClick={() => setCoverImageUrl(`official-cover-${Date.now()}`)}
-                type="button"
-              >
-                <CameraIcon className="mr-2 h-4 w-4" />
-                更新封面键
-              </button>
-            </div>
-            <div className="rounded-[22px] border border-white/10 bg-slate-900/60 px-4 py-16 text-center text-sm text-slate-400">
-              {coverImageUrl || "使用模型图或后续接入上传"}
-            </div>
-          </section>
-
-          <section className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-lg font-semibold text-white">榜单条目</div>
-              <button
-                className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-3 py-2 text-sm text-slate-200 transition hover:bg-white/10 hover:text-white"
-                onClick={() => setDraftItems((items) => [...items, emptyDraftItem()])}
-                type="button"
-              >
-                <PlusIcon className="mr-2 h-4 w-4" />
-                自定义条目
-              </button>
-            </div>
-            <div className="space-y-4">
-              {draftItems.map((item, index) => (
-                <div className="rounded-[22px] border border-white/10 bg-slate-950/30 p-4" key={item.id}>
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-sm font-medium text-white">#{index + 1}</div>
-                    <button
-                      className="inline-flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-slate-200 transition hover:bg-white/10 hover:text-white"
-                      onClick={() => setDraftItems((items) => items.filter((entry) => entry.id !== item.id))}
-                      type="button"
-                    >
-                      <Trash2Icon className="h-4 w-4" />
-                    </button>
-                  </div>
-                  <div className="mt-3 space-y-3">
-                    <input
-                      className={fieldClassName}
-                      onChange={(event) => updateItem(item.id, { title: event.target.value })}
-                      placeholder="标题"
-                      value={item.title}
-                    />
-                    <input
-                      className={fieldClassName}
-                      onChange={(event) => updateItem(item.id, { brandName: event.target.value })}
-                      placeholder="品牌"
-                      value={item.brandName}
-                    />
-                    <textarea
-                      className={`${fieldClassName} min-h-24`}
-                      onChange={(event) => updateItem(item.id, { summary: event.target.value })}
-                      placeholder="摘要"
-                      value={item.summary}
-                    />
-                  </div>
-                </div>
-              ))}
-            </div>
-          </section>
-
-          <section className="space-y-4 rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="text-lg font-semibold text-white">从机型库添加</div>
-            <div className="grid gap-3 md:grid-cols-2">
-              {suggestedModels.map((model) => (
-                <button
-                  className="rounded-[22px] border border-white/10 bg-slate-950/30 px-4 py-4 text-left transition hover:border-cyan-300/25 hover:bg-white/6"
-                  key={model.id}
-                  onClick={() => appendModel(model.slug, model.name, model.brand.name)}
-                  type="button"
+          <AdminPanel
+            actions={
+              <Space wrap>
+                <Select
+                  allowClear
+                  onChange={(value) => setSelectedModelSlug(value)}
+                  options={modelOptions}
+                  placeholder="从机型库添加"
+                  showSearch
+                  style={{ width: 280 }}
+                  value={selectedModelSlug}
+                />
+                <Button
+                  disabled={!selectedModelSlug}
+                  onClick={() => {
+                    if (selectedModelSlug) {
+                      appendModel(selectedModelSlug);
+                    }
+                  }}
+                  type="primary"
                 >
-                  <div className="text-sm font-medium text-white">{model.name}</div>
-                  <div className="mt-1 text-xs uppercase tracking-[0.14em] text-slate-400">{model.brand.name}</div>
-                </button>
-              ))}
-            </div>
-          </section>
+                  添加机型
+                </Button>
+                <Button
+                  onClick={() => setDraftItems((items) => [...items, emptyDraftItem()])}
+                >
+                  自定义条目
+                </Button>
+              </Space>
+            }
+            title="榜单条目"
+          >
+            <Table
+              bordered
+              columns={[
+                {
+                  key: "rank",
+                  render: (_, __, index) => index + 1,
+                  title: "排序",
+                  width: 72
+                },
+                {
+                  key: "title",
+                  render: (_, record: DraftItem) => (
+                    <Input
+                      onChange={(event) => updateItem(record.id, { title: event.target.value })}
+                      value={record.title}
+                    />
+                  ),
+                  title: "标题"
+                },
+                {
+                  key: "brandName",
+                  render: (_, record: DraftItem) => (
+                    <Input
+                      onChange={(event) => updateItem(record.id, { brandName: event.target.value })}
+                      value={record.brandName}
+                    />
+                  ),
+                  title: "品牌",
+                  width: 160
+                },
+                {
+                  key: "summary",
+                  render: (_, record: DraftItem) => (
+                    <Input
+                      onChange={(event) => updateItem(record.id, { summary: event.target.value })}
+                      value={record.summary}
+                    />
+                  ),
+                  title: "摘要"
+                },
+                {
+                  key: "action",
+                  render: (_, record: DraftItem) => (
+                    <Button
+                      danger
+                      onClick={() =>
+                        setDraftItems((items) => items.filter((entry) => entry.id !== record.id))
+                      }
+                      size="small"
+                    >
+                      删除
+                    </Button>
+                  ),
+                  title: "操作",
+                  width: 100
+                }
+              ]}
+              dataSource={draftItems}
+              pagination={false}
+              rowKey={(record) => record.id}
+              size="middle"
+            />
+          </AdminPanel>
+        </div>
 
-          <div className="flex justify-end gap-3">
-            <button
-              className="inline-flex items-center rounded-full border border-cyan-300/20 bg-cyan-400/10 px-4 py-2 text-sm text-white transition hover:bg-cyan-400/15 disabled:cursor-not-allowed disabled:opacity-50"
-              disabled={!isFormValid || isSubmitting}
+        <AdminPanel title="预览与保存">
+          <div className="admin-preview-list">
+            {draftItems.map((item, index) => (
+              <div className="admin-preview-item" key={item.id}>
+                <div className="admin-table-title">
+                  #{index + 1} {item.title || "未命名条目"}
+                </div>
+                <div className="admin-table-subtitle">
+                  {item.brandName || "待补充品牌"} {item.summary ? `· ${item.summary}` : ""}
+                </div>
+              </div>
+            ))}
+            {draftItems.length === 0 ? <div className="admin-empty">先添加至少一个条目。</div> : null}
+          </div>
+
+          <div className="admin-form-actions" style={{ marginTop: 16 }}>
+            <Button
+              disabled={isSubmitting || !isFormValid}
+              loading={isSubmitting}
               onClick={() => {
                 setSubmitError(null);
                 setIsSubmitting(true);
-                const payload = {
-                  type: "official",
-                  title,
-                  description,
-                  coverImageUrl: coverImageUrl || null,
-                  itemAddPolicy: "owner",
-                  items: draftItems.map((item) => ({
-                    title: item.title.trim(),
-                    summary: item.summary.trim() ? item.summary.trim() : null,
-                    imageUrl: item.imageUrl.trim() ? item.imageUrl.trim() : null,
-                    brandName: item.brandName.trim() ? item.brandName.trim() : null,
-                    linkedModelSlug: item.linkedModelSlug
-                  }))
-                } as Parameters<typeof apiClient.createRanking>[0];
+                void form
+                  .validateFields()
+                  .then((values) => {
+                    const payload = {
+                      type: "official" as const,
+                      title: values.title,
+                      description: values.description,
+                      coverImageUrl: values.coverImageUrl?.trim() ? values.coverImageUrl.trim() : null,
+                      itemAddPolicy: "owner" as const,
+                      items: draftItems.map((item) => ({
+                        title: item.title.trim(),
+                        summary: item.summary.trim() ? item.summary.trim() : null,
+                        imageUrl: item.imageUrl.trim() ? item.imageUrl.trim() : null,
+                        brandName: item.brandName.trim() ? item.brandName.trim() : null,
+                        linkedModelSlug: item.linkedModelSlug
+                      }))
+                    };
 
-                const request = editId
-                  ? apiClient.updateRanking(editId, payload as Parameters<typeof apiClient.updateRanking>[1])
-                  : apiClient.createRanking(payload);
-
-                void request
-                  .then((response) => {
-                    navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
+                    return (editId
+                      ? apiClient.updateRanking(editId, payload)
+                      : apiClient.createRanking(payload)
+                    ).then((response) => {
+                      navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
+                    });
                   })
                   .catch((reason: unknown) => {
-                    setSubmitError(reason instanceof Error ? reason.message : "榜单保存失败");
+                    if (reason instanceof Error) {
+                      setSubmitError(reason.message);
+                    }
                   })
                   .finally(() => {
                     setIsSubmitting(false);
                   });
               }}
-              type="button"
+              type="primary"
             >
-              {isSubmitting ? "保存中..." : "保存官方榜单"}
-            </button>
+              保存官方榜单
+            </Button>
           </div>
-        </div>
-
-        <aside className="space-y-4">
-          <div className="rounded-[28px] border border-white/10 bg-white/5 p-5">
-            <div className="text-xs uppercase tracking-[0.18em] text-slate-400">Preview</div>
-            <div className="mt-3 text-2xl font-semibold text-white">{title || "官方榜单标题"}</div>
-            <div className="mt-2 text-sm leading-7 text-slate-300">{description || "榜单简介"}</div>
-            <div className="mt-4 space-y-3">
-              {draftItems.map((item, index) => (
-                <div className="border-b border-white/8 pb-3 last:border-b-0" key={item.id}>
-                  <div className="text-sm font-medium text-white">
-                    #{index + 1} {item.title || "未命名条目"}
-                  </div>
-                  <div className="text-xs uppercase tracking-[0.14em] text-slate-400">{item.brandName || "待补充品牌"}</div>
-                </div>
-              ))}
-            </div>
-          </div>
-        </aside>
+        </AdminPanel>
       </div>
-    </div>
+    </AdminPage>
   );
 }

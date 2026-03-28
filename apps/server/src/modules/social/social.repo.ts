@@ -22,6 +22,44 @@ type NotificationType =
   | "post_commented"
   | "comment_replied";
 
+type ProfileVisibility = "community" | "followers" | "private";
+
+export type UserSettingsRecord = {
+  profileVisibility: ProfileVisibility;
+  notifyComments: boolean;
+  notifyMentions: boolean;
+  sessionAlerts: boolean;
+  emailDigest: boolean;
+};
+
+const defaultUserSettings: UserSettingsRecord = {
+  profileVisibility: "community",
+  notifyComments: true,
+  notifyMentions: true,
+  sessionAlerts: true,
+  emailDigest: false
+};
+
+function toBoolean(value: unknown) {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "number") {
+    return value !== 0;
+  }
+  if (typeof value === "string") {
+    return value === "true" || value === "t" || value === "1";
+  }
+  return false;
+}
+
+function toProfileVisibility(value: unknown): ProfileVisibility {
+  if (value === "followers" || value === "private") {
+    return value;
+  }
+  return "community";
+}
+
 export const socialRepo = {
   async getUserById(id: string) {
     const rows = await db
@@ -149,6 +187,15 @@ export const socialRepo = {
 
     return Number(rows[0]?.count ?? 0);
   },
+  async countFavoriteModels(userId: string) {
+    const rows = await db.execute(sql<{ count: number }>`
+      select cast(count(*) as int) as count
+      from "aircraft_model_interactions"
+      where "user_id" = ${userId} and "type" = 'favorite'
+    `);
+
+    return Number(rows.rows[0]?.count ?? 0);
+  },
   async countUserRankings(userId: string) {
     const rows = await db
       .select({
@@ -203,6 +250,54 @@ export const socialRepo = {
         )
       )
       .orderBy(desc(postInteractionsTable.createdAt));
+  },
+  async listUserFavoritedModels(userId: string) {
+    const rows = await db.execute(
+      sql`
+      select
+        interaction."id" as "id",
+        model."id" as "modelId",
+        model."slug" as "slug",
+        model."name" as "name",
+        model."power_type" as "powerType",
+        interaction."created_at" as "createdAt",
+        interaction."updated_at" as "updatedAt"
+      from "aircraft_model_interactions" as interaction
+      inner join "aircraft_models" as model
+        on model."id" = interaction."model_id"
+      where
+        interaction."user_id" = ${userId}
+        and interaction."type" = 'favorite'
+        and model."is_published" = true
+      order by interaction."updated_at" desc
+    `
+    );
+
+    const typedRows = rows.rows as Array<Record<string, unknown>>;
+    return typedRows.map((row) => ({
+      id: String(row.id ?? ""),
+      modelId: String(row.modelId ?? ""),
+      slug: String(row.slug ?? ""),
+      name: String(row.name ?? ""),
+      powerType:
+        row.powerType === "fuel" ||
+        row.powerType === "hybrid" ||
+        row.powerType === "other"
+          ? row.powerType
+          : ("electric" as const),
+      createdAt:
+        row.createdAt instanceof Date ||
+        typeof row.createdAt === "string" ||
+        typeof row.createdAt === "number"
+          ? row.createdAt
+          : new Date(0),
+      updatedAt:
+        row.updatedAt instanceof Date ||
+        typeof row.updatedAt === "string" ||
+        typeof row.updatedAt === "number"
+          ? row.updatedAt
+          : new Date(0)
+    }));
   },
   async listUserVisibleReviews(userId: string) {
     return db
@@ -318,7 +413,8 @@ export const socialRepo = {
         id: usersTable.id,
         displayName: usersTable.displayName,
         bio: usersTable.bio,
-        avatarUrl: usersTable.avatarUrl
+        avatarUrl: usersTable.avatarUrl,
+        phone: usersTable.phone
       })
       .from(usersTable)
       .where(eq(usersTable.id, userId))
@@ -326,9 +422,88 @@ export const socialRepo = {
 
     return rows[0] ?? null;
   },
+  async getUserSettings(userId: string) {
+    const rows = await db.execute(
+      sql`
+      select
+        "profile_visibility" as "profileVisibility",
+        "notify_comments" as "notifyComments",
+        "notify_mentions" as "notifyMentions",
+        "session_alerts" as "sessionAlerts",
+        "email_digest" as "emailDigest"
+      from "user_settings"
+      where "user_id" = ${userId}
+      limit 1
+    `
+    );
+
+    const row = (rows.rows as Array<Record<string, unknown>>)[0];
+    if (!row) {
+      return null;
+    }
+
+    return {
+      profileVisibility: toProfileVisibility(row.profileVisibility),
+      notifyComments: toBoolean(row.notifyComments),
+      notifyMentions: toBoolean(row.notifyMentions),
+      sessionAlerts: toBoolean(row.sessionAlerts),
+      emailDigest: toBoolean(row.emailDigest)
+    };
+  },
+  async getResolvedUserSettings(userId: string) {
+    const settings = await this.getUserSettings(userId);
+    return settings
+      ? {
+          profileVisibility: settings.profileVisibility,
+          notifyComments: settings.notifyComments,
+          notifyMentions: settings.notifyMentions,
+          sessionAlerts: settings.sessionAlerts,
+          emailDigest: settings.emailDigest
+        }
+      : defaultUserSettings;
+  },
+  async upsertUserSettings(userId: string, settings: UserSettingsRecord) {
+    await db.execute(sql`
+      insert into "user_settings" (
+        "id",
+        "user_id",
+        "profile_visibility",
+        "notify_comments",
+        "notify_mentions",
+        "session_alerts",
+        "email_digest",
+        "created_at",
+        "updated_at"
+      )
+      values (
+        ${createId("uset")},
+        ${userId},
+        ${settings.profileVisibility},
+        ${settings.notifyComments},
+        ${settings.notifyMentions},
+        ${settings.sessionAlerts},
+        ${settings.emailDigest},
+        now(),
+        now()
+      )
+      on conflict ("user_id")
+      do update set
+        "profile_visibility" = excluded."profile_visibility",
+        "notify_comments" = excluded."notify_comments",
+        "notify_mentions" = excluded."notify_mentions",
+        "session_alerts" = excluded."session_alerts",
+        "email_digest" = excluded."email_digest",
+        "updated_at" = now()
+    `);
+  },
   async updateCurrentUserProfile(
     userId: string,
-    input: { displayName?: string; bio?: string | null; avatarUrl?: string | null }
+    input: {
+      displayName?: string;
+      bio?: string | null;
+      avatarUrl?: string | null;
+      phone?: string | null;
+    }
   ) {
     const updates: Partial<typeof usersTable.$inferInsert> = {};
 
@@ -340,6 +515,9 @@ export const socialRepo = {
     }
     if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
       updates.avatarUrl = input.avatarUrl ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "phone")) {
+      updates.phone = input.phone ?? null;
     }
 
     if (Object.keys(updates).length > 0) {
@@ -374,5 +552,8 @@ export const socialRepo = {
       })
       .from(postCommentsTable)
       .where(inArray(postCommentsTable.id, ids));
+  },
+  defaultUserSettings() {
+    return defaultUserSettings;
   }
 };

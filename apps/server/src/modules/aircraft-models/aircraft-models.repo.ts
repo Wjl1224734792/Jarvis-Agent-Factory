@@ -115,6 +115,126 @@ export const aircraftModelsRepo = {
 
     return items[0] ?? null;
   },
+  async getInteractionSummary(modelId: string) {
+    const rows = await db.execute(
+      sql<{ type: "interested" | "favorite" | "share"; count: number }>`
+      select "type", cast(count(*) as int) as "count"
+      from "aircraft_model_interactions"
+      where "model_id" = ${modelId}
+      group by "type"
+    `
+    );
+
+    const counts = {
+      interested: 0,
+      favorite: 0,
+      share: 0
+    };
+
+    for (const row of rows.rows) {
+      if (row.type === "interested" || row.type === "favorite" || row.type === "share") {
+        counts[row.type] = Number(row.count ?? 0);
+      }
+    }
+
+    return {
+      interestCount: counts.interested,
+      favoriteCount: counts.favorite,
+      shareCount: counts.share
+    };
+  },
+  async getViewerInteractionState(modelId: string, userId?: string | null) {
+    if (!userId) {
+      return {
+        isInterested: false,
+        isFavorited: false,
+        hasShared: false
+      };
+    }
+
+    const rows = await db.execute(
+      sql<{ type: "interested" | "favorite" | "share" }>`
+      select "type"
+      from "aircraft_model_interactions"
+      where "model_id" = ${modelId} and "user_id" = ${userId}
+    `
+    );
+    const types = new Set(rows.rows.map((row) => row.type));
+
+    return {
+      isInterested: types.has("interested"),
+      isFavorited: types.has("favorite"),
+      hasShared: types.has("share")
+    };
+  },
+  async toggleModelInteraction(input: {
+    modelId: string;
+    userId: string;
+    type: "interested" | "favorite";
+  }) {
+    const existing = await db.execute(sql<{ id: string }>`
+      select "id"
+      from "aircraft_model_interactions"
+      where
+        "model_id" = ${input.modelId}
+        and "user_id" = ${input.userId}
+        and "type" = ${input.type}
+      limit 1
+    `);
+
+    let active = false;
+    if (existing.rows[0]?.id) {
+      await db.execute(sql`
+        delete from "aircraft_model_interactions"
+        where "id" = ${existing.rows[0].id}
+      `);
+    } else {
+      await db.execute(sql`
+        insert into "aircraft_model_interactions" (
+          "id",
+          "model_id",
+          "user_id",
+          "type",
+          "created_at",
+          "updated_at"
+        )
+        values (
+          ${createId("mint")},
+          ${input.modelId},
+          ${input.userId},
+          ${input.type},
+          now(),
+          now()
+        )
+      `);
+      active = true;
+    }
+
+    return { active };
+  },
+  async createShareInteraction(modelId: string, userId: string) {
+    await db.execute(sql`
+      insert into "aircraft_model_interactions" (
+        "id",
+        "model_id",
+        "user_id",
+        "type",
+        "created_at",
+        "updated_at"
+      )
+      values (
+        ${createId("mint")},
+        ${modelId},
+        ${userId},
+        'share',
+        now(),
+        now()
+      )
+      on conflict ("model_id", "user_id", "type") do nothing
+    `);
+
+    return { active: true };
+  },
   async create(input: {
     slug: string;
     name: string;

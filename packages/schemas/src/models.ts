@@ -18,6 +18,19 @@ export const brandSchema = z.object({
 });
 
 export const powerTypeSchema = z.enum(["electric", "fuel", "hybrid", "other"]);
+export const modelInteractionTypeSchema = z.enum(["interested", "favorite", "share"]);
+
+export const modelInteractionSummarySchema = z.object({
+  interestCount: z.number().int().nonnegative(),
+  favoriteCount: z.number().int().nonnegative(),
+  shareCount: z.number().int().nonnegative()
+});
+
+export const modelInteractionViewerStateSchema = z.object({
+  isInterested: z.boolean(),
+  isFavorited: z.boolean(),
+  hasShared: z.boolean()
+});
 
 export const modelListItemSchema = z.object({
   id: z.string().min(1),
@@ -50,7 +63,9 @@ export const modelParameterSchema = z.object({
 export const modelDetailSchema = modelListItemSchema.extend({
   description: z.string().nullable(),
   isPublished: z.boolean(),
-  parameters: modelParameterSchema
+  parameters: modelParameterSchema,
+  interactionSummary: modelInteractionSummarySchema,
+  viewer: modelInteractionViewerStateSchema
 });
 
 export const modelListQuerySchema = z.object({
@@ -71,6 +86,15 @@ export const modelListResponseSchema = z.object({
 
 export const modelDetailResponseSchema = z.object({
   item: modelDetailSchema
+});
+
+export const modelInteractionResponseSchema = z.object({
+  item: z.object({
+    type: modelInteractionTypeSchema,
+    active: z.boolean(),
+    summary: modelInteractionSummarySchema,
+    viewer: modelInteractionViewerStateSchema
+  })
 });
 
 export const adminCategoryInputSchema = z.object({
@@ -118,5 +142,6 @@ export const adminModelResponseSchema = z.object({
 export type AircraftCategory = z.infer<typeof aircraftCategorySchema>;
 export type Brand = z.infer<typeof brandSchema>;
 export type PowerType = z.infer<typeof powerTypeSchema>;
+export type ModelInteractionType = z.infer<typeof modelInteractionTypeSchema>;
 export type ModelListItem = z.infer<typeof modelListItemSchema>;
 export type ModelDetail = z.infer<typeof modelDetailSchema>;

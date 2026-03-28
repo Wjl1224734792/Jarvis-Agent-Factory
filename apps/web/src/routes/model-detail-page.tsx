@@ -1,21 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon, BookmarkIcon, HeartIcon, MessageSquareTextIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeftIcon, BookmarkIcon, HeartIcon, MessageSquareTextIcon, SendIcon, Trash2Icon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
-import {
-  SiteGrid,
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle,
-  SitePanel,
-  SitePanelBody,
-  SiteRail
-} from "@/components/site-shell";
+import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
@@ -25,6 +15,7 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getModelGallery, getModelImage } from "../lib/aviation-media";
+import { formatModelMetric } from "./model-detail-helpers";
 import {
   buildSubmitReviewInput,
   createReviewFormState,
@@ -40,6 +31,13 @@ const powerTypeLabels = {
   hybrid: "混动",
   other: "其他"
 } as const;
+
+function formatMetric(label: string, value: number | null, formatter: (input: number) => string) {
+  return {
+    label,
+    value: formatModelMetric(value, formatter)
+  };
+}
 
 function ReviewCommentSection(props: {
   reviewId: string;
@@ -65,9 +63,9 @@ function ReviewCommentSection(props: {
   }
 
   return (
-    <div className="mt-4 space-y-3 rounded-[0.85rem] border border-border/70 bg-background/70 px-4 py-4">
+    <div className="border-t border-border/70 pt-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[0.8rem] font-semibold text-foreground">评论回复</div>
+        <div className="text-[0.8rem] font-semibold text-foreground">回复</div>
         <button
           className="text-[0.72rem] text-primary"
           onClick={() => setExpanded((value) => !value)}
@@ -78,7 +76,7 @@ function ReviewCommentSection(props: {
       </div>
 
       {expanded && commentsQuery.isLoading ? (
-        <div className="space-y-3">
+        <div className="space-y-3 py-4">
           {Array.from({ length: 2 }).map((_, index) => (
             <div className="flex items-start gap-3" key={index}>
               <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
@@ -92,16 +90,16 @@ function ReviewCommentSection(props: {
       ) : null}
 
       {expanded && commentsQuery.isError ? (
-        <Alert variant="destructive">
+        <Alert className="mt-4" variant="destructive">
           <AlertTitle>回复加载失败</AlertTitle>
           <AlertDescription>{commentsQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
 
       {expanded && commentsQuery.data?.items.length ? (
-        <div className="space-y-3">
+        <div className="mt-4 border border-border/70">
           {commentsQuery.data.items.map((comment) => (
-            <div className="border-b border-border/70 pb-3 last:border-b-0 last:pb-0" key={comment.id}>
+            <div className="border-b border-border/70 px-4 py-4 last:border-b-0" key={comment.id}>
               <div className="flex items-start gap-3">
                 <ProfileLink userId={comment.author.id}>
                   <Avatar size="sm">
@@ -147,9 +145,7 @@ function ReviewCommentSection(props: {
                             .catch((reason: unknown) => {
                               setError(reason instanceof Error ? reason.message : "删除回复失败");
                             })
-                            .finally(() => {
-                              setBusy(false);
-                            });
+                            .finally(() => setBusy(false));
                         }}
                         type="button"
                       >
@@ -162,9 +158,9 @@ function ReviewCommentSection(props: {
               </div>
 
               {comment.replies.length > 0 ? (
-                <div className="mt-3 space-y-3 border-l border-border/70 pl-4">
-                  {comment.replies.map((reply) => (
-                    <div className="flex items-start gap-3" key={reply.id}>
+                <div className="mt-4 border-l border-border/70 pl-4">
+                  {comment.replies.map((reply, index) => (
+                    <div className={`flex items-start gap-3 py-3 ${index < comment.replies.length - 1 ? "border-b border-border/50" : ""}`} key={reply.id}>
                       <ProfileLink userId={reply.author.id}>
                         <Avatar size="sm">
                           <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
@@ -195,51 +191,51 @@ function ReviewCommentSection(props: {
       ) : null}
 
       {expanded && !commentsQuery.isLoading && !commentsQuery.isError && commentsQuery.data?.items.length === 0 ? (
-        <div className="text-[0.8rem] text-muted-foreground">还没有回复，欢迎继续交流。</div>
+        <div className="py-4 text-[0.8rem] text-muted-foreground">还没有回复，欢迎继续交流。</div>
       ) : null}
 
       {error ? (
-        <Alert variant="destructive">
+        <Alert className="mt-4" variant="destructive">
           <AlertTitle>回复操作失败</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>
       ) : null}
 
       {expanded && props.canInteract ? (
-        <InlineCommentComposer
-          busy={busy}
-          disabled={busy}
-          onChange={setContent}
-          onSubmit={() => {
-            if (!content.trim()) {
-              return;
-            }
+        <div className="mt-4">
+          <InlineCommentComposer
+            busy={busy}
+            disabled={busy}
+            onChange={setContent}
+            onSubmit={() => {
+              if (!content.trim()) {
+                return;
+              }
 
-            setBusy(true);
-            setError(null);
-            void apiClient
-              .createReviewComment(props.reviewId, {
-                content,
-                parentCommentId: replyTarget?.id
-              })
-              .then(() => {
-                setContent("");
-                setReplyTarget(null);
-                return refresh();
-              })
-              .catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "提交回复失败");
-              })
-              .finally(() => {
-                setBusy(false);
-              });
-          }}
-          placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条评论..."}
-          value={content}
-        />
+              setBusy(true);
+              setError(null);
+              void apiClient
+                .createReviewComment(props.reviewId, {
+                  content,
+                  parentCommentId: replyTarget?.id
+                })
+                .then(() => {
+                  setContent("");
+                  setReplyTarget(null);
+                  return refresh();
+                })
+                .catch((reason: unknown) => {
+                  setError(reason instanceof Error ? reason.message : "提交回复失败");
+                })
+                .finally(() => setBusy(false));
+            }}
+            placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条评论..."}
+            value={content}
+          />
+        </div>
       ) : expanded ? (
         <Button
-          className="w-full"
+          className="mt-4 w-full"
           onClick={() => {
             promptLogin({
               title: "登录后才能回复评论",
@@ -264,6 +260,7 @@ export function ModelDetailPage() {
   const isAuthenticated = authStatus === "authenticated";
   const currentUserId = useAuthStore((state) => state.user?.id);
   const promptLogin = useLoginPrompt();
+  const queryClient = useQueryClient();
 
   const detailQuery = useQuery({
     queryKey: ["model-detail", slug],
@@ -290,6 +287,7 @@ export function ModelDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
+  const [interactionBusy, setInteractionBusy] = useState<string | null>(null);
 
   useEffect(() => {
     setFormState((current) => syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null));
@@ -339,28 +337,13 @@ export function ModelDetailPage() {
   }
 
   const gallery = getModelGallery(item.slug, item.powerType, 4);
-  const hotModels =
-    hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
-
+  const hotModels = hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
+  const modelSlug = item.slug;
   const metrics = [
-    {
-      label: "续航",
-      value: item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "45 分钟"
-    },
-    {
-      label: "极速",
-      value: item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "72 km/h"
-    },
-    {
-      label: "起飞重量",
-      value: item.parameters.takeoffWeightGrams
-        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} kg`
-        : "1.2 kg"
-    },
-    {
-      label: "航程",
-      value: item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "15 km"
-    }
+    formatMetric("续航", item.parameters.maxFlightTimeMinutes, (value) => `${value} 分钟`),
+    formatMetric("极速", item.parameters.maxSpeedKph, (value) => `${value} km/h`),
+    formatMetric("起飞重量", item.parameters.takeoffWeightGrams, (value) => `${(value / 1000).toFixed(1)} kg`),
+    formatMetric("航程", item.parameters.maxRangeKilometers, (value) => `${value} km`)
   ];
 
   const specSections = [
@@ -376,16 +359,38 @@ export function ModelDetailPage() {
     {
       title: "参数表现",
       rows: [
-        ["最大飞行时长", item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "-"],
-        ["最大速度", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "-"],
-        ["最大航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "-"],
-        ["起飞重量", item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "-"]
+        ["最大飞行时长", item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "未公开"],
+        ["最大速度", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "未公开"],
+        ["最大航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "未公开"],
+        ["起飞重量", item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "未公开"]
       ]
     }
   ];
 
+  async function handleInteraction(type: "interested" | "favorite" | "share") {
+    if (!isAuthenticated) {
+      promptLogin({
+        title: "登录后才能互动",
+        description: "收藏、想买和分享前请先登录。"
+      });
+      return;
+    }
+
+    setInteractionBusy(type);
+    try {
+      await apiClient.interactModel(modelSlug, type);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] })
+      ]);
+    } finally {
+      setInteractionBusy(null);
+    }
+  }
+
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+    <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
       <Button asChild className="w-fit" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
@@ -393,245 +398,255 @@ export function ModelDetailPage() {
         </Link>
       </Button>
 
-      <SiteGrid variant="detail">
+      <SiteGrid className="items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]" variant="sidebar">
         <div className="flex min-w-0 flex-col gap-4">
-          <SitePageHead>
-            <SitePageEyebrow>机型详情</SitePageEyebrow>
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge variant="outline">{item.brand.name}</Badge>
-              <Badge variant="outline">{item.category.name}</Badge>
-              <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
+          <div className="grid gap-4 border border-border/80 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge variant="outline">{item.brand.name}</Badge>
+                <Badge variant="outline">{item.category.name}</Badge>
+                <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
+              </div>
+              <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
+                {item.name}
+              </div>
+              <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
+                {item.description ?? item.summary ?? "查看参数、图集与真实评论。"}
+              </p>
+
+              <div className="overflow-hidden border border-border/70">
+                <img
+                  alt={item.name}
+                  className="h-[340px] w-full object-cover"
+                  src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
+                />
+              </div>
+
+              <div className="grid grid-cols-4 gap-2">
+                {gallery.map((image, index) => (
+                  <button
+                    className={`overflow-hidden border transition ${
+                      activeGalleryIndex === index ? "border-primary" : "border-border/70"
+                    }`}
+                    key={image}
+                    onClick={() => setActiveGalleryIndex(index)}
+                    type="button"
+                  >
+                    <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
+                  </button>
+                ))}
+              </div>
             </div>
-            <SitePageTitle className="text-[1.95rem] md:text-[2.4rem]">{item.name}</SitePageTitle>
-            <SitePageDescription>{item.description ?? item.summary ?? "查看参数、图集与真实评论。"}</SitePageDescription>
-          </SitePageHead>
 
-          <SitePanel className="bg-white">
-            <SitePanelBody className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
-              <div className="space-y-3">
-                <div className="overflow-hidden rounded-[calc(var(--radius-panel)-0.15rem)] border border-border">
-                  <img
-                    alt={item.name}
-                    className="h-[300px] w-full object-cover md:h-[330px]"
-                    src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
-                  />
-                </div>
-                <div className="grid grid-cols-4 gap-2">
-                  {gallery.map((image, index) => (
-                    <button
-                      className={`overflow-hidden rounded-[calc(var(--radius-control)-0.12rem)] border transition ${
-                        activeGalleryIndex === index
-                          ? "border-primary shadow-[var(--shadow-soft)]"
-                          : "border-border"
-                      }`}
-                      key={image}
-                      onClick={() => setActiveGalleryIndex(index)}
-                      type="button"
-                    >
-                      <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
-                    </button>
-                  ))}
-                </div>
+            <div className="space-y-4">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {metrics.map((metric) => (
+                  <div className="border border-border/70 px-4 py-4" key={metric.label}>
+                    <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      {metric.label}
+                    </div>
+                    <div className="mt-2 text-[1.2rem] font-semibold leading-none text-foreground">
+                      {metric.value}
+                    </div>
+                  </div>
+                ))}
               </div>
 
-              <div className="flex h-full flex-col gap-4">
-                <div className="grid gap-2.5 sm:grid-cols-2">
-                  {metrics.map((metric) => (
-                    <div
-                      className="rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-muted/15 px-4 py-3.5"
-                      key={metric.label}
-                    >
-                      <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                        {metric.label}
-                      </div>
-                      <div className="mt-1.5 text-[1.3rem] font-semibold leading-none text-foreground">
-                        {metric.value}
-                      </div>
+              <div className="space-y-3 border border-border/70 px-4 py-4">
+                <div className="grid gap-3 sm:grid-cols-3">
+                  {[
+                    { label: "想买", value: item.interactionSummary.interestCount },
+                    { label: "收藏", value: item.interactionSummary.favoriteCount },
+                    { label: "分享", value: item.interactionSummary.shareCount }
+                  ].map((entry) => (
+                    <div key={entry.label}>
+                      <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">{entry.label}</div>
+                      <div className="mt-1 text-lg font-semibold text-foreground">{entry.value}</div>
                     </div>
                   ))}
                 </div>
 
-                <div className="rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-surface-1 p-3">
-                  <div className="grid gap-2.5 sm:grid-cols-2">
-                    <Button
-                      onClick={() => {
-                        promptLogin({
-                          title: "登录后才能互动",
-                          description: "想进一步互动请先登录。"
-                        });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="hero"
-                    >
-                      <HeartIcon data-icon="inline-start" />
-                      想买
-                    </Button>
-                    <Button
-                      onClick={() => {
-                        document.getElementById("model-comments")?.scrollIntoView({
-                          behavior: "smooth",
-                          block: "start"
-                        });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="panel"
-                    >
-                      <MessageSquareTextIcon data-icon="inline-start" />
-                      去评论区
-                    </Button>
-                  </div>
-                  <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-                    <Button disabled size="sm" type="button" variant="outline">
-                      <BookmarkIcon data-icon="inline-start" />
-                      收藏功能开发中
-                    </Button>
-                    <div className="flex items-center justify-center rounded-[var(--radius-control)] border border-dashed border-border/70 px-3 text-sm text-muted-foreground">
-                      分享功能稍后开放
-                    </div>
-                  </div>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <Button
+                    disabled={interactionBusy !== null}
+                    onClick={() => {
+                      void handleInteraction("interested");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant={item.viewer.isInterested ? "panel" : "hero"}
+                  >
+                    <HeartIcon data-icon="inline-start" />
+                    {item.viewer.isInterested ? "已想买" : "想买"}
+                  </Button>
+                  <Button
+                    disabled={interactionBusy !== null}
+                    onClick={() => {
+                      void handleInteraction("favorite");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant={item.viewer.isFavorited ? "panel" : "outline"}
+                  >
+                    <BookmarkIcon data-icon="inline-start" />
+                    {item.viewer.isFavorited ? "已收藏" : "收藏"}
+                  </Button>
+                  <Button
+                    className="sm:col-span-2"
+                    disabled={interactionBusy !== null}
+                    onClick={() => {
+                      void handleInteraction("share");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <SendIcon data-icon="inline-start" />
+                    {item.viewer.hasShared ? "已记录分享" : "分享"}
+                  </Button>
                 </div>
+
+                <Button
+                  onClick={() => {
+                    document.getElementById("model-comments")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start"
+                    });
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <MessageSquareTextIcon data-icon="inline-start" />
+                  去评论区
+                </Button>
               </div>
-            </SitePanelBody>
-          </SitePanel>
+            </div>
+          </div>
 
           <SitePanel className="bg-white">
             <SitePanelBody className="space-y-6">
-              <div>
-                <SitePageEyebrow>详细规格</SitePageEyebrow>
-                <div className="mt-5 space-y-5">
-                  {specSections.map((section) => (
-                    <div key={section.title}>
-                      <div className="text-[0.78rem] font-semibold uppercase tracking-[0.2em] text-primary">
-                        {section.title}
-                      </div>
-                      <div className="mt-3 overflow-hidden rounded-[0.9rem] border border-border">
-                        {section.rows.map(([label, value], index) => (
-                          <div
-                            className={`grid gap-2 px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)] ${
-                              index !== section.rows.length - 1 ? "border-b border-border" : ""
-                            }`}
-                            key={label}
-                          >
-                            <div className="text-[0.8rem] text-muted-foreground">{label}</div>
-                            <div className="text-[0.82rem] font-medium leading-6 text-foreground">{value}</div>
-                          </div>
-                        ))}
-                      </div>
+              <div className="space-y-5">
+                {specSections.map((section) => (
+                  <div key={section.title}>
+                    <div className="text-[0.78rem] font-semibold uppercase tracking-[0.2em] text-primary">
+                      {section.title}
                     </div>
-                  ))}
-                </div>
+                    <div className="mt-3 border border-border/70">
+                      {section.rows.map(([label, value], index) => (
+                        <div
+                          className={`grid gap-2 px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)] ${
+                            index !== section.rows.length - 1 ? "border-b border-border/70" : ""
+                          }`}
+                          key={label}
+                        >
+                          <div className="text-[0.8rem] text-muted-foreground">{label}</div>
+                          <div className="text-[0.82rem] font-medium leading-6 text-foreground">{value}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
               </div>
             </SitePanelBody>
           </SitePanel>
 
           <section className="space-y-4" id="model-comments">
             <div className="space-y-1">
-              <SitePageEyebrow>用户评论</SitePageEyebrow>
-              <h2 className="text-[1.55rem] font-semibold tracking-tight text-foreground">评论区</h2>
+              <div className="text-base font-semibold text-foreground">评论区</div>
               <div className="text-sm text-muted-foreground">
                 共 {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条公开评论
               </div>
             </div>
 
-            <div className="overflow-hidden rounded-[0.95rem] border border-border bg-white">
-              <div className="grid gap-6 border-b border-border px-5 py-5 lg:grid-cols-[16rem_minmax(0,1fr)]">
-                <div className="space-y-3">
-                  <div className="text-[1.1rem] font-semibold text-foreground">写评论</div>
-                  <div className="text-sm leading-6 text-muted-foreground">
-                    当前只保留文字评论与回复，不再展示星级或评分摘要。
-                  </div>
+            <div className="border border-border/70 bg-white px-5 py-5">
+              <div className="space-y-4">
+                {!isAuthenticated ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      promptLogin({
+                        title: "登录后才能发表评论",
+                        description: "评论前请先登录。"
+                      });
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    登录后评论
+                  </Button>
+                ) : (
+                  <InlineCommentComposer
+                    busy={isSubmitting}
+                    disabled={isSubmitting || !isReviewFormValid(formState)}
+                    onChange={(value) => {
+                      setFormState((current) => updateReviewContent(current, value));
+                    }}
+                    onSubmit={() => {
+                      setSubmitError(null);
+                      setIsSubmitting(true);
 
-                  {submitError ? (
-                    <Alert variant="destructive">
-                      <AlertTitle>提交失败</AlertTitle>
-                      <AlertDescription>{submitError}</AlertDescription>
-                    </Alert>
-                  ) : null}
+                      void apiClient
+                        .submitModelReview(slug, buildSubmitReviewInput(formState))
+                        .then(() => {
+                          setFormState((current) => ({ ...current, dirty: false }));
+                          void reviewsQuery.refetch();
+                        })
+                        .catch((reason: unknown) => {
+                          setSubmitError(reason instanceof Error ? reason.message : "提交评论失败");
+                        })
+                        .finally(() => setIsSubmitting(false));
+                    }}
+                    placeholder="写下你的使用体验..."
+                    value={formState.content}
+                  />
+                )}
 
-                  {!isAuthenticated ? (
-                    <Button
-                      className="w-full"
-                      onClick={() => {
-                        promptLogin({
-                          title: "登录后才能发表评论",
-                          description: "评论前请先登录。"
-                        });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      登录后评论
-                    </Button>
-                  ) : (
-                    <InlineCommentComposer
-                      busy={isSubmitting}
-                      disabled={isSubmitting || !isReviewFormValid(formState)}
-                      onChange={(value) => {
-                        setFormState((current) => updateReviewContent(current, value));
-                      }}
-                      onSubmit={() => {
-                        setSubmitError(null);
-                        setIsSubmitting(true);
+                {submitError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>提交失败</AlertTitle>
+                    <AlertDescription>{submitError}</AlertDescription>
+                  </Alert>
+                ) : null}
+              </div>
+            </div>
 
-                        void apiClient
-                          .submitModelReview(slug, buildSubmitReviewInput(formState))
-                          .then(() => {
-                            setFormState((current) => ({ ...current, dirty: false }));
-                            void reviewsQuery.refetch();
-                          })
-                          .catch((reason: unknown) => {
-                            setSubmitError(reason instanceof Error ? reason.message : "提交评论失败");
-                          })
-                          .finally(() => {
-                            setIsSubmitting(false);
-                          });
-                      }}
-                      placeholder="写下你的使用体验..."
-                      value={formState.content}
-                    />
-                  )}
-                </div>
-
-                <div className="space-y-4">
-                  {reviewPayload.items.length > 0 ? (
-                    reviewPayload.items.map((review) => (
-                      <div className="rounded-[0.9rem] border border-border/70 bg-background/60 px-4 py-4" key={review.id}>
-                        <div className="flex items-start justify-between gap-3">
-                          <div className="flex min-w-0 items-center gap-3">
-                            <ProfileLink userId={review.author.id}>
-                              <Avatar size="sm">
-                                <AvatarImage alt={review.author.displayName} src={getAvatarImage(review.author.id)} />
-                                <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
-                              </Avatar>
-                            </ProfileLink>
-                            <div className="min-w-0">
-                              <ProfileLink className="font-medium text-foreground hover:text-primary" userId={review.author.id}>
-                                {review.author.displayName}
-                              </ProfileLink>
-                              <div className="text-[0.72rem] text-muted-foreground">
-                                {new Date(review.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-                              </div>
-                            </div>
+            <div className="border border-border/70 bg-white">
+              {reviewPayload.items.length > 0 ? (
+                reviewPayload.items.map((review) => (
+                  <div className="border-b border-border/70 px-5 py-5 last:border-b-0" key={review.id}>
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="flex min-w-0 items-center gap-3">
+                        <ProfileLink userId={review.author.id}>
+                          <Avatar size="sm">
+                            <AvatarImage alt={review.author.displayName} src={getAvatarImage(review.author.id)} />
+                            <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
+                          </Avatar>
+                        </ProfileLink>
+                        <div className="min-w-0">
+                          <ProfileLink className="font-medium text-foreground hover:text-primary" userId={review.author.id}>
+                            {review.author.displayName}
+                          </ProfileLink>
+                          <div className="text-[0.72rem] text-muted-foreground">
+                            {new Date(review.updatedAt).toLocaleString("zh-CN", { hour12: false })}
                           </div>
                         </div>
-                        <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/78">
-                          {review.content ?? "这条评论暂未填写正文。"}
-                        </p>
-                        <ReviewCommentSection
-                          canInteract={isAuthenticated}
-                          currentUserId={currentUserId}
-                          reviewId={review.id}
-                        />
                       </div>
-                    ))
-                  ) : (
-                    <div className="px-1 py-1 text-[0.82rem] text-muted-foreground">还没有公开评论。</div>
-                  )}
-                </div>
-              </div>
+                    </div>
+                    <p className="mt-3 text-[0.82rem] leading-6 text-foreground/78">
+                      {review.content ?? "这条评论暂未填写正文。"}
+                    </p>
+                    <ReviewCommentSection
+                      canInteract={isAuthenticated}
+                      currentUserId={currentUserId}
+                      reviewId={review.id}
+                    />
+                  </div>
+                ))
+              ) : (
+                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开评论。</div>
+              )}
             </div>
           </section>
         </div>
@@ -639,16 +654,16 @@ export function ModelDetailPage() {
         <SiteRail>
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
-              <SitePageEyebrow className="text-primary">热门机型</SitePageEyebrow>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-primary">热门机型</div>
               {hotModels.map((model, index) => (
                 <Link
-                  className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
+                  className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.slug}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
                   <img
                     alt={model.name}
-                    className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
+                    className="h-[58px] w-full object-cover"
                     src={getModelImage(model.slug, model.powerType, index)}
                   />
                   <div className="min-w-0 space-y-1">

@@ -50,7 +50,10 @@ describe("social contract", () => {
         reviewCount: 2,
         viewer: {
           isSelf: false,
-          isFollowing: true
+          isFollowing: true,
+          canFollow: true,
+          canViewProfile: true,
+          canViewContent: true
         }
       }
     });
@@ -72,6 +75,18 @@ describe("social contract", () => {
           postType: "moment",
           title: "Sunset climb",
           contentPreview: "wind stayed smooth",
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        },
+        {
+          type: "favorite-model",
+          id: "fav_model_1",
+          model: {
+            id: "model_2",
+            slug: "joby-s4",
+            name: "Joby S4",
+            powerType: "electric"
+          },
           createdAt: new Date().toISOString(),
           updatedAt: new Date().toISOString()
         },
@@ -108,6 +123,7 @@ describe("social contract", () => {
     });
 
     expect(profile.item.viewer.isFollowing).toBe(true);
-    expect(content.items).toHaveLength(5);
+    expect(profile.item.viewer.canViewContent).toBe(true);
+    expect(content.items).toHaveLength(6);
   });
 });

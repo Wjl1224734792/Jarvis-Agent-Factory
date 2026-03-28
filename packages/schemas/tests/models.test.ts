@@ -92,6 +92,16 @@ describe("models contract", () => {
           slug: "dji",
           name: "DJI"
         },
+        interactionSummary: {
+          interestCount: 5,
+          favoriteCount: 3,
+          shareCount: 2
+        },
+        viewer: {
+          isInterested: true,
+          isFavorited: false,
+          hasShared: false
+        },
         parameters: {
           maxFlightTimeMinutes: 45,
           maxRangeKilometers: 18,
@@ -117,6 +127,7 @@ describe("models contract", () => {
     });
 
     expect(detail.item.parameters.maxFlightTimeMinutes).toBe(45);
+    expect(detail.item.interactionSummary.interestCount).toBe(5);
     expect(adminInput.brandId).toBe("brand_1");
   });
 });

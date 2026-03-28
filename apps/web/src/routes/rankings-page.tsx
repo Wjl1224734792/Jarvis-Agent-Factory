@@ -4,15 +4,10 @@ import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RANKING_GRID_CLASS_NAME, RankingCardGridSkeleton } from "@/components/page-skeletons";
-import {
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle
-} from "@/components/site-shell";
-import { Badge } from "@/components/ui/badge";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
+import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { buildRankingDetailPath } from "@/lib/web-routes";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -38,42 +33,61 @@ function mergeRankings(data: Awaited<ReturnType<typeof apiClient.listRankings>>)
   return { hot, latest };
 }
 
+function RatingMeta({ score, totalRatings }: { score: number; totalRatings: number }) {
+  return (
+    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+      <span className="font-medium text-foreground">{score > 0 ? score.toFixed(1) : "暂无评分"}</span>
+      <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
+      {totalRatings > 0 ? <span>{totalRatings} 评</span> : null}
+    </div>
+  );
+}
+
 function RankingCard({ ranking }: { ranking: RankingListItem }) {
   return (
     <Link
-      className="flex min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5 shadow-[var(--shadow-panel)] transition hover:border-primary/30 hover:bg-sky-50/55"
+      className="flex min-w-0 flex-col gap-4 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/24 hover:bg-sky-50/40"
       to={buildRankingDetailPath(ranking.id)}
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="space-y-1.5">
-          <div className="line-clamp-2 text-[1rem] leading-6 font-semibold text-foreground">
-            {ranking.title}
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <div className="line-clamp-2 text-[1.05rem] leading-6 font-semibold text-foreground">
+              {ranking.title}
+            </div>
+            {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
           </div>
-          <div className="text-sm leading-6 text-muted-foreground">{ranking.description}</div>
+          <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">{ranking.description}</div>
+          <RatingMeta
+            score={ranking.averageScore}
+            totalRatings={ranking.items.reduce((sum, item) => sum + item.totalRatings, 0)}
+          />
         </div>
-        {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
       </div>
 
-      <div className="space-y-2.5">
-        {ranking.items.slice(0, 3).map((item) => (
+      <div className="border-t border-border/70 pt-3">
+        {ranking.items.slice(0, 3).map((item, index) => (
           <div
-            className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+            className={`grid grid-cols-[1.2rem_3rem_minmax(0,1fr)] items-center gap-3 py-2 ${
+              index < ranking.items.slice(0, 3).length - 1 ? "border-b border-border/60" : ""
+            }`}
             key={item.id}
           >
-            <div className="text-[0.82rem] font-semibold text-primary/76">{item.rank}</div>
+            <div className="text-[0.8rem] font-semibold text-primary/76">{item.rank}</div>
             <img
               alt={item.title}
-              className="h-11 w-11 rounded-[0.75rem] object-cover"
+              className="h-12 w-12 object-cover"
               src={
                 item.imageUrl ??
                 getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
               }
             />
             <div className="min-w-0 space-y-1">
-              <div className="truncate text-[0.82rem] font-medium text-foreground">{item.title}</div>
+              <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
               <div className="text-xs text-muted-foreground">
                 {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
               </div>
+              <RatingMeta score={item.averageScore} totalRatings={item.totalRatings} />
             </div>
           </div>
         ))}
@@ -101,12 +115,6 @@ export function RankingsPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <SitePageHead>
-        <SitePageEyebrow>榜单</SitePageEyebrow>
-        <SitePageTitle>热门与最新榜单</SitePageTitle>
-        <SitePageDescription>官方榜单只保留标签语义，不再与社区榜单分栏割裂展示。</SitePageDescription>
-      </SitePageHead>
-
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
         <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {[

@@ -1,16 +1,19 @@
 import { useQuery } from "@tanstack/react-query";
+import { Button, Select, Space, Table } from "antd";
 import { useState } from "react";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
 const statusOptions = [
-  ["all", "全部"],
-  ["pending", "待审核"],
-  ["published", "已发布"],
-  ["rejected", "已驳回"],
-  ["hidden", "已隐藏"]
+  { label: "全部", value: "all" },
+  { label: "待审核", value: "pending" },
+  { label: "已发布", value: "published" },
+  { label: "已驳回", value: "rejected" },
+  { label: "已隐藏", value: "hidden" }
 ] as const;
 
-type PostStatusFilter = (typeof statusOptions)[number][0];
+type PostStatusFilter = (typeof statusOptions)[number]["value"];
+type PostRecord = Awaited<ReturnType<typeof apiClient.listAdminPosts>>["items"][number];
 
 export function PostsPage() {
   const [status, setStatus] = useState<PostStatusFilter>("all");
@@ -28,7 +31,7 @@ export function PostsPage() {
         status: nextStatus
       })
       .then(() => {
-        postsQuery.refetch();
+        void postsQuery.refetch();
       })
       .catch((reason: unknown) => {
         setError(reason instanceof Error ? reason.message : "更新帖子状态失败");
@@ -36,99 +39,91 @@ export function PostsPage() {
   }
 
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Posts Moderation</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">帖子审核</h2>
-      </header>
+    <AdminPage
+      actions={
+        <Select
+          onChange={(value) => {
+            setStatus(value);
+          }}
+          options={statusOptions as unknown as Array<{ label: string; value: string }>}
+          style={{ width: 180 }}
+          value={status}
+        />
+      }
+      description="按状态审核帖子，控制发布、驳回和隐藏。"
+      title="帖子审核"
+    >
+      {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="flex flex-wrap gap-3">
-        {statusOptions.map(([value, label]) => (
-          <button
-            className={`rounded-full px-4 py-2 text-sm transition ${
-              value === status
-                ? "bg-emerald-400 text-slate-950"
-                : "border border-white/10 text-slate-200"
-            }`}
-            key={value}
-            onClick={() => {
-              setStatus(value);
-            }}
-            type="button"
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      <div className="space-y-4 rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
-        {postsQuery.isLoading ? <p className="text-sm text-slate-400">加载中…</p> : null}
-        {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-
-        {(postsQuery.data?.items ?? []).map((item) => (
-          <article
-            className="rounded-3xl border border-white/10 bg-white/5 p-5"
-            key={item.id}
-          >
-            <div className="flex flex-wrap items-start justify-between gap-4">
-              <div>
-                <div className="text-xs uppercase tracking-[0.16em] text-slate-400">
-                  {item.author.displayName} · 评论 {item.commentCount} · 举报 {item.reportCount}
+      <AdminPanel title="帖子列表">
+        <Table
+          bordered
+          columns={[
+            {
+              key: "title",
+              render: (_, record: PostRecord) => (
+                <div className="admin-table-meta">
+                  <div className="admin-table-title">{record.title}</div>
+                  <div className="admin-table-subtitle">
+                    {record.author.displayName} · 评论 {record.commentCount} · 举报 {record.reportCount}
+                  </div>
                 </div>
-                <h3 className="mt-3 text-xl font-semibold text-white">{item.title}</h3>
-                <p className="mt-3 max-w-3xl text-sm leading-7 text-slate-300">
-                  {item.contentPreview}
-                </p>
-              </div>
-
-              <div className="space-y-2">
-                <span className="block rounded-full border border-white/10 px-3 py-2 text-xs text-slate-300">
-                  当前状态：{item.status}
-                </span>
-                <div className="flex flex-wrap gap-2">
-                  {item.status !== "published" ? (
-                    <button
-                      className="rounded-full bg-emerald-400 px-3 py-2 text-xs font-medium text-slate-950"
-                      onClick={() => {
-                        updateStatus(item.id, "published");
-                      }}
-                      type="button"
+              ),
+              title: "帖子"
+            },
+            {
+              dataIndex: "contentPreview",
+              key: "contentPreview",
+              title: "摘要"
+            },
+            {
+              dataIndex: "status",
+              key: "status",
+              title: "状态",
+              width: 120
+            },
+            {
+              key: "action",
+              render: (_, record: PostRecord) => (
+                <Space size="small" wrap>
+                  {record.status !== "published" ? (
+                    <Button
+                      onClick={() => updateStatus(record.id, "published")}
+                      size="small"
+                      type="primary"
                     >
-                      通过发布
-                    </button>
+                      通过
+                    </Button>
                   ) : null}
-                  {item.status !== "rejected" ? (
-                    <button
-                      className="rounded-full border border-amber-300/40 px-3 py-2 text-xs text-amber-200"
-                      onClick={() => {
-                        updateStatus(item.id, "rejected");
-                      }}
-                      type="button"
+                  {record.status !== "rejected" ? (
+                    <Button
+                      onClick={() => updateStatus(record.id, "rejected")}
+                      size="small"
                     >
                       驳回
-                    </button>
+                    </Button>
                   ) : null}
-                  {item.status !== "hidden" ? (
-                    <button
-                      className="rounded-full border border-rose-300/40 px-3 py-2 text-xs text-rose-200"
-                      onClick={() => {
-                        updateStatus(item.id, "hidden");
-                      }}
-                      type="button"
+                  {record.status !== "hidden" ? (
+                    <Button
+                      danger
+                      onClick={() => updateStatus(record.id, "hidden")}
+                      size="small"
                     >
                       隐藏
-                    </button>
+                    </Button>
                   ) : null}
-                </div>
-              </div>
-            </div>
-          </article>
-        ))}
-
-        {!postsQuery.isLoading && (postsQuery.data?.items ?? []).length === 0 ? (
-          <p className="text-sm text-slate-400">当前筛选下暂无帖子。</p>
-        ) : null}
-      </div>
-    </section>
+                </Space>
+              ),
+              title: "操作",
+              width: 240
+            }
+          ]}
+          dataSource={postsQuery.data?.items ?? []}
+          loading={postsQuery.isLoading}
+          rowKey={(record) => record.id}
+          size="middle"
+        />
+      </AdminPanel>
+    </AdminPage>
   );
 }

@@ -71,6 +71,13 @@
                         "when":  1774692600000,
                         "tag":  "0009_breezy_profile_review_cleanup",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  10,
+                        "version":  "7",
+                        "when":  1774695600000,
+                        "tag":  "0010_silent_model_social",
+                        "breakpoints":  true
                     }
                 ]
 }

@@ -44,6 +44,8 @@ import {
   healthResponseSchema,
   healthRoute,
   homeFeedResponseSchema,
+  modelInteractionResponseSchema,
+  modelInteractionTypeSchema,
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
@@ -87,6 +89,7 @@ type WebLoginInput = Parameters<typeof webLoginRequestSchema.parse>[0];
 type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
+type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
 type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
@@ -612,6 +615,15 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, modelDetailResponseSchema);
+    },
+    async interactModel(slug: string, type: ModelInteractionTypeInput) {
+      const parsedType = modelInteractionTypeSchema.parse(type);
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.interactions(slug, parsedType)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, modelInteractionResponseSchema);
     },
     async listModelReviews(slug: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.reviews(slug)}`, {

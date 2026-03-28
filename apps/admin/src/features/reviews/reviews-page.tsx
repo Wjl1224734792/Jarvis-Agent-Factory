@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { Button, Table } from "antd";
 import { useState } from "react";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+
+type ReviewRecord = Awaited<ReturnType<typeof apiClient.listAdminReviews>>["items"][number];
 
 export function ReviewsPage() {
   const reviewsQuery = useQuery({
@@ -10,55 +14,68 @@ export function ReviewsPage() {
   const [error, setError] = useState<string | null>(null);
 
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Reviews</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">评论治理</h2>
-      </header>
+    <AdminPage description="控制点评的可见性和公开展示状态。" title="点评治理">
+      {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
-        <div className="space-y-3">
-          {(reviewsQuery.data?.items ?? []).map((item) => (
-            <article
-              className="rounded-2xl border border-white/10 bg-white/5 px-4 py-4 text-sm text-slate-200"
-              key={item.id}
-            >
-              <div className="flex flex-wrap items-start justify-between gap-4">
-                <div>
-                  <div className="font-medium text-white">{item.model.name}</div>
-                  <div className="mt-1 text-xs text-slate-400">{item.author.displayName} 路 评论内容</div>
+      <AdminPanel title="点评列表">
+        <Table
+          bordered
+          columns={[
+            {
+              key: "model",
+              render: (_, record: ReviewRecord) => (
+                <div className="admin-table-meta">
+                  <div className="admin-table-title">{record.model.name}</div>
+                  <div className="admin-table-subtitle">{record.author.displayName}</div>
                 </div>
-                <button
-                  className="rounded-full border border-white/10 px-3 py-2 text-xs text-slate-200"
+              ),
+              title: "机型 / 作者"
+            },
+            {
+              dataIndex: "content",
+              key: "content",
+              render: (value: string | null) => value ?? "该评论当前没有补充正文。",
+              title: "评论内容"
+            },
+            {
+              dataIndex: "status",
+              key: "status",
+              title: "状态",
+              width: 120
+            },
+            {
+              key: "action",
+              render: (_, record: ReviewRecord) => (
+                <Button
                   onClick={() => {
                     setError(null);
                     void apiClient
-                      .updateReviewStatus(item.id, {
-                        status: item.status === "visible" ? "hidden" : "visible"
+                      .updateReviewStatus(record.id, {
+                        status: record.status === "visible" ? "hidden" : "visible"
                       })
                       .then(() => {
-                        reviewsQuery.refetch();
+                        void reviewsQuery.refetch();
                       })
                       .catch((reason: unknown) => {
-                        setError(reason instanceof Error ? reason.message : "更新评论状态失败");
+                        setError(reason instanceof Error ? reason.message : "更新点评状态失败");
                       });
                   }}
-                  type="button"
+                  size="small"
+                  type={record.status === "visible" ? "default" : "primary"}
                 >
-                  {item.status === "visible" ? "隐藏" : "恢复显示"}
-                </button>
-              </div>
-
-              <p className="mt-3 text-sm leading-6 text-slate-300">
-                {item.content ?? "该评论当前没有补充正文。"}
-              </p>
-            </article>
-          ))}
-
-          {reviewsQuery.isLoading ? <p className="text-sm text-slate-400">加载中…</p> : null}
-          {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-        </div>
-      </div>
-    </section>
+                  {record.status === "visible" ? "隐藏" : "恢复显示"}
+                </Button>
+              ),
+              title: "操作",
+              width: 120
+            }
+          ]}
+          dataSource={reviewsQuery.data?.items ?? []}
+          loading={reviewsQuery.isLoading}
+          rowKey={(record) => record.id}
+          size="middle"
+        />
+      </AdminPanel>
+    </AdminPage>
   );
 }

@@ -119,7 +119,7 @@ describe("auth flows", () => {
     expect(meAfterPayload.user).toBeNull();
   });
 
-  it("supports reading and updating current user profile", async () => {
+  it("supports reading and updating current user profile and settings", async () => {
     const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
       method: "POST"
     });
@@ -157,11 +157,27 @@ describe("auth flows", () => {
     });
     expect(beforeResponse.status).toBe(200);
     const beforePayload = (await beforeResponse.json()) as {
-      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+      item: {
+        displayName: string;
+        bio: string | null;
+        avatarUrl: string | null;
+        phone: string | null;
+        profileVisibility: "community" | "followers" | "private";
+        notifyComments: boolean;
+        notifyMentions: boolean;
+        sessionAlerts: boolean;
+        emailDigest: boolean;
+      };
     };
     expect(beforePayload.item.displayName).toBeTruthy();
     expect(beforePayload.item.bio).toBeNull();
     expect(beforePayload.item.avatarUrl).toBeNull();
+    expect(beforePayload.item.phone).toBe("13800138009");
+    expect(beforePayload.item.profileVisibility).toBe("community");
+    expect(beforePayload.item.notifyComments).toBe(true);
+    expect(beforePayload.item.notifyMentions).toBe(true);
+    expect(beforePayload.item.sessionAlerts).toBe(true);
+    expect(beforePayload.item.emailDigest).toBe(false);
 
     const updateResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "PUT",
@@ -172,32 +188,82 @@ describe("auth flows", () => {
       body: JSON.stringify({
         displayName: "Profile Pilot",
         bio: "Low altitude test profile.",
-        avatarUrl: "https://cdn.example.com/avatar/profile-pilot.png"
+        avatarUrl: "https://cdn.example.com/avatar/profile-pilot.png",
+        phone: "13800139009",
+        profileVisibility: "followers",
+        notifyComments: false,
+        notifyMentions: false,
+        sessionAlerts: false,
+        emailDigest: true
       })
     });
     expect(updateResponse.status).toBe(200);
 
     const updatedPayload = (await updateResponse.json()) as {
-      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+      item: {
+        displayName: string;
+        bio: string | null;
+        avatarUrl: string | null;
+        phone: string | null;
+        profileVisibility: "community" | "followers" | "private";
+        notifyComments: boolean;
+        notifyMentions: boolean;
+        sessionAlerts: boolean;
+        emailDigest: boolean;
+      };
     };
     expect(updatedPayload.item.displayName).toBe("Profile Pilot");
     expect(updatedPayload.item.bio).toBe("Low altitude test profile.");
     expect(updatedPayload.item.avatarUrl).toBe(
       "https://cdn.example.com/avatar/profile-pilot.png"
     );
+    expect(updatedPayload.item.phone).toBe("13800139009");
+    expect(updatedPayload.item.profileVisibility).toBe("followers");
+    expect(updatedPayload.item.notifyComments).toBe(false);
+    expect(updatedPayload.item.notifyMentions).toBe(false);
+    expect(updatedPayload.item.sessionAlerts).toBe(false);
+    expect(updatedPayload.item.emailDigest).toBe(true);
+
+    const partialUpdateResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        notifyComments: true
+      })
+    });
+    expect(partialUpdateResponse.status).toBe(200);
 
     const afterResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "GET",
       headers: { cookie }
     });
     const afterPayload = (await afterResponse.json()) as {
-      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+      item: {
+        displayName: string;
+        bio: string | null;
+        avatarUrl: string | null;
+        phone: string | null;
+        profileVisibility: "community" | "followers" | "private";
+        notifyComments: boolean;
+        notifyMentions: boolean;
+        sessionAlerts: boolean;
+        emailDigest: boolean;
+      };
     };
     expect(afterPayload.item.displayName).toBe("Profile Pilot");
     expect(afterPayload.item.bio).toBe("Low altitude test profile.");
     expect(afterPayload.item.avatarUrl).toBe(
       "https://cdn.example.com/avatar/profile-pilot.png"
     );
+    expect(afterPayload.item.phone).toBe("13800139009");
+    expect(afterPayload.item.profileVisibility).toBe("followers");
+    expect(afterPayload.item.notifyComments).toBe(true);
+    expect(afterPayload.item.notifyMentions).toBe(false);
+    expect(afterPayload.item.sessionAlerts).toBe(false);
+    expect(afterPayload.item.emailDigest).toBe(true);
   });
 
   it("rejects protected route without session", async () => {

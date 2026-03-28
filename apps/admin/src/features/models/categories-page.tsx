@@ -1,6 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
+import { Button, Form, Input, Modal, Select, Space, Table } from "antd";
 import { useState } from "react";
+import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+
+type CategoryRecord = Awaited<ReturnType<typeof apiClient.listCategories>>[number];
 
 export function CategoriesPage() {
   const categoriesQuery = useQuery({
@@ -8,93 +12,199 @@ export function CategoriesPage() {
     queryFn: () => apiClient.listCategories()
   });
 
-  const [slug, setSlug] = useState("");
-  const [name, setName] = useState("");
-  const [sortOrder, setSortOrder] = useState("0");
+  const [createForm] = Form.useForm<{
+    slug: string;
+    name: string;
+    sortOrder: number;
+    isEnabled: boolean;
+  }>();
+  const [editForm] = Form.useForm<{
+    slug: string;
+    name: string;
+    sortOrder: number;
+    isEnabled: boolean;
+  }>();
+  const [editing, setEditing] = useState<CategoryRecord | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  async function handleCreate(values: { slug: string; name: string; sortOrder: number; isEnabled: boolean }) {
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.createCategory({
+        ...values,
+        sortOrder: Number(values.sortOrder ?? 0)
+      });
+      createForm.resetFields();
+      await categoriesQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "创建分类失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleUpdate(values: { slug: string; name: string; sortOrder: number; isEnabled: boolean }) {
+    if (!editing) {
+      return;
+    }
+
+    setIsSubmitting(true);
+    setError(null);
+    try {
+      await apiClient.updateCategory(editing.id, {
+        ...values,
+        sortOrder: Number(values.sortOrder ?? 0)
+      });
+      setEditing(null);
+      await categoriesQuery.refetch();
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "更新分类失败");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
   return (
-    <section className="space-y-6">
-      <header>
-        <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Categories</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">分类管理</h2>
-      </header>
+    <AdminPage
+      description="维护飞行器分类、排序和启用状态。"
+      title="分类管理"
+    >
+      {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="grid gap-6 lg:grid-cols-[360px_minmax(0,1fr)]">
-        <form
-          className="rounded-[28px] border border-white/10 bg-slate-900/70 p-6"
-          onSubmit={(event) => {
-            event.preventDefault();
-            setError(null);
+      <div className="admin-split">
+        <AdminPanel description="新增分类会立即进入后台列表。" title="新增分类">
+          <Form
+            form={createForm}
+            initialValues={{ sortOrder: 0, isEnabled: true }}
+            layout="vertical"
+            onFinish={(values) => {
+              void handleCreate(values);
+            }}
+            variant="filled"
+          >
+            <Form.Item label="分类名称" name="name" rules={[{ required: true, message: "请输入分类名称" }]}>
+              <Input placeholder="例如：Drone" />
+            </Form.Item>
+            <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+              <Input placeholder="例如：drone" />
+            </Form.Item>
+            <Form.Item label="排序" name="sortOrder">
+              <Input placeholder="0" type="number" />
+            </Form.Item>
+            <Form.Item label="状态" name="isEnabled">
+              <Select
+                options={[
+                  { label: "启用", value: true },
+                  { label: "停用", value: false }
+                ]}
+              />
+            </Form.Item>
+            <div className="admin-form-actions">
+              <Button htmlType="submit" loading={isSubmitting} type="primary">
+                新增分类
+              </Button>
+            </div>
+          </Form>
+        </AdminPanel>
 
-            void apiClient
-              .createCategory({
-                slug,
-                name,
-                sortOrder: Number(sortOrder),
-                isEnabled: true
-              })
-              .then(() => {
-                categoriesQuery.refetch();
-                setSlug("");
-                setName("");
-                setSortOrder("0");
-              })
-              .catch((reason: unknown) => {
-                setError(reason instanceof Error ? reason.message : "创建分类失败");
-              });
-          }}
-        >
-          <div className="space-y-4">
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setName(event.target.value);
-              }}
-              placeholder="分类名称"
-              value={name}
-            />
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setSlug(event.target.value);
-              }}
-              placeholder="slug"
-              value={slug}
-            />
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-white outline-none"
-              onChange={(event) => {
-                setSortOrder(event.target.value);
-              }}
-              placeholder="排序"
-              value={sortOrder}
-            />
-            {error ? <p className="text-sm text-rose-300">{error}</p> : null}
-            <button
-              className="w-full rounded-2xl bg-sky-500 px-4 py-3 text-sm font-medium text-white"
-              type="submit"
-            >
-              新增分类
-            </button>
-          </div>
-        </form>
-
-        <div className="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
-          <div className="space-y-3">
-            {(categoriesQuery.data ?? []).map((item) => (
-              <article
-                className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 text-sm text-slate-200"
-                key={item.id}
-              >
-                <div className="font-medium text-white">{item.name}</div>
-                <div className="mt-1 text-xs text-slate-400">{item.slug}</div>
-              </article>
-            ))}
-            {categoriesQuery.isLoading ? <p className="text-sm text-slate-400">加载中…</p> : null}
-          </div>
-        </div>
+        <AdminPanel description="支持快速编辑分类的名称、排序和状态。" title="分类列表">
+          <Table
+            bordered
+            columns={[
+              {
+                dataIndex: "name",
+                key: "name",
+                title: "分类"
+              },
+              {
+                dataIndex: "slug",
+                key: "slug",
+                title: "Slug"
+              },
+              {
+                dataIndex: "sortOrder",
+                key: "sortOrder",
+                title: "排序",
+                width: 100
+              },
+              {
+                key: "status",
+                render: (_, record: CategoryRecord) => (record.isEnabled ? "启用" : "停用"),
+                title: "状态",
+                width: 100
+              },
+              {
+                key: "action",
+                render: (_, record: CategoryRecord) => (
+                  <Button
+                    onClick={() => {
+                      setEditing(record);
+                      editForm.setFieldsValue({
+                        slug: record.slug,
+                        name: record.name,
+                        sortOrder: record.sortOrder,
+                        isEnabled: record.isEnabled
+                      });
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    编辑
+                  </Button>
+                ),
+                title: "操作",
+                width: 100
+              }
+            ]}
+            dataSource={categoriesQuery.data ?? []}
+            loading={categoriesQuery.isLoading}
+            rowKey={(record) => record.id}
+            size="middle"
+          />
+        </AdminPanel>
       </div>
-    </section>
+
+      <Modal
+        centered
+        confirmLoading={isSubmitting}
+        onCancel={() => setEditing(null)}
+        onOk={() => {
+          void (async () => {
+            const values = await editForm.validateFields();
+            await handleUpdate(values);
+          })();
+        }}
+        open={Boolean(editing)}
+        title="编辑分类"
+      >
+        {editing ? (
+          <Form
+            form={editForm}
+            layout="vertical"
+            variant="filled"
+          >
+            <Form.Item label="分类名称" name="name" rules={[{ required: true, message: "请输入分类名称" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
+              <Input />
+            </Form.Item>
+            <Form.Item label="排序" name="sortOrder">
+              <Input type="number" />
+            </Form.Item>
+            <Form.Item label="状态" name="isEnabled">
+              <Select
+                options={[
+                  { label: "启用", value: true },
+                  { label: "停用", value: false }
+                ]}
+              />
+            </Form.Item>
+          </Form>
+        ) : null}
+      </Modal>
+    </AdminPage>
   );
 }

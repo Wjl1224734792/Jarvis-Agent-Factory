@@ -11,6 +11,40 @@ function extractCookie(setCookie: string | null): string {
   return setCookie.split(";")[0];
 }
 
+async function loginUser(phone: string) {
+  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+    method: "POST"
+  });
+  const captchaPayload = (await captchaResponse.json()) as {
+    challengeId: string;
+    imageOrText: string;
+  };
+
+  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      captchaChallengeId: captchaPayload.challengeId,
+      captchaCode: captchaPayload.imageOrText
+    })
+  });
+  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+
+  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      captchaChallengeId: captchaPayload.challengeId,
+      captchaCode: captchaPayload.imageOrText,
+      smsCode: smsPayload.mockCode
+    })
+  });
+
+  return extractCookie(loginResponse.headers.get("set-cookie"));
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -59,6 +93,16 @@ describe("models flows", () => {
         reviewSummary: { totalReviews: number };
         ratingSummary?: unknown;
         parameters: { maxFlightTimeMinutes: number | null };
+        interactionSummary: {
+          interestCount: number;
+          favoriteCount: number;
+          shareCount: number;
+        };
+        viewer: {
+          isInterested: boolean;
+          isFavorited: boolean;
+          hasShared: boolean;
+        };
       };
     };
 
@@ -66,6 +110,96 @@ describe("models flows", () => {
     expect(payload.item.parameters.maxFlightTimeMinutes).toBe(45);
     expect(payload.item.reviewSummary.totalReviews).toBeGreaterThanOrEqual(0);
     expect("ratingSummary" in payload.item).toBe(false);
+    expect(payload.item.interactionSummary.interestCount).toBeGreaterThanOrEqual(0);
+    expect(payload.item.interactionSummary.favoriteCount).toBeGreaterThanOrEqual(0);
+    expect(payload.item.interactionSummary.shareCount).toBeGreaterThanOrEqual(0);
+    expect(payload.item.viewer.isInterested).toBe(false);
+    expect(payload.item.viewer.isFavorited).toBe(false);
+    expect(payload.item.viewer.hasShared).toBe(false);
+  });
+
+  it("supports model interactions and records model favorites in user content", async () => {
+    const cookie = await loginUser("13800138031");
+    const targetSlug = "mini-4-pro";
+
+    const favoriteOnResponse = await app.request(
+      API_ROUTES.models.interactions(targetSlug, "favorite"),
+      {
+        method: "POST",
+        headers: { cookie }
+      }
+    );
+    expect(favoriteOnResponse.status).toBe(200);
+
+    const interestedOnResponse = await app.request(
+      API_ROUTES.models.interactions(targetSlug, "interested"),
+      {
+        method: "POST",
+        headers: { cookie }
+      }
+    );
+    expect(interestedOnResponse.status).toBe(200);
+
+    const shareFirstResponse = await app.request(API_ROUTES.models.interactions(targetSlug, "share"), {
+      method: "POST",
+      headers: { cookie }
+    });
+    expect(shareFirstResponse.status).toBe(200);
+
+    const shareSecondResponse = await app.request(
+      API_ROUTES.models.interactions(targetSlug, "share"),
+      {
+        method: "POST",
+        headers: { cookie }
+      }
+    );
+    expect(shareSecondResponse.status).toBe(200);
+
+    const detailResponse = await app.request(API_ROUTES.models.detail(targetSlug), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(detailResponse.status).toBe(200);
+
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        interactionSummary: {
+          interestCount: number;
+          favoriteCount: number;
+          shareCount: number;
+        };
+        viewer: {
+          isInterested: boolean;
+          isFavorited: boolean;
+          hasShared: boolean;
+        };
+      };
+    };
+    expect(detailPayload.item.viewer.isInterested).toBe(true);
+    expect(detailPayload.item.viewer.isFavorited).toBe(true);
+    expect(detailPayload.item.viewer.hasShared).toBe(true);
+    expect(detailPayload.item.interactionSummary.shareCount).toBe(1);
+
+    const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const mePayload = (await meResponse.json()) as { user: { id: string } | null };
+    expect(mePayload.user?.id).toBeTruthy();
+
+    const contentResponse = await app.request(API_ROUTES.users.content(mePayload.user!.id), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(contentResponse.status).toBe(200);
+    const contentPayload = (await contentResponse.json()) as {
+      items: Array<{ type: string; model?: { slug: string } }>;
+    };
+    expect(
+      contentPayload.items.some(
+        (item) => item.type === "favorite-model" && item.model?.slug === targetSlug
+      )
+    ).toBe(true);
   });
 
   it("allows admin to create category, brand and model", async () => {

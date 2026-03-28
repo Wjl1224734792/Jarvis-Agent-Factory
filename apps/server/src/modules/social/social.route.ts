@@ -116,10 +116,13 @@ socialRoute.get(API_ROUTES.users.content(":userId"), async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
   }
 
-  const payload = await socialService.listUserContent(userId, context.get("currentUser")?.id);
-  if (!payload) {
+  const result = await socialService.listUserContent(userId, context.get("currentUser")?.id);
+  if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Profile content is not visible." }, 403);
+  }
 
-  return context.json(userContentResponseSchema.parse(payload));
+  return context.json(userContentResponseSchema.parse({ items: result.items }));
 });

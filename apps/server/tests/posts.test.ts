@@ -404,7 +404,12 @@ describe("posts and social flows", () => {
       item: {
         user: { avatarUrl: string | null };
         postCount: number;
-        viewer: { isFollowing: boolean };
+        viewer: {
+          isFollowing: boolean;
+          canFollow: boolean;
+          canViewProfile: boolean;
+          canViewContent: boolean;
+        };
       };
     };
 
@@ -422,6 +427,9 @@ describe("posts and social flows", () => {
     };
 
     expect(profilePayload.item.viewer.isFollowing).toBe(true);
+    expect(profilePayload.item.viewer.canFollow).toBe(true);
+    expect(profilePayload.item.viewer.canViewProfile).toBe(true);
+    expect(profilePayload.item.viewer.canViewContent).toBe(true);
     expect(profilePayload.item.user.avatarUrl).toBeNull();
     expect(profilePayload.item.postCount).toBeGreaterThan(0);
     expect(contentPayload.items.some((item) => item.type === "post" && item.id === created.item.id)).toBe(true);
@@ -430,6 +438,194 @@ describe("posts and social flows", () => {
     if (reviewItem?.type === "review") {
       expect("rating" in reviewItem).toBe(false);
     }
+  });
+
+  it("enforces profile visibility for followers and private modes", async () => {
+    const ownerCookie = await loginWebUser("13800138051");
+    const ownerPost = await createPost(ownerCookie, {
+      type: "moment",
+      title: "Visibility source",
+      content: "This content should be hidden from non-followers."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, ownerPost.item.id);
+
+    const ownerMeResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: ownerCookie }
+    });
+    const ownerMePayload = (await ownerMeResponse.json()) as { user: { id: string } | null };
+    const ownerId = ownerMePayload.user?.id ?? "";
+    expect(ownerId).toBeTruthy();
+
+    const strangerCookie = await loginWebUser("13800138052");
+
+    const followersModeUpdateResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        profileVisibility: "followers"
+      })
+    });
+    expect(followersModeUpdateResponse.status).toBe(200);
+
+    const followerBlockedProfileResponse = await app.request(API_ROUTES.users.profile(ownerId), {
+      method: "GET",
+      headers: { cookie: strangerCookie }
+    });
+    expect(followerBlockedProfileResponse.status).toBe(200);
+    const followerBlockedProfilePayload = (await followerBlockedProfileResponse.json()) as {
+      item: { viewer: { canViewContent: boolean } };
+    };
+    expect(followerBlockedProfilePayload.item.viewer.canViewContent).toBe(false);
+
+    const followerBlockedContentResponse = await app.request(API_ROUTES.users.content(ownerId), {
+      method: "GET",
+      headers: { cookie: strangerCookie }
+    });
+    expect(followerBlockedContentResponse.status).toBe(403);
+
+    const followResponse = await app.request(API_ROUTES.social.follow(ownerId), {
+      method: "POST",
+      headers: { cookie: strangerCookie }
+    });
+    expect(followResponse.status).toBe(200);
+
+    const followerVisibleContentResponse = await app.request(API_ROUTES.users.content(ownerId), {
+      method: "GET",
+      headers: { cookie: strangerCookie }
+    });
+    expect(followerVisibleContentResponse.status).toBe(200);
+    const followerVisibleContentPayload = (await followerVisibleContentResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    expect(
+      followerVisibleContentPayload.items.some((item) => item.id === ownerPost.item.id)
+    ).toBe(true);
+
+    const privateModeUpdateResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        profileVisibility: "private"
+      })
+    });
+    expect(privateModeUpdateResponse.status).toBe(200);
+
+    const privateBlockedContentResponse = await app.request(API_ROUTES.users.content(ownerId), {
+      method: "GET",
+      headers: { cookie: strangerCookie }
+    });
+    expect(privateBlockedContentResponse.status).toBe(403);
+
+    const ownerContentResponse = await app.request(API_ROUTES.users.content(ownerId), {
+      method: "GET",
+      headers: { cookie: ownerCookie }
+    });
+    expect(ownerContentResponse.status).toBe(200);
+  });
+
+  it("respects notification settings for post comments and replies", async () => {
+    const authorCookie = await loginWebUser("13800138061");
+    const post = await createPost(authorCookie, {
+      type: "moment",
+      title: "Notification setting source",
+      content: "Testing notification preference gating."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, post.item.id);
+
+    const authorMeResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    const authorMePayload = (await authorMeResponse.json()) as { user: { id: string } | null };
+    const authorId = authorMePayload.user?.id ?? "";
+    expect(authorId).toBeTruthy();
+
+    const commenterCookie = await loginWebUser("13800138062");
+
+    const disableCommentNotificationsResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        notifyComments: false
+      })
+    });
+    expect(disableCommentNotificationsResponse.status).toBe(200);
+
+    const firstCommentResponse = await app.request(API_ROUTES.posts.comments(post.item.id), {
+      method: "POST",
+      headers: {
+        cookie: commenterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "No notification should be sent to author."
+      })
+    });
+    expect(firstCommentResponse.status).toBe(200);
+
+    const authorNotificationsAfterDisabled = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    expect(authorNotificationsAfterDisabled.status).toBe(200);
+    const authorNotificationsAfterDisabledPayload = (await authorNotificationsAfterDisabled.json()) as {
+      items: Array<{ type: string; post?: { id: string } | null }>;
+    };
+    expect(
+      authorNotificationsAfterDisabledPayload.items.some(
+        (item) => item.type === "post_commented" && item.post?.id === post.item.id
+      )
+    ).toBe(false);
+
+    const enableCommentNotificationsResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        notifyComments: true
+      })
+    });
+    expect(enableCommentNotificationsResponse.status).toBe(200);
+
+    const secondCommentResponse = await app.request(API_ROUTES.posts.comments(post.item.id), {
+      method: "POST",
+      headers: {
+        cookie: commenterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "This should notify the author."
+      })
+    });
+    expect(secondCommentResponse.status).toBe(200);
+
+    const authorNotificationsAfterEnabled = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    expect(authorNotificationsAfterEnabled.status).toBe(200);
+    const authorNotificationsAfterEnabledPayload = (await authorNotificationsAfterEnabled.json()) as {
+      items: Array<{ type: string; post?: { id: string } | null }>;
+    };
+    expect(
+      authorNotificationsAfterEnabledPayload.items.some(
+        (item) => item.type === "post_commented" && item.post?.id === post.item.id
+      )
+    ).toBe(true);
   });
 });
 

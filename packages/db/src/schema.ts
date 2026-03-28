@@ -38,8 +38,32 @@ export const sessionsTable = pgTable("sessions", {
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
-    .notNull()
+      .notNull()
 });
+
+export const userSettingsTable = pgTable(
+  "user_settings",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    profileVisibility: text("profile_visibility").default("community").notNull(),
+    notifyComments: boolean("notify_comments").default(true).notNull(),
+    notifyMentions: boolean("notify_mentions").default(true).notNull(),
+    sessionAlerts: boolean("session_alerts").default(true).notNull(),
+    emailDigest: boolean("email_digest").default(false).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    userUnique: uniqueIndex("user_settings_user_unique").on(table.userId)
+  })
+);
 
 export const aircraftCategoriesTable = pgTable(
   "aircraft_categories",
@@ -148,6 +172,33 @@ export const aircraftReviewsTable = pgTable(
     modelUserUnique: uniqueIndex("aircraft_reviews_model_user_unique").on(
       table.modelId,
       table.userId
+    )
+  })
+);
+
+export const aircraftModelInteractionsTable = pgTable(
+  "aircraft_model_interactions",
+  {
+    id: text("id").primaryKey(),
+    modelId: text("model_id")
+      .notNull()
+      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    type: text("type").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    modelUserTypeUnique: uniqueIndex("aircraft_model_interactions_model_user_type_unique").on(
+      table.modelId,
+      table.userId,
+      table.type
     )
   })
 );
