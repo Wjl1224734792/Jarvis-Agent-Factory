@@ -76,14 +76,14 @@ export const authService = {
 
     const user = await authRepo.findOrCreateUserByPhone(input.phone);
     const session = await authRepo.createSession(user, "web");
+    const summary = await authRepo.getUserSummaryBySession(session.id);
+    if (!summary) {
+      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    }
 
     return {
       sessionId: session.id,
-      user: {
-        id: user.id,
-        displayName: user.displayName,
-        role: user.role
-      } satisfies UserSummary
+      user: summary satisfies UserSummary
     };
   },
   async loginAdmin(input: { account: string; password: string }) {
@@ -94,14 +94,14 @@ export const authService = {
     }
 
     const session = await authRepo.createSession(admin, "admin");
+    const summary = await authRepo.getUserSummaryBySession(session.id);
+    if (!summary) {
+      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    }
 
     return {
       sessionId: session.id,
-      user: {
-        id: admin.id,
-        displayName: admin.displayName,
-        role: admin.role
-      } satisfies UserSummary
+      user: summary satisfies UserSummary
     };
   },
   async getCurrentUser(sessionId: string | undefined) {

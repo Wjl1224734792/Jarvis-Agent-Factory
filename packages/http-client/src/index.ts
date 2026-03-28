@@ -37,6 +37,7 @@ import {
   updateRankingInputSchema,
   createRankingItemCommentInputSchema,
   createRankingItemCommentResponseSchema,
+  currentUserProfileResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
   feedTabSchema,
@@ -68,6 +69,7 @@ import {
   userContentResponseSchema,
   userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
+  updateCurrentUserProfileInputSchema,
   updateReviewStatusInputSchema,
   uploadPostImageResponseSchema,
   uploadPostVideoResponseSchema,
@@ -111,6 +113,8 @@ type SubmitRankingItemReviewInput = Parameters<typeof submitRankingItemReviewInp
 type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
 type UpdateAircraftSubmissionStatusInput =
   Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
+type UpdateCurrentUserProfileInput =
+  Parameters<typeof updateCurrentUserProfileInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -404,6 +408,21 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, userProfileResponseSchema);
+    },
+    async getCurrentUserProfile() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.users.meProfile}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, currentUserProfileResponseSchema);
+    },
+    async updateCurrentUserProfile(input: UpdateCurrentUserProfileInput) {
+      return putJson(
+        API_ROUTES.users.meProfile,
+        currentUserProfileResponseSchema,
+        updateCurrentUserProfileInputSchema.parse(input)
+      );
     },
     async listUserContent(userId: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.users.content(userId)}`, {

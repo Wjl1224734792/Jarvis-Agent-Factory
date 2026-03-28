@@ -46,6 +46,7 @@ export function RankingEditorPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [modelSearch, setModelSearch] = useState("");
   const [itemAddPolicy, setItemAddPolicy] = useState<"public" | "owner">("owner");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
   const [selectedImageItemId, setSelectedImageItemId] = useState<string | null>(null);
@@ -90,7 +91,21 @@ export function RankingEditorPage() {
     [draftItems]
   );
   const suggestedModels =
-    modelsQuery.data?.items.filter((model) => !selectedModelSlugs.has(model.slug)).slice(0, 8) ?? [];
+    modelsQuery.data?.items
+      .filter((model) => !selectedModelSlugs.has(model.slug))
+      .filter((model) => {
+        const keyword = modelSearch.trim().toLowerCase();
+        if (!keyword) {
+          return true;
+        }
+
+        return (
+          model.name.toLowerCase().includes(keyword) ||
+          model.brand.name.toLowerCase().includes(keyword) ||
+          model.category.name.toLowerCase().includes(keyword)
+        );
+      })
+      .slice(0, 8) ?? [];
 
   function appendModel(slug: string, name: string, brandName: string, imageUrl: string) {
     setDraftItems((items) => [
@@ -373,6 +388,11 @@ export function RankingEditorPage() {
           <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="text-base font-semibold text-foreground">从飞行器库添加</div>
+              <Input
+                onChange={(event) => setModelSearch(event.target.value)}
+                placeholder="搜索机型、品牌或分类"
+                value={modelSearch}
+              />
               <div className="grid gap-3 md:grid-cols-2">
                 {suggestedModels.map((model, index) => (
                   <button
@@ -400,6 +420,11 @@ export function RankingEditorPage() {
                   </button>
                 ))}
               </div>
+              {suggestedModels.length === 0 ? (
+                <div className="rounded-[0.85rem] border border-dashed border-border/70 px-4 py-4 text-sm text-muted-foreground">
+                  没有匹配的机型，可直接添加自定义条目。
+                </div>
+              ) : null}
             </SitePanelBody>
           </SitePanel>
 

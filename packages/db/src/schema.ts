@@ -14,6 +14,8 @@ export const usersTable = pgTable(
     id: text("id").primaryKey(),
     role: text("role").notNull(),
     displayName: text("display_name").notNull(),
+    avatarUrl: text("avatar_url"),
+    bio: text("bio"),
     phone: text("phone"),
     account: text("account"),
     passwordHash: text("password_hash"),
@@ -132,7 +134,7 @@ export const aircraftReviewsTable = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
-    rating: integer("rating").notNull(),
+    rating: integer("rating"),
     content: text("content"),
     status: text("status").default("visible").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

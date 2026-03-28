@@ -267,24 +267,24 @@ async function seedUsersAndReviews() {
   const modelIdBySlug = new Map(models.map((item) => [item.slug, item.id]));
 
   const reviewSeeds = [
-    ["mini-4-pro", "13800138101", 5, "Lightweight and very stable."],
-    ["mini-4-pro", "13800138102", 4, "Good for beginners."],
-    ["mavic-3-pro", "13800138103", 5, "Great for commercial output."],
-    ["mavic-3-pro", "13800138104", 5, "Top overall performance."],
-    ["evo-lite-plus", "13800138105", 4, "Solid all-around option."],
-    ["eh216-s", "13800138106", 4, "Interesting low-altitude mobility sample."],
-    ["joby-s4", "13800138101", 5, "Most mature engineering route."],
-    ["vision-jet-g2-plus", "13800138102", 4, "Great personal jet experience."]
+    ["mini-4-pro", "13800138101", "Lightweight and very stable."],
+    ["mini-4-pro", "13800138102", "Good for beginners."],
+    ["mavic-3-pro", "13800138103", "Great for commercial output."],
+    ["mavic-3-pro", "13800138104", "Top overall performance."],
+    ["evo-lite-plus", "13800138105", "Solid all-around option."],
+    ["eh216-s", "13800138106", "Interesting low-altitude mobility sample."],
+    ["joby-s4", "13800138101", "Most mature engineering route."],
+    ["vision-jet-g2-plus", "13800138102", "Great personal jet experience."]
   ] as const;
 
   await db
     .insert(aircraftReviewsTable)
     .values(
-      reviewSeeds.map(([slug, phone, rating, content], index) => ({
+      reviewSeeds.map(([slug, phone, content], index) => ({
         id: createId("review"),
         modelId: modelIdBySlug.get(slug)!,
         userId: userIdByPhone.get(phone)!,
-        rating,
+        rating: null,
         content,
         status: "visible",
         createdAt: new Date(Date.UTC(2026, 2, 20, 8, index, 0)),

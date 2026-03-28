@@ -93,24 +93,23 @@ export function PublishAircraftPage() {
       return;
     }
 
-    if (uploadedImages.length + files.length > 6) {
-      setError("最多上传 6 张图片。");
-      return;
-    }
-
     setError(null);
     setIsUploading(true);
 
     try {
-      const nextImages: UploadedImage[] = [];
-      for (const file of Array.from(files)) {
-        const uploaded = await apiClient.uploadPostImage(file);
-        nextImages.push({
+      const file = files[0];
+      if (!file) {
+        return;
+      }
+
+      const uploaded = await apiClient.uploadPostImage(file);
+      setUploadedVideo(null);
+      setUploadedImages([
+        {
           id: uploaded.item.id,
           url: uploaded.item.url
-        });
-      }
-      setUploadedImages((current) => [...current, ...nextImages]);
+        }
+      ]);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "图片上传失败");
     } finally {
@@ -131,6 +130,7 @@ export function PublishAircraftPage() {
 
     try {
       const uploaded = await apiClient.uploadPostVideo(file);
+      setUploadedImages([]);
       setUploadedVideo({
         id: uploaded.item.id,
         url: uploaded.item.url,
@@ -258,7 +258,7 @@ export function PublishAircraftPage() {
           <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-base font-semibold text-foreground">封面与媒体</div>
+                <div className="text-base font-semibold text-foreground">封面</div>
                 <div className="flex flex-wrap gap-2">
                   <Button
                     onClick={() => imageInputRef.current?.click()}
@@ -281,40 +281,47 @@ export function PublishAircraftPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-[180px_repeat(3,minmax(0,1fr))]">
-                <button
-                  className="flex h-44 items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20"
-                  onClick={() => imageInputRef.current?.click()}
-                  type="button"
-                >
-                  {uploadedImages[0] ? (
-                    <img alt="cover" className="h-full w-full rounded-[0.95rem] object-cover" src={uploadedImages[0].url} />
-                  ) : (
-                    <FileImageIcon className="size-8 text-muted-foreground" />
-                  )}
-                </button>
-                {Array.from({ length: 3 }).map((_, index) => (
-                  <div
-                    className="flex h-28 items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20"
-                    key={index}
-                  >
-                    {uploadedImages[index + 1] ? (
-                      <img
-                        alt="gallery"
-                        className="h-full w-full rounded-[0.95rem] object-cover"
-                        src={uploadedImages[index + 1].url}
-                      />
-                    ) : (
-                      <FileImageIcon className="size-5 text-muted-foreground" />
-                    )}
+              <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
+                {uploadedVideo ? (
+                  <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
+                    <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+                    <button
+                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                      onClick={() => {
+                        setUploadedVideo(null);
+                      }}
+                      type="button"
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
                   </div>
-                ))}
+                ) : uploadedImages[0] ? (
+                  <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70">
+                    <img alt="cover" className="h-56 w-full object-cover" src={uploadedImages[0].url} />
+                    <button
+                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                      onClick={() => {
+                        setUploadedImages([]);
+                      }}
+                      type="button"
+                    >
+                      <XIcon className="size-3.5" />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    className="flex h-56 w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background"
+                    onClick={() => imageInputRef.current?.click()}
+                    type="button"
+                  >
+                    <FileImageIcon className="size-8 text-muted-foreground" />
+                  </button>
+                )}
               </div>
 
               <input
                 accept="image/*"
                 className="hidden"
-                multiple
                 onChange={(event) => {
                   void handleImageUpload(event.target.files);
                 }}
@@ -331,24 +338,9 @@ export function PublishAircraftPage() {
                 type="file"
               />
 
-              {uploadedVideo ? (
-                <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
-                  <video className="h-52 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
-                  <button
-                    className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                    onClick={() => {
-                      setUploadedVideo(null);
-                    }}
-                    type="button"
-                  >
-                    <XIcon className="size-3.5" />
-                  </button>
-                </div>
-              ) : (
-                <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-                  还没有上传演示视频，可选上传 1 个视频文件。
-                </div>
-              )}
+              <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+                封面只能上传图片或视频其一，重新选择另一种素材会自动替换当前封面。
+              </div>
             </SitePanelBody>
           </SitePanel>
 
@@ -440,8 +432,8 @@ export function PublishAircraftPage() {
                     powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
                     summary: summary.trim() || null,
                     description: description.trim() || null,
-                    coverImageUrl: uploadedImages[0]?.url ?? null,
-                    galleryImageUrls: uploadedImages.slice(1).map((item) => item.url),
+                    coverImageUrl: uploadedVideo ? null : uploadedImages[0]?.url ?? null,
+                    galleryImageUrls: [],
                     videoAssetId: uploadedVideo?.id ?? null,
                     maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
                     maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
@@ -457,7 +449,7 @@ export function PublishAircraftPage() {
                         state: {
                           title: modelName.trim(),
                           description: summary.trim(),
-                          imageUrl: uploadedImages[0]?.url ?? null
+                          imageUrl: uploadedVideo ? null : uploadedImages[0]?.url ?? null
                         }
                       });
                     })
@@ -483,7 +475,11 @@ export function PublishAircraftPage() {
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
               <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              <img alt="model preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+              {uploadedVideo ? (
+                <video className="h-48 w-full rounded-[0.9rem] object-cover" controls preload="metadata" src={uploadedVideo.url} />
+              ) : (
+                <img alt="model preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+              )}
               <div className="grid gap-3">
                 {[
                   { label: "机型分类", value: selectedCategory?.name || "未选择" },
@@ -499,11 +495,9 @@ export function PublishAircraftPage() {
                   </div>
                 ))}
               </div>
-              {uploadedVideo ? (
-                <div className="overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
-                  <video className="h-40 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
-                </div>
-              ) : null}
+              <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3 text-sm text-muted-foreground">
+                {uploadedVideo ? "当前封面为视频" : uploadedImages[0] ? "当前封面为图片" : "尚未选择封面"}
+              </div>
             </SitePanelBody>
           </SitePanel>
 

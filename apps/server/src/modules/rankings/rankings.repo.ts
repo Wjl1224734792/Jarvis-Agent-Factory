@@ -79,6 +79,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -101,6 +102,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -356,6 +358,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -402,6 +405,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -422,6 +426,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })

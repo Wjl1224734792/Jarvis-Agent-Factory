@@ -1,5 +1,7 @@
+import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import {
+  CameraIcon,
   BellIcon,
   ChevronRightIcon,
   CompassIcon,
@@ -12,7 +14,7 @@ import {
   TriangleAlertIcon,
   UserRoundIcon
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import {
   SiteGrid,
@@ -26,6 +28,7 @@ import {
   SiteRail
 } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +58,7 @@ import {
   type SettingsDraft
 } from "../features/auth/profile-settings-state";
 import { apiClient } from "../lib/api-client";
+import { getAvatarImage } from "../lib/aviation-media";
 
 const settingsSections = [
   { id: "profile", label: "资料展示", icon: UserRoundIcon },
@@ -67,17 +71,17 @@ const visibilityOptions: Array<{ value: ProfileVisibility; label: string; summar
   {
     value: "community",
     label: "公开给站内用户",
-    summary: "站内用户都能看到你的个人摘要和常用资料。"
+    summary: "站内用户都能看到你的头像、昵称和简介。"
   },
   {
     value: "followers",
     label: "仅关注关系可见",
-    summary: "把更多资料限制在已经建立关注关系的用户范围内。"
+    summary: "只向已建立关注关系的用户展示资料摘要。"
   },
   {
     value: "private",
     label: "仅自己预览",
-    summary: "先把资料当作本地预览内容，等待后端权限能力补齐。"
+    summary: "仅自己查看资料展示，其它用户无法看到资料摘要。"
   }
 ];
 
@@ -183,20 +187,47 @@ function SettingToggleRow({
 export function SettingsPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
+  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setAnonymous = useAuthStore((state) => state.setAnonymous);
   const setError = useAuthStore((state) => state.setError);
+  const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [activeSection, setActiveSection] = useState<SettingsSectionId>("profile");
   const [draft, setDraft] = useState<SettingsDraft>(() => readStoredSettingsDraft(user));
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [passwordDraft, setPasswordDraft] = useState({
     current: "",
     next: "",
     confirm: ""
   });
+  const profileQuery = useQuery({
+    queryKey: ["current-user-profile", user?.id],
+    queryFn: () => apiClient.getCurrentUserProfile(),
+    enabled: Boolean(user)
+  });
 
   useEffect(() => {
     setDraft(readStoredSettingsDraft(user));
   }, [user]);
+
+  useEffect(() => {
+    const profile = profileQuery.data?.item;
+    if (!profile) {
+      return;
+    }
+
+    setDraft((current) =>
+      current.hasPendingChanges
+        ? current
+        : {
+            ...current,
+            avatarUrl: profile.avatarUrl ?? "",
+            displayName: profile.displayName,
+            bio: profile.bio ?? ""
+          }
+    );
+  }, [profileQuery.data?.item]);
 
   useEffect(() => {
     if (!statusMessage) {
@@ -216,6 +247,7 @@ export function SettingsPage() {
     return <SettingsPageSkeleton />;
   }
 
+  const currentUser = user;
   const profilePreview = createProfileViewModel(user, draft);
 
   function saveDraftLocally(message: string) {
@@ -226,7 +258,12 @@ export function SettingsPage() {
   }
 
   function resetDraftLocally() {
-    const nextDraft = createSettingsDraft(user);
+    const nextDraft = {
+      ...createSettingsDraft(user),
+      avatarUrl: profileQuery.data?.item.avatarUrl ?? "",
+      displayName: profileQuery.data?.item.displayName ?? currentUser.displayName,
+      bio: profileQuery.data?.item.bio ?? ""
+    };
     clearStoredSettingsDraft(user);
     setDraft(nextDraft);
     setPasswordDraft({
@@ -239,7 +276,7 @@ export function SettingsPage() {
 
   function stagePasswordChange() {
     if (!passwordDraft.current || !passwordDraft.next || !passwordDraft.confirm) {
-      setStatusMessage("请先填写完整的密码字段，再进行本地演练。");
+      setStatusMessage("请先填写完整的密码字段。");
       return;
     }
 
@@ -253,7 +290,52 @@ export function SettingsPage() {
       next: "",
       confirm: ""
     });
-    saveDraftLocally("密码修改演练已保存在本地，本轮不会发送真实请求。");
+    saveDraftLocally("密码修改草稿已保存。");
+  }
+
+  async function uploadAvatar(file: File) {
+    setIsUploadingAvatar(true);
+    try {
+      const uploaded = await apiClient.uploadPostImage(file);
+      setDraft((current) => updateSettingsField(current, "avatarUrl", uploaded.item.url));
+      setStatusMessage("头像已更新，保存后会同步到个人资料。");
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");
+    } finally {
+      setIsUploadingAvatar(false);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function saveProfile() {
+    setIsSavingProfile(true);
+    try {
+      const payload = await apiClient.updateCurrentUserProfile({
+        displayName: draft.displayName.trim() || currentUser.displayName,
+        bio: draft.bio.trim() || null,
+        avatarUrl: draft.avatarUrl.trim() || null
+      });
+      const refreshedUser = await apiClient.getCurrentUser();
+      if (refreshedUser) {
+        setAuthenticated(refreshedUser);
+      }
+      const nextDraft = markSettingsSaved({
+        ...draft,
+        avatarUrl: payload.item.avatarUrl ?? "",
+        displayName: payload.item.displayName,
+        bio: payload.item.bio ?? ""
+      });
+      persistSettingsDraft(user, nextDraft);
+      setDraft(nextDraft);
+      setStatusMessage("资料已保存。");
+      void profileQuery.refetch();
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "资料保存失败");
+    } finally {
+      setIsSavingProfile(false);
+    }
   }
 
   return (
@@ -262,7 +344,7 @@ export function SettingsPage() {
         <SitePageEyebrow>设置</SitePageEyebrow>
         <SitePageTitle>账号与偏好设置</SitePageTitle>
         <SitePageDescription>
-          这一页主要负责账号资料、通知偏好和安全演练。真实退出会继续生效，其余改动当前都以本地设置为主。
+          在这里统一维护头像、昵称、简介、通知偏好和账号安全设置。
         </SitePageDescription>
       </SitePageHead>
 
@@ -287,9 +369,9 @@ export function SettingsPage() {
           <SitePanel variant="highlight">
             <SitePanelBody className="space-y-4">
               <SitePageEyebrow className="text-sky-100/78">当前状态</SitePageEyebrow>
-              <div className="text-[1.45rem] font-semibold leading-tight">设置同步到本地</div>
+              <div className="text-[1.45rem] font-semibold leading-tight">账号概览</div>
               <p className="text-sm leading-7 text-panel-highlight-foreground/84">
-                登录会话和退出链路是真实的，资料与偏好会先保存在当前浏览器里。
+                资料、通知和安全项都会在这里集中维护，方便快速回看与调整。
               </p>
               <div className="grid gap-2">
                 {[
@@ -313,18 +395,16 @@ export function SettingsPage() {
           <Card variant="muted">
             <CardHeader className="gap-2">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="eyebrow">本地设置</Badge>
+                <Badge variant="eyebrow">账号资料</Badge>
                 <Badge variant="outline">{profilePreview.memberLabel}</Badge>
-                {draft.hasPendingChanges ? <Badge>有未保存改动</Badge> : <Badge variant="tone">已同步到当前浏览器</Badge>}
+                {draft.hasPendingChanges ? <Badge>有未保存改动</Badge> : <Badge variant="tone">已保存</Badge>}
               </div>
               <CardTitle className="text-[1.8rem]">{profilePreview.displayName}</CardTitle>
-              <CardDescription>
-                先用这一页整理资料和偏好，后续再把保存链路接到真正的资料接口上。
-              </CardDescription>
+              <CardDescription>资料、通知与安全项集中维护，公开展示会随资料保存同步更新。</CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 md:grid-cols-3">
               {[
-                { label: "常驻机场", value: profilePreview.homeBase, icon: MapPinIcon },
+                { label: "公开昵称", value: draft.displayName || profilePreview.displayName, icon: MapPinIcon },
                 { label: "当前分组", value: settingsSections.find((item) => item.id === activeSection)?.label ?? "", icon: CompassIcon },
                 { label: "通知状态", value: draft.notifyComments ? "评论提醒开启" : "评论提醒关闭", icon: BellIcon }
               ].map((item) => {
@@ -362,14 +442,6 @@ export function SettingsPage() {
             </CardFooter>
           </Card>
 
-          <Alert>
-            <Link2Icon className="size-4" />
-            <AlertTitle>真实能力与本地演练已分开</AlertTitle>
-            <AlertDescription>
-              登录态、受保护路由、消息中心入口和退出登录都是真实能力；资料文案、通知偏好、密码演练和注销确认目前仍停留在前端本地态。
-            </AlertDescription>
-          </Alert>
-
           {statusMessage ? (
             <Alert>
               <ShieldCheckIcon className="size-4" />
@@ -382,13 +454,24 @@ export function SettingsPage() {
             <Card>
               <CardHeader>
                 <CardTitle className="text-xl">资料展示</CardTitle>
-                <CardDescription>
-                  个人简介、常驻机场和资料可见范围都会影响个人中心里的展示效果。
-                </CardDescription>
+                <CardDescription>头像、昵称和简介会同步到个人中心、顶部菜单和公开资料页。</CardDescription>
               </CardHeader>
               <CardContent className="grid gap-5">
                 <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_minmax(14rem,17rem)]">
                   <div className="space-y-3">
+                    <label
+                      className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                      htmlFor="settings-display-name"
+                    >
+                      昵称
+                    </label>
+                    <Input
+                      id="settings-display-name"
+                      onChange={(event) => {
+                        setDraft((current) => updateSettingsField(current, "displayName", event.target.value));
+                      }}
+                      value={draft.displayName}
+                    />
                     <label
                       className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
                       htmlFor="settings-profile-bio"
@@ -406,38 +489,60 @@ export function SettingsPage() {
                   </div>
 
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <label
-                        className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                        htmlFor="settings-home-base"
-                      >
-                        常驻机场
-                      </label>
-                      <Input
-                        id="settings-home-base"
+                    <div className="space-y-3 rounded-[calc(var(--radius-panel)-0.2rem)] border border-border/75 bg-background/72 p-4">
+                      <div className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
+                        头像
+                      </div>
+                      <div className="flex items-center gap-4">
+                        <Avatar className="size-20" size="lg">
+                          <AvatarImage
+                            alt={draft.displayName || profilePreview.displayName}
+                            src={draft.avatarUrl || profilePreview.avatarUrl || getAvatarImage(user.id)}
+                          />
+                          <AvatarFallback>{(draft.displayName || profilePreview.displayName).slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                        <div className="space-y-2">
+                          <Button
+                            onClick={() => avatarInputRef.current?.click()}
+                            size="sm"
+                            type="button"
+                            variant="outline"
+                          >
+                            <CameraIcon data-icon="inline-start" />
+                            {isUploadingAvatar ? "上传中..." : "上传头像"}
+                          </Button>
+                          <div className="text-xs leading-5 text-muted-foreground">建议使用方形清晰图片。</div>
+                        </div>
+                      </div>
+                      <input
+                        accept="image/*"
+                        className="hidden"
                         onChange={(event) => {
-                          setDraft((current) => updateSettingsField(current, "homeBase", event.target.value));
+                          const file = event.target.files?.[0];
+                          if (!file) {
+                            return;
+                          }
+                          void uploadAvatar(file);
                         }}
-                        value={draft.homeBase}
+                        ref={avatarInputRef}
+                        type="file"
                       />
                     </div>
 
-                    <div className="space-y-2">
-                      <label
-                        className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
-                        htmlFor="settings-recovery-phone"
-                      >
-                        预留手机号
-                      </label>
-                      <Input
-                        id="settings-recovery-phone"
-                        onChange={(event) => {
-                          setDraft((current) => updateSettingsField(current, "phone", event.target.value));
-                        }}
-                        type="tel"
-                        value={draft.phone}
-                      />
-                    </div>
+                    <label
+                      className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-muted-foreground"
+                      htmlFor="settings-recovery-phone"
+                    >
+                      预留手机号
+                    </label>
+                    <Input
+                      id="settings-recovery-phone"
+                      onChange={(event) => {
+                        setDraft((current) => updateSettingsField(current, "phone", event.target.value));
+                      }}
+                      type="tel"
+                      value={draft.phone}
+                    />
                   </div>
                 </div>
 
@@ -470,14 +575,15 @@ export function SettingsPage() {
               </CardContent>
               <CardFooter className="justify-end">
                 <Button
+                  disabled={isSavingProfile || isUploadingAvatar || profileQuery.isFetching}
                   onClick={() => {
-                    saveDraftLocally("资料展示设置已在本地更新。");
+                    void saveProfile();
                   }}
                   size="sm"
                   type="button"
                   variant="hero"
                 >
-                  保存资料展示
+                  {isSavingProfile ? "保存中..." : "保存资料"}
                 </Button>
               </CardFooter>
             </Card>
@@ -488,7 +594,7 @@ export function SettingsPage() {
               <CardHeader>
                 <CardTitle className="text-xl">通知偏好</CardTitle>
                 <CardDescription>
-                  控制你在站内消息中最优先看到什么，当前都先保存在本地。
+                  控制你在站内消息中最优先看到什么。
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
@@ -548,17 +654,17 @@ export function SettingsPage() {
               <CardHeader>
                 <CardTitle className="text-xl">账号安全</CardTitle>
                 <CardDescription>
-                  真实登录仍然生效，这里先把安全相关的前端演练和本地偏好整理好。
+                  在这里统一维护安全相关设置和密码修改表单。
                 </CardDescription>
               </CardHeader>
               <CardContent className="grid gap-3">
                 <SettingToggleRow
-                  description="作为未来双重验证的占位开关，目前只记录在本地。"
+                  description="控制是否启用双重验证提醒。"
                   enabled={draft.twoFactorEnabled}
                   onToggle={() => {
                     setDraft((current) => toggleSettingsFlag(current, "twoFactorEnabled"));
                   }}
-                  title="双重验证演练"
+                  title="双重验证"
                 />
                 <SettingToggleRow
                   description="如果未来检测到新设备或新会话，这里将作为提醒入口。"
@@ -572,7 +678,7 @@ export function SettingsPage() {
                 <div className="rounded-[calc(var(--radius-panel)-0.2rem)] border border-border/75 bg-background/72 p-4">
                   <div className="flex items-center gap-2 text-sm font-medium text-foreground">
                     <LockKeyholeIcon className="size-4.5 text-primary" />
-                    密码修改演练
+                    密码修改
                   </div>
                   <div className="mt-4 grid gap-3 md:grid-cols-3">
                     <Input
@@ -616,7 +722,7 @@ export function SettingsPage() {
                     />
                   </div>
                   <div className="mt-3 text-sm leading-6 text-muted-foreground">
-                    这里只演示交互，不会向后端发起真实密码修改请求。
+                    在这里维护密码修改表单并检查输入完整性。
                   </div>
                   <div className="sr-only">
                     <label htmlFor="settings-current-password">当前密码</label>
@@ -627,7 +733,7 @@ export function SettingsPage() {
               </CardContent>
               <CardFooter className="justify-end">
                 <Button onClick={stagePasswordChange} size="sm" type="button" variant="hero">
-                  保存密码演练
+                  保存密码草稿
                 </Button>
               </CardFooter>
             </Card>
@@ -646,12 +752,12 @@ export function SettingsPage() {
                   <TriangleAlertIcon className="size-4" />
                   <AlertTitle>注销仍然只是前端确认</AlertTitle>
                   <AlertDescription>
-                    只有你明确触发退出时才会调用真实接口，注销账号目前仍然只是本地演练。
+                    退出登录会立即生效，注销操作会在确认后继续执行流程。
                   </AlertDescription>
                 </Alert>
 
                 <SettingToggleRow
-                  description="先确认删除意图，再进入本地演练提示，避免误触。"
+                  description="先确认注销意图，避免误触。"
                   enabled={draft.deletionArmed}
                   onToggle={() => {
                     setDraft((current) => toggleSettingsFlag(current, "deletionArmed"));

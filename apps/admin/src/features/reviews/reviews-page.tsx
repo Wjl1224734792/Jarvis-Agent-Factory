@@ -13,7 +13,7 @@ export function ReviewsPage() {
     <section className="space-y-6">
       <header>
         <p className="text-xs uppercase tracking-[0.22em] text-slate-400">Reviews</p>
-        <h2 className="mt-2 text-2xl font-semibold text-white">点评治理</h2>
+        <h2 className="mt-2 text-2xl font-semibold text-white">评论治理</h2>
       </header>
 
       <div className="rounded-[28px] border border-white/10 bg-slate-950/50 p-6">
@@ -26,9 +26,7 @@ export function ReviewsPage() {
               <div className="flex flex-wrap items-start justify-between gap-4">
                 <div>
                   <div className="font-medium text-white">{item.model.name}</div>
-                  <div className="mt-1 text-xs text-slate-400">
-                    {item.author.displayName} · {item.rating} 星
-                  </div>
+                  <div className="mt-1 text-xs text-slate-400">{item.author.displayName} 路 评论内容</div>
                 </div>
                 <button
                   className="rounded-full border border-white/10 px-3 py-2 text-xs text-slate-200"
@@ -42,7 +40,7 @@ export function ReviewsPage() {
                         reviewsQuery.refetch();
                       })
                       .catch((reason: unknown) => {
-                        setError(reason instanceof Error ? reason.message : "更新点评状态失败");
+                        setError(reason instanceof Error ? reason.message : "更新评论状态失败");
                       });
                   }}
                   type="button"
@@ -52,7 +50,7 @@ export function ReviewsPage() {
               </div>
 
               <p className="mt-3 text-sm leading-6 text-slate-300">
-                {item.content ?? "该点评仅包含评分，没有补充文字。"}
+                {item.content ?? "该评论当前没有补充正文。"}
               </p>
             </article>
           ))}

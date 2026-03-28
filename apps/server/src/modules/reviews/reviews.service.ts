@@ -1,9 +1,5 @@
 import { reviewsRepo } from "./reviews.repo";
 
-function toAverageScore(rawAverage: number): number {
-  return Number((rawAverage * 2).toFixed(1));
-}
-
 function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review: T) {
   return {
     ...review,
@@ -21,6 +17,7 @@ function buildReplyToUserMap(
       {
         id: user.id,
         displayName: user.displayName,
+        avatarUrl: user.avatarUrl ?? null,
         role: user.role as "user" | "admin"
       }
     ])
@@ -29,7 +26,10 @@ function buildReplyToUserMap(
 
 function serializeComment(
   item: Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>
+  replyToUserMap: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+  >
 ) {
   if (!item) {
     return null;
@@ -46,6 +46,7 @@ function serializeComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
+      avatarUrl: item.author.avatarUrl ?? null,
       role: item.author.role as "user" | "admin"
     },
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
@@ -54,7 +55,10 @@ function serializeComment(
 
 function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof reviewsRepo.listReviewComments>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>
+  replyToUserMap: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+  >
 ) {
   const repliesByRootId = new Map<string, Array<any>>();
   const roots: Array<any> = [];
@@ -71,6 +75,7 @@ function serializeCommentThreads(
       author: {
         id: comment.author.id,
         displayName: comment.author.displayName,
+        avatarUrl: comment.author.avatarUrl ?? null,
         role: comment.author.role as "user" | "admin"
       },
       replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null
@@ -107,14 +112,13 @@ export const reviewsService = {
 
     const [items, aggregate, myReview] = await Promise.all([
       reviewsRepo.listVisibleReviewsByModel(model.id),
-      reviewsRepo.getRatingAggregate(model.id),
+      reviewsRepo.getReviewAggregate(model.id),
       currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
     ]);
 
     return {
       items: items.map((item) => serializeReview(item)),
       summary: {
-        averageScore: toAverageScore(Number(aggregate.averageRaw ?? 0)),
         totalReviews: Number(aggregate.totalReviews ?? 0),
         myReview: myReview ? serializeReview(myReview) : null
       }
@@ -124,8 +128,7 @@ export const reviewsService = {
     slug: string,
     userId: string,
     input: {
-      rating: number;
-      content: string | null;
+      content: string;
     }
   ) {
     const model = await reviewsRepo.findModelBySlug(slug);
@@ -137,7 +140,6 @@ export const reviewsService = {
     const reviewId = await reviewsRepo.upsertReview({
       modelId: model.id,
       userId,
-      rating: input.rating,
       content: input.content
     });
 

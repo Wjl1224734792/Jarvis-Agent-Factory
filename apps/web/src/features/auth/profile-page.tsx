@@ -119,7 +119,15 @@ export function ProfilePage() {
   }
 
   const settingsDraft = readStoredSettingsDraft(user);
-  const profile = createProfileViewModel(user, settingsDraft);
+  const currentProfileQuery = useQuery({
+    queryKey: ["current-user-profile", user.id],
+    queryFn: () => apiClient.getCurrentUserProfile()
+  });
+  const profile = createProfileViewModel(user, {
+    avatarUrl: currentProfileQuery.data?.item.avatarUrl ?? settingsDraft.avatarUrl,
+    displayName: currentProfileQuery.data?.item.displayName ?? settingsDraft.displayName,
+    bio: currentProfileQuery.data?.item.bio ?? settingsDraft.bio
+  });
   const profileQuery = useQuery({
     queryKey: ["self-profile", user.id],
     queryFn: () => apiClient.getUserProfile(user.id)
@@ -147,7 +155,7 @@ export function ProfilePage() {
         <SitePageEyebrow>个人中心</SitePageEyebrow>
         <SitePageTitle>我的飞行主页</SitePageTitle>
         <SitePageDescription>
-          把飞行记录、社区互动和草稿整理收在一个更紧凑的中文页面里，常用入口也都从这里快速进入。
+          这里集中展示头像、昵称、简介和近期公开内容，常用入口也能直接从这里进入。
         </SitePageDescription>
       </SitePageHead>
 
@@ -162,8 +170,8 @@ export function ProfilePage() {
         </div>
 
         <SitePanelBody className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_16rem] lg:items-end">
-          <Avatar className="-mt-10 size-24 rounded-[calc(var(--radius-panel)-0.08rem)] ring-4 ring-white md:size-28" size="lg">
-            <AvatarImage alt={profile.displayName} src={getAvatarImage(profile.displayName)} />
+            <Avatar className="-mt-10 size-24 rounded-[calc(var(--radius-panel)-0.08rem)] ring-4 ring-white md:size-28" size="lg">
+            <AvatarImage alt={profile.displayName} src={profile.avatarUrl ?? getAvatarImage(profile.displayName)} />
             <AvatarFallback>{profile.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
 
@@ -370,9 +378,9 @@ export function ProfilePage() {
 
               <div className="grid gap-4 md:grid-cols-3">
                 {[
-                  { label: "消息状态", value: "同步中", icon: BellIcon },
-                  { label: "个人资料", value: "本地预览", icon: UserRoundIcon },
-                  { label: "设置状态", value: "已接入", icon: ShieldCheckIcon }
+                  { label: "消息状态", value: "已同步", icon: BellIcon },
+                  { label: "个人资料", value: "已更新", icon: UserRoundIcon },
+                  { label: "设置状态", value: "可编辑", icon: ShieldCheckIcon }
                 ].map((item) => {
                   const Icon = item.icon;
 
@@ -396,7 +404,7 @@ export function ProfilePage() {
                 <CardHeader>
                   <CardTitle className="text-xl">我的收藏</CardTitle>
                   <CardDescription>
-                    当前会优先展示你已经收藏的文章和动态，后续再继续补齐更多类型。
+                    优先展示你已经收藏的文章和动态，方便快速回看。
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-4 md:grid-cols-2">
@@ -436,9 +444,9 @@ export function ProfilePage() {
             <TabsContent className="min-h-[28rem] space-y-4" value="drafts">
               <Card variant="muted">
                 <CardHeader>
-                  <CardTitle className="text-xl">草稿工作台</CardTitle>
+                  <CardTitle className="text-xl">资料与内容整理</CardTitle>
                   <CardDescription>
-                    草稿仍然以本地记录和入口整理为主，先解决可用性，再接真实同步链路。
+                    常用入口和最近整理事项集中放在这里，方便继续处理未完成内容。
                   </CardDescription>
                 </CardHeader>
                 <CardContent className="grid gap-3">
@@ -460,12 +468,12 @@ export function ProfilePage() {
           <Card variant="muted">
             <CardHeader>
               <CardTitle>身份摘要</CardTitle>
-              <CardDescription>当前页展示内容主要来自登录会话与本地设置。</CardDescription>
+              <CardDescription>集中查看当前身份、资料状态和最近的常用入口。</CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
               {[
                 { label: "呼号", value: profile.callsign, icon: UserRoundIcon },
-                { label: "常驻机场", value: profile.homeBase, icon: MapPinIcon },
+                { label: "资料状态", value: profile.memberLabel, icon: MapPinIcon },
                 { label: "当前状态", value: profile.availability, icon: CompassIcon }
               ].map((item) => {
                 const Icon = item.icon;

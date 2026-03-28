@@ -24,10 +24,10 @@ export type ProfileActionCard = {
 
 export type ProfileViewModel = {
   displayName: string;
+  avatarUrl: string | null;
   callsign: string;
   headline: string;
   bio: string;
-  homeBase: string;
   memberLabel: string;
   availability: string;
   metrics: ProfileMetric[];
@@ -37,9 +37,9 @@ export type ProfileViewModel = {
 };
 
 export type SettingsDraft = {
+  avatarUrl: string;
   displayName: string;
   bio: string;
-  homeBase: string;
   phone: string;
   notifyComments: boolean;
   notifyMentions: boolean;
@@ -56,8 +56,9 @@ export type SettingsDraft = {
 type StoredSettingsDraft = Partial<
   Pick<
     SettingsDraft,
+    | "avatarUrl"
+    | "displayName"
     | "bio"
-    | "homeBase"
     | "phone"
     | "notifyComments"
     | "notifyMentions"
@@ -103,8 +104,9 @@ function readVisibility(value: unknown, fallback: ProfileVisibility): ProfileVis
 
 function toStoredSettingsDraft(draft: SettingsDraft): StoredSettingsDraft {
   return {
+    avatarUrl: draft.avatarUrl,
+    displayName: draft.displayName,
     bio: draft.bio,
-    homeBase: draft.homeBase,
     phone: draft.phone,
     notifyComments: draft.notifyComments,
     notifyMentions: draft.notifyMentions,
@@ -118,15 +120,24 @@ function toStoredSettingsDraft(draft: SettingsDraft): StoredSettingsDraft {
   };
 }
 
+function pickRuntimeProfile(user: UserSummary | null) {
+  const candidate = user as (UserSummary & { avatarUrl?: string | null; bio?: string | null }) | null;
+  return {
+    avatarUrl: candidate?.avatarUrl ?? null,
+    bio: candidate?.bio ?? null
+  };
+}
+
 export function buildSettingsStorageKey(user: UserSummary | null): string {
   return `${SETTINGS_STORAGE_KEY}:${user?.id ?? "anonymous"}`;
 }
 
 export function createProfileViewModel(
   user: UserSummary | null,
-  draft?: Pick<SettingsDraft, "bio" | "homeBase"> | null
+  draft?: Pick<SettingsDraft, "avatarUrl" | "displayName" | "bio"> | null
 ): ProfileViewModel {
-  const displayName = user?.displayName ?? "飞加飞友";
+  const runtimeProfile = pickRuntimeProfile(user);
+  const displayName = draft?.displayName?.trim() || user?.displayName || "飞加飞友";
   const seed = hashSeed(displayName);
   const callsign = `FJ-${initialsFromName(displayName)}-${200 + (seed % 700)}`;
   const followerCount = 320 + (seed % 880);
@@ -135,14 +146,12 @@ export function createProfileViewModel(
 
   return {
     displayName,
+    avatarUrl: draft?.avatarUrl?.trim() || runtimeProfile.avatarUrl || null,
     callsign,
-    headline: user?.role === "admin" ? "管理后台值守中" : "把每次起飞与落地都记录下来",
-    bio:
-      draft?.bio ??
-      "把飞行日志、机型笔记和社区动态收在一个更紧凑的个人页里。目前这里仍以会话信息和本地设置为主，后续再接真实资料接口。",
-    homeBase: draft?.homeBase ?? (seed % 2 === 0 ? "ZSPD / 上海浦东" : "ZBAA / 北京首都"),
+    headline: user?.role === "admin" ? "管理后台值守中" : "记录每一次起飞、落地和改装灵感",
+    bio: draft?.bio ?? runtimeProfile.bio ?? "在这里集中展示头像、昵称、个人简介和近期公开内容。",
     memberLabel: user?.role === "admin" ? "管理员身份" : "飞友身份",
-    availability: seed % 3 === 0 ? "适合整理长文" : "适合发动态",
+    availability: seed % 3 === 0 ? "适合整理长文" : "适合发布动态",
     metrics: [
       { label: "关注者", value: `${followerCount}` },
       { label: "关注中", value: `${followingCount}` },
@@ -153,8 +162,7 @@ export function createProfileViewModel(
         id: "focus-overview",
         eyebrow: "飞行日志",
         title: "清晨转场记录，留给下一次整理发布",
-        summary:
-          "把航线、天气和机舱细节先收在一个紧凑卡片里，稍后可以继续补完再发布，不需要先接服务端草稿接口。",
+        summary: "把航线、天气和设备细节先收在紧凑卡片里，稍后继续补完并发布。",
         imageSeed: `${displayName}-overview`,
         ctaLabel: "继续编辑",
         href: APP_ROUTES.compose,
@@ -167,8 +175,7 @@ export function createProfileViewModel(
         id: "focus-activity",
         eyebrow: "社区动态",
         title: "本周互动提醒与评论动向",
-        summary:
-          "把关注、评论和提及先收成一个短摘要，让个人中心在没有专属资料接口前也能保持可用。",
+        summary: "把关注、评论和提及先收成短摘要，方便快速回到最近的互动现场。",
         imageSeed: `${displayName}-activity`,
         ctaLabel: "查看消息",
         href: APP_ROUTES.notifications,
@@ -179,28 +186,27 @@ export function createProfileViewModel(
       },
       {
         id: "focus-drafts",
-        eyebrow: "草稿工作台",
-        title: "待补完的机型评测草稿",
-        summary:
-          "未完成内容先保存在前端侧，先让页面好用起来，不冒充已经存在的服务端草稿同步能力。",
+        eyebrow: "资料维护",
+        title: "统一整理昵称、头像和个人简介",
+        summary: "从设置页直接维护对外展示的核心资料，公开页和个人中心保持一致。",
         imageSeed: `${displayName}-drafts`,
-        ctaLabel: "整理设置",
+        ctaLabel: "整理资料",
         href: APP_ROUTES.webSettings,
         metrics: [
-          { label: "段落", value: `${3 + (seed % 4)}` },
+          { label: "字段", value: "3" },
           { label: "完成度", value: `${70 + (seed % 20)}%` }
         ]
       }
     ],
     activityNotes: [
       "评论回复会继续从消息中心进入，并和当前登录会话保持一致。",
-      "发布能力仍然走现有发布入口，不会在这里额外引入新的内容流程。",
-      "当前页展示的身份信息主要依赖登录会话和本地设置。"
+      "发布入口保持现有文章、动态、飞行器和榜单链路。",
+      "个人资料优先展示昵称、头像和简介。"
     ],
     draftNotes: [
-      "资料编辑继续保持本地优先，等后端资料接口落地后再补保存链路。",
-      "这一轮设置改动只覆盖前端行为和页面提示，不扩到共享契约。",
-      "管理后台能力仍然留到下一轮，不会混进个人中心里。"
+      "资料入口保持精简，只集中维护头像、昵称与简介。",
+      "常用设置与内容入口已经收敛到同一套页面结构里。",
+      "管理端能力保持独立，不混入个人中心。"
     ]
   };
 }
@@ -210,9 +216,9 @@ export function createSettingsDraft(user: UserSummary | null): SettingsDraft {
   const seed = hashSeed(profile.displayName);
 
   return {
+    avatarUrl: profile.avatarUrl ?? "",
     displayName: profile.displayName,
     bio: profile.bio,
-    homeBase: profile.homeBase,
     phone: formatPhone(seed),
     notifyComments: true,
     notifyMentions: true,
@@ -222,7 +228,7 @@ export function createSettingsDraft(user: UserSummary | null): SettingsDraft {
     twoFactorEnabled: seed % 2 === 0,
     sessionAlerts: true,
     hasPendingChanges: false,
-    lastSavedLabel: "当前浏览器尚未保存",
+    lastSavedLabel: "当前资料尚未保存",
     deletionArmed: false
   };
 }
@@ -242,8 +248,9 @@ export function parseStoredSettingsDraft(
 
     return {
       ...fallback,
+      avatarUrl: readString(parsed.avatarUrl, fallback.avatarUrl),
+      displayName: readString(parsed.displayName, fallback.displayName),
       bio: readString(parsed.bio, fallback.bio),
-      homeBase: readString(parsed.homeBase, fallback.homeBase),
       phone: readString(parsed.phone, fallback.phone),
       notifyComments: readBoolean(parsed.notifyComments, fallback.notifyComments),
       notifyMentions: readBoolean(parsed.notifyMentions, fallback.notifyMentions),
@@ -305,7 +312,7 @@ export function clearStoredSettingsDraft(user: UserSummary | null): void {
 
 export function updateSettingsField(
   draft: SettingsDraft,
-  field: "bio" | "homeBase" | "phone",
+  field: "avatarUrl" | "displayName" | "bio" | "phone",
   value: string
 ): SettingsDraft {
   return {
@@ -347,7 +354,7 @@ export function setProfileVisibility(
 export function createLocalSaveLabel(date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `已在本地保存 ${hours}:${minutes}`;
+  return `已保存 ${hours}:${minutes}`;
 }
 
 export function markSettingsSaved(
@@ -363,8 +370,8 @@ export function markSettingsSaved(
 
 export function createDeletionMessage(draft: SettingsDraft): string {
   if (!draft.deletionArmed) {
-    return "请先确认删除意图。本轮不会向后端发起真正的注销请求。";
+    return "请先确认注销意图。";
   }
 
-  return "注销请求已在当前浏览器暂存，真正的账号注销仍需要后端接口支持。";
+  return "已记录本次注销确认，请在后端能力上线后继续完成。";
 }

@@ -1,6 +1,8 @@
 import {
   actionSuccessResponseSchema,
+  currentUserProfileResponseSchema,
   notificationsResponseSchema,
+  updateCurrentUserProfileInputSchema,
   userContentResponseSchema,
   userProfileResponseSchema
 } from "@feijia/schemas";
@@ -63,6 +65,35 @@ socialRoute.post(API_ROUTES.social.notificationsReadAll, requireAuth, async (con
   await socialService.markAllNotificationsRead(currentUser.id);
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+socialRoute.get(API_ROUTES.users.meProfile, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const payload = await socialService.getCurrentUserProfile(currentUser.id);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+
+  return context.json(currentUserProfileResponseSchema.parse(payload));
+});
+
+socialRoute.put(API_ROUTES.users.meProfile, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = updateCurrentUserProfileInputSchema.parse(await context.req.json());
+  const payload = await socialService.updateCurrentUserProfile(currentUser.id, input);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+
+  return context.json(currentUserProfileResponseSchema.parse(payload));
 });
 
 socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {

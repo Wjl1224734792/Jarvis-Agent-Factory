@@ -78,7 +78,6 @@ describe("social contract", () => {
         {
           type: "review",
           id: "review_1",
-          rating: 5,
           content: "Very stable",
           model: {
             id: "model_1",

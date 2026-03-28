@@ -4,9 +4,13 @@ import { ArrowLeftIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
-import { RatingBreakdown } from "@/components/rating-breakdown";
-import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
-import { SitePage } from "@/components/site-shell";
+import {
+  SitePage,
+  SitePageDescription,
+  SitePageEyebrow,
+  SitePageHead,
+  SitePageTitle
+} from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -24,7 +28,6 @@ export function RankingItemDetailPage() {
   const authStatus = useAuthStore((state) => state.status);
   const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
-  const [selectedRating, setSelectedRating] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [replyTarget, setReplyTarget] = useState<string | null>(null);
@@ -39,20 +42,17 @@ export function RankingItemDetailPage() {
   const parentRankingId = searchParams.get("ranking");
 
   useEffect(() => {
-    if (item?.myReview) {
-      setSelectedRating(item.myReview.rating);
+    if (item?.myReview?.content) {
       setCommentContent(item.myReview.content);
-    } else if (item?.myRating) {
-      setSelectedRating(item.myRating);
     }
-  }, [item?.myRating, item?.myReview]);
+  }, [item?.myReview]);
 
   if (detailQuery.isLoading) {
     return <DetailPageSkeleton />;
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[1080px] gap-5">
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
       <Button asChild className="w-fit" variant="ghost">
         <Link
           to={
@@ -70,20 +70,26 @@ export function RankingItemDetailPage() {
 
       {detailQuery.isError ? (
         <Alert variant="destructive">
-          <AlertTitle>排行项详情加载失败</AlertTitle>
+          <AlertTitle>榜单条目详情加载失败</AlertTitle>
           <AlertDescription>{detailQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
 
       {!id || (!detailQuery.isLoading && !item) ? (
         <Alert>
-          <AlertTitle>排行项详情不可用</AlertTitle>
+          <AlertTitle>榜单条目详情不可用</AlertTitle>
           <AlertDescription>当前条目不存在或暂无可展示数据。</AlertDescription>
         </Alert>
       ) : null}
 
       {item ? (
         <>
+          <SitePageHead>
+            <SitePageEyebrow>榜单条目</SitePageEyebrow>
+            <SitePageTitle className="text-[1.9rem] md:text-[2.2rem]">{item.title}</SitePageTitle>
+            <SitePageDescription>{item.summary ?? "查看这条榜单条目的说明与评论。"}</SitePageDescription>
+          </SitePageHead>
+
           <div className="grid gap-4 rounded-[0.95rem] border border-border bg-white p-4 shadow-[var(--shadow-panel)] md:grid-cols-[300px_minmax(0,1fr)]">
             <div className="overflow-hidden rounded-[0.85rem] border border-border/70">
               <img
@@ -97,17 +103,11 @@ export function RankingItemDetailPage() {
               />
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_248px]">
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_12rem]">
               <div className="space-y-3">
                 <div className="text-[0.8rem] font-semibold tracking-[0.16em] text-primary">
                   {item.brandName ?? item.linkedModel?.brand.name ?? item.ranking.title}
                 </div>
-                <h1 className="text-[1.9rem] leading-[1.04] font-semibold tracking-[-0.05em] text-foreground">
-                  {item.title}
-                </h1>
-                {item.summary ? (
-                  <p className="text-[0.9rem] leading-6 text-foreground/72">{item.summary}</p>
-                ) : null}
                 {item.linkedModel ? (
                   <Button asChild size="sm" variant="outline">
                     <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
@@ -116,104 +116,83 @@ export function RankingItemDetailPage() {
               </div>
 
               <div className="rounded-[0.85rem] border border-border bg-surface-1 px-4 py-4">
-                <div className="flex items-end justify-between gap-3">
-                  <div className="space-y-1.5">
-                    <RatingStars size="sm" value={toFiveStarRating(item.averageScore)} />
-                    <div className="text-[0.72rem] text-muted-foreground">{item.commentCount} 条点评</div>
-                  </div>
-                  <div className="text-[2.3rem] font-semibold leading-none text-rating-blue">
-                    {item.averageScore.toFixed(1)}
-                  </div>
-                </div>
-                <div className="mt-4">
-                  <RatingBreakdown entries={item.ratingBreakdown} />
-                </div>
+                <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">评论数</div>
+                <div className="mt-1.5 text-2xl font-semibold text-foreground">{item.commentCount}</div>
+                <div className="mt-4 text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">所属榜单</div>
+                <div className="mt-1.5 text-sm font-medium text-foreground">{item.ranking.title}</div>
               </div>
             </div>
           </div>
 
-          <div className="space-y-4 border-t border-border/60 pt-5">
-            <div className="space-y-3">
-              <div className="text-base font-semibold text-foreground">评分与点评</div>
-              <RatingStars
-                onSelect={(value) => {
-                  setSelectedRating(value);
-                }}
-                size="md"
-                value={selectedRating}
-              />
-
-              {replyTarget ? (
-                <div className="text-[0.78rem] text-muted-foreground">正在回复 @{replyTarget}</div>
-              ) : null}
-
-              {authStatus === "authenticated" ? (
-                <div className="rounded-[0.85rem] border border-border bg-white p-3">
-                  <InlineCommentComposer
-                    busy={busy}
-                    disabled={selectedRating <= 0}
-                    onChange={setCommentContent}
-                    onSubmit={() => {
-                      if (!commentContent.trim() || selectedRating <= 0) {
-                        return;
-                      }
-
-                      setActionError(null);
-                      setBusy(true);
-                      void apiClient
-                        .submitRankingItemReview(item.id, {
-                          rating: selectedRating,
-                          content: commentContent
-                        })
-                        .then(() => {
-                          setReplyTarget(null);
-                          return Promise.all([
-                            queryClient.invalidateQueries({ queryKey: ["ranking-item-detail", item.id] }),
-                            queryClient.invalidateQueries({ queryKey: ["ranking-detail", item.ranking.id] }),
-                            queryClient.invalidateQueries({ queryKey: ["rankings"] })
-                          ]);
-                        })
-                        .catch((reason: unknown) => {
-                          setActionError(reason instanceof Error ? reason.message : "点评失败");
-                        })
-                        .finally(() => {
-                          setBusy(false);
-                        });
-                    }}
-                    placeholder={
-                      selectedRating > 0
-                        ? replyTarget
-                          ? `回复 @${replyTarget}`
-                          : "写下你的点评..."
-                        : "请先选择星级"
-                    }
-                    value={commentContent}
-                  />
-                </div>
-              ) : (
-                <Button
-                  className="w-full"
-                  onClick={() => {
-                    promptLogin({
-                      title: "登录后才能点评",
-                      description: "点评前请先登录。"
-                    });
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  登录后点评
-                </Button>
-              )}
-
-              {actionError ? (
-                <Alert variant="destructive">
-                  <AlertTitle>排行项互动失败</AlertTitle>
-                  <AlertDescription>{actionError}</AlertDescription>
-                </Alert>
-              ) : null}
+          <div className="space-y-4 border-t border-border/60 pt-4">
+            <div className="space-y-1">
+              <div className="text-base font-semibold text-foreground">评论区</div>
+              <div className="text-sm text-muted-foreground">只保留正常评论，不再展示评分和星级。</div>
             </div>
+
+            {replyTarget ? (
+              <div className="text-[0.78rem] text-muted-foreground">正在回复 @{replyTarget}</div>
+            ) : null}
+
+            {authStatus === "authenticated" ? (
+              <div className="rounded-[0.85rem] border border-border bg-white p-3">
+                <InlineCommentComposer
+                  busy={busy}
+                  disabled={busy}
+                  onChange={setCommentContent}
+                  onSubmit={() => {
+                    if (!commentContent.trim()) {
+                      return;
+                    }
+
+                    setActionError(null);
+                    setBusy(true);
+                    void apiClient
+                      .createRankingItemComment(item.id, {
+                        content: commentContent.trim()
+                      })
+                      .then(() => {
+                        setReplyTarget(null);
+                        return Promise.all([
+                          queryClient.invalidateQueries({ queryKey: ["ranking-item-detail", item.id] }),
+                          queryClient.invalidateQueries({ queryKey: ["ranking-detail", item.ranking.id] }),
+                          queryClient.invalidateQueries({ queryKey: ["rankings"] })
+                        ]);
+                      })
+                      .catch((reason: unknown) => {
+                        setActionError(reason instanceof Error ? reason.message : "评论失败");
+                      })
+                      .finally(() => {
+                        setBusy(false);
+                      });
+                  }}
+                  placeholder={replyTarget ? `回复 @${replyTarget}` : "写下你的评论..."}
+                  value={commentContent}
+                />
+              </div>
+            ) : (
+              <Button
+                className="w-full"
+                onClick={() => {
+                  promptLogin({
+                    title: "登录后才能评论",
+                    description: "评论前请先登录。"
+                  });
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                登录后评论
+              </Button>
+            )}
+
+            {actionError ? (
+              <Alert variant="destructive">
+                <AlertTitle>条目互动失败</AlertTitle>
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            ) : null}
 
             <div className="overflow-hidden rounded-[0.95rem] border border-border bg-white">
               {item.comments.map((comment) => (
@@ -221,7 +200,10 @@ export function RankingItemDetailPage() {
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <Avatar size="sm">
-                        <AvatarImage alt={comment.author.displayName} src={getAvatarImage(comment.author.id)} />
+                        <AvatarImage
+                          alt={comment.author.displayName}
+                          src={comment.author.avatarUrl ?? getAvatarImage(comment.author.id)}
+                        />
                         <AvatarFallback>{comment.author.displayName.slice(0, 1)}</AvatarFallback>
                       </Avatar>
                       <div>
@@ -231,38 +213,35 @@ export function RankingItemDetailPage() {
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <RatingStars size="xs" value={comment.rating} />
-                      <button
-                        className="text-[0.72rem] text-primary"
-                        onClick={() => {
-                          if (
-                            !promptLogin({
-                              title: "登录后才能回复点评",
-                              description: "回复前请先登录。"
-                            })
-                          ) {
-                            return;
-                          }
-                          setReplyTarget(comment.author.displayName);
-                          setCommentContent((current) =>
-                            current.startsWith(`@${comment.author.displayName}`)
-                              ? current
-                              : `@${comment.author.displayName} ${current}`.trim()
-                          );
-                        }}
-                        type="button"
-                      >
-                        回复
-                      </button>
-                    </div>
+                    <button
+                      className="text-[0.72rem] text-primary"
+                      onClick={() => {
+                        if (authStatus !== "authenticated") {
+                          promptLogin({
+                            title: "登录后才能回复评论",
+                            description: "回复前请先登录。"
+                          });
+                          return;
+                        }
+
+                        setReplyTarget(comment.author.displayName);
+                        setCommentContent((current) =>
+                          current.startsWith(`@${comment.author.displayName}`)
+                            ? current
+                            : `@${comment.author.displayName} ${current}`.trim()
+                        );
+                      }}
+                      type="button"
+                    >
+                      回复
+                    </button>
                   </div>
                   <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/76">{comment.content}</p>
                 </div>
               ))}
 
               {item.comments.length === 0 ? (
-                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有点评。</div>
+                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有评论。</div>
               ) : null}
             </div>
           </div>

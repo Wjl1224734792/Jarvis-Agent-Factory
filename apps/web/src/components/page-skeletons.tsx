@@ -1,6 +1,12 @@
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 
+export const MODEL_GRID_CLASS_NAME =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,13.625rem),1fr))] gap-x-4 gap-y-5";
+
+export const RANKING_GRID_CLASS_NAME =
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17.25rem),1fr))] gap-3";
+
 export function RailCardSkeleton(props: { rows?: number }) {
   return (
     <SitePanel variant="muted">
@@ -69,9 +75,15 @@ export function FeedStreamSkeleton(props: { rows?: number }) {
   );
 }
 
-export function MasonryFeedSkeleton(props: { count?: number }) {
+export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: number | string; columnGap?: number | string }) {
   return (
-    <div className="columns-1 gap-3 sm:columns-2 xl:columns-3">
+    <div
+      className="w-full"
+      style={{
+        columnWidth: props.columnWidth ?? "208px",
+        columnGap: props.columnGap ?? "12px"
+      }}
+    >
       {Array.from({ length: props.count ?? 9 }).map((_, index) => (
         <div
           className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white p-1.5"
@@ -97,10 +109,7 @@ export function MasonryFeedSkeleton(props: { count?: number }) {
 
 export function ModelGridSkeleton(props: { count?: number }) {
   return (
-    <div
-      className="grid justify-start gap-x-4 gap-y-5"
-      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
-    >
+    <div className={MODEL_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 8 }).map((_, index) => (
         <div className="block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3" key={index}>
           <Skeleton className="aspect-square w-full rounded-[0.9rem]" />
@@ -117,13 +126,10 @@ export function ModelGridSkeleton(props: { count?: number }) {
 
 export function RankingCardGridSkeleton(props: { count?: number }) {
   return (
-    <div
-      className="grid justify-start gap-3"
-      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(276px, 276px))" }}
-    >
+    <div className={RANKING_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 6 }).map((_, index) => (
         <div
-          className="flex w-[276px] min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5"
+          className="flex min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5"
           key={index}
         >
           <div className="space-y-2">
@@ -133,7 +139,7 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
           <div className="space-y-2.5">
             {Array.from({ length: 3 }).map((__, innerIndex) => (
               <div
-                className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)_3.25rem] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+                className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
                 key={innerIndex}
               >
                 <Skeleton className="h-4 w-3" />
@@ -142,7 +148,6 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
                   <Skeleton className="h-3.5 w-full" />
                   <Skeleton className="h-3 w-20" />
                 </div>
-                <Skeleton className="h-5 w-10" />
               </div>
             ))}
           </div>

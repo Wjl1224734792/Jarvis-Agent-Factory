@@ -64,6 +64,13 @@
                         "when":  1774692000000,
                         "tag":  "0008_calm_firebird",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  9,
+                        "version":  "7",
+                        "when":  1774692600000,
+                        "tag":  "0009_breezy_profile_review_cleanup",
+                        "breakpoints":  true
                     }
                 ]
 }

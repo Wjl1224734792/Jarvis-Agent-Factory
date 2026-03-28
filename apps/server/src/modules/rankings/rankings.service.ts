@@ -107,6 +107,7 @@ function serializeRankingComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
+      avatarUrl: item.author.avatarUrl ?? null,
       role: item.author.role as "user" | "admin"
     }
   };
@@ -129,6 +130,7 @@ function serializeRankingItemReview(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
+      avatarUrl: item.author.avatarUrl ?? null,
       role: item.author.role as "user" | "admin"
     }
   };
@@ -208,6 +210,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       author: {
         id: ranking.author.id,
         displayName: ranking.author.displayName,
+        avatarUrl: ranking.author.avatarUrl ?? null,
         role: ranking.author.role as "user" | "admin"
       },
       viewer: toRankingViewer({
@@ -456,6 +459,7 @@ export const rankingsService = {
         author: {
           id: ranking.author.id,
           displayName: ranking.author.displayName,
+          avatarUrl: ranking.author.avatarUrl ?? null,
           role: ranking.author.role as "user" | "admin"
         },
         comments: comments.map(serializeRankingComment),

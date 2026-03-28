@@ -5,12 +5,13 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
-import { RatingBreakdown } from "@/components/rating-breakdown";
-import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import {
   SiteGrid,
   SitePage,
+  SitePageDescription,
   SitePageEyebrow,
+  SitePageHead,
+  SitePageTitle,
   SitePanel,
   SitePanelBody,
   SiteRail
@@ -19,7 +20,6 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Textarea } from "@/components/ui/textarea";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -31,7 +31,6 @@ import {
   isReviewFormValid,
   syncReviewFormState,
   updateReviewContent,
-  updateReviewRating,
   type ReviewFormState
 } from "./model-review-form";
 
@@ -68,19 +67,14 @@ function ReviewCommentSection(props: {
   return (
     <div className="mt-4 space-y-3 rounded-[0.85rem] border border-border/70 bg-background/70 px-4 py-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[0.8rem] font-semibold text-foreground">点评回复</div>
-        <div className="flex items-center gap-3">
-          {commentsQuery.isFetching && commentsQuery.data ? (
-            <div className="text-[0.72rem] text-muted-foreground">正在更新...</div>
-          ) : null}
-          <button
-            className="text-[0.72rem] text-primary"
-            onClick={() => setExpanded((value) => !value)}
-            type="button"
-          >
-            {expanded ? "收起回复" : "查看回复"}
-          </button>
-        </div>
+        <div className="text-[0.8rem] font-semibold text-foreground">评论回复</div>
+        <button
+          className="text-[0.72rem] text-primary"
+          onClick={() => setExpanded((value) => !value)}
+          type="button"
+        >
+          {expanded ? "收起回复" : "查看回复"}
+        </button>
       </div>
 
       {expanded && commentsQuery.isLoading ? (
@@ -190,42 +184,6 @@ function ReviewCommentSection(props: {
                           </span>
                         </div>
                         <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
-                        <div className="flex items-center gap-3">
-                          {props.canInteract ? (
-                            <button
-                              className="text-[0.72rem] text-primary"
-                              onClick={() => {
-                                setReplyTarget({ id: reply.id, displayName: reply.author.displayName });
-                                setContent(`@${reply.author.displayName} `);
-                              }}
-                              type="button"
-                            >
-                              回复
-                            </button>
-                          ) : null}
-                          {props.currentUserId === reply.author.id ? (
-                            <button
-                              className="inline-flex items-center gap-1 text-[0.72rem] text-muted-foreground"
-                              onClick={() => {
-                                setBusy(true);
-                                setError(null);
-                                void apiClient
-                                  .deleteReviewComment(props.reviewId, reply.id)
-                                  .then(refresh)
-                                  .catch((reason: unknown) => {
-                                    setError(reason instanceof Error ? reason.message : "删除回复失败");
-                                  })
-                                  .finally(() => {
-                                    setBusy(false);
-                                  });
-                              }}
-                              type="button"
-                            >
-                              <Trash2Icon className="size-3.5" />
-                              删除
-                            </button>
-                          ) : null}
-                        </div>
                       </div>
                     </div>
                   ))}
@@ -248,48 +206,43 @@ function ReviewCommentSection(props: {
       ) : null}
 
       {expanded && props.canInteract ? (
-        <div className="space-y-2">
-          {replyTarget ? (
-            <div className="text-[0.72rem] text-muted-foreground">正在回复 @{replyTarget.displayName}</div>
-          ) : null}
-          <InlineCommentComposer
-            busy={busy}
-            disabled={busy}
-            onChange={setContent}
-            onSubmit={() => {
-              if (!content.trim()) {
-                return;
-              }
+        <InlineCommentComposer
+          busy={busy}
+          disabled={busy}
+          onChange={setContent}
+          onSubmit={() => {
+            if (!content.trim()) {
+              return;
+            }
 
-              setBusy(true);
-              setError(null);
-              void apiClient
-                .createReviewComment(props.reviewId, {
-                  content,
-                  parentCommentId: replyTarget?.id
-                })
-                .then(() => {
-                  setContent("");
-                  setReplyTarget(null);
-                  return refresh();
-                })
-                .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "提交回复失败");
-                })
-                .finally(() => {
-                  setBusy(false);
-                });
-            }}
-            placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条点评..."}
-            value={content}
-          />
-        </div>
+            setBusy(true);
+            setError(null);
+            void apiClient
+              .createReviewComment(props.reviewId, {
+                content,
+                parentCommentId: replyTarget?.id
+              })
+              .then(() => {
+                setContent("");
+                setReplyTarget(null);
+                return refresh();
+              })
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "提交回复失败");
+              })
+              .finally(() => {
+                setBusy(false);
+              });
+          }}
+          placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条评论..."}
+          value={content}
+        />
       ) : expanded ? (
         <Button
           className="w-full"
           onClick={() => {
             promptLogin({
-              title: "登录后才能回复点评",
+              title: "登录后才能回复评论",
               description: "回复前请先登录。"
             });
           }}
@@ -309,6 +262,7 @@ export function ModelDetailPage() {
   const slug = params.slug ?? "";
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const promptLogin = useLoginPrompt();
 
   const detailQuery = useQuery({
@@ -336,7 +290,6 @@ export function ModelDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-  const currentUserId = useAuthStore((state) => state.user?.id);
 
   useEffect(() => {
     setFormState((current) => syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null));
@@ -346,7 +299,7 @@ export function ModelDetailPage() {
     return (
       <Alert variant="destructive">
         <AlertTitle>缺少机型标识</AlertTitle>
-        <AlertDescription>当前页面无法确定要查看哪一台机型。</AlertDescription>
+        <AlertDescription>当前页面无法确定要查看哪一款机型。</AlertDescription>
       </Alert>
     );
   }
@@ -367,7 +320,7 @@ export function ModelDetailPage() {
   if (reviewsQuery.isError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>点评数据加载失败</AlertTitle>
+        <AlertTitle>评论数据加载失败</AlertTitle>
         <AlertDescription>{reviewsQuery.error.message}</AlertDescription>
       </Alert>
     );
@@ -380,7 +333,7 @@ export function ModelDetailPage() {
     return (
       <Alert>
         <AlertTitle>暂无可展示数据</AlertTitle>
-        <AlertDescription>这台机型暂时没有公开参数或口碑。</AlertDescription>
+        <AlertDescription>这款机型暂时没有公开参数或评论。</AlertDescription>
       </Alert>
     );
   }
@@ -388,29 +341,25 @@ export function ModelDetailPage() {
   const gallery = getModelGallery(item.slug, item.powerType, 4);
   const hotModels =
     hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
-  const ratingCounts = [5, 4, 3, 2, 1].map((score) => ({
-    score,
-    count: reviewPayload.items.filter((review) => review.rating === score).length
-  }));
 
   const metrics = [
     {
       label: "续航",
-      value: item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} MIN` : "45 MIN"
+      value: item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "45 分钟"
     },
     {
       label: "极速",
-      value: item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} KM/H` : "72 KM/H"
+      value: item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "72 km/h"
     },
     {
-      label: "载重",
+      label: "起飞重量",
       value: item.parameters.takeoffWeightGrams
-        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} KG`
-        : "1.2 KG"
+        ? `${(item.parameters.takeoffWeightGrams / 1000).toFixed(1)} kg`
+        : "1.2 kg"
     },
     {
       label: "航程",
-      value: item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} KM` : "15 KM"
+      value: item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "15 km"
     }
   ];
 
@@ -418,27 +367,25 @@ export function ModelDetailPage() {
     {
       title: "基础信息",
       rows: [
-        [
-          "重量（含电池）",
-          item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "2,490 g"
-        ],
         ["品牌", item.brand.name],
         ["分类", item.category.name],
-        ["动力", powerTypeLabels[item.powerType]]
+        ["动力", powerTypeLabels[item.powerType]],
+        ["状态", item.isPublished ? "已发布" : "未发布"]
       ]
     },
     {
-      title: "飞行表现",
+      title: "参数表现",
       rows: [
-        ["极速", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "8 m/s"],
-        ["航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "6,000 m"],
-        ["状态", item.isPublished ? "已发布" : "未发布"]
+        ["最大飞行时长", item.parameters.maxFlightTimeMinutes ? `${item.parameters.maxFlightTimeMinutes} 分钟` : "-"],
+        ["最大速度", item.parameters.maxSpeedKph ? `${item.parameters.maxSpeedKph} km/h` : "-"],
+        ["最大航程", item.parameters.maxRangeKilometers ? `${item.parameters.maxRangeKilometers} km` : "-"],
+        ["起飞重量", item.parameters.takeoffWeightGrams ? `${item.parameters.takeoffWeightGrams} g` : "-"]
       ]
     }
   ];
 
   return (
-    <SitePage className="bg-white px-4 py-4 md:px-5">
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
       <Button asChild className="w-fit" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
@@ -447,7 +394,18 @@ export function ModelDetailPage() {
       </Button>
 
       <SiteGrid variant="detail">
-        <div className="flex flex-col gap-[var(--page-gap)]">
+        <div className="flex min-w-0 flex-col gap-4">
+          <SitePageHead>
+            <SitePageEyebrow>机型详情</SitePageEyebrow>
+            <div className="flex flex-wrap items-center gap-2">
+              <Badge variant="outline">{item.brand.name}</Badge>
+              <Badge variant="outline">{item.category.name}</Badge>
+              <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
+            </div>
+            <SitePageTitle className="text-[1.95rem] md:text-[2.4rem]">{item.name}</SitePageTitle>
+            <SitePageDescription>{item.description ?? item.summary ?? "查看参数、图集与真实评论。"}</SitePageDescription>
+          </SitePageHead>
+
           <SitePanel className="bg-white">
             <SitePanelBody className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
               <div className="space-y-3">
@@ -477,35 +435,6 @@ export function ModelDetailPage() {
               </div>
 
               <div className="flex h-full flex-col gap-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="eyebrow">精选系列</Badge>
-                  <Badge variant="outline">{item.brand.name}</Badge>
-                  <Badge variant="outline">{item.category.name}</Badge>
-                  <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
-                </div>
-
-                <div className="space-y-3 border-b border-border/75 pb-3.5">
-                  <h1 className="text-[2rem] leading-[1.02] font-semibold tracking-[-0.05em] text-foreground">
-                    {item.name}
-                  </h1>
-                  <div className="flex items-end justify-between gap-4">
-                    <div className="space-y-1.5">
-                      <RatingStars size="sm" value={toFiveStarRating(reviewPayload.summary.averageScore)} />
-                      <div className="text-[0.78rem] text-muted-foreground">
-                        {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条点评
-                      </div>
-                    </div>
-                    <span className="text-[2.45rem] font-semibold leading-none text-rating-blue">
-                      {reviewPayload.summary.averageScore.toFixed(1)}
-                    </span>
-                  </div>
-                  {item.description ?? item.summary ? (
-                    <p className="text-[0.9rem] leading-6 text-foreground/72">
-                      {item.description ?? item.summary}
-                    </p>
-                  ) : null}
-                </div>
-
                 <div className="grid gap-2.5 sm:grid-cols-2">
                   {metrics.map((metric) => (
                     <div
@@ -515,20 +444,20 @@ export function ModelDetailPage() {
                       <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                         {metric.label}
                       </div>
-                      <div className="mt-1.5 text-[1.6rem] font-semibold leading-none text-foreground">
+                      <div className="mt-1.5 text-[1.3rem] font-semibold leading-none text-foreground">
                         {metric.value}
                       </div>
                     </div>
                   ))}
                 </div>
 
-                <div className="mt-auto rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-surface-1 p-3">
+                <div className="rounded-[calc(var(--radius-control)-0.05rem)] border border-border bg-surface-1 p-3">
                   <div className="grid gap-2.5 sm:grid-cols-2">
                     <Button
                       onClick={() => {
                         promptLogin({
                           title: "登录后才能互动",
-                          description: "想买前请先登录。"
+                          description: "想进一步互动请先登录。"
                         });
                       }}
                       size="sm"
@@ -540,15 +469,7 @@ export function ModelDetailPage() {
                     </Button>
                     <Button
                       onClick={() => {
-                        if (
-                          !promptLogin({
-                            title: "登录后才能写点评",
-                            description: "点评前请先登录。"
-                          })
-                        ) {
-                          return;
-                        }
-                        document.getElementById("model-reviews")?.scrollIntoView({
+                        document.getElementById("model-comments")?.scrollIntoView({
                           behavior: "smooth",
                           block: "start"
                         });
@@ -558,21 +479,16 @@ export function ModelDetailPage() {
                       variant="panel"
                     >
                       <MessageSquareTextIcon data-icon="inline-start" />
-                      写点评
+                      去评论区
                     </Button>
                   </div>
                   <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
-                    <Button
-                      disabled
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
+                    <Button disabled size="sm" type="button" variant="outline">
                       <BookmarkIcon data-icon="inline-start" />
                       收藏功能开发中
                     </Button>
                     <div className="flex items-center justify-center rounded-[var(--radius-control)] border border-dashed border-border/70 px-3 text-sm text-muted-foreground">
-                      分享功能暂未开放
+                      分享功能稍后开放
                     </div>
                   </div>
                 </div>
@@ -610,54 +526,25 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <section className="space-y-4" id="model-reviews">
+          <section className="space-y-4" id="model-comments">
             <div className="space-y-1">
-              <SitePageEyebrow>用户口碑</SitePageEyebrow>
-              <h2 className="text-[1.55rem] font-semibold tracking-tight text-foreground">用户口碑</h2>
+              <SitePageEyebrow>用户评论</SitePageEyebrow>
+              <h2 className="text-[1.55rem] font-semibold tracking-tight text-foreground">评论区</h2>
+              <div className="text-sm text-muted-foreground">
+                共 {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条公开评论
+              </div>
             </div>
 
             <div className="overflow-hidden rounded-[0.95rem] border border-border bg-white">
-              <div className="grid border-b border-border lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="border-r border-border px-5 py-5">
-                  <div className="text-[3.4rem] font-semibold leading-none text-foreground">
-                    {reviewPayload.summary.averageScore.toFixed(1)}
+              <div className="grid gap-6 border-b border-border px-5 py-5 lg:grid-cols-[16rem_minmax(0,1fr)]">
+                <div className="space-y-3">
+                  <div className="text-[1.1rem] font-semibold text-foreground">写评论</div>
+                  <div className="text-sm leading-6 text-muted-foreground">
+                    当前只保留文字评论与回复，不再展示星级或评分摘要。
                   </div>
-                  <div className="mt-3">
-                    <RatingStars size="sm" value={toFiveStarRating(reviewPayload.summary.averageScore)} />
-                  </div>
-                  <div className="mt-3 text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                    综合评分
-                  </div>
-                </div>
-
-                <div className="px-5 py-5">
-                  <RatingBreakdown entries={ratingCounts} totalCount={reviewPayload.summary.totalReviews} />
-                </div>
-              </div>
-
-              <div className="grid lg:grid-cols-[240px_minmax(0,1fr)]">
-                <div className="border-r border-border px-5 py-5">
-                  <div className="text-[1.1rem] font-semibold text-foreground">写点评</div>
-                  <div className="mt-3">
-                    <RatingStars
-                      onSelect={(value) => {
-                        setFormState((current) => updateReviewRating(current, value));
-                      }}
-                      size="md"
-                      value={formState.rating}
-                    />
-                  </div>
-                  <Textarea
-                    className="mt-3 min-h-28 border-border"
-                    onChange={(event) => {
-                      setFormState((current) => updateReviewContent(current, event.target.value));
-                    }}
-                    placeholder="写下你的使用感受..."
-                    value={formState.content}
-                  />
 
                   {submitError ? (
-                    <Alert className="mt-3" variant="destructive">
+                    <Alert variant="destructive">
                       <AlertTitle>提交失败</AlertTitle>
                       <AlertDescription>{submitError}</AlertDescription>
                     </Alert>
@@ -665,54 +552,53 @@ export function ModelDetailPage() {
 
                   {!isAuthenticated ? (
                     <Button
-                      className="mt-3 w-full"
+                      className="w-full"
                       onClick={() => {
                         promptLogin({
-                          title: "登录后才能写点评",
-                          description: "点评前请先登录。"
+                          title: "登录后才能发表评论",
+                          description: "评论前请先登录。"
                         });
                       }}
                       size="sm"
                       type="button"
                       variant="outline"
                     >
-                      登录后写点评
+                      登录后评论
                     </Button>
-                  ) : null}
+                  ) : (
+                    <InlineCommentComposer
+                      busy={isSubmitting}
+                      disabled={isSubmitting || !isReviewFormValid(formState)}
+                      onChange={(value) => {
+                        setFormState((current) => updateReviewContent(current, value));
+                      }}
+                      onSubmit={() => {
+                        setSubmitError(null);
+                        setIsSubmitting(true);
 
-                  <Button
-                    className="mt-3 w-full"
-                    disabled={!isAuthenticated || !isReviewFormValid(formState) || isSubmitting}
-                    onClick={() => {
-                      setSubmitError(null);
-                      setIsSubmitting(true);
-
-                      void apiClient
-                        .submitModelReview(slug, buildSubmitReviewInput(formState))
-                        .then(() => {
-                          setFormState((current) => ({ ...current, dirty: false }));
-                          void reviewsQuery.refetch();
-                        })
-                        .catch((reason: unknown) => {
-                          setSubmitError(reason instanceof Error ? reason.message : "提交点评失败");
-                        })
-                        .finally(() => {
-                          setIsSubmitting(false);
-                        });
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="hero"
-                  >
-                    <MessageSquareTextIcon data-icon="inline-start" />
-                    {isSubmitting ? "提交中..." : "提交点评"}
-                  </Button>
+                        void apiClient
+                          .submitModelReview(slug, buildSubmitReviewInput(formState))
+                          .then(() => {
+                            setFormState((current) => ({ ...current, dirty: false }));
+                            void reviewsQuery.refetch();
+                          })
+                          .catch((reason: unknown) => {
+                            setSubmitError(reason instanceof Error ? reason.message : "提交评论失败");
+                          })
+                          .finally(() => {
+                            setIsSubmitting(false);
+                          });
+                      }}
+                      placeholder="写下你的使用体验..."
+                      value={formState.content}
+                    />
+                  )}
                 </div>
 
-                <div className="min-w-0">
+                <div className="space-y-4">
                   {reviewPayload.items.length > 0 ? (
                     reviewPayload.items.map((review) => (
-                      <div className="border-b border-border px-5 py-4 last:border-b-0" key={review.id}>
+                      <div className="rounded-[0.9rem] border border-border/70 bg-background/60 px-4 py-4" key={review.id}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
                             <ProfileLink userId={review.author.id}>
@@ -726,21 +612,13 @@ export function ModelDetailPage() {
                                 {review.author.displayName}
                               </ProfileLink>
                               <div className="text-[0.72rem] text-muted-foreground">
-                                {new Date(review.updatedAt).toLocaleString("zh-CN", {
-                                  hour12: false
-                                })}
+                                {new Date(review.updatedAt).toLocaleString("zh-CN", { hour12: false })}
                               </div>
                             </div>
                           </div>
-                          <div className="flex items-center gap-3">
-                            <RatingStars size="xs" value={review.rating} />
-                            <span className="text-[0.72rem] text-muted-foreground">
-                              继续交流见下方回复区
-                            </span>
-                          </div>
                         </div>
                         <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/78">
-                          {review.content ?? "只做了快速评分。"}
+                          {review.content ?? "这条评论暂未填写正文。"}
                         </p>
                         <ReviewCommentSection
                           canInteract={isAuthenticated}
@@ -750,7 +628,7 @@ export function ModelDetailPage() {
                       </div>
                     ))
                   ) : (
-                    <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开点评。</div>
+                    <div className="px-1 py-1 text-[0.82rem] text-muted-foreground">还没有公开评论。</div>
                   )}
                 </div>
               </div>
@@ -764,7 +642,7 @@ export function ModelDetailPage() {
               <SitePageEyebrow className="text-primary">热门机型</SitePageEyebrow>
               {hotModels.map((model, index) => (
                 <Link
-                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
+                  className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.slug}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
@@ -776,12 +654,6 @@ export function ModelDetailPage() {
                   <div className="min-w-0 space-y-1">
                     <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
                     <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
-                    <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
-                      {model.ratingSummary.averageScore.toFixed(1)}
-                    </div>
                   </div>
                 </Link>
               ))}

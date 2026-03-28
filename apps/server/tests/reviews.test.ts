@@ -89,18 +89,19 @@ describe("reviews flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 4,
-        content: "续航稳定，适合周末飞行。"
+        content: "Stable flight profile for weekend field tests."
       })
     });
 
     expect(createResponse.status).toBe(200);
     const created = (await createResponse.json()) as {
-      item: { id: string; rating: number };
-      summary: { totalReviews: number; averageScore: number };
+      item: { id: string; content: string | null };
+      summary: { totalReviews: number; myReview: { id: string } | null };
     };
-    expect(created.item.rating).toBe(4);
+    expect(created.item.content).toBe("Stable flight profile for weekend field tests.");
     expect(created.summary.totalReviews).toBe(beforePayload.summary.totalReviews + 1);
+    expect(created.summary.myReview?.id).toBe(created.item.id);
+    expect("averageScore" in created.summary).toBe(false);
 
     const updateResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
@@ -109,18 +110,17 @@ describe("reviews flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 5,
-        content: "更新后的点评。"
+        content: "Updated with a longer endurance note."
       })
     });
 
     const updated = (await updateResponse.json()) as {
-      item: { id: string; rating: number; content: string | null };
-      summary: { totalReviews: number; averageScore: number };
+      item: { id: string; content: string | null };
+      summary: { totalReviews: number };
     };
 
     expect(updated.item.id).toBe(created.item.id);
-    expect(updated.item.rating).toBe(5);
+    expect(updated.item.content).toBe("Updated with a longer endurance note.");
     expect(updated.summary.totalReviews).toBe(created.summary.totalReviews);
   });
 
@@ -134,8 +134,7 @@ describe("reviews flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 4,
-        content: "总体不错。"
+        content: "Overall handling feels predictable in crosswind."
       })
     });
 
@@ -146,13 +145,14 @@ describe("reviews flows", () => {
 
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
-      items: Array<{ id: string }>;
-      summary: { totalReviews: number; myReview: { rating: number } | null };
+      items: Array<{ id: string; content: string | null }>;
+      summary: { totalReviews: number; myReview: { id: string; content: string | null } | null };
     };
 
     expect(payload.items.length).toBeGreaterThan(0);
     expect(payload.summary.totalReviews).toBeGreaterThan(0);
-    expect(payload.summary.myReview?.rating).toBe(4);
+    expect(payload.summary.myReview?.id).toBeTruthy();
+    expect(payload.summary.myReview?.content).toBe("Overall handling feels predictable in crosswind.");
   });
 
   it("allows admin to hide a review from public list", async () => {
@@ -165,8 +165,7 @@ describe("reviews flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 3,
-        content: "需要进一步调校。"
+        content: "Needs further tuning before regular operation."
       })
     });
     const createdPayload = (await createdResponse.json()) as {
@@ -209,7 +208,6 @@ describe("reviews flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        rating: 4,
         content: "Solid climb profile in steady wind."
       })
     });

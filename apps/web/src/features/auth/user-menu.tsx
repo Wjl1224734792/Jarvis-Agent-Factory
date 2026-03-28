@@ -5,7 +5,8 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../../lib/api-client";
@@ -47,6 +48,7 @@ export function UserMenu() {
     <div className="flex items-center gap-2">
       <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-card/88 px-2.5 py-1.5 shadow-sm md:flex">
         <Avatar className="ring-2 ring-white/80" size="lg">
+          <AvatarImage alt={user.displayName} src={user.avatarUrl ?? getAvatarImage(user.id)} />
           <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
         </Avatar>
         <span className="pr-1 text-left sm:flex sm:flex-col">

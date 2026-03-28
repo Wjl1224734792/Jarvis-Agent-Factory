@@ -18,6 +18,7 @@ import {
 const sampleUser = {
   id: "user_1",
   displayName: "SkyCaptain",
+  avatarUrl: null,
   role: "user" as const
 };
 
@@ -70,55 +71,57 @@ describe("profile settings state helpers", () => {
 
   it("persists and reads scoped local settings per user", () => {
     const draft = markSettingsSaved(
-      updateSettingsField(createSettingsDraft(sampleUser), "bio", "按浏览器保存的简介"),
-      "已在本地保存 10:12"
+      updateSettingsField(createSettingsDraft(sampleUser), "bio", "Saved browser bio"),
+      "Saved 10:12"
     );
 
     persistSettingsDraft(sampleUser, draft);
 
     expect(window.localStorage.getItem(buildSettingsStorageKey(sampleUser))).toContain(
-      "按浏览器保存的简介"
+      "Saved browser bio"
     );
-    expect(readStoredSettingsDraft(sampleUser).bio).toBe("按浏览器保存的简介");
+    expect(readStoredSettingsDraft(sampleUser).bio).toBe("Saved browser bio");
   });
 
   it("migrates the legacy global key into the scoped key", () => {
     const legacyPayload = JSON.stringify({
-      bio: "旧版本地简介",
-      homeBase: "ZUUU / 成都"
+      bio: "Legacy local bio",
+      displayName: "Legacy Captain"
     });
 
     window.localStorage.setItem(SETTINGS_STORAGE_KEY, legacyPayload);
 
     const migrated = readStoredSettingsDraft(sampleUser);
 
-    expect(migrated.bio).toBe("旧版本地简介");
-    expect(migrated.homeBase).toBe("ZUUU / 成都");
+    expect(migrated.bio).toBe("Legacy local bio");
+    expect(migrated.displayName).toBe("Legacy Captain");
     expect(window.localStorage.getItem(SETTINGS_STORAGE_KEY)).toBeNull();
     expect(window.localStorage.getItem(buildSettingsStorageKey(sampleUser))).toBe(legacyPayload);
   });
 
   it("marks text edits as pending local changes", () => {
     const draft = createSettingsDraft(sampleUser);
-    const updated = updateSettingsField(draft, "homeBase", "ZSSS / Shanghai Hongqiao");
+    const updated = updateSettingsField(draft, "displayName", "Shanghai Captain");
 
-    expect(updated.homeBase).toBe("ZSSS / Shanghai Hongqiao");
+    expect(updated.displayName).toBe("Shanghai Captain");
     expect(updated.hasPendingChanges).toBe(true);
   });
 
   it("hydrates stored settings over defaults", () => {
     const draft = parseStoredSettingsDraft(
       JSON.stringify({
-        bio: "本地飞行简介",
-        homeBase: "ZSSS / Shanghai Hongqiao",
+        avatarUrl: "https://cdn.example.com/avatar.png",
+        bio: "Local profile bio",
+        displayName: "Updated Captain",
         visibility: "followers",
         notifyComments: false
       }),
       sampleUser
     );
 
-    expect(draft.bio).toBe("本地飞行简介");
-    expect(draft.homeBase).toBe("ZSSS / Shanghai Hongqiao");
+    expect(draft.avatarUrl).toBe("https://cdn.example.com/avatar.png");
+    expect(draft.bio).toBe("Local profile bio");
+    expect(draft.displayName).toBe("Updated Captain");
     expect(draft.visibility).toBe("followers");
     expect(draft.notifyComments).toBe(false);
   });
@@ -133,7 +136,7 @@ describe("profile settings state helpers", () => {
 
     expect(toggled.emailDigest).toBe(!draft.emailDigest);
     expect(saved.hasPendingChanges).toBe(false);
-    expect(saved.lastSavedLabel).toBe("已在本地保存 09:05");
+    expect(saved.lastSavedLabel).toBe("已保存 09:05");
   });
 
   it("updates visibility and keeps deletion messaging explicit", () => {
@@ -142,22 +145,24 @@ describe("profile settings state helpers", () => {
 
     expect(draft.visibility).toBe("private");
     expect(armed.hasPendingChanges).toBe(true);
-    expect(createDeletionMessage(draft)).toContain("不会向后端发起真正的注销请求");
-    expect(createDeletionMessage(armed)).toContain("后端接口支持");
+    expect(createDeletionMessage(draft)).toContain("注销意图");
+    expect(createDeletionMessage(armed)).toContain("继续完成");
   });
 
   it("maps saved profile copy into the profile view model", () => {
     const draft = parseStoredSettingsDraft(
       JSON.stringify({
-        bio: "浏览器中保存的简介",
-        homeBase: "ZGSZ / Shenzhen Bao'an"
+        bio: "Saved browser bio",
+        displayName: "Saved Captain",
+        avatarUrl: "https://cdn.example.com/saved.png"
       }),
       sampleUser
     );
 
     const profile = createProfileViewModel(sampleUser, draft);
 
-    expect(profile.bio).toBe("浏览器中保存的简介");
-    expect(profile.homeBase).toBe("ZGSZ / Shenzhen Bao'an");
+    expect(profile.bio).toBe("Saved browser bio");
+    expect(profile.displayName).toBe("Saved Captain");
+    expect(profile.avatarUrl).toBe("https://cdn.example.com/saved.png");
   });
 });

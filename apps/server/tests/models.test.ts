@@ -34,11 +34,17 @@ describe("models flows", () => {
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
       total: number;
-      items: Array<{ slug: string }>;
+      items: Array<{
+        slug: string;
+        reviewSummary: { totalReviews: number };
+        ratingSummary?: unknown;
+      }>;
     };
 
     expect(payload.total).toBeGreaterThan(0);
     expect(payload.items.some((item) => item.slug === "mini-4-pro")).toBe(true);
+    expect(payload.items[0]?.reviewSummary.totalReviews).toBeGreaterThanOrEqual(0);
+    expect(payload.items[0] && "ratingSummary" in payload.items[0]).toBe(false);
   });
 
   it("returns model detail", async () => {
@@ -48,11 +54,18 @@ describe("models flows", () => {
 
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
-      item: { slug: string; parameters: { maxFlightTimeMinutes: number | null } };
+      item: {
+        slug: string;
+        reviewSummary: { totalReviews: number };
+        ratingSummary?: unknown;
+        parameters: { maxFlightTimeMinutes: number | null };
+      };
     };
 
     expect(payload.item.slug).toBe("mini-4-pro");
     expect(payload.item.parameters.maxFlightTimeMinutes).toBe(45);
+    expect(payload.item.reviewSummary.totalReviews).toBeGreaterThanOrEqual(0);
+    expect("ratingSummary" in payload.item).toBe(false);
   });
 
   it("allows admin to create category, brand and model", async () => {
@@ -75,7 +88,7 @@ describe("models flows", () => {
       },
       body: JSON.stringify({
         slug: "tiltrotor",
-        name: "倾转旋翼",
+        name: "Tiltrotor",
         sortOrder: 2,
         isEnabled: true
       })
@@ -114,8 +127,8 @@ describe("models flows", () => {
         categoryId: categoryPayload.item.id,
         brandId: brandPayload.item.id,
         powerType: "electric",
-        summary: "面向低空物流与载人场景的倾转旋翼机型",
-        description: "适合验证新类别和品牌的管理流转",
+        summary: "Compact tiltrotor for logistics tests",
+        description: "Used to validate admin model management flow",
         maxFlightTimeMinutes: 25,
         maxRangeKilometers: 35,
         maxSpeedKph: 130,

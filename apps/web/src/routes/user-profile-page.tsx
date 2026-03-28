@@ -111,7 +111,10 @@ export function UserProfilePage() {
         </div>
         <SitePanelBody className="grid gap-4 lg:grid-cols-[auto_minmax(0,1fr)_15rem] lg:items-end">
           <Avatar className="-mt-10 size-24 rounded-[calc(var(--radius-panel)-0.08rem)] ring-4 ring-white" size="lg">
-            <AvatarImage alt={profile.user.displayName} src={getAvatarImage(profile.user.id)} />
+            <AvatarImage
+              alt={profile.user.displayName}
+              src={profile.user.avatarUrl ?? getAvatarImage(profile.user.id)}
+            />
             <AvatarFallback>{profile.user.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
 
@@ -250,7 +253,7 @@ export function UserProfilePage() {
               {!profile.viewer.isFollowing ? (
                 <Button className="w-full" disabled type="button" variant="outline">
                   <UserPlusIcon data-icon="inline-start" />
-                  关注功能后续接入
+                  关注能力整理中
                 </Button>
               ) : null}
               <Button asChild className="w-full" type="button" variant="hero">

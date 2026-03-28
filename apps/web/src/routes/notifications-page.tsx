@@ -228,8 +228,8 @@ export function NotificationsPage() {
 
                         <div className="flex items-start gap-3">
                       <ProfileLink userId={item.actor.id}>
-                        <Avatar className="size-11" size="lg">
-                          <AvatarImage alt={item.actor.displayName} src={getAvatarImage(item.actor.id)} />
+                          <Avatar className="size-11" size="lg">
+                          <AvatarImage alt={item.actor.displayName} src={item.actor.avatarUrl ?? getAvatarImage(item.actor.id)} />
                           <AvatarFallback>{item.actor.displayName.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                       </ProfileLink>
@@ -341,39 +341,24 @@ export function NotificationsPage() {
 
             <Card variant="muted">
               <CardHeader className="gap-2">
-                <CardTitle className="text-lg">提醒说明</CardTitle>
+                <CardTitle className="text-lg">快速入口</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
-                  {
-                    title: "关注提醒",
-                    description: "新的关系变化会先进入这里，再决定是否回访对方主页。",
-                    icon: UsersIcon
-                  },
-                  {
-                    title: "互动提醒",
-                    description: "点赞、收藏和分享统一归档，减少零散打断。",
-                    icon: SparklesIcon
-                  },
-                  {
-                    title: "评论提醒",
-                    description: "评论与回复会尽量直接带你回到原始讨论位置。",
-                    icon: MessageSquareTextIcon
-                  }
+                  { label: "查看个人主页", href: APP_ROUTES.webProfile, icon: UsersIcon },
+                  { label: "调整通知设置", href: APP_ROUTES.webSettings, icon: SparklesIcon }
                 ].map((item) => {
                   const Icon = item.icon;
 
                   return (
-                    <div
-                      className="rounded-[calc(var(--radius-panel)-0.2rem)] bg-background/72 px-4 py-4"
-                      key={item.title}
-                    >
-                      <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-                        <Icon className="size-4 text-primary" />
-                        {item.title}
-                      </div>
-                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.description}</p>
-                    </div>
+                    <Button asChild className="w-full justify-between" key={item.label} size="sm" variant="outline">
+                      <Link to={item.href}>
+                        <span className="inline-flex items-center gap-2">
+                          <Icon className="size-4 text-primary" />
+                          {item.label}
+                        </span>
+                      </Link>
+                    </Button>
                   );
                 })}
               </CardContent>

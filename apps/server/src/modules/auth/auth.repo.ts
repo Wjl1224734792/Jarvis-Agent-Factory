@@ -54,11 +54,14 @@ function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
   };
 }
 
-function toUserSummary(user: UserRecord): UserSummary {
+function toUserSummary(
+  user: Pick<typeof usersTable.$inferSelect, "id" | "displayName" | "avatarUrl" | "role">
+): UserSummary {
   return {
     id: user.id,
     displayName: user.displayName,
-    role: user.role
+    avatarUrl: user.avatarUrl ?? null,
+    role: user.role as AuthRole
   };
 }
 
@@ -248,6 +251,6 @@ export const authRepo = {
       return null;
     }
 
-    return toUserSummary(toUserRecord(user[0]));
+    return toUserSummary(user[0]);
   }
 };

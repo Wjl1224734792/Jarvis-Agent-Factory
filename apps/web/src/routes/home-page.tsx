@@ -12,7 +12,6 @@ import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
-import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -334,12 +333,15 @@ export function HomePage() {
                     <div className="min-w-0 space-y-1">
                       <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
                       <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
-                      <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
+                      <div className="text-[0.72rem] text-muted-foreground">
+                        {model.reviewSummary.totalReviews} 条评论
+                      </div>
                     </div>
                     <div className="text-right">
-                      <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
-                        {model.ratingSummary.averageScore.toFixed(1)}
+                      <div className="text-[1.05rem] font-semibold leading-none text-foreground">
+                        {model.reviewSummary.totalReviews}
                       </div>
+                      <div className="mt-1 text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">评论</div>
                     </div>
                   </Link>
                 ))

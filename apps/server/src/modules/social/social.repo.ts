@@ -28,6 +28,8 @@ export const socialRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
+        avatarUrl: usersTable.avatarUrl,
+        bio: usersTable.bio,
         role: usersTable.role
       })
       .from(usersTable)
@@ -206,7 +208,6 @@ export const socialRepo = {
     return db
       .select({
         id: aircraftReviewsTable.id,
-        rating: aircraftReviewsTable.rating,
         content: aircraftReviewsTable.content,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
@@ -305,10 +306,47 @@ export const socialRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
+        avatarUrl: usersTable.avatarUrl,
         role: usersTable.role
       })
       .from(usersTable)
       .where(inArray(usersTable.id, ids));
+  },
+  async getCurrentUserProfile(userId: string) {
+    const rows = await db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        bio: usersTable.bio,
+        avatarUrl: usersTable.avatarUrl
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, userId))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+  async updateCurrentUserProfile(
+    userId: string,
+    input: { displayName?: string; bio?: string | null; avatarUrl?: string | null }
+  ) {
+    const updates: Partial<typeof usersTable.$inferInsert> = {};
+
+    if (Object.prototype.hasOwnProperty.call(input, "displayName")) {
+      updates.displayName = input.displayName;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "bio")) {
+      updates.bio = input.bio ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
+      updates.avatarUrl = input.avatarUrl ?? null;
+    }
+
+    if (Object.keys(updates).length > 0) {
+      await db.update(usersTable).set(updates).where(eq(usersTable.id, userId));
+    }
+
+    return this.getCurrentUserProfile(userId);
   },
   async listPostsByIds(ids: string[]) {
     if (ids.length === 0) {

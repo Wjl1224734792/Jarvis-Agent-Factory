@@ -18,18 +18,18 @@ export function PublishShell(props: {
   className?: string;
 }) {
   return (
-    <SitePage className={props.className ?? "gap-5"}>
+    <SitePage className={props.className ?? "mx-auto w-full max-w-[72rem] gap-4"}>
       <SitePageHead>
         <SitePageEyebrow>{props.eyebrow}</SitePageEyebrow>
-        <SitePageTitle className="text-[2.35rem] md:text-[2.8rem]">{props.title}</SitePageTitle>
+        <SitePageTitle className="text-[2rem] md:text-[2.35rem]">{props.title}</SitePageTitle>
         {props.description ? (
-          <SitePageDescription className="max-w-[56rem] text-sm">{props.description}</SitePageDescription>
+          <SitePageDescription className="max-w-[44rem] text-sm">{props.description}</SitePageDescription>
         ) : null}
       </SitePageHead>
 
-      <SiteGrid className="xl:grid-cols-[minmax(0,1fr)_340px]" variant="default">
-        <div className="space-y-5">{props.main}</div>
-        <SiteRail>{props.aside}</SiteRail>
+      <SiteGrid className="items-start xl:grid-cols-[minmax(0,1fr)_18rem]" variant="default">
+        <div className="space-y-4">{props.main}</div>
+        <SiteRail className="top-[5.4rem]">{props.aside}</SiteRail>
       </SiteGrid>
     </SitePage>
   );

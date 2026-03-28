@@ -37,8 +37,7 @@ export const aircraftModelsRepo = {
         name: aircraftModelsTable.name,
         summary: aircraftModelsTable.summary,
         powerType: aircraftModelsTable.powerType,
-        ratingSummary: {
-          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+        reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
         category: {
@@ -81,8 +80,7 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
-        ratingSummary: {
-          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+        reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
         maxFlightTimeMinutes: aircraftModelsTable.maxFlightTimeMinutes,
@@ -198,8 +196,7 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
-        ratingSummary: {
-          averageScore: sql<number>`cast(coalesce(avg(case when ${aircraftReviewsTable.status} = 'visible' then ${aircraftReviewsTable.rating} end) * 2, 0) as float)`,
+        reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
         maxFlightTimeMinutes: aircraftModelsTable.maxFlightTimeMinutes,

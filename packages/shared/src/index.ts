@@ -86,6 +86,7 @@ export const API_ROUTES = {
     videos: "/uploads/videos"
   },
   users: {
+    meProfile: "/users/me/profile",
     profile: (userId: string) => `/users/${userId}/profile`,
     content: (userId: string) => `/users/${userId}/content`
   },

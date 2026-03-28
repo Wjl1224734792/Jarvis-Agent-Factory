@@ -251,6 +251,19 @@ describe("posts and social flows", () => {
 
     expect(followResponse.status).toBe(200);
 
+    const notificationsResponse = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: {
+        cookie: authorCookie
+      }
+    });
+    expect(notificationsResponse.status).toBe(200);
+    const notificationsPayload = (await notificationsResponse.json()) as {
+      items: Array<{ actor: { avatarUrl: string | null } }>;
+    };
+    expect(notificationsPayload.items.length).toBeGreaterThan(0);
+    expect(notificationsPayload.items.every((item) => item.actor.avatarUrl === null)).toBe(true);
+
     const followingFeedResponse = await app.request(`${API_ROUTES.circleFeed}?tab=following`, {
       method: "GET",
       headers: {
@@ -363,6 +376,18 @@ describe("posts and social flows", () => {
     const adminCookie = await loginAdmin();
     await publishPost(adminCookie, created.item.id);
 
+    const reviewCreateResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "POST",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Added review item for aggregated profile content checks."
+      })
+    });
+    expect(reviewCreateResponse.status).toBe(200);
+
     const followerCookie = await loginWebUser("13800138012");
     const followResponse = await app.request(API_ROUTES.social.follow(created.item.author.id), {
       method: "POST",
@@ -376,7 +401,11 @@ describe("posts and social flows", () => {
     });
     expect(profileResponse.status).toBe(200);
     const profilePayload = (await profileResponse.json()) as {
-      item: { postCount: number; viewer: { isFollowing: boolean } };
+      item: {
+        user: { avatarUrl: string | null };
+        postCount: number;
+        viewer: { isFollowing: boolean };
+      };
     };
 
     const contentResponse = await app.request(API_ROUTES.users.content(created.item.author.id), {
@@ -385,11 +414,22 @@ describe("posts and social flows", () => {
     });
     expect(contentResponse.status).toBe(200);
     const contentPayload = (await contentResponse.json()) as {
-      items: Array<{ type: string; id: string }>;
+      items: Array<
+        | { type: "post"; id: string }
+        | { type: "review"; id: string; content: string | null; rating?: unknown }
+        | { type: string; id: string }
+      >;
     };
 
     expect(profilePayload.item.viewer.isFollowing).toBe(true);
+    expect(profilePayload.item.user.avatarUrl).toBeNull();
     expect(profilePayload.item.postCount).toBeGreaterThan(0);
     expect(contentPayload.items.some((item) => item.type === "post" && item.id === created.item.id)).toBe(true);
+    const reviewItem = contentPayload.items.find((item) => item.type === "review");
+    expect(reviewItem?.type).toBe("review");
+    if (reviewItem?.type === "review") {
+      expect("rating" in reviewItem).toBe(false);
+    }
   });
 });
+

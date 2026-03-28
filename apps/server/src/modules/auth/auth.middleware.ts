@@ -6,6 +6,7 @@ export type AuthVariables = {
   currentUser: {
     id: string;
     displayName: string;
+    avatarUrl: string | null;
     role: "user" | "admin";
   } | null;
 };

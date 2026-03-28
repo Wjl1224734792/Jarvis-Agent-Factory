@@ -57,6 +57,27 @@ export const userProfileResponseSchema = z.object({
   item: userProfileSchema
 });
 
+export const currentUserProfileSchema = z.object({
+  id: z.string().min(1),
+  displayName: z.string().trim().min(1).max(50),
+  bio: z.string().trim().max(300).nullable(),
+  avatarUrl: z.string().trim().min(1).nullable()
+});
+
+export const currentUserProfileResponseSchema = z.object({
+  item: currentUserProfileSchema
+});
+
+export const updateCurrentUserProfileInputSchema = z
+  .object({
+    displayName: z.string().trim().min(1).max(50).optional(),
+    bio: z.string().trim().max(300).nullable().optional(),
+    avatarUrl: z.string().trim().min(1).nullable().optional()
+  })
+  .refine((input) => Object.keys(input).length > 0, {
+    message: "At least one profile field is required."
+  });
+
 export const userContentPostItemSchema = z.object({
   type: z.literal("post"),
   id: z.string().min(1),
@@ -80,7 +101,6 @@ export const userContentFavoritePostItemSchema = z.object({
 export const userContentReviewItemSchema = z.object({
   type: z.literal("review"),
   id: z.string().min(1),
-  rating: z.number().int().min(1).max(5),
   content: z.string().nullable(),
   model: z.object({
     id: z.string().min(1),

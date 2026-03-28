@@ -102,6 +102,7 @@ export const socialService = {
             actor: {
               id: actor.id,
               displayName: actor.displayName,
+              avatarUrl: actor.avatarUrl ?? null,
               role: actor.role as "user" | "admin"
             },
             post: post
@@ -157,6 +158,7 @@ export const socialService = {
         user: {
           id: user.id,
           displayName: user.displayName,
+          avatarUrl: user.avatarUrl ?? null,
           role: user.role as "user" | "admin"
         },
         followerCount,
@@ -226,7 +228,6 @@ export const socialService = {
       ...reviews.map((review) => ({
         type: "review" as const,
         id: review.id,
-        rating: review.rating,
         content: review.content,
         model: review.model,
         createdAt: review.createdAt.toISOString(),
@@ -235,5 +236,38 @@ export const socialService = {
     ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
 
     return { items };
+  },
+  async getCurrentUserProfile(currentUserId: string) {
+    const user = await socialRepo.getCurrentUserProfile(currentUserId);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      item: {
+        id: user.id,
+        displayName: user.displayName,
+        bio: user.bio ?? null,
+        avatarUrl: user.avatarUrl ?? null
+      }
+    };
+  },
+  async updateCurrentUserProfile(
+    currentUserId: string,
+    input: { displayName?: string; bio?: string | null; avatarUrl?: string | null }
+  ) {
+    const user = await socialRepo.updateCurrentUserProfile(currentUserId, input);
+    if (!user) {
+      return null;
+    }
+
+    return {
+      item: {
+        id: user.id,
+        displayName: user.displayName,
+        bio: user.bio ?? null,
+        avatarUrl: user.avatarUrl ?? null
+      }
+    };
   }
 };

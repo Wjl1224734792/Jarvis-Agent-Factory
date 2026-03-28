@@ -100,9 +100,10 @@ describe("auth flows", () => {
     });
     expect(meResponse.status).toBe(200);
     const mePayload = (await meResponse.json()) as {
-      user: { role: string } | null;
+      user: { role: string; avatarUrl: string | null } | null;
     };
     expect(mePayload.user?.role).toBe("user");
+    expect(mePayload.user?.avatarUrl ?? null).toBeNull();
 
     const logoutResponse = await app.request(API_ROUTES.auth.logout, {
       method: "POST",
@@ -116,6 +117,87 @@ describe("auth flows", () => {
     });
     const meAfterPayload = (await meAfterLogout.json()) as { user: unknown };
     expect(meAfterPayload.user).toBeNull();
+  });
+
+  it("supports reading and updating current user profile", async () => {
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138009",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138009",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText,
+        smsCode: smsPayload.mockCode
+      })
+    });
+    const cookie = extractCookie(loginResponse.headers.get("set-cookie"));
+
+    const beforeResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(beforeResponse.status).toBe(200);
+    const beforePayload = (await beforeResponse.json()) as {
+      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+    };
+    expect(beforePayload.item.displayName).toBeTruthy();
+    expect(beforePayload.item.bio).toBeNull();
+    expect(beforePayload.item.avatarUrl).toBeNull();
+
+    const updateResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        displayName: "Profile Pilot",
+        bio: "Low altitude test profile.",
+        avatarUrl: "https://cdn.example.com/avatar/profile-pilot.png"
+      })
+    });
+    expect(updateResponse.status).toBe(200);
+
+    const updatedPayload = (await updateResponse.json()) as {
+      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+    };
+    expect(updatedPayload.item.displayName).toBe("Profile Pilot");
+    expect(updatedPayload.item.bio).toBe("Low altitude test profile.");
+    expect(updatedPayload.item.avatarUrl).toBe(
+      "https://cdn.example.com/avatar/profile-pilot.png"
+    );
+
+    const afterResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const afterPayload = (await afterResponse.json()) as {
+      item: { displayName: string; bio: string | null; avatarUrl: string | null };
+    };
+    expect(afterPayload.item.displayName).toBe("Profile Pilot");
+    expect(afterPayload.item.bio).toBe("Low altitude test profile.");
+    expect(afterPayload.item.avatarUrl).toBe(
+      "https://cdn.example.com/avatar/profile-pilot.png"
+    );
   });
 
   it("rejects protected route without session", async () => {

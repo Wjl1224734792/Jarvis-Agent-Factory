@@ -2,9 +2,14 @@ import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { Link, useSearchParams } from "react-router-dom";
-import { ModelGridSkeleton } from "@/components/page-skeletons";
-import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
-import { SitePage } from "@/components/site-shell";
+import { MODEL_GRID_CLASS_NAME, ModelGridSkeleton } from "@/components/page-skeletons";
+import {
+  SitePage,
+  SitePageDescription,
+  SitePageEyebrow,
+  SitePageHead,
+  SitePageTitle
+} from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
@@ -26,46 +31,7 @@ function ensureOtherOption<T extends FilterOption>(items: T[]): T[] {
     return items;
   }
 
-  return [
-    ...items,
-    {
-      slug: "other",
-      name: "其他"
-    } as T
-  ];
-}
-
-function ModelCard({ model, index }: { model: ModelListItem; index: number }) {
-  return (
-    <Link
-      className="group block min-w-0 rounded-[0.95rem] border border-transparent px-1.5 py-1.5 transition hover:border-primary/24 hover:bg-sky-50/55"
-      to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
-    >
-      <div className="overflow-hidden rounded-[0.9rem] border border-border/70 transition duration-200 group-hover:border-primary/30 group-hover:shadow-[var(--shadow-panel)]">
-        <img
-          alt={model.name}
-          className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.02]"
-          src={getModelImage(model.slug, model.powerType, index)}
-        />
-      </div>
-      <div className="space-y-2 px-0.5 pb-0.5 pt-2.5">
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[0.7rem] font-medium uppercase tracking-[0.2em] text-muted-foreground">
-              {model.brand.name}
-            </div>
-            <div className="line-clamp-2 text-[1rem] leading-[1.35rem] font-semibold text-foreground">
-              {model.name}
-            </div>
-          </div>
-          <div className="text-right text-[1.2rem] font-semibold leading-none text-rating-blue">
-            {model.ratingSummary.averageScore.toFixed(1)}
-          </div>
-        </div>
-        <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
-      </div>
-    </Link>
-  );
+  return [...items, { slug: "other", name: "其他" } as T];
 }
 
 function FilterLabel({ label }: { label: string }) {
@@ -85,6 +51,34 @@ function FilterChip(props: { label: string; active: boolean; onClick: () => void
     >
       {props.label}
     </button>
+  );
+}
+
+function ModelCard({ model, index }: { model: ModelListItem; index: number }) {
+  return (
+    <Link
+      className="group block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3 shadow-[var(--shadow-soft)] transition hover:border-primary/24 hover:bg-sky-50/45"
+      to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
+    >
+      <div className="overflow-hidden rounded-[0.9rem] border border-border/70">
+        <img
+          alt={model.name}
+          className="aspect-square w-full object-cover transition duration-200 group-hover:scale-[1.02]"
+          src={getModelImage(model.slug, model.powerType, index)}
+        />
+      </div>
+      <div className="space-y-2 px-0.5 pb-0.5 pt-3">
+        <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+          {model.brand.name}
+        </div>
+        <div className="line-clamp-2 text-[0.98rem] leading-6 font-semibold text-foreground">
+          {model.name}
+        </div>
+        <div className="text-sm leading-6 text-muted-foreground">
+          {model.summary ?? `${model.category.name} · ${powerTypeLabels[model.powerType]}`}
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -158,8 +152,14 @@ export function ModelsPage() {
   const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
 
   return (
-    <SitePage className="gap-5">
-      <div className="space-y-3 border-b border-border/60 pb-4">
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+      <SitePageHead>
+        <SitePageEyebrow>飞行器库</SitePageEyebrow>
+        <SitePageTitle>机型与品牌</SitePageTitle>
+        <SitePageDescription>按分类、品牌和动力方式快速筛选，列表保持紧凑浏览。</SitePageDescription>
+      </SitePageHead>
+
+      <div className="space-y-3 rounded-[0.95rem] border border-border bg-white px-4 py-4 shadow-[var(--shadow-soft)]">
         <div className="flex flex-wrap items-center gap-2">
           <FilterLabel label="分类" />
           <FilterChip active={!categorySlug} label="全部" onClick={() => updateParams({ categorySlug: null })} />
@@ -209,18 +209,13 @@ export function ModelsPage() {
 
       {(modelsQuery.isSuccess || isGridLoading) ? (
         <>
-          <div className="text-[0.82rem] text-muted-foreground">
-            当前共 {modelsQuery.data?.total ?? 0} 个机型
-          </div>
+          <div className="text-sm text-muted-foreground">当前共 {modelsQuery.data?.total ?? 0} 个机型</div>
 
           <div className="relative">
             {isGridLoading ? (
               <ModelGridSkeleton count={8} />
             ) : (
-              <div
-                className="grid justify-start gap-x-4 gap-y-5"
-                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
-              >
+              <div className={MODEL_GRID_CLASS_NAME}>
                 {modelsQuery.data?.items.map((model, index) => (
                   <ModelCard index={index} key={model.id} model={model} />
                 ))}
@@ -237,7 +232,7 @@ export function ModelsPage() {
           {modelsQuery.data && modelsQuery.data.items.length === 0 ? (
             <Alert>
               <AlertTitle>没有匹配机型</AlertTitle>
-              <AlertDescription>可以清空筛选后重新浏览。</AlertDescription>
+              <AlertDescription>可以清空筛选条件后重新浏览。</AlertDescription>
             </Alert>
           ) : null}
         </>

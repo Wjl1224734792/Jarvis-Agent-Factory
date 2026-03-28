@@ -26,8 +26,7 @@ describe("models contract", () => {
           name: "DJI Mini 4 Pro",
           summary: "轻量级航拍无人机",
           powerType: "electric",
-          ratingSummary: {
-            averageScore: 8.8,
+          reviewSummary: {
             totalReviews: 12
           },
           category: {
@@ -80,8 +79,7 @@ describe("models contract", () => {
         description: "适合轻量化航拍场景。",
         powerType: "electric",
         isPublished: true,
-        ratingSummary: {
-          averageScore: 8.8,
+        reviewSummary: {
           totalReviews: 12
         },
         category: {

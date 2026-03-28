@@ -6,7 +6,6 @@ export const reviewRatingSchema = z.number().int().min(1).max(5);
 
 export const modelReviewSchema = z.object({
   id: z.string().min(1),
-  rating: reviewRatingSchema,
   content: z.string().nullable(),
   status: reviewStatusSchema,
   createdAt: z.string().datetime(),
@@ -14,25 +13,23 @@ export const modelReviewSchema = z.object({
   author: userSummarySchema
 });
 
-export const modelRatingSummarySchema = z.object({
-  averageScore: z.number().min(0).max(10),
+export const modelReviewSummarySchema = z.object({
   totalReviews: z.number().int().nonnegative(),
   myReview: modelReviewSchema.nullable()
 });
 
 export const submitModelReviewInputSchema = z.object({
-  rating: reviewRatingSchema,
-  content: z.string().trim().max(1000).nullable()
+  content: z.string().trim().min(1).max(1000)
 });
 
 export const submitModelReviewResponseSchema = z.object({
   item: modelReviewSchema,
-  summary: modelRatingSummarySchema
+  summary: modelReviewSummarySchema
 });
 
 export const modelReviewsResponseSchema = z.object({
   items: z.array(modelReviewSchema),
-  summary: modelRatingSummarySchema
+  summary: modelReviewSummarySchema
 });
 
 export const adminReviewListItemSchema = modelReviewSchema.extend({

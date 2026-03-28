@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { FileImageIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
@@ -61,10 +61,12 @@ export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
@@ -88,6 +90,7 @@ export function PublishArticlePage() {
         summary?: string;
         editorHtml?: string;
         categoryId?: string;
+        coverImage?: UploadedImage | null;
         uploadedImages?: UploadedImage[];
         uploadedVideos?: UploadedVideo[];
       };
@@ -96,6 +99,7 @@ export function PublishArticlePage() {
       setSummary(parsed.summary ?? "");
       setEditorHtml(parsed.editorHtml ?? "");
       setCategoryId(parsed.categoryId ?? "");
+      setCoverImage(parsed.coverImage ?? null);
       setUploadedImages(parsed.uploadedImages ?? []);
       setUploadedVideos(parsed.uploadedVideos ?? []);
     } catch {
@@ -114,7 +118,7 @@ export function PublishArticlePage() {
     () => [summary.trim(), extractPlainText(editorHtml)].filter(Boolean).join("\n\n"),
     [editorHtml, summary]
   );
-  const coverUrl = uploadedImages[0]?.url ?? getEditorialImage("article-publish");
+  const coverUrl = coverImage?.url ?? uploadedImages[0]?.url ?? getEditorialImage("article-publish");
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
 
@@ -188,6 +192,31 @@ export function PublishArticlePage() {
     }
   }
 
+  async function uploadCoverImage(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setError(null);
+    setIsUploadingMedia(true);
+
+    try {
+      const uploaded = await apiClient.uploadPostImage(file);
+      setCoverImage({
+        id: uploaded.item.id,
+        url: uploaded.item.url,
+        fileName: uploaded.item.fileName
+      });
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "封面上传失败");
+    } finally {
+      setIsUploadingMedia(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    }
+  }
+
   function saveDraft() {
     window.localStorage.setItem(
       ARTICLE_DRAFT_KEY,
@@ -196,6 +225,7 @@ export function PublishArticlePage() {
         summary,
         editorHtml,
         categoryId,
+        coverImage,
         uploadedImages,
         uploadedVideos
       })
@@ -238,6 +268,34 @@ export function PublishArticlePage() {
                     {item.name}
                   </button>
                 ))}
+              </div>
+
+              <div className="space-y-3 rounded-[0.9rem] border border-border/70 bg-background/72 p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm font-medium text-foreground">文章封面</div>
+                  <Button
+                    onClick={() => coverInputRef.current?.click()}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <FileImageIcon data-icon="inline-start" />
+                    {isUploadingMedia ? "上传中..." : "上传封面"}
+                  </Button>
+                </div>
+                <div className="overflow-hidden rounded-[0.9rem] border border-dashed border-border/70 bg-card">
+                  <img alt="cover preview" className="h-44 w-full object-cover" src={coverUrl} />
+                </div>
+                <div className="text-xs text-muted-foreground">封面会优先展示在文章卡片和发布结果页。</div>
+                <input
+                  accept="image/*"
+                  className="hidden"
+                  onChange={(event) => {
+                    void uploadCoverImage(event.target.files?.[0] ?? null);
+                  }}
+                  ref={coverInputRef}
+                  type="file"
+                />
               </div>
 
               <Textarea
@@ -341,7 +399,9 @@ export function PublishArticlePage() {
                       content: articleText,
                       contentHtml: articleHtml,
                       contentCategoryId: categoryId,
-                      imageIds: uploadedImages.map((item) => item.id),
+                      imageIds: Array.from(
+                        new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))
+                      ) as string[],
                       videoIds: uploadedVideos.map((item) => item.id)
                     })
                     .then((payload) => {
@@ -354,7 +414,7 @@ export function PublishArticlePage() {
                         state: {
                           title,
                           description: summary,
-                          imageUrl: uploadedImages[0]?.url ?? null
+                          imageUrl: coverImage?.url ?? uploadedImages[0]?.url ?? null
                         }
                       });
                     })

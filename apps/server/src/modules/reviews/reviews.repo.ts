@@ -25,7 +25,6 @@ export const reviewsRepo = {
   async upsertReview(input: {
     modelId: string;
     userId: string;
-    rating: number;
     content: string | null;
   }) {
     const existing = await db
@@ -43,7 +42,7 @@ export const reviewsRepo = {
       await db
         .update(aircraftReviewsTable)
         .set({
-          rating: input.rating,
+          rating: null,
           content: input.content,
           updatedAt: new Date()
         })
@@ -58,7 +57,7 @@ export const reviewsRepo = {
       id,
       modelId: input.modelId,
       userId: input.userId,
-      rating: input.rating,
+      rating: null,
       content: input.content,
       status: "visible"
     });
@@ -69,7 +68,6 @@ export const reviewsRepo = {
     const rows = await db
       .select({
         id: aircraftReviewsTable.id,
-        rating: aircraftReviewsTable.rating,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
         createdAt: aircraftReviewsTable.createdAt,
@@ -77,6 +75,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         },
         model: {
@@ -97,7 +96,6 @@ export const reviewsRepo = {
     return db
       .select({
         id: aircraftReviewsTable.id,
-        rating: aircraftReviewsTable.rating,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
         createdAt: aircraftReviewsTable.createdAt,
@@ -105,6 +103,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -122,7 +121,6 @@ export const reviewsRepo = {
     const rows = await db
       .select({
         id: aircraftReviewsTable.id,
-        rating: aircraftReviewsTable.rating,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
         createdAt: aircraftReviewsTable.createdAt,
@@ -130,6 +128,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -145,11 +144,10 @@ export const reviewsRepo = {
 
     return rows[0] ?? null;
   },
-  async getRatingAggregate(modelId: string) {
+  async getReviewAggregate(modelId: string) {
     const rows = await db
       .select({
-        totalReviews: sql<number>`count(*)`,
-        averageRaw: sql<number>`coalesce(avg(${aircraftReviewsTable.rating}), 0)`
+        totalReviews: sql<number>`count(*)`
       })
       .from(aircraftReviewsTable)
       .where(
@@ -159,13 +157,12 @@ export const reviewsRepo = {
         )
       );
 
-    return rows[0] ?? { totalReviews: 0, averageRaw: 0 };
+    return rows[0] ?? { totalReviews: 0 };
   },
   async listAdminReviews() {
     return db
       .select({
         id: aircraftReviewsTable.id,
-        rating: aircraftReviewsTable.rating,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
         createdAt: aircraftReviewsTable.createdAt,
@@ -173,6 +170,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         },
         model: {
@@ -206,6 +204,7 @@ export const reviewsRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
+        avatarUrl: usersTable.avatarUrl,
         role: usersTable.role
       })
       .from(usersTable)
@@ -226,6 +225,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
@@ -249,6 +249,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
+          avatarUrl: usersTable.avatarUrl,
           role: usersTable.role
         }
       })
