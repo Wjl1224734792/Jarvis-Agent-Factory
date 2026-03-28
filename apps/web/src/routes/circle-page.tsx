@@ -104,23 +104,6 @@ export function CirclePage() {
         </div>
       </div>
 
-      {feedQuery.isLoading ? (
-        <div className="max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
-          {Array.from({ length: 8 }).map((_, index) => (
-            <div className="mb-3 break-inside-avoid" key={index}>
-              <div
-                className={`animate-pulse rounded-[0.85rem] bg-muted ${
-                  index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
-                }`}
-              />
-              <div className="mt-2 space-y-2">
-                <div className="h-4 w-4/5 animate-pulse rounded bg-muted" />
-              </div>
-            </div>
-          ))}
-        </div>
-      ) : null}
-
       {feedQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>飞友圈加载失败</AlertTitle>
@@ -215,8 +198,7 @@ export function CirclePage() {
                         <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
                           {new Date(selectedNote.publishedAt ?? selectedNote.createdAt).toLocaleDateString("zh-CN")}
                         </div>
-                        登录后评论
-                      </Button>
+                      </div>
                     </div>
 
                     {!selectedNote.engagement.viewer.isAuthor ? (
@@ -363,8 +345,8 @@ export function CirclePage() {
                         type="button"
                         variant="outline"
                       >
-                        登录后可参与评论。
-                      </div>
+                        登录后评论
+                      </Button>
                     )}
 
                     <div className="mt-3 flex items-center justify-between gap-3">

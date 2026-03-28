@@ -203,8 +203,6 @@ export function RankingItemDetailPage() {
                   type="button"
                   variant="outline"
                 >
-                  <AlertTitle>登录后可点评</AlertTitle>
-                  <AlertDescription>需要先登录，才能选择星级并发布点评。</AlertDescription>
                   登录后点评
                 </Button>
               )}
@@ -238,6 +236,14 @@ export function RankingItemDetailPage() {
                       <button
                         className="text-[0.72rem] text-primary"
                         onClick={() => {
+                          if (
+                            !promptLogin({
+                              title: "登录后才能回复点评",
+                              description: "回复前请先登录。"
+                            })
+                          ) {
+                            return;
+                          }
                           setReplyTarget(comment.author.displayName);
                           setCommentContent((current) =>
                             current.startsWith(`@${comment.author.displayName}`)

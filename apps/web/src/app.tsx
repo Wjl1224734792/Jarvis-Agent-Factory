@@ -2,6 +2,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { LoginPage } from "./features/auth/login-page";
+import { ProfilePage } from "./features/auth/profile-page";
+import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
 import { WEB_ROUTE_PATHS } from "./lib/web-routes";
@@ -9,6 +11,7 @@ import { CirclePage } from "./routes/circle-page";
 import { HomePage } from "./routes/home-page";
 import { ModelDetailPage } from "./routes/model-detail-page";
 import { ModelsPage } from "./routes/models-page";
+import { NotificationsPage } from "./routes/notifications-page";
 import { PostDetailPage } from "./routes/post-detail-page";
 import { PublishAircraftPage } from "./routes/publish-aircraft-page";
 import { PublishArticlePage } from "./routes/publish-article-page";
@@ -18,6 +21,7 @@ import { RankingDetailPage } from "./routes/ranking-detail-page";
 import { RankingEditorPage } from "./routes/ranking-editor-page";
 import { RankingItemDetailPage } from "./routes/ranking-item-detail-page";
 import { RankingsPage } from "./routes/rankings-page";
+import { SettingsPage } from "./routes/settings-page";
 
 const router = createBrowserRouter([
   {
@@ -39,6 +43,30 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.webLogin.slice(1),
         element: <LoginPage />
+      },
+      {
+        path: APP_ROUTES.webProfile.slice(1),
+        element: (
+          <ProtectedRoute>
+            <ProfilePage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: APP_ROUTES.webSettings.slice(1),
+        element: (
+          <ProtectedRoute>
+            <SettingsPage />
+          </ProtectedRoute>
+        )
+      },
+      {
+        path: APP_ROUTES.notifications.slice(1),
+        element: (
+          <ProtectedRoute>
+            <NotificationsPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: APP_ROUTES.models.slice(1),

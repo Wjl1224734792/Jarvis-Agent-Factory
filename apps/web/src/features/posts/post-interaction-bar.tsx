@@ -1,4 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
+import { APP_ROUTES } from "@feijia/shared";
 import { Bookmark, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

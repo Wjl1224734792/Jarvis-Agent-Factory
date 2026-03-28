@@ -134,12 +134,11 @@ export function PostDetailPage() {
               <div className="min-w-0">
                 <div className="text-sm font-medium text-foreground">{item.author.displayName}</div>
                 <div className="text-xs text-muted-foreground">
-                  {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} 路
+                  {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
                 </div>
               </div>
-              登录后评论
-            </Button>
+            </div>
 
             {!item.engagement.viewer.isAuthor ? (
               <Button
@@ -278,7 +277,6 @@ export function PostDetailPage() {
       <section className="space-y-4 border-t border-border/60 pt-6">
         <div className="space-y-1">
           <div className="text-lg font-semibold text-foreground">评论 {item.commentCount}</div>
-          <div className="text-sm text-muted-foreground">评论列表使用紧凑边框样式，回复默认折叠。</div>
         </div>
 
         {item.comments.length > 0 ? (
@@ -308,8 +306,8 @@ export function PostDetailPage() {
               type="button"
               variant="outline"
             >
-              登录后即可参与评论。
-            </div>
+              登录后评论
+            </Button>
           ) : item.status !== "published" ? (
             <div className="border border-border/60 px-3 py-2 text-sm text-muted-foreground">
               只有已发布的帖子才允许继续评论。
