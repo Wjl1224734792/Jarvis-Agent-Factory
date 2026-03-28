@@ -1,8 +1,8 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { Link, useSearchParams } from "react-router-dom";
-import { ListPageSkeleton } from "@/components/page-skeletons";
+import { ModelGridSkeleton } from "@/components/page-skeletons";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -96,6 +96,7 @@ export function ModelsPage() {
 
   const modelsQuery = useQuery({
     queryKey: ["models", categorySlug, brandSlug, powerTypes],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       apiClient.listModels({
         categorySlug: categorySlug ?? undefined,
@@ -153,9 +154,8 @@ export function ModelsPage() {
     updateParams({ powerTypes: nextPowerTypes });
   }
 
-  if (modelsQuery.isLoading) {
-    return <ListPageSkeleton rows={6} />;
-  }
+  const isGridLoading = modelsQuery.isLoading && !modelsQuery.data;
+  const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
 
   return (
     <SitePage className="gap-5">
@@ -207,20 +207,34 @@ export function ModelsPage() {
         </Alert>
       ) : null}
 
-      {modelsQuery.isSuccess ? (
+      {(modelsQuery.isSuccess || isGridLoading) ? (
         <>
-          <div className="text-[0.82rem] text-muted-foreground">当前共 {modelsQuery.data.total} 个机型</div>
-
-          <div
-            className="grid justify-start gap-x-4 gap-y-5"
-            style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
-          >
-            {modelsQuery.data.items.map((model, index) => (
-              <ModelCard index={index} key={model.id} model={model} />
-            ))}
+          <div className="text-[0.82rem] text-muted-foreground">
+            当前共 {modelsQuery.data?.total ?? 0} 个机型
           </div>
 
-          {modelsQuery.data.items.length === 0 ? (
+          <div className="relative">
+            {isGridLoading ? (
+              <ModelGridSkeleton count={8} />
+            ) : (
+              <div
+                className="grid justify-start gap-x-4 gap-y-5"
+                style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
+              >
+                {modelsQuery.data?.items.map((model, index) => (
+                  <ModelCard index={index} key={model.id} model={model} />
+                ))}
+              </div>
+            )}
+
+            {isGridRefreshing ? (
+              <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
+                <ModelGridSkeleton count={8} />
+              </div>
+            ) : null}
+          </div>
+
+          {modelsQuery.data && modelsQuery.data.items.length === 0 ? (
             <Alert>
               <AlertTitle>没有匹配机型</AlertTitle>
               <AlertDescription>可以清空筛选后重新浏览。</AlertDescription>

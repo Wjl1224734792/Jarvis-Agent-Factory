@@ -46,6 +46,8 @@ import {
   modelDetailResponseSchema,
   modelListQuerySchema,
   modelListResponseSchema,
+  createReviewCommentInputSchema,
+  createReviewCommentResponseSchema,
   modelReviewsResponseSchema,
   notificationsResponseSchema,
   postDetailResponseSchema,
@@ -53,6 +55,7 @@ import {
   rankingItemDetailResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
+  reviewCommentsResponseSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
@@ -62,9 +65,12 @@ import {
   submitRankingItemRatingResponseSchema,
   submitRankingItemReviewInputSchema,
   submitRankingItemReviewResponseSchema,
+  userContentResponseSchema,
+  userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
   updateReviewStatusInputSchema,
   uploadPostImageResponseSchema,
+  uploadPostVideoResponseSchema,
   webLoginRequestSchema,
   type HealthResponse,
   type UserSummary
@@ -92,6 +98,7 @@ type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSc
 type UpdateAdminPostCommentStatusInput =
   Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
+type CreateReviewCommentInput = Parameters<typeof createReviewCommentInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
@@ -307,6 +314,18 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, uploadPostImageResponseSchema);
     },
+    async uploadPostVideo(file: File) {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const response = await fetch(`${baseUrl}${API_ROUTES.uploads.videos}`, {
+        method: "POST",
+        credentials: "include",
+        body: formData
+      });
+
+      return readJson(response, uploadPostVideoResponseSchema);
+    },
     async getPostDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {
         method: "GET",
@@ -377,6 +396,22 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, actionSuccessResponseSchema);
+    },
+    async getUserProfile(userId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.users.profile(userId)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, userProfileResponseSchema);
+    },
+    async listUserContent(userId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.users.content(userId)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, userContentResponseSchema);
     },
     async listContentCategories() {
       const response = await fetch(`${baseUrl}${API_ROUTES.content.categories}`, {
@@ -566,6 +601,32 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, modelReviewsResponseSchema);
+    },
+    async listReviewComments(reviewId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviewComments(reviewId)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, reviewCommentsResponseSchema);
+    },
+    async createReviewComment(reviewId: string, input: CreateReviewCommentInput) {
+      return postJson(
+        API_ROUTES.models.reviewComments(reviewId),
+        createReviewCommentResponseSchema,
+        createReviewCommentInputSchema.parse(input)
+      );
+    },
+    async deleteReviewComment(reviewId: string, commentId: string) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.models.reviewCommentDetail(reviewId, commentId)}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, actionSuccessResponseSchema);
     },
     async submitModelReview(slug: string, input: SubmitReviewInput) {
       return postJson(

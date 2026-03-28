@@ -3,7 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { PlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { ListPageSkeleton } from "@/components/page-skeletons";
+import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -70,9 +70,7 @@ export function RankingsPage() {
     queryFn: () => apiClient.listRankings()
   });
 
-  if (rankingsQuery.isLoading) {
-    return <ListPageSkeleton rows={4} />;
-  }
+  const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
 
   return (
     <SitePage className="mx-auto w-full max-w-[1200px] gap-4 px-1">
@@ -124,10 +122,11 @@ export function RankingsPage() {
         </Alert>
       ) : null}
 
-      {rankingsQuery.isSuccess ? (
+      {isRankingsLoading ? (
+        <RankingCardGridSkeleton count={6} />
+      ) : rankingsQuery.isSuccess ? (
         <div
           className="site-tab-panel grid justify-start gap-3"
-          key={activeTab}
           style={{ gridTemplateColumns: "repeat(auto-fill, minmax(276px, 276px))" }}
         >
           {(activeTab === "official" ? rankingsQuery.data.official : rankingsQuery.data.community).map((ranking) => (

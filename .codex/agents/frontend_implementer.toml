@@ -2,7 +2,7 @@ name = "frontend_implementer"
 description = "在 planner 已将前端任务包分配给你且计划/需求/任务依据齐全时使用；负责前端页面、组件、交互、状态、前端测试和前端实现文档。"
 nickname_candidates = ["UI", "Frontend", "Web","Mobile"]
 model = "gpt-5.4"
-model_reasoning_effort = "low"
+model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

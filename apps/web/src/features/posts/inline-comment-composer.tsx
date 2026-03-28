@@ -1,4 +1,4 @@
-import { SendIcon } from "lucide-react";
+import { Loader2Icon, SendIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -13,10 +13,16 @@ type InlineCommentComposerProps = {
 
 export function InlineCommentComposer(props: InlineCommentComposerProps) {
   return (
-    <div className="flex items-center gap-2 rounded-[calc(var(--radius-control)-0.05rem)] border border-border/80 bg-surface-1 px-2.5 py-2">
+    <div
+      className={`flex items-center gap-2 rounded-[calc(var(--radius-control)-0.05rem)] border px-2.5 py-2 transition ${
+        props.busy
+          ? "border-primary/30 bg-surface-2"
+          : "border-border/80 bg-surface-1"
+      }`}
+    >
       <Input
         className="h-6 rounded-none border-0 bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0 md:h-6"
-        disabled={props.disabled}
+        disabled={props.disabled || props.busy}
         onChange={(event) => {
           props.onChange(event.target.value);
         }}
@@ -37,8 +43,12 @@ export function InlineCommentComposer(props: InlineCommentComposerProps) {
         type="button"
         variant="hero"
       >
-        <SendIcon className="size-4" />
-        <span className="sr-only">发送评论</span>
+        {props.busy ? (
+          <Loader2Icon className="size-4 animate-spin" />
+        ) : (
+          <SendIcon className="size-4" />
+        )}
+        <span className="sr-only">{props.busy ? "正在发送评论" : "发送评论"}</span>
       </Button>
     </div>
   );

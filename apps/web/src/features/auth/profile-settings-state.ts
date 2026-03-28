@@ -3,7 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 
 export const SETTINGS_STORAGE_KEY = "feijia.web.settings.v1";
 
-export type ProfileFocusTab = "overview" | "activity" | "drafts";
+export type ProfileFocusTab = "overview" | "activity" | "favorites" | "drafts";
 export type ProfileVisibility = "community" | "followers" | "private";
 
 export type ProfileMetric = {
@@ -126,81 +126,81 @@ export function createProfileViewModel(
   user: UserSummary | null,
   draft?: Pick<SettingsDraft, "bio" | "homeBase"> | null
 ): ProfileViewModel {
-  const displayName = user?.displayName ?? "Feijia Pilot";
+  const displayName = user?.displayName ?? "飞加飞友";
   const seed = hashSeed(displayName);
   const callsign = `FJ-${initialsFromName(displayName)}-${200 + (seed % 700)}`;
   const followerCount = 320 + (seed % 880);
-  const sortieCount = 28 + (seed % 54);
-  const highlightCount = 12 + (seed % 18);
+  const followingCount = 96 + (seed % 260);
+  const favoriteCount = 24 + (seed % 120);
 
   return {
     displayName,
     callsign,
-    headline: user?.role === "admin" ? "Control deck captain" : "Crosswind storyteller",
+    headline: user?.role === "admin" ? "管理后台值守中" : "把每次起飞与落地都记录下来",
     bio:
       draft?.bio ??
-      "Tracking memorable flights, editorial notes, and model findings in one calm cockpit. This page stays lightweight until profile APIs arrive.",
-    homeBase: draft?.homeBase ?? (seed % 2 === 0 ? "ZSPD / Shanghai Pudong" : "ZBAA / Beijing Capital"),
-    memberLabel: user?.role === "admin" ? "Admin flight deck" : "Flight member",
-    availability: seed % 3 === 0 ? "Ready for long-form writing" : "Open for short updates",
+      "把飞行日志、机型笔记和社区动态收在一个更紧凑的个人页里。目前这里仍以会话信息和本地设置为主，后续再接真实资料接口。",
+    homeBase: draft?.homeBase ?? (seed % 2 === 0 ? "ZSPD / 上海浦东" : "ZBAA / 北京首都"),
+    memberLabel: user?.role === "admin" ? "管理员身份" : "飞友身份",
+    availability: seed % 3 === 0 ? "适合整理长文" : "适合发动态",
     metrics: [
-      { label: "Followers", value: `${followerCount}` },
-      { label: "Sorties Logged", value: `${sortieCount}` },
-      { label: "Highlights", value: `${highlightCount}` }
+      { label: "关注者", value: `${followerCount}` },
+      { label: "关注中", value: `${followingCount}` },
+      { label: "收藏", value: `${favoriteCount}` }
     ],
     focusCards: [
       {
         id: "focus-overview",
-        eyebrow: "Flight Journal",
-        title: "Dawn circuit notes from a glass-smooth departure",
+        eyebrow: "飞行日志",
+        title: "清晨转场记录，留给下一次整理发布",
         summary:
-          "A long-form post draft with route notes, cockpit details, and the exact lighting conditions worth keeping for a publish pass.",
+          "把航线、天气和机舱细节先收在一个紧凑卡片里，稍后可以继续补完再发布，不需要先接服务端草稿接口。",
         imageSeed: `${displayName}-overview`,
-        ctaLabel: "Open composer",
+        ctaLabel: "继续编辑",
         href: APP_ROUTES.compose,
         metrics: [
-          { label: "Views", value: `${1100 + (seed % 900)}` },
-          { label: "Saves", value: `${80 + (seed % 120)}` }
+          { label: "浏览", value: `${1100 + (seed % 900)}` },
+          { label: "收藏", value: `${80 + (seed % 120)}` }
         ]
       },
       {
         id: "focus-activity",
-        eyebrow: "Community",
-        title: "Recent interactions from comments, follows, and list mentions",
+        eyebrow: "社区动态",
+        title: "本周互动提醒与评论动向",
         summary:
-          "A compact briefing for what moved this week so the profile feels alive even before dedicated profile APIs are available.",
+          "把关注、评论和提及先收成一个短摘要，让个人中心在没有专属资料接口前也能保持可用。",
         imageSeed: `${displayName}-activity`,
-        ctaLabel: "Open alerts",
+        ctaLabel: "查看消息",
         href: APP_ROUTES.notifications,
         metrics: [
-          { label: "Replies", value: `${18 + (seed % 32)}` },
-          { label: "Mentions", value: `${6 + (seed % 10)}` }
+          { label: "回复", value: `${18 + (seed % 32)}` },
+          { label: "提及", value: `${6 + (seed % 10)}` }
         ]
       },
       {
         id: "focus-drafts",
-        eyebrow: "Workbench",
-        title: "Aircraft review outline waiting for a final systems pass",
+        eyebrow: "草稿工作台",
+        title: "待补完的机型评测草稿",
         summary:
-          "Local-only planning card for unfinished content. It exists to make the profile useful today without pretending server-side draft sync already exists.",
+          "未完成内容先保存在前端侧，先让页面好用起来，不冒充已经存在的服务端草稿同步能力。",
         imageSeed: `${displayName}-drafts`,
-        ctaLabel: "Review settings",
+        ctaLabel: "整理设置",
         href: APP_ROUTES.webSettings,
         metrics: [
-          { label: "Sections", value: `${3 + (seed % 4)}` },
-          { label: "Checklist", value: `${70 + (seed % 20)}%` }
+          { label: "段落", value: `${3 + (seed % 4)}` },
+          { label: "完成度", value: `${70 + (seed % 20)}%` }
         ]
       }
     ],
     activityNotes: [
-      "Comment replies are available from the alerts center and stay in sync with the active session.",
-      "Publishing still routes through the existing compose entry so no new content workflow is introduced here.",
-      "Identity data on this page is backed by the current session only."
+      "评论回复会继续从消息中心进入，并和当前登录会话保持一致。",
+      "发布能力仍然走现有发布入口，不会在这里额外引入新的内容流程。",
+      "当前页展示的身份信息主要依赖登录会话和本地设置。"
     ],
     draftNotes: [
-      "Profile editing remains local-first until profile save APIs are introduced.",
-      "Settings changes in this round are intentionally scoped to front-end behavior and messaging.",
-      "Admin tooling is out of scope for this page and stays isolated."
+      "资料编辑继续保持本地优先，等后端资料接口落地后再补保存链路。",
+      "这一轮设置改动只覆盖前端行为和页面提示，不扩到共享契约。",
+      "管理后台能力仍然留到下一轮，不会混进个人中心里。"
     ]
   };
 }
@@ -222,7 +222,7 @@ export function createSettingsDraft(user: UserSummary | null): SettingsDraft {
     twoFactorEnabled: seed % 2 === 0,
     sessionAlerts: true,
     hasPendingChanges: false,
-    lastSavedLabel: "Not saved in this browser yet",
+    lastSavedLabel: "当前浏览器尚未保存",
     deletionArmed: false
   };
 }
@@ -347,7 +347,7 @@ export function setProfileVisibility(
 export function createLocalSaveLabel(date = new Date()): string {
   const hours = String(date.getHours()).padStart(2, "0");
   const minutes = String(date.getMinutes()).padStart(2, "0");
-  return `Saved locally at ${hours}:${minutes}`;
+  return `已在本地保存 ${hours}:${minutes}`;
 }
 
 export function markSettingsSaved(
@@ -363,8 +363,8 @@ export function markSettingsSaved(
 
 export function createDeletionMessage(draft: SettingsDraft): string {
   if (!draft.deletionArmed) {
-    return "Arm the deletion request first. No backend request will be sent in this round.";
+    return "请先确认删除意图。本轮不会向后端发起真正的注销请求。";
   }
 
-  return "Deletion request staged locally. Server-side account closure still needs backend support.";
+  return "注销请求已在当前浏览器暂存，真正的账号注销仍需要后端接口支持。";
 }

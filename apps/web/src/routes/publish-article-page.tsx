@@ -1,22 +1,11 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  BoldIcon,
-  Heading2Icon,
-  ImageIcon,
-  ItalicIcon,
-  ListIcon,
-  ListOrderedIcon,
-  QuoteIcon,
-  SaveIcon,
-  SendHorizonalIcon,
-  VideoIcon,
-  XIcon
-} from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
+import { RichTextEditor } from "@/components/rich-text-editor";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -30,6 +19,12 @@ import { buildPublishStatusPath } from "../lib/web-routes";
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
 
 type UploadedImage = {
+  id: string;
+  url: string;
+  fileName?: string;
+};
+
+type UploadedVideo = {
   id: string;
   url: string;
   fileName?: string;
@@ -57,20 +52,8 @@ function extractPlainText(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
-function buildVideoMarkup(url: string) {
-  const escapedUrl = escapeHtml(url);
-  if (/\.(mp4|webm|ogg)(\?.*)?$/iu.test(url)) {
-    return `<figure><video controls preload="metadata" src="${escapedUrl}" style="width:100%;border-radius:16px;background:#0f172a"></video></figure>`;
-  }
-
-  return `<p><a href="${escapedUrl}" target="_blank" rel="noreferrer">${escapedUrl}</a></p>`;
-}
-
 function buildArticleHtml(summary: string, editorHtml: string) {
-  const summaryBlock = summary.trim()
-    ? `<p><strong>${escapeHtml(summary.trim())}</strong></p>`
-    : "";
-
+  const summaryBlock = summary.trim() ? `<p><strong>${escapeHtml(summary.trim())}</strong></p>` : "";
   return [summaryBlock, editorHtml.trim()].filter(Boolean).join("");
 }
 
@@ -78,14 +61,12 @@ export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
-  const editorRef = useRef<HTMLDivElement | null>(null);
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploadingMedia, setIsUploadingMedia] = useState(false);
@@ -108,6 +89,7 @@ export function PublishArticlePage() {
         editorHtml?: string;
         categoryId?: string;
         uploadedImages?: UploadedImage[];
+        uploadedVideos?: UploadedVideo[];
       };
 
       setTitle(parsed.title ?? "");
@@ -115,6 +97,7 @@ export function PublishArticlePage() {
       setEditorHtml(parsed.editorHtml ?? "");
       setCategoryId(parsed.categoryId ?? "");
       setUploadedImages(parsed.uploadedImages ?? []);
+      setUploadedVideos(parsed.uploadedVideos ?? []);
     } catch {
       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
     }
@@ -126,12 +109,6 @@ export function PublishArticlePage() {
     }
   }, [categoryId, categoriesQuery.data?.items]);
 
-  useEffect(() => {
-    if (editorRef.current && editorRef.current.innerHTML !== editorHtml) {
-      editorRef.current.innerHTML = editorHtml;
-    }
-  }, [editorHtml]);
-
   const articleHtml = useMemo(() => buildArticleHtml(summary, editorHtml), [editorHtml, summary]);
   const articleText = useMemo(
     () => [summary.trim(), extractPlainText(editorHtml)].filter(Boolean).join("\n\n"),
@@ -141,30 +118,14 @@ export function PublishArticlePage() {
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
 
-  function syncEditorState() {
-    setEditorHtml(editorRef.current?.innerHTML ?? "");
-  }
-
-  function runEditorCommand(command: string, value?: string) {
-    editorRef.current?.focus();
-    document.execCommand(command, false, value);
-    syncEditorState();
-  }
-
-  function insertHtml(html: string) {
-    editorRef.current?.focus();
-    document.execCommand("insertHTML", false, html);
-    syncEditorState();
-  }
-
-  async function handleImageUpload(files: FileList | null) {
+  async function uploadImages(files: FileList | null) {
     if (!files || files.length === 0) {
-      return;
+      return [];
     }
 
     if (uploadedImages.length + files.length > 6) {
       setError("最多插入 6 张图片。");
-      return;
+      return [];
     }
 
     setError(null);
@@ -180,19 +141,50 @@ export function PublishArticlePage() {
           url: uploaded.item.url,
           fileName: uploaded.item.fileName
         });
-        insertHtml(
-          `<figure><img src="${escapeHtml(uploaded.item.url)}" alt="${escapeHtml(file.name)}" style="width:100%;border-radius:16px" /></figure>`
-        );
       }
 
       setUploadedImages((current) => [...current, ...nextImages]);
+      return nextImages;
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "图片上传失败");
+      return [];
     } finally {
       setIsUploadingMedia(false);
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
+    }
+  }
+
+  async function uploadVideos(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return [];
+    }
+
+    if (uploadedVideos.length + files.length > 2) {
+      setError("文章最多插入 2 个视频。");
+      return [];
+    }
+
+    setError(null);
+    setIsUploadingMedia(true);
+
+    try {
+      const nextVideos: UploadedVideo[] = [];
+
+      for (const file of Array.from(files)) {
+        const uploaded = await apiClient.uploadPostVideo(file);
+        nextVideos.push({
+          id: uploaded.item.id,
+          url: uploaded.item.url,
+          fileName: uploaded.item.fileName
+        });
       }
+
+      setUploadedVideos((current) => [...current, ...nextVideos]);
+      return nextVideos;
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "视频上传失败");
+      return [];
+    } finally {
+      setIsUploadingMedia(false);
     }
   }
 
@@ -204,7 +196,8 @@ export function PublishArticlePage() {
         summary,
         editorHtml,
         categoryId,
-        uploadedImages
+        uploadedImages,
+        uploadedVideos
       })
     );
   }
@@ -215,8 +208,8 @@ export function PublishArticlePage() {
 
   return (
     <PublishShell
-      description="文章发布"
-      eyebrow="Article"
+      description="适合长文、图文混排和内嵌视频的文章发布器。草稿会保存在当前浏览器。"
+      eyebrow="文章"
       main={
         <>
           {error ? (
@@ -228,46 +221,6 @@ export function PublishArticlePage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="flex flex-wrap items-center gap-2">
-                  {[
-                    { icon: BoldIcon, action: () => runEditorCommand("bold") },
-                    { icon: ItalicIcon, action: () => runEditorCommand("italic") },
-                    { icon: Heading2Icon, action: () => runEditorCommand("formatBlock", "<h2>") },
-                    { icon: ListIcon, action: () => runEditorCommand("insertUnorderedList") },
-                    { icon: ListOrderedIcon, action: () => runEditorCommand("insertOrderedList") },
-                    { icon: QuoteIcon, action: () => runEditorCommand("formatBlock", "<blockquote>") }
-                  ].map((item, index) => {
-                    const Icon = item.icon;
-                    return (
-                      <Button key={index} onClick={item.action} size="sm" type="button" variant="outline">
-                        <Icon className="size-4 text-rating-blue" />
-                      </Button>
-                    );
-                  })}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button onClick={() => imageInputRef.current?.click()} size="sm" type="button" variant="outline">
-                    <ImageIcon data-icon="inline-start" />
-                    {isUploadingMedia ? "上传中..." : "插入图片"}
-                  </Button>
-                  <Button
-                    onClick={() => {
-                      if (videoUrl.trim()) {
-                        insertHtml(buildVideoMarkup(videoUrl.trim()));
-                        setVideoUrl("");
-                      }
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <VideoIcon data-icon="inline-start" />
-                    插入视频
-                  </Button>
-                </div>
-              </div>
-
               <Input onChange={(event) => setTitle(event.target.value)} placeholder="文章标题" value={title} />
 
               <div className="flex flex-wrap gap-2">
@@ -294,57 +247,61 @@ export function PublishArticlePage() {
                 value={summary}
               />
 
-              <div className="space-y-3">
-                <Input
-                  onChange={(event) => setVideoUrl(event.target.value)}
-                  placeholder="视频链接，可选"
-                  value={videoUrl}
-                />
-                <div className="relative min-h-[360px] overflow-hidden rounded-[0.9rem] border border-border/70 bg-white">
-                  {!extractPlainText(editorHtml).trim() ? (
-                    <div className="pointer-events-none absolute left-4 top-4 text-sm text-muted-foreground">
-                      正文从这里开始。
-                    </div>
-                  ) : null}
-                  <div
-                    className="min-h-[360px] px-4 py-4 text-[1rem] leading-7 text-foreground outline-none [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_blockquote]:text-foreground/76 [&_figure]:my-4 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-[1.45rem] [&_h2]:font-semibold [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_ul]:list-disc [&_ul]:pl-6"
-                    contentEditable
-                    onInput={syncEditorState}
-                    ref={editorRef}
-                    suppressContentEditableWarning
-                  />
-                </div>
-              </div>
-
-              <input
-                accept="image/*"
-                className="hidden"
-                multiple
-                onChange={(event) => {
-                  void handleImageUpload(event.target.files);
-                }}
-                ref={imageInputRef}
-                type="file"
+              <RichTextEditor
+                onChange={setEditorHtml}
+                onUploadImage={uploadImages}
+                onUploadVideo={uploadVideos}
+                placeholder="从这里开始写正文，支持图片与视频直接上传后内嵌。"
+                value={editorHtml}
               />
 
-              {uploadedImages.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {uploadedImages.map((image) => (
-                    <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70" key={image.id}>
-                      <img alt={image.fileName ?? "article"} className="h-32 w-full object-cover" src={image.url} />
-                      <button
-                        className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                        onClick={() => {
-                          setUploadedImages((current) => current.filter((item) => item.id !== image.id));
-                        }}
-                        type="button"
-                      >
-                        <XIcon className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
+              {uploadedImages.length === 0 && uploadedVideos.length === 0 ? (
+                <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+                  还没有插入媒体。可以直接从编辑器工具栏上传图片和视频文件。
                 </div>
-              ) : null}
+              ) : (
+                <div className="grid gap-4 lg:grid-cols-2">
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-foreground/72">已上传图片</div>
+                    <div className="grid gap-3 sm:grid-cols-2">
+                      {uploadedImages.map((image) => (
+                        <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70" key={image.id}>
+                          <img alt={image.fileName ?? "article"} className="h-32 w-full object-cover" src={image.url} />
+                          <button
+                            className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                            onClick={() => {
+                              setUploadedImages((current) => current.filter((item) => item.id !== image.id));
+                            }}
+                            type="button"
+                          >
+                            <XIcon className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-3">
+                    <div className="text-sm font-medium text-foreground/72">已上传视频</div>
+                    <div className="grid gap-3">
+                      {uploadedVideos.map((video) => (
+                        <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950" key={video.id}>
+                          <video className="h-40 w-full object-cover" controls preload="metadata" src={video.url} />
+                          <button
+                            className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                            onClick={() => {
+                              setUploadedVideos((current) => current.filter((item) => item.id !== video.id));
+                            }}
+                            type="button"
+                          >
+                            <XIcon className="size-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
             </SitePanelBody>
           </SitePanel>
 
@@ -358,7 +315,13 @@ export function PublishArticlePage() {
                 <Link to={APP_ROUTES.feedHome}>取消</Link>
               </Button>
               <Button
-                disabled={!title.trim() || !articleText.trim() || !categoryId || isPublishing || isUploadingMedia}
+                disabled={
+                  !title.trim() ||
+                  !articleText.trim() ||
+                  !categoryId ||
+                  isPublishing ||
+                  isUploadingMedia
+                }
                 onClick={() => {
                   if (
                     !promptLogin({
@@ -378,7 +341,8 @@ export function PublishArticlePage() {
                       content: articleText,
                       contentHtml: articleHtml,
                       contentCategoryId: categoryId,
-                      imageIds: uploadedImages.map((item) => item.id)
+                      imageIds: uploadedImages.map((item) => item.id),
+                      videoIds: uploadedVideos.map((item) => item.id)
                     })
                     .then((payload) => {
                       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
@@ -412,25 +376,28 @@ export function PublishArticlePage() {
         </>
       }
       aside={
-        <>
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
-              <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              <img alt="cover preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
-              <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
-                {selectedCategory?.name ?? "未选择分类"}
+        <SitePanel variant="muted">
+          <SitePanelBody className="space-y-4">
+            <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
+            <img alt="cover preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+            <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
+              {selectedCategory?.name ?? "未选择分类"}
+            </div>
+            <div className="text-[1.2rem] font-semibold text-foreground">{title || "文章标题"}</div>
+            {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
+            {uploadedVideos[0] ? (
+              <div className="overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950">
+                <video className="h-44 w-full object-cover" controls preload="metadata" src={uploadedVideos[0].url} />
               </div>
-              <div className="text-[1.2rem] font-semibold text-foreground">{title || "文章标题"}</div>
-              {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
-              <div
-                className="max-h-[320px] overflow-y-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
-                dangerouslySetInnerHTML={{
-                  __html: articleHtml || "<p>正文预览会显示在这里。</p>"
-                }}
-              />
-            </SitePanelBody>
-          </SitePanel>
-        </>
+            ) : null}
+            <div
+              className="max-h-[320px] overflow-y-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_ul]:list-disc [&_ul]:pl-5"
+              dangerouslySetInnerHTML={{
+                __html: articleHtml || "<p>正文预览会显示在这里。</p>"
+              }}
+            />
+          </SitePanelBody>
+        </SitePanel>
       }
       title="发布文章"
     />

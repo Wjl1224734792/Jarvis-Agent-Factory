@@ -199,4 +199,81 @@ describe("reviews flows", () => {
 
     expect(publicPayload.items.some((item) => item.id === createdPayload.item.id)).toBe(false);
   });
+
+  it("supports review comment, reply and delete flows", async () => {
+    const reviewerCookie = await loginUser("13800138020");
+    const reviewResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "POST",
+      headers: {
+        cookie: reviewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 4,
+        content: "Solid climb profile in steady wind."
+      })
+    });
+    const reviewPayload = (await reviewResponse.json()) as { item: { id: string } };
+
+    const commenterCookie = await loginUser("13800138021");
+    const createCommentResponse = await app.request(
+      API_ROUTES.models.reviewComments(reviewPayload.item.id),
+      {
+        method: "POST",
+        headers: {
+          cookie: commenterCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          content: "Thanks for sharing this field result."
+        })
+      }
+    );
+
+    expect(createCommentResponse.status).toBe(200);
+    const createdComment = (await createCommentResponse.json()) as { item: { id: string } };
+
+    const replyResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
+      method: "POST",
+      headers: {
+        cookie: reviewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Glad it helps.",
+        parentCommentId: createdComment.item.id
+      })
+    });
+    expect(replyResponse.status).toBe(200);
+
+    const listResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
+      method: "GET"
+    });
+    expect(listResponse.status).toBe(200);
+    const listPayload = (await listResponse.json()) as {
+      items: Array<{ id: string; replyCount: number }>;
+    };
+
+    expect(listPayload.items).toHaveLength(1);
+    expect(listPayload.items[0]?.replyCount).toBe(1);
+
+    const deleteResponse = await app.request(
+      API_ROUTES.models.reviewCommentDetail(reviewPayload.item.id, createdComment.item.id),
+      {
+        method: "DELETE",
+        headers: {
+          cookie: commenterCookie
+        }
+      }
+    );
+    expect(deleteResponse.status).toBe(200);
+
+    const listAfterDeleteResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
+      method: "GET"
+    });
+    const listAfterDeletePayload = (await listAfterDeleteResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    expect(listAfterDeletePayload.items).toHaveLength(0);
+  });
 });

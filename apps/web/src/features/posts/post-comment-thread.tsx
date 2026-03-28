@@ -4,6 +4,8 @@ import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { ProfileLink } from "@/components/profile-link";
+import { Skeleton } from "@/components/ui/skeleton";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
@@ -17,6 +19,8 @@ type ThreadProps = {
   comments: CommentNode[];
   currentUserId?: string;
   canInteract: boolean;
+  isRefreshing?: boolean;
+  showPendingComment?: boolean;
 };
 
 type ReplyView = {
@@ -40,6 +44,19 @@ function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): Rep
 
 function formatTime(value: string) {
   return new Date(value).toLocaleString("zh-CN", { hour12: false });
+}
+
+function CommentSkeletonItem(props: { compact?: boolean }) {
+  return (
+    <div className={cn("flex items-start gap-3", props.compact && "opacity-80")}>
+      <Skeleton className="mt-0.5 size-8 rounded-full" />
+      <div className="min-w-0 flex-1 space-y-2">
+        <Skeleton className="h-3.5 w-32" />
+        <Skeleton className="h-3.5 w-full" />
+        <Skeleton className="h-3.5 w-4/5" />
+      </div>
+    </div>
+  );
 }
 
 function RootCommentItem(props: {
@@ -73,19 +90,28 @@ function RootCommentItem(props: {
   }
 
   return (
-    <article className="border-b border-border/85 py-3.5 first:pt-0 last:border-b-0 last:pb-0">
+    <article
+      className={cn(
+        "border-b border-border/85 py-3.5 first:pt-0 last:border-b-0 last:pb-0",
+        busy === "delete" && "opacity-75"
+      )}
+    >
       <div className="flex items-start gap-3">
-        <Avatar className="mt-0.5" size="sm">
-          <AvatarImage
-            alt={props.comment.author.displayName}
-            src={getAvatarImage(props.comment.author.id)}
-          />
-          <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
-        </Avatar>
+        <ProfileLink userId={props.comment.author.id}>
+          <Avatar className="mt-0.5" size="sm">
+            <AvatarImage
+              alt={props.comment.author.displayName}
+              src={getAvatarImage(props.comment.author.id)}
+            />
+            <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
+          </Avatar>
+        </ProfileLink>
 
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-            <span className="font-medium text-foreground">{props.comment.author.displayName}</span>
+            <ProfileLink className="font-medium text-foreground hover:text-primary" userId={props.comment.author.id}>
+              {props.comment.author.displayName}
+            </ProfileLink>
             <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
           </div>
           <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
@@ -147,14 +173,18 @@ function RootCommentItem(props: {
               {replies.map((reply) => (
                 <div className="border-t border-border/80 py-3 first:border-t-0 first:pt-0" key={reply.id}>
                   <div className="flex items-start gap-3">
-                    <Avatar className="mt-0.5" size="sm">
-                      <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
-                      <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
-                    </Avatar>
+                    <ProfileLink userId={reply.author.id}>
+                      <Avatar className="mt-0.5" size="sm">
+                        <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
+                        <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
+                    </ProfileLink>
 
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-                        <span className="font-medium text-foreground">{reply.author.displayName}</span>
+                        <ProfileLink className="font-medium text-foreground hover:text-primary" userId={reply.author.id}>
+                          {reply.author.displayName}
+                        </ProfileLink>
                         {reply.replyToDisplayName ? (
                           <span className="inline-flex items-center gap-1 text-[0.72rem] text-primary/82">
                             <CornerDownRightIcon className="size-3.25" />
@@ -220,6 +250,11 @@ function RootCommentItem(props: {
             placeholder={`回复 @${replyingTo.displayName}`}
             value={replyContent}
           />
+          {busy === "reply" ? (
+            <div className="mt-3 rounded-[calc(var(--radius-control)-0.08rem)] border border-border/70 bg-background/70 px-3 py-3">
+              <CommentSkeletonItem compact />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -236,6 +271,18 @@ function RootCommentItem(props: {
 export function PostCommentThread(props: ThreadProps) {
   return (
     <div className={cn("border-y border-border", props.comments.length === 0 && "border-none")}>
+      {props.showPendingComment ? (
+        <div className="border-b border-border/80 py-3.5 first:pt-0">
+          <CommentSkeletonItem />
+        </div>
+      ) : null}
+
+      {props.isRefreshing ? (
+        <div className="border-b border-border/80 py-3.5">
+          <CommentSkeletonItem compact />
+        </div>
+      ) : null}
+
       {props.comments.map((comment) => (
         <RootCommentItem
           canInteract={props.canInteract}

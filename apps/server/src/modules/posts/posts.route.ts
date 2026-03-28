@@ -15,7 +15,8 @@ import {
   postDetailResponseSchema,
   postInteractionTypeSchema,
   reportPostInputSchema,
-  uploadPostImageResponseSchema
+  uploadPostImageResponseSchema,
+  uploadPostVideoResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -28,6 +29,7 @@ import {
 import { postsService } from "./posts.service";
 
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
+const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
 export const postsRoute = new Hono<{ Variables: AuthVariables }>();
 
@@ -100,6 +102,52 @@ postsRoute.post(API_ROUTES.uploads.images, requireAuth, async (context) => {
   }
 });
 
+postsRoute.post(API_ROUTES.uploads.videos, requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const formData = await context.req.formData();
+  const file = formData.get("file");
+
+  if (!(file instanceof File)) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing video file." }, 400);
+  }
+
+  if (!file.type.startsWith("video/")) {
+    return context.json({ code: "BAD_REQUEST", message: "Only video upload is supported." }, 400);
+  }
+
+  if (file.size > MAX_VIDEO_SIZE_BYTES) {
+    return context.json({ code: "BAD_REQUEST", message: "Video size exceeds limit." }, 400);
+  }
+
+  const bytes = Buffer.from(await file.arrayBuffer());
+  const dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
+
+  try {
+    const payload = await postsService.uploadVideo({
+      ownerId: currentUser.id,
+      fileName: file.name || "video",
+      mimeType: file.type,
+      byteSize: file.size,
+      bytes,
+      dataUrl
+    });
+
+    if (!payload) {
+      return context.json({ code: "INTERNAL_ERROR", message: "Failed to save video." }, 500);
+    }
+
+    return context.json(uploadPostVideoResponseSchema.parse(payload));
+  } catch (error) {
+    const message = error instanceof Error ? error.message : "Failed to save video.";
+    return context.json({ code: "INTERNAL_ERROR", message }, 500);
+  }
+});
+
 postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");
 
@@ -115,7 +163,8 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
-    imageIds: input.imageIds
+    imageIds: input.imageIds,
+    videoIds: input.videoIds
   });
 
   if (payload.kind === "invalid_images") {
@@ -124,6 +173,10 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
 
   if (payload.kind === "invalid_category") {
     return context.json({ code: "BAD_REQUEST", message: "Article category is required." }, 400);
+  }
+
+  if (payload.kind === "invalid_videos") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded videos." }, 400);
   }
 
   if (payload.kind === "not_found") {

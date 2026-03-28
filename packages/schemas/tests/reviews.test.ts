@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   adminReviewsResponseSchema,
+  createReviewCommentInputSchema,
+  reviewCommentsResponseSchema,
   modelReviewsResponseSchema,
   submitModelReviewInputSchema,
   updateReviewStatusInputSchema
@@ -73,5 +75,37 @@ describe("reviews contract", () => {
 
     expect(payload.items[0]?.model.slug).toBe("mini-4-pro");
     expect(status.status).toBe("visible");
+  });
+
+  it("parses review comment create/list payloads", () => {
+    const input = createReviewCommentInputSchema.parse({
+      content: "Thanks for the detail",
+      parentCommentId: "comment_1"
+    });
+
+    const list = reviewCommentsResponseSchema.parse({
+      items: [
+        {
+          id: "comment_1",
+          reviewId: "review_1",
+          parentCommentId: null,
+          replyToCommentId: null,
+          content: "Good review",
+          createdAt: "2026-03-23T12:00:00.000Z",
+          updatedAt: "2026-03-23T12:00:00.000Z",
+          author: {
+            id: "user_1",
+            displayName: "Pilot",
+            role: "user"
+          },
+          replyToUser: null,
+          replyCount: 0,
+          replies: []
+        }
+      ]
+    });
+
+    expect(input.parentCommentId).toBe("comment_1");
+    expect(list.items[0]?.reviewId).toBe("review_1");
   });
 });

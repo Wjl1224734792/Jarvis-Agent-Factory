@@ -1,6 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
+import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
+import { PublishFormSkeleton } from "./components/page-skeletons";
 import { LoginPage } from "./features/auth/login-page";
 import { ProfilePage } from "./features/auth/profile-page";
 import { ProtectedRoute } from "./features/auth/protected-route";
@@ -13,15 +15,37 @@ import { ModelDetailPage } from "./routes/model-detail-page";
 import { ModelsPage } from "./routes/models-page";
 import { NotificationsPage } from "./routes/notifications-page";
 import { PostDetailPage } from "./routes/post-detail-page";
-import { PublishAircraftPage } from "./routes/publish-aircraft-page";
-import { PublishArticlePage } from "./routes/publish-article-page";
-import { PublishMomentPage } from "./routes/publish-moment-page";
 import { PublishStatusPage } from "./routes/publish-status-page";
 import { RankingDetailPage } from "./routes/ranking-detail-page";
-import { RankingEditorPage } from "./routes/ranking-editor-page";
 import { RankingItemDetailPage } from "./routes/ranking-item-detail-page";
 import { RankingsPage } from "./routes/rankings-page";
 import { SettingsPage } from "./routes/settings-page";
+import { UserProfilePage } from "./routes/user-profile-page";
+
+const PublishArticlePage = lazy(() =>
+  import("./routes/publish-article-page").then((module) => ({
+    default: module.PublishArticlePage
+  }))
+);
+const PublishMomentPage = lazy(() =>
+  import("./routes/publish-moment-page").then((module) => ({
+    default: module.PublishMomentPage
+  }))
+);
+const PublishAircraftPage = lazy(() =>
+  import("./routes/publish-aircraft-page").then((module) => ({
+    default: module.PublishAircraftPage
+  }))
+);
+const RankingEditorPage = lazy(() =>
+  import("./routes/ranking-editor-page").then((module) => ({
+    default: module.RankingEditorPage
+  }))
+);
+
+function withPublishFallback(children: ReactNode) {
+  return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
+}
 
 const router = createBrowserRouter([
   {
@@ -61,6 +85,10 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: APP_ROUTES.webUserProfile.slice(1),
+        element: <UserProfilePage />
+      },
+      {
         path: APP_ROUTES.notifications.slice(1),
         element: (
           <ProtectedRoute>
@@ -82,7 +110,7 @@ const router = createBrowserRouter([
       },
       {
         path: APP_ROUTES.rankingEditor.slice(1),
-        element: <RankingEditorPage />
+        element: withPublishFallback(<RankingEditorPage />)
       },
       {
         path: WEB_ROUTE_PATHS.rankingDetail.slice(1),
@@ -98,15 +126,15 @@ const router = createBrowserRouter([
       },
       {
         path: WEB_ROUTE_PATHS.publishArticle.slice(1),
-        element: <PublishArticlePage />
+        element: withPublishFallback(<PublishArticlePage />)
       },
       {
         path: WEB_ROUTE_PATHS.publishMoment.slice(1),
-        element: <PublishMomentPage />
+        element: withPublishFallback(<PublishMomentPage />)
       },
       {
         path: WEB_ROUTE_PATHS.publishAircraft.slice(1),
-        element: <PublishAircraftPage />
+        element: withPublishFallback(<PublishAircraftPage />)
       },
       {
         path: WEB_ROUTE_PATHS.publishStatus.slice(1),

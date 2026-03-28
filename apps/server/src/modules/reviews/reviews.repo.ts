@@ -1,11 +1,12 @@
 import {
   aircraftModelsTable,
+  reviewCommentsTable,
   aircraftReviewsTable,
   createId,
   db,
   usersTable
 } from "@feijia/db";
-import { and, desc, eq, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 
 export const reviewsRepo = {
   async findModelBySlug(slug: string) {
@@ -195,5 +196,108 @@ export const reviewsRepo = {
       .where(eq(aircraftReviewsTable.id, id));
 
     return this.getReviewById(id);
+  },
+  async listUsersByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        role: usersTable.role
+      })
+      .from(usersTable)
+      .where(inArray(usersTable.id, ids));
+  },
+  async listReviewComments(reviewId: string) {
+    return db
+      .select({
+        id: reviewCommentsTable.id,
+        reviewId: reviewCommentsTable.reviewId,
+        authorId: reviewCommentsTable.authorId,
+        parentCommentId: reviewCommentsTable.parentCommentId,
+        replyToCommentId: reviewCommentsTable.replyToCommentId,
+        replyToUserId: reviewCommentsTable.replyToUserId,
+        content: reviewCommentsTable.content,
+        createdAt: reviewCommentsTable.createdAt,
+        updatedAt: reviewCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          role: usersTable.role
+        }
+      })
+      .from(reviewCommentsTable)
+      .innerJoin(usersTable, eq(reviewCommentsTable.authorId, usersTable.id))
+      .where(eq(reviewCommentsTable.reviewId, reviewId))
+      .orderBy(asc(reviewCommentsTable.createdAt));
+  },
+  async getReviewCommentById(id: string) {
+    const rows = await db
+      .select({
+        id: reviewCommentsTable.id,
+        reviewId: reviewCommentsTable.reviewId,
+        authorId: reviewCommentsTable.authorId,
+        parentCommentId: reviewCommentsTable.parentCommentId,
+        replyToCommentId: reviewCommentsTable.replyToCommentId,
+        replyToUserId: reviewCommentsTable.replyToUserId,
+        content: reviewCommentsTable.content,
+        createdAt: reviewCommentsTable.createdAt,
+        updatedAt: reviewCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          role: usersTable.role
+        }
+      })
+      .from(reviewCommentsTable)
+      .innerJoin(usersTable, eq(reviewCommentsTable.authorId, usersTable.id))
+      .where(eq(reviewCommentsTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+  async createReviewComment(input: {
+    reviewId: string;
+    authorId: string;
+    parentCommentId: string | null;
+    replyToCommentId: string | null;
+    replyToUserId: string | null;
+    content: string;
+  }) {
+    const id = createId("rcomment");
+
+    await db.insert(reviewCommentsTable).values({
+      id,
+      reviewId: input.reviewId,
+      authorId: input.authorId,
+      parentCommentId: input.parentCommentId,
+      replyToCommentId: input.replyToCommentId,
+      replyToUserId: input.replyToUserId,
+      content: input.content
+    });
+
+    return this.getReviewCommentById(id);
+  },
+  async deleteReviewCommentThread(reviewId: string, commentId: string) {
+    const existing = await this.getReviewCommentById(commentId);
+    if (!existing || existing.reviewId !== reviewId) {
+      return 0;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+
+    await db
+      .delete(reviewCommentsTable)
+      .where(
+        and(
+          eq(reviewCommentsTable.reviewId, reviewId),
+          or(eq(reviewCommentsTable.id, rootId), eq(reviewCommentsTable.parentCommentId, rootId))
+        )
+      );
+
+    return 1;
   }
 };

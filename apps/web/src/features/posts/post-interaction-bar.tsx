@@ -1,5 +1,4 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
 import { Bookmark, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +20,7 @@ type Props = {
   likeCount: number;
   favoriteCount: number;
   shareCount: number;
+  hideShare?: boolean;
   compact?: boolean;
   iconOnly?: boolean;
   hideFollow?: boolean;
@@ -205,38 +205,22 @@ export function PostInteractionBar(props: Props) {
           tone="favorite"
         />
 
-        <ActionButton
-          active={props.viewer.hasShared}
-          compact={props.compact}
-          count={props.shareCount}
-          disabled={!props.isPublished || busyAction !== null}
-          icon={Share2}
-          iconOnly
-          label="分享"
-          onClick={() => {
-            void ensureAuthenticated().then((ready) => {
-              if (!ready) {
-                return;
-              }
-
-              void runAction("share", async () => {
-                await apiClient.togglePostInteraction(props.postId, "share");
-
-                if (typeof navigator !== "undefined" && navigator.clipboard) {
-                  try {
-                    await navigator.clipboard.writeText(
-                      window.location.origin + APP_ROUTES.postDetail.replace(":id", props.postId)
-                    );
-                  } catch {
-                    setError("已记录分享，但复制链接失败");
-                  }
-                }
-              });
-            });
-          }}
-          plain={props.plain}
-          tone="share"
-        />
+        {!props.hideShare ? (
+          <ActionButton
+            active={props.viewer.hasShared}
+            compact={props.compact}
+            count={props.shareCount}
+            disabled={!props.isPublished || busyAction !== null}
+            icon={Share2}
+            iconOnly
+            label="分享"
+            onClick={() => {
+              setError("分享功能暂未开放。");
+            }}
+            plain={props.plain}
+            tone="share"
+          />
+        ) : null}
       </div>
 
       {error ? (

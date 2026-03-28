@@ -1,18 +1,17 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import {
-  BookmarkIcon,
   CompassIcon,
   EyeIcon,
   HeartIcon,
   MessageCircleIcon,
-  Share2Icon,
   SquarePenIcon,
   TrophyIcon
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { ListPageSkeleton } from "@/components/page-skeletons";
+import { FeedStreamSkeleton } from "@/components/page-skeletons";
+import { Skeleton } from "@/components/ui/skeleton";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -63,6 +62,7 @@ export function HomePage() {
       activeTab.kind === "fixed" ? activeTab.id : "recommended",
       activeTab.kind === "category" ? activeTab.slug : null
     ],
+    placeholderData: keepPreviousData,
     queryFn: () =>
       apiClient.listHomeFeed({
         tab: activeTab.kind === "fixed" ? activeTab.id : "recommended",
@@ -72,11 +72,13 @@ export function HomePage() {
 
   const modelsQuery = useQuery({
     queryKey: ["home-shell-models"],
+    placeholderData: keepPreviousData,
     queryFn: () => apiClient.listModels()
   });
 
   const rankingsQuery = useQuery({
     queryKey: ["home-shell-rankings"],
+    placeholderData: keepPreviousData,
     queryFn: () => apiClient.listRankings()
   });
 
@@ -113,9 +115,10 @@ export function HomePage() {
     return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
-  if (feedQuery.isLoading || modelsQuery.isLoading || rankingsQuery.isLoading) {
-    return <ListPageSkeleton rows={4} withRail />;
-  }
+  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedRefreshing = feedQuery.isFetching && !isFeedLoading;
+  const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
+  const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
 
   return (
     <SitePage>
@@ -141,7 +144,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="site-tab-panel mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white" key={activeTab.kind === "fixed" ? activeTab.id : activeTab.slug}>
+          <section className="site-tab-panel relative mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white">
             {feedQuery.isError ? (
               <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
@@ -149,71 +152,78 @@ export function HomePage() {
               </Alert>
             ) : null}
 
-            {feedItems.map((item, index) => (
-              <article
-                className="border-b border-border bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
-                key={item.id}
-              >
-                <Link
-                  className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
-                  to={APP_ROUTES.postDetail.replace(":id", item.id)}
-                >
-                  <div className="overflow-hidden rounded-[0.8rem] bg-slate-100">
-                    <img
-                      alt={item.title}
-                      className="h-[96px] w-full object-cover"
-                      src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
-                    />
-                  </div>
+            {isFeedLoading ? (
+              <div className="p-3">
+                <FeedStreamSkeleton rows={4} />
+              </div>
+            ) : (
+              <>
+                {feedItems.map((item, index) => (
+                  <article
+                    className="border-b border-border bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
+                    key={item.id}
+                  >
+                    <Link
+                      className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
+                      to={APP_ROUTES.postDetail.replace(":id", item.id)}
+                    >
+                      <div className="overflow-hidden rounded-[0.8rem] bg-slate-100">
+                        <img
+                          alt={item.title}
+                          className="h-[96px] w-full object-cover"
+                          src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
+                        />
+                      </div>
 
-                  <div className="flex min-h-[96px] min-w-0 flex-col">
-                    <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
-                      {item.title}
-                    </h2>
+                      <div className="flex min-h-[96px] min-w-0 flex-col">
+                        <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
+                          {item.title}
+                        </h2>
 
-                    <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
-                      {item.contentPreview}
-                    </p>
+                        <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
+                          {item.contentPreview}
+                        </p>
 
-                    <div className="mt-auto flex items-center gap-3.5 pt-2.5 text-[0.76rem] text-foreground/68">
-                      <span className="inline-flex items-center gap-1.5">
-                        <HeartIcon className="size-3.5" />
-                        {formatCount(item.engagement.likeCount)}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <MessageCircleIcon className="size-3.5" />
-                        {formatCount(item.commentCount)}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <BookmarkIcon className="size-3.5" />
-                        {formatCount(item.engagement.favoriteCount)}
-                      </span>
-                      <span className="inline-flex items-center gap-1.5">
-                        <EyeIcon className="size-3.5" />
-                        {formatCount(
-                          articleViewCount(
-                            item.engagement.likeCount,
-                            item.commentCount,
-                            item.engagement.shareCount
-                          )
-                        )}
-                      </span>
-                      <span className="ml-auto inline-flex items-center justify-center text-agree-gray">
-                        <Share2Icon className="size-4" />
-                      </span>
-                    </div>
-                  </div>
-                </Link>
-              </article>
-            ))}
+                        <div className="mt-auto flex items-center gap-3.5 pt-2.5 text-[0.76rem] text-foreground/68">
+                          <span className="inline-flex items-center gap-1.5">
+                            <HeartIcon className="size-3.5" />
+                            {formatCount(item.engagement.likeCount)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <MessageCircleIcon className="size-3.5" />
+                            {formatCount(item.commentCount)}
+                          </span>
+                          <span className="inline-flex items-center gap-1.5">
+                            <EyeIcon className="size-3.5" />
+                            {formatCount(
+                              articleViewCount(
+                                item.engagement.likeCount,
+                                item.commentCount,
+                                item.engagement.shareCount
+                              )
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </Link>
+                  </article>
+                ))}
 
-            {!feedQuery.isLoading && !feedQuery.isError && feedItems.length === 0 ? (
-              <Alert>
-                <AlertTitle>首页还没有公开内容</AlertTitle>
-                <AlertDescription>
-                  {isAuthenticated ? "可以先发布一篇内容。" : "登录后可发布动态。"}
-                </AlertDescription>
-              </Alert>
+                {!feedQuery.isError && feedItems.length === 0 ? (
+                  <Alert>
+                    <AlertTitle>首页还没有公开内容</AlertTitle>
+                    <AlertDescription>
+                      {isAuthenticated ? "可以先发布一篇内容。" : "登录后可发布动态。"}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+              </>
+            )}
+
+            {isFeedRefreshing ? (
+              <div className="absolute inset-0 z-10 bg-background/78 px-3 py-3 backdrop-blur-[1px]">
+                <FeedStreamSkeleton rows={4} />
+              </div>
             ) : null}
           </section>
         </div>
@@ -261,52 +271,79 @@ export function HomePage() {
                 <TrophyIcon className="size-4.5 text-primary" />
                 热门榜单
               </div>
-              <div className="space-y-2">
-                {rankingCards.map((ranking) => (
-                  <Link
-                    className="block border-b border-border pb-2.5 last:border-b-0"
-                    key={ranking.id}
-                    to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
-                  >
-                    <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
-                    <div className="mt-1 text-xs text-muted-foreground">
-                      {ranking.items
-                        .slice(0, 2)
-                        .map((item) => item.title)
-                        .join(" / ")}
+              {isRankingsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 2 }).map((_, index) => (
+                    <div className="space-y-2 border-b border-border pb-2.5 last:border-b-0" key={index}>
+                      <Skeleton className="h-4 w-4/5" />
+                      <Skeleton className="h-3.5 w-3/5" />
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  {rankingCards.map((ranking) => (
+                    <Link
+                      className="block border-b border-border pb-2.5 last:border-b-0"
+                      key={ranking.id}
+                      to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
+                    >
+                      <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        {ranking.items
+                          .slice(0, 2)
+                          .map((item) => item.title)
+                          .join(" / ")}
+                      </div>
+                    </Link>
+                  ))}
+                </div>
+              )}
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <div className="text-base font-semibold text-foreground">热门机型</div>
-              {hotModels.map((model, index) => (
-                <Link
-                  className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
-                  key={model.id}
-                  to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
-                >
-                  <img
-                    alt={model.name}
-                    className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
-                    src={getModelImage(model.slug, model.powerType, index)}
-                  />
-                  <div className="min-w-0 space-y-1">
-                    <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
-                    <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
-                    <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
-                  </div>
-                  <div className="text-right">
-                    <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
-                      {model.ratingSummary.averageScore.toFixed(1)}
+              {isModelsLoading ? (
+                <div className="space-y-3">
+                  {Array.from({ length: 3 }).map((_, index) => (
+                    <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
+                      <Skeleton className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]" />
+                      <div className="space-y-1.5">
+                        <Skeleton className="h-3.5 w-20" />
+                        <Skeleton className="h-3 w-14" />
+                        <Skeleton className="h-3 w-12" />
+                      </div>
+                      <Skeleton className="h-5 w-8" />
                     </div>
-                  </div>
-                </Link>
-              ))}
+                  ))}
+                </div>
+              ) : (
+                hotModels.map((model, index) => (
+                  <Link
+                    className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
+                    key={model.id}
+                    to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
+                  >
+                    <img
+                      alt={model.name}
+                      className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
+                      src={getModelImage(model.slug, model.powerType, index)}
+                    />
+                    <div className="min-w-0 space-y-1">
+                      <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
+                      <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
+                      <RatingStars size="xs" value={toFiveStarRating(model.ratingSummary.averageScore)} />
+                    </div>
+                    <div className="text-right">
+                      <div className="text-[1.3rem] font-semibold leading-none text-rating-blue">
+                        {model.ratingSummary.averageScore.toFixed(1)}
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              )}
             </SitePanelBody>
           </SitePanel>
         </SiteRail>

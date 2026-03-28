@@ -79,9 +79,38 @@ async function uploadImage(cookie: string, name = "cover.png") {
   };
 }
 
+async function uploadVideo(cookie: string, name = "flight.mp4") {
+  const formData = new FormData();
+  formData.append(
+    "file",
+    new File([Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112])], name, {
+      type: "video/mp4"
+    })
+  );
+
+  const response = await app.request(API_ROUTES.uploads.videos, {
+    method: "POST",
+    headers: { cookie },
+    body: formData
+  });
+
+  expect(response.status).toBe(200);
+
+  return (await response.json()) as {
+    item: { id: string; url: string; mimeType: string };
+  };
+}
+
 async function createPost(
   cookie: string,
-  input: { type?: "article" | "moment"; title: string; content: string; imageIds?: string[]; contentCategoryId?: string | null }
+  input: {
+    type?: "article" | "moment";
+    title: string;
+    content: string;
+    imageIds?: string[];
+    videoIds?: string[];
+    contentCategoryId?: string | null;
+  }
 ) {
   const response = await app.request(API_ROUTES.posts.create, {
     method: "POST",
@@ -94,6 +123,7 @@ async function createPost(
       title: input.title,
       content: input.content,
       imageIds: input.imageIds ?? [],
+      videoIds: input.videoIds ?? [],
       contentCategoryId: input.contentCategoryId ?? null
     })
   });
@@ -106,6 +136,7 @@ async function createPost(
       status: string;
       author: { id: string };
       images: Array<{ id: string }>;
+      videos: Array<{ id: string }>;
     };
   };
 }
@@ -304,5 +335,61 @@ describe("posts and social flows", () => {
     expect(detailPayload.item.comments[0]?.replyCount).toBe(2);
     expect(detailPayload.item.comments[0]?.replies).toHaveLength(2);
     expect(detailPayload.item.comments[0]?.replies[1]?.replyToUser?.displayName).toBeTruthy();
+  });
+
+  it("supports video uploads and attaches uploaded videos to posts", async () => {
+    const userCookie = await loginWebUser("13800138010");
+    const uploadedVideo = await uploadVideo(userCookie);
+
+    const created = await createPost(userCookie, {
+      type: "moment",
+      title: "Video moment",
+      content: "Testing video attachments in moment posts.",
+      videoIds: [uploadedVideo.item.id]
+    });
+
+    expect(created.item.videos).toHaveLength(1);
+    expect(created.item.videos[0]?.id).toBe(uploadedVideo.item.id);
+  });
+
+  it("returns user profile and aggregated content endpoints", async () => {
+    const authorCookie = await loginWebUser("13800138011");
+    const created = await createPost(authorCookie, {
+      type: "moment",
+      title: "Profile content source",
+      content: "This post should appear in user aggregated content."
+    });
+
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+
+    const followerCookie = await loginWebUser("13800138012");
+    const followResponse = await app.request(API_ROUTES.social.follow(created.item.author.id), {
+      method: "POST",
+      headers: { cookie: followerCookie }
+    });
+    expect(followResponse.status).toBe(200);
+
+    const profileResponse = await app.request(API_ROUTES.users.profile(created.item.author.id), {
+      method: "GET",
+      headers: { cookie: followerCookie }
+    });
+    expect(profileResponse.status).toBe(200);
+    const profilePayload = (await profileResponse.json()) as {
+      item: { postCount: number; viewer: { isFollowing: boolean } };
+    };
+
+    const contentResponse = await app.request(API_ROUTES.users.content(created.item.author.id), {
+      method: "GET",
+      headers: { cookie: followerCookie }
+    });
+    expect(contentResponse.status).toBe(200);
+    const contentPayload = (await contentResponse.json()) as {
+      items: Array<{ type: string; id: string }>;
+    };
+
+    expect(profilePayload.item.viewer.isFollowing).toBe(true);
+    expect(profilePayload.item.postCount).toBeGreaterThan(0);
+    expect(contentPayload.items.some((item) => item.type === "post" && item.id === created.item.id)).toBe(true);
   });
 });

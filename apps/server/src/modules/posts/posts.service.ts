@@ -42,6 +42,22 @@ function serializeImage(
   };
 }
 
+function serializeVideo(
+  video: Awaited<ReturnType<typeof postsRepo.getVideoUploadById>>
+) {
+  if (!video) {
+    return null;
+  }
+
+  return {
+    id: video.id,
+    url: video.url,
+    fileName: video.fileName,
+    mimeType: video.mimeType,
+    byteSize: video.byteSize
+  };
+}
+
 function buildImagesByPostId(
   images: Awaited<ReturnType<typeof postsRepo.listPostImages>>
 ) {
@@ -63,6 +79,29 @@ function buildImagesByPostId(
   }
 
   return imagesByPostId;
+}
+
+function buildVideosByPostId(
+  videos: Awaited<ReturnType<typeof postsRepo.listPostVideos>>
+) {
+  const videosByPostId = new Map<string, NonNullable<ReturnType<typeof serializeVideo>>[]>();
+
+  for (const video of videos) {
+    if (!video.postId) {
+      continue;
+    }
+
+    const serialized = serializeVideo(video);
+    if (!serialized) {
+      continue;
+    }
+
+    const bucket = videosByPostId.get(video.postId) ?? [];
+    bucket.push(serialized);
+    videosByPostId.set(video.postId, bucket);
+  }
+
+  return videosByPostId;
 }
 
 function buildInteractionMap(
@@ -106,6 +145,7 @@ function serializePostListItem(
   item: Awaited<ReturnType<typeof postsRepo.getPostById>>,
   options: {
     images: NonNullable<ReturnType<typeof serializeImage>>[];
+    videos: NonNullable<ReturnType<typeof serializeVideo>>[];
     viewer: ReturnType<typeof toViewerState>;
   }
 ) {
@@ -131,6 +171,7 @@ function serializePostListItem(
       role: item.author.role as "user" | "admin"
     },
     images: options.images,
+    videos: options.videos,
     contentCategory: item.contentCategory?.id
       ? {
           id: item.contentCategory.id,
@@ -273,6 +314,44 @@ export const postsService = {
     const serialized = serializeImage(item);
     return serialized ? { item: serialized } : null;
   },
+  async uploadVideo(input: {
+    ownerId: string;
+    fileName: string;
+    mimeType: string;
+    byteSize: number;
+    bytes: Uint8Array;
+    dataUrl: string;
+  }) {
+    let resolvedUrl = input.dataUrl;
+    let uploader:
+      | ReturnType<typeof createStorageUploader>
+      | null = null;
+
+    try {
+      uploader = createStorageUploader(resolveStorageProviderConfig());
+    } catch (error) {
+      if (isStorageProviderExplicitlyConfigured()) {
+        throw error;
+      }
+    }
+
+    if (uploader) {
+      const objectKey = `videos/${input.ownerId}/${Date.now()}-${input.fileName.replace(/\s+/g, "-")}`;
+      const uploaded = await uploader.upload({
+        key: objectKey,
+        contentType: input.mimeType,
+        body: input.bytes
+      });
+      resolvedUrl = uploaded.url;
+    }
+
+    const item = await postsRepo.createVideoUpload({
+      ...input,
+      dataUrl: resolvedUrl
+    });
+    const serialized = serializeVideo(item);
+    return serialized ? { item: serialized } : null;
+  },
   async listFeed(
     tab: FeedTab,
     currentUser: CurrentUser | null | undefined,
@@ -286,18 +365,21 @@ export const postsService = {
     });
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
-    const [images, interactions, followingAuthorIds] = await Promise.all([
+    const [images, videos, interactions, followingAuthorIds] = await Promise.all([
       postsRepo.listPostImages(postIds),
+      postsRepo.listPostVideos(postIds),
       currentUser ? postsRepo.listViewerInteractions(postIds, currentUser.id) : [],
       currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
     ]);
 
     const imagesByPostId = buildImagesByPostId(images);
+    const videosByPostId = buildVideosByPostId(videos);
     const interactionMap = buildInteractionMap(interactions);
     const serializedItems = items
       .map((item) =>
         serializePostListItem(item, {
           images: imagesByPostId.get(item.id) ?? [],
+          videos: videosByPostId.get(item.id) ?? [],
           viewer: toViewerState({
             authorId: item.author.id,
             currentUser,
@@ -330,13 +412,20 @@ export const postsService = {
     content: string;
     contentHtml: string | null;
     imageIds: string[];
+    videoIds: string[];
     contentCategoryId: string | null;
   }) {
     const uniqueImageIds = Array.from(new Set(input.imageIds));
     const images = await postsRepo.listOwnedUnattachedImages(input.authorId, uniqueImageIds);
+    const uniqueVideoIds = Array.from(new Set(input.videoIds));
+    const videos = await postsRepo.listOwnedUnattachedVideos(input.authorId, uniqueVideoIds);
 
     if (images.length !== uniqueImageIds.length) {
       return { kind: "invalid_images" as const };
+    }
+
+    if (videos.length !== uniqueVideoIds.length) {
+      return { kind: "invalid_videos" as const };
     }
 
     if (input.type === "article" && !input.contentCategoryId) {
@@ -351,16 +440,21 @@ export const postsService = {
       contentHtml: input.contentHtml,
       contentPlainText: input.content,
       contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
-      imageIds: uniqueImageIds
+      imageIds: uniqueImageIds,
+      videoIds: uniqueVideoIds
     });
 
     if (!item) {
       return { kind: "not_found" as const };
     }
 
-    const attachedImages = await postsRepo.listPostImages([item.id]);
+    const [attachedImages, attachedVideos] = await Promise.all([
+      postsRepo.listPostImages([item.id]),
+      postsRepo.listPostVideos([item.id])
+    ]);
     const serialized = serializePostListItem(item, {
       images: buildImagesByPostId(attachedImages).get(item.id) ?? [],
+      videos: buildVideosByPostId(attachedVideos).get(item.id) ?? [],
       viewer: {
         isAuthor: true,
         isFollowingAuthor: false,
@@ -392,9 +486,10 @@ export const postsService = {
       return null;
     }
 
-    const [comments, images, interactions, followingAuthorIds] = await Promise.all([
+    const [comments, images, videos, interactions, followingAuthorIds] = await Promise.all([
       postsRepo.listVisibleComments(id),
       postsRepo.listPostImages([id]),
+      postsRepo.listPostVideos([id]),
       currentUser ? postsRepo.listViewerInteractions([id], currentUser.id) : [],
       currentUser ? socialService.listFollowingStateSet(currentUser.id, [item.author.id]) : new Set<string>()
     ]);
@@ -424,6 +519,7 @@ export const postsService = {
           role: item.author.role as "user" | "admin"
         },
         images: buildImagesByPostId(images).get(item.id) ?? [],
+        videos: buildVideosByPostId(videos).get(item.id) ?? [],
         contentCategory: item.contentCategory?.id
           ? {
               id: item.contentCategory.id,
@@ -448,14 +544,19 @@ export const postsService = {
   },
   async listAdminPosts(status?: PostStatus) {
     const items = await postsRepo.listAdminPosts(status);
-    const images = await postsRepo.listPostImages(items.map((item) => item.id));
+    const [images, videos] = await Promise.all([
+      postsRepo.listPostImages(items.map((item) => item.id)),
+      postsRepo.listPostVideos(items.map((item) => item.id))
+    ]);
     const imagesByPostId = buildImagesByPostId(images);
+    const videosByPostId = buildVideosByPostId(videos);
 
     return {
       items: items
         .map((item) =>
           serializePostListItem(item, {
             images: imagesByPostId.get(item.id) ?? [],
+            videos: videosByPostId.get(item.id) ?? [],
             viewer: {
               isAuthor: false,
               isFollowingAuthor: false,
@@ -474,9 +575,13 @@ export const postsService = {
       return null;
     }
 
-    const images = await postsRepo.listPostImages([item.id]);
+    const [images, videos] = await Promise.all([
+      postsRepo.listPostImages([item.id]),
+      postsRepo.listPostVideos([item.id])
+    ]);
     return serializePostListItem(item, {
       images: buildImagesByPostId(images).get(item.id) ?? [],
+      videos: buildVideosByPostId(videos).get(item.id) ?? [],
       viewer: {
         isAuthor: false,
         isFollowingAuthor: false,

@@ -1,8 +1,9 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, MessageCircleIcon, Share2Icon, UserCheckIcon, UserPlusIcon, XIcon } from "lucide-react";
+import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { HeartIcon, MessageCircleIcon, UserCheckIcon, UserPlusIcon, XIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { ListPageSkeleton } from "@/components/page-skeletons";
+import { MasonryFeedSkeleton } from "@/components/page-skeletons";
+import { ProfileLink } from "@/components/profile-link";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +50,7 @@ export function CirclePage() {
   const selectedNoteId = searchParams.get("note");
   const feedQuery = useQuery({
     queryKey: ["circle-feed", activeTab],
+    placeholderData: keepPreviousData,
     queryFn: () => apiClient.listCircleFeed(activeTab)
   });
   const noteQuery = useQuery({
@@ -79,9 +81,8 @@ export function CirclePage() {
     setActionError(null);
   }
 
-  if (feedQuery.isLoading && !selectedNoteId) {
-    return <ListPageSkeleton rows={6} />;
-  }
+  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedRefreshing = feedQuery.isFetching && !isFeedLoading;
 
   return (
     <SitePage className="gap-4">
@@ -111,15 +112,21 @@ export function CirclePage() {
         </Alert>
       ) : null}
 
-      {!feedQuery.isLoading && !feedQuery.isError && posts.length === 0 ? (
+      {!isFeedLoading && !feedQuery.isError && posts.length === 0 ? (
         <Alert>
           <AlertTitle>飞友圈还没有新动态</AlertTitle>
           <AlertDescription>先发一条动态试试。</AlertDescription>
         </Alert>
       ) : null}
 
+      {isFeedLoading ? (
+        <div className="max-w-[680px]">
+          <MasonryFeedSkeleton count={9} />
+        </div>
+      ) : null}
+
       {posts.length > 0 ? (
-        <div className="site-tab-panel max-w-[680px]" key={activeTab} style={{ columnWidth: "208px", columnGap: "12px" }}>
+        <div className="site-tab-panel relative max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
           {posts.map((item, index) => (
             <button
               className={`mb-3 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
@@ -145,7 +152,9 @@ export function CirclePage() {
                   {item.title}
                 </h2>
                 <div className="flex items-center justify-between text-[0.74rem] text-foreground/58">
-                  <span>{item.author.displayName}</span>
+                  <ProfileLink className="hover:text-foreground" userId={item.author.id}>
+                    {item.author.displayName}
+                  </ProfileLink>
                   <span className="inline-flex items-center gap-1">
                     <HeartIcon className="size-3.5" />
                     {formatCount(item.engagement.likeCount)}
@@ -154,6 +163,12 @@ export function CirclePage() {
               </div>
             </button>
           ))}
+
+          {isFeedRefreshing ? (
+            <div className="absolute inset-0 z-10 bg-background/78 p-1.5 backdrop-blur-[1px]">
+              <MasonryFeedSkeleton count={9} />
+            </div>
+          ) : null}
         </div>
       ) : null}
 
@@ -187,14 +202,16 @@ export function CirclePage() {
                 {selectedNote ? (
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
-                      <Avatar size="lg">
-                        <AvatarImage alt={selectedNote.author.displayName} src={getAvatarImage(selectedNote.author.id)} />
-                        <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
-                      </Avatar>
+                      <ProfileLink userId={selectedNote.author.id}>
+                        <Avatar size="lg">
+                          <AvatarImage alt={selectedNote.author.displayName} src={getAvatarImage(selectedNote.author.id)} />
+                          <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                      </ProfileLink>
                       <div className="min-w-0">
-                        <div className="truncate text-sm font-semibold text-foreground">
+                        <ProfileLink className="truncate text-sm font-semibold text-foreground hover:text-primary" userId={selectedNote.author.id}>
                           {selectedNote.author.displayName}
-                        </div>
+                        </ProfileLink>
                         <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
                           {new Date(selectedNote.publishedAt ?? selectedNote.createdAt).toLocaleDateString("zh-CN")}
                         </div>
@@ -354,6 +371,7 @@ export function CirclePage() {
                         <PostInteractionBar
                           compact
                           hideFollow
+                          hideShare
                           iconOnly
                           plain
                           authorId={selectedNote.author.id}
@@ -369,10 +387,6 @@ export function CirclePage() {
                           {formatCount(selectedNote.commentCount)}
                         </span>
                       </div>
-                      <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-foreground/62">
-                        <Share2Icon className="size-4" />
-                        分享
-                      </span>
                     </div>
                   </div>
                 ) : null}

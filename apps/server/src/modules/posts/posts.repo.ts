@@ -7,6 +7,7 @@ import {
   postInteractionsTable,
   postReportsTable,
   postsTable,
+  videoAssetsTable,
   userFollowsTable,
   usersTable
 } from "@feijia/db";
@@ -69,6 +70,18 @@ function imageSelection() {
     mimeType: postImagesTable.mimeType,
     byteSize: postImagesTable.byteSize,
     url: postImagesTable.dataUrl
+  };
+}
+
+function videoSelection() {
+  return {
+    id: videoAssetsTable.id,
+    postId: videoAssetsTable.postId,
+    ownerId: videoAssetsTable.ownerId,
+    fileName: videoAssetsTable.fileName,
+    mimeType: videoAssetsTable.mimeType,
+    byteSize: videoAssetsTable.byteSize,
+    url: videoAssetsTable.dataUrl
   };
 }
 
@@ -152,11 +165,41 @@ export const postsRepo = {
 
     return this.getImageUploadById(id);
   },
+  async createVideoUpload(input: {
+    ownerId: string;
+    fileName: string;
+    mimeType: string;
+    byteSize: number;
+    dataUrl: string;
+  }) {
+    const id = createId("video");
+
+    await db.insert(videoAssetsTable).values({
+      id,
+      ownerId: input.ownerId,
+      postId: null,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      byteSize: input.byteSize,
+      dataUrl: input.dataUrl
+    });
+
+    return this.getVideoUploadById(id);
+  },
   async getImageUploadById(id: string) {
     const rows = await db
       .select(imageSelection())
       .from(postImagesTable)
       .where(eq(postImagesTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+  async getVideoUploadById(id: string) {
+    const rows = await db
+      .select(videoSelection())
+      .from(videoAssetsTable)
+      .where(eq(videoAssetsTable.id, id))
       .limit(1);
 
     return rows[0] ?? null;
@@ -177,6 +220,22 @@ export const postsRepo = {
         )
       );
   },
+  async listOwnedUnattachedVideos(ownerId: string, videoIds: string[]) {
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select(videoSelection())
+      .from(videoAssetsTable)
+      .where(
+        and(
+          eq(videoAssetsTable.ownerId, ownerId),
+          inArray(videoAssetsTable.id, videoIds),
+          sql`${videoAssetsTable.postId} is null`
+        )
+      );
+  },
   async attachImagesToPost(postId: string, ownerId: string, imageIds: string[]) {
     if (imageIds.length === 0) {
       return;
@@ -193,6 +252,22 @@ export const postsRepo = {
         )
       );
   },
+  async attachVideosToPost(postId: string, ownerId: string, videoIds: string[]) {
+    if (videoIds.length === 0) {
+      return;
+    }
+
+    await db
+      .update(videoAssetsTable)
+      .set({ postId })
+      .where(
+        and(
+          eq(videoAssetsTable.ownerId, ownerId),
+          inArray(videoAssetsTable.id, videoIds),
+          sql`${videoAssetsTable.postId} is null`
+        )
+      );
+  },
   async listPostImages(postIds: string[]) {
     if (postIds.length === 0) {
       return [];
@@ -203,6 +278,17 @@ export const postsRepo = {
       .from(postImagesTable)
       .where(and(inArray(postImagesTable.postId, postIds), sql`${postImagesTable.postId} is not null`))
       .orderBy(postImagesTable.createdAt);
+  },
+  async listPostVideos(postIds: string[]) {
+    if (postIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select(videoSelection())
+      .from(videoAssetsTable)
+      .where(and(inArray(videoAssetsTable.postId, postIds), sql`${videoAssetsTable.postId} is not null`))
+      .orderBy(videoAssetsTable.createdAt);
   },
   async listViewerInteractions(postIds: string[], userId: string) {
     if (postIds.length === 0) {
@@ -226,6 +312,7 @@ export const postsRepo = {
     contentPlainText: string;
     contentCategoryId: string | null;
     imageIds: string[];
+    videoIds: string[];
   }) {
     const id = createId("post");
 
@@ -248,6 +335,7 @@ export const postsRepo = {
     });
 
     await this.attachImagesToPost(id, input.authorId, input.imageIds);
+    await this.attachVideosToPost(id, input.authorId, input.videoIds);
     return this.getPostById(id);
   },
   async getPostById(id: string) {

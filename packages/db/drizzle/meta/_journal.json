@@ -57,6 +57,13 @@
                         "when":  1774621800000,
                         "tag":  "0007_neat_orb",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  8,
+                        "version":  "7",
+                        "when":  1774692000000,
+                        "tag":  "0008_calm_firebird",
+                        "breakpoints":  true
                     }
                 ]
 }

@@ -1,10 +1,12 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
+  BellIcon,
   CompassIcon,
   HouseIcon,
   LibraryBigIcon,
   MenuIcon,
   SearchIcon,
+  Settings2Icon,
   TrophyIcon
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -29,65 +31,71 @@ import { useBootstrapAuth } from "./use-bootstrap-auth";
 import { UserMenu } from "./user-menu";
 
 const navItems = [
-  { to: APP_ROUTES.feedHome, label: "Home", icon: HouseIcon },
-  { to: APP_ROUTES.flightCircle, label: "Circle", icon: CompassIcon },
-  { to: APP_ROUTES.models, label: "Models", icon: LibraryBigIcon },
-  { to: APP_ROUTES.rankings, label: "Rankings", icon: TrophyIcon }
+  { to: APP_ROUTES.feedHome, label: "首页", icon: HouseIcon },
+  { to: APP_ROUTES.flightCircle, label: "飞友圈", icon: CompassIcon },
+  { to: APP_ROUTES.models, label: "飞行器库", icon: LibraryBigIcon },
+  { to: APP_ROUTES.rankings, label: "榜单", icon: TrophyIcon }
+] as const;
+
+const memberNavItems = [
+  { to: APP_ROUTES.notifications, label: "消息", icon: BellIcon },
+  { to: APP_ROUTES.webProfile, label: "个人中心", icon: CompassIcon },
+  { to: APP_ROUTES.webSettings, label: "设置", icon: Settings2Icon }
 ] as const;
 
 const publishEntries = [
-  { to: WEB_ROUTE_PATHS.publishArticle, label: "Article" },
-  { to: WEB_ROUTE_PATHS.publishMoment, label: "Moment" },
-  { to: WEB_ROUTE_PATHS.publishAircraft, label: "Aircraft" },
-  { to: APP_ROUTES.rankingEditor, label: "Ranking" }
+  { to: WEB_ROUTE_PATHS.publishArticle, label: "发布文章" },
+  { to: WEB_ROUTE_PATHS.publishMoment, label: "发布动态" },
+  { to: WEB_ROUTE_PATHS.publishAircraft, label: "发布飞行器" },
+  { to: APP_ROUTES.rankingEditor, label: "创建榜单" }
 ] as const;
 
 function getHeaderCopy(pathname: string) {
   if (pathname.startsWith(APP_ROUTES.webProfile)) {
-    return "Search profile highlights, saved notes, or draft sections...";
+    return "搜索个人动态、草稿备注或常用入口...";
   }
 
   if (pathname.startsWith(APP_ROUTES.webSettings)) {
-    return "Search privacy, alert routing, or security options...";
+    return "搜索隐私设置、通知偏好或安全选项...";
   }
 
   if (pathname.startsWith(APP_ROUTES.notifications)) {
-    return "Search alert activity, mentions, or follow updates...";
+    return "搜索消息类型、互动提醒或评论通知...";
   }
 
   if (pathname.startsWith(WEB_ROUTE_PATHS.publishArticle)) {
-    return "Search article titles, sections, or writing notes...";
+    return "搜索文章标题、栏目或写作备注...";
   }
 
   if (pathname.startsWith(WEB_ROUTE_PATHS.publishMoment)) {
-    return "Search moments, sortie notes, or quick updates...";
+    return "搜索动态内容、飞行记录或近况更新...";
   }
 
   if (pathname.startsWith(WEB_ROUTE_PATHS.publishAircraft)) {
-    return "Search aircraft names, brands, or technical details...";
+    return "搜索机型名称、品牌或参数细节...";
   }
 
   if (pathname.startsWith(APP_ROUTES.rankings)) {
-    return "Search rankings, entries, or score summaries...";
+    return "搜索榜单、条目或评分摘要...";
   }
 
   if (pathname.startsWith(APP_ROUTES.models)) {
-    return "Search models, brands, or review signals...";
+    return "搜索机型、品牌或测评信号...";
   }
 
-  return "Search routes, pilots, aircraft, or editorial notes...";
+  return "搜索航线、飞友、飞行器或站内内容...";
 }
 
 function ShellBrand() {
   return (
     <div className="flex items-center gap-2.5">
       <div className="flex size-9 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)-0.05rem)] bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
-        FJ
+        飞
       </div>
       <div className="min-w-0">
         <div className="text-[1.32rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
         <div className="text-[0.58rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-          Precision aviation
+          飞行社区
         </div>
       </div>
     </div>
@@ -179,7 +187,7 @@ export function WebLayout() {
               <SheetTrigger asChild>
                 <Button className="xl:hidden" size="icon-lg" variant="outline">
                   <MenuIcon />
-                  <span className="sr-only">Open navigation</span>
+                  <span className="sr-only">打开导航</span>
                 </Button>
               </SheetTrigger>
               <SheetContent
@@ -189,7 +197,7 @@ export function WebLayout() {
                 <SheetHeader className="px-0">
                   <SheetTitle>{APP_NAME}</SheetTitle>
                   <SheetDescription>
-                    Main navigation for home, circle, models, rankings, and personal pages.
+                    首页、飞友圈、飞行器库、榜单与个人入口
                   </SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-5 pt-4">
@@ -202,26 +210,14 @@ export function WebLayout() {
                   {authStatus === "authenticated" ? (
                     <div className="rounded-[calc(var(--radius-control)+0.1rem)] border border-border/80 bg-surface-2/72 p-2">
                       <div className="px-3 pb-2 pt-1 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                        Personal
+                        我的
                       </div>
-                      <div className="flex flex-col gap-1">
-                        {[
-                          { to: APP_ROUTES.notifications, label: "Alerts" },
-                          { to: APP_ROUTES.webProfile, label: "Profile" },
-                          { to: APP_ROUTES.webSettings, label: "Settings" }
-                        ].map((entry) => (
-                          <Link
-                            className="flex h-10 items-center rounded-[calc(var(--radius-control)-0.08rem)] px-3 text-sm font-medium text-foreground/78 transition hover:bg-accent/72 hover:text-foreground"
-                            key={entry.to}
-                            onClick={() => {
-                              setIsMobileNavOpen(false);
-                            }}
-                            to={entry.to}
-                          >
-                            {entry.label}
-                          </Link>
-                        ))}
-                      </div>
+                      <NavButtons
+                        items={memberNavItems}
+                        onNavigate={() => {
+                          setIsMobileNavOpen(false);
+                        }}
+                      />
                     </div>
                   ) : null}
                 </div>
@@ -257,9 +253,8 @@ export function WebLayout() {
                 onClick={() => {
                   if (authStatus !== "authenticated") {
                     promptLogin({
-                      title: "Log in to publish",
-                      description:
-                        "Publishing articles, moments, aircraft, and rankings requires an authenticated session."
+                      title: "登录后才能发布",
+                      description: "发布文章、动态、飞行器和榜单前请先登录。"
                     });
                     return;
                   }
@@ -270,7 +265,7 @@ export function WebLayout() {
                 type="button"
                 variant="hero"
               >
-                Publish
+                发布
               </Button>
 
               {isPublishMenuOpen ? (
@@ -288,9 +283,8 @@ export function WebLayout() {
                           if (authStatus !== "authenticated") {
                             event.preventDefault();
                             promptLogin({
-                              title: "Log in to publish",
-                              description:
-                                "Publishing articles, moments, aircraft, and rankings requires an authenticated session."
+                              title: "登录后才能发布",
+                              description: "发布文章、动态、飞行器和榜单前请先登录。"
                             });
                             return;
                           }
@@ -317,6 +311,17 @@ export function WebLayout() {
           <SitePanel className="flex w-full flex-col" variant="muted">
             <SitePanelBody className="flex h-full flex-col gap-3">
               <NavButtons items={navItems} />
+              {authStatus === "authenticated" ? (
+                <>
+                  <div className="site-rule" />
+                  <div className="space-y-2">
+                    <div className="px-3 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
+                      我的
+                    </div>
+                    <NavButtons items={memberNavItems} />
+                  </div>
+                </>
+              ) : null}
             </SitePanelBody>
           </SitePanel>
         </div>

@@ -649,7 +649,7 @@ async function seedAircraftSubmission() {
     description: "Default sample remains submitted until admin review.",
     coverImageUrl: null,
     galleryImageUrls: "[]",
-    videoUrl: null,
+    videoAssetId: null,
     maxFlightTimeMinutes: 45,
     maxRangeKilometers: 18,
     maxSpeedKph: 58,
@@ -661,7 +661,7 @@ async function seedAircraftSubmission() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "notifications", "post_interactions", "user_follows", "post_images", "post_reports", "post_comments", "posts", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      'TRUNCATE TABLE "notifications", "post_interactions", "user_follows", "video_assets", "post_images", "post_reports", "post_comments", "posts", "review_comments", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }

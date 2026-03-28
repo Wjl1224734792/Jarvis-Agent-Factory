@@ -4,9 +4,10 @@ import {
   brandsTable,
   createId,
   db,
+  videoAssetsTable,
   usersTable
 } from "@feijia/db";
-import { desc, eq } from "drizzle-orm";
+import { and, desc, eq, sql } from "drizzle-orm";
 
 function selection() {
   return {
@@ -21,7 +22,13 @@ function selection() {
     description: aircraftSubmissionsTable.description,
     coverImageUrl: aircraftSubmissionsTable.coverImageUrl,
     galleryImageUrls: aircraftSubmissionsTable.galleryImageUrls,
-    videoUrl: aircraftSubmissionsTable.videoUrl,
+    videoAsset: {
+      id: videoAssetsTable.id,
+      url: videoAssetsTable.dataUrl,
+      fileName: videoAssetsTable.fileName,
+      mimeType: videoAssetsTable.mimeType,
+      byteSize: videoAssetsTable.byteSize
+    },
     approvedModelId: aircraftSubmissionsTable.approvedModelId,
     maxFlightTimeMinutes: aircraftSubmissionsTable.maxFlightTimeMinutes,
     maxRangeKilometers: aircraftSubmissionsTable.maxRangeKilometers,
@@ -48,6 +55,22 @@ function selection() {
 }
 
 export const aircraftSubmissionsRepo = {
+  async getOwnedVideoAsset(ownerId: string, videoAssetId: string) {
+    const rows = await db
+      .select({
+        id: videoAssetsTable.id
+      })
+      .from(videoAssetsTable)
+      .where(
+        and(
+          eq(videoAssetsTable.id, videoAssetId),
+          eq(videoAssetsTable.ownerId, ownerId),
+          sql`${videoAssetsTable.postId} is null`
+        )
+      )
+      .limit(1);
+    return rows[0] ?? null;
+  },
   async create(input: {
     authorId: string;
     status: string;
@@ -60,7 +83,7 @@ export const aircraftSubmissionsRepo = {
     description: string | null;
     coverImageUrl: string | null;
     galleryImageUrls: string;
-    videoUrl: string | null;
+    videoAssetId: string | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
@@ -85,6 +108,7 @@ export const aircraftSubmissionsRepo = {
         eq(aircraftSubmissionsTable.categoryId, aircraftCategoriesTable.id)
       )
       .leftJoin(brandsTable, eq(aircraftSubmissionsTable.brandId, brandsTable.id))
+      .leftJoin(videoAssetsTable, eq(aircraftSubmissionsTable.videoAssetId, videoAssetsTable.id))
       .where(eq(aircraftSubmissionsTable.id, id))
       .limit(1);
 
@@ -100,6 +124,7 @@ export const aircraftSubmissionsRepo = {
         eq(aircraftSubmissionsTable.categoryId, aircraftCategoriesTable.id)
       )
       .leftJoin(brandsTable, eq(aircraftSubmissionsTable.brandId, brandsTable.id))
+      .leftJoin(videoAssetsTable, eq(aircraftSubmissionsTable.videoAssetId, videoAssetsTable.id))
       .orderBy(desc(aircraftSubmissionsTable.updatedAt));
   },
   async updateStatusOnly(id: string, status: string) {

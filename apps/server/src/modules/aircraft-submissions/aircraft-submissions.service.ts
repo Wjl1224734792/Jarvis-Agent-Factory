@@ -53,7 +53,15 @@ function serializeSubmission(
     description: item.description,
     coverImageUrl: item.coverImageUrl,
     galleryImageUrls: parseGallery(item.galleryImageUrls),
-    videoUrl: item.videoUrl,
+    videoAsset: item.videoAsset?.id
+      ? {
+          id: item.videoAsset.id,
+          url: item.videoAsset.url,
+          fileName: item.videoAsset.fileName,
+          mimeType: item.videoAsset.mimeType,
+          byteSize: item.videoAsset.byteSize
+        }
+      : null,
     approvedModelId: item.approvedModelId,
     approvedModelSlug,
     author: {
@@ -120,12 +128,22 @@ export const aircraftSubmissionsService = {
     description: string | null;
     coverImageUrl: string | null;
     galleryImageUrls: string[];
-    videoUrl: string | null;
+    videoAssetId: string | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
+    if (input.videoAssetId) {
+      const videoAsset = await aircraftSubmissionsRepo.getOwnedVideoAsset(
+        input.authorId,
+        input.videoAssetId
+      );
+      if (!videoAsset) {
+        return { kind: "invalid_video" as const };
+      }
+    }
+
     const item = await aircraftSubmissionsRepo.create({
       authorId: input.authorId,
       status: "submitted",
@@ -138,7 +156,7 @@ export const aircraftSubmissionsService = {
       description: input.description,
       coverImageUrl: input.coverImageUrl,
       galleryImageUrls: JSON.stringify(input.galleryImageUrls),
-      videoUrl: input.videoUrl,
+      videoAssetId: input.videoAssetId,
       maxFlightTimeMinutes: input.maxFlightTimeMinutes,
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
@@ -146,7 +164,7 @@ export const aircraftSubmissionsService = {
       approvedModelId: null
     });
 
-    return { item: serializeSubmission(item, null)! };
+    return { kind: "ok" as const, item: serializeSubmission(item, null)! };
   },
   async getSubmission(id: string) {
     const item = await aircraftSubmissionsRepo.findById(id);

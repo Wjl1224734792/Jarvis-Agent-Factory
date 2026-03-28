@@ -16,6 +16,14 @@ export const postImageSchema = z.object({
   byteSize: z.number().int().positive()
 });
 
+export const postVideoSchema = z.object({
+  id: z.string().min(1),
+  url: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  byteSize: z.number().int().positive()
+});
+
 export const postViewerStateSchema = z.object({
   isAuthor: z.boolean(),
   isFollowingAuthor: z.boolean(),
@@ -37,7 +45,8 @@ export const createPostInputSchema = z.object({
   content: z.string().trim().min(1).max(8000),
   contentHtml: z.string().trim().max(32000).nullable().optional(),
   contentCategoryId: z.string().min(1).nullable().optional(),
-  imageIds: z.array(z.string().min(1)).max(6).default([])
+  imageIds: z.array(z.string().min(1)).max(6).default([]),
+  videoIds: z.array(z.string().min(1)).max(2).default([])
 });
 
 export const createPostCommentInputSchema = z.object({
@@ -51,6 +60,10 @@ export const reportPostInputSchema = z.object({
 
 export const uploadPostImageResponseSchema = z.object({
   item: postImageSchema
+});
+
+export const uploadPostVideoResponseSchema = z.object({
+  item: postVideoSchema
 });
 
 const postContentCategorySummarySchema = contentCategorySchema.pick({
@@ -73,6 +86,7 @@ export const postFeedItemSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   images: z.array(postImageSchema),
+  videos: z.array(postVideoSchema),
   contentCategory: postContentCategorySummarySchema.nullable(),
   engagement: postEngagementSchema
 });
@@ -109,6 +123,7 @@ export const postDetailSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   images: z.array(postImageSchema),
+  videos: z.array(postVideoSchema),
   contentCategory: postContentCategorySummarySchema.nullable(),
   engagement: postEngagementSchema,
   comments: z.array(postCommentThreadSchema)

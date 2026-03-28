@@ -29,7 +29,11 @@ aircraftSubmissionsRoute.post(API_ROUTES.submissions.create, requireAuth, async 
     ...input
   });
 
-  return context.json(aircraftSubmissionResponseSchema.parse(payload));
+  if (payload.kind === "invalid_video") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded video asset." }, 400);
+  }
+
+  return context.json(aircraftSubmissionResponseSchema.parse({ item: payload.item }));
 });
 
 aircraftSubmissionsRoute.get(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {

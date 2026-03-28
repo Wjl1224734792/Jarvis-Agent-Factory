@@ -27,6 +27,7 @@ export const APP_ROUTES = {
   notifications: "/notifications",
   webLogin: "/login",
   webProfile: "/me",
+  webUserProfile: "/users/:id",
   webSettings: "/settings",
   adminLogin: "/admin/login",
   adminHome: "/admin",
@@ -81,7 +82,12 @@ export const API_ROUTES = {
     adminDetail: (id: string) => `/admin/aircraft-submissions/${id}`
   },
   uploads: {
-    images: "/uploads/images"
+    images: "/uploads/images",
+    videos: "/uploads/videos"
+  },
+  users: {
+    profile: (userId: string) => `/users/${userId}/profile`,
+    content: (userId: string) => `/users/${userId}/content`
   },
   social: {
     follow: (userId: string) => `/users/${userId}/follow`,
@@ -104,6 +110,9 @@ export const API_ROUTES = {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
     reviews: (slug: string) => `/models/${slug}/reviews`,
+    reviewComments: (reviewId: string) => `/reviews/${reviewId}/comments`,
+    reviewCommentDetail: (reviewId: string, commentId: string) =>
+      `/reviews/${reviewId}/comments/${commentId}`,
     categories: "/admin/categories",
     brands: "/admin/brands",
     adminList: "/admin/models",

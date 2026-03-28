@@ -150,6 +150,41 @@ export const aircraftReviewsTable = pgTable(
   })
 );
 
+export const reviewCommentsTable = pgTable(
+  "review_comments",
+  {
+    id: text("id").primaryKey(),
+    reviewId: text("review_id")
+      .notNull()
+      .references(() => aircraftReviewsTable.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => usersTable.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
+    replyToCommentId: text("reply_to_comment_id"),
+    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
+      onDelete: "set null"
+    }),
+    content: text("content").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    parentCommentFk: foreignKey({
+      columns: [table.parentCommentId],
+      foreignColumns: [table.id]
+    }).onDelete("cascade"),
+    replyToCommentFk: foreignKey({
+      columns: [table.replyToCommentId],
+      foreignColumns: [table.id]
+    }).onDelete("cascade")
+  })
+);
+
 export const postsTable = pgTable("posts", {
   id: text("id").primaryKey(),
   authorId: text("author_id")
@@ -252,6 +287,21 @@ export const postImagesTable = pgTable("post_images", {
     .notNull()
 });
 
+export const videoAssetsTable = pgTable("video_assets", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
+  fileName: text("file_name").notNull(),
+  mimeType: text("mime_type").notNull(),
+  byteSize: integer("byte_size").notNull(),
+  dataUrl: text("data_url").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+});
+
 export const userFollowsTable = pgTable(
   "user_follows",
   {
@@ -334,7 +384,9 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   description: text("description"),
   coverImageUrl: text("cover_image_url"),
   galleryImageUrls: text("gallery_image_urls").default("[]").notNull(),
-  videoUrl: text("video_url"),
+  videoAssetId: text("video_asset_id").references(() => videoAssetsTable.id, {
+    onDelete: "set null"
+  }),
   maxFlightTimeMinutes: integer("max_flight_time_minutes"),
   maxRangeKilometers: integer("max_range_kilometers"),
   maxSpeedKph: integer("max_speed_kph"),

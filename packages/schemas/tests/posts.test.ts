@@ -7,7 +7,8 @@ import {
   postCommentStatusSchema,
   postStatusSchema,
   reportPostInputSchema,
-  uploadPostImageResponseSchema
+  uploadPostImageResponseSchema,
+  uploadPostVideoResponseSchema
 } from "../src/posts";
 
 describe("posts contract", () => {
@@ -22,12 +23,14 @@ describe("posts contract", () => {
       type: "article",
       title: "Crosswind notes",
       content: "This airframe held trim better than expected in gusty conditions.",
-      imageIds: ["image_1", "image_2"]
+      imageIds: ["image_1", "image_2"],
+      videoIds: ["video_1"]
     });
 
     expect(payload.title).toBe("Crosswind notes");
     expect(payload.content).toContain("gusty");
     expect(payload.imageIds).toEqual(["image_1", "image_2"]);
+    expect(payload.videoIds).toEqual(["video_1"]);
   });
 
   it("parses comment payloads for nested replies", () => {
@@ -74,5 +77,20 @@ describe("posts contract", () => {
 
     expect(payload.item.fileName).toBe("cover.png");
     expect(payload.item.mimeType).toBe("image/png");
+  });
+
+  it("parses uploaded video metadata", () => {
+    const payload = uploadPostVideoResponseSchema.parse({
+      item: {
+        id: "video_1",
+        url: "https://example.com/videos/flight.mp4",
+        fileName: "flight.mp4",
+        mimeType: "video/mp4",
+        byteSize: 1024
+      }
+    });
+
+    expect(payload.item.fileName).toBe("flight.mp4");
+    expect(payload.item.mimeType).toBe("video/mp4");
   });
 });

@@ -5,7 +5,8 @@ import {
   FileImageIcon,
   PlaneTakeoffIcon,
   SendHorizonalIcon,
-  TagsIcon
+  TagsIcon,
+  XIcon
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -26,6 +27,12 @@ type UploadedImage = {
   url: string;
 };
 
+type UploadedVideo = {
+  id: string;
+  url: string;
+  fileName?: string;
+};
+
 const powerTypeOptions = [
   { value: "electric", label: "电动" },
   { value: "fuel", label: "燃油" },
@@ -38,6 +45,7 @@ export function PublishAircraftPage() {
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
   const imageInputRef = useRef<HTMLInputElement | null>(null);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [modelName, setModelName] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -46,12 +54,12 @@ export function PublishAircraftPage() {
   const [proposedBrandName, setProposedBrandName] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
-  const [videoUrl, setVideoUrl] = useState("");
   const [maxFlightTimeMinutes, setMaxFlightTimeMinutes] = useState("");
   const [maxRangeKilometers, setMaxRangeKilometers] = useState("");
   const [maxSpeedKph, setMaxSpeedKph] = useState("");
   const [takeoffWeightGrams, setTakeoffWeightGrams] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -109,6 +117,31 @@ export function PublishAircraftPage() {
       setIsUploading(false);
       if (imageInputRef.current) {
         imageInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleVideoUpload(file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setError(null);
+    setIsUploading(true);
+
+    try {
+      const uploaded = await apiClient.uploadPostVideo(file);
+      setUploadedVideo({
+        id: uploaded.item.id,
+        url: uploaded.item.url,
+        fileName: uploaded.item.fileName
+      });
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "视频上传失败");
+    } finally {
+      setIsUploading(false);
+      if (videoInputRef.current) {
+        videoInputRef.current.value = "";
       }
     }
   }
@@ -226,15 +259,26 @@ export function PublishAircraftPage() {
             <SitePanelBody className="space-y-4">
               <div className="flex items-center justify-between gap-3">
                 <div className="text-base font-semibold text-foreground">封面与媒体</div>
-                <Button
-                  onClick={() => imageInputRef.current?.click()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <FileImageIcon data-icon="inline-start" />
-                  {isUploading ? "上传中..." : "上传图片"}
-                </Button>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    onClick={() => imageInputRef.current?.click()}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <FileImageIcon data-icon="inline-start" />
+                    {isUploading ? "上传中..." : "上传图片"}
+                  </Button>
+                  <Button
+                    onClick={() => videoInputRef.current?.click()}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <PlaneTakeoffIcon data-icon="inline-start" />
+                    {isUploading ? "上传中..." : "上传视频"}
+                  </Button>
+                </div>
               </div>
 
               <div className="grid gap-4 md:grid-cols-[180px_repeat(3,minmax(0,1fr))]">
@@ -277,12 +321,34 @@ export function PublishAircraftPage() {
                 ref={imageInputRef}
                 type="file"
               />
-
-              <Input
-                onChange={(event) => setVideoUrl(event.target.value)}
-                placeholder="视频链接，可选"
-                value={videoUrl}
+              <input
+                accept="video/*"
+                className="hidden"
+                onChange={(event) => {
+                  void handleVideoUpload(event.target.files?.[0] ?? null);
+                }}
+                ref={videoInputRef}
+                type="file"
               />
+
+              {uploadedVideo ? (
+                <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
+                  <video className="h-52 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+                  <button
+                    className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                    onClick={() => {
+                      setUploadedVideo(null);
+                    }}
+                    type="button"
+                  >
+                    <XIcon className="size-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+                  还没有上传演示视频，可选上传 1 个视频文件。
+                </div>
+              )}
             </SitePanelBody>
           </SitePanel>
 
@@ -376,7 +442,7 @@ export function PublishAircraftPage() {
                     description: description.trim() || null,
                     coverImageUrl: uploadedImages[0]?.url ?? null,
                     galleryImageUrls: uploadedImages.slice(1).map((item) => item.url),
-                    videoUrl: videoUrl.trim() || null,
+                    videoAssetId: uploadedVideo?.id ?? null,
                     maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
                     maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
                     maxSpeedKph: maxSpeedKph ? Number(maxSpeedKph) : null,
@@ -433,6 +499,11 @@ export function PublishAircraftPage() {
                   </div>
                 ))}
               </div>
+              {uploadedVideo ? (
+                <div className="overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
+                  <video className="h-40 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+                </div>
+              ) : null}
             </SitePanelBody>
           </SitePanel>
 

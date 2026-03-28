@@ -11,6 +11,7 @@ import {
 import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { ProfileLink } from "@/components/profile-link";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -90,6 +91,7 @@ export function PostDetailPage() {
   const isAuthor = currentUser?.id === item.author.id;
   const canComment = authStatus === "authenticated" && item.status === "published";
   const isFollowingAuthor = item.engagement.viewer.isFollowingAuthor;
+  const isCommentRefreshing = postQuery.isFetching && !postQuery.isLoading && !isSubmitting;
 
   return (
     <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-28 pt-2 md:px-6">
@@ -127,12 +129,16 @@ export function PostDetailPage() {
 
           <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
             <div className="flex min-w-0 items-center gap-3">
-              <Avatar className="size-11" size="lg">
-                <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
-                <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
-              </Avatar>
+              <ProfileLink userId={item.author.id}>
+                <Avatar className="size-11" size="lg">
+                  <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
+                  <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
+                </Avatar>
+              </ProfileLink>
               <div className="min-w-0">
-                <div className="text-sm font-medium text-foreground">{item.author.displayName}</div>
+                <ProfileLink className="text-sm font-medium text-foreground hover:text-primary" userId={item.author.id}>
+                  {item.author.displayName}
+                </ProfileLink>
                 <div className="text-xs text-muted-foreground">
                   {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
@@ -207,6 +213,7 @@ export function PostDetailPage() {
           <PostInteractionBar
             compact
             hideFollow
+            hideShare
             iconOnly
             plain
             authorId={item.author.id}
@@ -277,6 +284,9 @@ export function PostDetailPage() {
       <section className="space-y-4 border-t border-border/60 pt-6">
         <div className="space-y-1">
           <div className="text-lg font-semibold text-foreground">评论 {item.commentCount}</div>
+          {isCommentRefreshing ? (
+            <div className="text-xs text-muted-foreground">评论区正在更新...</div>
+          ) : null}
         </div>
 
         {item.comments.length > 0 ? (
@@ -284,10 +294,24 @@ export function PostDetailPage() {
             canInteract={canComment}
             comments={item.comments}
             currentUserId={currentUser?.id}
+            isRefreshing={isCommentRefreshing}
             postId={item.id}
+            showPendingComment={isSubmitting}
           />
         ) : (
-          <div className="border-y border-border/70 py-4 text-sm text-muted-foreground">欢迎留下第一条评论。</div>
+          <div className="space-y-3 border-y border-border/70 py-4">
+            {isSubmitting ? (
+              <PostCommentThread
+                canInteract={canComment}
+                comments={[]}
+                currentUserId={currentUser?.id}
+                postId={item.id}
+                showPendingComment
+              />
+            ) : (
+              <div className="text-sm text-muted-foreground">欢迎留下第一条评论。</div>
+            )}
+          </div>
         )}
       </section>
 
@@ -315,7 +339,7 @@ export function PostDetailPage() {
           ) : (
             <InlineCommentComposer
               busy={isSubmitting}
-              disabled={false}
+              disabled={isSubmitting}
               onChange={setCommentContent}
               onSubmit={() => {
                 if (!commentContent.trim()) {

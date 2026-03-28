@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { CameraIcon, ImagePlusIcon, PlusIcon, Trash2Icon } from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, CameraIcon, ImagePlusIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
@@ -112,6 +112,25 @@ export function RankingEditorPage() {
 
   function updateItem(id: string, patch: Partial<DraftItem>) {
     setDraftItems((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
+  }
+
+  function moveItem(id: string, direction: "up" | "down") {
+    setDraftItems((items) => {
+      const index = items.findIndex((item) => item.id === id);
+      if (index < 0) {
+        return items;
+      }
+
+      const nextIndex = direction === "up" ? index - 1 : index + 1;
+      if (nextIndex < 0 || nextIndex >= items.length) {
+        return items;
+      }
+
+      const cloned = [...items];
+      const [current] = cloned.splice(index, 1);
+      cloned.splice(nextIndex, 0, current!);
+      return cloned;
+    });
   }
 
   async function uploadSingleImage(file: File) {
@@ -250,6 +269,24 @@ export function RankingEditorPage() {
                       <div className="text-sm font-medium text-foreground">#{index + 1}</div>
                       <div className="flex gap-1.5">
                         <Button
+                          disabled={index === 0}
+                          onClick={() => moveItem(item.id, "up")}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <ArrowUpIcon className="size-4" />
+                        </Button>
+                        <Button
+                          disabled={index === draftItems.length - 1}
+                          onClick={() => moveItem(item.id, "down")}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <ArrowDownIcon className="size-4" />
+                        </Button>
+                        <Button
                           onClick={() => {
                             setSelectedImageItemId(item.id);
                             itemImageInputRef.current?.click();
@@ -283,7 +320,7 @@ export function RankingEditorPage() {
                       <div className="space-y-3">
                         <Input
                           onChange={(event) => updateItem(item.id, { title: event.target.value })}
-                          placeholder="标题"
+                          placeholder="条目标题"
                           value={item.title}
                         />
                         <Input
@@ -294,7 +331,7 @@ export function RankingEditorPage() {
                         <Textarea
                           className="min-h-20"
                           onChange={(event) => updateItem(item.id, { summary: event.target.value })}
-                          placeholder="摘要"
+                          placeholder="一句话摘要"
                           value={item.summary}
                         />
                       </div>

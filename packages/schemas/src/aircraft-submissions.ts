@@ -16,6 +16,14 @@ export const aircraftSubmissionParametersSchema = z.object({
   takeoffWeightGrams: z.number().nonnegative().nullable()
 });
 
+export const aircraftSubmissionVideoAssetSchema = z.object({
+  id: z.string().min(1),
+  url: z.string().min(1),
+  fileName: z.string().min(1),
+  mimeType: z.string().min(1),
+  byteSize: z.number().int().positive()
+});
+
 export const aircraftSubmissionSchema = z.object({
   id: z.string().min(1),
   status: aircraftSubmissionStatusSchema,
@@ -38,7 +46,7 @@ export const aircraftSubmissionSchema = z.object({
   description: z.string().nullable(),
   coverImageUrl: z.string().nullable(),
   galleryImageUrls: z.array(z.string().min(1)),
-  videoUrl: z.string().nullable(),
+  videoAsset: aircraftSubmissionVideoAssetSchema.nullable(),
   approvedModelId: z.string().nullable(),
   approvedModelSlug: z.string().nullable(),
   author: userSummarySchema,
@@ -57,7 +65,7 @@ export const createAircraftSubmissionInputSchema = z.object({
   description: z.string().trim().max(4000).nullable(),
   coverImageUrl: z.string().trim().min(1).nullable(),
   galleryImageUrls: z.array(z.string().trim().min(1)).max(6).default([]),
-  videoUrl: z.string().trim().min(1).nullable(),
+  videoAssetId: z.string().trim().min(1).nullable(),
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),

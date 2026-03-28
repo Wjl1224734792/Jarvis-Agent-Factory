@@ -49,6 +49,109 @@ export function ListPageSkeleton(props: { rows?: number; withRail?: boolean }) {
   );
 }
 
+export function FeedStreamSkeleton(props: { rows?: number }) {
+  return (
+    <div className="space-y-3">
+      {Array.from({ length: props.rows ?? 4 }).map((_, index) => (
+        <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
+          <div className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)]">
+            <Skeleton className="h-24 rounded-[0.8rem]" />
+            <div className="space-y-2.5">
+              <Skeleton className="h-5 w-3/4" />
+              <Skeleton className="h-3.5 w-full" />
+              <Skeleton className="h-3.5 w-5/6" />
+              <Skeleton className="h-3.5 w-2/5" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function MasonryFeedSkeleton(props: { count?: number }) {
+  return (
+    <div className="columns-1 gap-3 sm:columns-2 xl:columns-3">
+      {Array.from({ length: props.count ?? 9 }).map((_, index) => (
+        <div
+          className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white p-1.5"
+          key={index}
+        >
+          <Skeleton
+            className={`w-full rounded-[0.8rem] ${
+              index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
+            }`}
+          />
+          <div className="space-y-2 px-2 pb-2.5 pt-2.5">
+            <Skeleton className="h-4 w-4/5" />
+            <div className="flex items-center justify-between gap-3">
+              <Skeleton className="h-3.5 w-20" />
+              <Skeleton className="h-3.5 w-10" />
+            </div>
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function ModelGridSkeleton(props: { count?: number }) {
+  return (
+    <div
+      className="grid justify-start gap-x-4 gap-y-5"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(218px, 218px))" }}
+    >
+      {Array.from({ length: props.count ?? 8 }).map((_, index) => (
+        <div className="block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3" key={index}>
+          <Skeleton className="aspect-square w-full rounded-[0.9rem]" />
+          <div className="space-y-2 px-0.5 pb-0.5 pt-3">
+            <Skeleton className="h-3.5 w-16" />
+            <Skeleton className="h-4 w-4/5" />
+            <Skeleton className="h-3.5 w-24" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+export function RankingCardGridSkeleton(props: { count?: number }) {
+  return (
+    <div
+      className="grid justify-start gap-3"
+      style={{ gridTemplateColumns: "repeat(auto-fill, minmax(276px, 276px))" }}
+    >
+      {Array.from({ length: props.count ?? 6 }).map((_, index) => (
+        <div
+          className="flex w-[276px] min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5"
+          key={index}
+        >
+          <div className="space-y-2">
+            <Skeleton className="h-3.5 w-20" />
+            <Skeleton className="h-5 w-4/5" />
+          </div>
+          <div className="space-y-2.5">
+            {Array.from({ length: 3 }).map((__, innerIndex) => (
+              <div
+                className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)_3.25rem] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+                key={innerIndex}
+              >
+                <Skeleton className="h-4 w-3" />
+                <Skeleton className="h-11 w-11 rounded-[0.75rem]" />
+                <div className="space-y-1.5">
+                  <Skeleton className="h-3.5 w-full" />
+                  <Skeleton className="h-3 w-20" />
+                </div>
+                <Skeleton className="h-5 w-10" />
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function DetailPageSkeleton(props: { withRail?: boolean }) {
   return (
     <div className={props.withRail ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]" : "space-y-4"}>

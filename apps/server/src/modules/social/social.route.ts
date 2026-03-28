@@ -1,6 +1,8 @@
 import {
   actionSuccessResponseSchema,
-  notificationsResponseSchema
+  notificationsResponseSchema,
+  userContentResponseSchema,
+  userProfileResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -61,4 +63,32 @@ socialRoute.post(API_ROUTES.social.notificationsReadAll, requireAuth, async (con
   await socialService.markAllNotificationsRead(currentUser.id);
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {
+  const userId = context.req.param("userId");
+  if (!userId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
+  }
+
+  const payload = await socialService.getUserProfile(userId, context.get("currentUser")?.id);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+
+  return context.json(userProfileResponseSchema.parse(payload));
+});
+
+socialRoute.get(API_ROUTES.users.content(":userId"), async (context) => {
+  const userId = context.req.param("userId");
+  if (!userId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
+  }
+
+  const payload = await socialService.listUserContent(userId, context.get("currentUser")?.id);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
+  }
+
+  return context.json(userContentResponseSchema.parse(payload));
 });

@@ -1,16 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  ArrowLeftIcon,
-  BookmarkIcon,
-  HeartIcon,
-  MessageSquareTextIcon,
-  Share2Icon,
-  XIcon
-} from "lucide-react";
+import { ArrowLeftIcon, BookmarkIcon, HeartIcon, MessageSquareTextIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { ProfileLink } from "@/components/profile-link";
 import { RatingBreakdown } from "@/components/rating-breakdown";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import {
@@ -26,6 +20,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
@@ -46,6 +41,268 @@ const powerTypeLabels = {
   hybrid: "混动",
   other: "其他"
 } as const;
+
+function ReviewCommentSection(props: {
+  reviewId: string;
+  currentUserId?: string;
+  canInteract: boolean;
+}) {
+  const promptLogin = useLoginPrompt();
+  const queryClient = useQueryClient();
+  const [expanded, setExpanded] = useState(false);
+  const [replyTarget, setReplyTarget] = useState<{ id: string; displayName: string } | null>(null);
+  const [content, setContent] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const commentsQuery = useQuery({
+    queryKey: ["review-comments", props.reviewId],
+    queryFn: () => apiClient.listReviewComments(props.reviewId),
+    enabled: expanded
+  });
+
+  async function refresh() {
+    await queryClient.invalidateQueries({ queryKey: ["review-comments", props.reviewId] });
+  }
+
+  return (
+    <div className="mt-4 space-y-3 rounded-[0.85rem] border border-border/70 bg-background/70 px-4 py-4">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-[0.8rem] font-semibold text-foreground">点评回复</div>
+        <div className="flex items-center gap-3">
+          {commentsQuery.isFetching && commentsQuery.data ? (
+            <div className="text-[0.72rem] text-muted-foreground">正在更新...</div>
+          ) : null}
+          <button
+            className="text-[0.72rem] text-primary"
+            onClick={() => setExpanded((value) => !value)}
+            type="button"
+          >
+            {expanded ? "收起回复" : "查看回复"}
+          </button>
+        </div>
+      </div>
+
+      {expanded && commentsQuery.isLoading ? (
+        <div className="space-y-3">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div className="flex items-start gap-3" key={index}>
+              <div className="h-8 w-8 animate-pulse rounded-full bg-muted" />
+              <div className="min-w-0 flex-1 space-y-2">
+                <div className="h-3.5 w-28 animate-pulse rounded bg-muted" />
+                <div className="h-3.5 w-full animate-pulse rounded bg-muted" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {expanded && commentsQuery.isError ? (
+        <Alert variant="destructive">
+          <AlertTitle>回复加载失败</AlertTitle>
+          <AlertDescription>{commentsQuery.error.message}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {expanded && commentsQuery.data?.items.length ? (
+        <div className="space-y-3">
+          {commentsQuery.data.items.map((comment) => (
+            <div className="border-b border-border/70 pb-3 last:border-b-0 last:pb-0" key={comment.id}>
+              <div className="flex items-start gap-3">
+                <ProfileLink userId={comment.author.id}>
+                  <Avatar size="sm">
+                    <AvatarImage alt={comment.author.displayName} src={getAvatarImage(comment.author.id)} />
+                    <AvatarFallback>{comment.author.displayName.slice(0, 1)}</AvatarFallback>
+                  </Avatar>
+                </ProfileLink>
+                <div className="min-w-0 flex-1 space-y-1.5">
+                  <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                    <ProfileLink className="font-medium text-foreground hover:text-primary" userId={comment.author.id}>
+                      {comment.author.displayName}
+                    </ProfileLink>
+                    {comment.replyToUser ? (
+                      <span className="text-[0.72rem] text-primary">@{comment.replyToUser.displayName}</span>
+                    ) : null}
+                    <span className="text-[0.72rem] text-muted-foreground">
+                      {new Date(comment.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+                    </span>
+                  </div>
+                  <p className="text-sm leading-6 text-foreground/80">{comment.content}</p>
+                  <div className="flex items-center gap-3">
+                    {props.canInteract ? (
+                      <button
+                        className="text-[0.72rem] text-primary"
+                        onClick={() => {
+                          setReplyTarget({ id: comment.id, displayName: comment.author.displayName });
+                          setContent(`@${comment.author.displayName} `);
+                        }}
+                        type="button"
+                      >
+                        回复
+                      </button>
+                    ) : null}
+                    {props.currentUserId === comment.author.id ? (
+                      <button
+                        className="inline-flex items-center gap-1 text-[0.72rem] text-muted-foreground"
+                        onClick={() => {
+                          setBusy(true);
+                          setError(null);
+                          void apiClient
+                            .deleteReviewComment(props.reviewId, comment.id)
+                            .then(refresh)
+                            .catch((reason: unknown) => {
+                              setError(reason instanceof Error ? reason.message : "删除回复失败");
+                            })
+                            .finally(() => {
+                              setBusy(false);
+                            });
+                        }}
+                        type="button"
+                      >
+                        <Trash2Icon className="size-3.5" />
+                        删除
+                      </button>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+
+              {comment.replies.length > 0 ? (
+                <div className="mt-3 space-y-3 border-l border-border/70 pl-4">
+                  {comment.replies.map((reply) => (
+                    <div className="flex items-start gap-3" key={reply.id}>
+                      <ProfileLink userId={reply.author.id}>
+                        <Avatar size="sm">
+                          <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
+                          <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                      </ProfileLink>
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm">
+                          <ProfileLink className="font-medium text-foreground hover:text-primary" userId={reply.author.id}>
+                            {reply.author.displayName}
+                          </ProfileLink>
+                          {reply.replyToUser ? (
+                            <span className="text-[0.72rem] text-primary">@{reply.replyToUser.displayName}</span>
+                          ) : null}
+                          <span className="text-[0.72rem] text-muted-foreground">
+                            {new Date(reply.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+                          </span>
+                        </div>
+                        <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
+                        <div className="flex items-center gap-3">
+                          {props.canInteract ? (
+                            <button
+                              className="text-[0.72rem] text-primary"
+                              onClick={() => {
+                                setReplyTarget({ id: reply.id, displayName: reply.author.displayName });
+                                setContent(`@${reply.author.displayName} `);
+                              }}
+                              type="button"
+                            >
+                              回复
+                            </button>
+                          ) : null}
+                          {props.currentUserId === reply.author.id ? (
+                            <button
+                              className="inline-flex items-center gap-1 text-[0.72rem] text-muted-foreground"
+                              onClick={() => {
+                                setBusy(true);
+                                setError(null);
+                                void apiClient
+                                  .deleteReviewComment(props.reviewId, reply.id)
+                                  .then(refresh)
+                                  .catch((reason: unknown) => {
+                                    setError(reason instanceof Error ? reason.message : "删除回复失败");
+                                  })
+                                  .finally(() => {
+                                    setBusy(false);
+                                  });
+                              }}
+                              type="button"
+                            >
+                              <Trash2Icon className="size-3.5" />
+                              删除
+                            </button>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          ))}
+        </div>
+      ) : null}
+
+      {expanded && !commentsQuery.isLoading && !commentsQuery.isError && commentsQuery.data?.items.length === 0 ? (
+        <div className="text-[0.8rem] text-muted-foreground">还没有回复，欢迎继续交流。</div>
+      ) : null}
+
+      {error ? (
+        <Alert variant="destructive">
+          <AlertTitle>回复操作失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {expanded && props.canInteract ? (
+        <div className="space-y-2">
+          {replyTarget ? (
+            <div className="text-[0.72rem] text-muted-foreground">正在回复 @{replyTarget.displayName}</div>
+          ) : null}
+          <InlineCommentComposer
+            busy={busy}
+            disabled={busy}
+            onChange={setContent}
+            onSubmit={() => {
+              if (!content.trim()) {
+                return;
+              }
+
+              setBusy(true);
+              setError(null);
+              void apiClient
+                .createReviewComment(props.reviewId, {
+                  content,
+                  parentCommentId: replyTarget?.id
+                })
+                .then(() => {
+                  setContent("");
+                  setReplyTarget(null);
+                  return refresh();
+                })
+                .catch((reason: unknown) => {
+                  setError(reason instanceof Error ? reason.message : "提交回复失败");
+                })
+                .finally(() => {
+                  setBusy(false);
+                });
+            }}
+            placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条点评..."}
+            value={content}
+          />
+        </div>
+      ) : expanded ? (
+        <Button
+          className="w-full"
+          onClick={() => {
+            promptLogin({
+              title: "登录后才能回复点评",
+              description: "回复前请先登录。"
+            });
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          登录后回复
+        </Button>
+      ) : null}
+    </div>
+  );
+}
 
 export function ModelDetailPage() {
   const params = useParams<{ slug: string }>();
@@ -79,7 +336,7 @@ export function ModelDetailPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-  const [replyTarget, setReplyTarget] = useState<string | null>(null);
+  const currentUserId = useAuthStore((state) => state.user?.id);
 
   useEffect(() => {
     setFormState((current) => syncReviewFormState(current, reviewsQuery.data?.summary.myReview ?? null));
@@ -306,40 +563,17 @@ export function ModelDetailPage() {
                   </div>
                   <div className="mt-2.5 grid gap-2 sm:grid-cols-2">
                     <Button
-                      onClick={() => {
-                        promptLogin({
-                          title: "登录后才能收藏",
-                          description: "收藏前请先登录。"
-                        });
-                      }}
+                      disabled
                       size="sm"
                       type="button"
                       variant="outline"
                     >
                       <BookmarkIcon data-icon="inline-start" />
-                      收藏
+                      收藏功能开发中
                     </Button>
-                    <Button
-                      onClick={() => {
-                        if (
-                          !promptLogin({
-                            title: "登录后才能分享",
-                            description: "分享前请先登录。"
-                          })
-                        ) {
-                          return;
-                        }
-                        if (typeof navigator !== "undefined" && navigator.clipboard) {
-                          void navigator.clipboard.writeText(window.location.href);
-                        }
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <Share2Icon data-icon="inline-start" />
-                      分享
-                    </Button>
+                    <div className="flex items-center justify-center rounded-[var(--radius-control)] border border-dashed border-border/70 px-3 text-sm text-muted-foreground">
+                      分享功能暂未开放
+                    </div>
                   </div>
                 </div>
               </div>
@@ -413,27 +647,12 @@ export function ModelDetailPage() {
                       value={formState.rating}
                     />
                   </div>
-                  {replyTarget ? (
-                    <div className="mt-2.5 flex items-center justify-between text-[0.78rem] text-muted-foreground">
-                      <span>正在回复 @{replyTarget}</span>
-                      <button
-                        className="text-destructive"
-                        onClick={() => {
-                          setReplyTarget(null);
-                          setFormState((current) => updateReviewContent(current, ""));
-                        }}
-                        type="button"
-                      >
-                        <XIcon className="size-4" />
-                      </button>
-                    </div>
-                  ) : null}
                   <Textarea
                     className="mt-3 min-h-28 border-border"
                     onChange={(event) => {
                       setFormState((current) => updateReviewContent(current, event.target.value));
                     }}
-                    placeholder={replyTarget ? `回复 @${replyTarget}` : "写下你的使用感受..."}
+                    placeholder="写下你的使用感受..."
                     value={formState.content}
                   />
 
@@ -471,7 +690,6 @@ export function ModelDetailPage() {
                       void apiClient
                         .submitModelReview(slug, buildSubmitReviewInput(formState))
                         .then(() => {
-                          setReplyTarget(null);
                           setFormState((current) => ({ ...current, dirty: false }));
                           void reviewsQuery.refetch();
                         })
@@ -497,12 +715,16 @@ export function ModelDetailPage() {
                       <div className="border-b border-border px-5 py-4 last:border-b-0" key={review.id}>
                         <div className="flex items-start justify-between gap-3">
                           <div className="flex min-w-0 items-center gap-3">
-                            <Avatar size="sm">
-                              <AvatarImage alt={review.author.displayName} src={getAvatarImage(review.author.id)} />
-                              <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
-                            </Avatar>
+                            <ProfileLink userId={review.author.id}>
+                              <Avatar size="sm">
+                                <AvatarImage alt={review.author.displayName} src={getAvatarImage(review.author.id)} />
+                                <AvatarFallback>{review.author.displayName.slice(0, 1)}</AvatarFallback>
+                              </Avatar>
+                            </ProfileLink>
                             <div className="min-w-0">
-                              <div className="font-medium text-foreground">{review.author.displayName}</div>
+                              <ProfileLink className="font-medium text-foreground hover:text-primary" userId={review.author.id}>
+                                {review.author.displayName}
+                              </ProfileLink>
                               <div className="text-[0.72rem] text-muted-foreground">
                                 {new Date(review.updatedAt).toLocaleString("zh-CN", {
                                   hour12: false
@@ -512,36 +734,19 @@ export function ModelDetailPage() {
                           </div>
                           <div className="flex items-center gap-3">
                             <RatingStars size="xs" value={review.rating} />
-                            <button
-                              className="text-[0.72rem] text-primary"
-                              onClick={() => {
-                                if (
-                                  !promptLogin({
-                                    title: "登录后才能回复点评",
-                                    description: "回复前请先登录。"
-                                  })
-                                ) {
-                                  return;
-                                }
-                                setReplyTarget(review.author.displayName);
-                                setFormState((current) =>
-                                  updateReviewContent(
-                                    current,
-                                    current.content.startsWith(`@${review.author.displayName}`)
-                                      ? current.content
-                                      : `@${review.author.displayName} ${current.content}`.trim()
-                                  )
-                                );
-                              }}
-                              type="button"
-                            >
-                              回复
-                            </button>
+                            <span className="text-[0.72rem] text-muted-foreground">
+                              继续交流见下方回复区
+                            </span>
                           </div>
                         </div>
                         <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/78">
                           {review.content ?? "只做了快速评分。"}
                         </p>
+                        <ReviewCommentSection
+                          canInteract={isAuthenticated}
+                          currentUserId={currentUserId}
+                          reviewId={review.id}
+                        />
                       </div>
                     ))
                   ) : (

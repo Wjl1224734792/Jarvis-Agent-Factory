@@ -1,17 +1,13 @@
 import { APP_ROUTES } from "@feijia/shared";
 import {
-  BellIcon,
   LogOutIcon,
   RadarIcon,
-  Settings2Icon,
   SparklesIcon,
-  UserRoundIcon
 } from "lucide-react";
-import { Link, NavLink, useNavigate } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
-import { Button, buttonVariants } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 import { apiClient } from "../../lib/api-client";
 import { useAuthStore } from "./auth-store";
 
@@ -26,7 +22,7 @@ export function UserMenu() {
     return (
       <div className="flex items-center gap-3 rounded-full border border-border/80 bg-card/88 px-4 py-2 text-sm text-muted-foreground shadow-sm">
         <RadarIcon className="size-4 text-primary" />
-        Restoring session
+        正在恢复会话
       </div>
     );
   }
@@ -35,12 +31,12 @@ export function UserMenu() {
     return (
       <div className="flex items-center gap-3">
         <Badge className="hidden rounded-full px-3 py-1 lg:inline-flex" variant="outline">
-          Guest mode
+          游客模式
         </Badge>
         <Button asChild className="rounded-2xl px-5" size="lg">
           <Link to={APP_ROUTES.webLogin}>
             <SparklesIcon data-icon="inline-start" />
-            Log in
+            登录 / 注册
           </Link>
         </Button>
       </div>
@@ -56,38 +52,9 @@ export function UserMenu() {
         <span className="pr-1 text-left sm:flex sm:flex-col">
           <span className="text-sm font-medium text-foreground">{user.displayName}</span>
           <span className="text-xs text-muted-foreground">
-            {user.role === "admin" ? "Admin Session" : "Flight Member"}
+            {user.role === "admin" ? "管理后台会话" : "飞友身份"}
           </span>
         </span>
-      </div>
-
-      <div className="hidden items-center gap-1 rounded-full border border-border/70 bg-card/84 p-1 shadow-sm lg:flex">
-        {[
-          { to: APP_ROUTES.notifications, label: "Alerts", icon: BellIcon },
-          { to: APP_ROUTES.webProfile, label: "Profile", icon: UserRoundIcon },
-          { to: APP_ROUTES.webSettings, label: "Settings", icon: Settings2Icon }
-        ].map((item) => {
-          const Icon = item.icon;
-
-          return (
-            <NavLink
-              className={({ isActive }) =>
-                cn(
-                  buttonVariants({
-                    size: "sm",
-                    variant: isActive ? "panel" : "ghost"
-                  }),
-                  "rounded-full px-3.5"
-                )
-              }
-              key={item.to}
-              to={item.to}
-            >
-              <Icon className="size-4" />
-              {item.label}
-            </NavLink>
-          );
-        })}
       </div>
 
       <Button
@@ -100,7 +67,7 @@ export function UserMenu() {
               navigate(APP_ROUTES.feedHome);
             })
             .catch((error: unknown) => {
-              setError(error instanceof Error ? error.message : "Log out failed");
+              setError(error instanceof Error ? error.message : "退出登录失败");
             });
         }}
         size="icon-lg"
@@ -108,7 +75,7 @@ export function UserMenu() {
         variant="outline"
       >
         <LogOutIcon />
-        <span className="sr-only">Log out</span>
+        <span className="sr-only">退出登录</span>
       </Button>
     </div>
   );

@@ -55,5 +55,35 @@ export const adminReviewResponseSchema = z.object({
   item: adminReviewListItemSchema
 });
 
+export const reviewCommentSchema = z.object({
+  id: z.string().min(1),
+  reviewId: z.string().min(1),
+  parentCommentId: z.string().min(1).nullable(),
+  replyToCommentId: z.string().min(1).nullable(),
+  content: z.string().min(1),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  author: userSummarySchema,
+  replyToUser: userSummarySchema.nullable()
+});
+
+export const reviewCommentThreadSchema = reviewCommentSchema.extend({
+  replyCount: z.number().int().nonnegative(),
+  replies: z.array(reviewCommentSchema)
+});
+
+export const createReviewCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000),
+  parentCommentId: z.string().min(1).optional()
+});
+
+export const createReviewCommentResponseSchema = z.object({
+  item: reviewCommentSchema
+});
+
+export const reviewCommentsResponseSchema = z.object({
+  items: z.array(reviewCommentThreadSchema)
+});
+
 export type ReviewStatus = z.infer<typeof reviewStatusSchema>;
 export type ModelReview = z.infer<typeof modelReviewSchema>;
