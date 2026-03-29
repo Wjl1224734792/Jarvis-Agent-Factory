@@ -111,11 +111,11 @@ export function ModelsPage() {
   }
 
   return (
-    <AdminPage description="维护机型基础数据和品牌归属。" title="机型管理">
+    <AdminPage description="维护机型基础资料、品牌归属与动力类型。" title="机型管理">
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
-        <AdminPanel description="先创建基础信息，参数可以后续补齐。" title="新增机型">
+        <AdminPanel description="先录入基础信息，参数可以后续补全。" title="新增机型">
           <Form
             form={createForm}
             layout="vertical"
@@ -136,11 +136,11 @@ export function ModelsPage() {
             <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
               <Select options={brandOptions} placeholder="选择品牌" />
             </Form.Item>
-            <Form.Item label="动力" name="powerType" rules={[{ required: true, message: "请选择动力" }]}>
-              <Select options={powerOptions} placeholder="选择动力" />
+            <Form.Item label="动力类型" name="powerType" rules={[{ required: true, message: "请选择动力类型" }]}>
+              <Select options={powerOptions} placeholder="选择动力类型" />
             </Form.Item>
             <Form.Item label="摘要" name="summary">
-              <Input placeholder="短摘要" />
+              <Input placeholder="简短摘要" />
             </Form.Item>
             <Form.Item label="详情描述" name="description">
               <Input placeholder="详情描述" />
@@ -153,7 +153,7 @@ export function ModelsPage() {
           </Form>
         </AdminPanel>
 
-        <AdminPanel description="按品牌、分类和动力查看当前机型。" title="机型列表">
+        <AdminPanel description="按品牌、分类与动力类型查看当前机型。" title="机型列表">
           <Table
             bordered
             columns={[
@@ -242,7 +242,7 @@ export function ModelsPage() {
           <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
             <Select options={brandOptions} />
           </Form.Item>
-          <Form.Item label="动力" name="powerType">
+          <Form.Item label="动力类型" name="powerType">
             <Select options={powerOptions} />
           </Form.Item>
           <Form.Item label="摘要" name="summary">

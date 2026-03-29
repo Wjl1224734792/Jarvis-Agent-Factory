@@ -70,6 +70,25 @@ socialRoute.post(API_ROUTES.social.notificationsReadAll, requireAuth, async (con
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
+socialRoute.post(API_ROUTES.social.notificationRead(":id"), requireAuth, async (context) => {
+  const currentUser = context.get("currentUser");
+  const notificationId = context.req.param("id");
+
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+  if (!notificationId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing notification id." }, 400);
+  }
+
+  const result = await socialService.markNotificationRead(currentUser.id, notificationId);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Notification not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
 socialRoute.get(API_ROUTES.users.meProfile, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");
   if (!currentUser) {

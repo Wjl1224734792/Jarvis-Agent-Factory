@@ -18,19 +18,14 @@ export function AdminProtectedRoute({ children }: PropsWithChildren) {
           <Button loading type="primary">
             正在恢复管理员身份
           </Button>
-          <div style={{ color: "#94a3b8" }}>请稍候，正在校验后台会话。</div>
+          <div style={{ color: "#94a3b8" }}>请稍候，正在校验后台登录会话。</div>
         </Flex>
       </main>
     );
   }
 
   if (status !== "authenticated") {
-    return (
-      <Navigate
-        replace
-        to={`${APP_ROUTES.adminLogin}?redirect=${encodeURIComponent(location.pathname)}`}
-      />
-    );
+    return <Navigate replace to={`${APP_ROUTES.adminLogin}?redirect=${encodeURIComponent(location.pathname)}`} />;
   }
 
   return children;

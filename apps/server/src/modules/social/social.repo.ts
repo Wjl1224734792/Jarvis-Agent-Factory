@@ -392,6 +392,33 @@ export const socialRepo = {
       })
       .where(eq(notificationsTable.userId, userId));
   },
+  async markNotificationRead(userId: string, notificationId: string) {
+    const rows = await db
+      .select({
+        id: notificationsTable.id
+      })
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.userId, userId),
+          eq(notificationsTable.id, notificationId)
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) {
+      return false;
+    }
+
+    await db
+      .update(notificationsTable)
+      .set({
+        isRead: true
+      })
+      .where(eq(notificationsTable.id, notificationId));
+
+    return true;
+  },
   async listUsersByIds(ids: string[]) {
     if (ids.length === 0) {
       return [];

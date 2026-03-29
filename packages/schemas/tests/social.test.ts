@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminAnalyticsOverviewResponseSchema,
   notificationsResponseSchema,
   userContentResponseSchema,
   userProfileResponseSchema
@@ -125,5 +126,93 @@ describe("social contract", () => {
     expect(profile.item.viewer.isFollowing).toBe(true);
     expect(profile.item.viewer.canViewContent).toBe(true);
     expect(content.items).toHaveLength(6);
+  });
+
+  it("parses admin analytics overview payload", () => {
+    const now = new Date().toISOString();
+    const point30 = Array.from({ length: 30 }, (_, index) => ({
+      periodStart: now,
+      value: index
+    }));
+    const point12 = Array.from({ length: 12 }, (_, index) => ({
+      periodStart: now,
+      value: index
+    }));
+    const point5 = Array.from({ length: 5 }, (_, index) => ({
+      periodStart: now,
+      value: index
+    }));
+
+    const payload = adminAnalyticsOverviewResponseSchema.parse({
+      item: {
+        totals: {
+          users: 42,
+          moments: 11,
+          articles: 8,
+          aircraft: 6,
+          rankings: 5,
+          pendingTotal: 10,
+          pendingPosts: 1,
+          pendingComments: 3,
+          pendingReviews: 2,
+          pendingSubmissions: 4
+        },
+        registration: {
+          total: 42,
+          today: 2,
+          month: 12,
+          year: 42,
+          daily: point30,
+          monthly: point12,
+          yearly: point5
+        },
+        activity: {
+          activeUsers: 19,
+          dau: 6,
+          mau: 18,
+          yau: 19,
+          daily: point30,
+          monthly: point12,
+          yearly: point5
+        },
+        contentMix: {
+          moments: 11,
+          articles: 8,
+          aircraft: 6,
+          rankings: 5
+        },
+        content: {
+          moments: 11,
+          articles: 8,
+          aircraftPublishedModels: 6,
+          aircraftPendingSubmissions: 4,
+          rankings: 5
+        },
+        moderation: {
+          posts: { queueEntered: 16, pending: 1, approved: 12, rejected: 2, hidden: 1 },
+          comments: { queueEntered: 25, pending: 3, approved: 20, rejected: 0, hidden: 2 },
+          reviews: { queueEntered: 12, pending: 2, approved: 9, rejected: 0, hidden: 1 },
+          submissions: { queueEntered: 10, pending: 4, approved: 5, rejected: 1, hidden: 0 }
+        },
+        funnel: {
+          posts: { queueEntered: 16, pending: 1, approved: 12, rejectedOrHidden: 3 },
+          comments: { queueEntered: 25, pending: 3, approved: 20, rejectedOrHidden: 2 },
+          reviews: { queueEntered: 12, pending: 2, approved: 9, rejectedOrHidden: 1 },
+          submissions: { queueEntered: 10, pending: 4, approved: 5, rejectedOrHidden: 1 }
+        },
+        series: {
+          registrationDaily: point30,
+          registrationMonthly: point12,
+          registrationYearly: point5,
+          activityDaily: point30,
+          activityMonthly: point12,
+          activityYearly: point5
+        }
+      }
+    });
+
+    expect(payload.item.registration.daily).toHaveLength(30);
+    expect(payload.item.activity.monthly).toHaveLength(12);
+    expect(payload.item.activity.yearly).toHaveLength(5);
   });
 });

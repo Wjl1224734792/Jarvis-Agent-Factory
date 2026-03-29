@@ -5,6 +5,7 @@ import {
   adminPostCommentStatusUpdateInputSchema,
   adminPostResponseSchema,
   adminPostsResponseSchema,
+  adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
   circleFeedResponseSchema,
   createPostCommentInputSchema,
@@ -335,6 +336,63 @@ postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context
   }
 
   return context.json(adminPostResponseSchema.parse({ item }));
+});
+
+postsRoute.get(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const payload = await postsService.getAdminOfficialArticle(id);
+  if (!payload) {
+    return context.json({ code: "NOT_FOUND", message: "Official article not found." }, 404);
+  }
+
+  return context.json(postDetailResponseSchema.parse(payload));
+});
+
+postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const input = adminOfficialArticleUpdateInputSchema.parse(await context.req.json());
+  const result = await postsService.updateAdminOfficialArticle(id, {
+    title: input.title,
+    content: input.content,
+    contentHtml: input.contentHtml ?? null,
+    contentCategoryId: input.contentCategoryId,
+    imageIds: input.imageIds,
+    videoIds: input.videoIds
+  });
+
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Official article not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded images." }, 400);
+  }
+  if (result.kind === "invalid_videos") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded videos." }, 400);
+  }
+
+  return context.json(postDetailResponseSchema.parse({ item: result.item }));
+});
+
+postsRoute.delete(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const result = await postsService.deleteAdminOfficialArticle(id);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Official article not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
 postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => {

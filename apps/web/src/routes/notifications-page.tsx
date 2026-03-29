@@ -1,4 +1,4 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   BellIcon,
   BellRingIcon,
@@ -7,7 +7,8 @@ import {
   ShieldCheckIcon,
   UsersIcon
 } from "lucide-react";
-import { Link } from "react-router-dom";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { SitePage } from "@/components/site-shell";
 import { ProfileLink } from "@/components/profile-link";
@@ -21,6 +22,8 @@ import { APP_ROUTES } from "@feijia/shared";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage } from "../lib/aviation-media";
+import { NOTIFICATIONS_QUERY_KEY } from "../features/auth/notification-state";
+import { useNotifications } from "../features/auth/use-notifications";
 
 type NotificationItem = Awaited<ReturnType<typeof apiClient.listNotifications>>["items"][number];
 
@@ -101,45 +104,61 @@ function NotificationFeedSkeleton() {
   );
 }
 
-function NotificationRow({ item }: { item: NotificationItem }) {
-  const unread = !item.isRead;
+function NotificationRow(props: {
+  item: NotificationItem;
+  onView: (item: NotificationItem) => void;
+}) {
+  const unread = !props.item.isRead;
+
   return (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[auto_minmax(0,1fr)_8rem] md:items-start">
-      <ProfileLink userId={item.actor.id}>
+      <ProfileLink userId={props.item.actor.id}>
         <Avatar className="size-10" size="lg">
           <AvatarImage
-            alt={item.actor.displayName}
-            src={item.actor.avatarUrl ?? getAvatarImage(item.actor.id)}
+            alt={props.item.actor.displayName}
+            src={props.item.actor.avatarUrl ?? getAvatarImage(props.item.actor.id)}
           />
-          <AvatarFallback>{item.actor.displayName.slice(0, 1)}</AvatarFallback>
+          <AvatarFallback>{props.item.actor.displayName.slice(0, 1)}</AvatarFallback>
         </Avatar>
       </ProfileLink>
 
       <div className="min-w-0 space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          <Badge variant="secondary">{notificationGroupLabel(item.type)}</Badge>
-          {item.isRead ? <Badge variant="outline">已读</Badge> : <Badge variant="destructive">未读</Badge>}
+          <Badge variant="secondary">{notificationGroupLabel(props.item.type)}</Badge>
+          {props.item.isRead ? <Badge variant="outline">已读</Badge> : <Badge variant="destructive">未读</Badge>}
         </div>
-        <ProfileLink className="line-clamp-1 text-[0.95rem] font-semibold text-foreground" userId={item.actor.id}>
-          {notificationLabel(item)}
+        <ProfileLink className="line-clamp-1 text-[0.95rem] font-semibold text-foreground" userId={props.item.actor.id}>
+          {notificationLabel(props.item)}
         </ProfileLink>
         <div className="text-sm text-muted-foreground">
-          {new Date(item.createdAt).toLocaleString("zh-CN", { hour12: false })}
+          {new Date(props.item.createdAt).toLocaleString("zh-CN", { hour12: false })}
         </div>
-        {item.post ? <div className="text-sm text-foreground/82">相关帖子：{item.post.title}</div> : null}
-        {item.comment ? (
+        {props.item.post ? <div className="text-sm text-foreground/82">相关帖子：{props.item.post.title}</div> : null}
+        {props.item.comment ? (
           <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">
-            评论摘要：{item.comment.contentPreview}
+            评论摘要：{props.item.comment.contentPreview}
           </div>
         ) : null}
       </div>
 
       <div className="flex items-center justify-between gap-3 md:flex-col md:items-end">
-        <div className={cn("flex size-9 items-center justify-center rounded-full", unread ? "bg-red-50 text-red-500" : "bg-secondary/58 text-primary")}>
-          {item.isRead ? <BellIcon className="size-4" /> : <BellRingIcon className="size-4" />}
+        <div
+          className={cn(
+            "flex size-9 items-center justify-center rounded-full",
+            unread ? "bg-red-50 text-red-500" : "bg-secondary/58 text-primary"
+          )}
+        >
+          {props.item.isRead ? <BellIcon className="size-4" /> : <BellRingIcon className="size-4" />}
         </div>
-        <Button asChild size="sm" type="button" variant="outline">
-          <Link to={notificationHref(item)}>查看</Link>
+        <Button
+          onClick={() => {
+            props.onView(props.item);
+          }}
+          size="sm"
+          type="button"
+          variant="outline"
+        >
+          查看
         </Button>
       </div>
     </div>
@@ -147,11 +166,10 @@ function NotificationRow({ item }: { item: NotificationItem }) {
 }
 
 export function NotificationsPage() {
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const notificationsQuery = useQuery({
-    queryKey: ["notifications"],
-    queryFn: () => apiClient.listNotifications()
-  });
+  const notificationsQuery = useNotifications();
+  const [actionError, setActionError] = useState<string | null>(null);
 
   const isInitialLoading = notificationsQuery.isLoading;
   const payload = notificationsQuery.data;
@@ -159,6 +177,26 @@ export function NotificationsPage() {
   const socialCount = payload?.items.filter((item) => item.type === "followed").length ?? 0;
   const discussionCount =
     payload?.items.filter((item) => item.type === "post_commented" || item.type === "comment_replied").length ?? 0;
+
+  async function refreshNotifications() {
+    await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+  }
+
+  async function handleViewNotification(item: NotificationItem) {
+    setActionError(null);
+    if (!item.isRead) {
+      try {
+        await apiClient.markNotificationRead(item.id);
+      } catch (error: unknown) {
+        setActionError(error instanceof Error ? error.message : "标记消息已读失败");
+        return;
+      } finally {
+        await refreshNotifications();
+      }
+    }
+
+    navigate(notificationHref(item));
+  }
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
@@ -180,11 +218,9 @@ export function NotificationsPage() {
                     <div className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
                       {item.label}
                     </div>
-                    <Icon className={cn("size-4", item.tone === "danger" ? "text-red-500" : "text-primary")} />
+                    <Icon className={cn("size-4", item.tone === "danger" && item.value > 0 ? "text-red-500" : "text-primary")} />
                   </div>
-                  <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-                    {item.value}
-                  </div>
+                  <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">{item.value}</div>
                 </CardContent>
               </Card>
             );
@@ -193,13 +229,19 @@ export function NotificationsPage() {
       )}
 
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/70 pb-3">
-        <div className="text-sm text-muted-foreground">消息按最新互动顺序展示，大量数据时会自动虚拟渲染。</div>
+        <div className="text-sm text-muted-foreground">消息按最新互动顺序展示，支持统一刷新与全部标记已读。</div>
         <div className="flex flex-wrap gap-3">
           <Button
             onClick={() => {
-              void apiClient.markAllNotificationsRead().then(() => {
-                void queryClient.invalidateQueries({ queryKey: ["notifications"] });
-              });
+              setActionError(null);
+              void apiClient
+                .markAllNotificationsRead()
+                .then(async () => {
+                  await refreshNotifications();
+                })
+                .catch((error: unknown) => {
+                  setActionError(error instanceof Error ? error.message : "全部标记已读失败");
+                });
             }}
             size="sm"
             type="button"
@@ -209,7 +251,8 @@ export function NotificationsPage() {
           </Button>
           <Button
             onClick={() => {
-              void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+              setActionError(null);
+              void refreshNotifications();
             }}
             size="sm"
             type="button"
@@ -218,11 +261,25 @@ export function NotificationsPage() {
             <RefreshCcwIcon data-icon="inline-start" />
             刷新
           </Button>
-          <Button asChild size="sm" type="button" variant="outline">
-            <Link to={APP_ROUTES.webSettings}>通知设置</Link>
+          <Button
+            onClick={() => {
+              navigate(APP_ROUTES.webSettings);
+            }}
+            size="sm"
+            type="button"
+            variant="outline"
+          >
+            通知设置
           </Button>
         </div>
       </div>
+
+      {actionError ? (
+        <Alert variant="destructive">
+          <AlertTitle>消息状态更新失败</AlertTitle>
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      ) : null}
 
       {notificationsQuery.isError ? (
         <Alert variant="destructive">
@@ -236,13 +293,13 @@ export function NotificationsPage() {
           data={payload?.items ?? []}
           emptyState={
             <Alert>
-              <AlertTitle>目前还没有新的消息</AlertTitle>
-              <AlertDescription>有新的关注、互动或评论时，这里会直接列出来。</AlertDescription>
+              <AlertTitle>当前没有新的消息</AlertTitle>
+              <AlertDescription>当有人关注、点赞、评论或回复你时，这里会第一时间提醒。</AlertDescription>
             </Alert>
           }
           height={680}
           itemKey={(item) => item.id}
-          renderItem={(item) => <NotificationRow item={item} />}
+          renderItem={(item) => <NotificationRow item={item} onView={handleViewNotification} />}
         />
       )}
     </SitePage>

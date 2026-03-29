@@ -130,12 +130,20 @@ function seededDate(day: number, hour: number, minute = 0) {
 
 async function ensureAdminUser() {
   const existing = await db
-    .select({ id: usersTable.id })
+    .select({ id: usersTable.id, displayName: usersTable.displayName })
     .from(usersTable)
     .where(eq(usersTable.account, "admin"))
     .limit(1);
 
   if (existing.length > 0) {
+    if (existing[0].displayName === "System Admin") {
+      await db
+        .update(usersTable)
+        .set({
+          displayName: "系统管理员"
+        })
+        .where(eq(usersTable.id, existing[0].id));
+    }
     return existing[0].id;
   }
 
@@ -143,7 +151,7 @@ async function ensureAdminUser() {
   await db.insert(usersTable).values({
     id,
     role: "admin",
-    displayName: "System Admin",
+    displayName: "系统管理员",
     phone: null,
     account: "admin",
     passwordHash: hashPassword("Admin#123")
@@ -156,11 +164,11 @@ async function seedContentCategories() {
   await db
     .insert(contentCategoriesTable)
     .values([
-      { id: CONTENT_CATEGORY_IDS.news, slug: "news", name: "News", sortOrder: 1, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.review, slug: "review", name: "Review", sortOrder: 2, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.aerial, slug: "aerial", name: "Aerial", sortOrder: 3, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "Tech", sortOrder: 4, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "Guide", sortOrder: 5, isEnabled: true }
+      { id: CONTENT_CATEGORY_IDS.news, slug: "news", name: "资讯", sortOrder: 1, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.review, slug: "review", name: "评测", sortOrder: 2, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.aerial, slug: "aerial", name: "航拍", sortOrder: 3, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "技术", sortOrder: 4, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "指南", sortOrder: 5, isEnabled: true }
     ])
     .onConflictDoNothing();
 }

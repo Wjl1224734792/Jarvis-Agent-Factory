@@ -96,11 +96,11 @@ export function BrandsPage() {
   }
 
   return (
-    <AdminPage description="维护品牌与分类归属。" title="品牌管理">
+    <AdminPage description="维护品牌与所属分类的关系。" title="品牌管理">
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
-        <AdminPanel description="新增品牌后可以立刻在机型页引用。" title="新增品牌">
+        <AdminPanel description="新增品牌后即可在机型管理中引用。" title="新增品牌">
           <Form
             form={createForm}
             initialValues={{ sortOrder: 0, isEnabled: true, categoryId: null }}
@@ -138,7 +138,7 @@ export function BrandsPage() {
           </Form>
         </AdminPanel>
 
-        <AdminPanel description="快速查看品牌和所属分类。" title="品牌列表">
+        <AdminPanel description="快速查看品牌及其所属分类。" title="品牌列表">
           <Table
             bordered
             columns={[

@@ -1,7 +1,7 @@
 import "antd/dist/reset.css";
 import React from "react";
 import ReactDOM from "react-dom/client";
-import { ConfigProvider, theme } from "antd";
+import { ConfigProvider } from "antd";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { App } from "./app";
 import { queryClient } from "./lib/query-client";
@@ -11,15 +11,34 @@ ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ConfigProvider
       theme={{
-        algorithm: theme.darkAlgorithm,
         token: {
-          colorPrimary: "#3b82f6",
-          colorBgBase: "#0b1220",
-          colorBgContainer: "#111827",
-          colorBgElevated: "#0f172a",
-          colorBorder: "rgba(148, 163, 184, 0.18)",
-          borderRadius: 12,
+          colorPrimary: "#147a84",
+          colorInfo: "#147a84",
+          colorSuccess: "#2f9b8f",
+          colorWarning: "#ef9f45",
+          colorError: "#d25d62",
+          colorBgBase: "#eef5f4",
+          colorBgLayout: "#eef5f4",
+          colorBgContainer: "#ffffff",
+          colorBgElevated: "#ffffff",
+          colorBorder: "#d7e4e2",
+          colorText: "#15363d",
+          colorTextSecondary: "#647b82",
+          colorFillSecondary: "#f4f9f8",
+          borderRadius: 18,
           fontSize: 14
+        },
+        components: {
+          Button: {
+            defaultBg: "#ffffff",
+            defaultBorderColor: "#d7e4e2",
+            defaultColor: "#15363d"
+          },
+          Table: {
+            headerBg: "#f3f9f8",
+            headerColor: "#15363d",
+            rowHoverBg: "#f5fbfa"
+          }
         }
       }}
     >

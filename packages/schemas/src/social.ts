@@ -193,5 +193,97 @@ export const userContentResponseSchema = z.object({
   items: z.array(userContentItemSchema)
 });
 
+const adminAnalyticsCountSchema = z.number().int().nonnegative();
+
+export const adminAnalyticsSeriesPointSchema = z.object({
+  periodStart: z.string().datetime(),
+  value: adminAnalyticsCountSchema
+});
+
+export const adminAnalyticsModerationBucketSchema = z.object({
+  queueEntered: adminAnalyticsCountSchema,
+  pending: adminAnalyticsCountSchema,
+  approved: adminAnalyticsCountSchema,
+  rejected: adminAnalyticsCountSchema,
+  hidden: adminAnalyticsCountSchema
+});
+
+export const adminAnalyticsFunnelBucketSchema = z.object({
+  queueEntered: adminAnalyticsCountSchema,
+  pending: adminAnalyticsCountSchema,
+  approved: adminAnalyticsCountSchema,
+  rejectedOrHidden: adminAnalyticsCountSchema
+});
+
+export const adminAnalyticsOverviewSchema = z.object({
+  totals: z.object({
+    users: adminAnalyticsCountSchema,
+    moments: adminAnalyticsCountSchema,
+    articles: adminAnalyticsCountSchema,
+    aircraft: adminAnalyticsCountSchema,
+    rankings: adminAnalyticsCountSchema,
+    pendingTotal: adminAnalyticsCountSchema,
+    pendingPosts: adminAnalyticsCountSchema,
+    pendingComments: adminAnalyticsCountSchema,
+    pendingReviews: adminAnalyticsCountSchema,
+    pendingSubmissions: adminAnalyticsCountSchema
+  }),
+  registration: z.object({
+    total: adminAnalyticsCountSchema,
+    today: adminAnalyticsCountSchema,
+    month: adminAnalyticsCountSchema,
+    year: adminAnalyticsCountSchema,
+    daily: z.array(adminAnalyticsSeriesPointSchema).length(30),
+    monthly: z.array(adminAnalyticsSeriesPointSchema).length(12),
+    yearly: z.array(adminAnalyticsSeriesPointSchema).length(5)
+  }),
+  activity: z.object({
+    activeUsers: adminAnalyticsCountSchema,
+    dau: adminAnalyticsCountSchema,
+    mau: adminAnalyticsCountSchema,
+    yau: adminAnalyticsCountSchema,
+    daily: z.array(adminAnalyticsSeriesPointSchema).length(30),
+    monthly: z.array(adminAnalyticsSeriesPointSchema).length(12),
+    yearly: z.array(adminAnalyticsSeriesPointSchema).length(5)
+  }),
+  contentMix: z.object({
+    moments: adminAnalyticsCountSchema,
+    articles: adminAnalyticsCountSchema,
+    aircraft: adminAnalyticsCountSchema,
+    rankings: adminAnalyticsCountSchema
+  }),
+  content: z.object({
+    articles: adminAnalyticsCountSchema,
+    moments: adminAnalyticsCountSchema,
+    aircraftPublishedModels: adminAnalyticsCountSchema,
+    aircraftPendingSubmissions: adminAnalyticsCountSchema,
+    rankings: adminAnalyticsCountSchema
+  }),
+  moderation: z.object({
+    posts: adminAnalyticsModerationBucketSchema,
+    comments: adminAnalyticsModerationBucketSchema,
+    reviews: adminAnalyticsModerationBucketSchema,
+    submissions: adminAnalyticsModerationBucketSchema
+  }),
+  funnel: z.object({
+    posts: adminAnalyticsFunnelBucketSchema,
+    comments: adminAnalyticsFunnelBucketSchema,
+    reviews: adminAnalyticsFunnelBucketSchema,
+    submissions: adminAnalyticsFunnelBucketSchema
+  }),
+  series: z.object({
+    registrationDaily: z.array(adminAnalyticsSeriesPointSchema).length(30),
+    registrationMonthly: z.array(adminAnalyticsSeriesPointSchema).length(12),
+    registrationYearly: z.array(adminAnalyticsSeriesPointSchema).length(5),
+    activityDaily: z.array(adminAnalyticsSeriesPointSchema).length(30),
+    activityMonthly: z.array(adminAnalyticsSeriesPointSchema).length(12),
+    activityYearly: z.array(adminAnalyticsSeriesPointSchema).length(5)
+  })
+});
+
+export const adminAnalyticsOverviewResponseSchema = z.object({
+  item: adminAnalyticsOverviewSchema
+});
+
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;

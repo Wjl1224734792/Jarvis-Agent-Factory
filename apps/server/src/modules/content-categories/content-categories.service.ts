@@ -1,13 +1,16 @@
 import { contentCategoriesRepo } from "./content-categories.repo";
 
 export const contentCategoriesService = {
-  listEnabledCategories() {
+  async listEnabledCategories() {
+    await contentCategoriesRepo.localizeDefaultNames();
     return contentCategoriesRepo.listEnabled();
   },
-  listAllCategories() {
+  async listAllCategories() {
+    await contentCategoriesRepo.localizeDefaultNames();
     return contentCategoriesRepo.listAll();
   },
-  findBySlug(slug: string) {
+  async findBySlug(slug: string) {
+    await contentCategoriesRepo.localizeDefaultNames();
     return contentCategoriesRepo.findBySlug(slug);
   },
   createCategory(input: {

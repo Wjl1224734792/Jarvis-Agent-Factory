@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import { API_ROUTES, APP_PORTS, APP_ROUTES } from "@feijia/shared";
 
+import { adminAnalyticsRoute } from "./modules/admin-analytics/admin-analytics.route";
 import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.route";
 import { aircraftSubmissionsRoute } from "./modules/aircraft-submissions/aircraft-submissions.route";
 import { authRoute } from "./modules/auth/auth.route";
@@ -88,6 +89,7 @@ app.route(APP_ROUTES.health, healthRoute);
 app.route("/", authRoute);
 app.route("/", postsRoute);
 app.route("/", socialRoute);
+app.route("/", adminAnalyticsRoute);
 app.route("/", rankingsRoute);
 app.route("/", aircraftModelsRoute);
 app.route("/", aircraftSubmissionsRoute);

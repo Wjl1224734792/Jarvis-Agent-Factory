@@ -7,6 +7,17 @@ import { apiClient } from "../../lib/api-client";
 
 type SubmissionRecord = Awaited<ReturnType<typeof apiClient.listAdminAircraftSubmissions>>["items"][number];
 
+function submissionStatusLabel(status: SubmissionRecord["status"]) {
+  switch (status) {
+    case "submitted":
+      return "待审核";
+    case "approved":
+      return "已通过";
+    case "rejected":
+      return "已驳回";
+  }
+}
+
 export function AircraftSubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -52,23 +63,17 @@ export function AircraftSubmissionsPage() {
   }
 
   return (
-    <AdminPage
-      description="集中处理用户提交的飞行器资料。前期仍保留人工审核，避免机型库被脏数据冲击。"
-      title="飞行器投稿审核"
-    >
+    <AdminPage description="集中处理用户提交的飞行器资料与投稿审核。" title="飞行器投稿审核">
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel
-        description="自动审核开启后，新的飞行器投稿会直接按既有通过链路入库。"
-        title="当前模式"
-      >
+      <AdminPanel description="关闭人工审核后，新的飞行器投稿会自动进入通过链路。" title="当前模式">
         <AdminModerationCard
           autoCopy="新的飞行器投稿会自动通过。"
-          description="人工审核关闭后，运营只需要处理异常案例。"
+          description="开启人工审核更适合控制数据质量与补充资料。"
           enabled={siteSettingsQuery.data?.item.submissionModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的飞行器投稿保持 submitted，等待人工审核。"
+          manualCopy="新的飞行器投稿会保持 submitted 状态，等待人工审核。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -111,6 +116,7 @@ export function AircraftSubmissionsPage() {
             {
               dataIndex: "status",
               key: "status",
+              render: (value: SubmissionRecord["status"]) => submissionStatusLabel(value),
               title: "状态",
               width: 120
             },

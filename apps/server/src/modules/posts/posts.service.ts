@@ -276,6 +276,12 @@ function serializeSingleComment(
   };
 }
 
+function isOfficialArticlePost(
+  item: Awaited<ReturnType<typeof postsRepo.getPostById>>
+) {
+  return item?.type === "article" && item.author.role === "admin";
+}
+
 export const postsService = {
   async uploadImage(input: {
     ownerId: string;
@@ -577,6 +583,104 @@ export const postsService = {
         )
         .filter((item): item is NonNullable<typeof item> => item !== null)
     };
+  },
+  async getAdminOfficialArticle(id: string) {
+    const item = await postsRepo.getPostById(id);
+    if (!isOfficialArticlePost(item)) {
+      return null;
+    }
+
+    const [images, videos] = await Promise.all([
+      postsRepo.listPostImages([item.id]),
+      postsRepo.listPostVideos([item.id])
+    ]);
+    const serialized = serializePostListItem(item, {
+      images: buildImagesByPostId(images).get(item.id) ?? [],
+      videos: buildVideosByPostId(videos).get(item.id) ?? [],
+      viewer: {
+        isAuthor: false,
+        isFollowingAuthor: false,
+        hasLiked: false,
+        hasFavorited: false,
+        hasShared: false
+      }
+    });
+
+    if (!serialized) {
+      return null;
+    }
+
+    return {
+      item: {
+        ...serialized,
+        content: item.content,
+        comments: []
+      }
+    };
+  },
+  async updateAdminOfficialArticle(
+    id: string,
+    input: {
+      title: string;
+      content: string;
+      contentHtml: string | null;
+      contentCategoryId: string;
+      imageIds: string[];
+      videoIds: string[];
+    }
+  ) {
+    const existing = await postsRepo.getPostById(id);
+    if (!isOfficialArticlePost(existing)) {
+      return { kind: "not_found" as const };
+    }
+
+    const uniqueImageIds = Array.from(new Set(input.imageIds));
+    const uniqueVideoIds = Array.from(new Set(input.videoIds));
+    const [images, videos] = await Promise.all([
+      postsRepo.listOwnedAttachableImages(existing.author.id, uniqueImageIds, id),
+      postsRepo.listOwnedAttachableVideos(existing.author.id, uniqueVideoIds, id)
+    ]);
+
+    if (images.length !== uniqueImageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
+    if (videos.length !== uniqueVideoIds.length) {
+      return { kind: "invalid_videos" as const };
+    }
+
+    const updated = await postsRepo.updateOfficialArticle({
+      id,
+      ownerId: existing.author.id,
+      title: input.title,
+      content: input.content,
+      contentHtml: input.contentHtml,
+      contentCategoryId: input.contentCategoryId,
+      imageIds: uniqueImageIds,
+      videoIds: uniqueVideoIds
+    });
+    if (!isOfficialArticlePost(updated)) {
+      return { kind: "not_found" as const };
+    }
+
+    const payload = await this.getAdminOfficialArticle(updated.id);
+    if (!payload) {
+      return { kind: "not_found" as const };
+    }
+
+    return {
+      kind: "ok" as const,
+      item: payload.item
+    };
+  },
+  async deleteAdminOfficialArticle(id: string) {
+    const existing = await postsRepo.getPostById(id);
+    if (!isOfficialArticlePost(existing)) {
+      return { kind: "not_found" as const };
+    }
+
+    await postsRepo.deletePost(id);
+    return { kind: "ok" as const };
   },
   async updatePostStatus(id: string, status: PostStatus) {
     const item = await postsRepo.updatePostStatus(id, status);

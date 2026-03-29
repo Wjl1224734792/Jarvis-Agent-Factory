@@ -169,6 +169,15 @@ export const adminPostStatusUpdateInputSchema = z.object({
   status: postStatusSchema
 });
 
+export const adminOfficialArticleUpdateInputSchema = z.object({
+  title: z.string().trim().min(1).max(100),
+  content: z.string().trim().min(1).max(8000),
+  contentHtml: z.string().trim().max(32000).nullable().optional(),
+  contentCategoryId: z.string().min(1),
+  imageIds: z.array(z.string().min(1)).max(6).default([]),
+  videoIds: z.array(z.string().min(1)).max(2).default([])
+});
+
 export const adminPostResponseSchema = z.object({
   item: adminPostListItemSchema
 });

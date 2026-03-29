@@ -216,7 +216,7 @@ export function HomePage() {
                   <Alert>
                     <AlertTitle>首页还没有公开内容</AlertTitle>
                     <AlertDescription>
-                      {isAuthenticated ? "可以先发布一篇内容。" : "登录后可发布动态。"}
+                      {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
                     </AlertDescription>
                   </Alert>
                 ) : null}
@@ -293,10 +293,7 @@ export function HomePage() {
                     >
                       <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {ranking.items
-                          .slice(0, 2)
-                          .map((item) => item.title)
-                          .join(" / ")}
+                        {ranking.items.slice(0, 2).map((item) => item.title).join(" / ")}
                       </div>
                     </Link>
                   ))}
@@ -337,9 +334,7 @@ export function HomePage() {
                     <div className="min-w-0 space-y-1">
                       <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
                       <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
-                      <div className="text-[0.72rem] text-muted-foreground">
-                        {model.reviewSummary.totalReviews} 条评论
-                      </div>
+                      <div className="text-[0.72rem] text-muted-foreground">{model.reviewSummary.totalReviews} 条评测</div>
                     </div>
                     <div className="text-right">
                       <div className="text-[1.05rem] font-semibold leading-none text-foreground">

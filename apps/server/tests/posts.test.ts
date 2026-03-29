@@ -1,5 +1,13 @@
-import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
+import {
+  contentCategoriesTable,
+  db,
+  dbPool,
+  resetDatabaseState,
+  runMigrations,
+  seedDatabase
+} from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
+import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { app } from "../src/app";
@@ -233,6 +241,113 @@ afterAll(async () => {
 });
 
 describe("posts and social flows", () => {
+  it("supports dedicated admin official article detail/update/delete endpoints", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const createResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Official article before update",
+        content: "Initial official article content",
+        contentHtml: "<p>Initial official article content</p>",
+        imageIds: [],
+        videoIds: [],
+        contentCategoryId: articleCategoryId
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const detailResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "GET",
+      headers: {
+        cookie: adminCookie
+      }
+    });
+    expect(detailResponse.status).toBe(200);
+
+    const updateResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Official article after update",
+        content: "Updated official article content",
+        contentHtml: "<p>Updated official article content</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: [],
+        videoIds: []
+      })
+    });
+    expect(updateResponse.status).toBe(200);
+    const updated = (await updateResponse.json()) as {
+      item: { id: string; title: string; content: string };
+    };
+    expect(updated.item.id).toBe(created.item.id);
+    expect(updated.item.title).toBe("Official article after update");
+    expect(updated.item.content).toContain("Updated official article content");
+
+    const deleteResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "DELETE",
+      headers: {
+        cookie: adminCookie
+      }
+    });
+    expect(deleteResponse.status).toBe(200);
+
+    const detailAfterDeleteResponse = await app.request(
+      API_ROUTES.posts.adminOfficialDetail(created.item.id),
+      {
+      method: "GET",
+      headers: {
+        cookie: adminCookie
+      }
+      }
+    );
+    expect(detailAfterDeleteResponse.status).toBe(404);
+  });
+
+  it("returns 404 for dedicated official article endpoints when article author is not admin", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const userCookie = await loginWebUser("13800138101");
+    const created = await createPost(userCookie, {
+      type: "article",
+      title: "User article",
+      content: "This should not be treated as official.",
+      contentCategoryId: articleCategoryId
+    });
+
+    const adminCookie = await loginAdmin();
+    const detailResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "GET",
+      headers: {
+        cookie: adminCookie
+      }
+    });
+    expect(detailResponse.status).toBe(404);
+  });
+
   it("requires login for publishing and keeps pending posts out of the home article feed", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
@@ -830,6 +945,138 @@ describe("posts and social flows", () => {
         (item) => item.type === "post_commented" && item.post?.id === post.item.id
       )
     ).toBe(true);
+  });
+
+  it("marks a single notification as read", async () => {
+    const cookie = await loginWebUser("13800138101");
+
+    const beforeResponse = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(beforeResponse.status).toBe(200);
+    const beforePayload = (await beforeResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ id: string; isRead: boolean }>;
+    };
+    const target = beforePayload.items.find((item) => !item.isRead);
+    expect(target?.id).toBeTruthy();
+
+    const markOneResponse = await app.request(API_ROUTES.social.notificationRead(target!.id), {
+      method: "POST",
+      headers: { cookie }
+    });
+    expect(markOneResponse.status).toBe(200);
+
+    const afterResponse = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(afterResponse.status).toBe(200);
+    const afterPayload = (await afterResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ id: string; isRead: boolean }>;
+    };
+
+    const marked = afterPayload.items.find((item) => item.id === target!.id);
+    expect(marked?.isRead).toBe(true);
+    expect(afterPayload.unreadCount).toBe(beforePayload.unreadCount - 1);
+  });
+
+  it("returns admin analytics overview with fixed series lengths", async () => {
+    const adminCookie = await loginAdmin();
+
+    const response = await app.request(API_ROUTES.admin.analyticsOverview, {
+      method: "GET",
+      headers: {
+        cookie: adminCookie
+      }
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      item: {
+        registration: { total: number };
+        activity: { activeUsers: number };
+        content: {
+          articles: number;
+          moments: number;
+          aircraftPublishedModels: number;
+          aircraftPendingSubmissions: number;
+          rankings: number;
+        };
+        moderation: {
+          posts: { pending: number; approved: number; rejected: number; hidden: number };
+          comments: { pending: number; approved: number; rejected: number; hidden: number };
+          reviews: { pending: number; approved: number; rejected: number; hidden: number };
+          submissions: { pending: number; approved: number; rejected: number; hidden: number };
+        };
+        series: {
+          registrationDaily: Array<{ periodStart: string; value: number }>;
+          registrationMonthly: Array<{ periodStart: string; value: number }>;
+          registrationYearly: Array<{ periodStart: string; value: number }>;
+          activityDaily: Array<{ periodStart: string; value: number }>;
+          activityMonthly: Array<{ periodStart: string; value: number }>;
+          activityYearly: Array<{ periodStart: string; value: number }>;
+        };
+      };
+    };
+
+    expect(payload.item.registration.total).toBe(11);
+    expect(payload.item.activity.activeUsers).toBeGreaterThanOrEqual(1);
+    expect(payload.item.content.articles).toBe(6);
+    expect(payload.item.content.moments).toBe(3);
+    expect(payload.item.content.aircraftPublishedModels).toBe(6);
+    expect(payload.item.content.aircraftPendingSubmissions).toBe(1);
+    expect(payload.item.content.rankings).toBe(2);
+    expect(payload.item.moderation.posts.pending).toBe(1);
+    expect(payload.item.moderation.posts.approved).toBe(6);
+    expect(payload.item.moderation.posts.rejected).toBe(1);
+    expect(payload.item.moderation.posts.hidden).toBe(1);
+    expect(payload.item.series.registrationDaily).toHaveLength(30);
+    expect(payload.item.series.registrationMonthly).toHaveLength(12);
+    expect(payload.item.series.registrationYearly).toHaveLength(5);
+    expect(payload.item.series.activityDaily).toHaveLength(30);
+    expect(payload.item.series.activityMonthly).toHaveLength(12);
+    expect(payload.item.series.activityYearly).toHaveLength(5);
+  });
+
+  it("backfills content category names by slug to Chinese labels", async () => {
+    await db
+      .update(contentCategoriesTable)
+      .set({ name: "News" })
+      .where(eq(contentCategoriesTable.slug, "news"));
+    await db
+      .update(contentCategoriesTable)
+      .set({ name: "Review" })
+      .where(eq(contentCategoriesTable.slug, "review"));
+    await db
+      .update(contentCategoriesTable)
+      .set({ name: "Aerial" })
+      .where(eq(contentCategoriesTable.slug, "aerial"));
+    await db
+      .update(contentCategoriesTable)
+      .set({ name: "Tech" })
+      .where(eq(contentCategoriesTable.slug, "tech"));
+    await db
+      .update(contentCategoriesTable)
+      .set({ name: "Guide" })
+      .where(eq(contentCategoriesTable.slug, "guide"));
+
+    await seedDatabase({ reset: false });
+
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    expect(categoriesResponse.status).toBe(200);
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ slug: string; name: string }>;
+    };
+
+    const bySlug = new Map(categoriesPayload.items.map((item) => [item.slug, item.name]));
+    expect(bySlug.get("news")).toBe("资讯");
+    expect(bySlug.get("review")).toBe("评测");
+    expect(bySlug.get("aerial")).toBe("航拍");
+    expect(bySlug.get("tech")).toBe("技术");
+    expect(bySlug.get("guide")).toBe("指南");
   });
 });
 

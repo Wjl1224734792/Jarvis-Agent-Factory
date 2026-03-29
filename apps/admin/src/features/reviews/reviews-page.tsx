@@ -7,6 +7,17 @@ import { apiClient } from "../../lib/api-client";
 
 type ReviewRecord = Awaited<ReturnType<typeof apiClient.listAdminReviews>>["items"][number];
 
+function reviewStatusLabel(status: ReviewRecord["status"]) {
+  switch (status) {
+    case "pending":
+      return "待审核";
+    case "visible":
+      return "已展示";
+    case "hidden":
+      return "已隐藏";
+  }
+}
+
 export function ReviewsPage() {
   const reviewsQuery = useQuery({
     queryKey: ["admin-reviews"],
@@ -33,27 +44,24 @@ export function ReviewsPage() {
       });
       await Promise.all([siteSettingsQuery.refetch(), reviewsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新点评审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新评测审核开关失败");
     } finally {
       setIsSavingSettings(false);
     }
   }
 
   return (
-    <AdminPage description="控制点评的可见性和公开展示状态。" title="点评治理">
+    <AdminPage description="控制评测的可见性和公开展示状态。" title="评测管理">
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel
-        description="人工审核模式下，点评提交后只对作者本人显示待审状态。"
-        title="当前模式"
-      >
+      <AdminPanel description="人工审核模式下，评测提交后会先进入待审核状态。" title="当前模式">
         <AdminModerationCard
-          autoCopy="机型点评直接公开。"
-          description="切换后会影响新的点评提交。"
+          autoCopy="机型评测会直接公开。"
+          description="切换后会影响新的评测提交。"
           enabled={siteSettingsQuery.data?.item.reviewModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="机型点评提交后先进入待审核。"
+          manualCopy="机型评测提交后会先进入待审核状态。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -61,11 +69,11 @@ export function ReviewsPage() {
             void updateModeration(true);
           }}
           pendingCount={(reviewsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
-          title="点评审核"
+          title="评测审核"
         />
       </AdminPanel>
 
-      <AdminPanel title="点评列表">
+      <AdminPanel title="评测列表">
         <Table
           bordered
           columns={[
@@ -82,12 +90,13 @@ export function ReviewsPage() {
             {
               dataIndex: "content",
               key: "content",
-              render: (value: string | null) => value ?? "该评论当前没有补充正文。",
-              title: "评论内容"
+              render: (value: string | null) => value ?? "该评测当前没有补充正文。",
+              title: "评测内容"
             },
             {
               dataIndex: "status",
               key: "status",
+              render: (value: ReviewRecord["status"]) => reviewStatusLabel(value),
               title: "状态",
               width: 120
             },
@@ -105,7 +114,7 @@ export function ReviewsPage() {
                         void reviewsQuery.refetch();
                       })
                       .catch((reason: unknown) => {
-                        setError(reason instanceof Error ? reason.message : "更新点评状态失败");
+                        setError(reason instanceof Error ? reason.message : "更新评测状态失败");
                       });
                   }}
                   size="small"

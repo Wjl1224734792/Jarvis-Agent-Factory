@@ -22,13 +22,13 @@ export function AdminLoginPage() {
     <main className="admin-login">
       <div className="admin-login__grid">
         <section className="admin-login__hero">
-          <Space orientation="vertical" size="large">
+          <Space direction="vertical" size="large">
             <Button icon={<SafetyCertificateOutlined />} type="primary">
               管理员身份校验
             </Button>
-            <div className="admin-login__hero-title">飞加网后台治理控制台</div>
+            <div className="admin-login__hero-title">飞加网运营管理后台</div>
             <div className="admin-login__hero-copy">
-              统一处理内容审核、评论治理、机型目录、官方榜单和点评展示。当前登录入口使用独立管理员会话，不复用前台手机号验证码流程。
+              集中处理内容审核、评论治理、机型目录、榜单与官方文章。当前登录入口使用独立管理员会话，不复用前台手机号验证码流程。
             </div>
           </Space>
         </section>

@@ -1,7 +1,32 @@
 import { contentCategoriesTable, createId, db } from "@feijia/db";
-import { eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
+
+const localizedDefaultCategoryNames = {
+  news: { next: "资讯", legacy: ["News", "news", "资讯"] },
+  review: { next: "评测", legacy: ["Review", "review", "评测"] },
+  aerial: { next: "航拍", legacy: ["Aerial", "aerial", "航拍"] },
+  tech: { next: "技术", legacy: ["Tech", "tech", "技术"] },
+  guide: { next: "指南", legacy: ["Guide", "guide", "指南"] }
+} as const;
 
 export const contentCategoriesRepo = {
+  async localizeDefaultNames() {
+    await Promise.all(
+      Object.entries(localizedDefaultCategoryNames).map(([slug, config]) =>
+        db
+          .update(contentCategoriesTable)
+          .set({
+            name: config.next
+          })
+          .where(
+            and(
+              eq(contentCategoriesTable.slug, slug),
+              inArray(contentCategoriesTable.name, config.legacy)
+            )
+          )
+      )
+    );
+  },
   async listEnabled() {
     return db
       .select()

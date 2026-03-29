@@ -1,8 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Select, Space, Table } from "antd";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
+import { useNavigate, useParams } from "react-router-dom";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -108,16 +108,11 @@ export function RankingEditorPage() {
     setDraftItems((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  const isFormValid =
-    draftItems.length > 0 && draftItems.every((item) => item.title.trim().length > 0);
+  const isFormValid = draftItems.length > 0 && draftItems.every((item) => item.title.trim().length > 0);
 
   return (
     <AdminPage
-      actions={
-        <Button href={APP_ROUTES.adminRankings}>
-          返回榜单列表
-        </Button>
-      }
+      actions={<Button href={APP_ROUTES.adminRankings}>返回榜单列表</Button>}
       description={editId ? "编辑现有官方榜单与条目。" : "创建新的官方榜单。"}
       title={editId ? "编辑官方榜单" : "新建官方榜单"}
     >
@@ -131,7 +126,7 @@ export function RankingEditorPage() {
                 <Input placeholder="例如：官方续航榜" />
               </Form.Item>
               <Form.Item label="榜单简介" name="description" rules={[{ required: true, message: "请输入榜单简介" }]}>
-                <Input placeholder="一句话描述这份榜单的评选原则" />
+                <Input placeholder="一句话说明榜单的排序逻辑" />
               </Form.Item>
               <Form.Item label="封面 URL" name="coverImageUrl">
                 <Input placeholder="可选" />
@@ -162,11 +157,7 @@ export function RankingEditorPage() {
                 >
                   添加机型
                 </Button>
-                <Button
-                  onClick={() => setDraftItems((items) => [...items, emptyDraftItem()])}
-                >
-                  自定义条目
-                </Button>
+                <Button onClick={() => setDraftItems((items) => [...items, emptyDraftItem()])}>自定义条目</Button>
               </Space>
             }
             title="榜单条目"
@@ -183,20 +174,14 @@ export function RankingEditorPage() {
                 {
                   key: "title",
                   render: (_, record: DraftItem) => (
-                    <Input
-                      onChange={(event) => updateItem(record.id, { title: event.target.value })}
-                      value={record.title}
-                    />
+                    <Input onChange={(event) => updateItem(record.id, { title: event.target.value })} value={record.title} />
                   ),
                   title: "标题"
                 },
                 {
                   key: "brandName",
                   render: (_, record: DraftItem) => (
-                    <Input
-                      onChange={(event) => updateItem(record.id, { brandName: event.target.value })}
-                      value={record.brandName}
-                    />
+                    <Input onChange={(event) => updateItem(record.id, { brandName: event.target.value })} value={record.brandName} />
                   ),
                   title: "品牌",
                   width: 160
@@ -204,10 +189,7 @@ export function RankingEditorPage() {
                 {
                   key: "summary",
                   render: (_, record: DraftItem) => (
-                    <Input
-                      onChange={(event) => updateItem(record.id, { summary: event.target.value })}
-                      value={record.summary}
-                    />
+                    <Input onChange={(event) => updateItem(record.id, { summary: event.target.value })} value={record.summary} />
                   ),
                   title: "摘要"
                 },
@@ -216,9 +198,7 @@ export function RankingEditorPage() {
                   render: (_, record: DraftItem) => (
                     <Button
                       danger
-                      onClick={() =>
-                        setDraftItems((items) => items.filter((entry) => entry.id !== record.id))
-                      }
+                      onClick={() => setDraftItems((items) => items.filter((entry) => entry.id !== record.id))}
                       size="small"
                     >
                       删除
@@ -248,7 +228,7 @@ export function RankingEditorPage() {
                 </div>
               </div>
             ))}
-            {draftItems.length === 0 ? <div className="admin-empty">先添加至少一个条目。</div> : null}
+            {draftItems.length === 0 ? <div className="admin-empty">请至少添加一个条目。</div> : null}
           </div>
 
           <div className="admin-form-actions" style={{ marginTop: 16 }}>
@@ -276,12 +256,11 @@ export function RankingEditorPage() {
                       }))
                     };
 
-                    return (editId
-                      ? apiClient.updateRanking(editId, payload)
-                      : apiClient.createRanking(payload)
-                    ).then((response) => {
-                      navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
-                    });
+                    return (editId ? apiClient.updateRanking(editId, payload) : apiClient.createRanking(payload)).then(
+                      (response) => {
+                        navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
+                      }
+                    );
                   })
                   .catch((reason: unknown) => {
                     if (reason instanceof Error) {

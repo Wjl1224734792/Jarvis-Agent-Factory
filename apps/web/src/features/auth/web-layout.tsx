@@ -10,7 +10,6 @@ import {
   Settings2Icon,
   TrophyIcon
 } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
 import { useEffect, useRef, useState } from "react";
 import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
@@ -26,11 +25,11 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
-import { apiClient } from "../../lib/api-client";
 import { useAuthStore } from "./auth-store";
 import { AuthRequiredDialog } from "./auth-required-dialog";
 import { useLoginPrompt } from "./use-login-prompt";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
+import { useNotifications } from "./use-notifications";
 import { UserMenu } from "./user-menu";
 
 const navItems = [
@@ -55,7 +54,7 @@ const publishEntries = [
 
 function getHeaderCopy(pathname: string) {
   if (pathname.startsWith(APP_ROUTES.webProfile)) {
-    return "搜索个人动态、草稿备注或常用入口...";
+    return "搜索个人动态、收藏内容或常用入口...";
   }
 
   if (pathname.startsWith(APP_ROUTES.webSettings)) {
@@ -83,7 +82,7 @@ function getHeaderCopy(pathname: string) {
   }
 
   if (pathname.startsWith(APP_ROUTES.models)) {
-    return "搜索机型、品牌或测评信号...";
+    return "搜索机型、品牌或评测信号...";
   }
 
   return "搜索航线、飞友、飞行器或站内内容...";
@@ -97,9 +96,7 @@ function ShellBrand() {
       </div>
       <div className="min-w-0">
         <div className="text-[1.32rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
-        <div className="text-[0.58rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">
-          飞行社区
-        </div>
+        <div className="text-[0.58rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">飞行社区</div>
       </div>
     </div>
   );
@@ -159,11 +156,7 @@ export function WebLayout() {
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
-  const notificationsQuery = useQuery({
-    queryKey: ["shell-notifications"],
-    queryFn: () => apiClient.listNotifications(),
-    enabled: authStatus === "authenticated"
-  });
+  const notificationsQuery = useNotifications(authStatus === "authenticated");
   const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
 
   useEffect(() => {
@@ -206,15 +199,10 @@ export function WebLayout() {
                   <span className="sr-only">打开导航</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent
-                className="w-[88vw] max-w-sm border-r border-border/80 bg-background/96"
-                side="left"
-              >
+              <SheetContent className="w-[88vw] max-w-sm border-r border-border/80 bg-background/96" side="left">
                 <SheetHeader className="px-0">
                   <SheetTitle>{APP_NAME}</SheetTitle>
-                  <SheetDescription>
-                    首页、飞友圈、飞行器、榜单与个人入口
-                  </SheetDescription>
+                  <SheetDescription>首页、飞友圈、飞行器、榜单与个人入口</SheetDescription>
                 </SheetHeader>
                 <div className="flex flex-col gap-5 pt-4">
                   <NavButtons
@@ -260,11 +248,7 @@ export function WebLayout() {
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
-            <div
-              className="relative"
-              onMouseEnter={openPublishMenu}
-              onMouseLeave={scheduleClosePublishMenu}
-            >
+            <div className="relative" onMouseEnter={openPublishMenu} onMouseLeave={scheduleClosePublishMenu}>
               <Button
                 className="min-w-[6.2rem] justify-center rounded-full px-4.5 text-[0.82rem] font-semibold max-sm:min-w-[4.4rem]"
                 onClick={() => {

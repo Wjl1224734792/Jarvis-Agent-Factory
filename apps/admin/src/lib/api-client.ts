@@ -120,12 +120,61 @@ type SiteSettings = {
   updatedAt?: string;
 };
 
+type AnalyticsSeriesPoint = {
+  label: string;
+  value: number;
+};
+
+type AdminAnalyticsOverview = {
+  totals: {
+    users: number;
+    moments: number;
+    articles: number;
+    aircraft: number;
+    rankings: number;
+    pending: number;
+  };
+  registration: {
+    today: number;
+    month: number;
+    year: number;
+    daily: AnalyticsSeriesPoint[];
+    monthly: AnalyticsSeriesPoint[];
+    yearly: AnalyticsSeriesPoint[];
+  };
+  activity: {
+    dau: number;
+    mau: number;
+    yau: number;
+    daily: AnalyticsSeriesPoint[];
+    monthly: AnalyticsSeriesPoint[];
+    yearly: AnalyticsSeriesPoint[];
+  };
+  contentMix: Array<{
+    type: "moment" | "article" | "aircraft" | "ranking";
+    label: string;
+    value: number;
+  }>;
+  moderation: Array<{
+    key: "posts" | "comments" | "reviews" | "submissions";
+    label: string;
+    pending: number;
+    approved: number;
+    rejected: number;
+  }>;
+  funnel: Array<{
+    stage: string;
+    value: number;
+  }>;
+};
+
 type OfficialArticleInput = {
   title: string;
   content: string;
   contentHtml?: string | null;
   contentCategoryId: string;
   imageIds?: string[];
+  videoIds?: string[];
 };
 
 const legacyOfficialDefinitions = [
@@ -179,6 +228,31 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
 
 export const apiClient = {
   ...sharedClient,
+  getAdminAnalyticsOverview() {
+    return sharedClient.getAdminAnalyticsOverview();
+  },
+  listAdminContentCategories() {
+    return sharedClient.listAdminContentCategories();
+  },
+  createContentCategory(input: {
+    slug: string;
+    name: string;
+    sortOrder: number;
+    isEnabled: boolean;
+  }) {
+    return sharedClient.createContentCategory(input);
+  },
+  updateContentCategory(
+    id: string,
+    input: {
+      slug: string;
+      name: string;
+      sortOrder: number;
+      isEnabled: boolean;
+    }
+  ) {
+    return sharedClient.updateContentCategory(id, input);
+  },
   listCategories() {
     return getJson<Array<{
       id: string;
@@ -266,6 +340,22 @@ export const apiClient = {
       items: payload.items.filter((item) => item.type === "article" && item.author.role === "admin")
     }));
   },
+  getAdminOfficialArticle(id: string) {
+    return sharedClient.getAdminOfficialArticle(id);
+  },
+  updateAdminOfficialArticle(id: string, input: OfficialArticleInput) {
+    return sharedClient.updateAdminOfficialArticle(id, {
+      title: input.title,
+      content: input.content,
+      contentHtml: input.contentHtml ?? null,
+      contentCategoryId: input.contentCategoryId,
+      imageIds: input.imageIds ?? [],
+      videoIds: input.videoIds ?? []
+    });
+  },
+  deleteAdminOfficialArticle(id: string) {
+    return sharedClient.deleteAdminOfficialArticle(id);
+  },
   getRankingDetail(id: string) {
     return getJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.detail(id));
   },
@@ -292,7 +382,7 @@ export const apiClient = {
       contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
       imageIds: input.imageIds ?? [],
-      videoIds: []
+      videoIds: input.videoIds ?? []
     });
   },
   uploadImage(file: File) {

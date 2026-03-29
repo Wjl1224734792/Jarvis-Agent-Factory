@@ -33,8 +33,22 @@ async function getJson<T>(path: string): Promise<T> {
   return parseResponse<T>(response);
 }
 
+async function postJson<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+    method: "POST",
+    credentials: "include",
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+
+  return parseResponse<T>(response);
+}
+
 export const apiClient = {
   ...sharedClient,
+  markNotificationRead(id: string) {
+    return postJson<{ success: true }>(`/notifications/${id}/read`);
+  },
   listAircraftCategories() {
     return getJson<Array<{
       id: string;

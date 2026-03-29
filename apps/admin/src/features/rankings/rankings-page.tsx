@@ -1,6 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Table } from "antd";
-import { Link } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -20,7 +19,7 @@ export function RankingsPage() {
           新建官方榜单
         </Button>
       }
-      description="维护官方榜单与排行条目。"
+      description="维护官方榜单与排序条目。"
       title="官方榜单"
     >
       <AdminPanel title="榜单列表">

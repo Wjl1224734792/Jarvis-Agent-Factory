@@ -169,6 +169,14 @@ export const socialService = {
     await socialRepo.markAllNotificationsRead(userId);
     return { success: true as const };
   },
+  async markNotificationRead(userId: string, notificationId: string) {
+    const updated = await socialRepo.markNotificationRead(userId, notificationId);
+    if (!updated) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, success: true as const };
+  },
   async getUserProfile(targetUserId: string, currentUserId?: string | null) {
     const user = await socialRepo.getUserById(targetUserId);
     if (!user || user.role !== "user") {

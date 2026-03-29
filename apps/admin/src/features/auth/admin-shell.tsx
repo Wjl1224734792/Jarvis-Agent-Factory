@@ -1,55 +1,61 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
-  AppstoreOutlined,
-  CloudUploadOutlined,
-  FileTextOutlined,
-  FlagOutlined,
   LogoutOutlined,
-  MessageOutlined,
-  RadarChartOutlined,
-  StarOutlined,
-  TagsOutlined,
-  TrophyOutlined
+  MenuFoldOutlined,
+  MenuUnfoldOutlined,
+  SearchOutlined
 } from "@ant-design/icons";
-import { Button, Flex, Space } from "antd";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Button, Input, Layout, Space } from "antd";
+import { useState } from "react";
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
-import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
+import { ADMIN_NAV_GROUPS, isAdminNavItemActive } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
-const navItems = [
-  { to: APP_ROUTES.adminHome, label: "概览", hint: "运营总览", icon: RadarChartOutlined },
-  { to: ADMIN_ROUTE_PATHS.officialArticles, label: "官方文章", hint: "首页官方内容", icon: FlagOutlined },
-  { to: APP_ROUTES.adminPosts, label: "帖子审核", hint: "审核与隐藏", icon: FileTextOutlined },
-  { to: ADMIN_ROUTE_PATHS.aircraftSubmissions, label: "投稿审核", hint: "飞行器投稿", icon: CloudUploadOutlined },
-  { to: APP_ROUTES.adminCategories, label: "分类", hint: "分类资产", icon: TagsOutlined },
-  { to: APP_ROUTES.adminBrands, label: "品牌", hint: "品牌索引", icon: AppstoreOutlined },
-  { to: APP_ROUTES.adminModels, label: "机型", hint: "机型主数据", icon: AppstoreOutlined },
-  { to: APP_ROUTES.adminReviews, label: "点评", hint: "口碑治理", icon: StarOutlined },
-  { to: APP_ROUTES.adminRankings, label: "榜单", hint: "官方榜单", icon: TrophyOutlined },
-  { to: APP_ROUTES.adminPostComments, label: "评论", hint: "评论治理", icon: MessageOutlined }
-] as const;
+const { Header, Sider, Content } = Layout;
 
 export function AdminShell() {
+  const location = useLocation();
   const navigate = useNavigate();
+  const [collapsed, setCollapsed] = useState(false);
   const user = useAdminAuthStore((state) => state.user);
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
 
   return (
-    <div className="admin-shell">
-      <header className="admin-shell__header">
-        <Flex align="center" className="admin-shell__header-inner" justify="space-between" wrap gap={16}>
-          <Flex align="center" className="admin-shell__brand" gap={14}>
-            <div className="admin-shell__brand-mark">管</div>
-            <div>
-              <div className="admin-shell__brand-kicker">Feijia Admin</div>
-              <div className="admin-shell__brand-title">{APP_NAME} 后台</div>
+    <Layout className="admin-shell">
+      <Header className="admin-shell__header">
+        <div className="admin-shell__brand-row">
+          <div className="admin-shell__brand">
+            <div className="admin-shell__brand-mark">飞</div>
+            <div className="admin-shell__brand-copy">
+              <div className="admin-shell__brand-kicker">管理后台</div>
+              <div className="admin-shell__brand-title">{APP_NAME}</div>
             </div>
-          </Flex>
+          </div>
 
-          <Space size="middle" wrap>
-            <div className="admin-muted">当前会话：{user?.displayName ?? "管理员"}</div>
+          <Button
+            className="admin-shell__collapse-toggle"
+            icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
+            onClick={() => {
+              setCollapsed((value) => !value);
+            }}
+            type="text"
+          />
+
+          <div className="admin-shell__search">
+            <Input
+              allowClear
+              placeholder="搜索页面、指标、文章标题或后台操作..."
+              prefix={<SearchOutlined />}
+            />
+          </div>
+
+          <Space className="admin-shell__header-actions" size="middle">
+            <div className="admin-shell__session-meta">
+              <div className="admin-shell__session-label">当前管理员</div>
+              <div className="admin-shell__session-value">{user?.displayName ?? "系统管理员"}</div>
+            </div>
             <Button
               icon={<LogoutOutlined />}
               onClick={() => {
@@ -60,46 +66,58 @@ export function AdminShell() {
                     navigate(APP_ROUTES.adminLogin, { replace: true });
                   })
                   .catch((error: unknown) => {
-                    setError(error instanceof Error ? error.message : "退出失败");
+                    setError(error instanceof Error ? error.message : "退出登录失败");
                   });
               }}
             >
-              退出
+              退出登录
             </Button>
           </Space>
-        </Flex>
-      </header>
+        </div>
+      </Header>
 
-      <div className="admin-shell__body">
-        <aside className="admin-shell__aside">
+      <Layout className="admin-shell__layout">
+        <Sider className="admin-shell__sider" collapsed={collapsed} collapsedWidth={84} theme="light" trigger={null} width={280}>
           <div className="admin-shell__nav">
-            <div className="admin-shell__nav-list">
-              {navItems.map((item) => {
-                const Icon = item.icon;
+            {ADMIN_NAV_GROUPS.map((group) => (
+              <section className="admin-shell__nav-group" key={group.group}>
+                <div className="admin-shell__nav-group-title">{collapsed ? group.group.slice(0, 1) : group.group}</div>
+                <div className="admin-shell__nav-list">
+                  {group.items.map((item) => {
+                    const Icon = item.icon;
+                    const isActive = isAdminNavItemActive(location.pathname, item);
 
-                return (
-                  <NavLink
-                    className={({ isActive }) => `admin-shell__nav-item${isActive ? " is-active" : ""}`}
-                    key={item.to}
-                    to={item.to}
-                  >
-                    <Button icon={<Icon />} type="text">
-                      <div>
-                        <div className="admin-shell__nav-item-label">{item.label}</div>
-                        <div className="admin-shell__nav-item-hint">{item.hint}</div>
-                      </div>
-                    </Button>
-                  </NavLink>
-                );
-              })}
-            </div>
+                    return (
+                      <NavLink
+                        className={`admin-shell__nav-item${isActive ? " is-active" : ""}`}
+                        end={item.end}
+                        key={item.to}
+                        to={item.to}
+                      >
+                        <div className="admin-shell__nav-item-icon">
+                          <Icon />
+                        </div>
+                        {collapsed ? null : (
+                          <div className="admin-shell__nav-item-copy">
+                            <div className="admin-shell__nav-item-label">{item.label}</div>
+                            <div className="admin-shell__nav-item-hint">{item.hint}</div>
+                          </div>
+                        )}
+                      </NavLink>
+                    );
+                  })}
+                </div>
+              </section>
+            ))}
           </div>
-        </aside>
+        </Sider>
 
-        <main className="admin-shell__content">
-          <Outlet />
-        </main>
-      </div>
-    </div>
+        <Content className="admin-shell__content">
+          <div className="admin-shell__content-inner">
+            <Outlet />
+          </div>
+        </Content>
+      </Layout>
+    </Layout>
   );
 }

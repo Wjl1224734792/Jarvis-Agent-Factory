@@ -15,6 +15,17 @@ const statusOptions = [
 type CommentStatusFilter = (typeof statusOptions)[number]["value"];
 type CommentRecord = Awaited<ReturnType<typeof apiClient.listAdminPostComments>>["items"][number];
 
+function commentStatusLabel(status: CommentRecord["status"]) {
+  switch (status) {
+    case "pending":
+      return "待审核";
+    case "visible":
+      return "可见";
+    case "hidden":
+      return "已隐藏";
+  }
+}
+
 export function PostCommentsPage() {
   const [status, setStatus] = useState<CommentStatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
@@ -75,22 +86,19 @@ export function PostCommentsPage() {
           value={status}
         />
       }
-      description="管理帖子评论和回复的可见状态。"
+      description="管理帖子评论与回复的显示状态。"
       title="评论审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel
-        description="人工审核模式下，评论提交后只对作者本人显示待审状态。"
-        title="当前模式"
-      >
+      <AdminPanel description="人工审核模式下，评论提交后会先停留在待审核状态。" title="当前模式">
         <AdminModerationCard
-          autoCopy="评论和回复直接公开。"
-          description="适合运营精力不足时快速放开。"
+          autoCopy="评论和回复将直接显示。"
+          description="适合评论量较大时快速放开评论展示。"
           enabled={siteSettingsQuery.data?.item.commentModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="评论和回复提交后先进入待审核。"
+          manualCopy="评论和回复会先进入待审核状态。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -126,6 +134,7 @@ export function PostCommentsPage() {
             {
               dataIndex: "status",
               key: "status",
+              render: (value: CommentRecord["status"]) => commentStatusLabel(value),
               title: "状态",
               width: 120
             },

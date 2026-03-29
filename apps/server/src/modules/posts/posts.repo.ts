@@ -11,7 +11,7 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, notInArray, or, sql } from "drizzle-orm";
 
 type FeedTab = "recommended" | "latest" | "following";
 type PostStatus = "pending" | "published" | "rejected" | "hidden";
@@ -236,6 +236,38 @@ export const postsRepo = {
         )
       );
   },
+  async listOwnedAttachableImages(ownerId: string, imageIds: string[], postId: string) {
+    if (imageIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select(imageSelection())
+      .from(postImagesTable)
+      .where(
+        and(
+          eq(postImagesTable.ownerId, ownerId),
+          inArray(postImagesTable.id, imageIds),
+          or(sql`${postImagesTable.postId} is null`, eq(postImagesTable.postId, postId))
+        )
+      );
+  },
+  async listOwnedAttachableVideos(ownerId: string, videoIds: string[], postId: string) {
+    if (videoIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select(videoSelection())
+      .from(videoAssetsTable)
+      .where(
+        and(
+          eq(videoAssetsTable.ownerId, ownerId),
+          inArray(videoAssetsTable.id, videoIds),
+          or(sql`${videoAssetsTable.postId} is null`, eq(videoAssetsTable.postId, postId))
+        )
+      );
+  },
   async attachImagesToPost(postId: string, ownerId: string, imageIds: string[]) {
     if (imageIds.length === 0) {
       return;
@@ -339,6 +371,95 @@ export const postsRepo = {
     await this.attachImagesToPost(id, input.authorId, input.imageIds);
     await this.attachVideosToPost(id, input.authorId, input.videoIds);
     return this.getPostById(id);
+  },
+  async replacePostImages(postId: string, ownerId: string, imageIds: string[]) {
+    if (imageIds.length === 0) {
+      await db
+        .update(postImagesTable)
+        .set({ postId: null })
+        .where(and(eq(postImagesTable.ownerId, ownerId), eq(postImagesTable.postId, postId)));
+      return;
+    }
+
+    await db
+      .update(postImagesTable)
+      .set({ postId: null })
+      .where(
+        and(
+          eq(postImagesTable.ownerId, ownerId),
+          eq(postImagesTable.postId, postId),
+          notInArray(postImagesTable.id, imageIds)
+        )
+      );
+
+    await db
+      .update(postImagesTable)
+      .set({ postId })
+      .where(
+        and(
+          eq(postImagesTable.ownerId, ownerId),
+          inArray(postImagesTable.id, imageIds),
+          or(sql`${postImagesTable.postId} is null`, eq(postImagesTable.postId, postId))
+        )
+      );
+  },
+  async replacePostVideos(postId: string, ownerId: string, videoIds: string[]) {
+    if (videoIds.length === 0) {
+      await db
+        .update(videoAssetsTable)
+        .set({ postId: null })
+        .where(and(eq(videoAssetsTable.ownerId, ownerId), eq(videoAssetsTable.postId, postId)));
+      return;
+    }
+
+    await db
+      .update(videoAssetsTable)
+      .set({ postId: null })
+      .where(
+        and(
+          eq(videoAssetsTable.ownerId, ownerId),
+          eq(videoAssetsTable.postId, postId),
+          notInArray(videoAssetsTable.id, videoIds)
+        )
+      );
+
+    await db
+      .update(videoAssetsTable)
+      .set({ postId })
+      .where(
+        and(
+          eq(videoAssetsTable.ownerId, ownerId),
+          inArray(videoAssetsTable.id, videoIds),
+          or(sql`${videoAssetsTable.postId} is null`, eq(videoAssetsTable.postId, postId))
+        )
+      );
+  },
+  async updateOfficialArticle(input: {
+    id: string;
+    ownerId: string;
+    title: string;
+    content: string;
+    contentHtml: string | null;
+    contentCategoryId: string;
+    imageIds: string[];
+    videoIds: string[];
+  }) {
+    await db
+      .update(postsTable)
+      .set({
+        title: input.title,
+        content: input.content,
+        contentHtml: input.contentHtml,
+        contentPlainText: input.content,
+        contentCategoryId: input.contentCategoryId,
+        updatedAt: new Date()
+      })
+      .where(eq(postsTable.id, input.id));
+
+    await this.replacePostImages(input.id, input.ownerId, input.imageIds);
+    await this.replacePostVideos(input.id, input.ownerId, input.videoIds);
+
+    return this.getPostById(input.id);
   },
   async getPostById(id: string) {
     const rows = await db

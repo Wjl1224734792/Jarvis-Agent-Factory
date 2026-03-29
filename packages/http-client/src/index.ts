@@ -13,6 +13,7 @@ import {
   adminPostCommentStatusUpdateInputSchema,
   adminPostResponseSchema,
   adminPostsResponseSchema,
+  adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
@@ -39,6 +40,7 @@ import {
   createRankingItemCommentInputSchema,
   createRankingItemCommentResponseSchema,
   currentUserProfileResponseSchema,
+  adminAnalyticsOverviewResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
   feedTabSchema,
@@ -108,6 +110,8 @@ type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.par
 type PostInteractionTypeInput = Parameters<typeof postInteractionTypeSchema.parse>[0];
 type ReportPostInput = Parameters<typeof reportPostInputSchema.parse>[0];
 type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSchema.parse>[0];
+type UpdateAdminOfficialArticleInput =
+  Parameters<typeof adminOfficialArticleUpdateInputSchema.parse>[0];
 type UpdateAdminPostCommentStatusInput =
   Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
@@ -422,6 +426,14 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, actionSuccessResponseSchema);
     },
+    async markNotificationRead(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.social.notificationRead(id)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
     async getUserProfile(userId: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.users.profile(userId)}`, {
         method: "GET",
@@ -616,6 +628,29 @@ export function createApiClient(options: ApiClientOptions) {
         adminPostStatusUpdateInputSchema.parse(input)
       );
     },
+    async getAdminOfficialArticle(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminOfficialDetail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, postDetailResponseSchema);
+    },
+    async updateAdminOfficialArticle(id: string, input: UpdateAdminOfficialArticleInput) {
+      return putJson(
+        API_ROUTES.posts.adminOfficialDetail(id),
+        postDetailResponseSchema,
+        adminOfficialArticleUpdateInputSchema.parse(input)
+      );
+    },
+    async deleteAdminOfficialArticle(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminOfficialDetail(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
     async listAdminPostComments(status?: "visible" | "hidden") {
       const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
       const response = await fetch(`${baseUrl}${API_ROUTES.posts.adminComments}${suffix}`, {
@@ -646,6 +681,14 @@ export function createApiClient(options: ApiClientOptions) {
         siteSettingsResponseSchema,
         updateSiteSettingsInputSchema.parse(input)
       );
+    },
+    async getAdminAnalyticsOverview() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.analyticsOverview}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminAnalyticsOverviewResponseSchema);
     },
     async listModels(input: ModelsQueryInput = {}) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`, {

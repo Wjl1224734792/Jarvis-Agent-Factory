@@ -8,6 +8,7 @@ import { AdminShell } from "./features/auth/admin-shell";
 import { BrandsPage } from "./features/models/brands-page";
 import { CategoriesPage } from "./features/models/categories-page";
 import { ModelsPage } from "./features/models/models-page";
+import { ContentCategoriesPage } from "./features/posts/content-categories-page";
 import { OfficialArticlesPage } from "./features/posts/official-articles-page";
 import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
@@ -19,7 +20,7 @@ import { ADMIN_ROUTE_PATHS } from "./lib/admin-routes";
 
 function AdminRouteError() {
   const error = useRouteError();
-  const message = error instanceof Error ? error.message : "Admin route is unavailable.";
+  const message = error instanceof Error ? error.message : "后台页面暂时无法打开。";
 
   return (
     <main className="admin-route-error">
@@ -76,6 +77,10 @@ const router = createBrowserRouter([
       {
         path: APP_ROUTES.adminPosts.slice("/admin/".length),
         element: <PostsPage />
+      },
+      {
+        path: APP_ROUTES.adminContentCategories.slice("/admin/".length),
+        element: <ContentCategoriesPage />
       },
       {
         path: APP_ROUTES.adminPostComments.slice("/admin/".length),

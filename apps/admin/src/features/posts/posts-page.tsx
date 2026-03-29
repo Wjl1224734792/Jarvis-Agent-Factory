@@ -16,6 +16,19 @@ const statusOptions = [
 type PostStatusFilter = (typeof statusOptions)[number]["value"];
 type PostRecord = Awaited<ReturnType<typeof apiClient.listAdminPosts>>["items"][number];
 
+function postStatusLabel(status: PostRecord["status"]) {
+  switch (status) {
+    case "pending":
+      return "待审核";
+    case "published":
+      return "已发布";
+    case "rejected":
+      return "已驳回";
+    case "hidden":
+      return "已隐藏";
+  }
+}
+
 export function PostsPage() {
   const [status, setStatus] = useState<PostStatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
@@ -76,22 +89,19 @@ export function PostsPage() {
           value={status}
         />
       }
-      description="按状态审核帖子，控制发布、驳回和隐藏。"
+      description="按状态审核帖子，控制发布、驳回与隐藏。"
       title="帖子审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel
-        description="帖子和动态共用这一套自动审核规则。"
-        title="当前模式"
-      >
+      <AdminPanel description="帖子与动态共用这一套自动审核规则。" title="当前模式">
         <AdminModerationCard
-          autoCopy="普通用户文章和动态直接公开。"
-          description="切换后会影响新提交的帖子内容。"
+          autoCopy="普通用户文章和动态将直接公开。"
+          description="切换后会影响新的帖子与动态投稿。"
           enabled={siteSettingsQuery.data?.item.postModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="普通用户文章和动态进入待审核队列。"
+          manualCopy="普通用户文章和动态会先进入待审核队列。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -127,6 +137,7 @@ export function PostsPage() {
             {
               dataIndex: "status",
               key: "status",
+              render: (value: PostRecord["status"]) => postStatusLabel(value),
               title: "状态",
               width: 120
             },
@@ -135,28 +146,17 @@ export function PostsPage() {
               render: (_, record: PostRecord) => (
                 <Space size="small" wrap>
                   {record.status !== "published" ? (
-                    <Button
-                      onClick={() => updateStatus(record.id, "published")}
-                      size="small"
-                      type="primary"
-                    >
+                    <Button onClick={() => updateStatus(record.id, "published")} size="small" type="primary">
                       通过
                     </Button>
                   ) : null}
                   {record.status !== "rejected" ? (
-                    <Button
-                      onClick={() => updateStatus(record.id, "rejected")}
-                      size="small"
-                    >
+                    <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
                       驳回
                     </Button>
                   ) : null}
                   {record.status !== "hidden" ? (
-                    <Button
-                      danger
-                      onClick={() => updateStatus(record.id, "hidden")}
-                      size="small"
-                    >
+                    <Button danger onClick={() => updateStatus(record.id, "hidden")} size="small">
                       隐藏
                     </Button>
                   ) : null}

@@ -47,7 +47,8 @@ export const API_ROUTES = {
   feed: "/home/feed",
   circleFeed: "/circle/feed",
   admin: {
-    siteSettings: "/admin/site-settings"
+    siteSettings: "/admin/site-settings",
+    analyticsOverview: "/admin/analytics/overview"
   },
   auth: {
     captchaChallenge: "/auth/captcha/challenge",
@@ -71,6 +72,7 @@ export const API_ROUTES = {
     report: (id: string) => `/posts/${id}/report`,
     adminList: "/admin/posts",
     adminDetail: (id: string) => `/admin/posts/${id}`,
+    adminOfficialDetail: (id: string) => `/admin/official-articles/${id}`,
     adminComments: "/admin/post-comments",
     adminCommentDetail: (id: string) => `/admin/post-comments/${id}`
   },
@@ -99,7 +101,8 @@ export const API_ROUTES = {
   social: {
     follow: (userId: string) => `/users/${userId}/follow`,
     notifications: "/notifications",
-    notificationsReadAll: "/notifications/read-all"
+    notificationsReadAll: "/notifications/read-all",
+    notificationRead: (id: string) => `/notifications/${id}/read`
   },
   rankings: {
     overview: "/rankings",

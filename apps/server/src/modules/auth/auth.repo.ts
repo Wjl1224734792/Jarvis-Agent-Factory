@@ -74,6 +74,24 @@ function toUserSummary(
   };
 }
 
+async function localizeAdminUser(user: typeof usersTable.$inferSelect) {
+  if (user.role === "admin" && user.displayName === "System Admin") {
+    await db
+      .update(usersTable)
+      .set({
+        displayName: "系统管理员"
+      })
+      .where(eq(usersTable.id, user.id));
+
+    return {
+      ...user,
+      displayName: "系统管理员"
+    };
+  }
+
+  return user;
+}
+
 export const authRepo = {
   resetEphemeralState() {
     captchaById.clear();
@@ -280,7 +298,8 @@ export const authRepo = {
       return null;
     }
 
-    const user = toUserRecord(admin[0]);
+    const localizedAdmin = await localizeAdminUser(admin[0]);
+    const user = toUserRecord(localizedAdmin);
 
     if (user.password !== hashPassword(password)) {
       return null;
@@ -365,6 +384,8 @@ export const authRepo = {
       return null;
     }
 
-    return toUserSummary(user[0]);
+    const localizedUser = await localizeAdminUser(user[0]);
+
+    return toUserSummary(localizedUser);
   }
 };
