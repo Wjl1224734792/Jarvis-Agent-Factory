@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Select, Space, Table } from "antd";
+import { Button, Image, Modal, Select, Space, Table, Tag } from "antd";
 import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 const statusOptions = [
   { label: "全部", value: "all" },
@@ -34,6 +35,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", status],
@@ -42,6 +44,11 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-posts", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
+  });
+  const detailQuery = useQuery({
+    queryKey: ["admin-post-detail", detailId],
+    queryFn: () => apiClient.getPostDetail(detailId!),
+    enabled: Boolean(detailId)
   });
 
   const items = useMemo(
@@ -57,12 +64,12 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
     ? "文章审核"
     : props.contentType === "moment"
       ? "飞友圈动态审核"
-      : "帖子审核";
+      : "内容审核";
   const pageDescription = isArticleMode
-    ? "单独处理文章发布队列，和飞友圈动态分开查看。"
+    ? "单独处理文章发布队列，并支持在列表中直接查看封面和正文详情。"
     : props.contentType === "moment"
-      ? "单独处理飞友圈动态审核，避免和文章队列混在一起。"
-      : "按状态审核帖子，控制发布、驳回与隐藏。";
+      ? "单独处理飞友圈动态审核，并支持在列表中直接查看封面和正文详情。"
+      : "按状态处理文章和动态。";
 
   function updateStatus(id: string, nextStatus: "published" | "rejected" | "hidden") {
     setError(null);
@@ -71,10 +78,10 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         status: nextStatus
       })
       .then(() => {
-        void postsQuery.refetch();
+        void Promise.all([postsQuery.refetch(), detailQuery.refetch()]);
       })
       .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : "更新帖子状态失败");
+        setError(reason instanceof Error ? reason.message : "更新内容状态失败");
       });
   }
 
@@ -83,19 +90,36 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
     setSettingsError(null);
     try {
       const current = siteSettingsQuery.data?.item;
-      await apiClient.updateSiteSettings({
-        postModerationEnabled: enabled,
-        commentModerationEnabled: current?.commentModerationEnabled ?? true,
-        reviewModerationEnabled: current?.reviewModerationEnabled ?? true,
-        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
-      });
+      if (!current) {
+        return;
+      }
+
+      await apiClient.updateSiteSettings(
+        buildSiteSettingsUpdate(
+          current,
+          isArticleMode
+            ? { articleModerationEnabled: enabled }
+            : props.contentType === "moment"
+              ? { momentModerationEnabled: enabled }
+              : {
+                  articleModerationEnabled: enabled,
+                  momentModerationEnabled: enabled
+                }
+        )
+      );
       await Promise.all([siteSettingsQuery.refetch(), postsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新帖子审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
     } finally {
       setIsSavingSettings(false);
     }
   }
+
+  const moderationEnabled = isArticleMode
+    ? (siteSettingsQuery.data?.item.articleModerationEnabled ?? true)
+    : props.contentType === "moment"
+      ? (siteSettingsQuery.data?.item.momentModerationEnabled ?? true)
+      : (siteSettingsQuery.data?.item.postModerationEnabled ?? true);
 
   return (
     <AdminPage
@@ -115,13 +139,13 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="文章和飞友圈动态共用当前帖子审核开关，但入口已经拆分。" title="当前模式">
+      <AdminPanel description="这里直接绑定对应的独立审核开关，和总览中心保持同步。" title="当前模式">
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新发布内容将直接公开。"
-          description="适合高频内容流量场景，减少后台等待队列。"
-          enabled={siteSettingsQuery.data?.item.postModerationEnabled ?? true}
+          autoCopy="关闭人工审核后，新的内容会直接进入公开链路。"
+          description="开启人工审核后，新内容会先进入当前页面对应的待审核队列。"
+          enabled={moderationEnabled}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="开启人工审核后，新内容会先进入待审核队列。"
+          manualCopy="新的内容会先进入待审核队列。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -129,14 +153,31 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
             void updateModeration(true);
           }}
           pendingCount={items.filter((item) => item.status === "pending").length}
-          title={isArticleMode ? "文章审核" : props.contentType === "moment" ? "动态审核" : "帖子审核"}
+          title={pageTitle}
         />
       </AdminPanel>
 
-      <AdminPanel title={isArticleMode ? "文章列表" : props.contentType === "moment" ? "动态列表" : "帖子列表"}>
+      <AdminPanel title={isArticleMode ? "文章列表" : "动态列表"}>
         <Table
           bordered
           columns={[
+            {
+              key: "cover",
+              render: (_, record: PostRecord) =>
+                record.images[0]?.url ? (
+                  <Image
+                    alt={record.title}
+                    height={64}
+                    preview={false}
+                    src={record.images[0].url}
+                    width={96}
+                  />
+                ) : (
+                  <div className="admin-cover-thumb admin-cover-thumb--empty">无封面</div>
+                ),
+              title: "封面",
+              width: 120
+            },
             {
               key: "title",
               render: (_, record: PostRecord) => (
@@ -157,7 +198,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
             {
               dataIndex: "status",
               key: "status",
-              render: (value: PostRecord["status"]) => postStatusLabel(value),
+              render: (value: PostRecord["status"]) => <Tag>{postStatusLabel(value)}</Tag>,
               title: "状态",
               width: 120
             },
@@ -165,25 +206,44 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
               key: "action",
               render: (_, record: PostRecord) => (
                 <Space size="small" wrap>
-                  {record.status !== "published" ? (
-                    <Button onClick={() => updateStatus(record.id, "published")} size="small" type="primary">
-                      通过
-                    </Button>
+                  <Button
+                    onClick={() => {
+                      setDetailId(record.id);
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    详情
+                  </Button>
+                  {record.status === "pending" ? (
+                    <>
+                      <Button onClick={() => updateStatus(record.id, "published")} size="small" type="primary">
+                        发布
+                      </Button>
+                      <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
+                        驳回
+                      </Button>
+                    </>
                   ) : null}
-                  {record.status !== "rejected" ? (
-                    <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
-                      驳回
-                    </Button>
+                  {record.status === "published" ? (
+                    <>
+                      <Button onClick={() => updateStatus(record.id, "hidden")} size="small">
+                        下架
+                      </Button>
+                      <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
+                        驳回
+                      </Button>
+                    </>
                   ) : null}
-                  {record.status !== "hidden" ? (
-                    <Button danger onClick={() => updateStatus(record.id, "hidden")} size="small">
-                      隐藏
+                  {(record.status === "rejected" || record.status === "hidden") ? (
+                    <Button onClick={() => updateStatus(record.id, "published")} size="small">
+                      恢复发布
                     </Button>
                   ) : null}
                 </Space>
               ),
               title: "操作",
-              width: 240
+              width: 260
             }
           ]}
           dataSource={items}
@@ -192,6 +252,42 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
           size="middle"
         />
       </AdminPanel>
+
+      <Modal
+        footer={null}
+        onCancel={() => setDetailId(null)}
+        open={Boolean(detailId)}
+        title="内容详情"
+        width={880}
+      >
+        {detailQuery.data?.item ? (
+          <div className="admin-detail-sheet">
+            {detailQuery.data.item.images[0]?.url ? (
+              <Image
+                alt={detailQuery.data.item.title}
+                className="admin-detail-sheet__cover"
+                preview={false}
+                src={detailQuery.data.item.images[0].url}
+              />
+            ) : (
+              <div className="admin-detail-sheet__cover admin-detail-sheet__cover--empty">暂无封面</div>
+            )}
+            <div className="admin-detail-sheet__meta">
+              <Tag>{detailQuery.data.item.type === "article" ? "文章" : "动态"}</Tag>
+              <Tag>{postStatusLabel(detailQuery.data.item.status)}</Tag>
+              <span>{detailQuery.data.item.author.displayName}</span>
+            </div>
+            <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
+            <div className="admin-detail-sheet__body">
+              {detailQuery.data.item.contentHtml ? (
+                <div dangerouslySetInnerHTML={{ __html: detailQuery.data.item.contentHtml }} />
+              ) : (
+                <p>{detailQuery.data.item.content}</p>
+              )}
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </AdminPage>
   );
 }

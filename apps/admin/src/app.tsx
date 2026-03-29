@@ -2,7 +2,6 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   CloudUploadOutlined,
   CommentOutlined,
-  FileSearchOutlined,
   FlagOutlined,
   GatewayOutlined,
   InboxOutlined,
@@ -27,6 +26,7 @@ import { OfficialArticlesPage } from "./features/posts/official-articles-page";
 import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
 import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
+import { RankingItemsPage } from "./features/rankings/ranking-items-page";
 import { RankingsPage } from "./features/rankings/rankings-page";
 import { ReviewsPage } from "./features/reviews/reviews-page";
 import { AircraftSubmissionsPage } from "./features/submissions/aircraft-submissions-page";
@@ -80,7 +80,7 @@ const router = createBrowserRouter([
         path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),
         element: (
           <AdminSectionHubPage
-            description="把文章、动态、品牌申请、机型投稿、评论、榜单审核分开摆放，避免混在一个入口里。"
+            description="把文章、动态、评论、品牌申请、机型投稿、榜单和榜单条目拆成独立审核入口。"
             items={[
               {
                 title: "文章审核",
@@ -113,9 +113,15 @@ const router = createBrowserRouter([
                 icon: <CloudUploadOutlined />
               },
               {
-                title: "榜单与条目",
-                description: "榜单状态、榜单条目与社区榜单审核。",
+                title: "榜单审核",
+                description: "社区榜单的创建、发布和状态处理。",
                 to: ADMIN_ROUTE_PATHS.moderationRankings,
+                icon: <OrderedListOutlined />
+              },
+              {
+                title: "条目审核",
+                description: "榜单条目独立列表，和榜单本身分开查看。",
+                to: ADMIN_ROUTE_PATHS.moderationRankingItems,
                 icon: <OrderedListOutlined />
               }
             ]}
@@ -137,7 +143,7 @@ const router = createBrowserRouter([
               },
               {
                 title: "创建飞行器",
-                description: "飞行器/机型建档入口，和品牌申请分开。",
+                description: "飞行器和机型建档入口，和品牌申请分开。",
                 to: ADMIN_ROUTE_PATHS.operationsAircraft,
                 icon: <GatewayOutlined />
               },
@@ -212,6 +218,10 @@ const router = createBrowserRouter([
         element: <RankingsPage />
       },
       {
+        path: ADMIN_ROUTE_PATHS.moderationRankingItems.slice("/admin/".length),
+        element: <RankingItemsPage />
+      },
+      {
         path: ADMIN_ROUTE_PATHS.operationsArticles.slice("/admin/".length),
         element: <OfficialArticlesPage />
       },
@@ -221,7 +231,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.operationsRankings.slice("/admin/".length),
-        element: <RankingsPage />
+        element: <RankingEditorPage />
       },
       {
         path: ADMIN_ROUTE_PATHS.managementCategories.slice("/admin/".length),
@@ -242,15 +252,15 @@ const router = createBrowserRouter([
 
       {
         path: APP_ROUTES.adminCategories.slice("/admin/".length),
-        element: <CategoriesPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementCategories} />
       },
       {
         path: APP_ROUTES.adminBrands.slice("/admin/".length),
-        element: <BrandsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementBrands} />
       },
       {
         path: APP_ROUTES.adminModels.slice("/admin/".length),
-        element: <ModelsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementModels} />
       },
       {
         path: APP_ROUTES.adminReviews.slice("/admin/".length),
@@ -258,15 +268,15 @@ const router = createBrowserRouter([
       },
       {
         path: APP_ROUTES.adminPosts.slice("/admin/".length),
-        element: <PostsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationArticles} />
       },
       {
         path: APP_ROUTES.adminContentCategories.slice("/admin/".length),
-        element: <ContentCategoriesPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementContentCategories} />
       },
       {
         path: APP_ROUTES.adminPostComments.slice("/admin/".length),
-        element: <PostCommentsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationComments} />
       },
       {
         path: ADMIN_ROUTE_PATHS.officialArticles.slice("/admin/".length),
@@ -274,11 +284,11 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.aircraftSubmissions.slice("/admin/".length),
-        element: <AircraftSubmissionsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationAircraftSubmissions} />
       },
       {
         path: APP_ROUTES.adminRankings.slice("/admin/".length),
-        element: <RankingsPage />
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationRankings} />
       },
       {
         path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/new`,

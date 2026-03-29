@@ -33,7 +33,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     group: "数据总览",
     to: ADMIN_ROUTE_PATHS.overview,
     label: "总览中心",
-    hint: "增长、活跃、待处理与近期登录的全局视图",
+    hint: "增长、活跃、待处理与近期开启的全局视图",
     icon: RadarChartOutlined,
     end: true
   },
@@ -80,8 +80,16 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     group: "审核",
     to: ADMIN_ROUTE_PATHS.moderationRankings,
-    label: "榜单与条目",
-    hint: "榜单、榜单条目与状态处理",
+    label: "榜单审核",
+    hint: "社区榜单的创建与发布状态",
+    icon: OrderedListOutlined,
+    end: false
+  },
+  {
+    group: "审核",
+    to: ADMIN_ROUTE_PATHS.moderationRankingItems,
+    label: "条目审核",
+    hint: "榜单条目独立队列与条目状态查看",
     icon: OrderedListOutlined,
     end: false
   },
@@ -121,7 +129,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     group: "管理",
     to: ADMIN_ROUTE_PATHS.managementModels,
     label: "机型库",
-    hint: "机型资料维护与品牌搜索选择",
+    hint: "机型资料维护与已有品牌搜索选择",
     icon: BuildOutlined,
     end: false
   },
@@ -206,6 +214,9 @@ function normalizeAdminPath(pathname: string) {
   if (pathname.startsWith(`${APP_ROUTES.adminRankings}/new`)) {
     return ADMIN_ROUTE_PATHS.operationsRankings;
   }
+  if (pathname.startsWith(ADMIN_ROUTE_PATHS.moderationRankingItems)) {
+    return ADMIN_ROUTE_PATHS.moderationRankingItems;
+  }
   if (pathname.startsWith(APP_ROUTES.adminRankings)) {
     return ADMIN_ROUTE_PATHS.moderationRankings;
   }
@@ -215,5 +226,7 @@ function normalizeAdminPath(pathname: string) {
 
 export function getActiveAdminNavItemPaths(pathname: string) {
   const normalizedPathname = normalizeAdminPath(pathname);
-  return ADMIN_NAV_ITEMS.filter((item) => isAdminNavItemActive(normalizedPathname, item)).map((item) => item.to);
+  return ADMIN_NAV_ITEMS.filter((item) => isAdminNavItemActive(normalizedPathname, item)).map(
+    (item) => item.to
+  );
 }

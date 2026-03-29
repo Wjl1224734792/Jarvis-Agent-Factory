@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 const statusOptions = [
   { label: "全部", value: "all" },
@@ -60,12 +61,15 @@ export function PostCommentsPage() {
     setSettingsError(null);
     try {
       const current = siteSettingsQuery.data?.item;
-      await apiClient.updateSiteSettings({
-        postModerationEnabled: current?.postModerationEnabled ?? true,
-        commentModerationEnabled: enabled,
-        reviewModerationEnabled: current?.reviewModerationEnabled ?? true,
-        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
-      });
+      if (!current) {
+        return;
+      }
+
+      await apiClient.updateSiteSettings(
+        buildSiteSettingsUpdate(current, {
+          commentModerationEnabled: enabled
+        })
+      );
       await Promise.all([siteSettingsQuery.refetch(), commentsQuery.refetch()]);
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评论审核开关失败");

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ReviewRecord = Awaited<ReturnType<typeof apiClient.listAdminReviews>>["items"][number];
 
@@ -36,12 +37,15 @@ export function ReviewsPage() {
     setSettingsError(null);
     try {
       const current = siteSettingsQuery.data?.item;
-      await apiClient.updateSiteSettings({
-        postModerationEnabled: current?.postModerationEnabled ?? true,
-        commentModerationEnabled: current?.commentModerationEnabled ?? true,
-        reviewModerationEnabled: enabled,
-        submissionModerationEnabled: current?.submissionModerationEnabled ?? true
-      });
+      if (!current) {
+        return;
+      }
+
+      await apiClient.updateSiteSettings(
+        buildSiteSettingsUpdate(current, {
+          reviewModerationEnabled: enabled
+        })
+      );
       await Promise.all([siteSettingsQuery.refetch(), reviewsQuery.refetch()]);
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评测审核开关失败");

@@ -429,7 +429,7 @@ export function AdminRichTextEditor(props: {
         type="file"
       />
       <input
-        className="hidden"
+        hidden
         onChange={(event) => {
           const value = event.target.value;
           if (value) {

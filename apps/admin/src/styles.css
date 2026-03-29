@@ -1462,9 +1462,9 @@ body {
 }
 
 .admin-shell__brand-title {
-  font-size: 24px;
-  font-weight: 800;
-  letter-spacing: -0.04em;
+  font-size: 18px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
   color: var(--admin-text-strong);
 }
 
@@ -1488,6 +1488,10 @@ body {
   display: grid;
   gap: 14px;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-overview-footer-grid--top {
+  margin-bottom: 18px;
 }
 
 .admin-overview-kpi {
@@ -1533,6 +1537,10 @@ body {
   grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
+.admin-section-grid--compact {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
 .admin-section-card {
   display: grid;
   gap: 10px;
@@ -1554,6 +1562,12 @@ body {
   box-shadow: 0 24px 52px -34px rgba(15, 23, 42, 0.22);
 }
 
+.admin-section-card--compact {
+  gap: 8px;
+  padding: 14px 16px;
+  border-radius: 18px;
+}
+
 .admin-section-card__icon {
   width: 42px;
   height: 42px;
@@ -1563,6 +1577,88 @@ body {
   background: rgba(20, 122, 132, 0.12);
   color: var(--admin-primary);
   font-size: 18px;
+}
+
+.admin-cover-thumb {
+  display: grid;
+  place-items: center;
+  height: 64px;
+  width: 96px;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px dashed var(--admin-border-strong);
+  background: rgba(255, 255, 255, 0.8);
+  color: var(--admin-muted);
+  font-size: 12px;
+}
+
+.admin-cover-thumb--empty {
+  padding: 0 10px;
+  text-align: center;
+}
+
+.admin-detail-sheet {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-detail-sheet__cover {
+  width: 100%;
+  border-radius: 20px;
+  overflow: hidden;
+}
+
+.admin-detail-sheet__cover img {
+  width: 100%;
+  max-height: 320px;
+  object-fit: cover;
+}
+
+.admin-detail-sheet__cover--empty,
+.admin-detail-sheet__logo--empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border: 1px dashed var(--admin-border-strong);
+  border-radius: 20px;
+  color: var(--admin-muted);
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.admin-detail-sheet__logo {
+  width: 96px;
+  height: 96px;
+  border-radius: 22px;
+  overflow: hidden;
+  border: 1px solid var(--admin-border);
+}
+
+.admin-detail-sheet__logo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.admin-detail-sheet__meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  color: var(--admin-muted);
+}
+
+.admin-detail-sheet__title {
+  margin: 0;
+  font-size: 28px;
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--admin-text-strong);
+}
+
+.admin-detail-sheet__body {
+  color: var(--admin-text);
+  line-height: 1.8;
 }
 
 .admin-section-card__title {

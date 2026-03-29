@@ -97,9 +97,8 @@ function ShellBrand() {
         <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
       </div>
       <div className="min-w-0">
-        <div className="text-[1.18rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
-        <div className="text-[0.58rem] font-medium uppercase tracking-[0.26em] text-muted-foreground">
-          Flight Social Club
+        <div className="text-[0.9rem] font-semibold tracking-[0.08em] text-primary">
+          飞友与飞行器社区
         </div>
       </div>
     </div>

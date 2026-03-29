@@ -230,7 +230,7 @@ export function RankingEditorPage() {
 
               <input
                 accept="image/*"
-                className="hidden"
+                hidden
                 onChange={(event) => {
                   void uploadImage(event.target.files?.[0] ?? null, "cover");
                 }}
@@ -341,7 +341,7 @@ export function RankingEditorPage() {
 
             <input
               accept="image/*"
-              className="hidden"
+              hidden
               onChange={(event) => {
                 void uploadImage(event.target.files?.[0] ?? null, "item");
               }}

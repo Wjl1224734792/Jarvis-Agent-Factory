@@ -7,6 +7,7 @@ export const ADMIN_ROUTE_PATHS = {
   moderationBrandApplications: "/admin/moderation/brand-applications",
   moderationAircraftSubmissions: "/admin/moderation/aircraft-submissions",
   moderationRankings: "/admin/moderation/rankings",
+  moderationRankingItems: "/admin/moderation/ranking-items",
   operations: "/admin/operations",
   operationsArticles: "/admin/operations/articles",
   operationsAircraft: "/admin/operations/aircraft",

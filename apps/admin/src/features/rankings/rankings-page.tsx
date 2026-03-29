@@ -1,9 +1,11 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { Button, Empty, Segmented, Space, Table, Tag } from "antd";
+import { useQuery } from "@tanstack/react-query";
+import { Button, Empty, Image, Modal, Segmented, Space, Table, Tag } from "antd";
 import { APP_ROUTES } from "@feijia/shared";
 import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
+import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   formatCommunityRankingStatus,
   partitionRankingRecords,
@@ -28,10 +30,10 @@ function RankingScopeTag(props: { type: RankingRecord["type"] }) {
 }
 
 export function RankingsPage() {
-  const queryClient = useQueryClient();
   const [communityFilter, setCommunityFilter] = useState<AdminRankingStatus>("pending");
   const [actionError, setActionError] = useState<string | null>(null);
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-ranking-site-settings"],
@@ -44,6 +46,11 @@ export function RankingsPage() {
   const communityRankingsQuery = useQuery({
     queryKey: ["admin-rankings", "community", communityFilter],
     queryFn: () => apiClient.listCommunityRankingsForModeration(communityFilter)
+  });
+  const detailQuery = useQuery({
+    queryKey: ["admin-ranking-detail-modal", detailId],
+    queryFn: () => apiClient.getRankingDetail(detailId!),
+    enabled: Boolean(detailId)
   });
 
   const officialItems = useMemo(
@@ -61,10 +68,11 @@ export function RankingsPage() {
     setIsUpdatingSetting(true);
     setActionError(null);
     try {
-      await apiClient.updateSiteSettings({
-        ...current,
-        rankingModerationEnabled: enabled
-      });
+      await apiClient.updateSiteSettings(
+        buildSiteSettingsUpdate(current, {
+          rankingModerationEnabled: enabled
+        })
+      );
       await siteSettingsQuery.refetch();
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "更新榜单审核开关失败");
@@ -86,23 +94,34 @@ export function RankingsPage() {
   return (
     <AdminPage
       actions={
-        <Button href={`${APP_ROUTES.adminRankings}/new`} type="primary">
-          新建官方榜单
-        </Button>
+        <Space wrap>
+          <Button href={ADMIN_ROUTE_PATHS.moderationRankingItems}>查看条目审核</Button>
+          <Button href={`${APP_ROUTES.adminRankings}/new`} type="primary">
+            新建官方榜单
+          </Button>
+        </Space>
       }
-      description="区分官方榜单工作台与社区榜单审核队列。"
-      title="榜单管理"
+      description="这里只处理榜单本体的创建、发布和状态流转，榜单条目已拆到独立审核页。"
+      title="榜单审核"
     >
       {actionError ? <div className="admin-login__error">{actionError}</div> : null}
 
       <div className="admin-field-stack">
-        <AdminPanel
-          description="管理员维护的官方榜单在这里编辑、预览和更新。"
-          title="官方榜单管理"
-        >
+        <AdminPanel description="管理员维护的官方榜单在这里编辑、预览和更新。" title="官方榜单管理">
           <Table
             bordered
             columns={[
+              {
+                key: "cover",
+                render: (_, record: RankingRecord) =>
+                  record.coverImageUrl ? (
+                    <Image alt={record.title} height={64} preview={false} src={record.coverImageUrl} width={96} />
+                  ) : (
+                    <div className="admin-cover-thumb admin-cover-thumb--empty">无封面</div>
+                  ),
+                title: "封面",
+                width: 120
+              },
               {
                 key: "title",
                 render: (_, record: RankingRecord) => (
@@ -133,16 +152,29 @@ export function RankingsPage() {
               {
                 key: "action",
                 render: (_, record: RankingRecord) => (
-                  <Button href={`${APP_ROUTES.adminRankings}/${record.id}`} size="small" type="link">
-                    编辑
-                  </Button>
+                  <Space size="small" wrap>
+                    <Button
+                      onClick={() => {
+                        setDetailId(record.id);
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      详情
+                    </Button>
+                    <Button href={`${APP_ROUTES.adminRankings}/${record.id}`} size="small" type="link">
+                      编辑
+                    </Button>
+                  </Space>
                 ),
                 title: "操作",
-                width: 100
+                width: 140
               }
             ]}
             dataSource={officialItems}
-            locale={{ emptyText: <Empty description="暂无官方榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+            locale={{
+              emptyText: <Empty description="暂无官方榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            }}
             loading={officialRankingsQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"
@@ -159,7 +191,7 @@ export function RankingsPage() {
                 }}
                 options={[
                   { label: "人工审核", value: true },
-                  { label: "自动发布", value: false }
+                  { label: "自动通过", value: false }
                 ]}
                 value={siteSettingsQuery.data?.item.rankingModerationEnabled ?? true}
               />
@@ -178,6 +210,17 @@ export function RankingsPage() {
           <Table
             bordered
             columns={[
+              {
+                key: "cover",
+                render: (_, record: RankingRecord) =>
+                  record.coverImageUrl ? (
+                    <Image alt={record.title} height={64} preview={false} src={record.coverImageUrl} width={96} />
+                  ) : (
+                    <div className="admin-cover-thumb admin-cover-thumb--empty">无封面</div>
+                  ),
+                title: "封面",
+                width: 120
+              },
               {
                 key: "title",
                 render: (_, record: RankingRecord) => (
@@ -205,7 +248,17 @@ export function RankingsPage() {
               {
                 key: "status",
                 render: (_, record: RankingRecord) => (
-                  <Tag color={record.status === "published" ? "green" : record.status === "pending" ? "gold" : record.status === "hidden" ? "default" : "red"}>
+                  <Tag
+                    color={
+                      record.status === "published"
+                        ? "green"
+                        : record.status === "pending"
+                          ? "gold"
+                          : record.status === "hidden"
+                            ? "default"
+                            : "red"
+                    }
+                  >
                     {formatCommunityRankingStatus(record.status)}
                   </Tag>
                 ),
@@ -216,6 +269,15 @@ export function RankingsPage() {
                 key: "action",
                 render: (_, record: RankingRecord) => (
                   <Space size="small" wrap>
+                    <Button
+                      onClick={() => {
+                        setDetailId(record.id);
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      详情
+                    </Button>
                     {record.status !== "published" ? (
                       <Button
                         onClick={() => {
@@ -257,13 +319,47 @@ export function RankingsPage() {
               }
             ]}
             dataSource={communityItems}
-            locale={{ emptyText: <Empty description="当前筛选下没有社区榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+            locale={{
+              emptyText: <Empty description="当前筛选下没有社区榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            }}
             loading={communityRankingsQuery.isLoading || siteSettingsQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"
           />
         </AdminPanel>
       </div>
+
+      <Modal
+        footer={null}
+        onCancel={() => setDetailId(null)}
+        open={Boolean(detailId)}
+        title="榜单详情"
+        width={900}
+      >
+        {detailQuery.data?.item ? (
+          <div className="admin-detail-sheet">
+            {detailQuery.data.item.coverImageUrl ? (
+              <Image
+                alt={detailQuery.data.item.title}
+                className="admin-detail-sheet__cover"
+                preview={false}
+                src={detailQuery.data.item.coverImageUrl}
+              />
+            ) : (
+              <div className="admin-detail-sheet__cover admin-detail-sheet__cover--empty">暂无封面</div>
+            )}
+            <div className="admin-detail-sheet__meta">
+              <Tag>{detailQuery.data.item.type === "official" ? "官方榜单" : "社区榜单"}</Tag>
+              <Tag>{formatCommunityRankingStatus(detailQuery.data.item.status)}</Tag>
+              <span>{detailQuery.data.item.author.displayName}</span>
+            </div>
+            <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
+            <div className="admin-detail-sheet__body">
+              <p>{detailQuery.data.item.description}</p>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </AdminPage>
   );
 }

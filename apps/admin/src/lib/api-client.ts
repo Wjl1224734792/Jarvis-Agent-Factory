@@ -60,12 +60,17 @@ async function getJson<T>(path: string): Promise<T> {
 
 type AdminRankingItem = {
   id: string;
+  authorId?: string | null;
+  status?: "pending" | "published" | "rejected" | "hidden";
   rank: number;
   title: string;
   summary: string | null;
   imageUrl: string | null;
   brandName: string | null;
   averageScore: number;
+  commentCount?: number;
+  likeCount?: number;
+  reportCount?: number;
   linkedModel: {
     slug: string;
     name: string;
@@ -73,6 +78,11 @@ type AdminRankingItem = {
       name: string;
     };
   } | null;
+  viewer?: {
+    canEdit: boolean;
+    canDelete: boolean;
+    hasReported: boolean;
+  };
 };
 
 type AdminRankingListItem = {
@@ -119,7 +129,7 @@ type OfficialRankingUpsertInput = {
   items: RankingDraftItemInput[];
 };
 
-type SiteSettings = {
+export type SiteSettings = {
   postModerationEnabled: boolean;
   commentModerationEnabled?: boolean;
   reviewModerationEnabled?: boolean;
@@ -433,6 +443,34 @@ export const apiClient = {
     input: { status: "published" | "rejected" | "hidden" }
   ) {
     return putJson<{ item: AdminRankingDetail }>(`/admin/rankings/${id}/status`, input);
+  },
+  async listRankingItemsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
+    const rankings = await this.listCommunityRankingsForModeration();
+    const details = await Promise.all(
+      rankings.items.map(async (ranking) => {
+        try {
+          const detail = await this.getRankingDetail(ranking.id);
+          return detail.item;
+        } catch {
+          return null;
+        }
+      })
+    );
+
+    return {
+      items: details
+        .filter((item): item is AdminRankingDetail => item !== null)
+        .flatMap((ranking) =>
+          ranking.items
+            .filter((item) => (status ? item.status === status : true))
+            .map((item) => ({
+              ...item,
+              rankingId: ranking.id,
+              rankingTitle: ranking.title,
+              rankingAuthorName: ranking.author.displayName
+            }))
+        )
+    };
   },
   getSiteSettings() {
     return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);

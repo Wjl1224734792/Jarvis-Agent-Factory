@@ -10,7 +10,7 @@ import { useMemo, useState, type CSSProperties } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
-import { ADMIN_NAV_GROUPS, isAdminNavItemActive } from "./admin-navigation";
+import { ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS, isAdminNavItemActive } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
 const { Header, Sider, Content } = Layout;
@@ -30,6 +30,12 @@ export function AdminShell() {
       )?.group ?? "数据总览",
     [location.pathname]
   );
+  const activeLabel = useMemo(
+    () =>
+      ADMIN_NAV_ITEMS.find((item) => isAdminNavItemActive(location.pathname, item))?.label ??
+      activeGroup,
+    [activeGroup, location.pathname]
+  );
 
   return (
     <Layout
@@ -44,10 +50,10 @@ export function AdminShell() {
       <Header className="admin-shell__header">
         <div className="admin-shell__brand-row">
           <div className="admin-shell__brand">
-            <img alt={`${APP_NAME} 管理后台`} className="admin-shell__brand-logo" src={adminLogoUrl} />
+            <img alt={`${APP_NAME} 绠＄悊鍚庡彴`} className="admin-shell__brand-logo" src={adminLogoUrl} />
             <div className="admin-shell__brand-copy">
               <div className="admin-shell__brand-kicker">{activeGroup}</div>
-              <div className="admin-shell__brand-title">{APP_NAME} 后台</div>
+              <div className="admin-shell__brand-title">{activeLabel}</div>
             </div>
           </div>
 
