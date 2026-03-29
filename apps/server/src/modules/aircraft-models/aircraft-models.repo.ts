@@ -17,7 +17,7 @@ type ListFilters = {
 
 export const aircraftModelsRepo = {
   async list(filters: ListFilters) {
-    const conditions = [];
+    const conditions = [eq(aircraftModelsTable.isPublished, true)];
 
     if (filters.categorySlugs?.length) {
       conditions.push(inArray(aircraftCategoriesTable.slug, filters.categorySlugs));

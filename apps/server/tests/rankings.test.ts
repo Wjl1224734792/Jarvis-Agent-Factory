@@ -812,4 +812,148 @@ describe("rankings flows", () => {
     expect(afterDeletePayload.item.comments[0]?.replyCount).toBe(0);
     expect(afterDeletePayload.item.comments[0]?.replies).toHaveLength(0);
   });
+
+  it("allows admins to reject ranking items with a reason and authors to edit-resubmit them", async () => {
+    const ownerCookie = await loginUser("13800138021");
+    const contributorCookie = await loginUser("13800138022");
+    const adminCookie = await loginAdmin();
+
+    const createRankingResponse = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "community",
+        title: "Public ranking",
+        description: "Community maintained ranking",
+        coverImageFileId: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "Seed item",
+            summary: "seed",
+            imageFileId: null,
+            brandName: null,
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(createRankingResponse.status).toBe(200);
+    const createdRanking = (await createRankingResponse.json()) as {
+      item: { id: string };
+    };
+
+    const addItemResponse = await app.request(API_ROUTES.rankings.items(createdRanking.item.id), {
+      method: "POST",
+      headers: {
+        cookie: contributorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Contributor item",
+        summary: "awaiting moderation",
+        imageFileId: null,
+        brandName: "DJI",
+        linkedModelSlug: "mini-4-pro"
+      })
+    });
+    expect(addItemResponse.status).toBe(200);
+    const addedItemPayload = (await addItemResponse.json()) as {
+      item: {
+        items: Array<{ id: string; title: string; authorId?: string | null }>;
+      };
+    };
+    const contributedItem = addedItemPayload.item.items.find((item) => item.title === "Contributor item");
+    expect(contributedItem?.id).toBeTruthy();
+
+    const rejectReason = "条目信息不完整，请补充后重新提交";
+    const rejectResponse = await app.request(`/admin/ranking-items/${contributedItem!.id}/status`, {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "rejected",
+        rejectionReason: rejectReason
+      })
+    });
+    expect(rejectResponse.status).toBe(200);
+    const rejectedItem = (await rejectResponse.json()) as {
+      item: { status: string; rejectionReason: string | null };
+    };
+    expect(rejectedItem.item.status).toBe("rejected");
+    expect(rejectedItem.item.rejectionReason).toBe(rejectReason);
+
+    const detailAfterRejectResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItem!.id), {
+      method: "GET",
+      headers: {
+        cookie: contributorCookie
+      }
+    });
+    expect(detailAfterRejectResponse.status).toBe(200);
+    const detailAfterReject = (await detailAfterRejectResponse.json()) as {
+      item: { status: string; rejectionReason: string | null };
+    };
+    expect(detailAfterReject.item.status).toBe("rejected");
+    expect(detailAfterReject.item.rejectionReason).toBe(rejectReason);
+
+    const contributorIdentityResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: {
+        cookie: contributorCookie
+      }
+    });
+    expect(contributorIdentityResponse.status).toBe(200);
+    const contributorIdentity = (await contributorIdentityResponse.json()) as {
+      user: { id: string } | null;
+    };
+
+    const userContentResponse = await app.request(API_ROUTES.users.content(contributorIdentity.user!.id), {
+      method: "GET",
+      headers: {
+        cookie: contributorCookie
+      }
+    });
+    expect(userContentResponse.status).toBe(200);
+    const userContent = (await userContentResponse.json()) as {
+      items: Array<{
+        type: string;
+        id: string;
+        status?: string;
+        rejectionReason?: string | null;
+      }>;
+    };
+    expect(
+      userContent.items.find((item) => item.type === "ranking-item" && item.id === contributedItem!.id)
+    ).toMatchObject({
+      status: "rejected",
+      rejectionReason: rejectReason
+    });
+
+    const updateResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItem!.id), {
+      method: "PUT",
+      headers: {
+        cookie: contributorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Contributor item v2",
+        summary: "resubmitted",
+        imageFileId: null,
+        brandName: "DJI",
+        linkedModelSlug: "mini-4-pro"
+      })
+    });
+    expect(updateResponse.status).toBe(200);
+    const updatedItem = (await updateResponse.json()) as {
+      item: { status: string; rejectionReason: string | null; title: string };
+    };
+    expect(updatedItem.item.title).toBe("Contributor item v2");
+    expect(updatedItem.item.status).toBe("pending");
+    expect(updatedItem.item.rejectionReason).toBeNull();
+  });
 });

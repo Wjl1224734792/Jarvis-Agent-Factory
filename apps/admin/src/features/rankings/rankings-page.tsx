@@ -1,10 +1,11 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Modal, Segmented, Space, Table, Tag } from "antd";
+import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
 import { APP_ROUTES } from "@feijia/shared";
 import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
+import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   formatCommunityRankingStatus,
@@ -34,6 +35,7 @@ export function RankingsPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-ranking-site-settings"],
@@ -58,6 +60,28 @@ export function RankingsPage() {
     [officialRankingsQuery.data?.items]
   );
   const communityItems = communityRankingsQuery.data?.items ?? [];
+  const filteredOfficialItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) {
+      return officialItems;
+    }
+
+    return officialItems.filter((item) =>
+      [item.title, item.description, item.author.displayName]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [officialItems, searchText]);
+  const filteredCommunityItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) {
+      return communityItems;
+    }
+
+    return communityItems.filter((item) =>
+      [item.title, item.description, item.author.displayName]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [communityItems, searchText]);
 
   async function updateModerationSetting(enabled: boolean) {
     const current = siteSettingsQuery.data?.item;
@@ -81,10 +105,17 @@ export function RankingsPage() {
     }
   }
 
-  async function updateRankingStatus(id: string, status: "published" | "rejected" | "hidden") {
+  async function updateRankingStatus(
+    id: string,
+    status: "published" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
     setActionError(null);
     try {
-      await apiClient.updateRankingStatus(id, { status });
+      await apiClient.updateRankingStatus(id, {
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+      });
       await Promise.all([officialRankingsQuery.refetch(), communityRankingsQuery.refetch()]);
     } catch (reason: unknown) {
       setActionError(reason instanceof Error ? reason.message : "更新榜单状态失败");
@@ -95,6 +126,15 @@ export function RankingsPage() {
     <AdminPage
       actions={
         <Space wrap>
+          <Input.Search
+            allowClear
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+            placeholder="搜索榜单标题、作者或简介"
+            style={{ width: 280 }}
+            value={searchText}
+          />
           <Button href={ADMIN_ROUTE_PATHS.moderationRankingItems}>查看条目审核</Button>
           <Button href={`${APP_ROUTES.adminRankings}/new`} type="primary">
             新建官方榜单
@@ -171,7 +211,7 @@ export function RankingsPage() {
                 width: 140
               }
             ]}
-            dataSource={officialItems}
+            dataSource={filteredOfficialItems}
             locale={{
               emptyText: <Empty description="暂无官方榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             }}
@@ -286,14 +326,18 @@ export function RankingsPage() {
                         size="small"
                         type="link"
                       >
-                        发布
+                        {record.status === "pending" ? "通过发布" : "恢复发布"}
                       </Button>
                     ) : null}
                     {record.status !== "rejected" ? (
                       <Button
                         danger
                         onClick={() => {
-                          void updateRankingStatus(record.id, "rejected");
+                          const reason = promptRejectionReason();
+                          if (!reason) {
+                            return;
+                          }
+                          void updateRankingStatus(record.id, "rejected", reason);
                         }}
                         size="small"
                         type="link"
@@ -309,7 +353,7 @@ export function RankingsPage() {
                         size="small"
                         type="link"
                       >
-                        隐藏
+                        下架
                       </Button>
                     ) : null}
                   </Space>
@@ -318,7 +362,7 @@ export function RankingsPage() {
                 width: 180
               }
             ]}
-            dataSource={communityItems}
+            dataSource={filteredCommunityItems}
             locale={{
               emptyText: <Empty description="当前筛选下没有社区榜单" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             }}

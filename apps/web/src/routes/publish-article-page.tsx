@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { FileImageIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { RichTextEditor } from "@/components/rich-text-editor";
@@ -61,6 +61,8 @@ export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
@@ -77,8 +79,16 @@ export function PublishArticlePage() {
     queryKey: ["publish-article-categories"],
     queryFn: () => apiClient.listContentCategories()
   });
+  const detailQuery = useQuery({
+    queryKey: ["publish-article-edit", editId],
+    queryFn: () => apiClient.getPostDetail(editId!),
+    enabled: Boolean(editId)
+  });
 
   useEffect(() => {
+    if (editId) {
+      return;
+    }
     const draft = window.localStorage.getItem(ARTICLE_DRAFT_KEY);
     if (!draft) {
       return;
@@ -106,6 +116,41 @@ export function PublishArticlePage() {
       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
     }
   }, []);
+
+  useEffect(() => {
+    if (!detailQuery.data?.item) {
+      return;
+    }
+
+    const item = detailQuery.data.item;
+    setTitle(item.title);
+    setSummary("");
+    setEditorHtml(item.contentHtml ?? "");
+    setCategoryId(item.contentCategory?.id ?? "");
+    setCoverImage(
+      item.images[0]
+        ? {
+            id: item.images[0].id,
+            url: item.images[0].url,
+            fileName: item.images[0].fileName
+          }
+        : null
+    );
+    setUploadedImages(
+      item.images.map((image) => ({
+        id: image.id,
+        url: image.url,
+        fileName: image.fileName
+      }))
+    );
+    setUploadedVideos(
+      item.videos.map((video) => ({
+        id: video.id,
+        url: video.url,
+        fileName: video.fileName
+      }))
+    );
+  }, [detailQuery.data?.item]);
 
   useEffect(() => {
     if (!categoryId && categoriesQuery.data?.items[0]?.id) {
@@ -232,7 +277,7 @@ export function PublishArticlePage() {
     );
   }
 
-  if (categoriesQuery.isLoading) {
+  if (categoriesQuery.isLoading || detailQuery.isLoading) {
     return <PublishFormSkeleton />;
   }
 
@@ -246,6 +291,13 @@ export function PublishArticlePage() {
             <Alert variant="destructive">
               <AlertTitle>文章发布失败</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {detailQuery.data?.item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{detailQuery.data.item.rejectionReason}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -391,19 +443,19 @@ export function PublishArticlePage() {
                   }
                   setError(null);
                   setIsPublishing(true);
+                  const payload = {
+                    type: "article" as const,
+                    title,
+                    content: articleText,
+                    contentHtml: articleHtml,
+                    contentCategoryId: categoryId,
+                    imageIds: Array.from(
+                      new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))
+                    ) as string[],
+                    videoIds: uploadedVideos.map((item) => item.id)
+                  };
 
-                  void apiClient
-                    .createPost({
-                      type: "article",
-                      title,
-                      content: articleText,
-                      contentHtml: articleHtml,
-                      contentCategoryId: categoryId,
-                      imageIds: Array.from(
-                        new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))
-                      ) as string[],
-                      videoIds: uploadedVideos.map((item) => item.id)
-                    })
+                  void (editId ? apiClient.updatePost(editId, payload) : apiClient.createPost(payload))
                     .then((payload) => {
                       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
                       void Promise.all([

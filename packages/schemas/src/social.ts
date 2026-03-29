@@ -122,6 +122,7 @@ export const userContentPostItemSchema = z.object({
   id: z.string().min(1),
   postType: z.enum(["article", "moment"]),
   status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
+  rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   contentPreview: z.string().min(1),
   canManage: z.boolean().default(false),
@@ -169,8 +170,35 @@ export const userContentRankingItemSchema = z.object({
   type: z.literal("ranking"),
   id: z.string().min(1),
   status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
+  rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   description: z.string().min(1),
+  canManage: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const userContentRankingEntryItemSchema = z.object({
+  type: z.literal("ranking-item"),
+  id: z.string().min(1),
+  rankingId: z.string().min(1),
+  rankingTitle: z.string().min(1),
+  status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
+  rejectionReason: z.string().nullable().default(null),
+  title: z.string().min(1),
+  summary: z.string().nullable(),
+  canManage: z.boolean().default(false),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime()
+});
+
+export const userContentBrandApplicationItemSchema = z.object({
+  type: z.literal("brand-application"),
+  id: z.string().min(1),
+  status: z.enum(["pending", "approved", "rejected", "hidden"]),
+  rejectionReason: z.string().nullable().default(null),
+  name: z.string().min(1),
+  description: z.string().nullable(),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -182,6 +210,7 @@ export const userContentAircraftItemSchema = z.object({
   modelName: z.string().min(1),
   summary: z.string().nullable(),
   status: z.enum(["draft", "submitted", "approved", "rejected"]),
+  rejectionReason: z.string().nullable().default(null),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -193,7 +222,9 @@ export const userContentItemSchema = z.discriminatedUnion("type", [
   userContentFavoriteModelItemSchema,
   userContentReviewItemSchema,
   userContentRankingItemSchema,
-  userContentAircraftItemSchema
+  userContentRankingEntryItemSchema,
+  userContentAircraftItemSchema,
+  userContentBrandApplicationItemSchema
 ]);
 
 export const userContentResponseSchema = z.object({

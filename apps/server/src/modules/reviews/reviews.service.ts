@@ -61,6 +61,7 @@ async function serializeComment(
     parentCommentId: item.parentCommentId,
     replyToCommentId: item.replyToCommentId,
     content: item.content,
+    status: (item.status ?? "visible") as "pending" | "visible" | "hidden",
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     likeCount: item.likeCount ?? 0,
@@ -103,6 +104,7 @@ async function serializeCommentThreads(
       parentCommentId: comment.parentCommentId,
       replyToCommentId: comment.replyToCommentId,
       content: comment.content,
+      status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),
       likeCount: comment.likeCount ?? 0,
@@ -302,7 +304,9 @@ export const reviewsService = {
       return null;
     }
 
-    const comments = await reviewsRepo.listReviewComments(reviewId);
+    const comments = (await reviewsRepo.listReviewComments(reviewId)).filter((comment) =>
+      comment.status === "visible" || currentUserId === comment.author.id
+    );
     const replyToUserIds = Array.from(
       new Set(comments.map((comment) => comment.replyToUserId).filter((value): value is string => Boolean(value)))
     );
@@ -340,7 +344,7 @@ export const reviewsService = {
 
     if (input.parentCommentId) {
       parentComment = await reviewsRepo.getReviewCommentById(input.parentCommentId);
-      if (!parentComment || parentComment.reviewId !== reviewId) {
+      if (!parentComment || parentComment.reviewId !== reviewId || parentComment.status !== "visible") {
         return { kind: "not_found" as const };
       }
 
@@ -349,13 +353,17 @@ export const reviewsService = {
       replyToUserId = parentComment.author.id;
     }
 
+    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
+    const status = shouldModerate ? "pending" : "visible";
+
     const item = await reviewsRepo.createReviewComment({
       reviewId,
       authorId: currentUser.id,
       parentCommentId: threadRootId,
       replyToCommentId,
       replyToUserId,
-      content: input.content
+      content: input.content,
+      status
     });
     const replyToUsers = replyToUserId ? await reviewsRepo.listUsersByIds([replyToUserId]) : [];
     const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers), {
@@ -432,8 +440,22 @@ export const reviewsService = {
     }
 
     const item = await reviewsRepo.updateReviewComment(commentId, input.content);
-    const replyToUsers = item?.replyToUserId ? await reviewsRepo.listUsersByIds([item.replyToUserId]) : [];
-    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers), {
+    if (!item) {
+      return { kind: "not_found" as const };
+    }
+
+    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
+    const refreshed =
+      shouldModerate && item.status === "visible"
+        ? await reviewsRepo.updateReviewCommentStatus(commentId, "pending")
+        : item;
+    if (!refreshed) {
+      return { kind: "not_found" as const };
+    }
+    const replyToUsers = refreshed?.replyToUserId
+      ? await reviewsRepo.listUsersByIds([refreshed.replyToUserId])
+      : [];
+    const serialized = await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
       currentUserId: currentUser.id
     });
     if (!serialized) {
@@ -448,7 +470,7 @@ export const reviewsService = {
     currentUser: { id: string; role: "user" | "admin" }
   ) {
     const comment = await reviewsRepo.getReviewCommentById(commentId);
-    if (!comment || comment.reviewId !== reviewId) {
+    if (!comment || comment.reviewId !== reviewId || comment.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
@@ -462,7 +484,7 @@ export const reviewsService = {
     reason: string
   ) {
     const comment = await reviewsRepo.getReviewCommentById(commentId);
-    if (!comment || comment.reviewId !== reviewId) {
+    if (!comment || comment.reviewId !== reviewId || comment.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
@@ -472,5 +494,81 @@ export const reviewsService = {
       reason
     });
     return { kind: "ok" as const };
+  },
+  async listAdminReviewComments(status?: "pending" | "visible" | "hidden") {
+    const items = await reviewsRepo.listAdminReviewComments(status);
+    const replyToUserIds = Array.from(
+      new Set(items.map((item) => item.replyToUserId).filter((value): value is string => Boolean(value)))
+    );
+    const replyToUserMap = await buildReplyToUserMap(await reviewsRepo.listUsersByIds(replyToUserIds));
+
+    return {
+      items: await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          reviewId: item.reviewId,
+          reviewTitle: item.reviewTitle,
+          model: item.model,
+          parentCommentId: item.parentCommentId,
+          replyToCommentId: item.replyToCommentId,
+          content: item.content,
+          status: item.status as "pending" | "visible" | "hidden",
+          likeCount: item.likeCount ?? 0,
+          reportCount: item.reportCount ?? 0,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+          author: {
+            id: item.author.id,
+            displayName: item.author.displayName,
+            avatarUrl: await resolveAuthorAvatar(item.author),
+            role: item.author.role as "user" | "admin"
+          },
+          replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
+          viewer: {
+            canEdit: false,
+            canDelete: false,
+            hasLiked: false,
+            hasReported: false
+          }
+        }))
+      )
+    };
+  },
+  async updateReviewCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const item = await reviewsRepo.updateAdminReviewCommentStatus(id, status);
+    if (!item) {
+      return null;
+    }
+
+    const replyToUserMap = await buildReplyToUserMap(
+      await reviewsRepo.listUsersByIds(item.replyToUserId ? [item.replyToUserId] : [])
+    );
+    return {
+      id: item.id,
+      reviewId: item.reviewId,
+      reviewTitle: item.reviewTitle,
+      model: item.model,
+      parentCommentId: item.parentCommentId,
+      replyToCommentId: item.replyToCommentId,
+      content: item.content,
+      status: item.status as "pending" | "visible" | "hidden",
+      likeCount: item.likeCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      author: {
+        id: item.author.id,
+        displayName: item.author.displayName,
+        avatarUrl: await resolveAuthorAvatar(item.author),
+        role: item.author.role as "user" | "admin"
+      },
+      replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
+      viewer: {
+        canEdit: false,
+        canDelete: false,
+        hasLiked: false,
+        hasReported: false
+      }
+    };
   }
 };

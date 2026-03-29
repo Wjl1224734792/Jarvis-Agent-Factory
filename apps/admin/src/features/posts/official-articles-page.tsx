@@ -57,6 +57,7 @@ export function OfficialArticlesPage() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
   const [editorHtml, setEditorHtml] = useState("");
   const [editorText, setEditorText] = useState("");
+  const [searchText, setSearchText] = useState("");
   const watchedTitle = Form.useWatch("title", form);
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
 
@@ -67,6 +68,18 @@ export function OfficialArticlesPage() {
   const selectedCategoryLabel = useMemo(() => {
     return categoryOptions.find((item) => item.value === watchedCategoryId)?.label ?? "未选择分类";
   }, [categoryOptions, watchedCategoryId]);
+  const filteredArticles = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = articlesQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.title, item.author.displayName, item.contentCategory?.name ?? ""]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [articlesQuery.data?.items, searchText]);
 
   const previewImageUrl = coverImage?.url ?? uploadedImages[0]?.url ?? null;
 
@@ -247,11 +260,22 @@ export function OfficialArticlesPage() {
   return (
     <AdminPage
       actions={
-        editingId ? (
-          <Button onClick={resetFormState} type="default">
-            新建文章
-          </Button>
-        ) : null
+        <Space wrap>
+          <Input.Search
+            allowClear
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+            placeholder="搜索标题、分类或作者"
+            style={{ width: 260 }}
+            value={searchText}
+          />
+          {editingId ? (
+            <Button onClick={resetFormState} type="default">
+              新建文章
+            </Button>
+          ) : null}
+        </Space>
       }
       description="在同一个工作台中完成官方文章的新建、编辑、预览与删除。"
       title="官方文章"
@@ -469,7 +493,7 @@ export function OfficialArticlesPage() {
                   width: 140
                 }
               ]}
-              dataSource={articlesQuery.data?.items ?? []}
+              dataSource={filteredArticles}
               loading={articlesQuery.isLoading || isSubmitting}
               rowKey={(record) => record.id}
               size="middle"

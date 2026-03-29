@@ -120,6 +120,20 @@
                         "when":  1774802400000,
                         "tag":  "0016_content_closure_overhaul",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  17,
+                        "version":  "7",
+                        "when":  1774813200000,
+                        "tag":  "0017_rejection_reasons",
+                        "breakpoints":  true
+                    },
+                    {
+                        "idx":  18,
+                        "version":  "7",
+                        "when":  1774899600000,
+                        "tag":  "0018_comment_moderation_statuses",
+                        "breakpoints":  true
                     }
                 ]
 }

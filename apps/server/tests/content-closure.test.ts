@@ -96,7 +96,7 @@ afterAll(async () => {
 describe.sequential("content closure flows", () => {
   it("handles brand applications separately from aircraft submission approval flows", async () => {
     const adminCookie = await loginAdmin();
-    const brandApplicantCookie = await loginUser("13800138166");
+    const brandApplicantCookie = await loginUser("13800138023");
 
     const brandApplicationResponse = await app.request(API_ROUTES.brandApplications.create, {
       method: "POST",
@@ -160,7 +160,7 @@ describe.sequential("content closure flows", () => {
     expect(droneCategoryId).toBeTruthy();
     expect(djiBrandId).toBeTruthy();
 
-    const submissionAuthorCookie = await loginUser("13800138167");
+    const submissionAuthorCookie = await loginUser("13800138024");
     const createResponse = await app.request(API_ROUTES.submissions.create, {
       method: "POST",
       headers: {
@@ -205,7 +205,8 @@ describe.sequential("content closure flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        status: "rejected"
+        status: "rejected",
+        rejectionReason: "缺少必要资料，请补充后重新提交"
       })
     });
     expect(rejectResponse.status).toBe(200);
@@ -284,5 +285,237 @@ describe.sequential("content closure flows", () => {
         (item) => item.name === "Sky Weaver X2" && item.brand.name === "Sky Labs"
       )
     ).toBe(true);
+  });
+
+  it("requires rejection reasons and allows brand application resubmission after editing", async () => {
+    const adminCookie = await loginAdmin();
+    const applicantCookie = await loginUser("13800138025");
+
+    const createResponse = await app.request(API_ROUTES.brandApplications.create, {
+      method: "POST",
+      headers: {
+        cookie: applicantCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "aero-lab",
+        name: "Aero Lab",
+        logoUrl: null,
+        description: "Original application"
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string; status: string };
+    };
+    expect(created.item.status).toBe("pending");
+
+    const rejectReason = "品牌资料过于简单，请补充更清晰的品牌说明";
+    const rejectResponse = await app.request(
+      API_ROUTES.brandApplications.adminDetail(created.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "rejected",
+          rejectionReason: rejectReason
+        })
+      }
+    );
+    expect(rejectResponse.status).toBe(200);
+    const rejected = (await rejectResponse.json()) as {
+      item: { status: string; rejectionReason: string | null };
+    };
+    expect(rejected.item.status).toBe("rejected");
+    expect(rejected.item.rejectionReason).toBe(rejectReason);
+
+    const reviseResponse = await app.request(API_ROUTES.brandApplications.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: applicantCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "aero-lab-updated",
+        name: "Aero Lab Updated",
+        logoUrl: null,
+        description: "Updated application content"
+      })
+    });
+    expect(reviseResponse.status).toBe(200);
+    const revised = (await reviseResponse.json()) as {
+      item: {
+        status: string;
+        name: string;
+        rejectionReason: string | null;
+      };
+    };
+    expect(revised.item.status).toBe("pending");
+    expect(revised.item.name).toBe("Aero Lab Updated");
+    expect(revised.item.rejectionReason).toBeNull();
+  });
+
+  it("hides approved user models after rejection and keeps the same model on resubmission approval", async () => {
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginUser("13800138026");
+
+    const modelsBeforeResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsBefore = (await modelsBeforeResponse.json()) as {
+      filters: {
+        categories: Array<{ id: string; slug: string }>;
+        brands: Array<{ id: string; slug: string }>;
+      };
+    };
+    const categoryId = modelsBefore.filters.categories.find((item) => item.slug === "drone")?.id!;
+    const brandId = modelsBefore.filters.brands.find((item) => item.slug === "dji")?.id!;
+
+    const createResponse = await app.request(API_ROUTES.submissions.create, {
+      method: "POST",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        categoryId,
+        brandId,
+        proposedBrandName: null,
+        modelName: "Returnable Falcon",
+        powerType: "electric",
+        summary: "Initial summary",
+        description: "Initial description",
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null,
+        maxFlightTimeMinutes: 36,
+        maxRangeKilometers: 18,
+        maxSpeedKph: 58,
+        takeoffWeightGrams: 860
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: {
+        id: string;
+        author: { id: string };
+      };
+    };
+
+    const approveResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved"
+      })
+    });
+    expect(approveResponse.status).toBe(200);
+    const approved = (await approveResponse.json()) as {
+      item: { status: string; approvedModelId: string | null };
+    };
+    expect(approved.item.status).toBe("approved");
+    expect(approved.item.approvedModelId).toBeTruthy();
+    const firstApprovedModelId = approved.item.approvedModelId!;
+
+    const rejectReason = "参数信息需要补充后再重新提交";
+    const rejectResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "rejected",
+        rejectionReason: rejectReason
+      })
+    });
+    expect(rejectResponse.status).toBe(200);
+    const rejected = (await rejectResponse.json()) as {
+      item: { status: string; rejectionReason: string | null; approvedModelId: string | null };
+    };
+    expect(rejected.item.status).toBe("rejected");
+    expect(rejected.item.rejectionReason).toBe(rejectReason);
+    expect(rejected.item.approvedModelId).toBe(firstApprovedModelId);
+
+    const modelsAfterRejectResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
+    const modelsAfterReject = (await modelsAfterRejectResponse.json()) as {
+      items: Array<{ id: string; name: string }>;
+    };
+    expect(modelsAfterReject.items.some((item) => item.id === firstApprovedModelId)).toBe(false);
+
+    const userContentAfterRejectResponse = await app.request(API_ROUTES.users.content(created.item.author.id), {
+      method: "GET",
+      headers: {
+        cookie: authorCookie
+      }
+    });
+    expect(userContentAfterRejectResponse.status).toBe(200);
+    const userContentAfterReject = (await userContentAfterRejectResponse.json()) as {
+      items: Array<{
+        type: string;
+        id: string;
+        status?: string;
+        rejectionReason?: string | null;
+      }>;
+    };
+    expect(
+      userContentAfterReject.items.find(
+        (item) => item.type === "aircraft" && item.id === created.item.id
+      )
+    ).toMatchObject({
+      status: "rejected",
+      rejectionReason: rejectReason
+    });
+
+    const reviseResponse = await app.request(API_ROUTES.submissions.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        categoryId,
+        brandId,
+        proposedBrandName: null,
+        modelName: "Returnable Falcon Mk II",
+        powerType: "electric",
+        summary: "Updated summary",
+        description: "Updated description",
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null,
+        maxFlightTimeMinutes: 40,
+        maxRangeKilometers: 22,
+        maxSpeedKph: 61,
+        takeoffWeightGrams: 880
+      })
+    });
+    expect(reviseResponse.status).toBe(200);
+    const revised = (await reviseResponse.json()) as {
+      item: { status: string; rejectionReason: string | null };
+    };
+    expect(revised.item.status).toBe("submitted");
+    expect(revised.item.rejectionReason).toBeNull();
+
+    const reapproveResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "approved"
+      })
+    });
+    expect(reapproveResponse.status).toBe(200);
+    const reapproved = (await reapproveResponse.json()) as {
+      item: { status: string; approvedModelId: string | null };
+    };
+    expect(reapproved.item.status).toBe("approved");
+    expect(reapproved.item.approvedModelId).toBe(firstApprovedModelId);
   });
 });

@@ -3,6 +3,7 @@ import { userSummarySchema } from "./auth";
 
 export const reviewStatusSchema = z.enum(["pending", "visible", "hidden"]);
 export const reviewRatingSchema = z.number().int().min(1).max(5);
+export const reviewCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 
 export const modelReviewSchema = z.object({
   id: z.string().min(1),
@@ -73,6 +74,7 @@ export const reviewCommentSchema = z.object({
   parentCommentId: z.string().min(1).nullable(),
   replyToCommentId: z.string().min(1).nullable(),
   content: z.string().min(1),
+  status: reviewCommentStatusSchema.default("visible"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   likeCount: z.number().int().nonnegative().default(0),
@@ -114,6 +116,27 @@ export const createReviewCommentResponseSchema = z.object({
 
 export const reviewCommentsResponseSchema = z.object({
   items: z.array(reviewCommentThreadSchema)
+});
+
+export const adminReviewCommentListItemSchema = reviewCommentSchema.extend({
+  reviewTitle: z.string().min(1),
+  model: z.object({
+    id: z.string().min(1),
+    slug: z.string().min(1),
+    name: z.string().min(1)
+  })
+});
+
+export const adminReviewCommentsResponseSchema = z.object({
+  items: z.array(adminReviewCommentListItemSchema)
+});
+
+export const updateReviewCommentStatusInputSchema = z.object({
+  status: reviewCommentStatusSchema
+});
+
+export const adminReviewCommentResponseSchema = z.object({
+  item: adminReviewCommentListItemSchema
 });
 
 export type ReviewStatus = z.infer<typeof reviewStatusSchema>;

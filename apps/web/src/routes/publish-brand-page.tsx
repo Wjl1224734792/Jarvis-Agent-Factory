@@ -1,5 +1,6 @@
-import { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
 import { FileImageIcon, SendHorizonalIcon, SparklesIcon, XIcon } from "lucide-react";
 import { PublishShell } from "@/components/publish-shell";
@@ -28,13 +29,32 @@ function slugify(value: string) {
 
 export function PublishBrandPage() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [logo, setLogo] = useState<UploadedLogo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const detailQuery = useQuery({
+    queryKey: ["brand-application-edit", editId],
+    queryFn: () => apiClient.getBrandApplication(editId!),
+    enabled: Boolean(editId)
+  });
+
+  useEffect(() => {
+    if (!detailQuery.data?.item) {
+      return;
+    }
+
+    const item = detailQuery.data.item;
+    setName(item.name);
+    setDescription(item.description ?? "");
+    setLogo(item.logoUrl ? { id: item.id, url: item.logoUrl } : null);
+  }, [detailQuery.data?.item]);
 
   return (
     <PublishShell
@@ -46,6 +66,13 @@ export function PublishBrandPage() {
             <Alert variant="destructive">
               <AlertTitle>品牌申请提交失败</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {detailQuery.data?.item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{detailQuery.data.item.rejectionReason}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -147,14 +174,17 @@ export function PublishBrandPage() {
 
                   setError(null);
                   setIsSubmitting(true);
-                  void apiClient
-                    .createBrandApplication({
-                      slug: slugify(name),
-                      name: name.trim(),
-                      logoUrl: logo?.url ?? null,
-                      description: description.trim() || null
-                    })
+                  const payload = {
+                    slug: slugify(name),
+                    name: name.trim(),
+                    logoUrl: logo?.url ?? null,
+                    description: description.trim() || null
+                  };
+                  void (editId
+                    ? apiClient.updateBrandApplication(editId, payload)
+                    : apiClient.createBrandApplication(payload))
                     .then(() => {
+                      void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
                       navigate(APP_ROUTES.publishAircraft, { replace: true });
                     })
                     .catch((reason: unknown) => {

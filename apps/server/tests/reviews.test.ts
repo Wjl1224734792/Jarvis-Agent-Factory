@@ -22,7 +22,9 @@ const repo = {
   deleteReviewCommentThread: vi.fn(),
   upsertReview: vi.fn(),
   listAdminReviews: vi.fn(),
-  updateReviewStatus: vi.fn()
+  updateReviewStatus: vi.fn(),
+  listAdminComments: vi.fn(),
+  updateReviewCommentStatus: vi.fn()
 };
 
 const siteSettingsServiceMock = {
@@ -146,6 +148,7 @@ describe("reviews service", () => {
         replyToCommentId: null,
         replyToUserId: null,
         content: "Root comment",
+        status: "visible",
         likeCount: 3,
         reportCount: 1,
         createdAt: new Date("2026-03-29T00:00:00.000Z"),
@@ -165,6 +168,7 @@ describe("reviews service", () => {
         replyToCommentId: "comment_root",
         replyToUserId: "author_1",
         content: "Reply comment",
+        status: "visible",
         likeCount: 1,
         reportCount: 0,
         createdAt: new Date("2026-03-29T00:01:00.000Z"),
@@ -210,6 +214,7 @@ describe("reviews service", () => {
       replyToCommentId: null,
       replyToUserId: null,
       content: "Before update",
+      status: "visible",
       likeCount: 0,
       reportCount: 0,
       createdAt: new Date("2026-03-29T00:00:00.000Z"),
@@ -229,6 +234,7 @@ describe("reviews service", () => {
       replyToCommentId: null,
       replyToUserId: null,
       content: "After update",
+      status: "visible",
       likeCount: 1,
       reportCount: 1,
       createdAt: new Date("2026-03-29T00:00:00.000Z"),
@@ -241,6 +247,9 @@ describe("reviews service", () => {
       }
     });
     repo.listUsersByIds.mockResolvedValue([]);
+    siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
+      commentModerationEnabled: false
+    });
 
     const updateResult = await reviewsService.updateReviewComment(
       "review_1",
@@ -273,5 +282,104 @@ describe("reviews service", () => {
       reporterId: "viewer_1",
       reason: "Need moderation"
     });
+  });
+
+  it("filters hidden review comments for viewers and creates pending comments when moderation is enabled", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+
+    repo.getReviewById.mockResolvedValue({
+      id: "review_1",
+      status: "visible"
+    });
+    repo.listReviewComments.mockResolvedValue([
+      {
+        id: "comment_visible",
+        reviewId: "review_1",
+        authorId: "author_1",
+        parentCommentId: null,
+        replyToCommentId: null,
+        replyToUserId: null,
+        content: "Visible comment",
+        status: "visible",
+        likeCount: 0,
+        reportCount: 0,
+        createdAt: new Date("2026-03-29T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+        author: {
+          id: "author_1",
+          displayName: "Author",
+          avatarFileId: null,
+          role: "user"
+        }
+      },
+      {
+        id: "comment_hidden",
+        reviewId: "review_1",
+        authorId: "author_2",
+        parentCommentId: null,
+        replyToCommentId: null,
+        replyToUserId: null,
+        content: "Hidden comment",
+        status: "hidden",
+        likeCount: 0,
+        reportCount: 1,
+        createdAt: new Date("2026-03-29T00:01:00.000Z"),
+        updatedAt: new Date("2026-03-29T00:01:00.000Z"),
+        author: {
+          id: "author_2",
+          displayName: "Hidden Author",
+          avatarFileId: null,
+          role: "user"
+        }
+      }
+    ]);
+    repo.listUsersByIds.mockResolvedValue([]);
+    repo.listViewerReviewCommentLikes.mockResolvedValue([]);
+    repo.listViewerReviewCommentReports.mockResolvedValue([]);
+    siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
+      commentModerationEnabled: true
+    });
+    repo.createReviewComment.mockResolvedValue({
+      id: "comment_pending",
+      reviewId: "review_1",
+      authorId: "author_3",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "Pending comment",
+      status: "pending",
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:02:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:02:00.000Z"),
+      author: {
+        id: "author_3",
+        displayName: "Pending Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+
+    const viewerPayload = await reviewsService.listReviewComments("review_1", "viewer_1");
+    expect(viewerPayload?.items).toHaveLength(1);
+    expect(viewerPayload?.items[0]?.id).toBe("comment_visible");
+
+    const createResult = await reviewsService.createReviewComment(
+      "review_1",
+      { id: "author_3", role: "user" },
+      { content: "Pending comment" }
+    );
+
+    expect(createResult.kind).toBe("ok");
+    expect(repo.createReviewComment).toHaveBeenCalledWith(
+      expect.objectContaining({
+        reviewId: "review_1",
+        authorId: "author_3",
+        status: "pending"
+      })
+    );
+    if (createResult.kind === "ok") {
+      expect(createResult.item.status).toBe("pending");
+    }
   });
 });

@@ -20,6 +20,7 @@ function selection() {
     powerType: aircraftSubmissionsTable.powerType,
     summary: aircraftSubmissionsTable.summary,
     description: aircraftSubmissionsTable.description,
+    rejectionReason: aircraftSubmissionsTable.rejectionReason,
     coverImageFileId: aircraftSubmissionsTable.coverImageFileId,
     galleryImageFileIds: aircraftSubmissionsTable.galleryImageFileIds,
     videoFileId: aircraftSubmissionsTable.videoFileId,
@@ -63,6 +64,7 @@ export const aircraftSubmissionsRepo = {
     powerType: string;
     summary: string | null;
     description: string | null;
+    rejectionReason?: string | null;
     coverImageFileId: string | null;
     galleryImageFileIds: string;
     videoFileId: string | null;
@@ -107,11 +109,12 @@ export const aircraftSubmissionsRepo = {
       .leftJoin(brandsTable, eq(aircraftSubmissionsTable.brandId, brandsTable.id))
       .orderBy(desc(aircraftSubmissionsTable.updatedAt));
   },
-  async updateStatusOnly(id: string, status: string) {
+  async updateStatusOnly(id: string, status: string, rejectionReason?: string | null) {
     await db
       .update(aircraftSubmissionsTable)
       .set({
         status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
         updatedAt: new Date()
       })
       .where(eq(aircraftSubmissionsTable.id, id));
@@ -123,6 +126,7 @@ export const aircraftSubmissionsRepo = {
       .update(aircraftSubmissionsTable)
       .set({
         status: "approved",
+        rejectionReason: null,
         approvedModelId,
         brandId,
         updatedAt: new Date()
@@ -142,6 +146,7 @@ export const aircraftSubmissionsRepo = {
       powerType: string;
       summary: string | null;
       description: string | null;
+      rejectionReason?: string | null;
       coverImageFileId: string | null;
       galleryImageFileIds: string;
       videoFileId: string | null;

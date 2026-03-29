@@ -236,6 +236,7 @@ export const reviewsRepo = {
         replyToCommentId: reviewCommentsTable.replyToCommentId,
         replyToUserId: reviewCommentsTable.replyToUserId,
         content: reviewCommentsTable.content,
+        status: reviewCommentsTable.status,
         likeCount: reviewCommentsTable.likeCount,
         reportCount: reviewCommentsTable.reportCount,
         createdAt: reviewCommentsTable.createdAt,
@@ -262,6 +263,7 @@ export const reviewsRepo = {
         replyToCommentId: reviewCommentsTable.replyToCommentId,
         replyToUserId: reviewCommentsTable.replyToUserId,
         content: reviewCommentsTable.content,
+        status: reviewCommentsTable.status,
         likeCount: reviewCommentsTable.likeCount,
         reportCount: reviewCommentsTable.reportCount,
         createdAt: reviewCommentsTable.createdAt,
@@ -287,6 +289,7 @@ export const reviewsRepo = {
     replyToCommentId: string | null;
     replyToUserId: string | null;
     content: string;
+    status: "pending" | "visible" | "hidden";
   }) {
     const id = createId("rcomment");
 
@@ -297,7 +300,8 @@ export const reviewsRepo = {
       parentCommentId: input.parentCommentId,
       replyToCommentId: input.replyToCommentId,
       replyToUserId: input.replyToUserId,
-      content: input.content
+      content: input.content,
+      status: input.status
     });
 
     return this.getReviewCommentById(id);
@@ -312,6 +316,85 @@ export const reviewsRepo = {
       .where(eq(reviewCommentsTable.id, id));
 
     return this.getReviewCommentById(id);
+  },
+  async listAdminReviewComments(status?: "pending" | "visible" | "hidden") {
+    return db
+      .select({
+        id: reviewCommentsTable.id,
+        reviewId: reviewCommentsTable.reviewId,
+        reviewTitle: sql<string>`concat(${aircraftModelsTable.name}, ' 评测')`,
+        model: {
+          id: aircraftModelsTable.id,
+          slug: aircraftModelsTable.slug,
+          name: aircraftModelsTable.name
+        },
+        parentCommentId: reviewCommentsTable.parentCommentId,
+        replyToCommentId: reviewCommentsTable.replyToCommentId,
+        replyToUserId: reviewCommentsTable.replyToUserId,
+        content: reviewCommentsTable.content,
+        status: reviewCommentsTable.status,
+        likeCount: reviewCommentsTable.likeCount,
+        reportCount: reviewCommentsTable.reportCount,
+        createdAt: reviewCommentsTable.createdAt,
+        updatedAt: reviewCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(reviewCommentsTable)
+      .innerJoin(aircraftReviewsTable, eq(reviewCommentsTable.reviewId, aircraftReviewsTable.id))
+      .innerJoin(aircraftModelsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
+      .innerJoin(usersTable, eq(reviewCommentsTable.authorId, usersTable.id))
+      .where(status ? eq(reviewCommentsTable.status, status) : sql`true`)
+      .orderBy(desc(reviewCommentsTable.updatedAt));
+  },
+  async updateReviewCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await this.getReviewCommentById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+    await db
+      .update(reviewCommentsTable)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(reviewCommentsTable.reviewId, existing.reviewId),
+          or(eq(reviewCommentsTable.id, rootId), eq(reviewCommentsTable.parentCommentId, rootId))
+        )
+      );
+
+    return this.getReviewCommentById(id);
+  },
+  async updateAdminReviewCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await this.getReviewCommentById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+    await db
+      .update(reviewCommentsTable)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(reviewCommentsTable.reviewId, existing.reviewId),
+          or(eq(reviewCommentsTable.id, rootId), eq(reviewCommentsTable.parentCommentId, rootId))
+        )
+      );
+
+    const rows = await this.listAdminReviewComments();
+    return rows.find((item) => item.id === id) ?? null;
   },
   async syncReviewLikeReportCounts(reviewId: string) {
     const [likes, reports] = await Promise.all([

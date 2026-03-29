@@ -41,6 +41,7 @@ function postSelection() {
     contentHtml: postsTable.contentHtml,
     contentPlainText: postsTable.contentPlainText,
     status: postsTable.status,
+    rejectionReason: postsTable.rejectionReason,
     commentCount: postsTable.commentCount,
     reportCount: postsTable.reportCount,
     likeCount: postsTable.likeCount,
@@ -224,6 +225,7 @@ export const postsRepo = {
     contentPlainText: string;
     contentCategoryId: string | null;
     status: PostStatus;
+    rejectionReason?: string | null;
     publishedAt: Date | null;
     imageIds: string[];
     videoIds: string[];
@@ -240,6 +242,7 @@ export const postsRepo = {
       contentPlainText: input.contentPlainText,
       contentCategoryId: input.contentCategoryId,
       status: input.status,
+      rejectionReason: input.rejectionReason ?? null,
       commentCount: 0,
       reportCount: 0,
       likeCount: 0,
@@ -303,6 +306,7 @@ export const postsRepo = {
     contentPlainText: string;
     contentCategoryId: string | null;
     status: PostStatus;
+    rejectionReason?: string | null;
     ownerId: string;
     imageIds: string[];
     videoIds: string[];
@@ -316,6 +320,7 @@ export const postsRepo = {
         contentPlainText: input.contentPlainText,
         contentCategoryId: input.contentCategoryId,
         status: input.status,
+        rejectionReason: input.rejectionReason ?? null,
         updatedAt: new Date()
       })
       .where(eq(postsTable.id, input.id));
@@ -390,7 +395,7 @@ export const postsRepo = {
 
     return query;
   },
-  async updatePostStatus(id: string, status: PostStatus) {
+  async updatePostStatus(id: string, status: PostStatus, rejectionReason?: string | null) {
     const existing = await this.getPostById(id);
     if (!existing) {
       return null;
@@ -400,6 +405,7 @@ export const postsRepo = {
       .update(postsTable)
       .set({
         status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
         publishedAt: status === "published" ? existing.publishedAt ?? new Date() : existing.publishedAt,
         updatedAt: new Date()
       })
@@ -689,6 +695,7 @@ export const postsRepo = {
         replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
+        reportCount: postCommentsTable.reportCount,
         createdAt: postCommentsTable.createdAt,
         updatedAt: postCommentsTable.updatedAt,
         author: {

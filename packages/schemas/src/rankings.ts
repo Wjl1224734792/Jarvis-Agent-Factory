@@ -6,6 +6,7 @@ import { reviewRatingSchema } from "./reviews";
 export const rankingTypeSchema = z.enum(["official", "community"]);
 export const rankingItemAddPolicySchema = z.enum(["public", "owner"]);
 export const rankingStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
+export const rankingCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 
 const linkedRankingModelSchema = z.object({
   id: z.string().min(1),
@@ -41,6 +42,7 @@ export const rankingItemSchema = z.object({
   rankingId: z.string().min(1),
   authorId: z.string().min(1).nullable().optional(),
   status: rankingStatusSchema.default("published"),
+  rejectionReason: z.string().nullable().default(null),
   rank: z.number().int().positive(),
   title: z.string().min(1),
   summary: z.string().nullable(),
@@ -65,6 +67,7 @@ export const rankingCommentSchema = z.object({
   id: z.string().min(1),
   rankingId: z.string().min(1),
   content: z.string().min(1),
+  status: rankingCommentStatusSchema.default("visible"),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   likeCount: z.number().int().nonnegative().default(0),
@@ -91,6 +94,7 @@ const rankingItemCommentBaseSchema = z.object({
   parentCommentId: z.string().min(1).nullable().default(null),
   replyToCommentId: z.string().min(1).nullable().default(null),
   content: z.string().min(1),
+  status: rankingCommentStatusSchema.default("visible"),
   rating: reviewRatingSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
@@ -139,6 +143,7 @@ export const rankingListItemSchema = z.object({
   id: z.string().min(1),
   type: rankingTypeSchema,
   status: rankingStatusSchema,
+  rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   description: z.string().min(1),
   coverImageFileId: z.string().nullable().optional(),
@@ -146,6 +151,7 @@ export const rankingListItemSchema = z.object({
   itemAddPolicy: rankingItemAddPolicySchema,
   averageScore: z.number().min(0).max(10),
   commentCount: z.number().int().nonnegative(),
+  reportCount: z.number().int().nonnegative().default(0),
   itemCount: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),
   author: userSummarySchema,
@@ -205,11 +211,66 @@ export const rankingResponseSchema = z.object({
 export const rankingItemResponseSchema = rankingResponseSchema;
 
 export const updateRankingStatusInputSchema = z.object({
-  status: rankingStatusSchema.exclude(["pending"])
+  status: rankingStatusSchema.exclude(["pending"]),
+  rejectionReason: z.string().trim().min(2).max(200).nullable().optional().default(null)
+}).superRefine((input, context) => {
+  if (input.status === "rejected" && !input.rejectionReason?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Rejection reason is required.",
+      path: ["rejectionReason"]
+    });
+  }
+});
+
+export const updateRankingItemStatusInputSchema = z.object({
+  status: rankingStatusSchema.exclude(["pending"]),
+  rejectionReason: z.string().trim().min(2).max(200).nullable().optional().default(null)
+}).superRefine((input, context) => {
+  if (input.status === "rejected" && !input.rejectionReason?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Rejection reason is required.",
+      path: ["rejectionReason"]
+    });
+  }
 });
 
 export const rankingItemDetailResponseSchema = z.object({
   item: rankingItemDetailSchema
+});
+
+export const adminRankingCommentListItemSchema = rankingCommentSchema.extend({
+  rankingTitle: z.string().min(1)
+});
+
+export const adminRankingCommentsResponseSchema = z.object({
+  items: z.array(adminRankingCommentListItemSchema)
+});
+
+export const updateRankingCommentStatusInputSchema = z.object({
+  status: rankingCommentStatusSchema
+});
+
+export const adminRankingCommentResponseSchema = z.object({
+  item: adminRankingCommentListItemSchema
+});
+
+export const adminRankingItemCommentListItemSchema = rankingItemCommentBaseSchema.extend({
+  rankingItemTitle: z.string().min(1),
+  rankingTitle: z.string().min(1)
+});
+
+export const adminRankingItemCommentsResponseSchema = z.object({
+  items: z.array(adminRankingItemCommentListItemSchema)
+});
+
+export const updateRankingItemCommentStatusInputSchema = z.object({
+  status: rankingCommentStatusSchema
+});
+
+export const adminRankingItemCommentResponseSchema = z.object({
+  item: adminRankingItemCommentListItemSchema
 });
 
 export const createRankingCommentInputSchema = z.object({

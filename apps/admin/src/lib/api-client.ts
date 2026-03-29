@@ -89,12 +89,14 @@ type AdminRankingListItem = {
   id: string;
   type: "official" | "community";
   status: "pending" | "published" | "rejected" | "hidden";
+  rejectionReason?: string | null;
   title: string;
   description: string;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   averageScore: number;
   commentCount: number;
+  reportCount?: number;
   itemCount: number;
   createdAt: string;
   author: {
@@ -440,9 +442,15 @@ export const apiClient = {
   },
   updateRankingStatus(
     id: string,
-    input: { status: "published" | "rejected" | "hidden" }
+    input: { status: "published" | "rejected" | "hidden"; rejectionReason?: string | null }
   ) {
-    return putJson<{ item: AdminRankingDetail }>(`/admin/rankings/${id}/status`, input);
+    return putJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.adminStatus(id), input);
+  },
+  updateRankingItemStatus(
+    id: string,
+    input: { status: "published" | "rejected" | "hidden"; rejectionReason?: string | null }
+  ) {
+    return sharedClient.updateAdminRankingItemStatus(id, input);
   },
   async listRankingItemsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
     const rankings = await this.listCommunityRankingsForModeration();

@@ -9,6 +9,7 @@ function selection() {
     name: brandApplicationsTable.name,
     logoUrl: brandApplicationsTable.logoUrl,
     description: brandApplicationsTable.description,
+    rejectionReason: brandApplicationsTable.rejectionReason,
     approvedBrandId: brandApplicationsTable.approvedBrandId,
     createdAt: brandApplicationsTable.createdAt,
     updatedAt: brandApplicationsTable.updatedAt,
@@ -29,6 +30,7 @@ export const brandApplicationsRepo = {
     name: string;
     logoUrl: string | null;
     description: string | null;
+    rejectionReason: string | null;
     approvedBrandId: string | null;
   }) {
     const id = createId("brand_apply");
@@ -56,12 +58,51 @@ export const brandApplicationsRepo = {
       .innerJoin(usersTable, eq(brandApplicationsTable.applicantId, usersTable.id))
       .orderBy(desc(brandApplicationsTable.updatedAt));
   },
-  async updateStatus(id: string, input: { status: string; approvedBrandId: string | null }) {
+  async listByApplicant(applicantId: string) {
+    return db
+      .select(selection())
+      .from(brandApplicationsTable)
+      .innerJoin(usersTable, eq(brandApplicationsTable.applicantId, usersTable.id))
+      .where(eq(brandApplicationsTable.applicantId, applicantId))
+      .orderBy(desc(brandApplicationsTable.updatedAt));
+  },
+  async update(
+    id: string,
+    input: {
+      status: string;
+      slug: string;
+      name: string;
+      logoUrl: string | null;
+      description: string | null;
+      rejectionReason: string | null;
+    }
+  ) {
+    await db
+      .update(brandApplicationsTable)
+      .set({
+        status: input.status,
+        slug: input.slug,
+        name: input.name,
+        logoUrl: input.logoUrl,
+        description: input.description,
+        rejectionReason: input.rejectionReason,
+        updatedAt: new Date()
+      })
+      .where(eq(brandApplicationsTable.id, id));
+
+    return this.findById(id);
+  },
+  async updateStatus(id: string, input: {
+    status: string;
+    approvedBrandId: string | null;
+    rejectionReason: string | null;
+  }) {
     await db
       .update(brandApplicationsTable)
       .set({
         status: input.status,
         approvedBrandId: input.approvedBrandId,
+        rejectionReason: input.rejectionReason,
         updatedAt: new Date()
       })
       .where(eq(brandApplicationsTable.id, id));

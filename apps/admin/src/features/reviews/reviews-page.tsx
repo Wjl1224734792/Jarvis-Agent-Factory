@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Table } from "antd";
-import { useState } from "react";
+import { Button, Input, Table, Tag } from "antd";
+import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -13,7 +13,7 @@ function reviewStatusLabel(status: ReviewRecord["status"]) {
     case "pending":
       return "待审核";
     case "visible":
-      return "已展示";
+      return "已显示";
     case "hidden":
       return "已隐藏";
   }
@@ -27,10 +27,24 @@ export function ReviewsPage() {
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [searchText, setSearchText] = useState("");
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-reviews", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = reviewsQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.model.name, item.author.displayName, item.content ?? ""]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [reviewsQuery.data?.items, searchText]);
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);
@@ -55,7 +69,21 @@ export function ReviewsPage() {
   }
 
   return (
-    <AdminPage description="控制评测的可见性和公开展示状态。" title="评测管理">
+    <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索机型、作者或评测内容"
+          style={{ width: 260 }}
+          value={searchText}
+        />
+      }
+      description="控制评测的可见性和公开展示状态。"
+      title="评测管理"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
@@ -100,7 +128,7 @@ export function ReviewsPage() {
             {
               dataIndex: "status",
               key: "status",
-              render: (value: ReviewRecord["status"]) => reviewStatusLabel(value),
+              render: (value: ReviewRecord["status"]) => <Tag>{reviewStatusLabel(value)}</Tag>,
               title: "状态",
               width: 120
             },
@@ -124,14 +152,14 @@ export function ReviewsPage() {
                   size="small"
                   type={record.status === "visible" ? "default" : "primary"}
                 >
-                  {record.status === "visible" ? "隐藏" : "通过 / 恢复"}
+                  {record.status === "visible" ? "隐藏" : record.status === "pending" ? "通过显示" : "恢复显示"}
                 </Button>
               ),
               title: "操作",
               width: 120
             }
           ]}
-          dataSource={reviewsQuery.data?.items ?? []}
+          dataSource={filteredItems}
           loading={reviewsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"

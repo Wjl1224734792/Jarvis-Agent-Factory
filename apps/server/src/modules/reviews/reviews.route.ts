@@ -1,5 +1,7 @@
 import {
   actionSuccessResponseSchema,
+  adminReviewCommentResponseSchema,
+  adminReviewCommentsResponseSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
   createReviewCommentInputSchema,
@@ -10,6 +12,7 @@ import {
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
   updateReviewCommentInputSchema,
+  updateReviewCommentStatusInputSchema,
   updateReviewStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
@@ -86,6 +89,29 @@ reviewsRoute.put(API_ROUTES.models.adminReviewDetail(":id"), requireAdmin, async
   }
 
   return context.json(adminReviewResponseSchema.parse({ item }));
+});
+
+reviewsRoute.get(API_ROUTES.models.adminReviewComments, requireAdmin, async (context) => {
+  const status = context.req.query("status");
+  const payload = await reviewsService.listAdminReviewComments(
+    status === "pending" || status === "visible" || status === "hidden" ? status : undefined
+  );
+  return context.json(adminReviewCommentsResponseSchema.parse(payload));
+});
+
+reviewsRoute.put(API_ROUTES.models.adminReviewCommentDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const input = updateReviewCommentStatusInputSchema.parse(await context.req.json());
+  const item = await reviewsService.updateReviewCommentStatus(id, input.status);
+  if (!item) {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+
+  return context.json(adminReviewCommentResponseSchema.parse({ item }));
 });
 
 reviewsRoute.get(API_ROUTES.models.reviewComments(":reviewId"), async (context) => {

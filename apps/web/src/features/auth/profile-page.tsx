@@ -88,21 +88,70 @@ function getContentMeta(item: ContentItem) {
         title: item.title,
         summary: item.description
       };
+    case "ranking-item":
+      return {
+        label: "榜单条目",
+        href: APP_ROUTES.rankingItemDetail.replace(":id", item.id),
+        title: item.title,
+        summary: item.summary ?? item.rankingTitle
+      };
+    case "ranking-item":
+      return {
+        label: "姒滃崟鏉＄洰",
+        href: APP_ROUTES.rankingItemDetail.replace(":id", item.id),
+        title: item.title,
+        summary: item.summary ?? `${item.rankingTitle} 鏉＄洰`
+      };
     case "aircraft":
       return {
         label: "飞行器投稿",
         href: null,
         title: item.modelName,
-        summary: item.summary ?? "已提交机型资料，等待进一步审核或发布。"
+        summary: item.summary ?? "机型投稿仍在审核或等待重新提交。"
       };
     case "review":
       return {
-        label: "机型评论",
+        label: "机型评测",
         href: APP_ROUTES.modelDetail.replace(":slug", item.model.slug),
         title: item.model.name,
-        summary: item.content ?? "只留下了评分，没有补充长评。"
+        summary: item.content ?? "这条评测暂时没有补充长文。"
+      };
+    case "brand-application":
+      return {
+        label: "品牌申请",
+        href: null,
+        title: item.name,
+        summary: item.description ?? "品牌申请正在审核或等待修改后重新提交。"
       };
   }
+}
+
+function getManageHref(item: ContentItem) {
+  switch (item.type) {
+    case "post":
+      return item.postType === "article"
+        ? `${APP_ROUTES.publishArticle}?edit=${item.id}`
+        : `${APP_ROUTES.publishMoment}?edit=${item.id}`;
+    case "ranking":
+      return `${APP_ROUTES.rankingEditor}?edit=${item.id}`;
+    case "ranking-item":
+      return `${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?edit=1&ranking=${item.rankingId}`;
+    case "aircraft":
+      return `${APP_ROUTES.publishAircraft}?edit=${item.id}`;
+    case "brand-application":
+      return `${APP_ROUTES.publishBrand}?edit=${item.id}`;
+    default:
+      return null;
+  }
+}
+
+function getRejectionReason(item: ContentItem) {
+  if (!("rejectionReason" in item)) {
+    return null;
+  }
+  return typeof item.rejectionReason === "string" && item.rejectionReason.trim().length > 0
+    ? item.rejectionReason
+    : null;
 }
 
 function ContentFeedRow(props: {
@@ -111,33 +160,30 @@ function ContentFeedRow(props: {
   onDelete?: (item: ContentItem) => void;
   deletingId?: string | null;
 }) {
-  const item = props.item;
-  const meta = getContentMeta(item);
-  const manageHref =
-    item.type === "post"
-      ? item.postType === "article"
-        ? `${APP_ROUTES.publishArticle}?edit=${item.id}`
-        : `${APP_ROUTES.publishMoment}?edit=${item.id}`
-      : item.type === "ranking"
-        ? `${APP_ROUTES.rankingEditor}?edit=${item.id}`
-        : item.type === "aircraft"
-          ? `${APP_ROUTES.publishAircraft}?edit=${item.id}`
-          : null;
-  const row = (
+  const meta = getContentMeta(props.item);
+  const manageHref = getManageHref(props.item);
+  const rejectionReason = getRejectionReason(props.item);
+
+  const content = (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
       <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start md:gap-1">
         <Badge variant="outline">{meta.label}</Badge>
         <span className="text-[0.72rem] text-muted-foreground">
-          {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
+          {new Date(props.item.updatedAt).toLocaleDateString("zh-CN")}
         </span>
       </div>
-      <div className="min-w-0 space-y-1.5">
+      <div className="min-w-0 space-y-2">
         <div className="truncate text-[0.95rem] font-semibold text-foreground">{meta.title}</div>
         <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{meta.summary}</p>
+        {rejectionReason ? (
+          <div className="rounded-[0.75rem] border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
+            驳回原因：{rejectionReason}
+          </div>
+        ) : null}
       </div>
       <div className="flex items-center gap-2 text-[0.72rem] text-muted-foreground md:justify-end">
         <Clock3Icon className="size-3.5" />
-        {new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+        {new Date(props.item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
       </div>
       {props.showManagement ? (
         <div className="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">
@@ -146,16 +192,19 @@ function ContentFeedRow(props: {
               <Link to={manageHref}>编辑</Link>
             </Button>
           ) : null}
-          {props.onDelete && (item.type === "post" || item.type === "aircraft") ? (
+          {props.onDelete &&
+          (props.item.type === "post" ||
+            props.item.type === "aircraft" ||
+            props.item.type === "ranking-item") ? (
             <Button
-              disabled={props.deletingId === item.id}
-              onClick={() => props.onDelete?.(item)}
+              disabled={props.deletingId === props.item.id}
+              onClick={() => props.onDelete?.(props.item)}
               size="sm"
               type="button"
               variant="ghost"
             >
               <Trash2Icon data-icon="inline-start" />
-              {props.deletingId === item.id ? "处理中..." : "删除"}
+              {props.deletingId === props.item.id ? "处理中..." : "删除"}
             </Button>
           ) : null}
         </div>
@@ -164,12 +213,12 @@ function ContentFeedRow(props: {
   );
 
   if (!meta.href) {
-    return row;
+    return content;
   }
 
   return (
     <Link className="block transition hover:bg-accent/28" to={meta.href}>
-      {row}
+      {content}
     </Link>
   );
 }
@@ -219,6 +268,7 @@ export function ProfilePage() {
   const profile = profileQuery.data?.item;
   const settings = currentProfileQuery.data?.item;
   const displayName = settings?.displayName ?? user.displayName;
+  const userId = user.id;
   const avatarUrl = settings?.avatarUrl ?? user.avatarUrl ?? getAvatarImage(user.id);
   const bio = settings?.bio ?? "还没有填写个人简介。";
 
@@ -234,19 +284,22 @@ export function ProfilePage() {
         await apiClient.deletePost(item.id);
       } else if (item.type === "aircraft") {
         await apiClient.deleteAircraftSubmission(item.id);
+      } else if (item.type === "ranking-item") {
+        await apiClient.deleteRankingItem(item.id);
       } else {
         return;
       }
 
       await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["self-profile-content", user?.id] }),
-        queryClient.invalidateQueries({ queryKey: ["self-profile", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", userId] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", userId] }),
         queryClient.invalidateQueries({ queryKey: ["models"] }),
+        queryClient.invalidateQueries({ queryKey: ["rankings"] }),
         queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
         queryClient.invalidateQueries({ queryKey: ["circle-feed"] })
       ]);
     } catch (reason: unknown) {
-      setActionError(reason instanceof Error ? reason.message : "删除失败");
+      setActionError(reason instanceof Error ? reason.message : "内容删除失败");
     } finally {
       setDeletingId(null);
     }
@@ -347,7 +400,7 @@ export function ProfilePage() {
 
         <TabsContent className="space-y-4" value="activity">
           <div className="rounded-[0.95rem] border border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-            已为帖子、榜单、投稿机型预留内容管理入口。帖子和投稿机型支持直接删除，榜单支持跳转编辑。
+            这里集中管理文章、动态、榜单、榜单条目、品牌申请和机型投稿。被驳回的内容会直接显示原因，修改后可重新提交。
           </div>
           <VirtualFeed
             data={activityItems}

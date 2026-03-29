@@ -56,6 +56,19 @@ export function ModelsPage() {
   const [editing, setEditing] = useState<ModelRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+  const filteredModels = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = modelsQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.name, item.slug, item.brand.name, item.category.name]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [modelsQuery.data?.items, searchText]);
 
   async function createModel(values: ModelFormValues) {
     setIsSubmitting(true);
@@ -117,6 +130,17 @@ export function ModelsPage() {
 
   return (
     <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索机型、品牌、分类或 slug"
+          style={{ width: 260 }}
+          value={searchText}
+        />
+      }
       description="机型发布时只选择已有品牌并支持搜索，品牌和分类在心智上彻底分离。"
       title="机型库"
     >
@@ -228,7 +252,7 @@ export function ModelsPage() {
                 width: 100
               }
             ]}
-            dataSource={modelsQuery.data?.items ?? []}
+            dataSource={filteredModels}
             loading={modelsQuery.isLoading || categoriesQuery.isLoading || brandsQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"

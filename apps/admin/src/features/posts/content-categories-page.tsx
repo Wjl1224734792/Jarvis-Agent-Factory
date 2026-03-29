@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Table } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -23,6 +23,19 @@ export function ContentCategoriesPage() {
   const [editing, setEditing] = useState<ContentCategoryRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+
+  const filteredCategories = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = categoriesQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.name, item.slug].some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [categoriesQuery.data?.items, searchText]);
 
   async function handleCreate(values: ContentCategoryFormValues) {
     setIsSubmitting(true);
@@ -63,7 +76,21 @@ export function ContentCategoriesPage() {
   }
 
   return (
-    <AdminPage description="维护首页文章与官方文章发布使用的内容分类。" title="内容分类">
+    <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索分类名或 slug"
+          style={{ width: 220 }}
+          value={searchText}
+        />
+      }
+      description="维护首页文章与官方文章发布使用的内容分类。"
+      title="内容分类"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
@@ -138,7 +165,7 @@ export function ContentCategoriesPage() {
                 width: 100
               }
             ]}
-            dataSource={categoriesQuery.data?.items ?? []}
+            dataSource={filteredCategories}
             loading={categoriesQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"

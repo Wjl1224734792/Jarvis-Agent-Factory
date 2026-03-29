@@ -108,7 +108,11 @@ aircraftSubmissionsRoute.put(
     }
 
     const input = updateAircraftSubmissionStatusInputSchema.parse(await context.req.json());
-    const payload = await aircraftSubmissionsService.updateSubmissionStatus(id, input.status);
+    const payload = await aircraftSubmissionsService.updateSubmissionStatus(
+      id,
+      input.status,
+      input.rejectionReason ?? null
+    );
     if (!payload) {
       return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
     }

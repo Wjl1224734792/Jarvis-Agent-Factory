@@ -44,6 +44,7 @@ export const aircraftSubmissionSchema = z.object({
   powerType: powerTypeSchema,
   summary: z.string().nullable(),
   description: z.string().nullable(),
+  rejectionReason: z.string().nullable().default(null),
   coverImageFileId: z.string().nullable(),
   galleryImageFileIds: z.array(z.string().min(1)),
   videoFileId: z.string().nullable(),
@@ -76,7 +77,16 @@ export const createAircraftSubmissionInputSchema = z.object({
 });
 
 export const updateAircraftSubmissionStatusInputSchema = z.object({
-  status: z.enum(["approved", "rejected"])
+  status: z.enum(["approved", "rejected"]),
+  rejectionReason: z.string().trim().min(2).max(200).nullable().optional().default(null)
+}).superRefine((input, context) => {
+  if (input.status === "rejected" && !input.rejectionReason?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Rejection reason is required.",
+      path: ["rejectionReason"]
+    });
+  }
 });
 
 export const aircraftSubmissionResponseSchema = z.object({

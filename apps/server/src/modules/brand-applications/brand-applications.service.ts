@@ -25,6 +25,7 @@ async function serializeApplication(
     name: item.name,
     logoUrl: item.logoUrl ?? null,
     description: item.description ?? null,
+    rejectionReason: item.rejectionReason ?? null,
     approvedBrandId: item.approvedBrandId ?? null,
     applicant: {
       id: item.applicant.id,
@@ -80,6 +81,7 @@ export const brandApplicationsService = {
       name: input.name,
       logoUrl: input.logoUrl,
       description: input.description,
+      rejectionReason: null,
       approvedBrandId: null
     });
 
@@ -91,7 +93,8 @@ export const brandApplicationsService = {
       });
       const approved = await brandApplicationsRepo.updateStatus(item.id, {
         status: "approved",
-        approvedBrandId
+        approvedBrandId,
+        rejectionReason: null
       });
       return { item: (await serializeApplication(approved))! };
     }
@@ -106,6 +109,60 @@ export const brandApplicationsService = {
 
     return { item: (await serializeApplication(item))! };
   },
+  async updateApplication(
+    id: string,
+    currentUser: { id: string; role: "user" | "admin" },
+    input: {
+      slug: string;
+      name: string;
+      logoUrl: string | null;
+      description: string | null;
+    }
+  ) {
+    const current = await brandApplicationsRepo.findById(id);
+    if (!current) {
+      return { kind: "not_found" as const };
+    }
+
+    if (current.applicant.id !== currentUser.id && currentUser.role !== "admin") {
+      return { kind: "forbidden" as const };
+    }
+
+    const shouldModerate = await siteSettingsService.shouldModerateBrandApplication();
+    const nextStatus =
+      currentUser.role === "admin" ? current.status : shouldModerate ? "pending" : "approved";
+    const updated = await brandApplicationsRepo.update(id, {
+      status: nextStatus,
+      slug: input.slug,
+      name: input.name,
+      logoUrl: input.logoUrl,
+      description: input.description,
+      rejectionReason: null
+    });
+
+    if (!updated) {
+      return { kind: "not_found" as const };
+    }
+
+    if (currentUser.role !== "admin" && nextStatus === "approved") {
+      let approvedBrandId = updated.approvedBrandId ?? null;
+      if (!approvedBrandId) {
+        approvedBrandId = await createBrandFromApplication({
+          slug: updated.slug,
+          name: updated.name,
+          logoUrl: updated.logoUrl ?? null
+        });
+      }
+      const approved = await brandApplicationsRepo.updateStatus(updated.id, {
+        status: "approved",
+        approvedBrandId,
+        rejectionReason: null
+      });
+      return { kind: "ok" as const, payload: { item: (await serializeApplication(approved))! } };
+    }
+
+    return { kind: "ok" as const, payload: { item: (await serializeApplication(updated))! } };
+  },
   async listAdminApplications() {
     const items = await brandApplicationsRepo.listAdmin();
     return {
@@ -114,7 +171,11 @@ export const brandApplicationsService = {
       ).filter((item): item is NonNullable<typeof item> => item !== null)
     };
   },
-  async updateStatus(id: string, status: "approved" | "rejected" | "hidden") {
+  async updateStatus(
+    id: string,
+    status: "approved" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
     const current = await brandApplicationsRepo.findById(id);
     if (!current) {
       return null;
@@ -131,7 +192,8 @@ export const brandApplicationsService = {
 
     const item = await brandApplicationsRepo.updateStatus(id, {
       status,
-      approvedBrandId
+      approvedBrandId,
+      rejectionReason: status === "rejected" ? rejectionReason ?? null : null
     });
 
     return item ? { item: (await serializeApplication(item))! } : null;

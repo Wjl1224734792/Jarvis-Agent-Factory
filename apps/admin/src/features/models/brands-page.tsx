@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Image, Input, Modal, Select, Table } from "antd";
 import { ImageUpIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -41,6 +41,19 @@ export function BrandsPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+
+  const filteredBrands = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = brandsQuery.data ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.name, item.slug].some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [brandsQuery.data, searchText]);
 
   async function uploadLogo(file: File | null, target: "create" | "edit") {
     if (!file) {
@@ -115,6 +128,17 @@ export function BrandsPage() {
 
   return (
     <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索品牌名或 slug"
+          style={{ width: 240 }}
+          value={searchText}
+        />
+      }
       description="品牌不再绑定一级分类。品牌库只维护品牌自身资料，机型发布时再单独选择分类。"
       title="品牌库"
     >
@@ -237,7 +261,7 @@ export function BrandsPage() {
                 width: 100
               }
             ]}
-            dataSource={brandsQuery.data ?? []}
+            dataSource={filteredBrands}
             loading={brandsQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"

@@ -17,6 +17,8 @@ import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -129,6 +131,10 @@ export function RankingItemDetailPage() {
 
   const item = detailQuery.data?.item;
   const parentRankingId = searchParams.get("ranking");
+  const isEditMode = searchParams.get("edit") === "1";
+  const [itemTitle, setItemTitle] = useState("");
+  const [itemSummary, setItemSummary] = useState("");
+  const [itemBrandName, setItemBrandName] = useState("");
 
   useEffect(() => {
     if (!item) {
@@ -137,6 +143,9 @@ export function RankingItemDetailPage() {
 
     setSelectedRating(item.myRating ?? 0);
     setContent(item.myReview?.content ?? "");
+    setItemTitle(item.title);
+    setItemSummary(item.summary ?? "");
+    setItemBrandName(item.brandName ?? item.linkedModel?.brand.name ?? "");
   }, [item]);
 
   const totalRatings = item?.totalRatings ?? 0;
@@ -197,6 +206,12 @@ export function RankingItemDetailPage() {
 
       {item ? (
         <>
+          {item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{item.rejectionReason}</AlertDescription>
+            </Alert>
+          ) : null}
           <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[320px_minmax(0,1fr)]">
             <div className="overflow-hidden rounded-[1rem]">
               <img
@@ -256,6 +271,69 @@ export function RankingItemDetailPage() {
                     举报条目
                   </Button>
                 </div>
+
+                {isEditMode && item.viewer.canEdit ? (
+                  <div className="space-y-3 border-t border-border/70 pt-4">
+                    <div className="text-sm font-medium text-foreground">编辑条目</div>
+                    <Input onChange={(event) => setItemTitle(event.target.value)} value={itemTitle} />
+                    <Input onChange={(event) => setItemBrandName(event.target.value)} value={itemBrandName} />
+                    <Textarea
+                      className="min-h-28"
+                      onChange={(event) => setItemSummary(event.target.value)}
+                      value={itemSummary}
+                    />
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        disabled={busy || !itemTitle.trim()}
+                        onClick={() => {
+                          setBusy(true);
+                          setActionError(null);
+                          void apiClient
+                            .updateRankingItem(item.id, {
+                              title: itemTitle.trim(),
+                              summary: itemSummary.trim() || null,
+                              imageFileId: item.imageFileId ?? null,
+                              brandName: itemBrandName.trim() || null,
+                              linkedModelSlug: item.linkedModel?.slug ?? null
+                            })
+                            .then(() => refreshAll())
+                            .catch((reason: unknown) => {
+                              setActionError(reason instanceof Error ? reason.message : "条目更新失败");
+                            })
+                            .finally(() => {
+                              setBusy(false);
+                            });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="hero"
+                      >
+                        保存返修
+                      </Button>
+                      <Button
+                        disabled={busy}
+                        onClick={() => {
+                          setBusy(true);
+                          setActionError(null);
+                          void apiClient
+                            .deleteRankingItem(item.id)
+                            .then(() => {
+                              window.location.assign(APP_ROUTES.rankingDetail.replace(":id", item.ranking.id));
+                            })
+                            .catch((reason: unknown) => {
+                              setActionError(reason instanceof Error ? reason.message : "条目删除失败");
+                              setBusy(false);
+                            });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        删除条目
+                      </Button>
+                    </div>
+                  </div>
+                ) : null}
               </div>
 
               <div className="border border-border/70 px-4 py-4">

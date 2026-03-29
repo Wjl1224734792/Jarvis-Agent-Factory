@@ -17,6 +17,9 @@ import {
   usersTable
 } from "@feijia/db";
 import { and, asc, desc, eq, inArray, isNull, or, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
+
+const replyUsers = alias(usersTable, "ranking_comment_reply_users");
 
 export const rankingsRepo = {
   async listPublishedModels() {
@@ -74,6 +77,7 @@ export const rankingsRepo = {
         id: rankingsTable.id,
         type: rankingsTable.type,
         status: rankingsTable.status,
+        rejectionReason: rankingsTable.rejectionReason,
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageFileId: rankingsTable.coverImageFileId,
@@ -99,6 +103,7 @@ export const rankingsRepo = {
         id: rankingsTable.id,
         type: rankingsTable.type,
         status: rankingsTable.status,
+        rejectionReason: rankingsTable.rejectionReason,
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageFileId: rankingsTable.coverImageFileId,
@@ -125,6 +130,7 @@ export const rankingsRepo = {
     authorId: string;
     type: "official" | "community";
     status: "pending" | "published" | "rejected" | "hidden";
+    rejectionReason?: string | null;
     title: string;
     description: string;
     coverImageFileId: string | null;
@@ -136,6 +142,7 @@ export const rankingsRepo = {
       authorId: input.authorId,
       type: input.type,
       status: input.status,
+      rejectionReason: input.rejectionReason ?? null,
       title: input.title,
       description: input.description,
       coverImageFileId: input.coverImageFileId,
@@ -149,6 +156,8 @@ export const rankingsRepo = {
   async updateRanking(
     id: string,
     input: {
+      status?: "pending" | "published" | "rejected" | "hidden";
+      rejectionReason?: string | null;
       title: string;
       description: string;
       coverImageFileId: string | null;
@@ -158,6 +167,10 @@ export const rankingsRepo = {
     await db
       .update(rankingsTable)
       .set({
+        status: input.status ?? undefined,
+        rejectionReason: Object.prototype.hasOwnProperty.call(input, "rejectionReason")
+          ? input.rejectionReason ?? null
+          : undefined,
         title: input.title,
         description: input.description,
         coverImageFileId: input.coverImageFileId,
@@ -168,11 +181,16 @@ export const rankingsRepo = {
 
     return this.getRankingById(id);
   },
-  async updateRankingStatus(id: string, status: "published" | "rejected" | "hidden") {
+  async updateRankingStatus(
+    id: string,
+    status: "published" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
     await db
       .update(rankingsTable)
       .set({
         status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null,
         updatedAt: new Date()
       })
       .where(eq(rankingsTable.id, id));
@@ -187,6 +205,7 @@ export const rankingsRepo = {
     items: Array<{
       authorId: string;
       status: "pending" | "published" | "rejected" | "hidden";
+      rejectionReason?: string | null;
       rank: number;
       title: string;
       summary: string | null;
@@ -205,6 +224,7 @@ export const rankingsRepo = {
         rankingId,
         authorId: item.authorId,
         status: item.status,
+        rejectionReason: item.rejectionReason ?? null,
         rank: item.rank,
         title: item.title,
         summary: item.summary,
@@ -229,6 +249,7 @@ export const rankingsRepo = {
     rankingId: string;
     authorId: string;
     status: "pending" | "published" | "rejected" | "hidden";
+    rejectionReason?: string | null;
     title: string;
     summary: string | null;
     imageFileId: string | null;
@@ -242,6 +263,7 @@ export const rankingsRepo = {
       rankingId: input.rankingId,
       authorId: input.authorId,
       status: input.status,
+      rejectionReason: input.rejectionReason ?? null,
       linkedModelId: input.linkedModelId,
       rank,
       title: input.title,
@@ -264,6 +286,7 @@ export const rankingsRepo = {
       brandName: string | null;
       linkedModelId: string | null;
       status?: "pending" | "published" | "rejected" | "hidden";
+      rejectionReason?: string | null;
     }
   ) {
     await db
@@ -275,6 +298,27 @@ export const rankingsRepo = {
         brandName: input.brandName,
         linkedModelId: input.linkedModelId,
         status: input.status ?? undefined,
+        rejectionReason: Object.prototype.hasOwnProperty.call(input, "rejectionReason")
+          ? input.rejectionReason ?? null
+          : undefined,
+        updatedAt: new Date()
+      })
+      .where(eq(rankingItemsTable.id, id));
+
+    return this.getRankingItemById(id);
+  },
+  async updateRankingItemStatus(
+    id: string,
+    input: {
+      status: "published" | "rejected" | "hidden";
+      rejectionReason?: string | null;
+    }
+  ) {
+    await db
+      .update(rankingItemsTable)
+      .set({
+        status: input.status,
+        rejectionReason: input.status === "rejected" ? input.rejectionReason ?? null : null,
         updatedAt: new Date()
       })
       .where(eq(rankingItemsTable.id, id));
@@ -291,6 +335,7 @@ export const rankingsRepo = {
         rankingId: rankingItemsTable.rankingId,
         authorId: rankingItemsTable.authorId,
         status: rankingItemsTable.status,
+        rejectionReason: rankingItemsTable.rejectionReason,
         rank: rankingItemsTable.rank,
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
@@ -325,6 +370,7 @@ export const rankingsRepo = {
         rankingId: rankingItemsTable.rankingId,
         authorId: rankingItemsTable.authorId,
         status: rankingItemsTable.status,
+        rejectionReason: rankingItemsTable.rejectionReason,
         rank: rankingItemsTable.rank,
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
@@ -465,6 +511,7 @@ export const rankingsRepo = {
         id: rankingCommentsTable.id,
         rankingId: rankingCommentsTable.rankingId,
         content: rankingCommentsTable.content,
+        status: rankingCommentsTable.status,
         createdAt: rankingCommentsTable.createdAt,
         updatedAt: rankingCommentsTable.updatedAt,
         likeCount: rankingCommentsTable.likeCount,
@@ -481,12 +528,18 @@ export const rankingsRepo = {
       .where(eq(rankingCommentsTable.rankingId, rankingId))
       .orderBy(asc(rankingCommentsTable.createdAt));
   },
-  async createRankingComment(input: { rankingId: string; authorId: string; content: string }) {
+  async createRankingComment(input: {
+    rankingId: string;
+    authorId: string;
+    content: string;
+    status: "pending" | "visible" | "hidden";
+  }) {
     await db.insert(rankingCommentsTable).values({
       id: createId("rcomment"),
       rankingId: input.rankingId,
       authorId: input.authorId,
       content: input.content,
+      status: input.status,
       likeCount: 0,
       reportCount: 0
     });
@@ -513,7 +566,12 @@ export const rankingsRepo = {
         count: sql<number>`count(*)`
       })
       .from(rankingCommentsTable)
-      .where(eq(rankingCommentsTable.rankingId, rankingId));
+      .where(
+        and(
+          eq(rankingCommentsTable.rankingId, rankingId),
+          eq(rankingCommentsTable.status, "visible")
+        )
+      );
 
     await db
       .update(rankingsTable)
@@ -566,6 +624,7 @@ export const rankingsRepo = {
         replyToCommentId: rankingItemCommentsTable.replyToCommentId,
         replyToUserId: rankingItemCommentsTable.replyToUserId,
         content: rankingItemCommentsTable.content,
+        status: rankingItemCommentsTable.status,
         likeCount: rankingItemCommentsTable.likeCount,
         reportCount: rankingItemCommentsTable.reportCount,
         createdAt: rankingItemCommentsTable.createdAt,
@@ -594,6 +653,7 @@ export const rankingsRepo = {
         replyToCommentId: rankingItemCommentsTable.replyToCommentId,
         replyToUserId: rankingItemCommentsTable.replyToUserId,
         content: rankingItemCommentsTable.content,
+        status: rankingItemCommentsTable.status,
         likeCount: rankingItemCommentsTable.likeCount,
         reportCount: rankingItemCommentsTable.reportCount,
         createdAt: rankingItemCommentsTable.createdAt,
@@ -615,6 +675,7 @@ export const rankingsRepo = {
     authorId: string;
     rating: number;
     content: string;
+    status: "pending" | "visible" | "hidden";
   }) {
     await this.upsertRankingItemRating({
       rankingItemId: input.rankingItemId,
@@ -639,6 +700,7 @@ export const rankingsRepo = {
         .update(rankingItemCommentsTable)
         .set({
           content: input.content,
+          status: input.status,
           updatedAt: new Date()
         })
         .where(eq(rankingItemCommentsTable.id, existingComment[0].id));
@@ -651,6 +713,7 @@ export const rankingsRepo = {
         replyToCommentId: null,
         replyToUserId: null,
         content: input.content,
+        status: input.status,
         likeCount: 0,
         reportCount: 0
       });
@@ -665,6 +728,7 @@ export const rankingsRepo = {
     replyToCommentId: string | null;
     replyToUserId: string | null;
     content: string;
+    status: "pending" | "visible" | "hidden";
   }) {
     await db.insert(rankingItemCommentsTable).values({
       id: createId("ricom"),
@@ -674,6 +738,7 @@ export const rankingsRepo = {
       replyToCommentId: input.replyToCommentId,
       replyToUserId: input.replyToUserId,
       content: input.content,
+      status: input.status,
       likeCount: 0,
       reportCount: 0
     });
@@ -691,6 +756,116 @@ export const rankingsRepo = {
       .where(eq(rankingItemCommentsTable.id, commentId));
 
     return this.getRankingItemCommentById(commentId);
+  },
+  async listAdminRankingComments(status?: "pending" | "visible" | "hidden") {
+    return db
+      .select({
+        id: rankingCommentsTable.id,
+        rankingId: rankingCommentsTable.rankingId,
+        rankingTitle: rankingsTable.title,
+        content: rankingCommentsTable.content,
+        status: rankingCommentsTable.status,
+        likeCount: rankingCommentsTable.likeCount,
+        reportCount: rankingCommentsTable.reportCount,
+        createdAt: rankingCommentsTable.createdAt,
+        updatedAt: rankingCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(rankingCommentsTable)
+      .innerJoin(rankingsTable, eq(rankingCommentsTable.rankingId, rankingsTable.id))
+      .innerJoin(usersTable, eq(rankingCommentsTable.authorId, usersTable.id))
+      .where(status ? eq(rankingCommentsTable.status, status) : sql`true`)
+      .orderBy(desc(rankingCommentsTable.updatedAt));
+  },
+  async updateRankingCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await db
+      .select({
+        id: rankingCommentsTable.id,
+        rankingId: rankingCommentsTable.rankingId
+      })
+      .from(rankingCommentsTable)
+      .where(eq(rankingCommentsTable.id, id))
+      .limit(1);
+    if (existing.length === 0) {
+      return null;
+    }
+
+    await db
+      .update(rankingCommentsTable)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(eq(rankingCommentsTable.id, id));
+    await this.syncRankingCommentCount(existing[0]!.rankingId);
+
+    const rows = await this.listAdminRankingComments();
+    return rows.find((item) => item.id === id) ?? null;
+  },
+  async listAdminRankingItemComments(status?: "pending" | "visible" | "hidden") {
+    return db
+      .select({
+        id: rankingItemCommentsTable.id,
+        rankingItemId: rankingItemCommentsTable.rankingItemId,
+        rankingItemTitle: rankingItemsTable.title,
+        rankingTitle: rankingsTable.title,
+        parentCommentId: rankingItemCommentsTable.parentCommentId,
+        replyToCommentId: rankingItemCommentsTable.replyToCommentId,
+        content: rankingItemCommentsTable.content,
+        status: rankingItemCommentsTable.status,
+        likeCount: rankingItemCommentsTable.likeCount,
+        reportCount: rankingItemCommentsTable.reportCount,
+        createdAt: rankingItemCommentsTable.createdAt,
+        updatedAt: rankingItemCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        },
+        replyToUser: {
+          id: replyUsers.id,
+          displayName: replyUsers.displayName,
+          avatarFileId: replyUsers.avatarFileId,
+          role: replyUsers.role
+        }
+      })
+      .from(rankingItemCommentsTable)
+      .innerJoin(rankingItemsTable, eq(rankingItemCommentsTable.rankingItemId, rankingItemsTable.id))
+      .innerJoin(rankingsTable, eq(rankingItemsTable.rankingId, rankingsTable.id))
+      .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
+      .leftJoin(replyUsers, eq(rankingItemCommentsTable.replyToUserId, replyUsers.id))
+      .where(status ? eq(rankingItemCommentsTable.status, status) : sql`true`)
+      .orderBy(desc(rankingItemCommentsTable.updatedAt));
+  },
+  async updateRankingItemCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await this.getRankingItemCommentById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+    await db
+      .update(rankingItemCommentsTable)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(rankingItemCommentsTable.rankingItemId, existing.rankingItemId),
+          or(eq(rankingItemCommentsTable.id, rootId), eq(rankingItemCommentsTable.parentCommentId, rootId))
+        )
+      );
+    await this.syncRankingItemCommentCount(existing.rankingItemId);
+
+    const rows = await this.listAdminRankingItemComments();
+    return rows.find((item) => item.id === id) ?? null;
   },
   async deleteRankingItemCommentThread(rankingItemId: string, commentId: string) {
     const existing = await this.getRankingItemCommentById(commentId);
@@ -720,7 +895,12 @@ export const rankingsRepo = {
         count: sql<number>`count(*)`
       })
       .from(rankingItemCommentsTable)
-      .where(eq(rankingItemCommentsTable.rankingItemId, rankingItemId));
+      .where(
+        and(
+          eq(rankingItemCommentsTable.rankingItemId, rankingItemId),
+          eq(rankingItemCommentsTable.status, "visible")
+        )
+      );
 
     await db
       .update(rankingItemsTable)

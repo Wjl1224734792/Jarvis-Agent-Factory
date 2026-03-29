@@ -145,6 +145,7 @@ export const brandApplicationsTable = pgTable("brand_applications", {
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
   description: text("description"),
+  rejectionReason: text("rejection_reason"),
   approvedBrandId: text("approved_brand_id").references(() => brandsTable.id, {
     onDelete: "set null"
   }),
@@ -348,6 +349,7 @@ export const reviewCommentsTable = pgTable(
       onDelete: "set null"
     }),
     content: text("content").notNull(),
+    status: text("status").default("visible").notNull(),
     likeCount: integer("like_count").default(0).notNull(),
     reportCount: integer("report_count").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -428,6 +430,7 @@ export const postsTable = pgTable("posts", {
     onDelete: "set null"
   }),
   status: text("status").default("pending").notNull(),
+  rejectionReason: text("rejection_reason"),
   commentCount: integer("comment_count").default(0).notNull(),
   reportCount: integer("report_count").default(0).notNull(),
   likeCount: integer("like_count").default(0).notNull(),
@@ -628,6 +631,7 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   powerType: text("power_type").notNull(),
   summary: text("summary"),
   description: text("description"),
+  rejectionReason: text("rejection_reason"),
   coverImageFileId: text("cover_image_file_id"),
   galleryImageFileIds: text("gallery_image_file_ids").default("[]").notNull(),
   videoFileId: text("video_file_id"),
@@ -653,6 +657,7 @@ export const rankingsTable = pgTable("rankings", {
     .references(() => usersTable.id, { onDelete: "cascade" }),
   type: text("type").default("community").notNull(),
   status: text("status").default("published").notNull(),
+  rejectionReason: text("rejection_reason"),
   title: text("title").notNull(),
   description: text("description").notNull(),
   coverImageFileId: text("cover_image_file_id"),
@@ -702,6 +707,7 @@ export const rankingItemsTable = pgTable("ranking_items", {
     onDelete: "set null"
   }),
   status: text("status").default("published").notNull(),
+  rejectionReason: text("rejection_reason"),
   rank: integer("rank").notNull(),
   title: text("title").notNull(),
   summary: text("summary"),
@@ -750,6 +756,7 @@ export const rankingCommentsTable = pgTable("ranking_comments", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   content: text("content").notNull(),
+  status: text("status").default("visible").notNull(),
   likeCount: integer("like_count").default(0).notNull(),
   reportCount: integer("report_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -847,6 +854,7 @@ export const rankingItemCommentsTable = pgTable(
       onDelete: "set null"
     }),
     content: text("content").notNull(),
+    status: text("status").default("visible").notNull(),
     likeCount: integer("like_count").default(0).notNull(),
     reportCount: integer("report_count").default(0).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

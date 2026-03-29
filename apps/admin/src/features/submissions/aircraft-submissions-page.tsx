@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Image, Modal, Space, Table, Tag } from "antd";
-import { useState } from "react";
+import { Button, Image, Input, Modal, Space, Table, Tag } from "antd";
+import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type SubmissionRecord = Awaited<ReturnType<typeof apiClient.listAdminAircraftSubmissions>>["items"][number];
@@ -24,6 +25,7 @@ export function AircraftSubmissionsPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const submissionsQuery = useQuery({
     queryKey: ["admin-aircraft-submissions"],
@@ -38,11 +40,32 @@ export function AircraftSubmissionsPage() {
     queryFn: () => apiClient.getAircraftSubmission(detailId!),
     enabled: Boolean(detailId)
   });
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = submissionsQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
 
-  function updateStatus(id: string, status: "approved" | "rejected") {
+    return items.filter((item) =>
+      [
+        item.modelName,
+        item.author.displayName,
+        item.brand?.name ?? "",
+        item.proposedBrandName ?? "",
+        item.summary ?? "",
+        item.description ?? ""
+      ].some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [submissionsQuery.data?.items, searchText]);
+
+  function updateStatus(id: string, status: "approved" | "rejected", rejectionReason?: string | null) {
     setError(null);
     void apiClient
-      .updateAircraftSubmissionStatus(id, { status })
+      .updateAircraftSubmissionStatus(id, {
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+      })
       .then(() => {
         void Promise.all([submissionsQuery.refetch(), detailQuery.refetch()]);
       })
@@ -74,7 +97,21 @@ export function AircraftSubmissionsPage() {
   }
 
   return (
-    <AdminPage description="集中处理用户提交的飞行器资料与机型投稿审核。" title="机型投稿审核">
+    <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索机型、品牌、投稿人或摘要"
+          style={{ width: 280 }}
+          value={searchText}
+        />
+      }
+      description="集中处理用户提交的飞行器资料与机型投稿审核。"
+      title="机型投稿审核"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
@@ -160,19 +197,37 @@ export function AircraftSubmissionsPage() {
                       <Button onClick={() => updateStatus(record.id, "approved")} size="small" type="primary">
                         通过上架
                       </Button>
-                      <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
+                      <Button
+                        onClick={() => {
+                          const reason = promptRejectionReason();
+                          if (!reason) {
+                            return;
+                          }
+                          updateStatus(record.id, "rejected", reason);
+                        }}
+                        size="small"
+                      >
                         驳回
                       </Button>
                     </>
                   ) : null}
                   {record.status === "approved" ? (
-                    <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
-                      改为驳回
+                    <Button
+                      onClick={() => {
+                        const reason = promptRejectionReason();
+                        if (!reason) {
+                          return;
+                        }
+                        updateStatus(record.id, "rejected", reason);
+                      }}
+                      size="small"
+                    >
+                      驳回
                     </Button>
                   ) : null}
                   {record.status === "rejected" ? (
                     <Button onClick={() => updateStatus(record.id, "approved")} size="small">
-                      重新通过
+                      恢复通过
                     </Button>
                   ) : null}
                 </Space>
@@ -181,7 +236,7 @@ export function AircraftSubmissionsPage() {
               width: 220
             }
           ]}
-          dataSource={submissionsQuery.data?.items ?? []}
+          dataSource={filteredItems}
           loading={submissionsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"

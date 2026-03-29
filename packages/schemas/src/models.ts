@@ -42,6 +42,9 @@ export const modelListItemSchema = z.object({
   name: z.string().min(1),
   summary: z.string().nullable(),
   powerType: powerTypeSchema,
+  ownerId: z.string().min(1).nullable().optional(),
+  sourceSubmissionId: z.string().min(1).nullable().optional(),
+  reportCount: z.number().int().nonnegative().default(0),
   reviewSummary: z.object({
     totalReviews: z.number().int().nonnegative()
   }),

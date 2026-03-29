@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Image, Modal, Select, Space, Table, Tag } from "antd";
+import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 const statusOptions = [
@@ -36,6 +37,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", status],
@@ -58,6 +60,18 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       ),
     [postsQuery.data?.items, props.contentType]
   );
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.title, item.contentPreview, item.author.displayName]
+        .filter(Boolean)
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [items, searchText]);
 
   const isArticleMode = props.contentType === "article";
   const pageTitle = isArticleMode
@@ -71,11 +85,16 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       ? "单独处理飞友圈动态审核，并支持在列表中直接查看封面和正文详情。"
       : "按状态处理文章和动态。";
 
-  function updateStatus(id: string, nextStatus: "published" | "rejected" | "hidden") {
+  function updateStatus(
+    id: string,
+    nextStatus: "published" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
     setError(null);
     void apiClient
       .updateAdminPostStatus(id, {
-        status: nextStatus
+        status: nextStatus,
+        rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
       })
       .then(() => {
         void Promise.all([postsQuery.refetch(), detailQuery.refetch()]);
@@ -124,14 +143,25 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   return (
     <AdminPage
       actions={
-        <Select
-          onChange={(value) => {
-            setStatus(value);
-          }}
-          options={statusOptions as unknown as Array<{ label: string; value: string }>}
-          style={{ width: 180 }}
-          value={status}
-        />
+        <Space wrap>
+          <Input.Search
+            allowClear
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+            placeholder="搜索标题、摘要或作者"
+            style={{ width: 240 }}
+            value={searchText}
+          />
+          <Select
+            onChange={(value) => {
+              setStatus(value);
+            }}
+            options={statusOptions as unknown as Array<{ label: string; value: string }>}
+            style={{ width: 180 }}
+            value={status}
+          />
+        </Space>
       }
       description={pageDescription}
       title={pageTitle}
@@ -218,9 +248,18 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                   {record.status === "pending" ? (
                     <>
                       <Button onClick={() => updateStatus(record.id, "published")} size="small" type="primary">
-                        发布
+                        通过发布
                       </Button>
-                      <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
+                      <Button
+                        onClick={() => {
+                          const reason = promptRejectionReason();
+                          if (!reason) {
+                            return;
+                          }
+                          updateStatus(record.id, "rejected", reason);
+                        }}
+                        size="small"
+                      >
                         驳回
                       </Button>
                     </>
@@ -230,7 +269,16 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                       <Button onClick={() => updateStatus(record.id, "hidden")} size="small">
                         下架
                       </Button>
-                      <Button onClick={() => updateStatus(record.id, "rejected")} size="small">
+                      <Button
+                        onClick={() => {
+                          const reason = promptRejectionReason();
+                          if (!reason) {
+                            return;
+                          }
+                          updateStatus(record.id, "rejected", reason);
+                        }}
+                        size="small"
+                      >
                         驳回
                       </Button>
                     </>
@@ -246,7 +294,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
               width: 260
             }
           ]}
-          dataSource={items}
+          dataSource={filteredItems}
           loading={postsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"

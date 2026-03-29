@@ -1,4 +1,4 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   CameraIcon,
@@ -8,8 +8,8 @@ import {
   VideoIcon,
   XIcon
 } from "lucide-react";
-import { useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -42,6 +42,8 @@ export function PublishMomentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
@@ -51,6 +53,37 @@ export function PublishMomentPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const detailQuery = useQuery({
+    queryKey: ["publish-moment-edit", editId],
+    queryFn: () => apiClient.getPostDetail(editId!),
+    enabled: Boolean(editId)
+  });
+
+  useEffect(() => {
+    if (!detailQuery.data?.item) {
+      return;
+    }
+
+    const item = detailQuery.data.item;
+    setTitle(item.title);
+    setContent(item.content);
+    setUploadedImages(
+      item.images.map((image) => ({
+        id: image.id,
+        url: image.url,
+        fileName: image.fileName
+      }))
+    );
+    setUploadedVideo(
+      item.videos[0]
+        ? {
+            id: item.videos[0].id,
+            url: item.videos[0].url,
+            fileName: item.videos[0].fileName
+          }
+        : null
+    );
+  }, [detailQuery.data?.item]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -132,6 +165,13 @@ export function PublishMomentPage() {
             <Alert variant="destructive">
               <AlertTitle>动态发布失败</AlertTitle>
               <AlertDescription>{error}</AlertDescription>
+            </Alert>
+          ) : null}
+
+          {detailQuery.data?.item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{detailQuery.data.item.rejectionReason}</AlertDescription>
             </Alert>
           ) : null}
 
@@ -270,8 +310,11 @@ export function PublishMomentPage() {
                   setError(null);
                   setIsPublishing(true);
 
-                  void apiClient
-                    .createPost({
+                  const submitPost = editId
+                    ? (input: Parameters<typeof apiClient.createPost>[0]) => apiClient.updatePost(editId, input)
+                    : apiClient.createPost;
+                  void submitPost
+                    ({
                       type: "moment",
                       title: title.trim() || "飞友圈动态",
                       content,

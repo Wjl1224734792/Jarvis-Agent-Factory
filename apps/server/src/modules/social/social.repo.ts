@@ -2,12 +2,14 @@ import {
   aircraftSubmissionsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
+  brandApplicationsTable,
   createId,
   db,
   notificationsTable,
   postCommentsTable,
   postInteractionsTable,
   postsTable,
+  rankingItemsTable,
   rankingsTable,
   userFollowsTable,
   usersTable
@@ -222,6 +224,7 @@ export const socialRepo = {
         id: postsTable.id,
         type: postsTable.type,
         status: postsTable.status,
+        rejectionReason: postsTable.rejectionReason,
         title: postsTable.title,
         content: postsTable.content,
         createdAt: postsTable.createdAt,
@@ -330,6 +333,7 @@ export const socialRepo = {
       .select({
         id: rankingsTable.id,
         status: rankingsTable.status,
+        rejectionReason: rankingsTable.rejectionReason,
         title: rankingsTable.title,
         description: rankingsTable.description,
         createdAt: rankingsTable.createdAt,
@@ -344,6 +348,29 @@ export const socialRepo = {
       )
       .orderBy(desc(rankingsTable.updatedAt));
   },
+  async listUserRankingItems(userId: string, includePrivate: boolean) {
+    return db
+      .select({
+        id: rankingItemsTable.id,
+        rankingId: rankingItemsTable.rankingId,
+        rankingTitle: rankingsTable.title,
+        title: rankingItemsTable.title,
+        summary: rankingItemsTable.summary,
+        status: rankingItemsTable.status,
+        rejectionReason: rankingItemsTable.rejectionReason,
+        createdAt: rankingItemsTable.createdAt,
+        updatedAt: rankingItemsTable.updatedAt
+      })
+      .from(rankingItemsTable)
+      .innerJoin(rankingsTable, eq(rankingItemsTable.rankingId, rankingsTable.id))
+      .where(
+        and(
+          eq(rankingItemsTable.authorId, userId),
+          includePrivate ? sql`true` : eq(rankingItemsTable.status, "published")
+        )
+      )
+      .orderBy(desc(rankingItemsTable.updatedAt));
+  },
   async listUserAircraftSubmissions(userId: string, includePrivate: boolean) {
     return db
       .select({
@@ -351,6 +378,7 @@ export const socialRepo = {
         modelName: aircraftSubmissionsTable.modelName,
         summary: aircraftSubmissionsTable.summary,
         status: aircraftSubmissionsTable.status,
+        rejectionReason: aircraftSubmissionsTable.rejectionReason,
         createdAt: aircraftSubmissionsTable.createdAt,
         updatedAt: aircraftSubmissionsTable.updatedAt
       })
@@ -364,6 +392,21 @@ export const socialRepo = {
         )
       )
       .orderBy(desc(aircraftSubmissionsTable.updatedAt));
+  },
+  async listUserBrandApplications(userId: string, includePrivate: boolean) {
+    return db
+      .select({
+        id: brandApplicationsTable.id,
+        name: brandApplicationsTable.name,
+        description: brandApplicationsTable.description,
+        status: brandApplicationsTable.status,
+        rejectionReason: brandApplicationsTable.rejectionReason,
+        createdAt: brandApplicationsTable.createdAt,
+        updatedAt: brandApplicationsTable.updatedAt
+      })
+      .from(brandApplicationsTable)
+      .where(eq(brandApplicationsTable.applicantId, userId))
+      .orderBy(desc(brandApplicationsTable.updatedAt));
   },
   async createNotification(input: {
     userId: string;

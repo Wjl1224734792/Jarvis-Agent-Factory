@@ -101,6 +101,7 @@ export const API_ROUTES = {
   brandApplications: {
     create: "/brand-applications",
     detail: (id: string) => `/brand-applications/${id}`,
+    update: (id: string) => `/brand-applications/${id}`,
     adminList: "/admin/brand-applications",
     adminDetail: (id: string) => `/admin/brand-applications/${id}`
   },
@@ -138,6 +139,10 @@ export const API_ROUTES = {
     adminList: "/admin/rankings",
     adminDetail: (id: string) => `/admin/rankings/${id}`,
     adminStatus: (id: string) => `/admin/rankings/${id}/status`,
+    adminRankingComments: "/admin/ranking-comments",
+    adminRankingCommentDetail: (id: string) => `/admin/ranking-comments/${id}`,
+    adminRankingItemComments: "/admin/ranking-item-comments",
+    adminRankingItemCommentDetail: (id: string) => `/admin/ranking-item-comments/${id}`,
     items: (id: string) => `/rankings/${id}/items`,
     comments: (id: string) => `/rankings/${id}/comments`,
     commentDetail: (rankingId: string, commentId: string) => `/rankings/${rankingId}/comments/${commentId}`,
@@ -147,6 +152,7 @@ export const API_ROUTES = {
       `/rankings/${rankingId}/comments/${commentId}/report`,
     report: (id: string) => `/rankings/${id}/report`,
     itemDetail: (id: string) => `/ranking-items/${id}`,
+    adminItemStatus: (id: string) => `/admin/ranking-items/${id}/status`,
     itemReport: (id: string) => `/ranking-items/${id}/report`,
     itemReview: (id: string) => `/ranking-items/${id}/review`,
     itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
@@ -181,7 +187,9 @@ export const API_ROUTES = {
     adminCategoryDetail: (id: string) => `/admin/categories/${id}`,
     adminBrandDetail: (id: string) => `/admin/brands/${id}`,
     adminReviews: "/admin/reviews",
-    adminReviewDetail: (id: string) => `/admin/reviews/${id}`
+    adminReviewDetail: (id: string) => `/admin/reviews/${id}`,
+    adminReviewComments: "/admin/review-comments",
+    adminReviewCommentDetail: (id: string) => `/admin/review-comments/${id}`
   }
 } as const;
 

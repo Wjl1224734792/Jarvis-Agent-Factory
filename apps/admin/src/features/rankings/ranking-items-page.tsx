@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Segmented, Space, Table, Tag } from "antd";
-import { useState } from "react";
+import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
+import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ItemStatus = "pending" | "published" | "rejected" | "hidden";
@@ -36,6 +37,9 @@ export function RankingItemsPage() {
   const [status, setStatus] = useState<ItemStatus | "all">("all");
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const itemsQuery = useQuery({
     queryKey: ["admin-ranking-items", status],
@@ -45,6 +49,25 @@ export function RankingItemsPage() {
     queryKey: ["admin-ranking-items", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+  const detailQuery = useQuery({
+    queryKey: ["admin-ranking-item-detail", detailId],
+    queryFn: () => apiClient.getRankingItemDetail(detailId!),
+    enabled: Boolean(detailId)
+  });
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = itemsQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.title, item.rankingTitle, item.rankingAuthorName, item.brandName ?? ""].some((value) =>
+        String(value).toLowerCase().includes(keyword)
+      )
+    );
+  }, [itemsQuery.data?.items, searchText]);
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);
@@ -68,26 +91,55 @@ export function RankingItemsPage() {
     }
   }
 
+  async function updateItemStatus(
+    id: string,
+    nextStatus: "published" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
+    setActionError(null);
+    try {
+      await apiClient.updateRankingItemStatus(id, {
+        status: nextStatus,
+        rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
+      });
+      await Promise.all([itemsQuery.refetch(), detailQuery.refetch()]);
+    } catch (reason: unknown) {
+      setActionError(reason instanceof Error ? reason.message : "更新条目状态失败");
+    }
+  }
+
   return (
     <AdminPage
       actions={
-        <Segmented
-          onChange={(value) => {
-            setStatus(value as ItemStatus | "all");
-          }}
-          options={itemStatusOptions}
-          value={status}
-        />
+        <Space wrap>
+          <Input.Search
+            allowClear
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+            placeholder="搜索条目、所属榜单、作者或品牌"
+            style={{ width: 300 }}
+            value={searchText}
+          />
+          <Segmented
+            onChange={(value) => {
+              setStatus(value as ItemStatus | "all");
+            }}
+            options={itemStatusOptions}
+            value={status}
+          />
+        </Space>
       }
-      description="把榜单条目从榜单审核里拆出来，单独查看条目状态与条目队列。"
+      description="把榜单条目从榜单审核里拆出来，单独处理条目通过、驳回返修和下线隐藏。"
       title="榜单条目审核"
     >
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
+      {actionError ? <div className="admin-login__error">{actionError}</div> : null}
 
       <AdminPanel description="榜单条目使用独立审核开关，和总览中心保持同步。" title="当前模式">
         <AdminModerationCard
           autoCopy="关闭人工审核后，新条目会直接进入已发布状态。"
-          description="开启人工审核后，新增条目会先进入条目审核队列。"
+          description="开启人工审核后，新条目会先进入条目审核队列。"
           enabled={siteSettingsQuery.data?.item.rankingItemModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           manualCopy="新的榜单条目会先进入待审核队列。"
@@ -107,12 +159,23 @@ export function RankingItemsPage() {
           bordered
           columns={[
             {
+              key: "cover",
+              render: (_, record: RankingItemRecord) =>
+                record.imageUrl ? (
+                  <Image alt={record.title} height={64} preview={false} src={record.imageUrl} width={96} />
+                ) : (
+                  <div className="admin-cover-thumb admin-cover-thumb--empty">暂无封面</div>
+                ),
+              title: "封面",
+              width: 120
+            },
+            {
               key: "item",
               render: (_, record: RankingItemRecord) => (
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.title}</div>
                   <div className="admin-table-subtitle">
-                    {record.rankingTitle} 路 #{record.rank}
+                    {record.rankingTitle} · #{record.rank}
                   </div>
                 </div>
               ),
@@ -120,18 +183,23 @@ export function RankingItemsPage() {
             },
             {
               key: "owner",
-              render: (_, record: RankingItemRecord) =>
-                record.rankingAuthorName,
-              title: "所属榜单作者",
-              width: 160
+              render: (_, record: RankingItemRecord) => record.rankingAuthorName,
+              title: "榜单作者",
+              width: 140
             },
             {
               key: "meta",
-              render: (_, record: RankingItemRecord) => (
-                <span>{record.brandName ?? record.linkedModel?.brand.name ?? "未填品牌"}</span>
-              ),
+              render: (_, record: RankingItemRecord) =>
+                record.brandName ?? record.linkedModel?.brand.name ?? "未填写品牌",
               title: "品牌",
               width: 160
+            },
+            {
+              key: "reports",
+              render: (_, record: RankingItemRecord) =>
+                (record.reportCount ?? 0) > 0 ? <Tag color="red">举报 {record.reportCount}</Tag> : <span>-</span>,
+              title: "举报",
+              width: 110
             },
             {
               key: "status",
@@ -146,22 +214,102 @@ export function RankingItemsPage() {
               key: "action",
               render: (_, record: RankingItemRecord) => (
                 <Space size="small" wrap>
-                  <Button href={`/admin/rankings/${record.rankingId}`} size="small" type="link">
-                    查看所属榜单
+                  <Button
+                    onClick={() => {
+                      setDetailId(record.id);
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    详情
                   </Button>
+                  <Button href={`/admin/rankings/${record.rankingId}`} size="small" type="link">
+                    所属榜单
+                  </Button>
+                  {record.status !== "published" ? (
+                    <Button
+                      onClick={() => {
+                        void updateItemStatus(record.id, "published");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      {record.status === "pending" ? "通过发布" : "恢复发布"}
+                    </Button>
+                  ) : null}
+                  {record.status !== "rejected" ? (
+                    <Button
+                      danger
+                      onClick={() => {
+                        const reason = promptRejectionReason();
+                        if (!reason) {
+                          return;
+                        }
+                        void updateItemStatus(record.id, "rejected", reason);
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      驳回返修
+                    </Button>
+                  ) : null}
+                  {record.status === "published" ? (
+                    <Button
+                      onClick={() => {
+                        void updateItemStatus(record.id, "hidden");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      下线隐藏
+                    </Button>
+                  ) : null}
                 </Space>
               ),
               title: "操作",
-              width: 160
+              width: 260
             }
           ]}
-          dataSource={itemsQuery.data?.items ?? []}
+          dataSource={filteredItems}
           locale={{ emptyText: <Empty description="当前筛选下没有榜单条目" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
           loading={itemsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"
         />
       </AdminPanel>
+
+      <Modal
+        footer={null}
+        onCancel={() => setDetailId(null)}
+        open={Boolean(detailId)}
+        title="条目详情"
+        width={860}
+      >
+        {detailQuery.data?.item ? (
+          <div className="admin-detail-sheet">
+            {detailQuery.data.item.imageUrl ? (
+              <Image
+                alt={detailQuery.data.item.title}
+                className="admin-detail-sheet__cover"
+                preview={false}
+                src={detailQuery.data.item.imageUrl}
+              />
+            ) : (
+              <div className="admin-detail-sheet__cover admin-detail-sheet__cover--empty">暂无封面</div>
+            )}
+            <div className="admin-detail-sheet__meta">
+              <Tag>{itemStatusLabel(detailQuery.data.item.status).text}</Tag>
+              {(detailQuery.data.item.reportCount ?? 0) > 0 ? (
+                <Tag color="red">举报 {detailQuery.data.item.reportCount}</Tag>
+              ) : null}
+            </div>
+            <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
+            <div className="admin-detail-sheet__body">
+              <p>{detailQuery.data.item.summary ?? "暂无摘要"}</p>
+            </div>
+          </div>
+        ) : null}
+      </Modal>
     </AdminPage>
   );
 }

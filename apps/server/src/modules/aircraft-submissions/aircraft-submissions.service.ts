@@ -57,6 +57,7 @@ async function serializeSubmission(
     powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
     summary: item.summary,
     description: item.description,
+    rejectionReason: item.rejectionReason ?? null,
     coverImageFileId: item.coverImageFileId ?? null,
     galleryImageFileIds: parseGallery(item.galleryImageFileIds),
     videoFileId: item.videoFileId ?? null,
@@ -130,6 +131,47 @@ async function createBrandForSubmission(categoryId: string, proposedBrandName: s
   return createdBrand.id;
 }
 
+async function syncApprovedModelVisibility(
+  modelId: string,
+  input: {
+    categoryId: string;
+    brandId: string;
+    authorId: string;
+    submissionId: string;
+    modelName: string;
+    powerType: "electric" | "fuel" | "hybrid" | "other";
+    summary: string | null;
+    description: string | null;
+    maxFlightTimeMinutes: number | null;
+    maxRangeKilometers: number | null;
+    maxSpeedKph: number | null;
+    takeoffWeightGrams: number | null;
+    isPublished: boolean;
+  }
+) {
+  const existingModel = await aircraftModelsService.getModelDetailById(modelId);
+  if (!existingModel) {
+    return null;
+  }
+
+  return aircraftModelsService.updateModel(modelId, {
+    slug: existingModel.slug,
+    name: input.modelName,
+    categoryId: input.categoryId,
+    brandId: input.brandId,
+    ownerId: input.authorId,
+    sourceSubmissionId: input.submissionId,
+    powerType: input.powerType,
+    summary: input.summary,
+    description: input.description,
+    maxFlightTimeMinutes: input.maxFlightTimeMinutes,
+    maxRangeKilometers: input.maxRangeKilometers,
+    maxSpeedKph: input.maxSpeedKph,
+    takeoffWeightGrams: input.takeoffWeightGrams,
+    isPublished: input.isPublished
+  });
+}
+
 export const aircraftSubmissionsService = {
   async createSubmission(input: {
     authorId: string;
@@ -169,6 +211,7 @@ export const aircraftSubmissionsService = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
+      rejectionReason: null,
       coverImageFileId: input.coverImageFileId,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
       videoFileId: input.videoFileId,
@@ -246,7 +289,13 @@ export const aircraftSubmissionsService = {
 
     const shouldModerate = await siteSettingsService.shouldModerateModelSubmission();
     const nextStatus =
-      current.status === "approved" && shouldModerate ? "submitted" : current.status;
+      currentUser.role === "admin"
+        ? current.status
+        : current.status === "hidden"
+          ? "hidden"
+          : shouldModerate
+            ? "submitted"
+            : "approved";
 
     const updated = await aircraftSubmissionsRepo.updateContent(id, {
       status: nextStatus,
@@ -257,6 +306,7 @@ export const aircraftSubmissionsService = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
+      rejectionReason: null,
       coverImageFileId: input.coverImageFileId,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
       videoFileId: input.videoFileId,
@@ -266,14 +316,13 @@ export const aircraftSubmissionsService = {
       takeoffWeightGrams: input.takeoffWeightGrams
     });
 
-    if (current.approvedModelId) {
-      await aircraftModelsService.updateModel(current.approvedModelId, {
-        slug: (await aircraftModelsService.getModelDetailById(current.approvedModelId))?.slug ?? slugify(input.modelName),
-        name: input.modelName,
+    if (current.approvedModelId && input.brandId) {
+      await syncApprovedModelVisibility(current.approvedModelId, {
         categoryId: input.categoryId,
-        brandId: input.brandId ?? current.brandId ?? "",
-        ownerId: current.author.id,
-        sourceSubmissionId: id,
+        brandId: input.brandId,
+        authorId: current.author.id,
+        submissionId: id,
+        modelName: input.modelName,
         powerType: input.powerType,
         summary: input.summary,
         description: input.description,
@@ -281,7 +330,7 @@ export const aircraftSubmissionsService = {
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
         takeoffWeightGrams: input.takeoffWeightGrams,
-        isPublished: nextStatus === "approved" && !shouldModerate
+        isPublished: nextStatus === "approved"
       });
     }
 
@@ -317,23 +366,44 @@ export const aircraftSubmissionsService = {
     await aircraftSubmissionsRepo.delete(id);
     return { kind: "ok" as const };
   },
-  async updateSubmissionStatus(id: string, status: "approved" | "rejected") {
+  async updateSubmissionStatus(
+    id: string,
+    status: "approved" | "rejected",
+    rejectionReason?: string | null
+  ) {
     const current = await aircraftSubmissionsRepo.findById(id);
     if (!current) {
       return null;
     }
 
     if (status === "rejected") {
-      const item = await aircraftSubmissionsRepo.updateStatusOnly(id, "rejected");
+      if (current.approvedModelId && current.brandId) {
+        await syncApprovedModelVisibility(current.approvedModelId, {
+          categoryId: current.categoryId,
+          brandId: current.brandId,
+          authorId: current.author.id,
+          submissionId: current.id,
+          modelName: current.modelName,
+          powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
+          summary: current.summary,
+          description: current.description,
+          maxFlightTimeMinutes: current.maxFlightTimeMinutes,
+          maxRangeKilometers: current.maxRangeKilometers,
+          maxSpeedKph: current.maxSpeedKph,
+          takeoffWeightGrams: current.takeoffWeightGrams,
+          isPublished: false
+        });
+      }
+
+      const item = await aircraftSubmissionsRepo.updateStatusOnly(
+        id,
+        "rejected",
+        rejectionReason ?? null
+      );
       const approvedModel = item?.approvedModelId
         ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
         : null;
       return { item: (await serializeSubmission(item, approvedModel?.slug ?? null))! };
-    }
-
-    if (current.status === "approved" && current.approvedModelId) {
-      const approvedModel = await aircraftModelsService.getModelDetailById(current.approvedModelId);
-      return { item: (await serializeSubmission(current, approvedModel?.slug ?? null))! };
     }
 
     let brandId = current.brandId;
@@ -343,6 +413,26 @@ export const aircraftSubmissionsService = {
 
     if (!brandId) {
       throw new Error("Cannot approve submission without brandId or proposedBrandName.");
+    }
+
+    if (current.approvedModelId) {
+      const model = await syncApprovedModelVisibility(current.approvedModelId, {
+        categoryId: current.categoryId,
+        brandId,
+        authorId: current.author.id,
+        submissionId: current.id,
+        modelName: current.modelName,
+        powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
+        summary: current.summary,
+        description: current.description,
+        maxFlightTimeMinutes: current.maxFlightTimeMinutes,
+        maxRangeKilometers: current.maxRangeKilometers,
+        maxSpeedKph: current.maxSpeedKph,
+        takeoffWeightGrams: current.takeoffWeightGrams,
+        isPublished: true
+      });
+      const item = await aircraftSubmissionsRepo.approveSubmission(id, current.approvedModelId, brandId);
+      return { item: (await serializeSubmission(item, model?.slug ?? null))! };
     }
 
     const model = await aircraftModelsService.createModel({

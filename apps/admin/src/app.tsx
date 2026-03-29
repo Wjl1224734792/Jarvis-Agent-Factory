@@ -2,6 +2,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   CloudUploadOutlined,
   CommentOutlined,
+  FileSearchOutlined,
   FlagOutlined,
   GatewayOutlined,
   InboxOutlined,
@@ -25,6 +26,7 @@ import { ContentCategoriesPage } from "./features/posts/content-categories-page"
 import { OfficialArticlesPage } from "./features/posts/official-articles-page";
 import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
+import { ReportsPage } from "./features/reports/reports-page";
 import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
 import { RankingItemsPage } from "./features/rankings/ranking-items-page";
 import { RankingsPage } from "./features/rankings/rankings-page";
@@ -99,6 +101,12 @@ const router = createBrowserRouter([
                 description: "评论与回复统一治理，单独处理违规内容。",
                 to: ADMIN_ROUTE_PATHS.moderationComments,
                 icon: <CommentOutlined />
+              },
+              {
+                title: "举报内容",
+                description: "集中查看被举报的文章、评测和榜单条目。",
+                to: ADMIN_ROUTE_PATHS.moderationReports,
+                icon: <FileSearchOutlined />
               },
               {
                 title: "品牌申请",
@@ -204,6 +212,10 @@ const router = createBrowserRouter([
       {
         path: ADMIN_ROUTE_PATHS.moderationComments.slice("/admin/".length),
         element: <PostCommentsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationReports.slice("/admin/".length),
+        element: <ReportsPage />
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationBrandApplications.slice("/admin/".length),

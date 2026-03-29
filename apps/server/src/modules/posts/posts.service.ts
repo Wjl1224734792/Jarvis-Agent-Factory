@@ -417,6 +417,7 @@ export const postsService = {
       contentPlainText: input.content,
       contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
       status,
+      rejectionReason: null,
       publishedAt: shouldAutoPublish ? new Date() : null,
       imageIds: uniqueImageIds,
       videoIds: uniqueVideoIds
@@ -638,6 +639,7 @@ export const postsService = {
       contentPlainText: input.content,
       contentCategoryId: input.contentCategoryId,
       status: shouldAutoPublish ? "published" : "pending",
+      rejectionReason: null,
       imageIds: uniqueImageIds,
       videoIds: uniqueVideoIds
     });
@@ -664,8 +666,8 @@ export const postsService = {
     await postsRepo.deletePost(id);
     return { kind: "ok" as const };
   },
-  async updatePostStatus(id: string, status: PostStatus) {
-    const item = await postsRepo.updatePostStatus(id, status);
+  async updatePostStatus(id: string, status: PostStatus, rejectionReason?: string | null) {
+    const item = await postsRepo.updatePostStatus(id, status, rejectionReason);
     if (!item) {
       return null;
     }
@@ -889,6 +891,7 @@ export const postsService = {
       contentPlainText: input.content,
       contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
       status: shouldAutoPublish ? "published" : "pending",
+      rejectionReason: null,
       imageIds: input.imageIds,
       videoIds: input.videoIds
     });
@@ -958,6 +961,7 @@ export const postsService = {
         replyToCommentId: item.replyToCommentId,
         content: item.content,
         status: item.status as PostCommentStatus,
+        reportCount: item.reportCount ?? 0,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         author: {
@@ -985,6 +989,7 @@ export const postsService = {
       replyToCommentId: item.replyToCommentId,
       content: item.content,
       status: item.status as PostCommentStatus,
+      reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
       author: {

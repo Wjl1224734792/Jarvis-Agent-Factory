@@ -1,9 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Modal, Space, Table, Tag } from "antd";
-import { useState } from "react";
+import { Button, Empty, Image, Input, Modal, Space, Table, Tag } from "antd";
+import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type BrandApplicationRecord = Awaited<
@@ -28,6 +29,7 @@ export function BrandApplicationsPage() {
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
 
   const applicationsQuery = useQuery({
     queryKey: ["admin-brand-applications"],
@@ -42,11 +44,30 @@ export function BrandApplicationsPage() {
     queryFn: () => apiClient.getBrandApplication(detailId!),
     enabled: Boolean(detailId)
   });
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = applicationsQuery.data?.items ?? [];
+    if (!keyword) {
+      return items;
+    }
 
-  async function updateStatus(id: string, status: "approved" | "rejected" | "hidden") {
+    return items.filter((item) =>
+      [item.name, item.slug, item.applicant.displayName, item.description ?? ""]
+        .some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [applicationsQuery.data?.items, searchText]);
+
+  async function updateStatus(
+    id: string,
+    status: "approved" | "rejected" | "hidden",
+    rejectionReason?: string | null
+  ) {
     setError(null);
     try {
-      await apiClient.updateBrandApplicationStatus(id, { status });
+      await apiClient.updateBrandApplicationStatus(id, {
+        status,
+        rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+      });
       await applicationsQuery.refetch();
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "更新品牌申请状态失败");
@@ -77,6 +98,17 @@ export function BrandApplicationsPage() {
 
   return (
     <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索品牌、slug、申请人或说明"
+          style={{ width: 280 }}
+          value={searchText}
+        />
+      }
       description="品牌申请从机型投稿里拆分出来，单独在这里审核并沉淀到品牌库。"
       title="品牌申请审核"
     >
@@ -159,11 +191,20 @@ export function BrandApplicationsPage() {
                   </Button>
                   {record.status !== "approved" ? (
                     <Button onClick={() => void updateStatus(record.id, "approved")} size="small" type="primary">
-                      通过
+                      {record.status === "pending" ? "通过入库" : "恢复通过"}
                     </Button>
                   ) : null}
                   {record.status !== "rejected" ? (
-                    <Button onClick={() => void updateStatus(record.id, "rejected")} size="small">
+                    <Button
+                      onClick={() => {
+                        const reason = promptRejectionReason();
+                        if (!reason) {
+                          return;
+                        }
+                        void updateStatus(record.id, "rejected", reason);
+                      }}
+                      size="small"
+                    >
                       驳回
                     </Button>
                   ) : null}
@@ -178,7 +219,7 @@ export function BrandApplicationsPage() {
               width: 220
             }
           ]}
-          dataSource={applicationsQuery.data?.items ?? []}
+          dataSource={filteredItems}
           locale={{
             emptyText: <Empty description="暂时还没有品牌申请" image={Empty.PRESENTED_IMAGE_SIMPLE} />
           }}

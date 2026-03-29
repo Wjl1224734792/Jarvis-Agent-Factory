@@ -63,6 +63,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "审核",
+    to: ADMIN_ROUTE_PATHS.moderationReports,
+    label: "举报内容",
+    hint: "集中查看被举报的内容并快速进入处理页",
+    icon: FileSearchOutlined,
+    end: false
+  },
+  {
+    group: "审核",
     to: ADMIN_ROUTE_PATHS.moderationBrandApplications,
     label: "品牌申请",
     hint: "品牌申请单独队列与审核入口",

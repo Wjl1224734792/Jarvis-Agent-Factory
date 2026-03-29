@@ -1,5 +1,9 @@
 import {
   actionSuccessResponseSchema,
+  adminRankingCommentResponseSchema,
+  adminRankingCommentsResponseSchema,
+  adminRankingItemCommentResponseSchema,
+  adminRankingItemCommentsResponseSchema,
   adminRankingsResponseSchema,
   addRankingItemInputSchema,
   createRankingCommentInputSchema,
@@ -16,7 +20,10 @@ import {
   submitRankingItemRatingResponseSchema,
   submitRankingItemReviewInputSchema,
   submitRankingItemReviewResponseSchema,
+  updateRankingCommentStatusInputSchema,
+  updateRankingItemCommentStatusInputSchema,
   updateRankingItemCommentInputSchema,
+  updateRankingItemStatusInputSchema,
   updateRankingStatusInputSchema,
   updateRankingInputSchema
 } from "@feijia/schemas";
@@ -113,7 +120,12 @@ rankingsRoute.put(API_ROUTES.rankings.adminStatus(":id"), requireAdmin, async (c
   }
 
   const input = updateRankingStatusInputSchema.parse(await context.req.json());
-  const result = await rankingsService.updateRankingStatus(id, currentUser, input.status);
+  const result = await rankingsService.updateRankingStatus(
+    id,
+    currentUser,
+    input.status,
+    input.rejectionReason ?? null
+  );
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
   }
@@ -122,6 +134,79 @@ rankingsRoute.put(API_ROUTES.rankings.adminStatus(":id"), requireAdmin, async (c
   }
 
   return context.json(rankingResponseSchema.parse(result.payload));
+});
+
+rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = updateRankingItemStatusInputSchema.parse(await context.req.json());
+  const result = await rankingsService.updateRankingItemStatus(
+    id,
+    currentUser,
+    input.status,
+    input.rejectionReason ?? null
+  );
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(rankingItemDetailResponseSchema.parse(result.payload));
+});
+
+rankingsRoute.get(API_ROUTES.rankings.adminRankingComments, requireAdmin, async (context) => {
+  const status = context.req.query("status");
+  const payload = await rankingsService.listAdminRankingComments(
+    status === "pending" || status === "visible" || status === "hidden" ? status : undefined
+  );
+  return context.json(adminRankingCommentsResponseSchema.parse(payload));
+});
+
+rankingsRoute.put(API_ROUTES.rankings.adminRankingCommentDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const input = updateRankingCommentStatusInputSchema.parse(await context.req.json());
+  const item = await rankingsService.updateRankingCommentStatus(id, input.status);
+  if (!item) {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+
+  return context.json(adminRankingCommentResponseSchema.parse({ item }));
+});
+
+rankingsRoute.get(API_ROUTES.rankings.adminRankingItemComments, requireAdmin, async (context) => {
+  const status = context.req.query("status");
+  const payload = await rankingsService.listAdminRankingItemComments(
+    status === "pending" || status === "visible" || status === "hidden" ? status : undefined
+  );
+  return context.json(adminRankingItemCommentsResponseSchema.parse(payload));
+});
+
+rankingsRoute.put(API_ROUTES.rankings.adminRankingItemCommentDetail(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const input = updateRankingItemCommentStatusInputSchema.parse(await context.req.json());
+  const item = await rankingsService.updateRankingItemCommentStatus(id, input.status);
+  if (!item) {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+
+  return context.json(adminRankingItemCommentResponseSchema.parse({ item }));
 });
 
 rankingsRoute.get(API_ROUTES.rankings.detail(":id"), async (context) => {

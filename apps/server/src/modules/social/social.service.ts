@@ -264,13 +264,15 @@ export const socialService = {
       return { kind: "forbidden" as const };
     }
 
-    const [posts, favoritePosts, favoriteModels, rankings, aircraft, reviews] = await Promise.all([
+    const [posts, favoritePosts, favoriteModels, rankings, rankingItems, aircraft, reviews, brandApplications] = await Promise.all([
       socialRepo.listUserPosts(targetUserId, isSelf),
       socialRepo.listUserFavoritedPosts(targetUserId),
       socialRepo.listUserFavoritedModels(targetUserId),
       socialRepo.listUserRankings(targetUserId, isSelf),
+      socialRepo.listUserRankingItems(targetUserId, isSelf),
       socialRepo.listUserAircraftSubmissions(targetUserId, isSelf),
-      socialRepo.listUserVisibleReviews(targetUserId)
+      socialRepo.listUserVisibleReviews(targetUserId),
+      socialRepo.listUserBrandApplications(targetUserId, isSelf)
     ]);
 
     const items = [
@@ -279,6 +281,7 @@ export const socialService = {
         id: post.id,
         postType: post.type as "article" | "moment",
         status: post.status as "pending" | "published" | "rejected" | "hidden",
+        rejectionReason: post.rejectionReason ?? null,
         title: post.title,
         contentPreview: toPreview(post.content),
         canManage: isSelf,
@@ -310,11 +313,25 @@ export const socialService = {
         type: "ranking" as const,
         id: ranking.id,
         status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+        rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         description: ranking.description,
         canManage: isSelf,
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
+      })),
+      ...rankingItems.map((item) => ({
+        type: "ranking-item" as const,
+        id: item.id,
+        rankingId: item.rankingId,
+        rankingTitle: item.rankingTitle,
+        status: item.status as "pending" | "published" | "rejected" | "hidden",
+        rejectionReason: item.rejectionReason ?? null,
+        title: item.title,
+        summary: item.summary,
+        canManage: isSelf,
+        createdAt: item.createdAt.toISOString(),
+        updatedAt: item.updatedAt.toISOString()
       })),
       ...aircraft.map((submission) => ({
         type: "aircraft" as const,
@@ -322,9 +339,21 @@ export const socialService = {
         modelName: submission.modelName,
         summary: submission.summary,
         status: submission.status as "draft" | "submitted" | "approved" | "rejected",
+        rejectionReason: submission.rejectionReason ?? null,
         canManage: isSelf,
         createdAt: submission.createdAt.toISOString(),
         updatedAt: submission.updatedAt.toISOString()
+      })),
+      ...brandApplications.map((application) => ({
+        type: "brand-application" as const,
+        id: application.id,
+        status: application.status as "pending" | "approved" | "rejected" | "hidden",
+        rejectionReason: application.rejectionReason ?? null,
+        name: application.name,
+        description: application.description,
+        canManage: isSelf,
+        createdAt: application.createdAt.toISOString(),
+        updatedAt: application.updatedAt.toISOString()
       })),
       ...reviews.map((review) => ({
         type: "review" as const,

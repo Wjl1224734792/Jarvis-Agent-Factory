@@ -206,6 +206,13 @@ export function PublishAircraftPage() {
             </Alert>
           ) : null}
 
+          {submissionQuery.data?.item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{submissionQuery.data.item.rejectionReason}</AlertDescription>
+            </Alert>
+          ) : null}
+
           <SitePanel>
             <SitePanelBody className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">

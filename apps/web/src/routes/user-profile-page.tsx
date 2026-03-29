@@ -94,7 +94,21 @@ function getContentMeta(item: ContentItem) {
         title: item.model.name,
         summary: item.content ?? "只留下了评分，没有补充长评。"
       };
+    case "brand-application":
+      return {
+        label: "品牌申请",
+        href: null,
+        title: item.name,
+        summary: item.description ?? "品牌申请等待审核处理。"
+      };
   }
+
+  return {
+    label: "内容",
+    href: null,
+    title: "未知内容",
+    summary: ""
+  };
 }
 
 function ContentFeedRow({ item }: { item: ContentItem }) {

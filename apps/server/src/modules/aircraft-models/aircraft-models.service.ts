@@ -32,6 +32,9 @@ export const aircraftModelsService = {
     if (!item) {
       return null;
     }
+    if (!item.isPublished && item.ownerId !== currentUserId) {
+      return null;
+    }
 
     const [interactionSummary, viewer] = await Promise.all([
       aircraftModelsRepo.getInteractionSummary(item.id),

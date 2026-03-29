@@ -290,7 +290,11 @@ postsRoute.put(API_ROUTES.posts.adminDetail(":id"), requireAdmin, async (context
   }
 
   const input = adminPostStatusUpdateInputSchema.parse(await context.req.json());
-  const item = await postsService.updatePostStatus(id, input.status);
+  const item = await postsService.updatePostStatus(
+    id,
+    input.status,
+    input.rejectionReason ?? null
+  );
   if (!item) {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }

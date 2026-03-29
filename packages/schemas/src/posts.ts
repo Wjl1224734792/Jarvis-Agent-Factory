@@ -132,6 +132,7 @@ export const postFeedItemSchema = z.object({
   contentPreview: z.string().min(1),
   contentHtml: z.string().nullable().optional(),
   status: postStatusSchema,
+  rejectionReason: z.string().nullable().default(null),
   commentCount: z.number().int().nonnegative(),
   reportCount: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),
@@ -184,6 +185,7 @@ export const postDetailSchema = z.object({
   content: z.string().min(1),
   contentHtml: z.string().nullable(),
   status: postStatusSchema,
+  rejectionReason: z.string().nullable().default(null),
   commentCount: z.number().int().nonnegative(),
   reportCount: z.number().int().nonnegative(),
   createdAt: z.string().datetime(),
@@ -234,7 +236,16 @@ export const adminPostsResponseSchema = z.object({
 });
 
 export const adminPostStatusUpdateInputSchema = z.object({
-  status: postStatusSchema
+  status: postStatusSchema,
+  rejectionReason: z.string().trim().min(2).max(200).nullable().optional().default(null)
+}).superRefine((input, context) => {
+  if (input.status === "rejected" && !input.rejectionReason?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Rejection reason is required.",
+      path: ["rejectionReason"]
+    });
+  }
 });
 
 export const adminOfficialArticleUpdateInputSchema = z.object({
@@ -258,6 +269,7 @@ export const adminPostCommentListItemSchema = z.object({
   replyToCommentId: z.string().min(1).nullable(),
   content: z.string().min(1),
   status: postCommentStatusSchema,
+  reportCount: z.number().int().nonnegative().default(0),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   author: userSummarySchema,

@@ -194,6 +194,13 @@ export function RankingEditorPage() {
             </Alert>
           ) : null}
 
+          {detailQuery.data?.item.rejectionReason ? (
+            <Alert>
+              <AlertTitle>驳回原因</AlertTitle>
+              <AlertDescription>{detailQuery.data.item.rejectionReason}</AlertDescription>
+            </Alert>
+          ) : null}
+
           <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="text-base font-semibold text-foreground">

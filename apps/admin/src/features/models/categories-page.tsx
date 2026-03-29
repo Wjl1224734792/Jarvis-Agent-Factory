@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Table } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -30,6 +30,19 @@ export function CategoriesPage() {
   const [editing, setEditing] = useState<CategoryRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchText, setSearchText] = useState("");
+
+  const filteredCategories = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    const items = categoriesQuery.data ?? [];
+    if (!keyword) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.name, item.slug].some((value) => String(value).toLowerCase().includes(keyword))
+    );
+  }, [categoriesQuery.data, searchText]);
 
   async function handleCreate(values: CreateCategoryValues) {
     setIsSubmitting(true);
@@ -70,7 +83,21 @@ export function CategoriesPage() {
   }
 
   return (
-    <AdminPage description="维护飞行器分类、排序和启用状态。" title="飞行器分类">
+    <AdminPage
+      actions={
+        <Input.Search
+          allowClear
+          onChange={(event) => {
+            setSearchText(event.target.value);
+          }}
+          placeholder="搜索分类名或 slug"
+          style={{ width: 220 }}
+          value={searchText}
+        />
+      }
+      description="维护飞行器分类、排序和启用状态。"
+      title="飞行器分类"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
@@ -158,7 +185,7 @@ export function CategoriesPage() {
                 width: 100
               }
             ]}
-            dataSource={categoriesQuery.data ?? []}
+            dataSource={filteredCategories}
             loading={categoriesQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"
