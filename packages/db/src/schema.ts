@@ -15,6 +15,7 @@ export const usersTable = pgTable(
     role: text("role").notNull(),
     displayName: text("display_name").notNull(),
     avatarUrl: text("avatar_url"),
+    avatarFileId: text("avatar_file_id"),
     bio: text("bio"),
     phone: text("phone"),
     account: text("account"),
@@ -461,6 +462,9 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   powerType: text("power_type").notNull(),
   summary: text("summary"),
   description: text("description"),
+  coverImageFileId: text("cover_image_file_id"),
+  galleryImageFileIds: text("gallery_image_file_ids").default("[]").notNull(),
+  videoFileId: text("video_file_id"),
   coverImageUrl: text("cover_image_url"),
   galleryImageUrls: text("gallery_image_urls").default("[]").notNull(),
   videoAssetId: text("video_asset_id").references(() => videoAssetsTable.id, {
@@ -490,6 +494,7 @@ export const rankingsTable = pgTable("rankings", {
   status: text("status").default("published").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
+  coverImageFileId: text("cover_image_file_id"),
   coverImageUrl: text("cover_image_url"),
   itemAddPolicy: text("item_add_policy").default("owner").notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
@@ -512,6 +517,7 @@ export const rankingItemsTable = pgTable("ranking_items", {
   rank: integer("rank").notNull(),
   title: text("title").notNull(),
   summary: text("summary"),
+  imageFileId: text("image_file_id"),
   imageUrl: text("image_url"),
   brandName: text("brand_name"),
   commentCount: integer("comment_count").default(0).notNull(),
@@ -591,3 +597,28 @@ export const rankingItemCommentsTable = pgTable(
     )
   })
 );
+
+export const filesTable = pgTable("files", {
+  id: text("id").primaryKey(),
+  ownerId: text("owner_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
+  bizType: text("biz_type").notNull(),
+  mediaKind: text("media_kind").notNull(),
+  provider: text("provider").notNull(),
+  bucket: text("bucket").notNull(),
+  region: text("region"),
+  objectKey: text("object_key").notNull(),
+  filename: text("filename").notNull(),
+  contentType: text("content_type").notNull(),
+  size: integer("size").notNull(),
+  etag: text("etag"),
+  status: text("status").notNull(),
+  visibility: text("visibility").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
+  deletedAt: timestamp("deleted_at", { withTimezone: true })
+});

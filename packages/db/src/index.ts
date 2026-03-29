@@ -7,6 +7,7 @@ export {
   aircraftReviewsTable,
   brandsTable,
   contentCategoriesTable,
+  filesTable,
   notificationsTable,
   postCommentsTable,
   postImagesTable,

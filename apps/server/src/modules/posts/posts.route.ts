@@ -29,10 +29,9 @@ import {
 } from "../auth/auth.middleware";
 import { postsService } from "./posts.service";
 
+export const postsRoute = new Hono<{ Variables: AuthVariables }>();
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
-
-export const postsRoute = new Hono<{ Variables: AuthVariables }>();
 
 postsRoute.use("*", attachCurrentUser);
 
@@ -45,7 +44,7 @@ postsRoute.get(API_ROUTES.feed, async (context) => {
     contentCategorySlug: categorySlug
   });
 
-  return context.json(homeFeedResponseSchema.parse(payload));
+  return context.json(payload);
 });
 
 postsRoute.get(API_ROUTES.circleFeed, async (context) => {
@@ -55,98 +54,81 @@ postsRoute.get(API_ROUTES.circleFeed, async (context) => {
     type: "moment"
   });
 
-  return context.json(circleFeedResponseSchema.parse(payload));
+  return context.json(payload);
 });
 
 postsRoute.post(API_ROUTES.uploads.images, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");
-
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
   const formData = await context.req.formData();
   const file = formData.get("file");
-
   if (!(file instanceof File)) {
     return context.json({ code: "BAD_REQUEST", message: "Missing image file." }, 400);
   }
-
   if (!file.type.startsWith("image/")) {
     return context.json({ code: "BAD_REQUEST", message: "Only image upload is supported." }, 400);
   }
-
   if (file.size > MAX_IMAGE_SIZE_BYTES) {
     return context.json({ code: "BAD_REQUEST", message: "Image size exceeds limit." }, 400);
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
+  const byteSize = bytes.byteLength;
   const dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
-  try {
-    const payload = await postsService.uploadImage({
-      ownerId: currentUser.id,
-      fileName: file.name || "image",
-      mimeType: file.type,
-      byteSize: file.size,
-      bytes,
-      dataUrl
-    });
+  const payload = await postsService.uploadImage({
+    ownerId: currentUser.id,
+    fileName: file.name || "image",
+    mimeType: file.type,
+    byteSize,
+    bytes,
+    dataUrl
+  });
 
-    if (!payload) {
-      return context.json({ code: "INTERNAL_ERROR", message: "Failed to save image." }, 500);
-    }
-
-    return context.json(uploadPostImageResponseSchema.parse(payload));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save image.";
-    return context.json({ code: "INTERNAL_ERROR", message }, 500);
+  if (!payload) {
+    return context.json({ code: "INTERNAL_ERROR", message: "Failed to save image." }, 500);
   }
+
+  return context.json(payload);
 });
 
 postsRoute.post(API_ROUTES.uploads.videos, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");
-
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
   const formData = await context.req.formData();
   const file = formData.get("file");
-
   if (!(file instanceof File)) {
     return context.json({ code: "BAD_REQUEST", message: "Missing video file." }, 400);
   }
-
   if (!file.type.startsWith("video/")) {
     return context.json({ code: "BAD_REQUEST", message: "Only video upload is supported." }, 400);
   }
-
   if (file.size > MAX_VIDEO_SIZE_BYTES) {
     return context.json({ code: "BAD_REQUEST", message: "Video size exceeds limit." }, 400);
   }
 
   const bytes = Buffer.from(await file.arrayBuffer());
+  const byteSize = bytes.byteLength;
   const dataUrl = `data:${file.type};base64,${bytes.toString("base64")}`;
+  const payload = await postsService.uploadVideo({
+    ownerId: currentUser.id,
+    fileName: file.name || "video",
+    mimeType: file.type,
+    byteSize,
+    bytes,
+    dataUrl
+  });
 
-  try {
-    const payload = await postsService.uploadVideo({
-      ownerId: currentUser.id,
-      fileName: file.name || "video",
-      mimeType: file.type,
-      byteSize: file.size,
-      bytes,
-      dataUrl
-    });
-
-    if (!payload) {
-      return context.json({ code: "INTERNAL_ERROR", message: "Failed to save video." }, 500);
-    }
-
-    return context.json(uploadPostVideoResponseSchema.parse(payload));
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to save video.";
-    return context.json({ code: "INTERNAL_ERROR", message }, 500);
+  if (!payload) {
+    return context.json({ code: "INTERNAL_ERROR", message: "Failed to save video." }, 500);
   }
+
+  return context.json(payload);
 });
 
 postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {

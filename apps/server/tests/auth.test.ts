@@ -26,7 +26,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
-      avatarUrl: null
+      avatarFileId: null
     })
   });
 
@@ -91,6 +91,56 @@ async function requestCaptchaAndSms(phone: string) {
     challengeId: captchaPayload.challengeId,
     captchaCode: captchaPayload.imageOrText,
     smsCode: smsPayload.mockCode ?? ""
+  };
+}
+
+async function uploadAvatar(cookie: string, name = "avatar.png") {
+  const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+  const initResponse = await app.request(API_ROUTES.uploads.init, {
+    method: "POST",
+    headers: {
+      cookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      bizType: "avatar-image",
+      filename: name,
+      contentType: "image/png",
+      size: bytes.byteLength
+    })
+  });
+  expect(initResponse.status).toBe(200);
+
+  const initPayload = (await initResponse.json()) as {
+    fileId: string;
+    upload: {
+      mode: "presigned-put";
+      url: string;
+      headers?: Record<string, string>;
+    };
+  };
+
+  const uploadResponse = await fetch(initPayload.upload.url, {
+    method: "PUT",
+    headers: initPayload.upload.headers,
+    body: new File([bytes], name, { type: "image/png" })
+  });
+  expect(uploadResponse.status).toBe(200);
+
+  const completeResponse = await app.request(API_ROUTES.uploads.complete, {
+    method: "POST",
+    headers: {
+      cookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      fileId: initPayload.fileId
+    })
+  });
+  expect(completeResponse.status).toBe(200);
+
+  return (await completeResponse.json()) as {
+    item: { id: string; url: string };
   };
 }
 
@@ -192,7 +242,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: loginPayload.registrationToken,
         displayName: loginPayload.suggestedDisplayName,
-        avatarUrl: null
+        avatarFileId: null
       })
     });
     expect(completeResponse.status).toBe(200);
@@ -306,7 +356,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: secondLoginPayload.registrationToken,
         displayName: existingDisplayName,
-        avatarUrl: null
+        avatarFileId: null
       })
     });
     expect(duplicateNameResponse.status).toBe(409);
@@ -314,6 +364,7 @@ describe("auth flows", () => {
 
   it("supports reading and updating current user profile and settings", async () => {
     const cookie = await loginWebUser("13800138009");
+    const uploadedAvatar = await uploadAvatar(cookie);
 
     const beforeResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "GET",
@@ -354,7 +405,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         displayName: "Profile Pilot",
         bio: "Low altitude test profile.",
-        avatarUrl: "https://cdn.example.com/avatar/profile-pilot.png",
+        avatarFileId: uploadedAvatar.item.id,
         phone: "13800139009",
         profileVisibility: "followers",
         notifyComments: false,
@@ -381,9 +432,7 @@ describe("auth flows", () => {
     };
     expect(updatedPayload.item.displayName).toBe("Profile Pilot");
     expect(updatedPayload.item.bio).toBe("Low altitude test profile.");
-    expect(updatedPayload.item.avatarUrl).toBe(
-      "https://cdn.example.com/avatar/profile-pilot.png"
-    );
+    expect(updatedPayload.item.avatarUrl).toBe(uploadedAvatar.item.url);
     expect(updatedPayload.item.phone).toBe("13800139009");
     expect(updatedPayload.item.phoneMasked).toMatch(/9009$/);
     expect(updatedPayload.item.profileVisibility).toBe("followers");
@@ -424,9 +473,7 @@ describe("auth flows", () => {
     };
     expect(afterPayload.item.displayName).toBe("Profile Pilot");
     expect(afterPayload.item.bio).toBe("Low altitude test profile.");
-    expect(afterPayload.item.avatarUrl).toBe(
-      "https://cdn.example.com/avatar/profile-pilot.png"
-    );
+    expect(afterPayload.item.avatarUrl).toBe(uploadedAvatar.item.url);
     expect(afterPayload.item.phone).toBe("13800139009");
     expect(afterPayload.item.phoneMasked).toMatch(/9009$/);
     expect(afterPayload.item.profileVisibility).toBe("followers");
@@ -725,7 +772,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: registrationPayload.registrationToken,
         displayName: suggestPayload.displayName,
-        avatarUrl: null
+        avatarFileId: null
       })
     });
     expect(completeResponse.status).toBe(200);
@@ -775,7 +822,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: (appLoginPayload as { registrationToken: string }).registrationToken,
         displayName: "移动端飞友",
-        avatarUrl: null,
+        avatarFileId: null,
         deviceLabel: "iPhone 16 Pro"
       })
     });

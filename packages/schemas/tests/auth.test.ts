@@ -7,9 +7,12 @@ import {
   appLoginResponseSchema,
   authErrorCodeSchema,
   captchaChallengeResponseSchema,
+  completeAppRegistrationRequestSchema,
+  completeWebRegistrationRequestSchema,
   currentUserResponseSchema,
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
+  userSummarySchema,
   webLoginRequestSchema
 } from "../src/auth";
 
@@ -39,12 +42,30 @@ describe("auth contract", () => {
     const payload = currentUserResponseSchema.parse({
       user: {
         id: "user-1",
-        displayName: "测试用户",
+        displayName: "Test User",
+        avatarUrl: null,
         role: "user"
       }
     });
 
     expect(payload.user.role).toBe("user");
+  });
+
+  it("uses avatarFileId for registration completion payloads", () => {
+    const webPayload = completeWebRegistrationRequestSchema.parse({
+      registrationToken: "token_1",
+      displayName: "Pilot 3800",
+      avatarFileId: "file_avatar_1"
+    });
+    const appPayload = completeAppRegistrationRequestSchema.parse({
+      registrationToken: "token_1",
+      displayName: "Pilot 3800",
+      avatarFileId: "file_avatar_1",
+      deviceLabel: "iPhone 16 Pro"
+    });
+
+    expect(webPayload.avatarFileId).toBe("file_avatar_1");
+    expect(appPayload.avatarFileId).toBe("file_avatar_1");
   });
 
   it("parses captcha and sms challenge payloads", () => {
@@ -81,12 +102,12 @@ describe("auth contract", () => {
     const authPayload = appAuthSessionResponseSchema.parse({
       accessToken: "access-token",
       refreshToken: "refresh-token",
-      user: {
+      user: userSummarySchema.parse({
         id: "user-1",
-        displayName: "飞友3800",
+        displayName: "Pilot 3800",
         avatarUrl: null,
         role: "user"
-      }
+      })
     });
 
     const loginResponse = appLoginResponseSchema.parse({
@@ -95,7 +116,7 @@ describe("auth contract", () => {
       refreshToken: "refresh-token",
       user: {
         id: "user-1",
-        displayName: "飞友3800",
+        displayName: "Pilot 3800",
         avatarUrl: null,
         role: "user"
       }
@@ -108,7 +129,7 @@ describe("auth contract", () => {
 
   it("parses registration display name suggestions and recent sessions", () => {
     const suggestion = registrationDisplayNameSuggestResponseSchema.parse({
-      displayName: "飞友3800123"
+      displayName: "Pilot3800123"
     });
 
     const sessions = adminRecentSessionsResponseSchema.parse({
@@ -126,7 +147,7 @@ describe("auth contract", () => {
           expiresAt: new Date(Date.now() + 1000).toISOString(),
           user: {
             id: "user_1",
-            displayName: "飞友3800",
+            displayName: "Pilot 3800",
             role: "user",
             phone: "13800138000"
           }
@@ -134,7 +155,7 @@ describe("auth contract", () => {
       ]
     });
 
-    expect(suggestion.displayName).toContain("飞友");
+    expect(suggestion.displayName).toContain("Pilot");
     expect(sessions.items[0]?.scope).toBe("app");
   });
 });

@@ -9,12 +9,15 @@ export type CircleMediaItem = {
 };
 
 const masonryHeightClasses = [
-  "h-[12.5rem]",
-  "h-[15rem]",
-  "h-[11.25rem]",
-  "h-[16.5rem]",
-  "h-[13.5rem]"
+  "h-[18rem]",
+  "h-[21rem]",
+  "h-[19rem]",
+  "h-[22.5rem]",
+  "h-[20rem]"
 ] as const;
+
+export const CIRCLE_CARD_COLUMN_WIDTH = "14.75rem";
+export const CIRCLE_CARD_COLUMN_GAP = "16px";
 
 export function getCircleCardHeightClass(index: number) {
   return masonryHeightClasses[index % masonryHeightClasses.length];

@@ -1,6 +1,9 @@
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import { uploadsRepo } from "../uploads/upload.repo";
+import { uploadsService } from "../uploads/upload.service";
 import { aircraftSubmissionsRepo } from "./aircraft-submissions.repo";
 
 function slugify(value: string) {
@@ -21,7 +24,7 @@ function parseGallery(value: string) {
   }
 }
 
-function serializeSubmission(
+async function serializeSubmission(
   item: Awaited<ReturnType<typeof aircraftSubmissionsRepo.findById>>,
   approvedModelSlug: string | null
 ) {
@@ -31,6 +34,8 @@ function serializeSubmission(
 
   const brandRecord = item.brand;
   const hasBrand = Boolean(brandRecord && brandRecord.id && brandRecord.slug && brandRecord.name);
+
+  const videoFile = item.videoFileId ? await uploadsRepo.getFileById(item.videoFileId) : null;
 
   return {
     id: item.id,
@@ -52,15 +57,18 @@ function serializeSubmission(
     powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
     summary: item.summary,
     description: item.description,
+    coverImageFileId: item.coverImageFileId ?? null,
+    galleryImageFileIds: parseGallery(item.galleryImageFileIds),
+    videoFileId: item.videoFileId ?? null,
     coverImageUrl: item.coverImageUrl,
     galleryImageUrls: parseGallery(item.galleryImageUrls),
-    videoAsset: item.videoAsset?.id
+    videoAsset: videoFile
       ? {
-          id: item.videoAsset.id,
-          url: item.videoAsset.url,
-          fileName: item.videoAsset.fileName,
-          mimeType: item.videoAsset.mimeType,
-          byteSize: item.videoAsset.byteSize
+          id: videoFile.id,
+          url: uploadsService.serializeFileItem(videoFile).url,
+          fileName: videoFile.fileName,
+          mimeType: videoFile.mimeType,
+          byteSize: videoFile.byteSize
         }
       : null,
     approvedModelId: item.approvedModelId,
@@ -128,24 +136,32 @@ export const aircraftSubmissionsService = {
     powerType: "electric" | "fuel" | "hybrid" | "other";
     summary: string | null;
     description: string | null;
-    coverImageUrl: string | null;
-    galleryImageUrls: string[];
-    videoAssetId: string | null;
+    coverImageFileId: string | null;
+    galleryImageFileIds: string[];
+    videoFileId: string | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
     const moderation = await siteSettingsService.getResolvedSettings();
-    if (input.videoAssetId) {
+    if (input.videoFileId) {
       const videoAsset = await aircraftSubmissionsRepo.getOwnedVideoAsset(
         input.authorId,
-        input.videoAssetId
+        input.videoFileId
       );
       if (!videoAsset) {
         return { kind: "invalid_video" as const };
       }
     }
+
+    const coverImageUrl =
+      input.coverImageFileId !== null
+        ? await resolveUploadedFileUrl(input.coverImageFileId)
+        : null;
+    const galleryImageUrls = (
+      await Promise.all(input.galleryImageFileIds.map(fileId => resolveUploadedFileUrl(fileId)))
+    ).filter((value): value is string => Boolean(value));
 
     const item = await aircraftSubmissionsRepo.create({
       authorId: input.authorId,
@@ -157,9 +173,11 @@ export const aircraftSubmissionsService = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
-      coverImageUrl: input.coverImageUrl,
-      galleryImageUrls: JSON.stringify(input.galleryImageUrls),
-      videoAssetId: input.videoAssetId,
+      coverImageFileId: input.coverImageFileId,
+      galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
+      videoFileId: input.videoFileId,
+      coverImageUrl,
+      galleryImageUrls: JSON.stringify(galleryImageUrls),
       maxFlightTimeMinutes: input.maxFlightTimeMinutes,
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
@@ -170,13 +188,13 @@ export const aircraftSubmissionsService = {
     if (!moderation.submissionModerationEnabled && item) {
       const approved = await this.updateSubmissionStatus(item.id, "approved");
       if (!approved) {
-        return { kind: "ok" as const, item: serializeSubmission(item, null)! };
+        return { kind: "ok" as const, item: (await serializeSubmission(item, null))! };
       }
 
       return { kind: "ok" as const, item: approved.item };
     }
 
-    return { kind: "ok" as const, item: serializeSubmission(item, null)! };
+    return { kind: "ok" as const, item: (await serializeSubmission(item, null))! };
   },
   async getSubmission(id: string) {
     const item = await aircraftSubmissionsRepo.findById(id);
@@ -187,7 +205,7 @@ export const aircraftSubmissionsService = {
     const approvedModel = item.approvedModelId
       ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
       : null;
-    return { item: serializeSubmission(item, approvedModel?.slug ?? null)! };
+    return { item: (await serializeSubmission(item, approvedModel?.slug ?? null))! };
   },
   async listAdminSubmissions() {
     const items = await aircraftSubmissionsRepo.listAdmin();
@@ -197,7 +215,7 @@ export const aircraftSubmissionsService = {
           const approvedModel = item.approvedModelId
             ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
             : null;
-          return serializeSubmission(item, approvedModel?.slug ?? null)!;
+          return (await serializeSubmission(item, approvedModel?.slug ?? null))!;
         })
       )
     };
@@ -213,12 +231,12 @@ export const aircraftSubmissionsService = {
       const approvedModel = item?.approvedModelId
         ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
         : null;
-      return { item: serializeSubmission(item, approvedModel?.slug ?? null)! };
+      return { item: (await serializeSubmission(item, approvedModel?.slug ?? null))! };
     }
 
     if (current.status === "approved" && current.approvedModelId) {
       const approvedModel = await aircraftModelsService.getModelDetailById(current.approvedModelId);
-      return { item: serializeSubmission(current, approvedModel?.slug ?? null)! };
+      return { item: (await serializeSubmission(current, approvedModel?.slug ?? null))! };
     }
 
     let brandId = current.brandId;
@@ -250,6 +268,6 @@ export const aircraftSubmissionsService = {
     }
 
     const item = await aircraftSubmissionsRepo.approveSubmission(id, model.id, brandId);
-    return { item: serializeSubmission(item, model.slug)! };
+    return { item: (await serializeSubmission(item, model.slug))! };
   }
 };

@@ -5,6 +5,7 @@ export type ProfileVisibility = "community" | "followers" | "private";
 export type UserSettingsSnapshot = {
   displayName: string;
   bio: string | null;
+  avatarFileId?: string | null;
   avatarUrl: string | null;
   phone: string | null;
   phoneMasked?: string | null;
@@ -18,6 +19,7 @@ export type UserSettingsSnapshot = {
 export type SettingsDraft = {
   displayName: string;
   bio: string;
+  avatarFileId: string;
   avatarUrl: string;
   phone: string;
   phoneMasked: string;
@@ -29,7 +31,7 @@ export type SettingsDraft = {
   hasPendingChanges: boolean;
 };
 
-export type SettingsTextField = "displayName" | "bio" | "avatarUrl" | "phone";
+export type SettingsTextField = "displayName" | "bio" | "avatarFileId" | "avatarUrl" | "phone";
 export type SettingsBooleanField =
   | "notifyComments"
   | "notifyMentions"
@@ -40,6 +42,7 @@ export function createSettingsDraft(snapshot: UserSettingsSnapshot): SettingsDra
   return {
     displayName: snapshot.displayName,
     bio: snapshot.bio ?? "",
+    avatarFileId: snapshot.avatarFileId ?? "",
     avatarUrl: snapshot.avatarUrl ?? "",
     phone: snapshot.phone ?? "",
     phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
@@ -108,7 +111,7 @@ export function buildUpdateCurrentUserProfileInput(draft: SettingsDraft) {
   return {
     displayName: draft.displayName.trim(),
     bio: draft.bio.trim() || null,
-    avatarUrl: draft.avatarUrl.trim() || null,
+    avatarFileId: draft.avatarFileId.trim() || null,
     phone: draft.phone.trim() || null,
     profileVisibility: draft.profileVisibility,
     notifyComments: draft.notifyComments,

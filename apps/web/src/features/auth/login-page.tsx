@@ -60,6 +60,7 @@ export function LoginPage() {
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [isCompletingProfile, setIsCompletingProfile] = useState(false);
 
   useEffect(() => {
@@ -279,6 +280,7 @@ export function LoginPage() {
                         setRegistrationToken(response.registrationToken);
                         setDisplayName(response.suggestedDisplayName);
                         setAvatarPreview(null);
+                        setSelectedAvatarFile(null);
                         setStep("profile");
                       })
                       .catch((error: unknown) => {
@@ -344,10 +346,14 @@ export function LoginPage() {
                       return;
                     }
 
+                    setSubmitError(null);
+                    setSelectedAvatarFile(file);
                     void readAvatarPreview(file)
-                      .then(setAvatarPreview)
+                      .then((preview) => {
+                        setAvatarPreview(preview);
+                      })
                       .catch((error: unknown) => {
-                        setSubmitError(error instanceof Error ? error.message : "头像读取失败");
+                        setSubmitError(error instanceof Error ? error.message : "头像上传失败");
                       });
                   }}
                   ref={avatarInputRef}
@@ -408,10 +414,20 @@ export function LoginPage() {
                       .completeWebRegistration({
                         registrationToken,
                         displayName: displayName.trim(),
-                        avatarUrl: avatarPreview ?? null
+                        avatarFileId: null
                       })
-                      .then((response) => {
-                        setAuthenticated(response.user);
+                      .then(async (response) => {
+                        if (selectedAvatarFile) {
+                          const uploaded = await apiClient.uploadAvatarImage(selectedAvatarFile);
+                          await apiClient.updateCurrentUserProfile({
+                            avatarFileId: uploaded.item.id
+                          });
+                          const refreshedUser = await apiClient.getCurrentUser();
+                          setAuthenticated(refreshedUser ?? response.user);
+                        } else {
+                          setAuthenticated(response.user);
+                        }
+
                         navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
                       })
                       .catch((error: unknown) => {

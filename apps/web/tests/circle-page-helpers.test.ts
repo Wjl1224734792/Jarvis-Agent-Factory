@@ -8,9 +8,9 @@ import {
 
 describe("circle page helpers", () => {
   it("cycles masonry heights without a fixed three-column pattern", () => {
-    expect(getCircleCardHeightClass(0)).toBe("h-[12.5rem]");
-    expect(getCircleCardHeightClass(3)).toBe("h-[16.5rem]");
-    expect(getCircleCardHeightClass(5)).toBe("h-[12.5rem]");
+    expect(getCircleCardHeightClass(0)).toBe("h-[18rem]");
+    expect(getCircleCardHeightClass(3)).toBe("h-[22.5rem]");
+    expect(getCircleCardHeightClass(5)).toBe("h-[18rem]");
   });
 
   it("builds image media items unless a video exists", () => {

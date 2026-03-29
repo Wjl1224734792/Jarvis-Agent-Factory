@@ -1,19 +1,25 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
 import { contentCategorySchema } from "./content-categories";
+import {
+  fileBizTypeSchema,
+  imageFileSchema,
+  videoFileSchema
+} from "./files";
 
 export const feedTabSchema = z.enum(["recommended", "latest", "following"]);
 export const postTypeSchema = z.enum(["article", "moment"]);
 export const postStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
 export const postCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 export const postInteractionTypeSchema = z.enum(["like", "favorite", "share"]);
+export const uploadBizTypeSchema = fileBizTypeSchema;
 
 export const postImageSchema = z.object({
   id: z.string().min(1),
   url: z.string().min(1),
   fileName: z.string().min(1),
   mimeType: z.string().min(1),
-  byteSize: z.number().int().positive()
+  byteSize: z.number().int().nonnegative()
 });
 
 export const postVideoSchema = z.object({
@@ -21,7 +27,7 @@ export const postVideoSchema = z.object({
   url: z.string().min(1),
   fileName: z.string().min(1),
   mimeType: z.string().min(1),
-  byteSize: z.number().int().positive()
+  byteSize: z.number().int().nonnegative()
 });
 
 export const postViewerStateSchema = z.object({
@@ -81,12 +87,28 @@ export const reportPostInputSchema = z.object({
 });
 
 export const uploadPostImageResponseSchema = z.object({
-  item: postImageSchema
-});
+  item: imageFileSchema
+}).transform(({ item }) => ({
+  item: {
+    id: item.id,
+    url: item.url,
+    fileName: item.fileName,
+    mimeType: item.mimeType,
+    byteSize: item.byteSize
+  }
+}));
 
 export const uploadPostVideoResponseSchema = z.object({
-  item: postVideoSchema
-});
+  item: videoFileSchema
+}).transform(({ item }) => ({
+  item: {
+    id: item.id,
+    url: item.url,
+    fileName: item.fileName,
+    mimeType: item.mimeType,
+    byteSize: item.byteSize
+  }
+}));
 
 const postContentCategorySummarySchema = contentCategorySchema.pick({
   id: true,
@@ -235,3 +257,4 @@ export type PostType = z.infer<typeof postTypeSchema>;
 export type PostStatus = z.infer<typeof postStatusSchema>;
 export type PostCommentStatus = z.infer<typeof postCommentStatusSchema>;
 export type PostInteractionType = z.infer<typeof postInteractionTypeSchema>;
+export type UploadBizType = z.infer<typeof uploadBizTypeSchema>;

@@ -411,6 +411,7 @@ export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
       'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "user_follows", "video_assets", "post_images", "post_reports", "post_comments", "posts", "review_comments", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      .replace('"post_interactions"', '"files", "post_interactions"')
     )
   );
 }

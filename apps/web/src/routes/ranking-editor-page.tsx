@@ -19,6 +19,7 @@ type DraftItem = {
   id: string;
   title: string;
   summary: string;
+  imageFileId: string;
   imageUrl: string;
   brandName: string;
   linkedModelSlug: string | null;
@@ -29,6 +30,7 @@ function emptyDraftItem(): DraftItem {
     id: crypto.randomUUID(),
     title: "",
     summary: "",
+    imageFileId: "",
     imageUrl: "",
     brandName: "",
     linkedModelSlug: null
@@ -45,6 +47,7 @@ export function RankingEditorPage() {
   const itemImageInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [coverImageFileId, setCoverImageFileId] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [modelSearch, setModelSearch] = useState("");
   const [itemAddPolicy, setItemAddPolicy] = useState<"public" | "owner">("owner");
@@ -72,6 +75,7 @@ export function RankingEditorPage() {
     const ranking = detailQuery.data.item;
     setTitle(ranking.title);
     setDescription(ranking.description);
+    setCoverImageFileId(ranking.coverImageFileId ?? "");
     setCoverImageUrl(ranking.coverImageUrl ?? "");
     setItemAddPolicy(ranking.itemAddPolicy);
     setDraftItems(
@@ -79,6 +83,7 @@ export function RankingEditorPage() {
         id: item.id,
         title: item.title,
         summary: item.summary ?? "",
+        imageFileId: item.imageFileId ?? "",
         imageUrl: item.imageUrl ?? "",
         brandName: item.brandName ?? item.linkedModel?.brand.name ?? "",
         linkedModelSlug: item.linkedModel?.slug ?? null
@@ -114,6 +119,7 @@ export function RankingEditorPage() {
         id: crypto.randomUUID(),
         title: name,
         summary: "",
+        imageFileId: "",
         imageUrl,
         brandName,
         linkedModelSlug: slug
@@ -149,8 +155,13 @@ export function RankingEditorPage() {
   }
 
   async function uploadSingleImage(file: File) {
-    const uploaded = await apiClient.uploadPostImage(file);
-    return uploaded.item.url;
+    const uploaded = await apiClient.uploadRankingItemImage(file);
+    return uploaded.item;
+  }
+
+  async function uploadCoverImage(file: File) {
+    const uploaded = await apiClient.uploadRankingCoverImage(file);
+    return uploaded.item;
   }
 
   const isFormValid =
@@ -252,8 +263,11 @@ export function RankingEditorPage() {
                   }
                   setIsUploading(true);
                   setSubmitError(null);
-                  void uploadSingleImage(file)
-                    .then((url) => setCoverImageUrl(url))
+                  void uploadCoverImage(file)
+                    .then((uploaded) => {
+                      setCoverImageFileId(uploaded.id);
+                      setCoverImageUrl(uploaded.url);
+                    })
                     .catch((reason: unknown) => {
                       setSubmitError(reason instanceof Error ? reason.message : "封面上传失败");
                     })
@@ -368,8 +382,8 @@ export function RankingEditorPage() {
                   setIsUploading(true);
                   setSubmitError(null);
                   void uploadSingleImage(file)
-                    .then((url) => {
-                      updateItem(targetId, { imageUrl: url });
+                    .then((uploaded) => {
+                      updateItem(targetId, { imageFileId: uploaded.id, imageUrl: uploaded.url });
                     })
                     .catch((reason: unknown) => {
                       setSubmitError(reason instanceof Error ? reason.message : "条目图片上传失败");
@@ -450,12 +464,12 @@ export function RankingEditorPage() {
                     type: "community",
                     title,
                     description,
-                    coverImageUrl: coverImageUrl || null,
+                    coverImageFileId: coverImageFileId || null,
                     itemAddPolicy,
                     items: draftItems.map((item) => ({
                       title: item.title.trim(),
                       summary: item.summary.trim() ? item.summary.trim() : null,
-                      imageUrl: item.imageUrl.trim() ? item.imageUrl.trim() : null,
+                      imageFileId: item.imageFileId.trim() ? item.imageFileId.trim() : null,
                       brandName: item.brandName.trim() ? item.brandName.trim() : null,
                       linkedModelSlug: item.linkedModelSlug
                     }))

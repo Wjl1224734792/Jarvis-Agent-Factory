@@ -94,7 +94,7 @@ export const appLoginResponseSchema = z.discriminatedUnion("kind", [
 export const completeWebRegistrationRequestSchema = z.object({
   registrationToken: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
-  avatarUrl: z.string().trim().min(1).nullable().optional()
+  avatarFileId: z.string().trim().min(1).nullable().optional()
 });
 
 export const registrationDisplayNameSuggestRequestSchema = z.object({

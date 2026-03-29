@@ -36,6 +36,7 @@ export const rankingItemSchema = z.object({
   rank: z.number().int().positive(),
   title: z.string().min(1),
   summary: z.string().nullable(),
+  imageFileId: z.string().nullable().optional(),
   imageUrl: z.string().nullable(),
   brandName: z.string().nullable(),
   linkedModel: linkedRankingModelSchema.nullable(),
@@ -80,6 +81,7 @@ export const rankingListItemSchema = z.object({
   status: rankingStatusSchema,
   title: z.string().min(1),
   description: z.string().min(1),
+  coverImageFileId: z.string().nullable().optional(),
   coverImageUrl: z.string().nullable(),
   itemAddPolicy: rankingItemAddPolicySchema,
   averageScore: z.number().min(0).max(10),
@@ -118,7 +120,7 @@ export const adminRankingsResponseSchema = z.object({
 const rankingDraftItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
   summary: z.string().trim().max(500).nullable(),
-  imageUrl: z.string().trim().min(1).nullable(),
+  imageFileId: z.string().trim().min(1).nullable(),
   brandName: z.string().trim().max(80).nullable(),
   linkedModelSlug: z.string().trim().min(1).nullable()
 });
@@ -127,7 +129,7 @@ export const createRankingInputSchema = z.object({
   type: rankingTypeSchema,
   title: z.string().trim().min(2).max(120),
   description: z.string().trim().min(1).max(2000),
-  coverImageUrl: z.string().trim().min(1).nullable(),
+  coverImageFileId: z.string().trim().min(1).nullable(),
   itemAddPolicy: rankingItemAddPolicySchema,
   items: z.array(rankingDraftItemSchema).min(1).max(20)
 });

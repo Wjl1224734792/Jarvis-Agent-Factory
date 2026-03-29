@@ -153,12 +153,14 @@ describe("rankings flows", () => {
         type: "community",
         title: "Community ranking",
         description: "community ranking sample",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
             summary: "community linked model",
+            imageFileId: null,
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"
@@ -178,12 +180,14 @@ describe("rankings flows", () => {
         type: "official",
         title: "Owner official ranking",
         description: "should be forbidden",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "item",
             summary: null,
+            imageFileId: null,
             imageUrl: null,
             brandName: null,
             linkedModelSlug: "mini-4-pro"
@@ -203,12 +207,14 @@ describe("rankings flows", () => {
         type: "official",
         title: "Admin official ranking",
         description: "official ranking sample",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
             summary: "official linked model",
+            imageFileId: null,
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"
@@ -240,6 +246,7 @@ describe("rankings flows", () => {
       body: JSON.stringify({
         title: "visitor add",
         summary: "should be forbidden",
+        imageFileId: null,
         imageUrl: null,
         brandName: null,
         linkedModelSlug: null
@@ -256,6 +263,7 @@ describe("rankings flows", () => {
       body: JSON.stringify({
         title: "admin add",
         summary: "owner add on official",
+        imageFileId: null,
         imageUrl: null,
         brandName: null,
         linkedModelSlug: null
@@ -273,12 +281,14 @@ describe("rankings flows", () => {
         type: "official",
         title: "owner tries update official",
         description: "forbidden",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "item",
             summary: null,
+            imageFileId: null,
             imageUrl: null,
             brandName: null,
             linkedModelSlug: "mini-4-pro"
@@ -298,12 +308,14 @@ describe("rankings flows", () => {
         type: "official",
         title: "admin updated official",
         description: "official still owner-only",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
             summary: "official linked model",
+            imageFileId: null,
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"
@@ -472,12 +484,14 @@ describe("rankings flows", () => {
         type: "community",
         title: "Pending harbor ranking",
         description: "pending review",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "DJI Mini 4 Pro",
             summary: "pending linked model",
+            imageFileId: null,
             imageUrl: null,
             brandName: "DJI",
             linkedModelSlug: "mini-4-pro"

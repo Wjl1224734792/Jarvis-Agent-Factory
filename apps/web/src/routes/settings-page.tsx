@@ -88,6 +88,7 @@ export function SettingsPage() {
     createSettingsDraft({
       displayName: "",
       bio: null,
+      avatarFileId: null,
       avatarUrl: null,
       phone: null,
       phoneMasked: null,
@@ -156,8 +157,11 @@ export function SettingsPage() {
   async function uploadAvatar(file: File) {
     setIsUploadingAvatar(true);
     try {
-      const uploaded = await apiClient.uploadPostImage(file);
-      setDraft((current) => updateSettingsTextField(current, "avatarUrl", uploaded.item.url));
+      const uploaded = await apiClient.uploadAvatarImage(file);
+      setDraft((current) => ({
+        ...updateSettingsTextField(current, "avatarUrl", uploaded.item.url),
+        avatarFileId: uploaded.item.id
+      }));
       setStatusMessage("头像已上传，保存后会更新到个人资料。");
     } catch (reason: unknown) {
       setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");

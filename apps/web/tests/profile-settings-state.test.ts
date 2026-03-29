@@ -15,6 +15,7 @@ import {
 const sampleSnapshot: UserSettingsSnapshot = {
   displayName: "SkyCaptain",
   bio: "Airport transfer and runway notes.",
+  avatarFileId: "file_avatar_1",
   avatarUrl: "https://cdn.example.com/avatar.png",
   phone: "13800138000",
   phoneMasked: "****8000",
@@ -31,6 +32,7 @@ describe("profile settings state helpers", () => {
 
     expect(draft.displayName).toBe("SkyCaptain");
     expect(draft.bio).toBe("Airport transfer and runway notes.");
+    expect(draft.avatarFileId).toBe("file_avatar_1");
     expect(draft.avatarUrl).toBe("https://cdn.example.com/avatar.png");
     expect(draft.phone).toBe("13800138000");
     expect(draft.phoneMasked).toBe("****8000");

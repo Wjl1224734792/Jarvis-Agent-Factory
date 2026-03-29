@@ -72,6 +72,7 @@ export const rankingsRepo = {
         status: rankingsTable.status,
         title: rankingsTable.title,
         description: rankingsTable.description,
+        coverImageFileId: rankingsTable.coverImageFileId,
         coverImageUrl: rankingsTable.coverImageUrl,
         itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
@@ -96,6 +97,7 @@ export const rankingsRepo = {
         status: rankingsTable.status,
         title: rankingsTable.title,
         description: rankingsTable.description,
+        coverImageFileId: rankingsTable.coverImageFileId,
         coverImageUrl: rankingsTable.coverImageUrl,
         itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
@@ -121,6 +123,7 @@ export const rankingsRepo = {
     status: "pending" | "published" | "rejected" | "hidden";
     title: string;
     description: string;
+    coverImageFileId: string | null;
     coverImageUrl: string | null;
     itemAddPolicy: "public" | "owner";
   }) {
@@ -132,6 +135,7 @@ export const rankingsRepo = {
       status: input.status,
       title: input.title,
       description: input.description,
+      coverImageFileId: input.coverImageFileId,
       coverImageUrl: input.coverImageUrl,
       itemAddPolicy: input.itemAddPolicy,
       commentCount: 0
@@ -144,6 +148,7 @@ export const rankingsRepo = {
     input: {
       title: string;
       description: string;
+      coverImageFileId: string | null;
       coverImageUrl: string | null;
       itemAddPolicy: "public" | "owner";
     }
@@ -153,6 +158,7 @@ export const rankingsRepo = {
       .set({
         title: input.title,
         description: input.description,
+        coverImageFileId: input.coverImageFileId,
         coverImageUrl: input.coverImageUrl,
         itemAddPolicy: input.itemAddPolicy,
         updatedAt: new Date()
@@ -181,6 +187,7 @@ export const rankingsRepo = {
       rank: number;
       title: string;
       summary: string | null;
+      imageFileId: string | null;
       imageUrl: string | null;
       brandName: string | null;
       linkedModelId: string | null;
@@ -197,6 +204,7 @@ export const rankingsRepo = {
         rank: item.rank,
         title: item.title,
         summary: item.summary,
+        imageFileId: item.imageFileId,
         imageUrl: item.imageUrl,
         brandName: item.brandName,
         linkedModelId: item.linkedModelId,
@@ -216,6 +224,7 @@ export const rankingsRepo = {
     rankingId: string;
     title: string;
     summary: string | null;
+    imageFileId: string | null;
     imageUrl: string | null;
     brandName: string | null;
     linkedModelId: string | null;
@@ -229,6 +238,7 @@ export const rankingsRepo = {
       rank,
       title: input.title,
       summary: input.summary,
+      imageFileId: input.imageFileId,
       imageUrl: input.imageUrl,
       brandName: input.brandName,
       commentCount: 0
@@ -244,6 +254,7 @@ export const rankingsRepo = {
         rank: rankingItemsTable.rank,
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
+        imageFileId: rankingItemsTable.imageFileId,
         imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,
@@ -274,6 +285,7 @@ export const rankingsRepo = {
         rank: rankingItemsTable.rank,
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
+        imageFileId: rankingItemsTable.imageFileId,
         imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,

@@ -14,6 +14,7 @@ import { rankingsRoute } from "./modules/rankings/rankings.route";
 import { reviewsRoute } from "./modules/reviews/reviews.route";
 import { siteSettingsRoute } from "./modules/site-settings/site-settings.route";
 import { socialRoute } from "./modules/social/social.route";
+import { uploadsRoute } from "./modules/uploads/upload.route";
 import { ensureServerEnvLoaded } from "./lib/load-env";
 import { logger } from "./lib/logger";
 import { healthRoute } from "./routes/health";
@@ -87,6 +88,7 @@ app.get("/", (c) =>
 
 app.route(APP_ROUTES.health, healthRoute);
 app.route("/", authRoute);
+app.route("/", uploadsRoute);
 app.route("/", postsRoute);
 app.route("/", socialRoute);
 app.route("/", adminAnalyticsRoute);

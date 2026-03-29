@@ -1,6 +1,7 @@
 import { createSecretToken, hashPassword } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
 import { authRepo, type SessionScope } from "./auth.repo";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
 import type { UserRecord } from "../users/users.schema";
 
@@ -238,6 +239,7 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
+      avatarFileId?: string | null;
       avatarUrl?: string | null;
     },
     metadata?: RequestSessionMetadata
@@ -258,10 +260,13 @@ export const authService = {
       throw new AuthError("DISPLAY_NAME_TAKEN", "该用户名已被占用，请更换后重试。");
     }
 
+    const resolvedAvatarUrl =
+      (await resolveUploadedFileUrl(input.avatarFileId ?? null)) ?? input.avatarUrl ?? null;
     const user = await authRepo.createUserByPhoneProfile({
       phone: pending.phone,
       displayName: normalizedDisplayName,
-      avatarUrl: input.avatarUrl ?? null
+      avatarFileId: input.avatarFileId ?? null,
+      avatarUrl: resolvedAvatarUrl
     });
     const session = await authRepo.createSession(user, "web", {
       clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
@@ -285,6 +290,7 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
+      avatarFileId?: string | null;
       avatarUrl?: string | null;
       deviceLabel?: string | null;
     },
@@ -306,10 +312,13 @@ export const authService = {
       throw new AuthError("DISPLAY_NAME_TAKEN", "该用户名已被占用，请更换后重试。");
     }
 
+    const resolvedAvatarUrl =
+      (await resolveUploadedFileUrl(input.avatarFileId ?? null)) ?? input.avatarUrl ?? null;
     const user = await authRepo.createUserByPhoneProfile({
       phone: pending.phone,
       displayName: normalizedDisplayName,
-      avatarUrl: input.avatarUrl ?? null
+      avatarFileId: input.avatarFileId ?? null,
+      avatarUrl: resolvedAvatarUrl
     });
 
     return createAppSession(user, {

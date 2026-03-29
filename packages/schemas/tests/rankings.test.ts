@@ -16,6 +16,7 @@ function buildDetailPayload() {
       rank: 1,
       title: "DJI Mini 4 Pro",
       summary: "A compact model.",
+      imageFileId: null,
       imageUrl: null,
       brandName: "DJI",
       linkedModel: null,
@@ -38,6 +39,7 @@ function buildDetailPayload() {
           author: {
             id: "user_1",
             displayName: "Pilot One",
+            avatarUrl: null,
             role: "user"
           }
         }
@@ -64,6 +66,7 @@ describe("rankings contract", () => {
           status: "published",
           title: "Official Endurance",
           description: "Persisted official ranking.",
+          coverImageFileId: null,
           coverImageUrl: null,
           itemAddPolicy: "owner",
           averageScore: 8.8,
@@ -73,6 +76,7 @@ describe("rankings contract", () => {
           author: {
             id: "admin_1",
             displayName: "Admin",
+            avatarUrl: null,
             role: "admin"
           },
           viewer: {
@@ -86,6 +90,7 @@ describe("rankings contract", () => {
               rank: 1,
               title: "DJI Mini 4 Pro",
               summary: null,
+              imageFileId: null,
               imageUrl: null,
               brandName: "DJI",
               linkedModel: null,
@@ -110,13 +115,13 @@ describe("rankings contract", () => {
       type: "community",
       title: "My ranking",
       description: "desc",
-      coverImageUrl: null,
+      coverImageFileId: null,
       itemAddPolicy: "public",
       items: [
         {
           title: "item 1",
           summary: null,
-          imageUrl: null,
+          imageFileId: null,
           brandName: null,
           linkedModelSlug: null
         }
@@ -128,13 +133,13 @@ describe("rankings contract", () => {
       createRankingInputSchema.parse({
         title: "missing type",
         description: "desc",
-        coverImageUrl: null,
+        coverImageFileId: null,
         itemAddPolicy: "public",
         items: [
           {
             title: "item 1",
             summary: null,
-            imageUrl: null,
+            imageFileId: null,
             brandName: null,
             linkedModelSlug: null
           }
@@ -178,6 +183,7 @@ describe("rankings contract", () => {
           status: "pending",
           title: "Harbor picks",
           description: "pending moderation",
+          coverImageFileId: null,
           coverImageUrl: null,
           itemAddPolicy: "public",
           averageScore: 0,
@@ -187,6 +193,7 @@ describe("rankings contract", () => {
           author: {
             id: "user_1",
             displayName: "Pilot",
+            avatarUrl: null,
             role: "user"
           },
           viewer: {

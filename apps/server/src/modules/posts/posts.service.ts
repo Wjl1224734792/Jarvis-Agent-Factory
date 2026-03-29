@@ -2,11 +2,6 @@ import { contentCategoriesService } from "../content-categories/content-categori
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { postsRepo } from "./posts.repo";
-import {
-  createStorageUploader,
-  isStorageProviderExplicitlyConfigured,
-  resolveStorageProviderConfig
-} from "./storage-provider";
 
 type CurrentUser = {
   id: string;
@@ -291,32 +286,12 @@ export const postsService = {
     bytes: Uint8Array;
     dataUrl: string;
   }) {
-    let resolvedUrl = input.dataUrl;
-    let uploader:
-      | ReturnType<typeof createStorageUploader>
-      | null = null;
-
-    try {
-      uploader = createStorageUploader(resolveStorageProviderConfig());
-    } catch (error) {
-      if (isStorageProviderExplicitlyConfigured()) {
-        throw error;
-      }
-    }
-
-    if (uploader) {
-      const objectKey = `posts/${input.ownerId}/${Date.now()}-${input.fileName.replace(/\s+/g, "-")}`;
-      const uploaded = await uploader.upload({
-        key: objectKey,
-        contentType: input.mimeType,
-        body: input.bytes
-      });
-      resolvedUrl = uploaded.url;
-    }
-
     const item = await postsRepo.createImageUpload({
-      ...input,
-      dataUrl: resolvedUrl
+      ownerId: input.ownerId,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      byteSize: input.byteSize,
+      dataUrl: input.dataUrl
     });
     const serialized = serializeImage(item);
     return serialized ? { item: serialized } : null;
@@ -329,32 +304,12 @@ export const postsService = {
     bytes: Uint8Array;
     dataUrl: string;
   }) {
-    let resolvedUrl = input.dataUrl;
-    let uploader:
-      | ReturnType<typeof createStorageUploader>
-      | null = null;
-
-    try {
-      uploader = createStorageUploader(resolveStorageProviderConfig());
-    } catch (error) {
-      if (isStorageProviderExplicitlyConfigured()) {
-        throw error;
-      }
-    }
-
-    if (uploader) {
-      const objectKey = `videos/${input.ownerId}/${Date.now()}-${input.fileName.replace(/\s+/g, "-")}`;
-      const uploaded = await uploader.upload({
-        key: objectKey,
-        contentType: input.mimeType,
-        body: input.bytes
-      });
-      resolvedUrl = uploaded.url;
-    }
-
     const item = await postsRepo.createVideoUpload({
-      ...input,
-      dataUrl: resolvedUrl
+      ownerId: input.ownerId,
+      fileName: input.fileName,
+      mimeType: input.mimeType,
+      byteSize: input.byteSize,
+      dataUrl: input.dataUrl
     });
     const serialized = serializeVideo(item);
     return serialized ? { item: serialized } : null;

@@ -27,6 +27,7 @@ import { buildPublishStatusPath } from "../lib/web-routes";
 type UploadedImage = {
   id: string;
   url: string;
+  fileName?: string;
 };
 
 type UploadedVideo = {
@@ -104,7 +105,7 @@ export function PublishAircraftPage() {
         return;
       }
 
-      const uploaded = await apiClient.uploadPostImage(file);
+      const uploaded = await apiClient.uploadAircraftCoverImage(file);
       setUploadedVideo(null);
       setUploadedImages([
         {
@@ -131,7 +132,7 @@ export function PublishAircraftPage() {
     setIsUploading(true);
 
     try {
-      const uploaded = await apiClient.uploadPostVideo(file);
+      const uploaded = await apiClient.uploadAircraftVideo(file);
       setUploadedImages([]);
       setUploadedVideo({
         id: uploaded.item.id,
@@ -456,9 +457,9 @@ export function PublishAircraftPage() {
                     powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
                     summary: summary.trim() || null,
                     description: description.trim() || null,
-                    coverImageUrl: uploadedVideo ? null : uploadedImages[0]?.url ?? null,
-                    galleryImageUrls: [],
-                    videoAssetId: uploadedVideo?.id ?? null,
+                    coverImageFileId: uploadedVideo ? null : uploadedImages[0]?.id ?? null,
+                    galleryImageFileIds: [],
+                    videoFileId: uploadedVideo?.id ?? null,
                     maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
                     maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
                     maxSpeedKph: maxSpeedKph ? Number(maxSpeedKph) : null,

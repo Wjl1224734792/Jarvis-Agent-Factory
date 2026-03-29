@@ -95,8 +95,13 @@ export const API_ROUTES = {
     adminDetail: (id: string) => `/admin/aircraft-submissions/${id}`
   },
   uploads: {
+    init: "/uploads/init",
+    complete: "/uploads/complete",
     images: "/uploads/images",
     videos: "/uploads/videos"
+  },
+  files: {
+    url: (id: string) => `/files/${id}/url`
   },
   users: {
     meProfile: "/users/me/profile",

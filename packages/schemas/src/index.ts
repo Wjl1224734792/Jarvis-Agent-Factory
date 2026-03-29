@@ -1,4 +1,5 @@
 export * from "./health";
+export * from "./files";
 export * from "./auth";
 export * from "./content-categories";
 export * from "./models";

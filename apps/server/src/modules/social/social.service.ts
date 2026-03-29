@@ -1,5 +1,6 @@
 import { socialRepo } from "./social.repo";
 import { AuthError, authService } from "../auth/auth.service";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 
 function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
@@ -341,6 +342,7 @@ export const socialService = {
       item: {
         id: user.id,
         displayName: user.displayName,
+        avatarFileId: user.avatarFileId ?? null,
         bio: user.bio ?? null,
         avatarUrl: user.avatarUrl ?? null,
         phone: user.phone ?? null,
@@ -417,6 +419,7 @@ export const socialService = {
     input: {
       displayName?: string;
       bio?: string | null;
+      avatarFileId?: string | null;
       avatarUrl?: string | null;
       phone?: string | null;
       profileVisibility?: "community" | "followers" | "private";
@@ -439,12 +442,24 @@ export const socialService = {
     }
     const currentSettings = await socialRepo.getResolvedUserSettings(currentUserId);
 
-    const profilePatch = {
+    const profilePatch: {
+      displayName?: string;
+      bio?: string | null;
+      avatarFileId?: string | null;
+      avatarUrl?: string | null;
+      phone?: string | null;
+    } = {
       displayName: input.displayName,
       bio: input.bio,
-      avatarUrl: input.avatarUrl,
       phone: input.phone
     };
+
+    if (Object.prototype.hasOwnProperty.call(input, "avatarFileId")) {
+      profilePatch.avatarFileId = input.avatarFileId ?? null;
+      profilePatch.avatarUrl = await resolveUploadedFileUrl(input.avatarFileId ?? null);
+    } else if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
+      profilePatch.avatarUrl = input.avatarUrl ?? null;
+    }
     const hasProfilePatch = Object.values(profilePatch).some((value) => value !== undefined);
     if (hasProfilePatch) {
       await socialRepo.updateCurrentUserProfile(currentUserId, profilePatch);
@@ -466,6 +481,19 @@ export const socialService = {
       });
     }
 
-    return this.getCurrentUserProfile(currentUserId);
+    const refreshed = await this.getCurrentUserProfile(currentUserId);
+    if (!refreshed) {
+      return null;
+    }
+
+    if (input.avatarUrl !== undefined) {
+      refreshed.item.avatarUrl = input.avatarUrl ?? null;
+    }
+    if (input.avatarFileId !== undefined) {
+      refreshed.item.avatarFileId = input.avatarFileId ?? null;
+      refreshed.item.avatarUrl = await resolveUploadedFileUrl(input.avatarFileId ?? null);
+    }
+
+    return refreshed;
   }
 };

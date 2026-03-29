@@ -35,7 +35,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
-      avatarUrl: null
+      avatarFileId: null
     })
   });
 
@@ -87,48 +87,81 @@ async function loginAdmin() {
   return extractCookie(response.headers.get("set-cookie"));
 }
 
-async function uploadImage(cookie: string, name = "cover.png") {
-  const formData = new FormData();
-  formData.append(
-    "file",
-    new File([Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])], name, {
-      type: "image/png"
-    })
-  );
-
-  const response = await app.request(API_ROUTES.uploads.images, {
+async function uploadFile(
+  cookie: string,
+  input: {
+    bizType: "post-image" | "post-video" | "avatar-image";
+    name: string;
+    contentType: string;
+    bytes: Uint8Array;
+  }
+) {
+  const initResponse = await app.request(API_ROUTES.uploads.init, {
     method: "POST",
-    headers: { cookie },
-    body: formData
+    headers: {
+      cookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      bizType: input.bizType,
+      filename: input.name,
+      contentType: input.contentType,
+      size: input.bytes.byteLength
+    })
   });
+  expect(initResponse.status).toBe(200);
 
-  expect(response.status).toBe(200);
+  const initPayload = (await initResponse.json()) as {
+    fileId: string;
+    upload: {
+      mode: "presigned-put";
+      url: string;
+      headers?: Record<string, string>;
+    };
+  };
 
-  return (await response.json()) as {
+  const uploadResponse = await fetch(initPayload.upload.url, {
+    method: "PUT",
+    headers: initPayload.upload.headers,
+    body: new File([input.bytes], input.name, {
+      type: input.contentType
+    })
+  });
+  expect(uploadResponse.status).toBe(200);
+
+  const completeResponse = await app.request(API_ROUTES.uploads.complete, {
+    method: "POST",
+    headers: {
+      cookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      fileId: initPayload.fileId
+    })
+  });
+  expect(completeResponse.status).toBe(200);
+
+  return (await completeResponse.json()) as {
     item: { id: string; url: string; mimeType: string };
   };
 }
 
-async function uploadVideo(cookie: string, name = "flight.mp4") {
-  const formData = new FormData();
-  formData.append(
-    "file",
-    new File([Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112])], name, {
-      type: "video/mp4"
-    })
-  );
-
-  const response = await app.request(API_ROUTES.uploads.videos, {
-    method: "POST",
-    headers: { cookie },
-    body: formData
+async function uploadImage(cookie: string, name = "cover.png") {
+  return uploadFile(cookie, {
+    bizType: "post-image",
+    name,
+    contentType: "image/png",
+    bytes: Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])
   });
+}
 
-  expect(response.status).toBe(200);
-
-  return (await response.json()) as {
-    item: { id: string; url: string; mimeType: string };
-  };
+async function uploadVideo(cookie: string, name = "flight.mp4") {
+  return uploadFile(cookie, {
+    bizType: "post-video",
+    name,
+    contentType: "video/mp4",
+    bytes: Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112])
+  });
 }
 
 async function createPost(

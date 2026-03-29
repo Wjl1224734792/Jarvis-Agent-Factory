@@ -440,6 +440,7 @@ export const socialRepo = {
         id: usersTable.id,
         displayName: usersTable.displayName,
         bio: usersTable.bio,
+        avatarFileId: usersTable.avatarFileId,
         avatarUrl: usersTable.avatarUrl,
         phone: usersTable.phone
       })
@@ -550,22 +551,26 @@ export const socialRepo = {
     input: {
       displayName?: string;
       bio?: string | null;
+      avatarFileId?: string | null;
       avatarUrl?: string | null;
       phone?: string | null;
     }
   ) {
     const updates: Partial<typeof usersTable.$inferInsert> = {};
 
-    if (Object.prototype.hasOwnProperty.call(input, "displayName")) {
+    if (input.displayName !== undefined) {
       updates.displayName = input.displayName;
     }
-    if (Object.prototype.hasOwnProperty.call(input, "bio")) {
+    if (input.bio !== undefined) {
       updates.bio = input.bio ?? null;
     }
-    if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
+    if (input.avatarFileId !== undefined) {
+      updates.avatarFileId = input.avatarFileId ?? null;
+    }
+    if (input.avatarUrl !== undefined) {
       updates.avatarUrl = input.avatarUrl ?? null;
     }
-    if (Object.prototype.hasOwnProperty.call(input, "phone")) {
+    if (input.phone !== undefined) {
       updates.phone = input.phone ?? null;
     }
 

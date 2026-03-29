@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createStorageProvider,
   isStorageProviderExplicitlyConfigured,
   resolveStorageProviderConfig,
   type StorageProvider
@@ -59,6 +60,32 @@ describe("provider config", () => {
     );
 
     expect(config.publicBaseUrl).toBe("https://feijia-media.cos.example.com");
+  });
+
+  it("creates a minio storage provider with presigned upload support", async () => {
+    const provider = createStorageProvider(
+      resolveStorageProviderConfig(
+        createEnv({
+          STORAGE_PROVIDER: "minio",
+          STORAGE_BUCKET: "feijia-media",
+          STORAGE_ENDPOINT: "http://localhost:9000",
+          STORAGE_REGION: "us-east-1",
+          STORAGE_ACCESS_KEY_ID: "id",
+          STORAGE_SECRET_ACCESS_KEY: "secret",
+          STORAGE_FORCE_PATH_STYLE: "true"
+        })
+      )
+    );
+
+    const descriptor = await provider.initUpload({
+      objectKey: "post-image/user_1/2026/03/29/file_1.png",
+      contentType: "image/png",
+      size: 128,
+      visibility: "public"
+    });
+
+    expect(descriptor.mode).toBe("presigned-put");
+    expect(descriptor.expiresIn).toBeGreaterThan(0);
   });
 
   it("detects explicit storage configuration", () => {

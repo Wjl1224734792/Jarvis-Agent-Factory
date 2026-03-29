@@ -1,6 +1,7 @@
 import type { RankingDetail, RankingItem, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
@@ -68,6 +69,7 @@ function serializeRankingItem(
     rank: item.rank,
     title: item.title,
     summary: item.summary,
+    imageFileId: item.imageFileId ?? null,
     imageUrl: item.imageUrl,
     brandName: item.brandName,
     linkedModel: hasLinkedModel
@@ -214,6 +216,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       status: ranking.status as "pending" | "published" | "rejected" | "hidden",
       title: ranking.title,
       description: ranking.description,
+      coverImageFileId: ranking.coverImageFileId ?? null,
       coverImageUrl: ranking.coverImageUrl,
       itemAddPolicy,
       averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
@@ -254,12 +257,14 @@ export const rankingsService = {
       type: "official" | "community";
       title: string;
       description: string;
-      coverImageUrl: string | null;
+      coverImageFileId?: string | null;
+      coverImageUrl?: string | null;
       itemAddPolicy: "public" | "owner";
       items: Array<{
         title: string;
         summary: string | null;
-        imageUrl: string | null;
+        imageFileId?: string | null;
+        imageUrl?: string | null;
         brandName: string | null;
         linkedModelSlug: string | null;
       }>;
@@ -284,7 +289,11 @@ export const rankingsService = {
       status,
       title: input.title,
       description: input.description,
-      coverImageUrl: input.coverImageUrl,
+      coverImageFileId: input.coverImageFileId ?? null,
+      coverImageUrl:
+        input.coverImageFileId !== undefined
+          ? await resolveUploadedFileUrl(input.coverImageFileId ?? null)
+          : input.coverImageUrl ?? null,
       itemAddPolicy: input.type === "official" ? "owner" : input.itemAddPolicy
     });
 
@@ -292,17 +301,21 @@ export const rankingsService = {
       return { kind: "internal_error" as const };
     }
 
-    await rankingsRepo.createRankingItems(
-      ranking.id,
-      input.items.map((item, index) => ({
+    const resolvedItems = await Promise.all(
+      input.items.map(async (item, index) => ({
         rank: index + 1,
         title: item.title,
         summary: item.summary,
-        imageUrl: item.imageUrl,
+        imageFileId: item.imageFileId ?? null,
+        imageUrl:
+          item.imageFileId !== undefined
+            ? await resolveUploadedFileUrl(item.imageFileId ?? null)
+            : item.imageUrl ?? null,
         brandName: item.brandName,
         linkedModelId: item.linkedModelSlug ? modelBySlug.get(item.linkedModelSlug)?.id ?? null : null
       }))
     );
+    await rankingsRepo.createRankingItems(ranking.id, resolvedItems);
 
     const payload = await this.getRankingDetail(ranking.id, currentUser);
     if (!payload) {
@@ -319,12 +332,14 @@ export const rankingsService = {
       type: "official" | "community";
       title: string;
       description: string;
-      coverImageUrl: string | null;
+      coverImageFileId?: string | null;
+      coverImageUrl?: string | null;
       itemAddPolicy: "public" | "owner";
       items: Array<{
         title: string;
         summary: string | null;
-        imageUrl: string | null;
+        imageFileId?: string | null;
+        imageUrl?: string | null;
         brandName: string | null;
         linkedModelSlug: string | null;
       }>;
@@ -354,21 +369,29 @@ export const rankingsService = {
     await rankingsRepo.updateRanking(rankingId, {
       title: input.title,
       description: input.description,
-      coverImageUrl: input.coverImageUrl,
+      coverImageFileId: input.coverImageFileId ?? null,
+      coverImageUrl:
+        input.coverImageFileId !== undefined
+          ? await resolveUploadedFileUrl(input.coverImageFileId ?? null)
+          : input.coverImageUrl ?? null,
       itemAddPolicy: rankingType === "official" ? "owner" : input.itemAddPolicy
     });
     await rankingsRepo.deleteRankingItems(rankingId);
-    await rankingsRepo.createRankingItems(
-      rankingId,
-      input.items.map((item, index) => ({
+    const resolvedItems = await Promise.all(
+      input.items.map(async (item, index) => ({
         rank: index + 1,
         title: item.title,
         summary: item.summary,
-        imageUrl: item.imageUrl,
+        imageFileId: item.imageFileId ?? null,
+        imageUrl:
+          item.imageFileId !== undefined
+            ? await resolveUploadedFileUrl(item.imageFileId ?? null)
+            : item.imageUrl ?? null,
         brandName: item.brandName,
         linkedModelId: item.linkedModelSlug ? modelBySlug.get(item.linkedModelSlug)?.id ?? null : null
       }))
     );
+    await rankingsRepo.createRankingItems(rankingId, resolvedItems);
 
     const payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
@@ -384,7 +407,8 @@ export const rankingsService = {
     input: {
       title: string;
       summary: string | null;
-      imageUrl: string | null;
+      imageFileId?: string | null;
+      imageUrl?: string | null;
       brandName: string | null;
       linkedModelSlug: string | null;
     }
@@ -417,7 +441,11 @@ export const rankingsService = {
       rankingId,
       title: input.title,
       summary: input.summary,
-      imageUrl: input.imageUrl,
+      imageFileId: input.imageFileId ?? null,
+      imageUrl:
+        input.imageFileId !== undefined
+          ? await resolveUploadedFileUrl(input.imageFileId ?? null)
+          : input.imageUrl ?? null,
       brandName: input.brandName,
       linkedModelId: input.linkedModelSlug ? modelBySlug.get(input.linkedModelSlug)?.id ?? null : null
     });
@@ -474,6 +502,7 @@ export const rankingsService = {
         status: ranking.status as "pending" | "published" | "rejected" | "hidden",
         title: ranking.title,
         description: ranking.description,
+        coverImageFileId: ranking.coverImageFileId ?? null,
         coverImageUrl: ranking.coverImageUrl,
         itemAddPolicy,
         viewer: toRankingViewer({
@@ -563,6 +592,7 @@ export const rankingsService = {
             status: ranking.status as "pending" | "published" | "rejected" | "hidden",
             title: ranking.title,
             description: ranking.description,
+            coverImageFileId: ranking.coverImageFileId ?? null,
             coverImageUrl: ranking.coverImageUrl,
             itemAddPolicy,
             averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
@@ -725,6 +755,7 @@ export const rankingsService = {
         rank: payload.item.rank,
         title: payload.item.title,
         summary: payload.item.summary,
+        imageFileId: payload.item.imageFileId,
         imageUrl: payload.item.imageUrl,
         brandName: payload.item.brandName,
         linkedModel: payload.item.linkedModel,

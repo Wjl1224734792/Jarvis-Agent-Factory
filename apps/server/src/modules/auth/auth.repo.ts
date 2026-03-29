@@ -325,6 +325,7 @@ export const authRepo = {
   async createUserByPhoneProfile(input: {
     phone: string;
     displayName: string;
+    avatarFileId?: string | null;
     avatarUrl?: string | null;
   }): Promise<UserRecord> {
     const id = createId("user");
@@ -334,6 +335,7 @@ export const authRepo = {
       role: "user",
       displayName: input.displayName,
       phone: input.phone,
+      avatarFileId: input.avatarFileId ?? null,
       avatarUrl: input.avatarUrl ?? null,
       account: null,
       passwordHash: null

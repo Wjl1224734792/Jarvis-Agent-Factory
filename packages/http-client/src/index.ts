@@ -32,6 +32,8 @@ import {
   authSuccessResponseSchema,
   captchaChallengeResponseSchema,
   circleFeedResponseSchema,
+  completeUploadInputSchema,
+  completeUploadResponseSchema,
   contentCategoriesResponseSchema,
   createAircraftSubmissionInputSchema,
   createPostCommentInputSchema,
@@ -54,6 +56,8 @@ import {
   healthResponseSchema,
   healthRoute,
   homeFeedResponseSchema,
+  initUploadInputSchema,
+  initUploadResponseSchema,
   modelInteractionResponseSchema,
   modelInteractionTypeSchema,
   modelDetailResponseSchema,
@@ -90,6 +94,7 @@ import {
   updateCurrentUserProfileInputSchema,
   updateSiteSettingsInputSchema,
   updateReviewStatusInputSchema,
+  fileUrlResponseSchema,
   uploadPostImageResponseSchema,
   uploadPostVideoResponseSchema,
   webLoginRequestSchema,
@@ -149,6 +154,7 @@ type UpdateCurrentUserProfileInput =
 type PhoneChangeRequestInput = Parameters<typeof phoneChangeRequestInputSchema.parse>[0];
 type PhoneChangeConfirmInput = Parameters<typeof phoneChangeConfirmInputSchema.parse>[0];
 type UpdateSiteSettingsInput = Parameters<typeof updateSiteSettingsInputSchema.parse>[0];
+type InitUploadInput = Parameters<typeof initUploadInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -299,6 +305,57 @@ export function createApiClient(options: ApiClientOptions) {
     });
 
     return readJson(response, parser);
+  }
+
+  async function initUpload(input: InitUploadInput) {
+    return postJson(
+      API_ROUTES.uploads.init,
+      initUploadResponseSchema,
+      initUploadInputSchema.parse(input)
+    );
+  }
+
+  async function completeUpload(fileId: string) {
+    return postJson(
+      API_ROUTES.uploads.complete,
+      completeUploadResponseSchema,
+      completeUploadInputSchema.parse({ fileId })
+    );
+  }
+
+  async function performDirectUpload(
+    file: File,
+    bizType:
+      | "avatar-image"
+      | "post-image"
+      | "post-video"
+      | "aircraft-cover-image"
+      | "aircraft-video"
+      | "ranking-cover-image"
+      | "ranking-item-image"
+  ) {
+    const initPayload = await initUpload({
+      bizType,
+      filename: file.name,
+      contentType: file.type,
+      size: file.size
+    });
+
+    if (initPayload.upload.mode !== "presigned-put") {
+      throw new Error("Unsupported upload mode.");
+    }
+
+    const uploadResponse = await fetch(initPayload.upload.url, {
+      method: "PUT",
+      headers: initPayload.upload.headers,
+      body: file
+    });
+
+    if (!uploadResponse.ok) {
+      throw new Error("File upload failed.");
+    }
+
+    return completeUpload(initPayload.fileId);
   }
 
   return {
@@ -467,29 +524,47 @@ export function createApiClient(options: ApiClientOptions) {
     async createPost(input: CreatePostInput) {
       return postJson(API_ROUTES.posts.create, createPostResponseSchema, createPostInputSchema.parse(input));
     },
-    async uploadPostImage(file: File) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(`${baseUrl}${API_ROUTES.uploads.images}`, {
-        method: "POST",
-        credentials: "include",
-        body: formData
+    async initUpload(input: InitUploadInput) {
+      return initUpload(input);
+    },
+    async completeUpload(fileId: string) {
+      return completeUpload(fileId);
+    },
+    async getFileUrl(fileId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.files.url(fileId)}`, {
+        method: "GET",
+        credentials: "include"
       });
 
-      return readJson(response, uploadPostImageResponseSchema);
+      return readJson(response, fileUrlResponseSchema);
+    },
+    async uploadPostImage(file: File) {
+      const payload = await performDirectUpload(file, "post-image");
+      return uploadPostImageResponseSchema.parse(payload);
     },
     async uploadPostVideo(file: File) {
-      const formData = new FormData();
-      formData.append("file", file);
-
-      const response = await fetch(`${baseUrl}${API_ROUTES.uploads.videos}`, {
-        method: "POST",
-        credentials: "include",
-        body: formData
-      });
-
-      return readJson(response, uploadPostVideoResponseSchema);
+      const payload = await performDirectUpload(file, "post-video");
+      return uploadPostVideoResponseSchema.parse(payload);
+    },
+    async uploadAvatarImage(file: File) {
+      const payload = await performDirectUpload(file, "avatar-image");
+      return uploadPostImageResponseSchema.parse(payload);
+    },
+    async uploadAircraftCoverImage(file: File) {
+      const payload = await performDirectUpload(file, "aircraft-cover-image");
+      return uploadPostImageResponseSchema.parse(payload);
+    },
+    async uploadAircraftVideo(file: File) {
+      const payload = await performDirectUpload(file, "aircraft-video");
+      return uploadPostVideoResponseSchema.parse(payload);
+    },
+    async uploadRankingCoverImage(file: File) {
+      const payload = await performDirectUpload(file, "ranking-cover-image");
+      return uploadPostImageResponseSchema.parse(payload);
+    },
+    async uploadRankingItemImage(file: File) {
+      const payload = await performDirectUpload(file, "ranking-item-image");
+      return uploadPostImageResponseSchema.parse(payload);
     },
     async getPostDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.posts.detail(id)}`, {

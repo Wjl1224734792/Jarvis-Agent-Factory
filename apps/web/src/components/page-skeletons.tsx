@@ -1,6 +1,10 @@
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
-import { getCircleCardHeightClass } from "@/routes/circle-page-helpers";
+import {
+  CIRCLE_CARD_COLUMN_GAP,
+  CIRCLE_CARD_COLUMN_WIDTH,
+  getCircleCardHeightClass
+} from "@/routes/circle-page-helpers";
 
 export const MODEL_GRID_CLASS_NAME =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,13.625rem),1fr))] gap-x-4 gap-y-5";
@@ -81,8 +85,8 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
     <div
       className="w-full"
       style={{
-        columnWidth: props.columnWidth ?? "17.5rem",
-        columnGap: props.columnGap ?? "16px"
+        columnWidth: props.columnWidth ?? CIRCLE_CARD_COLUMN_WIDTH,
+        columnGap: props.columnGap ?? CIRCLE_CARD_COLUMN_GAP
       }}
     >
       {Array.from({ length: props.count ?? 9 }).map((_, index) => (

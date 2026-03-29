@@ -27,6 +27,8 @@ import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
 import {
   buildCircleMediaItems,
+  CIRCLE_CARD_COLUMN_GAP,
+  CIRCLE_CARD_COLUMN_WIDTH,
   getCircleCardHeightClass,
   getLoopedNextIndex,
   getLoopedPrevIndex
@@ -165,7 +167,7 @@ export function CirclePage() {
       {posts.length > 0 ? (
         <div
           className="site-tab-panel relative w-full"
-          style={{ columnWidth: "17.5rem", columnGap: "16px" }}
+          style={{ columnWidth: CIRCLE_CARD_COLUMN_WIDTH, columnGap: CIRCLE_CARD_COLUMN_GAP }}
         >
           {posts.map((item, index) => {
             const previewImage =
@@ -174,7 +176,7 @@ export function CirclePage() {
 
             return (
               <button
-                className={`mb-4 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
+                className={`mb-4 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition xl:mx-auto xl:max-w-[15rem] ${
                   selectedNoteId === item.id
                     ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
                     : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"

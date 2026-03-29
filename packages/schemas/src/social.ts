@@ -67,6 +67,7 @@ export const currentUserProfileSchema = z.object({
   id: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
   bio: z.string().trim().max(300).nullable(),
+  avatarFileId: z.string().min(1).nullable(),
   avatarUrl: z.string().trim().min(1).nullable(),
   phone: z.string().trim().min(1).max(30).nullable(),
   phoneMasked: z.string().trim().min(1).max(30).nullable(),
@@ -103,6 +104,7 @@ export const updateCurrentUserProfileInputSchema = z
   .object({
     displayName: z.string().trim().min(1).max(50).optional(),
     bio: z.string().trim().max(300).nullable().optional(),
+    avatarFileId: z.string().trim().min(1).nullable().optional(),
     avatarUrl: z.string().trim().min(1).nullable().optional(),
     phone: z.string().trim().min(1).max(30).nullable().optional(),
     profileVisibility: profileVisibilitySchema.optional(),

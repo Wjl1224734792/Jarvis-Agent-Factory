@@ -7,9 +7,9 @@ import {
   postInteractionsTable,
   postReportsTable,
   postsTable,
-  videoAssetsTable,
   userFollowsTable,
-  usersTable
+  usersTable,
+  videoAssetsTable
 } from "@feijia/db";
 import { and, asc, desc, eq, inArray, notInArray, or, sql } from "drizzle-orm";
 
