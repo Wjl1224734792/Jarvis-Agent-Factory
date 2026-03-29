@@ -12,6 +12,7 @@ export const postTypeSchema = z.enum(["article", "moment"]);
 export const postStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
 export const postCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 export const postInteractionTypeSchema = z.enum(["like", "favorite", "share"]);
+export const commentSortSchema = z.enum(["hot", "latest"]);
 export const uploadBizTypeSchema = fileBizTypeSchema;
 
 export const postImageSchema = z.object({
@@ -82,9 +83,17 @@ export const createPostCommentInputSchema = z.object({
   parentCommentId: z.string().min(1).optional()
 });
 
-export const reportPostInputSchema = z.object({
+export const updatePostCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000)
+});
+
+export const updatePostInputSchema = createPostInputSchema;
+
+export const reportContentInputSchema = z.object({
   reason: z.string().trim().min(4).max(200)
 });
+
+export const reportPostInputSchema = reportContentInputSchema;
 
 export const uploadPostImageResponseSchema = z.object({
   item: imageFileSchema
@@ -144,8 +153,23 @@ export const postCommentReplySchema = z.object({
   status: postCommentStatusSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
   author: userSummarySchema,
-  replyToUser: userSummarySchema.nullable()
+  replyToUser: userSummarySchema.nullable(),
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
 });
 
 export const postCommentThreadSchema = postCommentReplySchema.extend({

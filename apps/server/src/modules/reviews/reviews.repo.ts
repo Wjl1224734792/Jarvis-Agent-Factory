@@ -1,6 +1,10 @@
 import {
   aircraftModelsTable,
+  aircraftReviewLikesTable,
+  aircraftReviewReportsTable,
   reviewCommentsTable,
+  reviewCommentLikesTable,
+  reviewCommentReportsTable,
   aircraftReviewsTable,
   createId,
   db,
@@ -72,6 +76,8 @@ export const reviewsRepo = {
         id: aircraftReviewsTable.id,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
+        likeCount: aircraftReviewsTable.likeCount,
+        reportCount: aircraftReviewsTable.reportCount,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
         author: {
@@ -107,6 +113,8 @@ export const reviewsRepo = {
         id: aircraftReviewsTable.id,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
+        likeCount: aircraftReviewsTable.likeCount,
+        reportCount: aircraftReviewsTable.reportCount,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
         author: {
@@ -127,6 +135,8 @@ export const reviewsRepo = {
         id: aircraftReviewsTable.id,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
+        likeCount: aircraftReviewsTable.likeCount,
+        reportCount: aircraftReviewsTable.reportCount,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
         author: {
@@ -169,6 +179,8 @@ export const reviewsRepo = {
         id: aircraftReviewsTable.id,
         content: aircraftReviewsTable.content,
         status: aircraftReviewsTable.status,
+        likeCount: aircraftReviewsTable.likeCount,
+        reportCount: aircraftReviewsTable.reportCount,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
         author: {
@@ -224,6 +236,8 @@ export const reviewsRepo = {
         replyToCommentId: reviewCommentsTable.replyToCommentId,
         replyToUserId: reviewCommentsTable.replyToUserId,
         content: reviewCommentsTable.content,
+        likeCount: reviewCommentsTable.likeCount,
+        reportCount: reviewCommentsTable.reportCount,
         createdAt: reviewCommentsTable.createdAt,
         updatedAt: reviewCommentsTable.updatedAt,
         author: {
@@ -248,6 +262,8 @@ export const reviewsRepo = {
         replyToCommentId: reviewCommentsTable.replyToCommentId,
         replyToUserId: reviewCommentsTable.replyToUserId,
         content: reviewCommentsTable.content,
+        likeCount: reviewCommentsTable.likeCount,
+        reportCount: reviewCommentsTable.reportCount,
         createdAt: reviewCommentsTable.createdAt,
         updatedAt: reviewCommentsTable.updatedAt,
         author: {
@@ -285,6 +301,201 @@ export const reviewsRepo = {
     });
 
     return this.getReviewCommentById(id);
+  },
+  async updateReviewComment(id: string, content: string) {
+    await db
+      .update(reviewCommentsTable)
+      .set({
+        content,
+        updatedAt: new Date()
+      })
+      .where(eq(reviewCommentsTable.id, id));
+
+    return this.getReviewCommentById(id);
+  },
+  async syncReviewLikeReportCounts(reviewId: string) {
+    const [likes, reports] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftReviewLikesTable)
+        .where(eq(aircraftReviewLikesTable.reviewId, reviewId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftReviewReportsTable)
+        .where(eq(aircraftReviewReportsTable.reviewId, reviewId))
+    ]);
+
+    await db
+      .update(aircraftReviewsTable)
+      .set({
+        likeCount: Number(likes[0]?.count ?? 0),
+        reportCount: Number(reports[0]?.count ?? 0),
+        updatedAt: new Date()
+      })
+      .where(eq(aircraftReviewsTable.id, reviewId));
+  },
+  async toggleReviewLike(reviewId: string, userId: string) {
+    const existing = await db
+      .select({ id: aircraftReviewLikesTable.id })
+      .from(aircraftReviewLikesTable)
+      .where(
+        and(
+          eq(aircraftReviewLikesTable.reviewId, reviewId),
+          eq(aircraftReviewLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    let active = false;
+    if (existing.length > 0) {
+      await db.delete(aircraftReviewLikesTable).where(eq(aircraftReviewLikesTable.id, existing[0].id));
+    } else {
+      await db.insert(aircraftReviewLikesTable).values({
+        id: createId("review_like"),
+        reviewId,
+        userId
+      });
+      active = true;
+    }
+
+    await this.syncReviewLikeReportCounts(reviewId);
+    return { active };
+  },
+  async reportReview(input: { reviewId: string; reporterId: string; reason: string }) {
+    await db
+      .insert(aircraftReviewReportsTable)
+      .values({
+        id: createId("review_report"),
+        reviewId: input.reviewId,
+        reporterId: input.reporterId,
+        reason: input.reason
+      })
+      .onConflictDoNothing();
+
+    await this.syncReviewLikeReportCounts(input.reviewId);
+    return true;
+  },
+  async syncReviewCommentLikeReportCounts(commentId: string) {
+    const [likes, reports] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(reviewCommentLikesTable)
+        .where(eq(reviewCommentLikesTable.commentId, commentId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(reviewCommentReportsTable)
+        .where(eq(reviewCommentReportsTable.commentId, commentId))
+    ]);
+
+    await db
+      .update(reviewCommentsTable)
+      .set({
+        likeCount: Number(likes[0]?.count ?? 0),
+        reportCount: Number(reports[0]?.count ?? 0),
+        updatedAt: new Date()
+      })
+      .where(eq(reviewCommentsTable.id, commentId));
+  },
+  async toggleReviewCommentLike(commentId: string, userId: string) {
+    const existing = await db
+      .select({ id: reviewCommentLikesTable.id })
+      .from(reviewCommentLikesTable)
+      .where(
+        and(
+          eq(reviewCommentLikesTable.commentId, commentId),
+          eq(reviewCommentLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    let active = false;
+    if (existing.length > 0) {
+      await db.delete(reviewCommentLikesTable).where(eq(reviewCommentLikesTable.id, existing[0].id));
+    } else {
+      await db.insert(reviewCommentLikesTable).values({
+        id: createId("review_comment_like"),
+        commentId,
+        userId
+      });
+      active = true;
+    }
+
+    await this.syncReviewCommentLikeReportCounts(commentId);
+    return { active };
+  },
+  async reportReviewComment(input: { commentId: string; reporterId: string; reason: string }) {
+    await db
+      .insert(reviewCommentReportsTable)
+      .values({
+        id: createId("review_comment_report"),
+        commentId: input.commentId,
+        reporterId: input.reporterId,
+        reason: input.reason
+      })
+      .onConflictDoNothing();
+
+    await this.syncReviewCommentLikeReportCounts(input.commentId);
+    return true;
+  },
+  async listViewerReviewLikes(reviewIds: string[], userId: string) {
+    if (reviewIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ reviewId: aircraftReviewLikesTable.reviewId })
+      .from(aircraftReviewLikesTable)
+      .where(
+        and(
+          eq(aircraftReviewLikesTable.userId, userId),
+          inArray(aircraftReviewLikesTable.reviewId, reviewIds)
+        )
+      );
+  },
+  async listViewerReviewReports(reviewIds: string[], userId: string) {
+    if (reviewIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ reviewId: aircraftReviewReportsTable.reviewId })
+      .from(aircraftReviewReportsTable)
+      .where(
+        and(
+          eq(aircraftReviewReportsTable.reporterId, userId),
+          inArray(aircraftReviewReportsTable.reviewId, reviewIds)
+        )
+      );
+  },
+  async listViewerReviewCommentLikes(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ commentId: reviewCommentLikesTable.commentId })
+      .from(reviewCommentLikesTable)
+      .where(
+        and(
+          eq(reviewCommentLikesTable.userId, userId),
+          inArray(reviewCommentLikesTable.commentId, commentIds)
+        )
+      );
+  },
+  async listViewerReviewCommentReports(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ commentId: reviewCommentReportsTable.commentId })
+      .from(reviewCommentReportsTable)
+      .where(
+        and(
+          eq(reviewCommentReportsTable.reporterId, userId),
+          inArray(reviewCommentReportsTable.commentId, commentIds)
+        )
+      );
   },
   async deleteReviewCommentThread(reviewId: string, commentId: string) {
     const existing = await this.getReviewCommentById(commentId);

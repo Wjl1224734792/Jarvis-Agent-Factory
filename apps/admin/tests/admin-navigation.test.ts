@@ -1,16 +1,19 @@
 import { describe, expect, it } from "vitest";
 import { APP_ROUTES } from "@feijia/shared";
 import { ADMIN_NAV_ITEMS, getActiveAdminNavItemPaths } from "../src/features/auth/admin-navigation";
+import { ADMIN_ROUTE_PATHS } from "../src/lib/admin-routes";
 
 describe("getActiveAdminNavItemPaths", () => {
   it("keeps only the overview item active on the admin home route", () => {
-    expect(getActiveAdminNavItemPaths(APP_ROUTES.adminHome)).toEqual([APP_ROUTES.adminHome]);
+    expect(getActiveAdminNavItemPaths(APP_ROUTES.adminHome)).toEqual([ADMIN_ROUTE_PATHS.overview]);
   });
 
   it("does not keep the overview item active for child admin routes", () => {
-    expect(getActiveAdminNavItemPaths(APP_ROUTES.adminPosts)).toEqual([APP_ROUTES.adminPosts]);
+    expect(getActiveAdminNavItemPaths(APP_ROUTES.adminPosts)).toEqual([
+      ADMIN_ROUTE_PATHS.moderationArticles
+    ]);
     expect(getActiveAdminNavItemPaths(`${APP_ROUTES.adminRankings}/new`)).toEqual([
-      APP_ROUTES.adminRankings
+      ADMIN_ROUTE_PATHS.operationsRankings
     ]);
   });
 

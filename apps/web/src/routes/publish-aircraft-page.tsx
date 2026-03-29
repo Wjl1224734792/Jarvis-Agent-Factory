@@ -4,12 +4,13 @@ import {
   CheckCircle2Icon,
   FileImageIcon,
   PlaneTakeoffIcon,
+  SearchIcon,
   SendHorizonalIcon,
   TagsIcon,
   XIcon
 } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
@@ -47,14 +48,15 @@ export function PublishAircraftPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const promptLogin = useLoginPrompt();
+  const [searchParams] = useSearchParams();
+  const editId = searchParams.get("edit");
   const imageInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const [modelName, setModelName] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedPowerType, setSelectedPowerType] = useState<string>("other");
-  const [brandMode, setBrandMode] = useState<"existing" | "proposed">("existing");
-  const [proposedBrandName, setProposedBrandName] = useState("");
+  const [brandKeyword, setBrandKeyword] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
   const [maxFlightTimeMinutes, setMaxFlightTimeMinutes] = useState("");
@@ -75,21 +77,59 @@ export function PublishAircraftPage() {
     queryKey: ["aircraft-submission-brands"],
     queryFn: () => apiClient.listBrands()
   });
+  const submissionQuery = useQuery({
+    queryKey: ["aircraft-submission-edit", editId],
+    queryFn: () => apiClient.getAircraftSubmission(editId!),
+    enabled: Boolean(editId)
+  });
 
   const categories = categoriesQuery.data ?? [];
   const brands = brandsQuery.data ?? [];
 
   const filteredBrands = useMemo(() => {
-    if (!selectedCategoryId) {
+    const keyword = brandKeyword.trim().toLowerCase();
+    if (!keyword) {
       return brands;
     }
 
-    return brands.filter((item) => item.categoryId === null || item.categoryId === selectedCategoryId);
-  }, [brands, selectedCategoryId]);
+    return brands.filter((item) => item.name.toLowerCase().includes(keyword));
+  }, [brandKeyword, brands]);
 
   const selectedBrand = filteredBrands.find((item) => item.id === selectedBrandId) ?? null;
   const selectedCategory = categories.find((item) => item.id === selectedCategoryId) ?? null;
   const coverUrl = uploadedImages[0]?.url ?? getModelImage("mini-4-pro", "electric");
+
+  useEffect(() => {
+    if (!submissionQuery.data?.item) {
+      return;
+    }
+
+    const item = submissionQuery.data.item;
+    setModelName(item.modelName);
+    setSelectedBrandId(item.brand?.id ?? "");
+    setSelectedCategoryId(item.category.id);
+    setSelectedPowerType(item.powerType);
+    setSummary(item.summary ?? "");
+    setDescription(item.description ?? "");
+    setMaxFlightTimeMinutes(item.parameters.maxFlightTimeMinutes?.toString() ?? "");
+    setMaxRangeKilometers(item.parameters.maxRangeKilometers?.toString() ?? "");
+    setMaxSpeedKph(item.parameters.maxSpeedKph?.toString() ?? "");
+    setTakeoffWeightGrams(item.parameters.takeoffWeightGrams?.toString() ?? "");
+    setUploadedImages(
+      item.coverImageFileId && item.coverImageUrl
+        ? [{ id: item.coverImageFileId, url: item.coverImageUrl }]
+        : []
+    );
+    setUploadedVideo(
+      item.videoAsset
+        ? {
+            id: item.videoAsset.id,
+            url: item.videoAsset.url,
+            fileName: item.videoAsset.fileName
+          }
+        : null
+    );
+  }, [submissionQuery.data?.item]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -149,7 +189,7 @@ export function PublishAircraftPage() {
     }
   }
 
-  if (categoriesQuery.isLoading || brandsQuery.isLoading) {
+  if (categoriesQuery.isLoading || brandsQuery.isLoading || submissionQuery.isLoading) {
     return <PublishFormSkeleton />;
   }
 
@@ -194,73 +234,56 @@ export function PublishAircraftPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <div className="text-sm font-medium text-foreground/72">品牌</div>
-                <div className="flex flex-wrap gap-2">
-                  {[
-                    { id: "existing", label: "选择已有品牌" },
-                    { id: "proposed", label: "新增品牌提案" }
-                  ].map((item) => (
-                    <button
-                      className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.82rem] transition ${
-                        brandMode === item.id
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-border/70 text-foreground/72"
-                      }`}
-                      key={item.id}
-                      onClick={() => setBrandMode(item.id as "existing" | "proposed")}
-                      type="button"
-                    >
-                      {item.label}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              {brandMode === "existing" ? (
-                <div className="space-y-2 md:col-span-2">
-                  <div className="grid max-h-56 gap-2 overflow-y-auto border border-border/70 bg-background/70 p-2">
-                    {filteredBrands.map((brand) => {
-                      const selected = selectedBrandId === brand.id;
-
-                      return (
-                        <button
-                          className={cn(
-                            "flex items-center justify-between gap-3 border px-3 py-2 text-left text-sm transition",
-                            selected
-                              ? "border-primary bg-primary/8 text-primary"
-                              : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
-                          )}
-                          key={brand.id}
-                          onClick={() => setSelectedBrandId(brand.id)}
-                          type="button"
-                        >
-                          <BrandIdentity
-                            className="min-w-0"
-                            imageClassName="size-4"
-                            logoUrl={brand.logoUrl}
-                            name={brand.name}
-                          />
-                          {selected ? <span className="text-[0.72rem]">已选</span> : null}
-                        </button>
-                      );
-                    })}
-
-                    {filteredBrands.length === 0 ? (
-                      <div className="px-3 py-6 text-sm text-muted-foreground">
-                        当前分类下暂无品牌，请改用品牌提案模式。
-                      </div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : (
-                <div className="space-y-2 md:col-span-2">
+                <div className="text-sm font-medium text-foreground/72">Brand</div>
+                <div className="relative">
+                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    onChange={(event) => setProposedBrandName(event.target.value)}
-                    placeholder="输入品牌名称"
-                    value={proposedBrandName}
+                    className="pl-9"
+                    onChange={(event) => setBrandKeyword(event.target.value)}
+                    placeholder="Search existing brands"
+                    value={brandKeyword}
                   />
                 </div>
-              )}
+                <div className="grid max-h-56 gap-2 overflow-y-auto border border-border/70 bg-background/70 p-2">
+                  {filteredBrands.map((brand) => {
+                    const selected = selectedBrandId === brand.id;
+
+                    return (
+                      <button
+                        className={cn(
+                          "flex items-center justify-between gap-3 rounded-[0.9rem] border px-3 py-2 text-left text-sm transition",
+                          selected
+                            ? "border-primary bg-primary/8 text-primary"
+                            : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
+                        )}
+                        key={brand.id}
+                        onClick={() => setSelectedBrandId(brand.id)}
+                        type="button"
+                      >
+                        <BrandIdentity
+                          className="min-w-0"
+                          imageClassName="size-4"
+                          logoUrl={brand.logoUrl}
+                          name={brand.name}
+                        />
+                        {selected ? <span className="text-[0.72rem]">Selected</span> : null}
+                      </button>
+                    );
+                  })}
+
+                  {filteredBrands.length === 0 ? (
+                    <div className="px-3 py-6 text-sm text-muted-foreground">
+                      No matching brand. Please submit a separate brand application first.
+                    </div>
+                  ) : null}
+                </div>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-3 py-3 text-sm text-muted-foreground">
+                  <span>Aircraft publishing now supports only existing brands. Brand application has been split out.</span>
+                  <Button asChild size="sm" type="button" variant="outline">
+                    <Link to={APP_ROUTES.publishBrand}>Apply Brand</Link>
+                  </Button>
+                </div>
+              </div>
 
               <div className="space-y-2">
                 <div className="text-sm font-medium text-foreground/72">动力</div>
@@ -427,7 +450,7 @@ export function PublishAircraftPage() {
                 disabled={
                   !modelName.trim() ||
                   !selectedCategoryId ||
-                  (brandMode === "existing" ? !selectedBrandId : !proposedBrandName.trim()) ||
+                  !selectedBrandId ||
                   isSubmitting ||
                   isUploading
                 }
@@ -446,12 +469,8 @@ export function PublishAircraftPage() {
 
                   const compatibilityPayload = {
                     categoryId: selectedCategoryId,
-                    brandId: brandMode === "existing" ? selectedBrandId || null : null,
-                    proposedBrandName: brandMode === "proposed" ? proposedBrandName.trim() || null : null,
-                    brandName:
-                      brandMode === "existing"
-                        ? selectedBrand?.name ?? "未命名品牌"
-                        : proposedBrandName.trim() || "未命名品牌",
+                    brandId: selectedBrandId || null,
+                    proposedBrandName: null,
                     modelName: modelName.trim(),
                     aircraftType: selectedCategory?.name ?? "飞行器",
                     powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
@@ -466,10 +485,17 @@ export function PublishAircraftPage() {
                     takeoffWeightGrams: takeoffWeightGrams ? Number(takeoffWeightGrams) : null
                   } as Parameters<typeof apiClient.createAircraftSubmission>[0];
 
-                  void apiClient
-                    .createAircraftSubmission(compatibilityPayload)
+                  const request = editId
+                    ? apiClient.updateAircraftSubmission(
+                        editId,
+                        compatibilityPayload as Parameters<typeof apiClient.updateAircraftSubmission>[1]
+                      )
+                    : apiClient.createAircraftSubmission(compatibilityPayload);
+
+                  void request
                     .then((payload) => {
                       void queryClient.invalidateQueries({ queryKey: ["models"] });
+                      void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
                       navigate(buildPublishStatusPath("aircraft", payload.item.id), {
                         state: {
                           title: modelName.trim(),
@@ -510,10 +536,7 @@ export function PublishAircraftPage() {
                   { label: "机型分类", value: selectedCategory?.name || "未选择" },
                   {
                     label: "品牌",
-                    value:
-                      brandMode === "existing"
-                        ? selectedBrand?.name || "未选择"
-                        : proposedBrandName || "未填写"
+                    value: selectedBrand?.name || "Not selected"
                   },
                   {
                     label: "动力",
@@ -525,7 +548,7 @@ export function PublishAircraftPage() {
                       {item.label}
                     </div>
                     <div className="mt-1 text-sm font-medium text-foreground">
-                      {item.label === "品牌" && brandMode === "existing" && selectedBrand ? (
+                      {item.label === "品牌" && selectedBrand ? (
                         <BrandIdentity
                           imageClassName="size-4"
                           logoUrl={selectedBrand.logoUrl}

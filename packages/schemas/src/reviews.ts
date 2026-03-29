@@ -10,7 +10,22 @@ export const modelReviewSchema = z.object({
   status: reviewStatusSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  author: userSummarySchema
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
+  author: userSummarySchema,
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
 });
 
 export const modelReviewSummarySchema = z.object({
@@ -60,8 +75,23 @@ export const reviewCommentSchema = z.object({
   content: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
   author: userSummarySchema,
-  replyToUser: userSummarySchema.nullable()
+  replyToUser: userSummarySchema.nullable(),
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
 });
 
 export const reviewCommentThreadSchema = reviewCommentSchema.extend({
@@ -72,6 +102,10 @@ export const reviewCommentThreadSchema = reviewCommentSchema.extend({
 export const createReviewCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(1000),
   parentCommentId: z.string().min(1).optional()
+});
+
+export const updateReviewCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000)
 });
 
 export const createReviewCommentResponseSchema = z.object({

@@ -125,6 +125,11 @@ type SiteSettings = {
   reviewModerationEnabled?: boolean;
   submissionModerationEnabled?: boolean;
   rankingModerationEnabled?: boolean;
+  articleModerationEnabled?: boolean;
+  momentModerationEnabled?: boolean;
+  brandModerationEnabled?: boolean;
+  modelModerationEnabled?: boolean;
+  rankingItemModerationEnabled?: boolean;
   updatedAt?: string;
 };
 

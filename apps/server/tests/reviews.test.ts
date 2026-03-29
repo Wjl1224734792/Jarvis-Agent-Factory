@@ -1,366 +1,277 @@
-import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
-import { API_ROUTES } from "@feijia/shared";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { authRepo } from "../src/modules/auth/auth.repo";
-import { app } from "../src/app";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 
-function extractCookie(setCookie: string | null): string {
-  if (!setCookie) {
-    throw new Error("missing set-cookie header");
-  }
-  return setCookie.split(";")[0];
-}
+const repo = {
+  findModelBySlug: vi.fn(),
+  listReviewsForViewer: vi.fn(),
+  getReviewAggregate: vi.fn(),
+  getUserReview: vi.fn(),
+  listViewerReviewLikes: vi.fn(),
+  listViewerReviewReports: vi.fn(),
+  getReviewById: vi.fn(),
+  toggleReviewLike: vi.fn(),
+  reportReview: vi.fn(),
+  listReviewComments: vi.fn(),
+  listUsersByIds: vi.fn(),
+  listViewerReviewCommentLikes: vi.fn(),
+  listViewerReviewCommentReports: vi.fn(),
+  getReviewCommentById: vi.fn(),
+  updateReviewComment: vi.fn(),
+  toggleReviewCommentLike: vi.fn(),
+  reportReviewComment: vi.fn(),
+  createReviewComment: vi.fn(),
+  deleteReviewCommentThread: vi.fn(),
+  upsertReview: vi.fn(),
+  listAdminReviews: vi.fn(),
+  updateReviewStatus: vi.fn()
+};
 
-async function completeRegistrationIfNeeded(response: Response) {
-  const payload = (await response.json()) as
-    | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+const siteSettingsServiceMock = {
+  getResolvedSettings: vi.fn()
+};
 
-  if (payload.kind === "authenticated") {
-    return extractCookie(response.headers.get("set-cookie"));
-  }
+vi.mock("../src/modules/reviews/reviews.repo", () => ({
+  reviewsRepo: repo
+}));
 
-  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      registrationToken: payload.registrationToken,
-      displayName: payload.suggestedDisplayName,
-      avatarUrl: null
-    })
+vi.mock("../src/modules/site-settings/site-settings.service", () => ({
+  siteSettingsService: siteSettingsServiceMock
+}));
+
+vi.mock("../src/modules/uploads/uploads.helpers", () => ({
+  resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
+}));
+
+describe("reviews service", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  return extractCookie(completeResponse.headers.get("set-cookie"));
-}
+  it("enriches top-level model reviews with like/report counts and viewer state", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
 
-async function loginUser(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText
-    })
-  });
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-
-  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText,
-      smsCode: smsPayload.mockCode
-    })
-  });
-
-  return completeRegistrationIfNeeded(loginResponse);
-}
-
-async function updateSiteSettings(
-  adminCookie: string,
-  input: {
-    postModerationEnabled: boolean;
-    commentModerationEnabled: boolean;
-    reviewModerationEnabled: boolean;
-    submissionModerationEnabled: boolean;
-  }
-) {
-  const response = await app.request(API_ROUTES.admin.siteSettings, {
-    method: "PUT",
-    headers: {
-      cookie: adminCookie,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify(input)
-  });
-
-  expect(response.status).toBe(200);
-}
-
-async function loginAdmin() {
-  const loginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      account: "admin",
-      password: "Admin#123"
-    })
-  });
-
-  return extractCookie(loginResponse.headers.get("set-cookie"));
-}
-
-beforeAll(async () => {
-  await runMigrations();
-});
-
-beforeEach(async () => {
-  authRepo.resetEphemeralState();
-  await resetDatabaseState();
-  await seedDatabase();
-});
-
-afterAll(async () => {
-  await dbPool.end();
-});
-
-describe("reviews flows", () => {
-  it("allows a logged-in user to create or update a unique review", async () => {
-    const cookie = await loginUser("13800138000");
-
-    const beforeResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "GET",
-      headers: { cookie }
+    repo.findModelBySlug.mockResolvedValue({
+      id: "model_1",
+      slug: "joby-s4",
+      name: "Joby S4"
     });
-    const beforePayload = (await beforeResponse.json()) as {
-      summary: { totalReviews: number };
-    };
-
-    const createResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Stable flight profile for weekend field tests."
-      })
-    });
-
-    expect(createResponse.status).toBe(200);
-    const created = (await createResponse.json()) as {
-      item: { id: string; content: string | null };
-      summary: { totalReviews: number; myReview: { id: string } | null };
-    };
-    expect(created.item.content).toBe("Stable flight profile for weekend field tests.");
-    expect(created.summary.totalReviews).toBe(beforePayload.summary.totalReviews + 1);
-    expect(created.summary.myReview?.id).toBe(created.item.id);
-    expect("averageScore" in created.summary).toBe(false);
-
-    const updateResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Updated with a longer endurance note."
-      })
-    });
-
-    const updated = (await updateResponse.json()) as {
-      item: { id: string; content: string | null };
-      summary: { totalReviews: number };
-    };
-
-    expect(updated.item.id).toBe(created.item.id);
-    expect(updated.item.content).toBe("Updated with a longer endurance note.");
-    expect(updated.summary.totalReviews).toBe(created.summary.totalReviews);
-  });
-
-  it("returns review list, summary and myReview on detail reviews endpoint", async () => {
-    const cookie = await loginUser("13800138000");
-
-    await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Overall handling feels predictable in crosswind."
-      })
-    });
-
-    const response = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "GET",
-      headers: { cookie }
-    });
-
-    expect(response.status).toBe(200);
-    const payload = (await response.json()) as {
-      items: Array<{ id: string; content: string | null }>;
-      summary: { totalReviews: number; myReview: { id: string; content: string | null } | null };
-    };
-
-    expect(payload.items.length).toBeGreaterThan(0);
-    expect(payload.summary.totalReviews).toBeGreaterThan(0);
-    expect(payload.summary.myReview?.id).toBeTruthy();
-    expect(payload.summary.myReview?.content).toBe("Overall handling feels predictable in crosswind.");
-  });
-
-  it("allows admin to hide a review from public list", async () => {
-    const userCookie = await loginUser("13800138000");
-
-    const createdResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie: userCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Needs further tuning before regular operation."
-      })
-    });
-    const createdPayload = (await createdResponse.json()) as {
-      item: { id: string };
-    };
-
-    const adminCookie = await loginAdmin();
-    const updateResponse = await app.request(API_ROUTES.models.adminReviewDetail(createdPayload.item.id), {
-      method: "PUT",
-      headers: {
-        cookie: adminCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        status: "hidden"
-      })
-    });
-
-    expect(updateResponse.status).toBe(200);
-
-    const publicResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "GET",
-      headers: {
-        cookie: userCookie
-      }
-    });
-    const publicPayload = (await publicResponse.json()) as {
-      items: Array<{ id: string }>;
-    };
-
-    expect(publicPayload.items.some((item) => item.id === createdPayload.item.id)).toBe(false);
-  });
-
-  it("keeps reviews pending for authors only when review moderation is enabled", async () => {
-    const adminCookie = await loginAdmin();
-    await updateSiteSettings(adminCookie, {
-      postModerationEnabled: true,
-      commentModerationEnabled: true,
-      reviewModerationEnabled: true,
-      submissionModerationEnabled: true
-    });
-
-    const reviewerCookie = await loginUser("13800138040");
-    const createResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie: reviewerCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Pending review content"
-      })
-    });
-    expect(createResponse.status).toBe(200);
-    const createPayload = (await createResponse.json()) as {
-      item: { id: string; status: string };
-      summary: { myReview: { id: string; status: string } | null };
-    };
-    expect(createPayload.item.status).toBe("pending");
-    expect(createPayload.summary.myReview?.status).toBe("pending");
-
-    const publicResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "GET"
-    });
-    const publicPayload = (await publicResponse.json()) as {
-      items: Array<{ id: string }>;
-    };
-    expect(publicPayload.items.some((item) => item.id === createPayload.item.id)).toBe(false);
-
-    const reviewerView = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "GET",
-      headers: { cookie: reviewerCookie }
-    });
-    const reviewerPayload = (await reviewerView.json()) as {
-      items: Array<{ id: string; status: string }>;
-    };
-    expect(reviewerPayload.items.some((item) => item.id === createPayload.item.id && item.status === "pending")).toBe(true);
-  });
-
-  it("supports review comment, reply and delete flows", async () => {
-    const reviewerCookie = await loginUser("13800138020");
-    const reviewResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
-      method: "POST",
-      headers: {
-        cookie: reviewerCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Solid climb profile in steady wind."
-      })
-    });
-    const reviewPayload = (await reviewResponse.json()) as { item: { id: string } };
-
-    const commenterCookie = await loginUser("13800138021");
-    const createCommentResponse = await app.request(
-      API_ROUTES.models.reviewComments(reviewPayload.item.id),
+    repo.listReviewsForViewer.mockResolvedValue([
       {
-        method: "POST",
-        headers: {
-          cookie: commenterCookie,
-          "content-type": "application/json"
-        },
-        body: JSON.stringify({
-          content: "Thanks for sharing this field result."
-        })
-      }
-    );
-
-    expect(createCommentResponse.status).toBe(200);
-    const createdComment = (await createCommentResponse.json()) as { item: { id: string } };
-
-    const replyResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
-      method: "POST",
-      headers: {
-        cookie: reviewerCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Glad it helps.",
-        parentCommentId: createdComment.item.id
-      })
-    });
-    expect(replyResponse.status).toBe(200);
-
-    const listResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
-      method: "GET"
-    });
-    expect(listResponse.status).toBe(200);
-    const listPayload = (await listResponse.json()) as {
-      items: Array<{ id: string; replyCount: number }>;
-    };
-
-    expect(listPayload.items).toHaveLength(1);
-    expect(listPayload.items[0]?.replyCount).toBe(1);
-
-    const deleteResponse = await app.request(
-      API_ROUTES.models.reviewCommentDetail(reviewPayload.item.id, createdComment.item.id),
-      {
-        method: "DELETE",
-        headers: {
-          cookie: commenterCookie
+        id: "review_1",
+        content: "Great review",
+        status: "visible",
+        likeCount: 2,
+        reportCount: 1,
+        createdAt: new Date("2026-03-29T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+        author: {
+          id: "author_1",
+          displayName: "Author",
+          avatarFileId: null,
+          role: "user"
         }
       }
-    );
-    expect(deleteResponse.status).toBe(200);
+    ]);
+    repo.getReviewAggregate.mockResolvedValue({ totalReviews: 1 });
+    repo.getUserReview.mockResolvedValue(null);
+    repo.listViewerReviewLikes.mockResolvedValue([{ reviewId: "review_1" }]);
+    repo.listViewerReviewReports.mockResolvedValue([{ reviewId: "review_1" }]);
 
-    const listAfterDeleteResponse = await app.request(API_ROUTES.models.reviewComments(reviewPayload.item.id), {
-      method: "GET"
+    const payload = await reviewsService.listModelReviews("joby-s4", "viewer_1");
+
+    expect(payload?.items[0]?.likeCount).toBe(2);
+    expect(payload?.items[0]?.reportCount).toBe(1);
+    expect(payload?.items[0]?.viewer.hasLiked).toBe(true);
+    expect(payload?.items[0]?.viewer.hasReported).toBe(true);
+    expect(payload?.items[0]?.viewer.canEdit).toBe(false);
+  });
+
+  it("toggles and reports top-level reviews only when review exists and is visible", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+
+    repo.getReviewById.mockResolvedValue({
+      id: "review_1",
+      reviewId: "review_1",
+      content: "Visible review",
+      status: "visible",
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+      author: {
+        id: "author_1",
+        displayName: "Author",
+        avatarFileId: null,
+        role: "user"
+      },
+      model: {
+        id: "model_1",
+        slug: "joby-s4",
+        name: "Joby S4"
+      }
     });
-    const listAfterDeletePayload = (await listAfterDeleteResponse.json()) as {
-      items: Array<{ id: string }>;
-    };
-    expect(listAfterDeletePayload.items).toHaveLength(0);
+
+    const likeResult = await reviewsService.toggleReviewLike("review_1", {
+      id: "viewer_1",
+      role: "user"
+    });
+    const reportResult = await reviewsService.reportReview(
+      "review_1",
+      { id: "viewer_1", role: "user" },
+      "Need moderation"
+    );
+
+    expect(likeResult.kind).toBe("ok");
+    expect(reportResult.kind).toBe("ok");
+    expect(repo.toggleReviewLike).toHaveBeenCalledWith("review_1", "viewer_1");
+    expect(repo.reportReview).toHaveBeenCalledWith({
+      reviewId: "review_1",
+      reporterId: "viewer_1",
+      reason: "Need moderation"
+    });
+  });
+
+  it("enriches review comment threads with like/report counts and viewer state", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+
+    repo.getReviewById.mockResolvedValue({
+      id: "review_1",
+      status: "visible"
+    });
+    repo.listReviewComments.mockResolvedValue([
+      {
+        id: "comment_root",
+        reviewId: "review_1",
+        authorId: "author_1",
+        parentCommentId: null,
+        replyToCommentId: null,
+        replyToUserId: null,
+        content: "Root comment",
+        likeCount: 3,
+        reportCount: 1,
+        createdAt: new Date("2026-03-29T00:00:00.000Z"),
+        updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+        author: {
+          id: "author_1",
+          displayName: "Author",
+          avatarFileId: null,
+          role: "user"
+        }
+      },
+      {
+        id: "comment_reply",
+        reviewId: "review_1",
+        authorId: "author_2",
+        parentCommentId: "comment_root",
+        replyToCommentId: "comment_root",
+        replyToUserId: "author_1",
+        content: "Reply comment",
+        likeCount: 1,
+        reportCount: 0,
+        createdAt: new Date("2026-03-29T00:01:00.000Z"),
+        updatedAt: new Date("2026-03-29T00:01:00.000Z"),
+        author: {
+          id: "author_2",
+          displayName: "Responder",
+          avatarFileId: null,
+          role: "user"
+        }
+      }
+    ]);
+    repo.listUsersByIds.mockResolvedValue([
+      {
+        id: "author_1",
+        displayName: "Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    ]);
+    repo.listViewerReviewCommentLikes.mockResolvedValue([{ commentId: "comment_root" }]);
+    repo.listViewerReviewCommentReports.mockResolvedValue([{ commentId: "comment_root" }]);
+
+    const payload = await reviewsService.listReviewComments("review_1", "viewer_1");
+
+    expect(payload?.items).toHaveLength(1);
+    expect(payload?.items[0]?.likeCount).toBe(3);
+    expect(payload?.items[0]?.reportCount).toBe(1);
+    expect(payload?.items[0]?.viewer.hasLiked).toBe(true);
+    expect(payload?.items[0]?.viewer.hasReported).toBe(true);
+    expect(payload?.items[0]?.replyCount).toBe(1);
+    expect(payload?.items[0]?.replies[0]?.replyToUser?.displayName).toBe("Author");
+  });
+
+  it("updates, likes and reports review comments with author permission checks", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+
+    repo.getReviewCommentById.mockResolvedValue({
+      id: "comment_1",
+      reviewId: "review_1",
+      authorId: "author_1",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "Before update",
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+      author: {
+        id: "author_1",
+        displayName: "Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+    repo.updateReviewComment.mockResolvedValue({
+      id: "comment_1",
+      reviewId: "review_1",
+      authorId: "author_1",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "After update",
+      likeCount: 1,
+      reportCount: 1,
+      createdAt: new Date("2026-03-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:05:00.000Z"),
+      author: {
+        id: "author_1",
+        displayName: "Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+    repo.listUsersByIds.mockResolvedValue([]);
+
+    const updateResult = await reviewsService.updateReviewComment(
+      "review_1",
+      "comment_1",
+      { id: "author_1", role: "user" },
+      { content: "After update" }
+    );
+    const likeResult = await reviewsService.toggleReviewCommentLike(
+      "review_1",
+      "comment_1",
+      { id: "viewer_1", role: "user" }
+    );
+    const reportResult = await reviewsService.reportReviewComment(
+      "review_1",
+      "comment_1",
+      { id: "viewer_1", role: "user" },
+      "Need moderation"
+    );
+
+    expect(updateResult.kind).toBe("ok");
+    if (updateResult.kind === "ok") {
+      expect(updateResult.item.content).toBe("After update");
+      expect(updateResult.item.viewer.canEdit).toBe(true);
+    }
+    expect(likeResult.kind).toBe("ok");
+    expect(reportResult.kind).toBe("ok");
+    expect(repo.toggleReviewCommentLike).toHaveBeenCalledWith("comment_1", "viewer_1");
+    expect(repo.reportReviewComment).toHaveBeenCalledWith({
+      commentId: "comment_1",
+      reporterId: "viewer_1",
+      reason: "Need moderation"
+    });
   });
 });

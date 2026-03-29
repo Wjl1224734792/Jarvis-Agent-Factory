@@ -1,6 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, Clock3Icon, PenSquareIcon, Settings2Icon } from "lucide-react";
+import { BellIcon, Clock3Icon, PenSquareIcon, Settings2Icon, Trash2Icon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { VirtualFeed } from "@/components/virtual-feed";
@@ -105,8 +105,24 @@ function getContentMeta(item: ContentItem) {
   }
 }
 
-function ContentFeedRow({ item }: { item: ContentItem }) {
+function ContentFeedRow(props: {
+  item: ContentItem;
+  showManagement?: boolean;
+  onDelete?: (item: ContentItem) => void;
+  deletingId?: string | null;
+}) {
+  const item = props.item;
   const meta = getContentMeta(item);
+  const manageHref =
+    item.type === "post"
+      ? item.postType === "article"
+        ? `${APP_ROUTES.publishArticle}?edit=${item.id}`
+        : `${APP_ROUTES.publishMoment}?edit=${item.id}`
+      : item.type === "ranking"
+        ? `${APP_ROUTES.rankingEditor}?edit=${item.id}`
+        : item.type === "aircraft"
+          ? `${APP_ROUTES.publishAircraft}?edit=${item.id}`
+          : null;
   const row = (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
       <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start md:gap-1">
@@ -123,6 +139,27 @@ function ContentFeedRow({ item }: { item: ContentItem }) {
         <Clock3Icon className="size-3.5" />
         {new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
       </div>
+      {props.showManagement ? (
+        <div className="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">
+          {manageHref ? (
+            <Button asChild size="sm" type="button" variant="outline">
+              <Link to={manageHref}>编辑</Link>
+            </Button>
+          ) : null}
+          {props.onDelete && (item.type === "post" || item.type === "aircraft") ? (
+            <Button
+              disabled={props.deletingId === item.id}
+              onClick={() => props.onDelete?.(item)}
+              size="sm"
+              type="button"
+              variant="ghost"
+            >
+              <Trash2Icon data-icon="inline-start" />
+              {props.deletingId === item.id ? "处理中..." : "删除"}
+            </Button>
+          ) : null}
+        </div>
+      ) : null}
     </div>
   );
 
@@ -139,7 +176,10 @@ function ContentFeedRow({ item }: { item: ContentItem }) {
 
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
+  const [actionError, setActionError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   const currentProfileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -184,6 +224,32 @@ export function ProfilePage() {
 
   if ((profileQuery.isLoading && !profile) || (currentProfileQuery.isLoading && !settings)) {
     return <ProfilePageSkeleton />;
+  }
+
+  async function handleDelete(item: ContentItem) {
+    setDeletingId(item.id);
+    setActionError(null);
+    try {
+      if (item.type === "post") {
+        await apiClient.deletePost(item.id);
+      } else if (item.type === "aircraft") {
+        await apiClient.deleteAircraftSubmission(item.id);
+      } else {
+        return;
+      }
+
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", user?.id] }),
+        queryClient.invalidateQueries({ queryKey: ["models"] }),
+        queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
+        queryClient.invalidateQueries({ queryKey: ["circle-feed"] })
+      ]);
+    } catch (reason: unknown) {
+      setActionError(reason instanceof Error ? reason.message : "删除失败");
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   return (
@@ -249,6 +315,13 @@ export function ProfilePage() {
         </SitePanelBody>
       </SitePanel>
 
+      {actionError ? (
+        <Alert variant="destructive">
+          <AlertTitle>内容管理失败</AlertTitle>
+          <AlertDescription>{actionError}</AlertDescription>
+        </Alert>
+      ) : null}
+
       {profileQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>个人主页加载失败</AlertTitle>
@@ -273,6 +346,9 @@ export function ProfilePage() {
         </TabsList>
 
         <TabsContent className="space-y-4" value="activity">
+          <div className="rounded-[0.95rem] border border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+            已为帖子、榜单、投稿机型预留内容管理入口。帖子和投稿机型支持直接删除，榜单支持跳转编辑。
+          </div>
           <VirtualFeed
             data={activityItems}
             emptyState={
@@ -282,7 +358,14 @@ export function ProfilePage() {
             }
             height={660}
             itemKey={(item) => `${item.type}-${item.id}`}
-            renderItem={(item) => <ContentFeedRow item={item} />}
+            renderItem={(item) => (
+              <ContentFeedRow
+                deletingId={deletingId}
+                item={item}
+                onDelete={handleDelete}
+                showManagement
+              />
+            )}
           />
         </TabsContent>
 

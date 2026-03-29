@@ -179,7 +179,7 @@ export const aircraftSubmissionsService = {
       approvedModelId: null
     });
 
-    if (!moderation.submissionModerationEnabled && item) {
+    if (!moderation.modelModerationEnabled && item) {
       const approved = await this.updateSubmissionStatus(item.id, "approved");
       if (!approved) {
         return { kind: "ok" as const, item: (await serializeSubmission(item, null))! };
@@ -214,6 +214,109 @@ export const aircraftSubmissionsService = {
       )
     };
   },
+  async updateOwnedSubmission(
+    id: string,
+    currentUser: { id: string; role: "user" | "admin" },
+    input: {
+      categoryId: string;
+      brandId: string | null;
+      proposedBrandName: string | null;
+      modelName: string;
+      powerType: "electric" | "fuel" | "hybrid" | "other";
+      summary: string | null;
+      description: string | null;
+      coverImageFileId: string | null;
+      galleryImageFileIds: string[];
+      videoFileId: string | null;
+      maxFlightTimeMinutes: number | null;
+      maxRangeKilometers: number | null;
+      maxSpeedKph: number | null;
+      takeoffWeightGrams: number | null;
+    }
+  ) {
+    const current = await aircraftSubmissionsRepo.findById(id);
+    if (!current) {
+      return { kind: "not_found" as const };
+    }
+
+    const canEdit = currentUser.role === "admin" || current.author.id === currentUser.id;
+    if (!canEdit) {
+      return { kind: "forbidden" as const };
+    }
+
+    const shouldModerate = await siteSettingsService.shouldModerateModelSubmission();
+    const nextStatus =
+      current.status === "approved" && shouldModerate ? "submitted" : current.status;
+
+    const updated = await aircraftSubmissionsRepo.updateContent(id, {
+      status: nextStatus,
+      categoryId: input.categoryId,
+      brandId: input.brandId,
+      proposedBrandName: input.proposedBrandName,
+      modelName: input.modelName,
+      powerType: input.powerType,
+      summary: input.summary,
+      description: input.description,
+      coverImageFileId: input.coverImageFileId,
+      galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
+      videoFileId: input.videoFileId,
+      maxFlightTimeMinutes: input.maxFlightTimeMinutes,
+      maxRangeKilometers: input.maxRangeKilometers,
+      maxSpeedKph: input.maxSpeedKph,
+      takeoffWeightGrams: input.takeoffWeightGrams
+    });
+
+    if (current.approvedModelId) {
+      await aircraftModelsService.updateModel(current.approvedModelId, {
+        slug: (await aircraftModelsService.getModelDetailById(current.approvedModelId))?.slug ?? slugify(input.modelName),
+        name: input.modelName,
+        categoryId: input.categoryId,
+        brandId: input.brandId ?? current.brandId ?? "",
+        ownerId: current.author.id,
+        sourceSubmissionId: id,
+        powerType: input.powerType,
+        summary: input.summary,
+        description: input.description,
+        maxFlightTimeMinutes: input.maxFlightTimeMinutes,
+        maxRangeKilometers: input.maxRangeKilometers,
+        maxSpeedKph: input.maxSpeedKph,
+        takeoffWeightGrams: input.takeoffWeightGrams,
+        isPublished: nextStatus === "approved" && !shouldModerate
+      });
+    }
+
+    const approvedModel = updated?.approvedModelId
+      ? await aircraftModelsService.getModelDetailById(updated.approvedModelId)
+      : null;
+    return {
+      kind: "ok" as const,
+      item: (await serializeSubmission(updated, approvedModel?.slug ?? null))!
+    };
+  },
+  async deleteOwnedSubmission(
+    id: string,
+    currentUser: { id: string; role: "user" | "admin" }
+  ) {
+    const current = await aircraftSubmissionsRepo.findById(id);
+    if (!current) {
+      return { kind: "not_found" as const };
+    }
+
+    const canDelete = currentUser.role === "admin" || current.author.id === currentUser.id;
+    if (!canDelete) {
+      return { kind: "forbidden" as const };
+    }
+
+    if (current.approvedModelId) {
+      const model = await aircraftModelsService.getModelDetailById(current.approvedModelId);
+      if (model?.ownerId === current.author.id) {
+        await aircraftModelsService.deleteModel(current.approvedModelId);
+      }
+    }
+
+    await aircraftSubmissionsRepo.delete(id);
+    return { kind: "ok" as const };
+  },
   async updateSubmissionStatus(id: string, status: "approved" | "rejected") {
     const current = await aircraftSubmissionsRepo.findById(id);
     if (!current) {
@@ -247,6 +350,8 @@ export const aircraftSubmissionsService = {
       name: current.modelName,
       categoryId: current.categoryId,
       brandId,
+      ownerId: current.author.id,
+      sourceSubmissionId: current.id,
       powerType: current.powerType,
       summary: current.summary,
       description: current.description,

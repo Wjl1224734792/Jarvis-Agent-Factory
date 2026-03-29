@@ -216,19 +216,27 @@ export const socialRepo = {
 
     return Number(rows[0]?.count ?? 0);
   },
-  async listUserPublishedPosts(userId: string) {
-    return db
+  async listUserPosts(userId: string, includePrivate: boolean) {
+    const query = db
       .select({
         id: postsTable.id,
         type: postsTable.type,
+        status: postsTable.status,
         title: postsTable.title,
         content: postsTable.content,
         createdAt: postsTable.createdAt,
         updatedAt: postsTable.updatedAt
       })
       .from(postsTable)
-      .where(and(eq(postsTable.authorId, userId), eq(postsTable.status, "published")))
+      .where(
+        and(
+          eq(postsTable.authorId, userId),
+          includePrivate ? sql`true` : eq(postsTable.status, "published")
+        )
+      )
       .orderBy(desc(postsTable.updatedAt));
+
+    return query;
   },
   async listUserFavoritedPosts(userId: string) {
     return db
@@ -317,17 +325,23 @@ export const socialRepo = {
       .where(and(eq(aircraftReviewsTable.userId, userId), eq(aircraftReviewsTable.status, "visible")))
       .orderBy(desc(aircraftReviewsTable.updatedAt));
   },
-  async listUserRankings(userId: string) {
+  async listUserRankings(userId: string, includePrivate: boolean) {
     return db
       .select({
         id: rankingsTable.id,
+        status: rankingsTable.status,
         title: rankingsTable.title,
         description: rankingsTable.description,
         createdAt: rankingsTable.createdAt,
         updatedAt: rankingsTable.updatedAt
       })
       .from(rankingsTable)
-      .where(eq(rankingsTable.authorId, userId))
+      .where(
+        and(
+          eq(rankingsTable.authorId, userId),
+          includePrivate ? sql`true` : eq(rankingsTable.status, "published")
+        )
+      )
       .orderBy(desc(rankingsTable.updatedAt));
   },
   async listUserAircraftSubmissions(userId: string, includePrivate: boolean) {

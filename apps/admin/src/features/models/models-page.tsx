@@ -42,7 +42,12 @@ export function ModelsPage() {
     [categoriesQuery.data]
   );
   const brandOptions = useMemo(
-    () => (brandsQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })),
+    () =>
+      (brandsQuery.data ?? []).map((item) => ({
+        label: `${item.name} · ${item.slug}`,
+        value: item.id,
+        brandName: item.name
+      })),
     [brandsQuery.data]
   );
 
@@ -111,11 +116,14 @@ export function ModelsPage() {
   }
 
   return (
-    <AdminPage description="维护机型基础资料、品牌归属与动力类型。" title="机型管理">
+    <AdminPage
+      description="机型发布时只选择已有品牌并支持搜索，品牌和分类在心智上彻底分离。"
+      title="机型库"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
-        <AdminPanel description="先录入基础信息，参数可以后续补全。" title="新增机型">
+        <AdminPanel description="机型建档时单独选择分类和已有品牌，品牌不再跟分类联动。" title="新增机型">
           <Form
             form={createForm}
             layout="vertical"
@@ -130,11 +138,20 @@ export function ModelsPage() {
             <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
               <Input placeholder="例如：mini-4-pro" />
             </Form.Item>
-            <Form.Item label="分类" name="categoryId" rules={[{ required: true, message: "请选择分类" }]}>
-              <Select options={categoryOptions} placeholder="选择分类" />
+            <Form.Item label="机型分类" name="categoryId" rules={[{ required: true, message: "请选择机型分类" }]}>
+              <Select options={categoryOptions} placeholder="选择机型分类" />
             </Form.Item>
-            <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
-              <Select options={brandOptions} placeholder="选择品牌" />
+            <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择已有品牌" }]}>
+              <Select
+                filterOption={(input, option) =>
+                  String(option?.label ?? "")
+                    .toLowerCase()
+                    .includes(input.toLowerCase())
+                }
+                options={brandOptions}
+                placeholder="搜索并选择已有品牌"
+                showSearch
+              />
             </Form.Item>
             <Form.Item label="动力类型" name="powerType" rules={[{ required: true, message: "请选择动力类型" }]}>
               <Select options={powerOptions} placeholder="选择动力类型" />
@@ -153,7 +170,7 @@ export function ModelsPage() {
           </Form>
         </AdminPanel>
 
-        <AdminPanel description="按品牌、分类与动力类型查看当前机型。" title="机型列表">
+        <AdminPanel description="机型列表保留分类字段，但品牌选择入口改成搜索已有品牌。" title="机型列表">
           <Table
             bordered
             columns={[
@@ -171,13 +188,13 @@ export function ModelsPage() {
                 key: "brand",
                 render: (_, record: ModelRecord) => record.brand.name,
                 title: "品牌",
-                width: 120
+                width: 160
               },
               {
                 key: "category",
                 render: (_, record: ModelRecord) => record.category.name,
                 title: "分类",
-                width: 120
+                width: 140
               },
               {
                 dataIndex: "powerType",
@@ -236,11 +253,19 @@ export function ModelsPage() {
           <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
             <Input />
           </Form.Item>
-          <Form.Item label="分类" name="categoryId" rules={[{ required: true, message: "请选择分类" }]}>
+          <Form.Item label="机型分类" name="categoryId" rules={[{ required: true, message: "请选择机型分类" }]}>
             <Select options={categoryOptions} />
           </Form.Item>
-          <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
-            <Select options={brandOptions} />
+          <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择已有品牌" }]}>
+            <Select
+              filterOption={(input, option) =>
+                String(option?.label ?? "")
+                  .toLowerCase()
+                  .includes(input.toLowerCase())
+              }
+              options={brandOptions}
+              showSearch
+            />
           </Form.Item>
           <Form.Item label="动力类型" name="powerType">
             <Select options={powerOptions} />

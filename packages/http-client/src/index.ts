@@ -2,6 +2,8 @@ import {
   actionSuccessResponseSchema,
   adminRankingsResponseSchema,
   adminRecentSessionsResponseSchema,
+  brandApplicationResponseSchema,
+  brandApplicationsResponseSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
   adminCategoryInputSchema,
@@ -35,6 +37,7 @@ import {
   completeUploadInputSchema,
   completeUploadResponseSchema,
   contentCategoriesResponseSchema,
+  createBrandApplicationInputSchema,
   createAircraftSubmissionInputSchema,
   createPostCommentInputSchema,
   createPostCommentResponseSchema,
@@ -78,6 +81,7 @@ import {
   registrationDisplayNameSuggestRequestSchema,
   registrationDisplayNameSuggestResponseSchema,
   reviewCommentsResponseSchema,
+  updateBrandApplicationStatusInputSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
@@ -87,11 +91,15 @@ import {
   submitRankingItemRatingResponseSchema,
   submitRankingItemReviewInputSchema,
   submitRankingItemReviewResponseSchema,
+  updateRankingItemCommentInputSchema,
+  updatePostCommentInputSchema,
+  updatePostInputSchema,
   updateRankingStatusInputSchema,
   userContentResponseSchema,
   userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
   updateCurrentUserProfileInputSchema,
+  updateReviewCommentInputSchema,
   updateSiteSettingsInputSchema,
   updateReviewStatusInputSchema,
   fileUrlResponseSchema,
@@ -124,9 +132,12 @@ type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
 type AdminModelInput = Parameters<typeof adminModelInputSchema.parse>[0];
 type AdminContentCategoryInput = Parameters<typeof adminContentCategoryInputSchema.parse>[0];
+type CreateBrandApplicationInput = Parameters<typeof createBrandApplicationInputSchema.parse>[0];
 type FeedTabInput = "recommended" | "latest" | "following";
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
+type UpdatePostInput = Parameters<typeof updatePostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
+type UpdatePostCommentInput = Parameters<typeof updatePostCommentInputSchema.parse>[0];
 type PostInteractionTypeInput = Parameters<typeof postInteractionTypeSchema.parse>[0];
 type ReportPostInput = Parameters<typeof reportPostInputSchema.parse>[0];
 type UpdateAdminPostStatusInput = Parameters<typeof adminPostStatusUpdateInputSchema.parse>[0];
@@ -136,6 +147,7 @@ type UpdateAdminPostCommentStatusInput =
   Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
 type CreateReviewCommentInput = Parameters<typeof createReviewCommentInputSchema.parse>[0];
+type UpdateReviewCommentInput = Parameters<typeof updateReviewCommentInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
 type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
@@ -149,6 +161,8 @@ type UpdateRankingStatusInput = Parameters<typeof updateRankingStatusInputSchema
 type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
 type UpdateAircraftSubmissionStatusInput =
   Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
+type UpdateBrandApplicationStatusInput =
+  Parameters<typeof updateBrandApplicationStatusInputSchema.parse>[0];
 type UpdateCurrentUserProfileInput =
   Parameters<typeof updateCurrentUserProfileInputSchema.parse>[0];
 type PhoneChangeRequestInput = Parameters<typeof phoneChangeRequestInputSchema.parse>[0];
@@ -524,6 +538,13 @@ export function createApiClient(options: ApiClientOptions) {
     async createPost(input: CreatePostInput) {
       return postJson(API_ROUTES.posts.create, createPostResponseSchema, createPostInputSchema.parse(input));
     },
+    async updatePost(id: string, input: UpdatePostInput) {
+      return putJson(
+        API_ROUTES.posts.detail(id),
+        postDetailResponseSchema,
+        updatePostInputSchema.parse(input)
+      );
+    },
     async initUpload(input: InitUploadInput) {
       return initUpload(input);
     },
@@ -596,6 +617,28 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, actionSuccessResponseSchema);
+    },
+    async updatePostComment(postId: string, commentId: string, input: UpdatePostCommentInput) {
+      return putJson(
+        API_ROUTES.posts.commentDetail(postId, commentId),
+        createPostCommentResponseSchema,
+        updatePostCommentInputSchema.parse(input)
+      );
+    },
+    async likePostComment(postId: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.commentLike(postId, commentId)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportPostComment(postId: string, commentId: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.posts.commentReport(postId, commentId),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
     },
     async reportPost(id: string, input: ReportPostInput) {
       return postJson(
@@ -727,6 +770,21 @@ export function createApiClient(options: ApiClientOptions) {
         createAircraftSubmissionInputSchema.parse(input)
       );
     },
+    async updateAircraftSubmission(id: string, input: CreateAircraftSubmissionInput) {
+      return putJson(
+        API_ROUTES.submissions.detail(id),
+        aircraftSubmissionResponseSchema,
+        createAircraftSubmissionInputSchema.parse(input)
+      );
+    },
+    async deleteAircraftSubmission(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.submissions.detail(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
     async getAircraftSubmission(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.submissions.detail(id)}`, {
         method: "GET",
@@ -748,6 +806,36 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.submissions.adminDetail(id),
         aircraftSubmissionResponseSchema,
         updateAircraftSubmissionStatusInputSchema.parse(input)
+      );
+    },
+    async createBrandApplication(input: CreateBrandApplicationInput) {
+      return postJson(
+        API_ROUTES.brandApplications.create,
+        brandApplicationResponseSchema,
+        createBrandApplicationInputSchema.parse(input)
+      );
+    },
+    async getBrandApplication(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.brandApplications.detail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, brandApplicationResponseSchema);
+    },
+    async listAdminBrandApplications() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.brandApplications.adminList}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, brandApplicationsResponseSchema);
+    },
+    async updateBrandApplicationStatus(id: string, input: UpdateBrandApplicationStatusInput) {
+      return putJson(
+        API_ROUTES.brandApplications.adminDetail(id),
+        brandApplicationResponseSchema,
+        updateBrandApplicationStatusInputSchema.parse(input)
       );
     },
     async listRankings() {
@@ -779,6 +867,21 @@ export function createApiClient(options: ApiClientOptions) {
         addRankingItemInputSchema.parse(input)
       );
     },
+    async updateRankingItem(id: string, input: AddRankingItemInput) {
+      return putJson(
+        API_ROUTES.rankings.itemDetail(id),
+        rankingItemDetailResponseSchema,
+        addRankingItemInputSchema.parse(input)
+      );
+    },
+    async deleteRankingItem(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.itemDetail(id)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
     async getRankingDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.detail(id)}`, {
         method: "GET",
@@ -809,6 +912,13 @@ export function createApiClient(options: ApiClientOptions) {
         createRankingCommentInputSchema.parse(input)
       );
     },
+    async reportRanking(id: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.rankings.report(id),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
+    },
     async getRankingItemDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.itemDetail(id)}`, {
         method: "GET",
@@ -836,6 +946,53 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.rankings.itemComments(id),
         createRankingItemCommentResponseSchema,
         createRankingItemCommentInputSchema.parse(input)
+      );
+    },
+    async updateRankingItemComment(
+      itemId: string,
+      commentId: string,
+      input: { content: string }
+    ) {
+      return putJson(
+        API_ROUTES.rankings.itemCommentDetail(itemId, commentId),
+        createRankingItemCommentResponseSchema,
+        updateRankingItemCommentInputSchema.parse(input)
+      );
+    },
+    async deleteRankingItemComment(itemId: string, commentId: string) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.rankings.itemCommentDetail(itemId, commentId)}`,
+        {
+          method: "DELETE",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async likeRankingItemComment(itemId: string, commentId: string) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.rankings.itemCommentLike(itemId, commentId)}`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportRankingItemComment(itemId: string, commentId: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.rankings.itemCommentReport(itemId, commentId),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
+    },
+    async reportRankingItem(id: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.rankings.itemReport(id),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
       );
     },
     async listAdminPosts(status?: "pending" | "published" | "rejected" | "hidden") {
@@ -957,11 +1114,37 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, reviewCommentsResponseSchema);
     },
+    async likeModelReview(reviewId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviewLike(reviewId)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportModelReview(reviewId: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.models.reviewReport(reviewId),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
+    },
     async createReviewComment(reviewId: string, input: CreateReviewCommentInput) {
       return postJson(
         API_ROUTES.models.reviewComments(reviewId),
         createReviewCommentResponseSchema,
         createReviewCommentInputSchema.parse(input)
+      );
+    },
+    async updateReviewComment(
+      reviewId: string,
+      commentId: string,
+      input: UpdateReviewCommentInput
+    ) {
+      return putJson(
+        API_ROUTES.models.reviewCommentDetail(reviewId, commentId),
+        createReviewCommentResponseSchema,
+        updateReviewCommentInputSchema.parse(input)
       );
     },
     async deleteReviewComment(reviewId: string, commentId: string) {
@@ -974,6 +1157,24 @@ export function createApiClient(options: ApiClientOptions) {
       );
 
       return readJson(response, actionSuccessResponseSchema);
+    },
+    async likeReviewComment(reviewId: string, commentId: string) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.models.reviewCommentLike(reviewId, commentId)}`,
+        {
+          method: "POST",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportReviewComment(reviewId: string, commentId: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.models.reviewCommentReport(reviewId, commentId),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
     },
     async submitModelReview(slug: string, input: SubmitReviewInput) {
       return postJson(

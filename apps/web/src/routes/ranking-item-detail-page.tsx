@@ -1,6 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon } from "lucide-react";
+import {
+  ArrowLeftIcon,
+  HeartIcon,
+  ShieldAlertIcon,
+  SquarePenIcon,
+  Trash2Icon
+} from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
@@ -18,17 +24,102 @@ import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage, getModelImage } from "../lib/aviation-media";
 import { buildRankingItemSubmission } from "./ranking-item-detail-helpers";
 
+type RankingItemDetail = Awaited<ReturnType<typeof apiClient.getRankingItemDetail>>["item"];
+type RankingItemComment = RankingItemDetail["comments"][number];
+
+function CommentActions(props: {
+  itemId: string;
+  comment: RankingItemComment;
+  canReply: boolean;
+  currentUserId?: string;
+  onReply: (comment: RankingItemComment) => void;
+  onRefresh: () => Promise<void>;
+  onError: (message: string) => void;
+  onEdit: (comment: RankingItemComment) => void;
+}) {
+  const isAuthor = props.currentUserId === props.comment.author.id;
+
+  return (
+    <div className="flex items-center gap-1">
+      <Button
+        onClick={() => {
+          void apiClient
+            .likeRankingItemComment(props.itemId, props.comment.id)
+            .then(props.onRefresh)
+            .catch((reason: unknown) => {
+              props.onError(reason instanceof Error ? reason.message : "点赞失败");
+            });
+        }}
+        size="sm"
+        type="button"
+        variant="ghost"
+      >
+        <HeartIcon className="size-4" />
+        {props.comment.likeCount ?? 0}
+      </Button>
+      {props.canReply ? (
+        <Button onClick={() => props.onReply(props.comment)} size="sm" type="button" variant="ghost">
+          回复
+        </Button>
+      ) : null}
+      {!isAuthor ? (
+        <Button
+          onClick={() => {
+            void apiClient
+              .reportRankingItemComment(props.itemId, props.comment.id, { reason: "不当评论" })
+              .then(props.onRefresh)
+              .catch((reason: unknown) => {
+                props.onError(reason instanceof Error ? reason.message : "举报失败");
+              });
+          }}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <ShieldAlertIcon className="size-4" />
+        </Button>
+      ) : null}
+      {isAuthor ? (
+        <>
+          <Button onClick={() => props.onEdit(props.comment)} size="sm" type="button" variant="ghost">
+            <SquarePenIcon className="size-4" />
+          </Button>
+          <Button
+            onClick={() => {
+              void apiClient
+                .deleteRankingItemComment(props.itemId, props.comment.id)
+                .then(props.onRefresh)
+                .catch((reason: unknown) => {
+                  props.onError(reason instanceof Error ? reason.message : "删除失败");
+                });
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2Icon className="size-4" />
+          </Button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 export function RankingItemDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
+  const currentUserId = useAuthStore((state) => state.user?.id);
   const promptLogin = useLoginPrompt();
   const [content, setContent] = useState("");
   const [selectedRating, setSelectedRating] = useState(0);
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editingContent, setEditingContent] = useState("");
 
   const detailQuery = useQuery({
     queryKey: ["ranking-item-detail", id],
@@ -51,7 +142,7 @@ export function RankingItemDetailPage() {
   const totalRatings = item?.totalRatings ?? 0;
   const ratingLabel = useMemo(() => {
     if (!selectedRating) {
-      return "请选择星级";
+      return "请选择评分";
     }
 
     return `${selectedRating} 星评价`;
@@ -92,14 +183,14 @@ export function RankingItemDetailPage() {
 
       {detailQuery.isError ? (
         <Alert variant="destructive">
-          <AlertTitle>榜单条目详情加载失败</AlertTitle>
+          <AlertTitle>条目详情加载失败</AlertTitle>
           <AlertDescription>{detailQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
 
       {!id || (!detailQuery.isLoading && !item) ? (
         <Alert>
-          <AlertTitle>榜单条目详情不可用</AlertTitle>
+          <AlertTitle>条目详情不可用</AlertTitle>
           <AlertDescription>当前条目不存在或暂无可展示数据。</AlertDescription>
         </Alert>
       ) : null}
@@ -107,7 +198,7 @@ export function RankingItemDetailPage() {
       {item ? (
         <>
           <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="overflow-hidden">
+            <div className="overflow-hidden rounded-[1rem]">
               <img
                 alt={item.title}
                 className="h-[240px] w-full object-cover md:h-[280px]"
@@ -128,9 +219,7 @@ export function RankingItemDetailPage() {
                   <div className="text-[1.9rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.2rem]">
                     {item.title}
                   </div>
-                  {item.summary ? (
-                    <p className="text-sm leading-7 text-muted-foreground">{item.summary}</p>
-                  ) : null}
+                  {item.summary ? <p className="text-sm leading-7 text-muted-foreground">{item.summary}</p> : null}
                 </div>
 
                 <div className="space-y-2">
@@ -147,11 +236,26 @@ export function RankingItemDetailPage() {
                   <RatingBreakdown entries={item.ratingBreakdown} totalCount={totalRatings} />
                 </div>
 
-                {item.linkedModel ? (
-                  <Button asChild size="sm" variant="outline">
-                    <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
+                <div className="flex flex-wrap gap-2">
+                  {item.linkedModel ? (
+                    <Button asChild size="sm" variant="outline">
+                      <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
+                    </Button>
+                  ) : null}
+                  <Button
+                    onClick={() => {
+                      void apiClient.reportRankingItem(item.id, { reason: "不当内容" }).catch((reason: unknown) => {
+                        setActionError(reason instanceof Error ? reason.message : "举报失败");
+                      });
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <ShieldAlertIcon data-icon="inline-start" />
+                    举报条目
                   </Button>
-                ) : null}
+                </div>
               </div>
 
               <div className="border border-border/70 px-4 py-4">
@@ -167,7 +271,7 @@ export function RankingItemDetailPage() {
             <div className="space-y-1">
               <div className="text-base font-semibold text-foreground">评分与评论</div>
               <div className="text-sm text-muted-foreground">
-                使用单一入口提交星级。补充文字时会同步作为这条评分的评论内容。
+                先评分，再补充评论；也可以直接对已有评论回复。
               </div>
             </div>
 
@@ -187,32 +291,41 @@ export function RankingItemDetailPage() {
                 {authStatus === "authenticated" ? (
                   <InlineCommentComposer
                     busy={busy}
-                    disabled={busy || selectedRating === 0}
+                    disabled={busy || (!replyingTo && selectedRating === 0)}
                     onChange={setContent}
                     onSubmit={() => {
-                      const submission = buildRankingItemSubmission(selectedRating, content);
-                      if (!submission) {
-                        return;
-                      }
-
                       setActionError(null);
                       setBusy(true);
+                      const request = replyingTo
+                        ? apiClient.createRankingItemComment(item.id, {
+                            content,
+                            parentCommentId: replyingTo.id
+                          } as Parameters<typeof apiClient.createRankingItemComment>[1])
+                        : (() => {
+                            const submission = buildRankingItemSubmission(selectedRating, content);
+                            if (!submission) {
+                              return Promise.reject(new Error("请先评分"));
+                            }
 
-                      const request =
-                        submission.kind === "review"
-                          ? apiClient.submitRankingItemReview(item.id, submission.payload)
-                          : apiClient.submitRankingItemRating(item.id, submission.payload);
+                            return submission.kind === "review"
+                              ? apiClient.submitRankingItemReview(item.id, submission.payload)
+                              : apiClient.submitRankingItemRating(item.id, submission.payload);
+                          })();
 
                       void request
-                        .then(() => refreshAll())
+                        .then(() => {
+                          setReplyingTo(null);
+                          setContent("");
+                          return refreshAll();
+                        })
                         .catch((reason: unknown) => {
-                          setActionError(reason instanceof Error ? reason.message : "评分提交失败");
+                          setActionError(reason instanceof Error ? reason.message : "条目互动失败");
                         })
                         .finally(() => {
                           setBusy(false);
                         });
                     }}
-                    placeholder="补充这次评分的理由，可选..."
+                    placeholder={replyingTo ? `回复 @${replyingTo.displayName}` : "补充评分理由，或直接发表评论"}
                     value={content}
                   />
                 ) : (
@@ -220,15 +333,15 @@ export function RankingItemDetailPage() {
                     className="w-full"
                     onClick={() => {
                       promptLogin({
-                        title: "登录后才能评分",
-                        description: "评分与评论前请先登录。"
+                        title: "登录后才能评论",
+                        description: "评分、回复和举报都需要登录。"
                       });
                     }}
                     size="sm"
                     type="button"
                     variant="outline"
                   >
-                    登录后评分
+                    登录后参与互动
                   </Button>
                 )}
 
@@ -261,9 +374,93 @@ export function RankingItemDetailPage() {
                         </div>
                       </div>
                     </div>
+                    <CommentActions
+                      canReply={authStatus === "authenticated"}
+                      comment={comment}
+                      currentUserId={currentUserId}
+                      itemId={item.id}
+                      onEdit={(target) => {
+                        setEditingId(target.id);
+                        setEditingContent(target.content);
+                      }}
+                      onError={setActionError}
+                      onRefresh={refreshAll}
+                      onReply={(target) => {
+                        setReplyingTo({ id: target.id, displayName: target.author.displayName });
+                        setContent(`@${target.author.displayName} `);
+                      }}
+                    />
                   </div>
-                  {comment.content ? (
+
+                  {editingId === comment.id ? (
+                    <div className="mt-3">
+                      <InlineCommentComposer
+                        busy={busy}
+                        disabled={busy}
+                        onChange={setEditingContent}
+                        onSubmit={() => {
+                          setBusy(true);
+                          void apiClient
+                            .updateRankingItemComment(item.id, comment.id, { content: editingContent })
+                            .then(() => {
+                              setEditingId(null);
+                              return refreshAll();
+                            })
+                            .catch((reason: unknown) => {
+                              setActionError(reason instanceof Error ? reason.message : "编辑失败");
+                            })
+                            .finally(() => {
+                              setBusy(false);
+                            });
+                        }}
+                        placeholder="编辑评论"
+                        value={editingContent}
+                      />
+                    </div>
+                  ) : comment.content ? (
                     <p className="mt-2.5 text-[0.82rem] leading-6 text-foreground/76">{comment.content}</p>
+                  ) : null}
+
+                  {(comment.replies ?? []).length > 0 ? (
+                    <div className="mt-4 space-y-3 border-l border-border/70 pl-4">
+                      {(comment.replies ?? []).map((reply) => (
+                        <div className="flex items-start justify-between gap-3" key={reply.id}>
+                          <div className="flex min-w-0 items-start gap-3">
+                            <Avatar size="sm">
+                              <AvatarImage
+                                alt={reply.author.displayName}
+                                src={reply.author.avatarUrl ?? getAvatarImage(reply.author.id)}
+                              />
+                              <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
+                            </Avatar>
+                            <div className="space-y-1">
+                              <div className="flex flex-wrap items-center gap-2 text-[0.72rem] text-muted-foreground">
+                                <span className="text-sm font-medium text-foreground">{reply.author.displayName}</span>
+                                {reply.replyToUser ? <span>@{reply.replyToUser.displayName}</span> : null}
+                                <span>{new Date(reply.updatedAt).toLocaleString("zh-CN", { hour12: false })}</span>
+                              </div>
+                              <p className="text-[0.82rem] leading-6 text-foreground/76">{reply.content}</p>
+                            </div>
+                          </div>
+                          <CommentActions
+                            canReply={authStatus === "authenticated"}
+                            comment={reply as RankingItemComment}
+                            currentUserId={currentUserId}
+                            itemId={item.id}
+                            onEdit={(target) => {
+                              setEditingId(target.id);
+                              setEditingContent(target.content);
+                            }}
+                            onError={setActionError}
+                            onRefresh={refreshAll}
+                            onReply={(target) => {
+                              setReplyingTo({ id: target.id, displayName: target.author.displayName });
+                              setContent(`@${target.author.displayName} `);
+                            }}
+                          />
+                        </div>
+                      ))}
+                    </div>
                   ) : null}
                 </div>
               ))}

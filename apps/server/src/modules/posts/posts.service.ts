@@ -14,6 +14,7 @@ type PostStatus = "pending" | "published" | "rejected" | "hidden";
 type PostType = "article" | "moment";
 type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
+type CommentSort = "hot" | "latest";
 
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
@@ -202,12 +203,28 @@ function buildReplyToUserMap(
   );
 }
 
+function buildCommentStateSet(rows: Array<{ commentId: string }>) {
+  return new Set(rows.map((row) => row.commentId));
+}
+
 function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>
+  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  input: {
+    currentUserId?: string | null;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+    sort: CommentSort;
+  }
 ) {
   const repliesByRootId = new Map<string, Array<any>>();
   const roots: Array<any> = [];
+  const compare =
+    input.sort === "hot"
+      ? (left: { likeCount: number; updatedAt: string }, right: { likeCount: number; updatedAt: string }) =>
+          right.likeCount - left.likeCount || right.updatedAt.localeCompare(left.updatedAt)
+      : (left: { createdAt: string }, right: { createdAt: string }) =>
+          right.createdAt.localeCompare(left.createdAt);
 
   for (const comment of comments) {
     const serializedBase = {
@@ -219,12 +236,20 @@ function serializeCommentThreads(
       status: comment.status as PostCommentStatus,
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),
+      likeCount: comment.likeCount ?? 0,
+      reportCount: comment.reportCount ?? 0,
       author: {
         id: comment.author.id,
         displayName: comment.author.displayName,
         role: comment.author.role as "user" | "admin"
       },
-      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null
+      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
+      viewer: {
+        canEdit: input.currentUserId === comment.author.id,
+        canDelete: input.currentUserId === comment.author.id,
+        hasLiked: input.likedCommentIds?.has(comment.id) ?? false,
+        hasReported: input.reportedCommentIds?.has(comment.id) ?? false
+      }
     };
 
     if (!comment.parentCommentId) {
@@ -241,16 +266,19 @@ function serializeCommentThreads(
     repliesByRootId.set(comment.parentCommentId, bucket);
   }
 
-  return roots.map((root) => ({
-    ...root,
-    replies: repliesByRootId.get(root.id) ?? [],
-    replyCount: (repliesByRootId.get(root.id) ?? []).length
-  }));
+  return roots
+    .map((root) => ({
+      ...root,
+      replies: (repliesByRootId.get(root.id) ?? []).sort(compare),
+      replyCount: (repliesByRootId.get(root.id) ?? []).length
+    }))
+    .sort(compare);
 }
 
 function serializeSingleComment(
   item: Awaited<ReturnType<typeof postsRepo.getCommentById>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>
+  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  currentUserId?: string | null
 ) {
   if (!item) {
     return null;
@@ -265,12 +293,20 @@ function serializeSingleComment(
     status: item.status as PostCommentStatus,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
+    likeCount: item.likeCount ?? 0,
+    reportCount: item.reportCount ?? 0,
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
       role: item.author.role as "user" | "admin"
     },
-    replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
+    replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
+    viewer: {
+      canEdit: currentUserId === item.author.id,
+      canDelete: currentUserId === item.author.id,
+      hasLiked: false,
+      hasReported: false
+    }
   };
 }
 
@@ -369,9 +405,7 @@ export const postsService = {
       return { kind: "invalid_category" as const };
     }
 
-    const moderation = await siteSettingsService.getResolvedSettings();
-    const shouldAutoPublish =
-      input.authorRole === "admin" || !moderation.postModerationEnabled;
+    const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost(input.type));
     const status: PostStatus = shouldAutoPublish ? "published" : "pending";
 
     const item = await postsRepo.createPost({
@@ -419,7 +453,11 @@ export const postsService = {
         }
       : { kind: "not_found" as const };
   },
-  async getPostDetail(id: string, currentUser?: CurrentUser | null) {
+  async getPostDetail(
+    id: string,
+    currentUser?: CurrentUser | null,
+    options?: { commentSort?: CommentSort }
+  ) {
     const item = await postsRepo.getPostById(id);
     if (!item) {
       return null;
@@ -437,12 +475,19 @@ export const postsService = {
       currentUser ? postsRepo.listViewerInteractions([id], currentUser.id) : [],
       currentUser ? socialService.listFollowingStateSet(currentUser.id, [item.author.id]) : new Set<string>()
     ]);
+    const commentIds = comments.map((comment) => comment.id);
     const replyToUserIds = Array.from(
       new Set(comments.map((comment) => comment.replyToUserId).filter((value): value is string => Boolean(value)))
     );
-    const replyToUsers = await postsRepo.listUsersByIds(replyToUserIds);
+    const [replyToUsers, likedComments, reportedComments] = await Promise.all([
+      postsRepo.listUsersByIds(replyToUserIds),
+      currentUser ? postsRepo.listViewerCommentLikes(commentIds, currentUser.id) : [],
+      currentUser ? postsRepo.listViewerCommentReports(commentIds, currentUser.id) : []
+    ]);
     const replyToUserMap = buildReplyToUserMap(replyToUsers);
     const interactionMap = buildInteractionMap(interactions);
+    const likedCommentIds = buildCommentStateSet(likedComments);
+    const reportedCommentIds = buildCommentStateSet(reportedComments);
 
     return {
       item: {
@@ -482,7 +527,12 @@ export const postsService = {
             interactionTypes: interactionMap.get(item.id)
           })
         },
-        comments: serializeCommentThreads(comments, replyToUserMap)
+        comments: serializeCommentThreads(comments, replyToUserMap, {
+          currentUserId: currentUser?.id,
+          likedCommentIds,
+          reportedCommentIds,
+          sort: options?.commentSort ?? "hot"
+        })
       }
     };
   },
@@ -578,13 +628,16 @@ export const postsService = {
       return { kind: "invalid_videos" as const };
     }
 
-    const updated = await postsRepo.updateOfficialArticle({
+    const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost("article"));
+    const updated = await postsRepo.updatePost({
       id,
       ownerId: existing.author.id,
       title: input.title,
       content: input.content,
       contentHtml: input.contentHtml,
+      contentPlainText: input.content,
       contentCategoryId: input.contentCategoryId,
+      status: shouldAutoPublish ? "published" : "pending",
       imageIds: uniqueImageIds,
       videoIds: uniqueVideoIds
     });
@@ -674,7 +727,11 @@ export const postsService = {
       status
     });
     const replyUsers = replyToUserId ? await postsRepo.listUsersByIds([replyToUserId]) : [];
-    const serialized = serializeSingleComment(item, buildReplyToUserMap(replyUsers));
+    const serialized = serializeSingleComment(
+      item,
+      buildReplyToUserMap(replyUsers),
+      currentUser.id
+    );
 
     if (!serialized) {
       return { kind: "not_found" as const };
@@ -703,6 +760,47 @@ export const postsService = {
       item: serialized
     };
   },
+  async updateComment(
+    postId: string,
+    commentId: string,
+    currentUser: CurrentUser,
+    input: { content: string }
+  ) {
+    const comment = await postsRepo.getCommentById(commentId);
+    if (!comment || comment.postId !== postId) {
+      return { kind: "not_found" as const };
+    }
+
+    const canEdit = currentUser.role === "admin" || currentUser.id === comment.author.id;
+    if (!canEdit) {
+      return { kind: "forbidden" as const };
+    }
+
+    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
+    const updated = await postsRepo.updateComment(commentId, input.content);
+    if (!updated) {
+      return { kind: "not_found" as const };
+    }
+
+    if (shouldModerate && updated.status === "visible") {
+      await postsRepo.updateCommentStatus(commentId, "pending");
+    }
+
+    const refreshed = await postsRepo.getCommentById(commentId);
+    const replyUsers = refreshed?.replyToUserId
+      ? await postsRepo.listUsersByIds([refreshed.replyToUserId])
+      : [];
+    const serialized = serializeSingleComment(
+      refreshed,
+      buildReplyToUserMap(replyUsers),
+      currentUser.id
+    );
+    if (!serialized) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, item: serialized };
+  },
   async deleteComment(postId: string, commentId: string, currentUser: CurrentUser) {
     const comment = await postsRepo.getCommentById(commentId);
     if (!comment || comment.postId !== postId) {
@@ -715,6 +813,33 @@ export const postsService = {
     }
 
     await postsRepo.deleteCommentThread(commentId, postId);
+    return { kind: "ok" as const };
+  },
+  async toggleCommentLike(postId: string, commentId: string, currentUser: CurrentUser) {
+    const comment = await postsRepo.getCommentById(commentId);
+    if (!comment || comment.postId !== postId || comment.status !== "visible") {
+      return { kind: "not_found" as const };
+    }
+
+    await postsRepo.toggleCommentLike(commentId, currentUser.id);
+    return { kind: "ok" as const };
+  },
+  async reportComment(
+    postId: string,
+    commentId: string,
+    currentUser: CurrentUser,
+    reason: string
+  ) {
+    const comment = await postsRepo.getCommentById(commentId);
+    if (!comment || comment.postId !== postId || comment.status !== "visible") {
+      return { kind: "not_found" as const };
+    }
+
+    await postsRepo.createCommentReport({
+      commentId,
+      reporterId: currentUser.id,
+      reason
+    });
     return { kind: "ok" as const };
   },
   async deletePost(id: string, currentUser: CurrentUser) {
@@ -730,6 +855,54 @@ export const postsService = {
 
     await postsRepo.deletePost(id);
     return { kind: "ok" as const };
+  },
+  async updatePost(
+    id: string,
+    currentUser: CurrentUser,
+    input: {
+      type: PostType;
+      title: string;
+      content: string;
+      contentHtml: string | null;
+      contentCategoryId: string | null;
+      imageIds: string[];
+      videoIds: string[];
+    }
+  ) {
+    const existing = await postsRepo.getPostById(id);
+    if (!existing) {
+      return { kind: "not_found" as const };
+    }
+
+    const canEdit = currentUser.role === "admin" || currentUser.id === existing.author.id;
+    if (!canEdit) {
+      return { kind: "forbidden" as const };
+    }
+
+    const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost(input.type));
+    const updated = await postsRepo.updatePost({
+      id,
+      ownerId: existing.author.id,
+      title: input.title,
+      content: input.content,
+      contentHtml: input.contentHtml,
+      contentPlainText: input.content,
+      contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+      status: shouldAutoPublish ? "published" : "pending",
+      imageIds: input.imageIds,
+      videoIds: input.videoIds
+    });
+
+    if (!updated) {
+      return { kind: "not_found" as const };
+    }
+
+    const payload = await this.getPostDetail(id, currentUser, { commentSort: "hot" });
+    if (!payload) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, item: payload.item };
   },
   async toggleInteraction(postId: string, currentUser: CurrentUser, type: PostInteractionType) {
     const post = await postsRepo.getPostById(postId);

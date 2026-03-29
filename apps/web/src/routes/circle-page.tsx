@@ -176,20 +176,20 @@ export function CirclePage() {
 
             return (
               <button
-                className={`mb-4 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition xl:mx-auto xl:max-w-[15rem] ${
+                className={`mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-[1.15rem] border text-left transition xl:mx-auto xl:max-w-[13.5rem] ${
                   selectedNoteId === item.id
                     ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
-                    : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"
+                    : "border-border/80 bg-white hover:border-primary/30 hover:bg-sky-50/45"
                 }`}
                 key={item.id}
                 onClick={() => openNote(item.id)}
                 type="button"
               >
-                <div className="relative overflow-hidden rounded-[0.75rem] bg-slate-100 p-1.5">
+                <div className="relative overflow-hidden rounded-[1rem] bg-slate-100 p-1">
                   <img
                     alt={item.title}
                     className={cn(
-                      "w-full rounded-[0.7rem] object-cover",
+                      "w-full rounded-[0.92rem] object-cover",
                       getCircleCardHeightClass(index)
                     )}
                     src={previewImage}
@@ -200,11 +200,11 @@ export function CirclePage() {
                     </span>
                   ) : null}
                 </div>
-                <div className="space-y-2 px-2.5 pb-2.5 pt-1.5">
-                  <h2 className="line-clamp-1 text-[0.9rem] leading-[1.35rem] font-semibold text-foreground">
+                <div className="space-y-1.5 px-3 pb-3 pt-1.5">
+                  <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
                     {item.title}
                   </h2>
-                  <div className="flex items-center justify-between gap-3 text-[0.74rem] text-foreground/58">
+                  <div className="flex items-center justify-between gap-2 text-[0.72rem] text-foreground/58">
                     <div className="flex min-w-0 items-center gap-2">
                       <Avatar className="size-6" size="sm">
                         <AvatarImage

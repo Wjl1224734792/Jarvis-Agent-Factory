@@ -107,6 +107,26 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
   return parseResponse<T>(response);
 }
 
+async function putJson<T>(path: string, body?: unknown): Promise<T> {
+  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+    method: "PUT",
+    credentials: "include",
+    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    body: body === undefined ? undefined : JSON.stringify(body)
+  });
+
+  return parseResponse<T>(response);
+}
+
+async function deleteJson<T>(path: string): Promise<T> {
+  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+    method: "DELETE",
+    credentials: "include"
+  });
+
+  return parseResponse<T>(response);
+}
+
 type WebBrand = {
   id: string;
   slug: string;
@@ -208,6 +228,16 @@ function buildModelListSearch(input?: {
 
 export const apiClient = {
   ...sharedClient,
+  getPostDetail(id: string, input?: { commentSort?: "hot" | "latest" }) {
+    const search = new URLSearchParams();
+    if (input?.commentSort) {
+      search.set("commentSort", input.commentSort);
+    }
+
+    return getJson<Awaited<ReturnType<typeof sharedClient.getPostDetail>>>(
+      `${API_ROUTES.posts.detail(id)}${search.toString() ? `?${search.toString()}` : ""}`
+    );
+  },
   listModels(input?: {
     categorySlugs?: string[];
     brandSlugs?: string[];
@@ -236,6 +266,45 @@ export const apiClient = {
   },
   listBrands() {
     return getJson<WebBrand[]>(API_ROUTES.models.brands);
+  },
+  likeModelReview(reviewId: string) {
+    return postJson<{ success: true }>(API_ROUTES.models.reviewLike(reviewId));
+  },
+  reportModelReview(reviewId: string, input: { reason: string }) {
+    return postJson<{ success: true }>(API_ROUTES.models.reviewReport(reviewId), input);
+  },
+  updateReviewComment(reviewId: string, commentId: string, input: { content: string }) {
+    return putJson<{ item: Awaited<ReturnType<typeof sharedClient.listReviewComments>>["items"][number] }>(
+      API_ROUTES.models.reviewCommentDetail(reviewId, commentId),
+      input
+    );
+  },
+  likeReviewComment(reviewId: string, commentId: string) {
+    return postJson<{ success: true }>(API_ROUTES.models.reviewCommentLike(reviewId, commentId));
+  },
+  reportReviewComment(reviewId: string, commentId: string, input: { reason: string }) {
+    return postJson<{ success: true }>(
+      API_ROUTES.models.reviewCommentReport(reviewId, commentId),
+      input
+    );
+  },
+  reportModel(slug: string, input: { reason: string }) {
+    return postJson<{ success: true }>(API_ROUTES.models.report(slug), input);
+  },
+  updateRankingItemComment(itemId: string, commentId: string, input: { content: string }) {
+    return putJson<{ item: unknown }>(API_ROUTES.rankings.itemCommentDetail(itemId, commentId), input);
+  },
+  deleteRankingItemComment(itemId: string, commentId: string) {
+    return deleteJson<{ success: true }>(API_ROUTES.rankings.itemCommentDetail(itemId, commentId));
+  },
+  likeRankingItemComment(itemId: string, commentId: string) {
+    return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentLike(itemId, commentId));
+  },
+  reportRankingItemComment(itemId: string, commentId: string, input: { reason: string }) {
+    return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentReport(itemId, commentId), input);
+  },
+  reportRankingItem(itemId: string, input: { reason: string }) {
+    return postJson<{ success: true }>(API_ROUTES.rankings.itemReport(itemId), input);
   }
 };
 

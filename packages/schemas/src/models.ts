@@ -30,7 +30,10 @@ export const modelInteractionSummarySchema = z.object({
 export const modelInteractionViewerStateSchema = z.object({
   isInterested: z.boolean(),
   isFavorited: z.boolean(),
-  hasShared: z.boolean()
+  hasShared: z.boolean(),
+  hasReported: z.boolean().default(false),
+  canEdit: z.boolean().default(false),
+  canDelete: z.boolean().default(false)
 });
 
 export const modelListItemSchema = z.object({
@@ -65,6 +68,9 @@ export const modelParameterSchema = z.object({
 export const modelDetailSchema = modelListItemSchema.extend({
   description: z.string().nullable(),
   isPublished: z.boolean(),
+  ownerId: z.string().min(1).nullable().optional(),
+  sourceSubmissionId: z.string().min(1).nullable().optional(),
+  reportCount: z.number().int().nonnegative().default(0),
   parameters: modelParameterSchema,
   interactionSummary: modelInteractionSummarySchema,
   viewer: modelInteractionViewerStateSchema

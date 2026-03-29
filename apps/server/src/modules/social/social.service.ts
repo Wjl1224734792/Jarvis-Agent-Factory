@@ -265,10 +265,10 @@ export const socialService = {
     }
 
     const [posts, favoritePosts, favoriteModels, rankings, aircraft, reviews] = await Promise.all([
-      socialRepo.listUserPublishedPosts(targetUserId),
+      socialRepo.listUserPosts(targetUserId, isSelf),
       socialRepo.listUserFavoritedPosts(targetUserId),
       socialRepo.listUserFavoritedModels(targetUserId),
-      socialRepo.listUserRankings(targetUserId),
+      socialRepo.listUserRankings(targetUserId, isSelf),
       socialRepo.listUserAircraftSubmissions(targetUserId, isSelf),
       socialRepo.listUserVisibleReviews(targetUserId)
     ]);
@@ -278,8 +278,10 @@ export const socialService = {
         type: "post" as const,
         id: post.id,
         postType: post.type as "article" | "moment",
+        status: post.status as "pending" | "published" | "rejected" | "hidden",
         title: post.title,
         contentPreview: toPreview(post.content),
+        canManage: isSelf,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString()
       })),
@@ -307,8 +309,10 @@ export const socialService = {
       ...rankings.map((ranking) => ({
         type: "ranking" as const,
         id: ranking.id,
+        status: ranking.status as "pending" | "published" | "rejected" | "hidden",
         title: ranking.title,
         description: ranking.description,
+        canManage: isSelf,
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
       })),
@@ -318,6 +322,7 @@ export const socialService = {
         modelName: submission.modelName,
         summary: submission.summary,
         status: submission.status as "draft" | "submitted" | "approved" | "rejected",
+        canManage: isSelf,
         createdAt: submission.createdAt.toISOString(),
         updatedAt: submission.updatedAt.toISOString()
       })),

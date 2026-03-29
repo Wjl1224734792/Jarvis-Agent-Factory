@@ -1,10 +1,24 @@
 import { APP_ROUTES } from "@feijia/shared";
+import {
+  CloudUploadOutlined,
+  CommentOutlined,
+  FileSearchOutlined,
+  FlagOutlined,
+  GatewayOutlined,
+  InboxOutlined,
+  OrderedListOutlined,
+  ReadOutlined,
+  TagsOutlined,
+  TrophyOutlined
+} from "@ant-design/icons";
 import { Button, Flex } from "antd";
 import { createBrowserRouter, Navigate, RouterProvider, useRouteError } from "react-router-dom";
 import { AdminLoginPage } from "./features/auth/admin-login-page";
 import { AdminOverviewPage } from "./features/auth/admin-overview-page";
 import { AdminProtectedRoute } from "./features/auth/admin-protected-route";
+import { AdminSectionHubPage } from "./features/auth/admin-section-hub-page";
 import { AdminShell } from "./features/auth/admin-shell";
+import { BrandApplicationsPage } from "./features/models/brand-applications-page";
 import { BrandsPage } from "./features/models/brands-page";
 import { CategoriesPage } from "./features/models/categories-page";
 import { ModelsPage } from "./features/models/models-page";
@@ -56,8 +70,176 @@ const router = createBrowserRouter([
     children: [
       {
         index: true,
+        element: <Navigate replace to={ADMIN_ROUTE_PATHS.overview} />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.overview.slice("/admin/".length),
         element: <AdminOverviewPage />
       },
+      {
+        path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),
+        element: (
+          <AdminSectionHubPage
+            description="把文章、动态、品牌申请、机型投稿、评论、榜单审核分开摆放，避免混在一个入口里。"
+            items={[
+              {
+                title: "文章审核",
+                description: "单独查看文章发布队列和文章审核策略。",
+                to: ADMIN_ROUTE_PATHS.moderationArticles,
+                icon: <FlagOutlined />
+              },
+              {
+                title: "飞友圈动态",
+                description: "动态审核和文章彻底拆开，减少内容混杂。",
+                to: ADMIN_ROUTE_PATHS.moderationMoments,
+                icon: <ReadOutlined />
+              },
+              {
+                title: "评论审核",
+                description: "评论与回复统一治理，单独处理违规内容。",
+                to: ADMIN_ROUTE_PATHS.moderationComments,
+                icon: <CommentOutlined />
+              },
+              {
+                title: "品牌申请",
+                description: "品牌申请独立排队，和机型投稿分离。",
+                to: ADMIN_ROUTE_PATHS.moderationBrandApplications,
+                icon: <InboxOutlined />
+              },
+              {
+                title: "机型投稿",
+                description: "飞行器资料和机型投稿的审核入口。",
+                to: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions,
+                icon: <CloudUploadOutlined />
+              },
+              {
+                title: "榜单与条目",
+                description: "榜单状态、榜单条目与社区榜单审核。",
+                to: ADMIN_ROUTE_PATHS.moderationRankings,
+                icon: <OrderedListOutlined />
+              }
+            ]}
+            title="审核"
+          />
+        )
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.operations.slice("/admin/".length),
+        element: (
+          <AdminSectionHubPage
+            description="把创建和发布动作集中在运营区，避免和审核队列混在一起。"
+            items={[
+              {
+                title: "创建文章",
+                description: "官方文章的创建、编辑与发布工作台。",
+                to: ADMIN_ROUTE_PATHS.operationsArticles,
+                icon: <ReadOutlined />
+              },
+              {
+                title: "创建飞行器",
+                description: "飞行器/机型建档入口，和品牌申请分开。",
+                to: ADMIN_ROUTE_PATHS.operationsAircraft,
+                icon: <GatewayOutlined />
+              },
+              {
+                title: "创建榜单",
+                description: "榜单创建、条目编排和官方榜单运营。",
+                to: ADMIN_ROUTE_PATHS.operationsRankings,
+                icon: <TrophyOutlined />
+              }
+            ]}
+            title="运营"
+          />
+        )
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.management.slice("/admin/".length),
+        element: (
+          <AdminSectionHubPage
+            description="品牌库、机型库和分类配置放到同一层，便于资料维护。"
+            items={[
+              {
+                title: "品牌库",
+                description: "品牌资料维护，不再显示和一级分类强绑定。",
+                to: ADMIN_ROUTE_PATHS.managementBrands,
+                icon: <TagsOutlined />
+              },
+              {
+                title: "机型库",
+                description: "机型资料维护，并使用已有品牌搜索选择。",
+                to: ADMIN_ROUTE_PATHS.managementModels,
+                icon: <GatewayOutlined />
+              },
+              {
+                title: "机型分类",
+                description: "机型一级分类配置与展示顺序维护。",
+                to: ADMIN_ROUTE_PATHS.managementCategories,
+                icon: <TagsOutlined />
+              },
+              {
+                title: "内容分类",
+                description: "文章与资讯栏目管理。",
+                to: ADMIN_ROUTE_PATHS.managementContentCategories,
+                icon: <TagsOutlined />
+              }
+            ]}
+            title="管理"
+          />
+        )
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationArticles.slice("/admin/".length),
+        element: <PostsPage contentType="article" />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationMoments.slice("/admin/".length),
+        element: <PostsPage contentType="moment" />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationComments.slice("/admin/".length),
+        element: <PostCommentsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationBrandApplications.slice("/admin/".length),
+        element: <BrandApplicationsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions.slice("/admin/".length),
+        element: <AircraftSubmissionsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.moderationRankings.slice("/admin/".length),
+        element: <RankingsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.operationsArticles.slice("/admin/".length),
+        element: <OfficialArticlesPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.operationsAircraft.slice("/admin/".length),
+        element: <ModelsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.operationsRankings.slice("/admin/".length),
+        element: <RankingsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.managementCategories.slice("/admin/".length),
+        element: <CategoriesPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.managementBrands.slice("/admin/".length),
+        element: <BrandsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.managementModels.slice("/admin/".length),
+        element: <ModelsPage />
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.managementContentCategories.slice("/admin/".length),
+        element: <ContentCategoriesPage />
+      },
+
       {
         path: APP_ROUTES.adminCategories.slice("/admin/".length),
         element: <CategoriesPage />
@@ -110,7 +292,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
-    element: <Navigate replace to={APP_ROUTES.adminHome} />
+    element: <Navigate replace to={ADMIN_ROUTE_PATHS.overview} />
   }
 ]);
 

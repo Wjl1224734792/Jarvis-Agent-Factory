@@ -30,9 +30,17 @@ export const rankingViewerStateSchema = z.object({
   canAddItems: z.boolean()
 });
 
+export const rankingItemViewerStateSchema = z.object({
+  canEdit: z.boolean().default(false),
+  canDelete: z.boolean().default(false),
+  hasReported: z.boolean().default(false)
+});
+
 export const rankingItemSchema = z.object({
   id: z.string().min(1),
   rankingId: z.string().min(1),
+  authorId: z.string().min(1).nullable().optional(),
+  status: rankingStatusSchema.default("published"),
   rank: z.number().int().positive(),
   title: z.string().min(1),
   summary: z.string().nullable(),
@@ -43,7 +51,14 @@ export const rankingItemSchema = z.object({
   averageScore: z.number().min(0).max(10),
   totalRatings: z.number().int().nonnegative(),
   commentCount: z.number().int().nonnegative(),
-  myRating: reviewRatingSchema.nullable()
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
+  myRating: reviewRatingSchema.nullable(),
+  viewer: rankingItemViewerStateSchema.default({
+    canEdit: false,
+    canDelete: false,
+    hasReported: false
+  })
 });
 
 export const rankingCommentSchema = z.object({
@@ -52,18 +67,63 @@ export const rankingCommentSchema = z.object({
   content: z.string().min(1),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  author: userSummarySchema
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
+  author: userSummarySchema,
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
 });
 
-export const rankingItemCommentSchema = z.object({
+const rankingItemCommentBaseSchema = z.object({
   id: z.string().min(1),
   rankingItemId: z.string().min(1),
+  parentCommentId: z.string().min(1).nullable().default(null),
+  replyToCommentId: z.string().min(1).nullable().default(null),
   content: z.string().min(1),
   rating: reviewRatingSchema,
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
-  author: userSummarySchema
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
+  author: userSummarySchema,
+  replyToUser: userSummarySchema.nullable().default(null),
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
 });
+
+export const rankingItemCommentSchema: z.ZodType<
+  z.infer<typeof rankingItemCommentBaseSchema> & {
+    replyCount: number;
+    replies: Array<z.infer<typeof rankingItemCommentBaseSchema>>;
+  }
+> = z.lazy(() =>
+  rankingItemCommentBaseSchema.extend({
+    replyCount: z.number().int().nonnegative().default(0),
+    replies: z.array(rankingItemCommentBaseSchema).default([])
+  })
+);
 
 const ratingBreakdownCountSchema = z.number().int().nonnegative();
 
@@ -169,6 +229,11 @@ export const submitRankingItemRatingResponseSchema = z.object({
 });
 
 export const createRankingItemCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000),
+  parentCommentId: z.string().min(1).optional()
+});
+
+export const updateRankingItemCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(1000)
 });
 

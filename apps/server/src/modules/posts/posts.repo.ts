@@ -3,6 +3,8 @@ import {
   createId,
   db,
   postCommentsTable,
+  postCommentLikesTable,
+  postCommentReportsTable,
   postInteractionsTable,
   postReportsTable,
   postsTable,
@@ -118,6 +120,27 @@ export const postsRepo = {
         updatedAt: new Date()
       })
       .where(eq(postsTable.id, postId));
+  },
+  async syncPostCommentEngagementCounts(commentId: string) {
+    const [likes, reports] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(postCommentLikesTable)
+        .where(eq(postCommentLikesTable.commentId, commentId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(postCommentReportsTable)
+        .where(eq(postCommentReportsTable.commentId, commentId))
+    ]);
+
+    await db
+      .update(postCommentsTable)
+      .set({
+        likeCount: Number(likes[0]?.count ?? 0),
+        reportCount: Number(reports[0]?.count ?? 0),
+        updatedAt: new Date()
+      })
+      .where(eq(postCommentsTable.id, commentId));
   },
   async getImageUploadById(id: string) {
     const file = await uploadsRepo.getFileById(id);
@@ -272,6 +295,36 @@ export const postsRepo = {
 
     return this.getPostById(input.id);
   },
+  async updatePost(input: {
+    id: string;
+    title: string;
+    content: string;
+    contentHtml: string | null;
+    contentPlainText: string;
+    contentCategoryId: string | null;
+    status: PostStatus;
+    ownerId: string;
+    imageIds: string[];
+    videoIds: string[];
+  }) {
+    await db
+      .update(postsTable)
+      .set({
+        title: input.title,
+        content: input.content,
+        contentHtml: input.contentHtml,
+        contentPlainText: input.contentPlainText,
+        contentCategoryId: input.contentCategoryId,
+        status: input.status,
+        updatedAt: new Date()
+      })
+      .where(eq(postsTable.id, input.id));
+
+    await this.replacePostImages(input.id, input.ownerId, input.imageIds);
+    await this.replacePostVideos(input.id, input.ownerId, input.videoIds);
+
+    return this.getPostById(input.id);
+  },
   async getPostById(id: string) {
     const rows = await db
       .select(postSelection())
@@ -373,6 +426,8 @@ export const postsRepo = {
         replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
+        likeCount: postCommentsTable.likeCount,
+        reportCount: postCommentsTable.reportCount,
         createdAt: postCommentsTable.createdAt,
         updatedAt: postCommentsTable.updatedAt,
         author: {
@@ -406,6 +461,8 @@ export const postsRepo = {
         replyToUserId: postCommentsTable.replyToUserId,
         content: postCommentsTable.content,
         status: postCommentsTable.status,
+        likeCount: postCommentsTable.likeCount,
+        reportCount: postCommentsTable.reportCount,
         createdAt: postCommentsTable.createdAt,
         updatedAt: postCommentsTable.updatedAt,
         author: {
@@ -444,6 +501,17 @@ export const postsRepo = {
     });
 
     await this.syncPostCommentCount(input.postId);
+    return this.getCommentById(id);
+  },
+  async updateComment(id: string, content: string) {
+    await db
+      .update(postCommentsTable)
+      .set({
+        content,
+        updatedAt: new Date()
+      })
+      .where(eq(postCommentsTable.id, id));
+
     return this.getCommentById(id);
   },
   async deleteCommentThread(commentId: string, postId: string) {
@@ -504,6 +572,81 @@ export const postsRepo = {
 
     await this.syncPostInteractionCounts(input.postId);
     return { active };
+  },
+  async listViewerCommentLikes(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        commentId: postCommentLikesTable.commentId
+      })
+      .from(postCommentLikesTable)
+      .where(
+        and(
+          eq(postCommentLikesTable.userId, userId),
+          inArray(postCommentLikesTable.commentId, commentIds)
+        )
+      );
+  },
+  async listViewerCommentReports(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        commentId: postCommentReportsTable.commentId
+      })
+      .from(postCommentReportsTable)
+      .where(
+        and(
+          eq(postCommentReportsTable.reporterId, userId),
+          inArray(postCommentReportsTable.commentId, commentIds)
+        )
+      );
+  },
+  async toggleCommentLike(commentId: string, userId: string) {
+    const existing = await db
+      .select({ id: postCommentLikesTable.id })
+      .from(postCommentLikesTable)
+      .where(
+        and(
+          eq(postCommentLikesTable.commentId, commentId),
+          eq(postCommentLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    let active = false;
+    if (existing.length > 0) {
+      await db.delete(postCommentLikesTable).where(eq(postCommentLikesTable.id, existing[0].id));
+    } else {
+      await db.insert(postCommentLikesTable).values({
+        id: createId("pclike"),
+        commentId,
+        userId
+      });
+      active = true;
+    }
+
+    await this.syncPostCommentEngagementCounts(commentId);
+    return { active };
+  },
+  async createCommentReport(input: { commentId: string; reporterId: string; reason: string }) {
+    await db
+      .insert(postCommentReportsTable)
+      .values({
+        id: createId("pcreport"),
+        commentId: input.commentId,
+        reporterId: input.reporterId,
+        reason: input.reason
+      })
+      .onConflictDoNothing();
+
+    await this.syncPostCommentEngagementCounts(input.commentId);
+    return true;
   },
   async createReport(input: { postId: string; reporterId: string; reason: string }) {
     const id = createId("report");

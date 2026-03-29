@@ -27,7 +27,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
-      avatarUrl: null
+      avatarFileId: null
     })
   });
 
@@ -539,5 +539,277 @@ describe("rankings flows", () => {
       (item) => item.id === createPayload.item.id
     );
     expect(publishedItem?.status).toBe("published");
+  });
+
+  it("lets ranking owner manage all items while contributors only manage their own item", async () => {
+    const ownerCookie = await loginUser("13800138081");
+    const contributorCookie = await loginUser("13800138082");
+    const outsiderCookie = await loginUser("13800138083");
+
+    const createResponse = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "community",
+        title: "Owner managed ranking",
+        description: "public add enabled",
+        coverImageFileId: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "Seed item",
+            summary: "owner item",
+            imageFileId: null,
+            brandName: "DJI",
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const createPayload = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const addResponse = await app.request(API_ROUTES.rankings.items(createPayload.item.id), {
+      method: "POST",
+      headers: {
+        cookie: contributorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Contributor item",
+        summary: "pending contributor item",
+        imageFileId: null,
+        brandName: "Autel",
+        linkedModelSlug: "autel-evo-lite-plus"
+      })
+    });
+    expect(addResponse.status).toBe(200);
+    const addPayload = (await addResponse.json()) as {
+      item: { items: Array<{ id: string; title: string; status: string; authorId?: string | null }> };
+    };
+    const contributorItem = addPayload.item.items.find((item) => item.title === "Contributor item");
+    expect(contributorItem?.status).toBe("pending");
+    expect(contributorItem?.authorId).toBeTruthy();
+
+    const contributorItemId = contributorItem?.id;
+    expect(contributorItemId).toBeTruthy();
+
+    const contributorUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+      method: "PUT",
+      headers: {
+        cookie: contributorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Contributor item updated",
+        summary: "updated by contributor",
+        imageFileId: null,
+        brandName: "Autel",
+        linkedModelSlug: "autel-evo-lite-plus"
+      })
+    });
+    expect(contributorUpdate.status).toBe(200);
+
+    const outsiderUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+      method: "PUT",
+      headers: {
+        cookie: outsiderCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Outsider edit",
+        summary: "should fail",
+        imageFileId: null,
+        brandName: "Autel",
+        linkedModelSlug: "autel-evo-lite-plus"
+      })
+    });
+    expect(outsiderUpdate.status).toBe(403);
+
+    const ownerUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+      method: "PUT",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Owner override item",
+        summary: "updated by owner",
+        imageFileId: null,
+        brandName: "Autel",
+        linkedModelSlug: "autel-evo-lite-plus"
+      })
+    });
+    expect(ownerUpdate.status).toBe(200);
+
+    const outsiderDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+      method: "DELETE",
+      headers: {
+        cookie: outsiderCookie
+      }
+    });
+    expect(outsiderDelete.status).toBe(403);
+
+    const ownerDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+      method: "DELETE",
+      headers: {
+        cookie: ownerCookie
+      }
+    });
+    expect(ownerDelete.status).toBe(200);
+  });
+
+  it("supports ranking item reply threads plus comment like/report/edit/delete flow", async () => {
+    const authorCookie = await loginUser("13800138084");
+    const replierCookie = await loginUser("13800138085");
+    const watcherCookie = await loginUser("13800138086");
+
+    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    const overviewPayload = (await overviewResponse.json()) as {
+      community: Array<{ items: Array<{ id: string }> }>;
+    };
+    const itemId = overviewPayload.community[0]?.items[0]?.id;
+    expect(itemId).toBeTruthy();
+
+    const reviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId!), {
+      method: "POST",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 5,
+        content: "Root review for reply thread."
+      })
+    });
+    expect(reviewResponse.status).toBe(200);
+    const reviewPayload = (await reviewResponse.json()) as {
+      item: { myReview: { id: string } | null };
+    };
+    const rootCommentId = reviewPayload.item.myReview?.id;
+    expect(rootCommentId).toBeTruthy();
+
+    const replyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie: replierCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Reply from another pilot.",
+        parentCommentId: rootCommentId
+      })
+    });
+    expect(replyResponse.status).toBe(200);
+    const replyPayload = (await replyResponse.json()) as { item: { id: string } };
+    const replyCommentId = replyPayload.item.id;
+
+    const likeResponse = await app.request(
+      API_ROUTES.rankings.itemCommentLike(itemId!, replyCommentId),
+      {
+        method: "POST",
+        headers: { cookie: watcherCookie }
+      }
+    );
+    expect(likeResponse.status).toBe(200);
+
+    const commentReportResponse = await app.request(
+      API_ROUTES.rankings.itemCommentReport(itemId!, replyCommentId),
+      {
+        method: "POST",
+        headers: {
+          cookie: watcherCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          reason: "spam reply"
+        })
+      }
+    );
+    expect(commentReportResponse.status).toBe(200);
+
+    const itemReportResponse = await app.request(API_ROUTES.rankings.itemReport(itemId!), {
+      method: "POST",
+      headers: {
+        cookie: watcherCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        reason: "test item report"
+      })
+    });
+    expect(itemReportResponse.status).toBe(200);
+
+    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+      method: "GET",
+      headers: { cookie: watcherCookie }
+    });
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        reportCount: number;
+        comments: Array<{
+          id: string;
+          replyCount: number;
+          replies: Array<{
+            id: string;
+            likeCount: number;
+            reportCount: number;
+            replyToUser: { displayName: string } | null;
+          }>;
+        }>;
+      };
+    };
+    expect(detailPayload.item.reportCount).toBeGreaterThanOrEqual(1);
+    expect(detailPayload.item.comments[0]?.replyCount).toBe(1);
+    expect(detailPayload.item.comments[0]?.replies[0]?.replyToUser?.displayName).toBeTruthy();
+    expect(detailPayload.item.comments[0]?.replies[0]?.likeCount).toBe(1);
+    expect(detailPayload.item.comments[0]?.replies[0]?.reportCount).toBe(1);
+
+    const updateReplyResponse = await app.request(
+      API_ROUTES.rankings.itemCommentDetail(itemId!, replyCommentId),
+      {
+        method: "PUT",
+        headers: {
+          cookie: replierCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          content: "Reply updated by author."
+        })
+      }
+    );
+    expect(updateReplyResponse.status).toBe(200);
+
+    const deleteReplyResponse = await app.request(
+      API_ROUTES.rankings.itemCommentDetail(itemId!, replyCommentId),
+      {
+        method: "DELETE",
+        headers: {
+          cookie: replierCookie
+        }
+      }
+    );
+    expect(deleteReplyResponse.status).toBe(200);
+
+    const afterDeleteResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+      method: "GET",
+      headers: { cookie: watcherCookie }
+    });
+    const afterDeletePayload = (await afterDeleteResponse.json()) as {
+      item: {
+        comments: Array<{ replyCount: number; replies: Array<{ id: string }> }>;
+      };
+    };
+    expect(afterDeletePayload.item.comments[0]?.replyCount).toBe(0);
+    expect(afterDeletePayload.item.comments[0]?.replies).toHaveLength(0);
   });
 });

@@ -1,4 +1,4 @@
-export const APP_NAME = "飞加网";
+export const APP_NAME = "飞加";
 
 export const APP_PORTS = {
   web: 3000,
@@ -24,6 +24,7 @@ export const APP_ROUTES = {
   publishArticle: "/publish/article",
   publishMoment: "/publish/moment",
   publishAircraft: "/publish/aircraft",
+  publishBrand: "/publish/brand",
   notifications: "/notifications",
   webLogin: "/login",
   webProfile: "/me",
@@ -31,8 +32,13 @@ export const APP_ROUTES = {
   webSettings: "/settings",
   adminLogin: "/admin/login",
   adminHome: "/admin",
+  adminOverview: "/admin/overview",
+  adminModeration: "/admin/moderation",
+  adminOperations: "/admin/operations",
+  adminManagement: "/admin/management",
   adminCategories: "/admin/categories",
   adminBrands: "/admin/brands",
+  adminBrandApplications: "/admin/brand-applications",
   adminModels: "/admin/models",
   adminReviews: "/admin/reviews",
   adminPosts: "/admin/posts",
@@ -75,6 +81,10 @@ export const API_ROUTES = {
     detail: (id: string) => `/posts/${id}`,
     comments: (id: string) => `/posts/${id}/comments`,
     commentDetail: (postId: string, commentId: string) => `/posts/${postId}/comments/${commentId}`,
+    commentLike: (postId: string, commentId: string) =>
+      `/posts/${postId}/comments/${commentId}/like`,
+    commentReport: (postId: string, commentId: string) =>
+      `/posts/${postId}/comments/${commentId}/report`,
     interaction: (id: string, type: string) => `/posts/${id}/interactions/${type}`,
     report: (id: string) => `/posts/${id}/report`,
     adminList: "/admin/posts",
@@ -87,6 +97,12 @@ export const API_ROUTES = {
     categories: "/content-categories",
     adminCategories: "/admin/content-categories",
     adminCategoryDetail: (id: string) => `/admin/content-categories/${id}`
+  },
+  brandApplications: {
+    create: "/brand-applications",
+    detail: (id: string) => `/brand-applications/${id}`,
+    adminList: "/admin/brand-applications",
+    adminDetail: (id: string) => `/admin/brand-applications/${id}`
   },
   submissions: {
     create: "/aircraft-submissions",
@@ -124,19 +140,40 @@ export const API_ROUTES = {
     adminStatus: (id: string) => `/admin/rankings/${id}/status`,
     items: (id: string) => `/rankings/${id}/items`,
     comments: (id: string) => `/rankings/${id}/comments`,
+    commentDetail: (rankingId: string, commentId: string) => `/rankings/${rankingId}/comments/${commentId}`,
+    commentLike: (rankingId: string, commentId: string) =>
+      `/rankings/${rankingId}/comments/${commentId}/like`,
+    commentReport: (rankingId: string, commentId: string) =>
+      `/rankings/${rankingId}/comments/${commentId}/report`,
+    report: (id: string) => `/rankings/${id}/report`,
     itemDetail: (id: string) => `/ranking-items/${id}`,
+    itemReport: (id: string) => `/ranking-items/${id}/report`,
     itemReview: (id: string) => `/ranking-items/${id}/review`,
     itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
-    itemComments: (id: string) => `/ranking-items/${id}/comments`
+    itemComments: (id: string) => `/ranking-items/${id}/comments`,
+    itemCommentDetail: (itemId: string, commentId: string) =>
+      `/ranking-items/${itemId}/comments/${commentId}`,
+    itemCommentLike: (itemId: string, commentId: string) =>
+      `/ranking-items/${itemId}/comments/${commentId}/like`,
+    itemCommentReport: (itemId: string, commentId: string) =>
+      `/ranking-items/${itemId}/comments/${commentId}/report`
   },
   models: {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
     interactions: (slug: string, type: string) => `/models/${slug}/interactions/${type}`,
+    report: (slug: string) => `/models/${slug}/report`,
     reviews: (slug: string) => `/models/${slug}/reviews`,
+    reviewDetail: (reviewId: string) => `/reviews/${reviewId}`,
+    reviewLike: (reviewId: string) => `/reviews/${reviewId}/like`,
+    reviewReport: (reviewId: string) => `/reviews/${reviewId}/report`,
     reviewComments: (reviewId: string) => `/reviews/${reviewId}/comments`,
     reviewCommentDetail: (reviewId: string, commentId: string) =>
       `/reviews/${reviewId}/comments/${commentId}`,
+    reviewCommentLike: (reviewId: string, commentId: string) =>
+      `/reviews/${reviewId}/comments/${commentId}/like`,
+    reviewCommentReport: (reviewId: string, commentId: string) =>
+      `/reviews/${reviewId}/comments/${commentId}/report`,
     categories: "/admin/categories",
     brands: "/admin/brands",
     adminList: "/admin/models",

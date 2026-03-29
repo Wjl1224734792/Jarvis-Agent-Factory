@@ -8,6 +8,7 @@ import {
   adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
   circleFeedResponseSchema,
+  commentSortSchema,
   createPostCommentInputSchema,
   createPostCommentResponseSchema,
   createPostInputSchema,
@@ -15,7 +16,10 @@ import {
   homeFeedResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
+  reportContentInputSchema,
   reportPostInputSchema,
+  updatePostCommentInputSchema,
+  updatePostInputSchema,
   uploadPostImageResponseSchema,
   uploadPostVideoResponseSchema
 } from "@feijia/schemas";
@@ -116,12 +120,46 @@ postsRoute.get(API_ROUTES.posts.detail(":id"), async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  const payload = await postsService.getPostDetail(id, context.get("currentUser"));
+  const sort = commentSortSchema.safeParse(context.req.query("commentSort") ?? "hot");
+  const payload = await postsService.getPostDetail(id, context.get("currentUser"), {
+    commentSort: sort.success ? sort.data : "hot"
+  });
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
   }
 
   return context.json(postDetailResponseSchema.parse(payload));
+});
+
+postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = updatePostInputSchema.parse(await context.req.json());
+  const result = await postsService.updatePost(id, currentUser, {
+    type: input.type,
+    title: input.title,
+    content: input.content,
+    contentHtml: input.contentHtml ?? null,
+    contentCategoryId: input.contentCategoryId ?? null,
+    imageIds: input.imageIds,
+    videoIds: input.videoIds
+  });
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(postDetailResponseSchema.parse({ item: result.item }));
 });
 
 postsRoute.post(API_ROUTES.posts.comments(":id"), requireAuth, async (context) => {
@@ -312,6 +350,71 @@ postsRoute.delete(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, asy
   const result = await postsService.deleteAdminOfficialArticle(id);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Official article not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+postsRoute.put(API_ROUTES.posts.commentDetail(":postId", ":commentId"), requireAuth, async (context) => {
+  const postId = context.req.param("postId");
+  const commentId = context.req.param("commentId");
+  const currentUser = context.get("currentUser");
+
+  if (!postId || !commentId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = updatePostCommentInputSchema.parse(await context.req.json());
+  const result = await postsService.updateComment(postId, commentId, currentUser, input);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(createPostCommentResponseSchema.parse({ item: result.item }));
+});
+
+postsRoute.post(API_ROUTES.posts.commentLike(":postId", ":commentId"), requireAuth, async (context) => {
+  const postId = context.req.param("postId");
+  const commentId = context.req.param("commentId");
+  const currentUser = context.get("currentUser");
+
+  if (!postId || !commentId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const result = await postsService.toggleCommentLike(postId, commentId, currentUser);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+postsRoute.post(API_ROUTES.posts.commentReport(":postId", ":commentId"), requireAuth, async (context) => {
+  const postId = context.req.param("postId");
+  const commentId = context.req.param("commentId");
+  const currentUser = context.get("currentUser");
+
+  if (!postId || !commentId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = reportContentInputSchema.parse(await context.req.json());
+  const result = await postsService.reportComment(postId, commentId, currentUser, input.reason);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));

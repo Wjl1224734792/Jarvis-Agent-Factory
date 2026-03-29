@@ -1,5 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { CornerDownRightIcon, Trash2Icon } from "lucide-react";
+import {
+  CornerDownRightIcon,
+  HeartIcon,
+  ShieldAlertIcon,
+  SquarePenIcon,
+  Trash2Icon
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -26,6 +32,7 @@ type ThreadProps = {
 type ReplyView = {
   id: string;
   content: string;
+  likeCount: number;
   updatedAt: string;
   author: CommentNode["author"];
   replyToDisplayName?: string;
@@ -35,10 +42,10 @@ function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): Rep
   return nodes.map((node) => ({
     id: node.id,
     content: node.content,
+    likeCount: node.likeCount ?? 0,
     updatedAt: node.updatedAt,
     author: node.author,
-    replyToDisplayName:
-      node.replyToUser?.displayName ?? replyToDisplayName
+    replyToDisplayName: node.replyToUser?.displayName ?? replyToDisplayName
   }));
 }
 
@@ -51,10 +58,89 @@ function CommentSkeletonItem(props: { compact?: boolean }) {
     <div className={cn("flex items-start gap-3", props.compact && "opacity-80")}>
       <Skeleton className="mt-0.5 size-8 rounded-full" />
       <div className="min-w-0 flex-1 space-y-2">
-        <Skeleton className="h-3.5 w-32" />
-        <Skeleton className="h-3.5 w-full" />
-        <Skeleton className="h-3.5 w-4/5" />
+        <Skeleton className="h-3.5 w-32 rounded" />
+        <Skeleton className="h-3.5 w-full rounded" />
+        <Skeleton className="h-3.5 w-4/5 rounded" />
       </div>
+    </div>
+  );
+}
+
+function InteractionRow(props: {
+  canDelete: boolean;
+  canEdit: boolean;
+  canInteract: boolean;
+  disabled: boolean;
+  likeCount: number;
+  onDelete?: () => void;
+  onEdit?: () => void;
+  onLike?: () => void;
+  onReply?: () => void;
+  onReport?: () => void;
+}) {
+  return (
+    <div className="flex shrink-0 items-center gap-1">
+      {props.onLike ? (
+        <Button
+          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          disabled={props.disabled}
+          onClick={props.onLike}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <HeartIcon className="size-3.5" />
+          {props.likeCount}
+        </Button>
+      ) : null}
+      {props.canInteract && props.onReply ? (
+        <Button
+          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          disabled={props.disabled}
+          onClick={props.onReply}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          回复
+        </Button>
+      ) : null}
+      {props.onReport && !props.canDelete ? (
+        <Button
+          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          disabled={props.disabled}
+          onClick={props.onReport}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <ShieldAlertIcon className="size-3.5" />
+        </Button>
+      ) : null}
+      {props.canEdit && props.onEdit ? (
+        <Button
+          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          disabled={props.disabled}
+          onClick={props.onEdit}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <SquarePenIcon className="size-3.5" />
+        </Button>
+      ) : null}
+      {props.canDelete && props.onDelete ? (
+        <Button
+          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          disabled={props.disabled}
+          onClick={props.onDelete}
+          size="sm"
+          type="button"
+          variant="ghost"
+        >
+          <Trash2Icon className="size-3.5" />
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -67,11 +153,14 @@ function RootCommentItem(props: {
 }) {
   const queryClient = useQueryClient();
   const canDelete = props.currentUserId === props.comment.author.id;
+  const canEdit = props.currentUserId === props.comment.author.id;
   const replies = useMemo(() => flattenReplies(props.comment.replies), [props.comment.replies]);
   const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
   const [replyContent, setReplyContent] = useState("");
+  const [editing, setEditing] = useState(false);
+  const [editContent, setEditContent] = useState(props.comment.content);
   const [expanded, setExpanded] = useState(false);
-  const [busy, setBusy] = useState<"reply" | "delete" | null>(null);
+  const [busy, setBusy] = useState<"reply" | "delete" | "edit" | "like" | "report" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isPending = props.comment.status === "pending";
 
@@ -110,55 +199,126 @@ function RootCommentItem(props: {
 
         <div className="min-w-0 flex-1 space-y-1.5">
           <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-            <ProfileLink className="font-medium text-foreground hover:text-primary" userId={props.comment.author.id}>
+            <ProfileLink
+              className="font-medium text-foreground hover:text-primary"
+              userId={props.comment.author.id}
+            >
               {props.comment.author.displayName}
             </ProfileLink>
-            {isPending ? <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-700">待审核</span> : null}
+            {isPending ? (
+              <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-700">
+                待审核
+              </span>
+            ) : null}
             <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
           </div>
-          <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
-          {isPending ? <p className="text-[0.72rem] text-amber-700">仅你自己可见，审核通过后会公开显示。</p> : null}
-        </div>
 
-        <div className="flex shrink-0 items-center gap-0.5">
-          {props.canInteract && !isPending ? (
-            <Button
-              className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-              onClick={() => openReply(props.comment.id, props.comment.author.displayName)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              回复
-            </Button>
-          ) : null}
-
-          {canDelete ? (
-            <Button
-              className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+          {editing ? (
+            <InlineCommentComposer
+              busy={busy === "edit"}
               disabled={busy !== null}
-              onClick={() => {
-                setBusy("delete");
-                setError(null);
+              onChange={setEditContent}
+              onSubmit={() => {
+                if (!editContent.trim()) {
+                  return;
+                }
 
+                setBusy("edit");
+                setError(null);
                 void apiClient
-                  .deletePostComment(props.postId, props.comment.id)
-                  .then(refresh)
+                  .updatePostComment(props.postId, props.comment.id, {
+                    content: editContent
+                  })
+                  .then(() => {
+                    setEditing(false);
+                    return refresh();
+                  })
                   .catch((value: unknown) => {
-                    setError(value instanceof Error ? value.message : "删除评论失败");
+                    setError(value instanceof Error ? value.message : "编辑评论失败");
                   })
                   .finally(() => {
                     setBusy(null);
                   });
               }}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <Trash2Icon className="size-3.5" />
-            </Button>
+              placeholder="编辑评论"
+              value={editContent}
+            />
+          ) : (
+            <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
+          )}
+
+          {isPending ? (
+            <p className="text-[0.72rem] text-amber-700">
+              仅你自己可见，审核通过后会公开显示。
+            </p>
           ) : null}
         </div>
+
+        <InteractionRow
+          canDelete={canDelete}
+          canEdit={canEdit}
+          canInteract={props.canInteract && !isPending}
+          disabled={busy !== null}
+          likeCount={props.comment.likeCount ?? 0}
+          onDelete={() => {
+            setBusy("delete");
+            setError(null);
+            void apiClient
+              .deletePostComment(props.postId, props.comment.id)
+              .then(refresh)
+              .catch((value: unknown) => {
+                setError(value instanceof Error ? value.message : "删除评论失败");
+              })
+              .finally(() => {
+                setBusy(null);
+              });
+          }}
+          onEdit={() => {
+            setEditing((value) => !value);
+            setEditContent(props.comment.content);
+          }}
+          onLike={
+            isPending
+              ? undefined
+              : () => {
+                  setBusy("like");
+                  setError(null);
+                  void apiClient
+                    .likePostComment(props.postId, props.comment.id)
+                    .then(refresh)
+                    .catch((value: unknown) => {
+                      setError(value instanceof Error ? value.message : "点赞失败");
+                    })
+                    .finally(() => {
+                      setBusy(null);
+                    });
+                }
+          }
+          onReply={
+            props.canInteract && !isPending
+              ? () => openReply(props.comment.id, props.comment.author.displayName)
+              : undefined
+          }
+          onReport={
+            isPending || canDelete
+              ? undefined
+              : () => {
+                  setBusy("report");
+                  setError(null);
+                  void apiClient
+                    .reportPostComment(props.postId, props.comment.id, {
+                      reason: "不当评论"
+                    })
+                    .then(refresh)
+                    .catch((value: unknown) => {
+                      setError(value instanceof Error ? value.message : "举报失败");
+                    })
+                    .finally(() => {
+                      setBusy(null);
+                    });
+                }
+          }
+        />
       </div>
 
       {replies.length > 0 ? (
@@ -185,7 +345,10 @@ function RootCommentItem(props: {
 
                     <div className="min-w-0 flex-1 space-y-1.5">
                       <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-                        <ProfileLink className="font-medium text-foreground hover:text-primary" userId={reply.author.id}>
+                        <ProfileLink
+                          className="font-medium text-foreground hover:text-primary"
+                          userId={reply.author.id}
+                        >
                           {reply.author.displayName}
                         </ProfileLink>
                         {reply.replyToDisplayName ? (
@@ -199,17 +362,27 @@ function RootCommentItem(props: {
                       <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
                     </div>
 
-                    {props.canInteract && !isPending ? (
-                      <Button
-                        className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-                        onClick={() => openReply(reply.id, reply.author.displayName)}
-                        size="sm"
-                        type="button"
-                        variant="ghost"
-                      >
-                        回复
-                      </Button>
-                    ) : null}
+                    <InteractionRow
+                      canDelete={false}
+                      canEdit={false}
+                      canInteract={props.canInteract && !isPending}
+                      disabled={busy !== null}
+                      likeCount={reply.likeCount}
+                      onLike={() => {
+                        setBusy("like");
+                        setError(null);
+                        void apiClient
+                          .likePostComment(props.postId, reply.id)
+                          .then(refresh)
+                          .catch((value: unknown) => {
+                            setError(value instanceof Error ? value.message : "点赞失败");
+                          })
+                          .finally(() => {
+                            setBusy(null);
+                          });
+                      }}
+                      onReply={() => openReply(reply.id, reply.author.displayName)}
+                    />
                   </div>
                 </div>
               ))}

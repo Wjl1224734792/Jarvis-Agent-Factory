@@ -6,8 +6,9 @@ import {
   SearchOutlined
 } from "@ant-design/icons";
 import { Button, Input, Layout, Space } from "antd";
-import { useState, type CSSProperties } from "react";
+import { useMemo, useState, type CSSProperties } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_NAV_GROUPS, isAdminNavItemActive } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
@@ -22,23 +23,31 @@ export function AdminShell() {
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
 
+  const activeGroup = useMemo(
+    () =>
+      ADMIN_NAV_GROUPS.find((group) =>
+        group.items.some((item) => isAdminNavItemActive(location.pathname, item))
+      )?.group ?? "数据总览",
+    [location.pathname]
+  );
+
   return (
     <Layout
       className="admin-shell"
       style={
         {
-          ["--admin-header-height" as string]: "88px",
-          ["--admin-sider-width" as string]: collapsed ? "84px" : "280px"
+          ["--admin-header-height" as string]: "92px",
+          ["--admin-sider-width" as string]: collapsed ? "92px" : "312px"
         } as CSSProperties
       }
     >
       <Header className="admin-shell__header">
         <div className="admin-shell__brand-row">
           <div className="admin-shell__brand">
-            <div className="admin-shell__brand-mark">飞</div>
+            <img alt={`${APP_NAME} 管理后台`} className="admin-shell__brand-logo" src={adminLogoUrl} />
             <div className="admin-shell__brand-copy">
-              <div className="admin-shell__brand-kicker">管理后台</div>
-              <div className="admin-shell__brand-title">{APP_NAME}</div>
+              <div className="admin-shell__brand-kicker">{activeGroup}</div>
+              <div className="admin-shell__brand-title">{APP_NAME} 后台</div>
             </div>
           </div>
 
@@ -54,7 +63,7 @@ export function AdminShell() {
           <div className="admin-shell__search">
             <Input
               allowClear
-              placeholder="搜索页面、指标、文章标题或后台操作..."
+              placeholder="搜索页面、指标、发布入口或待审核内容..."
               prefix={<SearchOutlined />}
             />
           </div>
@@ -88,10 +97,10 @@ export function AdminShell() {
         <Sider
           className="admin-shell__sider"
           collapsed={collapsed}
-          collapsedWidth={84}
+          collapsedWidth={92}
           theme="light"
           trigger={null}
-          width={280}
+          width={312}
         >
           <div className="admin-shell__nav">
             {ADMIN_NAV_GROUPS.map((group) => (

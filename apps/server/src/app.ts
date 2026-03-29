@@ -6,6 +6,7 @@ import { adminAnalyticsRoute } from "./modules/admin-analytics/admin-analytics.r
 import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.route";
 import { aircraftSubmissionsRoute } from "./modules/aircraft-submissions/aircraft-submissions.route";
 import { authRoute } from "./modules/auth/auth.route";
+import { brandApplicationsRoute } from "./modules/brand-applications/brand-applications.route";
 import { brandsRoute } from "./modules/brands/brands.route";
 import { categoriesRoute } from "./modules/categories/categories.route";
 import { contentCategoriesRoute } from "./modules/content-categories/content-categories.route";
@@ -95,6 +96,7 @@ app.route("/", adminAnalyticsRoute);
 app.route("/", rankingsRoute);
 app.route("/", aircraftModelsRoute);
 app.route("/", aircraftSubmissionsRoute);
+app.route("/", brandApplicationsRoute);
 app.route("/", reviewsRoute);
 app.route("/", siteSettingsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);

@@ -26,7 +26,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
-      avatarUrl: null
+      avatarFileId: null
     })
   });
 

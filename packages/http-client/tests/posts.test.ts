@@ -90,6 +90,78 @@ describe("posts api client", () => {
     );
   });
 
+  it("updates posts with the expected payload", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          item: {
+            id: "post_1",
+            type: "article",
+            title: "Updated article",
+            content: "Updated article body",
+            contentHtml: "<p>Updated article body</p>",
+            status: "pending",
+            commentCount: 0,
+            reportCount: 0,
+            createdAt: "2026-03-29T00:00:00.000Z",
+            updatedAt: "2026-03-29T00:00:00.000Z",
+            publishedAt: null,
+            author: {
+              id: "user_1",
+              displayName: "Pilot",
+              avatarUrl: null,
+              role: "user"
+            },
+            images: [],
+            videos: [],
+            contentCategory: null,
+            engagement: {
+              likeCount: 0,
+              favoriteCount: 0,
+              shareCount: 0,
+              viewer: {
+                isAuthor: true,
+                isFollowingAuthor: false,
+                hasLiked: false,
+                hasFavorited: false,
+                hasShared: false
+              }
+            },
+            comments: []
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:3002"
+    });
+
+    await client.updatePost("post_1", {
+      type: "article",
+      title: "Updated article",
+      content: "Updated article body",
+      contentHtml: "<p>Updated article body</p>",
+      contentCategoryId: null,
+      imageIds: [],
+      videoIds: []
+    });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "http://localhost:3002/posts/post_1",
+      expect.objectContaining({
+        method: "PUT",
+        credentials: "include"
+      })
+    );
+  });
+
   it("maps backend errors for admin moderation calls", async () => {
     vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(

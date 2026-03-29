@@ -121,8 +121,10 @@ export const userContentPostItemSchema = z.object({
   type: z.literal("post"),
   id: z.string().min(1),
   postType: z.enum(["article", "moment"]),
+  status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
   title: z.string().min(1),
   contentPreview: z.string().min(1),
+  canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -166,8 +168,10 @@ export const userContentFavoriteModelItemSchema = z.object({
 export const userContentRankingItemSchema = z.object({
   type: z.literal("ranking"),
   id: z.string().min(1),
+  status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
   title: z.string().min(1),
   description: z.string().min(1),
+  canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -178,6 +182,7 @@ export const userContentAircraftItemSchema = z.object({
   modelName: z.string().min(1),
   summary: z.string().nullable(),
   status: z.enum(["draft", "submitted", "approved", "rejected"]),
+  canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -228,7 +233,9 @@ export const adminAnalyticsOverviewSchema = z.object({
     pendingPosts: adminAnalyticsCountSchema,
     pendingComments: adminAnalyticsCountSchema,
     pendingReviews: adminAnalyticsCountSchema,
-    pendingSubmissions: adminAnalyticsCountSchema
+    pendingSubmissions: adminAnalyticsCountSchema,
+    pendingBrandApplications: adminAnalyticsCountSchema.default(0),
+    pendingRankingItems: adminAnalyticsCountSchema.default(0)
   }),
   registration: z.object({
     total: adminAnalyticsCountSchema,
@@ -265,13 +272,39 @@ export const adminAnalyticsOverviewSchema = z.object({
     posts: adminAnalyticsModerationBucketSchema,
     comments: adminAnalyticsModerationBucketSchema,
     reviews: adminAnalyticsModerationBucketSchema,
-    submissions: adminAnalyticsModerationBucketSchema
+    submissions: adminAnalyticsModerationBucketSchema,
+    brandApplications: adminAnalyticsModerationBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      hidden: 0
+    }),
+    rankingItems: adminAnalyticsModerationBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      hidden: 0
+    })
   }),
   funnel: z.object({
     posts: adminAnalyticsFunnelBucketSchema,
     comments: adminAnalyticsFunnelBucketSchema,
     reviews: adminAnalyticsFunnelBucketSchema,
-    submissions: adminAnalyticsFunnelBucketSchema
+    submissions: adminAnalyticsFunnelBucketSchema,
+    brandApplications: adminAnalyticsFunnelBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejectedOrHidden: 0
+    }),
+    rankingItems: adminAnalyticsFunnelBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejectedOrHidden: 0
+    })
   }),
   series: z.object({
     registrationDaily: z.array(adminAnalyticsSeriesPointSchema).length(30),

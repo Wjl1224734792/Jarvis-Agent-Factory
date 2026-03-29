@@ -14,6 +14,13 @@ function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review:
   };
 }
 
+function buildStateSet<T extends { [key: string]: string }>(
+  rows: T[],
+  key: keyof T
+) {
+  return new Set(rows.map((row) => String(row[key])));
+}
+
 async function buildReplyToUserMap(
   users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>
 ) {
@@ -37,7 +44,12 @@ async function serializeComment(
   replyToUserMap: Map<
     string,
     { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
-  >
+  >,
+  input?: {
+    currentUserId?: string;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+  }
 ) {
   if (!item) {
     return null;
@@ -51,13 +63,21 @@ async function serializeComment(
     content: item.content,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
+    likeCount: item.likeCount ?? 0,
+    reportCount: item.reportCount ?? 0,
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveAuthorAvatar(item.author),
       role: item.author.role as "user" | "admin"
     },
-    replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
+    replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
+    viewer: {
+      canEdit: input?.currentUserId === item.author.id,
+      canDelete: input?.currentUserId === item.author.id,
+      hasLiked: input?.likedCommentIds?.has(item.id) ?? false,
+      hasReported: input?.reportedCommentIds?.has(item.id) ?? false
+    }
   };
 }
 
@@ -66,7 +86,12 @@ async function serializeCommentThreads(
   replyToUserMap: Map<
     string,
     { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
-  >
+  >,
+  input?: {
+    currentUserId?: string;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+  }
 ) {
   const repliesByRootId = new Map<string, Array<any>>();
   const roots: Array<any> = [];
@@ -80,13 +105,21 @@ async function serializeCommentThreads(
       content: comment.content,
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),
+      likeCount: comment.likeCount ?? 0,
+      reportCount: comment.reportCount ?? 0,
       author: {
         id: comment.author.id,
         displayName: comment.author.displayName,
         avatarUrl: await resolveAuthorAvatar(comment.author),
         role: comment.author.role as "user" | "admin"
       },
-      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null
+      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
+      viewer: {
+        canEdit: input?.currentUserId === comment.author.id,
+        canDelete: input?.currentUserId === comment.author.id,
+        hasLiked: input?.likedCommentIds?.has(comment.id) ?? false,
+        hasReported: input?.reportedCommentIds?.has(comment.id) ?? false
+      }
     };
 
     if (!comment.parentCommentId) {
@@ -123,13 +156,33 @@ export const reviewsService = {
       reviewsRepo.getReviewAggregate(model.id),
       currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
     ]);
+    const reviewIds = Array.from(
+      new Set([
+        ...items.map((item) => item.id),
+        ...(myReview ? [myReview.id] : [])
+      ])
+    );
+    const [likedReviews, reportedReviews] = await Promise.all([
+      currentUserId ? reviewsRepo.listViewerReviewLikes(reviewIds, currentUserId) : [],
+      currentUserId ? reviewsRepo.listViewerReviewReports(reviewIds, currentUserId) : []
+    ]);
+    const likedReviewIds = buildStateSet(likedReviews, "reviewId");
+    const reportedReviewIds = buildStateSet(reportedReviews, "reviewId");
 
     return {
       items: await Promise.all(items.map(async (item) => ({
         ...serializeReview(item),
+        likeCount: item.likeCount ?? 0,
+        reportCount: item.reportCount ?? 0,
         author: {
           ...item.author,
           avatarUrl: await resolveAuthorAvatar(item.author)
+        },
+        viewer: {
+          canEdit: currentUserId === item.author.id,
+          canDelete: currentUserId === item.author.id,
+          hasLiked: likedReviewIds.has(item.id),
+          hasReported: reportedReviewIds.has(item.id)
         }
       }))),
       summary: {
@@ -137,9 +190,17 @@ export const reviewsService = {
         myReview: myReview
           ? {
               ...serializeReview(myReview),
+              likeCount: myReview.likeCount ?? 0,
+              reportCount: myReview.reportCount ?? 0,
               author: {
                 ...myReview.author,
                 avatarUrl: await resolveAuthorAvatar(myReview.author)
+              },
+              viewer: {
+                canEdit: currentUserId === myReview.author.id,
+                canDelete: currentUserId === myReview.author.id,
+                hasLiked: likedReviewIds.has(myReview.id),
+                hasReported: reportedReviewIds.has(myReview.id)
               }
             }
           : null
@@ -178,9 +239,17 @@ export const reviewsService = {
     return {
       item: {
         ...serializeReview(item),
+        likeCount: item.likeCount ?? 0,
+        reportCount: item.reportCount ?? 0,
         author: {
           ...item.author,
           avatarUrl: await resolveAuthorAvatar(item.author)
+        },
+        viewer: {
+          canEdit: userId === item.author.id,
+          canDelete: userId === item.author.id,
+          hasLiked: false,
+          hasReported: false
         }
       },
       summary: summary.summary
@@ -191,9 +260,17 @@ export const reviewsService = {
       items: await Promise.all(
         (await reviewsRepo.listAdminReviews()).map(async (item) => ({
           ...serializeReview(item),
+          likeCount: item.likeCount ?? 0,
+          reportCount: item.reportCount ?? 0,
           author: {
             ...item.author,
             avatarUrl: await resolveAuthorAvatar(item.author)
+          },
+          viewer: {
+            canEdit: false,
+            canDelete: false,
+            hasLiked: false,
+            hasReported: false
           }
         }))
       )
@@ -204,14 +281,22 @@ export const reviewsService = {
     return item
       ? {
           ...serializeReview(item),
+          likeCount: item.likeCount ?? 0,
+          reportCount: item.reportCount ?? 0,
           author: {
             ...item.author,
             avatarUrl: await resolveAuthorAvatar(item.author)
+          },
+          viewer: {
+            canEdit: false,
+            canDelete: false,
+            hasLiked: false,
+            hasReported: false
           }
         }
       : null;
   },
-  async listReviewComments(reviewId: string) {
+  async listReviewComments(reviewId: string, currentUserId?: string) {
     const review = await reviewsRepo.getReviewById(reviewId);
     if (!review) {
       return null;
@@ -221,10 +306,21 @@ export const reviewsService = {
     const replyToUserIds = Array.from(
       new Set(comments.map((comment) => comment.replyToUserId).filter((value): value is string => Boolean(value)))
     );
-    const replyToUsers = await reviewsRepo.listUsersByIds(replyToUserIds);
+    const commentIds = comments.map((comment) => comment.id);
+    const [replyToUsers, likedComments, reportedComments] = await Promise.all([
+      reviewsRepo.listUsersByIds(replyToUserIds),
+      currentUserId ? reviewsRepo.listViewerReviewCommentLikes(commentIds, currentUserId) : [],
+      currentUserId ? reviewsRepo.listViewerReviewCommentReports(commentIds, currentUserId) : []
+    ]);
+    const likedCommentIds = buildStateSet(likedComments, "commentId");
+    const reportedCommentIds = buildStateSet(reportedComments, "commentId");
 
     return {
-      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers))
+      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers), {
+        currentUserId,
+        likedCommentIds,
+        reportedCommentIds
+      })
     };
   },
   async createReviewComment(
@@ -262,7 +358,9 @@ export const reviewsService = {
       content: input.content
     });
     const replyToUsers = replyToUserId ? await reviewsRepo.listUsersByIds([replyToUserId]) : [];
-    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers));
+    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers), {
+      currentUserId: currentUser.id
+    });
 
     if (!serialized) {
       return { kind: "not_found" as const };
@@ -286,6 +384,93 @@ export const reviewsService = {
     }
 
     await reviewsRepo.deleteReviewCommentThread(reviewId, commentId);
+    return { kind: "ok" as const };
+  },
+  async toggleReviewLike(
+    reviewId: string,
+    currentUser: { id: string; role: "user" | "admin" }
+  ) {
+    const review = await reviewsRepo.getReviewById(reviewId);
+    if (!review || review.status !== "visible") {
+      return { kind: "not_found" as const };
+    }
+
+    await reviewsRepo.toggleReviewLike(reviewId, currentUser.id);
+    return { kind: "ok" as const };
+  },
+  async reportReview(
+    reviewId: string,
+    currentUser: { id: string; role: "user" | "admin" },
+    reason: string
+  ) {
+    const review = await reviewsRepo.getReviewById(reviewId);
+    if (!review || review.status !== "visible") {
+      return { kind: "not_found" as const };
+    }
+
+    await reviewsRepo.reportReview({
+      reviewId,
+      reporterId: currentUser.id,
+      reason
+    });
+    return { kind: "ok" as const };
+  },
+  async updateReviewComment(
+    reviewId: string,
+    commentId: string,
+    currentUser: { id: string; role: "user" | "admin" },
+    input: { content: string }
+  ) {
+    const comment = await reviewsRepo.getReviewCommentById(commentId);
+    if (!comment || comment.reviewId !== reviewId) {
+      return { kind: "not_found" as const };
+    }
+
+    const canEdit = currentUser.role === "admin" || currentUser.id === comment.author.id;
+    if (!canEdit) {
+      return { kind: "forbidden" as const };
+    }
+
+    const item = await reviewsRepo.updateReviewComment(commentId, input.content);
+    const replyToUsers = item?.replyToUserId ? await reviewsRepo.listUsersByIds([item.replyToUserId]) : [];
+    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers), {
+      currentUserId: currentUser.id
+    });
+    if (!serialized) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, item: serialized };
+  },
+  async toggleReviewCommentLike(
+    reviewId: string,
+    commentId: string,
+    currentUser: { id: string; role: "user" | "admin" }
+  ) {
+    const comment = await reviewsRepo.getReviewCommentById(commentId);
+    if (!comment || comment.reviewId !== reviewId) {
+      return { kind: "not_found" as const };
+    }
+
+    await reviewsRepo.toggleReviewCommentLike(commentId, currentUser.id);
+    return { kind: "ok" as const };
+  },
+  async reportReviewComment(
+    reviewId: string,
+    commentId: string,
+    currentUser: { id: string; role: "user" | "admin" },
+    reason: string
+  ) {
+    const comment = await reviewsRepo.getReviewCommentById(commentId);
+    if (!comment || comment.reviewId !== reviewId) {
+      return { kind: "not_found" as const };
+    }
+
+    await reviewsRepo.reportReviewComment({
+      commentId,
+      reporterId: currentUser.id,
+      reason
+    });
     return { kind: "ok" as const };
   }
 };

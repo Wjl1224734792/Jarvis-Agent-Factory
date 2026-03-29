@@ -50,6 +50,49 @@ aircraftSubmissionsRoute.get(API_ROUTES.submissions.detail(":id"), requireAuth, 
   return context.json(aircraftSubmissionResponseSchema.parse(payload));
 });
 
+aircraftSubmissionsRoute.put(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = createAircraftSubmissionInputSchema.parse(await context.req.json());
+  const result = await aircraftSubmissionsService.updateOwnedSubmission(id, currentUser, input);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(aircraftSubmissionResponseSchema.parse({ item: result.item }));
+});
+
+aircraftSubmissionsRoute.delete(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
+  const id = context.req.param("id");
+  const currentUser = context.get("currentUser");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const result = await aircraftSubmissionsService.deleteOwnedSubmission(id, currentUser);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json({ success: true });
+});
+
 aircraftSubmissionsRoute.get(API_ROUTES.submissions.adminList, requireAdmin, async (context) => {
   const payload = await aircraftSubmissionsService.listAdminSubmissions();
   return context.json(aircraftSubmissionsResponseSchema.parse(payload));

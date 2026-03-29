@@ -1,4 +1,21 @@
 export const ADMIN_ROUTE_PATHS = {
+  overview: "/admin/overview",
+  moderation: "/admin/moderation",
+  moderationArticles: "/admin/moderation/articles",
+  moderationMoments: "/admin/moderation/moments",
+  moderationComments: "/admin/moderation/comments",
+  moderationBrandApplications: "/admin/moderation/brand-applications",
+  moderationAircraftSubmissions: "/admin/moderation/aircraft-submissions",
+  moderationRankings: "/admin/moderation/rankings",
+  operations: "/admin/operations",
+  operationsArticles: "/admin/operations/articles",
+  operationsAircraft: "/admin/operations/aircraft",
+  operationsRankings: "/admin/operations/rankings",
+  management: "/admin/management",
+  managementBrands: "/admin/management/brands",
+  managementModels: "/admin/management/models",
+  managementCategories: "/admin/management/categories",
+  managementContentCategories: "/admin/management/content-categories",
   officialArticles: "/admin/official-articles",
   aircraftSubmissions: "/admin/aircraft-submissions"
 } as const;

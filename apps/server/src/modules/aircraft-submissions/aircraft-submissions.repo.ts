@@ -130,5 +130,39 @@ export const aircraftSubmissionsRepo = {
       .where(eq(aircraftSubmissionsTable.id, id));
 
     return this.findById(id);
+  },
+  async updateContent(
+    id: string,
+    input: {
+      status: string;
+      categoryId: string;
+      brandId: string | null;
+      proposedBrandName: string | null;
+      modelName: string;
+      powerType: string;
+      summary: string | null;
+      description: string | null;
+      coverImageFileId: string | null;
+      galleryImageFileIds: string;
+      videoFileId: string | null;
+      maxFlightTimeMinutes: number | null;
+      maxRangeKilometers: number | null;
+      maxSpeedKph: number | null;
+      takeoffWeightGrams: number | null;
+    }
+  ) {
+    await db
+      .update(aircraftSubmissionsTable)
+      .set({
+        ...input,
+        updatedAt: new Date()
+      })
+      .where(eq(aircraftSubmissionsTable.id, id));
+
+    return this.findById(id);
+  },
+  async delete(id: string) {
+    await db.delete(aircraftSubmissionsTable).where(eq(aircraftSubmissionsTable.id, id));
+    return true;
   }
 };

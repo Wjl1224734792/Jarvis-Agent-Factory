@@ -1,6 +1,7 @@
 export * from "./health";
 export * from "./files";
 export * from "./auth";
+export * from "./brand-applications";
 export * from "./content-categories";
 export * from "./models";
 export * from "./aircraft-submissions";

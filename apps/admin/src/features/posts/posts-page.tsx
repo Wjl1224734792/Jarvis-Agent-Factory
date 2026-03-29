@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Select, Space, Table } from "antd";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -29,7 +29,7 @@ function postStatusLabel(status: PostRecord["status"]) {
   }
 }
 
-export function PostsPage() {
+export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const [status, setStatus] = useState<PostStatusFilter>("all");
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -43,6 +43,26 @@ export function PostsPage() {
     queryKey: ["admin-posts", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+
+  const items = useMemo(
+    () =>
+      (postsQuery.data?.items ?? []).filter((item) =>
+        props.contentType ? item.type === props.contentType : true
+      ),
+    [postsQuery.data?.items, props.contentType]
+  );
+
+  const isArticleMode = props.contentType === "article";
+  const pageTitle = isArticleMode
+    ? "文章审核"
+    : props.contentType === "moment"
+      ? "飞友圈动态审核"
+      : "帖子审核";
+  const pageDescription = isArticleMode
+    ? "单独处理文章发布队列，和飞友圈动态分开查看。"
+    : props.contentType === "moment"
+      ? "单独处理飞友圈动态审核，避免和文章队列混在一起。"
+      : "按状态审核帖子，控制发布、驳回与隐藏。";
 
   function updateStatus(id: string, nextStatus: "published" | "rejected" | "hidden") {
     setError(null);
@@ -89,31 +109,31 @@ export function PostsPage() {
           value={status}
         />
       }
-      description="按状态审核帖子，控制发布、驳回与隐藏。"
-      title="帖子审核"
+      description={pageDescription}
+      title={pageTitle}
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="帖子与动态共用这一套自动审核规则。" title="当前模式">
+      <AdminPanel description="文章和飞友圈动态共用当前帖子审核开关，但入口已经拆分。" title="当前模式">
         <AdminModerationCard
-          autoCopy="普通用户文章和动态将直接公开。"
-          description="切换后会影响新的帖子与动态投稿。"
+          autoCopy="关闭人工审核后，新发布内容将直接公开。"
+          description="适合高频内容流量场景，减少后台等待队列。"
           enabled={siteSettingsQuery.data?.item.postModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="普通用户文章和动态会先进入待审核队列。"
+          manualCopy="开启人工审核后，新内容会先进入待审核队列。"
           onDisable={() => {
             void updateModeration(false);
           }}
           onEnable={() => {
             void updateModeration(true);
           }}
-          pendingCount={(postsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
-          title="帖子审核"
+          pendingCount={items.filter((item) => item.status === "pending").length}
+          title={isArticleMode ? "文章审核" : props.contentType === "moment" ? "动态审核" : "帖子审核"}
         />
       </AdminPanel>
 
-      <AdminPanel title="帖子列表">
+      <AdminPanel title={isArticleMode ? "文章列表" : props.contentType === "moment" ? "动态列表" : "帖子列表"}>
         <Table
           bordered
           columns={[
@@ -123,11 +143,11 @@ export function PostsPage() {
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.title}</div>
                   <div className="admin-table-subtitle">
-                    {record.author.displayName} · 评论 {record.commentCount} · 举报 {record.reportCount}
+                    {record.author.displayName} 路 {record.type === "article" ? "文章" : "动态"} 路 评论 {record.commentCount}
                   </div>
                 </div>
               ),
-              title: "帖子"
+              title: "内容"
             },
             {
               dataIndex: "contentPreview",
@@ -166,7 +186,7 @@ export function PostsPage() {
               width: 240
             }
           ]}
-          dataSource={postsQuery.data?.items ?? []}
+          dataSource={items}
           loading={postsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"

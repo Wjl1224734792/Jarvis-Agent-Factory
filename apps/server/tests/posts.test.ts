@@ -10,6 +10,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
 function extractCookie(setCookie: string | null): string {
@@ -96,53 +97,44 @@ async function uploadFile(
     bytes: Uint8Array;
   }
 ) {
-  const initResponse = await app.request(API_ROUTES.uploads.init, {
-    method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      bizType: input.bizType,
-      filename: input.name,
-      contentType: input.contentType,
-      size: input.bytes.byteLength
-    })
+  const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+    method: "GET",
+    headers: { cookie }
   });
-  expect(initResponse.status).toBe(200);
-
-  const initPayload = (await initResponse.json()) as {
-    fileId: string;
-    upload: {
-      mode: "presigned-put";
-      url: string;
-      headers?: Record<string, string>;
-    };
+  expect(meResponse.status).toBe(200);
+  const mePayload = (await meResponse.json()) as {
+    user: { id: string } | null;
   };
+  const ownerId = mePayload.user?.id;
+  expect(ownerId).toBeTruthy();
 
-  const uploadResponse = await fetch(initPayload.upload.url, {
-    method: "PUT",
-    headers: initPayload.upload.headers,
-    body: new File([input.bytes], input.name, {
-      type: input.contentType
-    })
+  const pending = await uploadsRepo.createPendingFile({
+    ownerId: ownerId!,
+    bizType: input.bizType,
+    mediaKind: input.bizType === "post-video" ? "video" : "image",
+    provider: "minio",
+    bucket: "feijia-media",
+    region: "us-east-1",
+    objectKey: `${input.bizType}/${ownerId}/${input.name}`,
+    fileName: input.name,
+    mimeType: input.contentType,
+    byteSize: input.bytes.byteLength,
+    visibility: "public"
   });
-  expect(uploadResponse.status).toBe(200);
+  expect(pending?.id).toBeTruthy();
 
-  const completeResponse = await app.request(API_ROUTES.uploads.complete, {
-    method: "POST",
-    headers: {
-      cookie,
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      fileId: initPayload.fileId
-    })
+  const uploaded = await uploadsRepo.markFileUploaded({
+    fileId: pending!.id,
+    etag: "test-etag"
   });
-  expect(completeResponse.status).toBe(200);
 
-  return (await completeResponse.json()) as {
-    item: { id: string; url: string; mimeType: string };
+  return {
+    item: {
+      id: uploaded!.id,
+      url: "",
+      mimeType: uploaded!.mimeType,
+      fileName: uploaded!.fileName
+    }
   };
 }
 
@@ -274,7 +266,160 @@ afterAll(async () => {
   await dbPool.end();
 });
 
-describe("posts and social flows", () => {
+describe.sequential("posts and social flows", () => {
+  it("returns edited published posts to pending when moderation stays on", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginWebUser("13800138171");
+    const created = await createPost(authorCookie, {
+      type: "article",
+      title: "Editable article",
+      content: "Initial content",
+      contentCategoryId: articleCategoryId
+    });
+
+    await app.request(API_ROUTES.posts.adminDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "published"
+      })
+    });
+
+    const updateResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Editable article updated",
+        content: "Updated content should return to review.",
+        contentHtml: "<p>Updated content should return to review.</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(updateResponse.status).toBe(200);
+    const updated = (await updateResponse.json()) as {
+      item: { status: string; title: string };
+    };
+    expect(updated.item.title).toBe("Editable article updated");
+    expect(updated.item.status).toBe("pending");
+
+    const publicDetail = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "GET"
+    });
+    expect(publicDetail.status).toBe(404);
+  });
+
+  it("supports comment edit, like and report flows", async () => {
+    const authorCookie = await loginWebUser("13800138172");
+    const created = await createPost(authorCookie, {
+      type: "moment",
+      title: "Comment action source",
+      content: "A moment for comment interaction."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+
+    const commenterCookie = await loginWebUser("13800138173");
+    const createCommentResponse = await app.request(API_ROUTES.posts.comments(created.item.id), {
+      method: "POST",
+      headers: {
+        cookie: commenterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Original comment"
+      })
+    });
+    expect(createCommentResponse.status).toBe(200);
+    const commentPayload = (await createCommentResponse.json()) as {
+      item: { id: string };
+    };
+
+    const updateCommentResponse = await app.request(
+      API_ROUTES.posts.commentDetail(created.item.id, commentPayload.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: commenterCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          content: "Edited comment"
+        })
+      }
+    );
+    expect(updateCommentResponse.status).toBe(200);
+
+    const likeResponse = await app.request(
+      API_ROUTES.posts.commentLike(created.item.id, commentPayload.item.id),
+      {
+        method: "POST",
+        headers: {
+          cookie: authorCookie
+        }
+      }
+    );
+    expect(likeResponse.status).toBe(200);
+
+    const reportResponse = await app.request(
+      API_ROUTES.posts.commentReport(created.item.id, commentPayload.item.id),
+      {
+        method: "POST",
+        headers: {
+          cookie: authorCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          reason: "Spam wording"
+        })
+      }
+    );
+    expect(reportResponse.status).toBe(200);
+
+    const detailResponse = await app.request(
+      `${API_ROUTES.posts.detail(created.item.id)}?commentSort=hot`,
+      {
+        method: "GET",
+        headers: { cookie: authorCookie }
+      }
+    );
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        comments: Array<{
+          id: string;
+          content: string;
+          likeCount: number;
+          reportCount: number;
+          viewer: { hasLiked: boolean; hasReported: boolean };
+        }>;
+      };
+    };
+
+    const target = detailPayload.item.comments.find((item) => item.id === commentPayload.item.id);
+    expect(target?.content).toBe("Edited comment");
+    expect(target?.likeCount).toBe(1);
+    expect(target?.reportCount).toBe(1);
+    expect(target?.viewer.hasLiked).toBe(true);
+    expect(target?.viewer.hasReported).toBe(true);
+  });
+
   it("supports dedicated admin official article detail/update/delete endpoints", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
@@ -505,7 +650,7 @@ describe("posts and social flows", () => {
     expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(true);
   });
 
-  it("publishes admin-created official articles immediately and exposes admin authors in feed", async () => {
+  it("keeps admin-created official articles pending when article moderation is enabled", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
       items: Array<{ id: string }>;
@@ -539,7 +684,7 @@ describe("posts and social flows", () => {
         };
       };
     };
-    expect(created.item.status).toBe("published");
+    expect(created.item.status).toBe("pending");
     expect(created.item.author.role).toBe("admin");
 
     const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, { method: "GET" });
@@ -553,7 +698,7 @@ describe("posts and social flows", () => {
       }>;
     };
     const feedItem = feedPayload.items.find((item) => item.id === created.item.id);
-    expect(feedItem?.author.role).toBe("admin");
+    expect(feedItem).toBeUndefined();
   });
 
   it("splits article and moment feeds correctly", async () => {

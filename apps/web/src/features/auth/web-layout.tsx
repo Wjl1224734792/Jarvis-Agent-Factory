@@ -1,4 +1,5 @@
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
+import logoUrl from "../../../../../packages/shared/assets/logo/logo.jpg";
 import {
   BellIcon,
   CircleUserRoundIcon,
@@ -46,10 +47,11 @@ const memberNavItems = [
 ] as const;
 
 const publishEntries = [
-  { to: WEB_ROUTE_PATHS.publishArticle, label: "发布文章" },
-  { to: WEB_ROUTE_PATHS.publishMoment, label: "发布动态" },
-  { to: WEB_ROUTE_PATHS.publishAircraft, label: "发布飞行器" },
-  { to: APP_ROUTES.rankingEditor, label: "创建榜单" }
+  { to: WEB_ROUTE_PATHS.publishArticle, label: "Publish Article" },
+  { to: WEB_ROUTE_PATHS.publishMoment, label: "Publish Moment" },
+  { to: WEB_ROUTE_PATHS.publishAircraft, label: "Publish Aircraft" },
+  { to: APP_ROUTES.publishBrand, label: "Apply Brand" },
+  { to: APP_ROUTES.rankingEditor, label: "Create Ranking" }
 ] as const;
 
 function getHeaderCopy(pathname: string) {
@@ -90,13 +92,15 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="flex items-center gap-2.5">
-      <div className="flex size-9 shrink-0 items-center justify-center rounded-[calc(var(--radius-control)-0.05rem)] bg-primary text-sm font-semibold text-primary-foreground shadow-[var(--shadow-float)]">
-        飞
+    <div className="flex items-center gap-3">
+      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[1rem] border border-primary/15 bg-white shadow-[var(--shadow-float)]">
+        <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
       </div>
       <div className="min-w-0">
-        <div className="text-[1.32rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
-        <div className="text-[0.58rem] font-medium uppercase tracking-[0.22em] text-muted-foreground">飞行社区</div>
+        <div className="text-[1.18rem] font-semibold tracking-[-0.04em] text-primary">{APP_NAME}</div>
+        <div className="text-[0.58rem] font-medium uppercase tracking-[0.26em] text-muted-foreground">
+          Flight Social Club
+        </div>
       </div>
     </div>
   );

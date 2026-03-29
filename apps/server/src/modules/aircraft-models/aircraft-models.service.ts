@@ -41,7 +41,12 @@ export const aircraftModelsService = {
     return {
       ...item,
       interactionSummary,
-      viewer
+      viewer: {
+        ...viewer,
+        hasReported: false,
+        canEdit: Boolean(currentUserId && item.ownerId && item.ownerId === currentUserId),
+        canDelete: Boolean(currentUserId && item.ownerId && item.ownerId === currentUserId)
+      }
     };
   },
   async getModelDetailById(id: string) {
@@ -53,6 +58,8 @@ export const aircraftModelsService = {
     name: string;
     categoryId: string;
     brandId: string;
+    ownerId?: string | null;
+    sourceSubmissionId?: string | null;
     powerType: string;
     summary: string | null;
     description: string | null;
@@ -71,6 +78,8 @@ export const aircraftModelsService = {
       name: string;
       categoryId: string;
       brandId: string;
+      ownerId?: string | null;
+      sourceSubmissionId?: string | null;
       powerType: string;
       summary: string | null;
       description: string | null;
@@ -114,5 +123,8 @@ export const aircraftModelsService = {
         viewer
       }
     };
+  },
+  async deleteModel(id: string) {
+    return aircraftModelsRepo.delete(id);
   }
 };

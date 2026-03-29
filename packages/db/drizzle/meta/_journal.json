@@ -113,6 +113,13 @@
                         "when":  1774793400000,
                         "tag":  "0015_unified_files_gateway",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  16,
+                        "version":  "7",
+                        "when":  1774802400000,
+                        "tag":  "0016_content_closure_overhaul",
+                        "breakpoints":  true
                     }
                 ]
 }

@@ -423,11 +423,11 @@ async function seedRankings(adminUserId: string) {
   await db
     .insert(rankingItemsTable)
     .values([
-      { id: RANKING_ITEM_IDS.communityMini, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Portable and balanced.", imageFileId: FILE_IDS.rankingCommunityMini, brandName: "DJI", commentCount: 1 },
-      { id: RANKING_ITEM_IDS.communityMavic, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Strong production output.", imageFileId: FILE_IDS.rankingCommunityMavic, brandName: "DJI", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.communityAutel, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.autelLite, rank: 3, title: "Autel EVO Lite+", summary: "Balanced image quality and endurance.", imageFileId: FILE_IDS.rankingCommunityAutel, brandName: "Autel", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.officialMini, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMini, brandName: "DJI", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.officialMavic, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMavic, brandName: "DJI", commentCount: 0 }
+      { id: RANKING_ITEM_IDS.communityMini, rankingId: RANKING_IDS.community, authorId: USER_IDS.ranking, linkedModelId: MODEL_IDS.mini4, status: "published", rank: 1, title: "DJI Mini 4 Pro", summary: "Portable and balanced.", imageFileId: FILE_IDS.rankingCommunityMini, brandName: "DJI", commentCount: 1 },
+      { id: RANKING_ITEM_IDS.communityMavic, rankingId: RANKING_IDS.community, authorId: USER_IDS.ranking, linkedModelId: MODEL_IDS.mavic3, status: "published", rank: 2, title: "DJI Mavic 3 Pro", summary: "Strong production output.", imageFileId: FILE_IDS.rankingCommunityMavic, brandName: "DJI", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.communityAutel, rankingId: RANKING_IDS.community, authorId: USER_IDS.ranking, linkedModelId: MODEL_IDS.autelLite, status: "published", rank: 3, title: "Autel EVO Lite+", summary: "Balanced image quality and endurance.", imageFileId: FILE_IDS.rankingCommunityAutel, brandName: "Autel", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.officialMini, rankingId: RANKING_IDS.official, authorId: adminUserId, linkedModelId: MODEL_IDS.mini4, status: "published", rank: 1, title: "DJI Mini 4 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMini, brandName: "DJI", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.officialMavic, rankingId: RANKING_IDS.official, authorId: adminUserId, linkedModelId: MODEL_IDS.mavic3, status: "published", rank: 2, title: "DJI Mavic 3 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMavic, brandName: "DJI", commentCount: 0 }
     ])
     .onConflictDoNothing();
 
@@ -471,7 +471,7 @@ async function seedAircraftSubmissions() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comments", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "post_comment_likes", "post_comment_reports", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comment_likes", "review_comment_reports", "review_comments", "aircraft_review_likes", "aircraft_review_reports", "ranking_item_comment_likes", "ranking_item_comment_reports", "ranking_item_comments", "ranking_item_ratings", "ranking_item_reports", "ranking_comment_likes", "ranking_comment_reports", "ranking_comments", "ranking_items", "ranking_reports", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_model_reports", "aircraft_reviews", "aircraft_models", "brand_applications", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }

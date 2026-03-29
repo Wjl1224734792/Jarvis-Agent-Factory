@@ -1,10 +1,12 @@
 import {
+  brandApplicationsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
   aircraftSubmissionsTable,
   db,
   postCommentsTable,
   postsTable,
+  rankingItemsTable,
   rankingsTable,
   sessionsTable,
   usersTable
@@ -196,6 +198,8 @@ export const adminAnalyticsService = {
       comments,
       reviews,
       submissions,
+      brandApplications,
+      rankingItems,
       allUsersCountRows,
       rankingsCountRows,
       publishedModelsCountRows
@@ -243,6 +247,16 @@ export const adminAnalyticsService = {
         .from(aircraftSubmissionsTable),
       db
         .select({
+          status: brandApplicationsTable.status
+        })
+        .from(brandApplicationsTable),
+      db
+        .select({
+          status: rankingItemsTable.status
+        })
+        .from(rankingItemsTable),
+      db
+        .select({
           count: sql<number>`count(*)`
         })
         .from(usersTable),
@@ -267,6 +281,8 @@ export const adminAnalyticsService = {
     const commentRows = comments.map((item) => ({ status: item.status }));
     const reviewRows = reviews.map((item) => ({ status: item.status }));
     const submissionRows = submissions.map((item) => ({ status: item.status }));
+    const brandApplicationRows = brandApplications.map((item) => ({ status: item.status }));
+    const rankingItemRows = rankingItems.map((item) => ({ status: item.status }));
 
     const articles = postRows.filter((item) => item.type === "article").length;
     const moments = postRows.filter((item) => item.type === "moment").length;
@@ -298,6 +314,18 @@ export const adminAnalyticsService = {
       rejected: ["rejected"],
       hidden: []
     });
+    const brandApplicationsModeration = moderationFromRows(brandApplicationRows, {
+      pending: ["pending"],
+      approved: ["approved"],
+      rejected: ["rejected"],
+      hidden: ["hidden"]
+    });
+    const rankingItemsModeration = moderationFromRows(rankingItemRows, {
+      pending: ["pending"],
+      approved: ["published"],
+      rejected: ["rejected"],
+      hidden: ["hidden"]
+    });
 
     const startOfToday = startOfUtcDay(now);
     const startOfTomorrow = addUtcDays(startOfToday, 1);
@@ -321,7 +349,9 @@ export const adminAnalyticsService = {
         pendingPosts: postsModeration.pending,
         pendingComments: commentsModeration.pending,
         pendingReviews: reviewsModeration.pending,
-        pendingSubmissions: submissionsModeration.pending
+        pendingSubmissions: submissionsModeration.pending,
+        pendingBrandApplications: brandApplicationsModeration.pending,
+        pendingRankingItems: rankingItemsModeration.pending
       },
       registration: {
         total: allUsersTotal,
@@ -358,13 +388,17 @@ export const adminAnalyticsService = {
         posts: postsModeration,
         comments: commentsModeration,
         reviews: reviewsModeration,
-        submissions: submissionsModeration
+        submissions: submissionsModeration,
+        brandApplications: brandApplicationsModeration,
+        rankingItems: rankingItemsModeration
       },
       funnel: {
         posts: buildFunnelBucket(postsModeration),
         comments: buildFunnelBucket(commentsModeration),
         reviews: buildFunnelBucket(reviewsModeration),
-        submissions: buildFunnelBucket(submissionsModeration)
+        submissions: buildFunnelBucket(submissionsModeration),
+        brandApplications: buildFunnelBucket(brandApplicationsModeration),
+        rankingItems: buildFunnelBucket(rankingItemsModeration)
       },
       series: {
         registrationDaily: buildDailyRegistrationSeries(registrationRecords, now),

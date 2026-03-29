@@ -53,6 +53,9 @@ export const aircraftModelsRepo = {
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
+        ownerId: aircraftModelsTable.ownerId,
+        sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
+        reportCount: aircraftModelsTable.reportCount,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,
@@ -94,6 +97,9 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
+        ownerId: aircraftModelsTable.ownerId,
+        sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
+        reportCount: aircraftModelsTable.reportCount,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
@@ -255,6 +261,8 @@ export const aircraftModelsRepo = {
     name: string;
     categoryId: string;
     brandId: string;
+    ownerId?: string | null;
+    sourceSubmissionId?: string | null;
     powerType: string;
     summary: string | null;
     description: string | null;
@@ -272,6 +280,8 @@ export const aircraftModelsRepo = {
       name: input.name,
       categoryId: input.categoryId,
       brandId: input.brandId,
+      ownerId: input.ownerId ?? null,
+      sourceSubmissionId: input.sourceSubmissionId ?? null,
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
@@ -291,6 +301,8 @@ export const aircraftModelsRepo = {
       name: string;
       categoryId: string;
       brandId: string;
+      ownerId?: string | null;
+      sourceSubmissionId?: string | null;
       powerType: string;
       summary: string | null;
       description: string | null;
@@ -308,6 +320,8 @@ export const aircraftModelsRepo = {
         name: input.name,
         categoryId: input.categoryId,
         brandId: input.brandId,
+        ownerId: input.ownerId ?? undefined,
+        sourceSubmissionId: input.sourceSubmissionId ?? undefined,
         powerType: input.powerType,
         summary: input.summary,
         description: input.description,
@@ -331,6 +345,9 @@ export const aircraftModelsRepo = {
         description: aircraftModelsTable.description,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
+        ownerId: aircraftModelsTable.ownerId,
+        sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
+        reportCount: aircraftModelsTable.reportCount,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
@@ -366,5 +383,9 @@ export const aircraftModelsRepo = {
       .limit(1);
 
     return items[0] ?? null;
+  },
+  async delete(id: string) {
+    await db.delete(aircraftModelsTable).where(eq(aircraftModelsTable.id, id));
+    return true;
   }
 };

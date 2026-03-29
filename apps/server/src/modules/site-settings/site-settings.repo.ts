@@ -19,6 +19,11 @@ export const siteSettingsRepo = {
     reviewModerationEnabled: boolean;
     submissionModerationEnabled: boolean;
     rankingModerationEnabled: boolean;
+    articleModerationEnabled: boolean;
+    momentModerationEnabled: boolean;
+    brandModerationEnabled: boolean;
+    modelModerationEnabled: boolean;
+    rankingItemModerationEnabled: boolean;
   }) {
     const existing = await this.get();
 
@@ -31,6 +36,11 @@ export const siteSettingsRepo = {
           reviewModerationEnabled: input.reviewModerationEnabled,
           submissionModerationEnabled: input.submissionModerationEnabled,
           rankingModerationEnabled: input.rankingModerationEnabled,
+          articleModerationEnabled: input.articleModerationEnabled,
+          momentModerationEnabled: input.momentModerationEnabled,
+          brandModerationEnabled: input.brandModerationEnabled,
+          modelModerationEnabled: input.modelModerationEnabled,
+          rankingItemModerationEnabled: input.rankingItemModerationEnabled,
           updatedAt: new Date()
         })
         .where(eq(siteSettingsTable.id, SITE_SETTINGS_ROW_ID));
@@ -44,7 +54,12 @@ export const siteSettingsRepo = {
       commentModerationEnabled: input.commentModerationEnabled,
       reviewModerationEnabled: input.reviewModerationEnabled,
       submissionModerationEnabled: input.submissionModerationEnabled,
-      rankingModerationEnabled: input.rankingModerationEnabled
+      rankingModerationEnabled: input.rankingModerationEnabled,
+      articleModerationEnabled: input.articleModerationEnabled,
+      momentModerationEnabled: input.momentModerationEnabled,
+      brandModerationEnabled: input.brandModerationEnabled,
+      modelModerationEnabled: input.modelModerationEnabled,
+      rankingItemModerationEnabled: input.rankingItemModerationEnabled
     });
 
     return this.get();

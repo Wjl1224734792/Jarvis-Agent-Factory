@@ -37,6 +37,11 @@ const PublishAircraftPage = lazy(() =>
     default: module.PublishAircraftPage
   }))
 );
+const PublishBrandPage = lazy(() =>
+  import("./routes/publish-brand-page").then((module) => ({
+    default: module.PublishBrandPage
+  }))
+);
 const RankingEditorPage = lazy(() =>
   import("./routes/ranking-editor-page").then((module) => ({
     default: module.RankingEditorPage
@@ -135,6 +140,10 @@ const router = createBrowserRouter([
       {
         path: WEB_ROUTE_PATHS.publishAircraft.slice(1),
         element: withPublishFallback(<PublishAircraftPage />)
+      },
+      {
+        path: APP_ROUTES.publishBrand.slice(1),
+        element: withPublishFallback(<PublishBrandPage />)
       },
       {
         path: WEB_ROUTE_PATHS.publishStatus.slice(1),

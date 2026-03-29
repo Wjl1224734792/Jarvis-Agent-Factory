@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Image, Input, Modal, Select, Table } from "antd";
 import { ImageUpIcon } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 
@@ -9,14 +9,13 @@ type BrandRecord = Awaited<ReturnType<typeof apiClient.listBrands>>[number];
 type BrandFormValues = {
   slug: string;
   name: string;
-  categoryId: string | null;
   sortOrder?: number;
   isEnabled: boolean;
 };
 
 function BrandLogoPreview(props: { logoUrl?: string | null; alt: string }) {
   if (!props.logoUrl) {
-    return <div className="admin-brand-logo admin-brand-logo--empty">无 Logo</div>;
+    return <div className="admin-brand-logo admin-brand-logo--empty">暂无 Logo</div>;
   }
 
   return (
@@ -27,25 +26,10 @@ function BrandLogoPreview(props: { logoUrl?: string | null; alt: string }) {
 }
 
 export function BrandsPage() {
-  const categoriesQuery = useQuery({
-    queryKey: ["admin-categories"],
-    queryFn: () => apiClient.listCategories()
-  });
   const brandsQuery = useQuery({
     queryKey: ["admin-brands"],
     queryFn: () => apiClient.listBrands()
   });
-
-  const categoryOptions = useMemo(
-    () => [
-      { label: "未关联分类", value: null },
-      ...((categoriesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })) as Array<{
-        label: string;
-        value: string | null;
-      }>)
-    ],
-    [categoriesQuery.data]
-  );
 
   const createInputRef = useRef<HTMLInputElement | null>(null);
   const editInputRef = useRef<HTMLInputElement | null>(null);
@@ -91,6 +75,7 @@ export function BrandsPage() {
     try {
       await apiClient.createBrand({
         ...values,
+        categoryId: null,
         logoUrl: createLogoUrl,
         sortOrder: Number(values.sortOrder ?? 0)
       });
@@ -114,6 +99,7 @@ export function BrandsPage() {
     try {
       await apiClient.updateBrand(editing.id, {
         ...values,
+        categoryId: null,
         logoUrl: editLogoUrl,
         sortOrder: Number(values.sortOrder ?? editing.sortOrder ?? 0)
       });
@@ -128,14 +114,17 @@ export function BrandsPage() {
   }
 
   return (
-    <AdminPage description="维护品牌与所属分类关系，并支持品牌 Logo 展示。" title="品牌管理">
+    <AdminPage
+      description="品牌不再绑定一级分类。品牌库只维护品牌自身资料，机型发布时再单独选择分类。"
+      title="品牌库"
+    >
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
-        <AdminPanel description="新增品牌时自动按当前最大排序递增，Logo 上传后可立即在前台展示。" title="新增品牌">
+        <AdminPanel description="品牌资料只维护品牌本身，不再联动一级分类。" title="新增品牌">
           <Form
             form={createForm}
-            initialValues={{ isEnabled: true, categoryId: null }}
+            initialValues={{ isEnabled: true }}
             layout="vertical"
             onFinish={(values) => {
               void handleCreate(values);
@@ -147,9 +136,6 @@ export function BrandsPage() {
             </Form.Item>
             <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
               <Input placeholder="例如：dji" />
-            </Form.Item>
-            <Form.Item label="所属分类" name="categoryId">
-              <Select allowClear options={categoryOptions} placeholder="选择分类" />
             </Form.Item>
             <div className="admin-brand-upload">
               <div className="admin-brand-upload__header">
@@ -201,7 +187,7 @@ export function BrandsPage() {
           </Form>
         </AdminPanel>
 
-        <AdminPanel description="支持查看 Logo、分类、排序和状态。" title="品牌列表">
+        <AdminPanel description="品牌库列表不再显示分类绑定信息，机型页会单独选择已有品牌。" title="品牌列表">
           <Table
             bordered
             columns={[
@@ -215,13 +201,6 @@ export function BrandsPage() {
               },
               { dataIndex: "name", key: "name", title: "品牌" },
               { dataIndex: "slug", key: "slug", title: "Slug" },
-              {
-                key: "category",
-                render: (_, record: BrandRecord) =>
-                  categoriesQuery.data?.find((item) => item.id === record.categoryId)?.name ?? "未关联",
-                title: "分类",
-                width: 140
-              },
               {
                 dataIndex: "sortOrder",
                 key: "sortOrder",
@@ -244,7 +223,6 @@ export function BrandsPage() {
                       editForm.setFieldsValue({
                         slug: record.slug,
                         name: record.name,
-                        categoryId: record.categoryId,
                         sortOrder: record.sortOrder,
                         isEnabled: record.isEnabled
                       });
@@ -260,7 +238,7 @@ export function BrandsPage() {
               }
             ]}
             dataSource={brandsQuery.data ?? []}
-            loading={brandsQuery.isLoading || categoriesQuery.isLoading}
+            loading={brandsQuery.isLoading}
             rowKey={(record) => record.id}
             size="middle"
           />
@@ -286,9 +264,6 @@ export function BrandsPage() {
           </Form.Item>
           <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
             <Input />
-          </Form.Item>
-          <Form.Item label="所属分类" name="categoryId">
-            <Select allowClear options={categoryOptions} />
           </Form.Item>
           <div className="admin-brand-upload">
             <div className="admin-brand-upload__header">

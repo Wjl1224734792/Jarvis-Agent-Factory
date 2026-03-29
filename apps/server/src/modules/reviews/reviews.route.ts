@@ -5,9 +5,11 @@ import {
   createReviewCommentInputSchema,
   createReviewCommentResponseSchema,
   modelReviewsResponseSchema,
+  reportContentInputSchema,
   reviewCommentsResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
+  updateReviewCommentInputSchema,
   updateReviewStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
@@ -93,7 +95,10 @@ reviewsRoute.get(API_ROUTES.models.reviewComments(":reviewId"), async (context) 
     return context.json({ code: "BAD_REQUEST", message: "Missing review id." }, 400);
   }
 
-  const payload = await reviewsService.listReviewComments(reviewId);
+  const payload = await reviewsService.listReviewComments(
+    reviewId,
+    context.get("currentUser")?.id
+  );
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Review not found." }, 404);
   }
@@ -143,6 +148,127 @@ reviewsRoute.delete(
     }
     if (result.kind === "forbidden") {
       return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+    }
+
+    return context.json(actionSuccessResponseSchema.parse({ success: true }));
+  }
+);
+
+reviewsRoute.post(API_ROUTES.models.reviewLike(":reviewId"), requireAuth, async (context) => {
+  const reviewId = context.req.param("reviewId");
+  const currentUser = context.get("currentUser");
+
+  if (!reviewId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing review id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const result = await reviewsService.toggleReviewLike(reviewId, currentUser);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Review not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+reviewsRoute.post(API_ROUTES.models.reviewReport(":reviewId"), requireAuth, async (context) => {
+  const reviewId = context.req.param("reviewId");
+  const currentUser = context.get("currentUser");
+
+  if (!reviewId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing review id." }, 400);
+  }
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const input = reportContentInputSchema.parse(await context.req.json());
+  const result = await reviewsService.reportReview(reviewId, currentUser, input.reason);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Review not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+reviewsRoute.put(
+  API_ROUTES.models.reviewCommentDetail(":reviewId", ":commentId"),
+  requireAuth,
+  async (context) => {
+    const reviewId = context.req.param("reviewId");
+    const commentId = context.req.param("commentId");
+    const currentUser = context.get("currentUser");
+
+    if (!reviewId || !commentId) {
+      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    }
+    if (!currentUser) {
+      return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+    }
+
+    const input = updateReviewCommentInputSchema.parse(await context.req.json());
+    const result = await reviewsService.updateReviewComment(reviewId, commentId, currentUser, input);
+    if (result.kind === "not_found") {
+      return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+    }
+    if (result.kind === "forbidden") {
+      return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+    }
+
+    return context.json(createReviewCommentResponseSchema.parse({ item: result.item }));
+  }
+);
+
+reviewsRoute.post(
+  API_ROUTES.models.reviewCommentLike(":reviewId", ":commentId"),
+  requireAuth,
+  async (context) => {
+    const reviewId = context.req.param("reviewId");
+    const commentId = context.req.param("commentId");
+    const currentUser = context.get("currentUser");
+
+    if (!reviewId || !commentId) {
+      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    }
+    if (!currentUser) {
+      return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+    }
+
+    const result = await reviewsService.toggleReviewCommentLike(reviewId, commentId, currentUser);
+    if (result.kind === "not_found") {
+      return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+    }
+
+    return context.json(actionSuccessResponseSchema.parse({ success: true }));
+  }
+);
+
+reviewsRoute.post(
+  API_ROUTES.models.reviewCommentReport(":reviewId", ":commentId"),
+  requireAuth,
+  async (context) => {
+    const reviewId = context.req.param("reviewId");
+    const commentId = context.req.param("commentId");
+    const currentUser = context.get("currentUser");
+
+    if (!reviewId || !commentId) {
+      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    }
+    if (!currentUser) {
+      return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+    }
+
+    const input = reportContentInputSchema.parse(await context.req.json());
+    const result = await reviewsService.reportReviewComment(
+      reviewId,
+      commentId,
+      currentUser,
+      input.reason
+    );
+    if (result.kind === "not_found") {
+      return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
     }
 
     return context.json(actionSuccessResponseSchema.parse({ success: true }));
