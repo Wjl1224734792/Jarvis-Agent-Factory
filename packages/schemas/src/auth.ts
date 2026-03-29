@@ -6,6 +6,7 @@ export const authErrorCodeSchema = z.enum([
   "INVALID_CAPTCHA",
   "INVALID_SMS_CODE",
   "INVALID_CREDENTIALS",
+  "INVALID_REFRESH_TOKEN",
   "SMS_PROVIDER_UNAVAILABLE",
   "SESSION_EXPIRED",
   "UNAUTHORIZED",
@@ -52,6 +53,8 @@ export const webLoginRequestSchema = z.object({
   smsCode: z.string().length(6)
 });
 
+const deviceLabelSchema = z.string().trim().min(1).max(120);
+
 export const webLoginSuccessResponseSchema = z.object({
   kind: z.literal("authenticated"),
   user: userSummarySchema
@@ -69,10 +72,49 @@ export const webLoginResponseSchema = z.discriminatedUnion("kind", [
   webLoginRegistrationRequiredResponseSchema
 ]);
 
+export const appLoginRequestSchema = webLoginRequestSchema.extend({
+  deviceLabel: deviceLabelSchema.optional().nullable()
+});
+
+const appAuthTokensSchema = z.object({
+  accessToken: z.string().min(1),
+  refreshToken: z.string().min(1)
+});
+
+export const appLoginSuccessResponseSchema = appAuthTokensSchema.extend({
+  kind: z.literal("authenticated"),
+  user: userSummarySchema
+});
+
+export const appLoginResponseSchema = z.discriminatedUnion("kind", [
+  appLoginSuccessResponseSchema,
+  webLoginRegistrationRequiredResponseSchema
+]);
+
 export const completeWebRegistrationRequestSchema = z.object({
   registrationToken: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
   avatarUrl: z.string().trim().min(1).nullable().optional()
+});
+
+export const registrationDisplayNameSuggestRequestSchema = z.object({
+  registrationToken: z.string().min(1)
+});
+
+export const registrationDisplayNameSuggestResponseSchema = z.object({
+  displayName: z.string().trim().min(1).max(50)
+});
+
+export const completeAppRegistrationRequestSchema = completeWebRegistrationRequestSchema.extend({
+  deviceLabel: deviceLabelSchema.optional().nullable()
+});
+
+export const appAuthSessionResponseSchema = appAuthTokensSchema.extend({
+  user: userSummarySchema
+});
+
+export const appRefreshRequestSchema = z.object({
+  refreshToken: z.string().min(1)
 });
 
 export const adminLoginRequestSchema = z.object({
@@ -82,6 +124,29 @@ export const adminLoginRequestSchema = z.object({
 
 export const authSuccessResponseSchema = z.object({
   user: userSummarySchema
+});
+
+export const adminRecentSessionSchema = z.object({
+  id: z.string().min(1),
+  scope: z.enum(["web", "admin", "app"]),
+  clientIp: z.string().trim().min(1).nullable(),
+  userAgent: z.string().trim().min(1).nullable(),
+  deviceLabel: z.string().trim().min(1).nullable(),
+  status: z.enum(["active", "revoked", "expired"]),
+  createdAt: z.string().datetime(),
+  lastSeenAt: z.string().datetime().nullable(),
+  revokedAt: z.string().datetime().nullable(),
+  expiresAt: z.string().datetime(),
+  user: z.object({
+    id: z.string().min(1),
+    displayName: z.string().min(1),
+    role: authRoleSchema,
+    phone: z.string().trim().min(1).nullable()
+  })
+});
+
+export const adminRecentSessionsResponseSchema = z.object({
+  items: z.array(adminRecentSessionSchema)
 });
 
 export const authErrorResponseSchema = z.object({

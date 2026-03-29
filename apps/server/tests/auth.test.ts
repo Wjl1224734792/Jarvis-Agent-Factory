@@ -67,6 +67,33 @@ async function loginWebUser(phone: string) {
   return completeRegistrationIfNeeded(loginResponse);
 }
 
+async function requestCaptchaAndSms(phone: string) {
+  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+    method: "POST"
+  });
+  const captchaPayload = (await captchaResponse.json()) as {
+    challengeId: string;
+    imageOrText: string;
+  };
+
+  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      phone,
+      captchaChallengeId: captchaPayload.challengeId,
+      captchaCode: captchaPayload.imageOrText
+    })
+  });
+  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+
+  return {
+    challengeId: captchaPayload.challengeId,
+    captchaCode: captchaPayload.imageOrText,
+    smsCode: smsPayload.mockCode ?? ""
+  };
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -592,5 +619,224 @@ describe("auth flows", () => {
       headers: { cookie: adminCookie }
     });
     expect(adminProtected.status).toBe(200);
+  });
+
+  it("records session ip/device metadata and exposes recent sessions to admin", async () => {
+    const webLoginPayload = await requestCaptchaAndSms("13800138121");
+    const webLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent":
+          "Mozilla/5.0 (iPhone; CPU iPhone OS 18_0 like Mac OS X) AppleWebKit/605.1.15",
+        "x-forwarded-for": "203.0.113.25"
+      },
+      body: JSON.stringify({
+        phone: "13800138121",
+        captchaChallengeId: webLoginPayload.challengeId,
+        captchaCode: webLoginPayload.captchaCode,
+        smsCode: webLoginPayload.smsCode
+      })
+    });
+    const userCookie = await completeRegistrationIfNeeded(webLoginResponse);
+
+    const logoutResponse = await app.request(API_ROUTES.auth.logout, {
+      method: "POST",
+      headers: { cookie: userCookie }
+    });
+    expect(logoutResponse.status).toBe(200);
+
+    const adminCookie = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    }).then((response) => extractCookie(response.headers.get("set-cookie")));
+
+    const recentSessionsResponse = await app.request("/admin/auth/sessions", {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(recentSessionsResponse.status).toBe(200);
+
+    const recentSessionsPayload = (await recentSessionsResponse.json()) as {
+      items: Array<{
+        scope: string;
+        clientIp: string | null;
+        userAgent: string | null;
+        deviceLabel: string | null;
+        status: "active" | "revoked" | "expired";
+        user: {
+          phone?: string | null;
+        };
+      }>;
+    };
+
+    const matched = recentSessionsPayload.items.find((item) => item.user.phone === "13800138121");
+    expect(matched).toBeTruthy();
+    expect(matched?.scope).toBe("web");
+    expect(matched?.clientIp).toBe("203.0.113.25");
+    expect(matched?.userAgent).toContain("iPhone");
+    expect(matched?.deviceLabel).toContain("iPhone");
+    expect(matched?.status).toBe("revoked");
+  });
+
+  it("suggests a random display name without consuming the registration token", async () => {
+    const loginPayload = await requestCaptchaAndSms("13800138131");
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138131",
+        captchaChallengeId: loginPayload.challengeId,
+        captchaCode: loginPayload.captchaCode,
+        smsCode: loginPayload.smsCode
+      })
+    });
+    expect(loginResponse.status).toBe(200);
+
+    const registrationPayload = (await loginResponse.json()) as {
+      kind: "registration_required";
+      registrationToken: string;
+      suggestedDisplayName: string;
+    };
+    expect(registrationPayload.kind).toBe("registration_required");
+
+    const suggestResponse = await app.request("/auth/registration/display-name/suggest", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: registrationPayload.registrationToken
+      })
+    });
+    expect(suggestResponse.status).toBe(200);
+
+    const suggestPayload = (await suggestResponse.json()) as {
+      displayName: string;
+    };
+    expect(suggestPayload.displayName).toBeTruthy();
+    expect(suggestPayload.displayName).not.toBe(registrationPayload.suggestedDisplayName);
+
+    const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: registrationPayload.registrationToken,
+        displayName: suggestPayload.displayName,
+        avatarUrl: null
+      })
+    });
+    expect(completeResponse.status).toBe(200);
+    expect(completeResponse.headers.get("set-cookie")).toBeTruthy();
+  });
+
+  it("supports app login, registration completion, refresh, me and logout", async () => {
+    const loginPayload = await requestCaptchaAndSms("13800138141");
+    const appLoginResponse = await app.request("/auth/app/login", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": "FeijiaApp/1.0 (iOS 18.0; iPhone16,2)",
+        "x-forwarded-for": "198.51.100.18"
+      },
+      body: JSON.stringify({
+        phone: "13800138141",
+        captchaChallengeId: loginPayload.challengeId,
+        captchaCode: loginPayload.captchaCode,
+        smsCode: loginPayload.smsCode,
+        deviceLabel: "iPhone 16 Pro"
+      })
+    });
+    expect(appLoginResponse.status).toBe(200);
+
+    const appLoginPayload = (await appLoginResponse.json()) as
+      | {
+          kind: "registration_required";
+          registrationToken: string;
+          suggestedDisplayName: string;
+        }
+      | {
+          kind: "authenticated";
+          accessToken: string;
+          refreshToken: string;
+          user: { id: string };
+        };
+    expect(appLoginPayload.kind).toBe("registration_required");
+
+    const appRegisterResponse = await app.request("/auth/app/register/complete", {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "user-agent": "FeijiaApp/1.0 (iOS 18.0; iPhone16,2)",
+        "x-forwarded-for": "198.51.100.18"
+      },
+      body: JSON.stringify({
+        registrationToken: (appLoginPayload as { registrationToken: string }).registrationToken,
+        displayName: "移动端飞友",
+        avatarUrl: null,
+        deviceLabel: "iPhone 16 Pro"
+      })
+    });
+    expect(appRegisterResponse.status).toBe(200);
+
+    const appRegisterPayload = (await appRegisterResponse.json()) as {
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string; role: string };
+    };
+    expect(appRegisterPayload.accessToken).toBeTruthy();
+    expect(appRegisterPayload.refreshToken).toBeTruthy();
+    expect(appRegisterPayload.user.role).toBe("user");
+
+    const meResponse = await app.request("/auth/app/me", {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${appRegisterPayload.accessToken}`
+      }
+    });
+    expect(meResponse.status).toBe(200);
+    const mePayload = (await meResponse.json()) as {
+      user: { id: string } | null;
+    };
+    expect(mePayload.user?.id).toBe(appRegisterPayload.user.id);
+
+    const refreshResponse = await app.request("/auth/app/refresh", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        refreshToken: appRegisterPayload.refreshToken
+      })
+    });
+    expect(refreshResponse.status).toBe(200);
+    const refreshPayload = (await refreshResponse.json()) as {
+      accessToken: string;
+      refreshToken: string;
+      user: { id: string };
+    };
+    expect(refreshPayload.accessToken).toBeTruthy();
+    expect(refreshPayload.refreshToken).toBeTruthy();
+    expect(refreshPayload.accessToken).not.toBe(appRegisterPayload.accessToken);
+
+    const logoutResponse = await app.request("/auth/app/logout", {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${refreshPayload.accessToken}`
+      }
+    });
+    expect(logoutResponse.status).toBe(200);
+
+    const afterLogoutResponse = await app.request("/auth/app/me", {
+      method: "GET",
+      headers: {
+        authorization: `Bearer ${refreshPayload.accessToken}`
+      }
+    });
+    expect(afterLogoutResponse.status).toBe(200);
+    const afterLogoutPayload = (await afterLogoutResponse.json()) as {
+      user: unknown;
+    };
+    expect(afterLogoutPayload.user).toBeNull();
   });
 });

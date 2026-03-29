@@ -15,30 +15,39 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
 import {
+  AlignCenterIcon,
+  AlignLeftIcon,
+  AlignRightIcon,
+  BoldIcon,
   Code2Icon,
+  EraserIcon,
   FileCode2Icon,
   Heading2Icon,
   Heading3Icon,
   HighlighterIcon,
   ImageIcon,
+  ItalicIcon,
   Link2Icon,
   ListChecksIcon,
   ListIcon,
   ListOrderedIcon,
   Loader2Icon,
   MinusIcon,
+  PaletteIcon,
   QuoteIcon,
   Redo2Icon,
   StrikethroughIcon,
   Table2Icon,
+  UnderlineIcon,
   Undo2Icon,
   Unlink2Icon,
   VideoIcon
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { type ReactNode, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { getToolbarControlLabel } from "./rich-text-toolbar-config";
 import {
   buildRichTextToolbarState,
   getRichTextMediaInsertions,
@@ -113,6 +122,29 @@ function insertLink(editor: ReturnType<typeof useEditor> | null) {
   }
 
   editor.chain().focus().extendMarkRange("link").setLink({ href: url.trim() }).run();
+}
+
+function ToolbarIconButton(props: {
+  active?: boolean;
+  disabled?: boolean;
+  icon: ReactNode;
+  label: string;
+  onClick: () => void;
+}) {
+  return (
+    <Button
+      aria-label={props.label}
+      className={cn(props.active && "border-primary/25 bg-primary/8 text-primary")}
+      disabled={props.disabled}
+      onClick={props.onClick}
+      size="icon-sm"
+      title={props.label}
+      type="button"
+      variant="outline"
+    >
+      {props.icon}
+    </Button>
+  );
 }
 
 export function RichTextEditor(props: RichTextEditorProps) {
@@ -221,92 +253,221 @@ export function RichTextEditor(props: RichTextEditorProps) {
   }
 
   const toolbarState = buildRichTextToolbarState(editor as RichTextToolbarEditor | null);
-
-  const toolbarItems = [
-    { key: "bold", label: "加粗", active: toolbarState.find((item) => item.key === "bold")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleBold().run() },
-    { key: "italic", label: "斜体", active: toolbarState.find((item) => item.key === "italic")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleItalic().run() },
-    { key: "underline", label: "下划线", active: toolbarState.find((item) => item.key === "underline")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleUnderline().run() },
-    { key: "strike", label: "删除线", active: toolbarState.find((item) => item.key === "strike")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleStrike().run() },
-    { key: "highlight", label: "高亮", active: toolbarState.find((item) => item.key === "highlight")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleHighlight().run() },
-    { key: "code", label: "行内代码", active: toolbarState.find((item) => item.key === "code")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleCode().run() },
-    { key: "codeBlock", label: "代码块", active: toolbarState.find((item) => item.key === "codeBlock")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleCodeBlock().run() },
-    { key: "heading2", label: "H2", active: toolbarState.find((item) => item.key === "heading2")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
-    { key: "heading3", label: "H3", active: toolbarState.find((item) => item.key === "heading3")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleHeading({ level: 3 }).run() },
-    { key: "bulletList", label: "无序列表", active: toolbarState.find((item) => item.key === "bulletList")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleBulletList().run() },
-    { key: "orderedList", label: "有序列表", active: toolbarState.find((item) => item.key === "orderedList")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleOrderedList().run() },
-    { key: "taskList", label: "任务列表", active: toolbarState.find((item) => item.key === "taskList")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleTaskList().run() },
-    { key: "blockquote", label: "引用", active: toolbarState.find((item) => item.key === "blockquote")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().toggleBlockquote().run() },
-    { key: "horizontalRule", label: "分隔线", active: false, disabled: !editor, onClick: () => editor?.chain().focus().setHorizontalRule().run() },
-    { key: "alignLeft", label: "左对齐", active: toolbarState.find((item) => item.key === "alignLeft")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().setTextAlign("left").run() },
-    { key: "alignCenter", label: "居中", active: toolbarState.find((item) => item.key === "alignCenter")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().setTextAlign("center").run() },
-    { key: "alignRight", label: "右对齐", active: toolbarState.find((item) => item.key === "alignRight")?.active ?? false, disabled: !editor, onClick: () => editor?.chain().focus().setTextAlign("right").run() },
-    { key: "link", label: "链接", active: toolbarState.find((item) => item.key === "link")?.active ?? false, disabled: !editor, onClick: () => insertLink(editor) },
-    { key: "unlink", label: "取消链接", active: false, disabled: toolbarState.find((item) => item.key === "unlink")?.disabled ?? true, onClick: () => editor?.chain().focus().unsetLink().run() },
-    { key: "undo", label: "撤销", active: false, disabled: toolbarState.find((item) => item.key === "undo")?.disabled ?? true, onClick: () => editor?.chain().focus().undo().run() },
-    { key: "redo", label: "重做", active: false, disabled: toolbarState.find((item) => item.key === "redo")?.disabled ?? true, onClick: () => editor?.chain().focus().redo().run() }
-  ];
-
-  const tableActions = [
-    { key: "insertTable", label: "插入表格", onClick: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-    { key: "addRow", label: "加行", onClick: () => editor?.chain().focus().addRowAfter().run() },
-    { key: "deleteRow", label: "删行", onClick: () => editor?.chain().focus().deleteRow().run() },
-    { key: "addColumn", label: "加列", onClick: () => editor?.chain().focus().addColumnAfter().run() },
-    { key: "deleteColumn", label: "删列", onClick: () => editor?.chain().focus().deleteColumn().run() },
-    { key: "toggleHeader", label: "表头", onClick: () => editor?.chain().focus().toggleHeaderRow().run() }
-  ];
+  const stateFor = (key: string) => toolbarState.find((item) => item.key === key);
 
   return (
     <div className="space-y-3">
       <div className="space-y-2">
         <div className="flex flex-wrap items-center gap-2">
-          {toolbarItems.map((item) => (
-            <Button
-              className={cn(item.active && "border-primary/25 bg-primary/8 text-primary")}
-              disabled={item.disabled}
-              key={item.key}
-              onClick={item.onClick}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              {item.label}
-            </Button>
-          ))}
-          <Button
-            onClick={() => {
-              colorInputRef.current?.click();
-            }}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            <HighlighterIcon className="mr-1 size-4" />
-            文字颜色
-          </Button>
-          <Button
+          <ToolbarIconButton
+            active={stateFor("bold")?.active}
+            disabled={!editor}
+            icon={<BoldIcon />}
+            label={getToolbarControlLabel("bold")}
+            onClick={() => editor?.chain().focus().toggleBold().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("italic")?.active}
+            disabled={!editor}
+            icon={<ItalicIcon />}
+            label={getToolbarControlLabel("italic")}
+            onClick={() => editor?.chain().focus().toggleItalic().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("underline")?.active}
+            disabled={!editor}
+            icon={<UnderlineIcon />}
+            label={getToolbarControlLabel("underline")}
+            onClick={() => editor?.chain().focus().toggleUnderline().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("strike")?.active}
+            disabled={!editor}
+            icon={<StrikethroughIcon />}
+            label={getToolbarControlLabel("strike")}
+            onClick={() => editor?.chain().focus().toggleStrike().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("highlight")?.active}
+            disabled={!editor}
+            icon={<HighlighterIcon />}
+            label={getToolbarControlLabel("highlight")}
+            onClick={() => editor?.chain().focus().toggleHighlight().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("code")?.active}
+            disabled={!editor}
+            icon={<Code2Icon />}
+            label={getToolbarControlLabel("code")}
+            onClick={() => editor?.chain().focus().toggleCode().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("codeBlock")?.active}
+            disabled={!editor}
+            icon={<FileCode2Icon />}
+            label={getToolbarControlLabel("codeBlock")}
+            onClick={() => editor?.chain().focus().toggleCodeBlock().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("heading2")?.active}
+            disabled={!editor}
+            icon={<Heading2Icon />}
+            label={getToolbarControlLabel("heading2")}
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 2 }).run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("heading3")?.active}
+            disabled={!editor}
+            icon={<Heading3Icon />}
+            label={getToolbarControlLabel("heading3")}
+            onClick={() => editor?.chain().focus().toggleHeading({ level: 3 }).run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("bulletList")?.active}
+            disabled={!editor}
+            icon={<ListIcon />}
+            label={getToolbarControlLabel("bulletList")}
+            onClick={() => editor?.chain().focus().toggleBulletList().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("orderedList")?.active}
+            disabled={!editor}
+            icon={<ListOrderedIcon />}
+            label={getToolbarControlLabel("orderedList")}
+            onClick={() => editor?.chain().focus().toggleOrderedList().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("taskList")?.active}
+            disabled={!editor}
+            icon={<ListChecksIcon />}
+            label={getToolbarControlLabel("taskList")}
+            onClick={() => editor?.chain().focus().toggleTaskList().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("blockquote")?.active}
+            disabled={!editor}
+            icon={<QuoteIcon />}
+            label={getToolbarControlLabel("blockquote")}
+            onClick={() => editor?.chain().focus().toggleBlockquote().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<MinusIcon />}
+            label={getToolbarControlLabel("horizontalRule")}
+            onClick={() => editor?.chain().focus().setHorizontalRule().run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("alignLeft")?.active}
+            disabled={!editor}
+            icon={<AlignLeftIcon />}
+            label={getToolbarControlLabel("alignLeft")}
+            onClick={() => editor?.chain().focus().setTextAlign("left").run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("alignCenter")?.active}
+            disabled={!editor}
+            icon={<AlignCenterIcon />}
+            label={getToolbarControlLabel("alignCenter")}
+            onClick={() => editor?.chain().focus().setTextAlign("center").run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("alignRight")?.active}
+            disabled={!editor}
+            icon={<AlignRightIcon />}
+            label={getToolbarControlLabel("alignRight")}
+            onClick={() => editor?.chain().focus().setTextAlign("right").run()}
+          />
+          <ToolbarIconButton
+            active={stateFor("link")?.active}
+            disabled={!editor}
+            icon={<Link2Icon />}
+            label={getToolbarControlLabel("link")}
+            onClick={() => insertLink(editor)}
+          />
+          <ToolbarIconButton
+            disabled={stateFor("unlink")?.disabled}
+            icon={<Unlink2Icon />}
+            label={getToolbarControlLabel("unlink")}
+            onClick={() => editor?.chain().focus().unsetLink().run()}
+          />
+          <ToolbarIconButton
+            disabled={stateFor("undo")?.disabled}
+            icon={<Undo2Icon />}
+            label={getToolbarControlLabel("undo")}
+            onClick={() => editor?.chain().focus().undo().run()}
+          />
+          <ToolbarIconButton
+            disabled={stateFor("redo")?.disabled}
+            icon={<Redo2Icon />}
+            label={getToolbarControlLabel("redo")}
+            onClick={() => editor?.chain().focus().redo().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<PaletteIcon />}
+            label={getToolbarControlLabel("textColor")}
+            onClick={() => colorInputRef.current?.click()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<EraserIcon />}
+            label={getToolbarControlLabel("clearColor")}
             onClick={() => editor?.chain().focus().unsetColor().run()}
-            size="sm"
-            type="button"
-            variant="outline"
-          >
-            清除颜色
-          </Button>
+          />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
-          {tableActions.map((item) => (
-            <Button key={item.key} onClick={item.onClick} size="sm" type="button" variant="outline">
-              {item.label}
-            </Button>
-          ))}
-          <Button onClick={() => imageInputRef.current?.click()} size="sm" type="button" variant="outline">
-            {isUploadingImage ? <Loader2Icon className="mr-1 size-4 animate-spin" /> : <ImageIcon className="mr-1 size-4" />}
-            图片
-          </Button>
-          <Button onClick={() => videoInputRef.current?.click()} size="sm" type="button" variant="outline">
-            {isUploadingVideo ? <Loader2Icon className="mr-1 size-4 animate-spin" /> : <VideoIcon className="mr-1 size-4" />}
-            视频
-          </Button>
+          <ToolbarIconButton
+            active={stateFor("table")?.active}
+            disabled={!editor}
+            icon={<Table2Icon />}
+            label={getToolbarControlLabel("insertTable")}
+            onClick={() =>
+              editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run()
+            }
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<Table2Icon />}
+            label={getToolbarControlLabel("addRow")}
+            onClick={() => editor?.chain().focus().addRowAfter().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<MinusIcon />}
+            label={getToolbarControlLabel("deleteRow")}
+            onClick={() => editor?.chain().focus().deleteRow().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<Table2Icon />}
+            label={getToolbarControlLabel("addColumn")}
+            onClick={() => editor?.chain().focus().addColumnAfter().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<MinusIcon />}
+            label={getToolbarControlLabel("deleteColumn")}
+            onClick={() => editor?.chain().focus().deleteColumn().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={<Table2Icon />}
+            label={getToolbarControlLabel("toggleHeader")}
+            onClick={() => editor?.chain().focus().toggleHeaderRow().run()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={isUploadingImage ? <Loader2Icon className="animate-spin" /> : <ImageIcon />}
+            label={getToolbarControlLabel("image")}
+            onClick={() => imageInputRef.current?.click()}
+          />
+          <ToolbarIconButton
+            disabled={!editor}
+            icon={isUploadingVideo ? <Loader2Icon className="animate-spin" /> : <VideoIcon />}
+            label={getToolbarControlLabel("video")}
+            onClick={() => videoInputRef.current?.click()}
+          />
         </div>
       </div>
 

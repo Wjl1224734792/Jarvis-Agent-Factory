@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, BookmarkIcon, HeartIcon, MessageSquareTextIcon, SendIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { BrandIdentity } from "@/components/brand-identity";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
@@ -403,7 +404,13 @@ export function ModelDetailPage() {
           <div className="grid gap-4 border border-border/80 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">{item.brand.name}</Badge>
+                <Badge variant="outline">
+                  <BrandIdentity
+                    imageClassName="size-3.5"
+                    logoUrl={item.brand.logoUrl}
+                    name={item.brand.name}
+                  />
+                </Badge>
                 <Badge variant="outline">{item.category.name}</Badge>
                 <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
               </div>
@@ -541,7 +548,17 @@ export function ModelDetailPage() {
                           key={label}
                         >
                           <div className="text-[0.8rem] text-muted-foreground">{label}</div>
-                          <div className="text-[0.82rem] font-medium leading-6 text-foreground">{value}</div>
+                          <div className="text-[0.82rem] font-medium leading-6 text-foreground">
+                            {label === "鍝佺墝" ? (
+                              <BrandIdentity
+                                imageClassName="size-4"
+                                logoUrl={item.brand.logoUrl}
+                                name={item.brand.name}
+                              />
+                            ) : (
+                              value
+                            )}
+                          </div>
                         </div>
                       ))}
                     </div>
@@ -678,7 +695,12 @@ export function ModelDetailPage() {
                   />
                   <div className="min-w-0 space-y-1">
                     <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
-                    <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
+                    <BrandIdentity
+                      className="text-[0.72rem] text-muted-foreground"
+                      imageClassName="size-3.5"
+                      logoUrl={model.brand.logoUrl}
+                      name={model.brand.name}
+                    />
                   </div>
                 </Link>
               ))}

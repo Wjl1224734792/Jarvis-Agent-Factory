@@ -92,6 +92,13 @@
                         "when":  1774710000000,
                         "tag":  "0012_global_audit_and_identity",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  13,
+                        "version":  "7",
+                        "when":  1774770000000,
+                        "tag":  "0013_session_device_brand_logo",
+                        "breakpoints":  true
                     }
                 ]
 }

@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { BrandIdentity } from "@/components/brand-identity";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
@@ -20,6 +21,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
+import { cn } from "../lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
 type UploadedImage = {
@@ -215,18 +217,39 @@ export function PublishAircraftPage() {
 
               {brandMode === "existing" ? (
                 <div className="space-y-2 md:col-span-2">
-                  <select
-                    className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
-                    onChange={(event) => setSelectedBrandId(event.target.value)}
-                    value={selectedBrandId}
-                  >
-                    <option value="">选择品牌</option>
-                    {filteredBrands.map((brand) => (
-                      <option key={brand.id} value={brand.id}>
-                        {brand.name}
-                      </option>
-                    ))}
-                  </select>
+                  <div className="grid max-h-56 gap-2 overflow-y-auto border border-border/70 bg-background/70 p-2">
+                    {filteredBrands.map((brand) => {
+                      const selected = selectedBrandId === brand.id;
+
+                      return (
+                        <button
+                          className={cn(
+                            "flex items-center justify-between gap-3 border px-3 py-2 text-left text-sm transition",
+                            selected
+                              ? "border-primary bg-primary/8 text-primary"
+                              : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
+                          )}
+                          key={brand.id}
+                          onClick={() => setSelectedBrandId(brand.id)}
+                          type="button"
+                        >
+                          <BrandIdentity
+                            className="min-w-0"
+                            imageClassName="size-4"
+                            logoUrl={brand.logoUrl}
+                            name={brand.name}
+                          />
+                          {selected ? <span className="text-[0.72rem]">已选</span> : null}
+                        </button>
+                      );
+                    })}
+
+                    {filteredBrands.length === 0 ? (
+                      <div className="px-3 py-6 text-sm text-muted-foreground">
+                        当前分类下暂无品牌，请改用品牌提案模式。
+                      </div>
+                    ) : null}
+                  </div>
                 </div>
               ) : (
                 <div className="space-y-2 md:col-span-2">
@@ -416,6 +439,7 @@ export function PublishAircraftPage() {
                   ) {
                     return;
                   }
+
                   setError(null);
                   setIsSubmitting(true);
 
@@ -483,15 +507,33 @@ export function PublishAircraftPage() {
               <div className="grid gap-3">
                 {[
                   { label: "机型分类", value: selectedCategory?.name || "未选择" },
-                  { label: "品牌", value: brandMode === "existing" ? selectedBrand?.name || "未选择" : proposedBrandName || "未填写" },
+                  {
+                    label: "品牌",
+                    value:
+                      brandMode === "existing"
+                        ? selectedBrand?.name || "未选择"
+                        : proposedBrandName || "未填写"
+                  },
                   {
                     label: "动力",
                     value: powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"
                   }
                 ].map((item) => (
                   <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3" key={item.label}>
-                    <div className="text-[0.72rem] uppercase tracking-[0.14em] text-muted-foreground">{item.label}</div>
-                    <div className="mt-1 text-sm font-medium text-foreground">{item.value}</div>
+                    <div className="text-[0.72rem] uppercase tracking-[0.14em] text-muted-foreground">
+                      {item.label}
+                    </div>
+                    <div className="mt-1 text-sm font-medium text-foreground">
+                      {item.label === "品牌" && brandMode === "existing" && selectedBrand ? (
+                        <BrandIdentity
+                          imageClassName="size-4"
+                          logoUrl={selectedBrand.logoUrl}
+                          name={selectedBrand.name}
+                        />
+                      ) : (
+                        item.value
+                      )}
+                    </div>
                   </div>
                 ))}
               </div>
@@ -506,15 +548,15 @@ export function PublishAircraftPage() {
               <PlaneTakeoffIcon className="size-6" />
               <div className="text-xl font-semibold">投稿说明</div>
               <p className="text-sm leading-6 text-panel-highlight-foreground/86">
-                分类来自后台维护；品牌可直接选择，或在投稿时补充品牌提案。
+                分类来自后台维护；品牌可以直接选择，带 logo 的品牌会在选择器和预览中同步展示。
               </p>
               <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
                 <TagsIcon className="size-4" />
-                通过审核后再进入机型库
+                通过审核后会进入机型库
               </div>
               <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
                 <CheckCircle2Icon className="size-4" />
-                不需要额外后台开关
+                没有现成品牌时，仍可提交品牌提案
               </div>
             </SitePanelBody>
           </SitePanel>

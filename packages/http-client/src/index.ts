@@ -1,5 +1,6 @@
 import {
   actionSuccessResponseSchema,
+  adminRecentSessionsResponseSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
   adminCategoryInputSchema,
@@ -20,6 +21,11 @@ import {
   adminLoginRequestSchema,
   aircraftSubmissionResponseSchema,
   aircraftSubmissionsResponseSchema,
+  appAuthSessionResponseSchema,
+  appLoginRequestSchema,
+  appLoginResponseSchema,
+  appRefreshRequestSchema,
+  completeAppRegistrationRequestSchema,
   completeWebRegistrationRequestSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
@@ -64,6 +70,8 @@ import {
   rankingItemDetailResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
+  registrationDisplayNameSuggestRequestSchema,
+  registrationDisplayNameSuggestResponseSchema,
   reviewCommentsResponseSchema,
   reportPostInputSchema,
   smsCodeRequestSchema,
@@ -95,7 +103,12 @@ type ApiClientOptions = {
 };
 
 type WebLoginInput = Parameters<typeof webLoginRequestSchema.parse>[0];
+type AppLoginInput = Parameters<typeof appLoginRequestSchema.parse>[0];
 type CompleteWebRegistrationInput = Parameters<typeof completeWebRegistrationRequestSchema.parse>[0];
+type CompleteAppRegistrationInput = Parameters<typeof completeAppRegistrationRequestSchema.parse>[0];
+type RegistrationDisplayNameSuggestInput =
+  Parameters<typeof registrationDisplayNameSuggestRequestSchema.parse>[0];
+type AppRefreshInput = Parameters<typeof appRefreshRequestSchema.parse>[0];
 type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
@@ -167,18 +180,26 @@ function buildQueryString(input: ModelsQueryInput): string {
   const query = modelListQuerySchema.parse(input ?? {});
   const search = new URLSearchParams();
 
-  if (query.categorySlug) {
-    search.set("categorySlug", query.categorySlug);
+  if (query.categorySlugs?.length) {
+    for (const categorySlug of query.categorySlugs) {
+      search.append("categorySlug", categorySlug);
+    }
   }
 
-  if (query.brandSlug) {
-    search.set("brandSlug", query.brandSlug);
+  if (query.brandSlugs?.length) {
+    for (const brandSlug of query.brandSlugs) {
+      search.append("brandSlug", brandSlug);
+    }
   }
 
   if (query.powerTypes?.length) {
     for (const powerType of query.powerTypes) {
       search.append("powerType", powerType);
     }
+  }
+
+  if (query.keyword) {
+    search.set("keyword", query.keyword);
   }
 
   const queryString = search.toString();
@@ -253,11 +274,39 @@ export function createApiClient(options: ApiClientOptions) {
         webLoginRequestSchema.parse(input)
       );
     },
+    async loginApp(input: AppLoginInput) {
+      return postJson(
+        API_ROUTES.auth.appLogin,
+        appLoginResponseSchema,
+        appLoginRequestSchema.parse(input)
+      );
+    },
     async completeWebRegistration(input: CompleteWebRegistrationInput) {
       return postJson(
         API_ROUTES.auth.webRegisterComplete,
         authSuccessResponseSchema,
         completeWebRegistrationRequestSchema.parse(input)
+      );
+    },
+    async suggestRegistrationDisplayName(input: RegistrationDisplayNameSuggestInput) {
+      return postJson(
+        API_ROUTES.auth.registrationDisplayNameSuggest,
+        registrationDisplayNameSuggestResponseSchema,
+        registrationDisplayNameSuggestRequestSchema.parse(input)
+      );
+    },
+    async completeAppRegistration(input: CompleteAppRegistrationInput) {
+      return postJson(
+        API_ROUTES.auth.appRegisterComplete,
+        appAuthSessionResponseSchema,
+        completeAppRegistrationRequestSchema.parse(input)
+      );
+    },
+    async refreshAppSession(input: AppRefreshInput) {
+      return postJson(
+        API_ROUTES.auth.appRefresh,
+        appAuthSessionResponseSchema,
+        appRefreshRequestSchema.parse(input)
       );
     },
     async loginAdmin(input: AdminLoginInput) {
@@ -285,6 +334,17 @@ export function createApiClient(options: ApiClientOptions) {
       const payload = await readJson(response, currentUserResponseSchema);
       return payload.user;
     },
+    async getCurrentAppUser(accessToken: string): Promise<UserSummary | null> {
+      const response = await fetch(`${baseUrl}${API_ROUTES.auth.appCurrentUser}`, {
+        method: "GET",
+        headers: {
+          authorization: `Bearer ${accessToken}`
+        }
+      });
+
+      const payload = await readJson(response, currentUserResponseSchema);
+      return payload.user;
+    },
     async logout() {
       const response = await fetch(`${baseUrl}${API_ROUTES.auth.logout}`, {
         method: "POST",
@@ -300,6 +360,24 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, currentUserResponseSchema);
+    },
+    async logoutApp(accessToken: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.auth.appLogout}`, {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${accessToken}`
+        }
+      });
+
+      return readJson(response, currentUserResponseSchema);
+    },
+    async listAdminAuthSessions() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.auth.adminSessions}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminRecentSessionsResponseSchema);
     },
     async listHomeFeed(input: HomeFeedInput) {
       const normalized =

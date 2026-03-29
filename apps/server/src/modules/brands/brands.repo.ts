@@ -1,5 +1,5 @@
 import { brandsTable, createId, db } from "@feijia/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export const brandsRepo = {
   async list() {
@@ -8,18 +8,26 @@ export const brandsRepo = {
   async create(input: {
     slug: string;
     name: string;
+    logoUrl: string | null;
     categoryId: string | null;
     sortOrder: number;
     isEnabled: boolean;
   }) {
     const id = createId("brand");
+    const rows = await db
+      .select({
+        maxSortOrder: sql<number>`coalesce(max(${brandsTable.sortOrder}), 0)`
+      })
+      .from(brandsTable);
+    const nextSortOrder = Number(rows[0]?.maxSortOrder ?? 0) + 1;
 
     await db.insert(brandsTable).values({
       id,
       slug: input.slug,
       name: input.name,
+      logoUrl: input.logoUrl ?? null,
       categoryId: input.categoryId,
-      sortOrder: input.sortOrder,
+      sortOrder: nextSortOrder,
       isEnabled: input.isEnabled
     });
 
@@ -36,6 +44,7 @@ export const brandsRepo = {
     input: {
       slug: string;
       name: string;
+      logoUrl: string | null;
       categoryId: string | null;
       sortOrder: number;
       isEnabled: boolean;
@@ -46,6 +55,7 @@ export const brandsRepo = {
       .set({
         slug: input.slug,
         name: input.name,
+        logoUrl: input.logoUrl ?? null,
         categoryId: input.categoryId,
         sortOrder: input.sortOrder,
         isEnabled: input.isEnabled

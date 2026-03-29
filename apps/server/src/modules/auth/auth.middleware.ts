@@ -13,6 +13,18 @@ export type AuthVariables = {
 
 const SESSION_COOKIE_NAME = "feijia_session";
 
+export function readSessionToken(context: Context) {
+  const authorization = context.req.header("authorization");
+  if (authorization?.toLowerCase().startsWith("bearer ")) {
+    const token = authorization.slice("Bearer ".length).trim();
+    if (token) {
+      return token;
+    }
+  }
+
+  return getCookie(context, SESSION_COOKIE_NAME);
+}
+
 function unauthorized(context: Context) {
   return context.json(
     {
@@ -34,7 +46,7 @@ function forbidden(context: Context) {
 }
 
 export async function attachCurrentUser(context: Context, next: Next) {
-  const sessionId = getCookie(context, SESSION_COOKIE_NAME);
+  const sessionId = readSessionToken(context);
   const user = await authService.getCurrentUser(sessionId);
   context.set("currentUser", user);
   await next();

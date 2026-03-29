@@ -3,9 +3,10 @@ import { brandsService } from "../brands/brands.service";
 import { aircraftModelsRepo } from "./aircraft-models.repo";
 
 type ListFilters = {
-  categorySlug?: string;
-  brandSlug?: string;
+  categorySlugs?: string[];
+  brandSlugs?: string[];
   powerTypes?: string[];
+  keyword?: string;
 };
 
 export const aircraftModelsService = {

@@ -15,12 +15,41 @@ import { TextStyle } from "@tiptap/extension-text-style";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
 import {
+  AlignCenterOutlined,
+  AlignLeftOutlined,
+  AlignRightOutlined,
+  BgColorsOutlined,
+  BlockOutlined,
+  BoldOutlined,
+  BorderOutlined,
+  CodeOutlined,
+  ColumnHeightOutlined,
+  DashOutlined,
+  FontColorsOutlined,
+  ItalicOutlined,
+  LinkOutlined,
+  OrderedListOutlined,
   PictureOutlined,
+  RedoOutlined,
+  StrikethroughOutlined,
+  UndoOutlined,
+  UnorderedListOutlined,
   VideoCameraOutlined
 } from "@ant-design/icons";
-import { HighlighterIcon, Loader2Icon } from "lucide-react";
+import {
+  Heading2Icon,
+  Heading3Icon,
+  HighlighterIcon,
+  ListChecksIcon,
+  Loader2Icon,
+  QuoteIcon,
+  Rows2Icon,
+  Unlink2Icon,
+  UnderlineIcon
+} from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button } from "antd";
+import { Button, Tooltip } from "antd";
+import { adminRichTextToolbarConfig } from "./admin-rich-text-toolbar";
 import {
   buildAdminRichTextToolbarState,
   extractPlainTextFromHtml,
@@ -91,6 +120,76 @@ function insertLink(editor: ReturnType<typeof useEditor> | null) {
   }
 
   editor.chain().focus().extendMarkRange("link").setLink({ href: next.trim() }).run();
+}
+
+function renderToolbarIcon(icon: string, spinning = false) {
+  const className = spinning ? "size-4 animate-spin" : "size-4";
+
+  switch (icon) {
+    case "bold":
+      return <BoldOutlined />;
+    case "italic":
+      return <ItalicOutlined />;
+    case "underline":
+      return <UnderlineIcon className={className} />;
+    case "strikethrough":
+      return <StrikethroughOutlined />;
+    case "highlighter":
+      return <HighlighterIcon className={className} />;
+    case "code":
+      return <CodeOutlined />;
+    case "codeBlock":
+      return <BlockOutlined />;
+    case "heading2":
+      return <Heading2Icon className={className} />;
+    case "heading3":
+      return <Heading3Icon className={className} />;
+    case "list":
+      return <UnorderedListOutlined />;
+    case "orderedList":
+      return <OrderedListOutlined />;
+    case "taskList":
+      return <ListChecksIcon className={className} />;
+    case "quote":
+      return <QuoteIcon className={className} />;
+    case "separator":
+      return <DashOutlined />;
+    case "alignLeft":
+      return <AlignLeftOutlined />;
+    case "alignCenter":
+      return <AlignCenterOutlined />;
+    case "alignRight":
+      return <AlignRightOutlined />;
+    case "link":
+      return <LinkOutlined />;
+    case "unlink":
+      return <Unlink2Icon className={className} />;
+    case "undo":
+      return <UndoOutlined />;
+    case "redo":
+      return <RedoOutlined />;
+    case "palette":
+      return <FontColorsOutlined />;
+    case "paletteOff":
+      return <BgColorsOutlined />;
+    case "table":
+      return <BorderOutlined />;
+    case "rowAdd":
+    case "rowDelete":
+      return <Rows2Icon className={className} />;
+    case "columnAdd":
+      return <ColumnHeightOutlined rotate={90} />;
+    case "columnDelete":
+      return <ColumnHeightOutlined />;
+    case "headerRow":
+      return <BorderOutlined />;
+    case "image":
+      return spinning ? <Loader2Icon className={className} /> : <PictureOutlined />;
+    case "video":
+      return spinning ? <Loader2Icon className={className} /> : <VideoCameraOutlined />;
+    default:
+      return null;
+  }
 }
 
 export function AdminRichTextEditor(props: {
@@ -205,36 +304,36 @@ export function AdminRichTextEditor(props: {
 
   const toolbarState = buildAdminRichTextToolbarState(editor as RichTextToolbarEditor | null);
   const toolbar = [
-    { key: "bold", label: "加粗", disabled: !editor, active: toolbarState.find((item) => item.key === "bold")?.active ?? false, onClick: () => editor?.chain().focus().toggleBold().run() },
-    { key: "italic", label: "斜体", disabled: !editor, active: toolbarState.find((item) => item.key === "italic")?.active ?? false, onClick: () => editor?.chain().focus().toggleItalic().run() },
-    { key: "underline", label: "下划线", disabled: !editor, active: toolbarState.find((item) => item.key === "underline")?.active ?? false, onClick: () => editor?.chain().focus().toggleUnderline().run() },
-    { key: "strike", label: "删除线", disabled: !editor, active: toolbarState.find((item) => item.key === "strike")?.active ?? false, onClick: () => editor?.chain().focus().toggleStrike().run() },
-    { key: "highlight", label: "高亮", disabled: !editor, active: toolbarState.find((item) => item.key === "highlight")?.active ?? false, onClick: () => editor?.chain().focus().toggleHighlight().run() },
-    { key: "code", label: "行内代码", disabled: !editor, active: toolbarState.find((item) => item.key === "code")?.active ?? false, onClick: () => editor?.chain().focus().toggleCode().run() },
-    { key: "codeBlock", label: "代码块", disabled: !editor, active: toolbarState.find((item) => item.key === "codeBlock")?.active ?? false, onClick: () => editor?.chain().focus().toggleCodeBlock().run() },
-    { key: "heading2", label: "H2", disabled: !editor, active: toolbarState.find((item) => item.key === "heading2")?.active ?? false, onClick: () => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
-    { key: "heading3", label: "H3", disabled: !editor, active: toolbarState.find((item) => item.key === "heading3")?.active ?? false, onClick: () => editor?.chain().focus().toggleHeading({ level: 3 }).run() },
-    { key: "bulletList", label: "无序列表", disabled: !editor, active: toolbarState.find((item) => item.key === "bulletList")?.active ?? false, onClick: () => editor?.chain().focus().toggleBulletList().run() },
-    { key: "orderedList", label: "有序列表", disabled: !editor, active: toolbarState.find((item) => item.key === "orderedList")?.active ?? false, onClick: () => editor?.chain().focus().toggleOrderedList().run() },
-    { key: "taskList", label: "任务列表", disabled: !editor, active: toolbarState.find((item) => item.key === "taskList")?.active ?? false, onClick: () => editor?.chain().focus().toggleTaskList().run() },
-    { key: "blockquote", label: "引用", disabled: !editor, active: toolbarState.find((item) => item.key === "blockquote")?.active ?? false, onClick: () => editor?.chain().focus().toggleBlockquote().run() },
-    { key: "horizontalRule", label: "分隔线", disabled: !editor, active: false, onClick: () => editor?.chain().focus().setHorizontalRule().run() },
-    { key: "alignLeft", label: "左对齐", disabled: !editor, active: toolbarState.find((item) => item.key === "alignLeft")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("left").run() },
-    { key: "alignCenter", label: "居中", disabled: !editor, active: toolbarState.find((item) => item.key === "alignCenter")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("center").run() },
-    { key: "alignRight", label: "右对齐", disabled: !editor, active: toolbarState.find((item) => item.key === "alignRight")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("right").run() },
-    { key: "link", label: "链接", disabled: !editor, active: toolbarState.find((item) => item.key === "link")?.active ?? false, onClick: () => insertLink(editor) },
-    { key: "unlink", label: "取消链接", disabled: toolbarState.find((item) => item.key === "unlink")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().unsetLink().run() },
-    { key: "undo", label: "撤销", disabled: toolbarState.find((item) => item.key === "undo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().undo().run() },
-    { key: "redo", label: "重做", disabled: toolbarState.find((item) => item.key === "redo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().redo().run() }
+    { key: "bold", label: "加粗", icon: "bold", disabled: !editor, active: toolbarState.find((item) => item.key === "bold")?.active ?? false, onClick: () => editor?.chain().focus().toggleBold().run() },
+    { key: "italic", label: "斜体", icon: "italic", disabled: !editor, active: toolbarState.find((item) => item.key === "italic")?.active ?? false, onClick: () => editor?.chain().focus().toggleItalic().run() },
+    { key: "underline", label: "下划线", icon: "underline", disabled: !editor, active: toolbarState.find((item) => item.key === "underline")?.active ?? false, onClick: () => editor?.chain().focus().toggleUnderline().run() },
+    { key: "strike", label: "删除线", icon: "strikethrough", disabled: !editor, active: toolbarState.find((item) => item.key === "strike")?.active ?? false, onClick: () => editor?.chain().focus().toggleStrike().run() },
+    { key: "highlight", label: "高亮", icon: "highlighter", disabled: !editor, active: toolbarState.find((item) => item.key === "highlight")?.active ?? false, onClick: () => editor?.chain().focus().toggleHighlight().run() },
+    { key: "code", label: "行内代码", icon: "code", disabled: !editor, active: toolbarState.find((item) => item.key === "code")?.active ?? false, onClick: () => editor?.chain().focus().toggleCode().run() },
+    { key: "codeBlock", label: "代码块", icon: "codeBlock", disabled: !editor, active: toolbarState.find((item) => item.key === "codeBlock")?.active ?? false, onClick: () => editor?.chain().focus().toggleCodeBlock().run() },
+    { key: "heading2", label: "二级标题", icon: "heading2", disabled: !editor, active: toolbarState.find((item) => item.key === "heading2")?.active ?? false, onClick: () => editor?.chain().focus().toggleHeading({ level: 2 }).run() },
+    { key: "heading3", label: "三级标题", icon: "heading3", disabled: !editor, active: toolbarState.find((item) => item.key === "heading3")?.active ?? false, onClick: () => editor?.chain().focus().toggleHeading({ level: 3 }).run() },
+    { key: "bulletList", label: "无序列表", icon: "list", disabled: !editor, active: toolbarState.find((item) => item.key === "bulletList")?.active ?? false, onClick: () => editor?.chain().focus().toggleBulletList().run() },
+    { key: "orderedList", label: "有序列表", icon: "orderedList", disabled: !editor, active: toolbarState.find((item) => item.key === "orderedList")?.active ?? false, onClick: () => editor?.chain().focus().toggleOrderedList().run() },
+    { key: "taskList", label: "任务列表", icon: "taskList", disabled: !editor, active: toolbarState.find((item) => item.key === "taskList")?.active ?? false, onClick: () => editor?.chain().focus().toggleTaskList().run() },
+    { key: "blockquote", label: "引用", icon: "quote", disabled: !editor, active: toolbarState.find((item) => item.key === "blockquote")?.active ?? false, onClick: () => editor?.chain().focus().toggleBlockquote().run() },
+    { key: "horizontalRule", label: "分隔线", icon: "separator", disabled: !editor, active: false, onClick: () => editor?.chain().focus().setHorizontalRule().run() },
+    { key: "alignLeft", label: "左对齐", icon: "alignLeft", disabled: !editor, active: toolbarState.find((item) => item.key === "alignLeft")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("left").run() },
+    { key: "alignCenter", label: "居中", icon: "alignCenter", disabled: !editor, active: toolbarState.find((item) => item.key === "alignCenter")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("center").run() },
+    { key: "alignRight", label: "右对齐", icon: "alignRight", disabled: !editor, active: toolbarState.find((item) => item.key === "alignRight")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("right").run() },
+    { key: "link", label: "插入链接", icon: "link", disabled: !editor, active: toolbarState.find((item) => item.key === "link")?.active ?? false, onClick: () => insertLink(editor) },
+    { key: "unlink", label: "取消链接", icon: "unlink", disabled: toolbarState.find((item) => item.key === "unlink")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().unsetLink().run() },
+    { key: "undo", label: "撤销", icon: "undo", disabled: toolbarState.find((item) => item.key === "undo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().undo().run() },
+    { key: "redo", label: "重做", icon: "redo", disabled: toolbarState.find((item) => item.key === "redo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().redo().run() }
   ];
 
   const tableActions = [
-    { key: "insertTable", label: "插入表格", onClick: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-    { key: "addRow", label: "加行", onClick: () => editor?.chain().focus().addRowAfter().run() },
-    { key: "deleteRow", label: "删行", onClick: () => editor?.chain().focus().deleteRow().run() },
-    { key: "addColumn", label: "加列", onClick: () => editor?.chain().focus().addColumnAfter().run() },
-    { key: "deleteColumn", label: "删列", onClick: () => editor?.chain().focus().deleteColumn().run() },
-    { key: "toggleHeader", label: "表头", onClick: () => editor?.chain().focus().toggleHeaderRow().run() }
+    { key: "insertTable", label: "插入表格", icon: "table", onClick: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+    { key: "addRow", label: "加行", icon: "rowAdd", onClick: () => editor?.chain().focus().addRowAfter().run() },
+    { key: "deleteRow", label: "删行", icon: "rowDelete", onClick: () => editor?.chain().focus().deleteRow().run() },
+    { key: "addColumn", label: "加列", icon: "columnAdd", onClick: () => editor?.chain().focus().addColumnAfter().run() },
+    { key: "deleteColumn", label: "删列", icon: "columnDelete", onClick: () => editor?.chain().focus().deleteColumn().run() },
+    { key: "toggleHeader", label: "表头", icon: "headerRow", onClick: () => editor?.chain().focus().toggleHeaderRow().run() }
   ];
 
   return (
@@ -242,49 +341,68 @@ export function AdminRichTextEditor(props: {
       <div className="admin-editor__toolbar">
         <div className="admin-editor__toolbar-group">
           {toolbar.map((item) => (
-            <Button
-              className={`admin-editor__tool${item.active ? " is-active" : ""}`}
-              disabled={item.disabled}
-              key={item.key}
-              onClick={item.onClick}
-              type="default"
-            >
-              {item.label}
-            </Button>
+            <Tooltip key={item.key} title={item.label}>
+              <Button
+                aria-label={item.label}
+                className={`admin-editor__tool${item.active ? " is-active" : ""}`}
+                disabled={item.disabled}
+                icon={renderToolbarIcon(item.icon)}
+                onClick={item.onClick}
+                type="default"
+              />
+            </Tooltip>
           ))}
-          <Button
-            icon={<HighlighterIcon className="size-4" />}
-            onClick={() => colorInputRef.current?.click()}
-            type="default"
-          >
-            文字颜色
-          </Button>
-          <Button onClick={() => editor?.chain().focus().unsetColor().run()} type="default">
-            清除颜色
-          </Button>
+          <Tooltip title={adminRichTextToolbarConfig.inline.find((item) => item.key === "textColor")?.label}>
+            <Button
+              aria-label="文字颜色"
+              className="admin-editor__tool"
+              icon={renderToolbarIcon("palette")}
+              onClick={() => colorInputRef.current?.click()}
+              type="default"
+            />
+          </Tooltip>
+          <Tooltip title={adminRichTextToolbarConfig.inline.find((item) => item.key === "clearColor")?.label}>
+            <Button
+              aria-label="清除颜色"
+              className="admin-editor__tool"
+              icon={renderToolbarIcon("paletteOff")}
+              onClick={() => editor?.chain().focus().unsetColor().run()}
+              type="default"
+            />
+          </Tooltip>
         </div>
         <div className="admin-editor__toolbar-group">
           {tableActions.map((item) => (
-            <Button key={item.key} onClick={item.onClick} type="default">
-              {item.label}
-            </Button>
+            <Tooltip key={item.key} title={item.label}>
+              <Button
+                aria-label={item.label}
+                className="admin-editor__tool"
+                icon={renderToolbarIcon(item.icon)}
+                onClick={item.onClick}
+                type="default"
+              />
+            </Tooltip>
           ))}
-          <Button
-            icon={isUploadingImage ? <Loader2Icon className="size-4 animate-spin" /> : <PictureOutlined />}
-            loading={isUploadingImage}
-            onClick={() => imageInputRef.current?.click()}
-            type="default"
-          >
-            图片
-          </Button>
-          <Button
-            icon={isUploadingVideo ? <Loader2Icon className="size-4 animate-spin" /> : <VideoCameraOutlined />}
-            loading={isUploadingVideo}
-            onClick={() => videoInputRef.current?.click()}
-            type="default"
-          >
-            视频
-          </Button>
+          <Tooltip title={adminRichTextToolbarConfig.table.find((item) => item.key === "image")?.label}>
+            <Button
+              aria-label="图片"
+              className="admin-editor__tool"
+              icon={renderToolbarIcon("image", isUploadingImage)}
+              loading={isUploadingImage}
+              onClick={() => imageInputRef.current?.click()}
+              type="default"
+            />
+          </Tooltip>
+          <Tooltip title={adminRichTextToolbarConfig.table.find((item) => item.key === "video")?.label}>
+            <Button
+              aria-label="视频"
+              className="admin-editor__tool"
+              icon={renderToolbarIcon("video", isUploadingVideo)}
+              loading={isUploadingVideo}
+              onClick={() => videoInputRef.current?.click()}
+              type="default"
+            />
+          </Tooltip>
         </div>
       </div>
       <div className="admin-editor__surface">

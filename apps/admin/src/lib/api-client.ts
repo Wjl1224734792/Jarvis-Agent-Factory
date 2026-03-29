@@ -120,6 +120,25 @@ type SiteSettings = {
   updatedAt?: string;
 };
 
+export type AdminAuthSessionItem = {
+  id: string;
+  scope: "web" | "admin" | "app";
+  clientIp: string | null;
+  userAgent: string | null;
+  deviceLabel: string | null;
+  createdAt: string;
+  lastSeenAt: string | null;
+  revokedAt: string | null;
+  expiresAt: string;
+  status: "active" | "revoked" | "expired";
+  user: {
+    id: string;
+    displayName: string;
+    role: "user" | "admin";
+    phone: string | null;
+  };
+};
+
 type AnalyticsSeriesPoint = {
   label: string;
   value: number;
@@ -267,6 +286,7 @@ export const apiClient = {
       id: string;
       slug: string;
       name: string;
+      logoUrl?: string | null;
       categoryId: string | null;
       sortOrder: number;
       isEnabled: boolean;
@@ -300,6 +320,7 @@ export const apiClient = {
   createBrand(input: {
     slug: string;
     name: string;
+    logoUrl?: string | null;
     categoryId: string | null;
     sortOrder: number;
     isEnabled: boolean;
@@ -314,6 +335,7 @@ export const apiClient = {
     input: {
       slug: string;
       name: string;
+      logoUrl?: string | null;
       categoryId: string | null;
       sortOrder: number;
       isEnabled: boolean;
@@ -370,6 +392,9 @@ export const apiClient = {
   },
   getSiteSettings() {
     return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);
+  },
+  getAdminAuthSessions() {
+    return getJson<{ items: AdminAuthSessionItem[] }>("/admin/auth/sessions");
   },
   updateSiteSettings(input: SiteSettings) {
     return putJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings, input);

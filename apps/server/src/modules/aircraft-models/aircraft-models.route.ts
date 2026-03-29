@@ -22,9 +22,10 @@ aircraftModelsRoute.use("*", attachCurrentUser);
 
 aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
   const query = modelListQuerySchema.parse({
-    categorySlug: context.req.query("categorySlug") || undefined,
-    brandSlug: context.req.query("brandSlug") || undefined,
-    powerTypes: context.req.queries("powerType")
+    categorySlugs: context.req.queries("categorySlug"),
+    brandSlugs: context.req.queries("brandSlug"),
+    powerTypes: context.req.queries("powerType"),
+    keyword: context.req.query("keyword") || undefined
   });
 
   const payload = await aircraftModelsService.listModels(query);

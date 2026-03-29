@@ -1,20 +1,29 @@
 import {
   adminLoginRequestSchema,
-  completeWebRegistrationRequestSchema,
+  adminRecentSessionsResponseSchema,
+  appAuthSessionResponseSchema,
+  appLoginRequestSchema,
+  appLoginResponseSchema,
+  appRefreshRequestSchema,
   authErrorResponseSchema,
+  authSuccessResponseSchema,
   captchaChallengeResponseSchema,
+  completeAppRegistrationRequestSchema,
+  completeWebRegistrationRequestSchema,
   currentUserResponseSchema,
+  registrationDisplayNameSuggestRequestSchema,
+  registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   webLoginRequestSchema,
-  webLoginResponseSchema,
-  authSuccessResponseSchema
+  webLoginResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono, type Context } from "hono";
-import { deleteCookie, getCookie, setCookie } from "hono/cookie";
+import { deleteCookie, setCookie } from "hono/cookie";
 import {
   attachCurrentUser,
+  readSessionToken,
   requireAdmin,
   requireAuth,
   SESSION_COOKIE_NAME,
@@ -33,10 +42,32 @@ function setSessionCookie(context: Context, sessionId: string) {
   });
 }
 
-authRoute.post(API_ROUTES.auth.captchaChallenge, (context) => {
-  const payload = captchaChallengeResponseSchema.parse(
-    authService.requestCaptchaChallenge()
+function getClientIp(context: Context) {
+  const forwarded = context.req.header("x-forwarded-for");
+  if (forwarded) {
+    return forwarded
+      .split(",")
+      .map((value) => value.trim())
+      .find(Boolean) ?? null;
+  }
+
+  return (
+    context.req.header("x-real-ip") ??
+    context.req.header("cf-connecting-ip") ??
+    null
   );
+}
+
+function getRequestMetadata(context: Context, explicitDeviceLabel?: string | null) {
+  return {
+    clientIp: getClientIp(context),
+    userAgent: context.req.header("user-agent") ?? null,
+    deviceLabel: explicitDeviceLabel ?? null
+  };
+}
+
+authRoute.post(API_ROUTES.auth.captchaChallenge, (context) => {
+  const payload = captchaChallengeResponseSchema.parse(authService.requestCaptchaChallenge());
   return context.json(payload);
 });
 
@@ -66,7 +97,7 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
   const input = webLoginRequestSchema.parse(await context.req.json());
 
   try {
-    const result = await authService.loginWeb(input);
+    const result = await authService.loginWeb(input, getRequestMetadata(context));
     if (result.kind === "authenticated") {
       setSessionCookie(context, result.sessionId);
     }
@@ -86,11 +117,53 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
   }
 });
 
+authRoute.post(API_ROUTES.auth.appLogin, async (context) => {
+  const input = appLoginRequestSchema.parse(await context.req.json());
+
+  try {
+    const result = await authService.loginApp(input, getRequestMetadata(context, input.deviceLabel ?? null));
+    return context.json(appLoginResponseSchema.parse(result));
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        400
+      );
+    }
+
+    throw error;
+  }
+});
+
+authRoute.post(API_ROUTES.auth.registrationDisplayNameSuggest, async (context) => {
+  const input = registrationDisplayNameSuggestRequestSchema.parse(await context.req.json());
+
+  try {
+    const payload = await authService.suggestRegistrationDisplayName(input.registrationToken);
+    return context.json(registrationDisplayNameSuggestResponseSchema.parse(payload));
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        400
+      );
+    }
+
+    throw error;
+  }
+});
+
 authRoute.post(API_ROUTES.auth.webRegisterComplete, async (context) => {
   const input = completeWebRegistrationRequestSchema.parse(await context.req.json());
 
   try {
-    const result = await authService.completeWebRegistration(input);
+    const result = await authService.completeWebRegistration(input, getRequestMetadata(context));
     setSessionCookie(context, result.sessionId);
     return context.json(authSuccessResponseSchema.parse({ user: result.user }));
   } catch (error) {
@@ -108,11 +181,56 @@ authRoute.post(API_ROUTES.auth.webRegisterComplete, async (context) => {
   }
 });
 
+authRoute.post(API_ROUTES.auth.appRegisterComplete, async (context) => {
+  const input = completeAppRegistrationRequestSchema.parse(await context.req.json());
+
+  try {
+    const result = await authService.completeAppRegistration(
+      input,
+      getRequestMetadata(context, input.deviceLabel ?? null)
+    );
+    return context.json(appAuthSessionResponseSchema.parse(result));
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        error.code === "DISPLAY_NAME_TAKEN" || error.code === "PHONE_ALREADY_REGISTERED" ? 409 : 400
+      );
+    }
+
+    throw error;
+  }
+});
+
+authRoute.post(API_ROUTES.auth.appRefresh, async (context) => {
+  const input = appRefreshRequestSchema.parse(await context.req.json());
+
+  try {
+    const result = await authService.refreshAppSession(input.refreshToken);
+    return context.json(appAuthSessionResponseSchema.parse(result));
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        400
+      );
+    }
+
+    throw error;
+  }
+});
+
 authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
   const input = adminLoginRequestSchema.parse(await context.req.json());
 
   try {
-    const result = await authService.loginAdmin(input);
+    const result = await authService.loginAdmin(input, getRequestMetadata(context));
     setSessionCookie(context, result.sessionId);
     return context.json(authSuccessResponseSchema.parse({ user: result.user }));
   } catch (error) {
@@ -140,6 +258,14 @@ authRoute.get(API_ROUTES.auth.currentUser, (context) => {
   );
 });
 
+authRoute.get(API_ROUTES.auth.appCurrentUser, (context) => {
+  return context.json(
+    currentUserResponseSchema.parse({
+      user: context.get("currentUser")
+    })
+  );
+});
+
 authRoute.get(API_ROUTES.auth.adminCurrentUser, (context) => {
   const user = context.get("currentUser");
   return context.json(
@@ -149,15 +275,26 @@ authRoute.get(API_ROUTES.auth.adminCurrentUser, (context) => {
   );
 });
 
+authRoute.get(API_ROUTES.auth.adminSessions, requireAdmin, async (context) => {
+  const payload = await authService.listRecentSessions();
+  return context.json(adminRecentSessionsResponseSchema.parse(payload));
+});
+
 authRoute.post(API_ROUTES.auth.logout, async (context) => {
-  const sessionId = getCookie(context, SESSION_COOKIE_NAME);
+  const sessionId = readSessionToken(context);
   const payload = currentUserResponseSchema.parse(await authService.logout(sessionId));
   deleteCookie(context, SESSION_COOKIE_NAME, { path: "/" });
   return context.json(payload);
 });
 
+authRoute.post(API_ROUTES.auth.appLogout, async (context) => {
+  const sessionId = readSessionToken(context);
+  const payload = currentUserResponseSchema.parse(await authService.logout(sessionId));
+  return context.json(payload);
+});
+
 authRoute.post(API_ROUTES.auth.adminLogout, async (context) => {
-  const sessionId = getCookie(context, SESSION_COOKIE_NAME);
+  const sessionId = readSessionToken(context);
   const payload = currentUserResponseSchema.parse(await authService.logout(sessionId));
   deleteCookie(context, SESSION_COOKIE_NAME, { path: "/" });
   return context.json(payload);

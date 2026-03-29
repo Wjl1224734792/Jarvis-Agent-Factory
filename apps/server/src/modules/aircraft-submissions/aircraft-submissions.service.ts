@@ -109,6 +109,7 @@ async function createBrandForSubmission(categoryId: string, proposedBrandName: s
   const createdBrand = await brandsService.createBrand({
     slug: nextSlug,
     name: proposedBrandName,
+    logoUrl: null,
     categoryId,
     sortOrder: brands.length + 1,
     isEnabled: true

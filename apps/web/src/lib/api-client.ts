@@ -44,28 +44,134 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
   return parseResponse<T>(response);
 }
 
+type WebBrand = {
+  id: string;
+  slug: string;
+  name: string;
+  categoryId: string | null;
+  sortOrder: number;
+  isEnabled: boolean;
+  logoUrl?: string | null;
+};
+
+type WebCategory = {
+  id: string;
+  slug: string;
+  name: string;
+  sortOrder: number;
+  isEnabled: boolean;
+};
+
+type WebModelListResponse = {
+  items: Array<{
+    id: string;
+    slug: string;
+    name: string;
+    summary: string | null;
+    powerType: "electric" | "fuel" | "hybrid" | "other";
+    reviewSummary: {
+      totalReviews: number;
+    };
+    category: {
+      id: string;
+      slug: string;
+      name: string;
+    };
+    brand: {
+      id: string;
+      slug: string;
+      name: string;
+      logoUrl?: string | null;
+    };
+  }>;
+  total: number;
+  filters: {
+    categories: WebCategory[];
+    brands: WebBrand[];
+    powerTypes: Array<"electric" | "fuel" | "hybrid" | "other">;
+  };
+};
+
+type WebModelDetailResponse = {
+  item: WebModelListResponse["items"][number] & {
+    description: string | null;
+    isPublished: boolean;
+    parameters: {
+      maxFlightTimeMinutes: number | null;
+      maxRangeKilometers: number | null;
+      maxSpeedKph: number | null;
+      takeoffWeightGrams: number | null;
+    };
+    interactionSummary: {
+      interestCount: number;
+      favoriteCount: number;
+      shareCount: number;
+    };
+    viewer: {
+      isInterested: boolean;
+      isFavorited: boolean;
+      hasShared: boolean;
+    };
+  };
+};
+
+function buildModelListSearch(input?: {
+  categorySlugs?: string[];
+  brandSlugs?: string[];
+  powerTypes?: string[];
+  keyword?: string;
+}) {
+  const search = new URLSearchParams();
+
+  for (const slug of input?.categorySlugs ?? []) {
+    search.append("categorySlug", slug);
+  }
+
+  for (const slug of input?.brandSlugs ?? []) {
+    search.append("brandSlug", slug);
+  }
+
+  for (const powerType of input?.powerTypes ?? []) {
+    search.append("powerType", powerType);
+  }
+
+  if (input?.keyword?.trim()) {
+    search.set("keyword", input.keyword.trim());
+  }
+
+  const query = search.toString();
+  return query ? `?${query}` : "";
+}
+
 export const apiClient = {
   ...sharedClient,
+  listModels(input?: {
+    categorySlugs?: string[];
+    brandSlugs?: string[];
+    powerTypes?: string[];
+    keyword?: string;
+    categorySlug?: string;
+    brandSlug?: string;
+  }) {
+    return getJson<WebModelListResponse>(
+      `${API_ROUTES.models.list}${buildModelListSearch({
+        categorySlugs: input?.categorySlugs ?? (input?.categorySlug ? [input.categorySlug] : []),
+        brandSlugs: input?.brandSlugs ?? (input?.brandSlug ? [input.brandSlug] : []),
+        powerTypes: input?.powerTypes ?? [],
+        keyword: input?.keyword ?? ""
+      })}`
+    );
+  },
+  getModelDetail(slug: string) {
+    return getJson<WebModelDetailResponse>(API_ROUTES.models.detail(slug));
+  },
   markNotificationRead(id: string) {
     return postJson<{ success: true }>(`/notifications/${id}/read`);
   },
   listAircraftCategories() {
-    return getJson<Array<{
-      id: string;
-      slug: string;
-      name: string;
-      sortOrder: number;
-      isEnabled: boolean;
-    }>>(API_ROUTES.models.categories);
+    return getJson<WebCategory[]>(API_ROUTES.models.categories);
   },
   listBrands() {
-    return getJson<Array<{
-      id: string;
-      slug: string;
-      name: string;
-      categoryId: string | null;
-      sortOrder: number;
-      isEnabled: boolean;
-    }>>(API_ROUTES.models.brands);
+    return getJson<WebBrand[]>(API_ROUTES.models.brands);
   }
 };

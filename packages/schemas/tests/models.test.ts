@@ -9,12 +9,16 @@ import {
 describe("models contract", () => {
   it("parses list query filters", () => {
     const payload = modelListQuerySchema.parse({
-      categorySlug: "drone",
-      brandSlug: "dji",
-      powerTypes: ["electric", "hybrid"]
+      categorySlugs: ["drone", "business-jet"],
+      brandSlugs: ["dji", "cirrus"],
+      powerTypes: ["electric", "hybrid"],
+      keyword: "pro"
     });
 
+    expect(payload.categorySlugs).toHaveLength(2);
+    expect(payload.brandSlugs).toHaveLength(2);
     expect(payload.powerTypes).toHaveLength(2);
+    expect(payload.keyword).toBe("pro");
   });
 
   it("parses list response payload", () => {
@@ -37,7 +41,8 @@ describe("models contract", () => {
           brand: {
             id: "brand_1",
             slug: "dji",
-            name: "DJI"
+            name: "DJI",
+            logoUrl: "https://cdn.example.com/brands/dji.png"
           }
         }
       ],
@@ -57,6 +62,7 @@ describe("models contract", () => {
             id: "brand_1",
             slug: "dji",
             name: "DJI",
+            logoUrl: "https://cdn.example.com/brands/dji.png",
             categoryId: "cat_1",
             sortOrder: 1,
             isEnabled: true
@@ -90,7 +96,8 @@ describe("models contract", () => {
         brand: {
           id: "brand_1",
           slug: "dji",
-          name: "DJI"
+          name: "DJI",
+          logoUrl: "https://cdn.example.com/brands/dji.png"
         },
         interactionSummary: {
           interestCount: 5,
@@ -129,5 +136,6 @@ describe("models contract", () => {
     expect(detail.item.parameters.maxFlightTimeMinutes).toBe(45);
     expect(detail.item.interactionSummary.interestCount).toBe(5);
     expect(adminInput.brandId).toBe("brand_1");
+    expect(detail.item.brand.logoUrl).toContain("dji.png");
   });
 });

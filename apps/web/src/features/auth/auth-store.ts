@@ -1,5 +1,10 @@
 import type { UserSummary } from "@feijia/schemas";
 import { create } from "zustand";
+import {
+  clearPersistedAuthState,
+  readPersistedAuthState,
+  writePersistedAuthState
+} from "./auth-store-persistence";
 
 type AuthStatus = "idle" | "loading" | "authenticated" | "anonymous";
 
@@ -13,17 +18,20 @@ type AuthStore = {
   setError: (message: string | null) => void;
 };
 
+const persistedState = readPersistedAuthState();
+
 export const useAuthStore = create<AuthStore>((set) => ({
-  status: "idle",
-  user: null,
+  status: persistedState?.user ? "authenticated" : "idle",
+  user: persistedState?.user ?? null,
   error: null,
   setLoading: () => {
-    set({
-      status: "loading",
+    set((state) => ({
+      status: state.user ? state.status : "loading",
       error: null
-    });
+    }));
   },
   setAuthenticated: (user) => {
+    writePersistedAuthState(user);
     set({
       status: "authenticated",
       user,
@@ -31,6 +39,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
     });
   },
   setAnonymous: () => {
+    clearPersistedAuthState();
     set({
       status: "anonymous",
       user: null

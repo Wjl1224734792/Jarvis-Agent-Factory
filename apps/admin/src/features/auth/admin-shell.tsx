@@ -65,8 +65,8 @@ export function AdminShell() {
                     setAnonymous();
                     navigate(APP_ROUTES.adminLogin, { replace: true });
                   })
-                  .catch((error: unknown) => {
-                    setError(error instanceof Error ? error.message : "退出登录失败");
+                  .catch((reason: unknown) => {
+                    setError(reason instanceof Error ? reason.message : "退出登录失败");
                   });
               }}
             >
@@ -77,11 +77,20 @@ export function AdminShell() {
       </Header>
 
       <Layout className="admin-shell__layout">
-        <Sider className="admin-shell__sider" collapsed={collapsed} collapsedWidth={84} theme="light" trigger={null} width={280}>
+        <Sider
+          className="admin-shell__sider"
+          collapsed={collapsed}
+          collapsedWidth={84}
+          theme="light"
+          trigger={null}
+          width={280}
+        >
           <div className="admin-shell__nav">
             {ADMIN_NAV_GROUPS.map((group) => (
               <section className="admin-shell__nav-group" key={group.group}>
-                <div className="admin-shell__nav-group-title">{collapsed ? group.group.slice(0, 1) : group.group}</div>
+                <div className="admin-shell__nav-group-title">
+                  {collapsed ? group.group.slice(0, 1) : group.group}
+                </div>
                 <div className="admin-shell__nav-list">
                   {group.items.map((item) => {
                     const Icon = item.icon;

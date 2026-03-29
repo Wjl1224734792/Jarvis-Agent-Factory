@@ -4,6 +4,7 @@ import { useAuthStore } from "./auth-store";
 
 export function useBootstrapAuth() {
   const hasBootstrapped = useRef(false);
+  const status = useAuthStore((state) => state.status);
   const setLoading = useAuthStore((state) => state.setLoading);
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setAnonymous = useAuthStore((state) => state.setAnonymous);
@@ -15,7 +16,9 @@ export function useBootstrapAuth() {
     }
 
     hasBootstrapped.current = true;
-    setLoading();
+    if (status === "idle") {
+      setLoading();
+    }
 
     void apiClient
       .getCurrentUser()
@@ -31,5 +34,5 @@ export function useBootstrapAuth() {
         setAnonymous();
         setError(error instanceof Error ? error.message : "身份恢复失败");
       });
-  }, [setAnonymous, setAuthenticated, setError, setLoading]);
+  }, [setAnonymous, setAuthenticated, setError, setLoading, status]);
 }

@@ -36,10 +36,19 @@ export const sessionsTable = pgTable("sessions", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   scope: text("scope").notNull(),
+  clientIp: text("client_ip"),
+  userAgent: text("user_agent"),
+  deviceLabel: text("device_label"),
+  lastSeenAt: timestamp("last_seen_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  revokedAt: timestamp("revoked_at", { withTimezone: true }),
+  refreshTokenHash: text("refresh_token_hash"),
+  refreshExpiresAt: timestamp("refresh_expires_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
-      .notNull()
+    .notNull()
 });
 
 export const userSettingsTable = pgTable(
@@ -103,6 +112,7 @@ export const brandsTable = pgTable(
     id: text("id").primaryKey(),
     slug: text("slug").notNull(),
     name: text("name").notNull(),
+    logoUrl: text("logo_url"),
     categoryId: text("category_id").references(() => aircraftCategoriesTable.id, {
       onDelete: "set null"
     }),

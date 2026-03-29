@@ -14,16 +14,20 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminMetric, AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
+import {
+  formatAdminSessionIdentity,
+  formatAdminSessionScope,
+  formatAdminSessionStatus,
+  formatAdminSessionTime
+} from "./admin-session-helpers";
 import { useAdminAuthStore } from "./auth-store";
 
-type AnalyticsPayload = Awaited<ReturnType<typeof apiClient.getAdminAnalyticsOverview>>["item"];
-
-function formatPeriodLabel(periodStart: string, mode: "日" | "月" | "年") {
+function formatPeriodLabel(periodStart: string, mode: "day" | "month" | "year") {
   const date = new Date(periodStart);
-  if (mode === "日") {
+  if (mode === "day") {
     return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
   }
-  if (mode === "月") {
+  if (mode === "month") {
     return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
   }
   return `${date.getUTCFullYear()}`;
@@ -34,8 +38,8 @@ export function AdminOverviewPage() {
   const error = useAdminAuthStore((state) => state.error);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [registrationMode, setRegistrationMode] = useState<"日" | "月" | "年">("日");
-  const [activityMode, setActivityMode] = useState<"日" | "月" | "年">("日");
+  const [registrationMode, setRegistrationMode] = useState<"day" | "month" | "year">("day");
+  const [activityMode, setActivityMode] = useState<"day" | "month" | "year">("day");
 
   const analyticsQuery = useQuery({
     queryKey: ["admin-overview", "analytics"],
@@ -45,6 +49,10 @@ export function AdminOverviewPage() {
     queryKey: ["admin-overview", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+  const recentSessionsQuery = useQuery({
+    queryKey: ["admin-overview", "auth-sessions"],
+    queryFn: () => apiClient.getAdminAuthSessions()
+  });
 
   const analytics = analyticsQuery.data?.item;
 
@@ -52,10 +60,11 @@ export function AdminOverviewPage() {
     if (!analytics) {
       return [];
     }
+
     const source =
-      registrationMode === "日"
+      registrationMode === "day"
         ? analytics.registration.daily
-        : registrationMode === "月"
+        : registrationMode === "month"
           ? analytics.registration.monthly
           : analytics.registration.yearly;
 
@@ -69,10 +78,11 @@ export function AdminOverviewPage() {
     if (!analytics) {
       return [];
     }
+
     const source =
-      activityMode === "日"
+      activityMode === "day"
         ? analytics.activity.daily
-        : activityMode === "月"
+        : activityMode === "month"
           ? analytics.activity.monthly
           : analytics.activity.yearly;
 
@@ -102,16 +112,16 @@ export function AdminOverviewPage() {
 
     return [
       { domain: "帖子", status: "待审", value: analytics.moderation.posts.pending },
-      { domain: "帖子", status: "已通过", value: analytics.moderation.posts.approved },
+      { domain: "帖子", status: "通过", value: analytics.moderation.posts.approved },
       { domain: "帖子", status: "驳回/隐藏", value: analytics.funnel.posts.rejectedOrHidden },
       { domain: "评论", status: "待审", value: analytics.moderation.comments.pending },
-      { domain: "评论", status: "已通过", value: analytics.moderation.comments.approved },
+      { domain: "评论", status: "通过", value: analytics.moderation.comments.approved },
       { domain: "评论", status: "驳回/隐藏", value: analytics.funnel.comments.rejectedOrHidden },
       { domain: "评测", status: "待审", value: analytics.moderation.reviews.pending },
-      { domain: "评测", status: "已通过", value: analytics.moderation.reviews.approved },
+      { domain: "评测", status: "通过", value: analytics.moderation.reviews.approved },
       { domain: "评测", status: "驳回/隐藏", value: analytics.funnel.reviews.rejectedOrHidden },
       { domain: "投稿", status: "待审", value: analytics.moderation.submissions.pending },
-      { domain: "投稿", status: "已通过", value: analytics.moderation.submissions.approved },
+      { domain: "投稿", status: "通过", value: analytics.moderation.submissions.approved },
       { domain: "投稿", status: "驳回/隐藏", value: analytics.funnel.submissions.rejectedOrHidden }
     ];
   }, [analytics]);
@@ -150,71 +160,6 @@ export function AdminOverviewPage() {
     ];
   }, [analytics]);
 
-  const moderationCards = analytics
-    ? [
-        {
-          key: "posts",
-          title: "帖子审核",
-          description: "控制用户动态和文章是直发还是进入审核队列。",
-          enabled: siteSettingsQuery.data?.item.postModerationEnabled ?? true,
-          autoCopy: "关闭人工审核后，新的帖子会直接公开。",
-          manualCopy: "开启人工审核后，新的帖子会进入待审核队列。",
-          pendingCount: analytics.moderation.posts.pending,
-          onEnable: async () => {
-            await updateModeration("postModerationEnabled", true);
-          },
-          onDisable: async () => {
-            await updateModeration("postModerationEnabled", false);
-          }
-        },
-        {
-          key: "comments",
-          title: "评论审核",
-          description: "控制帖子评论和回复是否先待审。",
-          enabled: siteSettingsQuery.data?.item.commentModerationEnabled ?? true,
-          autoCopy: "关闭人工审核后，评论会立即显示。",
-          manualCopy: "开启人工审核后，评论会先进入待审核状态。",
-          pendingCount: analytics.moderation.comments.pending,
-          onEnable: async () => {
-            await updateModeration("commentModerationEnabled", true);
-          },
-          onDisable: async () => {
-            await updateModeration("commentModerationEnabled", false);
-          }
-        },
-        {
-          key: "reviews",
-          title: "评测审核",
-          description: "控制机型评测是否需要人工复核。",
-          enabled: siteSettingsQuery.data?.item.reviewModerationEnabled ?? true,
-          autoCopy: "关闭人工审核后，评测会直接展示。",
-          manualCopy: "开启人工审核后，评测会先进入待审核状态。",
-          pendingCount: analytics.moderation.reviews.pending,
-          onEnable: async () => {
-            await updateModeration("reviewModerationEnabled", true);
-          },
-          onDisable: async () => {
-            await updateModeration("reviewModerationEnabled", false);
-          }
-        },
-        {
-          key: "submissions",
-          title: "投稿审核",
-          description: "控制飞行器投稿是否自动通过。",
-          enabled: siteSettingsQuery.data?.item.submissionModerationEnabled ?? true,
-          autoCopy: "关闭人工审核后，投稿会自动进入通过链路。",
-          manualCopy: "开启人工审核后，投稿会保留在 submitted 状态等待处理。",
-          pendingCount: analytics.moderation.submissions.pending,
-          onEnable: async () => {
-            await updateModeration("submissionModerationEnabled", true);
-          },
-          onDisable: async () => {
-            await updateModeration("submissionModerationEnabled", false);
-          }
-        }
-      ]
-    : [];
-
   async function updateModeration(
     key:
       | "postModerationEnabled"
@@ -228,10 +173,14 @@ export function AdminOverviewPage() {
     try {
       const current = siteSettingsQuery.data?.item;
       await apiClient.updateSiteSettings({
-        postModerationEnabled: key === "postModerationEnabled" ? enabled : current?.postModerationEnabled ?? true,
-        commentModerationEnabled: key === "commentModerationEnabled" ? enabled : current?.commentModerationEnabled ?? true,
-        reviewModerationEnabled: key === "reviewModerationEnabled" ? enabled : current?.reviewModerationEnabled ?? true,
-        submissionModerationEnabled: key === "submissionModerationEnabled" ? enabled : current?.submissionModerationEnabled ?? true
+        postModerationEnabled:
+          key === "postModerationEnabled" ? enabled : current?.postModerationEnabled ?? true,
+        commentModerationEnabled:
+          key === "commentModerationEnabled" ? enabled : current?.commentModerationEnabled ?? true,
+        reviewModerationEnabled:
+          key === "reviewModerationEnabled" ? enabled : current?.reviewModerationEnabled ?? true,
+        submissionModerationEnabled:
+          key === "submissionModerationEnabled" ? enabled : current?.submissionModerationEnabled ?? true
       });
       await Promise.all([siteSettingsQuery.refetch(), analyticsQuery.refetch()]);
     } catch (reason: unknown) {
@@ -241,27 +190,101 @@ export function AdminOverviewPage() {
     }
   }
 
+  const moderationCards = analytics
+    ? [
+        {
+          key: "posts",
+          title: "帖子审核",
+          description: "控制用户动态与文章是否直接发布。",
+          enabled: siteSettingsQuery.data?.item.postModerationEnabled ?? true,
+          autoCopy: "关闭人工审核后，新的帖子会直接公开。",
+          manualCopy: "开启人工审核后，新的帖子先进入待审核队列。",
+          pendingCount: analytics.moderation.posts.pending,
+          onEnable: async () => updateModeration("postModerationEnabled", true),
+          onDisable: async () => updateModeration("postModerationEnabled", false)
+        },
+        {
+          key: "comments",
+          title: "评论审核",
+          description: "控制评论与回复是否先入审核队列。",
+          enabled: siteSettingsQuery.data?.item.commentModerationEnabled ?? true,
+          autoCopy: "关闭人工审核后，评论会立即显示。",
+          manualCopy: "开启人工审核后，评论会先处于待审核状态。",
+          pendingCount: analytics.moderation.comments.pending,
+          onEnable: async () => updateModeration("commentModerationEnabled", true),
+          onDisable: async () => updateModeration("commentModerationEnabled", false)
+        },
+        {
+          key: "reviews",
+          title: "评测审核",
+          description: "控制机型评测是否需要人工复核。",
+          enabled: siteSettingsQuery.data?.item.reviewModerationEnabled ?? true,
+          autoCopy: "关闭人工审核后，评测会直接展示。",
+          manualCopy: "开启人工审核后，评测会先进入待审核状态。",
+          pendingCount: analytics.moderation.reviews.pending,
+          onEnable: async () => updateModeration("reviewModerationEnabled", true),
+          onDisable: async () => updateModeration("reviewModerationEnabled", false)
+        },
+        {
+          key: "submissions",
+          title: "投稿审核",
+          description: "控制飞行器投稿是否自动通过。",
+          enabled: siteSettingsQuery.data?.item.submissionModerationEnabled ?? true,
+          autoCopy: "关闭人工审核后，投稿会自动进入通过链路。",
+          manualCopy: "开启人工审核后，投稿会保留在 submitted 等待处理。",
+          pendingCount: analytics.moderation.submissions.pending,
+          onEnable: async () => updateModeration("submissionModerationEnabled", true),
+          onDisable: async () => updateModeration("submissionModerationEnabled", false)
+        }
+      ]
+    : [];
+
   const quickActions = [
-    { key: "official", title: "发布官方文章", description: "快速进入官方文章工作台。", href: ADMIN_ROUTE_PATHS.officialArticles, icon: <FireOutlined /> },
-    { key: "posts", title: "处理帖子审核", description: "集中处理动态与文章审核。", href: APP_ROUTES.adminPosts, icon: <FileTextOutlined /> },
-    { key: "submissions", title: "审核飞行器投稿", description: "查看待审飞行器投稿。", href: ADMIN_ROUTE_PATHS.aircraftSubmissions, icon: <RocketOutlined /> },
-    { key: "rankings", title: "维护官方榜单", description: "管理榜单条目与排序。", href: APP_ROUTES.adminRankings, icon: <ArrowRightOutlined /> }
+    {
+      key: "official",
+      title: "发布官方文章",
+      description: "进入官方文章工作台。",
+      href: ADMIN_ROUTE_PATHS.officialArticles,
+      icon: <FireOutlined />
+    },
+    {
+      key: "posts",
+      title: "处理帖子审核",
+      description: "集中处理动态和文章审核。",
+      href: APP_ROUTES.adminPosts,
+      icon: <FileTextOutlined />
+    },
+    {
+      key: "submissions",
+      title: "审核飞行器投稿",
+      description: "查看待审飞行器投稿。",
+      href: ADMIN_ROUTE_PATHS.aircraftSubmissions,
+      icon: <RocketOutlined />
+    },
+    {
+      key: "rankings",
+      title: "维护官方榜单",
+      description: "管理榜单条目与排序。",
+      href: APP_ROUTES.adminRankings,
+      icon: <ArrowRightOutlined />
+    }
   ];
 
   return (
     <AdminPage
       actions={
         <Space wrap>
-          <Button href={ADMIN_ROUTE_PATHS.officialArticles} type="primary">发布官方文章</Button>
+          <Button href={ADMIN_ROUTE_PATHS.officialArticles} type="primary">
+            发布官方文章
+          </Button>
           <Button href={ADMIN_ROUTE_PATHS.aircraftSubmissions}>处理投稿</Button>
         </Space>
       }
-      description={`当前管理员：${user?.displayName ?? "系统管理员"}。查看注册、活跃、内容流转和审核状态。`}
+      description={`当前管理员：${user?.displayName ?? "系统管理员"}。查看注册、活跃、内容与审核状态。`}
       title="运营总览"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
-
       {analyticsQuery.isError ? (
         <div className="admin-login__error">{analyticsQuery.error.message}</div>
       ) : null}
@@ -269,9 +292,9 @@ export function AdminOverviewPage() {
       <section className="admin-overview-hero">
         <div className="admin-overview-hero__copy">
           <div className="admin-overview-hero__eyebrow">运营中心</div>
-          <div className="admin-overview-hero__title">把增长、活跃、内容和审核状态收敛在一个首页。</div>
+          <div className="admin-overview-hero__title">把增长、活跃、审核和登录态集中在一个首页。</div>
           <div className="admin-overview-hero__description">
-            你可以在这里看到注册趋势、活跃变化、内容构成、审核漏斗，以及所有待处理事项。
+            这里显示注册趋势、活跃变化、内容构成、审核漏斗，以及最近登录设备和 IP。
           </div>
         </div>
         <div className="admin-overview-hero__actions">
@@ -290,16 +313,32 @@ export function AdminOverviewPage() {
 
       <Row className="admin-metric-grid" gutter={[16, 16]}>
         <Col xs={24} sm={12} xl={6}>
-          <AdminMetric hint={`今日新增 ${analytics?.registration.today ?? 0}`} label="用户总数" value={analytics?.totals.users ?? 0} />
+          <AdminMetric
+            hint={`今日新增 ${analytics?.registration.today ?? 0}`}
+            label="用户总数"
+            value={analytics?.totals.users ?? 0}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <AdminMetric hint={`MAU ${analytics?.activity.mau ?? 0} / YAU ${analytics?.activity.yau ?? 0}`} label="DAU" value={analytics?.activity.dau ?? 0} />
+          <AdminMetric
+            hint={`MAU ${analytics?.activity.mau ?? 0} / YAU ${analytics?.activity.yau ?? 0}`}
+            label="DAU"
+            value={analytics?.activity.dau ?? 0}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <AdminMetric hint={`待审评论 ${analytics?.totals.pendingComments ?? 0} / 评测 ${analytics?.totals.pendingReviews ?? 0}`} label="待审核总数" value={analytics?.totals.pendingTotal ?? 0} />
+          <AdminMetric
+            hint={`评论 ${analytics?.totals.pendingComments ?? 0} / 评测 ${analytics?.totals.pendingReviews ?? 0}`}
+            label="待审核总数"
+            value={analytics?.totals.pendingTotal ?? 0}
+          />
         </Col>
         <Col xs={24} sm={12} xl={6}>
-          <AdminMetric hint={`文章 ${analytics?.totals.articles ?? 0} / 动态 ${analytics?.totals.moments ?? 0}`} label="内容总量" value={(analytics?.totals.articles ?? 0) + (analytics?.totals.moments ?? 0)} />
+          <AdminMetric
+            hint={`文章 ${analytics?.totals.articles ?? 0} / 动态 ${analytics?.totals.moments ?? 0}`}
+            label="内容总量"
+            value={(analytics?.totals.articles ?? 0) + (analytics?.totals.moments ?? 0)}
+          />
         </Col>
       </Row>
 
@@ -309,25 +348,29 @@ export function AdminOverviewPage() {
             actions={
               <Segmented
                 onChange={(value) => {
-                  setRegistrationMode(value as "日" | "月" | "年");
+                  setRegistrationMode(value as "day" | "month" | "year");
                 }}
-                options={["日", "月", "年"]}
+                options={[
+                  { label: "日", value: "day" },
+                  { label: "月", value: "month" },
+                  { label: "年", value: "year" }
+                ]}
                 value={registrationMode}
               />
             }
-            description="查看最近一段时间的注册变化，支持日、月、年切换。"
+            description="查看最近一段时间内的注册变化。"
             title="注册趋势"
           >
             {registrationSeries.length > 0 ? (
               <Column
                 autoFit
+                color="#1f78ff"
                 data={registrationSeries}
                 height={280}
-                xField="时间"
-                yField="注册数"
                 xAxis={{ labelAutoRotate: false }}
+                xField="时间"
                 yAxis={{ nice: true }}
-                color="#1f78ff"
+                yField="注册数"
               />
             ) : (
               <Empty description="暂无注册数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -335,7 +378,7 @@ export function AdminOverviewPage() {
           </AdminPanel>
         </Col>
         <Col xs={24} xl={10}>
-          <AdminPanel description="动态、文章、飞行器和榜单在当前后台的数量占比。" title="内容构成占比">
+          <AdminPanel description="动态、文章、飞行器和榜单的数量占比。" title="内容构成占比">
             {contentMixData.length > 0 ? (
               <Pie
                 angleField="value"
@@ -360,26 +403,30 @@ export function AdminOverviewPage() {
             actions={
               <Segmented
                 onChange={(value) => {
-                  setActivityMode(value as "日" | "月" | "年");
+                  setActivityMode(value as "day" | "month" | "year");
                 }}
-                options={["日", "月", "年"]}
+                options={[
+                  { label: "日", value: "day" },
+                  { label: "月", value: "month" },
+                  { label: "年", value: "year" }
+                ]}
                 value={activityMode}
               />
             }
-            description="按会话去重计算的活跃用户趋势，反映日活、月活和年活变化。"
+            description="按会话去重计算的活跃用户趋势。"
             title="活跃用户趋势"
           >
             {activitySeries.length > 0 ? (
               <Line
                 autoFit
+                color="#14b8a6"
                 data={activitySeries}
                 height={280}
                 point={{ size: 3 }}
                 smooth
                 xField="时间"
-                yField="活跃用户"
                 yAxis={{ nice: true }}
-                color="#14b8a6"
+                yField="活跃用户"
               />
             ) : (
               <Empty description="暂无活跃数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
@@ -387,7 +434,7 @@ export function AdminOverviewPage() {
           </AdminPanel>
         </Col>
         <Col xs={24} xl={10}>
-          <AdminPanel description="将各业务的审核流程聚合成一个漏斗，快速判断哪里堆积最严重。" title="审核漏斗">
+          <AdminPanel description="聚合各业务审核流程，快速判断哪里堆积最多。" title="审核漏斗">
             {funnelData.length > 0 ? (
               <Funnel autoFit colorField="stage" data={funnelData} height={280} xField="stage" yField="value" />
             ) : (
@@ -399,21 +446,57 @@ export function AdminOverviewPage() {
 
       <Row gutter={[16, 16]}>
         <Col span={24}>
-          <AdminPanel description="比较各业务的待审、已通过、驳回/隐藏量，快速定位异常队列。" title="审核状态对比">
+          <AdminPanel description="比较各业务的待审、通过、驳回/隐藏数量。" title="审核状态对比">
             {moderationBarData.length > 0 ? (
               <Bar
                 autoFit
                 data={moderationBarData}
                 height={320}
                 isStack
+                legend={{ color: { position: "bottom" } }}
                 seriesField="status"
                 xField="value"
                 yField="domain"
-                legend={{ color: { position: "bottom" } }}
               />
             ) : (
               <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
             )}
+          </AdminPanel>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]}>
+        <Col span={24}>
+          <AdminPanel description="展示最近登录会话的端类型、设备、IP 与最近活跃时间。" title="最近登录设备 / IP">
+            {recentSessionsQuery.isError ? (
+              <div className="admin-login__error">{recentSessionsQuery.error.message}</div>
+            ) : null}
+            {!recentSessionsQuery.isError && (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
+              <Empty description="暂无最近登录记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            ) : null}
+            {(recentSessionsQuery.data?.items.length ?? 0) > 0 ? (
+              <div className="admin-session-list">
+                {recentSessionsQuery.data?.items.slice(0, 8).map((item) => (
+                  <div className="admin-session-card" key={item.id}>
+                    <div className="admin-session-card__head">
+                      <div>
+                        <div className="admin-session-card__title">{formatAdminSessionIdentity(item)}</div>
+                        <div className="admin-session-card__meta">
+                          {formatAdminSessionScope(item.scope)} · {formatAdminSessionStatus(item.status)}
+                        </div>
+                      </div>
+                      <div className="admin-session-card__status">{item.clientIp ?? "未知 IP"}</div>
+                    </div>
+                    <div className="admin-session-card__detail">
+                      {item.deviceLabel ?? item.userAgent ?? "未识别设备"}
+                    </div>
+                    <div className="admin-session-card__meta">
+                      创建于 {formatAdminSessionTime(item.createdAt)} · 最近活跃 {formatAdminSessionTime(item.lastSeenAt)}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : null}
           </AdminPanel>
         </Col>
       </Row>
@@ -427,7 +510,7 @@ export function AdminOverviewPage() {
           { label: "飞行器总数", value: analytics?.totals.aircraft ?? 0 },
           { label: "榜单总数", value: analytics?.totals.rankings ?? 0 }
         ].map((item) => (
-          <Col key={item.label} xs={24} sm={12} lg={8} xl={4}>
+          <Col key={item.label} lg={8} sm={12} xl={4} xs={24}>
             <AdminPanel tight>
               <Statistic title={item.label} value={item.value} />
             </AdminPanel>
@@ -435,7 +518,7 @@ export function AdminOverviewPage() {
         ))}
       </Row>
 
-      <AdminPanel description="根据实时待审数量切换审核策略。开启人工审核后，新内容会进入待审队列。">
+      <AdminPanel description="根据实时待审数量切换审核策略。">
         <div className="admin-moderation-grid">
           {moderationCards.map((item) => (
             <AdminModerationCard

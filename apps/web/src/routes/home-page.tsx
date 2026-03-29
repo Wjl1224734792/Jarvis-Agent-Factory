@@ -144,7 +144,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="site-tab-panel relative mt-2.5 overflow-hidden rounded-[calc(var(--radius-panel)-0.05rem)] border border-border bg-white">
+          <section className="site-tab-panel relative mt-2.5 overflow-hidden border border-border bg-white">
             {feedQuery.isError ? (
               <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
@@ -167,7 +167,7 @@ export function HomePage() {
                       className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
                       to={APP_ROUTES.postDetail.replace(":id", item.id)}
                     >
-                      <div className="overflow-hidden rounded-[0.8rem] bg-slate-100">
+                      <div className="overflow-hidden bg-slate-100">
                         <img
                           alt={item.title}
                           className="h-[96px] w-full object-cover"

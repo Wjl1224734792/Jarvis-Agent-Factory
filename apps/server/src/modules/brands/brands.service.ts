@@ -7,6 +7,7 @@ export const brandsService = {
   createBrand(input: {
     slug: string;
     name: string;
+    logoUrl: string | null;
     categoryId: string | null;
     sortOrder: number;
     isEnabled: boolean;
@@ -18,6 +19,7 @@ export const brandsService = {
     input: {
       slug: string;
       name: string;
+      logoUrl: string | null;
       categoryId: string | null;
       sortOrder: number;
       isEnabled: boolean;

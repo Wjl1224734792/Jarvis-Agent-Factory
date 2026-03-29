@@ -55,13 +55,20 @@ export const API_ROUTES = {
     smsRequest: "/auth/sms/request",
     webLogin: "/auth/web/login",
     webRegisterComplete: "/auth/web/register/complete",
+    registrationDisplayNameSuggest: "/auth/registration/display-name/suggest",
     logout: "/auth/logout",
     currentUser: "/auth/me",
     protectedPing: "/auth/protected/ping",
+    appLogin: "/auth/app/login",
+    appRegisterComplete: "/auth/app/register/complete",
+    appRefresh: "/auth/app/refresh",
+    appCurrentUser: "/auth/app/me",
+    appLogout: "/auth/app/logout",
     adminLogin: "/auth/admin/login",
     adminLogout: "/auth/admin/logout",
     adminCurrentUser: "/auth/admin/me",
-    adminProtectedPing: "/auth/admin/protected/ping"
+    adminProtectedPing: "/auth/admin/protected/ping",
+    adminSessions: "/admin/auth/sessions"
   },
   posts: {
     create: "/posts",

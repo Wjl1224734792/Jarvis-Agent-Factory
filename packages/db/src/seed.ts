@@ -177,22 +177,22 @@ async function seedAircraftCatalog() {
   await db
     .insert(aircraftCategoriesTable)
     .values([
-      { id: AIRCRAFT_CATEGORY_IDS.drone, slug: "drone", name: "Drone", sortOrder: 1, isEnabled: true },
-      { id: AIRCRAFT_CATEGORY_IDS.evtol, slug: "evtol", name: "eVTOL", sortOrder: 2, isEnabled: true },
-      { id: AIRCRAFT_CATEGORY_IDS.helicopter, slug: "helicopter", name: "Helicopter", sortOrder: 3, isEnabled: true },
-      { id: AIRCRAFT_CATEGORY_IDS.businessJet, slug: "business-jet", name: "Business Jet", sortOrder: 4, isEnabled: true }
+      { id: AIRCRAFT_CATEGORY_IDS.drone, slug: "drone", name: "无人机", sortOrder: 1, isEnabled: true },
+      { id: AIRCRAFT_CATEGORY_IDS.evtol, slug: "evtol", name: "电动垂直起降", sortOrder: 2, isEnabled: true },
+      { id: AIRCRAFT_CATEGORY_IDS.helicopter, slug: "helicopter", name: "直升机", sortOrder: 3, isEnabled: true },
+      { id: AIRCRAFT_CATEGORY_IDS.businessJet, slug: "business-jet", name: "公务机", sortOrder: 4, isEnabled: true }
     ])
     .onConflictDoNothing();
 
   await db
     .insert(brandsTable)
     .values([
-      { id: BRAND_IDS.dji, slug: "dji", name: "DJI", categoryId: AIRCRAFT_CATEGORY_IDS.drone, sortOrder: 1, isEnabled: true },
-      { id: BRAND_IDS.autel, slug: "autel", name: "Autel", categoryId: AIRCRAFT_CATEGORY_IDS.drone, sortOrder: 2, isEnabled: true },
-      { id: BRAND_IDS.ehang, slug: "ehang", name: "EHang", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, sortOrder: 3, isEnabled: true },
-      { id: BRAND_IDS.joby, slug: "joby", name: "Joby", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, sortOrder: 4, isEnabled: true },
-      { id: BRAND_IDS.robinson, slug: "robinson", name: "Robinson", categoryId: AIRCRAFT_CATEGORY_IDS.helicopter, sortOrder: 5, isEnabled: true },
-      { id: BRAND_IDS.cirrus, slug: "cirrus", name: "Cirrus", categoryId: AIRCRAFT_CATEGORY_IDS.businessJet, sortOrder: 6, isEnabled: true }
+      { id: BRAND_IDS.dji, slug: "dji", name: "DJI", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.drone, sortOrder: 1, isEnabled: true },
+      { id: BRAND_IDS.autel, slug: "autel", name: "Autel", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.drone, sortOrder: 2, isEnabled: true },
+      { id: BRAND_IDS.ehang, slug: "ehang", name: "EHang", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.evtol, sortOrder: 3, isEnabled: true },
+      { id: BRAND_IDS.joby, slug: "joby", name: "Joby", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.evtol, sortOrder: 4, isEnabled: true },
+      { id: BRAND_IDS.robinson, slug: "robinson", name: "Robinson", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.helicopter, sortOrder: 5, isEnabled: true },
+      { id: BRAND_IDS.cirrus, slug: "cirrus", name: "Cirrus", logoUrl: null, categoryId: AIRCRAFT_CATEGORY_IDS.businessJet, sortOrder: 6, isEnabled: true }
     ])
     .onConflictDoNothing();
 

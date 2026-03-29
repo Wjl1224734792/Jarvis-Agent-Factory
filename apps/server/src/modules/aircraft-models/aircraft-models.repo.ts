@@ -6,28 +6,41 @@ import {
   createId,
   db
 } from "@feijia/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 type ListFilters = {
-  categorySlug?: string;
-  brandSlug?: string;
+  categorySlugs?: string[];
+  brandSlugs?: string[];
   powerTypes?: string[];
+  keyword?: string;
 };
 
 export const aircraftModelsRepo = {
   async list(filters: ListFilters) {
     const conditions = [];
 
-    if (filters.categorySlug) {
-      conditions.push(eq(aircraftCategoriesTable.slug, filters.categorySlug));
+    if (filters.categorySlugs?.length) {
+      conditions.push(inArray(aircraftCategoriesTable.slug, filters.categorySlugs));
     }
 
-    if (filters.brandSlug) {
-      conditions.push(eq(brandsTable.slug, filters.brandSlug));
+    if (filters.brandSlugs?.length) {
+      conditions.push(inArray(brandsTable.slug, filters.brandSlugs));
     }
 
     if (filters.powerTypes?.length) {
       conditions.push(inArray(aircraftModelsTable.powerType, filters.powerTypes));
+    }
+
+    if (filters.keyword) {
+      const keyword = `%${filters.keyword}%`;
+      conditions.push(
+        or(
+          ilike(aircraftModelsTable.name, keyword),
+          ilike(brandsTable.name, keyword),
+          ilike(aircraftModelsTable.summary, keyword),
+          ilike(aircraftModelsTable.description, keyword)
+        )!
+      );
     }
 
     const query = db
@@ -48,7 +61,8 @@ export const aircraftModelsRepo = {
         brand: {
           id: brandsTable.id,
           slug: brandsTable.slug,
-          name: brandsTable.name
+          name: brandsTable.name,
+          logoUrl: brandsTable.logoUrl
         }
       })
       .from(aircraftModelsTable)
@@ -95,7 +109,8 @@ export const aircraftModelsRepo = {
         brand: {
           id: brandsTable.id,
           slug: brandsTable.slug,
-          name: brandsTable.name
+          name: brandsTable.name,
+          logoUrl: brandsTable.logoUrl
         }
       })
       .from(aircraftModelsTable)
@@ -331,7 +346,8 @@ export const aircraftModelsRepo = {
         brand: {
           id: brandsTable.id,
           slug: brandsTable.slug,
-          name: brandsTable.name
+          name: brandsTable.name,
+          logoUrl: brandsTable.logoUrl
         }
       })
       .from(aircraftModelsTable)

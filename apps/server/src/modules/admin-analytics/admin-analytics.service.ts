@@ -213,7 +213,7 @@ export const adminAnalyticsService = {
         })
         .from(sessionsTable)
         .innerJoin(usersTable, eq(sessionsTable.userId, usersTable.id))
-        .where(and(eq(sessionsTable.scope, "web"), eq(usersTable.role, "user"))),
+        .where(and(inArray(sessionsTable.scope, ["web", "app"]), eq(usersTable.role, "user"))),
       db
         .select({
           userId: sessionsTable.userId,

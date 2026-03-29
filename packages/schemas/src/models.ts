@@ -12,6 +12,7 @@ export const brandSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
   name: z.string().min(1),
+  logoUrl: z.string().trim().min(1).nullable().default(null),
   categoryId: z.string().min(1).nullable(),
   sortOrder: z.number().int().nonnegative(),
   isEnabled: z.boolean()
@@ -49,7 +50,8 @@ export const modelListItemSchema = z.object({
   brand: brandSchema.pick({
     id: true,
     slug: true,
-    name: true
+    name: true,
+    logoUrl: true
   })
 });
 
@@ -68,11 +70,21 @@ export const modelDetailSchema = modelListItemSchema.extend({
   viewer: modelInteractionViewerStateSchema
 });
 
-export const modelListQuerySchema = z.object({
-  categorySlug: z.string().min(1).optional(),
-  brandSlug: z.string().min(1).optional(),
-  powerTypes: z.array(powerTypeSchema).optional()
-});
+export const modelListQuerySchema = z
+  .object({
+    categorySlugs: z.array(z.string().min(1)).optional(),
+    brandSlugs: z.array(z.string().min(1)).optional(),
+    powerTypes: z.array(powerTypeSchema).optional(),
+    keyword: z.string().trim().min(1).optional(),
+    categorySlug: z.string().min(1).optional(),
+    brandSlug: z.string().min(1).optional()
+  })
+  .transform((input) => ({
+    categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
+    brandSlugs: input.brandSlugs ?? (input.brandSlug ? [input.brandSlug] : undefined),
+    powerTypes: input.powerTypes,
+    keyword: input.keyword?.trim() || undefined
+  }));
 
 export const modelListResponseSchema = z.object({
   items: z.array(modelListItemSchema),
@@ -111,6 +123,7 @@ export const adminCategoryResponseSchema = z.object({
 export const adminBrandInputSchema = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
+  logoUrl: z.string().trim().min(1).nullable().optional().default(null),
   categoryId: z.string().min(1).nullable(),
   sortOrder: z.number().int().nonnegative().default(0),
   isEnabled: z.boolean().default(true)

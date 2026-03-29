@@ -297,4 +297,88 @@ describe("models flows", () => {
     const modelPayload = (await modelResponse.json()) as { item: { slug: string } };
     expect(modelPayload.item.slug).toBe("alia-250");
   });
+
+  it("stores brand logo and auto-increments brand sort order", async () => {
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    const adminCookie = extractCookie(adminLoginResponse.headers.get("set-cookie"));
+
+    const categoriesResponse = await app.request(API_ROUTES.models.categories, {
+      method: "GET"
+    });
+    const categoriesPayload = (await categoriesResponse.json()) as Array<{ id: string; slug: string }>;
+    const droneCategoryId = categoriesPayload.find((item) => item.slug === "drone")?.id;
+    expect(droneCategoryId).toBeTruthy();
+
+    const createBrandResponse = await app.request(API_ROUTES.models.brands, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "skymaker",
+        name: "SkyMaker",
+        categoryId: droneCategoryId,
+        sortOrder: 1,
+        isEnabled: true,
+        logoUrl: "https://cdn.example.com/brands/skymaker.png"
+      })
+    });
+    expect(createBrandResponse.status).toBe(200);
+
+    const createBrandPayload = (await createBrandResponse.json()) as {
+      item: {
+        id: string;
+        sortOrder: number;
+        logoUrl: string | null;
+      };
+    };
+    expect(createBrandPayload.item.logoUrl).toBe("https://cdn.example.com/brands/skymaker.png");
+    expect(createBrandPayload.item.sortOrder).toBe(7);
+
+    const listBrandsResponse = await app.request(API_ROUTES.models.brands, {
+      method: "GET"
+    });
+    expect(listBrandsResponse.status).toBe(200);
+    const listBrandsPayload = (await listBrandsResponse.json()) as Array<{
+      id: string;
+      logoUrl: string | null;
+    }>;
+    expect(
+      listBrandsPayload.some(
+        (item) =>
+          item.id === createBrandPayload.item.id &&
+          item.logoUrl === "https://cdn.example.com/brands/skymaker.png"
+      )
+    ).toBe(true);
+  });
+
+  it("supports multi-category, multi-brand and keyword model filtering", async () => {
+    const response = await app.request(
+      `${API_ROUTES.models.list}?categorySlug=drone&categorySlug=business-jet&brandSlug=dji&brandSlug=cirrus&keyword=pro`,
+      {
+        method: "GET"
+      }
+    );
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<{
+        slug: string;
+        brand: { slug: string; logoUrl?: string | null };
+      }>;
+    };
+
+    expect(payload.items.some((item) => item.slug === "mavic-3-pro")).toBe(true);
+    expect(payload.items.some((item) => item.slug === "mini-4-pro")).toBe(true);
+    expect(payload.items.some((item) => item.slug === "vision-jet-g2-plus")).toBe(false);
+    expect(payload.items.every((item) => ["dji", "cirrus"].includes(item.brand.slug))).toBe(true);
+  });
 });
