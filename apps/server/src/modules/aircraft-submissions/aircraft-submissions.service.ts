@@ -60,8 +60,12 @@ async function serializeSubmission(
     coverImageFileId: item.coverImageFileId ?? null,
     galleryImageFileIds: parseGallery(item.galleryImageFileIds),
     videoFileId: item.videoFileId ?? null,
-    coverImageUrl: item.coverImageUrl,
-    galleryImageUrls: parseGallery(item.galleryImageUrls),
+    coverImageUrl: await resolveUploadedFileUrl(item.coverImageFileId ?? null),
+    galleryImageUrls: (
+      await Promise.all(
+        parseGallery(item.galleryImageFileIds).map((fileId) => resolveUploadedFileUrl(fileId))
+      )
+    ).filter((value): value is string => Boolean(value)),
     videoAsset: videoFile
       ? {
           id: videoFile.id,
@@ -155,14 +159,6 @@ export const aircraftSubmissionsService = {
       }
     }
 
-    const coverImageUrl =
-      input.coverImageFileId !== null
-        ? await resolveUploadedFileUrl(input.coverImageFileId)
-        : null;
-    const galleryImageUrls = (
-      await Promise.all(input.galleryImageFileIds.map(fileId => resolveUploadedFileUrl(fileId)))
-    ).filter((value): value is string => Boolean(value));
-
     const item = await aircraftSubmissionsRepo.create({
       authorId: input.authorId,
       status: "submitted",
@@ -176,8 +172,6 @@ export const aircraftSubmissionsService = {
       coverImageFileId: input.coverImageFileId,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
       videoFileId: input.videoFileId,
-      coverImageUrl,
-      galleryImageUrls: JSON.stringify(galleryImageUrls),
       maxFlightTimeMinutes: input.maxFlightTimeMinutes,
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,

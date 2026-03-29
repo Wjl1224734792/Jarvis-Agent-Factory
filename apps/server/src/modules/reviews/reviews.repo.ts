@@ -77,7 +77,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         },
         model: {
@@ -112,7 +112,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -132,7 +132,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -174,7 +174,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         },
         model: {
@@ -208,7 +208,7 @@ export const reviewsRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
-        avatarUrl: usersTable.avatarUrl,
+        avatarFileId: usersTable.avatarFileId,
         role: usersTable.role
       })
       .from(usersTable)
@@ -229,7 +229,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -253,7 +253,7 @@ export const reviewsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })

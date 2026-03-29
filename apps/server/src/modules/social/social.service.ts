@@ -118,10 +118,9 @@ export const socialService = {
     const postById = new Map(posts.map((post) => [post.id, post]));
     const commentById = new Map(comments.map((comment) => [comment.id, comment]));
 
-    return {
-      unreadCount: rows.filter((item) => !item.isRead).length,
-      items: rows
-        .map((item) => {
+    const items = (
+      await Promise.all(
+        rows.map(async (item) => {
           const actor = actorById.get(item.actorId);
 
           if (!actor) {
@@ -145,7 +144,7 @@ export const socialService = {
             actor: {
               id: actor.id,
               displayName: actor.displayName,
-              avatarUrl: actor.avatarUrl ?? null,
+              avatarUrl: await resolveUploadedFileUrl(actor.avatarFileId ?? null),
               role: actor.role as "user" | "admin"
             },
             post: post
@@ -163,7 +162,12 @@ export const socialService = {
               : null
           };
         })
-        .filter((item): item is NonNullable<typeof item> => item !== null)
+      )
+    ).filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return {
+      unreadCount: rows.filter((item) => !item.isRead).length,
+      items
     };
   },
   async markAllNotificationsRead(userId: string) {
@@ -219,7 +223,7 @@ export const socialService = {
         user: {
           id: user.id,
           displayName: user.displayName,
-          avatarUrl: user.avatarUrl ?? null,
+          avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
           role: user.role as "user" | "admin"
         },
         followerCount,
@@ -344,7 +348,7 @@ export const socialService = {
         displayName: user.displayName,
         avatarFileId: user.avatarFileId ?? null,
         bio: user.bio ?? null,
-        avatarUrl: user.avatarUrl ?? null,
+        avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
         phone: user.phone ?? null,
         phoneMasked: toPhoneMasked(user.phone ?? null),
         profileVisibility: settings.profileVisibility,
@@ -420,7 +424,6 @@ export const socialService = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
-      avatarUrl?: string | null;
       phone?: string | null;
       profileVisibility?: "community" | "followers" | "private";
       notifyComments?: boolean;
@@ -446,7 +449,6 @@ export const socialService = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
-      avatarUrl?: string | null;
       phone?: string | null;
     } = {
       displayName: input.displayName,
@@ -456,9 +458,6 @@ export const socialService = {
 
     if (Object.prototype.hasOwnProperty.call(input, "avatarFileId")) {
       profilePatch.avatarFileId = input.avatarFileId ?? null;
-      profilePatch.avatarUrl = await resolveUploadedFileUrl(input.avatarFileId ?? null);
-    } else if (Object.prototype.hasOwnProperty.call(input, "avatarUrl")) {
-      profilePatch.avatarUrl = input.avatarUrl ?? null;
     }
     const hasProfilePatch = Object.values(profilePatch).some((value) => value !== undefined);
     if (hasProfilePatch) {
@@ -486,9 +485,6 @@ export const socialService = {
       return null;
     }
 
-    if (input.avatarUrl !== undefined) {
-      refreshed.item.avatarUrl = input.avatarUrl ?? null;
-    }
     if (input.avatarFileId !== undefined) {
       refreshed.item.avatarFileId = input.avatarFileId ?? null;
       refreshed.item.avatarUrl = await resolveUploadedFileUrl(input.avatarFileId ?? null);

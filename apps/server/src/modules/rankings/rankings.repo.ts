@@ -73,7 +73,6 @@ export const rankingsRepo = {
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageFileId: rankingsTable.coverImageFileId,
-        coverImageUrl: rankingsTable.coverImageUrl,
         itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
         createdAt: rankingsTable.createdAt,
@@ -81,7 +80,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -98,7 +97,6 @@ export const rankingsRepo = {
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageFileId: rankingsTable.coverImageFileId,
-        coverImageUrl: rankingsTable.coverImageUrl,
         itemAddPolicy: rankingsTable.itemAddPolicy,
         commentCount: rankingsTable.commentCount,
         createdAt: rankingsTable.createdAt,
@@ -106,7 +104,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -124,7 +122,6 @@ export const rankingsRepo = {
     title: string;
     description: string;
     coverImageFileId: string | null;
-    coverImageUrl: string | null;
     itemAddPolicy: "public" | "owner";
   }) {
     const id = createId("ranking");
@@ -136,7 +133,6 @@ export const rankingsRepo = {
       title: input.title,
       description: input.description,
       coverImageFileId: input.coverImageFileId,
-      coverImageUrl: input.coverImageUrl,
       itemAddPolicy: input.itemAddPolicy,
       commentCount: 0
     });
@@ -149,7 +145,6 @@ export const rankingsRepo = {
       title: string;
       description: string;
       coverImageFileId: string | null;
-      coverImageUrl: string | null;
       itemAddPolicy: "public" | "owner";
     }
   ) {
@@ -159,7 +154,6 @@ export const rankingsRepo = {
         title: input.title,
         description: input.description,
         coverImageFileId: input.coverImageFileId,
-        coverImageUrl: input.coverImageUrl,
         itemAddPolicy: input.itemAddPolicy,
         updatedAt: new Date()
       })
@@ -188,7 +182,6 @@ export const rankingsRepo = {
       title: string;
       summary: string | null;
       imageFileId: string | null;
-      imageUrl: string | null;
       brandName: string | null;
       linkedModelId: string | null;
     }>
@@ -205,7 +198,6 @@ export const rankingsRepo = {
         title: item.title,
         summary: item.summary,
         imageFileId: item.imageFileId,
-        imageUrl: item.imageUrl,
         brandName: item.brandName,
         linkedModelId: item.linkedModelId,
         commentCount: 0
@@ -225,7 +217,6 @@ export const rankingsRepo = {
     title: string;
     summary: string | null;
     imageFileId: string | null;
-    imageUrl: string | null;
     brandName: string | null;
     linkedModelId: string | null;
   }) {
@@ -239,7 +230,6 @@ export const rankingsRepo = {
       title: input.title,
       summary: input.summary,
       imageFileId: input.imageFileId,
-      imageUrl: input.imageUrl,
       brandName: input.brandName,
       commentCount: 0
     });
@@ -255,7 +245,6 @@ export const rankingsRepo = {
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
         imageFileId: rankingItemsTable.imageFileId,
-        imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,
         linkedModelId: aircraftModelsTable.id,
@@ -286,7 +275,6 @@ export const rankingsRepo = {
         title: rankingItemsTable.title,
         summary: rankingItemsTable.summary,
         imageFileId: rankingItemsTable.imageFileId,
-        imageUrl: rankingItemsTable.imageUrl,
         brandName: rankingItemsTable.brandName,
         commentCount: rankingItemsTable.commentCount,
         linkedModelId: aircraftModelsTable.id,
@@ -385,7 +373,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -432,7 +420,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })
@@ -453,7 +441,7 @@ export const rankingsRepo = {
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
-          avatarUrl: usersTable.avatarUrl,
+          avatarFileId: usersTable.avatarFileId,
           role: usersTable.role
         }
       })

@@ -10,8 +10,6 @@ export {
   filesTable,
   notificationsTable,
   postCommentsTable,
-  postImagesTable,
-  videoAssetsTable,
   postInteractionsTable,
   postReportsTable,
   postsTable,

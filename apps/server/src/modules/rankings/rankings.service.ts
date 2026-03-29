@@ -41,11 +41,15 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
   return buildRatingBreakdown(scoreCountMap);
 }
 
-function serializeRankingItem(
+async function resolveRankingImage(fileId: string | null | undefined) {
+  return resolveUploadedFileUrl(fileId ?? null);
+}
+
+async function serializeRankingItem(
   item: Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>[number],
   aggregateMap: Map<string, { totalRatings: number; averageRaw: number }>,
   userRatingMap: Map<string, number | null>
-): RankingItem {
+): Promise<RankingItem> {
   const aggregate = aggregateMap.get(item.id) ?? {
     totalRatings: 0,
     averageRaw: 0
@@ -70,7 +74,7 @@ function serializeRankingItem(
     title: item.title,
     summary: item.summary,
     imageFileId: item.imageFileId ?? null,
-    imageUrl: item.imageUrl,
+    imageUrl: await resolveRankingImage(item.imageFileId),
     brandName: item.brandName,
     linkedModel: hasLinkedModel
       ? {
@@ -98,7 +102,7 @@ function serializeRankingItem(
   };
 }
 
-function serializeRankingComment(
+async function serializeRankingComment(
   item: Awaited<ReturnType<typeof rankingsRepo.listRankingComments>>[number]
 ) {
   return {
@@ -110,13 +114,13 @@ function serializeRankingComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: item.author.avatarUrl ?? null,
+      avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
       role: item.author.role as "user" | "admin"
     }
   };
 }
 
-function serializeRankingItemReview(
+async function serializeRankingItemReview(
   item: Awaited<ReturnType<typeof rankingsRepo.listRankingItemReviews>>[number]
 ) {
   if (item.rating === null) {
@@ -133,7 +137,7 @@ function serializeRankingItemReview(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: item.author.avatarUrl ?? null,
+      avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
       role: item.author.role as "user" | "admin"
     }
   };
@@ -200,9 +204,11 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
   );
   const userItemRatingMap = new Map(userItemRatings.map((item) => [item.rankingItemId, item.rating]));
 
-  const all = rankings.map((ranking) => {
-    const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
-      serializeRankingItem(item, itemAggregateMap, userItemRatingMap)
+  const all = await Promise.all(rankings.map(async (ranking) => {
+    const items = await Promise.all(
+      (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
+        serializeRankingItem(item, itemAggregateMap, userItemRatingMap)
+      )
     );
     const rankingType = (ranking.type as "official" | "community") ?? "community";
     const itemAddPolicy =
@@ -217,7 +223,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       title: ranking.title,
       description: ranking.description,
       coverImageFileId: ranking.coverImageFileId ?? null,
-      coverImageUrl: ranking.coverImageUrl,
+      coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
       itemAddPolicy,
       averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
       commentCount: ranking.commentCount,
@@ -226,7 +232,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       author: {
         id: ranking.author.id,
         displayName: ranking.author.displayName,
-        avatarUrl: ranking.author.avatarUrl ?? null,
+        avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
         role: ranking.author.role as "user" | "admin"
       },
       viewer: toRankingViewer({
@@ -238,7 +244,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       }),
       items: items.slice(0, 3)
     } satisfies RankingListItem;
-  });
+  }));
 
   return {
     official: all.filter((item) => item.type === "official"),
@@ -290,10 +296,6 @@ export const rankingsService = {
       title: input.title,
       description: input.description,
       coverImageFileId: input.coverImageFileId ?? null,
-      coverImageUrl:
-        input.coverImageFileId !== undefined
-          ? await resolveUploadedFileUrl(input.coverImageFileId ?? null)
-          : input.coverImageUrl ?? null,
       itemAddPolicy: input.type === "official" ? "owner" : input.itemAddPolicy
     });
 
@@ -307,10 +309,7 @@ export const rankingsService = {
         title: item.title,
         summary: item.summary,
         imageFileId: item.imageFileId ?? null,
-        imageUrl:
-          item.imageFileId !== undefined
-            ? await resolveUploadedFileUrl(item.imageFileId ?? null)
-            : item.imageUrl ?? null,
+        imageUrl: null,
         brandName: item.brandName,
         linkedModelId: item.linkedModelSlug ? modelBySlug.get(item.linkedModelSlug)?.id ?? null : null
       }))
@@ -370,10 +369,6 @@ export const rankingsService = {
       title: input.title,
       description: input.description,
       coverImageFileId: input.coverImageFileId ?? null,
-      coverImageUrl:
-        input.coverImageFileId !== undefined
-          ? await resolveUploadedFileUrl(input.coverImageFileId ?? null)
-          : input.coverImageUrl ?? null,
       itemAddPolicy: rankingType === "official" ? "owner" : input.itemAddPolicy
     });
     await rankingsRepo.deleteRankingItems(rankingId);
@@ -383,10 +378,7 @@ export const rankingsService = {
         title: item.title,
         summary: item.summary,
         imageFileId: item.imageFileId ?? null,
-        imageUrl:
-          item.imageFileId !== undefined
-            ? await resolveUploadedFileUrl(item.imageFileId ?? null)
-            : item.imageUrl ?? null,
+        imageUrl: null,
         brandName: item.brandName,
         linkedModelId: item.linkedModelSlug ? modelBySlug.get(item.linkedModelSlug)?.id ?? null : null
       }))
@@ -442,10 +434,6 @@ export const rankingsService = {
       title: input.title,
       summary: input.summary,
       imageFileId: input.imageFileId ?? null,
-      imageUrl:
-        input.imageFileId !== undefined
-          ? await resolveUploadedFileUrl(input.imageFileId ?? null)
-          : input.imageUrl ?? null,
       brandName: input.brandName,
       linkedModelId: input.linkedModelSlug ? modelBySlug.get(input.linkedModelSlug)?.id ?? null : null
     });
@@ -489,7 +477,9 @@ export const rankingsService = {
       ])
     );
     const userRatingMap = new Map(userRatings.map((item) => [item.rankingItemId, item.rating]));
-    const serializedItems = items.map((item) => serializeRankingItem(item, aggregateMap, userRatingMap));
+    const serializedItems = await Promise.all(
+      items.map((item) => serializeRankingItem(item, aggregateMap, userRatingMap))
+    );
     const itemAddPolicy =
       rankingType === "official"
         ? "owner"
@@ -503,7 +493,7 @@ export const rankingsService = {
         title: ranking.title,
         description: ranking.description,
         coverImageFileId: ranking.coverImageFileId ?? null,
-        coverImageUrl: ranking.coverImageUrl,
+        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
         itemAddPolicy,
         viewer: toRankingViewer({
           currentUser,
@@ -519,10 +509,10 @@ export const rankingsService = {
         author: {
           id: ranking.author.id,
           displayName: ranking.author.displayName,
-          avatarUrl: ranking.author.avatarUrl ?? null,
+          avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
           role: ranking.author.role as "user" | "admin"
         },
-        comments: comments.map(serializeRankingComment),
+        comments: await Promise.all(comments.map(serializeRankingComment)),
         items: serializedItems
       }
     };
@@ -565,7 +555,7 @@ export const rankingsService = {
     return {
       kind: "ok" as const,
       payload: {
-        items: rankings
+        items: await Promise.all(rankings
           .filter((ranking) => {
             const rankingType = (ranking.type as "official" | "community") ?? "community";
             if (filters?.scope && rankingType !== filters.scope) {
@@ -576,15 +566,15 @@ export const rankingsService = {
             }
             return true;
           })
-          .map((ranking) => {
+          .map(async (ranking) => {
             const rankingType = (ranking.type as "official" | "community") ?? "community";
             const itemAddPolicy =
               rankingType === "official"
               ? "owner"
               : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
-          const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
+          const items = await Promise.all((rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
             serializeRankingItem(item, itemAggregateMap, new Map())
-          );
+          ));
 
           return {
             id: ranking.id,
@@ -593,7 +583,7 @@ export const rankingsService = {
             title: ranking.title,
             description: ranking.description,
             coverImageFileId: ranking.coverImageFileId ?? null,
-            coverImageUrl: ranking.coverImageUrl,
+            coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
             itemAddPolicy,
             averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
             commentCount: ranking.commentCount,
@@ -602,7 +592,7 @@ export const rankingsService = {
             author: {
               id: ranking.author.id,
               displayName: ranking.author.displayName,
-              avatarUrl: ranking.author.avatarUrl ?? null,
+              avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
               role: ranking.author.role as "user" | "admin"
             },
             viewer: toRankingViewer({
@@ -614,7 +604,7 @@ export const rankingsService = {
             }),
             items: items.slice(0, 3)
             };
-          })
+          }))
       }
     };
   },
@@ -659,7 +649,7 @@ export const rankingsService = {
       content
     });
 
-    return item ? { item: serializeRankingComment(item) } : null;
+    return item ? { item: await serializeRankingComment(item) } : null;
   },
 
   async getRankingItemDetail(id: string, currentUserId?: string) {
@@ -686,10 +676,10 @@ export const rankingsService = {
       ])
     );
     const userRatingMap = new Map(userRatings.map((entry) => [entry.rankingItemId, entry.rating]));
-    const serializedItem = serializeRankingItem(item, aggregateMap, userRatingMap);
-    const serializedReviews = reviews
-      .map((entry) => serializeRankingItemReview(entry))
-      .filter((entry): entry is NonNullable<typeof entry> => entry !== null);
+    const serializedItem = await serializeRankingItem(item, aggregateMap, userRatingMap);
+    const serializedReviews = (
+      await Promise.all(reviews.map((entry) => serializeRankingItemReview(entry)))
+    ).filter((entry): entry is NonNullable<typeof entry> => entry !== null);
     const ratingBreakdown = buildRatingBreakdownFromRows(ratingBreakdownRows);
 
     return {

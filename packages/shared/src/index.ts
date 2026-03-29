@@ -96,9 +96,7 @@ export const API_ROUTES = {
   },
   uploads: {
     init: "/uploads/init",
-    complete: "/uploads/complete",
-    images: "/uploads/images",
-    videos: "/uploads/videos"
+    complete: "/uploads/complete"
   },
   files: {
     url: (id: string) => `/files/${id}/url`

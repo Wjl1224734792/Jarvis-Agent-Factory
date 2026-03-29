@@ -1,5 +1,10 @@
 import { reviewsRepo } from "./reviews.repo";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+
+async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(author: T) {
+  return resolveUploadedFileUrl(author.avatarFileId ?? null);
+}
 
 function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review: T) {
   return {
@@ -9,23 +14,25 @@ function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review:
   };
 }
 
-function buildReplyToUserMap(
+async function buildReplyToUserMap(
   users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>
 ) {
-  return new Map(
-    users.map((user) => [
+  const pairs = await Promise.all(
+    users.map(async (user) => [
       user.id,
       {
         id: user.id,
         displayName: user.displayName,
-        avatarUrl: user.avatarUrl ?? null,
+        avatarUrl: await resolveAuthorAvatar(user),
         role: user.role as "user" | "admin"
       }
-    ])
+    ] as const)
   );
+
+  return new Map(pairs);
 }
 
-function serializeComment(
+async function serializeComment(
   item: Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>,
   replyToUserMap: Map<
     string,
@@ -47,14 +54,14 @@ function serializeComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: item.author.avatarUrl ?? null,
+      avatarUrl: await resolveAuthorAvatar(item.author),
       role: item.author.role as "user" | "admin"
     },
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
   };
 }
 
-function serializeCommentThreads(
+async function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof reviewsRepo.listReviewComments>>,
   replyToUserMap: Map<
     string,
@@ -76,7 +83,7 @@ function serializeCommentThreads(
       author: {
         id: comment.author.id,
         displayName: comment.author.displayName,
-        avatarUrl: comment.author.avatarUrl ?? null,
+        avatarUrl: await resolveAuthorAvatar(comment.author),
         role: comment.author.role as "user" | "admin"
       },
       replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null
@@ -118,10 +125,24 @@ export const reviewsService = {
     ]);
 
     return {
-      items: items.map((item) => serializeReview(item)),
+      items: await Promise.all(items.map(async (item) => ({
+        ...serializeReview(item),
+        author: {
+          ...item.author,
+          avatarUrl: await resolveAuthorAvatar(item.author)
+        }
+      }))),
       summary: {
         totalReviews: Number(aggregate.totalReviews ?? 0),
-        myReview: myReview ? serializeReview(myReview) : null
+        myReview: myReview
+          ? {
+              ...serializeReview(myReview),
+              author: {
+                ...myReview.author,
+                avatarUrl: await resolveAuthorAvatar(myReview.author)
+              }
+            }
+          : null
       }
     };
   },
@@ -155,18 +176,40 @@ export const reviewsService = {
     }
 
     return {
-      item: serializeReview(item),
+      item: {
+        ...serializeReview(item),
+        author: {
+          ...item.author,
+          avatarUrl: await resolveAuthorAvatar(item.author)
+        }
+      },
       summary: summary.summary
     };
   },
   async listAdminReviews() {
     return {
-      items: (await reviewsRepo.listAdminReviews()).map((item) => serializeReview(item))
+      items: await Promise.all(
+        (await reviewsRepo.listAdminReviews()).map(async (item) => ({
+          ...serializeReview(item),
+          author: {
+            ...item.author,
+            avatarUrl: await resolveAuthorAvatar(item.author)
+          }
+        }))
+      )
     };
   },
   async updateReviewStatus(id: string, status: "pending" | "visible" | "hidden") {
     const item = await reviewsRepo.updateReviewStatus(id, status);
-    return item ? serializeReview(item) : null;
+    return item
+      ? {
+          ...serializeReview(item),
+          author: {
+            ...item.author,
+            avatarUrl: await resolveAuthorAvatar(item.author)
+          }
+        }
+      : null;
   },
   async listReviewComments(reviewId: string) {
     const review = await reviewsRepo.getReviewById(reviewId);
@@ -181,7 +224,7 @@ export const reviewsService = {
     const replyToUsers = await reviewsRepo.listUsersByIds(replyToUserIds);
 
     return {
-      items: serializeCommentThreads(comments, buildReplyToUserMap(replyToUsers))
+      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers))
     };
   },
   async createReviewComment(
@@ -219,7 +262,7 @@ export const reviewsService = {
       content: input.content
     });
     const replyToUsers = replyToUserId ? await reviewsRepo.listUsersByIds([replyToUserId]) : [];
-    const serialized = serializeComment(item, buildReplyToUserMap(replyToUsers));
+    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers));
 
     if (!serialized) {
       return { kind: "not_found" as const };

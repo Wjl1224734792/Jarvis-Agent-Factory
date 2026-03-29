@@ -14,7 +14,6 @@ export const usersTable = pgTable(
     id: text("id").primaryKey(),
     role: text("role").notNull(),
     displayName: text("display_name").notNull(),
-    avatarUrl: text("avatar_url"),
     avatarFileId: text("avatar_file_id"),
     bio: text("bio"),
     phone: text("phone"),
@@ -352,36 +351,6 @@ export const postReportsTable = pgTable(
   })
 );
 
-export const postImagesTable = pgTable("post_images", {
-  id: text("id").primaryKey(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  mimeType: text("mime_type").notNull(),
-  byteSize: integer("byte_size").notNull(),
-  dataUrl: text("data_url").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull()
-});
-
-export const videoAssetsTable = pgTable("video_assets", {
-  id: text("id").primaryKey(),
-  ownerId: text("owner_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
-  fileName: text("file_name").notNull(),
-  mimeType: text("mime_type").notNull(),
-  byteSize: integer("byte_size").notNull(),
-  dataUrl: text("data_url").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true })
-    .defaultNow()
-    .notNull()
-});
-
 export const userFollowsTable = pgTable(
   "user_follows",
   {
@@ -465,11 +434,6 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   coverImageFileId: text("cover_image_file_id"),
   galleryImageFileIds: text("gallery_image_file_ids").default("[]").notNull(),
   videoFileId: text("video_file_id"),
-  coverImageUrl: text("cover_image_url"),
-  galleryImageUrls: text("gallery_image_urls").default("[]").notNull(),
-  videoAssetId: text("video_asset_id").references(() => videoAssetsTable.id, {
-    onDelete: "set null"
-  }),
   maxFlightTimeMinutes: integer("max_flight_time_minutes"),
   maxRangeKilometers: integer("max_range_kilometers"),
   maxSpeedKph: integer("max_speed_kph"),
@@ -495,7 +459,6 @@ export const rankingsTable = pgTable("rankings", {
   title: text("title").notNull(),
   description: text("description").notNull(),
   coverImageFileId: text("cover_image_file_id"),
-  coverImageUrl: text("cover_image_url"),
   itemAddPolicy: text("item_add_policy").default("owner").notNull(),
   commentCount: integer("comment_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -518,7 +481,6 @@ export const rankingItemsTable = pgTable("ranking_items", {
   title: text("title").notNull(),
   summary: text("summary"),
   imageFileId: text("image_file_id"),
-  imageUrl: text("image_url"),
   brandName: text("brand_name"),
   commentCount: integer("comment_count").default(0).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })

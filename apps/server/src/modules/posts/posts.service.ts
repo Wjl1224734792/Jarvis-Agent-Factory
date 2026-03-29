@@ -1,6 +1,7 @@
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
+import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
 
 type CurrentUser = {
@@ -29,12 +30,13 @@ function serializeImage(
     return null;
   }
 
+  const serialized = uploadsService.serializeFileItem(image);
   return {
-    id: image.id,
-    url: image.url,
-    fileName: image.fileName,
-    mimeType: image.mimeType,
-    byteSize: image.byteSize
+    id: serialized.id,
+    url: serialized.url,
+    fileName: serialized.fileName,
+    mimeType: serialized.mimeType,
+    byteSize: serialized.byteSize
   };
 }
 
@@ -45,12 +47,13 @@ function serializeVideo(
     return null;
   }
 
+  const serialized = uploadsService.serializeFileItem(video);
   return {
-    id: video.id,
-    url: video.url,
-    fileName: video.fileName,
-    mimeType: video.mimeType,
-    byteSize: video.byteSize
+    id: serialized.id,
+    url: serialized.url,
+    fileName: serialized.fileName,
+    mimeType: serialized.mimeType,
+    byteSize: serialized.byteSize
   };
 }
 
@@ -278,42 +281,6 @@ function isOfficialArticlePost(
 }
 
 export const postsService = {
-  async uploadImage(input: {
-    ownerId: string;
-    fileName: string;
-    mimeType: string;
-    byteSize: number;
-    bytes: Uint8Array;
-    dataUrl: string;
-  }) {
-    const item = await postsRepo.createImageUpload({
-      ownerId: input.ownerId,
-      fileName: input.fileName,
-      mimeType: input.mimeType,
-      byteSize: input.byteSize,
-      dataUrl: input.dataUrl
-    });
-    const serialized = serializeImage(item);
-    return serialized ? { item: serialized } : null;
-  },
-  async uploadVideo(input: {
-    ownerId: string;
-    fileName: string;
-    mimeType: string;
-    byteSize: number;
-    bytes: Uint8Array;
-    dataUrl: string;
-  }) {
-    const item = await postsRepo.createVideoUpload({
-      ownerId: input.ownerId,
-      fileName: input.fileName,
-      mimeType: input.mimeType,
-      byteSize: input.byteSize,
-      dataUrl: input.dataUrl
-    });
-    const serialized = serializeVideo(item);
-    return serialized ? { item: serialized } : null;
-  },
   async listFeed(
     tab: FeedTab,
     currentUser: CurrentUser | null | undefined,

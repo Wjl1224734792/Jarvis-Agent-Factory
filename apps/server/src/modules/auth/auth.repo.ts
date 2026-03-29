@@ -8,6 +8,7 @@ import {
 } from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { and, desc, eq } from "drizzle-orm";
+import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
 
 export type SessionScope = "web" | "admin" | "app";
@@ -74,13 +75,13 @@ function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
   };
 }
 
-function toUserSummary(
-  user: Pick<typeof usersTable.$inferSelect, "id" | "displayName" | "avatarUrl" | "role">
-): UserSummary {
+async function toUserSummary(
+  user: Pick<typeof usersTable.$inferSelect, "id" | "displayName" | "avatarFileId" | "role">
+): Promise<UserSummary> {
   return {
     id: user.id,
     displayName: user.displayName,
-    avatarUrl: user.avatarUrl ?? null,
+    avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
     role: user.role as AuthRole
   };
 }
@@ -326,7 +327,6 @@ export const authRepo = {
     phone: string;
     displayName: string;
     avatarFileId?: string | null;
-    avatarUrl?: string | null;
   }): Promise<UserRecord> {
     const id = createId("user");
 
@@ -336,7 +336,6 @@ export const authRepo = {
       displayName: input.displayName,
       phone: input.phone,
       avatarFileId: input.avatarFileId ?? null,
-      avatarUrl: input.avatarUrl ?? null,
       account: null,
       passwordHash: null
     });

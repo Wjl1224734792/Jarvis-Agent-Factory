@@ -23,8 +23,6 @@ function selection() {
     coverImageFileId: aircraftSubmissionsTable.coverImageFileId,
     galleryImageFileIds: aircraftSubmissionsTable.galleryImageFileIds,
     videoFileId: aircraftSubmissionsTable.videoFileId,
-    coverImageUrl: aircraftSubmissionsTable.coverImageUrl,
-    galleryImageUrls: aircraftSubmissionsTable.galleryImageUrls,
     approvedModelId: aircraftSubmissionsTable.approvedModelId,
     maxFlightTimeMinutes: aircraftSubmissionsTable.maxFlightTimeMinutes,
     maxRangeKilometers: aircraftSubmissionsTable.maxRangeKilometers,
@@ -68,8 +66,6 @@ export const aircraftSubmissionsRepo = {
     coverImageFileId: string | null;
     galleryImageFileIds: string;
     videoFileId: string | null;
-    coverImageUrl: string | null;
-    galleryImageUrls: string;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;

@@ -3,15 +3,14 @@ import {
   createId,
   db,
   postCommentsTable,
-  postImagesTable,
   postInteractionsTable,
   postReportsTable,
   postsTable,
   userFollowsTable,
-  usersTable,
-  videoAssetsTable
+  usersTable
 } from "@feijia/db";
 import { and, asc, desc, eq, inArray, notInArray, or, sql } from "drizzle-orm";
+import { uploadsRepo } from "../uploads/upload.repo";
 
 type FeedTab = "recommended" | "latest" | "following";
 type PostStatus = "pending" | "published" | "rejected" | "hidden";
@@ -58,30 +57,6 @@ function postSelection() {
       slug: contentCategoriesTable.slug,
       name: contentCategoriesTable.name
     }
-  };
-}
-
-function imageSelection() {
-  return {
-    id: postImagesTable.id,
-    postId: postImagesTable.postId,
-    ownerId: postImagesTable.ownerId,
-    fileName: postImagesTable.fileName,
-    mimeType: postImagesTable.mimeType,
-    byteSize: postImagesTable.byteSize,
-    url: postImagesTable.dataUrl
-  };
-}
-
-function videoSelection() {
-  return {
-    id: videoAssetsTable.id,
-    postId: videoAssetsTable.postId,
-    ownerId: videoAssetsTable.ownerId,
-    fileName: videoAssetsTable.fileName,
-    mimeType: videoAssetsTable.mimeType,
-    byteSize: videoAssetsTable.byteSize,
-    url: videoAssetsTable.dataUrl
   };
 }
 
@@ -144,183 +119,65 @@ export const postsRepo = {
       })
       .where(eq(postsTable.id, postId));
   },
-  async createImageUpload(input: {
-    ownerId: string;
-    fileName: string;
-    mimeType: string;
-    byteSize: number;
-    dataUrl: string;
-  }) {
-    const id = createId("image");
-
-    await db.insert(postImagesTable).values({
-      id,
-      ownerId: input.ownerId,
-      postId: null,
-      fileName: input.fileName,
-      mimeType: input.mimeType,
-      byteSize: input.byteSize,
-      dataUrl: input.dataUrl
-    });
-
-    return this.getImageUploadById(id);
-  },
-  async createVideoUpload(input: {
-    ownerId: string;
-    fileName: string;
-    mimeType: string;
-    byteSize: number;
-    dataUrl: string;
-  }) {
-    const id = createId("video");
-
-    await db.insert(videoAssetsTable).values({
-      id,
-      ownerId: input.ownerId,
-      postId: null,
-      fileName: input.fileName,
-      mimeType: input.mimeType,
-      byteSize: input.byteSize,
-      dataUrl: input.dataUrl
-    });
-
-    return this.getVideoUploadById(id);
-  },
   async getImageUploadById(id: string) {
-    const rows = await db
-      .select(imageSelection())
-      .from(postImagesTable)
-      .where(eq(postImagesTable.id, id))
-      .limit(1);
-
-    return rows[0] ?? null;
+    const file = await uploadsRepo.getFileById(id);
+    return file?.mediaKind === "image" ? file : null;
   },
   async getVideoUploadById(id: string) {
-    const rows = await db
-      .select(videoSelection())
-      .from(videoAssetsTable)
-      .where(eq(videoAssetsTable.id, id))
-      .limit(1);
-
-    return rows[0] ?? null;
+    const file = await uploadsRepo.getFileById(id);
+    return file?.mediaKind === "video" ? file : null;
   },
   async listOwnedUnattachedImages(ownerId: string, imageIds: string[]) {
-    if (imageIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(imageSelection())
-      .from(postImagesTable)
-      .where(
-        and(
-          eq(postImagesTable.ownerId, ownerId),
-          inArray(postImagesTable.id, imageIds),
-          sql`${postImagesTable.postId} is null`
-        )
-      );
+    return uploadsRepo.listOwnedAttachableFiles({
+      ownerId,
+      fileIds: imageIds,
+      mediaKind: "image"
+    });
   },
   async listOwnedUnattachedVideos(ownerId: string, videoIds: string[]) {
-    if (videoIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(videoSelection())
-      .from(videoAssetsTable)
-      .where(
-        and(
-          eq(videoAssetsTable.ownerId, ownerId),
-          inArray(videoAssetsTable.id, videoIds),
-          sql`${videoAssetsTable.postId} is null`
-        )
-      );
+    return uploadsRepo.listOwnedAttachableFiles({
+      ownerId,
+      fileIds: videoIds,
+      mediaKind: "video"
+    });
   },
   async listOwnedAttachableImages(ownerId: string, imageIds: string[], postId: string) {
-    if (imageIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(imageSelection())
-      .from(postImagesTable)
-      .where(
-        and(
-          eq(postImagesTable.ownerId, ownerId),
-          inArray(postImagesTable.id, imageIds),
-          or(sql`${postImagesTable.postId} is null`, eq(postImagesTable.postId, postId))
-        )
-      );
+    return uploadsRepo.listOwnedAttachableFiles({
+      ownerId,
+      fileIds: imageIds,
+      mediaKind: "image",
+      postId
+    });
   },
   async listOwnedAttachableVideos(ownerId: string, videoIds: string[], postId: string) {
-    if (videoIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(videoSelection())
-      .from(videoAssetsTable)
-      .where(
-        and(
-          eq(videoAssetsTable.ownerId, ownerId),
-          inArray(videoAssetsTable.id, videoIds),
-          or(sql`${videoAssetsTable.postId} is null`, eq(videoAssetsTable.postId, postId))
-        )
-      );
+    return uploadsRepo.listOwnedAttachableFiles({
+      ownerId,
+      fileIds: videoIds,
+      mediaKind: "video",
+      postId
+    });
   },
   async attachImagesToPost(postId: string, ownerId: string, imageIds: string[]) {
-    if (imageIds.length === 0) {
-      return;
-    }
-
-    await db
-      .update(postImagesTable)
-      .set({ postId })
-      .where(
-        and(
-          eq(postImagesTable.ownerId, ownerId),
-          inArray(postImagesTable.id, imageIds),
-          sql`${postImagesTable.postId} is null`
-        )
-      );
+    await uploadsRepo.replacePostFiles({
+      postId,
+      ownerId,
+      mediaKind: "image",
+      fileIds: imageIds
+    });
   },
   async attachVideosToPost(postId: string, ownerId: string, videoIds: string[]) {
-    if (videoIds.length === 0) {
-      return;
-    }
-
-    await db
-      .update(videoAssetsTable)
-      .set({ postId })
-      .where(
-        and(
-          eq(videoAssetsTable.ownerId, ownerId),
-          inArray(videoAssetsTable.id, videoIds),
-          sql`${videoAssetsTable.postId} is null`
-        )
-      );
+    await uploadsRepo.replacePostFiles({
+      postId,
+      ownerId,
+      mediaKind: "video",
+      fileIds: videoIds
+    });
   },
   async listPostImages(postIds: string[]) {
-    if (postIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(imageSelection())
-      .from(postImagesTable)
-      .where(and(inArray(postImagesTable.postId, postIds), sql`${postImagesTable.postId} is not null`))
-      .orderBy(postImagesTable.createdAt);
+    return uploadsRepo.listPostFiles(postIds, "image");
   },
   async listPostVideos(postIds: string[]) {
-    if (postIds.length === 0) {
-      return [];
-    }
-
-    return db
-      .select(videoSelection())
-      .from(videoAssetsTable)
-      .where(and(inArray(videoAssetsTable.postId, postIds), sql`${videoAssetsTable.postId} is not null`))
-      .orderBy(videoAssetsTable.createdAt);
+    return uploadsRepo.listPostFiles(postIds, "video");
   },
   async listViewerInteractions(postIds: string[], userId: string) {
     if (postIds.length === 0) {
@@ -373,66 +230,20 @@ export const postsRepo = {
     return this.getPostById(id);
   },
   async replacePostImages(postId: string, ownerId: string, imageIds: string[]) {
-    if (imageIds.length === 0) {
-      await db
-        .update(postImagesTable)
-        .set({ postId: null })
-        .where(and(eq(postImagesTable.ownerId, ownerId), eq(postImagesTable.postId, postId)));
-      return;
-    }
-
-    await db
-      .update(postImagesTable)
-      .set({ postId: null })
-      .where(
-        and(
-          eq(postImagesTable.ownerId, ownerId),
-          eq(postImagesTable.postId, postId),
-          notInArray(postImagesTable.id, imageIds)
-        )
-      );
-
-    await db
-      .update(postImagesTable)
-      .set({ postId })
-      .where(
-        and(
-          eq(postImagesTable.ownerId, ownerId),
-          inArray(postImagesTable.id, imageIds),
-          or(sql`${postImagesTable.postId} is null`, eq(postImagesTable.postId, postId))
-        )
-      );
+    await uploadsRepo.replacePostFiles({
+      postId,
+      ownerId,
+      mediaKind: "image",
+      fileIds: imageIds
+    });
   },
   async replacePostVideos(postId: string, ownerId: string, videoIds: string[]) {
-    if (videoIds.length === 0) {
-      await db
-        .update(videoAssetsTable)
-        .set({ postId: null })
-        .where(and(eq(videoAssetsTable.ownerId, ownerId), eq(videoAssetsTable.postId, postId)));
-      return;
-    }
-
-    await db
-      .update(videoAssetsTable)
-      .set({ postId: null })
-      .where(
-        and(
-          eq(videoAssetsTable.ownerId, ownerId),
-          eq(videoAssetsTable.postId, postId),
-          notInArray(videoAssetsTable.id, videoIds)
-        )
-      );
-
-    await db
-      .update(videoAssetsTable)
-      .set({ postId })
-      .where(
-        and(
-          eq(videoAssetsTable.ownerId, ownerId),
-          inArray(videoAssetsTable.id, videoIds),
-          or(sql`${videoAssetsTable.postId} is null`, eq(videoAssetsTable.postId, postId))
-        )
-      );
+    await uploadsRepo.replacePostFiles({
+      postId,
+      ownerId,
+      mediaKind: "video",
+      fileIds: videoIds
+    });
   },
   async updateOfficialArticle(input: {
     id: string;

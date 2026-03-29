@@ -66,7 +66,7 @@ export const socialRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
-        avatarUrl: usersTable.avatarUrl,
+        avatarFileId: usersTable.avatarFileId,
         bio: usersTable.bio,
         role: usersTable.role
       })
@@ -428,7 +428,7 @@ export const socialRepo = {
       .select({
         id: usersTable.id,
         displayName: usersTable.displayName,
-        avatarUrl: usersTable.avatarUrl,
+        avatarFileId: usersTable.avatarFileId,
         role: usersTable.role
       })
       .from(usersTable)
@@ -441,7 +441,6 @@ export const socialRepo = {
         displayName: usersTable.displayName,
         bio: usersTable.bio,
         avatarFileId: usersTable.avatarFileId,
-        avatarUrl: usersTable.avatarUrl,
         phone: usersTable.phone
       })
       .from(usersTable)
@@ -552,7 +551,6 @@ export const socialRepo = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
-      avatarUrl?: string | null;
       phone?: string | null;
     }
   ) {
@@ -566,9 +564,6 @@ export const socialRepo = {
     }
     if (input.avatarFileId !== undefined) {
       updates.avatarFileId = input.avatarFileId ?? null;
-    }
-    if (input.avatarUrl !== undefined) {
-      updates.avatarUrl = input.avatarUrl ?? null;
     }
     if (input.phone !== undefined) {
       updates.phone = input.phone ?? null;

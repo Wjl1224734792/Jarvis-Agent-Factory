@@ -8,9 +8,9 @@ import {
   aircraftSubmissionsTable,
   brandsTable,
   contentCategoriesTable,
+  filesTable,
   notificationsTable,
   postCommentsTable,
-  postImagesTable,
   postInteractionsTable,
   postsTable,
   rankingCommentsTable,
@@ -19,11 +19,10 @@ import {
   rankingItemsTable,
   rankingsTable,
   userFollowsTable,
-  usersTable,
-  videoAssetsTable
+  usersTable
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
-import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl } from "./runtime-seed.js";
+import { RUNTIME_SEED_ASSETS } from "./runtime-seed.js";
 
 const USER_IDS = {
   skyline: "seed_user_skyline",
@@ -98,6 +97,19 @@ const VIDEO_IDS = {
   valleyMoment: "seed_video_valley_moment"
 } as const;
 
+const FILE_IDS = {
+  rankingCommunityCover: "seed_file_ranking_community_cover",
+  rankingOfficialCover: "seed_file_ranking_official_cover",
+  rankingCommunityMini: "seed_file_ranking_community_mini",
+  rankingCommunityMavic: "seed_file_ranking_community_mavic",
+  rankingCommunityAutel: "seed_file_ranking_community_autel",
+  rankingOfficialMini: "seed_file_ranking_official_mini",
+  rankingOfficialMavic: "seed_file_ranking_official_mavic",
+  submissionSubmittedCover: "seed_file_submission_submitted_cover",
+  submissionApprovedCover: "seed_file_submission_approved_cover",
+  submissionRejectedCover: "seed_file_submission_rejected_cover"
+} as const;
+
 const COMMENT_IDS = {
   skylineRoot: "seed_comment_skyline_root",
   skylineReply: "seed_comment_skyline_reply",
@@ -126,6 +138,45 @@ const SUBMISSION_IDS = {
 
 function seededDate(day: number, hour: number, minute = 0) {
   return new Date(Date.UTC(2026, 2, day, hour, minute, 0));
+}
+
+function buildSeedFile(input: {
+  id: string;
+  ownerId: string;
+  postId?: string | null;
+  bizType:
+    | "post-image"
+    | "post-video"
+    | "ranking-cover-image"
+    | "ranking-item-image"
+    | "aircraft-cover-image";
+  mediaKind: "image" | "video";
+  objectKey: string;
+  fileName: string;
+  mimeType: "image/png" | "video/mp4";
+  byteSize: number;
+  createdAt: Date;
+}) {
+  return {
+    id: input.id,
+    ownerId: input.ownerId,
+    postId: input.postId ?? null,
+    bizType: input.bizType,
+    mediaKind: input.mediaKind,
+    provider: "minio",
+    bucket: process.env.STORAGE_BUCKET?.trim() || "feijia-media",
+    region: process.env.STORAGE_REGION?.trim() || "us-east-1",
+    objectKey: input.objectKey,
+    filename: input.fileName,
+    contentType: input.mimeType,
+    size: input.byteSize,
+    etag: null,
+    status: "uploaded",
+    visibility: "public",
+    createdAt: input.createdAt,
+    uploadedAt: input.createdAt,
+    deletedAt: null
+  };
 }
 
 async function ensureAdminUser() {
@@ -268,23 +319,33 @@ async function seedPosts(adminUserId: string) {
 
 async function seedPostMedia(adminUserId: string) {
   await db
-    .insert(postImagesTable)
+    .insert(filesTable)
     .values([
-      { id: POST_IMAGE_IDS.officialLaunch, ownerId: adminUserId, postId: POST_IDS.officialLaunch, fileName: "official-launch.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.officialLaunch.key), createdAt: seededDate(24, 8, 1) },
-      { id: POST_IMAGE_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, fileName: "official-guide.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.officialGuide.key), createdAt: seededDate(24, 12, 1) },
-      { id: POST_IMAGE_IDS.skylineArticle, ownerId: USER_IDS.skyline, postId: POST_IDS.skylineArticle, fileName: "city-route.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.cityRoute.key), createdAt: seededDate(23, 10, 1) },
-      { id: POST_IMAGE_IDS.reviewArticle, ownerId: USER_IDS.review, postId: POST_IDS.reviewArticle, fileName: "drone-checklist.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.droneChecklist.key), createdAt: seededDate(22, 9, 1) },
-      { id: POST_IMAGE_IDS.coastMoment, ownerId: USER_IDS.canyon, postId: POST_IDS.coastMoment, fileName: "coast-patrol.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.coastPatrol.key), createdAt: seededDate(25, 6, 1) },
-      { id: POST_IMAGE_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, fileName: "valley-flight.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.valleyFlight.key), createdAt: seededDate(24, 14, 1) },
-      { id: POST_IMAGE_IDS.pendingArticle, ownerId: USER_IDS.canyon, postId: POST_IDS.pendingArticle, fileName: "pending-canyon.png", mimeType: "image/png", byteSize: 68, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.hotCircleEvtol.key), createdAt: seededDate(25, 8, 1) }
+      buildSeedFile({ id: POST_IMAGE_IDS.officialLaunch, ownerId: adminUserId, postId: POST_IDS.officialLaunch, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.officialLaunch.key, fileName: "official-launch.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.officialGuide.key, fileName: "official-guide.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 12, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.skylineArticle, ownerId: USER_IDS.skyline, postId: POST_IDS.skylineArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.cityRoute.key, fileName: "city-route.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 10, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.reviewArticle, ownerId: USER_IDS.review, postId: POST_IDS.reviewArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.droneChecklist.key, fileName: "drone-checklist.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(22, 9, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.coastMoment, ownerId: USER_IDS.canyon, postId: POST_IDS.coastMoment, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.coastPatrol.key, fileName: "coast-patrol.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(25, 6, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.valleyFlight.key, fileName: "valley-flight.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 14, 1) }),
+      buildSeedFile({ id: POST_IMAGE_IDS.pendingArticle, ownerId: USER_IDS.canyon, postId: POST_IDS.pendingArticle, bizType: "post-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.hotCircleEvtol.key, fileName: "pending-canyon.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(25, 8, 1) }),
+      buildSeedFile({ id: FILE_IDS.rankingCommunityCover, ownerId: USER_IDS.ranking, bizType: "ranking-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingCommunity.key, fileName: "community-ranking-cover.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 8) }),
+      buildSeedFile({ id: FILE_IDS.rankingOfficialCover, ownerId: adminUserId, bizType: "ranking-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingOfficial.key, fileName: "official-ranking-cover.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8) }),
+      buildSeedFile({ id: FILE_IDS.rankingCommunityMini, ownerId: USER_IDS.ranking, bizType: "ranking-item-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingMini.key, fileName: "dji-mini-4-pro.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 8, 10) }),
+      buildSeedFile({ id: FILE_IDS.rankingCommunityMavic, ownerId: USER_IDS.ranking, bizType: "ranking-item-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingMavic.key, fileName: "dji-mavic-3-pro.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 8, 11) }),
+      buildSeedFile({ id: FILE_IDS.rankingCommunityAutel, ownerId: USER_IDS.ranking, bizType: "ranking-item-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingAutel.key, fileName: "autel-evo-lite-plus.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(23, 8, 12) }),
+      buildSeedFile({ id: FILE_IDS.rankingOfficialMini, ownerId: adminUserId, bizType: "ranking-item-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingMini.key, fileName: "dji-mini-4-pro.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8, 10) }),
+      buildSeedFile({ id: FILE_IDS.rankingOfficialMavic, ownerId: adminUserId, bizType: "ranking-item-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.rankingMavic.key, fileName: "dji-mavic-3-pro.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 8, 11) }),
+      buildSeedFile({ id: FILE_IDS.submissionSubmittedCover, ownerId: USER_IDS.submitterA, bizType: "aircraft-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.submissionMini.key, fileName: "mini-4-pro-submission.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 16) }),
+      buildSeedFile({ id: FILE_IDS.submissionApprovedCover, ownerId: USER_IDS.submitterB, bizType: "aircraft-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.submissionVtol.key, fileName: "vtol-proposal.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 17) }),
+      buildSeedFile({ id: FILE_IDS.submissionRejectedCover, ownerId: USER_IDS.submitterA, bizType: "aircraft-cover-image", mediaKind: "image", objectKey: RUNTIME_SEED_ASSETS.images.submissionMini.key, fileName: "mini-4-pro-submission.png", mimeType: "image/png", byteSize: 68, createdAt: seededDate(24, 18) })
     ])
     .onConflictDoNothing();
 
   await db
-    .insert(videoAssetsTable)
+    .insert(filesTable)
     .values([
-      { id: VIDEO_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, fileName: "official-briefing.mp4", mimeType: "video/mp4", byteSize: 12, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.videos.officialBriefing.key), createdAt: seededDate(24, 12, 2) },
-      { id: VIDEO_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, fileName: "hangar-walkthrough.mp4", mimeType: "video/mp4", byteSize: 12, dataUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.videos.hangarWalkthrough.key), createdAt: seededDate(24, 14, 2) }
+      buildSeedFile({ id: VIDEO_IDS.officialGuide, ownerId: adminUserId, postId: POST_IDS.officialGuide, bizType: "post-video", mediaKind: "video", objectKey: RUNTIME_SEED_ASSETS.videos.officialBriefing.key, fileName: "official-briefing.mp4", mimeType: "video/mp4", byteSize: 12, createdAt: seededDate(24, 12, 2) }),
+      buildSeedFile({ id: VIDEO_IDS.valleyMoment, ownerId: USER_IDS.review, postId: POST_IDS.valleyMoment, bizType: "post-video", mediaKind: "video", objectKey: RUNTIME_SEED_ASSETS.videos.hangarWalkthrough.key, fileName: "hangar-walkthrough.mp4", mimeType: "video/mp4", byteSize: 12, createdAt: seededDate(24, 14, 2) })
     ])
     .onConflictDoNothing();
 }
@@ -354,19 +415,19 @@ async function seedRankings(adminUserId: string) {
   await db
     .insert(rankingsTable)
     .values([
-      { id: RANKING_IDS.community, authorId: USER_IDS.ranking, type: "community", title: "2026 City Aerial Picks", description: "Community shortlist for urban aerial workflows.", coverImageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingCommunity.key), itemAddPolicy: "owner", commentCount: 1, createdAt: seededDate(23, 8), updatedAt: seededDate(23, 9) },
-      { id: RANKING_IDS.official, authorId: adminUserId, type: "official", title: "Official Endurance Ranking", description: "Official board based on reviewed flight performance.", coverImageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingOfficial.key), itemAddPolicy: "owner", commentCount: 0, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9) }
+      { id: RANKING_IDS.community, authorId: USER_IDS.ranking, type: "community", title: "2026 City Aerial Picks", description: "Community shortlist for urban aerial workflows.", coverImageFileId: FILE_IDS.rankingCommunityCover, itemAddPolicy: "owner", commentCount: 1, createdAt: seededDate(23, 8), updatedAt: seededDate(23, 9) },
+      { id: RANKING_IDS.official, authorId: adminUserId, type: "official", title: "Official Endurance Ranking", description: "Official board based on reviewed flight performance.", coverImageFileId: FILE_IDS.rankingOfficialCover, itemAddPolicy: "owner", commentCount: 0, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9) }
     ])
     .onConflictDoNothing();
 
   await db
     .insert(rankingItemsTable)
     .values([
-      { id: RANKING_ITEM_IDS.communityMini, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Portable and balanced.", imageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingMini.key), brandName: "DJI", commentCount: 1 },
-      { id: RANKING_ITEM_IDS.communityMavic, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Strong production output.", imageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingMavic.key), brandName: "DJI", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.communityAutel, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.autelLite, rank: 3, title: "Autel EVO Lite+", summary: "Balanced image quality and endurance.", imageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingAutel.key), brandName: "Autel", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.officialMini, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Official reviewed item.", imageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingMini.key), brandName: "DJI", commentCount: 0 },
-      { id: RANKING_ITEM_IDS.officialMavic, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Official reviewed item.", imageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.rankingMavic.key), brandName: "DJI", commentCount: 0 }
+      { id: RANKING_ITEM_IDS.communityMini, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Portable and balanced.", imageFileId: FILE_IDS.rankingCommunityMini, brandName: "DJI", commentCount: 1 },
+      { id: RANKING_ITEM_IDS.communityMavic, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Strong production output.", imageFileId: FILE_IDS.rankingCommunityMavic, brandName: "DJI", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.communityAutel, rankingId: RANKING_IDS.community, linkedModelId: MODEL_IDS.autelLite, rank: 3, title: "Autel EVO Lite+", summary: "Balanced image quality and endurance.", imageFileId: FILE_IDS.rankingCommunityAutel, brandName: "Autel", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.officialMini, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mini4, rank: 1, title: "DJI Mini 4 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMini, brandName: "DJI", commentCount: 0 },
+      { id: RANKING_ITEM_IDS.officialMavic, rankingId: RANKING_IDS.official, linkedModelId: MODEL_IDS.mavic3, rank: 2, title: "DJI Mavic 3 Pro", summary: "Official reviewed item.", imageFileId: FILE_IDS.rankingOfficialMavic, brandName: "DJI", commentCount: 0 }
     ])
     .onConflictDoNothing();
 
@@ -400,9 +461,9 @@ async function seedAircraftSubmissions() {
   await db
     .insert(aircraftSubmissionsTable)
     .values([
-      { id: SUBMISSION_IDS.submitted, authorId: USER_IDS.submitterA, status: "submitted", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, proposedBrandName: null, modelName: "Mini 4 Pro Coastal Kit", powerType: "electric", summary: "Seeded submission sample.", description: "Default sample remains submitted until admin review.", coverImageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.submissionMini.key), galleryImageUrls: JSON.stringify([resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.submissionMini.key)]), videoAssetId: null, maxFlightTimeMinutes: 45, maxRangeKilometers: 18, maxSpeedKph: 58, takeoffWeightGrams: 249, approvedModelId: null },
-      { id: SUBMISSION_IDS.approved, authorId: USER_IDS.submitterB, status: "approved", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: null, proposedBrandName: "Blue Harbor Air", modelName: "Blue Harbor S1", powerType: "electric", summary: "Approved sample for admin history.", description: "Approved seed submission for operations verification.", coverImageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.submissionVtol.key), galleryImageUrls: JSON.stringify([resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.submissionVtol.key)]), videoAssetId: null, maxFlightTimeMinutes: 32, maxRangeKilometers: 60, maxSpeedKph: 140, takeoffWeightGrams: null, approvedModelId: MODEL_IDS.jobyS4 },
-      { id: SUBMISSION_IDS.rejected, authorId: USER_IDS.submitterA, status: "rejected", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.autel, proposedBrandName: null, modelName: "Autel Concept X", powerType: "electric", summary: "Rejected sample for moderation history.", description: "Rejected seed submission for admin operations review.", coverImageUrl: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.submissionMini.key), galleryImageUrls: JSON.stringify([]), videoAssetId: null, maxFlightTimeMinutes: 36, maxRangeKilometers: 20, maxSpeedKph: 62, takeoffWeightGrams: 900, approvedModelId: null }
+      { id: SUBMISSION_IDS.submitted, authorId: USER_IDS.submitterA, status: "submitted", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, proposedBrandName: null, modelName: "Mini 4 Pro Coastal Kit", powerType: "electric", summary: "Seeded submission sample.", description: "Default sample remains submitted until admin review.", coverImageFileId: FILE_IDS.submissionSubmittedCover, galleryImageFileIds: JSON.stringify([FILE_IDS.submissionSubmittedCover]), videoFileId: null, maxFlightTimeMinutes: 45, maxRangeKilometers: 18, maxSpeedKph: 58, takeoffWeightGrams: 249, approvedModelId: null },
+      { id: SUBMISSION_IDS.approved, authorId: USER_IDS.submitterB, status: "approved", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: null, proposedBrandName: "Blue Harbor Air", modelName: "Blue Harbor S1", powerType: "electric", summary: "Approved sample for admin history.", description: "Approved seed submission for operations verification.", coverImageFileId: FILE_IDS.submissionApprovedCover, galleryImageFileIds: JSON.stringify([FILE_IDS.submissionApprovedCover]), videoFileId: null, maxFlightTimeMinutes: 32, maxRangeKilometers: 60, maxSpeedKph: 140, takeoffWeightGrams: null, approvedModelId: MODEL_IDS.jobyS4 },
+      { id: SUBMISSION_IDS.rejected, authorId: USER_IDS.submitterA, status: "rejected", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.autel, proposedBrandName: null, modelName: "Autel Concept X", powerType: "electric", summary: "Rejected sample for moderation history.", description: "Rejected seed submission for admin operations review.", coverImageFileId: FILE_IDS.submissionRejectedCover, galleryImageFileIds: JSON.stringify([]), videoFileId: null, maxFlightTimeMinutes: 36, maxRangeKilometers: 20, maxSpeedKph: 62, takeoffWeightGrams: 900, approvedModelId: null }
     ])
     .onConflictDoNothing();
 }
@@ -410,8 +471,7 @@ async function seedAircraftSubmissions() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "user_follows", "video_assets", "post_images", "post_reports", "post_comments", "posts", "review_comments", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
-      .replace('"post_interactions"', '"files", "post_interactions"')
+      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comments", "ranking_item_comments", "ranking_item_ratings", "ranking_comments", "ranking_items", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_reviews", "aircraft_models", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }
@@ -420,8 +480,10 @@ export async function seedAuthDatabase() {
   await ensureAdminUser();
 }
 
-export async function seedDatabase() {
-  await resetDatabaseState();
+export async function seedDatabase(options?: { reset?: boolean }) {
+  if (options?.reset !== false) {
+    await resetDatabaseState();
+  }
   const adminUserId = await ensureAdminUser();
   await seedContentCategories();
   await seedAircraftCatalog();
