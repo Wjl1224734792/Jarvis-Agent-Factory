@@ -79,6 +79,28 @@ async function loginAdmin() {
   return extractCookie(response.headers.get("set-cookie"));
 }
 
+async function updateSiteSettings(
+  adminCookie: string,
+  input: {
+    postModerationEnabled: boolean;
+    commentModerationEnabled: boolean;
+    reviewModerationEnabled: boolean;
+    submissionModerationEnabled: boolean;
+    rankingModerationEnabled: boolean;
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify(input)
+  });
+
+  expect(response.status).toBe(200);
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -426,5 +448,82 @@ describe("rankings flows", () => {
     expect(
       officialItemDetailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
     ).toBe(officialItemDetailPayload.item.totalRatings);
+  });
+
+  it("puts new community rankings into pending when ranking moderation is enabled and only exposes published ones publicly", async () => {
+    const ownerCookie = await loginUser("13800138071");
+    const adminCookie = await loginAdmin();
+
+    await updateSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: false,
+      reviewModerationEnabled: false,
+      submissionModerationEnabled: true,
+      rankingModerationEnabled: true
+    });
+
+    const createResponse = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "community",
+        title: "Pending harbor ranking",
+        description: "pending review",
+        coverImageUrl: null,
+        itemAddPolicy: "public",
+        items: [
+          {
+            title: "DJI Mini 4 Pro",
+            summary: "pending linked model",
+            imageUrl: null,
+            brandName: "DJI",
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(createResponse.status).toBe(200);
+
+    const createPayload = (await createResponse.json()) as {
+      item: {
+        id: string;
+        status: "pending" | "published" | "rejected" | "hidden";
+      };
+    };
+    expect(createPayload.item.status).toBe("pending");
+
+    const publicOverviewResponse = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET"
+    });
+    const publicOverviewPayload = (await publicOverviewResponse.json()) as {
+      community: Array<{ id: string }>;
+    };
+    expect(publicOverviewPayload.community.some((item) => item.id === createPayload.item.id)).toBe(false);
+
+    const publishResponse = await app.request(`/admin/rankings/${createPayload.item.id}/status`, {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "published"
+      })
+    });
+    expect(publishResponse.status).toBe(200);
+
+    const publishedOverviewResponse = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET"
+    });
+    const publishedOverviewPayload = (await publishedOverviewResponse.json()) as {
+      community: Array<{ id: string; status: "pending" | "published" | "rejected" | "hidden" }>;
+    };
+    const publishedItem = publishedOverviewPayload.community.find(
+      (item) => item.id === createPayload.item.id
+    );
+    expect(publishedItem?.status).toBe("published");
   });
 });

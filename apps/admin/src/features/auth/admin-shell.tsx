@@ -6,7 +6,7 @@ import {
   SearchOutlined
 } from "@ant-design/icons";
 import { Button, Input, Layout, Space } from "antd";
-import { useState } from "react";
+import { useState, type CSSProperties } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_NAV_GROUPS, isAdminNavItemActive } from "./admin-navigation";
@@ -23,7 +23,15 @@ export function AdminShell() {
   const setError = useAdminAuthStore((state) => state.setError);
 
   return (
-    <Layout className="admin-shell">
+    <Layout
+      className="admin-shell"
+      style={
+        {
+          ["--admin-header-height" as string]: "88px",
+          ["--admin-sider-width" as string]: collapsed ? "84px" : "280px"
+        } as CSSProperties
+      }
+    >
       <Header className="admin-shell__header">
         <div className="admin-shell__brand-row">
           <div className="admin-shell__brand">

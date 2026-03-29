@@ -1,10 +1,12 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminRankingsResponseSchema,
   createRankingInputSchema,
   rankingItemDetailResponseSchema,
   rankingsResponseSchema,
   submitRankingItemReviewResponseSchema
 } from "../src/rankings";
+import { siteSettingsResponseSchema } from "../src/site-settings";
 
 function buildDetailPayload() {
   return {
@@ -59,6 +61,7 @@ describe("rankings contract", () => {
         {
           id: "ranking_official_1",
           type: "official",
+          status: "published",
           title: "Official Endurance",
           description: "Persisted official ranking.",
           coverImageUrl: null,
@@ -99,6 +102,7 @@ describe("rankings contract", () => {
 
     expect(payload.official).toHaveLength(1);
     expect(payload.official[0]?.type).toBe("official");
+    expect(payload.official[0]?.status).toBe("published");
   });
 
   it("requires ranking type for create input", () => {
@@ -163,5 +167,48 @@ describe("rankings contract", () => {
     ];
 
     expect(() => rankingItemDetailResponseSchema.parse(invalidPayload)).toThrow();
+  });
+
+  it("parses admin rankings response and ranking moderation site settings", () => {
+    const adminPayload = adminRankingsResponseSchema.parse({
+      items: [
+        {
+          id: "ranking_community_1",
+          type: "community",
+          status: "pending",
+          title: "Harbor picks",
+          description: "pending moderation",
+          coverImageUrl: null,
+          itemAddPolicy: "public",
+          averageScore: 0,
+          commentCount: 0,
+          itemCount: 0,
+          createdAt: "2026-03-29T00:00:00.000Z",
+          author: {
+            id: "user_1",
+            displayName: "Pilot",
+            role: "user"
+          },
+          viewer: {
+            canEdit: false,
+            canAddItems: false
+          },
+          items: []
+        }
+      ]
+    });
+
+    const siteSettings = siteSettingsResponseSchema.parse({
+      item: {
+        postModerationEnabled: true,
+        commentModerationEnabled: false,
+        reviewModerationEnabled: false,
+        submissionModerationEnabled: true,
+        rankingModerationEnabled: true
+      }
+    });
+
+    expect(adminPayload.items[0]?.status).toBe("pending");
+    expect(siteSettings.item.rankingModerationEnabled).toBe(true);
   });
 });

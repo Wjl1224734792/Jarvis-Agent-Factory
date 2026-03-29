@@ -1,5 +1,6 @@
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { getCircleCardHeightClass } from "@/routes/circle-page-helpers";
 
 export const MODEL_GRID_CLASS_NAME =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,13.625rem),1fr))] gap-x-4 gap-y-5";
@@ -80,8 +81,8 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
     <div
       className="w-full"
       style={{
-        columnWidth: props.columnWidth ?? "208px",
-        columnGap: props.columnGap ?? "12px"
+        columnWidth: props.columnWidth ?? "17.5rem",
+        columnGap: props.columnGap ?? "16px"
       }}
     >
       {Array.from({ length: props.count ?? 9 }).map((_, index) => (
@@ -89,15 +90,14 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
           className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white p-1.5"
           key={index}
         >
-          <Skeleton
-            className={`w-full rounded-[0.8rem] ${
-              index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
-            }`}
-          />
+          <Skeleton className={`w-full rounded-[0.8rem] ${getCircleCardHeightClass(index)}`} />
           <div className="space-y-2 px-2 pb-2.5 pt-2.5">
             <Skeleton className="h-4 w-4/5" />
             <div className="flex items-center justify-between gap-3">
-              <Skeleton className="h-3.5 w-20" />
+              <div className="flex items-center gap-2">
+                <Skeleton className="size-6 rounded-full" />
+                <Skeleton className="h-3.5 w-20" />
+              </div>
               <Skeleton className="h-3.5 w-10" />
             </div>
           </div>

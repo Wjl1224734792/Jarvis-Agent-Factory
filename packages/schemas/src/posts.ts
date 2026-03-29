@@ -39,15 +39,37 @@ export const postEngagementSchema = z.object({
   viewer: postViewerStateSchema
 });
 
-export const createPostInputSchema = z.object({
-  type: postTypeSchema,
-  title: z.string().trim().min(1).max(100),
-  content: z.string().trim().min(1).max(8000),
-  contentHtml: z.string().trim().max(32000).nullable().optional(),
-  contentCategoryId: z.string().min(1).nullable().optional(),
-  imageIds: z.array(z.string().min(1)).max(6).default([]),
-  videoIds: z.array(z.string().min(1)).max(2).default([])
-});
+export const createPostInputSchema = z
+  .object({
+    type: postTypeSchema,
+    title: z.string().trim().min(1).max(100),
+    content: z.string().trim().min(1).max(8000),
+    contentHtml: z.string().trim().max(32000).nullable().optional(),
+    contentCategoryId: z.string().min(1).nullable().optional(),
+    imageIds: z.array(z.string().min(1)).max(6).default([]),
+    videoIds: z.array(z.string().min(1)).max(2).default([])
+  })
+  .superRefine((input, context) => {
+    if (input.type !== "moment") {
+      return;
+    }
+
+    if (input.imageIds.length > 0 && input.videoIds.length > 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Moment posts cannot mix images and videos.",
+        path: ["videoIds"]
+      });
+    }
+
+    if (input.videoIds.length > 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Moment posts support only one video.",
+        path: ["videoIds"]
+      });
+    }
+  });
 
 export const createPostCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(1000),

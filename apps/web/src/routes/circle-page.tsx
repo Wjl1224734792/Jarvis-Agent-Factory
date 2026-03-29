@@ -1,6 +1,15 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { HeartIcon, MessageCircleIcon, UserCheckIcon, UserPlusIcon, XIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  HeartIcon,
+  MessageCircleIcon,
+  PlayIcon,
+  UserCheckIcon,
+  UserPlusIcon,
+  XIcon
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -11,10 +20,17 @@ import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { PostCommentThread } from "@/features/posts/post-comment-thread";
 import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
+import {
+  buildCircleMediaItems,
+  getCircleCardHeightClass,
+  getLoopedNextIndex,
+  getLoopedPrevIndex
+} from "./circle-page-helpers";
 
 const feedTabs = [
   { id: "recommended", label: "推荐" },
@@ -46,6 +62,7 @@ export function CirclePage() {
   const [commentContent, setCommentContent] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
 
   const selectedNoteId = searchParams.get("note");
   const feedQuery = useQuery({
@@ -65,7 +82,30 @@ export function CirclePage() {
     [posts, selectedNoteId]
   );
   const selectedNote = noteQuery.data?.item ?? null;
+  const displayNote = selectedNote ?? selectedPreview;
+  const mediaItems = useMemo(
+    () =>
+      buildCircleMediaItems({
+        title: displayNote?.title ?? "飞友圈详情",
+        images: displayNote?.images,
+        videos: displayNote?.videos
+      }),
+    [displayNote]
+  );
+  const activeMedia = mediaItems[selectedMediaIndex] ?? mediaItems[0] ?? null;
   const canComment = authStatus === "authenticated" && selectedNote?.status === "published";
+
+  useEffect(() => {
+    setSelectedMediaIndex(0);
+  }, [selectedNoteId]);
+
+  useEffect(() => {
+    if (selectedMediaIndex < mediaItems.length) {
+      return;
+    }
+
+    setSelectedMediaIndex(0);
+  }, [mediaItems.length, selectedMediaIndex]);
 
   function openNote(id: string) {
     const next = new URLSearchParams(searchParams);
@@ -79,6 +119,7 @@ export function CirclePage() {
     setSearchParams(next);
     setCommentContent("");
     setActionError(null);
+    setSelectedMediaIndex(0);
   }
 
   const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
@@ -119,54 +160,74 @@ export function CirclePage() {
         </Alert>
       ) : null}
 
-      {isFeedLoading ? (
-        <div className="max-w-[680px]">
-          <MasonryFeedSkeleton count={9} />
-        </div>
-      ) : null}
+      {isFeedLoading ? <MasonryFeedSkeleton count={10} /> : null}
 
       {posts.length > 0 ? (
-        <div className="site-tab-panel relative max-w-[680px]" style={{ columnWidth: "208px", columnGap: "12px" }}>
-          {posts.map((item, index) => (
-            <button
-              className={`mb-3 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
-                selectedNoteId === item.id
-                  ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
-                  : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"
-              }`}
-              key={item.id}
-              onClick={() => openNote(item.id)}
-              type="button"
-            >
-              <div className="overflow-hidden rounded-[0.75rem] bg-slate-100 p-1.5">
-                <img
-                  alt={item.title}
-                  className={`w-full rounded-[0.7rem] object-cover ${
-                    index % 3 === 0 ? "h-[14rem]" : index % 3 === 1 ? "h-[11.5rem]" : "h-[13rem]"
-                  }`}
-                  src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
-                />
-              </div>
-              <div className="space-y-2 px-2.5 pb-2.5 pt-1.5">
-                <h2 className="line-clamp-1 text-[0.9rem] leading-[1.35rem] font-semibold text-foreground">
-                  {item.title}
-                </h2>
-                <div className="flex items-center justify-between text-[0.74rem] text-foreground/58">
-                  <ProfileLink className="hover:text-foreground" userId={item.author.id}>
-                    {item.author.displayName}
-                  </ProfileLink>
-                  <span className="inline-flex items-center gap-1">
-                    <HeartIcon className="size-3.5" />
-                    {formatCount(item.engagement.likeCount)}
-                  </span>
+        <div
+          className="site-tab-panel relative w-full"
+          style={{ columnWidth: "17.5rem", columnGap: "16px" }}
+        >
+          {posts.map((item, index) => {
+            const previewImage =
+              item.images[0]?.url ??
+              getEditorialImage(item.id, index);
+
+            return (
+              <button
+                className={`mb-4 block w-full break-inside-avoid overflow-hidden rounded-[0.95rem] border text-left transition ${
+                  selectedNoteId === item.id
+                    ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
+                    : "border-border bg-white hover:border-primary/30 hover:bg-sky-50/45"
+                }`}
+                key={item.id}
+                onClick={() => openNote(item.id)}
+                type="button"
+              >
+                <div className="relative overflow-hidden rounded-[0.75rem] bg-slate-100 p-1.5">
+                  <img
+                    alt={item.title}
+                    className={cn(
+                      "w-full rounded-[0.7rem] object-cover",
+                      getCircleCardHeightClass(index)
+                    )}
+                    src={previewImage}
+                  />
+                  {item.videos.length > 0 ? (
+                    <span className="absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
+                      <PlayIcon className="size-3.5 fill-current" />
+                    </span>
+                  ) : null}
                 </div>
-              </div>
-            </button>
-          ))}
+                <div className="space-y-2 px-2.5 pb-2.5 pt-1.5">
+                  <h2 className="line-clamp-1 text-[0.9rem] leading-[1.35rem] font-semibold text-foreground">
+                    {item.title}
+                  </h2>
+                  <div className="flex items-center justify-between gap-3 text-[0.74rem] text-foreground/58">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <Avatar className="size-6" size="sm">
+                        <AvatarImage
+                          alt={item.author.displayName}
+                          src={item.author.avatarUrl ?? getAvatarImage(item.author.id)}
+                        />
+                        <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
+                      </Avatar>
+                      <ProfileLink className="truncate hover:text-foreground" userId={item.author.id}>
+                        {item.author.displayName}
+                      </ProfileLink>
+                    </div>
+                    <span className="inline-flex shrink-0 items-center gap-1">
+                      <HeartIcon className="size-3.5" />
+                      {formatCount(item.engagement.likeCount)}
+                    </span>
+                  </div>
+                </div>
+              </button>
+            );
+          })}
 
           {isFeedRefreshing ? (
             <div className="absolute inset-0 z-10 bg-background/78 p-1.5 backdrop-blur-[1px]">
-              <MasonryFeedSkeleton count={9} />
+              <MasonryFeedSkeleton count={10} />
             </div>
           ) : null}
         </div>
@@ -178,42 +239,109 @@ export function CirclePage() {
           onClick={closeNote}
         >
           <div
-            className="relative flex h-[min(88vh,720px)] w-full max-w-[1180px] overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] transition-transform"
+            className="relative flex h-[min(92vh,860px)] w-full max-w-[1220px] flex-col overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:flex-row"
             onClick={(event) => event.stopPropagation()}
           >
             <button
-              className="absolute right-3 top-3 z-20 inline-flex size-8 items-center justify-center rounded-full bg-background/88 text-foreground/72 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.5)] transition hover:bg-background hover:text-foreground"
+              className="absolute right-3 top-3 z-30 inline-flex size-8 items-center justify-center rounded-full bg-background/88 text-foreground/72 shadow-[0_10px_24px_-18px_rgba(15,23,42,0.5)] transition hover:bg-background hover:text-foreground"
               onClick={closeNote}
               type="button"
             >
               <XIcon className="size-4" />
             </button>
 
-            <div className="hidden flex-1 bg-black md:block">
-              <img
-                alt={selectedNote?.title ?? selectedPreview?.title ?? "飞友圈详情"}
-                className="h-full w-full object-cover"
-                src={selectedNote?.images[0]?.url ?? selectedPreview?.images[0]?.url ?? getEditorialImage(selectedNoteId)}
-              />
+            <div className="relative flex min-h-[320px] flex-1 items-center justify-center bg-black md:min-h-0">
+              {activeMedia?.kind === "video" ? (
+                <video
+                  className="h-full max-h-full w-full object-contain"
+                  controls
+                  preload="metadata"
+                  src={activeMedia.url}
+                />
+              ) : activeMedia ? (
+                <img
+                  alt={activeMedia.label}
+                  className="h-full max-h-full w-full object-contain"
+                  src={activeMedia.url}
+                />
+              ) : (
+                <img
+                  alt={displayNote?.title ?? "飞友圈详情"}
+                  className="h-full max-h-full w-full object-contain"
+                  src={getEditorialImage(selectedNoteId)}
+                />
+              )}
+
+              {mediaItems.length > 1 ? (
+                <>
+                  <div className="absolute right-14 top-3 z-20 rounded-full bg-black/40 px-3 py-1 text-sm font-medium text-white">
+                    {selectedMediaIndex + 1}/{mediaItems.length}
+                  </div>
+                  <button
+                    className="absolute left-3 top-1/2 z-20 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/38 text-white transition hover:bg-black/55"
+                    onClick={() => {
+                      setSelectedMediaIndex((current) =>
+                        getLoopedPrevIndex(current, mediaItems.length)
+                      );
+                    }}
+                    type="button"
+                  >
+                    <ChevronLeftIcon className="size-5" />
+                  </button>
+                  <button
+                    className="absolute right-3 top-1/2 z-20 inline-flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-black/38 text-white transition hover:bg-black/55"
+                    onClick={() => {
+                      setSelectedMediaIndex((current) =>
+                        getLoopedNextIndex(current, mediaItems.length)
+                      );
+                    }}
+                    type="button"
+                  >
+                    <ChevronRightIcon className="size-5" />
+                  </button>
+                  <div className="absolute bottom-4 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2 rounded-full bg-black/28 px-3 py-2">
+                    {mediaItems.map((item, index) => (
+                      <button
+                        aria-label={`查看第 ${index + 1} 张${item.kind === "video" ? "视频" : "图片"}`}
+                        className={cn(
+                          "size-2 rounded-full bg-white/45 transition",
+                          selectedMediaIndex === index && "bg-white"
+                        )}
+                        key={`${item.kind}-${item.url}-${index}`}
+                        onClick={() => setSelectedMediaIndex(index)}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </>
+              ) : null}
             </div>
 
-            <div className="flex w-full min-w-0 flex-col bg-white md:w-[405px]">
+            <div className="flex w-full min-w-0 flex-col bg-white md:w-[420px]">
               <div className="border-b border-border/70 px-4 pb-3.5 pt-4 pr-14">
                 {selectedNote ? (
                   <div className="flex items-center justify-between gap-3">
                     <div className="flex min-w-0 items-center gap-3">
                       <ProfileLink userId={selectedNote.author.id}>
                         <Avatar size="lg">
-                          <AvatarImage alt={selectedNote.author.displayName} src={getAvatarImage(selectedNote.author.id)} />
+                          <AvatarImage
+                            alt={selectedNote.author.displayName}
+                            src={selectedNote.author.avatarUrl ?? getAvatarImage(selectedNote.author.id)}
+                          />
                           <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                       </ProfileLink>
                       <div className="min-w-0">
-                        <ProfileLink className="truncate text-sm font-semibold text-foreground hover:text-primary" userId={selectedNote.author.id}>
+                        <ProfileLink
+                          className="truncate text-sm font-semibold text-foreground hover:text-primary"
+                          userId={selectedNote.author.id}
+                        >
                           {selectedNote.author.displayName}
                         </ProfileLink>
                         <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
-                          {new Date(selectedNote.publishedAt ?? selectedNote.createdAt).toLocaleDateString("zh-CN")}
+                          {new Date(
+                            selectedNote.publishedAt ?? selectedNote.createdAt
+                          ).toLocaleDateString("zh-CN")}
                         </div>
                       </div>
                     </div>
@@ -230,23 +358,30 @@ export function CirclePage() {
                           ) {
                             return;
                           }
+
                           setActionError(null);
                           void apiClient
                             .toggleFollow(selectedNote.author.id)
-                            .then(() => {
-                              return Promise.all([
-                                queryClient.invalidateQueries({ queryKey: ["post-detail", selectedNote.id] }),
+                            .then(() =>
+                              Promise.all([
+                                queryClient.invalidateQueries({
+                                  queryKey: ["post-detail", selectedNote.id]
+                                }),
                                 queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
                                 queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                              ]);
-                            })
+                              ])
+                            )
                             .catch((reason: unknown) => {
-                              setActionError(reason instanceof Error ? reason.message : "关注失败");
+                              setActionError(
+                                reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
+                              );
                             });
                         }}
                         size="sm"
                         type="button"
-                        variant={selectedNote.engagement.viewer.isFollowingAuthor ? "outline" : "hero"}
+                        variant={
+                          selectedNote.engagement.viewer.isFollowingAuthor ? "outline" : "hero"
+                        }
                       >
                         {selectedNote.engagement.viewer.isFollowingAuthor ? (
                           <UserCheckIcon data-icon="inline-start" />
@@ -283,7 +418,9 @@ export function CirclePage() {
                         <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                           {selectedNote.title}
                         </h1>
-                        <p className="text-[0.88rem] leading-6 text-foreground/72">{selectedNote.content}</p>
+                        <p className="text-[0.88rem] leading-6 text-foreground/72">
+                          {selectedNote.content}
+                        </p>
                       </div>
 
                       <div className="border-t border-border pt-3.5">
@@ -340,7 +477,9 @@ export function CirclePage() {
                               ]);
                             })
                             .catch((reason: unknown) => {
-                              setActionError(reason instanceof Error ? reason.message : "评论失败");
+                              setActionError(
+                                reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
+                              );
                             })
                             .finally(() => {
                               setIsSubmitting(false);

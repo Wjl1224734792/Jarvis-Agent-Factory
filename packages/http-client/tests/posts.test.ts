@@ -114,7 +114,7 @@ describe("posts api client", () => {
       client.updateAdminPostCommentStatus("comment_404", {
         status: "hidden"
       })
-    ).rejects.toThrow("Comment not found.");
+    ).rejects.toThrow("内容不存在或已被删除。");
   });
 
   it("requests admin official article detail and update endpoints", async () => {

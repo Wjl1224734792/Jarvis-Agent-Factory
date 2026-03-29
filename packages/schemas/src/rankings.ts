@@ -5,6 +5,7 @@ import { reviewRatingSchema } from "./reviews";
 
 export const rankingTypeSchema = z.enum(["official", "community"]);
 export const rankingItemAddPolicySchema = z.enum(["public", "owner"]);
+export const rankingStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
 
 const linkedRankingModelSchema = z.object({
   id: z.string().min(1),
@@ -76,6 +77,7 @@ export const rankingItemRatingBreakdownSchema = z.tuple([
 export const rankingListItemSchema = z.object({
   id: z.string().min(1),
   type: rankingTypeSchema,
+  status: rankingStatusSchema,
   title: z.string().min(1),
   description: z.string().min(1),
   coverImageUrl: z.string().nullable(),
@@ -109,6 +111,10 @@ export const rankingsResponseSchema = z.object({
   community: z.array(rankingListItemSchema)
 });
 
+export const adminRankingsResponseSchema = z.object({
+  items: z.array(rankingListItemSchema)
+});
+
 const rankingDraftItemSchema = z.object({
   title: z.string().trim().min(1).max(120),
   summary: z.string().trim().max(500).nullable(),
@@ -135,6 +141,10 @@ export const rankingResponseSchema = z.object({
   item: rankingDetailSchema
 });
 export const rankingItemResponseSchema = rankingResponseSchema;
+
+export const updateRankingStatusInputSchema = z.object({
+  status: rankingStatusSchema.exclude(["pending"])
+});
 
 export const rankingItemDetailResponseSchema = z.object({
   item: rankingItemDetailSchema
@@ -175,6 +185,7 @@ export const submitRankingItemReviewResponseSchema = z.object({
 
 export type RankingType = z.infer<typeof rankingTypeSchema>;
 export type RankingItemAddPolicy = z.infer<typeof rankingItemAddPolicySchema>;
+export type RankingStatus = z.infer<typeof rankingStatusSchema>;
 export type RankingItem = z.infer<typeof rankingItemSchema>;
 export type RankingListItem = z.infer<typeof rankingListItemSchema>;
 export type RankingDetail = z.infer<typeof rankingDetailSchema>;

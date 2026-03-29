@@ -1,6 +1,7 @@
 import type { RankingDetail, RankingItem, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
+import { siteSettingsService } from "../site-settings/site-settings.service";
 
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
 
@@ -141,21 +142,32 @@ function toRankingViewer(input: {
   authorId: string;
   itemAddPolicy: "public" | "owner";
   type: "official" | "community";
+  status: "pending" | "published" | "rejected" | "hidden";
 }) {
   const isAdmin = input.currentUser?.role === "admin";
   const canEdit =
     input.type === "official"
       ? isAdmin
       : Boolean(input.currentUser && input.currentUser.id === input.authorId);
+  const canOpenPublicAdd = input.type === "community" && input.status === "published";
 
   return {
     canEdit,
-    canAddItems: Boolean(input.currentUser) && (canEdit || input.itemAddPolicy === "public")
+    canAddItems:
+      Boolean(input.currentUser) &&
+      (canEdit || (input.itemAddPolicy === "public" && canOpenPublicAdd))
   };
 }
 
 async function buildRankingListItems(currentUser?: CurrentUser) {
-  const rankings = await rankingsRepo.listRankings();
+  const rankings = (await rankingsRepo.listRankings()).filter((ranking) => {
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    if (rankingType === "official") {
+      return true;
+    }
+
+    return ranking.status === "published";
+  });
 
   const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>>();
   await Promise.all(
@@ -199,6 +211,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
     return {
       id: ranking.id,
       type: rankingType,
+      status: ranking.status as "pending" | "published" | "rejected" | "hidden",
       title: ranking.title,
       description: ranking.description,
       coverImageUrl: ranking.coverImageUrl,
@@ -217,7 +230,8 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         currentUser,
         authorId: ranking.author.id,
         itemAddPolicy,
-        type: rankingType
+        type: rankingType,
+        status: ranking.status as "pending" | "published" | "rejected" | "hidden"
       }),
       items: items.slice(0, 3)
     } satisfies RankingListItem;
@@ -257,9 +271,17 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
+    const settings = await siteSettingsService.getResolvedSettings();
+    const status =
+      input.type === "official"
+        ? "published"
+        : settings.rankingModerationEnabled
+          ? "pending"
+          : "published";
     const ranking = await rankingsRepo.createRanking({
       authorId: currentUser.id,
       type: input.type,
+      status,
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
@@ -291,7 +313,7 @@ export const rankingsService = {
   },
 
   async updateRanking(
-    rankingId: string,
+      rankingId: string,
     currentUser: CurrentUser,
     input: {
       type: "official" | "community";
@@ -382,7 +404,8 @@ export const rankingsService = {
       currentUser,
       authorId: ranking.author.id,
       itemAddPolicy,
-      type: rankingType
+      type: rankingType,
+      status: ranking.status as "pending" | "published" | "rejected" | "hidden"
     });
     if (!viewer.canAddItems) {
       return { kind: "forbidden" as const };
@@ -413,6 +436,13 @@ export const rankingsService = {
       return null;
     }
 
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const canInspectUnpublished =
+      currentUser?.role === "admin" || currentUser?.id === ranking.author.id;
+    if (rankingType === "community" && ranking.status !== "published" && !canInspectUnpublished) {
+      return null;
+    }
+
     const items = await rankingsRepo.listRankingItems(id);
     const [comments, aggregates, userRatings] = await Promise.all([
       rankingsRepo.listRankingComments(id),
@@ -432,7 +462,6 @@ export const rankingsService = {
     );
     const userRatingMap = new Map(userRatings.map((item) => [item.rankingItemId, item.rating]));
     const serializedItems = items.map((item) => serializeRankingItem(item, aggregateMap, userRatingMap));
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
     const itemAddPolicy =
       rankingType === "official"
         ? "owner"
@@ -442,6 +471,7 @@ export const rankingsService = {
       item: {
         id: ranking.id,
         type: rankingType,
+        status: ranking.status as "pending" | "published" | "rejected" | "hidden",
         title: ranking.title,
         description: ranking.description,
         coverImageUrl: ranking.coverImageUrl,
@@ -450,7 +480,8 @@ export const rankingsService = {
           currentUser,
           authorId: ranking.author.id,
           itemAddPolicy,
-          type: rankingType
+          type: rankingType,
+          status: ranking.status as "pending" | "published" | "rejected" | "hidden"
         }),
         averageScore: average(serializedItems.map((item) => item.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
@@ -466,6 +497,124 @@ export const rankingsService = {
         items: serializedItems
       }
     };
+  },
+
+  async listAdminRankings(
+    currentUser: CurrentUser,
+    filters?: {
+      scope?: "official" | "community";
+      status?: "pending" | "published" | "rejected" | "hidden";
+    }
+  ) {
+    if (currentUser.role !== "admin") {
+      return { kind: "forbidden" as const };
+    }
+
+    const rankings = await rankingsRepo.listRankings();
+    const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRankingItems>>>();
+    await Promise.all(
+      rankings.map(async (ranking) => {
+        const items = await rankingsRepo.listRankingItems(ranking.id);
+        rankingItemsByRanking.set(ranking.id, items);
+      })
+    );
+
+    const allRankingItemIds = Array.from(rankingItemsByRanking.values())
+      .flat()
+      .map((item) => item.id);
+    const itemAggregates = await rankingsRepo.listRankingItemRatingAggregates(allRankingItemIds);
+    const itemAggregateMap = new Map(
+      itemAggregates.map((item) => [
+        item.rankingItemId,
+        {
+          totalRatings: Number(item.totalRatings ?? 0),
+          averageRaw: Number(item.averageRaw ?? 0)
+        }
+      ])
+    );
+
+    return {
+      kind: "ok" as const,
+      payload: {
+        items: rankings
+          .filter((ranking) => {
+            const rankingType = (ranking.type as "official" | "community") ?? "community";
+            if (filters?.scope && rankingType !== filters.scope) {
+              return false;
+            }
+            if (filters?.status && ranking.status !== filters.status) {
+              return false;
+            }
+            return true;
+          })
+          .map((ranking) => {
+            const rankingType = (ranking.type as "official" | "community") ?? "community";
+            const itemAddPolicy =
+              rankingType === "official"
+              ? "owner"
+              : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
+          const items = (rankingItemsByRanking.get(ranking.id) ?? []).map((item) =>
+            serializeRankingItem(item, itemAggregateMap, new Map())
+          );
+
+          return {
+            id: ranking.id,
+            type: rankingType,
+            status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+            title: ranking.title,
+            description: ranking.description,
+            coverImageUrl: ranking.coverImageUrl,
+            itemAddPolicy,
+            averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
+            commentCount: ranking.commentCount,
+            itemCount: items.length,
+            createdAt: ranking.createdAt.toISOString(),
+            author: {
+              id: ranking.author.id,
+              displayName: ranking.author.displayName,
+              avatarUrl: ranking.author.avatarUrl ?? null,
+              role: ranking.author.role as "user" | "admin"
+            },
+            viewer: toRankingViewer({
+              currentUser,
+              authorId: ranking.author.id,
+              itemAddPolicy,
+              type: rankingType,
+              status: ranking.status as "pending" | "published" | "rejected" | "hidden"
+            }),
+            items: items.slice(0, 3)
+            };
+          })
+      }
+    };
+  },
+
+  async updateRankingStatus(
+    rankingId: string,
+    currentUser: CurrentUser,
+    status: "published" | "rejected" | "hidden"
+  ) {
+    if (currentUser.role !== "admin") {
+      return { kind: "forbidden" as const };
+    }
+
+    const ranking = await rankingsRepo.getRankingById(rankingId);
+    if (!ranking) {
+      return { kind: "not_found" as const };
+    }
+
+    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    if (rankingType !== "community") {
+      return { kind: "forbidden" as const };
+    }
+
+    await rankingsRepo.updateRankingStatus(rankingId, status);
+    const payload = await this.getRankingDetail(rankingId, currentUser);
+    if (!payload) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, payload };
   },
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {

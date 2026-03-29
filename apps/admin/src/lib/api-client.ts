@@ -78,17 +78,24 @@ type AdminRankingItem = {
 type AdminRankingListItem = {
   id: string;
   type: "official" | "community";
+  status: "pending" | "published" | "rejected" | "hidden";
   title: string;
   description: string;
   coverImageUrl: string | null;
+  itemAddPolicy: "public" | "owner";
   averageScore: number;
   commentCount: number;
   itemCount: number;
+  createdAt: string;
+  author: {
+    id: string;
+    displayName: string;
+    role: "user" | "admin";
+  };
   items: AdminRankingItem[];
 };
 
 type AdminRankingDetail = AdminRankingListItem & {
-  itemAddPolicy: "public" | "owner";
   viewer: {
     canEdit: boolean;
     canAddItems: boolean;
@@ -108,7 +115,7 @@ type OfficialRankingUpsertInput = {
   title: string;
   description: string;
   coverImageUrl: string | null;
-  itemAddPolicy: "owner";
+  itemAddPolicy: "public" | "owner";
   items: RankingDraftItemInput[];
 };
 
@@ -117,6 +124,7 @@ type SiteSettings = {
   commentModerationEnabled?: boolean;
   reviewModerationEnabled?: boolean;
   submissionModerationEnabled?: boolean;
+  rankingModerationEnabled?: boolean;
   updatedAt?: string;
 };
 
@@ -225,7 +233,11 @@ function averageScore(items: AdminRankingItem[]) {
 function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
   const official = payload.official as unknown;
   if (Array.isArray(official)) {
-    return official as AdminRankingListItem[];
+    return (official as AdminRankingListItem[]).map((item) => ({
+      ...item,
+      status: item.status ?? "published",
+      itemAddPolicy: item.itemAddPolicy ?? "owner"
+    }));
   }
 
   const legacyOfficial = official as { items: AdminRankingItem[] };
@@ -237,9 +249,17 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
       title: definition.title,
       description: definition.description,
       coverImageUrl: null,
+      status: "published" as const,
+      itemAddPolicy: "owner" as const,
       averageScore: averageScore(items),
       commentCount: 0,
       itemCount: items.length,
+      createdAt: new Date().toISOString(),
+      author: {
+        id: "admin_legacy",
+        displayName: "系统管理员",
+        role: "admin" as const
+      },
       items
     };
   });
@@ -295,12 +315,15 @@ export const apiClient = {
   createCategory(input: {
     slug: string;
     name: string;
-    sortOrder: number;
+    sortOrder?: number;
     isEnabled: boolean;
   }) {
     return postJson<{ item: { id: string; slug: string; name: string } }>(
       API_ROUTES.models.categories,
-      input
+      {
+        ...input,
+        sortOrder: Number(input.sortOrder ?? 0)
+      }
     );
   },
   updateCategory(
@@ -353,9 +376,19 @@ export const apiClient = {
     );
   },
   listOfficialRankings() {
-    return sharedClient.listRankings().then((payload) => ({
-      items: normalizeOfficialRankings(payload)
-    }));
+    return getJson<{ items: AdminRankingListItem[] }>("/admin/rankings?scope=official").catch(() =>
+      sharedClient.listRankings().then((payload) => ({
+        items: normalizeOfficialRankings(payload)
+      }))
+    );
+  },
+  listCommunityRankingsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
+    const search = new URLSearchParams({ scope: "community" });
+    if (status) {
+      search.set("status", status);
+    }
+
+    return getJson<{ items: AdminRankingListItem[] }>(`/admin/rankings?${search.toString()}`);
   },
   listOfficialArticles() {
     return sharedClient.listAdminPosts().then((payload) => ({
@@ -389,6 +422,12 @@ export const apiClient = {
   },
   addRankingItem(id: string, input: RankingDraftItemInput) {
     return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.items(id), input);
+  },
+  updateRankingStatus(
+    id: string,
+    input: { status: "published" | "rejected" | "hidden" }
+  ) {
+    return putJson<{ item: AdminRankingDetail }>(`/admin/rankings/${id}/status`, input);
   },
   getSiteSettings() {
     return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);

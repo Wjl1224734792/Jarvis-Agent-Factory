@@ -4,7 +4,8 @@ export const siteSettingsSchema = z.object({
   postModerationEnabled: z.boolean(),
   commentModerationEnabled: z.boolean(),
   reviewModerationEnabled: z.boolean(),
-  submissionModerationEnabled: z.boolean()
+  submissionModerationEnabled: z.boolean(),
+  rankingModerationEnabled: z.boolean()
 });
 
 export const siteSettingsResponseSchema = z.object({
@@ -15,5 +16,6 @@ export const updateSiteSettingsInputSchema = z.object({
   postModerationEnabled: z.boolean(),
   commentModerationEnabled: z.boolean(),
   reviewModerationEnabled: z.boolean(),
-  submissionModerationEnabled: z.boolean()
+  submissionModerationEnabled: z.boolean(),
+  rankingModerationEnabled: z.boolean().optional()
 });

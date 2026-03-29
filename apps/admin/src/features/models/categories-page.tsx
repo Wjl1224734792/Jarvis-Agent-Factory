@@ -6,35 +6,38 @@ import { apiClient } from "../../lib/api-client";
 
 type CategoryRecord = Awaited<ReturnType<typeof apiClient.listCategories>>[number];
 
+type CreateCategoryValues = {
+  slug: string;
+  name: string;
+  isEnabled: boolean;
+};
+
+type EditCategoryValues = {
+  slug: string;
+  name: string;
+  sortOrder: number;
+  isEnabled: boolean;
+};
+
 export function CategoriesPage() {
   const categoriesQuery = useQuery({
     queryKey: ["admin-categories"],
     queryFn: () => apiClient.listCategories()
   });
 
-  const [createForm] = Form.useForm<{
-    slug: string;
-    name: string;
-    sortOrder: number;
-    isEnabled: boolean;
-  }>();
-  const [editForm] = Form.useForm<{
-    slug: string;
-    name: string;
-    sortOrder: number;
-    isEnabled: boolean;
-  }>();
+  const [createForm] = Form.useForm<CreateCategoryValues>();
+  const [editForm] = Form.useForm<EditCategoryValues>();
   const [editing, setEditing] = useState<CategoryRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleCreate(values: { slug: string; name: string; sortOrder: number; isEnabled: boolean }) {
+  async function handleCreate(values: CreateCategoryValues) {
     setIsSubmitting(true);
     setError(null);
     try {
       await apiClient.createCategory({
         ...values,
-        sortOrder: Number(values.sortOrder ?? 0)
+        sortOrder: 0
       });
       createForm.resetFields();
       await categoriesQuery.refetch();
@@ -45,7 +48,7 @@ export function CategoriesPage() {
     }
   }
 
-  async function handleUpdate(values: { slug: string; name: string; sortOrder: number; isEnabled: boolean }) {
+  async function handleUpdate(values: EditCategoryValues) {
     if (!editing) {
       return;
     }
@@ -71,10 +74,13 @@ export function CategoriesPage() {
       {error ? <div className="admin-login__error">{error}</div> : null}
 
       <div className="admin-split">
-        <AdminPanel description="新增分类后会立即进入后台列表。" title="新增分类">
+        <AdminPanel
+          description="新增分类后会立即进入后台列表。排序由系统自动递增分配。"
+          title="新增分类"
+        >
           <Form
             form={createForm}
-            initialValues={{ sortOrder: 0, isEnabled: true }}
+            initialValues={{ isEnabled: true }}
             layout="vertical"
             onFinish={(values) => {
               void handleCreate(values);
@@ -86,9 +92,6 @@ export function CategoriesPage() {
             </Form.Item>
             <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
               <Input placeholder="例如：drone" />
-            </Form.Item>
-            <Form.Item label="排序" name="sortOrder">
-              <Input placeholder="0" type="number" />
             </Form.Item>
             <Form.Item label="状态" name="isEnabled">
               <Select

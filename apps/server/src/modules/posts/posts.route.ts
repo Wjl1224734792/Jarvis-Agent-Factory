@@ -156,7 +156,11 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = createPostInputSchema.parse(await context.req.json());
+  const parsedInput = createPostInputSchema.safeParse(await context.req.json());
+  if (!parsedInput.success) {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid post payload." }, 400);
+  }
+  const input = parsedInput.data;
   const payload = await postsService.createPost({
     authorId: currentUser.id,
     authorRole: currentUser.role,
@@ -179,6 +183,16 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
 
   if (payload.kind === "invalid_videos") {
     return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded videos." }, 400);
+  }
+
+  if (payload.kind === "invalid_moment_media") {
+    return context.json(
+      {
+        code: "BAD_REQUEST",
+        message: "Moment posts support multiple images or a single video only."
+      },
+      400
+    );
   }
 
   if (payload.kind === "not_found") {

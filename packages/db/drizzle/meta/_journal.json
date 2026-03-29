@@ -99,6 +99,13 @@
                         "when":  1774770000000,
                         "tag":  "0013_session_device_brand_logo",
                         "breakpoints":  true
+                    },
+                    {
+                        "idx":  14,
+                        "version":  "7",
+                        "when":  1774782000000,
+                        "tag":  "0014_ranking_moderation_and_status",
+                        "breakpoints":  true
                     }
                 ]
 }

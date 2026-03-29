@@ -32,3 +32,24 @@ export function formatAdminSessionTime(value: string | null) {
 
   return new Date(value).toLocaleString("zh-CN", { hour12: false });
 }
+
+export function resolveAdminOverviewAuthError(input: {
+  userDisplayName?: string | null;
+  authError?: string | null;
+}) {
+  if (input.userDisplayName) {
+    return null;
+  }
+
+  return input.authError ?? null;
+}
+
+export function resolveRecentSessionsPanelMessage(error: unknown) {
+  if (!(error instanceof Error)) {
+    return "最近登录设备暂时不可用。";
+  }
+
+  return /403|forbidden|权限/i.test(error.message)
+    ? "最近登录设备面板暂时不可用，请稍后再试。"
+    : "最近登录设备数据加载失败。";
+}

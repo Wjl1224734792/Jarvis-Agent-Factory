@@ -33,6 +33,28 @@ describe("posts contract", () => {
     expect(payload.videoIds).toEqual(["video_1"]);
   });
 
+  it("rejects moment payloads that mix images and videos or contain multiple videos", () => {
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "moment",
+        title: "Harbor night",
+        content: "Night shooting log.",
+        imageIds: ["image_1"],
+        videoIds: ["video_1"]
+      })
+    ).toThrow();
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "moment",
+        title: "Harbor night",
+        content: "Night shooting log.",
+        imageIds: [],
+        videoIds: ["video_1", "video_2"]
+      })
+    ).toThrow();
+  });
+
   it("parses comment payloads for nested replies", () => {
     const topLevel = createPostCommentInputSchema.parse({
       content: "Helpful field notes."

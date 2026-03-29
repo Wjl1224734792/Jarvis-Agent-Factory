@@ -69,6 +69,7 @@ export const rankingsRepo = {
       .select({
         id: rankingsTable.id,
         type: rankingsTable.type,
+        status: rankingsTable.status,
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageUrl: rankingsTable.coverImageUrl,
@@ -92,6 +93,7 @@ export const rankingsRepo = {
       .select({
         id: rankingsTable.id,
         type: rankingsTable.type,
+        status: rankingsTable.status,
         title: rankingsTable.title,
         description: rankingsTable.description,
         coverImageUrl: rankingsTable.coverImageUrl,
@@ -116,6 +118,7 @@ export const rankingsRepo = {
   async createRanking(input: {
     authorId: string;
     type: "official" | "community";
+    status: "pending" | "published" | "rejected" | "hidden";
     title: string;
     description: string;
     coverImageUrl: string | null;
@@ -126,6 +129,7 @@ export const rankingsRepo = {
       id,
       authorId: input.authorId,
       type: input.type,
+      status: input.status,
       title: input.title,
       description: input.description,
       coverImageUrl: input.coverImageUrl,
@@ -151,6 +155,17 @@ export const rankingsRepo = {
         description: input.description,
         coverImageUrl: input.coverImageUrl,
         itemAddPolicy: input.itemAddPolicy,
+        updatedAt: new Date()
+      })
+      .where(eq(rankingsTable.id, id));
+
+    return this.getRankingById(id);
+  },
+  async updateRankingStatus(id: string, status: "published" | "rejected" | "hidden") {
+    await db
+      .update(rankingsTable)
+      .set({
+        status,
         updatedAt: new Date()
       })
       .where(eq(rankingsTable.id, id));

@@ -18,6 +18,7 @@ export const siteSettingsRepo = {
     commentModerationEnabled: boolean;
     reviewModerationEnabled: boolean;
     submissionModerationEnabled: boolean;
+    rankingModerationEnabled: boolean;
   }) {
     const existing = await this.get();
 
@@ -29,6 +30,7 @@ export const siteSettingsRepo = {
           commentModerationEnabled: input.commentModerationEnabled,
           reviewModerationEnabled: input.reviewModerationEnabled,
           submissionModerationEnabled: input.submissionModerationEnabled,
+          rankingModerationEnabled: input.rankingModerationEnabled,
           updatedAt: new Date()
         })
         .where(eq(siteSettingsTable.id, SITE_SETTINGS_ROW_ID));
@@ -41,7 +43,8 @@ export const siteSettingsRepo = {
       postModerationEnabled: input.postModerationEnabled,
       commentModerationEnabled: input.commentModerationEnabled,
       reviewModerationEnabled: input.reviewModerationEnabled,
-      submissionModerationEnabled: input.submissionModerationEnabled
+      submissionModerationEnabled: input.submissionModerationEnabled,
+      rankingModerationEnabled: input.rankingModerationEnabled
     });
 
     return this.get();

@@ -212,6 +212,7 @@ async function updateAllSiteSettings(
     commentModerationEnabled: boolean;
     reviewModerationEnabled: boolean;
     submissionModerationEnabled: boolean;
+    rankingModerationEnabled?: boolean;
   }
 ) {
   const response = await app.request(API_ROUTES.admin.siteSettings, {
@@ -320,6 +321,45 @@ describe("posts and social flows", () => {
       }
     );
     expect(detailAfterDeleteResponse.status).toBe(404);
+  });
+
+  it("rejects moment creation when images and videos are mixed or when multiple videos are attached", async () => {
+    const cookie = await loginWebUser("13800138151");
+    const image = await uploadImage(cookie, "moment-cover.png");
+    const videoA = await uploadVideo(cookie, "moment-a.mp4");
+    const videoB = await uploadVideo(cookie, "moment-b.mp4");
+
+    const mixedResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie
+      },
+      body: JSON.stringify({
+        type: "moment",
+        title: "Harbor mixed media",
+        content: "This should be rejected.",
+        imageIds: [image.item.id],
+        videoIds: [videoA.item.id]
+      })
+    });
+    expect(mixedResponse.status).toBe(400);
+
+    const multipleVideosResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie
+      },
+      body: JSON.stringify({
+        type: "moment",
+        title: "Harbor double video",
+        content: "This should also be rejected.",
+        imageIds: [],
+        videoIds: [videoA.item.id, videoB.item.id]
+      })
+    });
+    expect(multipleVideosResponse.status).toBe(400);
   });
 
   it("returns 404 for dedicated official article endpoints when article author is not admin", async () => {

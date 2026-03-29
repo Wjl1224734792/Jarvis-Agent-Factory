@@ -81,6 +81,7 @@ export const siteSettingsTable = pgTable("site_settings", {
   commentModerationEnabled: boolean("comment_moderation_enabled").default(false).notNull(),
   reviewModerationEnabled: boolean("review_moderation_enabled").default(false).notNull(),
   submissionModerationEnabled: boolean("submission_moderation_enabled").default(true).notNull(),
+  rankingModerationEnabled: boolean("ranking_moderation_enabled").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -486,6 +487,7 @@ export const rankingsTable = pgTable("rankings", {
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
   type: text("type").default("community").notNull(),
+  status: text("status").default("published").notNull(),
   title: text("title").notNull(),
   description: text("description").notNull(),
   coverImageUrl: text("cover_image_url"),

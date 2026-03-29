@@ -1238,3 +1238,195 @@ body {
   font-weight: 700;
   color: var(--admin-primary-strong);
 }
+
+/* Final admin shell overrides */
+.admin-shell,
+.admin-shell.ant-layout {
+  height: 100vh;
+  min-height: 100vh;
+  overflow: hidden;
+}
+
+.admin-shell__header.ant-layout-header {
+  position: fixed;
+  inset: 0 0 auto 0;
+  z-index: 60;
+  height: var(--admin-header-height, 88px);
+  min-height: var(--admin-header-height, 88px);
+}
+
+.admin-shell__brand-row {
+  min-height: var(--admin-header-height, 88px);
+}
+
+.admin-shell__layout.ant-layout {
+  margin-top: var(--admin-header-height, 88px);
+  height: calc(100vh - var(--admin-header-height, 88px));
+  min-height: 0;
+}
+
+.admin-shell__sider.ant-layout-sider {
+  flex: 0 0 var(--admin-sider-width, 280px) !important;
+  max-width: var(--admin-sider-width, 280px) !important;
+  min-width: var(--admin-sider-width, 280px) !important;
+  width: var(--admin-sider-width, 280px) !important;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-shell__sider .ant-layout-sider-children {
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-shell__nav {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.admin-shell__content.ant-layout-content {
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+  overflow: hidden;
+}
+
+.admin-shell__content-inner {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
+
+.admin-ranking-editor {
+  display: grid;
+  gap: 20px;
+  grid-template-columns: minmax(0, 1.15fr) minmax(360px, 0.85fr);
+  align-items: start;
+}
+
+.admin-ranking-editor__sidebar {
+  min-width: 0;
+  position: sticky;
+  top: 24px;
+  align-self: start;
+}
+
+.admin-ranking-sidebar {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-ranking-sidebar__cover,
+.admin-ranking-cover__preview {
+  overflow: hidden;
+  border-radius: 20px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.86);
+}
+
+.admin-ranking-sidebar__cover img,
+.admin-ranking-cover__preview img {
+  width: 100%;
+  height: 220px;
+  object-fit: cover;
+}
+
+.admin-ranking-cover {
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 20px;
+  background: var(--admin-surface-muted);
+}
+
+.admin-ranking-cover__empty,
+.admin-ranking-item-card__empty {
+  display: grid;
+  place-items: center;
+  min-height: 180px;
+  border: 1px dashed var(--admin-border-strong);
+  border-radius: 18px;
+  color: var(--admin-muted);
+  background: rgba(255, 255, 255, 0.64);
+}
+
+.admin-ranking-item-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-ranking-item-card {
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+  border: 1px solid var(--admin-border);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.8);
+}
+
+.admin-ranking-item-card__body {
+  display: grid;
+  gap: 14px;
+  grid-template-columns: 160px minmax(0, 1fr);
+}
+
+.admin-ranking-item-card__media {
+  overflow: hidden;
+  border-radius: 18px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.admin-ranking-item-card__media img {
+  width: 100%;
+  height: 160px;
+  object-fit: cover;
+}
+
+.admin-ranking-item-card__fields {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-preview-item--ranking {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 88px minmax(0, 1fr);
+  align-items: center;
+}
+
+.admin-preview-item__media {
+  overflow: hidden;
+  border-radius: 14px;
+  border: 1px solid var(--admin-border);
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.admin-preview-item__media img {
+  width: 100%;
+  height: 72px;
+  object-fit: cover;
+}
+
+.admin-preview-item__copy {
+  min-width: 0;
+}
+
+@media (max-width: 1199px) {
+  .admin-ranking-editor {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .admin-ranking-editor__sidebar {
+    position: static;
+  }
+}
+
+@media (max-width: 767px) {
+  .admin-ranking-item-card__body,
+  .admin-preview-item--ranking {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

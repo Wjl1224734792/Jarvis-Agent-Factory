@@ -251,7 +251,9 @@ describe("models flows", () => {
     });
 
     expect(categoryResponse.status).toBe(200);
-    const categoryPayload = (await categoryResponse.json()) as { item: { id: string } };
+    const categoryPayload = (await categoryResponse.json()) as {
+      item: { id: string; sortOrder: number };
+    };
 
     const brandResponse = await app.request(API_ROUTES.models.brands, {
       method: "POST",
@@ -296,6 +298,7 @@ describe("models flows", () => {
     expect(modelResponse.status).toBe(200);
     const modelPayload = (await modelResponse.json()) as { item: { slug: string } };
     expect(modelPayload.item.slug).toBe("alia-250");
+    expect(categoryPayload.item.sortOrder).toBe(5);
   });
 
   it("stores brand logo and auto-increments brand sort order", async () => {

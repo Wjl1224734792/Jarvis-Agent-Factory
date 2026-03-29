@@ -1,5 +1,5 @@
 import { createId, db, aircraftCategoriesTable } from "@feijia/db";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export const categoriesRepo = {
   async list() {
@@ -15,12 +15,18 @@ export const categoriesRepo = {
     isEnabled: boolean;
   }) {
     const id = createId("cat");
+    const rows = await db
+      .select({
+        maxSortOrder: sql<number>`coalesce(max(${aircraftCategoriesTable.sortOrder}), 0)`
+      })
+      .from(aircraftCategoriesTable);
+    const nextSortOrder = Number(rows[0]?.maxSortOrder ?? 0) + 1;
 
     await db.insert(aircraftCategoriesTable).values({
       id,
       slug: input.slug,
       name: input.name,
-      sortOrder: input.sortOrder,
+      sortOrder: nextSortOrder,
       isEnabled: input.isEnabled
     });
 

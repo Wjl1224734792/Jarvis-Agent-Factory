@@ -18,10 +18,73 @@ async function parseResponse<T>(response: Response): Promise<T> {
       payload && typeof payload === "object" && "message" in payload
         ? String(payload.message)
         : `Request failed with status ${response.status}`;
-    throw new Error(message);
+    throw mapWebApiError(message);
   }
 
   return payload as T;
+}
+
+export function sanitizeWebApiErrorMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+
+  if (
+    normalized.includes("unauthorized") ||
+    normalized.includes("login required") ||
+    normalized.includes("请先登录") ||
+    normalized.includes("未登录")
+  ) {
+    return "请先登录后再继续操作。";
+  }
+
+  if (
+    normalized.includes("forbidden") ||
+    normalized.includes("not allowed") ||
+    normalized.includes("权限不足")
+  ) {
+    return "当前无权执行此操作。";
+  }
+
+  if (
+    normalized.includes("not found") ||
+    normalized.includes("missing") ||
+    normalized.includes("不存在")
+  ) {
+    return "请求的内容不存在或已被移除。";
+  }
+
+  if (
+    normalized.includes("invalid") ||
+    normalized.includes("required") ||
+    normalized.includes("bad request") ||
+    normalized.includes("exceeds") ||
+    normalized.includes("conflict") ||
+    normalized.includes("already") ||
+    normalized.includes("taken")
+  ) {
+    return "提交内容有误，请检查后重试。";
+  }
+
+  if (
+    normalized.includes("500") ||
+    normalized.includes("503") ||
+    normalized.includes("internal") ||
+    normalized.includes("unexpected") ||
+    normalized.includes("stack") ||
+    normalized.includes("sql") ||
+    normalized.includes("exception")
+  ) {
+    return "服务暂时不可用，请稍后重试。";
+  }
+
+  return "操作失败，请稍后重试。";
+}
+
+export function mapWebApiError(error: unknown) {
+  if (error instanceof Error) {
+    return new Error(sanitizeWebApiErrorMessage(error.message));
+  }
+
+  return new Error("操作失败，请稍后重试。");
 }
 
 async function getJson<T>(path: string): Promise<T> {
@@ -175,3 +238,19 @@ export const apiClient = {
     return getJson<WebBrand[]>(API_ROUTES.models.brands);
   }
 };
+
+for (const key of Object.keys(apiClient) as Array<keyof typeof apiClient>) {
+  const current = apiClient[key];
+  if (typeof current !== "function") {
+    continue;
+  }
+
+  const original = current as (...args: any[]) => Promise<unknown>;
+  (apiClient as Record<string, unknown>)[key as string] = async (...args: unknown[]) => {
+    try {
+      return await original(...args);
+    } catch (error) {
+      throw mapWebApiError(error);
+    }
+  };
+}

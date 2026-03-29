@@ -3,7 +3,9 @@ import {
   formatAdminSessionIdentity,
   formatAdminSessionScope,
   formatAdminSessionStatus,
-  formatAdminSessionTime
+  formatAdminSessionTime,
+  resolveAdminOverviewAuthError,
+  resolveRecentSessionsPanelMessage
 } from "../src/features/auth/admin-session-helpers";
 
 describe("admin session helpers", () => {
@@ -38,5 +40,25 @@ describe("admin session helpers", () => {
 
     expect(formatAdminSessionTime(null)).toBe("未记录");
     expect(formatAdminSessionTime("2026-03-29T02:00:00.000Z")).toContain("2026");
+  });
+
+  it("suppresses stale auth error when admin user is already loaded", () => {
+    expect(
+      resolveAdminOverviewAuthError({
+        userDisplayName: "系统管理员",
+        authError: "管理员权限不足"
+      })
+    ).toBeNull();
+    expect(
+      resolveAdminOverviewAuthError({
+        userDisplayName: null,
+        authError: "管理员权限不足"
+      })
+    ).toBe("管理员权限不足");
+  });
+
+  it("maps recent session errors to safe panel copy", () => {
+    expect(resolveRecentSessionsPanelMessage(new Error("403 Forbidden"))).toContain("暂时不可用");
+    expect(resolveRecentSessionsPanelMessage(new Error("network timeout"))).toContain("加载失败");
   });
 });

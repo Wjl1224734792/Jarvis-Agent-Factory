@@ -436,6 +436,13 @@ export const postsService = {
       return { kind: "invalid_videos" as const };
     }
 
+    if (
+      input.type === "moment" &&
+      ((uniqueImageIds.length > 0 && uniqueVideoIds.length > 0) || uniqueVideoIds.length > 1)
+    ) {
+      return { kind: "invalid_moment_media" as const };
+    }
+
     if (input.type === "article" && !input.contentCategoryId) {
       return { kind: "invalid_category" as const };
     }

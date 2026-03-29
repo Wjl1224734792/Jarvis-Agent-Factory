@@ -18,7 +18,9 @@ import {
   formatAdminSessionIdentity,
   formatAdminSessionScope,
   formatAdminSessionStatus,
-  formatAdminSessionTime
+  formatAdminSessionTime,
+  resolveAdminOverviewAuthError,
+  resolveRecentSessionsPanelMessage
 } from "./admin-session-helpers";
 import { useAdminAuthStore } from "./auth-store";
 
@@ -36,6 +38,10 @@ function formatPeriodLabel(periodStart: string, mode: "day" | "month" | "year") 
 export function AdminOverviewPage() {
   const user = useAdminAuthStore((state) => state.user);
   const error = useAdminAuthStore((state) => state.error);
+  const authError = resolveAdminOverviewAuthError({
+    userDisplayName: user?.displayName ?? null,
+    authError: error
+  });
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<"day" | "month" | "year">("day");
@@ -283,7 +289,7 @@ export function AdminOverviewPage() {
       description={`当前管理员：${user?.displayName ?? "系统管理员"}。查看注册、活跃、内容与审核状态。`}
       title="运营总览"
     >
-      {error ? <div className="admin-login__error">{error}</div> : null}
+      {authError ? <div className="admin-login__error">{authError}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
       {analyticsQuery.isError ? (
         <div className="admin-login__error">{analyticsQuery.error.message}</div>
@@ -469,7 +475,9 @@ export function AdminOverviewPage() {
         <Col span={24}>
           <AdminPanel description="展示最近登录会话的端类型、设备、IP 与最近活跃时间。" title="最近登录设备 / IP">
             {recentSessionsQuery.isError ? (
-              <div className="admin-login__error">{recentSessionsQuery.error.message}</div>
+              <div className="admin-login__error">
+                {resolveRecentSessionsPanelMessage(recentSessionsQuery.error)}
+              </div>
             ) : null}
             {!recentSessionsQuery.isError && (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
               <Empty description="暂无最近登录记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />

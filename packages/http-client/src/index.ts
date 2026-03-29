@@ -1,5 +1,6 @@
 import {
   actionSuccessResponseSchema,
+  adminRankingsResponseSchema,
   adminRecentSessionsResponseSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
@@ -82,6 +83,7 @@ import {
   submitRankingItemRatingResponseSchema,
   submitRankingItemReviewInputSchema,
   submitRankingItemReviewResponseSchema,
+  updateRankingStatusInputSchema,
   userContentResponseSchema,
   userProfileResponseSchema,
   updateAircraftSubmissionStatusInputSchema,
@@ -138,6 +140,7 @@ type CreateRankingCommentInput = Parameters<typeof createRankingCommentInputSche
 type CreateRankingItemCommentInput = Parameters<typeof createRankingItemCommentInputSchema.parse>[0];
 type SubmitRankingItemRatingInput = Parameters<typeof submitRankingItemRatingInputSchema.parse>[0];
 type SubmitRankingItemReviewInput = Parameters<typeof submitRankingItemReviewInputSchema.parse>[0];
+type UpdateRankingStatusInput = Parameters<typeof updateRankingStatusInputSchema.parse>[0];
 type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
 type UpdateAircraftSubmissionStatusInput =
   Parameters<typeof updateAircraftSubmissionStatusInputSchema.parse>[0];
@@ -151,26 +154,81 @@ function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 }
 
-async function parseError(response: Response): Promise<Error> {
-  const payload = await response.json().catch(() => null);
+function mapApiErrorMessage(response: Response, payload: unknown): string {
   const authError = authErrorResponseSchema.safeParse(payload);
 
   if (authError.success) {
-    return new Error(authError.data.message);
+    switch (authError.data.code) {
+      case "UNAUTHORIZED":
+      case "SESSION_EXPIRED":
+        return "请先登录后再试。";
+      case "FORBIDDEN":
+        return "当前没有权限执行此操作。";
+      case "INVALID_CAPTCHA":
+        return "图形验证码错误，请重试。";
+      case "INVALID_SMS_CODE":
+        return "短信验证码错误，请重试。";
+      case "INVALID_CREDENTIALS":
+        return "账号或密码错误，请重试。";
+      case "DISPLAY_NAME_TAKEN":
+        return "用户名已被占用，请更换后重试。";
+      case "PHONE_ALREADY_REGISTERED":
+        return "该手机号已注册，请直接登录。";
+      case "INVALID_REGISTRATION_TOKEN":
+      case "INVALID_REFRESH_TOKEN":
+        return "登录状态已失效，请重新开始。";
+      case "REGISTRATION_REQUIRED":
+        return "请先完成注册。";
+      case "SMS_PROVIDER_UNAVAILABLE":
+        return "短信服务暂时不可用，请稍后重试。";
+      default:
+        return "操作失败，请稍后重试。";
+    }
   }
 
   const genericError = errorResponseSchema.safeParse(payload);
 
   if (genericError.success) {
-    return new Error(genericError.data.message);
+    switch (genericError.data.code) {
+      case "UNAUTHORIZED":
+        return "请先登录后再试。";
+      case "FORBIDDEN":
+        return "当前没有权限执行此操作。";
+      case "NOT_FOUND":
+        return "内容不存在或已被删除。";
+      case "BAD_REQUEST":
+        return "提交的信息有误，请检查后重试。";
+      case "INTERNAL_ERROR":
+        return "服务暂时不可用，请稍后重试。";
+      default:
+        return response.status >= 500 ? "服务暂时不可用，请稍后重试。" : "操作失败，请稍后重试。";
+    }
   }
 
-  return new Error(`Request failed with status ${response.status}`);
+  if (response.status === 401) {
+    return "请先登录后再试。";
+  }
+  if (response.status === 403) {
+    return "当前没有权限执行此操作。";
+  }
+  if (response.status === 404) {
+    return "内容不存在或已被删除。";
+  }
+  if (response.status >= 500) {
+    return "服务暂时不可用，请稍后重试。";
+  }
+
+  return "操作失败，请稍后重试。";
+}
+
+export async function parseApiError(response: Response): Promise<Error> {
+  const payload = await response.json().catch(() => null);
+  return new Error(mapApiErrorMessage(response, payload));
 }
 
 async function readJson<T>(response: Response, parser: { parse: (input: unknown) => T }): Promise<T> {
   if (!response.ok) {
-    throw await parseError(response);
+    throw await parseApiError(response);
   }
 
   return parser.parse(await response.json());
@@ -653,6 +711,21 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, rankingResponseSchema);
+    },
+    async listAdminRankings() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.adminList}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminRankingsResponseSchema);
+    },
+    async updateAdminRankingStatus(id: string, input: UpdateRankingStatusInput) {
+      return putJson(
+        API_ROUTES.rankings.adminStatus(id),
+        rankingResponseSchema,
+        updateRankingStatusInputSchema.parse(input)
+      );
     },
     async createRankingComment(id: string, input: CreateRankingCommentInput) {
       return postJson(
