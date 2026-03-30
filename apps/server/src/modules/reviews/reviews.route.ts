@@ -28,7 +28,8 @@ import { reviewsService } from "./reviews.service";
 
 export const reviewsRoute = new Hono<{ Variables: AuthVariables }>();
 
-reviewsRoute.use("*", attachCurrentUser);
+// 评测接口同时包含公开浏览、用户互动和后台审核三类场景，先统一注入当前用户上下文。
+reviewsRoute.use('*', attachCurrentUser);
 
 reviewsRoute.get(API_ROUTES.models.reviews(":slug"), async (context) => {
   const slug = context.req.param("slug");
@@ -70,6 +71,7 @@ reviewsRoute.post(API_ROUTES.models.reviews(":slug"), requireAuth, async (contex
   return context.json(submitModelReviewResponseSchema.parse(payload));
 });
 
+// 后台审核接口放在前半段，前台评论与点赞举报接口放在后半段，便于按职责浏览。
 reviewsRoute.get(API_ROUTES.models.adminReviews, requireAdmin, async (context) => {
   const payload = await reviewsService.listAdminReviews();
   return context.json(adminReviewsResponseSchema.parse(payload));

@@ -1,22 +1,23 @@
-import type { Context, Next } from "hono";
-import { getCookie } from "hono/cookie";
-import { authService } from "./auth.service";
+import type { Context, Next } from 'hono';
+import { getCookie } from 'hono/cookie';
+import { authService } from './auth.service';
 
 export type AuthVariables = {
   currentUser: {
     id: string;
     displayName: string;
     avatarUrl: string | null;
-    role: "user" | "admin";
+    role: 'user' | 'admin';
   } | null;
 };
 
-const SESSION_COOKIE_NAME = "feijia_session";
+const SESSION_COOKIE_NAME = 'feijia_session';
 
 export function readSessionToken(context: Context) {
-  const authorization = context.req.header("authorization");
-  if (authorization?.toLowerCase().startsWith("bearer ")) {
-    const token = authorization.slice("Bearer ".length).trim();
+  // 同一套鉴权中间件同时兼容 App Bearer token 和 Web/Admin Cookie。
+  const authorization = context.req.header('authorization');
+  if (authorization?.toLowerCase().startsWith('bearer ')) {
+    const token = authorization.slice('Bearer '.length).trim();
     if (token) {
       return token;
     }
@@ -28,8 +29,8 @@ export function readSessionToken(context: Context) {
 function unauthorized(context: Context) {
   return context.json(
     {
-      code: "UNAUTHORIZED",
-      message: "未登录或会话失效"
+      code: 'UNAUTHORIZED',
+      message: '未登录或会话失效'
     },
     401
   );
@@ -38,8 +39,8 @@ function unauthorized(context: Context) {
 function forbidden(context: Context) {
   return context.json(
     {
-      code: "FORBIDDEN",
-      message: "管理员权限不足"
+      code: 'FORBIDDEN',
+      message: '管理员权限不足'
     },
     403
   );
@@ -48,12 +49,12 @@ function forbidden(context: Context) {
 export async function attachCurrentUser(context: Context, next: Next) {
   const sessionId = readSessionToken(context);
   const user = await authService.getCurrentUser(sessionId);
-  context.set("currentUser", user);
+  context.set('currentUser', user);
   await next();
 }
 
 export async function requireAuth(context: Context, next: Next) {
-  const user = context.get("currentUser");
+  const user = context.get('currentUser');
   if (!user) {
     return unauthorized(context);
   }
@@ -61,11 +62,11 @@ export async function requireAuth(context: Context, next: Next) {
 }
 
 export async function requireAdmin(context: Context, next: Next) {
-  const user = context.get("currentUser");
+  const user = context.get('currentUser');
   if (!user) {
     return unauthorized(context);
   }
-  if (user.role !== "admin") {
+  if (user.role !== 'admin') {
     return forbidden(context);
   }
   await next();

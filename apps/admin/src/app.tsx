@@ -51,6 +51,7 @@ function AdminRouteError() {
   );
 }
 
+// 后台路由按“审核 / 运营 / 管理”三大分区组织，方便和侧边导航、权限心智保持一致。
 const router = createBrowserRouter([
   {
     path: "/",

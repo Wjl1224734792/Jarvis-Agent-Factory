@@ -12,7 +12,8 @@ import { uploadsService } from "./upload.service";
 
 export const uploadsRoute = new Hono<{ Variables: AuthVariables }>();
 
-uploadsRoute.use("*", attachCurrentUser);
+// 上传流程分成 init -> 直传 -> complete 三段，路由层只负责身份和结果分支编排。
+uploadsRoute.use('*', attachCurrentUser);
 
 uploadsRoute.post(API_ROUTES.uploads.init, requireAuth, async context => {
   const currentUser = context.get("currentUser");

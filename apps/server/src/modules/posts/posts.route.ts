@@ -38,7 +38,8 @@ export const postsRoute = new Hono<{ Variables: AuthVariables }>();
 const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
 const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
-postsRoute.use("*", attachCurrentUser);
+// 帖子路由既服务前台消费，又承载后台审核，所以先统一注入 currentUser 再按场景加权限。
+postsRoute.use('*', attachCurrentUser);
 
 postsRoute.get(API_ROUTES.feed, async (context) => {
   const tabQuery = context.req.query("tab");
@@ -62,6 +63,7 @@ postsRoute.get(API_ROUTES.circleFeed, async (context) => {
   return context.json(payload);
 });
 
+// 用户内容创建和互动操作统一放在前半段，便于和后面的后台审核接口分区阅读。
 postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
   const currentUser = context.get("currentUser");
 
@@ -431,6 +433,7 @@ postsRoute.post(API_ROUTES.posts.commentReport(":postId", ":commentId"), require
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
+// 后台接口集中在文件后半段，避免与前台发布/互动流程混在一起。
 postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => {
   const statusQuery = context.req.query("status");
   const status =

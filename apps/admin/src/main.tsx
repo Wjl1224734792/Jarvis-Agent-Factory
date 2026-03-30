@@ -7,6 +7,7 @@ import { App } from "./app";
 import { queryClient } from "./lib/query-client";
 import "./styles.css";
 
+// 管理端在入口层一次性注入主题与查询缓存，避免后台各功能区重复包裹 Provider。
 ReactDOM.createRoot(document.getElementById("root")!).render(
   <React.StrictMode>
     <ConfigProvider

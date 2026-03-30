@@ -5,6 +5,7 @@ const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
 const baseUrl =
   import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() || fallbackBaseUrl;
 
+// 管理端优先复用共享 client，再按后台工作流补充聚合接口和兼容逻辑。
 const sharedClient = createApiClient({
   baseUrl
 });
@@ -239,6 +240,7 @@ const legacyOfficialDefinitions = [
   }
 ] as const;
 
+// 老榜单数据还存在一部分历史结构，这里统一兜底成后台页面可消费的列表形状。
 function averageScore(items: AdminRankingItem[]) {
   if (items.length === 0) {
     return 0;
@@ -453,6 +455,7 @@ export const apiClient = {
     return sharedClient.updateAdminRankingItemStatus(id, input);
   },
   async listRankingItemsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
+    // 审核页需要把“榜单”视角重新折叠成“榜单条目”视角，方便独立分页和筛选。
     const rankings = await this.listCommunityRankingsForModeration();
     const details = await Promise.all(
       rankings.items.map(async (ranking) => {

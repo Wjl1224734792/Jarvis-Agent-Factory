@@ -316,6 +316,7 @@ function buildQueryString(input: ModelsQueryInput): string {
   return queryString ? `?${queryString}` : "";
 }
 
+// 这里是前后端共享契约的主入口：路径常量、schema 校验和 fetch 细节都在这一层收敛。
 export function createApiClient(options: ApiClientOptions) {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
 
@@ -381,6 +382,7 @@ export function createApiClient(options: ApiClientOptions) {
       | "ranking-item-image"
       | "report-image"
   ) {
+    // 上传走“初始化签名 -> 直传对象存储 -> 回写完成”的三段式，前端只暴露一个高层 API。
     const initPayload = await initUpload({
       bizType,
       filename: file.name,

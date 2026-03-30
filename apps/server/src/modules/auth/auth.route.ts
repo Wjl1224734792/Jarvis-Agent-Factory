@@ -33,6 +33,7 @@ import { AuthError, authService } from "./auth.service";
 
 const authRoute = new Hono<{ Variables: AuthVariables }>();
 
+// 只有需要 Web/Admin Cookie 的场景才会写入会话；App 端改用 Bearer token 返回。
 function setSessionCookie(context: Context, sessionId: string) {
   setCookie(context, SESSION_COOKIE_NAME, sessionId, {
     httpOnly: true,
@@ -66,6 +67,7 @@ function getRequestMetadata(context: Context, explicitDeviceLabel?: string | nul
   };
 }
 
+// 先处理登录、注册、验证码等匿名可访问接口，随后再挂载当前用户解析中间件。
 authRoute.post(API_ROUTES.auth.captchaChallenge, (context) => {
   const payload = captchaChallengeResponseSchema.parse(authService.requestCaptchaChallenge());
   return context.json(payload);
@@ -248,7 +250,8 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
   }
 });
 
-authRoute.use("*", attachCurrentUser);
+// 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
+authRoute.use('*', attachCurrentUser);
 
 authRoute.get(API_ROUTES.auth.currentUser, (context) => {
   return context.json(

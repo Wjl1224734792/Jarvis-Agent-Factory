@@ -48,10 +48,12 @@ const RankingEditorPage = lazy(() =>
   }))
 );
 
+// 发布类页面体积较大且访问频率低于主 feed，因此统一复用同一套懒加载骨架屏。
 function withPublishFallback(children: ReactNode) {
   return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
 }
 
+// Web 端路由把“公共浏览”和“需登录的个人区”放在同一个壳层里，靠 ProtectedRoute 做权限切分。
 const router = createBrowserRouter([
   {
     path: APP_ROUTES.home,
@@ -163,6 +165,7 @@ const router = createBrowserRouter([
 
 export function App() {
   return (
+    // QueryClient 放在路由外层，保证跨页面切换时缓存和鉴权态能复用。
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>

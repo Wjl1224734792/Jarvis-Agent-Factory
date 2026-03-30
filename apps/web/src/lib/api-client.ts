@@ -6,6 +6,7 @@ const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
 const resolvedBaseUrl =
   import.meta.env.VITE_WEB_API_BASE_URL?.trim() || fallbackBaseUrl;
 
+// 共享 client 负责大部分“服务端 schema 已覆盖”的接口，web 侧只扩展额外页面专属能力。
 const sharedClient = createApiClient({
   baseUrl: resolvedBaseUrl
 });
@@ -79,6 +80,7 @@ export function sanitizeWebApiErrorMessage(message: string) {
   return "操作失败，请稍后重试。";
 }
 
+// Web 端额外做一层错误文案翻译，避免把服务端原始错误直接暴露给终端用户。
 export function mapWebApiError(error: unknown) {
   if (error instanceof Error) {
     return new Error(sanitizeWebApiErrorMessage(error.message));
@@ -308,6 +310,7 @@ export const apiClient = {
   }
 };
 
+// 对导出的所有异步接口统一包一层错误翻译，保证页面侧无需重复 try/catch 文案适配。
 for (const key of Object.keys(apiClient) as Array<keyof typeof apiClient>) {
   const current = apiClient[key];
   if (typeof current !== "function") {
