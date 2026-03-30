@@ -5,7 +5,7 @@ import {
   updateAircraftSubmissionStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
   requireAdmin,
@@ -15,12 +15,32 @@ import {
 import { aircraftSubmissionsService } from "./aircraft-submissions.service";
 
 export const aircraftSubmissionsRoute = new Hono<{ Variables: AuthVariables }>();
-aircraftSubmissionsRoute.use("*", attachCurrentUser);
 
-aircraftSubmissionsRoute.post(API_ROUTES.submissions.create, requireAuth, async (context) => {
+function getCurrentUserOrUnauthorized(context: Context) {
   const currentUser = context.get("currentUser");
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  return currentUser;
+}
+
+function getRequiredIdOrBadRequest(context: Context) {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  return id;
+}
+
+// 机型投稿域：用户提交/编辑素材，管理员审核并驱动状态迁移。
+aircraftSubmissionsRoute.use("*", attachCurrentUser);
+
+aircraftSubmissionsRoute.post(API_ROUTES.submissions.create, requireAuth, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = createAircraftSubmissionInputSchema.parse(await context.req.json());
@@ -37,9 +57,9 @@ aircraftSubmissionsRoute.post(API_ROUTES.submissions.create, requireAuth, async 
 });
 
 aircraftSubmissionsRoute.get(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
 
   const payload = await aircraftSubmissionsService.getSubmission(id);
@@ -51,13 +71,13 @@ aircraftSubmissionsRoute.get(API_ROUTES.submissions.detail(":id"), requireAuth, 
 });
 
 aircraftSubmissionsRoute.put(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  const currentUser = context.get("currentUser");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = createAircraftSubmissionInputSchema.parse(await context.req.json());
@@ -73,13 +93,13 @@ aircraftSubmissionsRoute.put(API_ROUTES.submissions.detail(":id"), requireAuth, 
 });
 
 aircraftSubmissionsRoute.delete(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  const currentUser = context.get("currentUser");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const result = await aircraftSubmissionsService.deleteOwnedSubmission(id, currentUser);
@@ -102,11 +122,12 @@ aircraftSubmissionsRoute.put(
   API_ROUTES.submissions.adminDetail(":id"),
   requireAdmin,
   async (context) => {
-    const id = context.req.param("id");
-    if (!id) {
-      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    const id = getRequiredIdOrBadRequest(context);
+    if (id instanceof Response) {
+      return id;
     }
 
+    // 当状态改成 rejected 时，schema 会要求 rejectionReason 必填。
     const input = updateAircraftSubmissionStatusInputSchema.parse(await context.req.json());
     const payload = await aircraftSubmissionsService.updateSubmissionStatus(
       id,

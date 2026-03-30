@@ -3,11 +3,27 @@ import {
   adminBrandResponseSchema,
   brandSchema
 } from "@feijia/schemas";
-import { Hono } from "hono";
-import { requireAdmin, type AuthVariables } from "../auth/auth.middleware";
+import { Hono, type Context } from "hono";
+import {
+  attachCurrentUser,
+  requireAdmin,
+  type AuthVariables
+} from "../auth/auth.middleware";
 import { brandsService } from "./brands.service";
 
 export const brandsRoute = new Hono<{ Variables: AuthVariables }>();
+
+function getRequiredIdOrBadRequest(context: Context) {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  return id;
+}
+
+// 品牌域：公开查询可读，写接口仅管理员开放。
+brandsRoute.use("*", attachCurrentUser);
 
 brandsRoute.get("/", async (context) => {
   const items = await brandsService.listBrands();
@@ -21,9 +37,9 @@ brandsRoute.post("/", requireAdmin, async (context) => {
 });
 
 brandsRoute.put("/:id", requireAdmin, async (context) => {
-  const id = context.req.param("id");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
   const input = adminBrandInputSchema.parse(await context.req.json());
   const item = await brandsService.updateBrand(id, input);

@@ -1,19 +1,36 @@
 import {
+  actionSuccessResponseSchema,
   adminLoginRequestSchema,
   adminRecentSessionsResponseSchema,
+  adminBrandInputSchema,
+  adminBrandResponseSchema,
+  adminCategoryInputSchema,
+  adminCategoryResponseSchema,
+  adminContentCategoryInputSchema,
+  adminContentCategoryResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
   appLoginResponseSchema,
+  aircraftCategorySchema,
+  aircraftSubmissionResponseSchema,
+  aircraftSubmissionsResponseSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
+  brandApplicationResponseSchema,
+  brandApplicationsResponseSchema,
+  brandSchema,
   captchaChallengeResponseSchema,
   completeAppRegistrationRequestSchema,
   completeUploadInputSchema,
   completeUploadResponseSchema,
   completeWebRegistrationRequestSchema,
+  contentCategoriesResponseSchema,
   createPostInputSchema,
   createPostResponseSchema,
+  createAircraftSubmissionInputSchema,
+  createBrandApplicationInputSchema,
   currentUserResponseSchema,
+  currentUserProfileResponseSchema,
   errorResponseSchema,
   fileUrlResponseSchema,
   healthResponseSchema,
@@ -27,8 +44,20 @@ import {
   rankingsResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
+  notificationsResponseSchema,
+  phoneChangeConfirmInputSchema,
+  phoneChangeRequestInputSchema,
+  phoneChangeRequestResponseSchema,
+  siteSettingsResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
+  updateAircraftSubmissionStatusInputSchema,
+  updateBrandApplicationInputSchema,
+  updateBrandApplicationStatusInputSchema,
+  updateCurrentUserProfileInputSchema,
+  updateSiteSettingsInputSchema,
+  userContentResponseSchema,
+  userProfileResponseSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
 } from '@feijia/schemas';
@@ -49,9 +78,20 @@ function toOpenApiSchema(schema: z.ZodTypeAny): JsonSchemaObject {
   }) as JsonSchemaObject;
 }
 
+function mergeSchema(
+  schema: JsonSchemaObject,
+  extra: Record<string, unknown>
+): JsonSchemaObject {
+  return {
+    ...schema,
+    ...extra
+  };
+}
+
 const componentSchemas = {
   HealthResponse: toOpenApiSchema(healthResponseSchema),
   ErrorResponse: toOpenApiSchema(errorResponseSchema),
+  ActionSuccessResponse: toOpenApiSchema(actionSuccessResponseSchema),
   AuthErrorResponse: toOpenApiSchema(authErrorResponseSchema),
   CaptchaChallengeResponse: toOpenApiSchema(captchaChallengeResponseSchema),
   SmsCodeRequest: toOpenApiSchema(smsCodeRequestSchema),
@@ -70,6 +110,19 @@ const componentSchemas = {
   AdminLoginRequest: toOpenApiSchema(adminLoginRequestSchema),
   AuthSuccessResponse: toOpenApiSchema(authSuccessResponseSchema),
   CurrentUserResponse: toOpenApiSchema(currentUserResponseSchema),
+  CurrentUserProfileResponse: toOpenApiSchema(currentUserProfileResponseSchema),
+  UpdateCurrentUserProfileRequest: mergeSchema(
+    toOpenApiSchema(updateCurrentUserProfileInputSchema),
+    {
+      minProperties: 1
+    }
+  ),
+  PhoneChangeRequest: toOpenApiSchema(phoneChangeRequestInputSchema),
+  PhoneChangeRequestResponse: toOpenApiSchema(phoneChangeRequestResponseSchema),
+  PhoneChangeConfirmRequest: toOpenApiSchema(phoneChangeConfirmInputSchema),
+  NotificationsResponse: toOpenApiSchema(notificationsResponseSchema),
+  UserProfileResponse: toOpenApiSchema(userProfileResponseSchema),
+  UserContentResponse: toOpenApiSchema(userContentResponseSchema),
   FileUrlResponse: toOpenApiSchema(fileUrlResponseSchema),
   AdminRecentSessionsResponse: toOpenApiSchema(
     adminRecentSessionsResponseSchema
@@ -78,6 +131,41 @@ const componentSchemas = {
   InitUploadResponse: toOpenApiSchema(initUploadResponseSchema),
   CompleteUploadRequest: toOpenApiSchema(completeUploadInputSchema),
   CompleteUploadResponse: toOpenApiSchema(completeUploadResponseSchema),
+  CreateBrandApplicationRequest: toOpenApiSchema(createBrandApplicationInputSchema),
+  UpdateBrandApplicationRequest: toOpenApiSchema(updateBrandApplicationInputSchema),
+  UpdateBrandApplicationStatusRequest: toOpenApiSchema(
+    updateBrandApplicationStatusInputSchema
+  ),
+  BrandApplicationResponse: toOpenApiSchema(brandApplicationResponseSchema),
+  BrandApplicationsResponse: toOpenApiSchema(brandApplicationsResponseSchema),
+  CreateAircraftSubmissionRequest: toOpenApiSchema(
+    createAircraftSubmissionInputSchema
+  ),
+  UpdateAircraftSubmissionStatusRequest: toOpenApiSchema(
+    updateAircraftSubmissionStatusInputSchema
+  ),
+  AircraftSubmissionResponse: toOpenApiSchema(aircraftSubmissionResponseSchema),
+  AircraftSubmissionsResponse: toOpenApiSchema(
+    aircraftSubmissionsResponseSchema
+  ),
+  ContentCategoriesResponse: toOpenApiSchema(contentCategoriesResponseSchema),
+  AdminContentCategoryRequest: toOpenApiSchema(adminContentCategoryInputSchema),
+  AdminContentCategoryResponse: toOpenApiSchema(
+    adminContentCategoryResponseSchema
+  ),
+  AircraftCategoryListResponse: toOpenApiSchema(z.array(aircraftCategorySchema)),
+  AdminCategoryRequest: toOpenApiSchema(adminCategoryInputSchema),
+  AdminCategoryResponse: toOpenApiSchema(adminCategoryResponseSchema),
+  BrandListResponse: toOpenApiSchema(z.array(brandSchema)),
+  AdminBrandRequest: toOpenApiSchema(adminBrandInputSchema),
+  AdminBrandResponse: toOpenApiSchema(adminBrandResponseSchema),
+  SiteSettingsResponse: toOpenApiSchema(siteSettingsResponseSchema),
+  UpdateSiteSettingsRequest: mergeSchema(
+    toOpenApiSchema(updateSiteSettingsInputSchema),
+    {
+      minProperties: 1
+    }
+  ),
   CreatePostRequest: toOpenApiSchema(createPostInputSchema),
   CreatePostResponse: toOpenApiSchema(createPostResponseSchema),
   PostDetailResponse: toOpenApiSchema(postDetailResponseSchema),
@@ -154,10 +242,16 @@ const sessionCookieSecurity = [{ sessionCookieAuth: [] }];
 const bearerSecurity = [{ bearerAuth: [] }];
 const optionalSessionCookieSecurity = [{}, { sessionCookieAuth: [] }];
 const optionalBearerSecurity = [{}, { bearerAuth: [] }];
+const optionalSessionOrBearerSecurity = [
+  {},
+  { sessionCookieAuth: [] },
+  { bearerAuth: [] }
+];
 const sessionOrBearerSecurity = [
   { sessionCookieAuth: [] },
   { bearerAuth: [] }
 ];
+const adminSessionSecurity = [{ sessionCookieAuth: [] }];
 
 export const openApiDocument = {
   openapi: '3.0.3',
@@ -197,6 +291,26 @@ export const openApiDocument = {
     {
       name: 'rankings',
       description: '榜单列表与详情接口'
+    },
+    {
+      name: 'social',
+      description: '用户资料、关注关系和通知接口'
+    },
+    {
+      name: 'brand-applications',
+      description: '品牌申请提交与后台审核接口'
+    },
+    {
+      name: 'submissions',
+      description: '飞行器投稿提交与后台审核接口'
+    },
+    {
+      name: 'catalog',
+      description: '分类、品牌和内容分类等基础资料接口'
+    },
+    {
+      name: 'settings',
+      description: '后台站点配置接口'
     }
   ],
   components: {
@@ -365,6 +479,167 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.users.profile('{userId}')]: {
+      get: {
+        tags: ['social'],
+        summary: '查看用户资料',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '用户 ID。')],
+        responses: {
+          '200': jsonResponse('UserProfileResponse', '返回公开可见的用户资料。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.users.content('{userId}')]: {
+      get: {
+        tags: ['social'],
+        summary: '查看用户公开内容',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '用户 ID。')],
+        responses: {
+          '200': jsonResponse('UserContentResponse', '返回当前查看者可见的用户内容。'),
+          '403': jsonResponse('ErrorResponse', '当前无权查看该用户内容。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.users.meProfile]: {
+      get: {
+        tags: ['social'],
+        summary: '查看当前用户资料',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '返回当前会话可编辑的个人资料。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      },
+      put: {
+        tags: ['social'],
+        summary: '更新当前用户资料',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'UpdateCurrentUserProfileRequest',
+          '按需增量更新个人资料，至少提交一个字段。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '更新后的个人资料。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '昵称已被占用。')
+        }
+      }
+    },
+    [API_ROUTES.users.mePhoneChangeRequest]: {
+      post: {
+        tags: ['social'],
+        summary: '申请更换手机号',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'PhoneChangeRequest',
+          '提交目标手机号和图形验证码，换取短信验证请求。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'PhoneChangeRequestResponse',
+            '返回短信验证请求信息。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
+        }
+      }
+    },
+    [API_ROUTES.users.mePhoneChangeConfirm]: {
+      post: {
+        tags: ['social'],
+        summary: '确认更换手机号',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'PhoneChangeConfirmRequest',
+          '提交短信验证码，完成手机号换绑。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '返回更新后的个人资料。'
+          ),
+          '400': jsonResponse('ErrorResponse', '短信验证码无效或已过期。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
+        }
+      }
+    },
+    [API_ROUTES.social.follow('{userId}')]: {
+      post: {
+        tags: ['social'],
+        summary: '关注或取消关注用户',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '目标用户 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '关注关系更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '参数错误或不能关注自己。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '目标用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.social.notifications]: {
+      get: {
+        tags: ['social'],
+        summary: '查看通知列表',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'NotificationsResponse',
+            '返回当前用户的通知列表和未读数。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.social.notificationsReadAll]: {
+      post: {
+        tags: ['social'],
+        summary: '将所有通知标记为已读',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '所有通知已标记为已读。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.social.notificationRead('{id}')]: {
+      post: {
+        tags: ['social'],
+        summary: '将单条通知标记为已读',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '通知 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '通知已标记为已读。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少通知 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '通知不存在。')
+        }
+      }
+    },
     [API_ROUTES.uploads.init]: {
       post: {
         tags: ['uploads'],
@@ -407,6 +682,392 @@ export const openApiDocument = {
           '200': jsonResponse('FileUrlResponse', '返回文件可访问地址。'),
           '400': jsonResponse('ErrorResponse', '缺少文件 ID。'),
           '404': jsonResponse('ErrorResponse', '文件不存在。')
+        }
+      }
+    },
+    [API_ROUTES.brandApplications.create]: {
+      post: {
+        tags: ['brand-applications'],
+        summary: '提交品牌申请',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'CreateBrandApplicationRequest',
+          '提交品牌申请资料。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'BrandApplicationResponse',
+            '品牌申请创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.brandApplications.detail('{id}')]: {
+      get: {
+        tags: ['brand-applications'],
+        summary: '查看品牌申请详情',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '品牌申请 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'BrandApplicationResponse',
+            '返回品牌申请详情。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '品牌申请不存在。')
+        }
+      },
+      put: {
+        tags: ['brand-applications'],
+        summary: '更新品牌申请',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '品牌申请 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateBrandApplicationRequest',
+          '更新自己提交的品牌申请。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'BrandApplicationResponse',
+            '品牌申请已更新。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '无权更新该申请。'),
+          '404': jsonResponse('ErrorResponse', '品牌申请不存在。')
+        }
+      }
+    },
+    [API_ROUTES.brandApplications.adminList]: {
+      get: {
+        tags: ['brand-applications'],
+        summary: '管理端查看品牌申请列表',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'BrandApplicationsResponse',
+            '返回全部品牌申请。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.brandApplications.adminDetail('{id}')]: {
+      put: {
+        tags: ['brand-applications'],
+        summary: '管理端审核品牌申请',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '品牌申请 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateBrandApplicationStatusRequest',
+          '更新品牌申请状态；当 status 为 rejected 时必须提供 rejectionReason。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'BrandApplicationResponse',
+            '品牌申请状态已更新。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '品牌申请不存在。')
+        }
+      }
+    },
+    [API_ROUTES.submissions.create]: {
+      post: {
+        tags: ['submissions'],
+        summary: '提交飞行器投稿',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'CreateAircraftSubmissionRequest',
+          '提交机型投稿的基础资料、媒体和参数。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionResponse',
+            '投稿创建成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '视频资源不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.submissions.detail('{id}')]: {
+      get: {
+        tags: ['submissions'],
+        summary: '查看飞行器投稿详情',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '投稿 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionResponse',
+            '返回投稿详情。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '投稿不存在。')
+        }
+      },
+      put: {
+        tags: ['submissions'],
+        summary: '更新自己的飞行器投稿',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '投稿 ID。')],
+        requestBody: jsonRequestBody(
+          'CreateAircraftSubmissionRequest',
+          '更新已提交的投稿内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionResponse',
+            '投稿已更新。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '无权更新该投稿。'),
+          '404': jsonResponse('ErrorResponse', '投稿不存在。')
+        }
+      },
+      delete: {
+        tags: ['submissions'],
+        summary: '删除自己的飞行器投稿',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '投稿 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '投稿已删除。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '无权删除该投稿。'),
+          '404': jsonResponse('ErrorResponse', '投稿不存在。')
+        }
+      }
+    },
+    [API_ROUTES.submissions.adminList]: {
+      get: {
+        tags: ['submissions'],
+        summary: '管理端查看飞行器投稿列表',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionsResponse',
+            '返回全部投稿。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.submissions.adminDetail('{id}')]: {
+      put: {
+        tags: ['submissions'],
+        summary: '管理端审核飞行器投稿',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '投稿 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateAircraftSubmissionStatusRequest',
+          '更新投稿状态；当 status 为 rejected 时必须提供 rejectionReason。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionResponse',
+            '投稿状态已更新。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '投稿不存在。')
+        }
+      }
+    },
+    [API_ROUTES.content.categories]: {
+      get: {
+        tags: ['catalog'],
+        summary: '查看启用中的内容分类',
+        responses: {
+          '200': jsonResponse(
+            'ContentCategoriesResponse',
+            '返回可用于内容发布的分类列表。'
+          )
+        }
+      }
+    },
+    [API_ROUTES.content.adminCategories]: {
+      get: {
+        tags: ['catalog'],
+        summary: '管理端查看全部内容分类',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'ContentCategoriesResponse',
+            '返回全部内容分类。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      },
+      post: {
+        tags: ['catalog'],
+        summary: '管理端创建内容分类',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'AdminContentCategoryRequest',
+          '创建内容分类。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminContentCategoryResponse',
+            '内容分类创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.content.adminCategoryDetail('{id}')]: {
+      put: {
+        tags: ['catalog'],
+        summary: '管理端更新内容分类',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '内容分类 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminContentCategoryRequest',
+          '更新内容分类。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminContentCategoryResponse',
+            '内容分类已更新。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少内容分类 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '内容分类不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.categories]: {
+      get: {
+        tags: ['catalog'],
+        summary: '查看机型分类列表',
+        responses: {
+          '200': jsonResponse(
+            'AircraftCategoryListResponse',
+            '返回机型分类列表。'
+          )
+        }
+      },
+      post: {
+        tags: ['catalog'],
+        summary: '管理端创建机型分类',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'AdminCategoryRequest',
+          '创建机型分类。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminCategoryResponse',
+            '机型分类创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminCategoryDetail('{id}')]: {
+      put: {
+        tags: ['catalog'],
+        summary: '管理端更新机型分类',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '机型分类 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminCategoryRequest',
+          '更新机型分类。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminCategoryResponse',
+            '机型分类已更新。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少机型分类 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '机型分类不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.brands]: {
+      get: {
+        tags: ['catalog'],
+        summary: '查看品牌列表',
+        responses: {
+          '200': jsonResponse('BrandListResponse', '返回品牌列表。')
+        }
+      },
+      post: {
+        tags: ['catalog'],
+        summary: '管理端创建品牌',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'AdminBrandRequest',
+          '创建品牌。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminBrandResponse', '品牌创建成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminBrandDetail('{id}')]: {
+      put: {
+        tags: ['catalog'],
+        summary: '管理端更新品牌',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '品牌 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminBrandRequest',
+          '更新品牌。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminBrandResponse', '品牌已更新。'),
+          '400': jsonResponse('ErrorResponse', '缺少品牌 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '品牌不存在。')
+        }
+      }
+    },
+    [API_ROUTES.admin.siteSettings]: {
+      get: {
+        tags: ['settings'],
+        summary: '查看站点设置',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'SiteSettingsResponse',
+            '返回当前站点设置。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      },
+      put: {
+        tags: ['settings'],
+        summary: '更新站点设置',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'UpdateSiteSettingsRequest',
+          '按需更新站点设置，至少提交一个字段。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'SiteSettingsResponse',
+            '站点设置已更新。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '500': jsonResponse('ErrorResponse', '站点设置更新失败。')
         }
       }
     },

@@ -6,7 +6,7 @@ import {
   updateBrandApplicationStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
   requireAdmin,
@@ -17,12 +17,31 @@ import { brandApplicationsService } from "./brand-applications.service";
 
 export const brandApplicationsRoute = new Hono<{ Variables: AuthVariables }>();
 
-brandApplicationsRoute.use("*", attachCurrentUser);
-
-brandApplicationsRoute.post(API_ROUTES.brandApplications.create, requireAuth, async (context) => {
+function getCurrentUserOrUnauthorized(context: Context) {
   const currentUser = context.get("currentUser");
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  return currentUser;
+}
+
+function getRequiredIdOrBadRequest(context: Context) {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  return id;
+}
+
+// 品牌申请域：用户提交和维护自己的申请，管理员进行统一审核和状态流转。
+brandApplicationsRoute.use("*", attachCurrentUser);
+
+brandApplicationsRoute.post(API_ROUTES.brandApplications.create, requireAuth, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = createBrandApplicationInputSchema.parse(await context.req.json());
@@ -38,9 +57,9 @@ brandApplicationsRoute.post(API_ROUTES.brandApplications.create, requireAuth, as
 });
 
 brandApplicationsRoute.get(API_ROUTES.brandApplications.detail(":id"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
 
   const payload = await brandApplicationsService.getApplication(id);
@@ -52,13 +71,13 @@ brandApplicationsRoute.get(API_ROUTES.brandApplications.detail(":id"), requireAu
 });
 
 brandApplicationsRoute.put(API_ROUTES.brandApplications.update(":id"), requireAuth, async (context) => {
-  const id = context.req.param("id");
-  const currentUser = context.get("currentUser");
-  if (!id) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  const id = getRequiredIdOrBadRequest(context);
+  if (id instanceof Response) {
+    return id;
   }
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = updateBrandApplicationInputSchema.parse(await context.req.json());
@@ -87,11 +106,12 @@ brandApplicationsRoute.put(
   API_ROUTES.brandApplications.adminDetail(":id"),
   requireAdmin,
   async (context) => {
-    const id = context.req.param("id");
-    if (!id) {
-      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    const id = getRequiredIdOrBadRequest(context);
+    if (id instanceof Response) {
+      return id;
     }
 
+    // 当状态改成 rejected 时，schema 会要求 rejectionReason 必填。
     const input = updateBrandApplicationStatusInputSchema.parse(await context.req.json());
     const payload = await brandApplicationsService.updateStatus(
       id,

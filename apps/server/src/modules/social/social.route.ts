@@ -10,7 +10,7 @@ import {
   userProfileResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono } from "hono";
+import { Hono, type Context } from "hono";
 import {
   attachCurrentUser,
   requireAuth,
@@ -20,18 +20,35 @@ import { socialService } from "./social.service";
 
 export const socialRoute = new Hono<{ Variables: AuthVariables }>();
 
+function getCurrentUserOrUnauthorized(context: Context) {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  return currentUser;
+}
+
+function getRequiredParam(context: Context, key: string, missingMessage: string) {
+  const value = context.req.param(key);
+  if (!value) {
+    return context.json({ code: "BAD_REQUEST", message: missingMessage }, 400);
+  }
+
+  return value;
+}
+
+// 社交域路由：统一处理关注关系、通知、个人资料和公开主页内容。
 socialRoute.use("*", attachCurrentUser);
 
 socialRoute.post(API_ROUTES.social.follow(":userId"), requireAuth, async (context) => {
-  const userId = context.req.param("userId");
-  const currentUser = context.get("currentUser");
-
-  if (!userId) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
+  const userId = getRequiredParam(context, "userId", "Missing user id.");
+  if (userId instanceof Response) {
+    return userId;
   }
-
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const result = await socialService.toggleFollow(currentUser.id, userId);
@@ -48,10 +65,9 @@ socialRoute.post(API_ROUTES.social.follow(":userId"), requireAuth, async (contex
 });
 
 socialRoute.get(API_ROUTES.social.notifications, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const payload = await socialService.listNotifications(currentUser.id);
@@ -59,10 +75,9 @@ socialRoute.get(API_ROUTES.social.notifications, requireAuth, async (context) =>
 });
 
 socialRoute.post(API_ROUTES.social.notificationsReadAll, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   await socialService.markAllNotificationsRead(currentUser.id);
@@ -71,14 +86,13 @@ socialRoute.post(API_ROUTES.social.notificationsReadAll, requireAuth, async (con
 });
 
 socialRoute.post(API_ROUTES.social.notificationRead(":id"), requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-  const notificationId = context.req.param("id");
-
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
-  if (!notificationId) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing notification id." }, 400);
+  const notificationId = getRequiredParam(context, "id", "Missing notification id.");
+  if (notificationId instanceof Response) {
+    return notificationId;
   }
 
   const result = await socialService.markNotificationRead(currentUser.id, notificationId);
@@ -90,9 +104,9 @@ socialRoute.post(API_ROUTES.social.notificationRead(":id"), requireAuth, async (
 });
 
 socialRoute.get(API_ROUTES.users.meProfile, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const payload = await socialService.getCurrentUserProfile(currentUser.id);
@@ -104,9 +118,9 @@ socialRoute.get(API_ROUTES.users.meProfile, requireAuth, async (context) => {
 });
 
 socialRoute.put(API_ROUTES.users.meProfile, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = updateCurrentUserProfileInputSchema.parse(await context.req.json());
@@ -122,9 +136,9 @@ socialRoute.put(API_ROUTES.users.meProfile, requireAuth, async (context) => {
 });
 
 socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = phoneChangeRequestInputSchema.parse(await context.req.json());
@@ -140,9 +154,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (cont
 });
 
 socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (context) => {
-  const currentUser = context.get("currentUser");
-  if (!currentUser) {
-    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
   const input = phoneChangeConfirmInputSchema.parse(await context.req.json());
@@ -161,9 +175,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (cont
 });
 
 socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {
-  const userId = context.req.param("userId");
-  if (!userId) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
+  const userId = getRequiredParam(context, "userId", "Missing user id.");
+  if (userId instanceof Response) {
+    return userId;
   }
 
   const payload = await socialService.getUserProfile(userId, context.get("currentUser")?.id);
@@ -175,9 +189,9 @@ socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {
 });
 
 socialRoute.get(API_ROUTES.users.content(":userId"), async (context) => {
-  const userId = context.req.param("userId");
-  if (!userId) {
-    return context.json({ code: "BAD_REQUEST", message: "Missing user id." }, 400);
+  const userId = getRequiredParam(context, "userId", "Missing user id.");
+  if (userId instanceof Response) {
+    return userId;
   }
 
   const result = await socialService.listUserContent(userId, context.get("currentUser")?.id);

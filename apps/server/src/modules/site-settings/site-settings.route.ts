@@ -13,6 +13,7 @@ import { siteSettingsService } from "./site-settings.service";
 
 export const siteSettingsRoute = new Hono<{ Variables: AuthVariables }>();
 
+// 站点设置只允许管理员访问，并在这里统一做 schema 级别的输入约束。
 siteSettingsRoute.use("*", attachCurrentUser);
 
 siteSettingsRoute.get(API_ROUTES.admin.siteSettings, requireAdmin, async (context) => {
@@ -30,4 +31,3 @@ siteSettingsRoute.put(API_ROUTES.admin.siteSettings, requireAdmin, async (contex
 
   return context.json(siteSettingsResponseSchema.parse({ item }));
 });
-

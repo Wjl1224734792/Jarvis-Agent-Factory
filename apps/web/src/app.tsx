@@ -48,6 +48,10 @@ const RankingEditorPage = lazy(() =>
   }))
 );
 
+function toRootChildPath(path: string) {
+  return path.slice(1);
+}
+
 // 发布类页面体积较大且访问频率低于主 feed，因此统一复用同一套懒加载骨架屏。
 function withPublishFallback(children: ReactNode) {
   return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
@@ -64,19 +68,19 @@ const router = createBrowserRouter([
         element: <Navigate replace to={APP_ROUTES.feedHome} />
       },
       {
-        path: APP_ROUTES.feedHome.slice(1),
+        path: toRootChildPath(APP_ROUTES.feedHome),
         element: <HomePage />
       },
       {
-        path: APP_ROUTES.flightCircle.slice(1),
+        path: toRootChildPath(APP_ROUTES.flightCircle),
         element: <CirclePage />
       },
       {
-        path: APP_ROUTES.webLogin.slice(1),
+        path: toRootChildPath(APP_ROUTES.webLogin),
         element: <LoginPage />
       },
       {
-        path: APP_ROUTES.webProfile.slice(1),
+        path: toRootChildPath(APP_ROUTES.webProfile),
         element: (
           <ProtectedRoute>
             <ProfilePage />
@@ -84,7 +88,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: APP_ROUTES.webSettings.slice(1),
+        path: toRootChildPath(APP_ROUTES.webSettings),
         element: (
           <ProtectedRoute>
             <SettingsPage />
@@ -92,11 +96,11 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: APP_ROUTES.webUserProfile.slice(1),
+        path: toRootChildPath(APP_ROUTES.webUserProfile),
         element: <UserProfilePage />
       },
       {
-        path: APP_ROUTES.notifications.slice(1),
+        path: toRootChildPath(APP_ROUTES.notifications),
         element: (
           <ProtectedRoute>
             <NotificationsPage />
@@ -104,55 +108,55 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: APP_ROUTES.models.slice(1),
+        path: toRootChildPath(APP_ROUTES.models),
         element: <ModelsPage />
       },
       {
-        path: APP_ROUTES.modelDetail.slice(1),
+        path: toRootChildPath(APP_ROUTES.modelDetail),
         element: <ModelDetailPage />
       },
       {
-        path: APP_ROUTES.rankings.slice(1),
+        path: toRootChildPath(APP_ROUTES.rankings),
         element: <RankingsPage />
       },
       {
-        path: APP_ROUTES.rankingEditor.slice(1),
+        path: toRootChildPath(APP_ROUTES.rankingEditor),
         element: withPublishFallback(<RankingEditorPage />)
       },
       {
-        path: WEB_ROUTE_PATHS.rankingDetail.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
         element: <RankingDetailPage />
       },
       {
-        path: WEB_ROUTE_PATHS.rankingItemDetail.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.rankingItemDetail),
         element: <RankingItemDetailPage />
       },
       {
-        path: APP_ROUTES.postDetail.slice(1),
+        path: toRootChildPath(APP_ROUTES.postDetail),
         element: <PostDetailPage />
       },
       {
-        path: WEB_ROUTE_PATHS.publishArticle.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
         element: withPublishFallback(<PublishArticlePage />)
       },
       {
-        path: WEB_ROUTE_PATHS.publishMoment.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.publishMoment),
         element: withPublishFallback(<PublishMomentPage />)
       },
       {
-        path: WEB_ROUTE_PATHS.publishAircraft.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.publishAircraft),
         element: withPublishFallback(<PublishAircraftPage />)
       },
       {
-        path: APP_ROUTES.publishBrand.slice(1),
+        path: toRootChildPath(APP_ROUTES.publishBrand),
         element: withPublishFallback(<PublishBrandPage />)
       },
       {
-        path: WEB_ROUTE_PATHS.publishStatus.slice(1),
+        path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
         element: <PublishStatusPage />
       },
       {
-        path: APP_ROUTES.compose.slice(1),
+        path: toRootChildPath(APP_ROUTES.compose),
         element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
       },
       {
