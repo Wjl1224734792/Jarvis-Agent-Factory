@@ -2,6 +2,7 @@ import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
 function extractCookie(setCookie: string | null) {
@@ -77,6 +78,39 @@ async function loginAdmin() {
   });
 
   return extractCookie(response.headers.get("set-cookie"));
+}
+
+async function uploadReportImage(cookie: string, name = "report-evidence.png") {
+  const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+    method: "GET",
+    headers: { cookie }
+  });
+  expect(meResponse.status).toBe(200);
+  const mePayload = (await meResponse.json()) as { user: { id: string } | null };
+  const ownerId = mePayload.user?.id;
+  expect(ownerId).toBeTruthy();
+
+  const pending = await uploadsRepo.createPendingFile({
+    ownerId: ownerId!,
+    bizType: "report-image",
+    mediaKind: "image",
+    provider: "minio",
+    bucket: "feijia-media",
+    region: "us-east-1",
+    objectKey: `report-image/${ownerId}/${name}`,
+    fileName: name,
+    mimeType: "image/png",
+    byteSize: 256,
+    visibility: "public"
+  });
+  expect(pending?.id).toBeTruthy();
+
+  const uploaded = await uploadsRepo.markFileUploaded({
+    fileId: pending!.id,
+    etag: "report-evidence"
+  });
+
+  return uploaded!.id;
 }
 
 async function updateSiteSettings(
@@ -721,6 +755,7 @@ describe("rankings flows", () => {
     );
     expect(likeResponse.status).toBe(200);
 
+    const reportImageId = await uploadReportImage(watcherCookie);
     const commentReportResponse = await app.request(
       API_ROUTES.rankings.itemCommentReport(itemId!, replyCommentId),
       {
@@ -730,7 +765,8 @@ describe("rankings flows", () => {
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          reason: "spam reply"
+          reason: "spam reply",
+          imageIds: [reportImageId]
         })
       }
     );
@@ -743,7 +779,8 @@ describe("rankings flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        reason: "test item report"
+        reason: "test item report",
+        imageIds: [reportImageId]
       })
     });
     expect(itemReportResponse.status).toBe(200);
@@ -955,5 +992,104 @@ describe("rankings flows", () => {
     expect(updatedItem.item.title).toBe("Contributor item v2");
     expect(updatedItem.item.status).toBe("pending");
     expect(updatedItem.item.rejectionReason).toBeNull();
+  });
+
+  it("requires rating for top-level ranking item comments and keeps multiple comments from the same user", async () => {
+    const cookie = await loginUser("13800138032");
+
+    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const overviewPayload = (await overviewResponse.json()) as {
+      community: Array<{ items: Array<{ id: string }> }>;
+    };
+    const itemId = overviewPayload.community[0]?.items[0]?.id;
+    expect(itemId).toBeTruthy();
+
+    const missingRatingResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "No rating comment"
+      })
+    });
+    expect(missingRatingResponse.status).toBe(400);
+
+    const firstCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "First scored comment",
+        rating: 5
+      })
+    });
+    expect(firstCommentResponse.status).toBe(200);
+    const firstComment = (await firstCommentResponse.json()) as {
+      item: { id: string };
+    };
+
+    const secondCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Second scored comment",
+        rating: 4
+      })
+    });
+    expect(secondCommentResponse.status).toBe(200);
+
+    const invalidReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Reply should not carry rating",
+        parentCommentId: firstComment.item.id,
+        rating: 3
+      })
+    });
+    expect(invalidReplyResponse.status).toBe(400);
+
+    const validReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Reply without rating",
+        parentCommentId: firstComment.item.id
+      })
+    });
+    expect(validReplyResponse.status).toBe(200);
+
+    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        comments: Array<{ id: string; rating: number | null; replies: Array<{ rating: number | null }> }>;
+        ratingBreakdown: Array<{ score: number; count: number }>;
+      };
+    };
+
+    expect(detailPayload.item.comments.length).toBeGreaterThanOrEqual(2);
+    expect(detailPayload.item.comments.filter((comment) => comment.rating !== null).length).toBeGreaterThanOrEqual(2);
+    expect(detailPayload.item.comments[0]?.replies[0]?.rating ?? null).toBeNull();
+    expect(detailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)).toBeGreaterThanOrEqual(2);
   });
 });

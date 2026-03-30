@@ -85,11 +85,19 @@ describe("posts contract", () => {
       status: "published"
     });
     const report = reportPostInputSchema.parse({
-      reason: "Looks like spam promotion."
+      reason: "Looks like spam promotion.",
+      imageIds: ["file_report_1"]
     });
 
     expect(update.status).toBe("published");
     expect(report.reason).toContain("spam");
+    expect(report.imageIds).toEqual(["file_report_1"]);
+    expect(() =>
+      reportPostInputSchema.parse({
+        reason: "Looks like spam promotion.",
+        imageIds: []
+      })
+    ).toThrow();
   });
 
   it("parses uploaded image metadata", () => {
@@ -139,6 +147,12 @@ describe("posts contract", () => {
       contentType: "image/png",
       size: 128
     });
+    const reportImageInput = initUploadInputSchema.parse({
+      bizType: "report-image",
+      filename: "evidence.png",
+      contentType: "image/png",
+      size: 256
+    });
     const initResponse = initUploadResponseSchema.parse({
       fileId: "file_1",
       objectKey: "post-image/user_1/2026/03/29/file_1.png",
@@ -156,6 +170,7 @@ describe("posts contract", () => {
     });
 
     expect(initInput.bizType).toBe("post-image");
+    expect(reportImageInput.bizType).toBe("report-image");
     expect(initResponse.upload.mode).toBe("presigned-put");
     expect(completeInput.fileId).toBe("file_1");
   });

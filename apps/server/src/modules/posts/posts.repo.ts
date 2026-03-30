@@ -640,21 +640,32 @@ export const postsRepo = {
     await this.syncPostCommentEngagementCounts(commentId);
     return { active };
   },
-  async createCommentReport(input: { commentId: string; reporterId: string; reason: string }) {
+  async createCommentReport(input: {
+    commentId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
     await db
       .insert(postCommentReportsTable)
       .values({
         id: createId("pcreport"),
         commentId: input.commentId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncPostCommentEngagementCounts(input.commentId);
     return true;
   },
-  async createReport(input: { postId: string; reporterId: string; reason: string }) {
+  async createReport(input: {
+    postId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
     const id = createId("report");
 
     await db
@@ -663,7 +674,8 @@ export const postsRepo = {
         id,
         postId: input.postId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
@@ -683,6 +695,44 @@ export const postsRepo = {
       .where(eq(postsTable.id, input.postId));
 
     return true;
+  },
+  async listPostReports(postId: string) {
+    return db
+      .select({
+        id: postReportsTable.id,
+        reason: postReportsTable.reason,
+        imageFileIds: postReportsTable.imageFileIds,
+        createdAt: postReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(postReportsTable)
+      .innerJoin(usersTable, eq(postReportsTable.reporterId, usersTable.id))
+      .where(eq(postReportsTable.postId, postId))
+      .orderBy(desc(postReportsTable.createdAt));
+  },
+  async listCommentReports(commentId: string) {
+    return db
+      .select({
+        id: postCommentReportsTable.id,
+        reason: postCommentReportsTable.reason,
+        imageFileIds: postCommentReportsTable.imageFileIds,
+        createdAt: postCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(postCommentReportsTable)
+      .innerJoin(usersTable, eq(postCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(postCommentReportsTable.commentId, commentId))
+      .orderBy(desc(postCommentReportsTable.createdAt));
   },
   async listAdminComments(status?: PostCommentStatus) {
     const query = db

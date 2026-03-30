@@ -90,7 +90,8 @@ export const updatePostCommentInputSchema = z.object({
 export const updatePostInputSchema = createPostInputSchema;
 
 export const reportContentInputSchema = z.object({
-  reason: z.string().trim().min(4).max(200)
+  reason: z.string().trim().min(4).max(200),
+  imageIds: z.array(z.string().min(1)).min(1).max(3)
 });
 
 export const reportPostInputSchema = reportContentInputSchema;

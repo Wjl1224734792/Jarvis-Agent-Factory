@@ -1,18 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Input, Segmented, Space, Table, Tabs, Tag } from "antd";
+import { Empty, Input, Segmented, Select, Space, Table, Tag, Button } from "antd";
 import { useMemo, useState } from "react";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
-
-type CommentStatusFilter = "all" | "pending" | "visible" | "hidden";
-type PostCommentRecord = Awaited<ReturnType<typeof apiClient.listAdminPostComments>>["items"][number];
-type ReviewCommentRecord = Awaited<ReturnType<typeof apiClient.listAdminReviewComments>>["items"][number];
-type RankingCommentRecord = Awaited<ReturnType<typeof apiClient.listAdminRankingComments>>["items"][number];
-type RankingItemCommentRecord = Awaited<
-  ReturnType<typeof apiClient.listAdminRankingItemComments>
->["items"][number];
 
 const statusOptions = [
   { label: "全部", value: "all" },
@@ -21,76 +13,85 @@ const statusOptions = [
   { label: "已隐藏", value: "hidden" }
 ] as const;
 
-function includesKeyword(keyword: string, values: Array<string | null | undefined>) {
-  if (!keyword) {
-    return true;
+const domainOptions = [
+  { label: "帖子评论", value: "post" },
+  { label: "评测评论", value: "review" },
+  { label: "机型评论", value: "model" },
+  { label: "榜单评论", value: "ranking" },
+  { label: "条目评论", value: "ranking-item" }
+] as const;
+const domainSegmentedOptions: Array<{ label: string; value: string }> = domainOptions.map((item) => ({
+  label: item.label,
+  value: item.value
+}));
+
+type CommentStatusFilter = (typeof statusOptions)[number]["value"];
+type CommentDomain = (typeof domainOptions)[number]["value"];
+
+type UnifiedRecord = {
+  key: string;
+  domain: CommentDomain;
+  title: string;
+  subtitle: string;
+  content: string;
+  status: "pending" | "visible" | "hidden";
+  reportCount: number;
+  onToggle: () => Promise<unknown>;
+};
+
+function statusLabel(status: UnifiedRecord["status"]) {
+  switch (status) {
+    case "pending":
+      return { color: "gold", text: "待审核" };
+    case "visible":
+      return { color: "green", text: "可见" };
+    case "hidden":
+      return { color: "default", text: "已隐藏" };
   }
-
-  return values.some((value) => String(value ?? "").toLowerCase().includes(keyword));
-}
-
-function renderStatus(status: "pending" | "visible" | "hidden") {
-  return <Tag color={status === "visible" ? "green" : status === "pending" ? "gold" : "default"}>{status === "visible" ? "可见" : status === "pending" ? "待审核" : "已隐藏"}</Tag>;
 }
 
 export function PostCommentsPage() {
   const [status, setStatus] = useState<CommentStatusFilter>("all");
+  const [domain, setDomain] = useState<CommentDomain>("post");
   const [searchText, setSearchText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
-  const normalizedStatus = status === "all" ? undefined : status;
   const siteSettingsQuery = useQuery({
-    queryKey: ["admin-comments", "site-settings"],
+    queryKey: ["admin-comment-site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
   const postCommentsQuery = useQuery({
-    queryKey: ["admin-comments", "posts", normalizedStatus],
-    queryFn: () => apiClient.listAdminPostComments(normalizedStatus)
+    queryKey: ["admin-post-comments-all"],
+    queryFn: () => apiClient.listAdminPostComments()
   });
   const reviewCommentsQuery = useQuery({
-    queryKey: ["admin-comments", "reviews", normalizedStatus],
-    queryFn: () => apiClient.listAdminReviewComments(normalizedStatus)
+    queryKey: ["admin-review-comments-all"],
+    queryFn: () => apiClient.listAdminReviewComments()
+  });
+  const modelCommentsQuery = useQuery({
+    queryKey: ["admin-model-comments-all"],
+    queryFn: () => apiClient.listAdminModelComments()
   });
   const rankingCommentsQuery = useQuery({
-    queryKey: ["admin-comments", "rankings", normalizedStatus],
-    queryFn: () => apiClient.listAdminRankingComments(normalizedStatus)
+    queryKey: ["admin-ranking-comments-all"],
+    queryFn: () => apiClient.listAdminRankingComments()
   });
   const rankingItemCommentsQuery = useQuery({
-    queryKey: ["admin-comments", "ranking-items", normalizedStatus],
-    queryFn: () => apiClient.listAdminRankingItemComments(normalizedStatus)
+    queryKey: ["admin-ranking-item-comments-all"],
+    queryFn: () => apiClient.listAdminRankingItemComments()
   });
 
-  const keyword = searchText.trim().toLowerCase();
-  const filteredPostComments = useMemo(
-    () =>
-      (postCommentsQuery.data?.items ?? []).filter((item) =>
-        includesKeyword(keyword, [item.postTitle, item.content, item.author.displayName])
-      ),
-    [keyword, postCommentsQuery.data?.items]
-  );
-  const filteredReviewComments = useMemo(
-    () =>
-      (reviewCommentsQuery.data?.items ?? []).filter((item) =>
-        includesKeyword(keyword, [item.reviewTitle, item.content, item.author.displayName])
-      ),
-    [keyword, reviewCommentsQuery.data?.items]
-  );
-  const filteredRankingComments = useMemo(
-    () =>
-      (rankingCommentsQuery.data?.items ?? []).filter((item) =>
-        includesKeyword(keyword, [item.rankingTitle, item.content, item.author.displayName])
-      ),
-    [keyword, rankingCommentsQuery.data?.items]
-  );
-  const filteredRankingItemComments = useMemo(
-    () =>
-      (rankingItemCommentsQuery.data?.items ?? []).filter((item) =>
-        includesKeyword(keyword, [item.rankingTitle, item.rankingItemTitle, item.content, item.author.displayName])
-      ),
-    [keyword, rankingItemCommentsQuery.data?.items]
-  );
+  async function refreshAll() {
+    await Promise.all([
+      postCommentsQuery.refetch(),
+      reviewCommentsQuery.refetch(),
+      modelCommentsQuery.refetch(),
+      rankingCommentsQuery.refetch(),
+      rankingItemCommentsQuery.refetch()
+    ]);
+  }
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);
@@ -100,31 +101,97 @@ export function PostCommentsPage() {
       if (!current) {
         return;
       }
-
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
           commentModerationEnabled: enabled
         })
       );
-      await Promise.all([
-        siteSettingsQuery.refetch(),
-        postCommentsQuery.refetch(),
-        reviewCommentsQuery.refetch(),
-        rankingCommentsQuery.refetch(),
-        rankingItemCommentsQuery.refetch()
-      ]);
+      await Promise.all([siteSettingsQuery.refetch(), refreshAll()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "评论审核开关更新失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新评论审核开关失败");
     } finally {
       setIsSavingSettings(false);
     }
   }
 
-  const pendingCount =
-    (postCommentsQuery.data?.items ?? []).filter((item) => item.status === "pending").length +
-    (reviewCommentsQuery.data?.items ?? []).filter((item) => item.status === "pending").length +
-    (rankingCommentsQuery.data?.items ?? []).filter((item) => item.status === "pending").length +
-    (rankingItemCommentsQuery.data?.items ?? []).filter((item) => item.status === "pending").length;
+  const records = useMemo<Record<CommentDomain, UnifiedRecord[]>>(
+    () => ({
+      post: (postCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `post-${item.id}`,
+        domain: "post",
+        title: item.postTitle,
+        subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
+        content: item.content,
+        status: item.status,
+        reportCount: item.reportCount ?? 0,
+        onToggle: () => apiClient.updateAdminPostCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+      })),
+      review: (reviewCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `review-${item.id}`,
+        domain: "review",
+        title: item.reviewTitle,
+        subtitle: `${item.author.displayName} · ${item.model.name}`,
+        content: item.content,
+        status: item.status,
+        reportCount: item.reportCount ?? 0,
+        onToggle: () => apiClient.updateAdminReviewCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+      })),
+      model: (modelCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `model-${item.id}`,
+        domain: "model",
+        title: item.model.name,
+        subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
+        content: item.content,
+        status: item.status,
+        reportCount: item.reportCount ?? 0,
+        onToggle: () => apiClient.updateAdminModelCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+      })),
+      ranking: (rankingCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `ranking-${item.id}`,
+        domain: "ranking",
+        title: item.rankingTitle,
+        subtitle: `${item.author.displayName} · 榜单评论`,
+        content: item.content,
+        status: item.status,
+        reportCount: item.reportCount ?? 0,
+        onToggle: () => apiClient.updateAdminRankingCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+      })),
+      "ranking-item": (rankingItemCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `ranking-item-${item.id}`,
+        domain: "ranking-item",
+        title: `${item.rankingTitle} / ${item.rankingItemTitle}`,
+        subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
+        content: item.content,
+        status: item.status,
+        reportCount: item.reportCount ?? 0,
+        onToggle: () => apiClient.updateAdminRankingItemCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+      }))
+    }),
+    [
+      modelCommentsQuery.data?.items,
+      postCommentsQuery.data?.items,
+      rankingCommentsQuery.data?.items,
+      rankingItemCommentsQuery.data?.items,
+      reviewCommentsQuery.data?.items
+    ]
+  );
+
+  const filteredItems = useMemo(() => {
+    const keyword = searchText.trim().toLowerCase();
+    return records[domain]
+      .filter((item) => (status === "all" ? true : item.status === status))
+      .filter((item) =>
+        !keyword
+          ? true
+          : [item.title, item.subtitle, item.content].some((value) =>
+              String(value).toLowerCase().includes(keyword)
+            )
+      );
+  }, [domain, records, searchText, status]);
+
+  const pendingCount = Object.values(records)
+    .flat()
+    .filter((item) => item.status === "pending").length;
 
   return (
     <AdminPage
@@ -135,32 +202,40 @@ export function PostCommentsPage() {
             onChange={(event) => {
               setSearchText(event.target.value);
             }}
-            placeholder="搜索评论内容、作者、帖子、评测、榜单或条目"
-            style={{ width: 320 }}
+            placeholder="搜索来源、作者或评论内容"
+            style={{ width: 280 }}
             value={searchText}
           />
           <Segmented
             onChange={(value) => {
-              setStatus(value as CommentStatusFilter);
+              setDomain(value as CommentDomain);
+            }}
+            options={domainSegmentedOptions}
+            value={domain}
+          />
+          <Select
+            onChange={(value) => {
+              setStatus(value);
             }}
             options={statusOptions as unknown as Array<{ label: string; value: string }>}
+            style={{ width: 180 }}
             value={status}
           />
         </Space>
       }
-      description="统一审核所有评论域的显示状态和举报处理。"
+      description="把帖子评论、评测评论、机型评论、榜单评论、榜单条目评论收成统一审核入口。"
       title="评论审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="人工审核开启后，新评论会统一进入待审核状态。" title="当前模式">
+      <AdminPanel description="开启人工审核后，所有评论域的新评论都会先进入待审核队列。" title="当前模式">
         <AdminModerationCard
-          autoCopy="关闭人工审核后，评论会直接公开显示。"
-          description="帖子、评测、榜单和条目评论共用这一开关。"
+          autoCopy="关闭人工审核后，新的评论会直接显示。"
+          description="适合评论量大时快速放开展示；开启后统一进入评论审核。"
           enabled={siteSettingsQuery.data?.item.commentModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新评论会先进入待审核队列。"
+          manualCopy="新的评论会先进入待审核队列。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -172,130 +247,81 @@ export function PostCommentsPage() {
         />
       </AdminPanel>
 
-      <AdminPanel title="评论队列">
-        <Tabs
-          items={[
+      <AdminPanel title="评论列表">
+        <Table
+          bordered
+          columns={[
             {
-              key: "posts",
-              label: `帖子评论 ${filteredPostComments.length}`,
-              children: (
-                <Table
-                  bordered
-                  columns={[
-                    { title: "来源", key: "source", render: (_, record: PostCommentRecord) => record.postTitle },
-                    { title: "评论", dataIndex: "content", key: "content" },
-                    { title: "举报量", key: "reportCount", render: (_, record: PostCommentRecord) => <Tag color="red">{record.reportCount ?? 0}</Tag>, width: 100 },
-                    { title: "状态", key: "status", render: (_, record: PostCommentRecord) => renderStatus(record.status), width: 100 },
-                    {
-                      title: "操作",
-                      key: "action",
-                      render: (_, record: PostCommentRecord) => (
-                        <Space wrap>
-                          <Button onClick={() => void apiClient.updateAdminPostCommentStatus(record.id, { status: "hidden" }).then(() => postCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">隐藏</Button>
-                          <Button onClick={() => void apiClient.updateAdminPostCommentStatus(record.id, { status: "visible" }).then(() => postCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">恢复</Button>
-                        </Space>
-                      ),
-                      width: 140
-                    }
-                  ]}
-                  dataSource={filteredPostComments}
-                  locale={{ emptyText: <Empty description="暂无帖子评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-                  rowKey={(record) => record.id}
-                  size="middle"
-                />
-              )
+              key: "domain",
+              render: (_, record: UnifiedRecord) => <Tag>{domainOptions.find((item) => item.value === record.domain)?.label}</Tag>,
+              title: "域",
+              width: 110
             },
             {
-              key: "reviews",
-              label: `评测评论 ${filteredReviewComments.length}`,
-              children: (
-                <Table
-                  bordered
-                  columns={[
-                    { title: "来源", key: "source", render: (_, record: ReviewCommentRecord) => record.reviewTitle },
-                    { title: "评论", dataIndex: "content", key: "content" },
-                    { title: "举报量", key: "reportCount", render: (_, record: ReviewCommentRecord) => <Tag color="red">{record.reportCount ?? 0}</Tag>, width: 100 },
-                    { title: "状态", key: "status", render: (_, record: ReviewCommentRecord) => renderStatus(record.status), width: 100 },
-                    {
-                      title: "操作",
-                      key: "action",
-                      render: (_, record: ReviewCommentRecord) => (
-                        <Space wrap>
-                          <Button onClick={() => void apiClient.updateAdminReviewCommentStatus(record.id, { status: "hidden" }).then(() => reviewCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">隐藏</Button>
-                          <Button onClick={() => void apiClient.updateAdminReviewCommentStatus(record.id, { status: "visible" }).then(() => reviewCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">恢复</Button>
-                        </Space>
-                      ),
-                      width: 140
-                    }
-                  ]}
-                  dataSource={filteredReviewComments}
-                  locale={{ emptyText: <Empty description="暂无评测评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-                  rowKey={(record) => record.id}
-                  size="middle"
-                />
-              )
+              key: "source",
+              render: (_, record: UnifiedRecord) => (
+                <div className="admin-table-meta">
+                  <div className="admin-table-title">{record.title}</div>
+                  <div className="admin-table-subtitle">{record.subtitle}</div>
+                </div>
+              ),
+              title: "来源"
             },
             {
-              key: "rankings",
-              label: `榜单评论 ${filteredRankingComments.length}`,
-              children: (
-                <Table
-                  bordered
-                  columns={[
-                    { title: "来源", key: "source", render: (_, record: RankingCommentRecord) => record.rankingTitle },
-                    { title: "评论", dataIndex: "content", key: "content" },
-                    { title: "举报量", key: "reportCount", render: (_, record: RankingCommentRecord) => <Tag color="red">{record.reportCount ?? 0}</Tag>, width: 100 },
-                    { title: "状态", key: "status", render: (_, record: RankingCommentRecord) => renderStatus(record.status), width: 100 },
-                    {
-                      title: "操作",
-                      key: "action",
-                      render: (_, record: RankingCommentRecord) => (
-                        <Space wrap>
-                          <Button onClick={() => void apiClient.updateAdminRankingCommentStatus(record.id, { status: "hidden" }).then(() => rankingCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">隐藏</Button>
-                          <Button onClick={() => void apiClient.updateAdminRankingCommentStatus(record.id, { status: "visible" }).then(() => rankingCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">恢复</Button>
-                        </Space>
-                      ),
-                      width: 140
-                    }
-                  ]}
-                  dataSource={filteredRankingComments}
-                  locale={{ emptyText: <Empty description="暂无榜单评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-                  rowKey={(record) => record.id}
-                  size="middle"
-                />
-              )
+              dataIndex: "content",
+              key: "content",
+              title: "评论内容"
             },
             {
-              key: "ranking-items",
-              label: `条目评论 ${filteredRankingItemComments.length}`,
-              children: (
-                <Table
-                  bordered
-                  columns={[
-                    { title: "来源", key: "source", render: (_, record: RankingItemCommentRecord) => `${record.rankingTitle} / ${record.rankingItemTitle}` },
-                    { title: "评论", dataIndex: "content", key: "content" },
-                    { title: "举报量", key: "reportCount", render: (_, record: RankingItemCommentRecord) => <Tag color="red">{record.reportCount ?? 0}</Tag>, width: 100 },
-                    { title: "状态", key: "status", render: (_, record: RankingItemCommentRecord) => renderStatus(record.status), width: 100 },
-                    {
-                      title: "操作",
-                      key: "action",
-                      render: (_, record: RankingItemCommentRecord) => (
-                        <Space wrap>
-                          <Button onClick={() => void apiClient.updateAdminRankingItemCommentStatus(record.id, { status: "hidden" }).then(() => rankingItemCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">隐藏</Button>
-                          <Button onClick={() => void apiClient.updateAdminRankingItemCommentStatus(record.id, { status: "visible" }).then(() => rankingItemCommentsQuery.refetch()).catch((reason: unknown) => setError(reason instanceof Error ? reason.message : "评论状态更新失败"))} size="small" type="link">恢复</Button>
-                        </Space>
-                      ),
-                      width: 140
-                    }
-                  ]}
-                  dataSource={filteredRankingItemComments}
-                  locale={{ emptyText: <Empty description="暂无条目评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-                  rowKey={(record) => record.id}
-                  size="middle"
-                />
-              )
+              key: "reports",
+              render: (_, record: UnifiedRecord) =>
+                record.reportCount > 0 ? <Tag color="red">举报 {record.reportCount}</Tag> : <span>-</span>,
+              title: "举报",
+              width: 110
+            },
+            {
+              key: "status",
+              render: (_, record: UnifiedRecord) => {
+                const meta = statusLabel(record.status);
+                return <Tag color={meta.color}>{meta.text}</Tag>;
+              },
+              title: "状态",
+              width: 120
+            },
+            {
+              key: "action",
+              render: (_, record: UnifiedRecord) => (
+                <Button
+                  onClick={() => {
+                    setError(null);
+                    void record
+                      .onToggle()
+                      .then(() => refreshAll())
+                      .catch((reason: unknown) => {
+                        setError(reason instanceof Error ? reason.message : "更新评论状态失败");
+                      });
+                  }}
+                  size="small"
+                  type={record.status === "visible" ? "default" : "primary"}
+                >
+                  {record.status === "visible" ? "隐藏评论" : record.status === "pending" ? "通过显示" : "恢复显示"}
+                </Button>
+              ),
+              title: "操作",
+              width: 140
             }
           ]}
+          dataSource={filteredItems}
+          locale={{ emptyText: <Empty description="当前筛选下没有评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+          loading={
+            postCommentsQuery.isLoading ||
+            reviewCommentsQuery.isLoading ||
+            modelCommentsQuery.isLoading ||
+            rankingCommentsQuery.isLoading ||
+            rankingItemCommentsQuery.isLoading
+          }
+          rowKey={(record) => record.key}
+          size="middle"
         />
       </AdminPanel>
     </AdminPage>

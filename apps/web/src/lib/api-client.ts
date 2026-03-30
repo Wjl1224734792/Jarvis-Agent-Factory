@@ -270,7 +270,7 @@ export const apiClient = {
   likeModelReview(reviewId: string) {
     return postJson<{ success: true }>(API_ROUTES.models.reviewLike(reviewId));
   },
-  reportModelReview(reviewId: string, input: { reason: string }) {
+  reportModelReview(reviewId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.models.reviewReport(reviewId), input);
   },
   updateReviewComment(reviewId: string, commentId: string, input: { content: string }) {
@@ -282,13 +282,13 @@ export const apiClient = {
   likeReviewComment(reviewId: string, commentId: string) {
     return postJson<{ success: true }>(API_ROUTES.models.reviewCommentLike(reviewId, commentId));
   },
-  reportReviewComment(reviewId: string, commentId: string, input: { reason: string }) {
+  reportReviewComment(reviewId: string, commentId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(
       API_ROUTES.models.reviewCommentReport(reviewId, commentId),
       input
     );
   },
-  reportModel(slug: string, input: { reason: string }) {
+  reportModel(slug: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.models.report(slug), input);
   },
   updateRankingItemComment(itemId: string, commentId: string, input: { content: string }) {
@@ -300,10 +300,10 @@ export const apiClient = {
   likeRankingItemComment(itemId: string, commentId: string) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentLike(itemId, commentId));
   },
-  reportRankingItemComment(itemId: string, commentId: string, input: { reason: string }) {
+  reportRankingItemComment(itemId: string, commentId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentReport(itemId, commentId), input);
   },
-  reportRankingItem(itemId: string, input: { reason: string }) {
+  reportRankingItem(itemId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemReport(itemId), input);
   }
 };

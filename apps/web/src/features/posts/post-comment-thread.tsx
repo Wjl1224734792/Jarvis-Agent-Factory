@@ -2,15 +2,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import {
   CornerDownRightIcon,
   HeartIcon,
-  ShieldAlertIcon,
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { ProfileLink } from "@/components/profile-link";
+import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getAvatarImage } from "@/lib/aviation-media";
@@ -76,7 +76,7 @@ function InteractionRow(props: {
   onEdit?: () => void;
   onLike?: () => void;
   onReply?: () => void;
-  onReport?: () => void;
+  reportTrigger?: ReactNode;
 }) {
   return (
     <div className="flex shrink-0 items-center gap-1">
@@ -105,18 +105,7 @@ function InteractionRow(props: {
           回复
         </Button>
       ) : null}
-      {props.onReport && !props.canDelete ? (
-        <Button
-          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-          disabled={props.disabled}
-          onClick={props.onReport}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <ShieldAlertIcon className="size-3.5" />
-        </Button>
-      ) : null}
+      {props.reportTrigger && !props.canDelete ? props.reportTrigger : null}
       {props.canEdit && props.onEdit ? (
         <Button
           className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
@@ -299,24 +288,27 @@ function RootCommentItem(props: {
               ? () => openReply(props.comment.id, props.comment.author.displayName)
               : undefined
           }
-          onReport={
-            isPending || canDelete
-              ? undefined
-              : () => {
-                  setBusy("report");
-                  setError(null);
-                  void apiClient
-                    .reportPostComment(props.postId, props.comment.id, {
-                      reason: "不当评论"
-                    })
-                    .then(refresh)
-                    .catch((value: unknown) => {
-                      setError(value instanceof Error ? value.message : "举报失败");
-                    })
-                    .finally(() => {
-                      setBusy(null);
-                    });
+          reportTrigger={
+            isPending || canDelete ? undefined : (
+              <ReportActionSheet
+                description="请填写举报理由，并至少上传 1 张证据图。"
+                onSubmit={(input) =>
+                  apiClient.reportPostComment(props.postId, props.comment.id, input).then(refresh)
                 }
+                title="举报评论"
+                trigger={
+                  <Button
+                    className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+                    disabled={busy !== null}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    举报
+                  </Button>
+                }
+              />
+            )
           }
         />
       </div>

@@ -30,6 +30,9 @@ const repo = {
 const siteSettingsServiceMock = {
   getResolvedSettings: vi.fn()
 };
+const uploadsRepoMock = {
+  listOwnedUploadedFiles: vi.fn()
+};
 
 vi.mock("../src/modules/reviews/reviews.repo", () => ({
   reviewsRepo: repo
@@ -39,6 +42,10 @@ vi.mock("../src/modules/site-settings/site-settings.service", () => ({
   siteSettingsService: siteSettingsServiceMock
 }));
 
+vi.mock("../src/modules/uploads/upload.repo", () => ({
+  uploadsRepo: uploadsRepoMock
+}));
+
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
   resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
 }));
@@ -46,6 +53,7 @@ vi.mock("../src/modules/uploads/uploads.helpers", () => ({
 describe("reviews service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    uploadsRepoMock.listOwnedUploadedFiles.mockResolvedValue([{ id: "file_report_1" }]);
   });
 
   it("enriches top-level model reviews with like/report counts and viewer state", async () => {
@@ -119,7 +127,7 @@ describe("reviews service", () => {
     const reportResult = await reviewsService.reportReview(
       "review_1",
       { id: "viewer_1", role: "user" },
-      "Need moderation"
+      { reason: "Need moderation", imageIds: ["file_report_1"] }
     );
 
     expect(likeResult.kind).toBe("ok");
@@ -128,7 +136,8 @@ describe("reviews service", () => {
     expect(repo.reportReview).toHaveBeenCalledWith({
       reviewId: "review_1",
       reporterId: "viewer_1",
-      reason: "Need moderation"
+      reason: "Need moderation",
+      imageFileIds: JSON.stringify(["file_report_1"])
     });
   });
 
@@ -266,7 +275,7 @@ describe("reviews service", () => {
       "review_1",
       "comment_1",
       { id: "viewer_1", role: "user" },
-      "Need moderation"
+      { reason: "Need moderation", imageIds: ["file_report_1"] }
     );
 
     expect(updateResult.kind).toBe("ok");
@@ -280,7 +289,8 @@ describe("reviews service", () => {
     expect(repo.reportReviewComment).toHaveBeenCalledWith({
       commentId: "comment_1",
       reporterId: "viewer_1",
-      reason: "Need moderation"
+      reason: "Need moderation",
+      imageFileIds: JSON.stringify(["file_report_1"])
     });
   });
 

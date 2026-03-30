@@ -332,9 +332,12 @@ rankingsRoute.post(API_ROUTES.rankings.report(":id"), requireAuth, async (contex
   }
 
   const input = reportContentInputSchema.parse(await context.req.json());
-  const result = await rankingsService.reportRanking(id, currentUser, input.reason);
+  const result = await rankingsService.reportRanking(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -351,9 +354,12 @@ rankingsRoute.post(API_ROUTES.rankings.itemReport(":id"), requireAuth, async (co
   }
 
   const input = reportContentInputSchema.parse(await context.req.json());
-  const result = await rankingsService.reportRankingItem(id, currentUser, input.reason);
+  const result = await rankingsService.reportRankingItem(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -511,10 +517,13 @@ rankingsRoute.post(
       itemId,
       commentId,
       currentUser,
-      input.reason
+      input
     );
     if (result.kind === "not_found") {
       return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+    }
+    if (result.kind === "invalid_images") {
+      return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
     }
 
     return context.json(actionSuccessResponseSchema.parse({ success: true }));

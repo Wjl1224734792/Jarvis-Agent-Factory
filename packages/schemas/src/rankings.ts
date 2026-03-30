@@ -95,7 +95,7 @@ const rankingItemCommentBaseSchema = z.object({
   replyToCommentId: z.string().min(1).nullable().default(null),
   content: z.string().min(1),
   status: rankingCommentStatusSchema.default("visible"),
-  rating: reviewRatingSchema,
+  rating: reviewRatingSchema.nullable().default(null),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
   likeCount: z.number().int().nonnegative().default(0),
@@ -291,7 +291,27 @@ export const submitRankingItemRatingResponseSchema = z.object({
 
 export const createRankingItemCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(1000),
-  parentCommentId: z.string().min(1).optional()
+  parentCommentId: z.string().min(1).optional(),
+  rating: reviewRatingSchema.optional()
+}).superRefine((input, context) => {
+  if (input.parentCommentId) {
+    if (input.rating !== undefined) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Replies cannot include a rating.",
+        path: ["rating"]
+      });
+    }
+    return;
+  }
+
+  if (input.rating === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Top-level comments require a rating.",
+      path: ["rating"]
+    });
+  }
 });
 
 export const updateRankingItemCommentInputSchema = z.object({

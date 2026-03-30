@@ -6,6 +6,7 @@ import {
   createId,
   db,
   rankingCommentsTable,
+  rankingCommentReportsTable,
   rankingItemCommentLikesTable,
   rankingItemCommentReportsTable,
   rankingItemCommentsTable,
@@ -547,18 +548,43 @@ export const rankingsRepo = {
     await this.syncRankingCommentCount(input.rankingId);
     return this.listRankingComments(input.rankingId).then((items) => items.at(-1) ?? null);
   },
-  async createRankingReport(input: { rankingId: string; reporterId: string; reason: string }) {
+  async createRankingReport(input: {
+    rankingId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
     await db
       .insert(rankingReportsTable)
       .values({
         id: createId("rreport"),
         rankingId: input.rankingId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncRankingReportCount(input.rankingId);
+  },
+  async listRankingReports(rankingId: string) {
+    return db
+      .select({
+        id: rankingReportsTable.id,
+        reason: rankingReportsTable.reason,
+        imageFileIds: rankingReportsTable.imageFileIds,
+        createdAt: rankingReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(rankingReportsTable)
+      .innerJoin(usersTable, eq(rankingReportsTable.reporterId, usersTable.id))
+      .where(eq(rankingReportsTable.rankingId, rankingId))
+      .orderBy(desc(rankingReportsTable.createdAt));
   },
   async syncRankingCommentCount(rankingId: string) {
     const totals = await db
@@ -624,6 +650,7 @@ export const rankingsRepo = {
         replyToCommentId: rankingItemCommentsTable.replyToCommentId,
         replyToUserId: rankingItemCommentsTable.replyToUserId,
         content: rankingItemCommentsTable.content,
+        rating: rankingItemCommentsTable.rating,
         status: rankingItemCommentsTable.status,
         likeCount: rankingItemCommentsTable.likeCount,
         reportCount: rankingItemCommentsTable.reportCount,
@@ -653,6 +680,7 @@ export const rankingsRepo = {
         replyToCommentId: rankingItemCommentsTable.replyToCommentId,
         replyToUserId: rankingItemCommentsTable.replyToUserId,
         content: rankingItemCommentsTable.content,
+        rating: rankingItemCommentsTable.rating,
         status: rankingItemCommentsTable.status,
         likeCount: rankingItemCommentsTable.likeCount,
         reportCount: rankingItemCommentsTable.reportCount,
@@ -670,6 +698,29 @@ export const rankingsRepo = {
       .where(eq(rankingItemCommentsTable.rankingItemId, rankingItemId))
       .orderBy(asc(rankingItemCommentsTable.createdAt));
   },
+  async listVisibleRankingItemCommentRatings(rankingItemIds: string[]) {
+    if (rankingItemIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        rankingItemId: rankingItemCommentsTable.rankingItemId,
+        commentId: rankingItemCommentsTable.id,
+        authorId: rankingItemCommentsTable.authorId,
+        rating: rankingItemCommentsTable.rating,
+        createdAt: rankingItemCommentsTable.createdAt
+      })
+      .from(rankingItemCommentsTable)
+      .where(
+        and(
+          inArray(rankingItemCommentsTable.rankingItemId, rankingItemIds),
+          isNull(rankingItemCommentsTable.parentCommentId),
+          eq(rankingItemCommentsTable.status, "visible")
+        )
+      )
+      .orderBy(desc(rankingItemCommentsTable.createdAt));
+  },
   async upsertRankingItemReview(input: {
     rankingItemId: string;
     authorId: string;
@@ -683,43 +734,16 @@ export const rankingsRepo = {
       rating: input.rating
     });
 
-    const existingComment = await db
-      .select({ id: rankingItemCommentsTable.id })
-      .from(rankingItemCommentsTable)
-      .where(
-        and(
-          eq(rankingItemCommentsTable.rankingItemId, input.rankingItemId),
-          eq(rankingItemCommentsTable.authorId, input.authorId),
-          isNull(rankingItemCommentsTable.parentCommentId)
-        )
-      )
-      .limit(1);
-
-    if (existingComment.length > 0) {
-      await db
-        .update(rankingItemCommentsTable)
-        .set({
-          content: input.content,
-          status: input.status,
-          updatedAt: new Date()
-        })
-        .where(eq(rankingItemCommentsTable.id, existingComment[0].id));
-    } else {
-      await db.insert(rankingItemCommentsTable).values({
-        id: createId("ricom"),
-        rankingItemId: input.rankingItemId,
-        authorId: input.authorId,
-        parentCommentId: null,
-        replyToCommentId: null,
-        replyToUserId: null,
-        content: input.content,
-        status: input.status,
-        likeCount: 0,
-        reportCount: 0
-      });
-    }
-
-    await this.syncRankingItemCommentCount(input.rankingItemId);
+    await this.createRankingItemComment({
+      rankingItemId: input.rankingItemId,
+      authorId: input.authorId,
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: input.content,
+      rating: input.rating,
+      status: input.status
+    });
   },
   async createRankingItemComment(input: {
     rankingItemId: string;
@@ -728,6 +752,7 @@ export const rankingsRepo = {
     replyToCommentId: string | null;
     replyToUserId: string | null;
     content: string;
+    rating: number | null;
     status: "pending" | "visible" | "hidden";
   }) {
     await db.insert(rankingItemCommentsTable).values({
@@ -738,6 +763,7 @@ export const rankingsRepo = {
       replyToCommentId: input.replyToCommentId,
       replyToUserId: input.replyToUserId,
       content: input.content,
+      rating: input.rating,
       status: input.status,
       likeCount: 0,
       reportCount: 0
@@ -782,6 +808,25 @@ export const rankingsRepo = {
       .where(status ? eq(rankingCommentsTable.status, status) : sql`true`)
       .orderBy(desc(rankingCommentsTable.updatedAt));
   },
+  async listRankingCommentReports(commentId: string) {
+    return db
+      .select({
+        id: rankingCommentReportsTable.id,
+        reason: rankingCommentReportsTable.reason,
+        imageFileIds: rankingCommentReportsTable.imageFileIds,
+        createdAt: rankingCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(rankingCommentReportsTable)
+      .innerJoin(usersTable, eq(rankingCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(rankingCommentReportsTable.commentId, commentId))
+      .orderBy(desc(rankingCommentReportsTable.createdAt));
+  },
   async updateRankingCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
     const existing = await db
       .select({
@@ -817,6 +862,7 @@ export const rankingsRepo = {
         parentCommentId: rankingItemCommentsTable.parentCommentId,
         replyToCommentId: rankingItemCommentsTable.replyToCommentId,
         content: rankingItemCommentsTable.content,
+        rating: rankingItemCommentsTable.rating,
         status: rankingItemCommentsTable.status,
         likeCount: rankingItemCommentsTable.likeCount,
         reportCount: rankingItemCommentsTable.reportCount,
@@ -964,6 +1010,7 @@ export const rankingsRepo = {
     commentId: string;
     reporterId: string;
     reason: string;
+    imageFileIds: string;
   }) {
     await db
       .insert(rankingItemCommentReportsTable)
@@ -971,16 +1018,37 @@ export const rankingsRepo = {
         id: createId("rireport"),
         commentId: input.commentId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncRankingItemCommentEngagementCounts(input.commentId);
   },
+  async listRankingItemCommentReports(commentId: string) {
+    return db
+      .select({
+        id: rankingItemCommentReportsTable.id,
+        reason: rankingItemCommentReportsTable.reason,
+        imageFileIds: rankingItemCommentReportsTable.imageFileIds,
+        createdAt: rankingItemCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(rankingItemCommentReportsTable)
+      .innerJoin(usersTable, eq(rankingItemCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(rankingItemCommentReportsTable.commentId, commentId))
+      .orderBy(desc(rankingItemCommentReportsTable.createdAt));
+  },
   async createRankingItemReport(input: {
     rankingItemId: string;
     reporterId: string;
     reason: string;
+    imageFileIds: string;
   }) {
     await db
       .insert(rankingItemReportsTable)
@@ -988,11 +1056,31 @@ export const rankingsRepo = {
         id: createId("ritreport"),
         rankingItemId: input.rankingItemId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncRankingItemReportCount(input.rankingItemId);
+  },
+  async listRankingItemReports(rankingItemId: string) {
+    return db
+      .select({
+        id: rankingItemReportsTable.id,
+        reason: rankingItemReportsTable.reason,
+        imageFileIds: rankingItemReportsTable.imageFileIds,
+        createdAt: rankingItemReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(rankingItemReportsTable)
+      .innerJoin(usersTable, eq(rankingItemReportsTable.reporterId, usersTable.id))
+      .where(eq(rankingItemReportsTable.rankingItemId, rankingItemId))
+      .orderBy(desc(rankingItemReportsTable.createdAt));
   },
   async syncRankingItemReportCount(rankingItemId: string) {
     const totals = await db

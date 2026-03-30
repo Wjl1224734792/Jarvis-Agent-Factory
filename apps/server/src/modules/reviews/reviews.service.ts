@@ -1,5 +1,6 @@
 import { reviewsRepo } from "./reviews.repo";
-import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 
 async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(author: T) {
@@ -143,6 +144,24 @@ async function serializeCommentThreads(
     replies: repliesByRootId.get(root.id) ?? [],
     replyCount: (repliesByRootId.get(root.id) ?? []).length
   }));
+}
+
+async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
+  return uploadsRepo.listOwnedUploadedFiles({
+    ownerId,
+    fileIds: imageIds,
+    mediaKind: "image",
+    bizType: "report-image"
+  });
+}
+
+function parseFileIdArray(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
 }
 
 export const reviewsService = {
@@ -409,17 +428,23 @@ export const reviewsService = {
   async reportReview(
     reviewId: string,
     currentUser: { id: string; role: "user" | "admin" },
-    reason: string
+    input: { reason: string; imageIds: string[] }
   ) {
     const review = await reviewsRepo.getReviewById(reviewId);
     if (!review || review.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await reviewsRepo.reportReview({
       reviewId,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },
@@ -481,17 +506,23 @@ export const reviewsService = {
     reviewId: string,
     commentId: string,
     currentUser: { id: string; role: "user" | "admin" },
-    reason: string
+    input: { reason: string; imageIds: string[] }
   ) {
     const comment = await reviewsRepo.getReviewCommentById(commentId);
     if (!comment || comment.reviewId !== reviewId || comment.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await reviewsRepo.reportReviewComment({
       commentId,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },
@@ -530,6 +561,56 @@ export const reviewsService = {
             hasLiked: false,
             hasReported: false
           }
+        }))
+      )
+    };
+  },
+  async listReviewReports(reviewId: string) {
+    const reports = await reviewsRepo.listReviewReports(reviewId);
+    return {
+      items: await Promise.all(
+        reports.map(async (report) => ({
+          id: report.id,
+          reason: report.reason,
+          createdAt: report.createdAt.toISOString(),
+          reporter: {
+            id: report.reporter.id,
+            displayName: report.reporter.displayName,
+            avatarUrl: await resolveAuthorAvatar(report.reporter),
+            role: report.reporter.role as "user" | "admin"
+          },
+          evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
+            id: `${report.id}-${index}`,
+            url,
+            fileName: `report-${index + 1}.png`,
+            mimeType: "image/png",
+            byteSize: 0
+          }))
+        }))
+      )
+    };
+  },
+  async listReviewCommentReports(commentId: string) {
+    const reports = await reviewsRepo.listReviewCommentReports(commentId);
+    return {
+      items: await Promise.all(
+        reports.map(async (report) => ({
+          id: report.id,
+          reason: report.reason,
+          createdAt: report.createdAt.toISOString(),
+          reporter: {
+            id: report.reporter.id,
+            displayName: report.reporter.displayName,
+            avatarUrl: await resolveAuthorAvatar(report.reporter),
+            role: report.reporter.role as "user" | "admin"
+          },
+          evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
+            id: `${report.id}-${index}`,
+            url,
+            fileName: `report-${index + 1}.png`,
+            mimeType: "image/png",
+            byteSize: 0
+          }))
         }))
       )
     };

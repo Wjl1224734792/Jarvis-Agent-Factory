@@ -1,5 +1,6 @@
 import {
   actionSuccessResponseSchema,
+  adminReportRecordsResponseSchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
   adminPostCommentStatusUpdateInputSchema,
@@ -261,9 +262,12 @@ postsRoute.post(API_ROUTES.posts.report(":id"), requireAuth, async (context) => 
   }
 
   const input = reportPostInputSchema.parse(await context.req.json());
-  const result = await postsService.reportPost(id, currentUser.id, input.reason);
+  const result = await postsService.reportPost(id, currentUser.id, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -416,9 +420,12 @@ postsRoute.post(API_ROUTES.posts.commentReport(":postId", ":commentId"), require
   }
 
   const input = reportContentInputSchema.parse(await context.req.json());
-  const result = await postsService.reportComment(postId, commentId, currentUser, input.reason);
+  const result = await postsService.reportComment(postId, commentId, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -432,6 +439,26 @@ postsRoute.get(API_ROUTES.posts.adminComments, requireAdmin, async (context) => 
       : undefined;
   const payload = await postsService.listAdminComments(status);
   return context.json(adminPostCommentsResponseSchema.parse(payload));
+});
+
+postsRoute.get(API_ROUTES.posts.adminReports(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const payload = await postsService.listPostReports(id);
+  return context.json(adminReportRecordsResponseSchema.parse(payload));
+});
+
+postsRoute.get(API_ROUTES.posts.adminCommentReports(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const payload = await postsService.listPostCommentReports(id);
+  return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
 postsRoute.put(API_ROUTES.posts.adminCommentDetail(":id"), requireAdmin, async (context) => {

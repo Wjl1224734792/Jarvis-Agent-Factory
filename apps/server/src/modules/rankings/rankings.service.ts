@@ -2,6 +2,7 @@ import type { RankingDetail, RankingItem, RankingListItem } from "@feijia/schema
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
@@ -100,6 +101,15 @@ function canInspectRankingItem(input: {
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
   return new Set(rows.map((row) => row[key] as T));
+}
+
+async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
+  return uploadsRepo.listOwnedUploadedFiles({
+    ownerId,
+    fileIds: imageIds,
+    mediaKind: "image",
+    bizType: "report-image"
+  });
 }
 
 async function serializeRankingItem(
@@ -216,7 +226,6 @@ async function serializeRankingComment(
 async function buildRankingItemCommentThreads(input: {
   comments: Awaited<ReturnType<typeof rankingsRepo.listRankingItemComments>>;
   currentUser?: CurrentUser;
-  ratingByAuthor: Map<string, number>;
   replyToUsers: Map<
     string,
     { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
@@ -239,7 +248,7 @@ async function buildRankingItemCommentThreads(input: {
       replyToCommentId: comment.replyToCommentId,
       content: comment.content,
       status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
-      rating: input.ratingByAuthor.get(comment.author.id) ?? 5,
+      rating: comment.rating ?? null,
       createdAt: comment.createdAt.toISOString(),
       updatedAt: comment.updatedAt.toISOString(),
       likeCount: comment.likeCount ?? 0,
@@ -968,30 +977,50 @@ export const rankingsService = {
     return item ? { item: await serializeRankingComment(item, { id: currentUserId, role: "user" }) } : null;
   },
 
-  async reportRanking(rankingId: string, currentUser: CurrentUser, reason: string) {
+  async reportRanking(
+    rankingId: string,
+    currentUser: CurrentUser,
+    input: { reason: string; imageIds: string[] }
+  ) {
     const ranking = await rankingsRepo.getRankingById(rankingId);
     if (!ranking || ranking.status !== "published") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await rankingsRepo.createRankingReport({
       rankingId,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },
 
-  async reportRankingItem(id: string, currentUser: CurrentUser, reason: string) {
+  async reportRankingItem(
+    id: string,
+    currentUser: CurrentUser,
+    input: { reason: string; imageIds: string[] }
+  ) {
     const item = await rankingsRepo.getRankingItemById(id);
     if (!item || item.status !== "published") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await rankingsRepo.createRankingItemReport({
       rankingItemId: id,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },
@@ -1024,18 +1053,15 @@ export const rankingsService = {
       return null;
     }
 
-    const [aggregates, userRatings, allComments, ratingBreakdownRows, reportedItemRows] =
-      await Promise.all([
-        rankingsRepo.listRankingItemRatingAggregates([id]),
-        currentUserId
-          ? rankingsRepo.listUserRankingItemRatings(currentUserId, [id])
-          : Promise.resolve([]),
-        rankingsRepo.listRankingItemComments(id),
-        rankingsRepo.listRankingItemRatingBreakdown(id),
-        currentUserId
-          ? rankingsRepo.listViewerRankingItemReports([id], currentUserId)
-          : Promise.resolve([])
-      ]);
+    const [userRatings, allComments, reportedItemRows] = await Promise.all([
+      currentUserId
+        ? rankingsRepo.listUserRankingItemRatings(currentUserId, [id])
+        : Promise.resolve([]),
+      rankingsRepo.listRankingItemComments(id),
+      currentUserId
+        ? rankingsRepo.listViewerRankingItemReports([id], currentUserId)
+        : Promise.resolve([])
+    ]);
     const comments = allComments.filter(
       (comment) =>
         comment.status === "visible" ||
@@ -1050,15 +1076,8 @@ export const rankingsService = {
           .filter((value): value is string => Boolean(value))
       )
     );
-    const authorIds = Array.from(new Set(comments.map((comment) => comment.author.id)));
-    const [replyUsers, authorRatings, likedRows, reportedCommentRows] = await Promise.all([
+    const [replyUsers, likedRows, reportedCommentRows] = await Promise.all([
       rankingsRepo.listUsersByIds(replyToUserIds),
-      Promise.all(
-        authorIds.map(async (authorId) => [
-          authorId,
-          (await rankingsRepo.getUserRankingItemRating(id, authorId)) ?? 5
-        ] as const)
-      ),
       currentUserId
         ? rankingsRepo.listViewerRankingItemCommentLikes(commentIds, currentUserId)
         : Promise.resolve([]),
@@ -1067,13 +1086,29 @@ export const rankingsService = {
         : Promise.resolve([])
     ]);
 
-    const aggregateMap = new Map(
-      aggregates.map((entry) => [
-        entry.rankingItemId,
-        { totalRatings: Number(entry.totalRatings ?? 0), averageRaw: Number(entry.averageRaw ?? 0) }
-      ])
+    const visibleRatingComments = allComments.filter(
+      (comment) => !comment.parentCommentId && comment.status === "visible" && comment.rating !== null
     );
-    const userRatingMap = new Map(userRatings.map((entry) => [entry.rankingItemId, entry.rating]));
+    const aggregateMap = new Map<string, { totalRatings: number; averageRaw: number }>();
+    aggregateMap.set(id, {
+      totalRatings: visibleRatingComments.length,
+      averageRaw:
+        visibleRatingComments.length > 0
+          ? visibleRatingComments.reduce((sum, comment) => sum + Number(comment.rating ?? 0), 0) /
+            visibleRatingComments.length
+          : 0
+    });
+    const latestOwnRatedComment = currentUserId
+      ? allComments
+          .filter((comment) => !comment.parentCommentId && comment.author.id === currentUserId && comment.rating !== null)
+          .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null
+      : null;
+    const userRatingMap = new Map(
+      userRatings.map((entry) => [entry.rankingItemId, entry.rating])
+    );
+    if (latestOwnRatedComment) {
+      userRatingMap.set(id, latestOwnRatedComment.rating!);
+    }
     const reportedItemIds = buildSet(
       reportedItemRows as Array<{ rankingItemId: string }>,
       "rankingItemId"
@@ -1087,7 +1122,6 @@ export const rankingsService = {
     const commentThreads = await buildRankingItemCommentThreads({
       comments,
       currentUser,
-      ratingByAuthor: new Map(authorRatings),
       replyToUsers: new Map(
         replyUsers.map((user) => [
           user.id,
@@ -1105,7 +1139,12 @@ export const rankingsService = {
         "commentId"
       )
     });
-    const ratingBreakdown = buildRatingBreakdownFromRows(ratingBreakdownRows);
+    const ratingBreakdown = buildRatingBreakdownFromRows(
+      [5, 4, 3, 2, 1].map((score) => ({
+        score,
+        count: visibleRatingComments.filter((comment) => comment.rating === score).length
+      }))
+    );
 
     return {
       item: {
@@ -1117,7 +1156,9 @@ export const rankingsService = {
         comments: commentThreads,
         ratingBreakdown,
         myReview: currentUserId
-          ? commentThreads.find((entry) => entry.author.id === currentUserId) ?? null
+          ? commentThreads
+              .filter((entry) => entry.author.id === currentUserId)
+              .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0] ?? null
           : null
       }
     };
@@ -1155,10 +1196,14 @@ export const rankingsService = {
       return null;
     }
 
-    await rankingsRepo.upsertRankingItemRating({
+    await rankingsRepo.upsertRankingItemReview({
       rankingItemId: id,
-      userId: currentUserId,
-      rating
+      authorId: currentUserId,
+      rating,
+      content: "Rating only",
+      status: (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
+        ? "pending"
+        : "visible"
     });
 
     const payload = await this.getRankingItemDetail(id, currentUserId);
@@ -1221,7 +1266,7 @@ export const rankingsService = {
   async createRankingItemComment(
     id: string,
     currentUserId: string,
-    input: { content: string; parentCommentId?: string }
+    input: { content: string; parentCommentId?: string; rating?: number }
   ) {
     const item = await rankingsRepo.getRankingItemById(id);
     if (!item) {
@@ -1247,13 +1292,12 @@ export const rankingsService = {
     const status = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
       ? "pending"
       : "visible";
-
-    const currentRating = await rankingsRepo.getUserRankingItemRating(id, currentUserId);
-    if (currentRating === null) {
+    const rating = input.parentCommentId ? null : (input.rating ?? null);
+    if (rating !== null) {
       await rankingsRepo.upsertRankingItemRating({
         rankingItemId: id,
         userId: currentUserId,
-        rating: 5
+        rating
       });
     }
 
@@ -1264,6 +1308,7 @@ export const rankingsService = {
       replyToCommentId,
       replyToUserId,
       content: input.content,
+      rating,
       status
     });
 
@@ -1346,17 +1391,23 @@ export const rankingsService = {
     itemId: string,
     commentId: string,
     currentUser: CurrentUser,
-    reason: string
+    input: { reason: string; imageIds: string[] }
   ) {
     const comment = await rankingsRepo.getRankingItemCommentById(commentId);
     if (!comment || comment.rankingItemId !== itemId || comment.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await rankingsRepo.createRankingItemCommentReport({
       commentId,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },

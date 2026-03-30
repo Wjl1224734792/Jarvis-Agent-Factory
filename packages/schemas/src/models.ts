@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { userSummarySchema } from "./auth";
 
 export const aircraftCategorySchema = z.object({
   id: z.string().min(1),
@@ -118,6 +119,78 @@ export const modelInteractionResponseSchema = z.object({
   })
 });
 
+export const modelCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
+
+export const modelCommentSchema = z.object({
+  id: z.string().min(1),
+  modelId: z.string().min(1),
+  parentCommentId: z.string().min(1).nullable(),
+  replyToCommentId: z.string().min(1).nullable(),
+  content: z.string().min(1),
+  status: modelCommentStatusSchema.default("visible"),
+  likeCount: z.number().int().nonnegative().default(0),
+  reportCount: z.number().int().nonnegative().default(0),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+  author: userSummarySchema,
+  replyToUser: userSummarySchema.nullable(),
+  viewer: z
+    .object({
+      canEdit: z.boolean(),
+      canDelete: z.boolean(),
+      hasLiked: z.boolean(),
+      hasReported: z.boolean()
+    })
+    .default({
+      canEdit: false,
+      canDelete: false,
+      hasLiked: false,
+      hasReported: false
+    })
+});
+
+export const modelCommentThreadSchema = modelCommentSchema.extend({
+  replyCount: z.number().int().nonnegative(),
+  replies: z.array(modelCommentSchema)
+});
+
+export const createModelCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000),
+  parentCommentId: z.string().min(1).optional()
+});
+
+export const updateModelCommentInputSchema = z.object({
+  content: z.string().trim().min(1).max(1000)
+});
+
+export const modelCommentsResponseSchema = z.object({
+  items: z.array(modelCommentThreadSchema)
+});
+
+export const createModelCommentResponseSchema = z.object({
+  item: modelCommentSchema
+});
+
+export const adminModelCommentListItemSchema = modelCommentSchema.extend({
+  model: z.object({
+    id: z.string().min(1),
+    slug: z.string().min(1),
+    name: z.string().min(1)
+  })
+});
+
+export const adminModelCommentsResponseSchema = z.object({
+  items: z.array(adminModelCommentListItemSchema)
+});
+
+export const updateModelCommentStatusInputSchema = z.object({
+  status: modelCommentStatusSchema
+});
+
+export const adminModelCommentResponseSchema = z.object({
+  item: adminModelCommentListItemSchema
+});
+
 export const adminCategoryInputSchema = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
@@ -167,3 +240,4 @@ export type PowerType = z.infer<typeof powerTypeSchema>;
 export type ModelInteractionType = z.infer<typeof modelInteractionTypeSchema>;
 export type ModelListItem = z.infer<typeof modelListItemSchema>;
 export type ModelDetail = z.infer<typeof modelDetailSchema>;
+export type ModelComment = z.infer<typeof modelCommentSchema>;

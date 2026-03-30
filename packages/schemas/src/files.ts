@@ -7,7 +7,8 @@ export const fileBizTypeSchema = z.enum([
   "aircraft-cover-image",
   "aircraft-video",
   "ranking-cover-image",
-  "ranking-item-image"
+  "ranking-item-image",
+  "report-image"
 ]);
 
 export const fileMediaKindSchema = z.enum(["image", "video"]);

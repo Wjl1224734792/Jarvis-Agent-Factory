@@ -12,12 +12,15 @@ import {
   adminContentCategoryInputSchema,
   adminContentCategoryResponseSchema,
   adminModelInputSchema,
+  adminModelCommentResponseSchema,
+  adminModelCommentsResponseSchema,
   adminModelResponseSchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
   adminPostCommentStatusUpdateInputSchema,
   adminPostResponseSchema,
   adminPostsResponseSchema,
+  adminReportRecordsResponseSchema,
   adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
   adminRankingCommentResponseSchema,
@@ -75,7 +78,10 @@ import {
   modelListResponseSchema,
   createReviewCommentInputSchema,
   createReviewCommentResponseSchema,
+  createModelCommentInputSchema,
+  createModelCommentResponseSchema,
   modelReviewsResponseSchema,
+  modelCommentsResponseSchema,
   notificationsResponseSchema,
   phoneChangeConfirmInputSchema,
   phoneChangeRequestInputSchema,
@@ -110,6 +116,8 @@ import {
   updateAircraftSubmissionStatusInputSchema,
   updateCurrentUserProfileInputSchema,
   updateReviewCommentInputSchema,
+  updateModelCommentInputSchema,
+  updateModelCommentStatusInputSchema,
   updateReviewCommentStatusInputSchema,
   updateSiteSettingsInputSchema,
   updateReviewStatusInputSchema,
@@ -158,8 +166,12 @@ type UpdateAdminOfficialArticleInput =
 type UpdateAdminPostCommentStatusInput =
   Parameters<typeof adminPostCommentStatusUpdateInputSchema.parse>[0];
 type SubmitReviewInput = Parameters<typeof submitModelReviewInputSchema.parse>[0];
+type CreateModelCommentInput = Parameters<typeof createModelCommentInputSchema.parse>[0];
+type UpdateModelCommentInput = Parameters<typeof updateModelCommentInputSchema.parse>[0];
 type CreateReviewCommentInput = Parameters<typeof createReviewCommentInputSchema.parse>[0];
 type UpdateReviewCommentInput = Parameters<typeof updateReviewCommentInputSchema.parse>[0];
+type UpdateModelCommentStatusInput =
+  Parameters<typeof updateModelCommentStatusInputSchema.parse>[0];
 type UpdateReviewCommentStatusInput =
   Parameters<typeof updateReviewCommentStatusInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
@@ -367,6 +379,7 @@ export function createApiClient(options: ApiClientOptions) {
       | "aircraft-video"
       | "ranking-cover-image"
       | "ranking-item-image"
+      | "report-image"
   ) {
     const initPayload = await initUpload({
       bizType,
@@ -605,6 +618,10 @@ export function createApiClient(options: ApiClientOptions) {
     },
     async uploadRankingItemImage(file: File) {
       const payload = await performDirectUpload(file, "ranking-item-image");
+      return uploadPostImageResponseSchema.parse(payload);
+    },
+    async uploadReportImage(file: File) {
+      const payload = await performDirectUpload(file, "report-image");
       return uploadPostImageResponseSchema.parse(payload);
     },
     async getPostDetail(id: string) {
@@ -1139,6 +1156,14 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminAnalyticsOverviewResponseSchema);
     },
+    async getAdminReportDetails(kind: string, id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.reportDetail(kind, id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminReportRecordsResponseSchema);
+    },
     async listModels(input: ModelsQueryInput = {}) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`, {
         method: "GET",
@@ -1154,6 +1179,51 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, modelDetailResponseSchema);
+    },
+    async listModelComments(slug: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.comments(slug)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, modelCommentsResponseSchema);
+    },
+    async createModelComment(slug: string, input: CreateModelCommentInput) {
+      return postJson(
+        API_ROUTES.models.comments(slug),
+        createModelCommentResponseSchema,
+        createModelCommentInputSchema.parse(input)
+      );
+    },
+    async updateModelComment(slug: string, commentId: string, input: UpdateModelCommentInput) {
+      return putJson(
+        API_ROUTES.models.commentDetail(slug, commentId),
+        createModelCommentResponseSchema,
+        updateModelCommentInputSchema.parse(input)
+      );
+    },
+    async deleteModelComment(slug: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.commentDetail(slug, commentId)}`, {
+        method: "DELETE",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async likeModelComment(slug: string, commentId: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.commentLike(slug, commentId)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async reportModelComment(slug: string, commentId: string, input: ReportPostInput) {
+      return postJson(
+        API_ROUTES.models.commentReport(slug, commentId),
+        actionSuccessResponseSchema,
+        reportPostInputSchema.parse(input)
+      );
     },
     async interactModel(slug: string, type: ModelInteractionTypeInput) {
       const parsedType = modelInteractionTypeSchema.parse(type);
@@ -1284,6 +1354,22 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminReviewsResponseSchema);
+    },
+    async listAdminModelComments(status?: "pending" | "visible" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.adminComments}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminModelCommentsResponseSchema);
+    },
+    async updateAdminModelCommentStatus(id: string, input: UpdateModelCommentStatusInput) {
+      return putJson(
+        API_ROUTES.models.adminCommentDetail(id),
+        adminModelCommentResponseSchema,
+        updateModelCommentStatusInputSchema.parse(input)
+      );
     },
     async updateReviewStatus(id: string, input: UpdateReviewStatusInput) {
       return putJson(

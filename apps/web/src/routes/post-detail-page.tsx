@@ -12,6 +12,7 @@ import { useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
+import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -231,26 +232,20 @@ export function PostDetailPage() {
 
           <div className="flex items-center gap-2">
             {authStatus === "authenticated" && !isAuthor ? (
-              <Button
-                onClick={() => {
-                  setActionError(null);
-                  void apiClient
-                    .reportPost(item.id, {
-                      reason: "疑似广告或不当内容"
-                    })
-                    .then(() => {
-                      void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                    })
-                    .catch((value: unknown) => {
-                      setActionError(value instanceof Error ? value.message : "举报失败");
-                    });
-                }}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <AlertTriangleIcon className="size-4" />
-              </Button>
+              <ReportActionSheet
+                description="请填写举报理由，并至少上传 1 张证据图。"
+                onSubmit={(input) =>
+                  apiClient.reportPost(item.id, input).then(() => {
+                    void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
+                  })
+                }
+                title="举报内容"
+                trigger={
+                  <Button size="sm" type="button" variant="ghost">
+                    <AlertTriangleIcon className="size-4" />
+                  </Button>
+                }
+              />
             ) : null}
 
             {isAuthor ? (

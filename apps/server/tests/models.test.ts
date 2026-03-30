@@ -2,6 +2,7 @@ import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
 function extractCookie(setCookie: string | null): string {
@@ -65,6 +66,39 @@ async function loginUser(phone: string) {
   });
 
   return completeRegistrationIfNeeded(loginResponse);
+}
+
+async function uploadReportImage(cookie: string, name = "evidence.png") {
+  const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+    method: "GET",
+    headers: { cookie }
+  });
+  expect(meResponse.status).toBe(200);
+  const mePayload = (await meResponse.json()) as { user: { id: string } | null };
+  const ownerId = mePayload.user?.id;
+  expect(ownerId).toBeTruthy();
+
+  const pending = await uploadsRepo.createPendingFile({
+    ownerId: ownerId!,
+    bizType: "report-image",
+    mediaKind: "image",
+    provider: "minio",
+    bucket: "feijia-media",
+    region: "us-east-1",
+    objectKey: `report-image/${ownerId}/${name}`,
+    fileName: name,
+    mimeType: "image/png",
+    byteSize: 128,
+    visibility: "public"
+  });
+  expect(pending?.id).toBeTruthy();
+
+  const uploaded = await uploadsRepo.markFileUploaded({
+    fileId: pending!.id,
+    etag: "report-image-etag"
+  });
+
+  return uploaded!.id;
 }
 
 beforeAll(async () => {
@@ -383,5 +417,128 @@ describe("models flows", () => {
     expect(payload.items.some((item) => item.slug === "mini-4-pro")).toBe(true);
     expect(payload.items.some((item) => item.slug === "vision-jet-g2-plus")).toBe(false);
     expect(payload.items.every((item) => ["dji", "cirrus"].includes(item.brand.slug))).toBe(true);
+  });
+
+  it("supports model comments with reply, like, report, edit, delete and admin hide", async () => {
+    const authorCookie = await loginUser("13800138041");
+    const responderCookie = await loginUser("13800138042");
+    const adminCookie = extractCookie(
+      (
+        await app.request(API_ROUTES.auth.adminLogin, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            account: "admin",
+            password: "Admin#123"
+          })
+        })
+      ).headers.get("set-cookie")
+    );
+
+    const createResponse = await app.request("/models/mini-4-pro/comments", {
+      method: "POST",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "鏈哄瀷鎬ц兘绋冲畾锛岄€傚悎鏃ュ父椋炶銆?"
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string; content: string };
+    };
+
+    const replyResponse = await app.request(`/models/mini-4-pro/comments`, {
+      method: "POST",
+      headers: {
+        cookie: responderCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "鍚屾剰锛岀壒鍒槸鏅氫笂鎷嶆憚鏃躲€?",
+        parentCommentId: created.item.id
+      })
+    });
+    expect(replyResponse.status).toBe(200);
+    const reply = (await replyResponse.json()) as {
+      item: { id: string };
+    };
+
+    const likeResponse = await app.request(`/models/mini-4-pro/comments/${created.item.id}/like`, {
+      method: "POST",
+      headers: { cookie: responderCookie }
+    });
+    expect(likeResponse.status).toBe(200);
+
+    const reportImageId = await uploadReportImage(responderCookie);
+    const reportResponse = await app.request(`/models/mini-4-pro/comments/${reply.item.id}/report`, {
+      method: "POST",
+      headers: {
+        cookie: responderCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        reason: "璇勮鍐呭涓嶅綋",
+        imageIds: [reportImageId]
+      })
+    });
+    expect(reportResponse.status).toBe(200);
+
+    const updateResponse = await app.request(`/models/mini-4-pro/comments/${created.item.id}`, {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "宸叉洿鏂帮細缁埅琛ㄧ幇绋冲畾銆?"
+      })
+    });
+    expect(updateResponse.status).toBe(200);
+
+    const listResponse = await app.request("/models/mini-4-pro/comments", {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    expect(listResponse.status).toBe(200);
+    const listPayload = (await listResponse.json()) as {
+      items: Array<{
+        id: string;
+        likeCount: number;
+        replies: Array<{ id: string; reportCount: number }>;
+      }>;
+    };
+    expect(listPayload.items[0]?.id).toBe(created.item.id);
+    expect(listPayload.items[0]?.likeCount).toBe(1);
+    expect(listPayload.items[0]?.replies[0]?.id).toBe(reply.item.id);
+    expect(listPayload.items[0]?.replies[0]?.reportCount).toBe(1);
+
+    const adminHideResponse = await app.request(`/admin/model-comments/${created.item.id}`, {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "hidden"
+      })
+    });
+    expect(adminHideResponse.status).toBe(200);
+
+    const hiddenListResponse = await app.request("/models/mini-4-pro/comments", {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    expect(hiddenListResponse.status).toBe(200);
+    const hiddenListPayload = (await hiddenListResponse.json()) as { items: Array<{ id: string }> };
+    expect(hiddenListPayload.items.some((item) => item.id === created.item.id)).toBe(false);
+
+    const deleteReplyResponse = await app.request(`/models/mini-4-pro/comments/${reply.item.id}`, {
+      method: "DELETE",
+      headers: { cookie: responderCookie }
+    });
+    expect(deleteReplyResponse.status).toBe(200);
   });
 });

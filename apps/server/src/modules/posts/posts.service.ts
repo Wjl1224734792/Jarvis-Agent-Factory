@@ -1,6 +1,8 @@
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
+import { uploadsRepo } from "../uploads/upload.repo";
+import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
 
@@ -205,6 +207,24 @@ function buildReplyToUserMap(
 
 function buildCommentStateSet(rows: Array<{ commentId: string }>) {
   return new Set(rows.map((row) => row.commentId));
+}
+
+function parseFileIdArray(value: string) {
+  try {
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
+  return uploadsRepo.listOwnedUploadedFiles({
+    ownerId,
+    fileIds: imageIds,
+    mediaKind: "image",
+    bizType: "report-image"
+  });
 }
 
 function serializeCommentThreads(
@@ -830,17 +850,23 @@ export const postsService = {
     postId: string,
     commentId: string,
     currentUser: CurrentUser,
-    reason: string
+    input: { reason: string; imageIds: string[] }
   ) {
     const comment = await postsRepo.getCommentById(commentId);
     if (!comment || comment.postId !== postId || comment.status !== "visible") {
       return { kind: "not_found" as const };
     }
 
+    const evidenceImages = await validateOwnedReportImages(currentUser.id, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
     await postsRepo.createCommentReport({
       commentId,
       reporterId: currentUser.id,
-      reason
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
     });
     return { kind: "ok" as const };
   },
@@ -936,14 +962,74 @@ export const postsService = {
 
     return { kind: "ok" as const };
   },
-  async reportPost(postId: string, reporterId: string, reason: string) {
+  async reportPost(postId: string, reporterId: string, input: { reason: string; imageIds: string[] }) {
     const post = await postsRepo.getPostById(postId);
     if (!post || post.status !== "published") {
       return { kind: "not_found" as const };
     }
 
-    await postsRepo.createReport({ postId, reporterId, reason });
+    const evidenceImages = await validateOwnedReportImages(reporterId, input.imageIds);
+    if (evidenceImages.length !== input.imageIds.length) {
+      return { kind: "invalid_images" as const };
+    }
+
+    await postsRepo.createReport({
+      postId,
+      reporterId,
+      reason: input.reason,
+      imageFileIds: JSON.stringify(input.imageIds)
+    });
     return { kind: "ok" as const };
+  },
+  async listPostReports(postId: string) {
+    const reports = await postsRepo.listPostReports(postId);
+    return {
+      items: await Promise.all(
+        reports.map(async (report) => ({
+          id: report.id,
+          reason: report.reason,
+          createdAt: report.createdAt.toISOString(),
+          reporter: {
+            id: report.reporter.id,
+            displayName: report.reporter.displayName,
+            avatarUrl: null,
+            role: report.reporter.role as "user" | "admin"
+          },
+          evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
+            id: `${report.id}-${index}`,
+            url,
+            fileName: `report-${index + 1}.png`,
+            mimeType: "image/png",
+            byteSize: 0
+          }))
+        }))
+      )
+    };
+  },
+  async listPostCommentReports(commentId: string) {
+    const reports = await postsRepo.listCommentReports(commentId);
+    return {
+      items: await Promise.all(
+        reports.map(async (report) => ({
+          id: report.id,
+          reason: report.reason,
+          createdAt: report.createdAt.toISOString(),
+          reporter: {
+            id: report.reporter.id,
+            displayName: report.reporter.displayName,
+            avatarUrl: null,
+            role: report.reporter.role as "user" | "admin"
+          },
+          evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
+            id: `${report.id}-${index}`,
+            url,
+            fileName: `report-${index + 1}.png`,
+            mimeType: "image/png",
+            byteSize: 0
+          }))
+        }))
+      )
+    };
   },
   async listAdminComments(status?: PostCommentStatus) {
     const items = await postsRepo.listAdminComments(status);

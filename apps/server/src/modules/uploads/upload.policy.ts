@@ -59,6 +59,13 @@ const uploadPolicies = {
     visibility: "public",
     maxSize: 10 * MB,
     mimePrefixes: ["image/"]
+  },
+  "report-image": {
+    bizType: "report-image",
+    mediaKind: "image",
+    visibility: "public",
+    maxSize: 10 * MB,
+    mimePrefixes: ["image/"]
   }
 } satisfies Record<FileBizType, UploadPolicy>;
 

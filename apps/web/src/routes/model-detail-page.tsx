@@ -1,22 +1,31 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ArrowLeftIcon, BookmarkIcon, HeartIcon, MessageSquareTextIcon, SendIcon, Trash2Icon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import {
+  ArrowLeftIcon,
+  BookmarkIcon,
+  HeartIcon,
+  MessageSquareTextIcon,
+  SendIcon,
+  Trash2Icon
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
+import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
-import { useAuthStore } from "../features/auth/auth-store";
-import { useLoginPrompt } from "../features/auth/use-login-prompt";
-import { apiClient } from "../lib/api-client";
-import { getAvatarImage, getModelGallery, getModelImage } from "../lib/aviation-media";
+import { useAuthStore } from "@/features/auth/auth-store";
+import { useLoginPrompt } from "@/features/auth/use-login-prompt";
+import { getAvatarImage, getModelGallery, getModelImage } from "@/lib/aviation-media";
+import { apiClient } from "@/lib/api-client";
 import { formatModelMetric } from "./model-detail-helpers";
+import { ModelCommentsSection } from "./model-comments-section";
 import {
   buildSubmitReviewInput,
   createReviewFormState,
@@ -66,7 +75,7 @@ function ReviewCommentSection(props: {
   return (
     <div className="border-t border-border/70 pt-4">
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[0.8rem] font-semibold text-foreground">回复</div>
+        <div className="text-[0.8rem] font-semibold text-foreground">评测回复</div>
         <button
           className="text-[0.72rem] text-primary"
           onClick={() => setExpanded((value) => !value)}
@@ -144,7 +153,7 @@ function ReviewCommentSection(props: {
                             .deleteReviewComment(props.reviewId, comment.id)
                             .then(refresh)
                             .catch((reason: unknown) => {
-                              setError(reason instanceof Error ? reason.message : "删除回复失败");
+                              setError(reason instanceof Error ? reason.message : "删除回复失败。");
                             })
                             .finally(() => setBusy(false));
                         }}
@@ -161,7 +170,10 @@ function ReviewCommentSection(props: {
               {comment.replies.length > 0 ? (
                 <div className="mt-4 border-l border-border/70 pl-4">
                   {comment.replies.map((reply, index) => (
-                    <div className={`flex items-start gap-3 py-3 ${index < comment.replies.length - 1 ? "border-b border-border/50" : ""}`} key={reply.id}>
+                    <div
+                      className={`flex items-start gap-3 py-3 ${index < comment.replies.length - 1 ? "border-b border-border/50" : ""}`}
+                      key={reply.id}
+                    >
                       <ProfileLink userId={reply.author.id}>
                         <Avatar size="sm">
                           <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
@@ -226,11 +238,11 @@ function ReviewCommentSection(props: {
                   return refresh();
                 })
                 .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "提交回复失败");
+                  setError(reason instanceof Error ? reason.message : "提交回复失败。");
                 })
                 .finally(() => setBusy(false));
             }}
-            placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条评论..."}
+            placeholder={replyTarget ? `回复 @${replyTarget.displayName}` : "继续补充这条评测..."}
             value={content}
           />
         </div>
@@ -239,7 +251,7 @@ function ReviewCommentSection(props: {
           className="mt-4 w-full"
           onClick={() => {
             promptLogin({
-              title: "登录后才能回复评论",
+              title: "登录后才能回复评测",
               description: "回复前请先登录。"
             });
           }}
@@ -298,7 +310,7 @@ export function ModelDetailPage() {
     return (
       <Alert variant="destructive">
         <AlertTitle>缺少机型标识</AlertTitle>
-        <AlertDescription>当前页面无法确定要查看哪一款机型。</AlertDescription>
+        <AlertDescription>当前页面无法确定要查看哪一款飞行器。</AlertDescription>
       </Alert>
     );
   }
@@ -319,7 +331,7 @@ export function ModelDetailPage() {
   if (reviewsQuery.isError) {
     return (
       <Alert variant="destructive">
-        <AlertTitle>评论数据加载失败</AlertTitle>
+        <AlertTitle>评测数据加载失败</AlertTitle>
         <AlertDescription>{reviewsQuery.error.message}</AlertDescription>
       </Alert>
     );
@@ -332,7 +344,7 @@ export function ModelDetailPage() {
     return (
       <Alert>
         <AlertTitle>暂无可展示数据</AlertTitle>
-        <AlertDescription>这款机型暂时没有公开参数或评论。</AlertDescription>
+        <AlertDescription>这款飞行器暂时没有公开参数或评测。</AlertDescription>
       </Alert>
     );
   }
@@ -405,11 +417,7 @@ export function ModelDetailPage() {
             <div className="space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
-                  <BrandIdentity
-                    imageClassName="size-3.5"
-                    logoUrl={item.brand.logoUrl}
-                    name={item.brand.name}
-                  />
+                  <BrandIdentity imageClassName="size-3.5" logoUrl={item.brand.logoUrl} name={item.brand.name} />
                 </Badge>
                 <Badge variant="outline">{item.category.name}</Badge>
                 <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
@@ -418,7 +426,7 @@ export function ModelDetailPage() {
                 {item.name}
               </div>
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                {item.description ?? item.summary ?? "查看参数、图集与真实评论。"}
+                {item.description ?? item.summary ?? "查看参数、图集与真实评测。"}
               </p>
 
               <div className="overflow-hidden border border-border/70">
@@ -511,11 +519,21 @@ export function ModelDetailPage() {
                     <SendIcon data-icon="inline-start" />
                     {item.viewer.hasShared ? "已记录分享" : "分享"}
                   </Button>
+                  <ReportActionSheet
+                    description="请说明机型存在的问题，并至少上传 1 张证据图。"
+                    onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
+                    title="举报机型"
+                    trigger={
+                      <Button className="sm:col-span-2" size="sm" type="button" variant="outline">
+                        举报机型
+                      </Button>
+                    }
+                  />
                 </div>
 
                 <Button
                   onClick={() => {
-                    document.getElementById("model-comments")?.scrollIntoView({
+                    document.getElementById("model-comment-area")?.scrollIntoView({
                       behavior: "smooth",
                       block: "start"
                     });
@@ -549,12 +567,8 @@ export function ModelDetailPage() {
                         >
                           <div className="text-[0.8rem] text-muted-foreground">{label}</div>
                           <div className="text-[0.82rem] font-medium leading-6 text-foreground">
-                            {label === "鍝佺墝" ? (
-                              <BrandIdentity
-                                imageClassName="size-4"
-                                logoUrl={item.brand.logoUrl}
-                                name={item.brand.name}
-                              />
+                            {label === "品牌" ? (
+                              <BrandIdentity imageClassName="size-4" logoUrl={item.brand.logoUrl} name={item.brand.name} />
                             ) : (
                               value
                             )}
@@ -568,11 +582,11 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <section className="space-y-4" id="model-comments">
+          <section className="space-y-4">
             <div className="space-y-1">
-              <div className="text-base font-semibold text-foreground">评论区</div>
+              <div className="text-base font-semibold text-foreground">评测</div>
               <div className="text-sm text-muted-foreground">
-                共 {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条公开评论
+                共 {reviewPayload.summary.totalReviews.toLocaleString("zh-CN")} 条公开评测
               </div>
             </div>
 
@@ -583,15 +597,15 @@ export function ModelDetailPage() {
                     className="w-full"
                     onClick={() => {
                       promptLogin({
-                        title: "登录后才能发表评论",
-                        description: "评论前请先登录。"
+                        title: "登录后才能发布评测",
+                        description: "发布评测前请先登录。"
                       });
                     }}
                     size="sm"
                     type="button"
                     variant="outline"
                   >
-                    登录后评论
+                    登录后评测
                   </Button>
                 ) : (
                   <InlineCommentComposer
@@ -611,11 +625,11 @@ export function ModelDetailPage() {
                           void reviewsQuery.refetch();
                         })
                         .catch((reason: unknown) => {
-                          setSubmitError(reason instanceof Error ? reason.message : "提交评论失败");
+                          setSubmitError(reason instanceof Error ? reason.message : "提交评测失败。");
                         })
                         .finally(() => setIsSubmitting(false));
                     }}
-                    placeholder="写下你的使用体验..."
+                    placeholder="写下你的飞行体验或使用感受..."
                     value={formState.content}
                   />
                 )}
@@ -659,10 +673,10 @@ export function ModelDetailPage() {
                       </div>
                     </div>
                     <p className="mt-3 text-[0.82rem] leading-6 text-foreground/78">
-                      {review.content ?? "这条评论暂未填写正文。"}
+                      {review.content ?? "这条评测暂未填写正文。"}
                     </p>
                     {review.status === "pending" ? (
-                      <p className="mt-2 text-[0.72rem] text-amber-700">这条评论仅你自己可见，审核通过后才会公开。</p>
+                      <p className="mt-2 text-[0.72rem] text-amber-700">这条评测仅你自己可见，审核通过后才会公开。</p>
                     ) : null}
                     <ReviewCommentSection
                       canInteract={isAuthenticated && review.status === "visible"}
@@ -672,10 +686,12 @@ export function ModelDetailPage() {
                   </div>
                 ))
               ) : (
-                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开评论。</div>
+                <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开评测。</div>
               )}
             </div>
           </section>
+
+          <ModelCommentsSection currentUserId={currentUserId} isAuthenticated={isAuthenticated} slug={slug} />
         </div>
 
         <SiteRail>

@@ -91,7 +91,7 @@ async function loginAdmin() {
 async function uploadFile(
   cookie: string,
   input: {
-    bizType: "post-image" | "post-video" | "avatar-image";
+    bizType: "post-image" | "post-video" | "avatar-image" | "report-image";
     name: string;
     contentType: string;
     bytes: Uint8Array;
@@ -144,6 +144,15 @@ async function uploadImage(cookie: string, name = "cover.png") {
     name,
     contentType: "image/png",
     bytes: Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10])
+  });
+}
+
+async function uploadReportImage(cookie: string, name = "report.png") {
+  return uploadFile(cookie, {
+    bizType: "report-image",
+    name,
+    contentType: "image/png",
+    bytes: new Uint8Array([9, 8, 7, 6])
   });
 }
 
@@ -377,6 +386,7 @@ describe.sequential("posts and social flows", () => {
     );
     expect(likeResponse.status).toBe(200);
 
+    const reportImage = await uploadReportImage(authorCookie, "comment-report.png");
     const reportResponse = await app.request(
       API_ROUTES.posts.commentReport(created.item.id, commentPayload.item.id),
       {
@@ -386,7 +396,8 @@ describe.sequential("posts and social flows", () => {
           "content-type": "application/json"
         },
         body: JSON.stringify({
-          reason: "Spam wording"
+          reason: "Spam wording",
+          imageIds: [reportImage.item.id]
         })
       }
     );

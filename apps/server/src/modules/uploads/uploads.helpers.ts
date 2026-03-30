@@ -14,3 +14,8 @@ export async function resolveUploadedFileUrl(fileId: string | null | undefined) 
   const config = resolveStorageProviderConfig();
   return buildStorageObjectUrl(config, file.objectKey);
 }
+
+export async function resolveUploadedFileUrls(fileIds: Array<string | null | undefined>) {
+  const urls = await Promise.all(fileIds.map((fileId) => resolveUploadedFileUrl(fileId)));
+  return urls.filter((value): value is string => Boolean(value));
+}

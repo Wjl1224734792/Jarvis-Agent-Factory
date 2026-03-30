@@ -54,7 +54,9 @@ export const API_ROUTES = {
   circleFeed: "/circle/feed",
   admin: {
     siteSettings: "/admin/site-settings",
-    analyticsOverview: "/admin/analytics/overview"
+    analyticsOverview: "/admin/analytics/overview",
+    reports: "/admin/reports",
+    reportDetail: (kind: string, id: string) => `/admin/reports/${kind}/${id}`
   },
   auth: {
     captchaChallenge: "/auth/captcha/challenge",
@@ -90,8 +92,10 @@ export const API_ROUTES = {
     adminList: "/admin/posts",
     adminDetail: (id: string) => `/admin/posts/${id}`,
     adminOfficialDetail: (id: string) => `/admin/official-articles/${id}`,
+    adminReports: (id: string) => `/admin/posts/${id}/reports`,
     adminComments: "/admin/post-comments",
-    adminCommentDetail: (id: string) => `/admin/post-comments/${id}`
+    adminCommentDetail: (id: string) => `/admin/post-comments/${id}`,
+    adminCommentReports: (id: string) => `/admin/post-comments/${id}/reports`
   },
   content: {
     categories: "/content-categories",
@@ -139,10 +143,13 @@ export const API_ROUTES = {
     adminList: "/admin/rankings",
     adminDetail: (id: string) => `/admin/rankings/${id}`,
     adminStatus: (id: string) => `/admin/rankings/${id}/status`,
+    adminReports: (id: string) => `/admin/rankings/${id}/reports`,
     adminRankingComments: "/admin/ranking-comments",
     adminRankingCommentDetail: (id: string) => `/admin/ranking-comments/${id}`,
+    adminRankingCommentReports: (id: string) => `/admin/ranking-comments/${id}/reports`,
     adminRankingItemComments: "/admin/ranking-item-comments",
     adminRankingItemCommentDetail: (id: string) => `/admin/ranking-item-comments/${id}`,
+    adminRankingItemCommentReports: (id: string) => `/admin/ranking-item-comments/${id}/reports`,
     items: (id: string) => `/rankings/${id}/items`,
     comments: (id: string) => `/rankings/${id}/comments`,
     commentDetail: (rankingId: string, commentId: string) => `/rankings/${rankingId}/comments/${commentId}`,
@@ -153,6 +160,7 @@ export const API_ROUTES = {
     report: (id: string) => `/rankings/${id}/report`,
     itemDetail: (id: string) => `/ranking-items/${id}`,
     adminItemStatus: (id: string) => `/admin/ranking-items/${id}/status`,
+    adminItemReports: (id: string) => `/admin/ranking-items/${id}/reports`,
     itemReport: (id: string) => `/ranking-items/${id}/report`,
     itemReview: (id: string) => `/ranking-items/${id}/review`,
     itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
@@ -167,6 +175,12 @@ export const API_ROUTES = {
   models: {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
+    comments: (slug: string) => `/models/${slug}/comments`,
+    commentDetail: (slug: string, commentId: string) => `/models/${slug}/comments/${commentId}`,
+    commentLike: (slug: string, commentId: string) =>
+      `/models/${slug}/comments/${commentId}/like`,
+    commentReport: (slug: string, commentId: string) =>
+      `/models/${slug}/comments/${commentId}/report`,
     interactions: (slug: string, type: string) => `/models/${slug}/interactions/${type}`,
     report: (slug: string) => `/models/${slug}/report`,
     reviews: (slug: string) => `/models/${slug}/reviews`,
@@ -184,12 +198,18 @@ export const API_ROUTES = {
     brands: "/admin/brands",
     adminList: "/admin/models",
     adminDetail: (id: string) => `/admin/models/${id}`,
+    adminReports: (id: string) => `/admin/models/${id}/reports`,
     adminCategoryDetail: (id: string) => `/admin/categories/${id}`,
     adminBrandDetail: (id: string) => `/admin/brands/${id}`,
     adminReviews: "/admin/reviews",
     adminReviewDetail: (id: string) => `/admin/reviews/${id}`,
+    adminReviewReports: (id: string) => `/admin/reviews/${id}/reports`,
     adminReviewComments: "/admin/review-comments",
-    adminReviewCommentDetail: (id: string) => `/admin/review-comments/${id}`
+    adminReviewCommentDetail: (id: string) => `/admin/review-comments/${id}`,
+    adminComments: "/admin/model-comments",
+    adminCommentDetail: (id: string) => `/admin/model-comments/${id}`,
+    adminCommentReports: (id: string) => `/admin/model-comments/${id}/reports`,
+    adminReviewCommentReports: (id: string) => `/admin/review-comments/${id}/reports`
   }
 } as const;
 

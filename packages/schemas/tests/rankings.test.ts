@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminRankingsResponseSchema,
+  createRankingItemCommentInputSchema,
   createRankingInputSchema,
   rankingItemDetailResponseSchema,
   rankingsResponseSchema,
@@ -217,5 +218,34 @@ describe("rankings contract", () => {
 
     expect(adminPayload.items[0]?.status).toBe("pending");
     expect(siteSettings.item.rankingModerationEnabled).toBe(true);
+  });
+
+  it("requires rating for top-level ranking item comments and forbids rating on replies", () => {
+    const topLevel = createRankingItemCommentInputSchema.parse({
+      content: "Top-level rating comment",
+      rating: 5
+    });
+
+    expect(topLevel.rating).toBe(5);
+
+    expect(() =>
+      createRankingItemCommentInputSchema.parse({
+        content: "Missing rating"
+      })
+    ).toThrow();
+
+    const reply = createRankingItemCommentInputSchema.parse({
+      content: "Reply only",
+      parentCommentId: "comment_1"
+    });
+    expect(reply.parentCommentId).toBe("comment_1");
+
+    expect(() =>
+      createRankingItemCommentInputSchema.parse({
+        content: "Reply with rating should fail",
+        parentCommentId: "comment_1",
+        rating: 4
+      })
+    ).toThrow();
   });
 });

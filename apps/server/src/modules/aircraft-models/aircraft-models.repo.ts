@@ -1,12 +1,17 @@
 import {
   aircraftCategoriesTable,
+  aircraftModelCommentLikesTable,
+  aircraftModelCommentReportsTable,
+  aircraftModelCommentsTable,
+  aircraftModelReportsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
   brandsTable,
   createId,
-  db
+  db,
+  usersTable
 } from "@feijia/db";
-import { and, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 
 type ListFilters = {
   categorySlugs?: string[];
@@ -383,6 +388,360 @@ export const aircraftModelsRepo = {
       .limit(1);
 
     return items[0] ?? null;
+  },
+  async listUsersByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        avatarFileId: usersTable.avatarFileId,
+        role: usersTable.role
+      })
+      .from(usersTable)
+      .where(inArray(usersTable.id, ids));
+  },
+  async listModelComments(modelId: string) {
+    return db
+      .select({
+        id: aircraftModelCommentsTable.id,
+        modelId: aircraftModelCommentsTable.modelId,
+        authorId: aircraftModelCommentsTable.authorId,
+        parentCommentId: aircraftModelCommentsTable.parentCommentId,
+        replyToCommentId: aircraftModelCommentsTable.replyToCommentId,
+        replyToUserId: aircraftModelCommentsTable.replyToUserId,
+        content: aircraftModelCommentsTable.content,
+        status: aircraftModelCommentsTable.status,
+        likeCount: aircraftModelCommentsTable.likeCount,
+        reportCount: aircraftModelCommentsTable.reportCount,
+        createdAt: aircraftModelCommentsTable.createdAt,
+        updatedAt: aircraftModelCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(aircraftModelCommentsTable)
+      .innerJoin(usersTable, eq(aircraftModelCommentsTable.authorId, usersTable.id))
+      .where(eq(aircraftModelCommentsTable.modelId, modelId))
+      .orderBy(asc(aircraftModelCommentsTable.createdAt));
+  },
+  async getModelCommentById(id: string) {
+    const rows = await db
+      .select({
+        id: aircraftModelCommentsTable.id,
+        modelId: aircraftModelCommentsTable.modelId,
+        authorId: aircraftModelCommentsTable.authorId,
+        parentCommentId: aircraftModelCommentsTable.parentCommentId,
+        replyToCommentId: aircraftModelCommentsTable.replyToCommentId,
+        replyToUserId: aircraftModelCommentsTable.replyToUserId,
+        content: aircraftModelCommentsTable.content,
+        status: aircraftModelCommentsTable.status,
+        likeCount: aircraftModelCommentsTable.likeCount,
+        reportCount: aircraftModelCommentsTable.reportCount,
+        createdAt: aircraftModelCommentsTable.createdAt,
+        updatedAt: aircraftModelCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(aircraftModelCommentsTable)
+      .innerJoin(usersTable, eq(aircraftModelCommentsTable.authorId, usersTable.id))
+      .where(eq(aircraftModelCommentsTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+  async createModelComment(input: {
+    modelId: string;
+    authorId: string;
+    parentCommentId: string | null;
+    replyToCommentId: string | null;
+    replyToUserId: string | null;
+    content: string;
+    status: "pending" | "visible" | "hidden";
+  }) {
+    const id = createId("mcomment");
+    await db.insert(aircraftModelCommentsTable).values({
+      id,
+      modelId: input.modelId,
+      authorId: input.authorId,
+      parentCommentId: input.parentCommentId,
+      replyToCommentId: input.replyToCommentId,
+      replyToUserId: input.replyToUserId,
+      content: input.content,
+      status: input.status
+    });
+
+    return this.getModelCommentById(id);
+  },
+  async updateModelComment(id: string, content: string) {
+    await db
+      .update(aircraftModelCommentsTable)
+      .set({
+        content,
+        updatedAt: new Date()
+      })
+      .where(eq(aircraftModelCommentsTable.id, id));
+
+    return this.getModelCommentById(id);
+  },
+  async listAdminModelComments(status?: "pending" | "visible" | "hidden") {
+    return db
+      .select({
+        id: aircraftModelCommentsTable.id,
+        modelId: aircraftModelCommentsTable.modelId,
+        parentCommentId: aircraftModelCommentsTable.parentCommentId,
+        replyToCommentId: aircraftModelCommentsTable.replyToCommentId,
+        replyToUserId: aircraftModelCommentsTable.replyToUserId,
+        content: aircraftModelCommentsTable.content,
+        status: aircraftModelCommentsTable.status,
+        likeCount: aircraftModelCommentsTable.likeCount,
+        reportCount: aircraftModelCommentsTable.reportCount,
+        createdAt: aircraftModelCommentsTable.createdAt,
+        updatedAt: aircraftModelCommentsTable.updatedAt,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        },
+        model: {
+          id: aircraftModelsTable.id,
+          slug: aircraftModelsTable.slug,
+          name: aircraftModelsTable.name
+        }
+      })
+      .from(aircraftModelCommentsTable)
+      .innerJoin(aircraftModelsTable, eq(aircraftModelCommentsTable.modelId, aircraftModelsTable.id))
+      .innerJoin(usersTable, eq(aircraftModelCommentsTable.authorId, usersTable.id))
+      .where(status ? eq(aircraftModelCommentsTable.status, status) : sql`true`)
+      .orderBy(desc(aircraftModelCommentsTable.updatedAt));
+  },
+  async updateModelCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await this.getModelCommentById(id);
+    if (!existing) {
+      return null;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+    await db
+      .update(aircraftModelCommentsTable)
+      .set({
+        status,
+        updatedAt: new Date()
+      })
+      .where(
+        and(
+          eq(aircraftModelCommentsTable.modelId, existing.modelId),
+          or(eq(aircraftModelCommentsTable.id, rootId), eq(aircraftModelCommentsTable.parentCommentId, rootId))
+        )
+      );
+
+    const rows = await this.listAdminModelComments();
+    return rows.find((item) => item.id === id) ?? null;
+  },
+  async syncModelCommentLikeReportCounts(commentId: string) {
+    const [likes, reports] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftModelCommentLikesTable)
+        .where(eq(aircraftModelCommentLikesTable.commentId, commentId)),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftModelCommentReportsTable)
+        .where(eq(aircraftModelCommentReportsTable.commentId, commentId))
+    ]);
+
+    await db
+      .update(aircraftModelCommentsTable)
+      .set({
+        likeCount: Number(likes[0]?.count ?? 0),
+        reportCount: Number(reports[0]?.count ?? 0),
+        updatedAt: new Date()
+      })
+      .where(eq(aircraftModelCommentsTable.id, commentId));
+  },
+  async toggleModelCommentLike(commentId: string, userId: string) {
+    const existing = await db
+      .select({ id: aircraftModelCommentLikesTable.id })
+      .from(aircraftModelCommentLikesTable)
+      .where(
+        and(
+          eq(aircraftModelCommentLikesTable.commentId, commentId),
+          eq(aircraftModelCommentLikesTable.userId, userId)
+        )
+      )
+      .limit(1);
+
+    let active = false;
+    if (existing.length > 0) {
+      await db
+        .delete(aircraftModelCommentLikesTable)
+        .where(eq(aircraftModelCommentLikesTable.id, existing[0].id));
+    } else {
+      await db.insert(aircraftModelCommentLikesTable).values({
+        id: createId("mcomment_like"),
+        commentId,
+        userId
+      });
+      active = true;
+    }
+
+    await this.syncModelCommentLikeReportCounts(commentId);
+    return { active };
+  },
+  async reportModelComment(input: {
+    commentId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
+    await db
+      .insert(aircraftModelCommentReportsTable)
+      .values({
+        id: createId("mcomment_report"),
+        commentId: input.commentId,
+        reporterId: input.reporterId,
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
+      })
+      .onConflictDoNothing();
+
+    await this.syncModelCommentLikeReportCounts(input.commentId);
+  },
+  async listModelCommentReports(commentId: string) {
+    return db
+      .select({
+        id: aircraftModelCommentReportsTable.id,
+        reason: aircraftModelCommentReportsTable.reason,
+        imageFileIds: aircraftModelCommentReportsTable.imageFileIds,
+        createdAt: aircraftModelCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(aircraftModelCommentReportsTable)
+      .innerJoin(usersTable, eq(aircraftModelCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(aircraftModelCommentReportsTable.commentId, commentId))
+      .orderBy(desc(aircraftModelCommentReportsTable.createdAt));
+  },
+  async listViewerModelCommentLikes(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ commentId: aircraftModelCommentLikesTable.commentId })
+      .from(aircraftModelCommentLikesTable)
+      .where(
+        and(
+          eq(aircraftModelCommentLikesTable.userId, userId),
+          inArray(aircraftModelCommentLikesTable.commentId, commentIds)
+        )
+      );
+  },
+  async listViewerModelCommentReports(commentIds: string[], userId: string) {
+    if (commentIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ commentId: aircraftModelCommentReportsTable.commentId })
+      .from(aircraftModelCommentReportsTable)
+      .where(
+        and(
+          eq(aircraftModelCommentReportsTable.reporterId, userId),
+          inArray(aircraftModelCommentReportsTable.commentId, commentIds)
+        )
+      );
+  },
+  async deleteModelCommentThread(modelId: string, commentId: string) {
+    const existing = await this.getModelCommentById(commentId);
+    if (!existing || existing.modelId !== modelId) {
+      return 0;
+    }
+
+    const rootId = existing.parentCommentId ?? existing.id;
+    await db
+      .delete(aircraftModelCommentsTable)
+      .where(
+        and(
+          eq(aircraftModelCommentsTable.modelId, modelId),
+          or(eq(aircraftModelCommentsTable.id, rootId), eq(aircraftModelCommentsTable.parentCommentId, rootId))
+        )
+      );
+
+    return 1;
+  },
+  async reportModel(input: { modelId: string; reporterId: string; reason: string; imageFileIds: string }) {
+    await db
+      .insert(aircraftModelReportsTable)
+      .values({
+        id: createId("mreport"),
+        modelId: input.modelId,
+        reporterId: input.reporterId,
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
+      })
+      .onConflictDoNothing();
+
+    const totals = await db
+      .select({ count: sql<number>`count(*)` })
+      .from(aircraftModelReportsTable)
+      .where(eq(aircraftModelReportsTable.modelId, input.modelId));
+
+    await db
+      .update(aircraftModelsTable)
+      .set({
+        reportCount: Number(totals[0]?.count ?? 0)
+      })
+      .where(eq(aircraftModelsTable.id, input.modelId));
+  },
+  async listModelReports(modelId: string) {
+    return db
+      .select({
+        id: aircraftModelReportsTable.id,
+        reason: aircraftModelReportsTable.reason,
+        imageFileIds: aircraftModelReportsTable.imageFileIds,
+        createdAt: aircraftModelReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(aircraftModelReportsTable)
+      .innerJoin(usersTable, eq(aircraftModelReportsTable.reporterId, usersTable.id))
+      .where(eq(aircraftModelReportsTable.modelId, modelId))
+      .orderBy(desc(aircraftModelReportsTable.createdAt));
+  },
+  async listViewerModelReports(modelIds: string[], userId: string) {
+    if (modelIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({ modelId: aircraftModelReportsTable.modelId })
+      .from(aircraftModelReportsTable)
+      .where(
+        and(
+          eq(aircraftModelReportsTable.reporterId, userId),
+          inArray(aircraftModelReportsTable.modelId, modelIds)
+        )
+      );
   },
   async delete(id: string) {
     await db.delete(aircraftModelsTable).where(eq(aircraftModelsTable.id, id));

@@ -123,6 +123,33 @@ export const uploadsRepo = {
       return file.postId === null;
     });
   },
+  async listOwnedUploadedFiles(input: {
+    ownerId: string;
+    fileIds: string[];
+    mediaKind?: "image" | "video";
+    bizType?: string;
+  }) {
+    if (input.fileIds.length === 0) {
+      return [];
+    }
+
+    const files = await Promise.all(
+      input.fileIds.map((fileId) => this.getOwnedFileById(input.ownerId, fileId))
+    );
+
+    return files.filter((file): file is NonNullable<typeof file> => {
+      if (!file || file.status !== "uploaded") {
+        return false;
+      }
+      if (input.mediaKind && file.mediaKind !== input.mediaKind) {
+        return false;
+      }
+      if (input.bizType && file.bizType !== input.bizType) {
+        return false;
+      }
+      return true;
+    });
+  },
   async listPostFiles(postIds: string[], mediaKind: "image" | "video") {
     if (postIds.length === 0) {
       return [];

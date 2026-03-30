@@ -1,5 +1,6 @@
 import {
   actionSuccessResponseSchema,
+  adminReportRecordsResponseSchema,
   adminReviewCommentResponseSchema,
   adminReviewCommentsResponseSchema,
   adminReviewResponseSchema,
@@ -91,6 +92,16 @@ reviewsRoute.put(API_ROUTES.models.adminReviewDetail(":id"), requireAdmin, async
   return context.json(adminReviewResponseSchema.parse({ item }));
 });
 
+reviewsRoute.get(API_ROUTES.models.adminReviewReports(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const payload = await reviewsService.listReviewReports(id);
+  return context.json(adminReportRecordsResponseSchema.parse(payload));
+});
+
 reviewsRoute.get(API_ROUTES.models.adminReviewComments, requireAdmin, async (context) => {
   const status = context.req.query("status");
   const payload = await reviewsService.listAdminReviewComments(
@@ -112,6 +123,16 @@ reviewsRoute.put(API_ROUTES.models.adminReviewCommentDetail(":id"), requireAdmin
   }
 
   return context.json(adminReviewCommentResponseSchema.parse({ item }));
+});
+
+reviewsRoute.get(API_ROUTES.models.adminReviewCommentReports(":id"), requireAdmin, async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const payload = await reviewsService.listReviewCommentReports(id);
+  return context.json(adminReportRecordsResponseSchema.parse(payload));
 });
 
 reviewsRoute.get(API_ROUTES.models.reviewComments(":reviewId"), async (context) => {
@@ -211,9 +232,12 @@ reviewsRoute.post(API_ROUTES.models.reviewReport(":reviewId"), requireAuth, asyn
   }
 
   const input = reportContentInputSchema.parse(await context.req.json());
-  const result = await reviewsService.reportReview(reviewId, currentUser, input.reason);
+  const result = await reviewsService.reportReview(reviewId, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Review not found." }, 404);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
@@ -291,10 +315,13 @@ reviewsRoute.post(
       reviewId,
       commentId,
       currentUser,
-      input.reason
+      input
     );
     if (result.kind === "not_found") {
       return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
+    }
+    if (result.kind === "invalid_images") {
+      return context.json({ code: "BAD_REQUEST", message: "Invalid report evidence images." }, 400);
     }
 
     return context.json(actionSuccessResponseSchema.parse({ success: true }));

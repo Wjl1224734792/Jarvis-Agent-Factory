@@ -444,19 +444,44 @@ export const reviewsRepo = {
     await this.syncReviewLikeReportCounts(reviewId);
     return { active };
   },
-  async reportReview(input: { reviewId: string; reporterId: string; reason: string }) {
+  async reportReview(input: {
+    reviewId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
     await db
       .insert(aircraftReviewReportsTable)
       .values({
         id: createId("review_report"),
         reviewId: input.reviewId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncReviewLikeReportCounts(input.reviewId);
     return true;
+  },
+  async listReviewReports(reviewId: string) {
+    return db
+      .select({
+        id: aircraftReviewReportsTable.id,
+        reason: aircraftReviewReportsTable.reason,
+        imageFileIds: aircraftReviewReportsTable.imageFileIds,
+        createdAt: aircraftReviewReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(aircraftReviewReportsTable)
+      .innerJoin(usersTable, eq(aircraftReviewReportsTable.reporterId, usersTable.id))
+      .where(eq(aircraftReviewReportsTable.reviewId, reviewId))
+      .orderBy(desc(aircraftReviewReportsTable.createdAt));
   },
   async syncReviewCommentLikeReportCounts(commentId: string) {
     const [likes, reports] = await Promise.all([
@@ -506,19 +531,44 @@ export const reviewsRepo = {
     await this.syncReviewCommentLikeReportCounts(commentId);
     return { active };
   },
-  async reportReviewComment(input: { commentId: string; reporterId: string; reason: string }) {
+  async reportReviewComment(input: {
+    commentId: string;
+    reporterId: string;
+    reason: string;
+    imageFileIds: string;
+  }) {
     await db
       .insert(reviewCommentReportsTable)
       .values({
         id: createId("review_comment_report"),
         commentId: input.commentId,
         reporterId: input.reporterId,
-        reason: input.reason
+        reason: input.reason,
+        imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
     await this.syncReviewCommentLikeReportCounts(input.commentId);
     return true;
+  },
+  async listReviewCommentReports(commentId: string) {
+    return db
+      .select({
+        id: reviewCommentReportsTable.id,
+        reason: reviewCommentReportsTable.reason,
+        imageFileIds: reviewCommentReportsTable.imageFileIds,
+        createdAt: reviewCommentReportsTable.createdAt,
+        reporter: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        }
+      })
+      .from(reviewCommentReportsTable)
+      .innerJoin(usersTable, eq(reviewCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(reviewCommentReportsTable.commentId, commentId))
+      .orderBy(desc(reviewCommentReportsTable.createdAt));
   },
   async listViewerReviewLikes(reviewIds: string[], userId: string) {
     if (reviewIds.length === 0) {

@@ -3,6 +3,7 @@ import { cors } from "hono/cors";
 import { API_ROUTES, APP_PORTS, APP_ROUTES } from "@feijia/shared";
 
 import { adminAnalyticsRoute } from "./modules/admin-analytics/admin-analytics.route";
+import { adminReportsRoute } from "./modules/admin-reports/admin-reports.route";
 import { aircraftModelsRoute } from "./modules/aircraft-models/aircraft-models.route";
 import { aircraftSubmissionsRoute } from "./modules/aircraft-submissions/aircraft-submissions.route";
 import { authRoute } from "./modules/auth/auth.route";
@@ -93,6 +94,7 @@ app.route("/", uploadsRoute);
 app.route("/", postsRoute);
 app.route("/", socialRoute);
 app.route("/", adminAnalyticsRoute);
+app.route("/", adminReportsRoute);
 app.route("/", rankingsRoute);
 app.route("/", aircraftModelsRoute);
 app.route("/", aircraftSubmissionsRoute);
@@ -114,6 +116,23 @@ app.notFound((context) =>
 );
 
 app.onError((error, context) => {
+  const maybeValidationError = error as { issues?: Array<{ message?: string }> };
+  if (Array.isArray(maybeValidationError.issues)) {
+    logger.error(error.message, {
+      stack: error.stack,
+      path: context.req.path,
+      method: context.req.method
+    });
+
+    return context.json(
+      {
+        code: "BAD_REQUEST",
+        message: maybeValidationError.issues[0]?.message ?? "Invalid request."
+      },
+      400
+    );
+  }
+
   const err = error instanceof Error ? error : new Error(String(error));
   logger.error(err.message, {
     stack: err.stack,
