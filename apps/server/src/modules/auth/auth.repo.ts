@@ -70,6 +70,8 @@ function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
     role: user.role as AuthRole,
     displayName: user.displayName,
     phone: user.phone,
+    wechatOpenId: user.wechatOpenId,
+    wechatUnionId: user.wechatUnionId,
     account: user.account,
     password: user.passwordHash
   };
@@ -345,6 +347,8 @@ export const authRepo = {
       role: "user",
       displayName: input.displayName,
       phone: input.phone,
+      wechatOpenId: null,
+      wechatUnionId: null,
       account: null,
       password: null
     };

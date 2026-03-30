@@ -1,6 +1,17 @@
 import {
   actionSuccessResponseSchema,
+  adminAnalyticsOverviewResponseSchema,
+  adminModelCommentResponseSchema,
+  adminModelCommentsResponseSchema,
+  adminModelInputSchema,
+  adminModelResponseSchema,
   adminLoginRequestSchema,
+  adminOfficialArticleUpdateInputSchema,
+  adminPostCommentResponseSchema,
+  adminPostCommentsResponseSchema,
+  adminPostCommentStatusUpdateInputSchema,
+  adminPostResponseSchema,
+  adminPostStatusUpdateInputSchema,
   adminRecentSessionsResponseSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
@@ -8,10 +19,24 @@ import {
   adminCategoryResponseSchema,
   adminContentCategoryInputSchema,
   adminContentCategoryResponseSchema,
+  adminRankingCommentResponseSchema,
+  adminRankingCommentsResponseSchema,
+  adminRankingItemCommentResponseSchema,
+  adminRankingItemCommentsResponseSchema,
+  adminPostsResponseSchema,
+  adminRankingsResponseSchema,
+  adminReportRecordsResponseSchema,
+  adminReviewCommentResponseSchema,
+  adminReviewCommentsResponseSchema,
+  adminReviewResponseSchema,
+  adminReviewsResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
   appLoginResponseSchema,
+  appRefreshRequestSchema,
   aircraftCategorySchema,
+  createModelCommentInputSchema,
+  createModelCommentResponseSchema,
   aircraftSubmissionResponseSchema,
   aircraftSubmissionsResponseSchema,
   authErrorResponseSchema,
@@ -20,28 +45,48 @@ import {
   brandApplicationsResponseSchema,
   brandSchema,
   captchaChallengeResponseSchema,
+  circleFeedResponseSchema,
   completeAppRegistrationRequestSchema,
   completeUploadInputSchema,
   completeUploadResponseSchema,
   completeWebRegistrationRequestSchema,
   contentCategoriesResponseSchema,
+  createPostCommentInputSchema,
+  createPostCommentResponseSchema,
   createPostInputSchema,
   createPostResponseSchema,
   createAircraftSubmissionInputSchema,
   createBrandApplicationInputSchema,
+  createRankingInputSchema,
+  addRankingItemInputSchema,
+  createRankingItemCommentInputSchema,
+  createRankingItemCommentResponseSchema,
+  createRankingCommentInputSchema,
+  createRankingCommentResponseSchema,
+  createReviewCommentInputSchema,
+  createReviewCommentResponseSchema,
   currentUserResponseSchema,
   currentUserProfileResponseSchema,
   errorResponseSchema,
   fileUrlResponseSchema,
   healthResponseSchema,
+  homeFeedResponseSchema,
   initUploadInputSchema,
   initUploadResponseSchema,
   modelDetailResponseSchema,
+  modelCommentsResponseSchema,
+  modelInteractionResponseSchema,
   modelListResponseSchema,
   modelReviewsResponseSchema,
   postDetailResponseSchema,
+  rankingItemDetailResponseSchema,
+  rankingItemResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
+  registrationDisplayNameSuggestRequestSchema,
+  registrationDisplayNameSuggestResponseSchema,
+  reportContentInputSchema,
+  reviewCommentsResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
   notificationsResponseSchema,
@@ -49,12 +94,29 @@ import {
   phoneChangeRequestInputSchema,
   phoneChangeRequestResponseSchema,
   siteSettingsResponseSchema,
+  submitRankingItemRatingInputSchema,
+  submitRankingItemRatingResponseSchema,
+  submitRankingItemReviewInputSchema,
+  submitRankingItemReviewResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
+  updateModelCommentInputSchema,
+  updateModelCommentStatusInputSchema,
   updateAircraftSubmissionStatusInputSchema,
   updateBrandApplicationInputSchema,
   updateBrandApplicationStatusInputSchema,
   updateCurrentUserProfileInputSchema,
+  updatePostCommentInputSchema,
+  updatePostInputSchema,
+  updateRankingCommentStatusInputSchema,
+  updateRankingItemCommentInputSchema,
+  updateRankingItemCommentStatusInputSchema,
+  updateRankingItemStatusInputSchema,
+  updateRankingStatusInputSchema,
+  updateRankingInputSchema,
+  updateReviewCommentInputSchema,
+  updateReviewCommentStatusInputSchema,
+  updateReviewStatusInputSchema,
   updateSiteSettingsInputSchema,
   userContentResponseSchema,
   userProfileResponseSchema,
@@ -98,9 +160,16 @@ const componentSchemas = {
   SmsCodeResponse: toOpenApiSchema(smsCodeResponseSchema),
   WebLoginRequest: toOpenApiSchema(webLoginRequestSchema),
   WebLoginResponse: toOpenApiSchema(webLoginResponseSchema),
+  RegistrationDisplayNameSuggestRequest: toOpenApiSchema(
+    registrationDisplayNameSuggestRequestSchema
+  ),
+  RegistrationDisplayNameSuggestResponse: toOpenApiSchema(
+    registrationDisplayNameSuggestResponseSchema
+  ),
   AppLoginRequest: toOpenApiSchema(appLoginRequestSchema),
   AppLoginResponse: toOpenApiSchema(appLoginResponseSchema),
   AppAuthSessionResponse: toOpenApiSchema(appAuthSessionResponseSchema),
+  AppRefreshRequest: toOpenApiSchema(appRefreshRequestSchema),
   CompleteWebRegistrationRequest: toOpenApiSchema(
     completeWebRegistrationRequestSchema
   ),
@@ -120,9 +189,18 @@ const componentSchemas = {
   PhoneChangeRequest: toOpenApiSchema(phoneChangeRequestInputSchema),
   PhoneChangeRequestResponse: toOpenApiSchema(phoneChangeRequestResponseSchema),
   PhoneChangeConfirmRequest: toOpenApiSchema(phoneChangeConfirmInputSchema),
+  PingResponse: toOpenApiSchema(
+    z.object({
+      message: z.string().min(1)
+    })
+  ),
   NotificationsResponse: toOpenApiSchema(notificationsResponseSchema),
   UserProfileResponse: toOpenApiSchema(userProfileResponseSchema),
   UserContentResponse: toOpenApiSchema(userContentResponseSchema),
+  AdminAnalyticsOverviewResponse: toOpenApiSchema(
+    adminAnalyticsOverviewResponseSchema
+  ),
+  AdminReportRecordsResponse: toOpenApiSchema(adminReportRecordsResponseSchema),
   FileUrlResponse: toOpenApiSchema(fileUrlResponseSchema),
   AdminRecentSessionsResponse: toOpenApiSchema(
     adminRecentSessionsResponseSchema
@@ -166,14 +244,109 @@ const componentSchemas = {
       minProperties: 1
     }
   ),
+  HomeFeedResponse: toOpenApiSchema(homeFeedResponseSchema),
+  CircleFeedResponse: toOpenApiSchema(circleFeedResponseSchema),
   CreatePostRequest: toOpenApiSchema(createPostInputSchema),
   CreatePostResponse: toOpenApiSchema(createPostResponseSchema),
+  UpdatePostRequest: toOpenApiSchema(updatePostInputSchema),
+  CreatePostCommentRequest: toOpenApiSchema(createPostCommentInputSchema),
+  CreatePostCommentResponse: toOpenApiSchema(createPostCommentResponseSchema),
+  UpdatePostCommentRequest: toOpenApiSchema(updatePostCommentInputSchema),
+  ReportContentRequest: toOpenApiSchema(reportContentInputSchema),
+  AdminPostsResponse: toOpenApiSchema(adminPostsResponseSchema),
+  AdminPostStatusUpdateRequest: toOpenApiSchema(adminPostStatusUpdateInputSchema),
+  AdminPostResponse: toOpenApiSchema(adminPostResponseSchema),
+  AdminOfficialArticleUpdateRequest: toOpenApiSchema(
+    adminOfficialArticleUpdateInputSchema
+  ),
+  AdminPostCommentsResponse: toOpenApiSchema(adminPostCommentsResponseSchema),
+  AdminPostCommentStatusUpdateRequest: toOpenApiSchema(
+    adminPostCommentStatusUpdateInputSchema
+  ),
+  AdminPostCommentResponse: toOpenApiSchema(adminPostCommentResponseSchema),
   PostDetailResponse: toOpenApiSchema(postDetailResponseSchema),
   ModelListResponse: toOpenApiSchema(modelListResponseSchema),
   ModelDetailResponse: toOpenApiSchema(modelDetailResponseSchema),
+  ModelCommentsResponse: toOpenApiSchema(modelCommentsResponseSchema),
+  CreateModelCommentRequest: toOpenApiSchema(createModelCommentInputSchema),
+  CreateModelCommentResponse: toOpenApiSchema(createModelCommentResponseSchema),
+  UpdateModelCommentRequest: toOpenApiSchema(updateModelCommentInputSchema),
+  ModelInteractionResponse: toOpenApiSchema(modelInteractionResponseSchema),
+  AdminModelRequest: toOpenApiSchema(adminModelInputSchema),
+  AdminModelResponse: toOpenApiSchema(adminModelResponseSchema),
+  AdminModelCommentsResponse: toOpenApiSchema(adminModelCommentsResponseSchema),
+  UpdateModelCommentStatusRequest: toOpenApiSchema(
+    updateModelCommentStatusInputSchema
+  ),
+  AdminModelCommentResponse: toOpenApiSchema(adminModelCommentResponseSchema),
   ModelReviewsResponse: toOpenApiSchema(modelReviewsResponseSchema),
   SubmitModelReviewRequest: toOpenApiSchema(submitModelReviewInputSchema),
   SubmitModelReviewResponse: toOpenApiSchema(submitModelReviewResponseSchema),
+  ReviewCommentsResponse: toOpenApiSchema(reviewCommentsResponseSchema),
+  CreateReviewCommentRequest: toOpenApiSchema(createReviewCommentInputSchema),
+  CreateReviewCommentResponse: toOpenApiSchema(createReviewCommentResponseSchema),
+  AdminReviewsResponse: toOpenApiSchema(adminReviewsResponseSchema),
+  UpdateReviewStatusRequest: toOpenApiSchema(updateReviewStatusInputSchema),
+  AdminReviewResponse: toOpenApiSchema(adminReviewResponseSchema),
+  UpdateReviewCommentRequest: toOpenApiSchema(updateReviewCommentInputSchema),
+  AdminReviewCommentsResponse: toOpenApiSchema(adminReviewCommentsResponseSchema),
+  UpdateReviewCommentStatusRequest: toOpenApiSchema(
+    updateReviewCommentStatusInputSchema
+  ),
+  AdminReviewCommentResponse: toOpenApiSchema(adminReviewCommentResponseSchema),
+  CreateRankingRequest: toOpenApiSchema(createRankingInputSchema),
+  UpdateRankingRequest: toOpenApiSchema(updateRankingInputSchema),
+  AdminRankingsResponse: toOpenApiSchema(adminRankingsResponseSchema),
+  UpdateRankingStatusRequest: toOpenApiSchema(updateRankingStatusInputSchema),
+  UpdateRankingItemStatusRequest: toOpenApiSchema(
+    updateRankingItemStatusInputSchema
+  ),
+  AdminRankingCommentsResponse: toOpenApiSchema(
+    adminRankingCommentsResponseSchema
+  ),
+  UpdateRankingCommentStatusRequest: toOpenApiSchema(
+    updateRankingCommentStatusInputSchema
+  ),
+  AdminRankingCommentResponse: toOpenApiSchema(
+    adminRankingCommentResponseSchema
+  ),
+  AdminRankingItemCommentsResponse: toOpenApiSchema(
+    adminRankingItemCommentsResponseSchema
+  ),
+  UpdateRankingItemCommentStatusRequest: toOpenApiSchema(
+    updateRankingItemCommentStatusInputSchema
+  ),
+  AdminRankingItemCommentResponse: toOpenApiSchema(
+    adminRankingItemCommentResponseSchema
+  ),
+  AddRankingItemRequest: toOpenApiSchema(addRankingItemInputSchema),
+  RankingItemResponse: toOpenApiSchema(rankingItemResponseSchema),
+  RankingItemDetailResponse: toOpenApiSchema(rankingItemDetailResponseSchema),
+  CreateRankingCommentRequest: toOpenApiSchema(createRankingCommentInputSchema),
+  CreateRankingCommentResponse: toOpenApiSchema(
+    createRankingCommentResponseSchema
+  ),
+  CreateRankingItemCommentRequest: toOpenApiSchema(
+    createRankingItemCommentInputSchema
+  ),
+  UpdateRankingItemCommentRequest: toOpenApiSchema(
+    updateRankingItemCommentInputSchema
+  ),
+  CreateRankingItemCommentResponse: toOpenApiSchema(
+    createRankingItemCommentResponseSchema
+  ),
+  SubmitRankingItemRatingRequest: toOpenApiSchema(
+    submitRankingItemRatingInputSchema
+  ),
+  SubmitRankingItemRatingResponse: toOpenApiSchema(
+    submitRankingItemRatingResponseSchema
+  ),
+  SubmitRankingItemReviewRequest: toOpenApiSchema(
+    submitRankingItemReviewInputSchema
+  ),
+  SubmitRankingItemReviewResponse: toOpenApiSchema(
+    submitRankingItemReviewResponseSchema
+  ),
   RankingsResponse: toOpenApiSchema(rankingsResponseSchema),
   RankingResponse: toOpenApiSchema(rankingResponseSchema)
 };
@@ -311,6 +484,18 @@ export const openApiDocument = {
     {
       name: 'settings',
       description: '后台站点配置接口'
+    },
+    {
+      name: 'admin-analytics',
+      description: '后台概览统计与运营分析接口'
+    },
+    {
+      name: 'admin-reports',
+      description: '后台举报详情与审核证据查询接口'
+    },
+    {
+      name: 'reviews',
+      description: '机型评测评论、互动与后台审核接口'
     }
   ],
   components: {
@@ -438,6 +623,23 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.auth.registrationDisplayNameSuggest]: {
+      post: {
+        tags: ['auth'],
+        summary: '刷新注册昵称建议',
+        requestBody: jsonRequestBody(
+          'RegistrationDisplayNameSuggestRequest',
+          '基于 registrationToken 生成新的可用昵称。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'RegistrationDisplayNameSuggestResponse',
+            '返回新的昵称建议。'
+          ),
+          '400': jsonResponse('AuthErrorResponse', '注册 token 无效或已过期。')
+        }
+      }
+    },
     [API_ROUTES.auth.currentUser]: {
       get: {
         tags: ['auth'],
@@ -464,6 +666,86 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.auth.adminCurrentUser]: {
+      get: {
+        tags: ['auth'],
+        summary: '获取当前管理端会话用户',
+        security: optionalSessionCookieSecurity,
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserResponse',
+            '返回当前管理端用户，非管理员或未登录时 user 为 null。'
+          )
+        }
+      }
+    },
+    [API_ROUTES.auth.logout]: {
+      post: {
+        tags: ['auth'],
+        summary: '退出 Web 会话',
+        security: optionalSessionCookieSecurity,
+        responses: {
+          '200': jsonResponse('CurrentUserResponse', '退出成功，user 为空。')
+        }
+      }
+    },
+    [API_ROUTES.auth.appLogout]: {
+      post: {
+        tags: ['auth'],
+        summary: '退出 App 会话',
+        security: optionalBearerSecurity,
+        responses: {
+          '200': jsonResponse('CurrentUserResponse', '退出成功，user 为空。')
+        }
+      }
+    },
+    [API_ROUTES.auth.appRefresh]: {
+      post: {
+        tags: ['auth'],
+        summary: '刷新 App 会话令牌',
+        requestBody: jsonRequestBody(
+          'AppRefreshRequest',
+          '提交 refreshToken 换取新的 accessToken。'
+        ),
+        responses: {
+          '200': jsonResponse('AppAuthSessionResponse', '返回新的 App 会话。'),
+          '400': jsonResponse('AuthErrorResponse', 'refreshToken 无效或已过期。')
+        }
+      }
+    },
+    [API_ROUTES.auth.adminLogout]: {
+      post: {
+        tags: ['auth'],
+        summary: '退出管理端会话',
+        security: optionalSessionCookieSecurity,
+        responses: {
+          '200': jsonResponse('CurrentUserResponse', '退出成功，user 为空。')
+        }
+      }
+    },
+    [API_ROUTES.auth.protectedPing]: {
+      get: {
+        tags: ['auth'],
+        summary: '校验普通登录态',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse('PingResponse', '返回用户态 pong。'),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.auth.adminProtectedPing]: {
+      get: {
+        tags: ['auth'],
+        summary: '校验管理员登录态',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse('PingResponse', '返回管理员态 pong。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
     [API_ROUTES.auth.adminSessions]: {
       get: {
         tags: ['auth'],
@@ -474,6 +756,61 @@ export const openApiDocument = {
             'AdminRecentSessionsResponse',
             '返回管理端可见的最近登录会话。'
           ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.admin.analyticsOverview]: {
+      get: {
+        tags: ['admin-analytics'],
+        summary: '获取后台概览统计',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AdminAnalyticsOverviewResponse',
+            '返回注册、活跃、内容和审核概览。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.admin.reportDetail('{kind}', '{id}')]: {
+      get: {
+        tags: ['admin-reports'],
+        summary: '获取举报明细',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'kind',
+            in: 'path',
+            required: true,
+            description: '举报目标类型。',
+            schema: {
+              type: 'string',
+              enum: [
+                'post',
+                'model',
+                'review',
+                'post-comment',
+                'review-comment',
+                'model-comment',
+                'ranking',
+                'ranking-item',
+                'ranking-comment',
+                'ranking-item-comment'
+              ]
+            }
+          },
+          stringPathParameter('id', '举报目标 ID。')
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回该目标下的举报记录与证据。'
+          ),
+          '400': jsonResponse('ErrorResponse', '举报类型或目标 ID 不合法。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '非管理员会话。')
         }
@@ -1097,6 +1434,281 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.models.comments('{slug}')]: {
+      get: {
+        tags: ['models'],
+        summary: '查询机型评论列表',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('slug', '机型 slug。')],
+        responses: {
+          '200': jsonResponse('ModelCommentsResponse', '返回机型评论树。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      },
+      post: {
+        tags: ['models'],
+        summary: '发布机型评论',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('slug', '机型 slug。')],
+        requestBody: jsonRequestBody(
+          'CreateModelCommentRequest',
+          '创建机型评论或回复。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateModelCommentResponse',
+            '评论创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '机型或父评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.commentDetail('{slug}', '{commentId}')]: {
+      put: {
+        tags: ['models'],
+        summary: '更新机型评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('slug', '机型 slug。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'UpdateModelCommentRequest',
+          '更新机型评论内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateModelCommentResponse',
+            '机型评论更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      },
+      delete: {
+        tags: ['models'],
+        summary: '删除机型评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('slug', '机型 slug。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '机型评论删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.commentLike('{slug}', '{commentId}')]: {
+      post: {
+        tags: ['models'],
+        summary: '点赞机型评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('slug', '机型 slug。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '点赞状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.commentReport('{slug}', '{commentId}')]: {
+      post: {
+        tags: ['models'],
+        summary: '举报机型评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('slug', '机型 slug。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.interactions('{slug}', '{type}')]: {
+      post: {
+        tags: ['models'],
+        summary: '更新机型互动状态',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('slug', '机型 slug。'),
+          {
+            name: 'type',
+            in: 'path',
+            required: true,
+            description: '互动类型。',
+            schema: {
+              type: 'string',
+              enum: ['interested', 'favorite', 'share']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'ModelInteractionResponse',
+            '返回更新后的互动统计。'
+          ),
+          '400': jsonResponse('ErrorResponse', '互动类型不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminList]: {
+      post: {
+        tags: ['models'],
+        summary: '管理端创建机型',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'AdminModelRequest',
+          '创建机型资料。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminModelResponse', '机型创建成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '500': jsonResponse('ErrorResponse', '机型创建失败。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminDetail('{id}')]: {
+      put: {
+        tags: ['models'],
+        summary: '管理端更新机型',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '机型 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminModelRequest',
+          '更新机型资料。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminModelResponse', '机型更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少机型 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminComments]: {
+      get: {
+        tags: ['models'],
+        summary: '管理端获取机型评论列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '评论状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'visible', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminModelCommentsResponse',
+            '返回机型评论审核列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReports('{id}')]: {
+      get: {
+        tags: ['models'],
+        summary: '管理端获取机型举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '机型 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回机型举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少机型 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminCommentDetail('{id}')]: {
+      put: {
+        tags: ['models'],
+        summary: '管理端更新机型评论状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateModelCommentStatusRequest',
+          '更新机型评论状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminModelCommentResponse',
+            '机型评论状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminCommentReports('{id}')]: {
+      get: {
+        tags: ['models'],
+        summary: '管理端获取机型评论举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回机型评论举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.report('{slug}')]: {
+      post: {
+        tags: ['models'],
+        summary: '举报机型资料',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('slug', '机型 slug。')],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '机型不存在。')
+        }
+      }
+    },
     [API_ROUTES.models.reviews('{slug}')]: {
       get: {
         tags: ['models'],
@@ -1123,6 +1735,305 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.models.adminReviews]: {
+      get: {
+        tags: ['reviews'],
+        summary: '管理端获取评测列表',
+        security: adminSessionSecurity,
+        responses: {
+          '200': jsonResponse('AdminReviewsResponse', '返回评测审核列表。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReviewDetail('{id}')]: {
+      put: {
+        tags: ['reviews'],
+        summary: '管理端更新评测状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评测 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateReviewStatusRequest',
+          '更新评测审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminReviewResponse', '评测状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评测 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评测不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReviewReports('{id}')]: {
+      get: {
+        tags: ['reviews'],
+        summary: '管理端获取评测举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评测 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回评测举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评测 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReviewComments]: {
+      get: {
+        tags: ['reviews'],
+        summary: '管理端获取评测评论列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '评论状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'visible', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminReviewCommentsResponse',
+            '返回评测评论审核列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReviewCommentDetail('{id}')]: {
+      put: {
+        tags: ['reviews'],
+        summary: '管理端更新评测评论状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateReviewCommentStatusRequest',
+          '更新评测评论审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminReviewCommentResponse',
+            '评测评论状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.adminReviewCommentReports('{id}')]: {
+      get: {
+        tags: ['reviews'],
+        summary: '管理端获取评测评论举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回评测评论举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewComments('{reviewId}')]: {
+      get: {
+        tags: ['reviews'],
+        summary: '查询评测评论列表',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('reviewId', '评测 ID。')],
+        responses: {
+          '200': jsonResponse('ReviewCommentsResponse', '返回评测评论树。'),
+          '404': jsonResponse('ErrorResponse', '评测不存在。')
+        }
+      },
+      post: {
+        tags: ['reviews'],
+        summary: '发布评测评论',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('reviewId', '评测 ID。')],
+        requestBody: jsonRequestBody(
+          'CreateReviewCommentRequest',
+          '创建评测评论或回复。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateReviewCommentResponse',
+            '评测评论创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评测或父评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewCommentDetail('{reviewId}', '{commentId}')]: {
+      put: {
+        tags: ['reviews'],
+        summary: '更新评测评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('reviewId', '评测 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'UpdateReviewCommentRequest',
+          '更新评测评论内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateReviewCommentResponse',
+            '评测评论更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      },
+      delete: {
+        tags: ['reviews'],
+        summary: '删除评测评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('reviewId', '评测 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '评测评论删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewLike('{reviewId}')]: {
+      post: {
+        tags: ['reviews'],
+        summary: '点赞评测',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('reviewId', '评测 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '点赞状态更新成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评测不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewCommentLike('{reviewId}', '{commentId}')]: {
+      post: {
+        tags: ['reviews'],
+        summary: '点赞评测评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('reviewId', '评测 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '点赞状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewCommentReport('{reviewId}', '{commentId}')]: {
+      post: {
+        tags: ['reviews'],
+        summary: '举报评测评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('reviewId', '评测 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.models.reviewReport('{reviewId}')]: {
+      post: {
+        tags: ['reviews'],
+        summary: '举报评测',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('reviewId', '评测 ID。')],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评测不存在。')
+        }
+      }
+    },
+    [API_ROUTES.feed]: {
+      get: {
+        tags: ['posts'],
+        summary: '查询首页文章 feed',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [
+          {
+            name: 'tab',
+            in: 'query',
+            required: false,
+            description: 'feed 标签。',
+            schema: {
+              type: 'string',
+              enum: ['recommended', 'latest', 'following']
+            }
+          },
+          stringQueryParameter('categorySlug', '文章分类 slug。')
+        ],
+        responses: {
+          '200': jsonResponse('HomeFeedResponse', '返回首页文章 feed。')
+        }
+      }
+    },
+    [API_ROUTES.circleFeed]: {
+      get: {
+        tags: ['posts'],
+        summary: '查询飞友圈动态 feed',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [
+          {
+            name: 'tab',
+            in: 'query',
+            required: false,
+            description: 'feed 标签。',
+            schema: {
+              type: 'string',
+              enum: ['recommended', 'latest', 'following']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse('CircleFeedResponse', '返回飞友圈动态 feed。')
+        }
+      }
+    },
     [API_ROUTES.posts.create]: {
       post: {
         tags: ['posts'],
@@ -1136,6 +2047,93 @@ export const openApiDocument = {
           '200': jsonResponse('CreatePostResponse', '帖子创建成功。'),
           '400': jsonResponse('ErrorResponse', '帖子内容、分类或媒体校验失败。'),
           '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.posts.comments('{id}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '发布帖子评论',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        requestBody: jsonRequestBody(
+          'CreatePostCommentRequest',
+          '创建帖子评论或回复。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreatePostCommentResponse',
+            '评论创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '帖子或父评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.interaction('{id}', '{type}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '更新帖子互动状态',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('id', '帖子 ID。'),
+          {
+            name: 'type',
+            in: 'path',
+            required: true,
+            description: '互动类型。',
+            schema: {
+              type: 'string',
+              enum: ['like', 'favorite', 'share']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '互动状态更新成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.report('{id}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '举报帖子',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminList]: {
+      get: {
+        tags: ['posts'],
+        summary: '管理端查询帖子列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '帖子状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'published', 'rejected', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse('AdminPostsResponse', '返回帖子审核列表。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
         }
       }
     },
@@ -1160,6 +2158,474 @@ export const openApiDocument = {
           '200': jsonResponse('PostDetailResponse', '返回帖子详情与评论。'),
           '404': jsonResponse('ErrorResponse', '帖子不存在。')
         }
+      },
+      put: {
+        tags: ['posts'],
+        summary: '更新帖子',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdatePostRequest',
+          '更新帖子内容和媒体。'
+        ),
+        responses: {
+          '200': jsonResponse('PostDetailResponse', '帖子更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少帖子 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改帖子。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      },
+      delete: {
+        tags: ['posts'],
+        summary: '删除帖子',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '帖子删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少帖子 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除帖子。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.commentDetail('{postId}', '{commentId}')]: {
+      put: {
+        tags: ['posts'],
+        summary: '更新帖子评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('postId', '帖子 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'UpdatePostCommentRequest',
+          '更新评论内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreatePostCommentResponse',
+            '帖子评论更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      },
+      delete: {
+        tags: ['posts'],
+        summary: '删除帖子评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('postId', '帖子 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '帖子评论删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.commentLike('{postId}', '{commentId}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '点赞帖子评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('postId', '帖子 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '点赞状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.commentReport('{postId}', '{commentId}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '举报帖子评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('postId', '帖子 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminDetail('{id}')]: {
+      put: {
+        tags: ['posts'],
+        summary: '管理端更新帖子状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminPostStatusUpdateRequest',
+          '更新帖子审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse('AdminPostResponse', '帖子状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少帖子 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminOfficialDetail('{id}')]: {
+      get: {
+        tags: ['posts'],
+        summary: '管理端获取官方文章详情',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '官方文章 ID。')],
+        responses: {
+          '200': jsonResponse('PostDetailResponse', '返回官方文章详情。'),
+          '400': jsonResponse('ErrorResponse', '缺少文章 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '官方文章不存在。')
+        }
+      },
+      put: {
+        tags: ['posts'],
+        summary: '管理端更新官方文章',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '官方文章 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminOfficialArticleUpdateRequest',
+          '更新官方文章内容。'
+        ),
+        responses: {
+          '200': jsonResponse('PostDetailResponse', '官方文章更新成功。'),
+          '400': jsonResponse('ErrorResponse', '文章参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '官方文章不存在。')
+        }
+      },
+      delete: {
+        tags: ['posts'],
+        summary: '管理端删除官方文章',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '官方文章 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '官方文章删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少文章 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '官方文章不存在。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminComments]: {
+      get: {
+        tags: ['posts'],
+        summary: '管理端查询帖子评论列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '评论状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'visible', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminPostCommentsResponse',
+            '返回帖子评论审核列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminReports('{id}')]: {
+      get: {
+        tags: ['posts'],
+        summary: '管理端获取帖子举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回帖子举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少帖子 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminCommentReports('{id}')]: {
+      get: {
+        tags: ['posts'],
+        summary: '管理端获取帖子评论举报记录',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AdminReportRecordsResponse',
+            '返回帖子评论举报记录。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.posts.adminCommentDetail('{id}')]: {
+      put: {
+        tags: ['posts'],
+        summary: '管理端更新帖子评论状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        requestBody: jsonRequestBody(
+          'AdminPostCommentStatusUpdateRequest',
+          '更新帖子评论审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminPostCommentResponse',
+            '帖子评论状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminList]: {
+      get: {
+        tags: ['rankings'],
+        summary: '管理端查询榜单列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'scope',
+            in: 'query',
+            required: false,
+            description: '榜单范围。',
+            schema: {
+              type: 'string',
+              enum: ['official', 'community']
+            }
+          },
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '榜单状态。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'published', 'rejected', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse('AdminRankingsResponse', '返回榜单审核列表。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminStatus('{id}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '管理端更新榜单状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '榜单 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateRankingStatusRequest',
+          '更新榜单审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse('RankingResponse', '榜单状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少榜单 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '榜单不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminItemStatus('{id}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '管理端更新榜单条目状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateRankingItemStatusRequest',
+          '更新榜单条目审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'RankingItemDetailResponse',
+            '榜单条目状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminRankingComments]: {
+      get: {
+        tags: ['rankings'],
+        summary: '管理端获取榜单评论列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '评论状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'visible', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminRankingCommentsResponse',
+            '返回榜单评论审核列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminRankingCommentDetail('{id}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '管理端更新榜单评论状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateRankingCommentStatusRequest',
+          '更新榜单评论审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminRankingCommentResponse',
+            '榜单评论状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminRankingItemComments]: {
+      get: {
+        tags: ['rankings'],
+        summary: '管理端获取榜单条目评论列表',
+        security: adminSessionSecurity,
+        parameters: [
+          {
+            name: 'status',
+            in: 'query',
+            required: false,
+            description: '评论状态筛选。',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'visible', 'hidden']
+            }
+          }
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminRankingItemCommentsResponse',
+            '返回榜单条目评论审核列表。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.adminRankingItemCommentDetail('{id}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '管理端更新榜单条目评论状态',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '评论 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateRankingItemCommentStatusRequest',
+          '更新榜单条目评论审核状态。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'AdminRankingItemCommentResponse',
+            '榜单条目评论状态更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.comments('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '发布榜单评论',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单 ID。')],
+        requestBody: jsonRequestBody(
+          'CreateRankingCommentRequest',
+          '创建榜单评论。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateRankingCommentResponse',
+            '榜单评论创建成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.update('{id}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '更新榜单',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单 ID。')],
+        requestBody: jsonRequestBody(
+          'UpdateRankingRequest',
+          '更新榜单标题、描述和条目配置。'
+        ),
+        responses: {
+          '200': jsonResponse('RankingResponse', '榜单更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少榜单 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改榜单。'),
+          '404': jsonResponse('ErrorResponse', '榜单不存在。')
+        }
       }
     },
     [API_ROUTES.rankings.overview]: {
@@ -1168,6 +2634,265 @@ export const openApiDocument = {
         summary: '查询榜单列表',
         responses: {
           '200': jsonResponse('RankingsResponse', '返回官方与社区榜单列表。')
+        }
+      },
+      post: {
+        tags: ['rankings'],
+        summary: '创建榜单',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'CreateRankingRequest',
+          '创建社区或官方榜单。'
+        ),
+        responses: {
+          '200': jsonResponse('RankingResponse', '榜单创建成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权创建榜单。'),
+          '500': jsonResponse('ErrorResponse', '榜单创建失败。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemDetail('{id}')]: {
+      get: {
+        tags: ['rankings'],
+        summary: '查询榜单条目详情',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'RankingItemDetailResponse',
+            '返回榜单条目详情。'
+          ),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      },
+      put: {
+        tags: ['rankings'],
+        summary: '更新榜单条目',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'AddRankingItemRequest',
+          '更新榜单条目内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'RankingItemDetailResponse',
+            '榜单条目更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改条目。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      },
+      delete: {
+        tags: ['rankings'],
+        summary: '删除榜单条目',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '榜单条目删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除条目。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.items('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '为榜单新增条目',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单 ID。')],
+        requestBody: jsonRequestBody(
+          'AddRankingItemRequest',
+          '新增榜单条目。'
+        ),
+        responses: {
+          '200': jsonResponse('RankingItemResponse', '榜单条目创建成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少榜单 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权新增条目。'),
+          '404': jsonResponse('ErrorResponse', '榜单不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemRatings('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '为榜单条目打分',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'SubmitRankingItemRatingRequest',
+          '提交榜单条目评分。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'SubmitRankingItemRatingResponse',
+            '评分提交成功。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.report('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '举报榜单',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单 ID。')],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemReport('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '举报榜单条目',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemReview('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '为榜单条目提交评测',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'SubmitRankingItemReviewRequest',
+          '提交榜单条目评分与评测内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'SubmitRankingItemReviewResponse',
+            '榜单条目评测提交成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '评测参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemComments('{id}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '发布榜单条目评论',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        requestBody: jsonRequestBody(
+          'CreateRankingItemCommentRequest',
+          '创建榜单条目评论或回复。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateRankingItemCommentResponse',
+            '榜单条目评论创建成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '评论参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemCommentDetail('{itemId}', '{commentId}')]: {
+      put: {
+        tags: ['rankings'],
+        summary: '更新榜单条目评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'UpdateRankingItemCommentRequest',
+          '更新榜单条目评论内容。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CreateRankingItemCommentResponse',
+            '榜单条目评论更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权修改评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      },
+      delete: {
+        tags: ['rankings'],
+        summary: '删除榜单条目评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '榜单条目评论删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无权删除评论。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemCommentLike('{itemId}', '{commentId}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '点赞榜单条目评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '点赞状态更新成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
+        }
+      }
+    },
+    [API_ROUTES.rankings.itemCommentReport('{itemId}', '{commentId}')]: {
+      post: {
+        tags: ['rankings'],
+        summary: '举报榜单条目评论',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('commentId', '评论 ID。')
+        ],
+        requestBody: jsonRequestBody(
+          'ReportContentRequest',
+          '提交举报原因和证据图片。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '举报提交成功。'),
+          '400': jsonResponse('ErrorResponse', '举报参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '评论不存在。')
         }
       }
     },

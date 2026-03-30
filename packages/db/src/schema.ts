@@ -17,6 +17,9 @@ export const usersTable = pgTable(
     avatarFileId: text("avatar_file_id"),
     bio: text("bio"),
     phone: text("phone"),
+    // 仅预留微信身份标识，后续真正接入微信登录时再补完整鉴权流程。
+    wechatOpenId: text("wechat_open_id"),
+    wechatUnionId: text("wechat_union_id"),
     account: text("account"),
     passwordHash: text("password_hash"),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -26,6 +29,12 @@ export const usersTable = pgTable(
   (table) => ({
     displayNameUnique: uniqueIndex("users_display_name_unique").on(table.displayName),
     phoneUnique: uniqueIndex("users_phone_unique").on(table.phone),
+    wechatOpenIdUnique: uniqueIndex("users_wechat_open_id_unique").on(
+      table.wechatOpenId
+    ),
+    wechatUnionIdUnique: uniqueIndex("users_wechat_union_id_unique").on(
+      table.wechatUnionId
+    ),
     accountUnique: uniqueIndex("users_account_unique").on(table.account)
   })
 );

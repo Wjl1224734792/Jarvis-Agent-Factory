@@ -5,6 +5,8 @@ export type UserRecord = {
   role: AuthRole;
   displayName: string;
   phone: string | null;
+  wechatOpenId: string | null;
+  wechatUnionId: string | null;
   account: string | null;
   password: string | null;
 };

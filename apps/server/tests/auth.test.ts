@@ -159,6 +159,23 @@ afterAll(async () => {
 });
 
 describe("auth flows", () => {
+  it("keeps reserved wechat identity columns on users for future login support", async () => {
+    const result = await dbPool.query<{
+      column_name: string;
+    }>(
+      `select column_name
+       from information_schema.columns
+       where table_name = 'users'
+         and column_name in ('wechat_open_id', 'wechat_union_id')
+       order by column_name`
+    );
+
+    expect(result.rows.map((row) => row.column_name)).toEqual([
+      "wechat_open_id",
+      "wechat_union_id"
+    ]);
+  });
+
   it("returns credential-friendly CORS headers for web and admin origins", async () => {
     const webOrigin = `http://localhost:${APP_PORTS.web}`;
     const adminOrigin = `http://localhost:${APP_PORTS.admin}`;

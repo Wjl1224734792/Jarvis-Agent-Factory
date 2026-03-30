@@ -41,12 +41,32 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/admin/categories']).toBeDefined();
     expect(payload.paths['/admin/brands']).toBeDefined();
     expect(payload.paths['/admin/site-settings']).toBeDefined();
+    expect(payload.paths['/admin/analytics/overview']).toBeDefined();
+    expect(payload.paths['/admin/reports/{kind}/{id}']).toBeDefined();
     expect(payload.paths['/models']).toBeDefined();
+    expect(payload.paths['/models/{slug}/comments']).toBeDefined();
+    expect(payload.paths['/models/{slug}/comments/{commentId}']).toBeDefined();
+    expect(payload.paths['/admin/models']).toBeDefined();
+    expect(payload.paths['/admin/models/{id}']).toBeDefined();
+    expect(payload.paths['/home/feed']).toBeDefined();
+    expect(payload.paths['/circle/feed']).toBeDefined();
+    expect(payload.paths['/admin/posts/{id}']).toBeDefined();
+    expect(payload.paths['/admin/official-articles/{id}']).toBeDefined();
+    expect(payload.paths['/admin/rankings']).toBeDefined();
+    expect(payload.paths['/admin/rankings/{id}/status']).toBeDefined();
+    expect(payload.paths['/ranking-items/{id}']).toBeDefined();
+    expect(payload.paths['/ranking-items/{itemId}/comments/{commentId}']).toBeDefined();
+    expect(payload.paths['/reviews/{reviewId}/comments']).toBeDefined();
+    expect(payload.paths['/reviews/{reviewId}/comments/{commentId}']).toBeDefined();
+    expect(payload.paths['/auth/admin/logout']).toBeDefined();
+    expect(payload.paths['/auth/protected/ping']).toBeDefined();
     expect(payload.components.securitySchemes.sessionCookieAuth).toBeDefined();
     expect(payload.components.securitySchemes.bearerAuth).toBeDefined();
     expect(payload.components.schemas.CurrentUserProfileResponse).toBeDefined();
     expect(payload.components.schemas.BrandApplicationResponse).toBeDefined();
     expect(payload.components.schemas.AircraftSubmissionResponse).toBeDefined();
+    expect(payload.components.schemas.AdminAnalyticsOverviewResponse).toBeDefined();
+    expect(payload.components.schemas.AdminReportRecordsResponse).toBeDefined();
     expect(payload.paths['/users/me/profile']?.put?.responses?.['409']).toBeDefined();
     expect(
       payload.paths['/users/me/phone/change/request']?.post?.responses?.['409']
@@ -54,6 +74,8 @@ describe('OpenAPI docs', () => {
     expect(
       payload.paths['/users/me/phone/change/confirm']?.post?.responses?.['409']
     ).toBeDefined();
+    expect(payload.paths['/auth/protected/ping']?.get?.responses?.['401']).toBeDefined();
+    expect(payload.paths['/admin/rankings/{id}/status']?.put?.responses?.['403']).toBeDefined();
   });
 
   it('serves Swagger UI that points to the OpenAPI JSON route', async () => {
