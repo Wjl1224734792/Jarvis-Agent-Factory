@@ -148,20 +148,6 @@
       "when": 1775050000000,
       "tag": "0020_user_wechat_reserve",
       "breakpoints": true
-    },
-    {
-      "idx": 21,
-      "version": "7",
-      "when": 1775050001000,
-      "tag": "0021_user_wechat_reserve_backfill",
-      "breakpoints": true
-    },
-    {
-      "idx": 22,
-      "version": "7",
-      "when": 1775050002000,
-      "tag": "0022_user_wechat_reserve_final",
-      "breakpoints": true
     }
   ]
 }

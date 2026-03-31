@@ -22,3 +22,16 @@ export function buildRankingItemSubmission(rating: number, content: string) {
     }
   };
 }
+
+export function canSubmitRankingItemComment(input: {
+  rating: number;
+  content: string;
+  isReplying: boolean;
+}) {
+  const trimmed = input.content.trim();
+  if (!trimmed) {
+    return false;
+  }
+
+  return input.isReplying || input.rating > 0;
+}

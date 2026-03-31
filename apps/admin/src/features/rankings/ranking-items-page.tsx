@@ -282,7 +282,7 @@ export function RankingItemsPage() {
         footer={null}
         onCancel={() => setDetailId(null)}
         open={Boolean(detailId)}
-        title="条目详情"
+        title="评分对象详情"
         width={860}
       >
         {detailQuery.data?.item ? (

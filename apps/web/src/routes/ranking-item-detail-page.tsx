@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   ArrowLeftIcon,
   CornerDownRightIcon,
+  FlagIcon,
   HeartIcon,
   SquarePenIcon,
   Trash2Icon
@@ -406,15 +407,15 @@ export function RankingItemDetailPage() {
 
       {detailQuery.isError ? (
         <Alert variant="destructive">
-          <AlertTitle>条目详情加载失败</AlertTitle>
+          <AlertTitle>评分对象详情加载失败</AlertTitle>
           <AlertDescription>{detailQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
 
       {!id || (!detailQuery.isLoading && !item) ? (
         <Alert>
-          <AlertTitle>条目详情不可用</AlertTitle>
-          <AlertDescription>当前条目不存在，或暂时没有可展示的数据。</AlertDescription>
+          <AlertTitle>评分对象详情不可用</AlertTitle>
+          <AlertDescription>当前评分对象不存在，或暂时没有可展示的数据。</AlertDescription>
         </Alert>
       ) : null}
 
@@ -476,10 +477,17 @@ export function RankingItemDetailPage() {
                   <ReportActionSheet
                     description="请填写举报理由，并至少上传 1 张证据图。"
                     onSubmit={(input) => apiClient.reportRankingItem(item.id, input).then(() => {})}
-                    title="举报条目"
+                    title="举报评分对象"
                     trigger={
-                      <Button size="sm" type="button" variant="outline">
-                        举报条目
+                      <Button
+                        aria-label="举报评分对象"
+                        className="size-9 p-0"
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        <FlagIcon className="size-4" />
+                        <span className="sr-only">举报评分对象</span>
                       </Button>
                     }
                   />
@@ -487,7 +495,7 @@ export function RankingItemDetailPage() {
 
                 {isEditMode && item.viewer.canEdit ? (
                   <div className="space-y-3 border-t border-border/70 pt-4">
-                    <div className="text-sm font-medium text-foreground">编辑条目</div>
+                    <div className="text-sm font-medium text-foreground">编辑评分对象</div>
                     <Input onChange={(event) => setItemTitle(event.target.value)} value={itemTitle} />
                     <Input onChange={(event) => setItemBrandName(event.target.value)} value={itemBrandName} />
                     <Textarea
@@ -511,7 +519,7 @@ export function RankingItemDetailPage() {
                             })
                             .then(() => refreshAll())
                             .catch((reason: unknown) => {
-                              setActionError(reason instanceof Error ? reason.message : "条目更新失败。");
+                              setActionError(reason instanceof Error ? reason.message : "评分对象更新失败。");
                             })
                             .finally(() => {
                               setBusy(false);
@@ -534,7 +542,7 @@ export function RankingItemDetailPage() {
                               window.location.assign(APP_ROUTES.rankingDetail.replace(":id", item.ranking.id));
                             })
                             .catch((reason: unknown) => {
-                              setActionError(reason instanceof Error ? reason.message : "条目删除失败。");
+                              setActionError(reason instanceof Error ? reason.message : "评分对象删除失败。");
                               setBusy(false);
                             });
                         }}
@@ -542,7 +550,7 @@ export function RankingItemDetailPage() {
                         type="button"
                         variant="outline"
                       >
-                        删除条目
+                        删除评分对象
                       </Button>
                     </div>
                   </div>
@@ -620,7 +628,7 @@ export function RankingItemDetailPage() {
                           return refreshAll();
                         })
                         .catch((reason: unknown) => {
-                          setActionError(reason instanceof Error ? reason.message : "条目评论提交失败。");
+                          setActionError(reason instanceof Error ? reason.message : "评分对象评论提交失败。");
                         })
                         .finally(() => {
                           setBusy(false);
@@ -652,7 +660,7 @@ export function RankingItemDetailPage() {
 
                 {actionError ? (
                   <Alert variant="destructive">
-                    <AlertTitle>条目互动失败</AlertTitle>
+                    <AlertTitle>评分对象互动失败</AlertTitle>
                     <AlertDescription>{actionError}</AlertDescription>
                   </Alert>
                 ) : null}

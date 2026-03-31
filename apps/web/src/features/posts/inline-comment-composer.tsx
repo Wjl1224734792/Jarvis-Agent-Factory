@@ -1,17 +1,26 @@
 import { Loader2Icon, SendIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { resolveInlineCommentComposerState } from "./inline-comment-composer-state";
 
 type InlineCommentComposerProps = {
   value: string;
   placeholder?: string;
   disabled?: boolean;
+  inputDisabled?: boolean;
   busy?: boolean;
   onChange: (value: string) => void;
   onSubmit: () => void;
 };
 
 export function InlineCommentComposer(props: InlineCommentComposerProps) {
+  const state = resolveInlineCommentComposerState({
+    value: props.value,
+    disabled: props.disabled,
+    inputDisabled: props.inputDisabled,
+    busy: props.busy
+  });
+
   return (
     <div
       className={`flex items-center gap-2 rounded-[calc(var(--radius-control)-0.05rem)] border px-2.5 py-2 transition ${
@@ -22,13 +31,16 @@ export function InlineCommentComposer(props: InlineCommentComposerProps) {
     >
       <Input
         className="h-6 rounded-none border-0 bg-transparent px-0 py-0 text-sm shadow-none focus-visible:ring-0 md:h-6"
-        disabled={props.disabled || props.busy}
+        disabled={state.inputDisabled}
         onChange={(event) => {
           props.onChange(event.target.value);
         }}
         onKeyDown={(event) => {
           if (event.key === "Enter" && !event.nativeEvent.isComposing) {
             event.preventDefault();
+            if (state.submitDisabled) {
+              return;
+            }
             props.onSubmit();
           }
         }}
@@ -37,7 +49,7 @@ export function InlineCommentComposer(props: InlineCommentComposerProps) {
       />
       <Button
         className="shrink-0 rounded-full"
-        disabled={props.disabled || !props.value.trim() || props.busy}
+        disabled={state.submitDisabled}
         onClick={props.onSubmit}
         size="icon-sm"
         type="button"

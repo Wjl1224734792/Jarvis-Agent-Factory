@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { buildRankingItemSubmission } from "../src/routes/ranking-item-detail-helpers";
+import {
+  buildRankingItemSubmission,
+  canSubmitRankingItemComment
+} from "../src/routes/ranking-item-detail-helpers";
 
 describe("ranking item detail helpers", () => {
   it("returns null when no rating is selected", () => {
@@ -23,5 +26,39 @@ describe("ranking item detail helpers", () => {
         content: "Strong field result."
       }
     });
+  });
+
+  it("allows replies without rating but still blocks empty content", () => {
+    expect(
+      canSubmitRankingItemComment({
+        rating: 0,
+        content: "  reply content  ",
+        isReplying: true
+      })
+    ).toBe(true);
+    expect(
+      canSubmitRankingItemComment({
+        rating: 0,
+        content: "   ",
+        isReplying: true
+      })
+    ).toBe(false);
+  });
+
+  it("requires rating for top-level comments", () => {
+    expect(
+      canSubmitRankingItemComment({
+        rating: 0,
+        content: "top level comment",
+        isReplying: false
+      })
+    ).toBe(false);
+    expect(
+      canSubmitRankingItemComment({
+        rating: 4,
+        content: "top level comment",
+        isReplying: false
+      })
+    ).toBe(true);
   });
 });
