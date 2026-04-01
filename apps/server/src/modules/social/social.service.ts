@@ -264,12 +264,12 @@ export const socialService = {
       return { kind: "forbidden" as const };
     }
 
-    const [posts, favoritePosts, favoriteModels, rankings, rankingItems, aircraft, reviews, brandApplications] = await Promise.all([
+    const [posts, favoritePosts, favoriteModels, rankings, ratingTargets, aircraft, reviews, brandApplications] = await Promise.all([
       socialRepo.listUserPosts(targetUserId, isSelf),
       socialRepo.listUserFavoritedPosts(targetUserId),
       socialRepo.listUserFavoritedModels(targetUserId),
       socialRepo.listUserRankings(targetUserId, isSelf),
-      socialRepo.listUserRankingItems(targetUserId, isSelf),
+      socialRepo.listUserRatingTargets(targetUserId, isSelf),
       socialRepo.listUserAircraftSubmissions(targetUserId, isSelf),
       socialRepo.listUserVisibleReviews(targetUserId),
       socialRepo.listUserBrandApplications(targetUserId, isSelf)
@@ -320,8 +320,8 @@ export const socialService = {
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
       })),
-      ...rankingItems.map((item) => ({
-        type: "ranking-item" as const,
+      ...ratingTargets.map((item) => ({
+        type: "rating-target" as const,
         id: item.id,
         rankingId: item.rankingId,
         rankingTitle: item.rankingTitle,

@@ -19,7 +19,7 @@ describe("site settings and brand application contracts", () => {
         momentModerationEnabled: false,
         brandModerationEnabled: true,
         modelModerationEnabled: true,
-        rankingItemModerationEnabled: false
+        ratingTargetModerationEnabled: false
       }
     });
 
@@ -30,7 +30,7 @@ describe("site settings and brand application contracts", () => {
     });
 
     expect(payload.item.articleModerationEnabled).toBe(true);
-    expect(payload.item.rankingItemModerationEnabled).toBe(false);
+    expect(payload.item.ratingTargetModerationEnabled).toBe(false);
     expect(update.brandModerationEnabled).toBe(false);
   });
 

@@ -6,7 +6,7 @@ import {
   db,
   postCommentsTable,
   postsTable,
-  rankingItemsTable,
+  ratingTargetsTable,
   rankingsTable,
   sessionsTable,
   usersTable
@@ -252,9 +252,9 @@ export const adminAnalyticsService = {
         .from(brandApplicationsTable),
       db
         .select({
-          status: rankingItemsTable.status
+          status: ratingTargetsTable.status
         })
-        .from(rankingItemsTable),
+        .from(ratingTargetsTable),
       db
         .select({
           count: sql<number>`count(*)`

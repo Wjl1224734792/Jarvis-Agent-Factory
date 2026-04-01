@@ -9,7 +9,7 @@ import {
   postCommentsTable,
   postInteractionsTable,
   postsTable,
-  rankingItemsTable,
+  ratingTargetsTable,
   rankingsTable,
   userFollowsTable,
   usersTable
@@ -348,28 +348,28 @@ export const socialRepo = {
       )
       .orderBy(desc(rankingsTable.updatedAt));
   },
-  async listUserRankingItems(userId: string, includePrivate: boolean) {
+  async listUserRatingTargets(userId: string, includePrivate: boolean) {
     return db
       .select({
-        id: rankingItemsTable.id,
-        rankingId: rankingItemsTable.rankingId,
+        id: ratingTargetsTable.id,
+        rankingId: ratingTargetsTable.rankingId,
         rankingTitle: rankingsTable.title,
-        title: rankingItemsTable.title,
-        summary: rankingItemsTable.summary,
-        status: rankingItemsTable.status,
-        rejectionReason: rankingItemsTable.rejectionReason,
-        createdAt: rankingItemsTable.createdAt,
-        updatedAt: rankingItemsTable.updatedAt
+        title: ratingTargetsTable.title,
+        summary: ratingTargetsTable.summary,
+        status: ratingTargetsTable.status,
+        rejectionReason: ratingTargetsTable.rejectionReason,
+        createdAt: ratingTargetsTable.createdAt,
+        updatedAt: ratingTargetsTable.updatedAt
       })
-      .from(rankingItemsTable)
-      .innerJoin(rankingsTable, eq(rankingItemsTable.rankingId, rankingsTable.id))
+      .from(ratingTargetsTable)
+      .innerJoin(rankingsTable, eq(ratingTargetsTable.rankingId, rankingsTable.id))
       .where(
         and(
-          eq(rankingItemsTable.authorId, userId),
-          includePrivate ? sql`true` : eq(rankingItemsTable.status, "published")
+          eq(ratingTargetsTable.authorId, userId),
+          includePrivate ? sql`true` : eq(ratingTargetsTable.status, "published")
         )
       )
-      .orderBy(desc(rankingItemsTable.updatedAt));
+      .orderBy(desc(ratingTargetsTable.updatedAt));
   },
   async listUserAircraftSubmissions(userId: string, includePrivate: boolean) {
     return db

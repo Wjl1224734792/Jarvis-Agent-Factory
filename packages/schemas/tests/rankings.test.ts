@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import {
   adminRankingsResponseSchema,
-  createRankingItemCommentInputSchema,
+  createRatingTargetCommentInputSchema,
   createRankingInputSchema,
-  rankingItemDetailResponseSchema,
+  ratingTargetDetailResponseSchema,
   rankingsResponseSchema,
-  submitRankingItemReviewResponseSchema
+  submitRatingTargetReviewResponseSchema
 } from "../src/rankings";
 import { siteSettingsResponseSchema } from "../src/site-settings";
 
 function buildDetailPayload() {
   return {
     item: {
-      id: "ranking_item_1",
+      id: "rating_target_1",
       rankingId: "ranking_1",
       rank: 1,
       title: "DJI Mini 4 Pro",
@@ -32,7 +32,7 @@ function buildDetailPayload() {
       comments: [
         {
           id: "comment_1",
-          rankingItemId: "ranking_item_1",
+          ratingTargetId: "rating_target_1",
           content: "Solid daily flight performance.",
           rating: 4,
           createdAt: "2026-03-23T12:00:00.000Z",
@@ -86,7 +86,7 @@ describe("rankings contract", () => {
           },
           items: [
             {
-              id: "ranking_item_1",
+              id: "rating_target_1",
               rankingId: "ranking_official_1",
               rank: 1,
               title: "DJI Mini 4 Pro",
@@ -149,15 +149,15 @@ describe("rankings contract", () => {
     ).toThrow();
   });
 
-  it("parses ranking item detail response with ordered fixed ratingBreakdown", () => {
-    const payload = rankingItemDetailResponseSchema.parse(buildDetailPayload());
+  it("parses rating target detail response with ordered fixed ratingBreakdown", () => {
+    const payload = ratingTargetDetailResponseSchema.parse(buildDetailPayload());
 
     expect(payload.item.ratingBreakdown).toHaveLength(5);
     expect(payload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
   });
 
-  it("parses submit ranking item review response with ratingBreakdown", () => {
-    const payload = submitRankingItemReviewResponseSchema.parse(buildDetailPayload());
+  it("parses submit rating target review response with ratingBreakdown", () => {
+    const payload = submitRatingTargetReviewResponseSchema.parse(buildDetailPayload());
 
     expect(payload.item.ratingBreakdown[0]?.score).toBe(5);
   });
@@ -172,7 +172,7 @@ describe("rankings contract", () => {
       { score: 1, count: 0 }
     ];
 
-    expect(() => rankingItemDetailResponseSchema.parse(invalidPayload)).toThrow();
+    expect(() => ratingTargetDetailResponseSchema.parse(invalidPayload)).toThrow();
   });
 
   it("parses admin rankings response and ranking moderation site settings", () => {
@@ -220,8 +220,8 @@ describe("rankings contract", () => {
     expect(siteSettings.item.rankingModerationEnabled).toBe(true);
   });
 
-  it("requires rating for top-level ranking item comments and forbids rating on replies", () => {
-    const topLevel = createRankingItemCommentInputSchema.parse({
+  it("requires rating for top-level rating target comments and forbids rating on replies", () => {
+    const topLevel = createRatingTargetCommentInputSchema.parse({
       content: "Top-level rating comment",
       rating: 5
     });
@@ -229,19 +229,19 @@ describe("rankings contract", () => {
     expect(topLevel.rating).toBe(5);
 
     expect(() =>
-      createRankingItemCommentInputSchema.parse({
+      createRatingTargetCommentInputSchema.parse({
         content: "Missing rating"
       })
     ).toThrow();
 
-    const reply = createRankingItemCommentInputSchema.parse({
+    const reply = createRatingTargetCommentInputSchema.parse({
       content: "Reply only",
       parentCommentId: "comment_1"
     });
     expect(reply.parentCommentId).toBe("comment_1");
 
     expect(() =>
-      createRankingItemCommentInputSchema.parse({
+      createRatingTargetCommentInputSchema.parse({
         content: "Reply with rating should fail",
         parentCommentId: "comment_1",
         rating: 4

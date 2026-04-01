@@ -14,9 +14,9 @@ import {
   postInteractionsTable,
   postsTable,
   rankingCommentsTable,
-  rankingItemCommentsTable,
-  rankingItemRatingsTable,
-  rankingItemsTable,
+  ratingTargetCommentsTable,
+  ratingTargetRatingsTable,
+  ratingTargetsTable,
   rankingsTable,
   userFollowsTable,
   usersTable
@@ -123,11 +123,11 @@ const RANKING_IDS = {
 } as const;
 
 const RANKING_ITEM_IDS = {
-  communityMini: "seed_ritem_community_mini",
-  communityMavic: "seed_ritem_community_mavic",
-  communityAutel: "seed_ritem_community_autel",
-  officialMini: "seed_ritem_official_mini",
-  officialMavic: "seed_ritem_official_mavic"
+  communityMini: "seed_rtarget_community_mini",
+  communityMavic: "seed_rtarget_community_mavic",
+  communityAutel: "seed_rtarget_community_autel",
+  officialMini: "seed_rtarget_official_mini",
+  officialMavic: "seed_rtarget_official_mavic"
 } as const;
 
 const SUBMISSION_IDS = {
@@ -421,7 +421,7 @@ async function seedRankings(adminUserId: string) {
     .onConflictDoNothing();
 
   await db
-    .insert(rankingItemsTable)
+    .insert(ratingTargetsTable)
     .values([
       { id: RANKING_ITEM_IDS.communityMini, rankingId: RANKING_IDS.community, authorId: USER_IDS.ranking, linkedModelId: MODEL_IDS.mini4, status: "published", rank: 1, title: "DJI Mini 4 Pro", summary: "Portable and balanced.", imageFileId: FILE_IDS.rankingCommunityMini, brandName: "DJI", commentCount: 1 },
       { id: RANKING_ITEM_IDS.communityMavic, rankingId: RANKING_IDS.community, authorId: USER_IDS.ranking, linkedModelId: MODEL_IDS.mavic3, status: "published", rank: 2, title: "DJI Mavic 3 Pro", summary: "Strong production output.", imageFileId: FILE_IDS.rankingCommunityMavic, brandName: "DJI", commentCount: 0 },
@@ -439,20 +439,20 @@ async function seedRankings(adminUserId: string) {
     .onConflictDoNothing();
 
   await db
-    .insert(rankingItemRatingsTable)
+    .insert(ratingTargetRatingsTable)
     .values([
-      { id: "seed_rating_city_mini_a", rankingItemId: RANKING_ITEM_IDS.communityMini, userId: USER_IDS.aero, rating: 5, createdAt: seededDate(23, 10) },
-      { id: "seed_rating_city_mini_b", rankingItemId: RANKING_ITEM_IDS.communityMini, userId: USER_IDS.night, rating: 4, createdAt: seededDate(23, 10, 5) },
-      { id: "seed_rating_city_mavic", rankingItemId: RANKING_ITEM_IDS.communityMavic, userId: USER_IDS.ranking, rating: 4, createdAt: seededDate(23, 10, 10) },
-      { id: "seed_rating_official_mini", rankingItemId: RANKING_ITEM_IDS.officialMini, userId: USER_IDS.aero, rating: 5, createdAt: seededDate(24, 10) },
-      { id: "seed_rating_official_mavic", rankingItemId: RANKING_ITEM_IDS.officialMavic, userId: USER_IDS.review, rating: 4, createdAt: seededDate(24, 10, 5) }
+      { id: "seed_rating_city_mini_a", ratingTargetId: RANKING_ITEM_IDS.communityMini, userId: USER_IDS.aero, rating: 5, createdAt: seededDate(23, 10) },
+      { id: "seed_rating_city_mini_b", ratingTargetId: RANKING_ITEM_IDS.communityMini, userId: USER_IDS.night, rating: 4, createdAt: seededDate(23, 10, 5) },
+      { id: "seed_rating_city_mavic", ratingTargetId: RANKING_ITEM_IDS.communityMavic, userId: USER_IDS.ranking, rating: 4, createdAt: seededDate(23, 10, 10) },
+      { id: "seed_rating_official_mini", ratingTargetId: RANKING_ITEM_IDS.officialMini, userId: USER_IDS.aero, rating: 5, createdAt: seededDate(24, 10) },
+      { id: "seed_rating_official_mavic", ratingTargetId: RANKING_ITEM_IDS.officialMavic, userId: USER_IDS.review, rating: 4, createdAt: seededDate(24, 10, 5) }
     ])
     .onConflictDoNothing();
 
   await db
-    .insert(rankingItemCommentsTable)
+    .insert(ratingTargetCommentsTable)
     .values([
-      { id: "seed_ranking_item_comment_mini", rankingItemId: RANKING_ITEM_IDS.communityMini, authorId: USER_IDS.aero, content: "Mini 4 Pro feels very safe in dense urban routes.", createdAt: seededDate(23, 10, 30), updatedAt: seededDate(23, 10, 30) }
+      { id: "seed_ranking_item_comment_mini", ratingTargetId: RANKING_ITEM_IDS.communityMini, authorId: USER_IDS.aero, content: "Mini 4 Pro feels very safe in dense urban routes.", createdAt: seededDate(23, 10, 30), updatedAt: seededDate(23, 10, 30) }
     ])
     .onConflictDoNothing();
 }
@@ -471,7 +471,7 @@ async function seedAircraftSubmissions() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "post_comment_likes", "post_comment_reports", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comment_likes", "review_comment_reports", "review_comments", "aircraft_review_likes", "aircraft_review_reports", "aircraft_model_comment_likes", "aircraft_model_comment_reports", "aircraft_model_comments", "ranking_item_comment_likes", "ranking_item_comment_reports", "ranking_item_comments", "ranking_item_ratings", "ranking_item_reports", "ranking_comment_likes", "ranking_comment_reports", "ranking_comments", "ranking_items", "ranking_reports", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_model_reports", "aircraft_reviews", "aircraft_models", "brand_applications", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "post_comment_likes", "post_comment_reports", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comment_likes", "review_comment_reports", "review_comments", "aircraft_review_likes", "aircraft_review_reports", "aircraft_model_comment_likes", "aircraft_model_comment_reports", "aircraft_model_comments", "rating_target_comment_likes", "rating_target_comment_reports", "rating_target_comments", "rating_target_ratings", "rating_target_reports", "ranking_comment_likes", "ranking_comment_reports", "ranking_comments", "rating_targets", "ranking_reports", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_model_reports", "aircraft_reviews", "aircraft_models", "brand_applications", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
     )
   );
 }

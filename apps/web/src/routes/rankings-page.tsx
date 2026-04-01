@@ -34,7 +34,7 @@ function mergeRankings(data: Awaited<ReturnType<typeof apiClient.listRankings>>)
   return { hot, latest };
 }
 
-function RankingItemScore({ score, totalRatings }: { score: number; totalRatings: number }) {
+function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
     <div className="flex flex-col items-end gap-1 text-right">
       <div className="flex items-center gap-2">
@@ -89,7 +89,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
                 {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
               </div>
             </div>
-            <RankingItemScore score={item.averageScore} totalRatings={item.totalRatings} />
+            <RatingTargetScore score={item.averageScore} totalRatings={item.totalRatings} />
           </div>
         ))}
       </div>

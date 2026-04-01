@@ -138,9 +138,9 @@ export function AdminOverviewPage() {
       { domain: "榜单", status: "待审", value: analytics.moderation.posts.pending },
       { domain: "榜单", status: "通过", value: analytics.moderation.posts.approved },
       { domain: "榜单", status: "驳回/隐藏", value: analytics.funnel.posts.rejectedOrHidden },
-      { domain: "榜单条目", status: "待审", value: analytics.moderation.rankingItems.pending },
-      { domain: "榜单条目", status: "通过", value: analytics.moderation.rankingItems.approved },
-      { domain: "榜单条目", status: "驳回/隐藏", value: analytics.funnel.rankingItems.rejectedOrHidden }
+      { domain: "评分对象", status: "待审", value: analytics.moderation.ratingTargets.pending },
+      { domain: "评分对象", status: "通过", value: analytics.moderation.ratingTargets.approved },
+      { domain: "评分对象", status: "驳回/隐藏", value: analytics.funnel.ratingTargets.rejectedOrHidden }
     ];
   }, [analytics]);
 
@@ -155,28 +155,28 @@ export function AdminOverviewPage() {
       analytics.funnel.reviews.queueEntered +
       analytics.funnel.submissions.queueEntered +
       analytics.funnel.brandApplications.queueEntered +
-      analytics.funnel.rankingItems.queueEntered;
+      analytics.funnel.ratingTargets.queueEntered;
     const pending =
       analytics.funnel.posts.pending +
       analytics.funnel.comments.pending +
       analytics.funnel.reviews.pending +
       analytics.funnel.submissions.pending +
       analytics.funnel.brandApplications.pending +
-      analytics.funnel.rankingItems.pending;
+      analytics.funnel.ratingTargets.pending;
     const approved =
       analytics.funnel.posts.approved +
       analytics.funnel.comments.approved +
       analytics.funnel.reviews.approved +
       analytics.funnel.submissions.approved +
       analytics.funnel.brandApplications.approved +
-      analytics.funnel.rankingItems.approved;
+      analytics.funnel.ratingTargets.approved;
     const rejectedOrHidden =
       analytics.funnel.posts.rejectedOrHidden +
       analytics.funnel.comments.rejectedOrHidden +
       analytics.funnel.reviews.rejectedOrHidden +
       analytics.funnel.submissions.rejectedOrHidden +
       analytics.funnel.brandApplications.rejectedOrHidden +
-      analytics.funnel.rankingItems.rejectedOrHidden;
+      analytics.funnel.ratingTargets.rejectedOrHidden;
 
     return [
       { stage: "进入队列", value: queueEntered },
@@ -259,13 +259,13 @@ export function AdminOverviewPage() {
       onDisable: async () => updateSiteSettings({ rankingModerationEnabled: false })
     },
     {
-      key: "rankingItem",
-      title: "榜单条目",
-      description: "榜单条目是否单独进入审核列表。",
-      enabled: siteSettings?.rankingItemModerationEnabled ?? true,
-      pendingCount: analytics?.totals.pendingRankingItems ?? 0,
-      onEnable: async () => updateSiteSettings({ rankingItemModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ rankingItemModerationEnabled: false })
+      key: "ratingTarget",
+      title: "评分对象",
+      description: "评分对象是否单独进入审核列表。",
+      enabled: siteSettings?.ratingTargetModerationEnabled ?? true,
+      pendingCount: analytics?.totals.pendingRatingTargets ?? 0,
+      onEnable: async () => updateSiteSettings({ ratingTargetModerationEnabled: true }),
+      onDisable: async () => updateSiteSettings({ ratingTargetModerationEnabled: false })
     }
   ];
 
@@ -289,9 +289,9 @@ export function AdminOverviewPage() {
       icon: <ClockCircleOutlined />
     },
     {
-      title: "榜单条目",
-      description: "条目审核独立页面",
-      to: ADMIN_ROUTE_PATHS.moderationRankingItems,
+      title: "评分对象",
+      description: "评分对象审核独立页面",
+      to: ADMIN_ROUTE_PATHS.moderationRatingTargets,
       icon: <SafetyCertificateOutlined />
     },
     {

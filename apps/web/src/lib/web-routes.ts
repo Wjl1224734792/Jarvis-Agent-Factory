@@ -1,11 +1,11 @@
-// Web 侧把“由页面自己维护的派生路径”集中在这里，避免和共享 APP_ROUTES 混在一起。
+// Web 侧把"由页面自己维护的派生路径"集中在这里，避免和共享 APP_ROUTES 混在一起。
 export const WEB_ROUTE_PATHS = {
   publishArticle: "/publish/article",
   publishMoment: "/publish/moment",
   publishAircraft: "/publish/aircraft",
   publishStatus: "/publish/status/:kind/:id",
   rankingDetail: "/rankings/:id",
-  rankingItemDetail: "/ranking-items/:id"
+  ratingTargetDetail: "/rating-targets/:id"
 } as const;
 
 export type PublishStatusKind = "article" | "moment" | "aircraft" | "ranking";
@@ -18,8 +18,8 @@ export function buildRankingDetailPath(id: string) {
   return replacePathParam(WEB_ROUTE_PATHS.rankingDetail, "id", id);
 }
 
-export function buildRankingItemDetailPath(id: string) {
-  return replacePathParam(WEB_ROUTE_PATHS.rankingItemDetail, "id", id);
+export function buildRatingTargetDetailPath(id: string) {
+  return replacePathParam(WEB_ROUTE_PATHS.ratingTargetDetail, "id", id);
 }
 
 export function buildPublishStatusPath(kind: PublishStatusKind, id: string) {

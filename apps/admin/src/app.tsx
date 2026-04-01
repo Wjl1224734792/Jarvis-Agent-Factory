@@ -28,7 +28,7 @@ import { PostCommentsPage } from "./features/posts/post-comments-page";
 import { PostsPage } from "./features/posts/posts-page";
 import { ReportsPage } from "./features/reports/reports-page";
 import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
-import { RankingItemsPage } from "./features/rankings/ranking-items-page";
+import { RatingTargetsPage } from "./features/rankings/rating-targets-page";
 import { RankingsPage } from "./features/rankings/rankings-page";
 import { ReviewsPage } from "./features/reviews/reviews-page";
 import { AircraftSubmissionsPage } from "./features/submissions/aircraft-submissions-page";
@@ -128,9 +128,9 @@ const router = createBrowserRouter([
                 icon: <OrderedListOutlined />
               },
               {
-                title: "条目审核",
-                description: "榜单条目独立列表，和榜单本身分开查看。",
-                to: ADMIN_ROUTE_PATHS.moderationRankingItems,
+                title: "评分对象审核",
+                description: "评分对象独立列表，和榜单本身分开查看。",
+                to: ADMIN_ROUTE_PATHS.moderationRatingTargets,
                 icon: <OrderedListOutlined />
               }
             ]}
@@ -231,8 +231,8 @@ const router = createBrowserRouter([
         element: <RankingsPage />
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationRankingItems.slice("/admin/".length),
-        element: <RankingItemsPage />
+        path: ADMIN_ROUTE_PATHS.moderationRatingTargets.slice("/admin/".length),
+        element: <RatingTargetsPage />
       },
       {
         path: ADMIN_ROUTE_PATHS.operationsArticles.slice("/admin/".length),

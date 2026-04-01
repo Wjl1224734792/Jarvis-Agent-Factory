@@ -28,11 +28,11 @@ import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { apiClient } from "@/lib/api-client";
 import { getAvatarImage, getEditorialImage, getModelImage } from "@/lib/aviation-media";
 
-type RankingItemDetail = Awaited<ReturnType<typeof apiClient.getRankingItemDetail>>["item"];
-type RankingItemComment = RankingItemDetail["comments"][number];
-type RankingItemCommentReply = RankingItemComment["replies"][number];
-type RankingItemCommentNode = (RankingItemComment | RankingItemCommentReply) & {
-  replies?: RankingItemCommentReply[];
+type RatingTargetDetail = Awaited<ReturnType<typeof apiClient.getRatingTargetDetail>>["item"];
+type RatingTargetComment = RatingTargetDetail["comments"][number];
+type RatingTargetCommentReply = RatingTargetComment["replies"][number];
+type RatingTargetCommentNode = (RatingTargetComment | RatingTargetCommentReply) & {
+  replies?: RatingTargetCommentReply[];
 };
 
 function formatTime(value: string) {
@@ -41,7 +41,7 @@ function formatTime(value: string) {
 
 function CommentActions(props: {
   itemId: string;
-  comment: RankingItemCommentNode;
+  comment: RatingTargetCommentNode;
   canInteract: boolean;
   disabled: boolean;
   onReply: () => void;
@@ -80,7 +80,7 @@ function CommentActions(props: {
         <ReportActionSheet
           description="请填写举报理由，并至少上传 1 张证据图。"
           onSubmit={(input) =>
-            apiClient.reportRankingItemComment(props.itemId, props.comment.id, input).then(() => {})
+            apiClient.reportRatingTargetComment(props.itemId, props.comment.id, input).then(() => {})
           }
           title="举报评论"
           trigger={
@@ -128,9 +128,9 @@ function CommentActions(props: {
   );
 }
 
-function RankingItemCommentCard(props: {
+function RatingTargetCommentCard(props: {
   itemId: string;
-  comment: RankingItemCommentNode;
+  comment: RatingTargetCommentNode;
   canInteract: boolean;
   depth?: number;
   onRefresh: () => Promise<void>;
@@ -144,7 +144,7 @@ function RankingItemCommentCard(props: {
   const [busy, setBusy] = useState<"reply" | "edit" | "delete" | "like" | null>(null);
   const [error, setError] = useState<string | null>(null);
   const replies = useMemo(
-    () => ((props.comment.replies ?? []) as RankingItemCommentNode[]),
+    () => ((props.comment.replies ?? []) as RatingTargetCommentNode[]),
     [props.comment.replies]
   );
 
@@ -196,7 +196,7 @@ function RankingItemCommentCard(props: {
                 setBusy("edit");
                 setError(null);
                 void apiClient
-                  .updateRankingItemComment(props.itemId, props.comment.id, { content: editingContent.trim() })
+                  .updateRatingTargetComment(props.itemId, props.comment.id, { content: editingContent.trim() })
                   .then(() => {
                     setIsEditing(false);
                     return props.onRefresh();
@@ -222,7 +222,7 @@ function RankingItemCommentCard(props: {
               setBusy("delete");
               setError(null);
               void apiClient
-                .deleteRankingItemComment(props.itemId, props.comment.id)
+                .deleteRatingTargetComment(props.itemId, props.comment.id)
                 .then(props.onRefresh)
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "删除评论失败。");
@@ -240,7 +240,7 @@ function RankingItemCommentCard(props: {
               setBusy("like");
               setError(null);
               void apiClient
-                .likeRankingItemComment(props.itemId, props.comment.id)
+                .likeRatingTargetComment(props.itemId, props.comment.id)
                 .then(props.onRefresh)
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "点赞失败。");
@@ -268,7 +268,7 @@ function RankingItemCommentCard(props: {
                 setBusy("reply");
                 setError(null);
                 void apiClient
-                  .createRankingItemComment(props.itemId, {
+                  .createRatingTargetComment(props.itemId, {
                     content: replyContent.trim(),
                     parentCommentId: props.comment.id
                   })
@@ -297,7 +297,7 @@ function RankingItemCommentCard(props: {
           {replies.length > 0 ? (
             <div className="space-y-4 pt-2">
               {replies.map((reply) => (
-                <RankingItemCommentCard
+                <RatingTargetCommentCard
                   canInteract={props.canInteract}
                   comment={reply}
                   depth={depth + 1}
@@ -315,7 +315,7 @@ function RankingItemCommentCard(props: {
   );
 }
 
-export function RankingItemDetailPage() {
+export function RatingTargetDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
   const [searchParams] = useSearchParams();
@@ -332,8 +332,8 @@ export function RankingItemDetailPage() {
   const [itemBrandName, setItemBrandName] = useState("");
 
   const detailQuery = useQuery({
-    queryKey: ["ranking-item-detail", id],
-    queryFn: () => apiClient.getRankingItemDetail(id),
+    queryKey: ["rating-target-detail", id],
+    queryFn: () => apiClient.getRatingTargetDetail(id),
     enabled: Boolean(id)
   });
 
@@ -360,7 +360,7 @@ export function RankingItemDetailPage() {
     }
 
     await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["ranking-item-detail", item.id] }),
+      queryClient.invalidateQueries({ queryKey: ["rating-target-detail", item.id] }),
       queryClient.invalidateQueries({ queryKey: ["ranking-detail", item.ranking.id] }),
       queryClient.invalidateQueries({ queryKey: ["rankings"] })
     ]);
@@ -476,7 +476,7 @@ export function RankingItemDetailPage() {
 
                   <ReportActionSheet
                     description="请填写举报理由，并至少上传 1 张证据图。"
-                    onSubmit={(input) => apiClient.reportRankingItem(item.id, input).then(() => {})}
+                    onSubmit={(input) => apiClient.reportRatingTarget(item.id, input).then(() => {})}
                     title="举报评分对象"
                     trigger={
                       <Button
@@ -510,7 +510,7 @@ export function RankingItemDetailPage() {
                           setBusy(true);
                           setActionError(null);
                           void apiClient
-                            .updateRankingItem(item.id, {
+                            .updateRatingTarget(item.id, {
                               title: itemTitle.trim(),
                               summary: itemSummary.trim() || null,
                               imageFileId: item.imageFileId ?? null,
@@ -537,7 +537,7 @@ export function RankingItemDetailPage() {
                           setBusy(true);
                           setActionError(null);
                           void apiClient
-                            .deleteRankingItem(item.id)
+                            .deleteRatingTarget(item.id)
                             .then(() => {
                               window.location.assign(APP_ROUTES.rankingDetail.replace(":id", item.ranking.id));
                             })
@@ -611,11 +611,11 @@ export function RankingItemDetailPage() {
                       setActionError(null);
                       setBusy(true);
                       const request = replyingTo
-                        ? apiClient.createRankingItemComment(item.id, {
+                        ? apiClient.createRatingTargetComment(item.id, {
                             content: content.trim(),
                             parentCommentId: replyingTo.id
                           })
-                        : apiClient.createRankingItemComment(item.id, {
+                        : apiClient.createRatingTargetComment(item.id, {
                             content: content.trim(),
                             rating: selectedRating
                           });
@@ -672,7 +672,7 @@ export function RankingItemDetailPage() {
                 <div className="space-y-0 px-5 py-4">
                   {item.comments.map((comment, index) => (
                     <div className={index === 0 ? "" : "border-t border-border/70 pt-4"} key={comment.id}>
-                      <RankingItemCommentCard
+                      <RatingTargetCommentCard
                         canInteract={authStatus === "authenticated"}
                         comment={comment}
                         itemId={item.id}

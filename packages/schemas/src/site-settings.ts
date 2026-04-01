@@ -10,7 +10,7 @@ export const siteSettingsSchema = z.object({
   momentModerationEnabled: z.boolean().default(true),
   brandModerationEnabled: z.boolean().default(true),
   modelModerationEnabled: z.boolean().default(true),
-  rankingItemModerationEnabled: z.boolean().default(true)
+  ratingTargetModerationEnabled: z.boolean().default(true)
 });
 
 export const siteSettingsResponseSchema = z.object({
@@ -27,7 +27,7 @@ export const updateSiteSettingsInputSchema = z.object({
   momentModerationEnabled: z.boolean().optional(),
   brandModerationEnabled: z.boolean().optional(),
   modelModerationEnabled: z.boolean().optional(),
-  rankingItemModerationEnabled: z.boolean().optional()
+  ratingTargetModerationEnabled: z.boolean().optional()
 }).refine((input) => Object.keys(input).length > 0, {
   message: "At least one site setting field is required."
 });

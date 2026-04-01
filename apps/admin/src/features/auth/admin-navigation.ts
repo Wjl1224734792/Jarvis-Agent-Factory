@@ -95,9 +95,9 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "审核",
-    to: ADMIN_ROUTE_PATHS.moderationRankingItems,
-    label: "条目审核",
-    hint: "榜单条目独立队列与条目状态查看",
+    to: ADMIN_ROUTE_PATHS.moderationRatingTargets,
+    label: "评分对象审核",
+    hint: "评分对象独立队列与状态查看",
     icon: OrderedListOutlined,
     end: false
   },
@@ -222,8 +222,8 @@ function normalizeAdminPath(pathname: string) {
   if (pathname.startsWith(`${APP_ROUTES.adminRankings}/new`)) {
     return ADMIN_ROUTE_PATHS.operationsRankings;
   }
-  if (pathname.startsWith(ADMIN_ROUTE_PATHS.moderationRankingItems)) {
-    return ADMIN_ROUTE_PATHS.moderationRankingItems;
+  if (pathname.startsWith(ADMIN_ROUTE_PATHS.moderationRatingTargets)) {
+    return ADMIN_ROUTE_PATHS.moderationRatingTargets;
   }
   if (pathname.startsWith(APP_ROUTES.adminRankings)) {
     return ADMIN_ROUTE_PATHS.moderationRankings;

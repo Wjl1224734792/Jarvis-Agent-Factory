@@ -54,8 +54,8 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/admin/official-articles/{id}']).toBeDefined();
     expect(payload.paths['/admin/rankings']).toBeDefined();
     expect(payload.paths['/admin/rankings/{id}/status']).toBeDefined();
-    expect(payload.paths['/ranking-items/{id}']).toBeDefined();
-    expect(payload.paths['/ranking-items/{itemId}/comments/{commentId}']).toBeDefined();
+    expect(payload.paths['/rating-targets/{id}']).toBeDefined();
+    expect(payload.paths['/rating-targets/{itemId}/comments/{commentId}']).toBeDefined();
     expect(payload.paths['/reviews/{reviewId}/comments']).toBeDefined();
     expect(payload.paths['/reviews/{reviewId}/comments/{commentId}']).toBeDefined();
     expect(payload.paths['/auth/admin/logout']).toBeDefined();

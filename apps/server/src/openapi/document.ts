@@ -21,8 +21,8 @@ import {
   adminContentCategoryResponseSchema,
   adminRankingCommentResponseSchema,
   adminRankingCommentsResponseSchema,
-  adminRankingItemCommentResponseSchema,
-  adminRankingItemCommentsResponseSchema,
+  adminRatingTargetCommentResponseSchema,
+  adminRatingTargetCommentsResponseSchema,
   adminPostsResponseSchema,
   adminRankingsResponseSchema,
   adminReportRecordsResponseSchema,
@@ -58,9 +58,9 @@ import {
   createAircraftSubmissionInputSchema,
   createBrandApplicationInputSchema,
   createRankingInputSchema,
-  addRankingItemInputSchema,
-  createRankingItemCommentInputSchema,
-  createRankingItemCommentResponseSchema,
+  addRatingTargetInputSchema,
+  createRatingTargetCommentInputSchema,
+  createRatingTargetCommentResponseSchema,
   createRankingCommentInputSchema,
   createRankingCommentResponseSchema,
   createReviewCommentInputSchema,
@@ -79,8 +79,8 @@ import {
   modelListResponseSchema,
   modelReviewsResponseSchema,
   postDetailResponseSchema,
-  rankingItemDetailResponseSchema,
-  rankingItemResponseSchema,
+  ratingTargetDetailResponseSchema,
+  ratingTargetResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
   registrationDisplayNameSuggestRequestSchema,
@@ -94,10 +94,10 @@ import {
   phoneChangeRequestInputSchema,
   phoneChangeRequestResponseSchema,
   siteSettingsResponseSchema,
-  submitRankingItemRatingInputSchema,
-  submitRankingItemRatingResponseSchema,
-  submitRankingItemReviewInputSchema,
-  submitRankingItemReviewResponseSchema,
+  submitRatingTargetRatingInputSchema,
+  submitRatingTargetRatingResponseSchema,
+  submitRatingTargetReviewInputSchema,
+  submitRatingTargetReviewResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
   updateModelCommentInputSchema,
@@ -109,9 +109,9 @@ import {
   updatePostCommentInputSchema,
   updatePostInputSchema,
   updateRankingCommentStatusInputSchema,
-  updateRankingItemCommentInputSchema,
-  updateRankingItemCommentStatusInputSchema,
-  updateRankingItemStatusInputSchema,
+  updateRatingTargetCommentInputSchema,
+  updateRatingTargetCommentStatusInputSchema,
+  updateRatingTargetStatusInputSchema,
   updateRankingStatusInputSchema,
   updateRankingInputSchema,
   updateReviewCommentInputSchema,
@@ -298,8 +298,8 @@ const componentSchemas = {
   UpdateRankingRequest: toOpenApiSchema(updateRankingInputSchema),
   AdminRankingsResponse: toOpenApiSchema(adminRankingsResponseSchema),
   UpdateRankingStatusRequest: toOpenApiSchema(updateRankingStatusInputSchema),
-  UpdateRankingItemStatusRequest: toOpenApiSchema(
-    updateRankingItemStatusInputSchema
+  UpdateRatingTargetStatusRequest: toOpenApiSchema(
+    updateRatingTargetStatusInputSchema
   ),
   AdminRankingCommentsResponse: toOpenApiSchema(
     adminRankingCommentsResponseSchema
@@ -310,42 +310,42 @@ const componentSchemas = {
   AdminRankingCommentResponse: toOpenApiSchema(
     adminRankingCommentResponseSchema
   ),
-  AdminRankingItemCommentsResponse: toOpenApiSchema(
-    adminRankingItemCommentsResponseSchema
+  AdminRatingTargetCommentsResponse: toOpenApiSchema(
+    adminRatingTargetCommentsResponseSchema
   ),
-  UpdateRankingItemCommentStatusRequest: toOpenApiSchema(
-    updateRankingItemCommentStatusInputSchema
+  UpdateRatingTargetCommentStatusRequest: toOpenApiSchema(
+    updateRatingTargetCommentStatusInputSchema
   ),
-  AdminRankingItemCommentResponse: toOpenApiSchema(
-    adminRankingItemCommentResponseSchema
+  AdminRatingTargetCommentResponse: toOpenApiSchema(
+    adminRatingTargetCommentResponseSchema
   ),
-  AddRankingItemRequest: toOpenApiSchema(addRankingItemInputSchema),
-  RankingItemResponse: toOpenApiSchema(rankingItemResponseSchema),
-  RankingItemDetailResponse: toOpenApiSchema(rankingItemDetailResponseSchema),
+  AddRatingTargetRequest: toOpenApiSchema(addRatingTargetInputSchema),
+  RatingTargetResponse: toOpenApiSchema(ratingTargetResponseSchema),
+  RatingTargetDetailResponse: toOpenApiSchema(ratingTargetDetailResponseSchema),
   CreateRankingCommentRequest: toOpenApiSchema(createRankingCommentInputSchema),
   CreateRankingCommentResponse: toOpenApiSchema(
     createRankingCommentResponseSchema
   ),
-  CreateRankingItemCommentRequest: toOpenApiSchema(
-    createRankingItemCommentInputSchema
+  CreateRatingTargetCommentRequest: toOpenApiSchema(
+    createRatingTargetCommentInputSchema
   ),
-  UpdateRankingItemCommentRequest: toOpenApiSchema(
-    updateRankingItemCommentInputSchema
+  UpdateRatingTargetCommentRequest: toOpenApiSchema(
+    updateRatingTargetCommentInputSchema
   ),
-  CreateRankingItemCommentResponse: toOpenApiSchema(
-    createRankingItemCommentResponseSchema
+  CreateRatingTargetCommentResponse: toOpenApiSchema(
+    createRatingTargetCommentResponseSchema
   ),
-  SubmitRankingItemRatingRequest: toOpenApiSchema(
-    submitRankingItemRatingInputSchema
+  SubmitRatingTargetRatingRequest: toOpenApiSchema(
+    submitRatingTargetRatingInputSchema
   ),
-  SubmitRankingItemRatingResponse: toOpenApiSchema(
-    submitRankingItemRatingResponseSchema
+  SubmitRatingTargetRatingResponse: toOpenApiSchema(
+    submitRatingTargetRatingResponseSchema
   ),
-  SubmitRankingItemReviewRequest: toOpenApiSchema(
-    submitRankingItemReviewInputSchema
+  SubmitRatingTargetReviewRequest: toOpenApiSchema(
+    submitRatingTargetReviewInputSchema
   ),
-  SubmitRankingItemReviewResponse: toOpenApiSchema(
-    submitRankingItemReviewResponseSchema
+  SubmitRatingTargetReviewResponse: toOpenApiSchema(
+    submitRatingTargetReviewResponseSchema
   ),
   RankingsResponse: toOpenApiSchema(rankingsResponseSchema),
   RankingResponse: toOpenApiSchema(rankingResponseSchema)
@@ -2476,12 +2476,12 @@ export const openApiDocument = {
         security: adminSessionSecurity,
         parameters: [stringPathParameter('id', '榜单条目 ID。')],
         requestBody: jsonRequestBody(
-          'UpdateRankingItemStatusRequest',
+          'UpdateRatingTargetStatusRequest',
           '更新榜单条目审核状态。'
         ),
         responses: {
           '200': jsonResponse(
-            'RankingItemDetailResponse',
+            'RatingTargetDetailResponse',
             '榜单条目状态更新成功。'
           ),
           '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
@@ -2540,7 +2540,7 @@ export const openApiDocument = {
         }
       }
     },
-    [API_ROUTES.rankings.adminRankingItemComments]: {
+    [API_ROUTES.rankings.adminRatingTargetComments]: {
       get: {
         tags: ['rankings'],
         summary: '管理端获取榜单条目评论列表',
@@ -2559,28 +2559,28 @@ export const openApiDocument = {
         ],
         responses: {
           '200': jsonResponse(
-            'AdminRankingItemCommentsResponse',
-            '返回榜单条目评论审核列表。'
+            'AdminRatingTargetCommentsResponse',
+            '返回评分对象评论审核列表。'
           ),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '非管理员会话。')
         }
       }
     },
-    [API_ROUTES.rankings.adminRankingItemCommentDetail('{id}')]: {
+    [API_ROUTES.rankings.adminRatingTargetCommentDetail('{id}')]: {
       put: {
         tags: ['rankings'],
-        summary: '管理端更新榜单条目评论状态',
+        summary: '管理端更新评分对象评论状态',
         security: adminSessionSecurity,
         parameters: [stringPathParameter('id', '评论 ID。')],
         requestBody: jsonRequestBody(
-          'UpdateRankingItemCommentStatusRequest',
-          '更新榜单条目评论审核状态。'
+          'UpdateRatingTargetCommentStatusRequest',
+          '更新评分对象评论审核状态。'
         ),
         responses: {
           '200': jsonResponse(
-            'AdminRankingItemCommentResponse',
-            '榜单条目评论状态更新成功。'
+            'AdminRatingTargetCommentResponse',
+            '评分对象评论状态更新成功。'
           ),
           '400': jsonResponse('ErrorResponse', '缺少评论 ID。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
@@ -2660,7 +2660,7 @@ export const openApiDocument = {
         parameters: [stringPathParameter('id', '榜单条目 ID。')],
         responses: {
           '200': jsonResponse(
-            'RankingItemDetailResponse',
+            'RatingTargetDetailResponse',
             '返回榜单条目详情。'
           ),
           '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
@@ -2668,53 +2668,53 @@ export const openApiDocument = {
       },
       put: {
         tags: ['rankings'],
-        summary: '更新榜单条目',
+        summary: '更新评分对象',
         security: sessionOrBearerSecurity,
-        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        parameters: [stringPathParameter('id', '评分对象 ID。')],
         requestBody: jsonRequestBody(
-          'AddRankingItemRequest',
-          '更新榜单条目内容。'
+          'AddRatingTargetRequest',
+          '更新评分对象内容。'
         ),
         responses: {
           '200': jsonResponse(
-            'RankingItemDetailResponse',
-            '榜单条目更新成功。'
+            'RatingTargetDetailResponse',
+            '评分对象更新成功。'
           ),
-          '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
+          '400': jsonResponse('ErrorResponse', '缺少评分对象 ID。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '403': jsonResponse('ErrorResponse', '当前无权修改条目。'),
-          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+          '403': jsonResponse('ErrorResponse', '当前无权修改评分对象。'),
+          '404': jsonResponse('ErrorResponse', '评分对象不存在。')
         }
       },
       delete: {
         tags: ['rankings'],
-        summary: '删除榜单条目',
+        summary: '删除评分对象',
         security: sessionOrBearerSecurity,
-        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        parameters: [stringPathParameter('id', '评分对象 ID。')],
         responses: {
-          '200': jsonResponse('ActionSuccessResponse', '榜单条目删除成功。'),
-          '400': jsonResponse('ErrorResponse', '缺少榜单条目 ID。'),
+          '200': jsonResponse('ActionSuccessResponse', '评分对象删除成功。'),
+          '400': jsonResponse('ErrorResponse', '缺少评分对象 ID。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '403': jsonResponse('ErrorResponse', '当前无权删除条目。'),
-          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+          '403': jsonResponse('ErrorResponse', '当前无权删除评分对象。'),
+          '404': jsonResponse('ErrorResponse', '评分对象不存在。')
         }
       }
     },
     [API_ROUTES.rankings.items('{id}')]: {
       post: {
         tags: ['rankings'],
-        summary: '为榜单新增条目',
+        summary: '为榜单新增评分对象',
         security: sessionOrBearerSecurity,
         parameters: [stringPathParameter('id', '榜单 ID。')],
         requestBody: jsonRequestBody(
-          'AddRankingItemRequest',
-          '新增榜单条目。'
+          'AddRatingTargetRequest',
+          '新增评分对象。'
         ),
         responses: {
-          '200': jsonResponse('RankingItemResponse', '榜单条目创建成功。'),
+          '200': jsonResponse('RatingTargetResponse', '评分对象创建成功。'),
           '400': jsonResponse('ErrorResponse', '缺少榜单 ID。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '403': jsonResponse('ErrorResponse', '当前无权新增条目。'),
+          '403': jsonResponse('ErrorResponse', '当前无权新增评分对象。'),
           '404': jsonResponse('ErrorResponse', '榜单不存在。')
         }
       }
@@ -2722,20 +2722,20 @@ export const openApiDocument = {
     [API_ROUTES.rankings.itemRatings('{id}')]: {
       post: {
         tags: ['rankings'],
-        summary: '为榜单条目打分',
+        summary: '为评分对象打分',
         security: sessionOrBearerSecurity,
-        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        parameters: [stringPathParameter('id', '评分对象 ID。')],
         requestBody: jsonRequestBody(
-          'SubmitRankingItemRatingRequest',
-          '提交榜单条目评分。'
+          'SubmitRatingTargetRatingRequest',
+          '提交评分对象评分。'
         ),
         responses: {
           '200': jsonResponse(
-            'SubmitRankingItemRatingResponse',
+            'SubmitRatingTargetRatingResponse',
             '评分提交成功。'
           ),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+          '404': jsonResponse('ErrorResponse', '评分对象不存在。')
         }
       }
     },
@@ -2778,62 +2778,62 @@ export const openApiDocument = {
     [API_ROUTES.rankings.itemReview('{id}')]: {
       post: {
         tags: ['rankings'],
-        summary: '为榜单条目提交评测',
+        summary: '为评分对象提交评测',
         security: sessionOrBearerSecurity,
-        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        parameters: [stringPathParameter('id', '评分对象 ID。')],
         requestBody: jsonRequestBody(
-          'SubmitRankingItemReviewRequest',
-          '提交榜单条目评分与评测内容。'
+          'SubmitRatingTargetReviewRequest',
+          '提交评分对象评分与评测内容。'
         ),
         responses: {
           '200': jsonResponse(
-            'SubmitRankingItemReviewResponse',
-            '榜单条目评测提交成功。'
+            'SubmitRatingTargetReviewResponse',
+            '评分对象评测提交成功。'
           ),
           '400': jsonResponse('ErrorResponse', '评测参数不合法。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+          '404': jsonResponse('ErrorResponse', '评分对象不存在。')
         }
       }
     },
     [API_ROUTES.rankings.itemComments('{id}')]: {
       post: {
         tags: ['rankings'],
-        summary: '发布榜单条目评论',
+        summary: '发布评分对象评论',
         security: sessionOrBearerSecurity,
-        parameters: [stringPathParameter('id', '榜单条目 ID。')],
+        parameters: [stringPathParameter('id', '评分对象 ID。')],
         requestBody: jsonRequestBody(
-          'CreateRankingItemCommentRequest',
-          '创建榜单条目评论或回复。'
+          'CreateRatingTargetCommentRequest',
+          '创建评分对象评论或回复。'
         ),
         responses: {
           '200': jsonResponse(
-            'CreateRankingItemCommentResponse',
-            '榜单条目评论创建成功。'
+            'CreateRatingTargetCommentResponse',
+            '评分对象评论创建成功。'
           ),
           '400': jsonResponse('ErrorResponse', '评论参数不合法。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
-          '404': jsonResponse('ErrorResponse', '榜单条目不存在。')
+          '404': jsonResponse('ErrorResponse', '评分对象不存在。')
         }
       }
     },
     [API_ROUTES.rankings.itemCommentDetail('{itemId}', '{commentId}')]: {
       put: {
         tags: ['rankings'],
-        summary: '更新榜单条目评论',
+        summary: '更新评分对象评论',
         security: sessionOrBearerSecurity,
         parameters: [
-          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('itemId', '评分对象 ID。'),
           stringPathParameter('commentId', '评论 ID。')
         ],
         requestBody: jsonRequestBody(
-          'UpdateRankingItemCommentRequest',
-          '更新榜单条目评论内容。'
+          'UpdateRatingTargetCommentRequest',
+          '更新评分对象评论内容。'
         ),
         responses: {
           '200': jsonResponse(
-            'CreateRankingItemCommentResponse',
-            '榜单条目评论更新成功。'
+            'CreateRatingTargetCommentResponse',
+            '评分对象评论更新成功。'
           ),
           '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
@@ -2843,14 +2843,14 @@ export const openApiDocument = {
       },
       delete: {
         tags: ['rankings'],
-        summary: '删除榜单条目评论',
+        summary: '删除评分对象评论',
         security: sessionOrBearerSecurity,
         parameters: [
-          stringPathParameter('itemId', '榜单条目 ID。'),
+          stringPathParameter('itemId', '评分对象 ID。'),
           stringPathParameter('commentId', '评论 ID。')
         ],
         responses: {
-          '200': jsonResponse('ActionSuccessResponse', '榜单条目评论删除成功。'),
+          '200': jsonResponse('ActionSuccessResponse', '评分对象评论删除成功。'),
           '400': jsonResponse('ErrorResponse', '缺少评论参数。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '当前无权删除评论。'),

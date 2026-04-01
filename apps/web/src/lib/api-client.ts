@@ -293,20 +293,23 @@ export const apiClient = {
   reportModel(slug: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.models.report(slug), input);
   },
-  updateRankingItemComment(itemId: string, commentId: string, input: { content: string }) {
+  updateRatingTargetComment(itemId: string, commentId: string, input: { content: string }) {
     return putJson<{ item: unknown }>(API_ROUTES.rankings.itemCommentDetail(itemId, commentId), input);
   },
-  deleteRankingItemComment(itemId: string, commentId: string) {
+  deleteRatingTargetComment(itemId: string, commentId: string) {
     return deleteJson<{ success: true }>(API_ROUTES.rankings.itemCommentDetail(itemId, commentId));
   },
-  likeRankingItemComment(itemId: string, commentId: string) {
+  likeRatingTargetComment(itemId: string, commentId: string) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentLike(itemId, commentId));
   },
-  reportRankingItemComment(itemId: string, commentId: string, input: { reason: string; imageIds: string[] }) {
+  reportRatingTargetComment(itemId: string, commentId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemCommentReport(itemId, commentId), input);
   },
-  reportRankingItem(itemId: string, input: { reason: string; imageIds: string[] }) {
+  reportRatingTarget(itemId: string, input: { reason: string; imageIds: string[] }) {
     return postJson<{ success: true }>(API_ROUTES.rankings.itemReport(itemId), input);
+  },
+  uploadRatingTargetImage(file: File) {
+    return sharedClient.uploadRankingItemImage(file);
   }
 };
 

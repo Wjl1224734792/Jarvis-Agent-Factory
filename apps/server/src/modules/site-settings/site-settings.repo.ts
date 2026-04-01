@@ -23,7 +23,7 @@ export const siteSettingsRepo = {
     momentModerationEnabled: boolean;
     brandModerationEnabled: boolean;
     modelModerationEnabled: boolean;
-    rankingItemModerationEnabled: boolean;
+    ratingTargetModerationEnabled: boolean;
   }) {
     const existing = await this.get();
 
@@ -40,7 +40,7 @@ export const siteSettingsRepo = {
           momentModerationEnabled: input.momentModerationEnabled,
           brandModerationEnabled: input.brandModerationEnabled,
           modelModerationEnabled: input.modelModerationEnabled,
-          rankingItemModerationEnabled: input.rankingItemModerationEnabled,
+          ratingTargetModerationEnabled: input.ratingTargetModerationEnabled,
           updatedAt: new Date()
         })
         .where(eq(siteSettingsTable.id, SITE_SETTINGS_ROW_ID));
@@ -59,7 +59,7 @@ export const siteSettingsRepo = {
       momentModerationEnabled: input.momentModerationEnabled,
       brandModerationEnabled: input.brandModerationEnabled,
       modelModerationEnabled: input.modelModerationEnabled,
-      rankingItemModerationEnabled: input.rankingItemModerationEnabled
+      ratingTargetModerationEnabled: input.ratingTargetModerationEnabled
     });
 
     return this.get();

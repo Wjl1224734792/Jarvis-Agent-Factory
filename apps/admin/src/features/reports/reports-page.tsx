@@ -10,12 +10,12 @@ type DetailState = {
     | "post"
     | "model"
     | "review"
-    | "ranking-item"
+    | "rating-target"
     | "post-comment"
     | "review-comment"
     | "model-comment"
     | "ranking-comment"
-    | "ranking-item-comment";
+    | "rating-target-comment";
   id: string;
   title: string;
   subtitle?: string | null;
@@ -30,9 +30,9 @@ export function ReportsPage() {
   const postsQuery = useQuery({ queryKey: ["admin-report-posts"], queryFn: () => apiClient.listAdminPosts() });
   const reviewsQuery = useQuery({ queryKey: ["admin-report-reviews"], queryFn: () => apiClient.listAdminReviews() });
   const modelsQuery = useQuery({ queryKey: ["admin-report-models"], queryFn: () => apiClient.listModels() });
-  const rankingItemsQuery = useQuery({
-    queryKey: ["admin-report-ranking-items"],
-    queryFn: () => apiClient.listRankingItemsForModeration()
+  const ratingTargetsQuery = useQuery({
+    queryKey: ["admin-report-rating-targets"],
+    queryFn: () => apiClient.listRatingTargetsForModeration()
   });
   const postCommentsQuery = useQuery({
     queryKey: ["admin-report-post-comments"],
@@ -50,9 +50,9 @@ export function ReportsPage() {
     queryKey: ["admin-report-ranking-comments"],
     queryFn: () => apiClient.listAdminRankingComments()
   });
-  const rankingItemCommentsQuery = useQuery({
-    queryKey: ["admin-report-ranking-item-comments"],
-    queryFn: () => apiClient.listAdminRankingItemComments()
+  const ratingTargetCommentsQuery = useQuery({
+    queryKey: ["admin-report-rating-target-comments"],
+    queryFn: () => apiClient.listAdminRatingTargetComments()
   });
   const detailQuery = useQuery({
     queryKey: ["admin-report-detail", detail?.kind, detail?.id],
@@ -69,12 +69,12 @@ export function ReportsPage() {
       postsQuery.refetch(),
       reviewsQuery.refetch(),
       modelsQuery.refetch(),
-      rankingItemsQuery.refetch(),
+      ratingTargetsQuery.refetch(),
       postCommentsQuery.refetch(),
       reviewCommentsQuery.refetch(),
       modelCommentsQuery.refetch(),
       rankingCommentsQuery.refetch(),
-      rankingItemCommentsQuery.refetch(),
+      ratingTargetCommentsQuery.refetch(),
       detailQuery.refetch()
     ]);
   }
@@ -100,12 +100,12 @@ export function ReportsPage() {
         .filter((item) => includesKeyword(item.name, item.brand.name, item.category.name)),
     [keyword, modelsQuery.data?.items]
   );
-  const rankingItems = useMemo(
+  const ratingTargets = useMemo(
     () =>
-      (rankingItemsQuery.data?.items ?? [])
+      (ratingTargetsQuery.data?.items ?? [])
         .filter((item) => (item.reportCount ?? 0) > 0)
         .filter((item) => includesKeyword(item.title, item.rankingTitle, item.rankingAuthorName)),
-    [keyword, rankingItemsQuery.data?.items]
+    [keyword, ratingTargetsQuery.data?.items]
   );
   const comments = useMemo(
     () =>
@@ -150,15 +150,15 @@ export function ReportsPage() {
           reportCount: item.reportCount ?? 0,
           onToggle: () => apiClient.updateAdminRankingCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
         })),
-        ...(rankingItemCommentsQuery.data?.items ?? []).map((item) => ({
-          kind: "ranking-item-comment" as const,
+        ...(ratingTargetCommentsQuery.data?.items ?? []).map((item) => ({
+          kind: "rating-target-comment" as const,
           id: item.id,
-          title: `${item.rankingTitle} / ${item.rankingItemTitle}`,
+          title: `${item.rankingTitle} / ${item.ratingTargetTitle}`,
           subtitle: item.author.displayName,
           preview: item.content,
           status: item.status,
           reportCount: item.reportCount ?? 0,
-          onToggle: () => apiClient.updateAdminRankingItemCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+          onToggle: () => apiClient.updateAdminRatingTargetCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
         }))
       ]
         .filter((item) => item.reportCount > 0)
@@ -168,7 +168,7 @@ export function ReportsPage() {
       modelCommentsQuery.data?.items,
       postCommentsQuery.data?.items,
       rankingCommentsQuery.data?.items,
-      rankingItemCommentsQuery.data?.items,
+      ratingTargetCommentsQuery.data?.items,
       reviewCommentsQuery.data?.items
     ]
   );
@@ -280,11 +280,11 @@ export function ReportsPage() {
           dataSource={[
             ...models.map((item) => ({ kind: "model" as const, id: item.id, title: item.name, subtitle: `${item.brand.name} · ${item.category.name}`, preview: item.summary, reportCount: item.reportCount })),
             ...reviews.map((item) => ({ kind: "review" as const, id: item.id, title: item.model.name, subtitle: item.author.displayName, preview: item.content, reportCount: item.reportCount })),
-            ...rankingItems.map((item) => ({ kind: "ranking-item" as const, id: item.id, title: item.title, subtitle: `${item.rankingTitle} · ${item.rankingAuthorName}`, preview: item.summary, reportCount: item.reportCount ?? 0 })),
+            ...ratingTargets.map((item) => ({ kind: "rating-target" as const, id: item.id, title: item.title, subtitle: `${item.rankingTitle} · ${item.rankingAuthorName}`, preview: item.summary, reportCount: item.reportCount ?? 0 })),
             ...comments
           ]}
           locale={{ emptyText: <Empty description="暂无被举报内容" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-          loading={modelsQuery.isLoading || reviewsQuery.isLoading || rankingItemsQuery.isLoading || postCommentsQuery.isLoading || reviewCommentsQuery.isLoading || modelCommentsQuery.isLoading || rankingCommentsQuery.isLoading || rankingItemCommentsQuery.isLoading}
+          loading={modelsQuery.isLoading || reviewsQuery.isLoading || ratingTargetsQuery.isLoading || postCommentsQuery.isLoading || reviewCommentsQuery.isLoading || modelCommentsQuery.isLoading || rankingCommentsQuery.isLoading || ratingTargetCommentsQuery.isLoading}
           rowKey={(record) => `${record.kind}-${record.id}`}
           size="middle"
         />

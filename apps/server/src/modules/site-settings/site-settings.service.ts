@@ -10,7 +10,7 @@ const defaultSiteSettings = {
   momentModerationEnabled: true,
   brandModerationEnabled: true,
   modelModerationEnabled: true,
-  rankingItemModerationEnabled: true
+  ratingTargetModerationEnabled: true
 } as const;
 
 export const siteSettingsService = {
@@ -30,7 +30,7 @@ export const siteSettingsService = {
       momentModerationEnabled: current.momentModerationEnabled,
       brandModerationEnabled: current.brandModerationEnabled,
       modelModerationEnabled: current.modelModerationEnabled,
-      rankingItemModerationEnabled: current.rankingItemModerationEnabled
+      ratingTargetModerationEnabled: current.ratingTargetModerationEnabled
     };
   },
   async update(input: {
@@ -43,7 +43,7 @@ export const siteSettingsService = {
     momentModerationEnabled?: boolean;
     brandModerationEnabled?: boolean;
     modelModerationEnabled?: boolean;
-    rankingItemModerationEnabled?: boolean;
+    ratingTargetModerationEnabled?: boolean;
   }) {
     const current = await this.getResolvedSettings();
     const articleModerationEnabled =
@@ -65,8 +65,8 @@ export const siteSettingsService = {
       momentModerationEnabled,
       brandModerationEnabled: input.brandModerationEnabled ?? current.brandModerationEnabled,
       modelModerationEnabled,
-      rankingItemModerationEnabled:
-        input.rankingItemModerationEnabled ?? current.rankingItemModerationEnabled
+      ratingTargetModerationEnabled:
+        input.ratingTargetModerationEnabled ?? current.ratingTargetModerationEnabled
     });
     if (!updated) {
       return null;
@@ -82,7 +82,7 @@ export const siteSettingsService = {
       momentModerationEnabled: updated.momentModerationEnabled,
       brandModerationEnabled: updated.brandModerationEnabled,
       modelModerationEnabled: updated.modelModerationEnabled,
-      rankingItemModerationEnabled: updated.rankingItemModerationEnabled
+      ratingTargetModerationEnabled: updated.ratingTargetModerationEnabled
     };
   },
   async shouldModeratePost(type: "article" | "moment") {
@@ -95,7 +95,7 @@ export const siteSettingsService = {
   async shouldModerateModelSubmission() {
     return (await this.getResolvedSettings()).modelModerationEnabled;
   },
-  async shouldModerateRankingItem() {
-    return (await this.getResolvedSettings()).rankingItemModerationEnabled;
+  async shouldModerateRatingTarget() {
+    return (await this.getResolvedSettings()).ratingTargetModerationEnabled;
   }
 };

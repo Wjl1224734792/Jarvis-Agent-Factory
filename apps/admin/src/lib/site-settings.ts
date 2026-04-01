@@ -13,8 +13,8 @@ export function buildSiteSettingsUpdate(
     modelModerationEnabled:
       current.modelModerationEnabled ?? current.submissionModerationEnabled ?? true,
     rankingModerationEnabled: current.rankingModerationEnabled ?? true,
-    rankingItemModerationEnabled:
-      current.rankingItemModerationEnabled ?? current.rankingModerationEnabled ?? true,
+    ratingTargetModerationEnabled:
+      current.ratingTargetModerationEnabled ?? current.rankingModerationEnabled ?? true,
     postModerationEnabled: current.postModerationEnabled,
     submissionModerationEnabled: current.submissionModerationEnabled ?? true,
     updatedAt: current.updatedAt,

@@ -2,28 +2,28 @@ import {
   actionSuccessResponseSchema,
   adminRankingCommentResponseSchema,
   adminRankingCommentsResponseSchema,
-  adminRankingItemCommentResponseSchema,
-  adminRankingItemCommentsResponseSchema,
+  adminRatingTargetCommentResponseSchema,
+  adminRatingTargetCommentsResponseSchema,
   adminRankingsResponseSchema,
-  addRankingItemInputSchema,
+  addRatingTargetInputSchema,
   createRankingCommentInputSchema,
   createRankingCommentResponseSchema,
   createRankingInputSchema,
-  createRankingItemCommentInputSchema,
-  createRankingItemCommentResponseSchema,
+  createRatingTargetCommentInputSchema,
+  createRatingTargetCommentResponseSchema,
   reportContentInputSchema,
-  rankingItemDetailResponseSchema,
-  rankingItemResponseSchema,
+  ratingTargetDetailResponseSchema,
+  ratingTargetResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
-  submitRankingItemRatingInputSchema,
-  submitRankingItemRatingResponseSchema,
-  submitRankingItemReviewInputSchema,
-  submitRankingItemReviewResponseSchema,
+  submitRatingTargetRatingInputSchema,
+  submitRatingTargetRatingResponseSchema,
+  submitRatingTargetReviewInputSchema,
+  submitRatingTargetReviewResponseSchema,
   updateRankingCommentStatusInputSchema,
-  updateRankingItemCommentStatusInputSchema,
-  updateRankingItemCommentInputSchema,
-  updateRankingItemStatusInputSchema,
+  updateRatingTargetCommentStatusInputSchema,
+  updateRatingTargetCommentInputSchema,
+  updateRatingTargetStatusInputSchema,
   updateRankingStatusInputSchema,
   updateRankingInputSchema
 } from "@feijia/schemas";
@@ -146,8 +146,8 @@ rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireAdmin, asyn
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = updateRankingItemStatusInputSchema.parse(await context.req.json());
-  const result = await rankingsService.updateRankingItemStatus(
+  const input = updateRatingTargetStatusInputSchema.parse(await context.req.json());
+  const result = await rankingsService.updateRatingTargetStatus(
     id,
     currentUser,
     input.status,
@@ -160,7 +160,7 @@ rankingsRoute.put(API_ROUTES.rankings.adminItemStatus(":id"), requireAdmin, asyn
     return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   }
 
-  return context.json(rankingItemDetailResponseSchema.parse(result.payload));
+  return context.json(ratingTargetDetailResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.get(API_ROUTES.rankings.adminRankingComments, requireAdmin, async (context) => {
@@ -186,27 +186,27 @@ rankingsRoute.put(API_ROUTES.rankings.adminRankingCommentDetail(":id"), requireA
   return context.json(adminRankingCommentResponseSchema.parse({ item }));
 });
 
-rankingsRoute.get(API_ROUTES.rankings.adminRankingItemComments, requireAdmin, async (context) => {
+rankingsRoute.get(API_ROUTES.rankings.adminRatingTargetComments, requireAdmin, async (context) => {
   const status = context.req.query("status");
-  const payload = await rankingsService.listAdminRankingItemComments(
+  const payload = await rankingsService.listAdminRatingTargetComments(
     status === "pending" || status === "visible" || status === "hidden" ? status : undefined
   );
-  return context.json(adminRankingItemCommentsResponseSchema.parse(payload));
+  return context.json(adminRatingTargetCommentsResponseSchema.parse(payload));
 });
 
-rankingsRoute.put(API_ROUTES.rankings.adminRankingItemCommentDetail(":id"), requireAdmin, async (context) => {
+rankingsRoute.put(API_ROUTES.rankings.adminRatingTargetCommentDetail(":id"), requireAdmin, async (context) => {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  const input = updateRankingItemCommentStatusInputSchema.parse(await context.req.json());
-  const item = await rankingsService.updateRankingItemCommentStatus(id, input.status);
+  const input = updateRatingTargetCommentStatusInputSchema.parse(await context.req.json());
+  const item = await rankingsService.updateRatingTargetCommentStatus(id, input.status);
   if (!item) {
     return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
   }
 
-  return context.json(adminRankingItemCommentResponseSchema.parse({ item }));
+  return context.json(adminRatingTargetCommentResponseSchema.parse({ item }));
 });
 
 rankingsRoute.get(API_ROUTES.rankings.detail(":id"), async (context) => {
@@ -233,8 +233,8 @@ rankingsRoute.post(API_ROUTES.rankings.items(":id"), requireAuth, async (context
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = addRankingItemInputSchema.parse(await context.req.json());
-  const result = await rankingsService.addRankingItem(id, currentUser, input);
+  const input = addRatingTargetInputSchema.parse(await context.req.json());
+  const result = await rankingsService.addRatingTarget(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking not found." }, 404);
   }
@@ -242,7 +242,7 @@ rankingsRoute.post(API_ROUTES.rankings.items(":id"), requireAuth, async (context
     return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   }
 
-  return context.json(rankingItemResponseSchema.parse(result.payload));
+  return context.json(ratingTargetResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.comments(":id"), requireAuth, async (context) => {
@@ -270,12 +270,12 @@ rankingsRoute.get(API_ROUTES.rankings.itemDetail(":id"), async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  const payload = await rankingsService.getRankingItemDetail(id, context.get("currentUser")?.id);
+  const payload = await rankingsService.getRatingTargetDetail(id, context.get("currentUser")?.id);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
 
-  return context.json(rankingItemDetailResponseSchema.parse(payload));
+  return context.json(ratingTargetDetailResponseSchema.parse(payload));
 });
 
 rankingsRoute.put(API_ROUTES.rankings.itemDetail(":id"), requireAuth, async (context) => {
@@ -288,8 +288,8 @@ rankingsRoute.put(API_ROUTES.rankings.itemDetail(":id"), requireAuth, async (con
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = addRankingItemInputSchema.parse(await context.req.json());
-  const result = await rankingsService.updateRankingItem(id, currentUser, input);
+  const input = addRatingTargetInputSchema.parse(await context.req.json());
+  const result = await rankingsService.updateRatingTarget(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
@@ -297,7 +297,7 @@ rankingsRoute.put(API_ROUTES.rankings.itemDetail(":id"), requireAuth, async (con
     return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
   }
 
-  return context.json(rankingItemDetailResponseSchema.parse(result.payload));
+  return context.json(ratingTargetDetailResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.delete(API_ROUTES.rankings.itemDetail(":id"), requireAuth, async (context) => {
@@ -310,7 +310,7 @@ rankingsRoute.delete(API_ROUTES.rankings.itemDetail(":id"), requireAuth, async (
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const result = await rankingsService.deleteRankingItem(id, currentUser);
+  const result = await rankingsService.deleteRatingTarget(id, currentUser);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
@@ -354,7 +354,7 @@ rankingsRoute.post(API_ROUTES.rankings.itemReport(":id"), requireAuth, async (co
   }
 
   const input = reportContentInputSchema.parse(await context.req.json());
-  const result = await rankingsService.reportRankingItem(id, currentUser, input);
+  const result = await rankingsService.reportRatingTarget(id, currentUser, input);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
@@ -375,13 +375,13 @@ rankingsRoute.post(API_ROUTES.rankings.itemReview(":id"), requireAuth, async (co
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = submitRankingItemReviewInputSchema.parse(await context.req.json());
-  const payload = await rankingsService.submitRankingItemReview(id, currentUser.id, input);
+  const input = submitRatingTargetReviewInputSchema.parse(await context.req.json());
+  const payload = await rankingsService.submitRatingTargetReview(id, currentUser.id, input);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
 
-  return context.json(submitRankingItemReviewResponseSchema.parse(payload));
+  return context.json(submitRatingTargetReviewResponseSchema.parse(payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.itemRatings(":id"), requireAuth, async (context) => {
@@ -394,13 +394,13 @@ rankingsRoute.post(API_ROUTES.rankings.itemRatings(":id"), requireAuth, async (c
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = submitRankingItemRatingInputSchema.parse(await context.req.json());
-  const payload = await rankingsService.submitRankingItemRating(id, currentUser.id, input.rating);
+  const input = submitRatingTargetRatingInputSchema.parse(await context.req.json());
+  const payload = await rankingsService.submitRatingTargetRating(id, currentUser.id, input.rating);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
 
-  return context.json(submitRankingItemRatingResponseSchema.parse(payload));
+  return context.json(submitRatingTargetRatingResponseSchema.parse(payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.itemComments(":id"), requireAuth, async (context) => {
@@ -413,13 +413,13 @@ rankingsRoute.post(API_ROUTES.rankings.itemComments(":id"), requireAuth, async (
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const input = createRankingItemCommentInputSchema.parse(await context.req.json());
-  const payload = await rankingsService.createRankingItemComment(id, currentUser.id, input);
+  const input = createRatingTargetCommentInputSchema.parse(await context.req.json());
+  const payload = await rankingsService.createRatingTargetComment(id, currentUser.id, input);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }
 
-  return context.json(createRankingItemCommentResponseSchema.parse(payload));
+  return context.json(createRatingTargetCommentResponseSchema.parse(payload));
 });
 
 rankingsRoute.put(
@@ -436,8 +436,8 @@ rankingsRoute.put(
       return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
     }
 
-    const input = updateRankingItemCommentInputSchema.parse(await context.req.json());
-    const result = await rankingsService.updateRankingItemComment(itemId, commentId, currentUser, input);
+    const input = updateRatingTargetCommentInputSchema.parse(await context.req.json());
+    const result = await rankingsService.updateRatingTargetComment(itemId, commentId, currentUser, input);
     if (result.kind === "not_found") {
       return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
     }
@@ -445,7 +445,7 @@ rankingsRoute.put(
       return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
     }
 
-    return context.json(createRankingItemCommentResponseSchema.parse({ item: result.item }));
+    return context.json(createRatingTargetCommentResponseSchema.parse({ item: result.item }));
   }
 );
 
@@ -463,7 +463,7 @@ rankingsRoute.delete(
       return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
     }
 
-    const result = await rankingsService.deleteRankingItemComment(itemId, commentId, currentUser);
+    const result = await rankingsService.deleteRatingTargetComment(itemId, commentId, currentUser);
     if (result.kind === "not_found") {
       return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
     }
@@ -489,7 +489,7 @@ rankingsRoute.post(
       return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
     }
 
-    const result = await rankingsService.toggleRankingItemCommentLike(itemId, commentId, currentUser);
+    const result = await rankingsService.toggleRatingTargetCommentLike(itemId, commentId, currentUser);
     if (result.kind === "not_found") {
       return context.json({ code: "NOT_FOUND", message: "Comment not found." }, 404);
     }
@@ -513,7 +513,7 @@ rankingsRoute.post(
     }
 
     const input = reportContentInputSchema.parse(await context.req.json());
-    const result = await rankingsService.reportRankingItemComment(
+    const result = await rankingsService.reportRatingTargetComment(
       itemId,
       commentId,
       currentUser,

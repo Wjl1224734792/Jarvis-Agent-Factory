@@ -166,7 +166,7 @@ export const userContentFavoriteModelItemSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
-export const userContentRankingItemSchema = z.object({
+export const userContentRatingTargetSchema = z.object({
   type: z.literal("ranking"),
   id: z.string().min(1),
   status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
@@ -178,8 +178,8 @@ export const userContentRankingItemSchema = z.object({
   updatedAt: z.string().datetime()
 });
 
-export const userContentRankingEntryItemSchema = z.object({
-  type: z.literal("ranking-item"),
+export const userContentRatingTargetEntrySchema = z.object({
+  type: z.literal("rating-target"),
   id: z.string().min(1),
   rankingId: z.string().min(1),
   rankingTitle: z.string().min(1),
@@ -221,8 +221,8 @@ export const userContentItemSchema = z.discriminatedUnion("type", [
   userContentFavoritePostItemSchema,
   userContentFavoriteModelItemSchema,
   userContentReviewItemSchema,
-  userContentRankingItemSchema,
-  userContentRankingEntryItemSchema,
+  userContentRatingTargetSchema,
+  userContentRatingTargetEntrySchema,
   userContentAircraftItemSchema,
   userContentBrandApplicationItemSchema
 ]);
@@ -266,7 +266,7 @@ export const adminAnalyticsOverviewSchema = z.object({
     pendingReviews: adminAnalyticsCountSchema,
     pendingSubmissions: adminAnalyticsCountSchema,
     pendingBrandApplications: adminAnalyticsCountSchema.default(0),
-    pendingRankingItems: adminAnalyticsCountSchema.default(0)
+    pendingRatingTargets: adminAnalyticsCountSchema.default(0)
   }),
   registration: z.object({
     total: adminAnalyticsCountSchema,
@@ -311,7 +311,7 @@ export const adminAnalyticsOverviewSchema = z.object({
       rejected: 0,
       hidden: 0
     }),
-    rankingItems: adminAnalyticsModerationBucketSchema.default({
+    ratingTargets: adminAnalyticsModerationBucketSchema.default({
       queueEntered: 0,
       pending: 0,
       approved: 0,
@@ -330,7 +330,7 @@ export const adminAnalyticsOverviewSchema = z.object({
       approved: 0,
       rejectedOrHidden: 0
     }),
-    rankingItems: adminAnalyticsFunnelBucketSchema.default({
+    ratingTargets: adminAnalyticsFunnelBucketSchema.default({
       queueEntered: 0,
       pending: 0,
       approved: 0,

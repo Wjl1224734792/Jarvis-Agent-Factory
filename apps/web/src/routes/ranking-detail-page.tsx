@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
-function RankingItemScore({ score, totalRatings }: { score: number; totalRatings: number }) {
+function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
     <div className="flex min-w-[6.25rem] flex-col items-end justify-center gap-1 text-right">
       <RatingValue score={score} size="lg" />
@@ -124,7 +124,7 @@ export function RankingDetailPage() {
                 <Link
                   className="grid gap-3 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/30 hover:bg-sky-50/50 md:grid-cols-[44px_88px_minmax(0,1fr)]"
                   key={item.id}
-                  to={`${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
+                  to={`${APP_ROUTES.ratingTargetDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >
                   <div className="text-[1.4rem] font-semibold italic leading-none text-primary/46">
                     {String(item.rank).padStart(2, "0")}
@@ -147,7 +147,7 @@ export function RankingDetailPage() {
                         <p className="line-clamp-2 text-[0.78rem] leading-5 text-foreground/68">{item.summary}</p>
                       ) : null}
                     </div>
-                    <RankingItemScore score={item.averageScore} totalRatings={item.totalRatings} />
+                    <RatingTargetScore score={item.averageScore} totalRatings={item.totalRatings} />
                   </div>
                 </Link>
               ))}

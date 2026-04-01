@@ -155,7 +155,7 @@ export function RankingEditorPage() {
   }
 
   async function uploadSingleImage(file: File) {
-    const uploaded = await apiClient.uploadRankingItemImage(file);
+    const uploaded = await apiClient.uploadRatingTargetImage(file);
     return uploaded.item;
   }
 

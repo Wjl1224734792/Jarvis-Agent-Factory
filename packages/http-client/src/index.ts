@@ -25,8 +25,8 @@ import {
   adminPostStatusUpdateInputSchema,
   adminRankingCommentResponseSchema,
   adminRankingCommentsResponseSchema,
-  adminRankingItemCommentResponseSchema,
-  adminRankingItemCommentsResponseSchema,
+  adminRatingTargetCommentResponseSchema,
+  adminRatingTargetCommentsResponseSchema,
   adminReviewResponseSchema,
   adminReviewCommentResponseSchema,
   adminReviewCommentsResponseSchema,
@@ -56,11 +56,11 @@ import {
   createRankingCommentInputSchema,
   createRankingCommentResponseSchema,
   createRankingInputSchema,
-  addRankingItemInputSchema,
-  rankingItemResponseSchema,
+  addRatingTargetInputSchema,
+  ratingTargetResponseSchema,
   updateRankingInputSchema,
-  createRankingItemCommentInputSchema,
-  createRankingItemCommentResponseSchema,
+  createRatingTargetCommentInputSchema,
+  createRatingTargetCommentResponseSchema,
   currentUserProfileResponseSchema,
   adminAnalyticsOverviewResponseSchema,
   currentUserResponseSchema,
@@ -88,7 +88,7 @@ import {
   phoneChangeRequestResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
-  rankingItemDetailResponseSchema,
+  ratingTargetDetailResponseSchema,
   rankingResponseSchema,
   rankingsResponseSchema,
   registrationDisplayNameSuggestRequestSchema,
@@ -100,14 +100,14 @@ import {
   smsCodeResponseSchema,
   submitModelReviewInputSchema,
   submitModelReviewResponseSchema,
-  submitRankingItemRatingInputSchema,
-  submitRankingItemRatingResponseSchema,
-  submitRankingItemReviewInputSchema,
-  submitRankingItemReviewResponseSchema,
+  submitRatingTargetRatingInputSchema,
+  submitRatingTargetRatingResponseSchema,
+  submitRatingTargetReviewInputSchema,
+  submitRatingTargetReviewResponseSchema,
   updateRankingCommentStatusInputSchema,
-  updateRankingItemCommentInputSchema,
-  updateRankingItemCommentStatusInputSchema,
-  updateRankingItemStatusInputSchema,
+  updateRatingTargetCommentInputSchema,
+  updateRatingTargetCommentStatusInputSchema,
+  updateRatingTargetStatusInputSchema,
   updatePostCommentInputSchema,
   updatePostInputSchema,
   updateRankingStatusInputSchema,
@@ -178,17 +178,17 @@ type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.p
 type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
 type UpdateRankingInput = Parameters<typeof updateRankingInputSchema.parse>[0];
-type AddRankingItemInput = Parameters<typeof addRankingItemInputSchema.parse>[0];
+type AddRatingTargetInput = Parameters<typeof addRatingTargetInputSchema.parse>[0];
 type CreateRankingCommentInput = Parameters<typeof createRankingCommentInputSchema.parse>[0];
-type CreateRankingItemCommentInput = Parameters<typeof createRankingItemCommentInputSchema.parse>[0];
-type SubmitRankingItemRatingInput = Parameters<typeof submitRankingItemRatingInputSchema.parse>[0];
-type SubmitRankingItemReviewInput = Parameters<typeof submitRankingItemReviewInputSchema.parse>[0];
+type CreateRatingTargetCommentInput = Parameters<typeof createRatingTargetCommentInputSchema.parse>[0];
+type SubmitRatingTargetRatingInput = Parameters<typeof submitRatingTargetRatingInputSchema.parse>[0];
+type SubmitRatingTargetReviewInput = Parameters<typeof submitRatingTargetReviewInputSchema.parse>[0];
 type UpdateRankingCommentStatusInput =
   Parameters<typeof updateRankingCommentStatusInputSchema.parse>[0];
-type UpdateRankingItemStatusInput =
-  Parameters<typeof updateRankingItemStatusInputSchema.parse>[0];
-type UpdateRankingItemCommentStatusInput =
-  Parameters<typeof updateRankingItemCommentStatusInputSchema.parse>[0];
+type UpdateRatingTargetStatusInput =
+  Parameters<typeof updateRatingTargetStatusInputSchema.parse>[0];
+type UpdateRatingTargetCommentStatusInput =
+  Parameters<typeof updateRatingTargetCommentStatusInputSchema.parse>[0];
 type UpdateRankingStatusInput = Parameters<typeof updateRankingStatusInputSchema.parse>[0];
 type CreateAircraftSubmissionInput = Parameters<typeof createAircraftSubmissionInputSchema.parse>[0];
 type UpdateAircraftSubmissionStatusInput =
@@ -906,21 +906,21 @@ export function createApiClient(options: ApiClientOptions) {
         updateRankingInputSchema.parse(input)
       );
     },
-    async addRankingItem(id: string, input: AddRankingItemInput) {
+    async addRatingTarget(id: string, input: AddRatingTargetInput) {
       return postJson(
         API_ROUTES.rankings.items(id),
-        rankingItemResponseSchema,
-        addRankingItemInputSchema.parse(input)
+        ratingTargetResponseSchema,
+        addRatingTargetInputSchema.parse(input)
       );
     },
-    async updateRankingItem(id: string, input: AddRankingItemInput) {
+    async updateRatingTarget(id: string, input: AddRatingTargetInput) {
       return putJson(
         API_ROUTES.rankings.itemDetail(id),
-        rankingItemDetailResponseSchema,
-        addRankingItemInputSchema.parse(input)
+        ratingTargetDetailResponseSchema,
+        addRatingTargetInputSchema.parse(input)
       );
     },
-    async deleteRankingItem(id: string) {
+    async deleteRatingTarget(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.itemDetail(id)}`, {
         method: "DELETE",
         credentials: "include"
@@ -951,11 +951,11 @@ export function createApiClient(options: ApiClientOptions) {
         updateRankingStatusInputSchema.parse(input)
       );
     },
-    async updateAdminRankingItemStatus(id: string, input: UpdateRankingItemStatusInput) {
+    async updateAdminRatingTargetStatus(id: string, input: UpdateRatingTargetStatusInput) {
       return putJson(
         API_ROUTES.rankings.adminItemStatus(id),
-        rankingItemDetailResponseSchema,
-        updateRankingItemStatusInputSchema.parse(input)
+        ratingTargetDetailResponseSchema,
+        updateRatingTargetStatusInputSchema.parse(input)
       );
     },
     async listAdminRankingComments(status?: "pending" | "visible" | "hidden") {
@@ -974,20 +974,20 @@ export function createApiClient(options: ApiClientOptions) {
         updateRankingCommentStatusInputSchema.parse(input)
       );
     },
-    async listAdminRankingItemComments(status?: "pending" | "visible" | "hidden") {
+    async listAdminRatingTargetComments(status?: "pending" | "visible" | "hidden") {
       const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
-      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.adminRankingItemComments}${suffix}`, {
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.adminRatingTargetComments}${suffix}`, {
         method: "GET",
         credentials: "include"
       });
 
-      return readJson(response, adminRankingItemCommentsResponseSchema);
+      return readJson(response, adminRatingTargetCommentsResponseSchema);
     },
-    async updateAdminRankingItemCommentStatus(id: string, input: UpdateRankingItemCommentStatusInput) {
+    async updateAdminRatingTargetCommentStatus(id: string, input: UpdateRatingTargetCommentStatusInput) {
       return putJson(
-        API_ROUTES.rankings.adminRankingItemCommentDetail(id),
-        adminRankingItemCommentResponseSchema,
-        updateRankingItemCommentStatusInputSchema.parse(input)
+        API_ROUTES.rankings.adminRatingTargetCommentDetail(id),
+        adminRatingTargetCommentResponseSchema,
+        updateRatingTargetCommentStatusInputSchema.parse(input)
       );
     },
     async createRankingComment(id: string, input: CreateRankingCommentInput) {
@@ -1004,47 +1004,47 @@ export function createApiClient(options: ApiClientOptions) {
         reportPostInputSchema.parse(input)
       );
     },
-    async getRankingItemDetail(id: string) {
+    async getRatingTargetDetail(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.itemDetail(id)}`, {
         method: "GET",
         credentials: "include"
       });
 
-      return readJson(response, rankingItemDetailResponseSchema);
+      return readJson(response, ratingTargetDetailResponseSchema);
     },
-    async submitRankingItemRating(id: string, input: SubmitRankingItemRatingInput) {
+    async submitRatingTargetRating(id: string, input: SubmitRatingTargetRatingInput) {
       return postJson(
         API_ROUTES.rankings.itemRatings(id),
-        submitRankingItemRatingResponseSchema,
-        submitRankingItemRatingInputSchema.parse(input)
+        submitRatingTargetRatingResponseSchema,
+        submitRatingTargetRatingInputSchema.parse(input)
       );
     },
-    async submitRankingItemReview(id: string, input: SubmitRankingItemReviewInput) {
+    async submitRatingTargetReview(id: string, input: SubmitRatingTargetReviewInput) {
       return postJson(
         API_ROUTES.rankings.itemReview(id),
-        submitRankingItemReviewResponseSchema,
-        submitRankingItemReviewInputSchema.parse(input)
+        submitRatingTargetReviewResponseSchema,
+        submitRatingTargetReviewInputSchema.parse(input)
       );
     },
-    async createRankingItemComment(id: string, input: CreateRankingItemCommentInput) {
+    async createRatingTargetComment(id: string, input: CreateRatingTargetCommentInput) {
       return postJson(
         API_ROUTES.rankings.itemComments(id),
-        createRankingItemCommentResponseSchema,
-        createRankingItemCommentInputSchema.parse(input)
+        createRatingTargetCommentResponseSchema,
+        createRatingTargetCommentInputSchema.parse(input)
       );
     },
-    async updateRankingItemComment(
+    async updateRatingTargetComment(
       itemId: string,
       commentId: string,
       input: { content: string }
     ) {
       return putJson(
         API_ROUTES.rankings.itemCommentDetail(itemId, commentId),
-        createRankingItemCommentResponseSchema,
-        updateRankingItemCommentInputSchema.parse(input)
+        createRatingTargetCommentResponseSchema,
+        updateRatingTargetCommentInputSchema.parse(input)
       );
     },
-    async deleteRankingItemComment(itemId: string, commentId: string) {
+    async deleteRatingTargetComment(itemId: string, commentId: string) {
       const response = await fetch(
         `${baseUrl}${API_ROUTES.rankings.itemCommentDetail(itemId, commentId)}`,
         {
@@ -1055,7 +1055,7 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, actionSuccessResponseSchema);
     },
-    async likeRankingItemComment(itemId: string, commentId: string) {
+    async likeRatingTargetComment(itemId: string, commentId: string) {
       const response = await fetch(
         `${baseUrl}${API_ROUTES.rankings.itemCommentLike(itemId, commentId)}`,
         {
@@ -1066,14 +1066,14 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, actionSuccessResponseSchema);
     },
-    async reportRankingItemComment(itemId: string, commentId: string, input: ReportPostInput) {
+    async reportRatingTargetComment(itemId: string, commentId: string, input: ReportPostInput) {
       return postJson(
         API_ROUTES.rankings.itemCommentReport(itemId, commentId),
         actionSuccessResponseSchema,
         reportPostInputSchema.parse(input)
       );
     },
-    async reportRankingItem(id: string, input: ReportPostInput) {
+    async reportRatingTarget(id: string, input: ReportPostInput) {
       return postJson(
         API_ROUTES.rankings.itemReport(id),
         actionSuccessResponseSchema,

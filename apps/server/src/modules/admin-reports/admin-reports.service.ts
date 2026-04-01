@@ -6,8 +6,8 @@ import {
   postCommentReportsTable,
   postReportsTable,
   rankingCommentReportsTable,
-  rankingItemCommentReportsTable,
-  rankingItemReportsTable,
+  ratingTargetCommentReportsTable,
+  ratingTargetReportsTable,
   rankingReportsTable,
   reviewCommentReportsTable,
   usersTable
@@ -23,9 +23,9 @@ type ReportKind =
   | "review-comment"
   | "model-comment"
   | "ranking"
-  | "ranking-item"
+  | "rating-target"
   | "ranking-comment"
-  | "ranking-item-comment";
+  | "rating-target-comment";
 
 function parseImageIds(value: string) {
   try {
@@ -178,18 +178,18 @@ export const adminReportsService = {
           .where(eq(rankingReportsTable.rankingId, id));
         return { items: await serializeReportRows(rows) };
       }
-      case "ranking-item": {
+      case "rating-target": {
         const rows = await db
           .select({
-            id: rankingItemReportsTable.id,
-            reason: rankingItemReportsTable.reason,
-            imageFileIds: rankingItemReportsTable.imageFileIds,
-            createdAt: rankingItemReportsTable.createdAt,
+            id: ratingTargetReportsTable.id,
+            reason: ratingTargetReportsTable.reason,
+            imageFileIds: ratingTargetReportsTable.imageFileIds,
+            createdAt: ratingTargetReportsTable.createdAt,
             reporter: baseSelection
           })
-          .from(rankingItemReportsTable)
-          .innerJoin(usersTable, eq(rankingItemReportsTable.reporterId, usersTable.id))
-          .where(eq(rankingItemReportsTable.rankingItemId, id));
+          .from(ratingTargetReportsTable)
+          .innerJoin(usersTable, eq(ratingTargetReportsTable.reporterId, usersTable.id))
+          .where(eq(ratingTargetReportsTable.ratingTargetId, id));
         return { items: await serializeReportRows(rows) };
       }
       case "ranking-comment": {
@@ -206,18 +206,18 @@ export const adminReportsService = {
           .where(eq(rankingCommentReportsTable.commentId, id));
         return { items: await serializeReportRows(rows) };
       }
-      case "ranking-item-comment": {
+      case "rating-target-comment": {
         const rows = await db
           .select({
-            id: rankingItemCommentReportsTable.id,
-            reason: rankingItemCommentReportsTable.reason,
-            imageFileIds: rankingItemCommentReportsTable.imageFileIds,
-            createdAt: rankingItemCommentReportsTable.createdAt,
+            id: ratingTargetCommentReportsTable.id,
+            reason: ratingTargetCommentReportsTable.reason,
+            imageFileIds: ratingTargetCommentReportsTable.imageFileIds,
+            createdAt: ratingTargetCommentReportsTable.createdAt,
             reporter: baseSelection
           })
-          .from(rankingItemCommentReportsTable)
-          .innerJoin(usersTable, eq(rankingItemCommentReportsTable.reporterId, usersTable.id))
-          .where(eq(rankingItemCommentReportsTable.commentId, id));
+          .from(ratingTargetCommentReportsTable)
+          .innerJoin(usersTable, eq(ratingTargetCommentReportsTable.reporterId, usersTable.id))
+          .where(eq(ratingTargetCommentReportsTable.commentId, id));
         return { items: await serializeReportRows(rows) };
       }
       default:

@@ -7,12 +7,12 @@ import {
   db,
   rankingCommentsTable,
   rankingCommentReportsTable,
-  rankingItemCommentLikesTable,
-  rankingItemCommentReportsTable,
-  rankingItemCommentsTable,
-  rankingItemRatingsTable,
-  rankingItemReportsTable,
-  rankingItemsTable,
+  ratingTargetCommentLikesTable,
+  ratingTargetCommentReportsTable,
+  ratingTargetCommentsTable,
+  ratingTargetRatingsTable,
+  ratingTargetReportsTable,
+  ratingTargetsTable,
   rankingReportsTable,
   rankingsTable,
   usersTable
@@ -198,10 +198,10 @@ export const rankingsRepo = {
 
     return this.getRankingById(id);
   },
-  async deleteRankingItems(rankingId: string) {
-    await db.delete(rankingItemsTable).where(eq(rankingItemsTable.rankingId, rankingId));
+  async deleteRatingTargets(rankingId: string) {
+    await db.delete(ratingTargetsTable).where(eq(ratingTargetsTable.rankingId, rankingId));
   },
-  async createRankingItems(
+  async createRatingTargets(
     rankingId: string,
     items: Array<{
       authorId: string;
@@ -219,7 +219,7 @@ export const rankingsRepo = {
       return;
     }
 
-    await db.insert(rankingItemsTable).values(
+    await db.insert(ratingTargetsTable).values(
       items.map((item) => ({
         id: createId("ritem"),
         rankingId,
@@ -238,15 +238,15 @@ export const rankingsRepo = {
       }))
     );
   },
-  async countRankingItems(rankingId: string) {
+  async countRatingTargets(rankingId: string) {
     const rows = await db
       .select({ count: sql<number>`count(*)` })
-      .from(rankingItemsTable)
-      .where(eq(rankingItemsTable.rankingId, rankingId));
+      .from(ratingTargetsTable)
+      .where(eq(ratingTargetsTable.rankingId, rankingId));
 
     return Number(rows[0]?.count ?? 0);
   },
-  async addRankingItem(input: {
+  async addRatingTarget(input: {
     rankingId: string;
     authorId: string;
     status: "pending" | "published" | "rejected" | "hidden";
@@ -257,9 +257,9 @@ export const rankingsRepo = {
     brandName: string | null;
     linkedModelId: string | null;
   }) {
-    const rank = (await this.countRankingItems(input.rankingId)) + 1;
+    const rank = (await this.countRatingTargets(input.rankingId)) + 1;
     const id = createId("ritem");
-    await db.insert(rankingItemsTable).values({
+    await db.insert(ratingTargetsTable).values({
       id,
       rankingId: input.rankingId,
       authorId: input.authorId,
@@ -276,9 +276,9 @@ export const rankingsRepo = {
       reportCount: 0
     });
 
-    return this.getRankingItemById(id);
+    return this.getRatingTargetById(id);
   },
-  async updateRankingItem(
+  async updateRatingTarget(
     id: string,
     input: {
       title: string;
@@ -291,7 +291,7 @@ export const rankingsRepo = {
     }
   ) {
     await db
-      .update(rankingItemsTable)
+      .update(ratingTargetsTable)
       .set({
         title: input.title,
         summary: input.summary,
@@ -304,11 +304,11 @@ export const rankingsRepo = {
           : undefined,
         updatedAt: new Date()
       })
-      .where(eq(rankingItemsTable.id, id));
+      .where(eq(ratingTargetsTable.id, id));
 
-    return this.getRankingItemById(id);
+    return this.getRatingTargetById(id);
   },
-  async updateRankingItemStatus(
+  async updateRatingTargetStatus(
     id: string,
     input: {
       status: "published" | "rejected" | "hidden";
@@ -316,35 +316,35 @@ export const rankingsRepo = {
     }
   ) {
     await db
-      .update(rankingItemsTable)
+      .update(ratingTargetsTable)
       .set({
         status: input.status,
         rejectionReason: input.status === "rejected" ? input.rejectionReason ?? null : null,
         updatedAt: new Date()
       })
-      .where(eq(rankingItemsTable.id, id));
+      .where(eq(ratingTargetsTable.id, id));
 
-    return this.getRankingItemById(id);
+    return this.getRatingTargetById(id);
   },
-  async deleteRankingItem(id: string) {
-    await db.delete(rankingItemsTable).where(eq(rankingItemsTable.id, id));
+  async deleteRatingTarget(id: string) {
+    await db.delete(ratingTargetsTable).where(eq(ratingTargetsTable.id, id));
   },
-  async listRankingItems(rankingId: string) {
+  async listRatingTargets(rankingId: string) {
     return db
       .select({
-        id: rankingItemsTable.id,
-        rankingId: rankingItemsTable.rankingId,
-        authorId: rankingItemsTable.authorId,
-        status: rankingItemsTable.status,
-        rejectionReason: rankingItemsTable.rejectionReason,
-        rank: rankingItemsTable.rank,
-        title: rankingItemsTable.title,
-        summary: rankingItemsTable.summary,
-        imageFileId: rankingItemsTable.imageFileId,
-        brandName: rankingItemsTable.brandName,
-        commentCount: rankingItemsTable.commentCount,
-        likeCount: rankingItemsTable.likeCount,
-        reportCount: rankingItemsTable.reportCount,
+        id: ratingTargetsTable.id,
+        rankingId: ratingTargetsTable.rankingId,
+        authorId: ratingTargetsTable.authorId,
+        status: ratingTargetsTable.status,
+        rejectionReason: ratingTargetsTable.rejectionReason,
+        rank: ratingTargetsTable.rank,
+        title: ratingTargetsTable.title,
+        summary: ratingTargetsTable.summary,
+        imageFileId: ratingTargetsTable.imageFileId,
+        brandName: ratingTargetsTable.brandName,
+        commentCount: ratingTargetsTable.commentCount,
+        likeCount: ratingTargetsTable.likeCount,
+        reportCount: ratingTargetsTable.reportCount,
         linkedModelId: aircraftModelsTable.id,
         linkedModelSlug: aircraftModelsTable.slug,
         linkedModelName: aircraftModelsTable.name,
@@ -357,29 +357,29 @@ export const rankingsRepo = {
         linkedModelBrandSlug: brandsTable.slug,
         linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
-      .from(rankingItemsTable)
-      .leftJoin(aircraftModelsTable, eq(rankingItemsTable.linkedModelId, aircraftModelsTable.id))
+      .from(ratingTargetsTable)
+      .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
       .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
       .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
-      .where(eq(rankingItemsTable.rankingId, rankingId))
-      .orderBy(asc(rankingItemsTable.rank), asc(rankingItemsTable.createdAt));
+      .where(eq(ratingTargetsTable.rankingId, rankingId))
+      .orderBy(asc(ratingTargetsTable.rank), asc(ratingTargetsTable.createdAt));
   },
-  async getRankingItemById(id: string) {
+  async getRatingTargetById(id: string) {
     const rows = await db
       .select({
-        id: rankingItemsTable.id,
-        rankingId: rankingItemsTable.rankingId,
-        authorId: rankingItemsTable.authorId,
-        status: rankingItemsTable.status,
-        rejectionReason: rankingItemsTable.rejectionReason,
-        rank: rankingItemsTable.rank,
-        title: rankingItemsTable.title,
-        summary: rankingItemsTable.summary,
-        imageFileId: rankingItemsTable.imageFileId,
-        brandName: rankingItemsTable.brandName,
-        commentCount: rankingItemsTable.commentCount,
-        likeCount: rankingItemsTable.likeCount,
-        reportCount: rankingItemsTable.reportCount,
+        id: ratingTargetsTable.id,
+        rankingId: ratingTargetsTable.rankingId,
+        authorId: ratingTargetsTable.authorId,
+        status: ratingTargetsTable.status,
+        rejectionReason: ratingTargetsTable.rejectionReason,
+        rank: ratingTargetsTable.rank,
+        title: ratingTargetsTable.title,
+        summary: ratingTargetsTable.summary,
+        imageFileId: ratingTargetsTable.imageFileId,
+        brandName: ratingTargetsTable.brandName,
+        commentCount: ratingTargetsTable.commentCount,
+        likeCount: ratingTargetsTable.likeCount,
+        reportCount: ratingTargetsTable.reportCount,
         linkedModelId: aircraftModelsTable.id,
         linkedModelSlug: aircraftModelsTable.slug,
         linkedModelName: aircraftModelsTable.name,
@@ -392,101 +392,101 @@ export const rankingsRepo = {
         linkedModelBrandSlug: brandsTable.slug,
         linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
-      .from(rankingItemsTable)
-      .leftJoin(aircraftModelsTable, eq(rankingItemsTable.linkedModelId, aircraftModelsTable.id))
+      .from(ratingTargetsTable)
+      .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
       .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
       .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
-      .where(eq(rankingItemsTable.id, id))
+      .where(eq(ratingTargetsTable.id, id))
       .limit(1);
 
     return rows[0] ?? null;
   },
-  async listRankingItemRatingAggregates(rankingItemIds: string[]) {
-    if (rankingItemIds.length === 0) {
+  async listRatingTargetRatingAggregates(ratingTargetIds: string[]) {
+    if (ratingTargetIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        rankingItemId: rankingItemRatingsTable.rankingItemId,
+        ratingTargetId: ratingTargetRatingsTable.ratingTargetId,
         totalRatings: sql<number>`count(*)`,
-        averageRaw: sql<number>`coalesce(avg(${rankingItemRatingsTable.rating}), 0)`
+        averageRaw: sql<number>`coalesce(avg(${ratingTargetRatingsTable.rating}), 0)`
       })
-      .from(rankingItemRatingsTable)
-      .where(inArray(rankingItemRatingsTable.rankingItemId, rankingItemIds))
-      .groupBy(rankingItemRatingsTable.rankingItemId);
+      .from(ratingTargetRatingsTable)
+      .where(inArray(ratingTargetRatingsTable.ratingTargetId, ratingTargetIds))
+      .groupBy(ratingTargetRatingsTable.ratingTargetId);
   },
-  async listRankingItemRatingBreakdown(rankingItemId: string) {
+  async listRatingTargetRatingBreakdown(ratingTargetId: string) {
     return db
       .select({
-        score: rankingItemRatingsTable.rating,
+        score: ratingTargetRatingsTable.rating,
         count: sql<number>`count(*)`
       })
-      .from(rankingItemRatingsTable)
-      .where(eq(rankingItemRatingsTable.rankingItemId, rankingItemId))
-      .groupBy(rankingItemRatingsTable.rating);
+      .from(ratingTargetRatingsTable)
+      .where(eq(ratingTargetRatingsTable.ratingTargetId, ratingTargetId))
+      .groupBy(ratingTargetRatingsTable.rating);
   },
-  async listUserRankingItemRatings(userId: string, rankingItemIds: string[]) {
-    if (rankingItemIds.length === 0) {
+  async listUserRatingTargetRatings(userId: string, ratingTargetIds: string[]) {
+    if (ratingTargetIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        rankingItemId: rankingItemRatingsTable.rankingItemId,
-        rating: rankingItemRatingsTable.rating
+        ratingTargetId: ratingTargetRatingsTable.ratingTargetId,
+        rating: ratingTargetRatingsTable.rating
       })
-      .from(rankingItemRatingsTable)
+      .from(ratingTargetRatingsTable)
       .where(
         and(
-          eq(rankingItemRatingsTable.userId, userId),
-          inArray(rankingItemRatingsTable.rankingItemId, rankingItemIds)
+          eq(ratingTargetRatingsTable.userId, userId),
+          inArray(ratingTargetRatingsTable.ratingTargetId, ratingTargetIds)
         )
       );
   },
-  async getUserRankingItemRating(rankingItemId: string, userId: string) {
+  async getUserRatingTargetRating(ratingTargetId: string, userId: string) {
     const rows = await db
       .select({
-        rating: rankingItemRatingsTable.rating
+        rating: ratingTargetRatingsTable.rating
       })
-      .from(rankingItemRatingsTable)
+      .from(ratingTargetRatingsTable)
       .where(
         and(
-          eq(rankingItemRatingsTable.rankingItemId, rankingItemId),
-          eq(rankingItemRatingsTable.userId, userId)
+          eq(ratingTargetRatingsTable.ratingTargetId, ratingTargetId),
+          eq(ratingTargetRatingsTable.userId, userId)
         )
       )
       .limit(1);
 
     return rows[0]?.rating ?? null;
   },
-  async upsertRankingItemRating(input: {
-    rankingItemId: string;
+  async upsertRatingTargetRating(input: {
+    ratingTargetId: string;
     userId: string;
     rating: number;
   }) {
     const existing = await db
-      .select({ id: rankingItemRatingsTable.id })
-      .from(rankingItemRatingsTable)
+      .select({ id: ratingTargetRatingsTable.id })
+      .from(ratingTargetRatingsTable)
       .where(
         and(
-          eq(rankingItemRatingsTable.rankingItemId, input.rankingItemId),
-          eq(rankingItemRatingsTable.userId, input.userId)
+          eq(ratingTargetRatingsTable.ratingTargetId, input.ratingTargetId),
+          eq(ratingTargetRatingsTable.userId, input.userId)
         )
       )
       .limit(1);
 
     if (existing.length > 0) {
       await db
-        .update(rankingItemRatingsTable)
+        .update(ratingTargetRatingsTable)
         .set({ rating: input.rating, updatedAt: new Date() })
-        .where(eq(rankingItemRatingsTable.id, existing[0].id));
+        .where(eq(ratingTargetRatingsTable.id, existing[0].id));
       return;
     }
 
-    await db.insert(rankingItemRatingsTable).values({
+    await db.insert(ratingTargetRatingsTable).values({
       id: createId("rir"),
-      rankingItemId: input.rankingItemId,
+      ratingTargetId: input.ratingTargetId,
       userId: input.userId,
       rating: input.rating
     });
@@ -640,22 +640,22 @@ export const rankingsRepo = {
         )
       );
   },
-  async getRankingItemCommentById(commentId: string) {
+  async getRatingTargetCommentById(commentId: string) {
     const rows = await db
       .select({
-        id: rankingItemCommentsTable.id,
-        rankingItemId: rankingItemCommentsTable.rankingItemId,
-        authorId: rankingItemCommentsTable.authorId,
-        parentCommentId: rankingItemCommentsTable.parentCommentId,
-        replyToCommentId: rankingItemCommentsTable.replyToCommentId,
-        replyToUserId: rankingItemCommentsTable.replyToUserId,
-        content: rankingItemCommentsTable.content,
-        rating: rankingItemCommentsTable.rating,
-        status: rankingItemCommentsTable.status,
-        likeCount: rankingItemCommentsTable.likeCount,
-        reportCount: rankingItemCommentsTable.reportCount,
-        createdAt: rankingItemCommentsTable.createdAt,
-        updatedAt: rankingItemCommentsTable.updatedAt,
+        id: ratingTargetCommentsTable.id,
+        ratingTargetId: ratingTargetCommentsTable.ratingTargetId,
+        authorId: ratingTargetCommentsTable.authorId,
+        parentCommentId: ratingTargetCommentsTable.parentCommentId,
+        replyToCommentId: ratingTargetCommentsTable.replyToCommentId,
+        replyToUserId: ratingTargetCommentsTable.replyToUserId,
+        content: ratingTargetCommentsTable.content,
+        rating: ratingTargetCommentsTable.rating,
+        status: ratingTargetCommentsTable.status,
+        likeCount: ratingTargetCommentsTable.likeCount,
+        reportCount: ratingTargetCommentsTable.reportCount,
+        createdAt: ratingTargetCommentsTable.createdAt,
+        updatedAt: ratingTargetCommentsTable.updatedAt,
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
@@ -663,29 +663,29 @@ export const rankingsRepo = {
           role: usersTable.role
         }
       })
-      .from(rankingItemCommentsTable)
-      .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
-      .where(eq(rankingItemCommentsTable.id, commentId))
+      .from(ratingTargetCommentsTable)
+      .innerJoin(usersTable, eq(ratingTargetCommentsTable.authorId, usersTable.id))
+      .where(eq(ratingTargetCommentsTable.id, commentId))
       .limit(1);
 
     return rows[0] ?? null;
   },
-  async listRankingItemComments(rankingItemId: string) {
+  async listRatingTargetComments(ratingTargetId: string) {
     return db
       .select({
-        id: rankingItemCommentsTable.id,
-        rankingItemId: rankingItemCommentsTable.rankingItemId,
-        authorId: rankingItemCommentsTable.authorId,
-        parentCommentId: rankingItemCommentsTable.parentCommentId,
-        replyToCommentId: rankingItemCommentsTable.replyToCommentId,
-        replyToUserId: rankingItemCommentsTable.replyToUserId,
-        content: rankingItemCommentsTable.content,
-        rating: rankingItemCommentsTable.rating,
-        status: rankingItemCommentsTable.status,
-        likeCount: rankingItemCommentsTable.likeCount,
-        reportCount: rankingItemCommentsTable.reportCount,
-        createdAt: rankingItemCommentsTable.createdAt,
-        updatedAt: rankingItemCommentsTable.updatedAt,
+        id: ratingTargetCommentsTable.id,
+        ratingTargetId: ratingTargetCommentsTable.ratingTargetId,
+        authorId: ratingTargetCommentsTable.authorId,
+        parentCommentId: ratingTargetCommentsTable.parentCommentId,
+        replyToCommentId: ratingTargetCommentsTable.replyToCommentId,
+        replyToUserId: ratingTargetCommentsTable.replyToUserId,
+        content: ratingTargetCommentsTable.content,
+        rating: ratingTargetCommentsTable.rating,
+        status: ratingTargetCommentsTable.status,
+        likeCount: ratingTargetCommentsTable.likeCount,
+        reportCount: ratingTargetCommentsTable.reportCount,
+        createdAt: ratingTargetCommentsTable.createdAt,
+        updatedAt: ratingTargetCommentsTable.updatedAt,
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
@@ -693,49 +693,49 @@ export const rankingsRepo = {
           role: usersTable.role
         }
       })
-      .from(rankingItemCommentsTable)
-      .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
-      .where(eq(rankingItemCommentsTable.rankingItemId, rankingItemId))
-      .orderBy(asc(rankingItemCommentsTable.createdAt));
+      .from(ratingTargetCommentsTable)
+      .innerJoin(usersTable, eq(ratingTargetCommentsTable.authorId, usersTable.id))
+      .where(eq(ratingTargetCommentsTable.ratingTargetId, ratingTargetId))
+      .orderBy(asc(ratingTargetCommentsTable.createdAt));
   },
-  async listVisibleRankingItemCommentRatings(rankingItemIds: string[]) {
-    if (rankingItemIds.length === 0) {
+  async listVisibleRatingTargetCommentRatings(ratingTargetIds: string[]) {
+    if (ratingTargetIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        rankingItemId: rankingItemCommentsTable.rankingItemId,
-        commentId: rankingItemCommentsTable.id,
-        authorId: rankingItemCommentsTable.authorId,
-        rating: rankingItemCommentsTable.rating,
-        createdAt: rankingItemCommentsTable.createdAt
+        ratingTargetId: ratingTargetCommentsTable.ratingTargetId,
+        commentId: ratingTargetCommentsTable.id,
+        authorId: ratingTargetCommentsTable.authorId,
+        rating: ratingTargetCommentsTable.rating,
+        createdAt: ratingTargetCommentsTable.createdAt
       })
-      .from(rankingItemCommentsTable)
+      .from(ratingTargetCommentsTable)
       .where(
         and(
-          inArray(rankingItemCommentsTable.rankingItemId, rankingItemIds),
-          isNull(rankingItemCommentsTable.parentCommentId),
-          eq(rankingItemCommentsTable.status, "visible")
+          inArray(ratingTargetCommentsTable.ratingTargetId, ratingTargetIds),
+          isNull(ratingTargetCommentsTable.parentCommentId),
+          eq(ratingTargetCommentsTable.status, "visible")
         )
       )
-      .orderBy(desc(rankingItemCommentsTable.createdAt));
+      .orderBy(desc(ratingTargetCommentsTable.createdAt));
   },
-  async upsertRankingItemReview(input: {
-    rankingItemId: string;
+  async upsertRatingTargetReview(input: {
+    ratingTargetId: string;
     authorId: string;
     rating: number;
     content: string;
     status: "pending" | "visible" | "hidden";
   }) {
-    await this.upsertRankingItemRating({
-      rankingItemId: input.rankingItemId,
+    await this.upsertRatingTargetRating({
+      ratingTargetId: input.ratingTargetId,
       userId: input.authorId,
       rating: input.rating
     });
 
-    await this.createRankingItemComment({
-      rankingItemId: input.rankingItemId,
+    await this.createRatingTargetComment({
+      ratingTargetId: input.ratingTargetId,
       authorId: input.authorId,
       parentCommentId: null,
       replyToCommentId: null,
@@ -745,8 +745,8 @@ export const rankingsRepo = {
       status: input.status
     });
   },
-  async createRankingItemComment(input: {
-    rankingItemId: string;
+  async createRatingTargetComment(input: {
+    ratingTargetId: string;
     authorId: string;
     parentCommentId: string | null;
     replyToCommentId: string | null;
@@ -755,9 +755,9 @@ export const rankingsRepo = {
     rating: number | null;
     status: "pending" | "visible" | "hidden";
   }) {
-    await db.insert(rankingItemCommentsTable).values({
+    await db.insert(ratingTargetCommentsTable).values({
       id: createId("ricom"),
-      rankingItemId: input.rankingItemId,
+      ratingTargetId: input.ratingTargetId,
       authorId: input.authorId,
       parentCommentId: input.parentCommentId,
       replyToCommentId: input.replyToCommentId,
@@ -769,19 +769,19 @@ export const rankingsRepo = {
       reportCount: 0
     });
 
-    await this.syncRankingItemCommentCount(input.rankingItemId);
-    return this.listRankingItemComments(input.rankingItemId).then((items) => items.at(-1) ?? null);
+    await this.syncRatingTargetCommentCount(input.ratingTargetId);
+    return this.listRatingTargetComments(input.ratingTargetId).then((items) => items.at(-1) ?? null);
   },
-  async updateRankingItemComment(commentId: string, content: string) {
+  async updateRatingTargetComment(commentId: string, content: string) {
     await db
-      .update(rankingItemCommentsTable)
+      .update(ratingTargetCommentsTable)
       .set({
         content,
         updatedAt: new Date()
       })
-      .where(eq(rankingItemCommentsTable.id, commentId));
+      .where(eq(ratingTargetCommentsTable.id, commentId));
 
-    return this.getRankingItemCommentById(commentId);
+    return this.getRatingTargetCommentById(commentId);
   },
   async listAdminRankingComments(status?: "pending" | "visible" | "hidden") {
     return db
@@ -852,22 +852,22 @@ export const rankingsRepo = {
     const rows = await this.listAdminRankingComments();
     return rows.find((item) => item.id === id) ?? null;
   },
-  async listAdminRankingItemComments(status?: "pending" | "visible" | "hidden") {
+  async listAdminRatingTargetComments(status?: "pending" | "visible" | "hidden") {
     return db
       .select({
-        id: rankingItemCommentsTable.id,
-        rankingItemId: rankingItemCommentsTable.rankingItemId,
-        rankingItemTitle: rankingItemsTable.title,
+        id: ratingTargetCommentsTable.id,
+        ratingTargetId: ratingTargetCommentsTable.ratingTargetId,
+        ratingTargetTitle: ratingTargetsTable.title,
         rankingTitle: rankingsTable.title,
-        parentCommentId: rankingItemCommentsTable.parentCommentId,
-        replyToCommentId: rankingItemCommentsTable.replyToCommentId,
-        content: rankingItemCommentsTable.content,
-        rating: rankingItemCommentsTable.rating,
-        status: rankingItemCommentsTable.status,
-        likeCount: rankingItemCommentsTable.likeCount,
-        reportCount: rankingItemCommentsTable.reportCount,
-        createdAt: rankingItemCommentsTable.createdAt,
-        updatedAt: rankingItemCommentsTable.updatedAt,
+        parentCommentId: ratingTargetCommentsTable.parentCommentId,
+        replyToCommentId: ratingTargetCommentsTable.replyToCommentId,
+        content: ratingTargetCommentsTable.content,
+        rating: ratingTargetCommentsTable.rating,
+        status: ratingTargetCommentsTable.status,
+        likeCount: ratingTargetCommentsTable.likeCount,
+        reportCount: ratingTargetCommentsTable.reportCount,
+        createdAt: ratingTargetCommentsTable.createdAt,
+        updatedAt: ratingTargetCommentsTable.updatedAt,
         author: {
           id: usersTable.id,
           displayName: usersTable.displayName,
@@ -881,110 +881,110 @@ export const rankingsRepo = {
           role: replyUsers.role
         }
       })
-      .from(rankingItemCommentsTable)
-      .innerJoin(rankingItemsTable, eq(rankingItemCommentsTable.rankingItemId, rankingItemsTable.id))
-      .innerJoin(rankingsTable, eq(rankingItemsTable.rankingId, rankingsTable.id))
-      .innerJoin(usersTable, eq(rankingItemCommentsTable.authorId, usersTable.id))
-      .leftJoin(replyUsers, eq(rankingItemCommentsTable.replyToUserId, replyUsers.id))
-      .where(status ? eq(rankingItemCommentsTable.status, status) : sql`true`)
-      .orderBy(desc(rankingItemCommentsTable.updatedAt));
+      .from(ratingTargetCommentsTable)
+      .innerJoin(ratingTargetsTable, eq(ratingTargetCommentsTable.ratingTargetId, ratingTargetsTable.id))
+      .innerJoin(rankingsTable, eq(ratingTargetsTable.rankingId, rankingsTable.id))
+      .innerJoin(usersTable, eq(ratingTargetCommentsTable.authorId, usersTable.id))
+      .leftJoin(replyUsers, eq(ratingTargetCommentsTable.replyToUserId, replyUsers.id))
+      .where(status ? eq(ratingTargetCommentsTable.status, status) : sql`true`)
+      .orderBy(desc(ratingTargetCommentsTable.updatedAt));
   },
-  async updateRankingItemCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
-    const existing = await this.getRankingItemCommentById(id);
+  async updateRatingTargetCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const existing = await this.getRatingTargetCommentById(id);
     if (!existing) {
       return null;
     }
 
     const rootId = existing.parentCommentId ?? existing.id;
     await db
-      .update(rankingItemCommentsTable)
+      .update(ratingTargetCommentsTable)
       .set({
         status,
         updatedAt: new Date()
       })
       .where(
         and(
-          eq(rankingItemCommentsTable.rankingItemId, existing.rankingItemId),
-          or(eq(rankingItemCommentsTable.id, rootId), eq(rankingItemCommentsTable.parentCommentId, rootId))
+          eq(ratingTargetCommentsTable.ratingTargetId, existing.ratingTargetId),
+          or(eq(ratingTargetCommentsTable.id, rootId), eq(ratingTargetCommentsTable.parentCommentId, rootId))
         )
       );
-    await this.syncRankingItemCommentCount(existing.rankingItemId);
+    await this.syncRatingTargetCommentCount(existing.ratingTargetId);
 
-    const rows = await this.listAdminRankingItemComments();
+    const rows = await this.listAdminRatingTargetComments();
     return rows.find((item) => item.id === id) ?? null;
   },
-  async deleteRankingItemCommentThread(rankingItemId: string, commentId: string) {
-    const existing = await this.getRankingItemCommentById(commentId);
-    if (!existing || existing.rankingItemId !== rankingItemId) {
+  async deleteRatingTargetCommentThread(ratingTargetId: string, commentId: string) {
+    const existing = await this.getRatingTargetCommentById(commentId);
+    if (!existing || existing.ratingTargetId !== ratingTargetId) {
       return 0;
     }
 
     const rootId = existing.parentCommentId ?? existing.id;
     await db
-      .delete(rankingItemCommentsTable)
+      .delete(ratingTargetCommentsTable)
       .where(
         and(
-          eq(rankingItemCommentsTable.rankingItemId, rankingItemId),
+          eq(ratingTargetCommentsTable.ratingTargetId, ratingTargetId),
           or(
-            eq(rankingItemCommentsTable.id, rootId),
-            eq(rankingItemCommentsTable.parentCommentId, rootId)
+            eq(ratingTargetCommentsTable.id, rootId),
+            eq(ratingTargetCommentsTable.parentCommentId, rootId)
           )
         )
       );
 
-    await this.syncRankingItemCommentCount(rankingItemId);
+    await this.syncRatingTargetCommentCount(ratingTargetId);
     return 1;
   },
-  async syncRankingItemCommentCount(rankingItemId: string) {
+  async syncRatingTargetCommentCount(ratingTargetId: string) {
     const totals = await db
       .select({
         count: sql<number>`count(*)`
       })
-      .from(rankingItemCommentsTable)
+      .from(ratingTargetCommentsTable)
       .where(
         and(
-          eq(rankingItemCommentsTable.rankingItemId, rankingItemId),
-          eq(rankingItemCommentsTable.status, "visible")
+          eq(ratingTargetCommentsTable.ratingTargetId, ratingTargetId),
+          eq(ratingTargetCommentsTable.status, "visible")
         )
       );
 
     await db
-      .update(rankingItemsTable)
+      .update(ratingTargetsTable)
       .set({
         commentCount: Number(totals[0]?.count ?? 0),
         updatedAt: new Date()
       })
-      .where(eq(rankingItemsTable.id, rankingItemId));
+      .where(eq(ratingTargetsTable.id, ratingTargetId));
   },
-  async syncRankingItemCommentEngagementCounts(commentId: string) {
+  async syncRatingTargetCommentEngagementCounts(commentId: string) {
     const [likes, reports] = await Promise.all([
       db
         .select({ count: sql<number>`count(*)` })
-        .from(rankingItemCommentLikesTable)
-        .where(eq(rankingItemCommentLikesTable.commentId, commentId)),
+        .from(ratingTargetCommentLikesTable)
+        .where(eq(ratingTargetCommentLikesTable.commentId, commentId)),
       db
         .select({ count: sql<number>`count(*)` })
-        .from(rankingItemCommentReportsTable)
-        .where(eq(rankingItemCommentReportsTable.commentId, commentId))
+        .from(ratingTargetCommentReportsTable)
+        .where(eq(ratingTargetCommentReportsTable.commentId, commentId))
     ]);
 
     await db
-      .update(rankingItemCommentsTable)
+      .update(ratingTargetCommentsTable)
       .set({
         likeCount: Number(likes[0]?.count ?? 0),
         reportCount: Number(reports[0]?.count ?? 0),
         updatedAt: new Date()
       })
-      .where(eq(rankingItemCommentsTable.id, commentId));
+      .where(eq(ratingTargetCommentsTable.id, commentId));
   },
-  async toggleRankingItemCommentLike(commentId: string, userId: string) {
+  async toggleRatingTargetCommentLike(commentId: string, userId: string) {
     const existing = await db
-      .select({ id: rankingItemCommentLikesTable.id })
-      .from(rankingItemCommentLikesTable)
+      .select({ id: ratingTargetCommentLikesTable.id })
+      .from(ratingTargetCommentLikesTable)
       .where(
         and(
-          eq(rankingItemCommentLikesTable.commentId, commentId),
-          eq(rankingItemCommentLikesTable.userId, userId)
+          eq(ratingTargetCommentLikesTable.commentId, commentId),
+          eq(ratingTargetCommentLikesTable.userId, userId)
         )
       )
       .limit(1);
@@ -992,10 +992,10 @@ export const rankingsRepo = {
     let active = false;
     if (existing.length > 0) {
       await db
-        .delete(rankingItemCommentLikesTable)
-        .where(eq(rankingItemCommentLikesTable.id, existing[0].id));
+        .delete(ratingTargetCommentLikesTable)
+        .where(eq(ratingTargetCommentLikesTable.id, existing[0].id));
     } else {
-      await db.insert(rankingItemCommentLikesTable).values({
+      await db.insert(ratingTargetCommentLikesTable).values({
         id: createId("rilike"),
         commentId,
         userId
@@ -1003,17 +1003,17 @@ export const rankingsRepo = {
       active = true;
     }
 
-    await this.syncRankingItemCommentEngagementCounts(commentId);
+    await this.syncRatingTargetCommentEngagementCounts(commentId);
     return { active };
   },
-  async createRankingItemCommentReport(input: {
+  async createRatingTargetCommentReport(input: {
     commentId: string;
     reporterId: string;
     reason: string;
     imageFileIds: string;
   }) {
     await db
-      .insert(rankingItemCommentReportsTable)
+      .insert(ratingTargetCommentReportsTable)
       .values({
         id: createId("rireport"),
         commentId: input.commentId,
@@ -1023,15 +1023,15 @@ export const rankingsRepo = {
       })
       .onConflictDoNothing();
 
-    await this.syncRankingItemCommentEngagementCounts(input.commentId);
+    await this.syncRatingTargetCommentEngagementCounts(input.commentId);
   },
-  async listRankingItemCommentReports(commentId: string) {
+  async listRatingTargetCommentReports(commentId: string) {
     return db
       .select({
-        id: rankingItemCommentReportsTable.id,
-        reason: rankingItemCommentReportsTable.reason,
-        imageFileIds: rankingItemCommentReportsTable.imageFileIds,
-        createdAt: rankingItemCommentReportsTable.createdAt,
+        id: ratingTargetCommentReportsTable.id,
+        reason: ratingTargetCommentReportsTable.reason,
+        imageFileIds: ratingTargetCommentReportsTable.imageFileIds,
+        createdAt: ratingTargetCommentReportsTable.createdAt,
         reporter: {
           id: usersTable.id,
           displayName: usersTable.displayName,
@@ -1039,37 +1039,37 @@ export const rankingsRepo = {
           role: usersTable.role
         }
       })
-      .from(rankingItemCommentReportsTable)
-      .innerJoin(usersTable, eq(rankingItemCommentReportsTable.reporterId, usersTable.id))
-      .where(eq(rankingItemCommentReportsTable.commentId, commentId))
-      .orderBy(desc(rankingItemCommentReportsTable.createdAt));
+      .from(ratingTargetCommentReportsTable)
+      .innerJoin(usersTable, eq(ratingTargetCommentReportsTable.reporterId, usersTable.id))
+      .where(eq(ratingTargetCommentReportsTable.commentId, commentId))
+      .orderBy(desc(ratingTargetCommentReportsTable.createdAt));
   },
-  async createRankingItemReport(input: {
-    rankingItemId: string;
+  async createRatingTargetReport(input: {
+    ratingTargetId: string;
     reporterId: string;
     reason: string;
     imageFileIds: string;
   }) {
     await db
-      .insert(rankingItemReportsTable)
+      .insert(ratingTargetReportsTable)
       .values({
         id: createId("ritreport"),
-        rankingItemId: input.rankingItemId,
+        ratingTargetId: input.ratingTargetId,
         reporterId: input.reporterId,
         reason: input.reason,
         imageFileIds: input.imageFileIds
       })
       .onConflictDoNothing();
 
-    await this.syncRankingItemReportCount(input.rankingItemId);
+    await this.syncRatingTargetReportCount(input.ratingTargetId);
   },
-  async listRankingItemReports(rankingItemId: string) {
+  async listRatingTargetReports(ratingTargetId: string) {
     return db
       .select({
-        id: rankingItemReportsTable.id,
-        reason: rankingItemReportsTable.reason,
-        imageFileIds: rankingItemReportsTable.imageFileIds,
-        createdAt: rankingItemReportsTable.createdAt,
+        id: ratingTargetReportsTable.id,
+        reason: ratingTargetReportsTable.reason,
+        imageFileIds: ratingTargetReportsTable.imageFileIds,
+        createdAt: ratingTargetReportsTable.createdAt,
         reporter: {
           id: usersTable.id,
           displayName: usersTable.displayName,
@@ -1077,73 +1077,73 @@ export const rankingsRepo = {
           role: usersTable.role
         }
       })
-      .from(rankingItemReportsTable)
-      .innerJoin(usersTable, eq(rankingItemReportsTable.reporterId, usersTable.id))
-      .where(eq(rankingItemReportsTable.rankingItemId, rankingItemId))
-      .orderBy(desc(rankingItemReportsTable.createdAt));
+      .from(ratingTargetReportsTable)
+      .innerJoin(usersTable, eq(ratingTargetReportsTable.reporterId, usersTable.id))
+      .where(eq(ratingTargetReportsTable.ratingTargetId, ratingTargetId))
+      .orderBy(desc(ratingTargetReportsTable.createdAt));
   },
-  async syncRankingItemReportCount(rankingItemId: string) {
+  async syncRatingTargetReportCount(ratingTargetId: string) {
     const totals = await db
       .select({ count: sql<number>`count(*)` })
-      .from(rankingItemReportsTable)
-      .where(eq(rankingItemReportsTable.rankingItemId, rankingItemId));
+      .from(ratingTargetReportsTable)
+      .where(eq(ratingTargetReportsTable.ratingTargetId, ratingTargetId));
 
     await db
-      .update(rankingItemsTable)
+      .update(ratingTargetsTable)
       .set({
         reportCount: Number(totals[0]?.count ?? 0),
         updatedAt: new Date()
       })
-      .where(eq(rankingItemsTable.id, rankingItemId));
+      .where(eq(ratingTargetsTable.id, ratingTargetId));
   },
-  async listViewerRankingItemCommentLikes(commentIds: string[], userId: string) {
+  async listViewerRatingTargetCommentLikes(commentIds: string[], userId: string) {
     if (commentIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        commentId: rankingItemCommentLikesTable.commentId
+        commentId: ratingTargetCommentLikesTable.commentId
       })
-      .from(rankingItemCommentLikesTable)
+      .from(ratingTargetCommentLikesTable)
       .where(
         and(
-          eq(rankingItemCommentLikesTable.userId, userId),
-          inArray(rankingItemCommentLikesTable.commentId, commentIds)
+          eq(ratingTargetCommentLikesTable.userId, userId),
+          inArray(ratingTargetCommentLikesTable.commentId, commentIds)
         )
       );
   },
-  async listViewerRankingItemCommentReports(commentIds: string[], userId: string) {
+  async listViewerRatingTargetCommentReports(commentIds: string[], userId: string) {
     if (commentIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        commentId: rankingItemCommentReportsTable.commentId
+        commentId: ratingTargetCommentReportsTable.commentId
       })
-      .from(rankingItemCommentReportsTable)
+      .from(ratingTargetCommentReportsTable)
       .where(
         and(
-          eq(rankingItemCommentReportsTable.reporterId, userId),
-          inArray(rankingItemCommentReportsTable.commentId, commentIds)
+          eq(ratingTargetCommentReportsTable.reporterId, userId),
+          inArray(ratingTargetCommentReportsTable.commentId, commentIds)
         )
       );
   },
-  async listViewerRankingItemReports(rankingItemIds: string[], userId: string) {
-    if (rankingItemIds.length === 0) {
+  async listViewerRatingTargetReports(ratingTargetIds: string[], userId: string) {
+    if (ratingTargetIds.length === 0) {
       return [];
     }
 
     return db
       .select({
-        rankingItemId: rankingItemReportsTable.rankingItemId
+        ratingTargetId: ratingTargetReportsTable.ratingTargetId
       })
-      .from(rankingItemReportsTable)
+      .from(ratingTargetReportsTable)
       .where(
         and(
-          eq(rankingItemReportsTable.reporterId, userId),
-          inArray(rankingItemReportsTable.rankingItemId, rankingItemIds)
+          eq(ratingTargetReportsTable.reporterId, userId),
+          inArray(ratingTargetReportsTable.ratingTargetId, ratingTargetIds)
         )
       );
   }

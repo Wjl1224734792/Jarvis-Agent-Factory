@@ -1,16 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
-  buildRankingItemSubmission,
-  canSubmitRankingItemComment
-} from "../src/routes/ranking-item-detail-helpers";
+  buildRatingTargetSubmission,
+  canSubmitRatingTargetComment
+} from "../src/routes/rating-target-detail-helpers";
 
-describe("ranking item detail helpers", () => {
+describe("rating target detail helpers", () => {
   it("returns null when no rating is selected", () => {
-    expect(buildRankingItemSubmission(0, "some text")).toBeNull();
+    expect(buildRatingTargetSubmission(0, "some text")).toBeNull();
   });
 
   it("routes to rating-only submission when content is empty", () => {
-    expect(buildRankingItemSubmission(4, "   ")).toEqual({
+    expect(buildRatingTargetSubmission(4, "   ")).toEqual({
       kind: "rating",
       payload: {
         rating: 4
@@ -19,7 +19,7 @@ describe("ranking item detail helpers", () => {
   });
 
   it("routes to review submission when content is present", () => {
-    expect(buildRankingItemSubmission(5, " Strong field result. ")).toEqual({
+    expect(buildRatingTargetSubmission(5, " Strong field result. ")).toEqual({
       kind: "review",
       payload: {
         rating: 5,
@@ -30,14 +30,14 @@ describe("ranking item detail helpers", () => {
 
   it("allows replies without rating but still blocks empty content", () => {
     expect(
-      canSubmitRankingItemComment({
+      canSubmitRatingTargetComment({
         rating: 0,
         content: "  reply content  ",
         isReplying: true
       })
     ).toBe(true);
     expect(
-      canSubmitRankingItemComment({
+      canSubmitRatingTargetComment({
         rating: 0,
         content: "   ",
         isReplying: true
@@ -47,14 +47,14 @@ describe("ranking item detail helpers", () => {
 
   it("requires rating for top-level comments", () => {
     expect(
-      canSubmitRankingItemComment({
+      canSubmitRatingTargetComment({
         rating: 0,
         content: "top level comment",
         isReplying: false
       })
     ).toBe(false);
     expect(
-      canSubmitRankingItemComment({
+      canSubmitRatingTargetComment({
         rating: 4,
         content: "top level comment",
         isReplying: false

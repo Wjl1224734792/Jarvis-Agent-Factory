@@ -88,19 +88,19 @@ function getContentMeta(item: ContentItem) {
         title: item.title,
         summary: item.description
       };
-    case "ranking-item":
+    case "rating-target":
       return {
-        label: "榜单条目",
-        href: APP_ROUTES.rankingItemDetail.replace(":id", item.id),
+        label: "评分对象",
+        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
         title: item.title,
         summary: item.summary ?? item.rankingTitle
       };
-    case "ranking-item":
+    case "rating-target":
       return {
-        label: "姒滃崟鏉＄洰",
-        href: APP_ROUTES.rankingItemDetail.replace(":id", item.id),
+        label: "评分对象",
+        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
         title: item.title,
-        summary: item.summary ?? `${item.rankingTitle} 鏉＄洰`
+        summary: item.summary ?? `${item.rankingTitle} 评分对象`
       };
     case "aircraft":
       return {
@@ -134,8 +134,8 @@ function getManageHref(item: ContentItem) {
         : `${APP_ROUTES.publishMoment}?edit=${item.id}`;
     case "ranking":
       return `${APP_ROUTES.rankingEditor}?edit=${item.id}`;
-    case "ranking-item":
-      return `${APP_ROUTES.rankingItemDetail.replace(":id", item.id)}?edit=1&ranking=${item.rankingId}`;
+    case "rating-target":
+      return `${APP_ROUTES.ratingTargetDetail.replace(":id", item.id)}?edit=1&ranking=${item.rankingId}`;
     case "aircraft":
       return `${APP_ROUTES.publishAircraft}?edit=${item.id}`;
     case "brand-application":
@@ -195,7 +195,7 @@ function ContentFeedRow(props: {
           {props.onDelete &&
           (props.item.type === "post" ||
             props.item.type === "aircraft" ||
-            props.item.type === "ranking-item") ? (
+            props.item.type === "rating-target") ? (
             <Button
               disabled={props.deletingId === props.item.id}
               onClick={() => props.onDelete?.(props.item)}
@@ -284,8 +284,8 @@ export function ProfilePage() {
         await apiClient.deletePost(item.id);
       } else if (item.type === "aircraft") {
         await apiClient.deleteAircraftSubmission(item.id);
-      } else if (item.type === "ranking-item") {
-        await apiClient.deleteRankingItem(item.id);
+      } else if (item.type === "rating-target") {
+        await apiClient.deleteRatingTarget(item.id);
       } else {
         return;
       }

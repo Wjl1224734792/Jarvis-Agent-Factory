@@ -18,7 +18,7 @@ const domainOptions = [
   { label: "评测评论", value: "review" },
   { label: "机型评论", value: "model" },
   { label: "榜单评论", value: "ranking" },
-  { label: "条目评论", value: "ranking-item" }
+  { label: "评分对象评论", value: "rating-target" }
 ] as const;
 const domainSegmentedOptions: Array<{ label: string; value: string }> = domainOptions.map((item) => ({
   label: item.label,
@@ -78,9 +78,9 @@ export function PostCommentsPage() {
     queryKey: ["admin-ranking-comments-all"],
     queryFn: () => apiClient.listAdminRankingComments()
   });
-  const rankingItemCommentsQuery = useQuery({
-    queryKey: ["admin-ranking-item-comments-all"],
-    queryFn: () => apiClient.listAdminRankingItemComments()
+  const ratingTargetCommentsQuery = useQuery({
+    queryKey: ["admin-rating-target-comments-all"],
+    queryFn: () => apiClient.listAdminRatingTargetComments()
   });
 
   async function refreshAll() {
@@ -89,7 +89,7 @@ export function PostCommentsPage() {
       reviewCommentsQuery.refetch(),
       modelCommentsQuery.refetch(),
       rankingCommentsQuery.refetch(),
-      rankingItemCommentsQuery.refetch()
+      ratingTargetCommentsQuery.refetch()
     ]);
   }
 
@@ -156,22 +156,22 @@ export function PostCommentsPage() {
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminRankingCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
-      "ranking-item": (rankingItemCommentsQuery.data?.items ?? []).map((item) => ({
-        key: `ranking-item-${item.id}`,
-        domain: "ranking-item",
-        title: `${item.rankingTitle} / ${item.rankingItemTitle}`,
+      "rating-target": (ratingTargetCommentsQuery.data?.items ?? []).map((item) => ({
+        key: `rating-target-${item.id}`,
+        domain: "rating-target",
+        title: `${item.rankingTitle} / ${item.ratingTargetTitle}`,
         subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
         content: item.content,
         status: item.status,
         reportCount: item.reportCount ?? 0,
-        onToggle: () => apiClient.updateAdminRankingItemCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
+        onToggle: () => apiClient.updateAdminRatingTargetCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       }))
     }),
     [
       modelCommentsQuery.data?.items,
       postCommentsQuery.data?.items,
       rankingCommentsQuery.data?.items,
-      rankingItemCommentsQuery.data?.items,
+      ratingTargetCommentsQuery.data?.items,
       reviewCommentsQuery.data?.items
     ]
   );
@@ -318,7 +318,7 @@ export function PostCommentsPage() {
             reviewCommentsQuery.isLoading ||
             modelCommentsQuery.isLoading ||
             rankingCommentsQuery.isLoading ||
-            rankingItemCommentsQuery.isLoading
+            ratingTargetCommentsQuery.isLoading
           }
           rowKey={(record) => record.key}
           size="middle"

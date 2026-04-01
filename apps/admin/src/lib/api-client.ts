@@ -142,7 +142,7 @@ export type SiteSettings = {
   momentModerationEnabled?: boolean;
   brandModerationEnabled?: boolean;
   modelModerationEnabled?: boolean;
-  rankingItemModerationEnabled?: boolean;
+  ratingTargetModerationEnabled?: boolean;
   updatedAt?: string;
 };
 
@@ -448,14 +448,14 @@ export const apiClient = {
   ) {
     return putJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.adminStatus(id), input);
   },
-  updateRankingItemStatus(
+  updateRatingTargetStatus(
     id: string,
     input: { status: "published" | "rejected" | "hidden"; rejectionReason?: string | null }
   ) {
-    return sharedClient.updateAdminRankingItemStatus(id, input);
+    return sharedClient.updateAdminRatingTargetStatus(id, input);
   },
-  async listRankingItemsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
-    // 审核页需要把“榜单”视角重新折叠成“榜单条目”视角，方便独立分页和筛选。
+  async listRatingTargetsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
+    // 审核页需要把"榜单"视角重新折叠成"评分对象"视角，方便独立分页和筛选。
     const rankings = await this.listCommunityRankingsForModeration();
     const details = await Promise.all(
       rankings.items.map(async (ranking) => {

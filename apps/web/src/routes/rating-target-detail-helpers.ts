@@ -1,4 +1,4 @@
-export function buildRankingItemSubmission(rating: number, content: string) {
+export function buildRatingTargetSubmission(rating: number, content: string) {
   const trimmed = content.trim();
 
   if (rating <= 0) {
@@ -23,7 +23,7 @@ export function buildRankingItemSubmission(rating: number, content: string) {
   };
 }
 
-export function canSubmitRankingItemComment(input: {
+export function canSubmitRatingTargetComment(input: {
   rating: number;
   content: string;
   isReplying: boolean;

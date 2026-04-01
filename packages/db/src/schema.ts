@@ -95,7 +95,7 @@ export const siteSettingsTable = pgTable("site_settings", {
   momentModerationEnabled: boolean("moment_moderation_enabled").default(true).notNull(),
   brandModerationEnabled: boolean("brand_moderation_enabled").default(true).notNull(),
   modelModerationEnabled: boolean("model_moderation_enabled").default(true).notNull(),
-  rankingItemModerationEnabled: boolean("ranking_item_moderation_enabled")
+  ratingTargetModerationEnabled: boolean("rating_target_moderation_enabled")
     .default(true)
     .notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
@@ -710,7 +710,7 @@ export const rankingReportsTable = pgTable(
   })
 );
 
-export const rankingItemsTable = pgTable("ranking_items", {
+export const ratingTargetsTable = pgTable("rating_targets", {
   id: text("id").primaryKey(),
   rankingId: text("ranking_id")
     .notNull()
@@ -739,13 +739,13 @@ export const rankingItemsTable = pgTable("ranking_items", {
     .notNull()
 });
 
-export const rankingItemReportsTable = pgTable(
-  "ranking_item_reports",
+export const ratingTargetReportsTable = pgTable(
+  "rating_target_reports",
   {
     id: text("id").primaryKey(),
-    rankingItemId: text("ranking_item_id")
+    ratingTargetId: text("rating_target_id")
       .notNull()
-      .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
     reporterId: text("reporter_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -756,8 +756,8 @@ export const rankingItemReportsTable = pgTable(
       .notNull()
   },
   (table) => ({
-    rankingItemReporterUnique: uniqueIndex("ranking_item_reports_item_reporter_unique").on(
-      table.rankingItemId,
+    ratingTargetReporterUnique: uniqueIndex("rating_target_reports_target_reporter_unique").on(
+      table.ratingTargetId,
       table.reporterId
     )
   })
@@ -829,13 +829,13 @@ export const rankingCommentReportsTable = pgTable(
   })
 );
 
-export const rankingItemRatingsTable = pgTable(
-  "ranking_item_ratings",
+export const ratingTargetRatingsTable = pgTable(
+  "rating_target_ratings",
   {
     id: text("id").primaryKey(),
-    rankingItemId: text("ranking_item_id")
+    ratingTargetId: text("rating_target_id")
       .notNull()
-      .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -848,20 +848,20 @@ export const rankingItemRatingsTable = pgTable(
       .notNull()
   },
   (table) => ({
-    rankingItemUserUnique: uniqueIndex("ranking_item_ratings_item_user_unique").on(
-      table.rankingItemId,
+    ratingTargetUserUnique: uniqueIndex("rating_target_ratings_target_user_unique").on(
+      table.ratingTargetId,
       table.userId
     )
   })
 );
 
-export const rankingItemCommentsTable = pgTable(
-  "ranking_item_comments",
+export const ratingTargetCommentsTable = pgTable(
+  "rating_target_comments",
   {
     id: text("id").primaryKey(),
-    rankingItemId: text("ranking_item_id")
+    ratingTargetId: text("rating_target_id")
       .notNull()
-      .references(() => rankingItemsTable.id, { onDelete: "cascade" }),
+      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
     authorId: text("author_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -894,13 +894,13 @@ export const rankingItemCommentsTable = pgTable(
   })
 );
 
-export const rankingItemCommentLikesTable = pgTable(
-  "ranking_item_comment_likes",
+export const ratingTargetCommentLikesTable = pgTable(
+  "rating_target_comment_likes",
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
       .notNull()
-      .references(() => rankingItemCommentsTable.id, { onDelete: "cascade" }),
+      .references(() => ratingTargetCommentsTable.id, { onDelete: "cascade" }),
     userId: text("user_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -909,20 +909,20 @@ export const rankingItemCommentLikesTable = pgTable(
       .notNull()
   },
   (table) => ({
-    commentUserUnique: uniqueIndex("ranking_item_comment_likes_comment_user_unique").on(
+    commentUserUnique: uniqueIndex("rating_target_comment_likes_comment_user_unique").on(
       table.commentId,
       table.userId
     )
   })
 );
 
-export const rankingItemCommentReportsTable = pgTable(
-  "ranking_item_comment_reports",
+export const ratingTargetCommentReportsTable = pgTable(
+  "rating_target_comment_reports",
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
       .notNull()
-      .references(() => rankingItemCommentsTable.id, { onDelete: "cascade" }),
+      .references(() => ratingTargetCommentsTable.id, { onDelete: "cascade" }),
     reporterId: text("reporter_id")
       .notNull()
       .references(() => usersTable.id, { onDelete: "cascade" }),
@@ -933,7 +933,7 @@ export const rankingItemCommentReportsTable = pgTable(
       .notNull()
   },
   (table) => ({
-    commentReporterUnique: uniqueIndex("ranking_item_comment_reports_comment_reporter_unique").on(
+    commentReporterUnique: uniqueIndex("rating_target_comment_reports_comment_reporter_unique").on(
       table.commentId,
       table.reporterId
     )

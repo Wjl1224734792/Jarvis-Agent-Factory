@@ -8,8 +8,8 @@ import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ItemStatus = "pending" | "published" | "rejected" | "hidden";
-type RankingItemRecord = Awaited<
-  ReturnType<typeof apiClient.listRankingItemsForModeration>
+type RatingTargetRecord = Awaited<
+  ReturnType<typeof apiClient.listRatingTargetsForModeration>
 >["items"][number];
 
 const itemStatusOptions: Array<{ label: string; value: ItemStatus | "all" }> = [
@@ -20,7 +20,7 @@ const itemStatusOptions: Array<{ label: string; value: ItemStatus | "all" }> = [
   { label: "已隐藏", value: "hidden" }
 ];
 
-function itemStatusLabel(status: RankingItemRecord["status"] = "published") {
+function itemStatusLabel(status: RatingTargetRecord["status"] = "published") {
   switch (status) {
     case "pending":
       return { color: "gold", text: "待审核" };
@@ -33,7 +33,7 @@ function itemStatusLabel(status: RankingItemRecord["status"] = "published") {
   }
 }
 
-export function RankingItemsPage() {
+export function RatingTargetsPage() {
   const [status, setStatus] = useState<ItemStatus | "all">("all");
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
@@ -42,16 +42,16 @@ export function RankingItemsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const itemsQuery = useQuery({
-    queryKey: ["admin-ranking-items", status],
-    queryFn: () => apiClient.listRankingItemsForModeration(status === "all" ? undefined : status)
+    queryKey: ["admin-rating-targets", status],
+    queryFn: () => apiClient.listRatingTargetsForModeration(status === "all" ? undefined : status)
   });
   const siteSettingsQuery = useQuery({
-    queryKey: ["admin-ranking-items", "site-settings"],
+    queryKey: ["admin-rating-targets", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
   const detailQuery = useQuery({
-    queryKey: ["admin-ranking-item-detail", detailId],
-    queryFn: () => apiClient.getRankingItemDetail(detailId!),
+    queryKey: ["admin-rating-target-detail", detailId],
+    queryFn: () => apiClient.getRatingTargetDetail(detailId!),
     enabled: Boolean(detailId)
   });
 
@@ -80,12 +80,12 @@ export function RankingItemsPage() {
 
       await apiClient.updateSiteSettings(
         buildSiteSettingsUpdate(current, {
-          rankingItemModerationEnabled: enabled
+          ratingTargetModerationEnabled: enabled
         })
       );
       await Promise.all([siteSettingsQuery.refetch(), itemsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新条目审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "更新评分对象审核开关失败");
     } finally {
       setIsSavingSettings(false);
     }
@@ -98,13 +98,13 @@ export function RankingItemsPage() {
   ) {
     setActionError(null);
     try {
-      await apiClient.updateRankingItemStatus(id, {
+      await apiClient.updateRatingTargetStatus(id, {
         status: nextStatus,
         rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
       });
       await Promise.all([itemsQuery.refetch(), detailQuery.refetch()]);
     } catch (reason: unknown) {
-      setActionError(reason instanceof Error ? reason.message : "更新条目状态失败");
+      setActionError(reason instanceof Error ? reason.message : "更新评分对象状态失败");
     }
   }
 
@@ -117,7 +117,7 @@ export function RankingItemsPage() {
             onChange={(event) => {
               setSearchText(event.target.value);
             }}
-            placeholder="搜索条目、所属榜单、作者或品牌"
+            placeholder="搜索评分对象、所属榜单、作者或品牌"
             style={{ width: 300 }}
             value={searchText}
           />
@@ -130,19 +130,19 @@ export function RankingItemsPage() {
           />
         </Space>
       }
-      description="把榜单条目从榜单审核里拆出来，单独处理条目通过、驳回返修和下线隐藏。"
-      title="榜单条目审核"
+      description="把评分对象从榜单审核里拆出来，单独处理评分对象通过、驳回返修和下线隐藏。"
+      title="评分对象审核"
     >
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
       {actionError ? <div className="admin-login__error">{actionError}</div> : null}
 
-      <AdminPanel description="榜单条目使用独立审核开关，和总览中心保持同步。" title="当前模式">
+      <AdminPanel description="评分对象使用独立审核开关，和总览中心保持同步。" title="当前模式">
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新条目会直接进入已发布状态。"
-          description="开启人工审核后，新条目会先进入条目审核队列。"
-          enabled={siteSettingsQuery.data?.item.rankingItemModerationEnabled ?? true}
+          autoCopy="关闭人工审核后，新评分对象会直接进入已发布状态。"
+          description="开启人工审核后，新评分对象会先进入审核队列。"
+          enabled={siteSettingsQuery.data?.item.ratingTargetModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的榜单条目会先进入待审核队列。"
+          manualCopy="新的评分对象会先进入待审核队列。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -150,17 +150,17 @@ export function RankingItemsPage() {
             void updateModeration(true);
           }}
           pendingCount={(itemsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
-          title="榜单条目审核"
+          title="评分对象审核"
         />
       </AdminPanel>
 
-      <AdminPanel title="条目列表">
+      <AdminPanel title="评分对象列表">
         <Table
           bordered
           columns={[
             {
               key: "cover",
-              render: (_, record: RankingItemRecord) =>
+              render: (_, record: RatingTargetRecord) =>
                 record.imageUrl ? (
                   <Image alt={record.title} height={64} preview={false} src={record.imageUrl} width={96} />
                 ) : (
@@ -171,7 +171,7 @@ export function RankingItemsPage() {
             },
             {
               key: "item",
-              render: (_, record: RankingItemRecord) => (
+              render: (_, record: RatingTargetRecord) => (
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.title}</div>
                   <div className="admin-table-subtitle">
@@ -179,31 +179,31 @@ export function RankingItemsPage() {
                   </div>
                 </div>
               ),
-              title: "榜单条目"
+              title: "评分对象"
             },
             {
               key: "owner",
-              render: (_, record: RankingItemRecord) => record.rankingAuthorName,
+              render: (_, record: RatingTargetRecord) => record.rankingAuthorName,
               title: "榜单作者",
               width: 140
             },
             {
               key: "meta",
-              render: (_, record: RankingItemRecord) =>
+              render: (_, record: RatingTargetRecord) =>
                 record.brandName ?? record.linkedModel?.brand.name ?? "未填写品牌",
               title: "品牌",
               width: 160
             },
             {
               key: "reports",
-              render: (_, record: RankingItemRecord) =>
+              render: (_, record: RatingTargetRecord) =>
                 (record.reportCount ?? 0) > 0 ? <Tag color="red">举报 {record.reportCount}</Tag> : <span>-</span>,
               title: "举报",
               width: 110
             },
             {
               key: "status",
-              render: (_, record: RankingItemRecord) => {
+              render: (_, record: RatingTargetRecord) => {
                 const meta = itemStatusLabel(record.status);
                 return <Tag color={meta.color}>{meta.text}</Tag>;
               },
@@ -212,7 +212,7 @@ export function RankingItemsPage() {
             },
             {
               key: "action",
-              render: (_, record: RankingItemRecord) => (
+              render: (_, record: RatingTargetRecord) => (
                 <Space size="small" wrap>
                   <Button
                     onClick={() => {
@@ -271,7 +271,7 @@ export function RankingItemsPage() {
             }
           ]}
           dataSource={filteredItems}
-          locale={{ emptyText: <Empty description="当前筛选下没有榜单条目" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
+          locale={{ emptyText: <Empty description="当前筛选下没有评分对象" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
           loading={itemsQuery.isLoading}
           rowKey={(record) => record.id}
           size="middle"

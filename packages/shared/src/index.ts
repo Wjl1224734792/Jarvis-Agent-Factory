@@ -18,7 +18,7 @@ export const APP_ROUTES = {
   rankings: "/rankings",
   rankingEditor: "/rankings/create",
   rankingDetail: "/rankings/:id",
-  rankingItemDetail: "/ranking-items/:id",
+  ratingTargetDetail: "/rating-targets/:id",
   postDetail: "/posts/:id",
   compose: "/compose",
   publishArticle: "/publish/article",
@@ -147,9 +147,9 @@ export const API_ROUTES = {
     adminRankingComments: "/admin/ranking-comments",
     adminRankingCommentDetail: (id: string) => `/admin/ranking-comments/${id}`,
     adminRankingCommentReports: (id: string) => `/admin/ranking-comments/${id}/reports`,
-    adminRankingItemComments: "/admin/ranking-item-comments",
-    adminRankingItemCommentDetail: (id: string) => `/admin/ranking-item-comments/${id}`,
-    adminRankingItemCommentReports: (id: string) => `/admin/ranking-item-comments/${id}/reports`,
+    adminRatingTargetComments: "/admin/rating-target-comments",
+    adminRatingTargetCommentDetail: (id: string) => `/admin/rating-target-comments/${id}`,
+    adminRatingTargetCommentReports: (id: string) => `/admin/rating-target-comments/${id}/reports`,
     items: (id: string) => `/rankings/${id}/items`,
     comments: (id: string) => `/rankings/${id}/comments`,
     commentDetail: (rankingId: string, commentId: string) => `/rankings/${rankingId}/comments/${commentId}`,
@@ -158,19 +158,19 @@ export const API_ROUTES = {
     commentReport: (rankingId: string, commentId: string) =>
       `/rankings/${rankingId}/comments/${commentId}/report`,
     report: (id: string) => `/rankings/${id}/report`,
-    itemDetail: (id: string) => `/ranking-items/${id}`,
-    adminItemStatus: (id: string) => `/admin/ranking-items/${id}/status`,
-    adminItemReports: (id: string) => `/admin/ranking-items/${id}/reports`,
-    itemReport: (id: string) => `/ranking-items/${id}/report`,
-    itemReview: (id: string) => `/ranking-items/${id}/review`,
-    itemRatings: (id: string) => `/ranking-items/${id}/ratings`,
-    itemComments: (id: string) => `/ranking-items/${id}/comments`,
+    itemDetail: (id: string) => `/rating-targets/${id}`,
+    adminItemStatus: (id: string) => `/admin/rating-targets/${id}/status`,
+    adminItemReports: (id: string) => `/admin/rating-targets/${id}/reports`,
+    itemReport: (id: string) => `/rating-targets/${id}/report`,
+    itemReview: (id: string) => `/rating-targets/${id}/review`,
+    itemRatings: (id: string) => `/rating-targets/${id}/ratings`,
+    itemComments: (id: string) => `/rating-targets/${id}/comments`,
     itemCommentDetail: (itemId: string, commentId: string) =>
-      `/ranking-items/${itemId}/comments/${commentId}`,
+      `/rating-targets/${itemId}/comments/${commentId}`,
     itemCommentLike: (itemId: string, commentId: string) =>
-      `/ranking-items/${itemId}/comments/${commentId}/like`,
+      `/rating-targets/${itemId}/comments/${commentId}/like`,
     itemCommentReport: (itemId: string, commentId: string) =>
-      `/ranking-items/${itemId}/comments/${commentId}/report`
+      `/rating-targets/${itemId}/comments/${commentId}/report`
   },
   models: {
     list: "/models",

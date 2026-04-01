@@ -17,7 +17,7 @@ import { NotificationsPage } from "./routes/notifications-page";
 import { PostDetailPage } from "./routes/post-detail-page";
 import { PublishStatusPage } from "./routes/publish-status-page";
 import { RankingDetailPage } from "./routes/ranking-detail-page";
-import { RankingItemDetailPage } from "./routes/ranking-item-detail-page";
+import { RatingTargetDetailPage } from "./routes/rating-target-detail-page";
 import { RankingsPage } from "./routes/rankings-page";
 import { SettingsPage } from "./routes/settings-page";
 import { UserProfilePage } from "./routes/user-profile-page";
@@ -128,8 +128,8 @@ const router = createBrowserRouter([
         element: <RankingDetailPage />
       },
       {
-        path: toRootChildPath(WEB_ROUTE_PATHS.rankingItemDetail),
-        element: <RankingItemDetailPage />
+        path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
+        element: <RatingTargetDetailPage />
       },
       {
         path: toRootChildPath(APP_ROUTES.postDetail),
