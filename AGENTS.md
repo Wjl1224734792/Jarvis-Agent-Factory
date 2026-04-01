@@ -15,73 +15,13 @@
 - 对于实现工作，当任务大于简单修复时，将规划与编码分离。
 - 保持中间推理简洁，聚焦于决策、风险和输出。
 
-## 多智能体路由（三层架构）
-
-本仓库采用三层代理架构，详见 `docs/workflows/workflow.md` 的「编排总览」。
-
-### 第一层：流程编排器
-
-- 当请求仍然模糊或成功标准不明确时，由**当前主会话**在对话中直接向用户追问并收敛需求（见下节「需求澄清」）；**勿**委派子代理承担澄清（子代理无法对用户追问，无法完成需求对齐）。需要落盘时可写 `docs/requirements/YYYY-MM-DD-<topic>-requirements.md`。
-- 当需求已知但实现任务仍需分解时，使用 `task_design`。
-- 在进行非平凡编码工作前，使用 `planner` 定义任务范围、顺序、所有权和验证；**每条待实现任务须标注测试策略**（见下节 `test_strategy`），并与 `docs/tasks` 等文档中的「TDD」表述对齐。
-- 对于只读探索、代码库映射、依赖追踪和边界检查，使用 `repo_explorer`。
-- 对于有意义的变更，在宣布完成前使用 `review_qa`（对 TDD 任务核对 Red/Green 证据）。
-
-### 第二层：实现编排者
-
-- 仅前端工作使用 `frontend_implementer` 编排（将任务拆分并分派给前端 workers）。
-- 仅后端工作使用 `backend_implementer` 编排（将任务拆分并分派给后端 workers）。
-- 简单单文件修复可由编排者直接完成或直接分派给对应 worker，无需完整编排流程。
-
-### 第三层：专项工作者
-
-**前端 workers**（由 `frontend_implementer` 分派）：
-
-| Worker | 职责领域 |
-|--------|----------|
-| `frontend_ui_worker` | 页面布局、组件构建、样式、响应式、a11y |
-| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由逻辑 |
-| `frontend_test_worker` | 前端单元/组件/集成测试、TDD 流程 |
-
-**后端 workers**（由 `backend_implementer` 分派）：
-
-| Worker | 职责领域 |
-|--------|----------|
-| `backend_api_worker` | 路由定义、控制器、请求验证、中间件、错误处理 |
-| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限、幂等性 |
-| `backend_data_worker` | 数据库 Schema、ORM 模型、Repository、迁移脚本 |
-| `backend_test_worker` | 后端单元/集成/API 测试、TDD 流程 |
-
-**编排总览**：主会话与各子代理的阶段顺序与对应表见 `docs/workflows/workflow.md` 的「编排总览（三层架构）」。
-
 ## 需求澄清（主控职责）
 
-以下由**主会话**执行，不对应可委派的 `clarify_spec` 子代理。
+以下由**主会话**执行，不对应可委派的子代理。
 
 - **要做**：把自然语言需求收敛为清晰、可实现、可验证的理解；明确目标、成功标准、范围、关键流程与对象、模块交互；必要时先调用 `repo_explorer` 再映射到代码结构；识别风险与开放问题；在对话中确认假设并视需要写入需求文档。
 - **禁止**：在未与用户对齐的情况下独自补全模糊需求；将澄清工作交给子代理。
 - **需求文档路径（可选）**：`docs/requirements/YYYY-MM-DD-<topic>-requirements.md`，建议包含：需求摘要、目标与成功标准、范围内/外、模块与功能列表、关键流程、关键对象、模块交互草案、与当前代码结构的映射、风险与开放问题、推荐下一步。
-
-## TDD 编排（Red / Green / Refactor）
-
-`planner` 为每条实现类任务指定 `test_strategy` 之一：
-
-| 取值 | 含义 |
-|------|------|
-| `tdd` | 测试驱动：先失败用例，再最小实现，再按需重构 |
-| `test_after` | 实现后补测或扩展现有测试，仍须在交付前跑通 |
-| `manual_only` | 仅手工/浏览器验证；须写明范围与限制（默认少用） |
-
-**`tdd` 时子代理须遵守的顺序：**
-
-1. **Red**：新增或修改测试，使当前行为**明确失败**（断言目标行为或拒绝错误行为）；运行对应测试命令并保留失败输出或日志说明。
-2. **Green**：编写**最小**生产代码令该测试通过；不顺带做大范围重构。
-3. **Refactor**：在测试仍绿的前提下整理结构、去重、命名；若有行为变化须回到 Red。
-
-**约束：**
-
-- 共享合约、路由前缀、DB schema 等高风险变更若标为 `tdd`，与其实现相关的测试步骤**不要**与另一代理并行抢改同一文件。
-- 无法自动化测试的边界（如纯 UI 动效）可标 `test_after` 或 `manual_only`，并在 `planner` 产出中写清验收方式。
 
 ## 实现规则
 
@@ -117,18 +57,19 @@
 
 ## 仓库目录架构
 
-顶层布局（随迭代会增删文件，以仓库实际为准）：
-
 ```
 feijia/
-├── AGENTS.md                 # 本文件：代理协作与完成标准
-├── package.json              # workspace 根脚本（dev / typecheck / test / build / db:*）
-├── vitest.config.ts          # schemas、http-client、web 等与 server 测试入口
-├── apps/                     # 可运行应用 → apps/AGENTS.md
-├── packages/                 # 共享库与数据库包 → packages/AGENTS.md
-├── docker/                   # 本地 PG / Redis / MinIO → docker/AGENTS.md
-├── docs/                     # 产品、计划、工作流文档
-└── .codex/                   # Codex：技能与 TOML 代理（.codex/agents/）
+├── AGENTS.md
+├── package.json
+├── vitest.config.ts
+├── apps/
+├── packages/
+├── docker/
+├── docs/
+└── .codex/
+    ├── agents/               # 14 个代理 TOML 配置
+    ├── skills/               # 技能（含 agent-orchestration）
+    └── AGENTS.md             # 编码规范补充
 ```
 
 ## 代码层级指引
@@ -137,12 +78,11 @@ feijia/
 - 本地基础设施：`docker/AGENTS.md`；各应用子目录内另有对应 `AGENTS.md`。
 - **Codex 代理**：`.codex/agents/*.toml`。
 
-## 文档
+## 多代理编排
 
-- 当行为、合约、设置或开发者工作流变更时，更新附近的文档。
-- 将详细的工作流手册、规划模板和评审清单放在此文件之外。
-- 将较长的流程指导放入专用文档并在需要时引用。
-- 对于详细的多步骤交付流程、**主会话与子代理编排**、交接结构和评审手册，请遵循 `docs/workflows/workflow.md`（其中 **编排总览**、**阶段划分** 与 **`test_strategy` / TDD / 验证 / 完成标准** 已与本文对齐；若有冲突以本文为准）。
+完整编排流程封装在 `.codex/skills/agent-orchestration/` 技能中，仅在用户显式触发时加载。编排详情请查阅该技能的 `reference/` 目录。
+
+简单任务和单步查询无需走编排流程，按需 spawn 单个 agent 即可。
 
 ## 完成定义
 
