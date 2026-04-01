@@ -12,6 +12,7 @@
     "dev:server": "bun run --cwd apps/server dev",
     "db:generate": "bun run --cwd packages/db generate",
     "db:migrate": "bun run --cwd packages/db migrate",
+    "db:push": "bun run --cwd packages/db push",
     "db:seed": "bun run --cwd packages/db seed",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd packages/schemas typecheck && bun run --cwd packages/http-client typecheck && bun run --cwd packages/db typecheck && bun run --cwd apps/server typecheck && bun run --cwd apps/web typecheck && bun run --cwd apps/admin typecheck",
     "test": "vitest run --config ./vitest.config.ts packages/schemas/tests/**/*.test.ts packages/http-client/tests/**/*.test.ts apps/web/tests/**/*.test.ts apps/admin/tests/**/*.test.ts && bun run --cwd apps/server test",

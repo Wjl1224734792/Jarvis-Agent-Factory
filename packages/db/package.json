@@ -10,6 +10,7 @@
     "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc -p tsconfig.json",
     "generate": "drizzle-kit generate --config drizzle.config.ts",
+    "push": "drizzle-kit push --config drizzle.config.ts",
     "migrate": "bun run ./src/migrate.cli.ts",
     "seed": "bun run ./src/seed.cli.ts"
   },
