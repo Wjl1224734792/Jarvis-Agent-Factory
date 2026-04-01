@@ -15,16 +15,44 @@
 - 对于实现工作，当任务大于简单修复时，将规划与编码分离。
 - 保持中间推理简洁，聚焦于决策、风险和输出。
 
-## 多智能体路由
+## 多智能体路由（三层架构）
+
+本仓库采用三层代理架构，详见 `docs/workflows/workflow.md` 的「编排总览」。
+
+### 第一层：流程编排器
 
 - 当请求仍然模糊或成功标准不明确时，由**当前主会话**在对话中直接向用户追问并收敛需求（见下节「需求澄清」）；**勿**委派子代理承担澄清（子代理无法对用户追问，无法完成需求对齐）。需要落盘时可写 `docs/requirements/YYYY-MM-DD-<topic>-requirements.md`。
 - 当需求已知但实现任务仍需分解时，使用 `task_design`。
 - 在进行非平凡编码工作前，使用 `planner` 定义任务范围、顺序、所有权和验证；**每条待实现任务须标注测试策略**（见下节 `test_strategy`），并与 `docs/tasks` 等文档中的「TDD」表述对齐。
 - 对于只读探索、代码库映射、依赖追踪和边界检查，使用 `repo_explorer`。
-- 仅用于前端实现工作时使用 `frontend_implementer`（对 `test_strategy: tdd` 的任务必须按 **Red → Green → Refactor** 顺序执行）。
-- 仅用于后端实现工作时使用 `backend_implementer`（同上）。
 - 对于有意义的变更，在宣布完成前使用 `review_qa`（对 TDD 任务核对 Red/Green 证据）。
-- **编排总览**：主会话与各子代理的阶段顺序与对应表见 `docs/workflows/workflow.md` 的「编排总览（主会话与子代理）」。
+
+### 第二层：实现编排者
+
+- 仅前端工作使用 `frontend_implementer` 编排（将任务拆分并分派给前端 workers）。
+- 仅后端工作使用 `backend_implementer` 编排（将任务拆分并分派给后端 workers）。
+- 简单单文件修复可由编排者直接完成或直接分派给对应 worker，无需完整编排流程。
+
+### 第三层：专项工作者
+
+**前端 workers**（由 `frontend_implementer` 分派）：
+
+| Worker | 职责领域 |
+|--------|----------|
+| `frontend_ui_worker` | 页面布局、组件构建、样式、响应式、a11y |
+| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由逻辑 |
+| `frontend_test_worker` | 前端单元/组件/集成测试、TDD 流程 |
+
+**后端 workers**（由 `backend_implementer` 分派）：
+
+| Worker | 职责领域 |
+|--------|----------|
+| `backend_api_worker` | 路由定义、控制器、请求验证、中间件、错误处理 |
+| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限、幂等性 |
+| `backend_data_worker` | 数据库 Schema、ORM 模型、Repository、迁移脚本 |
+| `backend_test_worker` | 后端单元/集成/API 测试、TDD 流程 |
+
+**编排总览**：主会话与各子代理的阶段顺序与对应表见 `docs/workflows/workflow.md` 的「编排总览（三层架构）」。
 
 ## 需求澄清（主控职责）
 

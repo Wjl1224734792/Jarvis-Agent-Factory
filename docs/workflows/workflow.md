@@ -22,23 +22,53 @@
 1. 澄清需求，
 2. 转化为具体任务，
 3. 规划执行，
-4. 在明确的所有权范围内实现，
+4. 在明确的所有权范围内实现（通过编排者分派给专项工作者），
 5. 完成前进行评审。
 
 不要直接从模糊输入跳转到广泛的代码变更。
 
 ---
 
-## 编排总览（主会话与子代理）
+## 编排总览（三层架构）
 
-| 阶段 | 负责方 | `.codex/agents` 子代理 |
-|------|--------|-------------------------|
+本仓库采用三层代理架构：
+
+### 第一层：流程编排器
+
+| 阶段 | 负责方 | `.codex/agents` 代理 |
+|------|--------|----------------------|
 | 1 需求澄清 | **主会话**（对话追问用户；可选落盘 `docs/requirements/...`） | 无（勿委派子代理澄清） |
 | 2 任务分解 | 主会话委派 | `task_design` |
 | 3 执行规划 | 主会话委派 | `planner` |
 | 4 代码库探索（按需） | 主会话委派 | `repo_explorer`（只读） |
-| 5 实现 | 主会话委派 | `frontend_implementer` / `backend_implementer` |
+| 5 实现编排 | 主会话委派 | `frontend_implementer` / `backend_implementer` |
 | 6 评审 | 主会话委派 | `review_qa` |
+
+### 第二层：实现编排者
+
+| 代理 | 职责 | 分派对象 |
+|------|------|----------|
+| `frontend_implementer` | 前端任务拆分、分派、汇总、文档 | 见下方第三层 |
+| `backend_implementer` | 后端任务拆分、分派、汇总、文档 | 见下方第三层 |
+
+### 第三层：专项工作者
+
+#### 前端工作者
+
+| Worker | 职责领域 | 模型 | 关键 Skills |
+|--------|----------|------|-------------|
+| `frontend_ui_worker` | 页面布局、组件构建、样式、响应式、a11y | gpt-5.4-mini | ant-design, antd, shadcn, frontend-design, ui-ux-pro-max, tailwind-design-system |
+| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由逻辑 | gpt-5.4 | hono, vercel-react-best-practices, composition-patterns |
+| `frontend_test_worker` | 前端单元/组件/集成测试、TDD 流程 | gpt-5.4-mini | test-driven-development, systematic-debugging, webapp-testing |
+
+#### 后端工作者
+
+| Worker | 职责领域 | 模型 | 关键 Skills |
+|--------|----------|------|-------------|
+| `backend_api_worker` | 路由定义、控制器、请求验证、中间件、错误处理 | gpt-5.4 | hono, documentation-lookup, docker-expert |
+| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限、幂等性 | gpt-5.3-codex | better-auth-best-practices, systematic-debugging |
+| `backend_data_worker` | 数据库 Schema、ORM 模型、Repository、迁移脚本 | gpt-5.4-mini | docker-expert, bun-file-io |
+| `backend_test_worker` | 后端单元/集成/API 测试、TDD 流程 | gpt-5.4-mini | test-driven-development, verification-before-completion, docker-expert |
 
 `repo_explorer` 可在阶段 1～5 之间**按需**插入（入口/共享边界不清时），不改变阶段顺序语义：它替代不了主会话澄清，也替代不了 `planner` 排期。
 
@@ -135,24 +165,58 @@
 
 ---
 
-### 阶段 5：实现
+### 阶段 5：实现（编排者 + 专项工作者）
 
-仅前端工作使用 `frontend_implementer`。
+#### 5.1 编排者分派
 
-仅后端工作使用 `backend_implementer`。
+仅前端工作使用 `frontend_implementer` 编排。
 
-实现应遵循商定的任务范围和计划。
-除非新需求不可避免且已明确记录，否则不要在编码过程中扩大范围。
+仅后端工作使用 `backend_implementer` 编排。
 
-对 **`test_strategy: tdd`** 的任务，`frontend_implementer` / `backend_implementer` 必须按 **Red → Green → Refactor** 执行（与 **`AGENTS.md`**「TDD 编排」一致）：先让测试失败，再最小实现通过，再按需重构。
+编排者的职责是**拆分任务并分派给专项工作者**，而非自行完成所有实现。
 
-预期输出：
+#### 5.2 前端工作者分派规则
+
+`frontend_implementer` 将任务拆分为三类并分派：
+
+| 子任务类型 | 分派给 | 可并行条件 |
+|-----------|--------|-----------|
+| 页面布局、组件、样式、响应式、a11y | `frontend_ui_worker` | 与 state worker 文件不重叠时可并行 |
+| 状态管理、数据获取、缓存、请求对接、路由 | `frontend_state_worker` | 与 UI worker 文件不重叠时可并行 |
+| 单元测试、组件测试、集成测试、TDD | `frontend_test_worker` | 通常在 UI + State 完成后执行 |
+
+#### 5.3 后端工作者分派规则
+
+`backend_implementer` 将任务拆分为四类并分派：
+
+| 子任务类型 | 分派给 | 可并行条件 |
+|-----------|--------|-----------|
+| 路由、控制器、验证、中间件、错误处理 | `backend_api_worker` | 与 service worker 文件不重叠时可并行 |
+| 业务规则、领域逻辑、状态机、权限 | `backend_service_worker` | 与 API worker 文件不重叠时可并行 |
+| Schema、ORM、Repository、迁移、查询 | `backend_data_worker` | 通常最先执行（其他 worker 依赖数据层） |
+| 单元测试、集成测试、API 测试、TDD | `backend_test_worker` | 通常在 API + Service + Data 完成后执行 |
+
+#### 5.4 简单任务直通
+
+对于单文件小修复等简单任务，编排者可自行实现而不分派 workers，但须在实现文档中说明原因。
+
+#### 5.5 TDD 执行
+
+对 **`test_strategy: tdd`** 的任务：
+
+- **前端**：`frontend_test_worker` 负责 Red 阶段（写失败测试），`frontend_ui_worker` / `frontend_state_worker` 负责 Green 阶段（最小实现），`frontend_test_worker` 负责 Refactor 阶段。
+- **后端**：`backend_test_worker` 负责 Red 阶段（写失败测试），`backend_api_worker` / `backend_service_worker` / `backend_data_worker` 负责 Green 阶段（最小实现），`backend_test_worker` 负责 Refactor 阶段。
+
+必须按 **Red → Green → Refactor** 执行（与 **`AGENTS.md`**「TDD 编排」一致）。
+
+#### 5.6 预期输出
 
 - 请求的代码变更，
 - 重要决策的说明，
 - 验证证据或验证缺口，
 - **`tdd` 任务**：可核对的「测试曾失败 → 同一套测试已通过」记录（命令输出、提交顺序或评审备注均可），
-- 任何已知限制。
+- 任何已知限制，
+- workers 分派记录（哪些工作者处理了哪些子任务）。
 
 ---
 
@@ -206,7 +270,7 @@
 
 ### 情况 A：模糊需求
 
-主会话澄清 → `task_design` → `planner` → 实现者 → `review_qa`
+主会话澄清 → `task_design` → `planner` → 编排者（分派 workers） → `review_qa`
 
 ---
 
@@ -216,7 +280,7 @@
 
 使用：
 
-`task_design` → `planner` → 实现者 → `review_qa`
+`task_design` → `planner` → 编排者（分派 workers） → `review_qa`
 
 ---
 
@@ -226,7 +290,7 @@
 
 使用：
 
-`planner` → 实现者 → `review_qa`
+`planner` → 编排者（分派 workers） → `review_qa`
 
 ---
 
@@ -248,6 +312,12 @@
 
 ---
 
+### 情况 F：简单单文件修复
+
+主会话可直接分派给对应 worker（如 `frontend_ui_worker` 改样式、`backend_api_worker` 改路由），无需完整编排流程。
+
+---
+
 ## 所有权规则
 
 ### 仅前端工作
@@ -255,7 +325,7 @@
 使用：
 
 - 非平凡时：**主会话澄清**（若曾模糊）→ `task_design`（若尚无任务文档）→ `planner`，
-- `frontend_implementer`，
+- `frontend_implementer` 编排 → 分派前端 workers，
 - `review_qa`
 
 除非后端行为必须变更，否则不要涉及后端实现。
@@ -267,7 +337,7 @@
 使用：
 
 - 非平凡时：**主会话澄清**（若曾模糊）→ `task_design`（若尚无任务文档）→ `planner`，
-- `backend_implementer`，
+- `backend_implementer` 编排 → 分派后端 workers，
 - `review_qa`
 
 除非前端行为必须变更，否则不要涉及前端实现。
@@ -280,8 +350,8 @@
 
 - **主会话澄清**（若曾模糊）→ `task_design` → `planner`，
 - 边界不明确时使用 `repo_explorer`，
-- `frontend_implementer`，
-- `backend_implementer`，
+- `frontend_implementer` 编排 → 分派前端 workers，
+- `backend_implementer` 编排 → 分派后端 workers，
 - `review_qa`
 
 只有当所有权明确分离时才允许并行实现。
@@ -311,6 +381,12 @@
 
 如果共享区域必须变更，请先分配一个所有者。
 依赖方应仅在该变更足够稳定后才继续。
+
+### Workers 并行约束
+
+- 同一编排者下的 workers 之间：文件不重叠时可并行。
+- 前端 workers 与后端 workers 之间：天然可并行（文件域不同）。
+- `frontend_test_worker` / `backend_test_worker` 的 Red 阶段不得与其他 worker 的实现步骤修改同一文件。
 
 ---
 
@@ -356,6 +432,11 @@
 
 不要用部分完成的语言掩盖冲突。
 
+### Workers 层回滚
+
+- 单个 worker 发现问题：回报编排者，由编排者决定是否调整分派或回退 planner。
+- 多个 workers 发现冲突：编排者必须汇总后回退 planner，不得自行修补。
+
 ---
 
 ## 预期产出物
@@ -365,7 +446,7 @@
 - 需求摘要，
 - 任务分解，
 - 执行计划，
-- 实现说明，
+- 实现说明（含 workers 分派记录），
 - 评审结果。
 
 并非每个任务都需要每个产出物。
