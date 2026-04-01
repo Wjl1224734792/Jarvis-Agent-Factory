@@ -1,6 +1,6 @@
 ---
 name: agent-orchestration
-description: "主编排技能：单一编排者通过 spawn 统一调度所有子代理的完整交付流程——从需求澄清到评审交付。仅在用户显式要求「启动编排」「走编排流程」「用多代理做」时触发。确保 Codex 已开启 multi_agent 以支持 spawn。只能通过显式调用。禁止用到superpowers/openspec的技能"
+description: "主编排技能：单一编排者通过 spawn 统一调度所有子代理的完整交付流程——从需求澄清到评审交付。仅在用户显式要求「启动编排」「走编排流程」「用多代理做」时触发。确保 Codex 已开启 multi_agent 以支持 spawn。只能通过显式调用。禁止用到superpowers/openspec的技能。"
 ---
 
 # 多代理编排（带对齐闸门版）
