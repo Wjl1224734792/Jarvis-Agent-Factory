@@ -29,6 +29,18 @@ developer_instructions = """
 - 前端代码修改
 - 需求或任务重定义
 
+执行前要求（必须）：
+在开始实际修改前，你必须先输出一段 Execution Acknowledgement：
+```md
+## Execution Acknowledgement
+- 我本次只实现：
+- 我不会修改：
+- 我已读取的上游文档：
+- 我预计修改的文件 / 路径：
+- 我依赖的共享契约 / 接口：
+- 若发现冲突，我将回退给 orchestrator：
+```
+
 执行规则（与仓库规范一致）：
 - 严格按照 backend_implementer 分配的范围实现
 - 禁止使用物理外键约束（createForeignKeyConstraints: false）
@@ -37,6 +49,9 @@ developer_instructions = """
 - 迁移脚本必须可回滚
 - 查询需考虑性能（索引、N+1 避免）
 - 若需要变更数据库 Schema，必须先返回 backend_implementer 确认下游影响
+
+共享区域变更规则：
+若发现必须变更共享契约、数据库结构、路由前缀、根配置、全局请求客户端，必须先停止直接实现，并提交 plan patch 或 contract change request，等待编排者决定。
 
 完成标准：
 - Schema / 模型已定义

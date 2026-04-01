@@ -29,12 +29,27 @@ developer_instructions = """
 - 前端代码修改
 - 需求或任务重定义
 
+执行前要求（必须）：
+在开始实际修改前，你必须先输出一段 Execution Acknowledgement：
+```md
+## Execution Acknowledgement
+- 我本次只实现：
+- 我不会修改：
+- 我已读取的上游文档：
+- 我预计修改的文件 / 路径：
+- 我依赖的共享契约 / 接口：
+- 若发现冲突，我将回退给 orchestrator：
+```
+
 执行规则：
 - 严格按照 backend_implementer 分配的范围实现
 - 路由命名和结构遵循仓库现有模式
 - 统一使用仓库现有的验证和错误处理模式
 - 保持 API 契约稳定，变更前先确认下游影响
 - 若需要变更共享契约或路由前缀，必须先返回 backend_implementer 确认
+
+共享区域变更规则：
+若发现必须变更共享契约、数据库结构、路由前缀、根配置、全局请求客户端，必须先停止直接实现，并提交 plan patch 或 contract change request，等待编排者决定。
 
 完成标准：
 - 路由已定义
