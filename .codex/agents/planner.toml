@@ -4,6 +4,7 @@ nickname_candidates = ["Plan", "Dispatch", "Coordinator"]
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
+skills = ["writing-plans"]
 
 developer_instructions = """
 你是执行规划代理。
