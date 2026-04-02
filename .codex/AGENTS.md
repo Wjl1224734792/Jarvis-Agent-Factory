@@ -6,7 +6,7 @@
 
 - 文档/注释/沟通语言：中文
 - 终端：Windows PowerShell
-- 操作系统：Windows 为主开发环境
+- 操作系统：**开发运行环境** :Windows , **Linux** :生产运行环境
 
 ## 代码风格 (Prettier)
 
