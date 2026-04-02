@@ -1,6 +1,6 @@
 {
-  "id": "8e79bbab-5078-4c6e-a820-f2cdd333350a",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "01b5e8d0-58ca-437b-93ed-693cd153df3b",
+  "prevId": "8e79bbab-5078-4c6e-a820-f2cdd333350a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -685,6 +685,18 @@
           "primaryKey": false,
           "notNull": false
         },
+        "price_min": {
+          "name": "price_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_max": {
+          "name": "price_max",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
         "max_flight_time_minutes": {
           "name": "max_flight_time_minutes",
           "type": "integer",
@@ -1171,6 +1183,18 @@
         "description": {
           "name": "description",
           "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_min": {
+          "name": "price_min",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_max": {
+          "name": "price_max",
+          "type": "integer",
           "primaryKey": false,
           "notNull": false
         },

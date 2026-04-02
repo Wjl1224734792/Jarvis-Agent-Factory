@@ -8,6 +8,13 @@
       "when": 1775139929994,
       "tag": "0000_sudden_speedball",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1775142980229,
+      "tag": "0001_chilly_killraven",
+      "breakpoints": true
     }
   ]
 }
