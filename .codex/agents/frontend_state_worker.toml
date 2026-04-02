@@ -57,5 +57,3 @@ developer_instructions = """
 - 请求对接正确
 - 错误边界处理完整
 """
-
-skills = ["hono", "documentation-lookup", "vercel-react-best-practices", "composition-patterns", "create-adaptable-composable"]

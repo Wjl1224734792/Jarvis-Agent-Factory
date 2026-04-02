@@ -8,7 +8,8 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
-    "typecheck": "tsc -p tsconfig.json"
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src/"
   },
   "dependencies": {
     "@feijia/schemas": "workspace:*",

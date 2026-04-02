@@ -63,5 +63,3 @@ developer_instructions = """
 - 测试覆盖需求中的关键路径
 - 测试数据库环境已正确配置
 """
-
-skills = ["test-driven-development", "systematic-debugging", "verification-before-completion", "docker-expert"]

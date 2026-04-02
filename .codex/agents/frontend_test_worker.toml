@@ -60,5 +60,3 @@ developer_instructions = """
 - TDD 任务具备 Red → Green 可核对记录
 - 测试覆盖需求中的关键路径
 """
-
-skills = ["test-driven-development", "systematic-debugging", "verification-before-completion", "webapp-testing", "agent-browser"]

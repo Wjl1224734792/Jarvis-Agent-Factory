@@ -60,5 +60,3 @@ developer_instructions = """
 - 幂等性保证
 - 代码可测试
 """
-
-skills = ["better-auth-best-practices", "documentation-lookup", "systematic-debugging"]
