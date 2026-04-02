@@ -34,6 +34,7 @@ describe('OpenAPI docs', () => {
     expect(payload.info.title).toContain('API');
     expect(payload.paths['/health']).toBeDefined();
     expect(payload.paths['/auth/web/login']).toBeDefined();
+    expect(payload.paths['/auth/web/refresh']).toBeDefined();
     expect(payload.paths['/users/me/profile']).toBeDefined();
     expect(payload.paths['/brand-applications']).toBeDefined();
     expect(payload.paths['/aircraft-submissions']).toBeDefined();
@@ -74,6 +75,7 @@ describe('OpenAPI docs', () => {
     expect(
       payload.paths['/users/me/phone/change/confirm']?.post?.responses?.['409']
     ).toBeDefined();
+    expect(payload.paths['/auth/web/refresh']?.post?.responses?.['401']).toBeDefined();
     expect(payload.paths['/auth/protected/ping']?.get?.responses?.['401']).toBeDefined();
     expect(payload.paths['/admin/rankings/{id}/status']?.put?.responses?.['403']).toBeDefined();
   });

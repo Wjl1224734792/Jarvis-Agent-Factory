@@ -579,6 +579,23 @@ export const openApiDocument = {
         }
       }
     },
+    [API_ROUTES.auth.webRefresh]: {
+      post: {
+        tags: ['auth'],
+        summary: '刷新 Web 会话',
+        security: optionalSessionCookieSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AuthSuccessResponse',
+            '刷新会话成功，返回当前用户并续期 Cookie。'
+          ),
+          '401': jsonResponse(
+            'AuthErrorResponse',
+            'refresh token 缺失、无效或已过期。'
+          )
+        }
+      }
+    },
     [API_ROUTES.auth.appLogin]: {
       post: {
         tags: ['auth'],
