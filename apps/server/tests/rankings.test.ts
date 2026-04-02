@@ -909,7 +909,7 @@ describe("rankings flows", () => {
     expect(contributedItem?.id).toBeTruthy();
 
     const rejectReason = "条目信息不完整，请补充后重新提交";
-    const rejectResponse = await app.request(`/admin/ranking-items/${contributedItem!.id}/status`, {
+    const rejectResponse = await app.request(API_ROUTES.rankings.adminItemStatus(contributedItem!.id), {
       method: "PUT",
       headers: {
         cookie: adminCookie,
@@ -967,7 +967,7 @@ describe("rankings flows", () => {
       }>;
     };
     expect(
-      userContent.items.find((item) => item.type === "ranking-item" && item.id === contributedItem!.id)
+      userContent.items.find((item) => item.type === "rating-target" && item.id === contributedItem!.id)
     ).toMatchObject({
       status: "rejected",
       rejectionReason: rejectReason

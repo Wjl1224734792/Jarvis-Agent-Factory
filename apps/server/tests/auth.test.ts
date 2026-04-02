@@ -380,6 +380,18 @@ describe("auth flows", () => {
       })
     });
     expect(duplicateNameResponse.status).toBe(409);
+
+    const retryResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: secondLoginPayload.registrationToken,
+        displayName: "Retry Pilot",
+        avatarFileId: null
+      })
+    });
+    expect(retryResponse.status).toBe(200);
+    expect(retryResponse.headers.get("set-cookie")).toBeTruthy();
   });
 
   it("supports reading and updating current user profile and settings", async () => {

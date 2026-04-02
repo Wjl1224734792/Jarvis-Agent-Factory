@@ -180,6 +180,8 @@ describe.sequential("content closure flows", () => {
         coverImageFileId: null,
         galleryImageFileIds: [],
         videoFileId: null,
+        priceMin: 4999,
+        priceMax: 6999,
         maxFlightTimeMinutes: 38,
         maxRangeKilometers: 22,
         maxSpeedKph: 64,
@@ -194,11 +196,15 @@ describe.sequential("content closure flows", () => {
         status: string;
         approvedModelId: string | null;
         approvedModelSlug: string | null;
+        priceMin: number | null;
+        priceMax: number | null;
       };
     };
     expect(created.item.status).toBe("submitted");
     expect(created.item.approvedModelId).toBeNull();
     expect(created.item.approvedModelSlug).toBeNull();
+    expect(created.item.priceMin).toBe(4999);
+    expect(created.item.priceMax).toBe(6999);
 
     const rejectResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
       method: "PUT",
@@ -240,6 +246,8 @@ describe.sequential("content closure flows", () => {
         coverImageFileId: null,
         galleryImageFileIds: [],
         videoFileId: null,
+        priceMin: 888000,
+        priceMax: 999000,
         maxFlightTimeMinutes: 40,
         maxRangeKilometers: 28,
         maxSpeedKph: 70,
@@ -270,21 +278,34 @@ describe.sequential("content closure flows", () => {
         status: string;
         approvedModelId: string | null;
         approvedModelSlug: string | null;
+        priceMin: number | null;
+        priceMax: number | null;
         brand: { id: string; name: string } | null;
       };
     };
     expect(approved.item.status).toBe("approved");
     expect(approved.item.approvedModelId).toBeTruthy();
     expect(approved.item.approvedModelSlug).toBeTruthy();
+    expect(approved.item.priceMin).toBe(888000);
+    expect(approved.item.priceMax).toBe(999000);
     expect(approved.item.brand?.id).toBe(approvedBrandId);
     expect(approved.item.brand?.name).toBe("Sky Labs");
 
     const modelsAfterApprove = (await (await app.request(API_ROUTES.models.list, { method: "GET" })).json()) as {
-      items: Array<{ name: string; brand: { name: string } }>;
+      items: Array<{
+        name: string;
+        priceMin: number | null;
+        priceMax: number | null;
+        brand: { name: string };
+      }>;
     };
     expect(
       modelsAfterApprove.items.some(
-        (item) => item.name === "Sky Weaver X2" && item.brand.name === "Sky Labs"
+        (item) =>
+          item.name === "Sky Weaver X2" &&
+          item.brand.name === "Sky Labs" &&
+          item.priceMin === 888000 &&
+          item.priceMax === 999000
       )
     ).toBe(true);
   });
@@ -391,6 +412,8 @@ describe.sequential("content closure flows", () => {
         coverImageFileId: null,
         galleryImageFileIds: [],
         videoFileId: null,
+        priceMin: 12000,
+        priceMax: 15000,
         maxFlightTimeMinutes: 36,
         maxRangeKilometers: 18,
         maxSpeedKph: 58,
@@ -417,10 +440,17 @@ describe.sequential("content closure flows", () => {
     });
     expect(approveResponse.status).toBe(200);
     const approved = (await approveResponse.json()) as {
-      item: { status: string; approvedModelId: string | null };
+      item: {
+        status: string;
+        approvedModelId: string | null;
+        priceMin: number | null;
+        priceMax: number | null;
+      };
     };
     expect(approved.item.status).toBe("approved");
     expect(approved.item.approvedModelId).toBeTruthy();
+    expect(approved.item.priceMin).toBe(12000);
+    expect(approved.item.priceMax).toBe(15000);
     const firstApprovedModelId = approved.item.approvedModelId!;
 
     const rejectReason = "参数信息需要补充后再重新提交";
@@ -490,6 +520,8 @@ describe.sequential("content closure flows", () => {
         coverImageFileId: null,
         galleryImageFileIds: [],
         videoFileId: null,
+        priceMin: 18000,
+        priceMax: 21000,
         maxFlightTimeMinutes: 40,
         maxRangeKilometers: 22,
         maxSpeedKph: 61,
@@ -515,9 +547,30 @@ describe.sequential("content closure flows", () => {
     });
     expect(reapproveResponse.status).toBe(200);
     const reapproved = (await reapproveResponse.json()) as {
-      item: { status: string; approvedModelId: string | null };
+      item: {
+        status: string;
+        approvedModelId: string | null;
+        approvedModelSlug: string | null;
+        priceMin: number | null;
+        priceMax: number | null;
+      };
     };
     expect(reapproved.item.status).toBe("approved");
     expect(reapproved.item.approvedModelId).toBe(firstApprovedModelId);
+    expect(reapproved.item.priceMin).toBe(18000);
+    expect(reapproved.item.priceMax).toBe(21000);
+
+    const reapprovedModelDetailResponse = await app.request(
+      API_ROUTES.models.detail(reapproved.item.approvedModelSlug!),
+      {
+        method: "GET"
+      }
+    );
+    expect(reapprovedModelDetailResponse.status).toBe(200);
+    const reapprovedModelDetail = (await reapprovedModelDetailResponse.json()) as {
+      item: { priceMin: number | null; priceMax: number | null };
+    };
+    expect(reapprovedModelDetail.item.priceMin).toBe(18000);
+    expect(reapprovedModelDetail.item.priceMax).toBe(21000);
   });
 });

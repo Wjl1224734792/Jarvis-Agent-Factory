@@ -218,6 +218,8 @@ export const aircraftModelsService = {
     powerType: string;
     summary: string | null;
     description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
@@ -235,10 +237,12 @@ export const aircraftModelsService = {
       brandId: string;
       ownerId?: string | null;
       sourceSubmissionId?: string | null;
-      powerType: string;
-      summary: string | null;
-      description: string | null;
-      maxFlightTimeMinutes: number | null;
+    powerType: string;
+    summary: string | null;
+    description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
+    maxFlightTimeMinutes: number | null;
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
       takeoffWeightGrams: number | null;

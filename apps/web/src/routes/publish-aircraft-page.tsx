@@ -59,6 +59,8 @@ export function PublishAircraftPage() {
   const [brandKeyword, setBrandKeyword] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
+  const [priceMin, setPriceMin] = useState("");
+  const [priceMax, setPriceMax] = useState("");
   const [maxFlightTimeMinutes, setMaxFlightTimeMinutes] = useState("");
   const [maxRangeKilometers, setMaxRangeKilometers] = useState("");
   const [maxSpeedKph, setMaxSpeedKph] = useState("");
@@ -111,6 +113,8 @@ export function PublishAircraftPage() {
     setSelectedPowerType(item.powerType);
     setSummary(item.summary ?? "");
     setDescription(item.description ?? "");
+    setPriceMin(item.priceMin?.toString() ?? "");
+    setPriceMax(item.priceMax?.toString() ?? "");
     setMaxFlightTimeMinutes(item.parameters.maxFlightTimeMinutes?.toString() ?? "");
     setMaxRangeKilometers(item.parameters.maxRangeKilometers?.toString() ?? "");
     setMaxSpeedKph(item.parameters.maxSpeedKph?.toString() ?? "");
@@ -401,6 +405,20 @@ export function PublishAircraftPage() {
           <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="text-base font-semibold text-foreground">参数</div>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Input
+                  inputMode="numeric"
+                  onChange={(event) => setPriceMin(event.target.value)}
+                  placeholder="最低价（元）"
+                  value={priceMin}
+                />
+                <Input
+                  inputMode="numeric"
+                  onChange={(event) => setPriceMax(event.target.value)}
+                  placeholder="最高价（元）"
+                  value={priceMax}
+                />
+              </div>
               <div className="grid gap-3 md:grid-cols-4">
                 <Input
                   inputMode="numeric"
@@ -474,7 +492,26 @@ export function PublishAircraftPage() {
                   setError(null);
                   setIsSubmitting(true);
 
-                  const compatibilityPayload = {
+                  const nextPriceMin = priceMin ? Number(priceMin) : null;
+                  const nextPriceMax = priceMax ? Number(priceMax) : null;
+
+                  if ((nextPriceMin === null) !== (nextPriceMax === null)) {
+                    setError("请同时填写最低价和最高价，或都留空。");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  if (
+                    nextPriceMin !== null &&
+                    nextPriceMax !== null &&
+                    nextPriceMin > nextPriceMax
+                  ) {
+                    setError("最低价不能高于最高价。");
+                    setIsSubmitting(false);
+                    return;
+                  }
+
+                  const submissionPayload = {
                     categoryId: selectedCategoryId,
                     brandId: selectedBrandId || null,
                     proposedBrandName: null,
@@ -486,6 +523,8 @@ export function PublishAircraftPage() {
                     coverImageFileId: uploadedVideo ? null : uploadedImages[0]?.id ?? null,
                     galleryImageFileIds: [],
                     videoFileId: uploadedVideo?.id ?? null,
+                    priceMin: nextPriceMin,
+                    priceMax: nextPriceMax,
                     maxFlightTimeMinutes: maxFlightTimeMinutes ? Number(maxFlightTimeMinutes) : null,
                     maxRangeKilometers: maxRangeKilometers ? Number(maxRangeKilometers) : null,
                     maxSpeedKph: maxSpeedKph ? Number(maxSpeedKph) : null,
@@ -495,9 +534,9 @@ export function PublishAircraftPage() {
                   const request = editId
                     ? apiClient.updateAircraftSubmission(
                         editId,
-                        compatibilityPayload as Parameters<typeof apiClient.updateAircraftSubmission>[1]
+                        submissionPayload as Parameters<typeof apiClient.updateAircraftSubmission>[1]
                       )
-                    : apiClient.createAircraftSubmission(compatibilityPayload);
+                    : apiClient.createAircraftSubmission(submissionPayload);
 
                   void request
                     .then((payload) => {
@@ -548,6 +587,15 @@ export function PublishAircraftPage() {
                   {
                     label: "动力",
                     value: powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"
+                  },
+                  {
+                    label: "价格",
+                    value:
+                      priceMin && priceMax
+                        ? Number(priceMin) === Number(priceMax)
+                          ? `¥${Number(priceMin).toLocaleString("zh-CN")}`
+                          : `¥${Number(priceMin).toLocaleString("zh-CN")} - ¥${Number(priceMax).toLocaleString("zh-CN")}`
+                        : "未填写"
                   }
                 ].map((item) => (
                   <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3" key={item.label}>

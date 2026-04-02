@@ -129,6 +129,8 @@ describe("models flows", () => {
       total: number;
       items: Array<{
         slug: string;
+        priceMin: number | null;
+        priceMax: number | null;
         reviewSummary: { totalReviews: number };
         ratingSummary?: unknown;
       }>;
@@ -136,6 +138,8 @@ describe("models flows", () => {
 
     expect(payload.total).toBeGreaterThan(0);
     expect(payload.items.some((item) => item.slug === "mini-4-pro")).toBe(true);
+    expect(payload.items.find((item) => item.slug === "mini-4-pro")?.priceMin).toBe(4999);
+    expect(payload.items.find((item) => item.slug === "mini-4-pro")?.priceMax).toBe(6999);
     expect(payload.items[0]?.reviewSummary.totalReviews).toBeGreaterThanOrEqual(0);
     expect(payload.items[0] && "ratingSummary" in payload.items[0]).toBe(false);
   });
@@ -149,6 +153,8 @@ describe("models flows", () => {
     const payload = (await response.json()) as {
       item: {
         slug: string;
+        priceMin: number | null;
+        priceMax: number | null;
         reviewSummary: { totalReviews: number };
         ratingSummary?: unknown;
         parameters: { maxFlightTimeMinutes: number | null };
@@ -166,6 +172,8 @@ describe("models flows", () => {
     };
 
     expect(payload.item.slug).toBe("mini-4-pro");
+    expect(payload.item.priceMin).toBe(4999);
+    expect(payload.item.priceMax).toBe(6999);
     expect(payload.item.parameters.maxFlightTimeMinutes).toBe(45);
     expect(payload.item.reviewSummary.totalReviews).toBeGreaterThanOrEqual(0);
     expect("ratingSummary" in payload.item).toBe(false);
@@ -324,6 +332,8 @@ describe("models flows", () => {
         powerType: "electric",
         summary: "Compact tiltrotor for logistics tests",
         description: "Used to validate admin model management flow",
+        priceMin: 1200000,
+        priceMax: 1500000,
         maxFlightTimeMinutes: 25,
         maxRangeKilometers: 35,
         maxSpeedKph: 130,
@@ -333,8 +343,12 @@ describe("models flows", () => {
     });
 
     expect(modelResponse.status).toBe(200);
-    const modelPayload = (await modelResponse.json()) as { item: { slug: string } };
+    const modelPayload = (await modelResponse.json()) as {
+      item: { slug: string; priceMin: number | null; priceMax: number | null };
+    };
     expect(modelPayload.item.slug).toBe("alia-250");
+    expect(modelPayload.item.priceMin).toBe(1200000);
+    expect(modelPayload.item.priceMax).toBe(1500000);
     expect(categoryPayload.item.sortOrder).toBe(5);
   });
 

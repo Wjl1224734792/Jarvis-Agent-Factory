@@ -1,3 +1,18 @@
-export function formatModelMetric(value: number | null, formatter: (input: number) => string) {
+export function formatModelMetric(
+  value: number | null,
+  formatter: (input: number) => string
+) {
   return value === null ? "未公开" : formatter(value);
+}
+
+export function formatModelPriceRange(priceMin: number | null, priceMax: number | null) {
+  if (priceMin === null || priceMax === null) {
+    return null;
+  }
+
+  if (priceMin === priceMax) {
+    return `¥${priceMin.toLocaleString("zh-CN")}`;
+  }
+
+  return `¥${priceMin.toLocaleString("zh-CN")} - ¥${priceMax.toLocaleString("zh-CN")}`;
 }

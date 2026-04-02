@@ -1,9 +1,9 @@
-import { createClient } from "redis";
+import { createClient, type RedisClientType } from "redis";
 
 const redisUrl =
   process.env.REDIS_URL?.trim() || "redis://:qwertyuiop@localhost:6379/0";
 
-export const redis = createClient({ url: redisUrl });
+export const redis: RedisClientType = createClient({ url: redisUrl });
 
 let connected = false;
 

@@ -80,6 +80,13 @@ function getContentMeta(item: ContentItem) {
         title: item.title,
         summary: item.description
       };
+    case "rating-target":
+      return {
+        label: "评分对象",
+        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
+        title: item.title,
+        summary: item.summary ?? item.rankingTitle
+      };
     case "aircraft":
       return {
         label: "飞行器投稿",

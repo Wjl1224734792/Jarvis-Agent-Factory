@@ -20,6 +20,8 @@ function selection() {
     powerType: aircraftSubmissionsTable.powerType,
     summary: aircraftSubmissionsTable.summary,
     description: aircraftSubmissionsTable.description,
+    priceMin: aircraftSubmissionsTable.priceMin,
+    priceMax: aircraftSubmissionsTable.priceMax,
     rejectionReason: aircraftSubmissionsTable.rejectionReason,
     coverImageFileId: aircraftSubmissionsTable.coverImageFileId,
     galleryImageFileIds: aircraftSubmissionsTable.galleryImageFileIds,
@@ -64,6 +66,8 @@ export const aircraftSubmissionsRepo = {
     powerType: string;
     summary: string | null;
     description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
     rejectionReason?: string | null;
     coverImageFileId: string | null;
     galleryImageFileIds: string;
@@ -146,6 +150,8 @@ export const aircraftSubmissionsRepo = {
       powerType: string;
       summary: string | null;
       description: string | null;
+      priceMin: number | null;
+      priceMax: number | null;
       rejectionReason?: string | null;
       coverImageFileId: string | null;
       galleryImageFileIds: string;

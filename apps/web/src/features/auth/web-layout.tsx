@@ -29,6 +29,7 @@ import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
 import { useAuthStore } from "./auth-store";
 import { AuthRequiredDialog } from "./auth-required-dialog";
 import { useLoginPrompt } from "./use-login-prompt";
+import { shouldFetchNotifications } from "./notification-state";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
 import { useNotifications } from "./use-notifications";
 import { UserMenu } from "./user-menu";
@@ -154,12 +155,15 @@ export function WebLayout() {
 
   const location = useLocation();
   const authStatus = useAuthStore((state) => state.status);
+  const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
   const promptLogin = useLoginPrompt();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
-  const notificationsQuery = useNotifications(authStatus === "authenticated");
+  const notificationsQuery = useNotifications(
+    shouldFetchNotifications(authStatus, isAuthBootstrapped)
+  );
   const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
 
   useEffect(() => {

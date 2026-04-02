@@ -54,6 +54,8 @@ export const aircraftModelsRepo = {
         slug: aircraftModelsTable.slug,
         name: aircraftModelsTable.name,
         summary: aircraftModelsTable.summary,
+        priceMin: aircraftModelsTable.priceMin,
+        priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
@@ -100,6 +102,8 @@ export const aircraftModelsRepo = {
         name: aircraftModelsTable.name,
         summary: aircraftModelsTable.summary,
         description: aircraftModelsTable.description,
+        priceMin: aircraftModelsTable.priceMin,
+        priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
@@ -271,6 +275,8 @@ export const aircraftModelsRepo = {
     powerType: string;
     summary: string | null;
     description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
@@ -290,6 +296,8 @@ export const aircraftModelsRepo = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
+      priceMin: input.priceMin,
+      priceMax: input.priceMax,
       maxFlightTimeMinutes: input.maxFlightTimeMinutes,
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
@@ -311,6 +319,8 @@ export const aircraftModelsRepo = {
       powerType: string;
       summary: string | null;
       description: string | null;
+      priceMin: number | null;
+      priceMax: number | null;
       maxFlightTimeMinutes: number | null;
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
@@ -330,6 +340,8 @@ export const aircraftModelsRepo = {
         powerType: input.powerType,
         summary: input.summary,
         description: input.description,
+        priceMin: input.priceMin,
+        priceMax: input.priceMax,
         maxFlightTimeMinutes: input.maxFlightTimeMinutes,
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
@@ -348,6 +360,8 @@ export const aircraftModelsRepo = {
         name: aircraftModelsTable.name,
         summary: aircraftModelsTable.summary,
         description: aircraftModelsTable.description,
+        priceMin: aircraftModelsTable.priceMin,
+        priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,

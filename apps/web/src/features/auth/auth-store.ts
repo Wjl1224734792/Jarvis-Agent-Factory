@@ -12,10 +12,12 @@ type AuthStore = {
   status: AuthStatus;
   user: UserSummary | null;
   error: string | null;
+  isBootstrapped: boolean;
   setLoading: () => void;
   setAuthenticated: (user: UserSummary) => void;
   setAnonymous: () => void;
   setError: (message: string | null) => void;
+  setBootstrapped: () => void;
 };
 
 const persistedState = readPersistedAuthState();
@@ -24,6 +26,7 @@ export const useAuthStore = create<AuthStore>((set) => ({
   status: persistedState?.user ? "authenticated" : "idle",
   user: persistedState?.user ?? null,
   error: null,
+  isBootstrapped: false,
   setLoading: () => {
     set((state) => ({
       status: state.user ? state.status : "loading",
@@ -48,6 +51,11 @@ export const useAuthStore = create<AuthStore>((set) => ({
   setError: (message) => {
     set({
       error: message
+    });
+  },
+  setBootstrapped: () => {
+    set({
+      isBootstrapped: true
     });
   }
 }));

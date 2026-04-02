@@ -1,4 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
+import type { ModelDetail } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   ArrowLeftIcon,
@@ -20,7 +21,7 @@ import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { getAvatarImage, getModelGallery, getModelImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
-import { formatModelMetric } from "./model-detail-helpers";
+import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";
 
 const powerTypeLabels = {
@@ -86,7 +87,7 @@ export function ModelDetailPage() {
     );
   }
 
-  const item = detailQuery.data?.item;
+  const item = detailQuery.data?.item as ModelDetail | undefined;
 
   if (!item) {
     return (
@@ -100,6 +101,7 @@ export function ModelDetailPage() {
   const gallery = getModelGallery(item.slug, item.powerType, 4);
   const hotModels = hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
   const modelSlug = item.slug;
+  const priceLabel = formatModelPriceRange(item.priceMin ?? null, item.priceMax ?? null);
   const metrics = [
     formatMetric("续航", item.parameters.maxFlightTimeMinutes, (value) => `${value} 分钟`),
     formatMetric("极速", item.parameters.maxSpeedKph, (value) => `${value} km/h`),
@@ -114,6 +116,7 @@ export function ModelDetailPage() {
         ["品牌", item.brand.name],
         ["分类", item.category.name],
         ["动力", powerTypeLabels[item.powerType]],
+        ["价格", priceLabel ?? "未公开"],
         ["状态", item.isPublished ? "已发布" : "未发布"]
       ]
     },
@@ -173,6 +176,9 @@ export function ModelDetailPage() {
               <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
                 {item.name}
               </div>
+              {priceLabel ? (
+                <div className="text-base font-semibold text-primary">{priceLabel}</div>
+              ) : null}
               <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
                 {item.description ?? item.summary ?? "查看参数、图集与社区评论。"}
               </p>

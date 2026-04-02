@@ -20,6 +20,18 @@ function submissionStatusLabel(status: SubmissionRecord["status"]) {
   }
 }
 
+function formatPriceRange(priceMin: number | null, priceMax: number | null) {
+  if (priceMin === null || priceMax === null) {
+    return "未填写";
+  }
+
+  if (priceMin === priceMax) {
+    return `¥${priceMin.toLocaleString("zh-CN")}`;
+  }
+
+  return `¥${priceMin.toLocaleString("zh-CN")} - ¥${priceMax.toLocaleString("zh-CN")}`;
+}
+
 export function AircraftSubmissionsPage() {
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
@@ -167,6 +179,13 @@ export function AircraftSubmissionsPage() {
               title: "摘要"
             },
             {
+              key: "price",
+              render: (_, record: SubmissionRecord) =>
+                formatPriceRange(record.priceMin ?? null, record.priceMax ?? null),
+              title: "价格",
+              width: 180
+            },
+            {
               key: "author",
               render: (_, record: SubmissionRecord) => record.author.displayName,
               title: "投稿人",
@@ -267,6 +286,12 @@ export function AircraftSubmissionsPage() {
               <span>{detailQuery.data.item.author.displayName}</span>
             </div>
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.modelName}</h3>
+            <div className="admin-detail-sheet__meta">
+              <span>{formatPriceRange(detailQuery.data.item.priceMin ?? null, detailQuery.data.item.priceMax ?? null)}</span>
+              <span>
+                {detailQuery.data.item.brand?.name ?? detailQuery.data.item.proposedBrandName ?? "待补品牌"}
+              </span>
+            </div>
             <div className="admin-detail-sheet__body">
               <p>{detailQuery.data.item.description ?? detailQuery.data.item.summary ?? "暂无详细描述"}</p>
             </div>

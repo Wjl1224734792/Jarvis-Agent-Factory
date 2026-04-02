@@ -9,6 +9,7 @@ export function useBootstrapAuth() {
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setAnonymous = useAuthStore((state) => state.setAnonymous);
   const setError = useAuthStore((state) => state.setError);
+  const setBootstrapped = useAuthStore((state) => state.setBootstrapped);
 
   useEffect(() => {
     if (hasBootstrapped.current) {
@@ -25,14 +26,17 @@ export function useBootstrapAuth() {
       .then((user) => {
         if (user) {
           setAuthenticated(user);
+          setBootstrapped();
           return;
         }
 
         setAnonymous();
+        setBootstrapped();
       })
       .catch((error: unknown) => {
         setAnonymous();
-        setError(error instanceof Error ? error.message : "身份恢复失败");
+        setError(error instanceof Error ? error.message : "Identity bootstrap failed");
+        setBootstrapped();
       });
-  }, [setAnonymous, setAuthenticated, setError, setLoading, status]);
+  }, [setAnonymous, setAuthenticated, setBootstrapped, setError, setLoading, status]);
 }

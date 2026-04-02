@@ -1,6 +1,33 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
 
+const priceValueSchema = z.number().int().nonnegative().nullable();
+
+function validatePriceRange(
+  input: { priceMin: number | null; priceMax: number | null },
+  context: z.RefinementCtx
+) {
+  const hasMin = input.priceMin !== null;
+  const hasMax = input.priceMax !== null;
+
+  if (hasMin !== hasMax) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Price range requires both priceMin and priceMax.",
+      path: [hasMin ? "priceMax" : "priceMin"]
+    });
+    return;
+  }
+
+  if (hasMin && hasMax && input.priceMin! > input.priceMax!) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "priceMin cannot be greater than priceMax.",
+      path: ["priceMin"]
+    });
+  }
+}
+
 export const aircraftCategorySchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),
@@ -42,6 +69,8 @@ export const modelListItemSchema = z.object({
   slug: z.string().min(1),
   name: z.string().min(1),
   summary: z.string().nullable(),
+  priceMin: priceValueSchema,
+  priceMax: priceValueSchema,
   powerType: powerTypeSchema,
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
@@ -60,7 +89,7 @@ export const modelListItemSchema = z.object({
     name: true,
     logoUrl: true
   })
-});
+}).superRefine(validatePriceRange);
 
 export const modelParameterSchema = z.object({
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
@@ -69,7 +98,7 @@ export const modelParameterSchema = z.object({
   takeoffWeightGrams: z.number().nonnegative().nullable()
 });
 
-export const modelDetailSchema = modelListItemSchema.extend({
+export const modelDetailSchema = modelListItemSchema.safeExtend({
   description: z.string().nullable(),
   isPublished: z.boolean(),
   ownerId: z.string().min(1).nullable().optional(),
@@ -223,12 +252,14 @@ export const adminModelInputSchema = z.object({
   powerType: powerTypeSchema,
   summary: z.string().nullable(),
   description: z.string().nullable(),
+  priceMin: priceValueSchema,
+  priceMax: priceValueSchema,
   maxFlightTimeMinutes: z.number().nonnegative().nullable(),
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
   takeoffWeightGrams: z.number().nonnegative().nullable(),
   isPublished: z.boolean().default(true)
-});
+}).superRefine(validatePriceRange);
 
 export const adminModelResponseSchema = z.object({
   item: modelDetailSchema

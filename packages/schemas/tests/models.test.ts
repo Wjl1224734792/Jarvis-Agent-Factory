@@ -21,14 +21,16 @@ describe("models contract", () => {
     expect(payload.keyword).toBe("pro");
   });
 
-  it("parses list response payload", () => {
+  it("parses list response payload with price range", () => {
     const payload = modelListResponseSchema.parse({
       items: [
         {
           id: "model_1",
           slug: "mini-4-pro",
           name: "DJI Mini 4 Pro",
-          summary: "轻量级航拍无人机",
+          summary: "Compact and stable flight model.",
+          priceMin: 4999,
+          priceMax: 6999,
           powerType: "electric",
           reviewSummary: {
             totalReviews: 12
@@ -36,7 +38,7 @@ describe("models contract", () => {
           category: {
             id: "cat_1",
             slug: "drone",
-            name: "无人机"
+            name: "Drone"
           },
           brand: {
             id: "brand_1",
@@ -52,7 +54,7 @@ describe("models contract", () => {
           {
             id: "cat_1",
             slug: "drone",
-            name: "无人机",
+            name: "Drone",
             sortOrder: 1,
             isEnabled: true
           }
@@ -73,16 +75,20 @@ describe("models contract", () => {
     });
 
     expect(payload.items[0]?.slug).toBe("mini-4-pro");
+    expect(payload.items[0]?.priceMin).toBe(4999);
+    expect(payload.items[0]?.priceMax).toBe(6999);
   });
 
-  it("parses detail response and admin model input", () => {
+  it("parses detail response and admin model input with price range", () => {
     const detail = modelDetailResponseSchema.parse({
       item: {
         id: "model_1",
         slug: "mini-4-pro",
         name: "DJI Mini 4 Pro",
-        summary: "轻量级航拍无人机",
-        description: "适合轻量化航拍场景。",
+        summary: "Compact and stable flight model.",
+        description: "Suitable for travel and everyday aerial shooting.",
+        priceMin: 4999,
+        priceMax: 6999,
         powerType: "electric",
         isPublished: true,
         reviewSummary: {
@@ -91,7 +97,7 @@ describe("models contract", () => {
         category: {
           id: "cat_1",
           slug: "drone",
-          name: "无人机"
+          name: "Drone"
         },
         brand: {
           id: "brand_1",
@@ -124,8 +130,10 @@ describe("models contract", () => {
       categoryId: "cat_1",
       brandId: "brand_1",
       powerType: "electric",
-      summary: "轻量级航拍无人机",
-      description: "适合轻量化航拍场景。",
+      summary: "Compact and stable flight model.",
+      description: "Suitable for travel and everyday aerial shooting.",
+      priceMin: 4999,
+      priceMax: 6999,
       maxFlightTimeMinutes: 45,
       maxRangeKilometers: 18,
       maxSpeedKph: 58,
@@ -137,5 +145,28 @@ describe("models contract", () => {
     expect(detail.item.interactionSummary.interestCount).toBe(5);
     expect(adminInput.brandId).toBe("brand_1");
     expect(detail.item.brand.logoUrl).toContain("dji.png");
+    expect(detail.item.priceMin).toBe(4999);
+    expect(detail.item.priceMax).toBe(6999);
+  });
+
+  it("rejects invalid model price ranges", () => {
+    expect(() =>
+      adminModelInputSchema.parse({
+        slug: "mini-4-pro",
+        name: "DJI Mini 4 Pro",
+        categoryId: "cat_1",
+        brandId: "brand_1",
+        powerType: "electric",
+        summary: null,
+        description: null,
+        priceMin: 6999,
+        priceMax: 4999,
+        maxFlightTimeMinutes: null,
+        maxRangeKilometers: null,
+        maxSpeedKph: null,
+        takeoffWeightGrams: null,
+        isPublished: true
+      })
+    ).toThrow(/price/i);
   });
 });

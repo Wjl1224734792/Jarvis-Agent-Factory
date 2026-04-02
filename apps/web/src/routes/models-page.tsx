@@ -1,5 +1,10 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import type { AircraftCategory, Brand, ModelListItem, PowerType } from "@feijia/schemas";
+import type {
+  AircraftCategory,
+  Brand,
+  ModelListItem,
+  PowerType
+} from "@feijia/schemas";
 import { SearchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -14,6 +19,7 @@ import { SitePage } from "@/components/site-shell";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
+import { formatModelPriceRange } from "./model-detail-helpers";
 import {
   buildModelFilterSearchParams,
   readModelFilterParams,
@@ -76,7 +82,9 @@ function FilterSection(props: {
 }) {
   return (
     <div
-      className={`space-y-2.5 border border-border/80 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}
+      className={`space-y-2.5 border border-border/80 bg-white ${
+        props.compact ? "px-3 py-3" : "px-4 py-4"
+      }`}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">{props.title}</div>
@@ -102,13 +110,17 @@ function FilterSection(props: {
           <button
             className={cn(
               "flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition",
-              props.activeSlugs.length === 0 ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
+              props.activeSlugs.length === 0
+                ? "bg-primary/8 text-primary"
+                : "hover:bg-accent/28"
             )}
             onClick={props.onClear}
             type="button"
           >
             <span>全部</span>
-            {props.activeSlugs.length === 0 ? <span className="text-[0.72rem]">当前</span> : null}
+            {props.activeSlugs.length === 0 ? (
+              <span className="text-[0.72rem]">当前</span>
+            ) : null}
           </button>
 
           {props.items.map((item) => {
@@ -153,7 +165,9 @@ function PowerSection(props: {
 }) {
   return (
     <div
-      className={`space-y-2.5 border border-border/80 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}
+      className={`space-y-2.5 border border-border/80 bg-white ${
+        props.compact ? "px-3 py-3" : "px-4 py-4"
+      }`}
     >
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">动力</div>
@@ -189,6 +203,8 @@ function PowerSection(props: {
 }
 
 function ModelCard({ model, index }: { model: WebModelListItem; index: number }) {
+  const priceLabel = formatModelPriceRange(model.priceMin ?? null, model.priceMax ?? null);
+
   return (
     <Link
       className="group block min-w-0 border border-border/80 bg-white px-2.5 py-2.5 transition hover:border-primary/24 hover:bg-sky-50/34"
@@ -211,8 +227,9 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
         <div className="line-clamp-2 text-[0.92rem] leading-5 font-semibold text-foreground">
           {model.name}
         </div>
+        {priceLabel ? <div className="text-[0.78rem] font-semibold text-primary">{priceLabel}</div> : null}
         <div className="line-clamp-2 text-[0.8rem] leading-5 text-muted-foreground">
-          {model.summary ?? `${model.category.name} · ${powerTypeLabels[model.powerType]}`}
+          {model.summary ?? `${model.category.name} / ${powerTypeLabels[model.powerType]}`}
         </div>
       </div>
     </Link>
@@ -348,7 +365,7 @@ export function ModelsPage() {
               <div className="space-y-1">
                 <div className="text-sm font-medium text-foreground">机型列表</div>
                 <div className="text-[0.78rem] leading-5 text-muted-foreground">
-                  {activeCategoryName} · {activeBrandName} · {activePowerLabel}
+                  {activeCategoryName} / {activeBrandName} / {activePowerLabel}
                 </div>
               </div>
               <div className="text-[0.72rem] text-muted-foreground">
@@ -379,19 +396,24 @@ export function ModelsPage() {
                 清空筛选
               </Button>
             </div>
-
-            <div className="text-sm text-muted-foreground">
-              左侧负责组合筛选；组内多选按并集计算，搜索关键词会和筛选结果一起收窄范围。
-            </div>
           </div>
 
           {modelsQuery.isSuccess ? (
             <div className="relative">
-              <div className={MODEL_GRID_CLASS_NAME}>
-                {modelsQuery.data.items.map((model, index) => (
-                  <ModelCard index={index} key={model.id} model={model as WebModelListItem} />
-                ))}
-              </div>
+              {modelsQuery.data.items.length > 0 ? (
+                <div className={MODEL_GRID_CLASS_NAME}>
+                  {modelsQuery.data.items.map((model, index) => (
+                    <ModelCard index={index} key={model.id} model={model as WebModelListItem} />
+                  ))}
+                </div>
+              ) : (
+                <div className="border border-border/80 bg-white px-5 py-8">
+                  <div className="text-base font-semibold text-foreground">没有匹配机型</div>
+                  <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                    可以清空部分筛选，或换一个关键词再试。
+                  </div>
+                </div>
+              )}
 
               {isGridRefreshing ? (
                 <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
@@ -423,13 +445,6 @@ export function ModelsPage() {
         <Alert variant="destructive">
           <AlertTitle>飞行器库加载失败</AlertTitle>
           <AlertDescription>{modelsQuery.error.message}</AlertDescription>
-        </Alert>
-      ) : null}
-
-      {!isGridLoading && modelsQuery.data && modelsQuery.data.items.length === 0 ? (
-        <Alert>
-          <AlertTitle>没有匹配机型</AlertTitle>
-          <AlertDescription>可以清空部分筛选，或换一个关键词再试。</AlertDescription>
         </Alert>
       ) : null}
     </SitePage>

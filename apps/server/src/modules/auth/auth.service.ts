@@ -18,6 +18,34 @@ type AppSessionResponse = {
 
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+function mapRegistrationPersistenceError(error: unknown): AuthError | null {
+  if (!(error instanceof Error)) {
+    return null;
+  }
+
+  if (
+    error.message.includes("users_phone_unique") ||
+    error.message.includes("users.phone")
+  ) {
+    return new AuthError(
+      "PHONE_ALREADY_REGISTERED",
+      "璇ユ墜鏈哄彿宸插畬鎴愭敞鍐岋紝璇风洿鎺ョ櫥褰曘€?"
+    );
+  }
+
+  if (
+    error.message.includes("users_display_name_unique") ||
+    error.message.includes("users.display_name")
+  ) {
+    return new AuthError(
+      "DISPLAY_NAME_TAKEN",
+      "璇ョ敤鎴峰悕宸茶鍗犵敤锛岃鏇存崲鍚庨噸璇曘€?"
+    );
+  }
+
+  return null;
+}
+
 function buildDeviceLabel(input: {
   explicitDeviceLabel?: string | null;
   userAgent?: string | null;
@@ -257,7 +285,7 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = await authRepo.consumePendingRegistration(
+    const pending = await authRepo.findPendingRegistration(
       input.registrationToken
     );
     if (!pending) {
@@ -286,33 +314,43 @@ export const authService = {
       );
     }
 
-    const user = await authRepo.createUserByPhoneProfile({
-      phone: pending.phone,
-      displayName: normalizedDisplayName,
-      avatarFileId: input.avatarFileId ?? null
-    });
+    try {
+      const user = await authRepo.createUserByPhoneProfile({
+        phone: pending.phone,
+        displayName: normalizedDisplayName,
+        avatarFileId: input.avatarFileId ?? null
+      });
 
-    const refreshToken = createSecretToken(32);
-    const session = await authRepo.createSession(user, "web", {
-      clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
-      userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
-      deviceLabel: buildDeviceLabel({
-        explicitDeviceLabel: metadata?.deviceLabel ?? pending.deviceLabel,
-        userAgent: metadata?.userAgent ?? pending.userAgent ?? null
-      }),
-      refreshTokenHash: hashPassword(refreshToken),
-      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
-    });
-    const summary = await authRepo.getUserSummaryBySession(session.id);
-    if (!summary) {
-      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+      const refreshToken = createSecretToken(32);
+      const session = await authRepo.createSession(user, "web", {
+        clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
+        userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
+        deviceLabel: buildDeviceLabel({
+          explicitDeviceLabel: metadata?.deviceLabel ?? pending.deviceLabel,
+          userAgent: metadata?.userAgent ?? pending.userAgent ?? null
+        }),
+        refreshTokenHash: hashPassword(refreshToken),
+        refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
+      });
+      const summary = await authRepo.getUserSummaryBySession(session.id);
+      if (!summary) {
+        throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+      }
+
+      await authRepo.deletePendingRegistration(input.registrationToken);
+
+      return {
+        sessionId: session.id,
+        refreshToken,
+        user: summary satisfies UserSummary
+      };
+    } catch (error) {
+      const mappedError = mapRegistrationPersistenceError(error);
+      if (mappedError) {
+        throw mappedError;
+      }
+      throw error;
     }
-
-    return {
-      sessionId: session.id,
-      refreshToken,
-      user: summary satisfies UserSummary
-    };
   },
   async completeAppRegistration(
     input: {
@@ -323,7 +361,7 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = await authRepo.consumePendingRegistration(
+    const pending = await authRepo.findPendingRegistration(
       input.registrationToken
     );
     if (!pending) {
@@ -352,21 +390,33 @@ export const authService = {
       );
     }
 
-    const user = await authRepo.createUserByPhoneProfile({
-      phone: pending.phone,
-      displayName: normalizedDisplayName,
-      avatarFileId: input.avatarFileId ?? null
-    });
+    try {
+      const user = await authRepo.createUserByPhoneProfile({
+        phone: pending.phone,
+        displayName: normalizedDisplayName,
+        avatarFileId: input.avatarFileId ?? null
+      });
 
-    return createAppSession(user, {
-      clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
-      userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
-      deviceLabel:
-        input.deviceLabel ??
-        metadata?.deviceLabel ??
-        pending.deviceLabel ??
-        null
-    });
+      const session = await createAppSession(user, {
+        clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
+        userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
+        deviceLabel:
+          input.deviceLabel ??
+          metadata?.deviceLabel ??
+          pending.deviceLabel ??
+          null
+      });
+
+      await authRepo.deletePendingRegistration(input.registrationToken);
+
+      return session;
+    } catch (error) {
+      const mappedError = mapRegistrationPersistenceError(error);
+      if (mappedError) {
+        throw mappedError;
+      }
+      throw error;
+    }
   },
   async suggestRegistrationDisplayName(registrationToken: string) {
     const displayName =

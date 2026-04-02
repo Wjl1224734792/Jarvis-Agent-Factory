@@ -135,7 +135,7 @@ export function RankingsPage() {
             style={{ width: 280 }}
             value={searchText}
           />
-          <Button href={ADMIN_ROUTE_PATHS.moderationRankingItems}>查看条目审核</Button>
+          <Button href={ADMIN_ROUTE_PATHS.moderationRatingTargets}>查看条目审核</Button>
           <Button href={`${APP_ROUTES.adminRankings}/new`} type="primary">
             新建官方榜单
           </Button>

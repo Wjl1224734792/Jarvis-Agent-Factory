@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Form, Input, Modal, Select, Table } from "antd";
+import { Button, Form, Input, InputNumber, Modal, Select, Table } from "antd";
 import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -21,7 +21,21 @@ type ModelFormValues = {
   powerType: "electric" | "fuel" | "hybrid" | "other";
   summary: string;
   description: string;
+  priceMin: number | null;
+  priceMax: number | null;
 };
+
+function formatPriceRange(priceMin: number | null, priceMax: number | null) {
+  if (priceMin === null || priceMax === null) {
+    return "未公开";
+  }
+
+  if (priceMin === priceMax) {
+    return `¥${priceMin.toLocaleString("zh-CN")}`;
+  }
+
+  return `¥${priceMin.toLocaleString("zh-CN")} - ¥${priceMax.toLocaleString("zh-CN")}`;
+}
 
 export function ModelsPage() {
   const categoriesQuery = useQuery({
@@ -82,6 +96,8 @@ export function ModelsPage() {
         powerType: values.powerType,
         summary: values.summary.trim() ? values.summary.trim() : null,
         description: values.description.trim() ? values.description.trim() : null,
+        priceMin: values.priceMin ?? null,
+        priceMax: values.priceMax ?? null,
         maxFlightTimeMinutes: null,
         maxRangeKilometers: null,
         maxSpeedKph: null,
@@ -113,6 +129,8 @@ export function ModelsPage() {
         powerType: values.powerType,
         summary: values.summary.trim() ? values.summary.trim() : null,
         description: values.description.trim() ? values.description.trim() : null,
+        priceMin: values.priceMin ?? null,
+        priceMax: values.priceMax ?? null,
         maxFlightTimeMinutes: null,
         maxRangeKilometers: null,
         maxSpeedKph: null,
@@ -186,6 +204,12 @@ export function ModelsPage() {
             <Form.Item label="详情描述" name="description">
               <Input placeholder="详情描述" />
             </Form.Item>
+            <Form.Item label="最低价（元）" name="priceMin">
+              <InputNumber className="w-full" min={0} precision={0} placeholder="例如 4999" />
+            </Form.Item>
+            <Form.Item label="最高价（元）" name="priceMax">
+              <InputNumber className="w-full" min={0} precision={0} placeholder="例如 6999" />
+            </Form.Item>
             <div className="admin-form-actions">
               <Button htmlType="submit" loading={isSubmitting} type="primary">
                 新增机型
@@ -227,6 +251,13 @@ export function ModelsPage() {
                 width: 100
               },
               {
+                key: "price",
+                render: (_, record: ModelRecord) =>
+                  formatPriceRange(record.priceMin ?? null, record.priceMax ?? null),
+                title: "价格",
+                width: 180
+              },
+              {
                 key: "action",
                 render: (_, record: ModelRecord) => (
                   <Button
@@ -239,7 +270,9 @@ export function ModelsPage() {
                         brandId: record.brand.id,
                         powerType: record.powerType,
                         summary: record.summary ?? "",
-                        description: ""
+                        description: "",
+                        priceMin: record.priceMin ?? null,
+                        priceMax: record.priceMax ?? null
                       });
                     }}
                     size="small"
@@ -299,6 +332,12 @@ export function ModelsPage() {
           </Form.Item>
           <Form.Item label="详情描述" name="description">
             <Input />
+          </Form.Item>
+          <Form.Item label="最低价（元）" name="priceMin">
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="最高价（元）" name="priceMax">
+            <InputNumber className="w-full" min={0} precision={0} />
           </Form.Item>
         </Form>
       </Modal>

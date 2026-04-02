@@ -228,6 +228,7 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "该手机号已注册，请直接登录。";
       case "INVALID_REGISTRATION_TOKEN":
       case "INVALID_REFRESH_TOKEN":
+      case "TOKEN_EXPIRED":
         return "登录状态已失效，请重新开始。";
       case "REGISTRATION_REQUIRED":
         return "请先完成注册。";

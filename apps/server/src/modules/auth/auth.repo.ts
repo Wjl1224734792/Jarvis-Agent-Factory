@@ -254,6 +254,26 @@ export const authRepo = {
     });
     return displayName;
   },
+  async findPendingRegistration(registrationToken: string) {
+    await ensureRedisConnected();
+    const raw = await redis.get(`reg:${registrationToken}`);
+    if (!raw) {
+      return null;
+    }
+
+    return JSON.parse(raw) as {
+      registrationToken: string;
+      phone: string;
+      suggestedDisplayName: string;
+      clientIp: string | null;
+      userAgent: string | null;
+      deviceLabel: string | null;
+    };
+  },
+  async deletePendingRegistration(registrationToken: string) {
+    await ensureRedisConnected();
+    await redis.del(`reg:${registrationToken}`);
+  },
   async consumePendingRegistration(registrationToken: string) {
     await ensureRedisConnected();
     const raw = await redis.getDel(`reg:${registrationToken}`);
@@ -380,7 +400,11 @@ export const authRepo = {
 
     const current = session[0];
     // 检查 access token 是否过期
-    if (current.revokedAt || current.accessExpiresAt.getTime() < now()) {
+    if (
+      current.revokedAt ||
+      !current.accessExpiresAt ||
+      current.accessExpiresAt.getTime() < now()
+    ) {
       return null;
     }
 
@@ -428,7 +452,7 @@ export const authRepo = {
       refreshTokenHash: current.refreshTokenHash,
       refreshExpiresAt,
       expiresAt: current.expiresAt.getTime(),
-      accessExpiresAt: current.accessExpiresAt.getTime()
+      accessExpiresAt: current.accessExpiresAt?.getTime() ?? now()
     };
   },
   async getSessionForMiddleware(
@@ -453,7 +477,7 @@ export const authRepo = {
       return "not_found";
     }
     // 只有 access token 过期
-    if (current.accessExpiresAt.getTime() < now()) {
+    if (!current.accessExpiresAt || current.accessExpiresAt.getTime() < now()) {
       return "access_expired";
     }
 

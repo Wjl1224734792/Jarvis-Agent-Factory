@@ -17,6 +17,8 @@ describe("aircraft submissions contract", () => {
       coverImageFileId: null,
       galleryImageFileIds: [],
       videoFileId: null,
+      priceMin: 2999,
+      priceMax: 4999,
       maxFlightTimeMinutes: null,
       maxRangeKilometers: null,
       maxSpeedKph: null,
@@ -25,6 +27,8 @@ describe("aircraft submissions contract", () => {
 
     expect(payload.categoryId).toBe("cat_1");
     expect(payload.proposedBrandName).toBe("New Brand");
+    expect(payload.priceMin).toBe(2999);
+    expect(payload.priceMax).toBe(4999);
 
     expect(() =>
       createAircraftSubmissionInputSchema.parse({
@@ -37,12 +41,37 @@ describe("aircraft submissions contract", () => {
         coverImageFileId: null,
         galleryImageFileIds: [],
         videoFileId: null,
+        priceMin: null,
+        priceMax: null,
         maxFlightTimeMinutes: null,
         maxRangeKilometers: null,
         maxSpeedKph: null,
         takeoffWeightGrams: null
       })
     ).toThrow();
+  });
+
+  it("rejects invalid price ranges", () => {
+    expect(() =>
+      createAircraftSubmissionInputSchema.parse({
+        categoryId: "cat_1",
+        brandId: "brand_1",
+        proposedBrandName: null,
+        modelName: "X1",
+        powerType: "electric",
+        summary: null,
+        description: null,
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null,
+        priceMin: 4999,
+        priceMax: 2999,
+        maxFlightTimeMinutes: null,
+        maxRangeKilometers: null,
+        maxSpeedKph: null,
+        takeoffWeightGrams: null
+      })
+    ).toThrow(/price/i);
   });
 
   it("exposes structured category and brand info in submission response", () => {
@@ -73,6 +102,8 @@ describe("aircraft submissions contract", () => {
         videoAsset: null,
         approvedModelId: null,
         approvedModelSlug: null,
+        priceMin: 2999,
+        priceMax: 4999,
         author: {
           id: "user_1",
           displayName: "User",
@@ -93,5 +124,7 @@ describe("aircraft submissions contract", () => {
     expect(payload.item.category.slug).toBe("drone");
     expect(payload.item.brand?.name).toBe("DJI");
     expect(payload.item.proposedBrandName).toBe("New Brand");
+    expect(payload.item.priceMin).toBe(2999);
+    expect(payload.item.priceMax).toBe(4999);
   });
 });

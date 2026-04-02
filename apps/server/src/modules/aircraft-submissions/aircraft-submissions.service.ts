@@ -57,6 +57,8 @@ async function serializeSubmission(
     powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
     summary: item.summary,
     description: item.description,
+    priceMin: item.priceMin,
+    priceMax: item.priceMax,
     rejectionReason: item.rejectionReason ?? null,
     coverImageFileId: item.coverImageFileId ?? null,
     galleryImageFileIds: parseGallery(item.galleryImageFileIds),
@@ -142,6 +144,8 @@ async function syncApprovedModelVisibility(
     powerType: "electric" | "fuel" | "hybrid" | "other";
     summary: string | null;
     description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
     maxFlightTimeMinutes: number | null;
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
@@ -164,6 +168,8 @@ async function syncApprovedModelVisibility(
     powerType: input.powerType,
     summary: input.summary,
     description: input.description,
+    priceMin: input.priceMin,
+    priceMax: input.priceMax,
     maxFlightTimeMinutes: input.maxFlightTimeMinutes,
     maxRangeKilometers: input.maxRangeKilometers,
     maxSpeedKph: input.maxSpeedKph,
@@ -182,6 +188,8 @@ export const aircraftSubmissionsService = {
     powerType: "electric" | "fuel" | "hybrid" | "other";
     summary: string | null;
     description: string | null;
+    priceMin: number | null;
+    priceMax: number | null;
     coverImageFileId: string | null;
     galleryImageFileIds: string[];
     videoFileId: string | null;
@@ -211,6 +219,8 @@ export const aircraftSubmissionsService = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
+      priceMin: input.priceMin,
+      priceMax: input.priceMax,
       rejectionReason: null,
       coverImageFileId: input.coverImageFileId,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
@@ -268,6 +278,8 @@ export const aircraftSubmissionsService = {
       powerType: "electric" | "fuel" | "hybrid" | "other";
       summary: string | null;
       description: string | null;
+      priceMin: number | null;
+      priceMax: number | null;
       coverImageFileId: string | null;
       galleryImageFileIds: string[];
       videoFileId: string | null;
@@ -306,6 +318,8 @@ export const aircraftSubmissionsService = {
       powerType: input.powerType,
       summary: input.summary,
       description: input.description,
+      priceMin: input.priceMin,
+      priceMax: input.priceMax,
       rejectionReason: null,
       coverImageFileId: input.coverImageFileId,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds),
@@ -326,6 +340,8 @@ export const aircraftSubmissionsService = {
         powerType: input.powerType,
         summary: input.summary,
         description: input.description,
+        priceMin: input.priceMin,
+        priceMax: input.priceMax,
         maxFlightTimeMinutes: input.maxFlightTimeMinutes,
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
@@ -387,6 +403,8 @@ export const aircraftSubmissionsService = {
           powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
           summary: current.summary,
           description: current.description,
+          priceMin: current.priceMin,
+          priceMax: current.priceMax,
           maxFlightTimeMinutes: current.maxFlightTimeMinutes,
           maxRangeKilometers: current.maxRangeKilometers,
           maxSpeedKph: current.maxSpeedKph,
@@ -425,6 +443,8 @@ export const aircraftSubmissionsService = {
         powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
         summary: current.summary,
         description: current.description,
+        priceMin: current.priceMin,
+        priceMax: current.priceMax,
         maxFlightTimeMinutes: current.maxFlightTimeMinutes,
         maxRangeKilometers: current.maxRangeKilometers,
         maxSpeedKph: current.maxSpeedKph,
@@ -445,6 +465,8 @@ export const aircraftSubmissionsService = {
       powerType: current.powerType,
       summary: current.summary,
       description: current.description,
+      priceMin: current.priceMin,
+      priceMax: current.priceMax,
       maxFlightTimeMinutes: current.maxFlightTimeMinutes,
       maxRangeKilometers: current.maxRangeKilometers,
       maxSpeedKph: current.maxSpeedKph,
