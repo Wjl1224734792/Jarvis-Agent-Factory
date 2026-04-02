@@ -1,5 +1,7 @@
 # AGENTS.md
 
+本仓库代理遵循本文件。通用编码规范见 `.codex/AGENTS.md`。
+
 ## 仓库预期
 
 - 保持变更紧密围绕用户请求
@@ -7,20 +9,18 @@
 - 编辑前先阅读相关代码路径
 - 引入新抽象前先复用现有模式
 
-## 全局约束
+## 项目约束
 
-- **语言**：中文（代码、文档、注释）
 - **运行时**：Bun
-- **代码质量**：ESLint + Prettier + TypeScript strict
-- **测试**：Vitest
-- **Tailwind**：仅内联类名，禁止 `@apply`
+- **测试框架**：Vitest
 - **依赖方向**：`apps` → `packages` → 独立
 
 ## 目录架构
 
 ```
 feijia/
-├── AGENTS.md              # 本文件
+├── AGENTS.md              # 本文件（项目专属）
+├── .codex/AGENTS.md       # 通用编码规范
 ├── apps/                  # 应用层
 ├── packages/              # 共享包层
 ├── docker/                # 本地基础设施
@@ -55,7 +55,7 @@ bun run db:migrate   # 执行迁移
 
 - 请求变更已实现或阻塞项已明确
 - 相关验证已运行
-- tdd 任务具备 Red → Green 可核对记录
+- TDD 任务具备 Red → Green 可核对记录
 - 重要风险和假设已记录
 
 ## 验证与评审
