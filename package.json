@@ -7,6 +7,7 @@
     "packages/*"
   ],
   "scripts": {
+    "dev": "bun run --cwd apps/server dev & bun run --cwd apps/web dev & bun run --cwd apps/admin dev",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:admin": "bun run --cwd apps/admin dev",
     "dev:server": "bun run --cwd apps/server dev",
@@ -14,10 +15,12 @@
     "db:migrate": "bun run --cwd packages/db migrate",
     "db:push": "bun run --cwd packages/db push",
     "db:seed": "bun run --cwd packages/db seed",
+    "db:clear": "bun run --cwd packages/db clear",
     "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd packages/schemas typecheck && bun run --cwd packages/http-client typecheck && bun run --cwd packages/db typecheck && bun run --cwd apps/server typecheck && bun run --cwd apps/web typecheck && bun run --cwd apps/admin typecheck",
+    "lint": "bun run --cwd packages/shared lint && bun run --cwd packages/schemas lint && bun run --cwd packages/http-client lint && bun run --cwd packages/db lint && bun run --cwd apps/server lint && bun run --cwd apps/web lint && bun run --cwd apps/admin lint",
     "test": "vitest run --config ./vitest.config.ts packages/schemas/tests/**/*.test.ts packages/http-client/tests/**/*.test.ts apps/web/tests/**/*.test.ts apps/admin/tests/**/*.test.ts && bun run --cwd apps/server test",
-    "build": "bun run --cwd packages/shared build && bun run --cwd packages/schemas build && bun run --cwd packages/http-client build && bun run --cwd packages/db build && bun run --cwd apps/server build && bun run --cwd apps/web build && bun run --cwd apps/admin build",
-    "check": "bun run test && bun run typecheck && bun run build"
+    "build": "bun run --cwd packages/shared build && bun run --cwd packages/schemas build && bun run --cwd packages/http-client build && bun run --cwd apps/server build && bun run --cwd apps/web build && bun run --cwd apps/admin build",
+    "check": "bun run lint && bun run test && bun run typecheck && bun run build"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
