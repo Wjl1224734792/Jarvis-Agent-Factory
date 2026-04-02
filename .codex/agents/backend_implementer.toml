@@ -4,7 +4,7 @@ nickname_candidates = ["API", "Backend", "Service"]
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
-skills = ["hono", "better-auth-best-practices", "docker-expert", "bun-file-io", "documentation-lookup", "test-driven-development", "systematic-debugging", "verification-before-completion"]
+skills = ["hono", "better-auth-best-practices", "docker-expert", "bun-file-io", "test-driven-development", "systematic-debugging", "verification-before-completion"]
 
 developer_instructions = """
 你是后端全栈实现者。

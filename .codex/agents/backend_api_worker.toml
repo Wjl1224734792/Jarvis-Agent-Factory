@@ -4,7 +4,7 @@ nickname_candidates = ["API-Worker", "Route", "Handler"]
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["hono", "documentation-lookup", "docker-expert"]
+skills = ["hono", "docker-expert"]
 
 developer_instructions = """
 你是后端 API 专项工作者。

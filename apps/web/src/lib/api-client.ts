@@ -89,8 +89,47 @@ export function mapWebApiError(error: unknown) {
   return new Error("操作失败，请稍后重试。");
 }
 
+let refreshingPromise: Promise<boolean> | null = null;
+
+function refreshSession(): Promise<boolean> {
+  if (!refreshingPromise) {
+    refreshingPromise = fetch(`${resolvedBaseUrl}/auth/web/refresh`, {
+      method: "POST",
+      credentials: "include"
+    })
+      .then((r) => r.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshingPromise = null;
+      });
+  }
+  return refreshingPromise;
+}
+
+async function fetchWithAutoRefresh(
+  input: RequestInfo,
+  init: RequestInit
+): Promise<Response> {
+  const response = await fetch(input, init);
+
+  if (response.status === 401) {
+    const clone = response.clone();
+    const payload = (await clone.json().catch(() => null)) as {
+      code?: string;
+    } | null;
+    if (payload?.code === "TOKEN_EXPIRED") {
+      const ok = await refreshSession();
+      if (ok) {
+        return fetch(input, init);
+      }
+    }
+  }
+
+  return response;
+}
+
 async function getJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+  const response = await fetchWithAutoRefresh(`${resolvedBaseUrl}${path}`, {
     method: "GET",
     credentials: "include"
   });
@@ -99,10 +138,11 @@ async function getJson<T>(path: string): Promise<T> {
 }
 
 async function postJson<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+  const response = await fetchWithAutoRefresh(`${resolvedBaseUrl}${path}`, {
     method: "POST",
     credentials: "include",
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    headers:
+      body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
 
@@ -110,10 +150,11 @@ async function postJson<T>(path: string, body?: unknown): Promise<T> {
 }
 
 async function putJson<T>(path: string, body?: unknown): Promise<T> {
-  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+  const response = await fetchWithAutoRefresh(`${resolvedBaseUrl}${path}`, {
     method: "PUT",
     credentials: "include",
-    headers: body === undefined ? undefined : { "content-type": "application/json" },
+    headers:
+      body === undefined ? undefined : { "content-type": "application/json" },
     body: body === undefined ? undefined : JSON.stringify(body)
   });
 
@@ -121,7 +162,7 @@ async function putJson<T>(path: string, body?: unknown): Promise<T> {
 }
 
 async function deleteJson<T>(path: string): Promise<T> {
-  const response = await fetch(`${resolvedBaseUrl}${path}`, {
+  const response = await fetchWithAutoRefresh(`${resolvedBaseUrl}${path}`, {
     method: "DELETE",
     credentials: "include"
   });

@@ -55,6 +55,7 @@ export const sessionsTable = pgTable("sessions", {
   refreshTokenHash: text("refresh_token_hash"),
   refreshExpiresAt: timestamp("refresh_expires_at", { withTimezone: true }),
   expiresAt: timestamp("expires_at", { withTimezone: true }).notNull(),
+  accessExpiresAt: timestamp("access_expires_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull()

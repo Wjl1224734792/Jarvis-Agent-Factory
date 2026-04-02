@@ -2,14 +2,16 @@ import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
-function extractCookie(setCookie: string | null): string {
-  if (!setCookie) {
-    throw new Error("missing set-cookie header");
+function extractCookies(response: Response): string {
+  const setCookies = response.headers.getSetCookie();
+  if (setCookies.length === 0) {
+    throw new Error("missing set-cookie headers");
   }
-  return setCookie.split(";")[0];
+  return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
 async function completeRegistrationIfNeeded(response: Response) {
@@ -18,7 +20,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
 
   if (payload.kind === "authenticated") {
-    return extractCookie(response.headers.get("set-cookie"));
+    return extractCookies(response);
   }
 
   const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
@@ -31,7 +33,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     })
   });
 
-  return extractCookie(completeResponse.headers.get("set-cookie"));
+  return extractCookies(completeResponse);
 }
 
 async function loginUser(phone: string) {
@@ -106,6 +108,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await resetRedisForTesting();
   authRepo.resetEphemeralState();
   await resetDatabaseState();
   await seedDatabase();
@@ -268,7 +271,7 @@ describe("models flows", () => {
       })
     });
 
-    const adminCookie = extractCookie(adminLoginResponse.headers.get("set-cookie"));
+    const adminCookie = extractCookies(adminLoginResponse);
 
     const categoryResponse = await app.request(API_ROUTES.models.categories, {
       method: "POST",
@@ -344,7 +347,7 @@ describe("models flows", () => {
         password: "Admin#123"
       })
     });
-    const adminCookie = extractCookie(adminLoginResponse.headers.get("set-cookie"));
+    const adminCookie = extractCookies(adminLoginResponse);
 
     const categoriesResponse = await app.request(API_ROUTES.models.categories, {
       method: "GET"
@@ -422,18 +425,15 @@ describe("models flows", () => {
   it("supports model comments with reply, like, report, edit, delete and admin hide", async () => {
     const authorCookie = await loginUser("13800138041");
     const responderCookie = await loginUser("13800138042");
-    const adminCookie = extractCookie(
-      (
-        await app.request(API_ROUTES.auth.adminLogin, {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({
-            account: "admin",
-            password: "Admin#123"
-          })
-        })
-      ).headers.get("set-cookie")
-    );
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    const adminCookie = extractCookies(adminLoginResponse);
 
     const createResponse = await app.request("/models/mini-4-pro/comments", {
       method: "POST",

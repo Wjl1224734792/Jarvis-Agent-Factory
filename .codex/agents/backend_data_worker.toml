@@ -4,7 +4,7 @@ nickname_candidates = ["Data-Worker", "DB", "Repository"]
 model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["docker-expert", "bun-file-io", "documentation-lookup"]
+skills = ["docker-expert", "bun-file-io"]
 
 developer_instructions = """
 你是后端数据层专项工作者。

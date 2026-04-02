@@ -125,7 +125,6 @@ import {
 } from '@feijia/schemas';
 import { API_ROUTES, APP_NAME } from '@feijia/shared';
 import { z } from 'zod';
-import { SESSION_COOKIE_NAME } from '../modules/auth/auth.middleware';
 
 export const OPENAPI_DOCUMENT_PATH = '/openapi.json';
 export const API_DOCS_PATH = '/docs';
@@ -503,7 +502,7 @@ export const openApiDocument = {
       sessionCookieAuth: {
         type: 'apiKey',
         in: 'cookie',
-        name: SESSION_COOKIE_NAME,
+        name: 'feijia_access',
         description: 'Web 与管理端通过会话 Cookie 访问的鉴权方式。'
       },
       bearerAuth: {

@@ -2,13 +2,15 @@ import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@fe
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
 
-function extractCookie(setCookie: string | null): string {
-  if (!setCookie) {
-    throw new Error("missing set-cookie header");
+function extractCookies(response: Response): string {
+  const setCookies = response.headers.getSetCookie();
+  if (setCookies.length === 0) {
+    throw new Error("missing set-cookie headers");
   }
-  return setCookie.split(";")[0];
+  return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
 async function completeRegistrationIfNeeded(response: Response) {
@@ -17,7 +19,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
 
   if (payload.kind === "authenticated") {
-    return extractCookie(response.headers.get("set-cookie"));
+    return extractCookies(response);
   }
 
   const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
@@ -30,7 +32,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     })
   });
 
-  return extractCookie(completeResponse.headers.get("set-cookie"));
+  return extractCookies(completeResponse);
 }
 
 async function loginWebUser(phone: string) {
@@ -149,6 +151,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await resetRedisForTesting();
   authRepo.resetEphemeralState();
   await resetDatabaseState();
   await seedAuthDatabase();
@@ -263,7 +266,7 @@ describe("auth flows", () => {
       })
     });
     expect(completeResponse.status).toBe(200);
-    const userCookie = extractCookie(completeResponse.headers.get("set-cookie"));
+    const userCookie = extractCookies(completeResponse);
 
     const meResponse = await app.request(API_ROUTES.auth.currentUser, {
       method: "GET",
@@ -666,7 +669,7 @@ describe("auth flows", () => {
       })
     });
     expect(adminLoginResponse.status).toBe(200);
-    const adminCookie = extractCookie(adminLoginResponse.headers.get("set-cookie"));
+    const adminCookie = extractCookies(adminLoginResponse);
 
     const adminMe = await app.request(API_ROUTES.auth.adminCurrentUser, {
       method: "GET",
@@ -717,7 +720,7 @@ describe("auth flows", () => {
         account: "admin",
         password: "Admin#123"
       })
-    }).then((response) => extractCookie(response.headers.get("set-cookie")));
+    }).then((response) => extractCookies(response));
 
     const recentSessionsResponse = await app.request("/admin/auth/sessions", {
       method: "GET",
@@ -881,7 +884,8 @@ describe("auth flows", () => {
     };
     expect(refreshPayload.accessToken).toBeTruthy();
     expect(refreshPayload.refreshToken).toBeTruthy();
-    expect(refreshPayload.accessToken).not.toBe(appRegisterPayload.accessToken);
+    // 滑动续期：access token (session ID) 保持不变，只是续期了过期时间
+    expect(refreshPayload.accessToken).toBe(appRegisterPayload.accessToken);
 
     const logoutResponse = await app.request("/auth/app/logout", {
       method: "POST",

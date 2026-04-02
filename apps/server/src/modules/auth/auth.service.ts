@@ -16,7 +16,7 @@ type AppSessionResponse = {
   user: UserSummary;
 };
 
-const APP_REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
+const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function buildDeviceLabel(input: {
   explicitDeviceLabel?: string | null;
@@ -63,7 +63,7 @@ async function createAppSession(
       userAgent: metadata?.userAgent ?? null
     }),
     refreshTokenHash: hashPassword(refreshToken),
-    refreshExpiresAt: new Date(Date.now() + APP_REFRESH_TTL_MS)
+    refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
   });
   const summary = await authRepo.getUserSummaryBySession(session.id);
   if (!summary) {
@@ -91,7 +91,8 @@ export class AuthError extends Error {
       | "DISPLAY_NAME_TAKEN"
       | "PHONE_ALREADY_REGISTERED"
       | "REGISTRATION_REQUIRED"
-      | "INVALID_REGISTRATION_TOKEN",
+      | "INVALID_REGISTRATION_TOKEN"
+      | "TOKEN_EXPIRED",
     message: string
   ) {
     super(message);
@@ -99,8 +100,8 @@ export class AuthError extends Error {
 }
 
 export const authService = {
-  requestCaptchaChallenge() {
-    const captcha = authRepo.createCaptchaChallenge();
+  async requestCaptchaChallenge() {
+    const captcha = await authRepo.createCaptchaChallenge();
     return {
       challengeId: captcha.challengeId,
       imageOrText: captcha.code,
@@ -112,13 +113,16 @@ export const authService = {
     captchaChallengeId: string;
     captchaCode: string;
   }) {
-    const captchaPassed = authRepo.validateCaptcha(input.captchaChallengeId, input.captchaCode);
+    const captchaPassed = await authRepo.validateCaptcha(
+      input.captchaChallengeId,
+      input.captchaCode
+    );
 
     if (!captchaPassed) {
       throw new AuthError("INVALID_CAPTCHA", "图形验证码无效或已过期");
     }
 
-    const sms = authRepo.createSmsCode(input.phone);
+    const sms = await authRepo.createSmsCode(input.phone);
     const smsSender = createSmsSender(resolveSmsProviderConfig());
 
     try {
@@ -148,7 +152,7 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const smsPassed = authRepo.validateSmsCode(input.phone, input.smsCode);
+    const smsPassed = await authRepo.validateSmsCode(input.phone, input.smsCode);
 
     if (!smsPassed) {
       throw new AuthError("INVALID_SMS_CODE", "短信验证码无效或已过期");
@@ -156,14 +160,17 @@ export const authService = {
 
     const user = await authRepo.findUserByPhone(input.phone);
     if (!user) {
-      const pendingRegistration = await authRepo.createPendingRegistration(input.phone, {
-        clientIp: metadata?.clientIp ?? null,
-        userAgent: metadata?.userAgent ?? null,
-        deviceLabel: buildDeviceLabel({
-          explicitDeviceLabel: metadata?.deviceLabel,
-          userAgent: metadata?.userAgent ?? null
-        })
-      });
+      const pendingRegistration = await authRepo.createPendingRegistration(
+        input.phone,
+        {
+          clientIp: metadata?.clientIp ?? null,
+          userAgent: metadata?.userAgent ?? null,
+          deviceLabel: buildDeviceLabel({
+            explicitDeviceLabel: metadata?.deviceLabel,
+            userAgent: metadata?.userAgent ?? null
+          })
+        }
+      );
       return {
         kind: "registration_required" as const,
         registrationToken: pendingRegistration.registrationToken,
@@ -172,13 +179,16 @@ export const authService = {
       };
     }
 
+    const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(user, "web", {
       clientIp: metadata?.clientIp ?? null,
       userAgent: metadata?.userAgent ?? null,
       deviceLabel: buildDeviceLabel({
         explicitDeviceLabel: metadata?.deviceLabel,
         userAgent: metadata?.userAgent ?? null
-      })
+      }),
+      refreshTokenHash: hashPassword(refreshToken),
+      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
     });
     const summary = await authRepo.getUserSummaryBySession(session.id);
     if (!summary) {
@@ -188,6 +198,7 @@ export const authService = {
     return {
       kind: "authenticated" as const,
       sessionId: session.id,
+      refreshToken,
       user: summary satisfies UserSummary
     };
   },
@@ -201,21 +212,25 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const smsPassed = authRepo.validateSmsCode(input.phone, input.smsCode);
+    const smsPassed = await authRepo.validateSmsCode(input.phone, input.smsCode);
     if (!smsPassed) {
       throw new AuthError("INVALID_SMS_CODE", "短信验证码无效或已过期");
     }
 
     const user = await authRepo.findUserByPhone(input.phone);
     if (!user) {
-      const pendingRegistration = await authRepo.createPendingRegistration(input.phone, {
-        clientIp: metadata?.clientIp ?? null,
-        userAgent: metadata?.userAgent ?? null,
-        deviceLabel: buildDeviceLabel({
-          explicitDeviceLabel: input.deviceLabel ?? metadata?.deviceLabel ?? null,
-          userAgent: metadata?.userAgent ?? null
-        })
-      });
+      const pendingRegistration = await authRepo.createPendingRegistration(
+        input.phone,
+        {
+          clientIp: metadata?.clientIp ?? null,
+          userAgent: metadata?.userAgent ?? null,
+          deviceLabel: buildDeviceLabel({
+            explicitDeviceLabel:
+              input.deviceLabel ?? metadata?.deviceLabel ?? null,
+            userAgent: metadata?.userAgent ?? null
+          })
+        }
+      );
       return {
         kind: "registration_required" as const,
         registrationToken: pendingRegistration.registrationToken,
@@ -242,20 +257,33 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = authRepo.consumePendingRegistration(input.registrationToken);
+    const pending = await authRepo.consumePendingRegistration(
+      input.registrationToken
+    );
     if (!pending) {
-      throw new AuthError("INVALID_REGISTRATION_TOKEN", "注册步骤已失效，请重新获取验证码。");
+      throw new AuthError(
+        "INVALID_REGISTRATION_TOKEN",
+        "注册步骤已失效，请重新获取验证码。"
+      );
     }
 
     const duplicatePhone = await authRepo.findUserByPhone(pending.phone);
     if (duplicatePhone) {
-      throw new AuthError("PHONE_ALREADY_REGISTERED", "该手机号已完成注册，请直接登录。");
+      throw new AuthError(
+        "PHONE_ALREADY_REGISTERED",
+        "该手机号已完成注册，请直接登录。"
+      );
     }
 
     const normalizedDisplayName = input.displayName.trim();
-    const duplicateName = await authRepo.findUserByDisplayName(normalizedDisplayName);
+    const duplicateName = await authRepo.findUserByDisplayName(
+      normalizedDisplayName
+    );
     if (duplicateName) {
-      throw new AuthError("DISPLAY_NAME_TAKEN", "该用户名已被占用，请更换后重试。");
+      throw new AuthError(
+        "DISPLAY_NAME_TAKEN",
+        "该用户名已被占用，请更换后重试。"
+      );
     }
 
     const user = await authRepo.createUserByPhoneProfile({
@@ -263,13 +291,17 @@ export const authService = {
       displayName: normalizedDisplayName,
       avatarFileId: input.avatarFileId ?? null
     });
+
+    const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(user, "web", {
       clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
       userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
       deviceLabel: buildDeviceLabel({
         explicitDeviceLabel: metadata?.deviceLabel ?? pending.deviceLabel,
         userAgent: metadata?.userAgent ?? pending.userAgent ?? null
-      })
+      }),
+      refreshTokenHash: hashPassword(refreshToken),
+      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
     });
     const summary = await authRepo.getUserSummaryBySession(session.id);
     if (!summary) {
@@ -278,6 +310,7 @@ export const authService = {
 
     return {
       sessionId: session.id,
+      refreshToken,
       user: summary satisfies UserSummary
     };
   },
@@ -290,20 +323,33 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = authRepo.consumePendingRegistration(input.registrationToken);
+    const pending = await authRepo.consumePendingRegistration(
+      input.registrationToken
+    );
     if (!pending) {
-      throw new AuthError("INVALID_REGISTRATION_TOKEN", "注册步骤已失效，请重新获取验证码。");
+      throw new AuthError(
+        "INVALID_REGISTRATION_TOKEN",
+        "注册步骤已失效，请重新获取验证码。"
+      );
     }
 
     const duplicatePhone = await authRepo.findUserByPhone(pending.phone);
     if (duplicatePhone) {
-      throw new AuthError("PHONE_ALREADY_REGISTERED", "该手机号已完成注册，请直接登录。");
+      throw new AuthError(
+        "PHONE_ALREADY_REGISTERED",
+        "该手机号已完成注册，请直接登录。"
+      );
     }
 
     const normalizedDisplayName = input.displayName.trim();
-    const duplicateName = await authRepo.findUserByDisplayName(normalizedDisplayName);
+    const duplicateName = await authRepo.findUserByDisplayName(
+      normalizedDisplayName
+    );
     if (duplicateName) {
-      throw new AuthError("DISPLAY_NAME_TAKEN", "该用户名已被占用，请更换后重试。");
+      throw new AuthError(
+        "DISPLAY_NAME_TAKEN",
+        "该用户名已被占用，请更换后重试。"
+      );
     }
 
     const user = await authRepo.createUserByPhoneProfile({
@@ -316,21 +362,35 @@ export const authService = {
       clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
       userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
       deviceLabel:
-        input.deviceLabel ?? metadata?.deviceLabel ?? pending.deviceLabel ?? null
+        input.deviceLabel ??
+        metadata?.deviceLabel ??
+        pending.deviceLabel ??
+        null
     });
   },
   async suggestRegistrationDisplayName(registrationToken: string) {
-    const displayName = await authRepo.suggestPendingRegistrationDisplayName(registrationToken);
+    const displayName =
+      await authRepo.suggestPendingRegistrationDisplayName(registrationToken);
     if (!displayName) {
-      throw new AuthError("INVALID_REGISTRATION_TOKEN", "注册步骤已失效，请重新获取验证码。");
+      throw new AuthError(
+        "INVALID_REGISTRATION_TOKEN",
+        "注册步骤已失效，请重新获取验证码。"
+      );
     }
 
     return { displayName };
   },
-  async refreshAppSession(refreshToken: string) {
+  async refreshWebSession(refreshToken: string | undefined) {
+    if (!refreshToken) {
+      throw new AuthError("SESSION_EXPIRED", "Refresh token missing.");
+    }
+
     const session = await authRepo.findSessionByRefreshToken(refreshToken);
     if (!session) {
-      throw new AuthError("INVALID_REFRESH_TOKEN", "Refresh token is invalid or expired.");
+      throw new AuthError(
+        "SESSION_EXPIRED",
+        "Session expired. Please login again."
+      );
     }
 
     const user = await authRepo.findUserById(session.userId);
@@ -338,20 +398,53 @@ export const authService = {
       throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
     }
 
-    const rotated = await createAppSession(user, {
-      clientIp: session.clientIp,
-      userAgent: session.userAgent,
-      deviceLabel: session.deviceLabel
-    });
-    await authRepo.revokeSession(session.id);
-    return rotated;
+    // 续期 access + 滑动续期 refresh
+    await authRepo.renewSession(session.id);
+
+    const summary = await authRepo.getUserSummaryBySession(session.id);
+    if (!summary) {
+      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    }
+
+    return {
+      sessionId: session.id,
+      user: summary satisfies UserSummary
+    };
   },
-  verifySmsCodeForRequest(input: {
+  async refreshAppSession(refreshToken: string) {
+    const session = await authRepo.findSessionByRefreshToken(refreshToken);
+    if (!session) {
+      throw new AuthError(
+        "INVALID_REFRESH_TOKEN",
+        "Refresh token is invalid or expired."
+      );
+    }
+
+    const user = await authRepo.findUserById(session.userId);
+    if (!user) {
+      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    }
+
+    // 续期 access + 滑动续期 refresh
+    await authRepo.renewSession(session.id);
+
+    const summary = await authRepo.getUserSummaryBySession(session.id);
+    if (!summary) {
+      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    }
+
+    return {
+      accessToken: session.id,
+      refreshToken,
+      user: summary satisfies UserSummary
+    };
+  },
+  async verifySmsCodeForRequest(input: {
     phone: string;
     requestId: string;
     smsCode: string;
   }) {
-    const smsPassed = authRepo.validateSmsCodeByRequest(
+    const smsPassed = await authRepo.validateSmsCodeByRequest(
       input.phone,
       input.requestId,
       input.smsCode
@@ -361,20 +454,29 @@ export const authService = {
       throw new AuthError("INVALID_SMS_CODE", "短信验证码无效或已过期");
     }
   },
-  async loginAdmin(input: { account: string; password: string }, metadata?: RequestSessionMetadata) {
-    const admin = await authRepo.findAdminByCredentials(input.account, input.password);
+  async loginAdmin(
+    input: { account: string; password: string },
+    metadata?: RequestSessionMetadata
+  ) {
+    const admin = await authRepo.findAdminByCredentials(
+      input.account,
+      input.password
+    );
 
     if (!admin) {
       throw new AuthError("INVALID_CREDENTIALS", "管理员账号或密码错误");
     }
 
+    const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(admin, "admin", {
       clientIp: metadata?.clientIp ?? null,
       userAgent: metadata?.userAgent ?? null,
       deviceLabel: buildDeviceLabel({
         explicitDeviceLabel: metadata?.deviceLabel,
         userAgent: metadata?.userAgent ?? null
-      })
+      }),
+      refreshTokenHash: hashPassword(refreshToken),
+      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
     });
     const summary = await authRepo.getUserSummaryBySession(session.id);
     if (!summary) {
@@ -383,6 +485,7 @@ export const authService = {
 
     return {
       sessionId: session.id,
+      refreshToken,
       user: summary satisfies UserSummary
     };
   },

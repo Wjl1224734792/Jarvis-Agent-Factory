@@ -63,6 +63,7 @@ export const API_ROUTES = {
     smsRequest: "/auth/sms/request",
     webLogin: "/auth/web/login",
     webRegisterComplete: "/auth/web/register/complete",
+    webRefresh: "/auth/web/refresh",
     registrationDisplayNameSuggest: "/auth/registration/display-name/suggest",
     logout: "/auth/logout",
     currentUser: "/auth/me",

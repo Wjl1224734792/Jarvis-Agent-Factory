@@ -10,6 +10,7 @@ import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { and, desc, eq } from "drizzle-orm";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
+import { ensureRedisConnected, redis } from "./redis-client";
 
 export type SessionScope = "web" | "admin" | "app";
 
@@ -26,39 +27,14 @@ export type SessionRecord = {
   refreshTokenHash: string | null;
   refreshExpiresAt: number | null;
   expiresAt: number;
+  accessExpiresAt: number;
 };
 
-type CaptchaChallenge = {
-  challengeId: string;
-  code: string;
-  expiresAt: number;
-};
-
-type SmsCodeRecord = {
-  requestId: string;
-  phone: string;
-  code: string;
-  expiresAt: number;
-};
-
-type PendingRegistrationRecord = {
-  registrationToken: string;
-  phone: string;
-  suggestedDisplayName: string;
-  clientIp: string | null;
-  userAgent: string | null;
-  deviceLabel: string | null;
-  expiresAt: number;
-};
-
-const captchaById = new Map<string, CaptchaChallenge>();
-const smsByPhone = new Map<string, SmsCodeRecord>();
-const registrationByToken = new Map<string, PendingRegistrationRecord>();
-
-const CAPTCHA_TTL_MS = 5 * 60 * 1000;
-const SMS_TTL_MS = 5 * 60 * 1000;
-const REGISTRATION_TTL_MS = 10 * 60 * 1000;
-const SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const CAPTCHA_TTL_S = 300;
+const SMS_TTL_S = 300;
+const REGISTRATION_TTL_S = 600;
+const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
+const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
 function now() {
   return Date.now();
@@ -121,106 +97,59 @@ function resolveSessionStatus(session: {
   return "active";
 }
 
-function getValidPendingRegistration(registrationToken: string) {
-  const record = registrationByToken.get(registrationToken);
-  if (!record) {
-    return null;
-  }
-
-  if (record.expiresAt < now()) {
-    registrationByToken.delete(registrationToken);
-    return null;
-  }
-
-  return record;
-}
-
 export const authRepo = {
   resetEphemeralState() {
-    captchaById.clear();
-    smsByPhone.clear();
-    registrationByToken.clear();
+    // 验证码/短信/待注册已迁移到 Redis，测试时通过 redis.flushDb() 清理
   },
-  createCaptchaChallenge() {
+  async createCaptchaChallenge() {
+    await ensureRedisConnected();
     const code = Math.random().toString(36).slice(2, 6).toUpperCase();
     const challengeId = createId("captcha");
-    const record: CaptchaChallenge = {
-      challengeId,
-      code,
-      expiresAt: now() + CAPTCHA_TTL_MS
-    };
-    captchaById.set(challengeId, record);
-    return record;
+    const record = { challengeId, code };
+    await redis.set(`captcha:${challengeId}`, JSON.stringify(record), {
+      EX: CAPTCHA_TTL_S
+    });
+    return { ...record, expiresAt: now() + CAPTCHA_TTL_S * 1000 };
   },
-  validateCaptcha(challengeId: string, code: string) {
-    const challenge = captchaById.get(challengeId);
-    if (!challenge) {
+  async validateCaptcha(challengeId: string, code: string) {
+    await ensureRedisConnected();
+    const raw = await redis.getDel(`captcha:${challengeId}`);
+    if (!raw) {
       return false;
     }
 
-    if (challenge.expiresAt < now()) {
-      captchaById.delete(challengeId);
-      return false;
-    }
-
-    const matched = challenge.code.toUpperCase() === code.toUpperCase();
-    if (matched) {
-      captchaById.delete(challengeId);
-    }
-
-    return matched;
+    const record = JSON.parse(raw) as { code: string };
+    return record.code.toUpperCase() === code.toUpperCase();
   },
-  createSmsCode(phone: string) {
+  async createSmsCode(phone: string) {
+    await ensureRedisConnected();
     const code = `${Math.floor(100000 + Math.random() * 900000)}`;
     const requestId = createId("sms");
-    const record: SmsCodeRecord = {
-      requestId,
-      phone,
-      code,
-      expiresAt: now() + SMS_TTL_MS
-    };
-    smsByPhone.set(phone, record);
-    return record;
+    const record = { requestId, phone, code };
+    await redis.set(`sms:${phone}`, JSON.stringify(record), {
+      EX: SMS_TTL_S
+    });
+    return { ...record, expiresAt: now() + SMS_TTL_S * 1000 };
   },
-  validateSmsCode(phone: string, code: string) {
-    const sms = smsByPhone.get(phone);
-    if (!sms) {
+  async validateSmsCode(phone: string, code: string) {
+    await ensureRedisConnected();
+    const raw = await redis.getDel(`sms:${phone}`);
+    if (!raw) {
       return false;
     }
 
-    if (sms.expiresAt < now()) {
-      smsByPhone.delete(phone);
-      return false;
-    }
-
-    const matched = sms.code === code;
-    if (matched) {
-      smsByPhone.delete(phone);
-    }
-
-    return matched;
+    const record = JSON.parse(raw) as { code: string; requestId: string };
+    return record.code === code;
   },
-  validateSmsCodeByRequest(phone: string, requestId: string, code: string) {
-    const sms = smsByPhone.get(phone);
-    if (!sms) {
+  async validateSmsCodeByRequest(phone: string, requestId: string, code: string) {
+    await ensureRedisConnected();
+    const raw = await redis.getDel(`sms:${phone}`);
+    if (!raw) {
       return false;
     }
 
-    if (sms.requestId !== requestId) {
-      return false;
-    }
-
-    if (sms.expiresAt < now()) {
-      smsByPhone.delete(phone);
-      return false;
-    }
-
-    const matched = sms.code === code;
-    if (matched) {
-      smsByPhone.delete(phone);
-    }
-
-    return matched;
+    const record = JSON.parse(raw) as { code: string; requestId: string };
+    return record.requestId === requestId && record.code === code;
   },
   async findUserByPhone(phone: string) {
     const rows = await db
@@ -288,42 +217,58 @@ export const authRepo = {
       deviceLabel?: string | null;
     }
   ) {
+    await ensureRedisConnected();
     const registrationToken = createId("reg");
     const suggestedDisplayName = await this.buildAvailableDisplayName(phone);
-    const record: PendingRegistrationRecord = {
+    const record = {
       registrationToken,
       phone,
       suggestedDisplayName,
       clientIp: metadata?.clientIp ?? null,
       userAgent: metadata?.userAgent ?? null,
-      deviceLabel: metadata?.deviceLabel ?? null,
-      expiresAt: now() + REGISTRATION_TTL_MS
+      deviceLabel: metadata?.deviceLabel ?? null
     };
-    registrationByToken.set(registrationToken, record);
-    return record;
+    await redis.set(`reg:${registrationToken}`, JSON.stringify(record), {
+      EX: REGISTRATION_TTL_S
+    });
+    return { ...record, expiresAt: now() + REGISTRATION_TTL_S * 1000 };
   },
   async suggestPendingRegistrationDisplayName(registrationToken: string) {
-    const record = getValidPendingRegistration(registrationToken);
-    if (!record) {
+    await ensureRedisConnected();
+    const raw = await redis.get(`reg:${registrationToken}`);
+    if (!raw) {
       return null;
     }
 
+    const record = JSON.parse(raw) as {
+      phone: string;
+      suggestedDisplayName: string;
+    };
     const displayName = await this.buildAvailableDisplayName(record.phone, {
       randomize: true,
       exclude: [record.suggestedDisplayName]
     });
     record.suggestedDisplayName = displayName;
-    registrationByToken.set(registrationToken, record);
+    await redis.set(`reg:${registrationToken}`, JSON.stringify(record), {
+      EX: REGISTRATION_TTL_S
+    });
     return displayName;
   },
-  consumePendingRegistration(registrationToken: string) {
-    const record = getValidPendingRegistration(registrationToken);
-    if (!record) {
+  async consumePendingRegistration(registrationToken: string) {
+    await ensureRedisConnected();
+    const raw = await redis.getDel(`reg:${registrationToken}`);
+    if (!raw) {
       return null;
     }
 
-    registrationByToken.delete(registrationToken);
-    return record;
+    return JSON.parse(raw) as {
+      registrationToken: string;
+      phone: string;
+      suggestedDisplayName: string;
+      clientIp: string | null;
+      userAgent: string | null;
+      deviceLabel: string | null;
+    };
   },
   async createUserByPhoneProfile(input: {
     phone: string;
@@ -385,6 +330,7 @@ export const authRepo = {
     }
   ): Promise<SessionRecord> {
     const sessionId = `sess_${createSecretToken(24)}`;
+    const nowMs = now();
     const session: SessionRecord = {
       id: sessionId,
       userId: user.id,
@@ -393,11 +339,12 @@ export const authRepo = {
       clientIp: input?.clientIp ?? null,
       userAgent: input?.userAgent ?? null,
       deviceLabel: input?.deviceLabel ?? null,
-      lastSeenAt: now(),
+      lastSeenAt: nowMs,
       revokedAt: null,
       refreshTokenHash: input?.refreshTokenHash ?? null,
       refreshExpiresAt: input?.refreshExpiresAt?.getTime() ?? null,
-      expiresAt: now() + SESSION_TTL_MS
+      expiresAt: nowMs + SESSION_TTL_MS,
+      accessExpiresAt: nowMs + ACCESS_TTL_MS
     };
 
     await db.insert(sessionsTable).values({
@@ -411,12 +358,16 @@ export const authRepo = {
       revokedAt: null,
       refreshTokenHash: session.refreshTokenHash,
       refreshExpiresAt: input?.refreshExpiresAt ?? null,
-      expiresAt: new Date(session.expiresAt)
+      expiresAt: new Date(session.expiresAt),
+      accessExpiresAt: new Date(session.accessExpiresAt)
     });
 
     return session;
   },
-  async getSession(sessionId: string, options?: { touch?: boolean }): Promise<SessionRecord | null> {
+  async getSession(
+    sessionId: string,
+    options?: { touch?: boolean }
+  ): Promise<SessionRecord | null> {
     const session = await db
       .select()
       .from(sessionsTable)
@@ -428,8 +379,8 @@ export const authRepo = {
     }
 
     const current = session[0];
-    const expiresAt = current.expiresAt.getTime();
-    if (current.revokedAt || expiresAt < now()) {
+    // 检查 access token 是否过期
+    if (current.revokedAt || current.accessExpiresAt.getTime() < now()) {
       return null;
     }
 
@@ -444,11 +395,13 @@ export const authRepo = {
       return null;
     }
 
+    // touch 时滑动续期 access token
     if (options?.touch !== false) {
       await db
         .update(sessionsTable)
         .set({
-          lastSeenAt: new Date()
+          lastSeenAt: new Date(),
+          accessExpiresAt: new Date(now() + ACCESS_TTL_MS)
         })
         .where(eq(sessionsTable.id, sessionId));
     }
@@ -474,8 +427,71 @@ export const authRepo = {
       revokedAt,
       refreshTokenHash: current.refreshTokenHash,
       refreshExpiresAt,
-      expiresAt
+      expiresAt: current.expiresAt.getTime(),
+      accessExpiresAt: current.accessExpiresAt.getTime()
     };
+  },
+  async getSessionForMiddleware(
+    sessionId: string
+  ): Promise<"valid" | "access_expired" | "not_found"> {
+    const rows = await db
+      .select()
+      .from(sessionsTable)
+      .where(eq(sessionsTable.id, sessionId))
+      .limit(1);
+
+    if (rows.length === 0) {
+      return "not_found";
+    }
+
+    const current = rows[0];
+    if (current.revokedAt) {
+      return "not_found";
+    }
+    // refresh token 也过期
+    if (current.expiresAt.getTime() < now()) {
+      return "not_found";
+    }
+    // 只有 access token 过期
+    if (current.accessExpiresAt.getTime() < now()) {
+      return "access_expired";
+    }
+
+    return "valid";
+  },
+  async renewSession(sessionId: string) {
+    const current = await db
+      .select()
+      .from(sessionsTable)
+      .where(eq(sessionsTable.id, sessionId))
+      .limit(1);
+
+    if (current.length === 0) {
+      return;
+    }
+
+    const row = current[0];
+    const nowMs = now();
+    const refreshExpiry = row.refreshExpiresAt?.getTime() ?? row.expiresAt.getTime();
+    const remaining = refreshExpiry - nowMs;
+    const halfTtl = SESSION_TTL_MS / 2;
+
+    const updateData: Record<string, Date> = {
+      accessExpiresAt: new Date(nowMs + ACCESS_TTL_MS),
+      lastSeenAt: new Date()
+    };
+
+    // 滑动续期 refresh token
+    if (remaining < halfTtl) {
+      const newExpiry = new Date(nowMs + SESSION_TTL_MS);
+      updateData.expiresAt = newExpiry;
+      updateData.refreshExpiresAt = newExpiry;
+    }
+
+    await db
+      .update(sessionsTable)
+      .set(updateData)
+      .where(eq(sessionsTable.id, sessionId));
   },
   async findSessionByRefreshToken(refreshToken: string) {
     const refreshTokenHash = hashPassword(refreshToken);
@@ -515,7 +531,10 @@ export const authRepo = {
   async deleteSession(sessionId: string) {
     await this.revokeSession(sessionId);
   },
-  async getUserSummaryBySession(sessionId: string, options?: { touch?: boolean }): Promise<UserSummary | null> {
+  async getUserSummaryBySession(
+    sessionId: string,
+    options?: { touch?: boolean }
+  ): Promise<UserSummary | null> {
     const session = await this.getSession(sessionId, options);
     if (!session) {
       return null;

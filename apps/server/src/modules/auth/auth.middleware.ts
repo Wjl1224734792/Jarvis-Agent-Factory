@@ -1,6 +1,7 @@
 import type { Context, Next } from 'hono';
 import { getCookie } from 'hono/cookie';
 import { authService } from './auth.service';
+import { authRepo } from './auth.repo';
 
 export type AuthVariables = {
   currentUser: {
@@ -9,12 +10,10 @@ export type AuthVariables = {
     avatarUrl: string | null;
     role: 'user' | 'admin';
   } | null;
+  authErrorCode?: string;
 };
 
-const SESSION_COOKIE_NAME = 'feijia_session';
-
 export function readSessionToken(context: Context) {
-  // 同一套鉴权中间件同时兼容 App Bearer token 和 Web/Admin Cookie。
   const authorization = context.req.header('authorization');
   if (authorization?.toLowerCase().startsWith('bearer ')) {
     const token = authorization.slice('Bearer '.length).trim();
@@ -23,7 +22,7 @@ export function readSessionToken(context: Context) {
     }
   }
 
-  return getCookie(context, SESSION_COOKIE_NAME);
+  return getCookie(context, 'feijia_access');
 }
 
 function unauthorized(context: Context) {
@@ -48,6 +47,17 @@ function forbidden(context: Context) {
 
 export async function attachCurrentUser(context: Context, next: Next) {
   const sessionId = readSessionToken(context);
+
+  if (sessionId) {
+    const status = await authRepo.getSessionForMiddleware(sessionId);
+    if (status === 'access_expired') {
+      context.set('currentUser', null);
+      context.set('authErrorCode', 'TOKEN_EXPIRED');
+      await next();
+      return;
+    }
+  }
+
   const user = await authService.getCurrentUser(sessionId);
   context.set('currentUser', user);
   await next();
@@ -56,6 +66,16 @@ export async function attachCurrentUser(context: Context, next: Next) {
 export async function requireAuth(context: Context, next: Next) {
   const user = context.get('currentUser');
   if (!user) {
+    const errorCode = context.get('authErrorCode');
+    if (errorCode === 'TOKEN_EXPIRED') {
+      return context.json(
+        {
+          code: 'TOKEN_EXPIRED',
+          message: 'Access token expired.'
+        },
+        401
+      );
+    }
     return unauthorized(context);
   }
   await next();
@@ -64,6 +84,16 @@ export async function requireAuth(context: Context, next: Next) {
 export async function requireAdmin(context: Context, next: Next) {
   const user = context.get('currentUser');
   if (!user) {
+    const errorCode = context.get('authErrorCode');
+    if (errorCode === 'TOKEN_EXPIRED') {
+      return context.json(
+        {
+          code: 'TOKEN_EXPIRED',
+          message: 'Access token expired.'
+        },
+        401
+      );
+    }
     return unauthorized(context);
   }
   if (user.role !== 'admin') {
@@ -71,5 +101,3 @@ export async function requireAdmin(context: Context, next: Next) {
   }
   await next();
 }
-
-export { SESSION_COOKIE_NAME };

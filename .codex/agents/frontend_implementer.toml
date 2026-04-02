@@ -4,7 +4,7 @@ nickname_candidates = ["UI", "Frontend", "Web", "Mobile"]
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["ant-design", "antd", "shadcn", "frontend-design", "frontend-skill", "ui-ux-pro-max", "tailwind-design-system", "theme-factory", "web-design-guidelines", "hono", "vercel-react-best-practices", "composition-patterns", "test-driven-development", "systematic-debugging", "verification-before-completion", "webapp-testing"]
+skills = ["ant-design", "antd", "shadcn", "frontend-design", "frontend-skill", "ui-ux-pro-max", "tailwind-design-system", "theme-factory", "web-design-guidelines", "vercel-react-best-practices", "composition-patterns", "test-driven-development", "systematic-debugging", "verification-before-completion", "webapp-testing"]
 
 developer_instructions = """
 你是前端全栈实现者。

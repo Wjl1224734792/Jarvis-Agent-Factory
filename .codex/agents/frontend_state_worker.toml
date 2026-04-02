@@ -4,7 +4,7 @@ nickname_candidates = ["State-Worker", "Data", "Hook"]
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["hono", "documentation-lookup", "vercel-react-best-practices", "composition-patterns", "create-adaptable-composable"]
+skills = ["hono", "vercel-react-best-practices", "composition-patterns", "create-adaptable-composable"]
 
 developer_instructions = """
 你是前端状态与数据专项工作者。

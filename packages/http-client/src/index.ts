@@ -466,6 +466,14 @@ export function createApiClient(options: ApiClientOptions) {
         completeAppRegistrationRequestSchema.parse(input)
       );
     },
+    async refreshWebSession() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.auth.webRefresh}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, authSuccessResponseSchema);
+    },
     async refreshAppSession(input: AppRefreshInput) {
       return postJson(
         API_ROUTES.auth.appRefresh,

@@ -1,106 +1,60 @@
+# TypeScript Type 与 Interface 使用规范（含 Zod 实践）
+
+## 一句话原则
+
+**默认使用 `interface`，遇到 `type` 专属场景再用 `type`。**
+
+## 必须使用 `type` 的场景
+
+- 联合类型 `|`
+- 元组 `[...]`
+- 映射/条件类型（如 `Pick`、`Exclude`、`ReturnType`）
+- 原始类型别名（`type Name = string`）
+
+## 必须使用 `interface` 的场景
+
+- 声明合并（扩展第三方库类型，如 `Window`、`Express.Request`）
+- 类实现契约（`class User implements IUser`）
+
+## 默认推荐 `interface` 的场景
+
+- 定义纯对象结构（数据模型、API 响应、Props 等）
+- 理由：扩展性好（`extends`）、错误提示友好、编译器性能略优
+
+## 快速对照表
+
+| 场景 | 选择 |
+|------|------|
+| 对象形状 | `interface` |
+| 联合 / 元组 | `type` |
+| 工具类型 | `type` |
+| 类契约 | `interface` |
+| 全局类型扩展 | `interface` |
+
+> 对象优先 `interface`，做不到再换 `type`。
+
 ---
-alwaysApply: true
----
 
-# TypeScript Type 与 Interface 使用规范
+## 关于 Zod 的补充说明
 
-## 1. 核心决策逻辑 🧠
+### Zod 不能完全替代本规范
 
-遵循以下判断流程，可快速决定使用 `type` 还是 `interface`：
+- Zod 用于**运行时校验**，通过 `z.infer<typeof schema>` 得到的类型本质上是 **type alias**，不是 `interface`。
+- `interface` 的以下能力 Zod **无法替代**：
+  - 声明合并
+  - 类实现契约
+  - 部分场景下更友好的编辑器提示
 
-```typescript
-if (需要 联合类型 | 元组 | 映射/条件类型 | 原始值别名) {
-    return "type"; // 必须使用
-} 
-else if (需要 声明合并 | implements 类实现) {
-    return "interface"; // 必须使用
-} 
-else {
-    return "interface"; // 默认推荐：纯对象结构优先使用 interface
-}
-```
+### Zod 环境下的调整建议
 
-## 2. 必须使用 `type` 的场景
+| 场景 | 纯 TS 规范 | 用了 Zod 后的做法 |
+|------|-----------|------------------|
+| API 请求/响应体 | `interface` | 只写 Zod schema，用 `z.infer` 自动生成类型，不再手写 |
+| 复杂联合/元组 | `type` | 仍需 `type`（Zod 表达不直观） |
+| 全局类型扩展 | `interface` | 仍用 `interface` |
+| 类契约 | `interface` | 仍用 `interface` |
+| 工具类型（`Pick`、`Omit`） | `type` | 可基于 `z.infer` 运算，或用纯 `type` |
 
-当定义非对象结构或通过逻辑计算得出的类型时，必须使用 `type`。
+### 修正后的一句话原则（Zod 环境下）
 
-*   **联合类型 (Unions)**
-    ```typescript
-    type Status = 'pending' | 'success' | 'error';
-    type ID = string | number;
-    ```
-*   **元组 (Tuples)**
-    ```typescript
-    type Point = [number, number];
-    ```
-*   **工具/映射/条件类型 (Utility Types)**
-    ```typescript
-    type Readonly<T> = { readonly [P in keyof T]: T[P] };
-    type IsString<T> = T extends string ? true : false;
-    ```
-*   **原始类型别名 (Primitives)**
-    ```typescript
-    type UUID = string;
-    type Callback = (data: string) => void;
-    ```
-
-## 3. 必须使用 `interface` 的场景
-
-涉及面向对象编程或库定义扩展时，必须使用 `interface`。
-
-*   **声明合并 (Declaration Merging)**
-    *   *用于扩展第三方库类型或全局对象。*
-    ```typescript
-    interface Window {
-      __Redux_DevTools__: any; // 向现有 Window 接口添加属性
-    }
-    ```
-*   **类契约 (Class Implementation)**
-    *   *虽然 type 也能被 implement，但 interface 语义更明确。*
-    ```typescript
-    interface Serializable {
-      serialize(): string;
-    }
-    class User implements Serializable { ... }
-    ```
-
-## 4. 推荐使用 `interface` 的场景 (默认)
-
-对于**定义纯对象形状 (Shape)**，优先使用 `interface`。
-
-*   **理由**：
-    1.  **可读性**：错误提示通常更简洁。
-    2.  **扩展性**：`extends` 语法比交叉类型 (`&`) 更符合直觉。
-    3.  **性能**：在极大规模项目中，TypeScript 编译器处理 interface 的性能略优于 type 交叉。
-
-```typescript
-// ✅ 推荐
-interface User {
-  id: string;
-  name: string;
-}
-
-interface Admin extends User {
-  permissions: string[];
-}
-
-// ❌ 仅在无法使用 interface 时才用 type 定义对象
-type UserType = {
-  id: string;
-  name: string;
-}
-```
-
-## 5. 总结对照表 📊
-
-| 场景 | 推荐选择 | 核心理由 |
-| :--- | :--- | :--- |
-| **纯对象 / 数据模型** | **`interface`** | 默认选择，扩展性好，语义清晰 |
-| **类 (Class) 契约** | **`interface`** | 符合 OOP 习惯 |
-| **联合类型 (`\|`)** | **`type`** | Interface 无法表达 |
-| **元组 (`[]`)** | **`type`** | Interface 无法表达 |
-| **复杂工具类型** | **`type`** | 涉及映射、条件判断等计算逻辑 |
-| **函数类型** | **`type` / `interface`** | 简单函数用 `type`，带属性的函数用 `interface` |
-
-**一句话原则**：
-**除非你需要用到 `type` 特有的功能（联合、映射、条件运算），否则定义对象时一律默认使用 `interface`。**
+> **凡是由外部数据（API、DB、表单）定义的结构 → 只用 Zod schema，不手写类型；凡是需要声明合并、类实现、或 TS 特有类型运算的 → 继续遵守 `interface`/`type` 规范。**

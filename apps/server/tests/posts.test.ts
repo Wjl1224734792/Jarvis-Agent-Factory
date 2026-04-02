@@ -10,15 +10,16 @@ import { API_ROUTES } from "@feijia/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
+import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
-function extractCookie(setCookie: string | null): string {
-  if (!setCookie) {
-    throw new Error("missing set-cookie header");
+function extractCookies(response: Response): string {
+  const setCookies = response.headers.getSetCookie();
+  if (setCookies.length === 0) {
+    throw new Error("missing set-cookie headers");
   }
-
-  return setCookie.split(";")[0];
+  return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
 async function completeRegistrationIfNeeded(response: Response) {
@@ -27,7 +28,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
 
   if (payload.kind === "authenticated") {
-    return extractCookie(response.headers.get("set-cookie"));
+    return extractCookies(response);
   }
 
   const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
@@ -40,7 +41,7 @@ async function completeRegistrationIfNeeded(response: Response) {
     })
   });
 
-  return extractCookie(completeResponse.headers.get("set-cookie"));
+  return extractCookies(completeResponse);
 }
 
 async function loginWebUser(phone: string) {
@@ -85,7 +86,7 @@ async function loginAdmin() {
     })
   });
 
-  return extractCookie(response.headers.get("set-cookie"));
+  return extractCookies(response);
 }
 
 async function uploadFile(
@@ -266,6 +267,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
+  await resetRedisForTesting();
   authRepo.resetEphemeralState();
   await resetDatabaseState();
   await seedDatabase();
