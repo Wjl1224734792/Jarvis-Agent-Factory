@@ -39,6 +39,11 @@ const REGISTRATION_TTL_S = 600;
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** 管理员登录失败计数 TTL（秒）：5 分钟 */
+const ADMIN_LOGIN_FAIL_TTL_S = 300;
+/** 管理员登录最大失败次数：5 分钟内最多 5 次 */
+export const ADMIN_LOGIN_MAX_FAILURES = 5;
+
 /** 短信发送频率限制：同一手机号 60 秒内最多发送 1 次 */
 const SMS_RATE_LIMIT_WINDOW_S = 60;
 
@@ -370,6 +375,25 @@ export const authRepo = {
     }
 
     return user;
+  },
+  async recordAdminLoginFailure(account: string) {
+    await ensureRedisConnected();
+    const key = `admin_login_fail:${account}`;
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, ADMIN_LOGIN_FAIL_TTL_S);
+    }
+    return count;
+  },
+  async getAdminLoginFailures(account: string): Promise<number> {
+    await ensureRedisConnected();
+    const key = `admin_login_fail:${account}`;
+    const count = await redis.get(key);
+    return count ? parseInt(count, 10) : 0;
+  },
+  async clearAdminLoginFailures(account: string) {
+    await ensureRedisConnected();
+    await redis.del(`admin_login_fail:${account}`);
   },
   async createSession(
     user: UserRecord,

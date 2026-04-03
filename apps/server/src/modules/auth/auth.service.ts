@@ -1,6 +1,6 @@
 import { createSecretToken, hashToken } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
-import { authRepo, type SessionScope } from "./auth.repo";
+import { authRepo, type SessionScope, ADMIN_LOGIN_MAX_FAILURES } from "./auth.repo";
 import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
 import type { UserRecord } from "../users/users.schema";
 
@@ -121,7 +121,8 @@ export class AuthError extends Error {
       | "PHONE_ALREADY_REGISTERED"
       | "REGISTRATION_REQUIRED"
       | "INVALID_REGISTRATION_TOKEN"
-      | "TOKEN_EXPIRED",
+      | "TOKEN_EXPIRED"
+      | "ADMIN_ACCOUNT_LOCKED",
     message: string
   ) {
     super(message);
@@ -514,14 +515,24 @@ export const authService = {
     input: { account: string; password: string },
     metadata?: RequestSessionMetadata
   ) {
+    // 检查是否被锁定
+    const failures = await authRepo.getAdminLoginFailures(input.account);
+    if (failures >= ADMIN_LOGIN_MAX_FAILURES) {
+      throw new AuthError("ADMIN_ACCOUNT_LOCKED", "账号已被锁定，请 5 分钟后再试");
+    }
+
     const admin = await authRepo.findAdminByCredentials(
       input.account,
       input.password
     );
 
     if (!admin) {
+      await authRepo.recordAdminLoginFailure(input.account);
       throw new AuthError("INVALID_CREDENTIALS", "管理员账号或密码错误");
     }
+
+    // 登录成功，清除失败计数
+    await authRepo.clearAdminLoginFailures(input.account);
 
     const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(admin, "admin", {

@@ -283,7 +283,7 @@ function buildModelListSearch(input?: {
   return query ? `?${query}` : "";
 }
 
-export const apiClient = {
+const rawApiClient = {
   ...sharedClient,
   getPostDetail(id: string, input?: { commentSort?: "hot" | "latest" }) {
     const search = new URLSearchParams();
@@ -368,19 +368,30 @@ export const apiClient = {
   }
 };
 
-// 对导出的所有异步接口统一包一层错误翻译，保证页面侧无需重复 try/catch 文案适配。
-for (const key of Object.keys(apiClient) as Array<keyof typeof apiClient>) {
-  const current = apiClient[key];
-  if (typeof current !== "function") {
-    continue;
-  }
-
-  const original = current as (...args: any[]) => Promise<unknown>;
-  (apiClient as Record<string, unknown>)[key as string] = async (...args: unknown[]) => {
-    try {
-      return await original(...args);
-    } catch (error) {
-      throw mapWebApiError(error);
-    }
-  };
+/**
+ * 使用 Proxy 对 API 客户端所有方法统一包裹错误翻译。
+ * 相比 for...of + as any 动态赋值，此方式：
+ * - 保持完整类型推断，无需类型断言
+ * - 运行时仅拦截函数调用，非函数属性原样透传
+ * - 若未来添加非 Promise 方法也不会意外包装
+ */
+function createWrappedApiClient<T extends Record<string, unknown>>(client: T): T {
+  return new Proxy(client, {
+    get(target, prop: string | symbol) {
+      const value = target[prop as keyof T];
+      if (typeof value === "function") {
+        return async (...args: unknown[]) => {
+          try {
+            return await (value as (...args: unknown[]) => Promise<unknown>)(...args);
+          } catch (error) {
+            throw mapWebApiError(error);
+          }
+        };
+      }
+      return value;
+    },
+  });
 }
+
+// 对导出的所有异步接口统一包一层错误翻译，保证页面侧无需重复 try/catch 文案适配。
+export const apiClient = createWrappedApiClient(rawApiClient);

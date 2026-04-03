@@ -16,7 +16,8 @@ export const authErrorCodeSchema = z.enum([
   "PHONE_ALREADY_REGISTERED",
   "REGISTRATION_REQUIRED",
   "INVALID_REGISTRATION_TOKEN",
-  "TOKEN_EXPIRED"
+  "TOKEN_EXPIRED",
+  "ADMIN_ACCOUNT_LOCKED"
 ]);
 
 export const userSummarySchema = z.object({

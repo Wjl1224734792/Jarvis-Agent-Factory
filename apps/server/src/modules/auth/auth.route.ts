@@ -143,12 +143,13 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
     return context.json(webLoginResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        error.code === "PHONE_ALREADY_REGISTERED" ? 409 : 400
+        status
       );
     }
 
@@ -330,12 +331,13 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
     );
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 

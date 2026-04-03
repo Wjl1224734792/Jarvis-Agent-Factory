@@ -1,5 +1,6 @@
 import {
   boolean,
+  check,
   foreignKey,
   integer,
   pgTable,
@@ -7,6 +8,7 @@ import {
   timestamp,
   uniqueIndex
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 
 export const usersTable = pgTable(
   "users",
@@ -35,7 +37,8 @@ export const usersTable = pgTable(
     wechatUnionIdUnique: uniqueIndex("users_wechat_union_id_unique").on(
       table.wechatUnionId
     ),
-    accountUnique: uniqueIndex("users_account_unique").on(table.account)
+    accountUnique: uniqueIndex("users_account_unique").on(table.account),
+    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`)
   })
 );
 
@@ -59,7 +62,9 @@ export const sessionsTable = pgTable("sessions", {
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  scopeCheck: check("sessions_scope_check", sql`${table.scope} IN ('web', 'app', 'admin')`)
+}));
 
 export const userSettingsTable = pgTable(
   "user_settings",
@@ -165,7 +170,9 @@ export const brandApplicationsTable = pgTable("brand_applications", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  statusCheck: check("brand_applications_status_check", sql`${table.status} IN ('pending', 'approved', 'rejected')`)
+}));
 
 export const aircraftModelsTable = pgTable(
   "aircraft_models",
@@ -270,7 +277,8 @@ export const aircraftReviewsTable = pgTable(
     modelUserUnique: uniqueIndex("aircraft_reviews_model_user_unique").on(
       table.modelId,
       table.userId
-    )
+    ),
+    statusCheck: check("aircraft_reviews_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
 
@@ -381,7 +389,8 @@ export const reviewCommentsTable = pgTable(
     replyToCommentFk: foreignKey({
       columns: [table.replyToCommentId],
       foreignColumns: [table.id]
-    }).onDelete("cascade")
+    }).onDelete("cascade"),
+    statusCheck: check("review_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
 
@@ -458,7 +467,10 @@ export const postsTable = pgTable("posts", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  typeCheck: check("posts_type_check", sql`${table.type} IN ('article', 'moment')`),
+  statusCheck: check("posts_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
+}));
 
 export const postCommentsTable = pgTable(
   "post_comments",
@@ -494,7 +506,8 @@ export const postCommentsTable = pgTable(
     replyToCommentFk: foreignKey({
       columns: [table.replyToCommentId],
       foreignColumns: [table.id]
-    }).onDelete("cascade")
+    }).onDelete("cascade"),
+    statusCheck: check("post_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
 
@@ -667,7 +680,9 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  statusCheck: check("aircraft_submissions_status_check", sql`${table.status} IN ('submitted', 'approved', 'rejected')`)
+}));
 
 export const rankingsTable = pgTable("rankings", {
   id: text("id").primaryKey(),
@@ -689,7 +704,10 @@ export const rankingsTable = pgTable("rankings", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  typeCheck: check("rankings_type_check", sql`${table.type} IN ('community', 'official')`),
+  statusCheck: check("rankings_status_check", sql`${table.status} IN ('draft', 'published', 'hidden')`)
+}));
 
 export const rankingReportsTable = pgTable(
   "ranking_reports",
@@ -742,7 +760,9 @@ export const ratingTargetsTable = pgTable("rating_targets", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  statusCheck: check("rating_targets_status_check", sql`${table.status} IN ('draft', 'published', 'hidden')`)
+}));
 
 export const ratingTargetReportsTable = pgTable(
   "rating_target_reports",
@@ -786,7 +806,9 @@ export const rankingCommentsTable = pgTable("ranking_comments", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .defaultNow()
     .notNull()
-});
+}, (table) => ({
+  statusCheck: check("ranking_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
+}));
 
 export const rankingCommentLikesTable = pgTable(
   "ranking_comment_likes",
@@ -895,7 +917,8 @@ export const ratingTargetCommentsTable = pgTable(
     replyToCommentFk: foreignKey({
       columns: [table.replyToCommentId],
       foreignColumns: [table.id]
-    }).onDelete("cascade")
+    }).onDelete("cascade"),
+    statusCheck: check("rating_target_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
 
@@ -979,7 +1002,8 @@ export const aircraftModelCommentsTable = pgTable(
     replyToCommentFk: foreignKey({
       columns: [table.replyToCommentId],
       foreignColumns: [table.id]
-    }).onDelete("cascade")
+    }).onDelete("cascade"),
+    statusCheck: check("aircraft_model_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
 
@@ -1052,4 +1076,8 @@ export const filesTable = pgTable("files", {
     .notNull(),
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
   deletedAt: timestamp("deleted_at", { withTimezone: true })
-});
+}, (table) => ({
+  statusCheck: check("files_status_check", sql`${table.status} IN ('initiated', 'uploaded', 'failed', 'deleted')`),
+  visibilityCheck: check("files_visibility_check", sql`${table.visibility} IN ('public', 'private')`),
+  mediaKindCheck: check("files_media_kind_check", sql`${table.mediaKind} IN ('image', 'video', 'document')`)
+}));
