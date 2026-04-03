@@ -41,6 +41,7 @@ describe("auth store persistence", () => {
     });
 
     expect(readPersistedAuthState()).toEqual({
+      v: 1,
       user: {
         id: "user_1",
         displayName: "飞友测试",
@@ -51,7 +52,7 @@ describe("auth store persistence", () => {
   });
 
   it("clears persisted auth state", () => {
-    window.localStorage.setItem(WEB_AUTH_STORAGE_KEY, JSON.stringify({ user: { id: "u" } }));
+    window.localStorage.setItem(WEB_AUTH_STORAGE_KEY, JSON.stringify({ v: 1, user: { id: "u", displayName: "test", avatarUrl: null, role: "user" } }));
     clearPersistedAuthState();
 
     expect(window.localStorage.getItem(WEB_AUTH_STORAGE_KEY)).toBeNull();

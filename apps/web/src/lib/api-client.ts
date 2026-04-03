@@ -12,7 +12,17 @@ const sharedClient = createApiClient({
 });
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => null);
+  let payload: unknown = null;
+  try {
+    payload = await response.json();
+  } catch {
+    // 非 JSON 响应，记录原始状态码
+    if (!response.ok) {
+      throw new Error(`Request failed with status ${response.status}`);
+    }
+    // 对于成功但非 JSON 的响应，返回空对象作为降级
+    return {} as T;
+  }
 
   if (!response.ok) {
     const message =
@@ -106,13 +116,17 @@ function refreshSession(): Promise<boolean> {
   return refreshingPromise;
 }
 
+/** 自动刷新 token 的最大重试次数，防止无限循环 */
+const MAX_REFRESH_RETRIES = 1;
+
 async function fetchWithAutoRefresh(
   input: RequestInfo,
-  init: RequestInit
+  init: RequestInit,
+  retryCount = 0
 ): Promise<Response> {
   const response = await fetch(input, init);
 
-  if (response.status === 401) {
+  if (response.status === 401 && retryCount < MAX_REFRESH_RETRIES) {
     const clone = response.clone();
     const payload = (await clone.json().catch(() => null)) as {
       code?: string;
@@ -120,7 +134,7 @@ async function fetchWithAutoRefresh(
     if (payload?.code === "TOKEN_EXPIRED") {
       const ok = await refreshSession();
       if (ok) {
-        return fetch(input, init);
+        return fetchWithAutoRefresh(input, init, retryCount + 1);
       }
     }
   }

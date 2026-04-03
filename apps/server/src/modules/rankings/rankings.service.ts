@@ -4,6 +4,7 @@ import { rankingsRepo } from "./rankings.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
 
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
 
@@ -223,6 +224,54 @@ async function serializeRankingComment(
   };
 }
 
+type RatingTargetComment = Awaited<ReturnType<typeof rankingsRepo.listRatingTargetComments>>[number];
+
+async function serializeRatingTargetCommentBase(
+  comment: RatingTargetComment,
+  replyToUsers: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+  >,
+  currentUser?: CurrentUser,
+  likedCommentIds?: Set<string>,
+  reportedCommentIds?: Set<string>
+) {
+  return {
+    id: comment.id,
+    ratingTargetId: comment.ratingTargetId,
+    parentCommentId: comment.parentCommentId,
+    replyToCommentId: comment.replyToCommentId,
+    content: comment.content,
+    status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
+    rating: comment.rating ?? null,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    likeCount: comment.likeCount ?? 0,
+    reportCount: comment.reportCount ?? 0,
+    author: {
+      id: comment.author.id,
+      displayName: comment.author.displayName,
+      avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+      role: comment.author.role as "user" | "admin"
+    },
+    replyToUser: comment.replyToUserId
+      ? replyToUsers.get(comment.replyToUserId) ?? null
+      : null,
+    viewer: {
+      canEdit: Boolean(
+        currentUser &&
+          (currentUser.role === "admin" || currentUser.id === comment.author.id)
+      ),
+      canDelete: Boolean(
+        currentUser &&
+          (currentUser.role === "admin" || currentUser.id === comment.author.id)
+      ),
+      hasLiked: likedCommentIds?.has(comment.id) ?? false,
+      hasReported: reportedCommentIds?.has(comment.id) ?? false
+    }
+  };
+}
+
 async function buildRatingTargetCommentThreads(input: {
   comments: Awaited<ReturnType<typeof rankingsRepo.listRatingTargetComments>>;
   currentUser?: CurrentUser;
@@ -233,70 +282,24 @@ async function buildRatingTargetCommentThreads(input: {
   likedCommentIds: Set<string>;
   reportedCommentIds: Set<string>;
 }) {
-  const repliesByRootId = new Map<string, Array<any>>();
-  const roots: Array<any> = [];
   const compare = (
     left: { likeCount: number; updatedAt: string },
     right: { likeCount: number; updatedAt: string }
   ) => right.likeCount - left.likeCount || right.updatedAt.localeCompare(left.updatedAt);
 
-  for (const comment of input.comments) {
-    const serialized = {
-      id: comment.id,
-      ratingTargetId: comment.ratingTargetId,
-      parentCommentId: comment.parentCommentId,
-      replyToCommentId: comment.replyToCommentId,
-      content: comment.content,
-      status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
-      rating: comment.rating ?? null,
-      createdAt: comment.createdAt.toISOString(),
-      updatedAt: comment.updatedAt.toISOString(),
-      likeCount: comment.likeCount ?? 0,
-      reportCount: comment.reportCount ?? 0,
-      author: {
-        id: comment.author.id,
-        displayName: comment.author.displayName,
-        avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
-        role: comment.author.role as "user" | "admin"
-      },
-      replyToUser: comment.replyToUserId
-        ? input.replyToUsers.get(comment.replyToUserId) ?? null
-        : null,
-      viewer: {
-        canEdit: Boolean(
-          input.currentUser &&
-            (input.currentUser.role === "admin" || input.currentUser.id === comment.author.id)
-        ),
-        canDelete: Boolean(
-          input.currentUser &&
-            (input.currentUser.role === "admin" || input.currentUser.id === comment.author.id)
-        ),
-        hasLiked: input.likedCommentIds.has(comment.id),
-        hasReported: input.reportedCommentIds.has(comment.id)
-      }
-    };
+  const serialized = await Promise.all(
+    input.comments.map((c) =>
+      serializeRatingTargetCommentBase(
+        c,
+        input.replyToUsers,
+        input.currentUser,
+        input.likedCommentIds,
+        input.reportedCommentIds
+      )
+    )
+  );
 
-    if (!comment.parentCommentId) {
-      roots.push({
-        ...serialized,
-        replyCount: 0,
-        replies: []
-      });
-      continue;
-    }
-
-    const bucket = repliesByRootId.get(comment.parentCommentId) ?? [];
-    bucket.push(serialized);
-    repliesByRootId.set(comment.parentCommentId, bucket);
-  }
-
-  return roots
-    .map((root) => ({
-      ...root,
-      replies: (repliesByRootId.get(root.id) ?? []).sort(compare),
-      replyCount: (repliesByRootId.get(root.id) ?? []).length
-    }))
-    .sort(compare);
+  return buildCommentThreads(serialized, { compare });
 }
 
 function toRankingViewer(input: {

@@ -5,8 +5,9 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: feijia
-      POSTGRES_USER: user
-      POSTGRES_PASSWORD: qwertyuiop
+      POSTGRES_USER: feijia_dev
+      # ⚠️ 仅本地开发使用，生产环境请通过 .env 覆盖
+      POSTGRES_PASSWORD: "F3j!a_D3v_2026#pg"
       POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
       TZ: Asia/Shanghai
       POSTGRES_HOST_AUTH_METHOD: md5
@@ -18,7 +19,7 @@ services:
       postgres
       -c listen_addresses='*'
       -c max_connections=200
-      -c password_encryption=md5
+      -c password_encryption=scram-sha-256
       -c log_destination='stderr'
       -c logging_collector=on
       -c log_directory='log'
@@ -27,7 +28,7 @@ services:
       -c log_rotation_size=100MB
       -c log_truncate_on_rotation=on
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U user -d feijia"]
+      test: ["CMD-SHELL", "pg_isready -U feijia_dev -d feijia"]
       interval: 10s
       timeout: 5s
       retries: 5

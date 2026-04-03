@@ -35,6 +35,11 @@ const authRoute = new Hono<{ Variables: AuthVariables }>();
 const ACCESS_COOKIE_NAME = "feijia_access";
 const REFRESH_COOKIE_NAME = "feijia_refresh";
 
+/** Access token cookie 有效期（秒），与 ACCESS_TTL_MS 保持一致 */
+const ACCESS_COOKIE_MAX_AGE = 2 * 60 * 60;
+/** Refresh token cookie 有效期（秒），与 SESSION_TTL_MS 保持一致 */
+const REFRESH_COOKIE_MAX_AGE = 30 * 24 * 60 * 60;
+
 function setAuthCookies(
   context: Context,
   sessionId: string,
@@ -44,7 +49,7 @@ function setAuthCookies(
     httpOnly: true,
     sameSite: "Lax",
     path: "/",
-    maxAge: 2 * 60 * 60
+    maxAge: ACCESS_COOKIE_MAX_AGE
   });
 
   if (refreshToken) {
@@ -52,7 +57,7 @@ function setAuthCookies(
       httpOnly: true,
       sameSite: "Lax",
       path: "/",
-      maxAge: 30 * 24 * 60 * 60
+      maxAge: REFRESH_COOKIE_MAX_AGE
     });
   }
 }
@@ -109,7 +114,8 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
     return context.json(payload);
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = error.code === "SMS_PROVIDER_UNAVAILABLE" ? 503 : 400;
+      const status = error.code === "SMS_PROVIDER_UNAVAILABLE" ? 503
+        : error.code === "SMS_RATE_LIMITED" ? 429 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,

@@ -199,13 +199,14 @@ async function ensureAdminUser() {
   }
 
   const id = createId("admin");
+  const adminPasswordHash = await hashPassword("Admin#123");
   await db.insert(usersTable).values({
     id,
     role: "admin",
     displayName: "系统管理员",
     phone: null,
     account: "admin",
-    passwordHash: hashPassword("Admin#123")
+    passwordHash: adminPasswordHash
   });
 
   return id;

@@ -38,6 +38,7 @@ import {
   S3Client
 } from "@aws-sdk/client-s3";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
+import bcrypt from "bcrypt";
 import { db } from "./client.js";
 import {
   aircraftCategoriesTable,
@@ -78,8 +79,12 @@ function uid(prefix: string): string {
   return `${prefix}_${randomUUID().replace(/-/g, "").slice(0, 16)}`;
 }
 
-function hashPassword(password: string): string {
-  return createHash("sha256").update(password).digest("hex");
+async function hashPassword(password: string): Promise<string> {
+  return bcrypt.hash(password, 12);
+}
+
+function hashToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
 }
 
 function createSecretToken(bytes = 32): string {
@@ -517,8 +522,9 @@ async function seedPostgreSQL() {
 
   // 1. 用户 (50)
   console.log("  👥 创建 50 个用户...");
+  const adminPasswordHash = await hashPassword("TestAdmin#123");
   const users = [
-    { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "testadmin", passwordHash: hashPassword("TestAdmin#123"), avatarFileId: null, bio: null },
+    { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "testadmin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
     ...USER_DISPLAY_NAMES.map((name, i) => ({
       id: uid("user"), role: "user" as const, displayName: name,
       phone: `138${String(10000000 + randInt(1000000, 9999999)).slice(0, 8)}`,
@@ -1061,7 +1067,7 @@ async function seedPostgreSQL() {
       clientIp: `${randInt(1, 255)}.${randInt(0, 255)}.${randInt(0, 255)}.${randInt(1, 255)}`,
       userAgent: `Mozilla/5.0 (${pick(devices)})`,
       deviceLabel: pick(devices),
-      refreshTokenHash: hashPassword(createSecretToken(32)),
+      refreshTokenHash: hashToken(createSecretToken(32)),
       refreshExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
       accessExpiresAt: new Date(Date.now() + 2 * 60 * 60 * 1000),

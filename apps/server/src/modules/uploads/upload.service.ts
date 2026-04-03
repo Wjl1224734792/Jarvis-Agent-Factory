@@ -60,6 +60,9 @@ export const uploadsService = {
     if (!isAllowedUploadMime(policy, input.contentType)) {
       return { kind: "invalid_mime" as const };
     }
+    if (input.byteSize <= 0) {
+      return { kind: "invalid_size" as const };
+    }
     if (input.byteSize > policy.maxSize) {
       return { kind: "file_too_large" as const };
     }

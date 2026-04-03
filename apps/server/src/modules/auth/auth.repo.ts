@@ -2,12 +2,15 @@ import {
   createId,
   createSecretToken,
   db,
-  hashPassword,
+  hashToken,
+  verifyPassword,
   sessionsTable,
   usersTable
 } from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
+import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
 import { and, desc, eq } from "drizzle-orm";
+import { randomInt } from "node:crypto";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
 import { ensureRedisConnected, redis } from "./redis-client";
@@ -36,6 +39,16 @@ const REGISTRATION_TTL_S = 600;
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+/** 短信发送频率限制：同一手机号 60 秒内最多发送 1 次 */
+const SMS_RATE_LIMIT_WINDOW_S = 60;
+
+/** 生成可用用户名时随机尝试的最大次数 */
+const DISPLAY_NAME_RANDOMIZE_MAX_ATTEMPTS = 40;
+/** 生成随机用户名时的后缀范围最小值 */
+const DISPLAY_NAME_RANDOM_SUFFIX_MIN = 100;
+/** 生成随机用户名时的后缀范围跨度 */
+const DISPLAY_NAME_RANDOM_SUFFIX_RANGE = 900;
+
 function now() {
   return Date.now();
 }
@@ -43,7 +56,8 @@ function now() {
 function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
   return {
     id: user.id,
-    role: user.role as AuthRole,
+    // Database text column constrained to valid AuthRole values at insert time
+    role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole),
     displayName: user.displayName,
     phone: user.phone,
     wechatOpenId: user.wechatOpenId,
@@ -60,7 +74,8 @@ async function toUserSummary(
     id: user.id,
     displayName: user.displayName,
     avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
-    role: user.role as AuthRole
+    // Database text column constrained to valid AuthRole values at insert time
+    role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole)
   };
 }
 
@@ -103,7 +118,8 @@ export const authRepo = {
   },
   async createCaptchaChallenge() {
     await ensureRedisConnected();
-    const code = Math.random().toString(36).slice(2, 6).toUpperCase();
+    // 使用密码学安全的随机数生成验证码
+    const code = randomInt(0, 10000).toString().padStart(4, "0").toUpperCase();
     const challengeId = createId("captcha");
     const record = { challengeId, code };
     await redis.set(`captcha:${challengeId}`, JSON.stringify(record), {
@@ -123,7 +139,19 @@ export const authRepo = {
   },
   async createSmsCode(phone: string) {
     await ensureRedisConnected();
-    const code = `${Math.floor(100000 + Math.random() * 900000)}`;
+
+    // 频率限制：同一手机号 60 秒内最多发送 1 次
+    const rateLimitKey = `sms_rate:${phone}`;
+    const attempts = await redis.incr(rateLimitKey);
+    if (attempts === 1) {
+      await redis.expire(rateLimitKey, SMS_RATE_LIMIT_WINDOW_S);
+    }
+    if (attempts > 1) {
+      throw new Error("SMS_RATE_LIMITED");
+    }
+
+    // 使用密码学安全的随机数生成 6 位验证码
+    const code = randomInt(100000, 1000000).toString();
     const requestId = createId("sms");
     const record = { requestId, phone, code };
     await redis.set(`sms:${phone}`, JSON.stringify(record), {
@@ -189,8 +217,8 @@ export const authRepo = {
     const excluded = new Set(options?.exclude ?? []);
 
     if (options?.randomize) {
-      for (let attempt = 0; attempt < 40; attempt += 1) {
-        const candidate = `${base}${Math.floor(100 + Math.random() * 900)}`;
+      for (let attempt = 0; attempt < DISPLAY_NAME_RANDOMIZE_MAX_ATTEMPTS; attempt += 1) {
+        const candidate = `${base}${Math.floor(DISPLAY_NAME_RANDOM_SUFFIX_MIN + Math.random() * DISPLAY_NAME_RANDOM_SUFFIX_RANGE)}`;
         if (excluded.has(candidate)) {
           continue;
         }
@@ -332,7 +360,12 @@ export const authRepo = {
     const localizedAdmin = await localizeAdminUser(admin[0]);
     const user = toUserRecord(localizedAdmin);
 
-    if (user.password !== hashPassword(password)) {
+    // 使用 bcrypt verifyPassword 验证密码
+    if (!user.password) {
+      return null;
+    }
+    const isValid = await verifyPassword(password, user.password);
+    if (!isValid) {
       return null;
     }
 
@@ -442,8 +475,10 @@ export const authRepo = {
     return {
       id: current.id,
       userId: current.userId,
-      role: user[0].role as AuthRole,
-      scope: current.scope as SessionScope,
+      // Database text column constrained to valid AuthRole values at insert time
+      role: isValidAuthRole(user[0].role) ? user[0].role : ("user" satisfies AuthRole),
+      // Database text column constrained to valid SessionScope values at insert time
+      scope: isValidSessionScope(current.scope) ? current.scope : ("web" satisfies SessionScope),
       clientIp: current.clientIp,
       userAgent: current.userAgent,
       deviceLabel: current.deviceLabel,
@@ -518,7 +553,7 @@ export const authRepo = {
       .where(eq(sessionsTable.id, sessionId));
   },
   async findSessionByRefreshToken(refreshToken: string) {
-    const refreshTokenHash = hashPassword(refreshToken);
+    const refreshTokenHash = hashToken(refreshToken);
     const rows = await db
       .select()
       .from(sessionsTable)
@@ -602,7 +637,8 @@ export const authRepo = {
 
     return rows.map((row) => ({
       id: row.id,
-      scope: row.scope as SessionScope,
+      // Database text column constrained to valid SessionScope values at insert time
+      scope: isValidSessionScope(row.scope) ? row.scope : ("web" satisfies SessionScope),
       clientIp: row.clientIp,
       userAgent: row.userAgent,
       deviceLabel: row.deviceLabel,
@@ -617,7 +653,8 @@ export const authRepo = {
       user: {
         id: row.userId,
         displayName: row.userDisplayName,
-        role: row.userRole as AuthRole,
+        // Database text column constrained to valid AuthRole values at insert time
+        role: isValidAuthRole(row.userRole) ? row.userRole : ("user" satisfies AuthRole),
         phone: row.userPhone
       }
     }));

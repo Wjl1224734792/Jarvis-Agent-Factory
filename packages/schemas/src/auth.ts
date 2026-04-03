@@ -8,6 +8,7 @@ export const authErrorCodeSchema = z.enum([
   "INVALID_CREDENTIALS",
   "INVALID_REFRESH_TOKEN",
   "SMS_PROVIDER_UNAVAILABLE",
+  "SMS_RATE_LIMITED",
   "SESSION_EXPIRED",
   "UNAUTHORIZED",
   "FORBIDDEN",
@@ -35,8 +36,11 @@ export const captchaChallengeResponseSchema = z.object({
   expiresInSeconds: z.number().int().positive()
 });
 
+/** 中国大陆手机号正则：1[3-9] 开头，共 11 位数字 */
+const chinaPhoneRegex = /^1[3-9]\d{9}$/;
+
 export const smsCodeRequestSchema = z.object({
-  phone: z.string().regex(/^1\d{10}$/),
+  phone: z.string().regex(chinaPhoneRegex, "请输入有效的手机号"),
   captchaChallengeId: z.string().min(1),
   captchaCode: z.string().min(4).max(8)
 });
@@ -48,7 +52,7 @@ export const smsCodeResponseSchema = z.object({
 });
 
 export const webLoginRequestSchema = z.object({
-  phone: z.string().regex(/^1\d{10}$/),
+  phone: z.string().regex(chinaPhoneRegex, "请输入有效的手机号"),
   captchaChallengeId: z.string().min(1),
   captchaCode: z.string().min(4).max(8),
   smsCode: z.string().length(6)
@@ -64,7 +68,7 @@ export const webLoginSuccessResponseSchema = z.object({
 export const webLoginRegistrationRequiredResponseSchema = z.object({
   kind: z.literal("registration_required"),
   registrationToken: z.string().min(1),
-  phone: z.string().regex(/^1\d{10}$/),
+  phone: z.string().regex(chinaPhoneRegex, "请输入有效的手机号"),
   suggestedDisplayName: z.string().trim().min(1).max(50)
 });
 

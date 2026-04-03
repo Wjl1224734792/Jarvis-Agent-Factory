@@ -106,17 +106,20 @@ export const uploadsRepo = {
     if (input.fileIds.length === 0) {
       return [];
     }
-    const files = await Promise.all(
-      input.fileIds.map(fileId => this.getOwnedFileById(input.ownerId, fileId))
-    );
+    // 使用单次 IN 查询替代 N+1 逐条查询
+    const rows = await db
+      .select(fileSelection())
+      .from(filesTable)
+      .where(
+        and(
+          eq(filesTable.ownerId, input.ownerId),
+          inArray(filesTable.id, input.fileIds),
+          eq(filesTable.mediaKind, input.mediaKind),
+          eq(filesTable.status, "uploaded")
+        )
+      );
 
-    return files.filter((file): file is NonNullable<typeof file> => {
-      if (!file) {
-        return false;
-      }
-      if (file.mediaKind !== input.mediaKind || file.status !== "uploaded") {
-        return false;
-      }
+    return rows.filter((file) => {
       if (input.postId) {
         return file.postId === null || file.postId === input.postId;
       }
@@ -133,14 +136,19 @@ export const uploadsRepo = {
       return [];
     }
 
-    const files = await Promise.all(
-      input.fileIds.map((fileId) => this.getOwnedFileById(input.ownerId, fileId))
-    );
+    // 使用单次 IN 查询替代 N+1 逐条查询
+    const rows = await db
+      .select(fileSelection())
+      .from(filesTable)
+      .where(
+        and(
+          eq(filesTable.ownerId, input.ownerId),
+          inArray(filesTable.id, input.fileIds),
+          eq(filesTable.status, "uploaded")
+        )
+      );
 
-    return files.filter((file): file is NonNullable<typeof file> => {
-      if (!file || file.status !== "uploaded") {
-        return false;
-      }
+    return rows.filter((file) => {
       if (input.mediaKind && file.mediaKind !== input.mediaKind) {
         return false;
       }

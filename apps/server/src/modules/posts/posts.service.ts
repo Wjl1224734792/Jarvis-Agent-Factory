@@ -1,3 +1,9 @@
+import {
+  isValidAuthRole,
+  isValidPostType,
+  isValidPostStatus,
+  isValidPostCommentStatus
+} from "../../lib/type-guards";
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
@@ -5,6 +11,7 @@ import { uploadsRepo } from "../uploads/upload.repo";
 import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
+import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
 
 type CurrentUser = {
   id: string;
@@ -157,11 +164,11 @@ function serializePostListItem(
 
   return {
     id: item.id,
-    type: item.type as PostType,
+    type: isValidPostType(item.type) ? item.type : ("article" satisfies PostType),
     title: item.title,
     contentPreview: toPreview(item.contentPlainText ?? item.content),
     contentHtml: item.contentHtml,
-    status: item.status as PostStatus,
+    status: isValidPostStatus(item.status) ? item.status : ("pending" satisfies PostStatus),
     commentCount: item.commentCount,
     reportCount: item.reportCount,
     createdAt: item.createdAt.toISOString(),
@@ -170,7 +177,7 @@ function serializePostListItem(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      role: item.author.role as "user" | "admin"
+      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
     images: options.images,
     videos: options.videos,
@@ -190,19 +197,69 @@ function serializePostListItem(
   };
 }
 
-function buildReplyToUserMap(
-  users: Awaited<ReturnType<typeof postsRepo.listUsersByIds>>
+type PostComment = Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>[number];
+
+function serializeCommentBase(
+  comment: PostComment,
+  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  input: {
+    currentUserId?: string | null;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+  }
 ) {
-  return new Map(
-    users.map((user) => [
-      user.id,
-      {
-        id: user.id,
-        displayName: user.displayName,
-        role: user.role as "user" | "admin"
-      }
-    ])
+  return {
+    id: comment.id,
+    postId: comment.postId,
+    parentCommentId: comment.parentCommentId,
+    replyToCommentId: comment.replyToCommentId,
+    content: comment.content,
+    status: isValidPostCommentStatus(comment.status) ? comment.status : ("visible" satisfies PostCommentStatus),
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    likeCount: comment.likeCount ?? 0,
+    reportCount: comment.reportCount ?? 0,
+    author: {
+      id: comment.author.id,
+      displayName: comment.author.displayName,
+      role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
+    },
+    replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
+    viewer: {
+      canEdit: input.currentUserId === comment.author.id,
+      canDelete: input.currentUserId === comment.author.id,
+      hasLiked: input.likedCommentIds?.has(comment.id) ?? false,
+      hasReported: input.reportedCommentIds?.has(comment.id) ?? false
+    }
+  };
+}
+
+function serializeCommentThreads(
+  comments: Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>,
+  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  input: {
+    currentUserId?: string | null;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+    sort: CommentSort;
+  }
+) {
+  const compare =
+    input.sort === "hot"
+      ? (left: { likeCount: number; updatedAt: string }, right: { likeCount: number; updatedAt: string }) =>
+          right.likeCount - left.likeCount || right.updatedAt.localeCompare(left.updatedAt)
+      : (left: { createdAt: string }, right: { createdAt: string }) =>
+          right.createdAt.localeCompare(left.createdAt);
+
+  const serialized = comments.map((c) =>
+    serializeCommentBase(c, replyToUserMap, {
+      currentUserId: input.currentUserId,
+      likedCommentIds: input.likedCommentIds,
+      reportedCommentIds: input.reportedCommentIds
+    })
   );
+
+  return buildCommentThreads(serialized, { compare });
 }
 
 function buildCommentStateSet(rows: Array<{ commentId: string }>) {
@@ -227,74 +284,6 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
   });
 }
 
-function serializeCommentThreads(
-  comments: Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
-  input: {
-    currentUserId?: string | null;
-    likedCommentIds?: Set<string>;
-    reportedCommentIds?: Set<string>;
-    sort: CommentSort;
-  }
-) {
-  const repliesByRootId = new Map<string, Array<any>>();
-  const roots: Array<any> = [];
-  const compare =
-    input.sort === "hot"
-      ? (left: { likeCount: number; updatedAt: string }, right: { likeCount: number; updatedAt: string }) =>
-          right.likeCount - left.likeCount || right.updatedAt.localeCompare(left.updatedAt)
-      : (left: { createdAt: string }, right: { createdAt: string }) =>
-          right.createdAt.localeCompare(left.createdAt);
-
-  for (const comment of comments) {
-    const serializedBase = {
-      id: comment.id,
-      postId: comment.postId,
-      parentCommentId: comment.parentCommentId,
-      replyToCommentId: comment.replyToCommentId,
-      content: comment.content,
-      status: comment.status as PostCommentStatus,
-      createdAt: comment.createdAt.toISOString(),
-      updatedAt: comment.updatedAt.toISOString(),
-      likeCount: comment.likeCount ?? 0,
-      reportCount: comment.reportCount ?? 0,
-      author: {
-        id: comment.author.id,
-        displayName: comment.author.displayName,
-        role: comment.author.role as "user" | "admin"
-      },
-      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
-      viewer: {
-        canEdit: input.currentUserId === comment.author.id,
-        canDelete: input.currentUserId === comment.author.id,
-        hasLiked: input.likedCommentIds?.has(comment.id) ?? false,
-        hasReported: input.reportedCommentIds?.has(comment.id) ?? false
-      }
-    };
-
-    if (!comment.parentCommentId) {
-      roots.push({
-        ...serializedBase,
-        replyCount: 0,
-        replies: []
-      });
-      continue;
-    }
-
-    const bucket = repliesByRootId.get(comment.parentCommentId) ?? [];
-    bucket.push(serializedBase);
-    repliesByRootId.set(comment.parentCommentId, bucket);
-  }
-
-  return roots
-    .map((root) => ({
-      ...root,
-      replies: (repliesByRootId.get(root.id) ?? []).sort(compare),
-      replyCount: (repliesByRootId.get(root.id) ?? []).length
-    }))
-    .sort(compare);
-}
-
 function serializeSingleComment(
   item: Awaited<ReturnType<typeof postsRepo.getCommentById>>,
   replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
@@ -310,7 +299,7 @@ function serializeSingleComment(
     parentCommentId: item.parentCommentId,
     replyToCommentId: item.replyToCommentId,
     content: item.content,
-    status: item.status as PostCommentStatus,
+    status: isValidPostCommentStatus(item.status) ? item.status : ("visible" satisfies PostCommentStatus),
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     likeCount: item.likeCount ?? 0,
@@ -318,7 +307,7 @@ function serializeSingleComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      role: item.author.role as "user" | "admin"
+      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
     viewer: {
@@ -513,11 +502,11 @@ export const postsService = {
     return {
       item: {
         id: item.id,
-        type: item.type as PostType,
+        type: isValidPostType(item.type) ? item.type : ("article" satisfies PostType),
         title: item.title,
         content: item.content,
         contentHtml: item.contentHtml,
-        status: item.status as PostStatus,
+        status: isValidPostStatus(item.status) ? item.status : ("pending" satisfies PostStatus),
         commentCount: item.commentCount,
         reportCount: item.reportCount,
         createdAt: item.createdAt.toISOString(),
@@ -526,7 +515,7 @@ export const postsService = {
         author: {
           id: item.author.id,
           displayName: item.author.displayName,
-          role: item.author.role as "user" | "admin"
+          role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
         },
         images: buildImagesByPostId(images).get(item.id) ?? [],
         videos: buildVideosByPostId(videos).get(item.id) ?? [],
@@ -993,7 +982,7 @@ export const postsService = {
             id: report.reporter.id,
             displayName: report.reporter.displayName,
             avatarUrl: null,
-            role: report.reporter.role as "user" | "admin"
+            role: isValidAuthRole(report.reporter.role) ? report.reporter.role : ("user" as "user" | "admin")
           },
           evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
             id: `${report.id}-${index}`,
@@ -1018,7 +1007,7 @@ export const postsService = {
             id: report.reporter.id,
             displayName: report.reporter.displayName,
             avatarUrl: null,
-            role: report.reporter.role as "user" | "admin"
+            role: isValidAuthRole(report.reporter.role) ? report.reporter.role : ("user" as "user" | "admin")
           },
           evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
             id: `${report.id}-${index}`,
@@ -1046,14 +1035,14 @@ export const postsService = {
         parentCommentId: item.parentCommentId,
         replyToCommentId: item.replyToCommentId,
         content: item.content,
-        status: item.status as PostCommentStatus,
+        status: isValidPostCommentStatus(item.status) ? item.status : ("visible" satisfies PostCommentStatus),
         reportCount: item.reportCount ?? 0,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         author: {
           id: item.author.id,
           displayName: item.author.displayName,
-          role: item.author.role as "user" | "admin"
+          role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
         },
         replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
       }))
@@ -1074,14 +1063,14 @@ export const postsService = {
       parentCommentId: item.parentCommentId,
       replyToCommentId: item.replyToCommentId,
       content: item.content,
-      status: item.status as PostCommentStatus,
+      status: isValidPostCommentStatus(item.status) ? item.status : ("visible" satisfies PostCommentStatus),
       reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),
       updatedAt: item.updatedAt.toISOString(),
       author: {
         id: item.author.id,
         displayName: item.author.displayName,
-        role: item.author.role as "user" | "admin"
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       replyToUser: item.replyToUserId ? buildReplyToUserMap(replyToUsers).get(item.replyToUserId) ?? null : null
     };

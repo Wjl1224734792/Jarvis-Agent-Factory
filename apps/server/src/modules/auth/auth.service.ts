@@ -1,4 +1,4 @@
-import { createSecretToken, hashPassword } from "@feijia/db";
+import { createSecretToken, hashToken } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
 import { authRepo, type SessionScope } from "./auth.repo";
 import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
@@ -29,7 +29,7 @@ function mapRegistrationPersistenceError(error: unknown): AuthError | null {
   ) {
     return new AuthError(
       "PHONE_ALREADY_REGISTERED",
-      "璇ユ墜鏈哄彿宸插畬鎴愭敞鍐岋紝璇风洿鎺ョ櫥褰曘€?"
+      "该手机号已完成注册，请直接登录。"
     );
   }
 
@@ -39,7 +39,7 @@ function mapRegistrationPersistenceError(error: unknown): AuthError | null {
   ) {
     return new AuthError(
       "DISPLAY_NAME_TAKEN",
-      "璇ョ敤鎴峰悕宸茶鍗犵敤锛岃鏇存崲鍚庨噸璇曘€?"
+      "该用户名已被占用，请更换后重试。"
     );
   }
 
@@ -90,7 +90,7 @@ async function createAppSession(
       explicitDeviceLabel: metadata?.deviceLabel,
       userAgent: metadata?.userAgent ?? null
     }),
-    refreshTokenHash: hashPassword(refreshToken),
+    refreshTokenHash: hashToken(refreshToken),
     refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
   });
   const summary = await authRepo.getUserSummaryBySession(session.id);
@@ -113,6 +113,7 @@ export class AuthError extends Error {
       | "INVALID_CREDENTIALS"
       | "INVALID_REFRESH_TOKEN"
       | "SMS_PROVIDER_UNAVAILABLE"
+      | "SMS_RATE_LIMITED"
       | "SESSION_EXPIRED"
       | "UNAUTHORIZED"
       | "FORBIDDEN"
@@ -165,6 +166,12 @@ export const authService = {
         mockCode: sendResult.mockCode
       };
     } catch (error) {
+      if (error instanceof Error && error.message === "SMS_RATE_LIMITED") {
+        throw new AuthError(
+          "SMS_RATE_LIMITED",
+          "发送过于频繁，请 60 秒后再试"
+        );
+      }
       throw new AuthError(
         "SMS_PROVIDER_UNAVAILABLE",
         error instanceof Error ? error.message : "短信服务当前不可用"
@@ -215,7 +222,7 @@ export const authService = {
         explicitDeviceLabel: metadata?.deviceLabel,
         userAgent: metadata?.userAgent ?? null
       }),
-      refreshTokenHash: hashPassword(refreshToken),
+      refreshTokenHash: hashToken(refreshToken),
       refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
     });
     const summary = await authRepo.getUserSummaryBySession(session.id);
@@ -285,7 +292,9 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = await authRepo.findPendingRegistration(
+    // 使用 consumePendingRegistration（原子 GETDEL）消除 Redis 层面的竞态条件
+    // 多个并发请求中只有一个能成功消费 pending registration
+    const pending = await authRepo.consumePendingRegistration(
       input.registrationToken
     );
     if (!pending) {
@@ -329,15 +338,13 @@ export const authService = {
           explicitDeviceLabel: metadata?.deviceLabel ?? pending.deviceLabel,
           userAgent: metadata?.userAgent ?? pending.userAgent ?? null
         }),
-        refreshTokenHash: hashPassword(refreshToken),
+        refreshTokenHash: hashToken(refreshToken),
         refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
       });
       const summary = await authRepo.getUserSummaryBySession(session.id);
       if (!summary) {
         throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
       }
-
-      await authRepo.deletePendingRegistration(input.registrationToken);
 
       return {
         sessionId: session.id,
@@ -361,7 +368,8 @@ export const authService = {
     },
     metadata?: RequestSessionMetadata
   ) {
-    const pending = await authRepo.findPendingRegistration(
+    // 使用 consumePendingRegistration（原子 GETDEL）消除 Redis 层面的竞态条件
+    const pending = await authRepo.consumePendingRegistration(
       input.registrationToken
     );
     if (!pending) {
@@ -406,8 +414,6 @@ export const authService = {
           pending.deviceLabel ??
           null
       });
-
-      await authRepo.deletePendingRegistration(input.registrationToken);
 
       return session;
     } catch (error) {
@@ -525,7 +531,7 @@ export const authService = {
         explicitDeviceLabel: metadata?.deviceLabel,
         userAgent: metadata?.userAgent ?? null
       }),
-      refreshTokenHash: hashPassword(refreshToken),
+      refreshTokenHash: hashToken(refreshToken),
       refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
     });
     const summary = await authRepo.getUserSummaryBySession(session.id);

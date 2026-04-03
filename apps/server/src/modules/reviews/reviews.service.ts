@@ -2,6 +2,7 @@ import { reviewsRepo } from "./reviews.repo";
 import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
 
 async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(author: T) {
   return resolveUploadedFileUrl(author.avatarFileId ?? null);
@@ -25,23 +26,18 @@ function buildStateSet<T extends { [key: string]: string }>(
 async function buildReplyToUserMap(
   users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>
 ) {
-  const pairs = await Promise.all(
-    users.map(async (user) => [
-      user.id,
-      {
-        id: user.id,
-        displayName: user.displayName,
-        avatarUrl: await resolveAuthorAvatar(user),
-        role: user.role as "user" | "admin"
-      }
-    ] as const)
-  );
-
-  return new Map(pairs);
+  return buildReplyToUserMapAsync(users, async (user) => ({
+    id: user.id,
+    displayName: user.displayName,
+    avatarUrl: await resolveAuthorAvatar(user),
+    role: user.role as "user" | "admin"
+  }));
 }
 
-async function serializeComment(
-  item: Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>,
+type ReviewComment = Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>;
+
+async function serializeCommentBase(
+  item: NonNullable<ReviewComment>,
   replyToUserMap: Map<
     string,
     { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
@@ -52,10 +48,6 @@ async function serializeComment(
     reportedCommentIds?: Set<string>;
   }
 ) {
-  if (!item) {
-    return null;
-  }
-
   return {
     id: item.id,
     reviewId: item.reviewId,
@@ -83,6 +75,25 @@ async function serializeComment(
   };
 }
 
+async function serializeComment(
+  item: Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>,
+  replyToUserMap: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+  >,
+  input?: {
+    currentUserId?: string;
+    likedCommentIds?: Set<string>;
+    reportedCommentIds?: Set<string>;
+  }
+) {
+  if (!item) {
+    return null;
+  }
+
+  return serializeCommentBase(item, replyToUserMap, input);
+}
+
 async function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof reviewsRepo.listReviewComments>>,
   replyToUserMap: Map<
@@ -95,55 +106,11 @@ async function serializeCommentThreads(
     reportedCommentIds?: Set<string>;
   }
 ) {
-  const repliesByRootId = new Map<string, Array<any>>();
-  const roots: Array<any> = [];
+  const serialized = await Promise.all(
+    comments.map((c) => serializeCommentBase(c, replyToUserMap, input))
+  );
 
-  for (const comment of comments) {
-    const base = {
-      id: comment.id,
-      reviewId: comment.reviewId,
-      parentCommentId: comment.parentCommentId,
-      replyToCommentId: comment.replyToCommentId,
-      content: comment.content,
-      status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
-      createdAt: comment.createdAt.toISOString(),
-      updatedAt: comment.updatedAt.toISOString(),
-      likeCount: comment.likeCount ?? 0,
-      reportCount: comment.reportCount ?? 0,
-      author: {
-        id: comment.author.id,
-        displayName: comment.author.displayName,
-        avatarUrl: await resolveAuthorAvatar(comment.author),
-        role: comment.author.role as "user" | "admin"
-      },
-      replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
-      viewer: {
-        canEdit: input?.currentUserId === comment.author.id,
-        canDelete: input?.currentUserId === comment.author.id,
-        hasLiked: input?.likedCommentIds?.has(comment.id) ?? false,
-        hasReported: input?.reportedCommentIds?.has(comment.id) ?? false
-      }
-    };
-
-    if (!comment.parentCommentId) {
-      roots.push({
-        ...base,
-        replyCount: 0,
-        replies: []
-      });
-      continue;
-    }
-
-    const bucket = repliesByRootId.get(comment.parentCommentId) ?? [];
-    bucket.push(base);
-    repliesByRootId.set(comment.parentCommentId, bucket);
-  }
-
-  return roots.map((root) => ({
-    ...root,
-    replies: repliesByRootId.get(root.id) ?? [],
-    replyCount: (repliesByRootId.get(root.id) ?? []).length
-  }));
+  return buildCommentThreads(serialized);
 }
 
 async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
