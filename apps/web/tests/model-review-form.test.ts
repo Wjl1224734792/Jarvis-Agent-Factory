@@ -13,11 +13,19 @@ const sampleReview = {
   status: "visible" as const,
   createdAt: "2026-03-22T10:00:00.000Z",
   updatedAt: "2026-03-22T12:00:00.000Z",
+  likeCount: 0,
+  reportCount: 0,
   author: {
     id: "user_1",
     displayName: "Test User",
     avatarUrl: null,
     role: "user" as const
+  },
+  viewer: {
+    canEdit: true,
+    canDelete: true,
+    hasLiked: false,
+    hasReported: false
   }
 };
 

@@ -135,7 +135,7 @@ export function PublishMomentPage() {
     setIsUploading(true);
 
     try {
-      const file = files[0]!;
+      const file = files[0];
       const uploaded = await apiClient.uploadPostVideo(file);
       setUploadedImages([]);
       setUploadedVideo({

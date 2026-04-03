@@ -2,8 +2,11 @@ import { createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
+const configuredBaseUrl = import.meta.env.VITE_ADMIN_API_BASE_URL;
 const baseUrl =
-  import.meta.env.VITE_ADMIN_API_BASE_URL?.trim() || fallbackBaseUrl;
+  typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
+    ? configuredBaseUrl.trim()
+    : fallbackBaseUrl;
 
 // 管理端优先复用共享 client，再按后台工作流补充聚合接口和兼容逻辑。
 const sharedClient = createApiClient({
@@ -11,12 +14,15 @@ const sharedClient = createApiClient({
 });
 
 async function parseResponse<T>(response: Response): Promise<T> {
-  const payload = await response.json().catch(() => null);
+  const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
     const message =
-      payload && typeof payload === "object" && "message" in payload
-        ? String(payload.message)
+      payload &&
+        typeof payload === "object" &&
+        "message" in payload &&
+        typeof payload.message === "string"
+        ? payload.message
         : `Request failed with status ${response.status}`;
     throw new Error(message);
   }
@@ -209,49 +215,6 @@ type AnalyticsSeriesPoint = {
   value: number;
 };
 
-type AdminAnalyticsOverview = {
-  totals: {
-    users: number;
-    moments: number;
-    articles: number;
-    aircraft: number;
-    rankings: number;
-    pending: number;
-  };
-  registration: {
-    today: number;
-    month: number;
-    year: number;
-    daily: AnalyticsSeriesPoint[];
-    monthly: AnalyticsSeriesPoint[];
-    yearly: AnalyticsSeriesPoint[];
-  };
-  activity: {
-    dau: number;
-    mau: number;
-    yau: number;
-    daily: AnalyticsSeriesPoint[];
-    monthly: AnalyticsSeriesPoint[];
-    yearly: AnalyticsSeriesPoint[];
-  };
-  contentMix: Array<{
-    type: "moment" | "article" | "aircraft" | "ranking";
-    label: string;
-    value: number;
-  }>;
-  moderation: Array<{
-    key: "posts" | "comments" | "reviews" | "submissions";
-    label: string;
-    pending: number;
-    approved: number;
-    rejected: number;
-  }>;
-  funnel: Array<{
-    stage: string;
-    value: number;
-  }>;
-};
-
 type OfficialArticleInput = {
   title: string;
   content: string;
@@ -291,7 +254,7 @@ function averageScore(items: AdminRankingItem[]) {
 function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
   const official = payload.official as unknown;
   if (Array.isArray(official)) {
-    return (official as AdminRankingListItem[]).map((item) => ({
+    return official.map((item) => ({
       ...item,
       status: item.status ?? "published",
       itemAddPolicy: item.itemAddPolicy ?? "owner"
@@ -300,7 +263,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
 
   const legacyOfficial = official as { items: AdminRankingItem[] };
   return legacyOfficialDefinitions.map((definition, index) => {
-    const items = legacyOfficial.items.slice(index, index + 3) as AdminRankingItem[];
+    const items = legacyOfficial.items.slice(index, index + 3);
     return {
       id: definition.id,
       type: "official" as const,

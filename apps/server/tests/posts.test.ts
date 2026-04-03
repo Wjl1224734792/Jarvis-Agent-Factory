@@ -125,16 +125,16 @@ async function uploadFile(
   expect(pending?.id).toBeTruthy();
 
   const uploaded = await uploadsRepo.markFileUploaded({
-    fileId: pending!.id,
+    fileId: pending.id,
     etag: "test-etag"
   });
 
   return {
     item: {
-      id: uploaded!.id,
+      id: uploaded.id,
       url: "",
-      mimeType: uploaded!.mimeType,
-      fileName: uploaded!.fileName
+      mimeType: uploaded.mimeType,
+      fileName: uploaded.fileName
     }
   };
 }

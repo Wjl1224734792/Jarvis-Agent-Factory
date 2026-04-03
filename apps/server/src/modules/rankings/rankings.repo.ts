@@ -847,7 +847,7 @@ export const rankingsRepo = {
         updatedAt: new Date()
       })
       .where(eq(rankingCommentsTable.id, id));
-    await this.syncRankingCommentCount(existing[0]!.rankingId);
+    await this.syncRankingCommentCount(existing[0].rankingId);
 
     const rows = await this.listAdminRankingComments();
     return rows.find((item) => item.id === id) ?? null;

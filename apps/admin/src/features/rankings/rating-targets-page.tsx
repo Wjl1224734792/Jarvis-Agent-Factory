@@ -123,7 +123,7 @@ export function RatingTargetsPage() {
           />
           <Segmented
             onChange={(value) => {
-              setStatus(value as ItemStatus | "all");
+              setStatus(value);
             }}
             options={itemStatusOptions}
             value={status}

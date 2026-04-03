@@ -149,7 +149,7 @@ export function RankingEditorPage() {
 
       const cloned = [...items];
       const [current] = cloned.splice(index, 1);
-      cloned.splice(nextIndex, 0, current!);
+      cloned.splice(nextIndex, 0, current);
       return cloned;
     });
   }
@@ -483,7 +483,7 @@ export function RankingEditorPage() {
                   } as Parameters<typeof apiClient.createRanking>[0];
 
                   const request = editId
-                    ? apiClient.updateRanking(editId, payload as Parameters<typeof apiClient.updateRanking>[1])
+                    ? apiClient.updateRanking(editId, payload)
                     : apiClient.createRanking(payload);
 
                   void request

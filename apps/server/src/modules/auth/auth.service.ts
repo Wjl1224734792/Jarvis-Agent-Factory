@@ -1,6 +1,6 @@
 import { createSecretToken, hashToken } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
-import { authRepo, type SessionScope, ADMIN_LOGIN_MAX_FAILURES } from "./auth.repo";
+import { authRepo, ADMIN_LOGIN_MAX_FAILURES } from "./auth.repo";
 import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
 import type { UserRecord } from "../users/users.schema";
 
@@ -318,6 +318,7 @@ export const authService = {
       normalizedDisplayName
     );
     if (duplicateName) {
+      await authRepo.restorePendingRegistration(pending);
       throw new AuthError(
         "DISPLAY_NAME_TAKEN",
         "该用户名已被占用，请更换后重试。"
@@ -355,6 +356,9 @@ export const authService = {
     } catch (error) {
       const mappedError = mapRegistrationPersistenceError(error);
       if (mappedError) {
+        if (mappedError.code === "DISPLAY_NAME_TAKEN") {
+          await authRepo.restorePendingRegistration(pending);
+        }
         throw mappedError;
       }
       throw error;
@@ -393,6 +397,7 @@ export const authService = {
       normalizedDisplayName
     );
     if (duplicateName) {
+      await authRepo.restorePendingRegistration(pending);
       throw new AuthError(
         "DISPLAY_NAME_TAKEN",
         "该用户名已被占用，请更换后重试。"
@@ -420,6 +425,9 @@ export const authService = {
     } catch (error) {
       const mappedError = mapRegistrationPersistenceError(error);
       if (mappedError) {
+        if (mappedError.code === "DISPLAY_NAME_TAKEN") {
+          await authRepo.restorePendingRegistration(pending);
+        }
         throw mappedError;
       }
       throw error;

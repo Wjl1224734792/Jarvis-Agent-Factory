@@ -37,7 +37,7 @@ export const brandsRepo = {
       .where(eq(brandsTable.id, id))
       .limit(1);
 
-    return created[0]!;
+    return created[0];
   },
   async update(
     id: string,

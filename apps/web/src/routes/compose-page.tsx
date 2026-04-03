@@ -53,7 +53,7 @@ export function ComposePage() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
-  const [tags, setTags] = useState<string[]>([suggestedTags[0]!, suggestedTags[1]!]);
+  const [tags, setTags] = useState<string[]>([suggestedTags[0], suggestedTags[1]]);
   const [coverImage, setCoverImage] = useState<string>(getEditorialImage("compose-cover"));
   const [saveHint, setSaveHint] = useState<string | null>("草稿自动保存于 14:02");
   const [submitError, setSubmitError] = useState<string | null>(null);

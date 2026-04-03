@@ -108,7 +108,7 @@ function canInspectRatingTarget(input: {
 }
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
-  return new Set(rows.map((row) => row[key] as T));
+  return new Set(rows.map((row) => row[key]));
 }
 
 async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {

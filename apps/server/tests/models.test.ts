@@ -96,11 +96,11 @@ async function uploadReportImage(cookie: string, name = "evidence.png") {
   expect(pending?.id).toBeTruthy();
 
   const uploaded = await uploadsRepo.markFileUploaded({
-    fileId: pending!.id,
+    fileId: pending.id,
     etag: "report-image-etag"
   });
 
-  return uploaded!.id;
+  return uploaded.id;
 }
 
 beforeAll(async () => {

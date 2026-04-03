@@ -237,7 +237,7 @@ export function RankingsPage() {
               />
               <Segmented
                 onChange={(value) => {
-                  setCommunityFilter(value as AdminRankingStatus);
+                  setCommunityFilter(value);
                 }}
                 options={communityStatusOptions}
                 value={communityFilter}

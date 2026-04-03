@@ -534,7 +534,7 @@ export function PublishAircraftPage() {
                   const request = editId
                     ? apiClient.updateAircraftSubmission(
                         editId,
-                        submissionPayload as Parameters<typeof apiClient.updateAircraftSubmission>[1]
+                        submissionPayload
                       )
                     : apiClient.createAircraftSubmission(submissionPayload);
 

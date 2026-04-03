@@ -107,11 +107,11 @@ async function uploadReportImage(cookie: string, name = "report-evidence.png") {
   expect(pending?.id).toBeTruthy();
 
   const uploaded = await uploadsRepo.markFileUploaded({
-    fileId: pending!.id,
+    fileId: pending.id,
     etag: "report-evidence"
   });
 
-  return uploaded!.id;
+  return uploaded.id;
 }
 
 async function updateSiteSettings(
@@ -405,7 +405,7 @@ describe("rankings flows", () => {
     expect(communityItemId).toBeTruthy();
     expect(officialItemId).toBeTruthy();
 
-    const firstReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId!), {
+    const firstReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId), {
       method: "POST",
       headers: {
         cookie,
@@ -418,7 +418,7 @@ describe("rankings flows", () => {
     });
     expect(firstReviewResponse.status).toBe(200);
 
-    const secondReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId!), {
+    const secondReviewResponse = await app.request(API_ROUTES.rankings.itemReview(communityItemId), {
       method: "POST",
       headers: {
         cookie,
@@ -443,7 +443,7 @@ describe("rankings flows", () => {
       secondReviewPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
     ).toBe(secondReviewPayload.item.totalRatings);
 
-    const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(communityItemId!), {
+    const itemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(communityItemId), {
       method: "GET",
       headers: { cookie }
     });
@@ -467,7 +467,7 @@ describe("rankings flows", () => {
     expect(itemDetailPayload.item.myReview?.rating).toBe(4);
     expect(itemDetailPayload.item.myReview?.content).toContain("updated review");
 
-    const officialRatingResponse = await app.request(API_ROUTES.rankings.itemRatings(officialItemId!), {
+    const officialRatingResponse = await app.request(API_ROUTES.rankings.itemRatings(officialItemId), {
       method: "POST",
       headers: {
         cookie,
@@ -479,7 +479,7 @@ describe("rankings flows", () => {
     });
     expect(officialRatingResponse.status).toBe(200);
 
-    const officialItemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(officialItemId!), {
+    const officialItemDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(officialItemId), {
       method: "GET",
       headers: { cookie }
     });
@@ -715,7 +715,7 @@ describe("rankings flows", () => {
     const itemId = overviewPayload.community[0]?.items[0]?.id;
     expect(itemId).toBeTruthy();
 
-    const reviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId!), {
+    const reviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId), {
       method: "POST",
       headers: {
         cookie: authorCookie,
@@ -733,7 +733,7 @@ describe("rankings flows", () => {
     const rootCommentId = reviewPayload.item.myReview?.id;
     expect(rootCommentId).toBeTruthy();
 
-    const replyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const replyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie: replierCookie,
@@ -749,7 +749,7 @@ describe("rankings flows", () => {
     const replyCommentId = replyPayload.item.id;
 
     const likeResponse = await app.request(
-      API_ROUTES.rankings.itemCommentLike(itemId!, replyCommentId),
+      API_ROUTES.rankings.itemCommentLike(itemId, replyCommentId),
       {
         method: "POST",
         headers: { cookie: watcherCookie }
@@ -759,7 +759,7 @@ describe("rankings flows", () => {
 
     const reportImageId = await uploadReportImage(watcherCookie);
     const commentReportResponse = await app.request(
-      API_ROUTES.rankings.itemCommentReport(itemId!, replyCommentId),
+      API_ROUTES.rankings.itemCommentReport(itemId, replyCommentId),
       {
         method: "POST",
         headers: {
@@ -774,7 +774,7 @@ describe("rankings flows", () => {
     );
     expect(commentReportResponse.status).toBe(200);
 
-    const itemReportResponse = await app.request(API_ROUTES.rankings.itemReport(itemId!), {
+    const itemReportResponse = await app.request(API_ROUTES.rankings.itemReport(itemId), {
       method: "POST",
       headers: {
         cookie: watcherCookie,
@@ -787,7 +787,7 @@ describe("rankings flows", () => {
     });
     expect(itemReportResponse.status).toBe(200);
 
-    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
       method: "GET",
       headers: { cookie: watcherCookie }
     });
@@ -814,7 +814,7 @@ describe("rankings flows", () => {
     expect(detailPayload.item.comments[0]?.replies[0]?.reportCount).toBe(1);
 
     const updateReplyResponse = await app.request(
-      API_ROUTES.rankings.itemCommentDetail(itemId!, replyCommentId),
+      API_ROUTES.rankings.itemCommentDetail(itemId, replyCommentId),
       {
         method: "PUT",
         headers: {
@@ -829,7 +829,7 @@ describe("rankings flows", () => {
     expect(updateReplyResponse.status).toBe(200);
 
     const deleteReplyResponse = await app.request(
-      API_ROUTES.rankings.itemCommentDetail(itemId!, replyCommentId),
+      API_ROUTES.rankings.itemCommentDetail(itemId, replyCommentId),
       {
         method: "DELETE",
         headers: {
@@ -839,7 +839,7 @@ describe("rankings flows", () => {
     );
     expect(deleteReplyResponse.status).toBe(200);
 
-    const afterDeleteResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+    const afterDeleteResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
       method: "GET",
       headers: { cookie: watcherCookie }
     });
@@ -1009,7 +1009,7 @@ describe("rankings flows", () => {
     const itemId = overviewPayload.community[0]?.items[0]?.id;
     expect(itemId).toBeTruthy();
 
-    const missingRatingResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const missingRatingResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie,
@@ -1021,7 +1021,7 @@ describe("rankings flows", () => {
     });
     expect(missingRatingResponse.status).toBe(400);
 
-    const firstCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const firstCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie,
@@ -1037,7 +1037,7 @@ describe("rankings flows", () => {
       item: { id: string };
     };
 
-    const secondCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const secondCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie,
@@ -1050,7 +1050,7 @@ describe("rankings flows", () => {
     });
     expect(secondCommentResponse.status).toBe(200);
 
-    const invalidReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const invalidReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie,
@@ -1064,7 +1064,7 @@ describe("rankings flows", () => {
     });
     expect(invalidReplyResponse.status).toBe(400);
 
-    const validReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId!), {
+    const validReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
       headers: {
         cookie,
@@ -1077,7 +1077,7 @@ describe("rankings flows", () => {
     });
     expect(validReplyResponse.status).toBe(200);
 
-    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId!), {
+    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
       method: "GET",
       headers: { cookie }
     });

@@ -33,7 +33,7 @@ export function buildCircleMediaItems(input: {
     return [
       {
         kind: "video" as const,
-        url: videos[0]!.url,
+        url: videos[0].url,
         label: input.title
       }
     ] satisfies CircleMediaItem[];

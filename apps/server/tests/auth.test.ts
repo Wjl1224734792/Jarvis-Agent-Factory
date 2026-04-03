@@ -303,6 +303,10 @@ describe("auth flows", () => {
     const existingDisplayName = mePayload.user?.displayName ?? "";
     expect(existingDisplayName).toBeTruthy();
 
+    // 首次注册登录已经触发过一次短信发送，清空测试 Redis 状态以避免 60 秒限流干扰
+    // 本用例关注的是“已注册手机号直接登录”和“用户名唯一性”，不是短信频控本身。
+    await resetRedisForTesting();
+
     const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
       method: "POST"
     });
@@ -725,14 +729,15 @@ describe("auth flows", () => {
     });
     expect(logoutResponse.status).toBe(200);
 
-    const adminCookie = await app.request(API_ROUTES.auth.adminLogin, {
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         account: "admin",
         password: "Admin#123"
       })
-    }).then((response) => extractCookies(response));
+    });
+    const adminCookie = extractCookies(adminLoginResponse);
 
     const recentSessionsResponse = await app.request("/admin/auth/sessions", {
       method: "GET",

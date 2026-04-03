@@ -266,6 +266,19 @@ export const authRepo = {
     });
     return { ...record, expiresAt: now() + REGISTRATION_TTL_S * 1000 };
   },
+  async restorePendingRegistration(record: {
+    registrationToken: string;
+    phone: string;
+    suggestedDisplayName: string;
+    clientIp: string | null;
+    userAgent: string | null;
+    deviceLabel: string | null;
+  }) {
+    await ensureRedisConnected();
+    await redis.set(`reg:${record.registrationToken}`, JSON.stringify(record), {
+      EX: REGISTRATION_TTL_S
+    });
+  },
   async suggestPendingRegistrationDisplayName(registrationToken: string) {
     await ensureRedisConnected();
     const raw = await redis.get(`reg:${registrationToken}`);

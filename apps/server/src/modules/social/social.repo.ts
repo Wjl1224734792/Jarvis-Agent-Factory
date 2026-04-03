@@ -284,7 +284,7 @@ export const socialRepo = {
     `
     );
 
-    const typedRows = rows.rows as Array<Record<string, unknown>>;
+    const typedRows = rows.rows;
     return typedRows.map((row) => ({
       id: String(row.id ?? ""),
       modelId: String(row.modelId ?? ""),
@@ -543,7 +543,7 @@ export const socialRepo = {
     `
     );
 
-    const row = (rows.rows as Array<Record<string, unknown>>)[0];
+    const row = (rows.rows)[0];
     if (!row) {
       return null;
     }

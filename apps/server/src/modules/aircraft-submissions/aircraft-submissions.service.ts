@@ -47,9 +47,9 @@ async function serializeSubmission(
     },
     brand: hasBrand
       ? {
-          id: brandRecord!.id!,
-          slug: brandRecord!.slug!,
-          name: brandRecord!.name!
+          id: brandRecord!.id,
+          slug: brandRecord!.slug,
+          name: brandRecord!.name
         }
       : null,
     proposedBrandName: item.proposedBrandName,

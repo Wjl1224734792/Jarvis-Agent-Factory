@@ -10,9 +10,10 @@ import {
   userProfileResponseSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import {
   attachCurrentUser,
+  type AuthContext,
   requireAuth,
   type AuthVariables
 } from "../auth/auth.middleware";
@@ -20,8 +21,8 @@ import { socialService } from "./social.service";
 
 export const socialRoute = new Hono<{ Variables: AuthVariables }>();
 
-function getCurrentUserOrUnauthorized(context: Context) {
-  const currentUser = context.get("currentUser");
+function getCurrentUserOrUnauthorized(context: AuthContext) {
+  const currentUser = context.var.currentUser;
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
@@ -29,7 +30,7 @@ function getCurrentUserOrUnauthorized(context: Context) {
   return currentUser;
 }
 
-function getRequiredParam(context: Context, key: string, missingMessage: string) {
+function getRequiredParam(context: AuthContext, key: string, missingMessage: string) {
   const value = context.req.param(key);
   if (!value) {
     return context.json({ code: "BAD_REQUEST", message: missingMessage }, 400);
@@ -180,7 +181,7 @@ socialRoute.get(API_ROUTES.users.profile(":userId"), async (context) => {
     return userId;
   }
 
-  const payload = await socialService.getUserProfile(userId, context.get("currentUser")?.id);
+  const payload = await socialService.getUserProfile(userId, context.var.currentUser?.id);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }
@@ -194,7 +195,7 @@ socialRoute.get(API_ROUTES.users.content(":userId"), async (context) => {
     return userId;
   }
 
-  const result = await socialService.listUserContent(userId, context.get("currentUser")?.id);
+  const result = await socialService.listUserContent(userId, context.var.currentUser?.id);
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }

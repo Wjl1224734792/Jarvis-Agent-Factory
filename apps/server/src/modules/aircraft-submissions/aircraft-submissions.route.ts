@@ -5,9 +5,10 @@ import {
   updateAircraftSubmissionStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono, type Context } from "hono";
+import { Hono } from "hono";
 import {
   attachCurrentUser,
+  type AuthContext,
   requireAdmin,
   requireAuth,
   type AuthVariables
@@ -16,8 +17,8 @@ import { aircraftSubmissionsService } from "./aircraft-submissions.service";
 
 export const aircraftSubmissionsRoute = new Hono<{ Variables: AuthVariables }>();
 
-function getCurrentUserOrUnauthorized(context: Context) {
-  const currentUser = context.get("currentUser");
+function getCurrentUserOrUnauthorized(context: AuthContext) {
+  const currentUser = context.var.currentUser;
   if (!currentUser) {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
@@ -25,7 +26,7 @@ function getCurrentUserOrUnauthorized(context: Context) {
   return currentUser;
 }
 
-function getRequiredIdOrBadRequest(context: Context) {
+function getRequiredIdOrBadRequest(context: AuthContext) {
   const id = context.req.param("id");
   if (!id) {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);

@@ -20,7 +20,7 @@ type PublishStatusState = {
 export function PublishStatusPage() {
   const params = useParams<{ kind: PublishStatusKind; id: string }>();
   const location = useLocation();
-  const kind = params.kind as PublishStatusKind | undefined;
+  const kind = params.kind;
   const id = params.id ?? "";
   const state = (location.state ?? {}) as PublishStatusState;
 

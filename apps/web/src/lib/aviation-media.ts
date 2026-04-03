@@ -55,7 +55,7 @@ function hashSeed(seed: string): number {
 
 function pickFromPool(pool: string[], seed: string, offset = 0): string {
   const index = (hashSeed(seed) + offset) % pool.length;
-  return pool[index]!;
+  return pool[index];
 }
 
 export function getModelImage(seed: string, powerType: PowerType, offset = 0): string {
