@@ -1,5 +1,8 @@
 type PowerType = "electric" | "fuel" | "hybrid" | "other";
 
+const fallbackFlightPhoto =
+  "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1400&q=80";
+
 const modelMediaPools: Record<PowerType, string[]> = {
   electric: [
     "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80",
@@ -8,22 +11,22 @@ const modelMediaPools: Record<PowerType, string[]> = {
     "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80"
   ],
   fuel: [
-    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1400&q=80",
+    fallbackFlightPhoto,
     "https://images.unsplash.com/photo-1521727857535-28d2047314ac?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1518991791750-7499f803d71c?auto=format&fit=crop&w=1400&q=80"
+    "https://images.unsplash.com/photo-1518991791750-7499f803d71c?auto=format&fit=crop&w=1400&q=80",
+    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80"
   ],
   hybrid: [
     "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1400&q=80"
+    fallbackFlightPhoto
   ],
   other: [
     "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80",
     "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1400&q=80"
+    fallbackFlightPhoto
   ]
 };
 
@@ -32,14 +35,14 @@ const editorialMediaPool = [
   "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1400&q=80",
   "https://images.unsplash.com/photo-1519638399535-1b036603ac77?auto=format&fit=crop&w=1400&q=80",
   "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1400&q=80",
+  fallbackFlightPhoto,
   "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80"
 ];
 
 const profileBannerPool = [
   "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1800&q=80",
   "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1800&q=80",
-  "https://images.unsplash.com/photo-1504198453319-5ce911bafcde?auto=format&fit=crop&w=1800&q=80"
+  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1800&q=80"
 ];
 
 const avatarPool = [

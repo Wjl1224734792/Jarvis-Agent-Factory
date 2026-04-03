@@ -10,7 +10,6 @@
     "verbatimModuleSyntax": true,
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
-    "ignoreDeprecations": "6.0",
     "resolveJsonModule": true,
     "noFallthroughCasesInSwitch": true,
     "forceConsistentCasingInFileNames": true

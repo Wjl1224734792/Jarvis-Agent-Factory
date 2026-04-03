@@ -1,6 +1,7 @@
 import {
   CreateBucketCommand,
   HeadBucketCommand,
+  PutBucketPolicyCommand,
   PutObjectCommand,
   S3Client
 } from "@aws-sdk/client-s3";
@@ -195,6 +196,26 @@ async function seedStorageArtifacts(): Promise<RuntimeSeedSummary["storage"]> {
     } catch {
       await client.send(new CreateBucketCommand({ Bucket: bucket }));
     }
+  }
+
+  if (provider === "minio") {
+    await client.send(
+      new PutBucketPolicyCommand({
+        Bucket: bucket,
+        Policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Sid: "PublicReadSeedAssets",
+              Effect: "Allow",
+              Principal: "*",
+              Action: ["s3:GetObject"],
+              Resource: [`arn:aws:s3:::${bucket}/*`]
+            }
+          ]
+        })
+      })
+    );
   }
 
   for (const asset of listRuntimeSeedAssets()) {
