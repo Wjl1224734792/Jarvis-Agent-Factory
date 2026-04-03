@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
-import { getAvatarImage, getModelGallery, getModelImage } from "@/lib/aviation-media";
+import { getModelGallery, getModelImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
 import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";

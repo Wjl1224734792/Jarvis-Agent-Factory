@@ -312,7 +312,7 @@ export function PublishMomentPage() {
 
                   const submitPost = editId
                     ? (input: Parameters<typeof apiClient.createPost>[0]) => apiClient.updatePost(editId, input)
-                    : apiClient.createPost;
+                    : (input: Parameters<typeof apiClient.createPost>[0]) => apiClient.createPost(input);
                   void submitPost
                     ({
                       type: "moment",
@@ -323,7 +323,7 @@ export function PublishMomentPage() {
                     })
                     .then((payload) => {
                       void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
-                      navigate(buildPublishStatusPath("moment", payload.item.id), {
+                      void navigate(buildPublishStatusPath("moment", payload.item.id), {
                         state: {
                           title: title.trim() || "飞友圈动态",
                           description: content.trim().slice(0, 120),

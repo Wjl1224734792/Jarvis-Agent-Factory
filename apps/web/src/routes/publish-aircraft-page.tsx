@@ -542,7 +542,7 @@ export function PublishAircraftPage() {
                     .then((payload) => {
                       void queryClient.invalidateQueries({ queryKey: ["models"] });
                       void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
-                      navigate(buildPublishStatusPath("aircraft", payload.item.id), {
+                      void navigate(buildPublishStatusPath("aircraft", payload.item.id), {
                         state: {
                           title: modelName.trim(),
                           description: summary.trim(),

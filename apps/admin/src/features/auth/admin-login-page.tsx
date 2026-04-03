@@ -47,7 +47,7 @@ export function AdminLoginPage() {
                 })
                 .then((response: AdminLoginResult) => {
                   setAuthenticated(response.user);
-                  navigate(redirectTo, { replace: true });
+                  void navigate(redirectTo, { replace: true });
                 })
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "管理员登录失败");

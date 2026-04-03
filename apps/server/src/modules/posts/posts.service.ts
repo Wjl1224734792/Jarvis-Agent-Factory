@@ -268,7 +268,7 @@ function buildCommentStateSet(rows: Array<{ commentId: string }>) {
 
 function parseFileIdArray(value: string) {
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];

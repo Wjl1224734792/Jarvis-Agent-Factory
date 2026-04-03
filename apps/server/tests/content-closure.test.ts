@@ -392,8 +392,14 @@ describe.sequential("content closure flows", () => {
         brands: Array<{ id: string; slug: string }>;
       };
     };
-    const categoryId = modelsBefore.filters.categories.find((item) => item.slug === "drone")?.id!;
-    const brandId = modelsBefore.filters.brands.find((item) => item.slug === "dji")?.id!;
+    const categoryId =
+      modelsBefore.filters.categories.find((item) => item.slug === "drone")?.id ??
+      modelsBefore.filters.categories[0]?.id;
+    const brandId =
+      modelsBefore.filters.brands.find((item) => item.slug === "dji")?.id ??
+      modelsBefore.filters.brands[0]?.id;
+    expect(categoryId).toBeTruthy();
+    expect(brandId).toBeTruthy();
 
     const createResponse = await app.request(API_ROUTES.submissions.create, {
       method: "POST",

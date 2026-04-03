@@ -2,9 +2,15 @@ import { createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
+type WebImportMetaEnv = {
+  VITE_WEB_API_BASE_URL?: string;
+};
+const rawBaseUrl = (import.meta.env as WebImportMetaEnv).VITE_WEB_API_BASE_URL;
 
 const resolvedBaseUrl =
-  import.meta.env.VITE_WEB_API_BASE_URL?.trim() || fallbackBaseUrl;
+  typeof rawBaseUrl === "string" && rawBaseUrl.trim().length > 0
+    ? rawBaseUrl.trim()
+    : fallbackBaseUrl;
 
 // 共享 client 负责大部分“服务端 schema 已覆盖”的接口，web 侧只扩展额外页面专属能力。
 const sharedClient = createApiClient({

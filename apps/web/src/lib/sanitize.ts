@@ -74,7 +74,7 @@ const ALLOWED_ATTR: Config["ALLOWED_ATTR"] = [
 
 // 允许的 URL 协议
 const ALLOWED_URI_REGEXP =
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i;
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
 /**
  * DOMPurify 清理配置。

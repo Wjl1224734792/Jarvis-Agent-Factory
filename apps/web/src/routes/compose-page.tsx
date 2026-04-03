@@ -121,7 +121,7 @@ export function ComposePage() {
                   })
                   .then((payload) => {
                     void queryClient.invalidateQueries({ queryKey: ["home-feed"] });
-                    navigate(APP_ROUTES.postDetail.replace(":id", payload.item.id));
+                    void navigate(APP_ROUTES.postDetail.replace(":id", payload.item.id));
                   })
                   .catch((reason: unknown) => {
                     setSubmitError(reason instanceof Error ? reason.message : "发布失败");

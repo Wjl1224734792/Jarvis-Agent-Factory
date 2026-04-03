@@ -103,10 +103,6 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-function pickMany<T>(arr: readonly T[], n: number): T[] {
-  const shuffled = [...arr].sort(() => Math.random() - 0.5);
-  return shuffled.slice(0, Math.min(n, shuffled.length));
-}
 
 // ==================== 数据常量 ====================
 
@@ -202,7 +198,6 @@ const CONTENT_CAT_DATA = [
   { slug: "guide", name: "指南" },
 ];
 
-const POST_IDS: string[] = [];
 const ARTICLE_TITLES = [
   "2026 年低空经济发展趋势分析",
   "DJI Mini 4 Pro 深度评测：轻巧与性能的完美平衡",
@@ -525,7 +520,7 @@ async function seedPostgreSQL() {
   const adminPasswordHash = await hashPassword("TestAdmin#123");
   const users = [
     { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "testadmin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
-    ...USER_DISPLAY_NAMES.map((name, i) => ({
+    ...USER_DISPLAY_NAMES.map((name) => ({
       id: uid("user"), role: "user" as const, displayName: name,
       phone: `138${String(10000000 + randInt(1000000, 9999999)).slice(0, 8)}`,
       account: null, passwordHash: null,
@@ -621,10 +616,6 @@ async function seedPostgreSQL() {
   console.log("  📁 创建文件记录...");
   const fileIds: string[] = [];
   const fileEntries = [];
-  const bizTypes = ["post-image", "post-video", "ranking-cover-image", "ranking-item-image", "aircraft-cover-image"] as const;
-  const mediaKinds = ["image", "video"] as const;
-  const contentTypes = ["image/png", "image/jpeg", "video/mp4"] as const;
-
   for (let i = 0; i < FILE_KEYS.length; i++) {
     const fileId = uid("file");
     fileIds.push(fileId);
@@ -1242,4 +1233,4 @@ async function main() {
   }
 }
 
-main();
+void main();

@@ -410,7 +410,7 @@ export function RankingEditorPage() {
                           ? apiClient.updateRanking(editId, payload)
                           : apiClient.createRanking(payload)
                         ).then((response) => {
-                          navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
+                          void navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
                         });
                       })
                       .catch((reason: unknown) => {

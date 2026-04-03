@@ -463,7 +463,7 @@ export function PublishArticlePage() {
                         queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
                         queryClient.invalidateQueries({ queryKey: ["post-detail", payload.item.id] })
                       ]);
-                      navigate(buildPublishStatusPath("article", payload.item.id), {
+                      void navigate(buildPublishStatusPath("article", payload.item.id), {
                         state: {
                           title,
                           description: summary,

@@ -489,11 +489,11 @@ export function RankingEditorPage() {
                   void request
                     .then((response) => {
                       if (editId) {
-                        navigate(APP_ROUTES.rankingDetail.replace(":id", response.item.id));
+                        void navigate(APP_ROUTES.rankingDetail.replace(":id", response.item.id));
                         return;
                       }
 
-                      navigate(buildPublishStatusPath("ranking", response.item.id), {
+                      void navigate(buildPublishStatusPath("ranking", response.item.id), {
                         state: {
                           title,
                           description,

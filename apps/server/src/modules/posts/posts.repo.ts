@@ -11,7 +11,7 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, inArray, notInArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
 import { uploadsRepo } from "../uploads/upload.repo";
 
 type FeedTab = "recommended" | "latest" | "following";

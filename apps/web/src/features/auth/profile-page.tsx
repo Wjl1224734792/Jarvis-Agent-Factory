@@ -93,13 +93,6 @@ function getContentMeta(item: ContentItem) {
         label: "评分对象",
         href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
         title: item.title,
-        summary: item.summary ?? item.rankingTitle
-      };
-    case "rating-target":
-      return {
-        label: "评分对象",
-        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
-        title: item.title,
         summary: item.summary ?? `${item.rankingTitle} 评分对象`
       };
     case "aircraft":

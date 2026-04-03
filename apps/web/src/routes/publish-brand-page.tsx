@@ -185,7 +185,7 @@ export function PublishBrandPage() {
                     : apiClient.createBrandApplication(payload))
                     .then(() => {
                       void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
-                      navigate(APP_ROUTES.publishAircraft, { replace: true });
+                      void navigate(APP_ROUTES.publishAircraft, { replace: true });
                     })
                     .catch((reason: unknown) => {
                       setError(reason instanceof Error ? reason.message : "品牌申请提交失败");

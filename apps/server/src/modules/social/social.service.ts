@@ -437,7 +437,7 @@ export const socialService = {
     }
 
     try {
-      authService.verifySmsCodeForRequest(input);
+      await authService.verifySmsCodeForRequest(input);
     } catch (error) {
       if (error instanceof AuthError) {
         return { kind: "invalid_sms" as const };

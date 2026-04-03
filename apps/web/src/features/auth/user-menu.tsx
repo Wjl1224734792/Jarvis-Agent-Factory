@@ -82,7 +82,7 @@ export function UserMenu() {
             .logout()
             .then(() => {
               setAnonymous();
-              navigate(APP_ROUTES.feedHome);
+              void navigate(APP_ROUTES.feedHome);
             })
             .catch((error: unknown) => {
               setError(error instanceof Error ? error.message : "退出登录失败");

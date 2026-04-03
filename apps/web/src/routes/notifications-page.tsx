@@ -195,7 +195,7 @@ export function NotificationsPage() {
       }
     }
 
-    navigate(notificationHref(item));
+    void navigate(notificationHref(item));
   }
 
   return (
@@ -263,7 +263,7 @@ export function NotificationsPage() {
           </Button>
           <Button
             onClick={() => {
-              navigate(APP_ROUTES.webSettings);
+              void navigate(APP_ROUTES.webSettings);
             }}
             size="sm"
             type="button"

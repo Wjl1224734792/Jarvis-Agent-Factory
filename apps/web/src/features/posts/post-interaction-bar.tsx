@@ -8,7 +8,6 @@ import { apiClient } from "../../lib/api-client";
 import { useLoginPrompt } from "../auth/use-login-prompt";
 
 type FeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
-type PostDetail = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"];
 
 type ViewerState = FeedItem["engagement"]["viewer"]  ;
 

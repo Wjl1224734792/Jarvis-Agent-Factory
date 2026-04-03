@@ -12,8 +12,41 @@ type ListFilters = {
   keyword?: string;
 };
 
-function buildStateSet<T extends { [key: string]: string }>(rows: T[], key: keyof T) {
-  return new Set(rows.map((row) => String(row[key])));
+type ModelCommentUserSummary = {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  role: "user" | "admin";
+};
+
+type SerializedModelComment = {
+  id: string;
+  modelId: string;
+  parentCommentId: string | null;
+  replyToCommentId: string | null;
+  content: string;
+  status: "pending" | "visible" | "hidden";
+  likeCount: number;
+  reportCount: number;
+  createdAt: string;
+  updatedAt: string;
+  author: ModelCommentUserSummary;
+  replyToUser: ModelCommentUserSummary | null;
+  viewer: {
+    canEdit: boolean;
+    canDelete: boolean;
+    hasLiked: boolean;
+    hasReported: boolean;
+  };
+};
+
+type SerializedModelCommentThread = SerializedModelComment & {
+  replyCount: number;
+  replies: SerializedModelComment[];
+};
+
+function buildStateSet<T extends Record<string, string>>(rows: T[], key: keyof T) {
+  return new Set(rows.map((row) => row[key]));
 }
 
 async function buildReplyToUserMap(
@@ -45,7 +78,7 @@ async function serializeModelComment(
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
   }
-) {
+): Promise<SerializedModelComment | null> {
   if (!item) {
     return null;
   }
@@ -89,8 +122,8 @@ async function serializeModelCommentThreads(
     reportedCommentIds?: Set<string>;
   }
 ) {
-  const repliesByRootId = new Map<string, Array<any>>();
-  const roots: Array<any> = [];
+  const repliesByRootId = new Map<string, SerializedModelComment[]>();
+  const roots: SerializedModelCommentThread[] = [];
 
   for (const comment of comments) {
     const base = {
@@ -133,7 +166,7 @@ async function serializeModelCommentThreads(
     repliesByRootId.set(comment.parentCommentId, bucket);
   }
 
-  return roots.map((root) => ({
+  return roots.map<SerializedModelCommentThread>((root) => ({
     ...root,
     replies: repliesByRootId.get(root.id) ?? [],
     replyCount: (repliesByRootId.get(root.id) ?? []).length
@@ -153,7 +186,7 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
 
 function parseFileIdArray(value: string) {
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];

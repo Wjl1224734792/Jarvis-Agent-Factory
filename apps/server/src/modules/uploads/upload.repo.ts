@@ -1,5 +1,5 @@
 import { createId, db, filesTable } from "@feijia/db";
-import { and, eq, inArray, isNotNull, isNull, notInArray, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
 
 function fileSelection() {
   return {

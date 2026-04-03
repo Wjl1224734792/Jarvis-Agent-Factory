@@ -8,21 +8,17 @@ import {
   adminPostsResponseSchema,
   adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
-  circleFeedResponseSchema,
   commentSortSchema,
   createPostCommentInputSchema,
   createPostCommentResponseSchema,
   createPostInputSchema,
   createPostResponseSchema,
-  homeFeedResponseSchema,
   postDetailResponseSchema,
   postInteractionTypeSchema,
   reportContentInputSchema,
   reportPostInputSchema,
   updatePostCommentInputSchema,
-  updatePostInputSchema,
-  uploadPostImageResponseSchema,
-  uploadPostVideoResponseSchema
+  updatePostInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
@@ -35,8 +31,6 @@ import {
 import { postsService } from "./posts.service";
 
 export const postsRoute = new Hono<{ Variables: AuthVariables }>();
-const MAX_IMAGE_SIZE_BYTES = 2 * 1024 * 1024;
-const MAX_VIDEO_SIZE_BYTES = 50 * 1024 * 1024;
 
 // 帖子路由既服务前台消费，又承载后台审核，所以先统一注入 currentUser 再按场景加权限。
 postsRoute.use('*', attachCurrentUser);

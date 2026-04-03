@@ -263,7 +263,15 @@ export const socialRepo = {
       .orderBy(desc(postInteractionsTable.createdAt));
   },
   async listUserFavoritedModels(userId: string) {
-    const rows = await db.execute(
+    const rows = await db.execute<{
+      id: string | null;
+      modelId: string | null;
+      slug: string | null;
+      name: string | null;
+      powerType: string | null;
+      createdAt: Date | string | number | null;
+      updatedAt: Date | string | number | null;
+    }>(
       sql`
       select
         interaction."id" as "id",
@@ -286,10 +294,10 @@ export const socialRepo = {
 
     const typedRows = rows.rows;
     return typedRows.map((row) => ({
-      id: String(row.id ?? ""),
-      modelId: String(row.modelId ?? ""),
-      slug: String(row.slug ?? ""),
-      name: String(row.name ?? ""),
+      id: row.id ?? "",
+      modelId: row.modelId ?? "",
+      slug: row.slug ?? "",
+      name: row.name ?? "",
       powerType:
         row.powerType === "fuel" ||
         row.powerType === "hybrid" ||
@@ -393,7 +401,7 @@ export const socialRepo = {
       )
       .orderBy(desc(aircraftSubmissionsTable.updatedAt));
   },
-  async listUserBrandApplications(userId: string, includePrivate: boolean) {
+  async listUserBrandApplications(userId: string, _includePrivate: boolean) {
     return db
       .select({
         id: brandApplicationsTable.id,

@@ -37,7 +37,13 @@ type LoginStep = "verify" | "profile";
 async function readAvatarPreview(file: File) {
   return await new Promise<string>((resolve, reject) => {
     const reader = new FileReader();
-    reader.onload = () => resolve(String(reader.result ?? ""));
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+        return;
+      }
+      reject(new Error("澶村儚璇诲彇澶辫触"));
+    };
     reader.onerror = () => reject(new Error("头像读取失败"));
     reader.readAsDataURL(file);
   });
@@ -97,7 +103,7 @@ export function LoginPage() {
 
             <Button
               onClick={() => {
-                navigate(APP_ROUTES.feedHome);
+                void navigate(APP_ROUTES.feedHome);
               }}
               size="icon-lg"
               type="button"
@@ -273,7 +279,7 @@ export function LoginPage() {
                       .then((response) => {
                         if (response.kind === "authenticated") {
                           setAuthenticated(response.user);
-                          navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
+                          void navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
                           return;
                         }
 
@@ -300,7 +306,7 @@ export function LoginPage() {
                 <Button
                   className="w-full"
                   onClick={() => {
-                    navigate(APP_ROUTES.feedHome);
+                    void navigate(APP_ROUTES.feedHome);
                   }}
                   size="lg"
                   type="button"
@@ -428,7 +434,7 @@ export function LoginPage() {
                           setAuthenticated(response.user);
                         }
 
-                        navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
+                        void navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
                       })
                       .catch((error: unknown) => {
                         setSubmitError(error instanceof Error ? error.message : "资料保存失败");

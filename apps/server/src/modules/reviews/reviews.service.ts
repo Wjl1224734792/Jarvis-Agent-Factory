@@ -127,7 +127,7 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
 
 function parseFileIdArray(value: string) {
   try {
-    const parsed = JSON.parse(value);
+    const parsed: unknown = JSON.parse(value);
     return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];
@@ -211,7 +211,7 @@ export const reviewsService = {
       return null;
     }
 
-    const reviewId = await reviewsRepo.upsertReview({
+    await reviewsRepo.upsertReview({
       modelId: model.id,
       userId,
       content: input.content,

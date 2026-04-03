@@ -411,7 +411,6 @@ function stringQueryParameter(name: string, description: string) {
 }
 
 const sessionCookieSecurity = [{ sessionCookieAuth: [] }];
-const bearerSecurity = [{ bearerAuth: [] }];
 const optionalSessionCookieSecurity = [{}, { sessionCookieAuth: [] }];
 const optionalBearerSecurity = [{}, { bearerAuth: [] }];
 const optionalSessionOrBearerSecurity = [

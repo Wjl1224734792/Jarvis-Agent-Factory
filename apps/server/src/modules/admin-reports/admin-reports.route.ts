@@ -9,7 +9,7 @@ import { adminReportsService } from "./admin-reports.service";
 
 export const adminReportsRoute = new Hono<{ Variables: AuthVariables }>();
 
-const reportKinds = new Set([
+const reportKinds = [
   "post",
   "model",
   "review",
@@ -17,10 +17,16 @@ const reportKinds = new Set([
   "review-comment",
   "model-comment",
   "ranking",
-  "ranking-item",
+  "rating-target",
   "ranking-comment",
-  "ranking-item-comment"
-] as const);
+  "rating-target-comment"
+] as const;
+
+type ReportKind = (typeof reportKinds)[number];
+
+function isReportKind(value: string): value is ReportKind {
+  return (reportKinds as readonly string[]).includes(value);
+}
 
 adminReportsRoute.use("*", attachCurrentUser);
 
@@ -31,10 +37,10 @@ adminReportsRoute.get(API_ROUTES.admin.reportDetail(":kind", ":id"), requireAdmi
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  if (!reportKinds.has(kind as (typeof reportKinds extends Set<infer T> ? T : never))) {
+  if (!isReportKind(kind)) {
     return context.json({ code: "BAD_REQUEST", message: "Invalid report kind." }, 400);
   }
 
-  const payload = await adminReportsService.getReportDetails(kind as any, id);
+  const payload = await adminReportsService.getReportDetails(kind, id);
   return context.json(payload);
 });

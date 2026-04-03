@@ -2,7 +2,10 @@ import { createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
-const configuredBaseUrl = import.meta.env.VITE_ADMIN_API_BASE_URL;
+type AdminImportMetaEnv = {
+  VITE_ADMIN_API_BASE_URL?: string;
+};
+const configuredBaseUrl = (import.meta.env as AdminImportMetaEnv).VITE_ADMIN_API_BASE_URL;
 const baseUrl =
   typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
     ? configuredBaseUrl.trim()
@@ -210,11 +213,6 @@ export type AdminAuthSessionItem = {
   };
 };
 
-type AnalyticsSeriesPoint = {
-  label: string;
-  value: number;
-};
-
 type OfficialArticleInput = {
   title: string;
   content: string;
@@ -252,7 +250,7 @@ function averageScore(items: AdminRankingItem[]) {
 }
 
 function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
-  const official = payload.official as unknown;
+  const official = payload.official as AdminRankingListItem[] | { items: AdminRankingItem[] };
   if (Array.isArray(official)) {
     return official.map((item) => ({
       ...item,
@@ -261,7 +259,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
     }));
   }
 
-  const legacyOfficial = official as { items: AdminRankingItem[] };
+  const legacyOfficial = official;
   return legacyOfficialDefinitions.map((definition, index) => {
     const items = legacyOfficial.items.slice(index, index + 3);
     return {

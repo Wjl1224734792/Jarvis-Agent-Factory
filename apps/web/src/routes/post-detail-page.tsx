@@ -104,11 +104,11 @@ export function PostDetailPage() {
             className="size-8 rounded-full p-0"
             onClick={() => {
               if (window.history.length > 1) {
-                navigate(-1);
+                void navigate(-1);
                 return;
               }
 
-              navigate(APP_ROUTES.feedHome);
+              void navigate(APP_ROUTES.feedHome);
             }}
             type="button"
             variant="ghost"
@@ -257,7 +257,7 @@ export function PostDetailPage() {
                     .deletePost(item.id)
                     .then(() => {
                       void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
-                      navigate(APP_ROUTES.feedHome, { replace: true });
+                      void navigate(APP_ROUTES.feedHome, { replace: true });
                     })
                     .catch((value: unknown) => {
                       setActionError(value instanceof Error ? value.message : "删除帖子失败");

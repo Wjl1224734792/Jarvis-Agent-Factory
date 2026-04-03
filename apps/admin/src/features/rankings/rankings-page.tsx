@@ -10,10 +10,20 @@ import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   formatCommunityRankingStatus,
   partitionRankingRecords,
+  type AdminRankingRecord,
   type AdminRankingStatus
 } from "./rankings-admin-helpers";
 
-type RankingRecord = Awaited<ReturnType<typeof apiClient.listOfficialRankings>>["items"][number];
+type RankingRecord = AdminRankingRecord;
+type RankingListResponse = { items: RankingRecord[] };
+type RankingDetailResponse = {
+  item: RankingRecord & {
+    viewer: {
+      canEdit: boolean;
+      canAddItems: boolean;
+    };
+  };
+};
 
 const communityStatusOptions: Array<{ label: string; value: AdminRankingStatus }> = [
   { label: "待审核", value: "pending" },
@@ -21,6 +31,10 @@ const communityStatusOptions: Array<{ label: string; value: AdminRankingStatus }
   { label: "已驳回", value: "rejected" },
   { label: "已隐藏", value: "hidden" }
 ];
+
+function isAdminRankingStatus(value: string | number): value is AdminRankingStatus {
+  return value === "pending" || value === "published" || value === "rejected" || value === "hidden";
+}
 
 function RankingScopeTag(props: { type: RankingRecord["type"] }) {
   return (
@@ -43,15 +57,16 @@ export function RankingsPage() {
   });
   const officialRankingsQuery = useQuery({
     queryKey: ["admin-rankings", "official"],
-    queryFn: () => apiClient.listOfficialRankings()
+    queryFn: () => apiClient.listOfficialRankings() as Promise<RankingListResponse>
   });
   const communityRankingsQuery = useQuery({
     queryKey: ["admin-rankings", "community", communityFilter],
-    queryFn: () => apiClient.listCommunityRankingsForModeration(communityFilter)
+    queryFn: () =>
+      apiClient.listCommunityRankingsForModeration(communityFilter) as Promise<RankingListResponse>
   });
   const detailQuery = useQuery({
     queryKey: ["admin-ranking-detail-modal", detailId],
-    queryFn: () => apiClient.getRankingDetail(detailId!),
+    queryFn: () => apiClient.getRankingDetail(detailId ?? "") as Promise<RankingDetailResponse>,
     enabled: Boolean(detailId)
   });
 
@@ -237,7 +252,9 @@ export function RankingsPage() {
               />
               <Segmented
                 onChange={(value) => {
-                  setCommunityFilter(value);
+                  if (isAdminRankingStatus(value)) {
+                    setCommunityFilter(value);
+                  }
                 }}
                 options={communityStatusOptions}
                 value={communityFilter}

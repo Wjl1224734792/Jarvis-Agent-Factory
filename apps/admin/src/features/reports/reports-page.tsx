@@ -22,6 +22,32 @@ type DetailState = {
   preview?: string | null;
 };
 
+type CommentModerationRow = {
+  kind: "post-comment" | "review-comment" | "model-comment" | "ranking-comment" | "rating-target-comment";
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  preview?: string | null;
+  status: "pending" | "visible" | "hidden";
+  reportCount: number;
+  onToggle: () => Promise<unknown>;
+};
+
+type ContentModerationRow = {
+  kind: "model" | "review" | "rating-target";
+  id: string;
+  title: string;
+  subtitle?: string | null;
+  preview?: string | null;
+  reportCount: number;
+};
+
+type ModerationRow = ContentModerationRow | CommentModerationRow;
+
+function isCommentModerationRow(row: ModerationRow): row is CommentModerationRow {
+  return "onToggle" in row;
+}
+
 export function ReportsPage() {
   const [searchText, setSearchText] = useState("");
   const [detail, setDetail] = useState<DetailState | null>(null);
@@ -172,6 +198,36 @@ export function ReportsPage() {
       reviewCommentsQuery.data?.items
     ]
   );
+  const moderationRows = useMemo<ModerationRow[]>(
+    () => [
+      ...models.map((item) => ({
+        kind: "model" as const,
+        id: item.id,
+        title: item.name,
+        subtitle: `${item.brand.name} 路 ${item.category.name}`,
+        preview: item.summary,
+        reportCount: item.reportCount ?? 0
+      })),
+      ...reviews.map((item) => ({
+        kind: "review" as const,
+        id: item.id,
+        title: item.model.name,
+        subtitle: item.author.displayName,
+        preview: item.content,
+        reportCount: item.reportCount ?? 0
+      })),
+      ...ratingTargets.map((item) => ({
+        kind: "rating-target" as const,
+        id: item.id,
+        title: item.title,
+        subtitle: `${item.rankingTitle} 路 ${item.rankingAuthorName}`,
+        preview: item.summary,
+        reportCount: item.reportCount ?? 0
+      })),
+      ...comments
+    ],
+    [comments, models, ratingTargets, reviews]
+  );
 
   return (
     <AdminPage
@@ -246,7 +302,7 @@ export function ReportsPage() {
           columns={[
             {
               key: "title",
-              render: (_, record: any) => (
+              render: (_, record: ModerationRow) => (
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.title}</div>
                   <div className="admin-table-subtitle">{record.subtitle ?? null}</div>
@@ -256,16 +312,16 @@ export function ReportsPage() {
             },
             {
               key: "reports",
-              render: (_, record: any) => <Tag color="red">举报 {record.reportCount}</Tag>,
+              render: (_, record: ModerationRow) => <Tag color="red">举报 {record.reportCount}</Tag>,
               title: "举报",
               width: 110
             },
             {
               key: "action",
-              render: (_, record: any) => (
+              render: (_, record: ModerationRow) => (
                 <Space size="small">
-                  <Button size="small" type="link" onClick={() => setDetail({ kind: record.kind ?? "review", id: record.id, title: record.title, subtitle: record.subtitle, preview: record.preview })}>详情</Button>
-                  {"onToggle" in record ? (
+                  <Button size="small" type="link" onClick={() => setDetail({ kind: record.kind, id: record.id, title: record.title, subtitle: record.subtitle, preview: record.preview })}>详情</Button>
+                  {isCommentModerationRow(record) ? (
                     <Button size="small" type="link" onClick={() => {
                       setActionError(null);
                       void record.onToggle().then(() => refreshAll()).catch((reasonValue: unknown) => setActionError(reasonValue instanceof Error ? reasonValue.message : "处理失败"));
@@ -277,12 +333,7 @@ export function ReportsPage() {
               width: 180
             }
           ]}
-          dataSource={[
-            ...models.map((item) => ({ kind: "model" as const, id: item.id, title: item.name, subtitle: `${item.brand.name} · ${item.category.name}`, preview: item.summary, reportCount: item.reportCount })),
-            ...reviews.map((item) => ({ kind: "review" as const, id: item.id, title: item.model.name, subtitle: item.author.displayName, preview: item.content, reportCount: item.reportCount })),
-            ...ratingTargets.map((item) => ({ kind: "rating-target" as const, id: item.id, title: item.title, subtitle: `${item.rankingTitle} · ${item.rankingAuthorName}`, preview: item.summary, reportCount: item.reportCount ?? 0 })),
-            ...comments
-          ]}
+          dataSource={moderationRows}
           locale={{ emptyText: <Empty description="暂无被举报内容" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
           loading={modelsQuery.isLoading || reviewsQuery.isLoading || ratingTargetsQuery.isLoading || postCommentsQuery.isLoading || reviewCommentsQuery.isLoading || modelCommentsQuery.isLoading || rankingCommentsQuery.isLoading || ratingTargetCommentsQuery.isLoading}
           rowKey={(record) => `${record.kind}-${record.id}`}

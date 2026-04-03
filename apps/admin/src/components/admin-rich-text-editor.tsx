@@ -84,7 +84,10 @@ const VideoBlock = Node.create({
     ];
   },
 
-  renderHTML({ HTMLAttributes }) {
+  renderHTML({ HTMLAttributes }: { HTMLAttributes: Record<string, unknown> }) {
+    const src = typeof HTMLAttributes.src === "string" ? HTMLAttributes.src : null;
+    const poster = typeof HTMLAttributes.poster === "string" ? HTMLAttributes.poster : null;
+
     return [
       "figure",
       {
@@ -95,8 +98,8 @@ const VideoBlock = Node.create({
         {
           controls: "true",
           preload: "metadata",
-          src: HTMLAttributes.src,
-          poster: HTMLAttributes.poster
+          src,
+          poster
         }
       ]
     ];
@@ -108,7 +111,9 @@ function insertLink(editor: ReturnType<typeof useEditor> | null) {
     return;
   }
 
-  const previousUrl = editor.getAttributes("link").href;
+  const linkAttributes = editor.getAttributes("link") as Record<string, unknown>;
+  const previousUrl =
+    typeof linkAttributes.href === "string" ? linkAttributes.href : undefined;
   const next = window.prompt("请输入链接地址", previousUrl ?? "https://");
   if (next === null) {
     return;

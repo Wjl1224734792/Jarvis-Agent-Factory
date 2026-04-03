@@ -275,7 +275,10 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
 }
 
 export async function parseApiError(response: Response): Promise<Error> {
-  const payload = await response.json().catch(() => null);
+  const payload = await response
+    .json()
+    .then((value): unknown => value)
+    .catch((): unknown => null);
   return new Error(mapApiErrorMessage(response, payload));
 }
 

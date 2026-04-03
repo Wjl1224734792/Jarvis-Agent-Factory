@@ -54,7 +54,7 @@ export function AuthRequiredDialog() {
             <Button
               onClick={() => {
                 closeDialog();
-                navigate(`${APP_ROUTES.webLogin}?redirect=${encodeURIComponent(redirectTo)}`);
+                void navigate(`${APP_ROUTES.webLogin}?redirect=${encodeURIComponent(redirectTo)}`);
               }}
               size="sm"
               type="button"

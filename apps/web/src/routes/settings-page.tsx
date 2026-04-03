@@ -639,7 +639,7 @@ export function SettingsPage() {
                 .logout()
                 .then(() => {
                   setAnonymous();
-                  navigate(APP_ROUTES.feedHome);
+                  void navigate(APP_ROUTES.feedHome);
                 })
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "退出登录失败");

@@ -86,7 +86,7 @@ export function AdminShell() {
                   .logoutAdmin()
                   .then(() => {
                     setAnonymous();
-                    navigate(APP_ROUTES.adminLogin, { replace: true });
+                    void navigate(APP_ROUTES.adminLogin, { replace: true });
                   })
                   .catch((reason: unknown) => {
                     setError(reason instanceof Error ? reason.message : "退出登录失败");
