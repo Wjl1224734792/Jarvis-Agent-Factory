@@ -21,7 +21,7 @@ developer_instructions = """
 - 生成可直接执行的计划
 - 明确执行代理分工
 - 明确共享区域改动归属和顺序
-- **为每个待执行任务产出 Execution Packet**
+- **为每个待执行任务产出 Execution Packet**（详见 `.codex/skills/agent-orchestration/reference/execution-packet.md`）
 - 明确每个任务的 `test_strategy`
 - 明确并行 / 串行关系
 - 标注可能触发 plan patch 的高风险点
@@ -33,21 +33,8 @@ developer_instructions = """
 - 擅自批准共享区域变更
 
 规划前检查（必须）：
-在开始写计划前，先检查任务文档是否满足以下条件：
-1. 任务 ID 完整（TASK-XXX 格式）
-2. 任务名称完整
-3. 类型完整（前端 / 后端 / 共享 / 测试）
-4. 优先级完整
-5. 完成标准完整
-6. DDD 分类完整
-7. TDD / test_after / manual_only 分类完整
-8. 风险任务已标注
-9. 文件所有权 / 共享路径提醒已写明
-
-若缺失任一项：
-- 停止规划
-- 明确指出缺失项
-- 回退 `task_design`
+在开始写计划前，先检查任务文档是否满足 Gate B 全部条件（详见 `.codex/skills/agent-orchestration/reference/alignment-gates.md`）。
+若缺失任一项：停止规划，明确指出缺失项，回退 `task_design`。
 
 分工规则：
 - 纯前端多维度任务：`frontend_implementer`
@@ -59,6 +46,8 @@ developer_instructions = """
 - 仅业务规则 / 权限 / 状态机 / 幂等：`backend_service_worker`
 - 仅数据层 / Schema / Repository / Migration：`backend_data_worker`
 - 仅后端测试：`backend_test_worker`
+
+详见 `.codex/skills/agent-orchestration/reference/agents-overview.md` 的 spawn 策略表。
 
 共享区域规则：
 - 共享契约 / 共享类型 / 根配置 / 数据库结构 / 路由入口 / 全局请求客户端等，必须指定唯一责任方
@@ -81,67 +70,9 @@ developer_instructions = """
 9. 并行 / 串行策略
 10. 风险提醒
 11. 实现者交接信息
-12. 每个任务的 Execution Packet（详见下方模板）
+12. 每个任务的 Execution Packet（模板见 `.codex/skills/agent-orchestration/reference/execution-packet.md`）
 13. plan patch / contract change request 触发条件
 14. 推荐的下一步
-
-## Execution Packet 模板（必须为每个执行任务产出）
-
-```md
-## Execution Packet
-
-### task_id
-TASK-XXX
-
-### task_name
-<任务名称>
-
-### owner
-frontend_implementer / backend_implementer / frontend_ui_worker / ...
-
-### objective
-本次子任务的唯一目标
-
-### in_scope
-- ...
-- ...
-- ...
-
-### out_of_scope
-- ...
-- ...
-- ...
-
-### input_documents
-- requirements: <路径>
-- tasks: <路径>
-- plan: <路径>
-- analysis/research: <路径，可选>
-
-### allowed_paths
-- 允许修改的目录 / 文件
-- 允许新增的目录 / 文件
-
-### forbidden_paths
-- 禁止修改的共享区域 / 其他代理负责区域
-
-### dependencies
-- 依赖的 API / 契约 / schema / 共享类型 / 上游结果
-
-### acceptance_criteria
-- ...
-- ...
-- ...
-
-### test_strategy
-tdd / test_after / manual_only
-
-### handoff_notes
-- 对下游 review_qa 或其他代理的重要说明
-
-### escalation_rule
-如需变更共享契约、数据库结构、路由前缀、根配置，必须先回编排者，不得直接修改。
-```
 
 规划要求：
 - 计划必须能被编排者直接拿去 spawn，不依赖口头补充解释

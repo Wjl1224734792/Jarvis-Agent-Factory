@@ -1,0 +1,87 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "orchestrator": {
+      "description": "多代理编排主编排者。唯一的调度者，通过 Task tool spawn 子代理完成 6 阶段交付流程。",
+      "mode": "primary",
+      "prompt": "{file:./agents/orchestrator.md}",
+      "steps": 80,
+      "permission": {
+        "edit": "allow",
+        "bash": "allow",
+        "webfetch": "allow",
+        "task": { "*": "allow" }
+      }
+    },
+    "task_design": {
+      "description": "任务设计子代理。读取需求文档，将需求分解为可执行任务，标注 DDD/TDD 分类。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/task_design.md}"
+    },
+    "planner": {
+      "description": "执行规划子代理。选择本轮任务包，为每个任务产出 Execution Packet，明确分工和 test_strategy。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/planner.md}"
+    },
+    "frontend_implementer": {
+      "description": "前端全栈实现子代理。负责前端页面、组件、交互、状态、请求接入的完整实现。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/frontend_implementer.md}"
+    },
+    "backend_implementer": {
+      "description": "后端全栈实现子代理。负责后端服务、接口、应用逻辑、数据访问的完整实现。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/backend_implementer.md}"
+    },
+    "repo_explorer": {
+      "description": "只读探索代码库子代理。定位前端、后端、共享契约、测试入口与风险边界。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/repo_explorer.md}"
+    },
+    "docs_researcher": {
+      "description": "文档研究子代理。搜索库/框架/API 的最新文档与代码示例。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/docs_researcher.md}"
+    },
+    "frontend_ui_worker": {
+      "description": "前端 UI 专项子代理。负责页面布局、组件构建、样式实现、响应式适配。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/frontend_ui_worker.md}"
+    },
+    "frontend_state_worker": {
+      "description": "前端状态与数据专项子代理。负责状态管理、数据获取、缓存策略、请求客户端对接。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/frontend_state_worker.md}"
+    },
+    "frontend_test_worker": {
+      "description": "前端测试专项子代理。负责前端单元测试、组件测试、集成测试。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/frontend_test_worker.md}"
+    },
+    "backend_api_worker": {
+      "description": "后端 API 专项子代理。负责路由定义、控制器、请求验证、中间件、错误处理。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/backend_api_worker.md}"
+    },
+    "backend_service_worker": {
+      "description": "后端业务逻辑专项子代理。负责核心业务规则、领域逻辑、状态机、权限验证、幂等性。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/backend_service_worker.md}"
+    },
+    "backend_data_worker": {
+      "description": "后端数据层专项子代理。负责数据库 Schema、ORM 模型、Repository、迁移脚本。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/backend_data_worker.md}"
+    },
+    "backend_test_worker": {
+      "description": "后端测试专项子代理。负责后端单元测试、集成测试、API 测试。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/backend_test_worker.md}"
+    },
+    "review_qa": {
+      "description": "质量审查子代理。审查需求/任务/计划与实现结果的一致性，输出审查结论和追踪矩阵。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/review_qa.md}"
+    }
+  }
+}
