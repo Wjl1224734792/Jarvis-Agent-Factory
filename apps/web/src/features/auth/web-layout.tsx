@@ -12,7 +12,7 @@ import {
   TrophyIcon
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -339,6 +339,7 @@ export function WebLayout() {
         <SiteShell>
           <div className="min-w-0">
             <Outlet />
+            <ScrollRestoration />
           </div>
         </SiteShell>
       </div>
