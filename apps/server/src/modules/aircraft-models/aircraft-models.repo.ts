@@ -38,14 +38,15 @@ export const aircraftModelsRepo = {
 
     if (filters.keyword) {
       const keyword = `%${filters.keyword}%`;
-      conditions.push(
-        or(
-          ilike(aircraftModelsTable.name, keyword),
-          ilike(brandsTable.name, keyword),
-          ilike(aircraftModelsTable.summary, keyword),
-          ilike(aircraftModelsTable.description, keyword)
-        )!
+      const keywordCondition = or(
+        ilike(aircraftModelsTable.name, keyword),
+        ilike(brandsTable.name, keyword),
+        ilike(aircraftModelsTable.summary, keyword),
+        ilike(aircraftModelsTable.description, keyword)
       );
+      if (keywordCondition) {
+        conditions.push(keywordCondition);
+      }
     }
 
     const query = db

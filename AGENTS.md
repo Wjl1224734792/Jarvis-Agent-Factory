@@ -36,6 +36,7 @@ bun run dev:server   # 后端 API
 bun run typecheck    # 类型检查
 bun run test         # 单元测试
 bun run lint         # 代码规范
+bun run build        # 全量构建校验
 bun run db:generate  # 生成 Drizzle 类型
 bun run db:migrate   # 执行迁移
 ```
@@ -54,11 +55,12 @@ bun run db:migrate   # 执行迁移
 ## 完成定义
 
 - 请求变更已实现或阻塞项已明确
-- 相关验证已运行
+- 相关验证已运行；默认完成检查项包含 `bun run lint`、`bun run typecheck`、`bun run test`、`bun run build`
 - TDD 任务具备 Red → Green 可核对记录
 - 重要风险和假设已记录
 
 ## 验证与评审
 
 - 验证：先最小相关，再按需广泛
+- 收尾时默认补齐 `lint`、`typecheck`、`test`、`build` 四项，除非用户明确要求跳过
 - 评审：确认一致性，检查回归

@@ -38,6 +38,16 @@ async function serializeApplication(
   };
 }
 
+async function serializeApplicationOrThrow(
+  item: Awaited<ReturnType<typeof brandApplicationsRepo.findById>>
+) {
+  const serialized = await serializeApplication(item);
+  if (!serialized) {
+    throw new Error("Brand application serialization failed: application not found.");
+  }
+  return serialized;
+}
+
 async function createBrandFromApplication(input: {
   slug: string;
   name: string;
@@ -96,10 +106,10 @@ export const brandApplicationsService = {
         approvedBrandId,
         rejectionReason: null
       });
-      return { item: (await serializeApplication(approved))! };
+      return { item: await serializeApplicationOrThrow(approved) };
     }
 
-    return { item: (await serializeApplication(item))! };
+    return { item: await serializeApplicationOrThrow(item) };
   },
   async getApplication(id: string) {
     const item = await brandApplicationsRepo.findById(id);
@@ -107,7 +117,7 @@ export const brandApplicationsService = {
       return null;
     }
 
-    return { item: (await serializeApplication(item))! };
+    return { item: await serializeApplicationOrThrow(item) };
   },
   async updateApplication(
     id: string,
@@ -158,10 +168,10 @@ export const brandApplicationsService = {
         approvedBrandId,
         rejectionReason: null
       });
-      return { kind: "ok" as const, payload: { item: (await serializeApplication(approved))! } };
+      return { kind: "ok" as const, payload: { item: await serializeApplicationOrThrow(approved) } };
     }
 
-    return { kind: "ok" as const, payload: { item: (await serializeApplication(updated))! } };
+    return { kind: "ok" as const, payload: { item: await serializeApplicationOrThrow(updated) } };
   },
   async listAdminApplications() {
     const items = await brandApplicationsRepo.listAdmin();
@@ -196,6 +206,6 @@ export const brandApplicationsService = {
       rejectionReason: status === "rejected" ? rejectionReason ?? null : null
     });
 
-    return item ? { item: (await serializeApplication(item))! } : null;
+    return item ? { item: await serializeApplicationOrThrow(item) } : null;
   }
 };

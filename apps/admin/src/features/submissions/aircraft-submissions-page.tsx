@@ -49,7 +49,12 @@ export function AircraftSubmissionsPage() {
   });
   const detailQuery = useQuery({
     queryKey: ["admin-aircraft-submission-detail", detailId],
-    queryFn: () => apiClient.getAircraftSubmission(detailId!),
+    queryFn: () => {
+      if (!detailId) {
+        throw new Error("Missing aircraft submission id.");
+      }
+      return apiClient.getAircraftSubmission(detailId);
+    },
     enabled: Boolean(detailId)
   });
   const filteredItems = useMemo(() => {

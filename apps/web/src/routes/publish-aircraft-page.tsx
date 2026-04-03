@@ -81,12 +81,17 @@ export function PublishAircraftPage() {
   });
   const submissionQuery = useQuery({
     queryKey: ["aircraft-submission-edit", editId],
-    queryFn: () => apiClient.getAircraftSubmission(editId!),
+    queryFn: () => {
+      if (!editId) {
+        throw new Error("Missing submission id");
+      }
+      return apiClient.getAircraftSubmission(editId);
+    },
     enabled: Boolean(editId)
   });
 
   const categories = categoriesQuery.data ?? [];
-  const brands = brandsQuery.data ?? [];
+  const brands = useMemo(() => brandsQuery.data ?? [], [brandsQuery.data]);
 
   const filteredBrands = useMemo(() => {
     const keyword = brandKeyword.trim().toLowerCase();

@@ -57,7 +57,7 @@ function logToConsole(level: LogLevel, line: string): void {
     console.warn(line);
     return;
   }
-  console.log(line);
+  console.info(line);
 }
 
 function emit(level: LogLevel, message: string, meta?: Record<string, unknown>): void {

@@ -51,7 +51,12 @@ export function RatingTargetsPage() {
   });
   const detailQuery = useQuery({
     queryKey: ["admin-rating-target-detail", detailId],
-    queryFn: () => apiClient.getRatingTargetDetail(detailId!),
+    queryFn: () => {
+      if (!detailId) {
+        throw new Error("Missing rating target id.");
+      }
+      return apiClient.getRatingTargetDetail(detailId);
+    },
     enabled: Boolean(detailId)
   });
 

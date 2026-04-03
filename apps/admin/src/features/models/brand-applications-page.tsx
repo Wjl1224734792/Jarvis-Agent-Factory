@@ -41,7 +41,12 @@ export function BrandApplicationsPage() {
   });
   const detailQuery = useQuery({
     queryKey: ["admin-brand-application-detail", detailId],
-    queryFn: () => apiClient.getBrandApplication(detailId!),
+    queryFn: () => {
+      if (!detailId) {
+        throw new Error("Missing brand application id.");
+      }
+      return apiClient.getBrandApplication(detailId);
+    },
     enabled: Boolean(detailId)
   });
   const filteredItems = useMemo(() => {

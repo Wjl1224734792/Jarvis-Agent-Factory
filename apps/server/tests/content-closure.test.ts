@@ -13,6 +13,14 @@ function extractCookies(response: Response): string {
   return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
+function expectDefined<T>(value: T | null | undefined): T {
+  expect(value).toBeTruthy();
+  if (value === null || value === undefined) {
+    throw new Error("Expected value to be defined");
+  }
+  return value;
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -142,7 +150,7 @@ describe.sequential("content closure flows", () => {
 
     const brandsResponse = await app.request(API_ROUTES.models.brands, { method: "GET" });
     const brands = (await brandsResponse.json()) as Array<{ id: string; name: string }>;
-    const approvedBrandId = approvedBrandApplication.item.approvedBrandId!;
+    const approvedBrandId = expectDefined(approvedBrandApplication.item.approvedBrandId);
     expect(brands.some((item) => item.id === approvedBrandId && item.name === "Sky Labs")).toBe(true);
 
     const modelsBeforeResponse = await app.request(API_ROUTES.models.list, { method: "GET" });
@@ -457,7 +465,7 @@ describe.sequential("content closure flows", () => {
     expect(approved.item.approvedModelId).toBeTruthy();
     expect(approved.item.priceMin).toBe(12000);
     expect(approved.item.priceMax).toBe(15000);
-    const firstApprovedModelId = approved.item.approvedModelId!;
+    const firstApprovedModelId = expectDefined(approved.item.approvedModelId);
 
     const rejectReason = "参数信息需要补充后再重新提交";
     const rejectResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
@@ -567,7 +575,7 @@ describe.sequential("content closure flows", () => {
     expect(reapproved.item.priceMax).toBe(21000);
 
     const reapprovedModelDetailResponse = await app.request(
-      API_ROUTES.models.detail(reapproved.item.approvedModelSlug!),
+      API_ROUTES.models.detail(expectDefined(reapproved.item.approvedModelSlug)),
       {
         method: "GET"
       }

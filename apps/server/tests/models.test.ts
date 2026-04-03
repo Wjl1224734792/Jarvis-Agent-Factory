@@ -14,6 +14,14 @@ function extractCookies(response: Response): string {
   return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
+function expectDefined<T>(value: T | null | undefined): T {
+  expect(value).toBeTruthy();
+  if (value === null || value === undefined) {
+    throw new Error("Expected value to be defined");
+  }
+  return value;
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -81,7 +89,7 @@ async function uploadReportImage(cookie: string, name = "evidence.png") {
   expect(ownerId).toBeTruthy();
 
   const pending = await uploadsRepo.createPendingFile({
-    ownerId: ownerId!,
+    ownerId: expectDefined(ownerId),
     bizType: "report-image",
     mediaKind: "image",
     provider: "minio",
@@ -254,10 +262,13 @@ describe("models flows", () => {
     const mePayload = (await meResponse.json()) as { user: { id: string } | null };
     expect(mePayload.user?.id).toBeTruthy();
 
-    const contentResponse = await app.request(API_ROUTES.users.content(mePayload.user!.id), {
+    const contentResponse = await app.request(
+      API_ROUTES.users.content(expectDefined(mePayload.user?.id)),
+      {
       method: "GET",
       headers: { cookie }
-    });
+      }
+    );
     expect(contentResponse.status).toBe(200);
     const contentPayload = (await contentResponse.json()) as {
       items: Array<{ type: string; model?: { slug: string } }>;

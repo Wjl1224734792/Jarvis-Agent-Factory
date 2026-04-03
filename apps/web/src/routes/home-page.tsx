@@ -79,7 +79,7 @@ export function HomePage() {
   });
 
   const feedItems = feedQuery.data?.items ?? [];
-  const contentCategories = feedQuery.data?.categories ?? [];
+  const contentCategories = useMemo(() => feedQuery.data?.categories ?? [], [feedQuery.data?.categories]);
   const hotModels = modelsQuery.data?.items.slice(0, 3) ?? [];
   const rankingCards = rankingsQuery.data?.community.slice(0, 2) ?? [];
 

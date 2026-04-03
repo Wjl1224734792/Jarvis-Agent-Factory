@@ -34,6 +34,14 @@ async function serializeSubmission(
 
   const brandRecord = item.brand;
   const hasBrand = Boolean(brandRecord && brandRecord.id && brandRecord.slug && brandRecord.name);
+  const brand =
+    hasBrand && brandRecord
+      ? {
+          id: brandRecord.id,
+          slug: brandRecord.slug,
+          name: brandRecord.name
+        }
+      : null;
 
   const videoFile = item.videoFileId ? await uploadsRepo.getFileById(item.videoFileId) : null;
 
@@ -45,13 +53,7 @@ async function serializeSubmission(
       slug: item.category.slug,
       name: item.category.name
     },
-    brand: hasBrand
-      ? {
-          id: brandRecord!.id,
-          slug: brandRecord!.slug,
-          name: brandRecord!.name
-        }
-      : null,
+    brand,
     proposedBrandName: item.proposedBrandName,
     modelName: item.modelName,
     powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
@@ -94,6 +96,17 @@ async function serializeSubmission(
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString()
   };
+}
+
+async function serializeSubmissionOrThrow(
+  item: Awaited<ReturnType<typeof aircraftSubmissionsRepo.findById>>,
+  approvedModelSlug: string | null
+) {
+  const serialized = await serializeSubmission(item, approvedModelSlug);
+  if (!serialized) {
+    throw new Error("Submission serialization failed: submission not found.");
+  }
+  return serialized;
 }
 
 async function buildUniqueModelSlug(modelName: string) {
@@ -235,13 +248,13 @@ export const aircraftSubmissionsService = {
     if (!moderation.modelModerationEnabled && item) {
       const approved = await this.updateSubmissionStatus(item.id, "approved");
       if (!approved) {
-        return { kind: "ok" as const, item: (await serializeSubmission(item, null))! };
+        return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
       }
 
       return { kind: "ok" as const, item: approved.item };
     }
 
-    return { kind: "ok" as const, item: (await serializeSubmission(item, null))! };
+    return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
   },
   async getSubmission(id: string) {
     const item = await aircraftSubmissionsRepo.findById(id);
@@ -252,7 +265,7 @@ export const aircraftSubmissionsService = {
     const approvedModel = item.approvedModelId
       ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
       : null;
-    return { item: (await serializeSubmission(item, approvedModel?.slug ?? null))! };
+    return { item: await serializeSubmissionOrThrow(item, approvedModel?.slug ?? null) };
   },
   async listAdminSubmissions() {
     const items = await aircraftSubmissionsRepo.listAdmin();
@@ -262,7 +275,7 @@ export const aircraftSubmissionsService = {
           const approvedModel = item.approvedModelId
             ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
             : null;
-          return (await serializeSubmission(item, approvedModel?.slug ?? null))!;
+          return serializeSubmissionOrThrow(item, approvedModel?.slug ?? null);
         })
       )
     };
@@ -355,7 +368,7 @@ export const aircraftSubmissionsService = {
       : null;
     return {
       kind: "ok" as const,
-      item: (await serializeSubmission(updated, approvedModel?.slug ?? null))!
+      item: await serializeSubmissionOrThrow(updated, approvedModel?.slug ?? null)
     };
   },
   async deleteOwnedSubmission(
@@ -421,7 +434,7 @@ export const aircraftSubmissionsService = {
       const approvedModel = item?.approvedModelId
         ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
         : null;
-      return { item: (await serializeSubmission(item, approvedModel?.slug ?? null))! };
+      return { item: await serializeSubmissionOrThrow(item, approvedModel?.slug ?? null) };
     }
 
     let brandId = current.brandId;
@@ -452,7 +465,7 @@ export const aircraftSubmissionsService = {
         isPublished: true
       });
       const item = await aircraftSubmissionsRepo.approveSubmission(id, current.approvedModelId, brandId);
-      return { item: (await serializeSubmission(item, model?.slug ?? null))! };
+      return { item: await serializeSubmissionOrThrow(item, model?.slug ?? null) };
     }
 
     const model = await aircraftModelsService.createModel({
@@ -479,6 +492,6 @@ export const aircraftSubmissionsService = {
     }
 
     const item = await aircraftSubmissionsRepo.approveSubmission(id, model.id, brandId);
-    return { item: (await serializeSubmission(item, model.slug))! };
+    return { item: await serializeSubmissionOrThrow(item, model.slug) };
   }
 };

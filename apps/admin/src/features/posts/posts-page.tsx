@@ -49,7 +49,12 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   });
   const detailQuery = useQuery({
     queryKey: ["admin-post-detail", detailId],
-    queryFn: () => apiClient.getPostDetail(detailId!),
+    queryFn: () => {
+      if (!detailId) {
+        throw new Error("Missing post id.");
+      }
+      return apiClient.getPostDetail(detailId);
+    },
     enabled: Boolean(detailId)
   });
 

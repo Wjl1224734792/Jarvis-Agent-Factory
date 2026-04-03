@@ -147,6 +147,36 @@ async function serializeRatingTarget(
       item.linkedModelBrandSlug &&
       item.linkedModelBrandName
   );
+  const linkedModel =
+    hasLinkedModel &&
+    item.linkedModelId &&
+    item.linkedModelSlug &&
+    item.linkedModelName &&
+    item.linkedModelPowerType &&
+    item.linkedModelCategoryId &&
+    item.linkedModelCategorySlug &&
+    item.linkedModelCategoryName &&
+    item.linkedModelBrandId &&
+    item.linkedModelBrandSlug &&
+    item.linkedModelBrandName
+      ? {
+          id: item.linkedModelId,
+          slug: item.linkedModelSlug,
+          name: item.linkedModelName,
+          summary: item.linkedModelSummary,
+          powerType: powerTypeSchema.parse(item.linkedModelPowerType),
+          category: {
+            id: item.linkedModelCategoryId,
+            slug: item.linkedModelCategorySlug,
+            name: item.linkedModelCategoryName
+          },
+          brand: {
+            id: item.linkedModelBrandId,
+            slug: item.linkedModelBrandSlug,
+            name: item.linkedModelBrandName
+          }
+        }
+      : null;
 
   return {
     id: item.id,
@@ -160,25 +190,7 @@ async function serializeRatingTarget(
     imageFileId: item.imageFileId ?? null,
     imageUrl: await resolveRankingImage(item.imageFileId),
     brandName: item.brandName,
-    linkedModel: hasLinkedModel
-      ? {
-          id: item.linkedModelId!,
-          slug: item.linkedModelSlug!,
-          name: item.linkedModelName!,
-          summary: item.linkedModelSummary,
-          powerType: powerTypeSchema.parse(item.linkedModelPowerType!),
-          category: {
-            id: item.linkedModelCategoryId!,
-            slug: item.linkedModelCategorySlug!,
-            name: item.linkedModelCategoryName!
-          },
-          brand: {
-            id: item.linkedModelBrandId!,
-            slug: item.linkedModelBrandSlug!,
-            name: item.linkedModelBrandName!
-          }
-        }
-      : null,
+    linkedModel,
     averageScore: toTenPointScore(aggregate.averageRaw),
     totalRatings: aggregate.totalRatings,
     commentCount: item.commentCount,
@@ -1116,8 +1128,8 @@ export const rankingsService = {
     const userRatingMap = new Map(
       userRatings.map((entry) => [entry.ratingTargetId, entry.rating])
     );
-    if (latestOwnRatedComment) {
-      userRatingMap.set(id, latestOwnRatedComment.rating!);
+    if (latestOwnRatedComment && latestOwnRatedComment.rating !== null) {
+      userRatingMap.set(id, latestOwnRatedComment.rating);
     }
     const reportedItemIds = buildSet(
       reportedItemRows as Array<{ ratingTargetId: string }>,

@@ -63,7 +63,12 @@ export function RankingEditorPage() {
   });
   const detailQuery = useQuery({
     queryKey: ["ranking-detail", editId],
-    queryFn: () => apiClient.getRankingDetail(editId!),
+    queryFn: () => {
+      if (!editId) {
+        throw new Error("Missing ranking id");
+      }
+      return apiClient.getRankingDetail(editId);
+    },
     enabled: Boolean(editId)
   });
 

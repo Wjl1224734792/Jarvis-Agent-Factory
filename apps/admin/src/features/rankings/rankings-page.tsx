@@ -74,7 +74,6 @@ export function RankingsPage() {
     () => partitionRankingRecords(officialRankingsQuery.data?.items ?? []).official,
     [officialRankingsQuery.data?.items]
   );
-  const communityItems = communityRankingsQuery.data?.items ?? [];
   const filteredOfficialItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     if (!keyword) {
@@ -88,6 +87,7 @@ export function RankingsPage() {
   }, [officialItems, searchText]);
   const filteredCommunityItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
+    const communityItems = communityRankingsQuery.data?.items ?? [];
     if (!keyword) {
       return communityItems;
     }
@@ -96,7 +96,7 @@ export function RankingsPage() {
       [item.title, item.description, item.author.displayName]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
-  }, [communityItems, searchText]);
+  }, [communityRankingsQuery.data?.items, searchText]);
 
   async function updateModerationSetting(enabled: boolean) {
     const current = siteSettingsQuery.data?.item;

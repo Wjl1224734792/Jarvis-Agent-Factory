@@ -14,7 +14,13 @@ if (faviconLink) {
 }
 
 // 根节点只保留最薄的一层挂载，页面路由和数据提供器全部收敛到 App 内部。
-ReactDOM.createRoot(document.getElementById("root")!).render(
+const rootElement = document.getElementById("root");
+
+if (!rootElement) {
+  throw new Error("Root element '#root' not found");
+}
+
+ReactDOM.createRoot(rootElement).render(
   <React.StrictMode>
     <App />
   </React.StrictMode>

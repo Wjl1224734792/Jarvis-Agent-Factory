@@ -230,12 +230,22 @@ export function ProfilePage() {
   });
   const profileQuery = useQuery({
     queryKey: ["self-profile", user?.id],
-    queryFn: () => apiClient.getUserProfile(user!.id),
+    queryFn: () => {
+      if (!user) {
+        throw new Error("Missing user context");
+      }
+      return apiClient.getUserProfile(user.id);
+    },
     enabled: Boolean(user)
   });
   const contentQuery = useQuery({
     queryKey: ["self-profile-content", user?.id],
-    queryFn: () => apiClient.listUserContent(user!.id),
+    queryFn: () => {
+      if (!user) {
+        throw new Error("Missing user context");
+      }
+      return apiClient.listUserContent(user.id);
+    },
     enabled: Boolean(user)
   });
 

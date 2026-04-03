@@ -55,7 +55,12 @@ export function PublishMomentPage() {
   const [isUploading, setIsUploading] = useState(false);
   const detailQuery = useQuery({
     queryKey: ["publish-moment-edit", editId],
-    queryFn: () => apiClient.getPostDetail(editId!),
+    queryFn: () => {
+      if (!editId) {
+        throw new Error("Missing edit id");
+      }
+      return apiClient.getPostDetail(editId);
+    },
     enabled: Boolean(editId)
   });
 

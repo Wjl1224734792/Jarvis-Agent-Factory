@@ -82,7 +82,12 @@ export function PublishArticlePage() {
   });
   const detailQuery = useQuery({
     queryKey: ["publish-article-edit", editId],
-    queryFn: () => apiClient.getPostDetail(editId!),
+    queryFn: () => {
+      if (!editId) {
+        throw new Error("Missing edit id");
+      }
+      return apiClient.getPostDetail(editId);
+    },
     enabled: Boolean(editId)
   });
 
@@ -116,7 +121,7 @@ export function PublishArticlePage() {
     } catch {
       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
     }
-  }, []);
+  }, [editId]);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {

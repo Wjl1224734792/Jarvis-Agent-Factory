@@ -74,11 +74,16 @@ export function CirclePage() {
   });
   const noteQuery = useQuery({
     queryKey: ["post-detail", selectedNoteId],
-    queryFn: () => apiClient.getPostDetail(selectedNoteId!),
+    queryFn: () => {
+      if (!selectedNoteId) {
+        throw new Error("Missing note id");
+      }
+      return apiClient.getPostDetail(selectedNoteId);
+    },
     enabled: Boolean(selectedNoteId)
   });
 
-  const posts = feedQuery.data?.items ?? [];
+  const posts = useMemo(() => feedQuery.data?.items ?? [], [feedQuery.data?.items]);
   const selectedPreview = useMemo(
     () => posts.find((item) => item.id === selectedNoteId) ?? null,
     [posts, selectedNoteId]

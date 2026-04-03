@@ -5,7 +5,7 @@ import { seedRuntimeArtifacts } from "./runtime-seed.js";
 async function run() {
   await seedDatabase();
   const summary = await seedRuntimeArtifacts();
-  console.log("[db:seed] runtime artifacts", summary);
+  console.info("[db:seed] runtime artifacts", summary);
   await dbPool.end();
 }
 

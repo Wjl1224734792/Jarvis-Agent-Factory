@@ -14,6 +14,14 @@ function extractCookies(response: Response): string {
   return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
+function expectDefined<T>(value: T | null | undefined): T {
+  expect(value).toBeTruthy();
+  if (value === null || value === undefined) {
+    throw new Error("Expected value to be defined");
+  }
+  return value;
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -92,7 +100,7 @@ async function uploadReportImage(cookie: string, name = "report-evidence.png") {
   expect(ownerId).toBeTruthy();
 
   const pending = await uploadsRepo.createPendingFile({
-    ownerId: ownerId!,
+    ownerId: expectDefined(ownerId),
     bizType: "report-image",
     mediaKind: "image",
     provider: "minio",
@@ -634,8 +642,9 @@ describe("rankings flows", () => {
 
     const contributorItemId = contributorItem?.id;
     expect(contributorItemId).toBeTruthy();
+    const contributorItemIdValue = expectDefined(contributorItemId);
 
-    const contributorUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+    const contributorUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemIdValue), {
       method: "PUT",
       headers: {
         cookie: contributorCookie,
@@ -651,7 +660,7 @@ describe("rankings flows", () => {
     });
     expect(contributorUpdate.status).toBe(200);
 
-    const outsiderUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+    const outsiderUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemIdValue), {
       method: "PUT",
       headers: {
         cookie: outsiderCookie,
@@ -667,7 +676,7 @@ describe("rankings flows", () => {
     });
     expect(outsiderUpdate.status).toBe(403);
 
-    const ownerUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+    const ownerUpdate = await app.request(API_ROUTES.rankings.itemDetail(contributorItemIdValue), {
       method: "PUT",
       headers: {
         cookie: ownerCookie,
@@ -683,7 +692,7 @@ describe("rankings flows", () => {
     });
     expect(ownerUpdate.status).toBe(200);
 
-    const outsiderDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+    const outsiderDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemIdValue), {
       method: "DELETE",
       headers: {
         cookie: outsiderCookie
@@ -691,7 +700,7 @@ describe("rankings flows", () => {
     });
     expect(outsiderDelete.status).toBe(403);
 
-    const ownerDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemId!), {
+    const ownerDelete = await app.request(API_ROUTES.rankings.itemDetail(contributorItemIdValue), {
       method: "DELETE",
       headers: {
         cookie: ownerCookie
@@ -909,7 +918,8 @@ describe("rankings flows", () => {
     expect(contributedItem?.id).toBeTruthy();
 
     const rejectReason = "条目信息不完整，请补充后重新提交";
-    const rejectResponse = await app.request(API_ROUTES.rankings.adminItemStatus(contributedItem!.id), {
+    const contributedItemId = expectDefined(contributedItem?.id);
+    const rejectResponse = await app.request(API_ROUTES.rankings.adminItemStatus(contributedItemId), {
       method: "PUT",
       headers: {
         cookie: adminCookie,
@@ -927,7 +937,7 @@ describe("rankings flows", () => {
     expect(rejectedItem.item.status).toBe("rejected");
     expect(rejectedItem.item.rejectionReason).toBe(rejectReason);
 
-    const detailAfterRejectResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItem!.id), {
+    const detailAfterRejectResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItemId), {
       method: "GET",
       headers: {
         cookie: contributorCookie
@@ -951,12 +961,15 @@ describe("rankings flows", () => {
       user: { id: string } | null;
     };
 
-    const userContentResponse = await app.request(API_ROUTES.users.content(contributorIdentity.user!.id), {
-      method: "GET",
-      headers: {
-        cookie: contributorCookie
+    const userContentResponse = await app.request(
+      API_ROUTES.users.content(expectDefined(contributorIdentity.user?.id)),
+      {
+        method: "GET",
+        headers: {
+          cookie: contributorCookie
+        }
       }
-    });
+    );
     expect(userContentResponse.status).toBe(200);
     const userContent = (await userContentResponse.json()) as {
       items: Array<{
@@ -967,13 +980,13 @@ describe("rankings flows", () => {
       }>;
     };
     expect(
-      userContent.items.find((item) => item.type === "rating-target" && item.id === contributedItem!.id)
+      userContent.items.find((item) => item.type === "rating-target" && item.id === contributedItemId)
     ).toMatchObject({
       status: "rejected",
       rejectionReason: rejectReason
     });
 
-    const updateResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItem!.id), {
+    const updateResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItemId), {
       method: "PUT",
       headers: {
         cookie: contributorCookie,

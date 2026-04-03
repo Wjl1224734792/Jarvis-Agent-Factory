@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Empty, Image, Input, Modal, Space, Table, Tag } from "antd";
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
@@ -82,13 +82,21 @@ export function ReportsPage() {
   });
   const detailQuery = useQuery({
     queryKey: ["admin-report-detail", detail?.kind, detail?.id],
-    queryFn: () => apiClient.getAdminReportDetails(detail!.kind, detail!.id),
+    queryFn: () => {
+      if (!detail) {
+        throw new Error("Missing report detail target.");
+      }
+      return apiClient.getAdminReportDetails(detail.kind, detail.id);
+    },
     enabled: Boolean(detail)
   });
 
   const keyword = searchText.trim().toLowerCase();
-  const includesKeyword = (...values: Array<string | null | undefined>) =>
-    !keyword ? true : values.some((value) => String(value ?? "").toLowerCase().includes(keyword));
+  const includesKeyword = useCallback(
+    (...values: Array<string | null | undefined>) =>
+      !keyword ? true : values.some((value) => String(value ?? "").toLowerCase().includes(keyword)),
+    [keyword]
+  );
 
   async function refreshAll() {
     await Promise.all([
@@ -110,28 +118,28 @@ export function ReportsPage() {
       (postsQuery.data?.items ?? [])
         .filter((item) => (item.reportCount ?? 0) > 0)
         .filter((item) => includesKeyword(item.title, item.contentPreview, item.author.displayName)),
-    [keyword, postsQuery.data?.items]
+    [includesKeyword, postsQuery.data?.items]
   );
   const reviews = useMemo(
     () =>
       (reviewsQuery.data?.items ?? [])
         .filter((item) => (item.reportCount ?? 0) > 0)
         .filter((item) => includesKeyword(item.model.name, item.content ?? "", item.author.displayName)),
-    [keyword, reviewsQuery.data?.items]
+    [includesKeyword, reviewsQuery.data?.items]
   );
   const models = useMemo(
     () =>
       (modelsQuery.data?.items ?? [])
         .filter((item) => (item.reportCount ?? 0) > 0)
         .filter((item) => includesKeyword(item.name, item.brand.name, item.category.name)),
-    [keyword, modelsQuery.data?.items]
+    [includesKeyword, modelsQuery.data?.items]
   );
   const ratingTargets = useMemo(
     () =>
       (ratingTargetsQuery.data?.items ?? [])
         .filter((item) => (item.reportCount ?? 0) > 0)
         .filter((item) => includesKeyword(item.title, item.rankingTitle, item.rankingAuthorName)),
-    [keyword, ratingTargetsQuery.data?.items]
+    [includesKeyword, ratingTargetsQuery.data?.items]
   );
   const comments = useMemo(
     () =>
@@ -190,7 +198,7 @@ export function ReportsPage() {
         .filter((item) => item.reportCount > 0)
         .filter((item) => includesKeyword(item.title, item.subtitle, item.preview)),
     [
-      keyword,
+      includesKeyword,
       modelCommentsQuery.data?.items,
       postCommentsQuery.data?.items,
       rankingCommentsQuery.data?.items,

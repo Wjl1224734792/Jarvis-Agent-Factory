@@ -41,7 +41,12 @@ export function PublishBrandPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const detailQuery = useQuery({
     queryKey: ["brand-application-edit", editId],
-    queryFn: () => apiClient.getBrandApplication(editId!),
+    queryFn: () => {
+      if (!editId) {
+        throw new Error("Missing edit id");
+      }
+      return apiClient.getBrandApplication(editId);
+    },
     enabled: Boolean(editId)
   });
 

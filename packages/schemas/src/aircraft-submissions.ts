@@ -20,7 +20,7 @@ function validatePriceRange(
     return;
   }
 
-  if (hasMin && hasMax && input.priceMin! > input.priceMax!) {
+  if (input.priceMin !== null && input.priceMax !== null && input.priceMin > input.priceMax) {
     context.addIssue({
       code: z.ZodIssueCode.custom,
       message: "priceMin cannot be greater than priceMax.",

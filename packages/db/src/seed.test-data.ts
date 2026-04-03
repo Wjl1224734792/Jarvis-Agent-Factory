@@ -30,6 +30,8 @@
  * - 各类举报：30 条
  */
 
+/* eslint-disable no-console */
+
 import { createClient } from "redis";
 import {
   CreateBucketCommand,

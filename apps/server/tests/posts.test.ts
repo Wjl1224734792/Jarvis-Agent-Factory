@@ -22,6 +22,14 @@ function extractCookies(response: Response): string {
   return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
+function expectDefined<T>(value: T | null | undefined): T {
+  expect(value).toBeTruthy();
+  if (value === null || value === undefined) {
+    throw new Error("Expected value to be defined");
+  }
+  return value;
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -110,7 +118,7 @@ async function uploadFile(
   expect(ownerId).toBeTruthy();
 
   const pending = await uploadsRepo.createPendingFile({
-    ownerId: ownerId!,
+    ownerId: expectDefined(ownerId),
     bizType: input.bizType,
     mediaKind: input.bizType === "post-video" ? "video" : "image",
     provider: "minio",
@@ -1193,7 +1201,8 @@ describe.sequential("posts and social flows", () => {
     const target = beforePayload.items.find((item) => !item.isRead);
     expect(target?.id).toBeTruthy();
 
-    const markOneResponse = await app.request(API_ROUTES.social.notificationRead(target!.id), {
+    const targetId = expectDefined(target?.id);
+    const markOneResponse = await app.request(API_ROUTES.social.notificationRead(targetId), {
       method: "POST",
       headers: { cookie }
     });
@@ -1209,7 +1218,7 @@ describe.sequential("posts and social flows", () => {
       items: Array<{ id: string; isRead: boolean }>;
     };
 
-    const marked = afterPayload.items.find((item) => item.id === target!.id);
+    const marked = afterPayload.items.find((item) => item.id === targetId);
     expect(marked?.isRead).toBe(true);
     expect(afterPayload.unreadCount).toBe(beforePayload.unreadCount - 1);
   });

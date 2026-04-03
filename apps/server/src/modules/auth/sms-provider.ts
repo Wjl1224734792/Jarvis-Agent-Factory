@@ -213,10 +213,10 @@ function classifyTencentError(code: string | undefined, message: string): SmsErr
 async function sendViaTencent(config: SmsProviderConfig, input: SendSmsInput): Promise<SendSmsResult> {
   const client = createTencentClient(config);
 
-  // These are guaranteed by hasTencentSmsConfig check before calling
-  const sdkAppId = config.tencent.sdkAppId!;
-  const signName = config.tencent.signName!;
-  const templateId = config.tencent.templateId!;
+  const { sdkAppId, signName, templateId } = config.tencent;
+  if (!sdkAppId || !signName || !templateId) {
+    throw new Error("Tencent SMS provider is missing required configuration.");
+  }
 
   try {
     const response = await client.SendSms({

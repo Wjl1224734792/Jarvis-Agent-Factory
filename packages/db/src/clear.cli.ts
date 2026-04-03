@@ -4,7 +4,7 @@ import { createClient } from "redis";
 
 async function run() {
   await resetDatabaseState();
-  console.log("[db:clear] all tables truncated");
+  console.info("[db:clear] all tables truncated");
 
   const redisUrl =
     process.env.REDIS_URL?.trim() || "redis://:qwertyuiop@localhost:6379/0";
@@ -13,7 +13,7 @@ async function run() {
     await redis.connect();
     await redis.flushDb();
     await redis.disconnect();
-    console.log("[db:clear] redis flushed");
+    console.info("[db:clear] redis flushed");
   } catch (error) {
     console.warn("[db:clear] redis flush skipped:", (error as Error).message);
   }
