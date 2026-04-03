@@ -8,7 +8,7 @@ import {
   SquarePenIcon,
   TrophyIcon
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -19,6 +19,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
+import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
 
@@ -27,9 +28,6 @@ const fixedTabs = [
   { id: "latest", label: "最新" },
   { id: "following", label: "关注" }
 ] as const;
-
-type FixedTabId = (typeof fixedTabs)[number]["id"];
-type HomeTabState = { kind: "fixed"; id: FixedTabId } | { kind: "category"; slug: string };
 
 function articleViewCount(likeCount: number, commentCount: number, shareCount: number) {
   return Math.max(likeCount * 12 + commentCount * 8 + shareCount * 10, 18);
@@ -51,10 +49,8 @@ export function HomePage() {
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
   const promptLogin = useLoginPrompt();
-  const [activeTab, setActiveTab] = useState<HomeTabState>({
-    kind: "fixed",
-    id: "recommended"
-  });
+  const activeTab = useHomeTabStore((state) => state.activeTab);
+  const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
 
   const feedQuery = useQuery({
     queryKey: [
