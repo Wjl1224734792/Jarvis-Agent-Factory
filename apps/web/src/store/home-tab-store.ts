@@ -7,7 +7,7 @@ const DEFAULT_TAB_STATE = {
   id: "recommended" as const
 };
 
-type HomeTabState = {
+export type HomeTabState = {
   kind: "fixed";
   id: "recommended" | "latest" | "following";
 } | {
