@@ -16,7 +16,12 @@ export default tseslint.config(
       "vitest.config.ts",
       // 未纳入 tsconfig 的测试目录
       "packages/schemas/tests/**",
-      "packages/http-client/tests/**"
+      "packages/http-client/tests/**",
+      // AI 工具技能目录（非项目业务代码）
+      ".opencode/**",
+      ".claude/**",
+      ".codex/**",
+      ".cursor/**"
     ]
   },
 
