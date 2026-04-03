@@ -4,7 +4,14 @@ import { rankingsRepo } from "./rankings.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
-import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
+import { buildCommentThreads } from "../../lib/comment-serializer";
+import {
+  isValidAuthRole,
+  isValidRankingType,
+  isValidRankingStatus,
+  isValidRatingTargetAddPolicy,
+  isValidRankingCommentStatus
+} from "../../lib/type-guards";
 
 const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
 
@@ -145,7 +152,7 @@ async function serializeRatingTarget(
     id: item.id,
     rankingId: item.rankingId,
     authorId: item.authorId,
-    status: item.status as RatingTargetStatus,
+    status: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus),
     rejectionReason: item.rejectionReason ?? null,
     rank: item.rank,
     title: item.title,
@@ -213,7 +220,7 @@ async function serializeRankingComment(
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
-      role: item.author.role as "user" | "admin"
+      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
     viewer: {
       canEdit: Boolean(currentUser && (currentUser.role === "admin" || currentUser.id === item.author.id)),
@@ -252,7 +259,7 @@ async function serializeRatingTargetCommentBase(
       id: comment.author.id,
       displayName: comment.author.displayName,
       avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
-      role: comment.author.role as "user" | "admin"
+      role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
     },
     replyToUser: comment.replyToUserId
       ? replyToUsers.get(comment.replyToUserId) ?? null
@@ -326,7 +333,7 @@ function toRankingViewer(input: {
 
 async function buildRankingListItems(currentUser?: CurrentUser) {
   const rankings = (await rankingsRepo.listRankings()).filter((ranking) => {
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (rankingType === "official") {
       return true;
     }
@@ -343,10 +350,10 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         items.filter((item) =>
           canInspectRatingTarget({
             currentUser,
-            rankingType: ranking.type as "official" | "community",
+            rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
             rankingAuthorId: ranking.author.id,
             itemAuthorId: item.authorId,
-            itemStatus: item.status as RatingTargetStatus
+            itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
           })
         )
       );
@@ -382,11 +389,11 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
 
   const all = await Promise.all(
     rankings.map(async (ranking) => {
-      const rankingType = (ranking.type as "official" | "community") ?? "community";
+      const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
       const itemAddPolicy =
         rankingType === "official"
           ? "owner"
-          : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
+          : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
       const items = await Promise.all(
         (ratingTargetsByRanking.get(ranking.id) ?? []).map((item) =>
           serializeRatingTarget(item, itemAggregateMap, userItemRatingMap, {
@@ -401,7 +408,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
       return {
         id: ranking.id,
         type: rankingType,
-        status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+        status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         description: ranking.description,
@@ -417,14 +424,14 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
           id: ranking.author.id,
           displayName: ranking.author.displayName,
           avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
-          role: ranking.author.role as "user" | "admin"
+          role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
         },
         viewer: toRankingViewer({
           currentUser,
           authorId: ranking.author.id,
           itemAddPolicy,
           type: rankingType,
-          status: ranking.status as "pending" | "published" | "rejected" | "hidden"
+          status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
         }),
         items: items.slice(0, 3)
       } satisfies RankingListItem;
@@ -535,7 +542,7 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (input.type !== rankingType) {
       return { kind: "forbidden" as const };
     }
@@ -555,7 +562,7 @@ export const rankingsService = {
         ? settings.rankingModerationEnabled
           ? "pending"
           : "published"
-        : (ranking.status as "pending" | "published" | "rejected" | "hidden");
+        : isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden");
 
     await rankingsRepo.updateRanking(rankingId, {
       status: nextRankingStatus,
@@ -604,17 +611,17 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     const itemAddPolicy =
       rankingType === "official"
         ? "owner"
-        : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
+        : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
     const viewer = toRankingViewer({
       currentUser,
       authorId: ranking.author.id,
       itemAddPolicy,
       type: rankingType,
-      status: ranking.status as "pending" | "published" | "rejected" | "hidden"
+      status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
     });
     if (!viewer.canAddItems) {
       return { kind: "forbidden" as const };
@@ -666,7 +673,7 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (
       !canManageRatingTarget({
         currentUser,
@@ -712,7 +719,7 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (
       !canManageRatingTarget({
         currentUser,
@@ -737,7 +744,7 @@ export const rankingsService = {
       return null;
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     const canInspectUnpublished =
       currentUser?.role === "admin" || currentUser?.id === ranking.author.id;
     if (rankingType === "community" && ranking.status !== "published" && !canInspectUnpublished) {
@@ -750,7 +757,7 @@ export const rankingsService = {
         rankingType,
         rankingAuthorId: ranking.author.id,
         itemAuthorId: entry.authorId,
-        itemStatus: entry.status as RatingTargetStatus
+        itemStatus: isValidRankingStatus(entry.status) ? entry.status : ("published" satisfies RatingTargetStatus)
       })
     );
     const [allComments, aggregates, userRatings, reportedRows] = await Promise.all([
@@ -793,13 +800,13 @@ export const rankingsService = {
     const itemAddPolicy =
       rankingType === "official"
         ? "owner"
-        : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
+        : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
 
     return {
       item: {
         id: ranking.id,
         type: rankingType,
-        status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+        status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         description: ranking.description,
@@ -811,7 +818,7 @@ export const rankingsService = {
           authorId: ranking.author.id,
           itemAddPolicy,
           type: rankingType,
-          status: ranking.status as "pending" | "published" | "rejected" | "hidden"
+          status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
         }),
         averageScore: average(serializedItems.map((entry) => entry.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
@@ -822,7 +829,7 @@ export const rankingsService = {
           id: ranking.author.id,
           displayName: ranking.author.displayName,
           avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
-          role: ranking.author.role as "user" | "admin"
+          role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
         },
         comments: await Promise.all(comments.map((comment) => serializeRankingComment(comment, currentUser))),
         items: serializedItems
@@ -869,7 +876,7 @@ export const rankingsService = {
         items: await Promise.all(
           rankings
             .filter((ranking) => {
-              const rankingType = (ranking.type as "official" | "community") ?? "community";
+              const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
               if (filters?.scope && rankingType !== filters.scope) {
                 return false;
               }
@@ -879,11 +886,11 @@ export const rankingsService = {
               return true;
             })
             .map(async (ranking) => {
-              const rankingType = (ranking.type as "official" | "community") ?? "community";
+              const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
               const itemAddPolicy =
                 rankingType === "official"
                   ? "owner"
-                  : ((ranking.itemAddPolicy as "public" | "owner") ?? "owner");
+                  : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
               const items = await Promise.all(
                 (rankingItemsByRanking.get(ranking.id) ?? []).map((entry) =>
                   serializeRatingTarget(entry, itemAggregateMap, new Map(), {
@@ -898,7 +905,7 @@ export const rankingsService = {
               return {
                 id: ranking.id,
                 type: rankingType,
-                status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+                status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
                 rejectionReason: ranking.rejectionReason ?? null,
                 title: ranking.title,
                 description: ranking.description,
@@ -914,14 +921,14 @@ export const rankingsService = {
                   id: ranking.author.id,
                   displayName: ranking.author.displayName,
                   avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
-                  role: ranking.author.role as "user" | "admin"
+                  role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
                 },
                 viewer: toRankingViewer({
                   currentUser,
                   authorId: ranking.author.id,
                   itemAddPolicy,
                   type: rankingType,
-                  status: ranking.status as "pending" | "published" | "rejected" | "hidden"
+                  status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
                 }),
                 items: items.slice(0, 3)
               };
@@ -946,7 +953,7 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    const rankingType = (ranking.type as "official" | "community") ?? "community";
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (rankingType !== "community") {
       return { kind: "forbidden" as const };
     }
@@ -1047,10 +1054,10 @@ export const rankingsService = {
     if (
       !canInspectRatingTarget({
         currentUser,
-        rankingType: ranking.type as "official" | "community",
+        rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
         rankingAuthorId: ranking.author.id,
         itemAuthorId: item.authorId,
-        itemStatus: item.status as RatingTargetStatus
+        itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
       })
     ) {
       return null;
@@ -1118,7 +1125,7 @@ export const rankingsService = {
     );
     const serializedItem = await serializeRatingTarget(item, aggregateMap, userRatingMap, {
       currentUser,
-      rankingType: ranking.type as "official" | "community",
+      rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
       rankingAuthorId: ranking.author.id,
       reportedItemIds
     });
@@ -1132,7 +1139,7 @@ export const rankingsService = {
             id: user.id,
             displayName: user.displayName,
             avatarUrl: null,
-            role: user.role as "user" | "admin"
+            role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
           }
         ])
       ),
@@ -1423,7 +1430,7 @@ export const rankingsService = {
           rankingId: item.rankingId,
           rankingTitle: item.rankingTitle,
           content: item.content,
-          status: item.status as "pending" | "visible" | "hidden",
+          status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
           likeCount: item.likeCount ?? 0,
           reportCount: item.reportCount ?? 0,
           createdAt: item.createdAt.toISOString(),
@@ -1432,7 +1439,7 @@ export const rankingsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
-            role: item.author.role as "user" | "admin"
+            role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
           viewer: {
             canEdit: false,
@@ -1455,7 +1462,7 @@ export const rankingsService = {
       rankingId: item.rankingId,
       rankingTitle: item.rankingTitle,
       content: item.content,
-      status: item.status as "pending" | "visible" | "hidden",
+      status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
       likeCount: item.likeCount ?? 0,
       reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),
@@ -1464,7 +1471,7 @@ export const rankingsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
-        role: item.author.role as "user" | "admin"
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       viewer: {
         canEdit: false,
@@ -1486,7 +1493,7 @@ export const rankingsService = {
           parentCommentId: item.parentCommentId,
           replyToCommentId: item.replyToCommentId,
           content: item.content,
-          status: item.status as "pending" | "visible" | "hidden",
+          status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
           rating: 5,
           likeCount: item.likeCount ?? 0,
           reportCount: item.reportCount ?? 0,
@@ -1496,14 +1503,14 @@ export const rankingsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
-            role: item.author.role as "user" | "admin"
+            role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
           replyToUser: item.replyToUser?.id
             ? {
                 id: item.replyToUser.id,
                 displayName: item.replyToUser.displayName,
                 avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
-                role: item.replyToUser.role as "user" | "admin"
+                role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
               }
             : null,
           viewer: {
@@ -1530,7 +1537,7 @@ export const rankingsService = {
       parentCommentId: item.parentCommentId,
       replyToCommentId: item.replyToCommentId,
       content: item.content,
-      status: item.status as "pending" | "visible" | "hidden",
+      status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
       rating: 5,
       likeCount: item.likeCount ?? 0,
       reportCount: item.reportCount ?? 0,
@@ -1540,14 +1547,14 @@ export const rankingsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
-        role: item.author.role as "user" | "admin"
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       replyToUser: item.replyToUser?.id
         ? {
             id: item.replyToUser.id,
             displayName: item.replyToUser.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
-            role: item.replyToUser.role as "user" | "admin"
+            role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
           }
         : null,
       viewer: {

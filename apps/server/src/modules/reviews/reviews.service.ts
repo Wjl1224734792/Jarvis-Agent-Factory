@@ -3,6 +3,7 @@ import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uplo
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
+import { isValidAuthRole, isValidReviewCommentStatus } from "../../lib/type-guards";
 
 async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(author: T) {
   return resolveUploadedFileUrl(author.avatarFileId ?? null);
@@ -30,7 +31,8 @@ async function buildReplyToUserMap(
     id: user.id,
     displayName: user.displayName,
     avatarUrl: await resolveAuthorAvatar(user),
-    role: user.role as "user" | "admin"
+    // Database text column constrained to valid AuthRole values at insert time
+    role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
   }));
 }
 
@@ -54,7 +56,7 @@ async function serializeCommentBase(
     parentCommentId: item.parentCommentId,
     replyToCommentId: item.replyToCommentId,
     content: item.content,
-    status: (item.status ?? "visible") as "pending" | "visible" | "hidden",
+    status: isValidReviewCommentStatus(item.status ?? "visible") ? (item.status ?? "visible") : ("visible" as "pending" | "visible" | "hidden"),
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     likeCount: item.likeCount ?? 0,
@@ -63,7 +65,8 @@ async function serializeCommentBase(
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveAuthorAvatar(item.author),
-      role: item.author.role as "user" | "admin"
+      // Database text column constrained to valid AuthRole values at insert time
+      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
     viewer: {
@@ -510,7 +513,7 @@ export const reviewsService = {
           parentCommentId: item.parentCommentId,
           replyToCommentId: item.replyToCommentId,
           content: item.content,
-          status: item.status as "pending" | "visible" | "hidden",
+          status: isValidReviewCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
           likeCount: item.likeCount ?? 0,
           reportCount: item.reportCount ?? 0,
           createdAt: item.createdAt.toISOString(),
@@ -519,7 +522,8 @@ export const reviewsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveAuthorAvatar(item.author),
-            role: item.author.role as "user" | "admin"
+            // Database text column constrained to valid AuthRole values at insert time
+            role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
           replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
           viewer: {
@@ -544,7 +548,8 @@ export const reviewsService = {
             id: report.reporter.id,
             displayName: report.reporter.displayName,
             avatarUrl: await resolveAuthorAvatar(report.reporter),
-            role: report.reporter.role as "user" | "admin"
+            // Database text column constrained to valid AuthRole values at insert time
+            role: isValidAuthRole(report.reporter.role) ? report.reporter.role : ("user" as "user" | "admin")
           },
           evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
             id: `${report.id}-${index}`,
@@ -569,7 +574,8 @@ export const reviewsService = {
             id: report.reporter.id,
             displayName: report.reporter.displayName,
             avatarUrl: await resolveAuthorAvatar(report.reporter),
-            role: report.reporter.role as "user" | "admin"
+            // Database text column constrained to valid AuthRole values at insert time
+            role: isValidAuthRole(report.reporter.role) ? report.reporter.role : ("user" as "user" | "admin")
           },
           evidenceImages: (await resolveUploadedFileUrls(parseFileIdArray(report.imageFileIds))).map((url, index) => ({
             id: `${report.id}-${index}`,
@@ -599,7 +605,7 @@ export const reviewsService = {
       parentCommentId: item.parentCommentId,
       replyToCommentId: item.replyToCommentId,
       content: item.content,
-      status: item.status as "pending" | "visible" | "hidden",
+      status: isValidReviewCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
       likeCount: item.likeCount ?? 0,
       reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),
@@ -608,7 +614,8 @@ export const reviewsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveAuthorAvatar(item.author),
-        role: item.author.role as "user" | "admin"
+        // Database text column constrained to valid AuthRole values at insert time
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
       viewer: {

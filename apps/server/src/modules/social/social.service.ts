@@ -1,6 +1,14 @@
 import { socialRepo } from "./social.repo";
 import { AuthError, authService } from "../auth/auth.service";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import {
+  isValidAuthRole,
+  isValidPostType,
+  isValidPostStatus,
+  isValidRankingStatus,
+  isValidAircraftSubmissionStatus,
+  isValidBrandApplicationStatus
+} from "../../lib/type-guards";
 
 function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
@@ -145,7 +153,8 @@ export const socialService = {
               id: actor.id,
               displayName: actor.displayName,
               avatarUrl: await resolveUploadedFileUrl(actor.avatarFileId ?? null),
-              role: actor.role as "user" | "admin"
+              // Database text column constrained to valid AuthRole values at insert time
+              role: isValidAuthRole(actor.role) ? actor.role : ("user" as "user" | "admin")
             },
             post: post
               ? {
@@ -224,7 +233,7 @@ export const socialService = {
           id: user.id,
           displayName: user.displayName,
           avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
-          role: user.role as "user" | "admin"
+          role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
         },
         followerCount,
         followingCount,
@@ -279,8 +288,8 @@ export const socialService = {
       ...posts.map((post) => ({
         type: "post" as const,
         id: post.id,
-        postType: post.type as "article" | "moment",
-        status: post.status as "pending" | "published" | "rejected" | "hidden",
+        postType: isValidPostType(post.type) ? post.type : ("article" as "article" | "moment"),
+        status: isValidPostStatus(post.status) ? post.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: post.rejectionReason ?? null,
         title: post.title,
         contentPreview: toPreview(post.content),
@@ -291,7 +300,7 @@ export const socialService = {
       ...favoritePosts.map((post) => ({
         type: "favorite-post" as const,
         id: post.id,
-        postType: post.type as "article" | "moment",
+        postType: isValidPostType(post.type) ? post.type : ("article" as "article" | "moment"),
         title: post.title,
         contentPreview: toPreview(post.content),
         createdAt: post.createdAt.toISOString(),
@@ -312,7 +321,7 @@ export const socialService = {
       ...rankings.map((ranking) => ({
         type: "ranking" as const,
         id: ranking.id,
-        status: ranking.status as "pending" | "published" | "rejected" | "hidden",
+        status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         description: ranking.description,
@@ -325,7 +334,7 @@ export const socialService = {
         id: item.id,
         rankingId: item.rankingId,
         rankingTitle: item.rankingTitle,
-        status: item.status as "pending" | "published" | "rejected" | "hidden",
+        status: isValidRankingStatus(item.status) ? item.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: item.rejectionReason ?? null,
         title: item.title,
         summary: item.summary,
@@ -338,7 +347,7 @@ export const socialService = {
         id: submission.id,
         modelName: submission.modelName,
         summary: submission.summary,
-        status: submission.status as "draft" | "submitted" | "approved" | "rejected",
+        status: isValidAircraftSubmissionStatus(submission.status) ? submission.status : ("draft" as "draft" | "submitted" | "approved" | "rejected"),
         rejectionReason: submission.rejectionReason ?? null,
         canManage: isSelf,
         createdAt: submission.createdAt.toISOString(),
@@ -347,7 +356,7 @@ export const socialService = {
       ...brandApplications.map((application) => ({
         type: "brand-application" as const,
         id: application.id,
-        status: application.status as "pending" | "approved" | "rejected" | "hidden",
+        status: isValidBrandApplicationStatus(application.status) ? application.status : ("pending" as "pending" | "approved" | "rejected" | "hidden"),
         rejectionReason: application.rejectionReason ?? null,
         name: application.name,
         description: application.description,
