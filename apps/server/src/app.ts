@@ -33,7 +33,9 @@ export const app = new Hono();
 
 const defaultCorsOrigins = [
   `http://localhost:${APP_PORTS.web}`,
-  `http://localhost:${APP_PORTS.admin}`
+  `http://127.0.0.1:${APP_PORTS.web}`,
+  `http://localhost:${APP_PORTS.admin}`,
+  `http://127.0.0.1:${APP_PORTS.admin}`
 ] as const;
 
 /**
