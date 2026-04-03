@@ -2,6 +2,11 @@ import { create } from "zustand";
 
 const STORAGE_KEY = "feijia.web.home-tab";
 
+const DEFAULT_TAB_STATE = {
+  kind: "fixed" as const,
+  id: "recommended" as const
+};
+
 type HomeTabState = {
   kind: "fixed";
   id: "recommended" | "latest" | "following";
@@ -15,31 +20,53 @@ type HomeTabStore = {
   setActiveTab: (tab: HomeTabState) => void;
 };
 
+function canUseStorage() {
+  return typeof window !== "undefined" && typeof window.localStorage !== "undefined";
+}
+
+function isValidHomeTabState(value: unknown): value is HomeTabState {
+  if (!value || typeof value !== "object") {
+    return false;
+  }
+
+  const obj = value as Record<string, unknown>;
+  if (obj.kind === "fixed") {
+    return typeof obj.id === "string" && ["recommended", "latest", "following"].includes(obj.id);
+  }
+
+  if (obj.kind === "category") {
+    return typeof obj.slug === "string";
+  }
+
+  return false;
+}
+
 function readPersistedTab(): HomeTabState {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
-    return { kind: "fixed", id: "recommended" };
+  if (!canUseStorage()) {
+    return DEFAULT_TAB_STATE;
   }
 
   try {
     const raw = window.localStorage.getItem(STORAGE_KEY);
     if (!raw) {
-      return { kind: "fixed", id: "recommended" };
+      return DEFAULT_TAB_STATE;
     }
 
-    const parsed = JSON.parse(raw) as HomeTabState;
-    // 校验基本结构
-    if (parsed && typeof parsed.kind === "string") {
+    const parsed: unknown = JSON.parse(raw);
+    if (isValidHomeTabState(parsed)) {
       return parsed;
     }
 
-    return { kind: "fixed", id: "recommended" };
+    window.localStorage.removeItem(STORAGE_KEY);
+    return DEFAULT_TAB_STATE;
   } catch {
-    return { kind: "fixed", id: "recommended" };
+    window.localStorage.removeItem(STORAGE_KEY);
+    return DEFAULT_TAB_STATE;
   }
 }
 
 function writePersistedTab(tab: HomeTabState) {
-  if (typeof window === "undefined" || typeof window.localStorage === "undefined") {
+  if (!canUseStorage()) {
     return;
   }
 
