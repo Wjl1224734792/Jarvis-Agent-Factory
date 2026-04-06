@@ -69,8 +69,38 @@ const uploadPolicies = {
   }
 } satisfies Record<FileBizType, UploadPolicy>;
 
+function parseSizeLimitMb(value: string | undefined) {
+  if (!value?.trim()) {
+    return undefined;
+  }
+
+  const parsed = Number(value.trim());
+  if (!Number.isFinite(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return Math.floor(parsed * MB);
+}
+
+function resolvePolicyMaxSize(policy: UploadPolicy) {
+  const globalMaxSize = parseSizeLimitMb(process.env.UPLOAD_MAX_FILE_SIZE_MB);
+  const mediaMaxSize =
+    policy.mediaKind === "image"
+      ? parseSizeLimitMb(process.env.UPLOAD_MAX_IMAGE_SIZE_MB)
+      : parseSizeLimitMb(process.env.UPLOAD_MAX_VIDEO_SIZE_MB);
+
+  return [policy.maxSize, globalMaxSize, mediaMaxSize]
+    .filter((value): value is number => value !== undefined)
+    .reduce((current, candidate) => Math.min(current, candidate), policy.maxSize);
+}
+
 export function getUploadPolicy(bizType: FileBizType): UploadPolicy {
-  return uploadPolicies[bizType];
+  const policy = uploadPolicies[bizType];
+
+  return {
+    ...policy,
+    maxSize: resolvePolicyMaxSize(policy)
+  };
 }
 
 export function isAllowedUploadMime(policy: UploadPolicy, contentType: string) {

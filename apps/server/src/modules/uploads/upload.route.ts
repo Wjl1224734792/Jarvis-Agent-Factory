@@ -33,6 +33,9 @@ uploadsRoute.post(API_ROUTES.uploads.init, requireAuth, async context => {
   if (result.kind === "invalid_mime") {
     return context.json({ code: "BAD_REQUEST", message: "Unsupported file type." }, 400);
   }
+  if (result.kind === "invalid_size") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid file size." }, 400);
+  }
   if (result.kind === "file_too_large") {
     return context.json({ code: "BAD_REQUEST", message: "File size exceeds limit." }, 400);
   }

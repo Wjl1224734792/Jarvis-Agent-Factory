@@ -1,66 +1,62 @@
 # AGENTS.md
 
-本仓库代理遵循本文件。@.codex/AGENTS.md
+仓库内代理必须同时遵循：
 
-## 仓库预期
+1. 本文件
+2. [`.codex/AGENTS.md`](E:/CodeStore/feijia/.codex/AGENTS.md)
 
-- 保持变更紧密围绕用户请求
-- 优先最小的正确变更而非广泛重构
-- 编辑前先阅读相关代码路径
-- 引入新抽象前先复用现有模式
+项目规则优先于通用规则。
 
-## 项目约束
+## 目标
 
-- **运行时**：Bun
-- **测试框架**：Vitest
-- **依赖方向**：`apps` → `packages` → 独立
+- 只做与用户请求直接相关的变更。
+- 优先最小正确改动，不做顺手重构。
+- 修改前先读相关目录、调用链、环境变量和脚本。
 
-## 目录架构
+## 当前项目状态
 
-```
-feijia/
-├── AGENTS.md              # 本文件（项目专属）
-├── .codex/AGENTS.md       # 通用编码规范
-├── apps/                  # 应用层
-├── packages/              # 共享包层
-├── docker/                # 本地基础设施
-└── docs/                  # 文档
-```
+- 仓库内只维护 `apps/web`、`apps/admin`、`apps/server`。
+- `apps/mobiles` 已删除，不要恢复占位目录。
+- 微信小程序不在本仓库开发。
+- App 不在本仓库开发。
+- 小程序建议独立使用 `Taro`。
+- App 建议独立使用 `Flutter`。
 
-## 全局脚本
+## 技术边界
+
+- 运行时：Bun
+- 测试框架：Vitest
+- ORM：Drizzle
+- 依赖方向：`apps -> packages -> 独立`
+
+## 修改规则
+
+- 改共享协议时，先检查：
+  - `packages/schemas`
+  - `packages/http-client`
+  - `apps/server`
+  - `apps/web`
+  - `apps/admin`
+- 改环境变量时，必须同步更新：
+  - [`.env.example`](E:/CodeStore/feijia/.env.example)
+  - [README.md](E:/CodeStore/feijia/README.md)
+- 不要引入未接线目录、壳子工程、占位脚本。
+- 不要绕过 `packages/*` 在应用层重复定义共享结构。
+
+## OpenAPI 规则
+
+- 文档入口：`/docs`、`/openapi.json`
+- 由 `OPENAPI_ENABLED` 控制
+- 未配置时：非生产默认开启，生产默认关闭
+- 生产相关改动不要默认暴露文档
+
+## 默认验证
+
+除非用户明确要求跳过，否则收尾至少考虑：
 
 ```bash
-bun run dev:web      # 用户端
-bun run dev:admin    # 管理端
-bun run dev:server   # 后端 API
-bun run typecheck    # 类型检查
-bun run test         # 单元测试
-bun run lint         # 代码规范
-bun run build        # 全量构建校验
-bun run db:generate  # 生成 Drizzle 类型
-bun run db:migrate   # 执行迁移
+bun run lint
+bun run typecheck
+bun run test
+bun run build
 ```
-
-## 需求澄清
-
-- 收敛需求为清晰可验证的理解
-- 明确目标/范围/流程/模块交互
-
-## 实现规则
-
-- 遵循现有架构、命名、文件组织
-- 变更共享合约时先检查下游影响
-- 避免占位符逻辑和死代码
-
-## 完成定义
-
-- 请求变更已实现或阻塞项已明确
-- 相关验证已运行；默认完成检查项包含 `bun run lint`、`bun run typecheck`、`bun run test`、`bun run build`
-- TDD 任务具备 Red → Green 可核对记录
-- 重要风险和假设已记录
-
-## 验证与评审
-
-- 验证：先最小相关，再按需广泛
-- 收尾时默认补齐 `lint`、`typecheck`、`test`、`build` 四项，除非用户明确要求跳过
-- 评审：确认一致性，检查回归

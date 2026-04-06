@@ -105,6 +105,35 @@ function pick<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
+function buildUniqueRows<T>(
+  targetCount: number,
+  build: () => { key: string; value: T },
+  maxAttempts = targetCount * 20
+): T[] {
+  const keys = new Set<string>();
+  const rows: T[] = [];
+  let attempts = 0;
+
+  while (rows.length < targetCount && attempts < maxAttempts) {
+    attempts += 1;
+    const entry = build();
+    if (keys.has(entry.key)) {
+      continue;
+    }
+
+    keys.add(entry.key);
+    rows.push(entry.value);
+  }
+
+  if (rows.length < targetCount) {
+    throw new Error(
+      `Unable to generate enough unique rows. target=${targetCount}, actual=${rows.length}`
+    );
+  }
+
+  return rows;
+}
+
 
 // ==================== 数据常量 ====================
 
@@ -773,17 +802,23 @@ async function seedPostgreSQL() {
 
   // 10. 帖子互动 (200)
   console.log("  ❤️ 创建帖子互动...");
-  const interactions = [];
   const types = ["like", "favorite", "share"] as const;
-  for (let i = 0; i < 200; i++) {
-    interactions.push({
-      id: uid("pinter"),
-      postId: pick(allPostIds),
-      userId: pick(regularUsers),
-      type: pick(types),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
+  const interactions = buildUniqueRows(200, () => {
+    const postId = pick(allPostIds);
+    const userId = pick(regularUsers);
+    const type = pick(types);
+
+    return {
+      key: `${postId}:${userId}:${type}`,
+      value: {
+        id: uid("pinter"),
+        postId,
+        userId,
+        type,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
   for (let i = 0; i < interactions.length; i += 50) {
     await db.insert(postInteractionsTable).values(interactions.slice(i, i + 50));
   }
@@ -791,15 +826,20 @@ async function seedPostgreSQL() {
 
   // 11. 帖子评论点赞 (80)
   console.log("  👍 创建帖子评论点赞...");
-  const commentLikes = [];
-  for (let i = 0; i < 80; i++) {
-    commentLikes.push({
-      id: uid("clike"),
-      commentId: pick(commentIds),
-      userId: pick(regularUsers),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
+  const commentLikes = buildUniqueRows(80, () => {
+    const commentId = pick(commentIds);
+    const userId = pick(regularUsers);
+
+    return {
+      key: `${commentId}:${userId}`,
+      value: {
+        id: uid("clike"),
+        commentId,
+        userId,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
   for (let i = 0; i < commentLikes.length; i += 50) {
     await db.insert(postCommentLikesTable).values(commentLikes.slice(i, i + 50));
   }
@@ -807,24 +847,30 @@ async function seedPostgreSQL() {
 
   // 12. 飞行器评测 (40)
   console.log("  ⭐ 创建飞行器评测...");
-  const reviewIds: string[] = [];
-  const reviews = [];
-  for (let i = 0; i < 40; i++) {
+  let reviewIndex = 0;
+  const reviews = buildUniqueRows(40, () => {
     const id = uid("review");
-    reviewIds.push(id);
-    reviews.push({
-      id,
-      modelId: pick(MODEL_IDS),
-      userId: pick(regularUsers),
-      rating: randInt(1, 5),
-      content: REVIEW_CONTENTS[i % REVIEW_CONTENTS.length],
-      status: pick(["visible", "visible", "visible", "hidden"]),
-      likeCount: randInt(0, 30),
-      reportCount: randInt(0, 2),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
+    const modelId = pick(MODEL_IDS);
+    const userId = pick(regularUsers);
+    const currentIndex = reviewIndex;
+    reviewIndex += 1;
+
+    return {
+      key: `${modelId}:${userId}`,
+      value: {
+        id,
+        modelId,
+        userId,
+        rating: randInt(1, 5),
+        content: REVIEW_CONTENTS[currentIndex % REVIEW_CONTENTS.length],
+        status: pick(["visible", "visible", "visible", "hidden"]),
+        likeCount: randInt(0, 30),
+        reportCount: randInt(0, 2),
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
   for (let i = 0; i < reviews.length; i += 50) {
     await db.insert(aircraftReviewsTable).values(reviews.slice(i, i + 50));
   }
@@ -861,17 +907,24 @@ async function seedPostgreSQL() {
 
   // 14. 飞行器型号互动 (80)
   console.log("  📌 创建飞行器型号互动...");
-  const modelInteractions = [];
-  for (let i = 0; i < 80; i++) {
-    modelInteractions.push({
-      id: uid("minter"),
-      modelId: pick(MODEL_IDS),
-      userId: pick(regularUsers),
-      type: pick(["favorite", "viewed", "compared"]),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
+  const modelInteractionTypes = ["favorite", "viewed", "compared"] as const;
+  const modelInteractions = buildUniqueRows(80, () => {
+    const modelId = pick(MODEL_IDS);
+    const userId = pick(regularUsers);
+    const type = pick(modelInteractionTypes);
+
+    return {
+      key: `${modelId}:${userId}:${type}`,
+      value: {
+        id: uid("minter"),
+        modelId,
+        userId,
+        type,
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
   for (let i = 0; i < modelInteractions.length; i += 50) {
     await db.insert(aircraftModelInteractionsTable).values(modelInteractions.slice(i, i + 50));
   }
@@ -955,17 +1008,22 @@ async function seedPostgreSQL() {
 
   // 18. 排行榜项目评分 (100)
   console.log("  🔢 创建排行榜项目评分...");
-  const ratings = [];
-  for (let i = 0; i < 100; i++) {
-    ratings.push({
-      id: uid("rating"),
-      ratingTargetId: pick(rankingItemIds),
-      userId: pick(regularUsers),
-      rating: randInt(1, 5),
-      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
-      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
-    });
-  }
+  const ratings = buildUniqueRows(100, () => {
+    const ratingTargetId = pick(rankingItemIds);
+    const userId = pick(regularUsers);
+
+    return {
+      key: `${ratingTargetId}:${userId}`,
+      value: {
+        id: uid("rating"),
+        ratingTargetId,
+        userId,
+        rating: randInt(1, 5),
+        createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+        updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      }
+    };
+  });
   for (let i = 0; i < ratings.length; i += 50) {
     await db.insert(ratingTargetRatingsTable).values(ratings.slice(i, i + 50));
   }
@@ -1112,76 +1170,102 @@ async function seedPostgreSQL() {
   // 24. 举报数据
   console.log("  🚩 创建举报数据...");
   // 帖子举报 (15)
-  const postReports = [];
-  for (let i = 0; i < 15; i++) {
-    postReports.push({
-      id: uid("preport"),
-      postId: pick([...pendingPostIds, ...rejectedPostIds, ...allPostIds.slice(0, 10)]),
-      reporterId: pick(regularUsers),
-      reason: pick(REPORT_REASONS),
-      imageFileIds: JSON.stringify([]),
-    });
-  }
+  const reportablePostIds = [...pendingPostIds, ...rejectedPostIds, ...allPostIds.slice(0, 10)];
+  const postReports = buildUniqueRows(15, () => {
+    const postId = pick(reportablePostIds);
+    const reporterId = pick(regularUsers);
+
+    return {
+      key: `${postId}:${reporterId}`,
+      value: {
+        id: uid("preport"),
+        postId,
+        reporterId,
+        reason: pick(REPORT_REASONS),
+        imageFileIds: JSON.stringify([]),
+      }
+    };
+  });
   for (let i = 0; i < postReports.length; i += 50) {
     await db.insert(postReportsTable).values(postReports.slice(i, i + 50));
   }
 
   // 帖子评论举报 (10)
-  const postCommentReports = [];
-  for (let i = 0; i < 10; i++) {
-    postCommentReports.push({
-      id: uid("pcreport"),
-      commentId: pick(commentIds),
-      reporterId: pick(regularUsers),
-      reason: pick(REPORT_REASONS),
-      imageFileIds: JSON.stringify([]),
-    });
-  }
+  const postCommentReports = buildUniqueRows(10, () => {
+    const commentId = pick(commentIds);
+    const reporterId = pick(regularUsers);
+
+    return {
+      key: `${commentId}:${reporterId}`,
+      value: {
+        id: uid("pcreport"),
+        commentId,
+        reporterId,
+        reason: pick(REPORT_REASONS),
+        imageFileIds: JSON.stringify([]),
+      }
+    };
+  });
   for (let i = 0; i < postCommentReports.length; i += 50) {
     await db.insert(postCommentReportsTable).values(postCommentReports.slice(i, i + 50));
   }
 
   // 排行榜举报 (5)
-  const rankingReports = [];
-  for (let i = 0; i < 5; i++) {
-    rankingReports.push({
-      id: uid("rreport"),
-      rankingId: pick(rankingIds),
-      reporterId: pick(regularUsers),
-      reason: pick(REPORT_REASONS),
-      imageFileIds: JSON.stringify([]),
-    });
-  }
+  const rankingReports = buildUniqueRows(5, () => {
+    const rankingId = pick(rankingIds);
+    const reporterId = pick(regularUsers);
+
+    return {
+      key: `${rankingId}:${reporterId}`,
+      value: {
+        id: uid("rreport"),
+        rankingId,
+        reporterId,
+        reason: pick(REPORT_REASONS),
+        imageFileIds: JSON.stringify([]),
+      }
+    };
+  });
   for (let i = 0; i < rankingReports.length; i += 50) {
     await db.insert(rankingReportsTable).values(rankingReports.slice(i, i + 50));
   }
 
   // 排行榜项目举报 (5)
-  const rtReports = [];
-  for (let i = 0; i < 5; i++) {
-    rtReports.push({
-      id: uid("rtreport"),
-      ratingTargetId: pick(rankingItemIds),
-      reporterId: pick(regularUsers),
-      reason: pick(REPORT_REASONS),
-      imageFileIds: JSON.stringify([]),
-    });
-  }
+  const rtReports = buildUniqueRows(5, () => {
+    const ratingTargetId = pick(rankingItemIds);
+    const reporterId = pick(regularUsers);
+
+    return {
+      key: `${ratingTargetId}:${reporterId}`,
+      value: {
+        id: uid("rtreport"),
+        ratingTargetId,
+        reporterId,
+        reason: pick(REPORT_REASONS),
+        imageFileIds: JSON.stringify([]),
+      }
+    };
+  });
   for (let i = 0; i < rtReports.length; i += 50) {
     await db.insert(ratingTargetReportsTable).values(rtReports.slice(i, i + 50));
   }
 
   // 排行榜项目评论举报 (5)
-  const rtCommentReports = [];
-  for (let i = 0; i < 5; i++) {
-    rtCommentReports.push({
-      id: uid("rtcreport"),
-      commentId: pick(rtCommentIds),
-      reporterId: pick(regularUsers),
-      reason: pick(REPORT_REASONS),
-      imageFileIds: JSON.stringify([]),
-    });
-  }
+  const rtCommentReports = buildUniqueRows(5, () => {
+    const commentId = pick(rtCommentIds);
+    const reporterId = pick(regularUsers);
+
+    return {
+      key: `${commentId}:${reporterId}`,
+      value: {
+        id: uid("rtcreport"),
+        commentId,
+        reporterId,
+        reason: pick(REPORT_REASONS),
+        imageFileIds: JSON.stringify([]),
+      }
+    };
+  });
   for (let i = 0; i < rtCommentReports.length; i += 50) {
     await db.insert(ratingTargetCommentReportsTable).values(rtCommentReports.slice(i, i + 50));
   }

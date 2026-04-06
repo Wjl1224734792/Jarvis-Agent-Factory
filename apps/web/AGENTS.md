@@ -1,18 +1,14 @@
-# @feijia/web
+# @feijia/web AGENTS
 
-用户端 SPA：Vite + React 19 + React Router + TanStack Query + Zustand + shadcn/ui。
+## 作用
 
-## 功能要点
+- 用户端 Web 前端。
 
-- 路由：`routes/` 目录，路径与 `@feijia/shared.APP_ROUTES` 对齐
-- 状态：Zustand store
-- 接口：`api-client` + React Query，类型来自 `@feijia/schemas`
+## 修改要求
 
-## 依赖
-
-`@feijia/http-client` `@feijia/schemas` `@feijia/shared`
-
-## 编辑指引
-
-- 新页面放 `routes/` 或 `features/<域>/`
-- 端口：`APP_PORTS.web`（默认 3000）
+- 页面优先放 `routes/*`
+- 复杂业务拆到 `features/*`
+- 接口统一走 `@feijia/http-client`
+- 类型统一复用 `@feijia/schemas`
+- 路径对齐 `@feijia/shared.APP_ROUTES`
+- 不要在页面里硬编码后端返回结构

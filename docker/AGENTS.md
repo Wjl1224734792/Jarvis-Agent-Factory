@@ -1,29 +1,21 @@
-# Docker 本地基础设施
+# docker AGENTS
 
-本地开发环境依赖服务配置。
+## 作用
 
-## 服务
+- 只维护本地开发基础设施：
+  - PostgreSQL
+  - Redis
+  - MinIO
 
-- `database/`：PostgreSQL
-- `redis/`：Redis
-- `storage/`：MinIO
+## 修改要求
 
-## 命令
+- 端口、账号、密码调整后，必须同步更新 `.env.example` 和 README。
+- 优先使用根脚本：
 
 ```bash
-# 启动
-cd database && docker-compose up -d
-cd redis && docker-compose up -d
-cd storage && docker-compose up -d
-
-# 停止
-cd database && docker-compose down
-cd redis && docker-compose down
-cd storage && docker-compose down
+bun run infra:up
+bun run infra:ps
+bun run infra:down
 ```
 
-## 约束
-
-- 仅本地开发用
-- 使用数据卷持久化
-- 启动顺序：database → redis → storage
+- 不要把生产部署逻辑塞进这里。

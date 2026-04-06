@@ -1,22 +1,21 @@
-# apps 层
+# apps/AGENTS.md
 
-面向用户的可运行应用，依赖 `packages/*` 中的共享代码，不反向被 packages 引用。
+适用于 `apps/*`。
 
-## 成员
+## 目录边界
 
-| 目录 | 职责 |
-|------|------|
-| `web` | 用户端：机型/动态/排行/圈子 |
-| `admin` | 管理端：分类/品牌/审核/帖子管理 |
-| `server` | API：认证/帖子/社交/排行/评测 |
-| `mobiles` | 移动端占位 |
+- `apps` 只消费 `packages/*`。
+- 不要在 `apps` 内定义可复用协议并让 `packages` 反向依赖。
+- 不要恢复 `apps/mobiles`。
 
-## 脚本
+## 当前成员
 
-- `bun run dev:web` / `dev:admin` / `dev:server` 启动
-- 根目录 `typecheck` / `test` / `lint` / `build`
+- `web`
+- `admin`
+- `server`
 
-## 编辑指引
+## 修改要求
 
-- 改 API 时同步 `schemas` 与 `http-client`、`server`
-- 路由常量与 `@feijia/shared.APP_ROUTES` 对齐
+- 改 API 时，先看共享协议和路由常量。
+- 路径常量优先对齐 `@feijia/shared`。
+- 不要在应用层硬编码共享数据结构。

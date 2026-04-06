@@ -1,18 +1,28 @@
-# @feijia/server
+# @feijia/server AGENTS
 
-Bun + Hono API，挂载业务模块路由，CORS 允许本地 `web`/`admin` 源。
+## 入口与结构
 
-## 功能要点
+- 入口：`src/index.ts`
+- 应用实例：`src/app.ts`
+- 路由注册统一在 `src/app.ts`
+- 模块优先按 `route / service / repo` 分层
 
-- 入口：`src/index.ts`，应用实例 `src/app.ts`
-- 模块拆分：`modules/*.route.ts` 绑路径，`*.service.ts` 业务，`*.repo.ts` 数据库
-- 类型：请求/响应以 `@feijia/schemas` 为准
+## 修改要求
 
-## 依赖
+- 路由常量对齐 `@feijia/shared.API_ROUTES`
+- 请求与响应结构对齐 `@feijia/schemas`
+- 改认证、上传、会话、OpenAPI 时，检查 `.env.example` 与 README 是否需要同步
 
-`@feijia/shared` `@feijia/schemas` `@feijia/db`
+## OpenAPI
 
-## 编辑指引
+- 路径：`/docs`、`/openapi.json`
+- 由 `OPENAPI_ENABLED` 控制
+- 未配置时生产默认关闭
 
-- 新增模块在 `app.ts` 注册路由
-- 路径常量与 `@feijia/shared.API_ROUTES` 对齐
+## 上传限制
+
+- 上传大小限制由以下环境变量控制：
+  - `UPLOAD_MAX_FILE_SIZE_MB`
+  - `UPLOAD_MAX_IMAGE_SIZE_MB`
+  - `UPLOAD_MAX_VIDEO_SIZE_MB`
+- 改上传限制时，同步更新 `.env.example` 与 README

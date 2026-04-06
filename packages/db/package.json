@@ -13,6 +13,7 @@
     "push": "drizzle-kit push --config drizzle.config.ts",
     "migrate": "bun run ./src/migrate.cli.ts",
     "seed": "bun run ./src/seed.cli.ts",
+    "seed:test-data": "bun run ./src/seed.test-data.ts",
     "clear": "bun run ./src/clear.cli.ts"
   },
   "dependencies": {

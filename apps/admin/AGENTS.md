@@ -1,17 +1,14 @@
-# @feijia/admin
+# @feijia/admin AGENTS
 
-管理端 SPA：与 `web` 相同技术栈，端口见 `APP_PORTS.admin`。
+## 作用
 
-## 功能要点
+- 管理端前端。
+- 负责后台运营、审核、配置管理。
 
-- 路由：`features/<域>/`，路径与 `APP_ROUTES.admin*` 对齐
-- 接口：`api-client` + React Query
+## 修改要求
 
-## 依赖
-
-`@feijia/http-client` `@feijia/schemas` `@feijia/shared`
-
-## 编辑指引
-
-- 新功能放 `features/<域>/`
-- 与 `web` 共享 `http-client`，避免重复
+- 接口调用统一走 `@feijia/http-client`。
+- 类型统一复用 `@feijia/schemas`。
+- 新功能优先放 `features/*`。
+- 不要把请求细节散落到页面里。
+- 与 `web` 共用的逻辑优先上提到 `packages/*`。
