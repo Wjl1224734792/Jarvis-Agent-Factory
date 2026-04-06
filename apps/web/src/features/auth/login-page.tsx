@@ -25,12 +25,7 @@ import { Separator } from "@/components/ui/separator";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
-
-type CaptchaChallenge = {
-  challengeId: string;
-  imageOrText: string;
-  expiresInSeconds: number;
-};
+import { useSmsVerificationFlow } from "./use-sms-verification-flow";
 
 type LoginStep = "verify" | "profile";
 
@@ -56,92 +51,45 @@ export function LoginPage() {
   const setAuthenticated = useAuthStore(state => state.setAuthenticated);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [phone, setPhone] = useState("13800138000");
-  const [captchaCode, setCaptchaCode] = useState("");
-  const [smsCode, setSmsCode] = useState("");
-  const [requestHint, setRequestHint] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSendingSms, setIsSendingSms] = useState(false);
-  const [smsCooldownSeconds, setSmsCooldownSeconds] = useState(0);
   const [step, setStep] = useState<LoginStep>("verify");
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [isCompletingProfile, setIsCompletingProfile] = useState(false);
+  const smsFlow = useSmsVerificationFlow();
 
   useEffect(() => {
-    void apiClient
-      .requestCaptchaChallenge()
-      .then(setChallenge)
-      .catch(() => {
-        setChallenge(null);
-        setSubmitError("图形验证码初始化失败");
-      });
-  }, []);
-
-  useEffect(() => {
-    if (smsCooldownSeconds <= 0) {
-      return;
-    }
-
-    const timer = window.setTimeout(() => {
-      setSmsCooldownSeconds(current => Math.max(current - 1, 0));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [smsCooldownSeconds]);
+    void smsFlow.refreshCaptcha({
+      onError: setSubmitError,
+      errorFallback: "图形验证码初始化失败"
+    });
+  }, [smsFlow]);
 
   const redirectTo =
     searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
       ? searchParams.get("redirect")
       : APP_ROUTES.feedHome;
 
-  async function refreshCaptcha() {
-    setSubmitError(null);
-
-    try {
-      const nextChallenge = await apiClient.requestCaptchaChallenge();
-      setChallenge(nextChallenge);
-      setCaptchaCode("");
-    } catch (error: unknown) {
-      setSubmitError(error instanceof Error ? error.message : "刷新验证码失败");
-    }
-  }
-
   async function requestLoginSmsCode() {
-    if (!challenge) {
-      return;
-    }
-
-    setIsSendingSms(true);
     setSubmitError(null);
-
-    try {
-      const response = await apiClient.requestSmsCode({
-        phone,
-        captchaChallengeId: challenge.challengeId,
-        captchaCode
-      });
-
-      setRequestHint(
+    await smsFlow.sendSmsCode({
+      request: ({ challengeId, captchaCode }) =>
+        apiClient.requestSmsCode({
+          phone,
+          captchaChallengeId: challengeId,
+          captchaCode
+        }),
+      successHint: response =>
         response.mockCode
           ? "短信验证码已生成，请在开发工具网络面板查看。"
-          : "短信验证码已发送。"
-      );
-      setSmsCooldownSeconds(60);
-      setSmsCode("");
-      setCaptchaCode("");
-
-      const nextChallenge = await apiClient.requestCaptchaChallenge();
-      setChallenge(nextChallenge);
-    } catch (error: unknown) {
-      setSubmitError(error instanceof Error ? error.message : "短信验证码发送失败");
-    } finally {
-      setIsSendingSms(false);
-    }
+          : "短信验证码已发送。",
+      onError: setSubmitError,
+      errorFallback: "短信验证码发送失败"
+    });
   }
 
   return (
@@ -206,10 +154,10 @@ export function LoginPage() {
                     className="h-12"
                     id="login-captcha"
                     onChange={event => {
-                      setCaptchaCode(event.target.value.toUpperCase());
+                      smsFlow.setCaptchaCode(event.target.value.toUpperCase());
                     }}
                     placeholder="请输入图形验证码"
-                    value={captchaCode}
+                    value={smsFlow.captchaCode}
                   />
                 </div>
 
@@ -218,11 +166,15 @@ export function LoginPage() {
                   <Button
                     className="h-12 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono text-lg tracking-[0.3em] text-white hover:bg-slate-900/92"
                     onClick={() => {
-                      void refreshCaptcha();
+                      setSubmitError(null);
+                      void smsFlow.refreshCaptcha({
+                        onError: setSubmitError,
+                        errorFallback: "刷新验证码失败"
+                      });
                     }}
                     type="button"
                   >
-                    {challenge?.imageOrText ?? "----"}
+                    {smsFlow.challenge?.imageOrText ?? "----"}
                   </Button>
                 </div>
               </div>
@@ -236,10 +188,10 @@ export function LoginPage() {
                     className="h-12"
                     id="login-sms"
                     onChange={event => {
-                      setSmsCode(event.target.value);
+                      smsFlow.setSmsCode(event.target.value);
                     }}
                     placeholder="请输入 6 位验证码"
-                    value={smsCode}
+                    value={smsFlow.smsCode}
                   />
                 </div>
 
@@ -247,7 +199,12 @@ export function LoginPage() {
                   <div className="text-sm font-medium text-transparent">操作</div>
                   <Button
                     className="h-12 w-full"
-                    disabled={!challenge || isSendingSms || smsCooldownSeconds > 0}
+                    disabled={
+                      !smsFlow.challenge ||
+                      smsFlow.isSendingSms ||
+                      smsFlow.cooldownSeconds > 0 ||
+                      smsFlow.captchaCode.trim().length < 4
+                    }
                     onClick={() => {
                       void requestLoginSmsCode();
                     }}
@@ -255,21 +212,21 @@ export function LoginPage() {
                     variant="panel"
                   >
                     <SmartphoneIcon data-icon="inline-start" />
-                    {isSendingSms
+                    {smsFlow.isSendingSms
                       ? "发送中..."
-                      : smsCooldownSeconds > 0
-                        ? `${smsCooldownSeconds} 秒后重新发送`
-                        : requestHint
+                      : smsFlow.cooldownSeconds > 0
+                        ? `${smsFlow.cooldownSeconds} 秒后重新发送`
+                        : smsFlow.requestHint
                           ? "重新发送验证码"
                           : "获取验证码"}
                   </Button>
                 </div>
               </div>
 
-              {requestHint ? (
+              {smsFlow.requestHint ? (
                 <Alert>
                   <AlertTitle>验证码已生成</AlertTitle>
-                  <AlertDescription>{requestHint}</AlertDescription>
+                  <AlertDescription>{smsFlow.requestHint}</AlertDescription>
                 </Alert>
               ) : null}
 
@@ -296,9 +253,9 @@ export function LoginPage() {
               <div className="flex flex-col gap-3">
                 <Button
                   className="w-full"
-                  disabled={!challenge || isSubmitting}
+                  disabled={!smsFlow.challenge || isSubmitting}
                   onClick={() => {
-                    if (!challenge) {
+                    if (!smsFlow.challenge) {
                       return;
                     }
 
@@ -308,9 +265,9 @@ export function LoginPage() {
                     void apiClient
                       .loginWeb({
                         phone,
-                        captchaChallengeId: challenge.challengeId,
-                        captchaCode,
-                        smsCode
+                        captchaChallengeId: smsFlow.challenge.challengeId,
+                        captchaCode: smsFlow.captchaCode,
+                        smsCode: smsFlow.smsCode
                       })
                       .then(response => {
                         if (response.kind === "authenticated") {

@@ -31,16 +31,11 @@ import {
   canRequestPhoneRebind,
   resolveMaskedPhone
 } from "../features/auth/phone-rebind-state";
+import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-flow";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage } from "../lib/aviation-media";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
-
-type CaptchaChallenge = {
-  challengeId: string;
-  imageOrText: string;
-  expiresInSeconds: number;
-};
 
 function SettingsPageSkeleton() {
   return (
@@ -103,15 +98,11 @@ export function SettingsPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isPhonePanelOpen, setIsPhonePanelOpen] = useState(false);
-  const [phoneChallenge, setPhoneChallenge] = useState<CaptchaChallenge | null>(null);
   const [nextPhone, setNextPhone] = useState("");
-  const [phoneCaptchaCode, setPhoneCaptchaCode] = useState("");
-  const [phoneSmsCode, setPhoneSmsCode] = useState("");
   const [phoneRequestId, setPhoneRequestId] = useState<string | null>(null);
-  const [phoneRequestHint, setPhoneRequestHint] = useState<string | null>(null);
   const [phoneActionError, setPhoneActionError] = useState<string | null>(null);
-  const [isRequestingPhoneCode, setIsRequestingPhoneCode] = useState(false);
   const [isConfirmingPhone, setIsConfirmingPhone] = useState(false);
+  const phoneSmsFlow = useSmsVerificationFlow();
 
   const profileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -138,17 +129,15 @@ export function SettingsPage() {
   }, [statusMessage]);
 
   useEffect(() => {
-    if (!isPhonePanelOpen || phoneChallenge) {
+    if (!isPhonePanelOpen || phoneSmsFlow.challenge) {
       return;
     }
 
-    void apiClient
-      .requestCaptchaChallenge()
-      .then(setPhoneChallenge)
-      .catch((reason: unknown) => {
-        setPhoneActionError(reason instanceof Error ? reason.message : "图形验证码初始化失败");
-      });
-  }, [isPhonePanelOpen, phoneChallenge]);
+    void phoneSmsFlow.refreshCaptcha({
+      onError: setPhoneActionError,
+      errorFallback: "图形验证码初始化失败"
+    });
+  }, [isPhonePanelOpen, phoneSmsFlow]);
 
   if (!user) {
     return <SettingsPageSkeleton />;
@@ -194,43 +183,40 @@ export function SettingsPage() {
 
   async function refreshPhoneChallenge() {
     setPhoneActionError(null);
-    try {
-      const challenge = await apiClient.requestCaptchaChallenge();
-      setPhoneChallenge(challenge);
-    } catch (reason: unknown) {
-      setPhoneActionError(reason instanceof Error ? reason.message : "刷新验证码失败");
-    }
+    await phoneSmsFlow.refreshCaptcha({
+      onError: setPhoneActionError,
+      errorFallback: "刷新验证码失败"
+    });
   }
 
   async function requestPhoneCode() {
     if (
       !canRequestPhoneRebind({
         nextPhone,
-        captchaChallengeId: phoneChallenge?.challengeId ?? null,
-        captchaCode: phoneCaptchaCode
+        captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
+        captchaCode: phoneSmsFlow.captchaCode
       }) ||
-      !phoneChallenge
+      !phoneSmsFlow.challenge
     ) {
       return;
     }
 
-    setIsRequestingPhoneCode(true);
     setPhoneActionError(null);
-    try {
-      const response = await apiClient.requestPhoneChange({
-        phone: nextPhone.trim(),
-        captchaChallengeId: phoneChallenge.challengeId,
-        captchaCode: phoneCaptchaCode.trim().toUpperCase()
-      });
-      setPhoneRequestId(response.requestId);
-      setPhoneRequestHint(
-        response.mockCode ? "验证码已生成，请在开发工具网络面板查看。" : "验证码已发送到新手机号"
-      );
-    } catch (reason: unknown) {
-      setPhoneActionError(reason instanceof Error ? reason.message : "获取短信验证码失败");
-    } finally {
-      setIsRequestingPhoneCode(false);
-    }
+    await phoneSmsFlow.sendSmsCode({
+      request: ({ challengeId, captchaCode }) =>
+        apiClient.requestPhoneChange({
+          phone: nextPhone.trim(),
+          captchaChallengeId: challengeId,
+          captchaCode
+        }),
+      successHint: response =>
+        response.mockCode ? "验证码已生成，请在开发工具网络面板查看。" : "验证码已发送到新手机号",
+      onError: setPhoneActionError,
+      errorFallback: "获取短信验证码失败",
+      onSuccess: response => {
+        setPhoneRequestId(response.requestId);
+      }
+    });
   }
 
   async function confirmPhoneChange() {
@@ -238,7 +224,7 @@ export function SettingsPage() {
       !canConfirmPhoneRebind({
         nextPhone,
         requestId: phoneRequestId,
-        smsCode: phoneSmsCode
+        smsCode: phoneSmsFlow.smsCode
       }) ||
       !phoneRequestId
     ) {
@@ -251,7 +237,7 @@ export function SettingsPage() {
       const payload = await apiClient.confirmPhoneChange({
         phone: nextPhone.trim(),
         requestId: phoneRequestId,
-        smsCode: phoneSmsCode.trim()
+        smsCode: phoneSmsFlow.smsCode.trim()
       });
       const snapshot = payload.item as UserSettingsSnapshot;
       setDraft((current) => ({
@@ -261,12 +247,9 @@ export function SettingsPage() {
       }));
       setStatusMessage("手机号已完成换绑。");
       setIsPhonePanelOpen(false);
-      setPhoneChallenge(null);
+      phoneSmsFlow.reset();
       setNextPhone("");
-      setPhoneCaptchaCode("");
-      setPhoneSmsCode("");
       setPhoneRequestId(null);
-      setPhoneRequestHint(null);
       void profileQuery.refetch();
     } catch (reason: unknown) {
       setPhoneActionError(reason instanceof Error ? reason.message : "手机号换绑失败");
@@ -502,7 +485,7 @@ export function SettingsPage() {
                         }}
                         type="button"
                       >
-                        {phoneChallenge?.imageOrText ?? "----"}
+                        {phoneSmsFlow.challenge?.imageOrText ?? "----"}
                       </Button>
                     </div>
                   </div>
@@ -514,9 +497,9 @@ export function SettingsPage() {
                       </label>
                       <Input
                         id="settings-phone-captcha"
-                        onChange={(event) => setPhoneCaptchaCode(event.target.value.toUpperCase())}
+                        onChange={(event) => phoneSmsFlow.setCaptchaCode(event.target.value.toUpperCase())}
                         placeholder="请输入图形验证码"
-                        value={phoneCaptchaCode}
+                        value={phoneSmsFlow.captchaCode}
                       />
                     </div>
                     <div className="space-y-2">
@@ -524,11 +507,12 @@ export function SettingsPage() {
                       <Button
                         className="h-12 w-full"
                         disabled={
-                          isRequestingPhoneCode ||
+                          phoneSmsFlow.isSendingSms ||
+                          phoneSmsFlow.cooldownSeconds > 0 ||
                           !canRequestPhoneRebind({
                             nextPhone,
-                            captchaChallengeId: phoneChallenge?.challengeId ?? null,
-                            captchaCode: phoneCaptchaCode
+                            captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
+                            captchaCode: phoneSmsFlow.captchaCode
                           })
                         }
                         onClick={() => {
@@ -538,7 +522,13 @@ export function SettingsPage() {
                         variant="panel"
                       >
                         <SmartphoneIcon data-icon="inline-start" />
-                        {isRequestingPhoneCode ? "发送中..." : "获取验证码"}
+                        {phoneSmsFlow.isSendingSms
+                          ? "发送中..."
+                          : phoneSmsFlow.cooldownSeconds > 0
+                            ? `${phoneSmsFlow.cooldownSeconds} 秒后重新发送`
+                            : phoneSmsFlow.requestHint
+                              ? "重新发送验证码"
+                              : "获取验证码"}
                       </Button>
                     </div>
                   </div>
@@ -550,9 +540,9 @@ export function SettingsPage() {
                       </label>
                       <Input
                         id="settings-phone-sms"
-                        onChange={(event) => setPhoneSmsCode(event.target.value)}
+                        onChange={(event) => phoneSmsFlow.setSmsCode(event.target.value)}
                         placeholder="请输入 6 位验证码"
-                        value={phoneSmsCode}
+                        value={phoneSmsFlow.smsCode}
                       />
                     </div>
                     <div className="space-y-2">
@@ -564,7 +554,7 @@ export function SettingsPage() {
                           !canConfirmPhoneRebind({
                             nextPhone,
                             requestId: phoneRequestId,
-                            smsCode: phoneSmsCode
+                            smsCode: phoneSmsFlow.smsCode
                           })
                         }
                         onClick={() => {
@@ -578,10 +568,10 @@ export function SettingsPage() {
                     </div>
                   </div>
 
-                  {phoneRequestHint ? (
+                  {phoneSmsFlow.requestHint ? (
                     <Alert>
                       <AlertTitle>验证码已生成</AlertTitle>
-                      <AlertDescription>{phoneRequestHint}</AlertDescription>
+                      <AlertDescription>{phoneSmsFlow.requestHint}</AlertDescription>
                     </Alert>
                   ) : null}
 
