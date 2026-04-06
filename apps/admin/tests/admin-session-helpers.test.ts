@@ -36,7 +36,7 @@ describe("admin session helpers", () => {
           phone: "13800138000"
         }
       })
-    ).toContain("13800138000");
+    ).toContain("138****8000");
 
     expect(formatAdminSessionTime(null)).toBe("未记录");
     expect(formatAdminSessionTime("2026-03-29T02:00:00.000Z")).toContain("2026");

@@ -48,6 +48,11 @@ function serializeFileItem(file: NonNullable<StoredFileRecord>) {
   };
 }
 
+function formatLimitMb(maxSize: number) {
+  const sizeInMb = maxSize / (1024 * 1024);
+  return Number.isInteger(sizeInMb) ? `${sizeInMb}` : sizeInMb.toFixed(2);
+}
+
 export const uploadsService = {
   async initUpload(input: {
     ownerId: string;
@@ -64,7 +69,11 @@ export const uploadsService = {
       return { kind: "invalid_size" as const };
     }
     if (input.byteSize > policy.maxSize) {
-      return { kind: "file_too_large" as const };
+      return {
+        kind: "file_too_large" as const,
+        maxSizeBytes: policy.maxSize,
+        maxSizeMb: formatLimitMb(policy.maxSize)
+      };
     }
 
     const config = resolveStorageProviderConfig();

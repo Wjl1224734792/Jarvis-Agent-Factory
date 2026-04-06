@@ -21,7 +21,10 @@ export function formatAdminSessionStatus(status: AdminAuthSessionItem["status"])
 }
 
 export function formatAdminSessionIdentity(item: AdminAuthSessionItem) {
-  const phoneSuffix = item.user.phone ? ` · ${item.user.phone}` : "";
+  const maskedPhone = item.user.phone
+    ? `${item.user.phone.slice(0, 3)}****${item.user.phone.slice(-4)}`
+    : null;
+  const phoneSuffix = maskedPhone ? ` · ${maskedPhone}` : "";
   return `${item.user.displayName}${phoneSuffix}`;
 }
 

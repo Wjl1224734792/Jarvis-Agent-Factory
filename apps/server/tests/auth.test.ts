@@ -147,6 +147,8 @@ async function uploadAvatar(cookie: string, name = "avatar.png") {
 }
 
 const originalUploadMaxImageSizeMb = process.env.UPLOAD_MAX_IMAGE_SIZE_MB;
+const originalUploadMaxAvatarImageSizeMb =
+  process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB;
 
 beforeAll(async () => {
   await runMigrations();
@@ -154,6 +156,8 @@ beforeAll(async () => {
 
 beforeEach(async () => {
   process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
+  process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
+    originalUploadMaxAvatarImageSizeMb;
   await resetRedisForTesting();
   authRepo.resetEphemeralState();
   await resetDatabaseState();
@@ -162,6 +166,8 @@ beforeEach(async () => {
 
 afterAll(async () => {
   process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
+  process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
+    originalUploadMaxAvatarImageSizeMb;
   await dbPool.end();
 });
 
@@ -524,29 +530,36 @@ describe("auth flows", () => {
   });
 
   it("rejects avatar upload when image size exceeds configured env limit", async () => {
-    process.env.UPLOAD_MAX_IMAGE_SIZE_MB = "0.000001";
-    const cookie = await loginWebUser("13800138188");
-    const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+    const previousValue = process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB;
+    process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB = "0.000001";
 
-    const response = await app.request(API_ROUTES.uploads.init, {
-      method: "POST",
-      headers: {
-        cookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        bizType: "avatar-image",
-        filename: "too-large-avatar.png",
-        contentType: "image/png",
-        size: bytes.byteLength
-      })
-    });
+    try {
+      const cookie = await loginWebUser("13800138188");
+      const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
 
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({
-      code: "BAD_REQUEST",
-      message: "File size exceeds limit."
-    });
+      const response = await app.request(API_ROUTES.uploads.init, {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          bizType: "avatar-image",
+          filename: "too-large-avatar.png",
+          contentType: "image/png",
+          size: bytes.byteLength
+        })
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "File size exceeds limit. Current max allowed is 0.00 MB.",
+        maxSizeMb: "0.00"
+      });
+    } finally {
+      process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB = previousValue;
+    }
   });
 
   it("supports requesting and confirming a phone rebind with masked profile output", async () => {

@@ -37,7 +37,15 @@ uploadsRoute.post(API_ROUTES.uploads.init, requireAuth, async context => {
     return context.json({ code: "BAD_REQUEST", message: "Invalid file size." }, 400);
   }
   if (result.kind === "file_too_large") {
-    return context.json({ code: "BAD_REQUEST", message: "File size exceeds limit." }, 400);
+    return context.json(
+      {
+        code: "BAD_REQUEST",
+        message: `File size exceeds limit. Current max allowed is ${result.maxSizeMb} MB.`,
+        maxSizeBytes: result.maxSizeBytes,
+        maxSizeMb: result.maxSizeMb
+      },
+      400
+    );
   }
   if (result.kind !== "ok") {
     return context.json({ code: "INTERNAL_ERROR", message: "Failed to initialize upload." }, 500);

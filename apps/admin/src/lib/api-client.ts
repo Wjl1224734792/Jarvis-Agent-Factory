@@ -1,4 +1,4 @@
-import { createApiClient } from "@feijia/http-client";
+import { createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
@@ -20,14 +20,14 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    const message =
-      payload &&
-        typeof payload === "object" &&
-        "message" in payload &&
-        typeof payload.message === "string"
-        ? payload.message
-        : `Request failed with status ${response.status}`;
-    throw new Error(message);
+    const replayableResponse = new Response(JSON.stringify(payload), {
+      status: response.status,
+      statusText: response.statusText,
+      headers: {
+        "content-type": "application/json"
+      }
+    });
+    throw await parseApiError(replayableResponse);
   }
 
   return payload as T;

@@ -209,9 +209,7 @@ export function LoginPage() {
                         })
                         .then((response) => {
                           setRequestHint(
-                            response.mockCode
-                              ? `开发环境验证码：${response.mockCode}`
-                              : "短信验证码已发送"
+                            response.mockCode ? "短信验证码已生成，请在开发工具网络面板查看。" : "短信验证码已发送"
                           );
                         })
                         .catch((error: unknown) => {

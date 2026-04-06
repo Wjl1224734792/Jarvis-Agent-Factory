@@ -1,5 +1,7 @@
 import {
+  CreateBucketCommand,
   GetObjectCommand,
+  HeadBucketCommand,
   HeadObjectCommand,
   PutObjectCommand,
   S3Client
@@ -20,6 +22,7 @@ export type StorageProviderConfig = {
   keyPrefix: string;
   forcePathStyle: boolean;
   publicBaseUrl: string;
+  autoCreateBucket: boolean;
 };
 
 export type StorageUploadDescriptor = {
@@ -94,6 +97,26 @@ function resolveObjectKey(config: StorageProviderConfig, inputKey: string) {
   return config.keyPrefix ? `${config.keyPrefix}/${inputKey}` : inputKey;
 }
 
+async function ensureBucketExists(client: S3Client, config: StorageProviderConfig) {
+  if (!config.autoCreateBucket) {
+    return;
+  }
+
+  try {
+    await client.send(
+      new HeadBucketCommand({
+        Bucket: config.bucket
+      })
+    );
+  } catch {
+    await client.send(
+      new CreateBucketCommand({
+        Bucket: config.bucket
+      })
+    );
+  }
+}
+
 export function isStorageProviderExplicitlyConfigured(env: EnvLike = process.env) {
   return [
     env.STORAGE_PROVIDER,
@@ -133,6 +156,7 @@ export function resolveStorageProviderConfig(env: EnvLike = process.env): Storag
     secretAccessKey,
     keyPrefix: normalizePrefix(env.STORAGE_KEY_PREFIX),
     forcePathStyle,
+    autoCreateBucket: parseBoolean(env.STORAGE_AUTO_CREATE_BUCKET, false),
     publicBaseUrl: normalizeBaseUrl(
       endpoint,
       bucket,
@@ -186,6 +210,7 @@ export function createStorageProvider(config: StorageProviderConfig) {
       size: number;
       visibility: "public" | "private";
     }): Promise<StorageUploadDescriptor> {
+      await ensureBucketExists(client, config);
       const resolvedKey = resolveObjectKey(config, input.objectKey);
       const url = await getSignedUrl(
         client,

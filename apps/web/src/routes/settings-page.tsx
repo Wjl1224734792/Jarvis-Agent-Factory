@@ -224,7 +224,7 @@ export function SettingsPage() {
       });
       setPhoneRequestId(response.requestId);
       setPhoneRequestHint(
-        response.mockCode ? `开发环境验证码：${response.mockCode}` : "验证码已发送到新手机号"
+        response.mockCode ? "验证码已生成，请在开发工具网络面板查看。" : "验证码已发送到新手机号"
       );
     } catch (reason: unknown) {
       setPhoneActionError(reason instanceof Error ? reason.message : "获取短信验证码失败");

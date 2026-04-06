@@ -270,11 +270,20 @@ async function updateAllSiteSettings(
   expect(response.status).toBe(200);
 }
 
+const originalUploadMaxReportImageSizeMb =
+  process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB;
+const originalUploadMaxPostVideoSizeMb =
+  process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB;
+
 beforeAll(async () => {
   await runMigrations();
 });
 
 beforeEach(async () => {
+  process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB =
+    originalUploadMaxReportImageSizeMb;
+  process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
+    originalUploadMaxPostVideoSizeMb;
   await resetRedisForTesting();
   authRepo.resetEphemeralState();
   await resetDatabaseState();
@@ -282,6 +291,10 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
+  process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB =
+    originalUploadMaxReportImageSizeMb;
+  process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
+    originalUploadMaxPostVideoSizeMb;
   await dbPool.end();
 });
 
@@ -921,6 +934,72 @@ describe.sequential("posts and social flows", () => {
 
     expect(created.item.videos).toHaveLength(1);
     expect(created.item.videos[0]?.id).toBe(uploadedVideo.item.id);
+  });
+
+  it("rejects report image upload when report-image env limit is exceeded", async () => {
+    const previousValue = process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB;
+    process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB = "0.000001";
+
+    try {
+      const cookie = await loginWebUser("13800138195");
+      const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+      const response = await app.request(API_ROUTES.uploads.init, {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          bizType: "report-image",
+          filename: "too-large-report.png",
+          contentType: "image/png",
+          size: bytes.byteLength
+        })
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "File size exceeds limit. Current max allowed is 0.00 MB.",
+        maxSizeMb: "0.00"
+      });
+    } finally {
+      process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB = previousValue;
+    }
+  });
+
+  it("rejects post video upload when post-video env limit is exceeded", async () => {
+    const previousValue = process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB;
+    process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB = "0.000001";
+
+    try {
+      const cookie = await loginWebUser("13800138196");
+      const bytes = Uint8Array.from([0, 0, 0, 24, 102, 116, 121, 112]);
+
+      const response = await app.request(API_ROUTES.uploads.init, {
+        method: "POST",
+        headers: {
+          cookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          bizType: "post-video",
+          filename: "too-large-post-video.mp4",
+          contentType: "video/mp4",
+          size: bytes.byteLength
+        })
+      });
+
+      expect(response.status).toBe(400);
+      await expect(response.json()).resolves.toMatchObject({
+        code: "BAD_REQUEST",
+        message: "File size exceeds limit. Current max allowed is 0.00 MB.",
+        maxSizeMb: "0.00"
+      });
+    } finally {
+      process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB = previousValue;
+    }
   });
 
   it("returns user profile and aggregated content endpoints", async () => {

@@ -69,6 +69,17 @@ const uploadPolicies = {
   }
 } satisfies Record<FileBizType, UploadPolicy>;
 
+const uploadBizTypeEnvKeys = {
+  "avatar-image": "UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB",
+  "post-image": "UPLOAD_MAX_POST_IMAGE_SIZE_MB",
+  "post-video": "UPLOAD_MAX_POST_VIDEO_SIZE_MB",
+  "aircraft-cover-image": "UPLOAD_MAX_AIRCRAFT_COVER_IMAGE_SIZE_MB",
+  "aircraft-video": "UPLOAD_MAX_AIRCRAFT_VIDEO_SIZE_MB",
+  "ranking-cover-image": "UPLOAD_MAX_RANKING_COVER_IMAGE_SIZE_MB",
+  "ranking-item-image": "UPLOAD_MAX_RANKING_ITEM_IMAGE_SIZE_MB",
+  "report-image": "UPLOAD_MAX_REPORT_IMAGE_SIZE_MB"
+} satisfies Record<FileBizType, string>;
+
 function parseSizeLimitMb(value: string | undefined) {
   if (!value?.trim()) {
     return undefined;
@@ -88,8 +99,11 @@ function resolvePolicyMaxSize(policy: UploadPolicy) {
     policy.mediaKind === "image"
       ? parseSizeLimitMb(process.env.UPLOAD_MAX_IMAGE_SIZE_MB)
       : parseSizeLimitMb(process.env.UPLOAD_MAX_VIDEO_SIZE_MB);
+  const bizTypeMaxSize = parseSizeLimitMb(
+    process.env[uploadBizTypeEnvKeys[policy.bizType]]
+  );
 
-  return [policy.maxSize, globalMaxSize, mediaMaxSize]
+  return [policy.maxSize, globalMaxSize, mediaMaxSize, bizTypeMaxSize]
     .filter((value): value is number => value !== undefined)
     .reduce((current, candidate) => Math.min(current, candidate), policy.maxSize);
 }
