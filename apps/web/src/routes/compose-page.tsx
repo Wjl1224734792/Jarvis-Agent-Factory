@@ -97,7 +97,7 @@ export function ComposePage() {
               <Link to={APP_ROUTES.feedHome}>←</Link>
             </Button>
             <SitePageHead className="gap-1 px-0">
-              <SitePageEyebrow>AeroEditor</SitePageEyebrow>
+              <SitePageEyebrow>飞行内容编辑器</SitePageEyebrow>
               <SitePageTitle className="text-3xl">发布内容</SitePageTitle>
               <SitePageDescription className="text-sm">{saveHint}</SitePageDescription>
             </SitePageHead>
@@ -105,7 +105,7 @@ export function ComposePage() {
           <div className="flex flex-wrap gap-3">
             <Button onClick={handleDraftSave} type="button" variant="panel">
               <SaveIcon data-icon="inline-start" />
-              Save Draft
+              保存草稿
             </Button>
             <Button
               disabled={!canPublish || isPublishing}
@@ -134,7 +134,7 @@ export function ComposePage() {
               variant="hero"
             >
               <SendHorizonalIcon data-icon="inline-start" />
-              {isPublishing ? "Publishing..." : "Publish"}
+              {isPublishing ? "发布中..." : "立即发布"}
             </Button>
           </div>
         </SitePanelBody>
@@ -212,7 +212,7 @@ export function ComposePage() {
                       <Button asChild type="button" variant="panel">
                         <label className="cursor-pointer">
                           <ImageIcon data-icon="inline-start" />
-                          {isUploading ? "Uploading..." : "Add Media"}
+                          {isUploading ? "上传中..." : "添加媒体"}
                           <input
                             accept="image/*"
                             className="hidden"
@@ -275,7 +275,7 @@ export function ComposePage() {
                         ))
                       ) : (
                         <div className="flex min-h-56 items-center justify-center rounded-[var(--radius-control)] border border-dashed border-border/80 bg-background/72 text-sm text-muted-foreground">
-                          Add Media
+                          添加媒体
                         </div>
                       )}
                     </div>
@@ -331,7 +331,7 @@ export function ComposePage() {
                 <img alt="cover preview" className="h-48 w-full object-cover" src={coverImage} />
               </div>
               <div className="text-xs uppercase tracking-[0.24em] text-muted-foreground">
-                Recommended: 16:9, max 5 MB
+                推荐比例：16:9，建议控制在 5 MB 以内
               </div>
             </SitePanelBody>
           </SitePanel>
@@ -350,7 +350,7 @@ export function ComposePage() {
                     src={getAvatarImage("compose-preview")}
                   />
                   <div>
-                    <div className="font-medium text-foreground">Aero_Explorer</div>
+                    <div className="font-medium text-foreground">飞行探索者</div>
                     <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">
                       {previewLabel}
                     </div>
@@ -388,7 +388,7 @@ export function ComposePage() {
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
               <div className="text-lg font-semibold tracking-[0.24em] text-foreground">
-                Publishing Guidelines
+                发布规范
               </div>
               {[
                 "首选高质量航空摄影作品，提升社区整体专业度。",

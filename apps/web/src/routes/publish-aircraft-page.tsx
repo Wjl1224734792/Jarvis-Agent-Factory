@@ -250,13 +250,13 @@ export function PublishAircraftPage() {
               </div>
 
               <div className="space-y-2 md:col-span-2">
-                <div className="text-sm font-medium text-foreground/72">Brand</div>
+                <div className="text-sm font-medium text-foreground/72">品牌</div>
                 <div className="relative">
                   <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
                     className="pl-9"
                     onChange={(event) => setBrandKeyword(event.target.value)}
-                    placeholder="Search existing brands"
+                    placeholder="搜索已有品牌"
                     value={brandKeyword}
                   />
                 </div>
@@ -282,19 +282,19 @@ export function PublishAircraftPage() {
                           logoUrl={brand.logoUrl}
                           name={brand.name}
                         />
-                        {selected ? <span className="text-[0.72rem]">Selected</span> : null}
+                        {selected ? <span className="text-[0.72rem]">已选择</span> : null}
                       </button>
                     );
                   })}
 
                   {filteredBrands.length === 0 ? (
                     <div className="px-3 py-6 text-sm text-muted-foreground">
-                      No matching brand. Please submit a separate brand application first.
+                      没有匹配的品牌。请先单独提交品牌申请。
                     </div>
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-3 py-3 text-sm text-muted-foreground">
-                  <span>Aircraft publishing now supports only existing brands. Brand application has been split out.</span>
+                  <span>飞行器发布目前只支持选择已有品牌，品牌申请已拆分为独立入口。</span>
                   <Button asChild size="sm" type="button" variant="outline">
                     <Link to={APP_ROUTES.publishBrand}>申请品牌</Link>
                   </Button>
@@ -587,7 +587,7 @@ export function PublishAircraftPage() {
                   { label: "机型分类", value: selectedCategory?.name || "未选择" },
                   {
                     label: "品牌",
-                    value: selectedBrand?.name || "Not selected"
+                    value: selectedBrand?.name || "未选择"
                   },
                   {
                     label: "动力",
