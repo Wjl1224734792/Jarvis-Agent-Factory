@@ -152,10 +152,9 @@ export const authService = {
       throw new AuthError("INVALID_CAPTCHA", "图形验证码无效或已过期");
     }
 
-    const sms = await authRepo.createSmsCode(input.phone);
-    const smsSender = createSmsSender(resolveSmsProviderConfig());
-
     try {
+      const sms = await authRepo.createSmsCode(input.phone);
+      const smsSender = createSmsSender(resolveSmsProviderConfig());
       const sendResult = await smsSender.sendCode({
         phone: input.phone,
         code: sms.code

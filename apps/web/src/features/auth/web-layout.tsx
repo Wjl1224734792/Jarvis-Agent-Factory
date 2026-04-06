@@ -48,11 +48,11 @@ const memberNavItems = [
 ] as const;
 
 const publishEntries = [
-  { to: WEB_ROUTE_PATHS.publishArticle, label: "Publish Article" },
-  { to: WEB_ROUTE_PATHS.publishMoment, label: "Publish Moment" },
-  { to: WEB_ROUTE_PATHS.publishAircraft, label: "Publish Aircraft" },
-  { to: APP_ROUTES.publishBrand, label: "Apply Brand" },
-  { to: APP_ROUTES.rankingEditor, label: "Create Ranking" }
+  { to: WEB_ROUTE_PATHS.publishArticle, label: "发布文章" },
+  { to: WEB_ROUTE_PATHS.publishMoment, label: "发布动态" },
+  { to: WEB_ROUTE_PATHS.publishAircraft, label: "发布飞行器" },
+  { to: APP_ROUTES.publishBrand, label: "申请品牌" },
+  { to: APP_ROUTES.rankingEditor, label: "创建榜单" }
 ] as const;
 
 function getHeaderCopy(pathname: string) {

@@ -1,4 +1,4 @@
-import { APP_ROUTES } from "@feijia/shared";
+﻿import { APP_ROUTES } from "@feijia/shared";
 import {
   ImagePlusIcon,
   InfoIcon,
@@ -42,7 +42,8 @@ async function readAvatarPreview(file: File) {
         resolve(reader.result);
         return;
       }
-      reject(new Error("澶村儚璇诲彇澶辫触"));
+
+      reject(new Error("头像预览生成失败"));
     };
     reader.onerror = () => reject(new Error("头像读取失败"));
     reader.readAsDataURL(file);
@@ -52,8 +53,9 @@ async function readAvatarPreview(file: File) {
 export function LoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
+  const setAuthenticated = useAuthStore(state => state.setAuthenticated);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
+
   const [challenge, setChallenge] = useState<CaptchaChallenge | null>(null);
   const [phone, setPhone] = useState("13800138000");
   const [captchaCode, setCaptchaCode] = useState("");
@@ -62,6 +64,7 @@ export function LoginPage() {
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSendingSms, setIsSendingSms] = useState(false);
+  const [smsCooldownSeconds, setSmsCooldownSeconds] = useState(0);
   const [step, setStep] = useState<LoginStep>("verify");
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
@@ -79,10 +82,67 @@ export function LoginPage() {
       });
   }, []);
 
+  useEffect(() => {
+    if (smsCooldownSeconds <= 0) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      setSmsCooldownSeconds(current => Math.max(current - 1, 0));
+    }, 1000);
+
+    return () => window.clearTimeout(timer);
+  }, [smsCooldownSeconds]);
+
   const redirectTo =
     searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
       ? searchParams.get("redirect")
       : APP_ROUTES.feedHome;
+
+  async function refreshCaptcha() {
+    setSubmitError(null);
+
+    try {
+      const nextChallenge = await apiClient.requestCaptchaChallenge();
+      setChallenge(nextChallenge);
+      setCaptchaCode("");
+    } catch (error: unknown) {
+      setSubmitError(error instanceof Error ? error.message : "刷新验证码失败");
+    }
+  }
+
+  async function requestLoginSmsCode() {
+    if (!challenge) {
+      return;
+    }
+
+    setIsSendingSms(true);
+    setSubmitError(null);
+
+    try {
+      const response = await apiClient.requestSmsCode({
+        phone,
+        captchaChallengeId: challenge.challengeId,
+        captchaCode
+      });
+
+      setRequestHint(
+        response.mockCode
+          ? "短信验证码已生成，请在开发工具网络面板查看。"
+          : "短信验证码已发送。"
+      );
+      setSmsCooldownSeconds(60);
+      setSmsCode("");
+      setCaptchaCode("");
+
+      const nextChallenge = await apiClient.requestCaptchaChallenge();
+      setChallenge(nextChallenge);
+    } catch (error: unknown) {
+      setSubmitError(error instanceof Error ? error.message : "短信验证码发送失败");
+    } finally {
+      setIsSendingSms(false);
+    }
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 px-4 py-8 backdrop-blur-md">
@@ -96,7 +156,7 @@ export function LoginPage() {
               </SitePageTitle>
               <SitePageDescription className="text-base">
                 {step === "verify"
-                  ? "手机号验证通过后，老用户直接登录，新用户会在弹窗内完成用户名和头像设置。"
+                  ? "手机号验证通过后，老用户直接登录，新用户会在弹窗内继续完善用户名和头像。"
                   : "这是你的首次登录。确认用户名和头像后，再进入站内继续发帖、点评和关注。"}
               </SitePageDescription>
             </SitePageHead>
@@ -118,7 +178,7 @@ export function LoginPage() {
             <div className="space-y-6">
               <div className="space-y-3">
                 <label className="text-sm font-medium text-muted-foreground" htmlFor="login-phone">
-                  手机号码
+                  手机号
                 </label>
                 <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3">
                   <div className="flex items-center rounded-[var(--radius-control)] bg-surface-2 px-4 text-lg font-semibold text-foreground">
@@ -128,10 +188,10 @@ export function LoginPage() {
                     className="h-12"
                     id="login-phone"
                     inputMode="numeric"
-                    onChange={(event) => {
+                    onChange={event => {
                       setPhone(event.target.value);
                     }}
-                    placeholder="请输入您的手机号"
+                    placeholder="请输入手机号"
                     value={phone}
                   />
                 </div>
@@ -145,7 +205,7 @@ export function LoginPage() {
                   <Input
                     className="h-12"
                     id="login-captcha"
-                    onChange={(event) => {
+                    onChange={event => {
                       setCaptchaCode(event.target.value.toUpperCase());
                     }}
                     placeholder="请输入图形验证码"
@@ -158,13 +218,7 @@ export function LoginPage() {
                   <Button
                     className="h-12 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono text-lg tracking-[0.3em] text-white hover:bg-slate-900/92"
                     onClick={() => {
-                      setSubmitError(null);
-                      void apiClient
-                        .requestCaptchaChallenge()
-                        .then(setChallenge)
-                        .catch((error: unknown) => {
-                          setSubmitError(error instanceof Error ? error.message : "刷新验证码失败");
-                        });
+                      void refreshCaptcha();
                     }}
                     type="button"
                   >
@@ -181,7 +235,7 @@ export function LoginPage() {
                   <Input
                     className="h-12"
                     id="login-sms"
-                    onChange={(event) => {
+                    onChange={event => {
                       setSmsCode(event.target.value);
                     }}
                     placeholder="请输入 6 位验证码"
@@ -193,37 +247,21 @@ export function LoginPage() {
                   <div className="text-sm font-medium text-transparent">操作</div>
                   <Button
                     className="h-12 w-full"
-                    disabled={!challenge || isSendingSms}
+                    disabled={!challenge || isSendingSms || smsCooldownSeconds > 0}
                     onClick={() => {
-                      if (!challenge) {
-                        return;
-                      }
-
-                      setIsSendingSms(true);
-                      setSubmitError(null);
-                      void apiClient
-                        .requestSmsCode({
-                          phone,
-                          captchaChallengeId: challenge.challengeId,
-                          captchaCode
-                        })
-                        .then((response) => {
-                          setRequestHint(
-                            response.mockCode ? "短信验证码已生成，请在开发工具网络面板查看。" : "短信验证码已发送"
-                          );
-                        })
-                        .catch((error: unknown) => {
-                          setSubmitError(error instanceof Error ? error.message : "短信验证码发送失败");
-                        })
-                        .finally(() => {
-                          setIsSendingSms(false);
-                        });
+                      void requestLoginSmsCode();
                     }}
                     type="button"
                     variant="panel"
                   >
                     <SmartphoneIcon data-icon="inline-start" />
-                    获取验证码
+                    {isSendingSms
+                      ? "发送中..."
+                      : smsCooldownSeconds > 0
+                        ? `${smsCooldownSeconds} 秒后重新发送`
+                        : requestHint
+                          ? "重新发送验证码"
+                          : "获取验证码"}
                   </Button>
                 </div>
               </div>
@@ -245,11 +283,11 @@ export function LoginPage() {
               <div className="grid gap-3 rounded-[var(--radius-control)] bg-surface-2 p-4 text-sm text-muted-foreground">
                 <div className="flex items-center gap-3">
                   <InfoIcon className="size-4 text-primary" />
-                  老用户直接登录，新手机号会继续补全资料
+                  老用户直接登录，新手机号会继续补全资料。
                 </div>
                 <div className="flex items-center gap-3">
                   <ShieldCheckIcon className="size-4 text-cert-gold" />
-                  手机号不能重复，昵称也会做唯一校验
+                  发送短信验证码后会自动刷新图形验证码，重发前请先输入新的图形验证码。
                 </div>
               </div>
 
@@ -274,10 +312,12 @@ export function LoginPage() {
                         captchaCode,
                         smsCode
                       })
-                      .then((response) => {
+                      .then(response => {
                         if (response.kind === "authenticated") {
                           setAuthenticated(response.user);
-                          void navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
+                          void navigate(redirectTo ?? APP_ROUTES.feedHome, {
+                            replace: true
+                          });
                           return;
                         }
 
@@ -344,7 +384,7 @@ export function LoginPage() {
                 <input
                   accept="image/*"
                   className="hidden"
-                  onChange={(event) => {
+                  onChange={event => {
                     const file = event.target.files?.[0];
                     if (!file) {
                       return;
@@ -353,7 +393,7 @@ export function LoginPage() {
                     setSubmitError(null);
                     setSelectedAvatarFile(file);
                     void readAvatarPreview(file)
-                      .then((preview) => {
+                      .then(preview => {
                         setAvatarPreview(preview);
                       })
                       .catch((error: unknown) => {
@@ -373,7 +413,7 @@ export function LoginPage() {
                   <Input
                     className="h-12"
                     id="register-display-name"
-                    onChange={(event) => setDisplayName(event.target.value)}
+                    onChange={event => setDisplayName(event.target.value)}
                     placeholder="请输入用户名"
                     value={displayName}
                   />
@@ -414,13 +454,14 @@ export function LoginPage() {
 
                     setIsCompletingProfile(true);
                     setSubmitError(null);
+
                     void apiClient
                       .completeWebRegistration({
                         registrationToken,
                         displayName: displayName.trim(),
                         avatarFileId: null
                       })
-                      .then(async (response) => {
+                      .then(async response => {
                         if (selectedAvatarFile) {
                           const uploaded = await apiClient.uploadAvatarImage(selectedAvatarFile);
                           await apiClient.updateCurrentUserProfile({
@@ -432,7 +473,9 @@ export function LoginPage() {
                           setAuthenticated(response.user);
                         }
 
-                        void navigate(redirectTo ?? APP_ROUTES.feedHome, { replace: true });
+                        void navigate(redirectTo ?? APP_ROUTES.feedHome, {
+                          replace: true
+                        });
                       })
                       .catch((error: unknown) => {
                         setSubmitError(error instanceof Error ? error.message : "资料保存失败");
@@ -462,3 +505,4 @@ export function LoginPage() {
     </div>
   );
 }
+

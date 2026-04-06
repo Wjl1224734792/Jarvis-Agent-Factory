@@ -303,6 +303,94 @@ describe("auth flows", () => {
     expect(meAfterPayload.user).toBeNull();
   });
 
+  it("returns 429 instead of 500 when sms requests hit the rate limit", async () => {
+    const firstCaptchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const firstCaptchaPayload = (await firstCaptchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const firstSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138151",
+        captchaChallengeId: firstCaptchaPayload.challengeId,
+        captchaCode: firstCaptchaPayload.imageOrText
+      })
+    });
+    expect(firstSmsResponse.status).toBe(200);
+
+    const secondCaptchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const secondCaptchaPayload = (await secondCaptchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const secondSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138151",
+        captchaChallengeId: secondCaptchaPayload.challengeId,
+        captchaCode: secondCaptchaPayload.imageOrText
+      })
+    });
+
+    expect(secondSmsResponse.status).toBe(429);
+    await expect(secondSmsResponse.json()).resolves.toMatchObject({
+      code: "SMS_RATE_LIMITED"
+    });
+  });
+
+  it("returns 429 instead of 500 when sms resend hits rate limit", async () => {
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const firstResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138166",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaPayload.imageOrText
+      })
+    });
+    expect(firstResponse.status).toBe(200);
+
+    const secondCaptchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const secondCaptchaPayload = (await secondCaptchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+
+    const secondResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138166",
+        captchaChallengeId: secondCaptchaPayload.challengeId,
+        captchaCode: secondCaptchaPayload.imageOrText
+      })
+    });
+
+    expect(secondResponse.status).toBe(429);
+    await expect(secondResponse.json()).resolves.toMatchObject({
+      code: "SMS_RATE_LIMITED"
+    });
+  });
+
   it("logs in directly for an existing phone and enforces unique display names", async () => {
     const firstCookie = await loginWebUser("13800138991");
     const meResponse = await app.request(API_ROUTES.auth.currentUser, {

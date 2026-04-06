@@ -296,7 +296,7 @@ export function PublishAircraftPage() {
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-3 py-3 text-sm text-muted-foreground">
                   <span>Aircraft publishing now supports only existing brands. Brand application has been split out.</span>
                   <Button asChild size="sm" type="button" variant="outline">
-                    <Link to={APP_ROUTES.publishBrand}>Apply Brand</Link>
+                    <Link to={APP_ROUTES.publishBrand}>申请品牌</Link>
                   </Button>
                 </div>
               </div>
