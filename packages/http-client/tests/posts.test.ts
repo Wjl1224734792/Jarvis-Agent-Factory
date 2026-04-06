@@ -277,4 +277,42 @@ describe("posts api client", () => {
       })
     );
   });
+
+  it("maps structured upload limit errors to a user-facing message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "BAD_REQUEST",
+          message: "File size exceeds limit. Current max allowed is 10 MB.",
+          details: {
+            reason: "file_too_large",
+            bizType: "post-image",
+            mediaKind: "image",
+            limit: {
+              bytes: 10485760,
+              mb: "10",
+              bizType: "post-image",
+              mediaKind: "image"
+            }
+          }
+        }),
+        {
+          status: 400,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:3002"
+    });
+
+    const file = new File([Uint8Array.from([1, 2, 3])], "cover.png", {
+      type: "image/png"
+    });
+
+    await expect(client.uploadPostImage(file)).rejects.toThrow("当前最大允许 10 MB");
+  });
 });

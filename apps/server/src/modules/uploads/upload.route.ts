@@ -8,6 +8,7 @@ import {
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
 import { attachCurrentUser, requireAuth, type AuthVariables } from "../auth/auth.middleware";
+import { getUploadPolicy } from "./upload.policy";
 import { uploadsService } from "./upload.service";
 
 export const uploadsRoute = new Hono<{ Variables: AuthVariables }>();
@@ -29,20 +30,53 @@ uploadsRoute.post(API_ROUTES.uploads.init, requireAuth, async context => {
     contentType: input.contentType,
     byteSize: input.size
   });
+  const policy = getUploadPolicy(input.bizType);
 
   if (result.kind === "invalid_mime") {
-    return context.json({ code: "BAD_REQUEST", message: "Unsupported file type." }, 400);
+    return context.json(
+      {
+        code: "BAD_REQUEST",
+        message: "Unsupported file type.",
+        details: {
+          reason: "invalid_mime",
+          bizType: input.bizType,
+          mediaKind: policy.mediaKind,
+          allowedMimePrefixes: policy.mimePrefixes
+        }
+      },
+      400
+    );
   }
   if (result.kind === "invalid_size") {
-    return context.json({ code: "BAD_REQUEST", message: "Invalid file size." }, 400);
+    return context.json(
+      {
+        code: "BAD_REQUEST",
+        message: "Invalid file size.",
+        details: {
+          reason: "invalid_size",
+          bizType: input.bizType,
+          mediaKind: policy.mediaKind
+        }
+      },
+      400
+    );
   }
   if (result.kind === "file_too_large") {
     return context.json(
       {
         code: "BAD_REQUEST",
         message: `File size exceeds limit. Current max allowed is ${result.maxSizeMb} MB.`,
-        maxSizeBytes: result.maxSizeBytes,
-        maxSizeMb: result.maxSizeMb
+        details: {
+          reason: "file_too_large",
+          bizType: input.bizType,
+          mediaKind: policy.mediaKind,
+          limit: {
+            bytes: result.maxSizeBytes,
+            mb: result.maxSizeMb,
+            bizType: input.bizType,
+            mediaKind: policy.mediaKind
+          }
+        }
       },
       400
     );

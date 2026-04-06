@@ -42,6 +42,14 @@ async function parseResponse<T>(response: Response): Promise<T> {
 }
 
 export function sanitizeWebApiErrorMessage(message: string) {
+  if (
+    message.includes("当前最大允许") ||
+    message.includes("文件类型不支持") ||
+    message.includes("文件大小无效")
+  ) {
+    return message.trim();
+  }
+
   const normalized = message.trim().toLowerCase();
 
   if (

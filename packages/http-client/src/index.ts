@@ -70,6 +70,7 @@ import {
   healthRoute,
   homeFeedResponseSchema,
   initUploadInputSchema,
+  uploadInitErrorResponseSchema,
   initUploadResponseSchema,
   modelInteractionResponseSchema,
   modelInteractionTypeSchema,
@@ -207,6 +208,22 @@ function normalizeBaseUrl(baseUrl: string): string {
 }
 
 function mapApiErrorMessage(response: Response, payload: unknown): string {
+  const uploadInitError = uploadInitErrorResponseSchema.safeParse(payload);
+  if (uploadInitError.success) {
+    const details = uploadInitError.data.details;
+    if (details.reason === "file_too_large" && details.limit) {
+      return `当前最大允许 ${details.limit.mb} MB`;
+    }
+    if (details.reason === "invalid_mime") {
+      return details.mediaKind === "image"
+        ? "当前文件类型不支持，请上传图片文件"
+        : "当前文件类型不支持，请上传视频文件";
+    }
+    if (details.reason === "invalid_size") {
+      return "文件大小无效，请重新选择文件";
+    }
+  }
+
   const authError = authErrorResponseSchema.safeParse(payload);
 
   if (authError.success) {

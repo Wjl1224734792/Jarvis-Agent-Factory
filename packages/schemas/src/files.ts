@@ -52,6 +52,33 @@ export const initUploadInputSchema = z.object({
   size: z.number().int().positive()
 });
 
+export const uploadErrorReasonSchema = z.enum([
+  "invalid_mime",
+  "invalid_size",
+  "file_too_large"
+]);
+
+export const uploadLimitInfoSchema = z.object({
+  bytes: z.number().int().positive(),
+  mb: z.string().min(1),
+  bizType: fileBizTypeSchema,
+  mediaKind: fileMediaKindSchema
+});
+
+export const uploadInitErrorDetailsSchema = z.object({
+  reason: uploadErrorReasonSchema,
+  bizType: fileBizTypeSchema,
+  mediaKind: fileMediaKindSchema,
+  allowedMimePrefixes: z.array(z.string()).optional(),
+  limit: uploadLimitInfoSchema.optional()
+});
+
+export const uploadInitErrorResponseSchema = z.object({
+  code: z.literal("BAD_REQUEST"),
+  message: z.string().min(1),
+  details: uploadInitErrorDetailsSchema
+});
+
 export const initUploadResponseSchema = z.object({
   fileId: z.string().min(1),
   objectKey: z.string().min(1),

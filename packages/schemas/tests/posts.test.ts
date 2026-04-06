@@ -14,7 +14,8 @@ import {
   completeUploadInputSchema,
   fileItemSchema,
   initUploadInputSchema,
-  initUploadResponseSchema
+  initUploadResponseSchema,
+  uploadInitErrorResponseSchema
 } from "../src/files";
 
 describe("posts contract", () => {
@@ -192,5 +193,26 @@ describe("posts contract", () => {
     expect(payload.id).toBe("file_1");
     expect(payload.status).toBe("uploaded");
     expect(payload.mediaKind).toBe("image");
+  });
+
+  it("parses structured upload init errors", () => {
+    const payload = uploadInitErrorResponseSchema.parse({
+      code: "BAD_REQUEST",
+      message: "Current max allowed is 2 MB.",
+      details: {
+        reason: "file_too_large",
+        bizType: "avatar-image",
+        mediaKind: "image",
+        limit: {
+          bytes: 2097152,
+          mb: "2",
+          bizType: "avatar-image",
+          mediaKind: "image"
+        }
+      }
+    });
+
+    expect(payload.details.reason).toBe("file_too_large");
+    expect(payload.details.limit?.mb).toBe("2");
   });
 });

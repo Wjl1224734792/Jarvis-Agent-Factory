@@ -555,7 +555,14 @@ describe("auth flows", () => {
       await expect(response.json()).resolves.toMatchObject({
         code: "BAD_REQUEST",
         message: "File size exceeds limit. Current max allowed is 0.00 MB.",
-        maxSizeMb: "0.00"
+        details: {
+          reason: "file_too_large",
+          bizType: "avatar-image",
+          mediaKind: "image",
+          limit: {
+            mb: "0.00"
+          }
+        }
       });
     } finally {
       process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB = previousValue;
