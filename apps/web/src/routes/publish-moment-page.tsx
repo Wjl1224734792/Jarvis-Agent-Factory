@@ -1,13 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  CameraIcon,
-  ImageIcon,
-  PlayIcon,
-  SendHorizonalIcon,
-  VideoIcon,
-  XIcon
-} from "lucide-react";
+import { ImageIcon, PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishShell } from "@/components/publish-shell";
@@ -46,8 +39,6 @@ export function PublishMomentPage() {
   const promptLogin = useLoginPrompt();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const videoInputRef = useRef<HTMLInputElement | null>(null);
   const zoneInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
@@ -123,8 +114,8 @@ export function PublishMomentPage() {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     } finally {
       setIsUploading(false);
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
+      if (zoneInputRef.current) {
+        zoneInputRef.current.value = "";
       }
     }
   }
@@ -179,8 +170,8 @@ export function PublishMomentPage() {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     } finally {
       setIsUploading(false);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = "";
+      if (zoneInputRef.current) {
+        zoneInputRef.current.value = "";
       }
     }
   }
@@ -209,29 +200,7 @@ export function PublishMomentPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-base font-semibold text-foreground">内容</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => imageInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <CameraIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "添加图片"}
-                  </Button>
-                  <Button
-                    onClick={() => videoInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <VideoIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "上传视频"}
-                  </Button>
-                </div>
-              </div>
+              <div className="text-base font-semibold text-foreground">内容</div>
 
               <Input
                 onChange={(event) => setTitle(event.target.value)}
@@ -254,25 +223,6 @@ export function PublishMomentPage() {
                 </div>
               </div>
 
-              <input
-                accept="image/*"
-                className="hidden"
-                multiple
-                onChange={(event) => {
-                  void handleImageUpload(event.target.files);
-                }}
-                ref={imageInputRef}
-                type="file"
-              />
-              <input
-                accept="video/*"
-                className="hidden"
-                onChange={(event) => {
-                  void handleVideoUpload(event.target.files);
-                }}
-                ref={videoInputRef}
-                type="file"
-              />
               <input
                 accept="image/*,video/*"
                 className="hidden"
@@ -314,6 +264,20 @@ export function PublishMomentPage() {
                     </div>
                   ))}
                 </div>
+              ) : null}
+
+              {uploadedImages.length > 0 && uploadedImages.length < 6 && !uploadedVideo ? (
+                <button
+                  aria-label={`继续添加图片，还可上传 ${6 - uploadedImages.length} 张`}
+                  className="w-full rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 py-3 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
+                  onClick={() => zoneInputRef.current?.click()}
+                  type="button"
+                >
+                  {isUploading
+                    ? "上传中..."
+                    : `继续添加图片（还可上传 ${6 - uploadedImages.length} 张）`}
+                </button>
               ) : null}
 
               {uploadedVideo ? (
