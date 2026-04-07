@@ -324,7 +324,7 @@ export function ProfilePage() {
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
             <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-end">
               <UserAvatar
-                className="-mt-10 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24"
+                className="-mt-12 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24"
                 displayName={displayName}
                 size="lg"
                 src={avatarUrl}
