@@ -4,6 +4,7 @@ import {
   AlertTriangleIcon,
   ArrowLeftIcon,
   EyeIcon,
+  MessageSquareTextIcon,
   Trash2Icon,
   UserCheckIcon,
   UserPlusIcon
@@ -48,6 +49,7 @@ export function PostDetailPage() {
   const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const postQuery = useQuery({
@@ -97,7 +99,7 @@ export function PostDetailPage() {
   const isCommentRefreshing = postQuery.isFetching && !postQuery.isLoading && !isSubmitting;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-28 pt-2 md:px-6">
+    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-8 pt-2 md:px-6">
       <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
         <div className="flex items-center gap-3 text-sm text-foreground/80">
           <Button
@@ -281,42 +283,19 @@ export function PostDetailPage() {
         ) : null}
       </section>
 
-      <section className="space-y-4 border-t border-border/60 pt-6">
+      <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
         <div className="space-y-1">
-          <div className="text-lg font-semibold text-foreground">评论 {item.commentCount}</div>
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <MessageSquareTextIcon className="size-4.5 text-primary" />
+            评论区
+          </div>
+          <div className="text-sm text-muted-foreground">共 {item.commentCount} 条评论</div>
           {isCommentRefreshing ? (
             <div className="text-xs text-muted-foreground">评论区正在更新...</div>
           ) : null}
         </div>
 
-        {item.comments.length > 0 ? (
-          <PostCommentThread
-            canInteract={canComment}
-            comments={item.comments}
-            currentUserId={currentUser?.id}
-            isRefreshing={isCommentRefreshing}
-            postId={item.id}
-            showPendingComment={isSubmitting}
-          />
-        ) : (
-          <div className="space-y-3 border-y border-border/70 py-4">
-            {isSubmitting ? (
-              <PostCommentThread
-                canInteract={canComment}
-                comments={[]}
-                currentUserId={currentUser?.id}
-                postId={item.id}
-                showPendingComment
-              />
-            ) : (
-              <div className="text-sm text-muted-foreground">欢迎留下第一条评论。</div>
-            )}
-          </div>
-        )}
-      </section>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/96 px-4 pb-4 pt-3 backdrop-blur md:px-6 xl:left-[calc(var(--shell-sidebar-width)+2rem)]">
-        <div className="mx-auto w-full max-w-[840px]">
+        <div className="border border-border/70 bg-white px-5 py-5">
           {authStatus !== "authenticated" ? (
             <Button
               className="w-full"
@@ -346,7 +325,7 @@ export function PostDetailPage() {
                   return;
                 }
 
-                setActionError(null);
+                setCommentError(null);
                 setIsSubmitting(true);
 
                 void apiClient
@@ -363,7 +342,7 @@ export function PostDetailPage() {
                     ]);
                   })
                   .catch((value: unknown) => {
-                    setActionError(value instanceof Error ? value.message : "评论失败");
+                    setCommentError(value instanceof Error ? value.message : "评论失败");
                   })
                   .finally(() => {
                     setIsSubmitting(false);
@@ -373,8 +352,46 @@ export function PostDetailPage() {
               value={commentContent}
             />
           )}
+
+          {commentError ? (
+            <Alert className="mt-4" variant="destructive">
+              <AlertTitle>评论提交失败</AlertTitle>
+              <AlertDescription>{commentError}</AlertDescription>
+            </Alert>
+          ) : null}
         </div>
-      </div>
+
+        <div className="border border-border/70 bg-white">
+          {item.comments.length > 0 ? (
+            <div className="space-y-0 px-5 py-4">
+              <PostCommentThread
+                canInteract={canComment}
+                className="border-y-0"
+                comments={item.comments}
+                currentUserId={currentUser?.id}
+                isRefreshing={isCommentRefreshing}
+                postId={item.id}
+                showPendingComment={isSubmitting}
+              />
+            </div>
+          ) : (
+            <div className="px-5 py-5">
+              {isSubmitting ? (
+                <PostCommentThread
+                  canInteract={canComment}
+                  className="border-y-0"
+                  comments={[]}
+                  currentUserId={currentUser?.id}
+                  postId={item.id}
+                  showPendingComment
+                />
+              ) : (
+                <div className="text-[0.82rem] text-muted-foreground">欢迎留下第一条评论。</div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
     </SitePage>
   );
 }

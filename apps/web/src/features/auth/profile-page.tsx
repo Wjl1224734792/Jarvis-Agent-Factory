@@ -6,13 +6,13 @@ import { Link } from "react-router-dom";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
-import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
+import { getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 import { profileVisibilityLabel } from "./profile-settings-state";
 
@@ -272,7 +272,7 @@ export function ProfilePage() {
   const settings = currentProfileQuery.data?.item;
   const displayName = settings?.displayName ?? user.displayName;
   const userId = user.id;
-  const avatarUrl = settings?.avatarUrl ?? user.avatarUrl ?? getAvatarImage(user.id);
+  const avatarUrl = settings?.avatarUrl ?? user.avatarUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
 
   if ((profileQuery.isLoading && !profile) || (currentProfileQuery.isLoading && !settings)) {
@@ -323,10 +323,12 @@ export function ProfilePage() {
         <SitePanelBody className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
             <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-end">
-              <Avatar className="-mt-10 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24" size="lg">
-                <AvatarImage alt={displayName} src={avatarUrl} />
-                <AvatarFallback>{displayName.slice(0, 1)}</AvatarFallback>
-              </Avatar>
+              <UserAvatar
+                className="-mt-10 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24"
+                displayName={displayName}
+                size="lg"
+                src={avatarUrl}
+              />
 
               <div className="space-y-2">
                 <div className="flex flex-wrap items-center gap-2">

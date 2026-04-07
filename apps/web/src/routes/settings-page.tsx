@@ -5,7 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -33,7 +33,6 @@ import {
 } from "../features/auth/phone-rebind-state";
 import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-flow";
 import { apiClient } from "../lib/api-client";
-import { getAvatarImage } from "../lib/aviation-media";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
 
@@ -263,13 +262,12 @@ export function SettingsPage() {
       <Card variant="muted">
         <CardContent className="grid gap-4 pt-[var(--panel-padding)] xl:grid-cols-[auto_minmax(0,1fr)_auto] xl:items-center">
           <div className="flex items-center gap-4">
-            <Avatar className="size-18" size="lg">
-              <AvatarImage
-                alt={draft.displayName || user.displayName}
-                src={draft.avatarUrl || user.avatarUrl || getAvatarImage(user.id)}
-              />
-              <AvatarFallback>{(draft.displayName || user.displayName).slice(0, 1)}</AvatarFallback>
-            </Avatar>
+            <UserAvatar
+              className="size-18"
+              displayName={draft.displayName || user.displayName}
+              size="lg"
+              src={draft.avatarUrl || user.avatarUrl}
+            />
             <div className="space-y-1">
               <div className="text-xl font-semibold text-foreground">
                 {draft.displayName || user.displayName}
@@ -395,13 +393,12 @@ export function SettingsPage() {
             </CardHeader>
             <CardContent className="space-y-4">
               <div className="flex items-center gap-4">
-                <Avatar className="size-20" size="lg">
-                  <AvatarImage
-                    alt={draft.displayName || user.displayName}
-                    src={draft.avatarUrl || user.avatarUrl || getAvatarImage(user.id)}
-                  />
-                  <AvatarFallback>{(draft.displayName || user.displayName).slice(0, 1)}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  className="size-20"
+                  displayName={draft.displayName || user.displayName}
+                  size="lg"
+                  src={draft.avatarUrl || user.avatarUrl}
+                />
                 <div className="space-y-2">
                   <Button
                     onClick={() => avatarInputRef.current?.click()}

@@ -27,6 +27,8 @@ type ThreadProps = {
   canInteract: boolean;
   isRefreshing?: boolean;
   showPendingComment?: boolean;
+  /** 嵌入带外边框的面板时可去掉根节点纵向边框，避免重复描边 */
+  className?: string;
 };
 
 type ReplyView = {
@@ -438,7 +440,13 @@ function RootCommentItem(props: {
 
 export function PostCommentThread(props: ThreadProps) {
   return (
-    <div className={cn("border-y border-border", props.comments.length === 0 && "border-none")}>
+    <div
+      className={cn(
+        "border-y border-border",
+        props.comments.length === 0 && "border-none",
+        props.className
+      )}
+    >
       {props.showPendingComment ? (
         <div className="border-b border-border/80 py-3.5 first:pt-0">
           <CommentSkeletonItem />

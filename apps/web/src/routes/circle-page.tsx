@@ -420,7 +420,7 @@ export function CirclePage() {
                   ) : null}
 
                   {selectedNote ? (
-                    <div className="flex min-h-full flex-col justify-between gap-5">
+                    <div className="flex flex-col gap-5">
                       <div className="space-y-3">
                         <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                           {selectedNote.title}

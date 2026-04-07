@@ -5,8 +5,7 @@ import {
   SparklesIcon,
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../../lib/api-client";
@@ -50,10 +49,12 @@ export function UserMenu() {
         className="flex size-11 items-center justify-center rounded-full border border-border/80 bg-card/88 shadow-sm transition hover:border-primary/30 md:hidden"
         to={APP_ROUTES.webProfile}
       >
-        <Avatar className="size-8.5 ring-2 ring-white/80" size="sm">
-          <AvatarImage alt={user.displayName} src={user.avatarUrl ?? getAvatarImage(user.id)} />
-          <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
-        </Avatar>
+        <UserAvatar
+          className="size-8.5 ring-2 ring-white/80"
+          displayName={user.displayName}
+          size="sm"
+          src={user.avatarUrl}
+        />
         <span className="sr-only">进入个人中心</span>
       </Link>
 
@@ -62,10 +63,7 @@ export function UserMenu() {
           className="flex items-center gap-2 rounded-full pr-1 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
           to={APP_ROUTES.webProfile}
         >
-          <Avatar className="ring-2 ring-white/80" size="lg">
-            <AvatarImage alt={user.displayName} src={user.avatarUrl ?? getAvatarImage(user.id)} />
-            <AvatarFallback>{user.displayName.slice(0, 1)}</AvatarFallback>
-          </Avatar>
+          <UserAvatar className="ring-2 ring-white/80" displayName={user.displayName} size="lg" src={user.avatarUrl} />
           <span className="text-left sm:flex sm:flex-col">
             <span className="text-sm font-medium text-foreground">{user.displayName}</span>
             <span className="text-xs text-muted-foreground">
