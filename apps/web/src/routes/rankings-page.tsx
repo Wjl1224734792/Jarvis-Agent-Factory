@@ -51,7 +51,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
 
   return (
     <Link
-      className="flex min-w-0 flex-col gap-4 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/24 hover:bg-sky-50/40"
+      className="flex min-w-0 flex-col gap-4 bg-white px-4 py-4 transition hover:bg-sky-50/40"
       to={buildRankingDetailPath(ranking.id)}
     >
       <div className="flex items-start justify-between gap-3">

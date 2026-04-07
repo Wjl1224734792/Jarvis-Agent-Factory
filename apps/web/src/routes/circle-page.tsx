@@ -181,10 +181,10 @@ export function CirclePage() {
 
             return (
               <button
-                className={`mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-[1.15rem] border text-left transition xl:mx-auto xl:max-w-[13.5rem] ${
+                className={`mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-[1.15rem] text-left transition xl:mx-auto xl:max-w-[13.5rem] ${
                   selectedNoteId === item.id
-                    ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
-                    : "border-border/80 bg-white hover:border-primary/30 hover:bg-sky-50/45"
+                    ? "bg-sky-50 shadow-[var(--shadow-float)] ring-2 ring-primary/40"
+                    : "bg-white hover:bg-sky-50/45"
                 }`}
                 key={item.id}
                 onClick={() => openNote(item.id)}

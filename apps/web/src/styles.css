@@ -218,28 +218,30 @@
   }
 
   .site-panel {
-    border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
+    border: none;
     border-radius: var(--radius-panel);
     background: color-mix(in srgb, var(--card) 98%, white);
-    box-shadow: var(--shadow-panel);
+    box-shadow: none;
     -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
   }
 
   .site-panel--muted {
     background: color-mix(in srgb, var(--surface-2) 96%, white);
-    box-shadow: var(--shadow-soft);
+    box-shadow: none;
   }
 
   .site-panel--floating {
+    border: 1px solid color-mix(in srgb, var(--border) 92%, transparent);
     box-shadow: var(--shadow-float);
   }
 
   .site-panel--highlight {
+    border: 1px solid color-mix(in srgb, var(--panel-highlight) 20%, white);
+    box-shadow: var(--shadow-panel);
     background:
       linear-gradient(145deg, color-mix(in srgb, var(--panel-highlight) 93%, white 7%) 0%, color-mix(in srgb, var(--panel-highlight) 76%, white 24%) 100%);
     color: var(--panel-highlight-foreground);
-    border-color: color-mix(in srgb, var(--panel-highlight) 20%, white);
   }
 
   .site-panel__body {

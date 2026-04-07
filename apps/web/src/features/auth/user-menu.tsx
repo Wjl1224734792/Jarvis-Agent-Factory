@@ -88,7 +88,7 @@ export function UserMenu() {
         }}
         size="icon-lg"
         type="button"
-        variant="outline"
+        variant="ghost"
       >
         <LogOutIcon />
         <span className="sr-only">退出登录</span>

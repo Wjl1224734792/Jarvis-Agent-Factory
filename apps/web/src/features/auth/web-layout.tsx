@@ -278,7 +278,7 @@ export function WebLayout() {
 
               {isPublishMenuOpen ? (
                 <div
-                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10rem] rounded-[0.95rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
+                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
                   onMouseEnter={openPublishMenu}
                   onMouseLeave={scheduleClosePublishMenu}
                 >

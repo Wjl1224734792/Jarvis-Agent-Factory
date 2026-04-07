@@ -140,7 +140,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="site-tab-panel relative mt-2.5 overflow-hidden border border-border bg-white">
+          <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
             {feedQuery.isError ? (
               <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
@@ -209,7 +209,7 @@ export function HomePage() {
                 ))}
 
                 {!feedQuery.isError && feedItems.length === 0 ? (
-                  <Alert>
+                  <Alert className="rounded-none">
                     <AlertTitle>首页还没有公开内容</AlertTitle>
                     <AlertDescription>
                       {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
