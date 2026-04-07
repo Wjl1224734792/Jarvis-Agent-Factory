@@ -1,8 +1,9 @@
 import {
   aircraftCategoriesTable,
+  aircraftModelCommentsTable,
+  aircraftModelInteractionsTable,
   aircraftModelCommentLikesTable,
   aircraftModelCommentReportsTable,
-  aircraftModelCommentsTable,
   aircraftModelReportsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
@@ -59,6 +60,8 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
+        commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
@@ -108,6 +111,8 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
+        commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
@@ -371,6 +376,8 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
+        commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,

@@ -223,6 +223,8 @@ type WebModelListResponse = {
     name: string;
     summary: string | null;
     powerType: "electric" | "fuel" | "hybrid" | "other";
+    favoriteCount: number;
+    commentCount: number;
     reviewSummary: {
       totalReviews: number;
     };

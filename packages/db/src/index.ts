@@ -3,6 +3,7 @@ export {
   aircraftSubmissionsTable,
   aircraftCategoriesTable,
   aircraftModelsTable,
+  aircraftModelInteractionsTable,
   aircraftModelCommentsTable,
   aircraftModelCommentLikesTable,
   aircraftModelCommentReportsTable,

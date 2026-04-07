@@ -272,7 +272,7 @@ export function HomePage() {
               ) : (
                 hotModels.map((model, index) => (
                   <Link
-                    className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
+                    className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                     key={model.id}
                     to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                   >
@@ -284,13 +284,16 @@ export function HomePage() {
                     <div className="min-w-0 space-y-1">
                       <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
                       <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
-                      <div className="text-[0.72rem] text-muted-foreground">{model.reviewSummary.totalReviews} 条评测</div>
-                    </div>
-                    <div className="text-right">
-                      <div className="text-[1.05rem] font-semibold leading-none text-foreground">
-                        {model.reviewSummary.totalReviews}
+                      <div className="flex items-center gap-3 text-[0.72rem] text-muted-foreground">
+                        <span className="inline-flex items-center gap-1">
+                          <HeartIcon className="size-3.5" />
+                          {formatCount(model.favoriteCount)}
+                        </span>
+                        <span className="inline-flex items-center gap-1">
+                          <MessageCircleIcon className="size-3.5" />
+                          {formatCount(model.commentCount)}
+                        </span>
                       </div>
-                      <div className="mt-1 text-[0.68rem] uppercase tracking-[0.16em] text-muted-foreground">评论</div>
                     </div>
                   </Link>
                 ))

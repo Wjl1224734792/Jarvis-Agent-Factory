@@ -82,6 +82,8 @@ export const modelListItemSchema = z.object({
   priceMax: priceValueSchema,
   powerType: powerTypeSchema,
   lifecycleStatus: modelLifecycleStatusSchema,
+  favoriteCount: z.number().int().nonnegative().default(0),
+  commentCount: z.number().int().nonnegative().default(0),
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
   reportCount: z.number().int().nonnegative().default(0),
