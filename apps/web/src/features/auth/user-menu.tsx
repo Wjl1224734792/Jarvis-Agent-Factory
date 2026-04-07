@@ -58,7 +58,7 @@ export function UserMenu() {
         <span className="sr-only">进入个人中心</span>
       </Link>
 
-      <div className="hidden items-center gap-2 rounded-full border border-border/80 bg-card/88 px-2.5 py-1.5 shadow-sm md:flex">
+      <div className="hidden items-center gap-2 rounded-full bg-card/88 px-2.5 py-1.5 md:flex">
         <Link
           className="flex items-center gap-2 rounded-full pr-1 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
           to={APP_ROUTES.webProfile}

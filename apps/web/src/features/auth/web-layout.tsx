@@ -196,7 +196,7 @@ export function WebLayout() {
 
   return (
     <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
-      <header className="sticky top-0 z-40 border-b border-border/75 bg-background/92 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 bg-background/92 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-4 px-4 py-2.5 xl:px-5">
           <div className="flex items-center gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
