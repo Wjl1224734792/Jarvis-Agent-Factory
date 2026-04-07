@@ -341,6 +341,7 @@ describe("models flows", () => {
         categoryId: categoryPayload.item.id,
         brandId: brandPayload.item.id,
         powerType: "electric",
+        lifecycleStatus: "released",
         summary: "Compact tiltrotor for logistics tests",
         description: "Used to validate admin model management flow",
         priceMin: 1200000,

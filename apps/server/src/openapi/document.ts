@@ -953,7 +953,7 @@ export const openApiDocument = {
         security: sessionOrBearerSecurity,
         requestBody: jsonRequestBody(
           'UpdateCurrentUserProfileRequest',
-          '按需增量更新个人资料，至少提交一个字段。'
+          '按需增量更新个人资料，至少提交一个字段。支持头像、封面图、简介、昵称、手机号与可见范围等资料字段。'
         ),
         responses: {
           '200': jsonResponse(
@@ -1210,7 +1210,7 @@ export const openApiDocument = {
         security: sessionOrBearerSecurity,
         requestBody: jsonRequestBody(
           'CreateAircraftSubmissionRequest',
-          '提交机型投稿的基础资料、媒体和参数。'
+          '提交机型投稿的基础资料、媒体和参数。lifecycleStatus 与机型详情页状态保持一致，可选值包括概念、研发、测试、未发布、已发布、未上市、已上市。'
         ),
         responses: {
           '200': jsonResponse(
@@ -1244,7 +1244,7 @@ export const openApiDocument = {
         parameters: [stringPathParameter('id', '投稿 ID。')],
         requestBody: jsonRequestBody(
           'UpdateAircraftSubmissionRequest',
-          '更新已提交的投稿内容。'
+          '更新已提交的投稿内容。可同步修改 lifecycleStatus、封面媒体、简介与参数信息。'
         ),
         responses: {
           '200': jsonResponse(

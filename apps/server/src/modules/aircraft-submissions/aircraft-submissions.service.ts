@@ -57,6 +57,7 @@ async function serializeSubmission(
     proposedBrandName: item.proposedBrandName,
     modelName: item.modelName,
     powerType: item.powerType as "electric" | "fuel" | "hybrid" | "other",
+    lifecycleStatus: item.lifecycleStatus as "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed",
     summary: item.summary,
     description: item.description,
     priceMin: item.priceMin,

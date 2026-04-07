@@ -68,30 +68,6 @@ function SettingsPageSkeleton() {
   );
 }
 
-function SettingToggleRow({
-  title,
-  description,
-  enabled,
-  onToggle
-}: {
-  title: string;
-  description: string;
-  enabled: boolean;
-  onToggle: () => void;
-}) {
-  return (
-    <div className="flex flex-col gap-3 py-2 md:flex-row md:items-center md:justify-between">
-      <div className="space-y-1">
-        <div className="text-sm font-medium text-foreground">{title}</div>
-        <div className="text-sm leading-6 text-muted-foreground">{description}</div>
-      </div>
-      <Button onClick={onToggle} size="sm" type="button" variant={enabled ? "panel" : "outline"}>
-        {enabled ? "开启" : "关闭"}
-      </Button>
-    </div>
-  );
-}
-
 function SettingCard({
   title,
   children,

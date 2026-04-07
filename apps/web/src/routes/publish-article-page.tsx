@@ -14,7 +14,6 @@ import { Textarea } from "@/components/ui/textarea";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
-import { getEditorialImage } from "../lib/aviation-media";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";

@@ -32,6 +32,7 @@ describe("models contract", () => {
           priceMin: 4999,
           priceMax: 6999,
           powerType: "electric",
+          lifecycleStatus: "released",
           reviewSummary: {
             totalReviews: 12
           },
@@ -90,6 +91,7 @@ describe("models contract", () => {
         priceMin: 4999,
         priceMax: 6999,
         powerType: "electric",
+        lifecycleStatus: "released",
         isPublished: true,
         reviewSummary: {
           totalReviews: 12
@@ -130,6 +132,7 @@ describe("models contract", () => {
       categoryId: "cat_1",
       brandId: "brand_1",
       powerType: "electric",
+      lifecycleStatus: "released",
       summary: "Compact and stable flight model.",
       description: "Suitable for travel and everyday aerial shooting.",
       priceMin: 4999,
@@ -157,6 +160,7 @@ describe("models contract", () => {
         categoryId: "cat_1",
         brandId: "brand_1",
         powerType: "electric",
+        lifecycleStatus: "released",
         summary: null,
         description: null,
         priceMin: 6999,

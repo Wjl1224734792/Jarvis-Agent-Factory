@@ -6,9 +6,9 @@ import {
 } from "../src/routes/publish-moment-helpers";
 
 describe("publish moment helpers", () => {
-  it("limits images to six", () => {
+  it("allows appending any positive number of images", () => {
     expect(canAppendMomentImages(2, 3)).toBe(true);
-    expect(canAppendMomentImages(4, 3)).toBe(false);
+    expect(canAppendMomentImages(4, 30)).toBe(true);
   });
 
   it("allows only one uploaded video", () => {
