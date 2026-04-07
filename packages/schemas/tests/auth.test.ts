@@ -10,6 +10,7 @@ import {
   completeAppRegistrationRequestSchema,
   completeWebRegistrationRequestSchema,
   currentUserResponseSchema,
+  deviceRegisterInputSchema,
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
   userSummarySchema,
@@ -96,7 +97,8 @@ describe("auth contract", () => {
       captchaChallengeId: "challenge-1",
       captchaCode: "AB12",
       smsCode: "123456",
-      deviceLabel: "iPhone 16 Pro"
+      deviceLabel: "iPhone 16 Pro",
+      deviceType: "web"
     });
 
     const authPayload = appAuthSessionResponseSchema.parse({
@@ -123,8 +125,27 @@ describe("auth contract", () => {
     });
 
     expect(loginPayload.deviceLabel).toBe("iPhone 16 Pro");
+    expect(loginPayload.deviceType).toBe("web");
     expect(authPayload.refreshToken).toBe("refresh-token");
     expect(loginResponse.kind).toBe("authenticated");
+  });
+
+  it("accepts the expanded deviceType enum for app auth and device registration", () => {
+    const appRegistrationPayload = completeAppRegistrationRequestSchema.parse({
+      registrationToken: "token_1",
+      displayName: "Pilot 3800",
+      deviceType: "miniapp-wechat",
+      pushToken: "push-token-1"
+    });
+
+    const deviceRegistrationPayload = deviceRegisterInputSchema.parse({
+      deviceType: "web",
+      deviceLabel: "Chrome on macOS",
+      pushToken: "push-token-2"
+    });
+
+    expect(appRegistrationPayload.deviceType).toBe("miniapp-wechat");
+    expect(deviceRegistrationPayload.deviceType).toBe("web");
   });
 
   it("parses registration display name suggestions and recent sessions", () => {

@@ -85,6 +85,45 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.DeviceUnregisterRequest).toBeDefined();
     expect(payload.components.schemas.PaginationQuery).toBeDefined();
     expect(payload.components.schemas.PaginationMeta).toBeDefined();
+    const appLoginOperation = payload.paths['/auth/app/login']?.post as
+      | { requestBody?: { description?: string } }
+      | undefined;
+
+    const appLoginSchema = payload.components.schemas.AppLoginRequest as {
+      properties?: Record<string, { enum?: string[] }>;
+    };
+    const completeAppRegistrationSchema = payload.components.schemas
+      .CompleteAppRegistrationRequest as {
+      properties?: Record<string, { enum?: string[] }>;
+    };
+    const deviceRegisterSchema = payload.components.schemas.DeviceRegisterRequest as {
+      properties?: Record<string, { enum?: string[] }>;
+    };
+
+    expect(appLoginSchema.properties?.deviceType?.enum).toEqual([
+      'ios',
+      'android',
+      'harmony',
+      'miniapp-wechat',
+      'web'
+    ]);
+    expect(completeAppRegistrationSchema.properties?.deviceType?.enum).toEqual([
+      'ios',
+      'android',
+      'harmony',
+      'miniapp-wechat',
+      'web'
+    ]);
+    expect(deviceRegisterSchema.properties?.deviceType?.enum).toEqual([
+      'ios',
+      'android',
+      'harmony',
+      'miniapp-wechat',
+      'web'
+    ]);
+    expect(appLoginOperation?.requestBody?.description).toContain(
+      'miniapp-wechat/web'
+    );
   });
 
   it('serves Swagger UI that points to the OpenAPI JSON route', async () => {

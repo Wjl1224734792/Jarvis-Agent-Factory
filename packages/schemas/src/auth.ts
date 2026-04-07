@@ -60,6 +60,13 @@ export const webLoginRequestSchema = z.object({
 });
 
 const deviceLabelSchema = z.string().trim().min(1).max(120);
+const deviceTypeSchema = z.enum([
+  "ios",
+  "android",
+  "harmony",
+  "miniapp-wechat",
+  "web"
+]);
 
 export const webLoginSuccessResponseSchema = z.object({
   kind: z.literal("authenticated"),
@@ -80,7 +87,7 @@ export const webLoginResponseSchema = z.discriminatedUnion("kind", [
 
 export const appLoginRequestSchema = webLoginRequestSchema.extend({
   deviceLabel: deviceLabelSchema.optional().nullable(),
-  deviceType: z.enum(["ios", "android", "harmony"]).optional(),
+  deviceType: deviceTypeSchema.optional(),
   pushToken: z.string().trim().min(1).max(255).optional().nullable()
 });
 
@@ -115,7 +122,7 @@ export const registrationDisplayNameSuggestResponseSchema = z.object({
 
 export const completeAppRegistrationRequestSchema = completeWebRegistrationRequestSchema.extend({
   deviceLabel: deviceLabelSchema.optional().nullable(),
-  deviceType: z.enum(["ios", "android", "harmony"]).optional(),
+  deviceType: deviceTypeSchema.optional(),
   pushToken: z.string().trim().min(1).max(255).optional().nullable()
 });
 
@@ -187,7 +194,7 @@ export const paginationMetaSchema = z.object({
 // ---------------------------------------------------------------------------
 
 export const deviceRegisterInputSchema = z.object({
-  deviceType: z.enum(["ios", "android", "harmony"]),
+  deviceType: deviceTypeSchema,
   deviceLabel: deviceLabelSchema.optional().nullable(),
   pushToken: z.string().trim().min(1).max(255)
 });

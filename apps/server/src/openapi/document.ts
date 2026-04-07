@@ -635,7 +635,7 @@ export const openApiDocument = {
         summary: 'App 端登录',
         requestBody: jsonRequestBody(
           'AppLoginRequest',
-          'App 登录请求，支持携带 deviceLabel（设备名称）、deviceType（ios/android/harmony）和 pushToken（推送令牌）。'
+          'App 登录请求，支持携带 deviceLabel（设备名称）、deviceType（ios/android/harmony/miniapp-wechat/web）和 pushToken（推送令牌）。'
         ),
         responses: {
           '200': jsonResponse('AppLoginResponse', '返回已登录结果或注册补全信息。'),
@@ -649,7 +649,7 @@ export const openApiDocument = {
         summary: '补全 App 端注册信息',
         requestBody: jsonRequestBody(
           'CompleteAppRegistrationRequest',
-          'App 注册补全请求，支持携带 deviceLabel、deviceType 和 pushToken，会返回 accessToken 与 refreshToken。'
+          'App 注册补全请求，支持携带 deviceLabel、deviceType（ios/android/harmony/miniapp-wechat/web）和 pushToken，会返回 accessToken 与 refreshToken。'
         ),
         responses: {
           '200': jsonResponse('AppAuthSessionResponse', '注册完成并返回 App 会话。'),
