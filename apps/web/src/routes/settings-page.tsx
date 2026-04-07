@@ -410,8 +410,8 @@ export function SettingsPage() {
         </Alert>
       ) : null}
 
-      <div className="mx-auto grid w-full max-w-[76rem] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] xl:items-start">
-        <section className="space-y-4 rounded-2xl bg-surface-2/50 p-6 md:p-8">
+      <div className="mx-auto grid w-full max-w-[76rem] gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] xl:items-start">
+        <section className="space-y-4">
           <div className="text-lg font-semibold text-foreground">公开资料</div>
 
           <SettingCard
@@ -617,7 +617,7 @@ export function SettingsPage() {
           </SettingCard>
         </section>
 
-        <div className="space-y-6">
+        <div className="space-y-8 xl:pt-[0.2rem]">
           <section className="space-y-4">
             <div className="text-lg font-semibold text-foreground">账号与安全</div>
 
@@ -651,32 +651,55 @@ export function SettingsPage() {
 
           <section className="space-y-4">
             <div className="text-lg font-semibold text-foreground">通知</div>
-            <div className="space-y-6 rounded-2xl bg-surface-2/50 p-6 md:p-8">
-              <SettingToggleRow
-                description="当有人评论或回复你时，消息中心优先显示。"
-                enabled={draft.notifyComments}
-                onToggle={() => {
-                  void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
-                }}
+            <div className="space-y-6">
+              <SettingCard
+                action={
+                  <Button
+                    disabled={savingField === "notifyComments"}
+                    onClick={() => {
+                      void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant={draft.notifyComments ? "panel" : "outline"}
+                  >
+                    {savingField === "notifyComments" ? "保存中..." : draft.notifyComments ? "开启" : "关闭"}
+                  </Button>
+                }
                 title="评论与回复提醒"
-              />
-              <SettingToggleRow
-                description="当有人在帖子、榜单或评论中提及你时提醒。"
-                enabled={draft.notifyMentions}
-                onToggle={() => {
-                  void toggleNotificationField("notifyMentions", "提及提醒已更新");
-                }}
+              >
+                <div className="text-sm leading-6 text-muted-foreground">
+                  当有人评论或回复你时，消息中心优先显示。
+                </div>
+              </SettingCard>
+
+              <SettingCard
+                action={
+                  <Button
+                    disabled={savingField === "notifyMentions"}
+                    onClick={() => {
+                      void toggleNotificationField("notifyMentions", "提及提醒已更新");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant={draft.notifyMentions ? "panel" : "outline"}
+                  >
+                    {savingField === "notifyMentions" ? "保存中..." : draft.notifyMentions ? "开启" : "关闭"}
+                  </Button>
+                }
                 title="提及提醒"
-              />
+              >
+                <div className="text-sm leading-6 text-muted-foreground">
+                  当有人在帖子、榜单或评论中提及你时提醒。
+                </div>
+              </SettingCard>
             </div>
           </section>
-        </div>
 
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 xl:col-span-2">
-          <Button asChild size="sm" type="button" variant="outline">
-            <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
-          </Button>
-          <div className="flex gap-3">
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <Button asChild size="sm" type="button" variant="outline">
+              <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
+            </Button>
             <Button asChild size="sm" type="button" variant="outline">
               <Link to={APP_ROUTES.notifications}>
                 <BellIcon data-icon="inline-start" />
