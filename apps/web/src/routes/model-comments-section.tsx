@@ -154,7 +154,7 @@ function ModelCommentCard(props: {
   }
 
   return (
-    <article className={depth > 0 ? "border-l border-border/70 pl-4" : ""}>
+    <article className={depth > 0 ? "bg-muted/15 pl-4 dark:bg-muted/25" : ""}>
       <div className="flex items-start gap-3">
         <ProfileLink userId={props.comment.author.id}>
           <Avatar className="mt-0.5" size="sm">
@@ -360,7 +360,7 @@ export function ModelCommentsSection(props: {
         <div className="text-sm text-muted-foreground">共 {visibleCount} 条可见评论</div>
       </div>
 
-      <div className="border border-border/70 bg-white px-5 py-5">
+      <div className="bg-white px-5 py-5">
         {!props.isAuthenticated ? (
           <Button className="w-full" onClick={openLoginPrompt} size="sm" type="button" variant="outline">
             登录后发表评论
@@ -407,14 +407,11 @@ export function ModelCommentsSection(props: {
         </Alert>
       ) : null}
 
-      <div className="border border-border/70 bg-white">
+      <div className="bg-white">
         {(commentsQuery.data?.items ?? []).length > 0 ? (
-          <div className="space-y-0 px-5 py-4">
-            {(commentsQuery.data?.items ?? []).map((comment, index) => (
-              <div
-                className={index === 0 ? "" : "border-t border-border/70 pt-4"}
-                key={comment.id}
-              >
+          <div className="space-y-6 px-5 py-4">
+            {(commentsQuery.data?.items ?? []).map((comment) => (
+              <div key={comment.id}>
                 <ModelCommentCard
                   canInteract={props.isAuthenticated}
                   comment={comment}
