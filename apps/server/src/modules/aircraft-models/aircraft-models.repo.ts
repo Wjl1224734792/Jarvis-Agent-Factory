@@ -1,7 +1,6 @@
 import {
   aircraftCategoriesTable,
   aircraftModelCommentsTable,
-  aircraftModelInteractionsTable,
   aircraftModelCommentLikesTable,
   aircraftModelCommentReportsTable,
   aircraftModelReportsTable,
