@@ -218,6 +218,9 @@ const componentSchemas = {
   CreateAircraftSubmissionRequest: toOpenApiSchema(
     createAircraftSubmissionInputSchema
   ),
+  UpdateAircraftSubmissionRequest: toOpenApiSchema(
+    createAircraftSubmissionInputSchema
+  ),
   UpdateAircraftSubmissionStatusRequest: toOpenApiSchema(
     updateAircraftSubmissionStatusInputSchema
   ),
@@ -765,7 +768,7 @@ export const openApiDocument = {
       get: {
         tags: ['auth'],
         summary: '查看最近登录会话',
-        security: sessionCookieSecurity,
+        security: adminSessionSecurity,
         responses: {
           '200': jsonResponse(
             'AdminRecentSessionsResponse',
@@ -812,9 +815,9 @@ export const openApiDocument = {
                 'review-comment',
                 'model-comment',
                 'ranking',
-                'ranking-item',
+                'rating-target',
                 'ranking-comment',
-                'ranking-item-comment'
+                'rating-target-comment'
               ]
             }
           },
@@ -1166,7 +1169,7 @@ export const openApiDocument = {
         security: sessionOrBearerSecurity,
         parameters: [stringPathParameter('id', '投稿 ID。')],
         requestBody: jsonRequestBody(
-          'CreateAircraftSubmissionRequest',
+          'UpdateAircraftSubmissionRequest',
           '更新已提交的投稿内容。'
         ),
         responses: {
