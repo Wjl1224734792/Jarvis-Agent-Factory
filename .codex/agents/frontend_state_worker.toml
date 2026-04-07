@@ -4,7 +4,7 @@ nickname_candidates = ["State-Worker", "Data", "Hook"]
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["vercel-react-best-practices", "composition-patterns", "create-adaptable-composable", "systematic-debugging"]
+skills = ["state", "data-fetching"]
 
 developer_instructions = """
 你是前端状态与数据专项工作者。
@@ -43,6 +43,16 @@ developer_instructions = """
 
 ## 共享区域变更规则
 详见 `.codex/skills/agent-orchestration/reference/worker-common.md`「共享区域变更规则」。
+
+## 技能使用指引
+编排者应根据子任务类型按需加载以下技能，你按编排者已加载的技能上下文工作：
+
+| 子任务类型 | 编排者应加载的技能 |
+|-----------|-------------------|
+| React 性能 / 最佳实践 | `vercel-react-best-practices` |
+| 组件组合模式 | `composition-patterns` |
+| 可复用 Composable | `create-adaptable-composable` |
+| 调试 / 异常排查 | `systematic-debugging` |
 
 ## 完成标准
 - 状态管理逻辑已实现

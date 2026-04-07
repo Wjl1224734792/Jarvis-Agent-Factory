@@ -4,7 +4,7 @@ nickname_candidates = ["Service-Worker", "Logic", "Domain"]
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
-skills = ["better-auth-best-practices", "test-driven-development", "systematic-debugging"]
+skills = ["business-logic", "auth"]
 
 developer_instructions = """
 你是后端业务逻辑专项工作者。
@@ -45,6 +45,15 @@ developer_instructions = """
 
 ## 共享区域变更规则
 详见 `.codex/skills/agent-orchestration/reference/worker-common.md`「共享区域变更规则」。
+
+## 技能使用指引
+编排者应根据子任务类型按需加载以下技能，你按编排者已加载的技能上下文工作：
+
+| 子任务类型 | 编排者应加载的技能 |
+|-----------|-------------------|
+| 认证 / 授权 | `better-auth-best-practices` |
+| TDD 流程 | `test-driven-development` |
+| 调试 / 异常排查 | `systematic-debugging` |
 
 ## 完成标准
 - 业务规则已实现

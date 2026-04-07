@@ -4,7 +4,7 @@ nickname_candidates = ["UI-Worker", "View", "Component"]
 model = "gpt-5.4-mini"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["ant-design", "antd", "shadcn", "frontend-design", "frontend-skill", "ui-ux-pro-max", "tailwind-design-system", "theme-factory", "web-design-guidelines", "canvas-design"]
+skills = ["ui", "design"]
 
 developer_instructions = """
 你是前端 UI 专项工作者。
@@ -41,6 +41,17 @@ developer_instructions = """
 
 ## 共享区域变更规则
 详见 `.codex/skills/agent-orchestration/reference/worker-common.md`「共享区域变更规则」。
+
+## 技能使用指引
+编排者应根据子任务类型按需加载以下技能，你按编排者已加载的技能上下文工作：
+
+| 子任务类型 | 编排者应加载的技能 |
+|-----------|-------------------|
+| Ant Design 组件 | `antd` |
+| shadcn/ui 组件 | `shadcn` |
+| 设计质量 / 视觉 | `frontend-design`、`ui-ux-pro-max` |
+| Tailwind 设计系统 | `tailwind-design-system`、`theme-factory` |
+| 无障碍 / 设计审计 | `web-design-guidelines` |
 
 ## 完成标准
 - UI 组件已创建/修改
