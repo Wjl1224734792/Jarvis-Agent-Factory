@@ -27,6 +27,7 @@ type ThreadProps = {
   canInteract: boolean;
   isRefreshing?: boolean;
   showPendingComment?: boolean;
+  sortOrder?: "latest" | "hot";
   /** 嵌入带外边框的面板时可去掉根节点纵向边框，避免重复描边 */
   className?: string;
 };
@@ -423,6 +424,25 @@ function RootCommentItem(props: {
 }
 
 export function PostCommentThread(props: ThreadProps) {
+  const sortedComments = useMemo(() => {
+    const items = [...props.comments];
+    if ((props.sortOrder ?? "latest") === "latest") {
+      return items.sort(
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
+    }
+
+    return items.sort((left, right) => {
+      const leftScore = (left.likeCount ?? 0) * 2 + left.replyCount;
+      const rightScore = (right.likeCount ?? 0) * 2 + right.replyCount;
+      if (rightScore !== leftScore) {
+        return rightScore - leftScore;
+      }
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+  }, [props.comments, props.sortOrder]);
+
   return (
     <div
       className={cn(
@@ -443,7 +463,7 @@ export function PostCommentThread(props: ThreadProps) {
         </div>
       ) : null}
 
-      {props.comments.map((comment) => (
+      {sortedComments.map((comment) => (
         <RootCommentItem
           canInteract={props.canInteract}
           comment={comment}

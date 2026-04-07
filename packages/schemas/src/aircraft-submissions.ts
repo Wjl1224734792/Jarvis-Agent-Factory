@@ -1,6 +1,6 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
-import { aircraftCategorySchema, brandSchema, powerTypeSchema } from "./models";
+import { aircraftCategorySchema, brandSchema, modelLifecycleStatusSchema, powerTypeSchema } from "./models";
 
 const priceValueSchema = z.number().int().nonnegative().nullable();
 
@@ -69,6 +69,7 @@ export const aircraftSubmissionSchema = z.object({
   proposedBrandName: z.string().nullable(),
   modelName: z.string().min(1),
   powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
   summary: z.string().nullable(),
   description: z.string().nullable(),
   priceMin: priceValueSchema,
@@ -94,6 +95,7 @@ export const createAircraftSubmissionInputSchema = z.object({
   proposedBrandName: z.string().trim().min(1).max(80).nullable().optional().default(null),
   modelName: z.string().trim().min(1).max(120),
   powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
   summary: z.string().trim().max(200).nullable(),
   description: z.string().trim().max(4000).nullable(),
   coverImageFileId: z.string().trim().min(1).nullable(),

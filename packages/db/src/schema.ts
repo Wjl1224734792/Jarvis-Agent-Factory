@@ -17,6 +17,7 @@ export const usersTable = pgTable(
     role: text("role").notNull(),
     displayName: text("display_name").notNull(),
     avatarFileId: text("avatar_file_id"),
+    coverImageFileId: text("cover_image_file_id"),
     bio: text("bio"),
     phone: text("phone"),
     // 仅预留微信身份标识，后续真正接入微信登录时再补完整鉴权流程。
@@ -209,6 +210,7 @@ export const aircraftModelsTable = pgTable(
     }),
     sourceSubmissionId: text("source_submission_id"),
     powerType: text("power_type").notNull(),
+    lifecycleStatus: text("lifecycle_status").default("unreleased").notNull(),
     summary: text("summary"),
     description: text("description"),
     priceMin: integer("price_min"),
@@ -677,6 +679,7 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   proposedBrandName: text("proposed_brand_name"),
   modelName: text("model_name").notNull(),
   powerType: text("power_type").notNull(),
+  lifecycleStatus: text("lifecycle_status").default("unreleased").notNull(),
   summary: text("summary"),
   description: text("description"),
   priceMin: integer("price_min"),

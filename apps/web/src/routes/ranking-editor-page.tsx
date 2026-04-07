@@ -245,25 +245,35 @@ export function RankingEditorPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-base font-semibold text-foreground">封面</div>
-                <Button
-                  onClick={() => coverInputRef.current?.click()}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <CameraIcon data-icon="inline-start" />
-                  {isUploading ? "上传中..." : "上传封面"}
-                </Button>
-              </div>
-              <div className="overflow-hidden rounded-[0.95rem] border border-border/70">
-                <img
-                  alt="ranking cover"
-                  className="h-[220px] w-full object-cover"
-                  src={coverImageUrl || getEditorialImage("ranking-editor")}
-                />
-              </div>
+              <div className="text-base font-semibold text-foreground">封面</div>
+              <button
+                className="group relative block w-full overflow-hidden rounded-[0.95rem] border border-dashed border-border/70 bg-card text-left transition hover:border-primary/40"
+                onClick={() => coverInputRef.current?.click()}
+                type="button"
+              >
+                {coverImageUrl ? (
+                  <>
+                    <img
+                      alt="ranking cover"
+                      className="h-[220px] w-full object-cover"
+                      src={coverImageUrl}
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white">
+                      <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                        <CameraIcon className="size-4" />
+                        {isUploading ? "上传中..." : "点击更换封面"}
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 bg-surface-1 text-muted-foreground">
+                    <CameraIcon className="size-8" />
+                    <div className="text-sm font-medium text-foreground">
+                      {isUploading ? "上传中..." : "点击上传榜单封面"}
+                    </div>
+                  </div>
+                )}
+              </button>
               <input
                 accept="image/*"
                 className="hidden"
@@ -298,7 +308,7 @@ export function RankingEditorPage() {
                 <div className="flex gap-2">
                   <Button onClick={appendCustomItem} size="sm" type="button" variant="outline">
                     <PlusIcon data-icon="inline-start" />
-                    自定义条目
+                    添加排行对象
                   </Button>
                 </div>
               </div>
@@ -419,36 +429,41 @@ export function RankingEditorPage() {
                 placeholder="搜索机型、品牌或分类"
                 value={modelSearch}
               />
-              <div className="grid gap-3 md:grid-cols-2">
-                {suggestedModels.map((model, index) => (
-                  <button
-                    className="grid grid-cols-[88px_minmax(0,1fr)] gap-3 rounded-[0.9rem] border border-border/70 p-3 text-left transition hover:border-primary/30 hover:bg-sky-50/55"
-                    key={model.id}
-                    onClick={() =>
-                      appendModel(
-                        model.slug,
-                        model.name,
-                        model.brand.name,
-                        getModelImage(model.slug, model.powerType, index)
-                      )
-                    }
-                    type="button"
-                  >
-                    <img
-                      alt={model.name}
-                      className="h-[88px] w-full rounded-[0.8rem] object-cover"
-                      src={getModelImage(model.slug, model.powerType, index)}
-                    />
-                    <div className="min-w-0">
-                      <div className="truncate text-sm font-semibold text-foreground">{model.name}</div>
-                      <div className="text-xs text-muted-foreground">{model.brand.name}</div>
-                    </div>
-                  </button>
-                ))}
+              <div className="max-h-[28rem] overflow-y-auto pr-1">
+                <div className="grid gap-3 md:grid-cols-2">
+                  {suggestedModels.map((model, index) => (
+                    <button
+                      className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 rounded-[0.9rem] border border-border/70 p-3 text-left transition hover:border-primary/30 hover:bg-sky-50/55"
+                      key={model.id}
+                      onClick={() =>
+                        appendModel(
+                          model.slug,
+                          model.name,
+                          model.brand.name,
+                          getModelImage(model.slug, model.powerType, index)
+                        )
+                      }
+                      type="button"
+                    >
+                      <img
+                        alt={model.name}
+                        className="h-[72px] w-full rounded-[0.8rem] object-cover"
+                        src={getModelImage(model.slug, model.powerType, index)}
+                      />
+                      <div className="min-w-0 space-y-1">
+                        <div className="truncate text-sm font-semibold text-foreground">{model.name}</div>
+                        <div className="text-xs text-muted-foreground">{model.brand.name}</div>
+                        <div className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                          {model.summary ?? `${model.category.name} / ${model.brand.name}`}
+                        </div>
+                      </div>
+                    </button>
+                  ))}
+                </div>
               </div>
               {suggestedModels.length === 0 ? (
                 <div className="rounded-[0.85rem] border border-dashed border-border/70 px-4 py-4 text-sm text-muted-foreground">
-                  没有匹配的机型，可直接添加自定义条目。
+                  没有匹配的机型，可直接添加排行对象。
                 </div>
               ) : null}
             </SitePanelBody>
@@ -527,13 +542,19 @@ export function RankingEditorPage() {
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
               <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              <div className="overflow-hidden rounded-[0.95rem] border border-border/70">
-                <img
-                  alt="preview cover"
-                  className="h-[220px] w-full object-cover"
-                  src={coverImageUrl || getEditorialImage("ranking-preview")}
-                />
-              </div>
+              {coverImageUrl ? (
+                <div className="overflow-hidden rounded-[0.95rem] border border-border/70">
+                  <img
+                    alt="preview cover"
+                    className="h-[220px] w-full object-cover"
+                    src={coverImageUrl}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-[220px] w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground">
+                  暂未设置封面
+                </div>
+              )}
               <div className="space-y-2">
                 <div className="text-[1.25rem] font-semibold text-foreground">{title || "榜单标题"}</div>
                 <div className="text-sm leading-6 text-muted-foreground">{description || "榜单简介"}</div>

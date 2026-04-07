@@ -7,6 +7,8 @@ export type UserSettingsSnapshot = {
   bio: string | null;
   avatarFileId?: string | null;
   avatarUrl: string | null;
+  coverImageFileId?: string | null;
+  coverImageUrl?: string | null;
   phone: string | null;
   phoneMasked?: string | null;
   profileVisibility: ProfileVisibility;
@@ -21,6 +23,8 @@ export type SettingsDraft = {
   bio: string;
   avatarFileId: string;
   avatarUrl: string;
+  coverImageFileId: string;
+  coverImageUrl: string;
   phone: string;
   phoneMasked: string;
   profileVisibility: ProfileVisibility;
@@ -31,7 +35,14 @@ export type SettingsDraft = {
   hasPendingChanges: boolean;
 };
 
-export type SettingsTextField = "displayName" | "bio" | "avatarFileId" | "avatarUrl" | "phone";
+export type SettingsTextField =
+  | "displayName"
+  | "bio"
+  | "avatarFileId"
+  | "avatarUrl"
+  | "coverImageFileId"
+  | "coverImageUrl"
+  | "phone";
 export type SettingsBooleanField =
   | "notifyComments"
   | "notifyMentions"
@@ -44,6 +55,8 @@ export function createSettingsDraft(snapshot: UserSettingsSnapshot): SettingsDra
     bio: snapshot.bio ?? "",
     avatarFileId: snapshot.avatarFileId ?? "",
     avatarUrl: snapshot.avatarUrl ?? "",
+    coverImageFileId: snapshot.coverImageFileId ?? "",
+    coverImageUrl: snapshot.coverImageUrl ?? "",
     phone: snapshot.phone ?? "",
     phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
     profileVisibility: snapshot.profileVisibility,
@@ -112,6 +125,7 @@ export function buildUpdateCurrentUserProfileInput(draft: SettingsDraft) {
     displayName: draft.displayName.trim(),
     bio: draft.bio.trim() || null,
     avatarFileId: draft.avatarFileId.trim() || null,
+    coverImageFileId: draft.coverImageFileId.trim() || null,
     phone: draft.phone.trim() || null,
     profileVisibility: draft.profileVisibility,
     notifyComments: draft.notifyComments,

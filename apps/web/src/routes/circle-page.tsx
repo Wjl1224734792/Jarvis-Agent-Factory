@@ -65,6 +65,7 @@ export function CirclePage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
   const [commentContent, setCommentContent] = useState("");
+  const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [selectedMediaIndex, setSelectedMediaIndex] = useState(0);
@@ -434,8 +435,25 @@ export function CirclePage() {
                       </div>
 
                       <div className="border-t border-border pt-3.5">
-                        <div className="mb-3 text-[0.84rem] font-semibold text-foreground">
-                          评论区 {selectedNote.commentCount}
+                        <div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+                          <div className="text-[0.84rem] font-semibold text-foreground">评论区 {selectedNote.commentCount}</div>
+                          <div className="flex items-center gap-2">
+                            {(["latest", "hot"] as const).map((item) => (
+                              <button
+                                className={cn(
+                                  "rounded-full border px-3 py-1 text-xs transition",
+                                  commentSort === item
+                                    ? "border-primary bg-primary text-primary-foreground"
+                                    : "border-border/70 text-muted-foreground hover:text-foreground"
+                                )}
+                                key={item}
+                                onClick={() => setCommentSort(item)}
+                                type="button"
+                              >
+                                {item === "latest" ? "最新" : "热门"}
+                              </button>
+                            ))}
+                          </div>
                         </div>
                         {selectedNote.comments.length > 0 ? (
                           <PostCommentThread
@@ -443,6 +461,7 @@ export function CirclePage() {
                             comments={selectedNote.comments}
                             currentUserId={currentUser?.id}
                             postId={selectedNote.id}
+                            sortOrder={commentSort}
                           />
                         ) : (
                           <div className="text-[0.82rem] text-muted-foreground">还没有评论。</div>

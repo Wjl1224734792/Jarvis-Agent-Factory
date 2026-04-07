@@ -311,6 +311,7 @@ export function ModelCommentsSection(props: {
   const promptLogin = useLoginPrompt();
   const queryClient = useQueryClient();
   const [content, setContent] = useState("");
+  const [sortOrder, setSortOrder] = useState<"latest" | "hot">("latest");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -332,13 +333,49 @@ export function ModelCommentsSection(props: {
   }
 
   const visibleCount = countVisibleComments(commentsQuery.data?.items ?? []);
+  const sortedComments = useMemo(() => {
+    const items = [...(commentsQuery.data?.items ?? [])];
+    if (sortOrder === "latest") {
+      return items.sort(
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
+    }
+
+    return items.sort((left, right) => {
+      const leftScore = (left.likeCount ?? 0) * 2 + left.replyCount;
+      const rightScore = (right.likeCount ?? 0) * 2 + right.replyCount;
+      if (rightScore !== leftScore) {
+        return rightScore - leftScore;
+      }
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+  }, [commentsQuery.data?.items, sortOrder]);
 
   return (
     <section className="space-y-4" id="model-comment-area">
       <div className="space-y-1">
-        <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-          <MessageSquareTextIcon className="size-4.5 text-primary" />
-          评论区
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <MessageSquareTextIcon className="size-4.5 text-primary" />
+            评论区
+          </div>
+          <div className="flex items-center gap-2">
+            {(["latest", "hot"] as const).map((item) => (
+              <button
+                className={
+                  sortOrder === item
+                    ? "rounded-full border border-primary bg-primary px-3 py-1 text-xs text-primary-foreground transition"
+                    : "rounded-full border border-border/70 px-3 py-1 text-xs text-muted-foreground transition hover:text-foreground"
+                }
+                key={item}
+                onClick={() => setSortOrder(item)}
+                type="button"
+              >
+                {item === "latest" ? "最新" : "热门"}
+              </button>
+            ))}
+          </div>
         </div>
         <div className="text-sm text-muted-foreground">共 {visibleCount} 条可见评论</div>
       </div>
@@ -391,9 +428,9 @@ export function ModelCommentsSection(props: {
       ) : null}
 
       <div className="bg-white">
-        {(commentsQuery.data?.items ?? []).length > 0 ? (
+        {sortedComments.length > 0 ? (
           <div className="space-y-6 px-5 py-4">
-            {(commentsQuery.data?.items ?? []).map((comment) => (
+            {sortedComments.map((comment) => (
               <div key={comment.id}>
                 <ModelCommentCard
                   canInteract={props.isAuthenticated}

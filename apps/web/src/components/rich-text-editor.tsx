@@ -199,7 +199,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
     editorProps: {
       attributes: {
         class:
-          "min-h-[360px] px-4 py-4 text-[1rem] leading-7 text-foreground outline-none [&_.selectedCell]:bg-primary/10 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_blockquote]:text-foreground/76 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-[1.45rem] [&_h2]:font-semibold [&_h3]:mt-5 [&_h3]:mb-3 [&_h3]:text-[1.18rem] [&_h3]:font-semibold [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100 [&_p]:mb-4 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-6"
+          "rich-text-editor-content min-h-[360px] px-4 py-4 text-[1rem] leading-7 text-foreground outline-none caret-foreground [&_.selectedCell]:bg-primary/10 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_blockquote]:text-foreground/76 [&_:not(pre)>code]:rounded [&_:not(pre)>code]:bg-slate-100 [&_:not(pre)>code]:px-1.5 [&_:not(pre)>code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-6 [&_h2]:mb-3 [&_h2]:text-[1.45rem] [&_h2]:font-semibold [&_h3]:mt-5 [&_h3]:mb-3 [&_h3]:text-[1.18rem] [&_h3]:font-semibold [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-4 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-[#050816] [&_pre]:p-4 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:font-mono [&_pre_code]:text-slate-100 [&_pre_*]:caret-white [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-6"
       }
     },
     onUpdate({ editor: currentEditor }) {
@@ -262,8 +262,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
 
   return (
     <div className="space-y-3">
-      <div className="space-y-2">
-        <div className="flex flex-wrap items-center gap-2">
+      <div className="flex flex-wrap items-center gap-2">
           <ToolbarIconButton
             active={stateFor("bold")?.active}
             disabled={!editor}
@@ -419,9 +418,6 @@ export function RichTextEditor(props: RichTextEditorProps) {
             label={getToolbarControlLabel("clearColor")}
             onClick={() => editor?.chain().focus().unsetColor().run()}
           />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2">
           <ToolbarIconButton
             active={stateFor("table")?.active}
             disabled={!editor}
@@ -473,7 +469,6 @@ export function RichTextEditor(props: RichTextEditorProps) {
             label={getToolbarControlLabel("video")}
             onClick={() => videoInputRef.current?.click()}
           />
-        </div>
       </div>
 
       <div className="overflow-hidden rounded-[0.9rem] border border-border/70 bg-white">

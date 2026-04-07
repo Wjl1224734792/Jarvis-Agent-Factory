@@ -11,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { AuthCaptchaChallenge } from "@/components/auth-captcha-challenge";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -126,6 +127,8 @@ export function SettingsPage() {
       bio: null,
       avatarFileId: null,
       avatarUrl: null,
+      coverImageFileId: null,
+      coverImageUrl: null,
       phone: null,
       phoneMasked: null,
       profileVisibility: "community",
@@ -745,7 +748,7 @@ export function SettingsPage() {
                 </Button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-start">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
                     新手机号
@@ -761,15 +764,13 @@ export function SettingsPage() {
                 </div>
                 <div className="space-y-2">
                   <div className="text-sm font-medium text-muted-foreground">图形验证码</div>
-                  <Button
-                    className="h-12 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono tracking-[0.28em] text-white hover:bg-slate-900/92"
-                    onClick={() => {
+                  <AuthCaptchaChallenge
+                    code={phoneSmsFlow.challenge?.imageOrText ?? "----"}
+                    hintClassName="text-left"
+                    onRefresh={() => {
                       void refreshPhoneChallenge();
                     }}
-                    type="button"
-                  >
-                    {phoneSmsFlow.challenge?.imageOrText ?? "----"}
-                  </Button>
+                  />
                 </div>
               </div>
 

@@ -53,7 +53,7 @@ export const createPostInputSchema = z
     content: z.string().trim().min(1).max(8000),
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1).nullable().optional(),
-    imageIds: z.array(z.string().min(1)).max(6).default([]),
+    imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).max(2).default([])
   })
   .superRefine((input, context) => {

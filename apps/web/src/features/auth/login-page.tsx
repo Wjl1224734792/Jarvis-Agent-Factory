@@ -1,7 +1,9 @@
 ﻿import { APP_ROUTES } from "@feijia/shared";
+import { ApiClientError } from "@feijia/http-client";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
+import { AuthCaptchaChallenge } from "@/components/auth-captcha-challenge";
 import {
   SitePageDescription,
   SitePageEyebrow,
@@ -49,6 +51,7 @@ export function LoginPage() {
   const [step, setStep] = useState<LoginStep>("verify");
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
+  const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [isCompletingProfile, setIsCompletingProfile] = useState(false);
@@ -69,6 +72,7 @@ export function LoginPage() {
 
   async function requestLoginSmsCode() {
     setSubmitError(null);
+    setDisplayNameError(null);
     await smsFlow.sendSmsCode({
       request: ({ challengeId, captchaCode }) =>
         apiClient.requestSmsCode({
@@ -138,8 +142,8 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px] sm:items-end">
-                <div className="space-y-3">
+              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px] sm:items-start">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground" htmlFor="login-captcha">
                     图形验证码
                   </label>
@@ -154,24 +158,19 @@ export function LoginPage() {
                   />
                 </div>
 
-                <div className="space-y-3">
+                <div className="space-y-2">
                   <div className="text-sm font-medium text-muted-foreground">验证码</div>
-                  <Button
-                    className="h-12 w-full rounded-[var(--radius-control)] bg-slate-900 font-mono text-lg tracking-[0.3em] text-white hover:bg-slate-900/92"
-                    onClick={() => {
+                  <AuthCaptchaChallenge
+                    code={smsFlow.challenge?.imageOrText ?? "----"}
+                    hintClassName="text-left"
+                    onRefresh={() => {
                       setSubmitError(null);
                       void smsFlow.refreshCaptcha({
                         onError: setSubmitError,
                         errorFallback: "刷新验证码失败"
                       });
                     }}
-                    type="button"
-                  >
-                    {smsFlow.challenge?.imageOrText ?? "----"}
-                  </Button>
-                  <p className="text-center text-xs text-muted-foreground sm:text-left">
-                    看不清？点击上方验证码可刷新
-                  </p>
+                  />
                 </div>
               </div>
 
@@ -267,6 +266,7 @@ export function LoginPage() {
 
                         setRegistrationToken(response.registrationToken);
                         setDisplayName(response.suggestedDisplayName);
+                        setDisplayNameError(null);
                         setAvatarPreview(null);
                         setSelectedAvatarFile(null);
                         setStep("profile");
@@ -357,9 +357,15 @@ export function LoginPage() {
                 </label>
                 <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center">
                   <Input
+                    aria-invalid={displayNameError ? "true" : undefined}
                     className="h-12"
                     id="register-display-name"
-                    onChange={event => setDisplayName(event.target.value)}
+                    onChange={event => {
+                      setDisplayName(event.target.value);
+                      if (displayNameError) {
+                        setDisplayNameError(null);
+                      }
+                    }}
                     placeholder="请输入用户名"
                     value={displayName}
                   />
@@ -369,6 +375,10 @@ export function LoginPage() {
                   </div>
                 </div>
               </div>
+
+              {displayNameError ? (
+                <div className="text-sm text-destructive">{displayNameError}</div>
+              ) : null}
 
               {submitError ? (
                 <Alert variant="destructive">
@@ -384,6 +394,7 @@ export function LoginPage() {
                   onClick={() => {
                     setStep("verify");
                     setSubmitError(null);
+                    setDisplayNameError(null);
                   }}
                   size="lg"
                   type="button"
@@ -400,6 +411,7 @@ export function LoginPage() {
 
                     setIsCompletingProfile(true);
                     setSubmitError(null);
+                    setDisplayNameError(null);
 
                     void apiClient
                       .completeWebRegistration({
@@ -424,6 +436,11 @@ export function LoginPage() {
                         });
                       })
                       .catch((error: unknown) => {
+                        if (error instanceof ApiClientError && error.code === "DISPLAY_NAME_TAKEN") {
+                          setDisplayNameError(error.message);
+                          return;
+                        }
+
                         setSubmitError(error instanceof Error ? error.message : "资料保存失败");
                       })
                       .finally(() => {

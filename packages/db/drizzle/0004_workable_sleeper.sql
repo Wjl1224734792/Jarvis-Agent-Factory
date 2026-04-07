@@ -1,0 +1,2 @@
+ALTER TABLE "aircraft_models" ADD COLUMN "lifecycle_status" text DEFAULT 'unreleased' NOT NULL;--> statement-breakpoint
+ALTER TABLE "aircraft_submissions" ADD COLUMN "lifecycle_status" text DEFAULT 'unreleased' NOT NULL;

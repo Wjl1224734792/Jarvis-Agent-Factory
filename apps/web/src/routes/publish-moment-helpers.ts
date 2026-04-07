@@ -1,5 +1,5 @@
 export function canAppendMomentImages(currentImageCount: number, incomingCount: number) {
-  return currentImageCount + incomingCount <= 6;
+  return currentImageCount + incomingCount > 0;
 }
 
 export function canReplaceWithMomentVideo(incomingCount: number) {

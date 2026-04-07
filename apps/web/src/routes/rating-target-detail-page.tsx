@@ -314,6 +314,7 @@ export function RatingTargetDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
+  const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [itemTitle, setItemTitle] = useState("");
   const [itemSummary, setItemSummary] = useState("");
   const [itemBrandName, setItemBrandName] = useState("");
@@ -361,6 +362,24 @@ export function RatingTargetDetailPage() {
   }
 
   const totalRatings = item?.totalRatings ?? 0;
+  const sortedComments = useMemo(() => {
+    const items = [...(item?.comments ?? [])];
+    if (commentSort === "latest") {
+      return items.sort(
+        (left, right) => new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime()
+      );
+    }
+
+    return items.sort((left, right) => {
+      const leftScore = (left.likeCount ?? 0) * 2 + left.replies.length;
+      const rightScore = (right.likeCount ?? 0) * 2 + right.replies.length;
+      if (rightScore !== leftScore) {
+        return rightScore - leftScore;
+      }
+
+      return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
+    });
+  }, [commentSort, item?.comments]);
   const ratingLabel = useMemo(() => {
     if (replyingTo) {
       return `正在回复 @${replyingTo.displayName}`;
@@ -574,7 +593,26 @@ export function RatingTargetDetailPage() {
           </div>
 
           <div className="space-y-4 border-t border-border/60 pt-4">
-            <div className="text-base font-semibold text-foreground">评分与评论</div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className="text-base font-semibold text-foreground">评分与评论</div>
+              <div className="flex items-center gap-2">
+                {(["latest", "hot"] as const).map((item) => (
+                  <button
+                    className={cn(
+                      "rounded-full border px-3 py-1 text-xs transition",
+                      commentSort === item
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border/70 text-muted-foreground hover:text-foreground"
+                    )}
+                    key={item}
+                    onClick={() => setCommentSort(item)}
+                    type="button"
+                  >
+                    {item === "latest" ? "最新" : "热门"}
+                  </button>
+                ))}
+              </div>
+            </div>
 
             <div className="border border-border/70 bg-white px-5 py-5">
               <div className="space-y-4">
@@ -670,9 +708,9 @@ export function RatingTargetDetailPage() {
             </div>
 
             <div className="border border-border/70 bg-white">
-              {item.comments.length > 0 ? (
+              {sortedComments.length > 0 ? (
                 <div className="space-y-0 px-5 py-4">
-                  {item.comments.map((comment, index) => (
+                  {sortedComments.map((comment, index) => (
                     <div className={index === 0 ? "" : "border-t border-border/70 pt-4"} key={comment.id}>
                       <RatingTargetCommentCard
                         canInteract={authStatus === "authenticated"}

@@ -506,6 +506,7 @@ export const socialRepo = {
         displayName: usersTable.displayName,
         bio: usersTable.bio,
         avatarFileId: usersTable.avatarFileId,
+        coverImageFileId: usersTable.coverImageFileId,
         phone: usersTable.phone
       })
       .from(usersTable)
@@ -616,6 +617,7 @@ export const socialRepo = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
+      coverImageFileId?: string | null;
       phone?: string | null;
     }
   ) {
@@ -629,6 +631,9 @@ export const socialRepo = {
     }
     if (input.avatarFileId !== undefined) {
       updates.avatarFileId = input.avatarFileId ?? null;
+    }
+    if (input.coverImageFileId !== undefined) {
+      updates.coverImageFileId = input.coverImageFileId ?? null;
     }
     if (input.phone !== undefined) {
       updates.phone = input.phone ?? null;

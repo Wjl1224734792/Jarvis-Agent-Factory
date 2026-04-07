@@ -7,7 +7,7 @@ import {
 } from "@/routes/circle-page-helpers";
 
 export const MODEL_GRID_CLASS_NAME =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,13.625rem),1fr))] gap-x-4 gap-y-5";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,11.5rem),1fr))] gap-x-3 gap-y-4";
 
 export const RANKING_GRID_CLASS_NAME =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17.25rem),1fr))] gap-3";
@@ -91,18 +91,25 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
     >
       {Array.from({ length: props.count ?? 9 }).map((_, index) => (
         <div
-          className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white"
+          className="mb-2.5 break-inside-avoid overflow-hidden rounded-[1.15rem] bg-white xl:mx-auto xl:max-w-[13.5rem]"
           key={index}
         >
-          <Skeleton className={`w-full rounded-t-[0.95rem] ${getCircleCardHeightClass(index)}`} />
-          <div className="space-y-2 px-2 pb-2.5 pt-2.5">
-            <Skeleton className="h-4 w-4/5" />
-            <div className="flex items-center justify-between gap-3">
+          <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
+            <Skeleton className={`w-full rounded-[1rem] ${getCircleCardHeightClass(index)}`} />
+            {index % 4 === 1 ? (
+              <div className="absolute right-3 top-3">
+                <Skeleton className="size-7 rounded-full" />
+              </div>
+            ) : null}
+          </div>
+          <div className="space-y-1.5 px-3 pb-3 pt-1.5">
+            <Skeleton className="h-4.5 w-4/5" />
+            <div className="flex items-center justify-between gap-2">
               <div className="flex items-center gap-2">
                 <Skeleton className="size-6 rounded-full" />
                 <Skeleton className="h-3.5 w-20" />
               </div>
-              <Skeleton className="h-3.5 w-10" />
+              <Skeleton className="h-3.5 w-8" />
             </div>
           </div>
         </div>
@@ -115,12 +122,14 @@ export function ModelGridSkeleton(props: { count?: number }) {
   return (
     <div className={MODEL_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 8 }).map((_, index) => (
-        <div className="block min-w-0 rounded-[0.95rem] border border-border bg-white px-3 py-3" key={index}>
-          <Skeleton className="aspect-square w-full rounded-[0.9rem]" />
-          <div className="space-y-2 px-0.5 pb-0.5 pt-3">
-            <Skeleton className="h-3.5 w-16" />
-            <Skeleton className="h-4 w-4/5" />
-            <Skeleton className="h-3.5 w-24" />
+        <div className="block min-w-0 overflow-hidden bg-white" key={index}>
+          <Skeleton className="aspect-[4/3] w-full" />
+          <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
+            <Skeleton className="h-3 w-14" />
+            <Skeleton className="h-4.5 w-4/5" />
+            <Skeleton className="h-3.5 w-2/5" />
+            <Skeleton className="h-3.5 w-full" />
+            <Skeleton className="h-3.5 w-4/5" />
           </div>
         </div>
       ))}

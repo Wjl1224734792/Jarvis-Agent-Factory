@@ -43,6 +43,17 @@ const powerTypeOptions = [
   { value: "hybrid", label: "混动" },
   { value: "other", label: "其他" }
 ] as const;
+const lifecycleStatusOptions = [
+  { value: "concept", label: "概念" },
+  { value: "development", label: "研发" },
+  { value: "testing", label: "测试" },
+  { value: "unreleased", label: "未发布" },
+  { value: "released", label: "已发布" },
+  { value: "not_in_market", label: "未上市" },
+  { value: "marketed", label: "已上市" }
+] as const;
+const AIRCRAFT_SUMMARY_MAX_LENGTH = 50;
+const AIRCRAFT_DESCRIPTION_MAX_LENGTH = 300;
 
 export function PublishAircraftPage() {
   const navigate = useNavigate();
@@ -50,12 +61,12 @@ export function PublishAircraftPage() {
   const promptLogin = useLoginPrompt();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const mediaInputRef = useRef<HTMLInputElement | null>(null);
   const [modelName, setModelName] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
   const [selectedPowerType, setSelectedPowerType] = useState<string>("other");
+  const [selectedLifecycleStatus, setSelectedLifecycleStatus] = useState<string>("unreleased");
   const [brandKeyword, setBrandKeyword] = useState("");
   const [summary, setSummary] = useState("");
   const [description, setDescription] = useState("");
@@ -116,6 +127,7 @@ export function PublishAircraftPage() {
     setSelectedBrandId(item.brand?.id ?? "");
     setSelectedCategoryId(item.category.id);
     setSelectedPowerType(item.powerType);
+    setSelectedLifecycleStatus(item.lifecycleStatus);
     setSummary(item.summary ?? "");
     setDescription(item.description ?? "");
     setPriceMin(item.priceMin?.toString() ?? "");
@@ -166,8 +178,8 @@ export function PublishAircraftPage() {
       setError(reason instanceof Error ? reason.message : "图片上传失败");
     } finally {
       setIsUploading(false);
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
+      if (mediaInputRef.current) {
+        mediaInputRef.current.value = "";
       }
     }
   }
@@ -192,10 +204,30 @@ export function PublishAircraftPage() {
       setError(reason instanceof Error ? reason.message : "视频上传失败");
     } finally {
       setIsUploading(false);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = "";
+      if (mediaInputRef.current) {
+        mediaInputRef.current.value = "";
       }
     }
+  }
+
+  async function handleCoverMediaPick(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const file = files[0];
+    if (!file) {
+      return;
+    }
+
+    if (file.type.startsWith("video/")) {
+      await handleVideoUpload(file);
+      return;
+    }
+
+    const dataTransfer = new DataTransfer();
+    dataTransfer.items.add(file);
+    await handleImageUpload(dataTransfer.files);
   }
 
   if (categoriesQuery.isLoading || brandsQuery.isLoading || submissionQuery.isLoading) {
@@ -294,10 +326,7 @@ export function PublishAircraftPage() {
                   ) : null}
                 </div>
                 <div className="flex flex-wrap items-center justify-between gap-3 rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-3 py-3 text-sm text-muted-foreground">
-                  <span>飞行器发布目前只支持选择已有品牌，品牌申请已拆分为独立入口。</span>
-                  <Button asChild size="sm" type="button" variant="outline">
-                    <Link to={APP_ROUTES.publishBrand}>申请品牌</Link>
-                  </Button>
+                  <span>飞行器发布目前只支持选择已有品牌。</span>
                 </div>
               </div>
 
@@ -315,34 +344,27 @@ export function PublishAircraftPage() {
                   ))}
                 </select>
               </div>
+
+              <div className="space-y-2">
+                <div className="text-sm font-medium text-foreground/72">状态</div>
+                <select
+                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                  onChange={(event) => setSelectedLifecycleStatus(event.target.value)}
+                  value={selectedLifecycleStatus}
+                >
+                  {lifecycleStatusOptions.map((item) => (
+                    <option key={item.value} value={item.value}>
+                      {item.label}
+                    </option>
+                  ))}
+                </select>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="flex items-center justify-between gap-3">
-                <div className="text-base font-semibold text-foreground">封面</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => imageInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <FileImageIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "上传图片"}
-                  </Button>
-                  <Button
-                    onClick={() => videoInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <PlaneTakeoffIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "上传视频"}
-                  </Button>
-                </div>
-              </div>
+              <div className="text-base font-semibold text-foreground">封面</div>
 
               <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
                 {uploadedVideo ? (
@@ -373,31 +395,27 @@ export function PublishAircraftPage() {
                   </div>
                 ) : (
                   <button
-                    className="flex h-56 w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background"
-                    onClick={() => imageInputRef.current?.click()}
+                    className="group flex h-56 w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background transition hover:border-primary/35 hover:bg-accent/30"
+                    onClick={() => mediaInputRef.current?.click()}
                     type="button"
                   >
-                    <FileImageIcon className="size-8 text-muted-foreground" />
+                    <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground">
+                      <FileImageIcon className="size-8" />
+                      <div className="text-sm font-medium">
+                        {isUploading ? "上传中..." : "点击上传图片或视频"}
+                      </div>
+                    </div>
                   </button>
                 )}
               </div>
 
               <input
-                accept="image/*"
+                accept="image/*,video/*"
                 className="hidden"
                 onChange={(event) => {
-                  void handleImageUpload(event.target.files);
+                  void handleCoverMediaPick(event.target.files);
                 }}
-                ref={imageInputRef}
-                type="file"
-              />
-              <input
-                accept="video/*"
-                className="hidden"
-                onChange={(event) => {
-                  void handleVideoUpload(event.target.files?.[0] ?? null);
-                }}
-                ref={videoInputRef}
+                ref={mediaInputRef}
                 type="file"
               />
 
@@ -456,18 +474,30 @@ export function PublishAircraftPage() {
           <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="text-base font-semibold text-foreground">简介</div>
-              <Textarea
-                className="min-h-24"
-                onChange={(event) => setSummary(event.target.value)}
-                placeholder="一句话摘要"
-                value={summary}
-              />
-              <Textarea
-                className="min-h-44"
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="描述机型特点、场景和参数..."
-                value={description}
-              />
+              <div className="relative">
+                <Textarea
+                  className="min-h-24 resize-none pb-8"
+                  maxLength={AIRCRAFT_SUMMARY_MAX_LENGTH}
+                  onChange={(event) => setSummary(event.target.value.slice(0, AIRCRAFT_SUMMARY_MAX_LENGTH))}
+                  placeholder="一句话摘要"
+                  value={summary}
+                />
+                <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
+                  {summary.length}/{AIRCRAFT_SUMMARY_MAX_LENGTH}
+                </div>
+              </div>
+              <div className="relative">
+                <Textarea
+                  className="min-h-44 resize-none pb-8"
+                  maxLength={AIRCRAFT_DESCRIPTION_MAX_LENGTH}
+                  onChange={(event) => setDescription(event.target.value.slice(0, AIRCRAFT_DESCRIPTION_MAX_LENGTH))}
+                  placeholder="描述机型特点、场景和参数..."
+                  value={description}
+                />
+                <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
+                  {description.length}/{AIRCRAFT_DESCRIPTION_MAX_LENGTH}
+                </div>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
@@ -523,6 +553,14 @@ export function PublishAircraftPage() {
                     modelName: modelName.trim(),
                     aircraftType: selectedCategory?.name ?? "飞行器",
                     powerType: selectedPowerType as "electric" | "fuel" | "hybrid" | "other",
+                    lifecycleStatus: selectedLifecycleStatus as
+                      | "concept"
+                      | "development"
+                      | "testing"
+                      | "unreleased"
+                      | "released"
+                      | "not_in_market"
+                      | "marketed",
                     summary: summary.trim() || null,
                     description: description.trim() || null,
                     coverImageFileId: uploadedVideo ? null : uploadedImages[0]?.id ?? null,
@@ -592,6 +630,11 @@ export function PublishAircraftPage() {
                   {
                     label: "动力",
                     value: powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"
+                  },
+                  {
+                    label: "状态",
+                    value:
+                      lifecycleStatusOptions.find((item) => item.value === selectedLifecycleStatus)?.label ?? "未发布"
                   },
                   {
                     label: "价格",

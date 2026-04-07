@@ -90,7 +90,7 @@ export function PublishMomentPage() {
     }
 
     if (!canAppendMomentImages(uploadedImages.length, files.length)) {
-      setError("动态最多上传 6 张图片。");
+      setError("图片上传失败，请稍后重试。");
       return;
     }
 
@@ -266,17 +266,15 @@ export function PublishMomentPage() {
                 </div>
               ) : null}
 
-              {uploadedImages.length > 0 && uploadedImages.length < 6 && !uploadedVideo ? (
+              {uploadedImages.length > 0 && !uploadedVideo ? (
                 <button
-                  aria-label={`继续添加图片，还可上传 ${6 - uploadedImages.length} 张`}
+                  aria-label="继续添加图片"
                   className="w-full rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 py-3 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                   disabled={isUploading}
                   onClick={() => zoneInputRef.current?.click()}
                   type="button"
                 >
-                  {isUploading
-                    ? "上传中..."
-                    : `继续添加图片（还可上传 ${6 - uploadedImages.length} 张）`}
+                  {isUploading ? "上传中..." : "继续添加图片"}
                 </button>
               ) : null}
 

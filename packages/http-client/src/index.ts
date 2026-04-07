@@ -137,6 +137,16 @@ type ApiClientOptions = {
   baseUrl: string;
 };
 
+export class ApiClientError extends Error {
+  constructor(
+    message: string,
+    public readonly code?: string
+  ) {
+    super(message);
+    this.name = "ApiClientError";
+  }
+}
+
 type WebLoginInput = Parameters<typeof webLoginRequestSchema.parse>[0];
 type AppLoginInput = Parameters<typeof appLoginRequestSchema.parse>[0];
 type CompleteWebRegistrationInput = Parameters<typeof completeWebRegistrationRequestSchema.parse>[0];
@@ -296,7 +306,24 @@ export async function parseApiError(response: Response): Promise<Error> {
     .json()
     .then((value): unknown => value)
     .catch((): unknown => null);
-  return new Error(mapApiErrorMessage(response, payload));
+
+  const authError = authErrorResponseSchema.safeParse(payload);
+  if (authError.success) {
+    return new ApiClientError(
+      mapApiErrorMessage(response, payload),
+      authError.data.code
+    );
+  }
+
+  const genericError = errorResponseSchema.safeParse(payload);
+  if (genericError.success) {
+    return new ApiClientError(
+      mapApiErrorMessage(response, payload),
+      genericError.data.code
+    );
+  }
+
+  return new ApiClientError(mapApiErrorMessage(response, payload));
 }
 
 async function readJson<T>(response: Response, parser: { parse: (input: unknown) => T }): Promise<T> {

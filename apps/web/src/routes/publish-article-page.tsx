@@ -18,6 +18,7 @@ import { getEditorialImage } from "../lib/aviation-media";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
+const ARTICLE_SUMMARY_MAX_LENGTH = 100;
 
 type UploadedImage = {
   id: string;
@@ -169,7 +170,7 @@ export function PublishArticlePage() {
     () => [summary.trim(), extractPlainText(editorHtml)].filter(Boolean).join("\n\n"),
     [editorHtml, summary]
   );
-  const coverUrl = coverImage?.url ?? uploadedImages[0]?.url ?? getEditorialImage("article-publish");
+  const coverUrl = coverImage?.url ?? null;
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
 
@@ -329,21 +330,31 @@ export function PublishArticlePage() {
               </div>
 
               <div className="space-y-3 rounded-[0.9rem] border border-border/70 bg-background/72 p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <div className="text-sm font-medium text-foreground">文章封面</div>
-                  <Button
-                    onClick={() => coverInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <FileImageIcon data-icon="inline-start" />
-                    {isUploadingMedia ? "上传中..." : "上传封面"}
-                  </Button>
-                </div>
-                <div className="overflow-hidden rounded-[0.9rem] border border-dashed border-border/70 bg-card">
-                  <img alt="cover preview" className="h-44 w-full object-cover" src={coverUrl} />
-                </div>
+                <div className="text-sm font-medium text-foreground">文章封面</div>
+                <button
+                  className="group relative block w-full overflow-hidden rounded-[0.9rem] border border-dashed border-border/70 bg-card text-left transition hover:border-primary/40"
+                  onClick={() => coverInputRef.current?.click()}
+                  type="button"
+                >
+                  {coverUrl ? (
+                    <>
+                      <img alt="cover preview" className="h-44 w-full object-cover" src={coverUrl} />
+                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                          <FileImageIcon className="size-4" />
+                          {isUploadingMedia ? "上传中..." : "点击更换封面"}
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex h-44 w-full flex-col items-center justify-center gap-3 bg-surface-1 text-muted-foreground">
+                      <FileImageIcon className="size-8" />
+                      <div className="text-sm font-medium text-foreground">
+                        {isUploadingMedia ? "上传中..." : "点击上传文章封面"}
+                      </div>
+                    </div>
+                  )}
+                </button>
                 <div className="text-xs text-muted-foreground">封面会优先展示在文章卡片和发布结果页。</div>
                 <input
                   accept="image/*"
@@ -356,12 +367,18 @@ export function PublishArticlePage() {
                 />
               </div>
 
-              <Textarea
-                className="min-h-24"
-                onChange={(event) => setSummary(event.target.value)}
-                placeholder="摘要"
-                value={summary}
-              />
+              <div className="relative">
+                <Textarea
+                  className="min-h-24 resize-none pb-8"
+                  maxLength={ARTICLE_SUMMARY_MAX_LENGTH}
+                  onChange={(event) => setSummary(event.target.value.slice(0, ARTICLE_SUMMARY_MAX_LENGTH))}
+                  placeholder="摘要"
+                  value={summary}
+                />
+                <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
+                  {summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}
+                </div>
+              </div>
 
               <RichTextEditor
                 onChange={setEditorHtml}
@@ -472,7 +489,7 @@ export function PublishArticlePage() {
                         state: {
                           title,
                           description: summary,
-                          imageUrl: coverImage?.url ?? uploadedImages[0]?.url ?? null
+                          imageUrl: coverImage?.url ?? null
                         }
                       });
                     })
@@ -497,7 +514,13 @@ export function PublishArticlePage() {
         <SitePanel variant="muted">
           <SitePanelBody className="space-y-4">
             <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-            <img alt="cover preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+            {coverUrl ? (
+              <img alt="cover preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+            ) : (
+              <div className="flex h-48 w-full items-center justify-center rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground">
+                暂未设置封面
+              </div>
+            )}
             <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
               {selectedCategory?.name ?? "未选择分类"}
             </div>

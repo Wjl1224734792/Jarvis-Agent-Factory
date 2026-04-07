@@ -295,6 +295,23 @@
   }
 }
 
+.rich-text-editor-content pre {
+  background: #050816;
+  color: #e2e8f0;
+}
+
+.rich-text-editor-content pre code {
+  background: transparent;
+  color: #e2e8f0;
+  caret-color: #ffffff;
+  font-family: var(--font-mono);
+}
+
+.rich-text-editor-content pre * {
+  color: inherit;
+  caret-color: #ffffff;
+}
+
 @keyframes site-tab-panel-in {
   from {
     opacity: 0;

@@ -18,6 +18,7 @@ function selection() {
     proposedBrandName: aircraftSubmissionsTable.proposedBrandName,
     modelName: aircraftSubmissionsTable.modelName,
     powerType: aircraftSubmissionsTable.powerType,
+    lifecycleStatus: aircraftSubmissionsTable.lifecycleStatus,
     summary: aircraftSubmissionsTable.summary,
     description: aircraftSubmissionsTable.description,
     priceMin: aircraftSubmissionsTable.priceMin,
@@ -64,6 +65,7 @@ export const aircraftSubmissionsRepo = {
     proposedBrandName: string | null;
     modelName: string;
     powerType: string;
+    lifecycleStatus: string;
     summary: string | null;
     description: string | null;
     priceMin: number | null;

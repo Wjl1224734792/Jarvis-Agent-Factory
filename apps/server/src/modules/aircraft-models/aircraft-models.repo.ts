@@ -58,6 +58,7 @@ export const aircraftModelsRepo = {
         priceMin: aircraftModelsTable.priceMin,
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
+        lifecycleStatus: aircraftModelsTable.lifecycleStatus,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
@@ -106,6 +107,7 @@ export const aircraftModelsRepo = {
         priceMin: aircraftModelsTable.priceMin,
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
+        lifecycleStatus: aircraftModelsTable.lifecycleStatus,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
@@ -274,6 +276,7 @@ export const aircraftModelsRepo = {
     ownerId?: string | null;
     sourceSubmissionId?: string | null;
     powerType: string;
+    lifecycleStatus: string;
     summary: string | null;
     description: string | null;
     priceMin: number | null;
@@ -295,6 +298,7 @@ export const aircraftModelsRepo = {
       ownerId: input.ownerId ?? null,
       sourceSubmissionId: input.sourceSubmissionId ?? null,
       powerType: input.powerType,
+      lifecycleStatus: input.lifecycleStatus,
       summary: input.summary,
       description: input.description,
       priceMin: input.priceMin,
@@ -318,6 +322,7 @@ export const aircraftModelsRepo = {
       ownerId?: string | null;
       sourceSubmissionId?: string | null;
       powerType: string;
+      lifecycleStatus: string;
       summary: string | null;
       description: string | null;
       priceMin: number | null;
@@ -339,6 +344,7 @@ export const aircraftModelsRepo = {
         ownerId: input.ownerId ?? undefined,
         sourceSubmissionId: input.sourceSubmissionId ?? undefined,
         powerType: input.powerType,
+        lifecycleStatus: input.lifecycleStatus,
         summary: input.summary,
         description: input.description,
         priceMin: input.priceMin,
@@ -364,6 +370,7 @@ export const aircraftModelsRepo = {
         priceMin: aircraftModelsTable.priceMin,
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
+        lifecycleStatus: aircraftModelsTable.lifecycleStatus,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,

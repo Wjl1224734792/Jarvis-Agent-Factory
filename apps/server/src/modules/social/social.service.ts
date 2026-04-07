@@ -390,8 +390,10 @@ export const socialService = {
         id: user.id,
         displayName: user.displayName,
         avatarFileId: user.avatarFileId ?? null,
+        coverImageFileId: user.coverImageFileId ?? null,
         bio: user.bio ?? null,
         avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+        coverImageUrl: await resolveUploadedFileUrl(user.coverImageFileId ?? null),
         phone: user.phone ?? null,
         phoneMasked: toPhoneMasked(user.phone ?? null),
         profileVisibility: settings.profileVisibility,
@@ -467,6 +469,7 @@ export const socialService = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
+      coverImageFileId?: string | null;
       phone?: string | null;
       profileVisibility?: "community" | "followers" | "private";
       notifyComments?: boolean;
@@ -492,6 +495,7 @@ export const socialService = {
       displayName?: string;
       bio?: string | null;
       avatarFileId?: string | null;
+      coverImageFileId?: string | null;
       phone?: string | null;
     } = {
       displayName: input.displayName,
@@ -501,6 +505,9 @@ export const socialService = {
 
     if (Object.prototype.hasOwnProperty.call(input, "avatarFileId")) {
       profilePatch.avatarFileId = input.avatarFileId ?? null;
+    }
+    if (Object.prototype.hasOwnProperty.call(input, "coverImageFileId")) {
+      profilePatch.coverImageFileId = input.coverImageFileId ?? null;
     }
     const hasProfilePatch = Object.values(profilePatch).some((value) => value !== undefined);
     if (hasProfilePatch) {
@@ -531,6 +538,10 @@ export const socialService = {
     if (input.avatarFileId !== undefined) {
       refreshed.item.avatarFileId = input.avatarFileId ?? null;
       refreshed.item.avatarUrl = await resolveUploadedFileUrl(input.avatarFileId ?? null);
+    }
+    if (input.coverImageFileId !== undefined) {
+      refreshed.item.coverImageFileId = input.coverImageFileId ?? null;
+      refreshed.item.coverImageUrl = await resolveUploadedFileUrl(input.coverImageFileId ?? null);
     }
 
     return refreshed;

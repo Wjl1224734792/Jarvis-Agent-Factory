@@ -48,6 +48,7 @@ export function PostDetailPage() {
   const currentUser = useAuthStore((state) => state.user);
   const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
+  const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [actionError, setActionError] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -297,9 +298,28 @@ export function PostDetailPage() {
 
       <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
         <div className="space-y-1">
-          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <MessageSquareTextIcon className="size-4.5 text-primary" />
-            评论区
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+              <MessageSquareTextIcon className="size-4.5 text-primary" />
+              评论区
+            </div>
+            <div className="flex items-center gap-2">
+              {(["latest", "hot"] as const).map((item) => (
+                <button
+                  className={cn(
+                    "rounded-full border px-3 py-1 text-xs transition",
+                    commentSort === item
+                      ? "border-primary bg-primary text-primary-foreground"
+                      : "border-border/70 text-muted-foreground hover:text-foreground"
+                  )}
+                  key={item}
+                  onClick={() => setCommentSort(item)}
+                  type="button"
+                >
+                  {item === "latest" ? "最新" : "热门"}
+                </button>
+              ))}
+            </div>
           </div>
           <div className="text-sm text-muted-foreground">共 {item.commentCount} 条评论</div>
           {isCommentRefreshing ? (
@@ -384,6 +404,7 @@ export function PostDetailPage() {
                 isRefreshing={isCommentRefreshing}
                 postId={item.id}
                 showPendingComment={isSubmitting}
+                sortOrder={commentSort}
               />
             </div>
           ) : (
@@ -396,6 +417,7 @@ export function PostDetailPage() {
                   currentUserId={currentUser?.id}
                   postId={item.id}
                   showPendingComment
+                  sortOrder={commentSort}
                 />
               ) : (
                 <div className="text-[0.82rem] text-muted-foreground">欢迎留下第一条评论。</div>

@@ -155,6 +155,7 @@ async function syncApprovedModelVisibility(
     submissionId: string;
     modelName: string;
     powerType: "electric" | "fuel" | "hybrid" | "other";
+    lifecycleStatus: "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed";
     summary: string | null;
     description: string | null;
     priceMin: number | null;
@@ -179,6 +180,7 @@ async function syncApprovedModelVisibility(
     ownerId: input.authorId,
     sourceSubmissionId: input.submissionId,
     powerType: input.powerType,
+    lifecycleStatus: input.lifecycleStatus,
     summary: input.summary,
     description: input.description,
     priceMin: input.priceMin,
@@ -199,6 +201,7 @@ export const aircraftSubmissionsService = {
     proposedBrandName: string | null;
     modelName: string;
     powerType: "electric" | "fuel" | "hybrid" | "other";
+    lifecycleStatus: "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed";
     summary: string | null;
     description: string | null;
     priceMin: number | null;
@@ -230,6 +233,7 @@ export const aircraftSubmissionsService = {
       proposedBrandName: input.proposedBrandName,
       modelName: input.modelName,
       powerType: input.powerType,
+      lifecycleStatus: input.lifecycleStatus,
       summary: input.summary,
       description: input.description,
       priceMin: input.priceMin,
@@ -289,6 +293,7 @@ export const aircraftSubmissionsService = {
       proposedBrandName: string | null;
       modelName: string;
       powerType: "electric" | "fuel" | "hybrid" | "other";
+      lifecycleStatus: "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed";
       summary: string | null;
       description: string | null;
       priceMin: number | null;
@@ -351,6 +356,7 @@ export const aircraftSubmissionsService = {
         submissionId: id,
         modelName: input.modelName,
         powerType: input.powerType,
+        lifecycleStatus: input.lifecycleStatus,
         summary: input.summary,
         description: input.description,
         priceMin: input.priceMin,
@@ -414,6 +420,7 @@ export const aircraftSubmissionsService = {
           submissionId: current.id,
           modelName: current.modelName,
           powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
+          lifecycleStatus: current.lifecycleStatus as "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed",
           summary: current.summary,
           description: current.description,
           priceMin: current.priceMin,
@@ -454,6 +461,7 @@ export const aircraftSubmissionsService = {
         submissionId: current.id,
         modelName: current.modelName,
         powerType: current.powerType as "electric" | "fuel" | "hybrid" | "other",
+        lifecycleStatus: current.lifecycleStatus as "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed",
         summary: current.summary,
         description: current.description,
         priceMin: current.priceMin,
@@ -476,6 +484,7 @@ export const aircraftSubmissionsService = {
       ownerId: current.author.id,
       sourceSubmissionId: current.id,
       powerType: current.powerType,
+      lifecycleStatus: current.lifecycleStatus as "concept" | "development" | "testing" | "unreleased" | "released" | "not_in_market" | "marketed",
       summary: current.summary,
       description: current.description,
       priceMin: current.priceMin,

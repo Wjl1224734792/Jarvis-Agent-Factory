@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, Clock3Icon, PenSquareIcon, Settings2Icon, Trash2Icon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { BellIcon, CameraIcon, Clock3Icon, PenSquareIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
@@ -28,17 +28,24 @@ function ProfilePageSkeleton() {
   return (
     <SitePage>
       <SitePanel className="overflow-hidden">
-        <Skeleton className="h-44 w-full md:h-52" />
+        <div className="relative">
+          <Skeleton className="h-44 w-full md:h-52" />
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+            <div className="flex items-end gap-4">
+              <Skeleton className="h-28 w-28 rounded-full bg-white md:h-32 md:w-32" />
+              <div className="space-y-2 pb-3">
+                <Skeleton className="h-10 w-52 bg-white/28" />
+                <Skeleton className="h-6 w-24 rounded-full bg-white/22" />
+              </div>
+            </div>
+          </div>
+        </div>
         <SitePanelBody className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-            <div className="grid gap-5 md:grid-cols-[7.5rem_minmax(0,1fr)] md:items-start">
-              <div className="relative md:min-h-[7rem]">
-                <Skeleton className="-mt-16 h-28 w-28 rounded-full md:h-32 md:w-32 md:-mt-20" />
-              </div>
-              <div className="space-y-3 md:pt-4">
-                <Skeleton className="h-6 w-28 rounded-full" />
-                <Skeleton className="h-10 w-52" />
+            <div className="grid gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+              <div className="space-y-4">
                 <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
               </div>
             </div>
             <div className="grid gap-3 sm:grid-cols-3">
@@ -229,9 +236,11 @@ function ContentFeedRow(props: {
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
   const queryClient = useQueryClient();
+  const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [isUpdatingCover, setIsUpdatingCover] = useState(false);
 
   const currentProfileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -283,6 +292,7 @@ export function ProfilePage() {
   const displayName = settings?.displayName ?? user.displayName;
   const userId = user.id;
   const avatarUrl = settings?.avatarUrl ?? user.avatarUrl ?? null;
+  const coverImageUrl = settings?.coverImageUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
 
   if ((profileQuery.isLoading && !profile) || (currentProfileQuery.isLoading && !settings)) {
@@ -318,6 +328,28 @@ export function ProfilePage() {
     }
   }
 
+  async function handleCoverChange(file: File) {
+    setIsUpdatingCover(true);
+    setActionError(null);
+    try {
+      const uploaded = await apiClient.uploadPostImage(file);
+      await apiClient.updateCurrentUserProfile({
+        coverImageFileId: uploaded.item.id
+      });
+      await Promise.all([
+        currentProfileQuery.refetch(),
+        profileQuery.refetch()
+      ]);
+    } catch (reason: unknown) {
+      setActionError(reason instanceof Error ? reason.message : "封面图更新失败");
+    } finally {
+      setIsUpdatingCover(false);
+      if (coverInputRef.current) {
+        coverInputRef.current.value = "";
+      }
+    }
+  }
+
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
       <SitePanel className="overflow-hidden !border-0" variant="floating">
@@ -325,33 +357,60 @@ export function ProfilePage() {
           <img
             alt={`${displayName} 顶部横幅`}
             className="h-full w-full object-cover"
-            src={getProfileBanner(displayName)}
+            src={coverImageUrl ?? getProfileBanner(displayName)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/58 via-slate-900/18 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+          <div className="absolute right-4 top-4 z-10 md:right-5 md:top-5">
+            <Button
+              disabled={isUpdatingCover}
+              onClick={() => coverInputRef.current?.click()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <CameraIcon data-icon="inline-start" />
+              {isUpdatingCover ? "上传中..." : "编辑封面"}
+            </Button>
+            <input
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleCoverChange(file);
+                }
+              }}
+              ref={coverInputRef}
+              type="file"
+            />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+            <div className="flex items-end gap-4">
+              <UserAvatar
+                className="!h-28 !w-28 md:!h-32 md:!w-32"
+                displayName={displayName}
+                size="lg"
+                src={avatarUrl}
+              />
+              <div className="space-y-2 pb-3">
+                <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">
+                  {displayName}
+                </div>
+                {settings?.profileVisibility ? (
+                  <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
+                    {profileVisibilityLabel(settings.profileVisibility)}
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
+          </div>
         </div>
 
         <SitePanelBody className="space-y-4">
           <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
-            <div className="grid gap-5 md:grid-cols-[7.5rem_minmax(0,1fr)] md:items-start">
-              <div className="relative md:min-h-[7rem]">
-                <UserAvatar
-                  className="!-mt-16 !h-28 !w-28 md:!-mt-20 md:!h-32 md:!w-32"
-                  displayName={displayName}
-                  size="lg"
-                  src={avatarUrl}
-                />
-              </div>
-
-              <div className="space-y-2 md:pt-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  {settings?.profileVisibility ? (
-                    <Badge variant="outline">{profileVisibilityLabel(settings.profileVisibility)}</Badge>
-                  ) : null}
-                </div>
-                <div className="text-[1.8rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.15rem]">
-                  {displayName}
-                </div>
-                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">{bio}</p>
+            <div className="grid gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+              <div className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">{bio}</p>
               </div>
             </div>
 
@@ -430,12 +489,7 @@ export function ProfilePage() {
             height={660}
             itemKey={(item) => `${item.type}-${item.id}`}
             renderItem={(item) => (
-              <ContentFeedRow
-                deletingId={deletingId}
-                item={item}
-                onDelete={handleDelete}
-                showManagement
-              />
+              <ContentFeedRow deletingId={deletingId} item={item} onDelete={handleDelete} showManagement />
             )}
           />
         </TabsContent>

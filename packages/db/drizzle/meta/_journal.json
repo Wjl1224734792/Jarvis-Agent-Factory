@@ -22,6 +22,20 @@
       "when": 1775146000000,
       "tag": "0002_lucky_starhawk",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1775572980216,
+      "tag": "0003_wakeful_talos",
+      "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1775577275066,
+      "tag": "0004_workable_sleeper",
+      "breakpoints": true
     }
   ]
 }

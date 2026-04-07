@@ -47,6 +47,15 @@ export const brandSchema = z.object({
 });
 
 export const powerTypeSchema = z.enum(["electric", "fuel", "hybrid", "other"]);
+export const modelLifecycleStatusSchema = z.enum([
+  "concept",
+  "development",
+  "testing",
+  "unreleased",
+  "released",
+  "not_in_market",
+  "marketed"
+]);
 export const modelInteractionTypeSchema = z.enum(["interested", "favorite", "share"]);
 
 export const modelInteractionSummarySchema = z.object({
@@ -72,6 +81,7 @@ export const modelListItemSchema = z.object({
   priceMin: priceValueSchema,
   priceMax: priceValueSchema,
   powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
   reportCount: z.number().int().nonnegative().default(0),
@@ -250,6 +260,7 @@ export const adminModelInputSchema = z.object({
   categoryId: z.string().min(1),
   brandId: z.string().min(1),
   powerType: powerTypeSchema,
+  lifecycleStatus: modelLifecycleStatusSchema,
   summary: z.string().nullable(),
   description: z.string().nullable(),
   priceMin: priceValueSchema,

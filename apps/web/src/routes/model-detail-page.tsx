@@ -33,6 +33,16 @@ const powerTypeLabels = {
   other: "其他"
 } as const;
 
+const lifecycleStatusLabels = {
+  concept: "概念",
+  development: "研发",
+  testing: "测试",
+  unreleased: "未发布",
+  released: "已发布",
+  not_in_market: "未上市",
+  marketed: "已上市"
+} as const;
+
 function formatMetric(label: string, value: number | null, formatter: (input: number) => string) {
   return {
     label,
@@ -119,7 +129,7 @@ export function ModelDetailPage() {
         ["分类", item.category.name],
         ["动力", powerTypeLabels[item.powerType]],
         ["价格", priceLabel ?? "未公开"],
-        ["状态", item.isPublished ? "已发布" : "未发布"]
+        ["状态", lifecycleStatusLabels[item.lifecycleStatus]]
       ]
     },
     {
