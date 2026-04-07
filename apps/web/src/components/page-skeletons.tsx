@@ -91,10 +91,10 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
     >
       {Array.from({ length: props.count ?? 9 }).map((_, index) => (
         <div
-          className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white p-1.5"
+          className="mb-3 break-inside-avoid rounded-[0.95rem] border border-border bg-white"
           key={index}
         >
-          <Skeleton className={`w-full rounded-[0.8rem] ${getCircleCardHeightClass(index)}`} />
+          <Skeleton className={`w-full rounded-t-[0.95rem] ${getCircleCardHeightClass(index)}`} />
           <div className="space-y-2 px-2 pb-2.5 pt-2.5">
             <Skeleton className="h-4 w-4/5" />
             <div className="flex items-center justify-between gap-3">

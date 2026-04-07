@@ -192,11 +192,11 @@ export function CirclePage() {
                 onClick={() => openNote(item.id)}
                 type="button"
               >
-                <div className="relative overflow-hidden rounded-[1rem] bg-slate-100 p-1">
+                <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
                   <img
                     alt={item.title}
                     className={cn(
-                      "w-full rounded-[0.92rem] object-cover",
+                      "w-full rounded-[1rem] object-cover",
                       getCircleCardHeightClass(index)
                     )}
                     src={previewImage}
