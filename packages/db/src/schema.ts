@@ -66,6 +66,24 @@ export const sessionsTable = pgTable("sessions", {
   scopeCheck: check("sessions_scope_check", sql`${table.scope} IN ('web', 'app', 'admin')`)
 }));
 
+export const devicesTable = pgTable("devices", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .notNull()
+    .references(() => usersTable.id, { onDelete: "cascade" }),
+  deviceType: text("device_type").notNull(),
+  deviceLabel: text("device_label"),
+  pushToken: text("push_token").notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+}, (table) => ({
+  userPushTokenUnique: uniqueIndex("devices_user_push_token_idx").on(table.userId, table.pushToken)
+}));
+
 export const userSettingsTable = pgTable(
   "user_settings",
   {

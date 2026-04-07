@@ -583,5 +583,19 @@ export const authService = {
     return {
       items: await authRepo.listRecentSessions()
     };
+  },
+  async registerDevice(
+    userId: string,
+    input: { deviceType: string; deviceLabel: string | null; pushToken: string }
+  ) {
+    return authRepo.registerDevice({
+      userId,
+      deviceType: input.deviceType,
+      deviceLabel: input.deviceLabel,
+      pushToken: input.pushToken
+    });
+  },
+  async unregisterDevice(userId: string, pushToken?: string) {
+    await authRepo.unregisterDevice(userId, pushToken);
   }
 };

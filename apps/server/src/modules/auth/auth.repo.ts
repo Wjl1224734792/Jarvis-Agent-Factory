@@ -5,7 +5,8 @@ import {
   hashToken,
   verifyPassword,
   sessionsTable,
-  usersTable
+  usersTable,
+  devicesTable
 } from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
@@ -695,5 +696,55 @@ export const authRepo = {
         phone: row.userPhone
       }
     }));
+  },
+  async registerDevice(input: {
+    userId: string;
+    deviceType: string;
+    deviceLabel: string | null;
+    pushToken: string;
+  }) {
+    const id = createId("device");
+    const now = new Date();
+    const [device] = await db
+      .insert(devicesTable)
+      .values({
+        id,
+        userId: input.userId,
+        deviceType: input.deviceType,
+        deviceLabel: input.deviceLabel,
+        pushToken: input.pushToken,
+        createdAt: now,
+        updatedAt: now
+      })
+      .onConflictDoUpdate({
+        target: [devicesTable.userId, devicesTable.pushToken],
+        set: {
+          deviceType: input.deviceType,
+          deviceLabel: input.deviceLabel,
+          updatedAt: now
+        }
+      })
+      .returning();
+
+    return {
+      deviceId: device.id,
+      registeredAt: device.createdAt.toISOString()
+    };
+  },
+  async unregisterDevice(userId: string, pushToken?: string) {
+    if (pushToken) {
+      await db
+        .delete(devicesTable)
+        .where(
+          and(
+            eq(devicesTable.userId, userId),
+            eq(devicesTable.pushToken, pushToken)
+          )
+        );
+    } else {
+      await db
+        .delete(devicesTable)
+        .where(eq(devicesTable.userId, userId));
+    }
   }
 };

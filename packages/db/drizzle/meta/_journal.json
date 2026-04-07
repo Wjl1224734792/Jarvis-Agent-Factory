@@ -15,6 +15,13 @@
       "when": 1775142980229,
       "tag": "0001_chilly_killraven",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775146000000,
+      "tag": "0002_lucky_starhawk",
+      "breakpoints": true
     }
   ]
 }

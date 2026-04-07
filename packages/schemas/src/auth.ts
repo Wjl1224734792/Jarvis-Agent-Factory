@@ -79,7 +79,9 @@ export const webLoginResponseSchema = z.discriminatedUnion("kind", [
 ]);
 
 export const appLoginRequestSchema = webLoginRequestSchema.extend({
-  deviceLabel: deviceLabelSchema.optional().nullable()
+  deviceLabel: deviceLabelSchema.optional().nullable(),
+  deviceType: z.enum(["ios", "android", "harmony"]).optional(),
+  pushToken: z.string().trim().min(1).max(255).optional().nullable()
 });
 
 const appAuthTokensSchema = z.object({
@@ -112,7 +114,9 @@ export const registrationDisplayNameSuggestResponseSchema = z.object({
 });
 
 export const completeAppRegistrationRequestSchema = completeWebRegistrationRequestSchema.extend({
-  deviceLabel: deviceLabelSchema.optional().nullable()
+  deviceLabel: deviceLabelSchema.optional().nullable(),
+  deviceType: z.enum(["ios", "android", "harmony"]).optional(),
+  pushToken: z.string().trim().min(1).max(255).optional().nullable()
 });
 
 export const appAuthSessionResponseSchema = appAuthTokensSchema.extend({
@@ -162,3 +166,37 @@ export const authErrorResponseSchema = z.object({
 
 export type AuthRole = z.infer<typeof authRoleSchema>;
 export type UserSummary = z.infer<typeof userSummarySchema>;
+
+// ---------------------------------------------------------------------------
+// Pagination
+// ---------------------------------------------------------------------------
+
+export const paginationQuerySchema = z.object({
+  page: z.coerce.number().int().min(1).default(1),
+  pageSize: z.coerce.number().int().min(1).max(100).default(20)
+});
+
+export const paginationMetaSchema = z.object({
+  page: z.number().int().min(1),
+  pageSize: z.number().int().min(1),
+  total: z.number().int().nonnegative()
+});
+
+// ---------------------------------------------------------------------------
+// Device registration
+// ---------------------------------------------------------------------------
+
+export const deviceRegisterInputSchema = z.object({
+  deviceType: z.enum(["ios", "android", "harmony"]),
+  deviceLabel: deviceLabelSchema.optional().nullable(),
+  pushToken: z.string().trim().min(1).max(255)
+});
+
+export const deviceRegisterResponseSchema = z.object({
+  deviceId: z.string().min(1),
+  registeredAt: z.string().datetime()
+});
+
+export const deviceUnregisterInputSchema = z.object({
+  pushToken: z.string().trim().min(1).max(255).optional()
+});

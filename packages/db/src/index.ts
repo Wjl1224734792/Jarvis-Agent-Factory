@@ -16,6 +16,7 @@ export {
   brandApplicationsTable,
   brandsTable,
   contentCategoriesTable,
+  devicesTable,
   filesTable,
   notificationsTable,
   postCommentsTable,
