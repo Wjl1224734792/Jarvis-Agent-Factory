@@ -325,8 +325,8 @@ export function ModelsPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
-      <div className="grid gap-4 xl:grid-cols-[17.5rem_minmax(0,1fr)]">
-        <div className="space-y-3 xl:sticky xl:top-[5.5rem] xl:self-start">
+      <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
+        <div className="space-y-3 xl:order-2 xl:sticky xl:top-[5.5rem] xl:self-start">
           <FilterSection
             activeSlugs={filtersState.categorySlugs}
             compact
@@ -359,7 +359,7 @@ export function ModelsPage() {
           />
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-4 xl:order-1">
           <div className="space-y-3 bg-white px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">

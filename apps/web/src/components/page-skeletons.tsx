@@ -130,8 +130,8 @@ export function ModelGridSkeleton(props: { count?: number }) {
 
 export function ModelsPageSkeleton(props: { count?: number }) {
   return (
-    <div className="grid gap-4 xl:grid-cols-[17.5rem_minmax(0,1fr)]">
-      <div className="space-y-3">
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
+      <div className="space-y-3 xl:order-2">
         {Array.from({ length: 3 }).map((_, index) => (
           <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
             <div className="space-y-3">
@@ -149,7 +149,7 @@ export function ModelsPageSkeleton(props: { count?: number }) {
           </div>
         ))}
       </div>
-      <div className="space-y-4">
+      <div className="space-y-4 xl:order-1">
         <div className="rounded-[0.95rem] border border-border bg-white p-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">

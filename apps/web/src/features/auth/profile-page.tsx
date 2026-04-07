@@ -29,21 +29,31 @@ function ProfilePageSkeleton() {
     <SitePage>
       <SitePanel className="overflow-hidden">
         <Skeleton className="h-44 w-full md:h-52" />
-        <SitePanelBody className="grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)]">
-          <Skeleton className="-mt-12 h-24 w-24 rounded-[0.8rem]" />
-          <div className="space-y-3">
-            <Skeleton className="h-6 w-52" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-full" />
+        <SitePanelBody className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="grid gap-5 md:grid-cols-[7.5rem_minmax(0,1fr)] md:items-start">
+              <div className="relative md:min-h-[7rem]">
+                <Skeleton className="-mt-16 h-28 w-28 rounded-full md:h-32 md:w-32 md:-mt-20" />
+              </div>
+              <div className="space-y-3 md:pt-4">
+                <Skeleton className="h-6 w-28 rounded-full" />
+                <Skeleton className="h-10 w-52" />
+                <Skeleton className="h-4 w-full" />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton className="h-18 rounded-[0.8rem]" key={index} />
+              ))}
+            </div>
+          </div>
+          <div className="flex gap-3 border-t border-border/70 pt-4">
+            <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
+            <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
+            <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
           </div>
         </SitePanelBody>
       </SitePanel>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton className="h-18 rounded-[0.8rem]" key={index} />
-        ))}
-      </div>
-      <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
       <Skeleton className="h-[32rem] rounded-[0.9rem]" />
     </SitePage>
   );
@@ -321,16 +331,18 @@ export function ProfilePage() {
         </div>
 
         <SitePanelBody className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
-            <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-end">
-              <UserAvatar
-                className="-mt-12 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24"
-                displayName={displayName}
-                size="lg"
-                src={avatarUrl}
-              />
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="grid gap-5 md:grid-cols-[7.5rem_minmax(0,1fr)] md:items-start">
+              <div className="relative md:min-h-[7rem]">
+                <UserAvatar
+                  className="!-mt-16 !h-28 !w-28 md:!-mt-20 md:!h-32 md:!w-32"
+                  displayName={displayName}
+                  size="lg"
+                  src={avatarUrl}
+                />
+              </div>
 
-              <div className="space-y-2">
+              <div className="space-y-2 md:pt-4">
                 <div className="flex flex-wrap items-center gap-2">
                   {settings?.profileVisibility ? (
                     <Badge variant="outline">{profileVisibilityLabel(settings.profileVisibility)}</Badge>
