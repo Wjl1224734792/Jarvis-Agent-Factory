@@ -207,7 +207,7 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
 
   return (
     <Link
-      className="group block min-w-0 overflow-hidden rounded-[0.65rem] bg-white transition hover:bg-sky-50/34"
+      className="group block min-w-0 overflow-hidden bg-white transition hover:bg-sky-50/34"
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
       <div className="overflow-hidden">
