@@ -61,10 +61,6 @@
         "zustand": "^5.0.12",
       },
     },
-    "apps/mobiles": {
-      "name": "@feijia/mobiles",
-      "version": "0.1.0",
-    },
     "apps/server": {
       "name": "@feijia/server",
       "version": "0.1.0",
@@ -496,8 +492,6 @@
     "@feijia/db": ["@feijia/db@workspace:packages/db"],
 
     "@feijia/http-client": ["@feijia/http-client@workspace:packages/http-client"],
-
-    "@feijia/mobiles": ["@feijia/mobiles@workspace:apps/mobiles"],
 
     "@feijia/schemas": ["@feijia/schemas@workspace:packages/schemas"],
 
