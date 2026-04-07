@@ -1,4 +1,4 @@
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockKeyholeIcon, XIcon } from "lucide-react";
 import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
@@ -54,7 +54,15 @@ export function AuthRequiredDialog() {
             <Button
               onClick={() => {
                 closeDialog();
-                void navigate(`${APP_ROUTES.webLogin}?redirect=${encodeURIComponent(redirectTo)}`);
+                void navigate(
+                  buildLoginRedirectUrl(APP_ROUTES.webLogin, {
+                    pathname: resolveSafeRedirectPath({
+                      candidate: redirectTo,
+                      fallbackPath: APP_ROUTES.feedHome,
+                      blockedPaths: [APP_ROUTES.webLogin]
+                    })
+                  })
+                );
               }}
               size="sm"
               type="button"

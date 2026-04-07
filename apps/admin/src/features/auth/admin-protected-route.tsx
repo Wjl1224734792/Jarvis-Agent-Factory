@@ -1,5 +1,5 @@
 import type { PropsWithChildren } from "react";
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES, buildLoginRedirectUrl } from "@feijia/shared";
 import { Button, Flex } from "antd";
 import { Navigate, useLocation } from "react-router-dom";
 import { useBootstrapAdminAuth } from "./use-bootstrap-admin-auth";
@@ -25,7 +25,7 @@ export function AdminProtectedRoute({ children }: PropsWithChildren) {
   }
 
   if (status !== "authenticated") {
-    return <Navigate replace to={`${APP_ROUTES.adminLogin}?redirect=${encodeURIComponent(location.pathname)}`} />;
+    return <Navigate replace to={buildLoginRedirectUrl(APP_ROUTES.adminLogin, location)} />;
   }
 
   return children;

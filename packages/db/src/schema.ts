@@ -727,7 +727,7 @@ export const rankingsTable = pgTable("rankings", {
     .notNull()
 }, (table) => ({
   typeCheck: check("rankings_type_check", sql`${table.type} IN ('community', 'official')`),
-  statusCheck: check("rankings_status_check", sql`${table.status} IN ('draft', 'published', 'hidden')`)
+  statusCheck: check("rankings_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
 }));
 
 export const rankingReportsTable = pgTable(
@@ -782,7 +782,7 @@ export const ratingTargetsTable = pgTable("rating_targets", {
     .defaultNow()
     .notNull()
 }, (table) => ({
-  statusCheck: check("rating_targets_status_check", sql`${table.status} IN ('draft', 'published', 'hidden')`)
+  statusCheck: check("rating_targets_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
 }));
 
 export const ratingTargetReportsTable = pgTable(
@@ -1098,7 +1098,7 @@ export const filesTable = pgTable("files", {
   uploadedAt: timestamp("uploaded_at", { withTimezone: true }),
   deletedAt: timestamp("deleted_at", { withTimezone: true })
 }, (table) => ({
-  statusCheck: check("files_status_check", sql`${table.status} IN ('initiated', 'uploaded', 'failed', 'deleted')`),
+  statusCheck: check("files_status_check", sql`${table.status} IN ('pending', 'uploaded', 'failed', 'deleted')`),
   visibilityCheck: check("files_visibility_check", sql`${table.visibility} IN ('public', 'private')`),
   mediaKindCheck: check("files_media_kind_check", sql`${table.mediaKind} IN ('image', 'video', 'document')`)
 }));

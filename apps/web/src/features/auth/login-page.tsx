@@ -1,5 +1,6 @@
 ﻿import { APP_ROUTES } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
+import { resolveSafeRedirectPath } from "@feijia/shared";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -65,10 +66,11 @@ export function LoginPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const redirectTo =
-    searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
-      ? searchParams.get("redirect")
-      : APP_ROUTES.feedHome;
+  const redirectTo = resolveSafeRedirectPath({
+    candidate: searchParams.get("redirect"),
+    fallbackPath: APP_ROUTES.feedHome,
+    blockedPaths: [APP_ROUTES.webLogin]
+  });
 
   async function requestLoginSmsCode() {
     setSubmitError(null);

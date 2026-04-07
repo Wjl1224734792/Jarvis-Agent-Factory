@@ -36,6 +36,20 @@
       "when": 1775577275066,
       "tag": "0004_workable_sleeper",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1775591956166,
+      "tag": "0005_greedy_king_cobra",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1775592135136,
+      "tag": "0006_flimsy_praxagora",
+      "breakpoints": true
     }
   ]
 }

@@ -1,4 +1,9 @@
 export const APP_NAME = "飞加";
+export {
+  buildLoginRedirectUrl,
+  buildRedirectTarget,
+  resolveSafeRedirectPath
+} from "./redirects";
 
 export const APP_PORTS = {
   web: 3000,

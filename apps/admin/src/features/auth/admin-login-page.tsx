@@ -1,4 +1,4 @@
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { Button, Flex, Form, Input, Space } from "antd";
 import { useState } from "react";
@@ -16,7 +16,11 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("Admin#123");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const redirectTo = searchParams.get("redirect") || APP_ROUTES.adminHome;
+  const redirectTo = resolveSafeRedirectPath({
+    candidate: searchParams.get("redirect"),
+    fallbackPath: APP_ROUTES.adminHome,
+    blockedPaths: [APP_ROUTES.adminLogin]
+  });
 
   return (
     <main className="admin-login">

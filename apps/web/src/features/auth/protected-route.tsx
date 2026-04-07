@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES, buildLoginRedirectUrl } from "@feijia/shared";
 import {
   SiteGrid,
   SitePage,
@@ -204,7 +204,7 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
     return (
       <Navigate
         replace
-        to={`${APP_ROUTES.webLogin}?redirect=${encodeURIComponent(location.pathname)}`}
+        to={buildLoginRedirectUrl(APP_ROUTES.webLogin, location)}
       />
     );
   }

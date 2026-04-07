@@ -12,26 +12,11 @@ import {
   TrophyOutlined
 } from "@ant-design/icons";
 import { Button, Flex } from "antd";
+import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider, useRouteError } from "react-router-dom";
 import { AdminLoginPage } from "./features/auth/admin-login-page";
-import { AdminOverviewPage } from "./features/auth/admin-overview-page";
 import { AdminProtectedRoute } from "./features/auth/admin-protected-route";
-import { AdminSectionHubPage } from "./features/auth/admin-section-hub-page";
 import { AdminShell } from "./features/auth/admin-shell";
-import { BrandApplicationsPage } from "./features/models/brand-applications-page";
-import { BrandsPage } from "./features/models/brands-page";
-import { CategoriesPage } from "./features/models/categories-page";
-import { ModelsPage } from "./features/models/models-page";
-import { ContentCategoriesPage } from "./features/posts/content-categories-page";
-import { OfficialArticlesPage } from "./features/posts/official-articles-page";
-import { PostCommentsPage } from "./features/posts/post-comments-page";
-import { PostsPage } from "./features/posts/posts-page";
-import { ReportsPage } from "./features/reports/reports-page";
-import { RankingEditorPage } from "./features/rankings/ranking-editor-page";
-import { RatingTargetsPage } from "./features/rankings/rating-targets-page";
-import { RankingsPage } from "./features/rankings/rankings-page";
-import { ReviewsPage } from "./features/reviews/reviews-page";
-import { AircraftSubmissionsPage } from "./features/submissions/aircraft-submissions-page";
 import { ADMIN_ROUTE_PATHS } from "./lib/admin-routes";
 
 function AdminRouteError() {
@@ -50,6 +35,104 @@ function AdminRouteError() {
     </main>
   );
 }
+
+function AdminRouteLoading() {
+  return (
+    <main className="admin-route-error">
+      <Flex align="center" gap={12} justify="center" vertical>
+        <Button loading type="primary">
+          正在加载后台页面
+        </Button>
+        <div className="admin-route-error__message">请稍候，正在准备当前管理模块。</div>
+      </Flex>
+    </main>
+  );
+}
+
+function withAdminRouteFallback(children: ReactNode) {
+  return <Suspense fallback={<AdminRouteLoading />}>{children}</Suspense>;
+}
+
+const AdminOverviewPage = lazy(() =>
+  import("./features/auth/admin-overview-page").then((module) => ({
+    default: module.AdminOverviewPage
+  }))
+);
+const AdminSectionHubPage = lazy(() =>
+  import("./features/auth/admin-section-hub-page").then((module) => ({
+    default: module.AdminSectionHubPage
+  }))
+);
+const BrandApplicationsPage = lazy(() =>
+  import("./features/models/brand-applications-page").then((module) => ({
+    default: module.BrandApplicationsPage
+  }))
+);
+const BrandsPage = lazy(() =>
+  import("./features/models/brands-page").then((module) => ({
+    default: module.BrandsPage
+  }))
+);
+const CategoriesPage = lazy(() =>
+  import("./features/models/categories-page").then((module) => ({
+    default: module.CategoriesPage
+  }))
+);
+const ModelsPage = lazy(() =>
+  import("./features/models/models-page").then((module) => ({
+    default: module.ModelsPage
+  }))
+);
+const ContentCategoriesPage = lazy(() =>
+  import("./features/posts/content-categories-page").then((module) => ({
+    default: module.ContentCategoriesPage
+  }))
+);
+const OfficialArticlesPage = lazy(() =>
+  import("./features/posts/official-articles-page").then((module) => ({
+    default: module.OfficialArticlesPage
+  }))
+);
+const PostCommentsPage = lazy(() =>
+  import("./features/posts/post-comments-page").then((module) => ({
+    default: module.PostCommentsPage
+  }))
+);
+const PostsPage = lazy(() =>
+  import("./features/posts/posts-page").then((module) => ({
+    default: module.PostsPage
+  }))
+);
+const ReportsPage = lazy(() =>
+  import("./features/reports/reports-page").then((module) => ({
+    default: module.ReportsPage
+  }))
+);
+const RankingEditorPage = lazy(() =>
+  import("./features/rankings/ranking-editor-page").then((module) => ({
+    default: module.RankingEditorPage
+  }))
+);
+const RatingTargetsPage = lazy(() =>
+  import("./features/rankings/rating-targets-page").then((module) => ({
+    default: module.RatingTargetsPage
+  }))
+);
+const RankingsPage = lazy(() =>
+  import("./features/rankings/rankings-page").then((module) => ({
+    default: module.RankingsPage
+  }))
+);
+const ReviewsPage = lazy(() =>
+  import("./features/reviews/reviews-page").then((module) => ({
+    default: module.ReviewsPage
+  }))
+);
+const AircraftSubmissionsPage = lazy(() =>
+  import("./features/submissions/aircraft-submissions-page").then((module) => ({
+    default: module.AircraftSubmissionsPage
+  }))
+);
 
 // 后台路由按“审核 / 运营 / 管理”三大分区组织，方便和侧边导航、权限心智保持一致。
 const router = createBrowserRouter([
@@ -77,11 +160,11 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.overview.slice("/admin/".length),
-        element: <AdminOverviewPage />
+        element: withAdminRouteFallback(<AdminOverviewPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),
-        element: (
+        element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="把文章、动态、评论、品牌申请、机型投稿、榜单和榜单条目拆成独立审核入口。"
             items={[
@@ -140,7 +223,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.operations.slice("/admin/".length),
-        element: (
+        element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="把创建和发布动作集中在运营区，避免和审核队列混在一起。"
             items={[
@@ -169,7 +252,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.management.slice("/admin/".length),
-        element: (
+        element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="品牌库、机型库和分类配置放到同一层，便于资料维护。"
             items={[
@@ -204,63 +287,63 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationArticles.slice("/admin/".length),
-        element: <PostsPage contentType="article" />
+        element: withAdminRouteFallback(<PostsPage contentType="article" />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationMoments.slice("/admin/".length),
-        element: <PostsPage contentType="moment" />
+        element: withAdminRouteFallback(<PostsPage contentType="moment" />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationComments.slice("/admin/".length),
-        element: <PostCommentsPage />
+        element: withAdminRouteFallback(<PostCommentsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationReports.slice("/admin/".length),
-        element: <ReportsPage />
+        element: withAdminRouteFallback(<ReportsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationBrandApplications.slice("/admin/".length),
-        element: <BrandApplicationsPage />
+        element: withAdminRouteFallback(<BrandApplicationsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions.slice("/admin/".length),
-        element: <AircraftSubmissionsPage />
+        element: withAdminRouteFallback(<AircraftSubmissionsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationRankings.slice("/admin/".length),
-        element: <RankingsPage />
+        element: withAdminRouteFallback(<RankingsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderationRatingTargets.slice("/admin/".length),
-        element: <RatingTargetsPage />
+        element: withAdminRouteFallback(<RatingTargetsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.operationsArticles.slice("/admin/".length),
-        element: <OfficialArticlesPage />
+        element: withAdminRouteFallback(<OfficialArticlesPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.operationsAircraft.slice("/admin/".length),
-        element: <ModelsPage />
+        element: withAdminRouteFallback(<ModelsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.operationsRankings.slice("/admin/".length),
-        element: <RankingEditorPage />
+        element: withAdminRouteFallback(<RankingEditorPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.managementCategories.slice("/admin/".length),
-        element: <CategoriesPage />
+        element: withAdminRouteFallback(<CategoriesPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.managementBrands.slice("/admin/".length),
-        element: <BrandsPage />
+        element: withAdminRouteFallback(<BrandsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.managementModels.slice("/admin/".length),
-        element: <ModelsPage />
+        element: withAdminRouteFallback(<ModelsPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.managementContentCategories.slice("/admin/".length),
-        element: <ContentCategoriesPage />
+        element: withAdminRouteFallback(<ContentCategoriesPage />)
       },
 
       {
@@ -277,7 +360,7 @@ const router = createBrowserRouter([
       },
       {
         path: APP_ROUTES.adminReviews.slice("/admin/".length),
-        element: <ReviewsPage />
+        element: withAdminRouteFallback(<ReviewsPage />)
       },
       {
         path: APP_ROUTES.adminPosts.slice("/admin/".length),
@@ -293,7 +376,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.officialArticles.slice("/admin/".length),
-        element: <OfficialArticlesPage />
+        element: withAdminRouteFallback(<OfficialArticlesPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.aircraftSubmissions.slice("/admin/".length),
@@ -305,11 +388,11 @@ const router = createBrowserRouter([
       },
       {
         path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/new`,
-        element: <RankingEditorPage />
+        element: withAdminRouteFallback(<RankingEditorPage />)
       },
       {
         path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/:id`,
-        element: <RankingEditorPage />
+        element: withAdminRouteFallback(<RankingEditorPage />)
       }
     ]
   },
