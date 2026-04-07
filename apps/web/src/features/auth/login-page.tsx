@@ -67,7 +67,8 @@ export function LoginPage() {
       onError: setSubmitError,
       errorFallback: "图形验证码初始化失败"
     });
-  }, [smsFlow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const redirectTo =
     searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
@@ -203,6 +204,7 @@ export function LoginPage() {
                       !smsFlow.challenge ||
                       smsFlow.isSendingSms ||
                       smsFlow.cooldownSeconds > 0 ||
+                      smsFlow.isCaptchaExpired ||
                       smsFlow.captchaCode.trim().length < 4
                     }
                     onClick={() => {
@@ -215,11 +217,14 @@ export function LoginPage() {
                     {smsFlow.isSendingSms
                       ? "发送中..."
                       : smsFlow.cooldownSeconds > 0
-                        ? `${smsFlow.cooldownSeconds} 秒后重新发送`
+                        ? `${smsFlow.cooldownSeconds}s`
                         : smsFlow.requestHint
-                          ? "重新发送验证码"
+                          ? "重新获取验证码"
                           : "获取验证码"}
                   </Button>
+                  {smsFlow.isCaptchaExpired ? (
+                    <div className="text-xs text-destructive">图形验证码已过期，请刷新后重试</div>
+                  ) : null}
                 </div>
               </div>
 
@@ -244,7 +249,7 @@ export function LoginPage() {
                 </div>
                 <div className="flex items-center gap-3">
                   <ShieldCheckIcon className="size-4 text-cert-gold" />
-                  发送短信验证码后会自动刷新图形验证码，重发前请先输入新的图形验证码。
+                  图形验证码有效期内可重复发送短信，过期后点击验证码按钮刷新。
                 </div>
               </div>
 

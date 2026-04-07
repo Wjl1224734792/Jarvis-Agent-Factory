@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 
 export type CaptchaChallenge = {
@@ -26,7 +26,9 @@ export function useSmsVerificationFlow() {
   const [requestHint, setRequestHint] = useState<string | null>(null);
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
+  const [captchaRemainingSeconds, setCaptchaRemainingSeconds] = useState(0);
 
+  // 短信发送倒计时
   useEffect(() => {
     if (cooldownSeconds <= 0) {
       return;
@@ -39,11 +41,42 @@ export function useSmsVerificationFlow() {
     return () => window.clearTimeout(timer);
   }, [cooldownSeconds]);
 
+  // 图形验证码过期倒计时
+  useEffect(() => {
+    if (!challenge || challenge.expiresInSeconds <= 0) {
+      setCaptchaRemainingSeconds(0);
+      return;
+    }
+
+    setCaptchaRemainingSeconds(challenge.expiresInSeconds);
+
+    const timer = window.setInterval(() => {
+      setCaptchaRemainingSeconds(prev => {
+        if (prev <= 1) {
+          window.clearInterval(timer);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+
+    return () => window.clearInterval(timer);
+  }, [challenge?.challengeId]);
+
+  const isCaptchaExpired = captchaRemainingSeconds <= 0 && challenge !== null;
+
+  // 用 ref 持有 onError / errorFallback，避免 refreshCaptcha 引用变化
+  const errorRef = useRef<{ onError: (message: string) => void; errorFallback: string }>({
+    onError: () => {},
+    errorFallback: ""
+  });
+
   const refreshCaptcha = useCallback(async (input: {
     onError: (message: string) => void;
     errorFallback: string;
     clearCaptchaCode?: boolean;
   }) => {
+    errorRef.current = { onError: input.onError, errorFallback: input.errorFallback };
     try {
       const nextChallenge = await apiClient.requestCaptchaChallenge();
       setChallenge(nextChallenge);
@@ -52,7 +85,8 @@ export function useSmsVerificationFlow() {
       }
       return nextChallenge;
     } catch (error: unknown) {
-      input.onError(error instanceof Error ? error.message : input.errorFallback);
+      const { onError, errorFallback } = errorRef.current;
+      onError(error instanceof Error ? error.message : errorFallback);
       return null;
     }
   }, []);
@@ -74,10 +108,7 @@ export function useSmsVerificationFlow() {
       setSmsCode("");
       setCooldownSeconds(input.cooldownSeconds ?? 60);
       input.onSuccess?.(response);
-      await refreshCaptcha({
-        onError: input.onError,
-        errorFallback: input.errorFallback
-      });
+      // 不再自动刷新验证码，有效期内可重复发送
       return response;
     } catch (error: unknown) {
       input.onError(error instanceof Error ? error.message : input.errorFallback);
@@ -85,7 +116,7 @@ export function useSmsVerificationFlow() {
     } finally {
       setIsSendingSms(false);
     }
-  }, [captchaCode, challenge, refreshCaptcha]);
+  }, [captchaCode, challenge]);
 
   const reset = useCallback(() => {
     setChallenge(null);
@@ -93,6 +124,7 @@ export function useSmsVerificationFlow() {
     setSmsCode("");
     setRequestHint(null);
     setCooldownSeconds(0);
+    setCaptchaRemainingSeconds(0);
     setIsSendingSms(false);
   }, []);
 
@@ -100,6 +132,8 @@ export function useSmsVerificationFlow() {
     challenge,
     captchaCode,
     cooldownSeconds,
+    captchaRemainingSeconds,
+    isCaptchaExpired,
     isSendingSms,
     requestHint,
     reset,
@@ -113,6 +147,8 @@ export function useSmsVerificationFlow() {
     captchaCode,
     challenge,
     cooldownSeconds,
+    captchaRemainingSeconds,
+    isCaptchaExpired,
     isSendingSms,
     requestHint,
     refreshCaptcha,
