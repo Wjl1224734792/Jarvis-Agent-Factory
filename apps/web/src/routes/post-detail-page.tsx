@@ -3,7 +3,6 @@ import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
-  EyeIcon,
   MessageSquareTextIcon,
   Trash2Icon,
   UserCheckIcon,
@@ -20,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { InlineCommentComposer } from "../features/posts/inline-comment-composer";
@@ -100,7 +100,7 @@ export function PostDetailPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-8 pt-2 md:px-6">
-      <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
+      <div className="flex items-center gap-4 border-b border-border/60 pb-4">
         <div className="flex items-center gap-3 text-sm text-foreground/80">
           <Button
             className="size-8 rounded-full p-0"
@@ -118,11 +118,6 @@ export function PostDetailPage() {
             <ArrowLeftIcon className="size-4" />
           </Button>
           <span className="font-medium">{APP_NAME}</span>
-        </div>
-
-        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-          <EyeIcon className="size-3.5" />
-          {postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)}
         </div>
       </div>
 
@@ -221,7 +216,6 @@ export function PostDetailPage() {
           <PostInteractionBar
             compact
             hideFollow
-            hideShare
             iconOnly
             plain
             authorId={item.author.id}
@@ -230,6 +224,8 @@ export function PostDetailPage() {
             likeCount={item.engagement.likeCount}
             postId={item.id}
             shareCount={item.engagement.shareCount}
+            sharePath={APP_ROUTES.postDetail.replace(":id", item.id)}
+            viewCount={postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)}
             viewer={item.engagement.viewer}
           />
 
@@ -244,8 +240,24 @@ export function PostDetailPage() {
                 }
                 title="举报内容"
                 trigger={
-                  <Button size="sm" type="button" variant="ghost">
-                    <AlertTriangleIcon className="size-4" />
+                  <Button
+                    aria-label="举报内容"
+                    className={cn(
+                      "group inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 shadow-none",
+                      "hover:!bg-transparent active:translate-y-0",
+                      "focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2"
+                    )}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <AlertTriangleIcon
+                      className={cn(
+                        "size-4 transition-transform duration-150 ease-out",
+                        "text-muted-foreground group-hover:text-orange-600 group-active:scale-[0.92]",
+                        "dark:group-hover:text-orange-400"
+                      )}
+                    />
                   </Button>
                 }
               />

@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { PageShareControl } from "@/components/page-share-control";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+import { buildRankingDetailPath } from "@/lib/web-routes";
 
 function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
@@ -39,12 +41,15 @@ export function RankingDetailPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <Button asChild className="w-fit" variant="ghost">
-        <Link to={APP_ROUTES.rankings}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          返回榜单
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button asChild className="w-fit" variant="ghost">
+          <Link to={APP_ROUTES.rankings}>
+            <ArrowLeftIcon data-icon="inline-start" />
+            返回榜单
+          </Link>
+        </Button>
+        {id ? <PageShareControl sharePath={buildRankingDetailPath(id)} /> : null}
+      </div>
 
       {rankingQuery.isError ? (
         <Alert variant="destructive">

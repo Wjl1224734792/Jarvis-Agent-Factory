@@ -1,14 +1,14 @@
 import { useQueryClient } from "@tanstack/react-query";
-import {
-  CornerDownRightIcon,
-  HeartIcon,
-  SquarePenIcon,
-  Trash2Icon
-} from "lucide-react";
+import { CornerDownRightIcon, SquarePenIcon, Trash2Icon } from "lucide-react";
 import { useMemo, useState, type ReactNode } from "react";
+import { CommentPublishedTime } from "@/components/comment-published-time";
+import {
+  CommentIconOnlyButton,
+  CommentLikeIconButton,
+  CommentTextAction
+} from "@/components/comment-thread-controls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -35,7 +35,8 @@ type ReplyView = {
   id: string;
   content: string;
   likeCount: number;
-  updatedAt: string;
+  createdAt: string;
+  hasLiked: boolean;
   author: CommentNode["author"];
   replyToDisplayName?: string;
 };
@@ -45,14 +46,11 @@ function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): Rep
     id: node.id,
     content: node.content,
     likeCount: node.likeCount ?? 0,
-    updatedAt: node.updatedAt,
+    createdAt: node.createdAt,
+    hasLiked: node.viewer.hasLiked,
     author: node.author,
     replyToDisplayName: node.replyToUser?.displayName ?? replyToDisplayName
   }));
-}
-
-function formatTime(value: string) {
-  return new Date(value).toLocaleString("zh-CN", { hour12: false });
 }
 
 function CommentSkeletonItem(props: { compact?: boolean }) {
@@ -74,63 +72,48 @@ function InteractionRow(props: {
   canInteract: boolean;
   disabled: boolean;
   likeCount: number;
+  hasLiked?: boolean;
+  isEditing?: boolean;
   onDelete?: () => void;
   onEdit?: () => void;
   onLike?: () => void;
   onReply?: () => void;
   reportTrigger?: ReactNode;
 }) {
+  const hasLiked = props.hasLiked ?? false;
   return (
-    <div className="flex shrink-0 items-center gap-1">
+    <div className="flex shrink-0 items-center gap-1 self-start">
       {props.onLike ? (
-        <Button
-          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentLikeIconButton
           disabled={props.disabled}
+          hasLiked={hasLiked}
+          likeCount={props.likeCount}
           onClick={props.onLike}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <HeartIcon className="size-3.5" />
-          {props.likeCount}
-        </Button>
+        />
       ) : null}
       {props.canInteract && props.onReply ? (
-        <Button
-          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-          disabled={props.disabled}
-          onClick={props.onReply}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
+        <CommentTextAction disabled={props.disabled} onClick={props.onReply} variant="reply">
           回复
-        </Button>
+        </CommentTextAction>
       ) : null}
       {props.reportTrigger && !props.canDelete ? props.reportTrigger : null}
       {props.canEdit && props.onEdit ? (
-        <Button
-          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          active={props.isEditing}
           disabled={props.disabled}
+          icon={SquarePenIcon}
+          label="编辑评论"
           onClick={props.onEdit}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <SquarePenIcon className="size-3.5" />
-        </Button>
+        />
       ) : null}
       {props.canDelete && props.onDelete ? (
-        <Button
-          className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          destructiveHover
           disabled={props.disabled}
+          icon={Trash2Icon}
+          label="删除评论"
           onClick={props.onDelete}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2Icon className="size-3.5" />
-        </Button>
+        />
       ) : null}
     </div>
   );
@@ -201,7 +184,7 @@ function RootCommentItem(props: {
                 待审核
               </span>
             ) : null}
-            <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
+            <CommentPublishedTime createdAt={props.comment.createdAt} />
           </div>
 
           {editing ? (
@@ -250,6 +233,8 @@ function RootCommentItem(props: {
           canEdit={canEdit}
           canInteract={props.canInteract && !isPending}
           disabled={busy !== null}
+          hasLiked={props.comment.viewer.hasLiked}
+          isEditing={editing}
           likeCount={props.comment.likeCount ?? 0}
           onDelete={() => {
             setBusy("delete");
@@ -299,15 +284,13 @@ function RootCommentItem(props: {
                 }
                 title="举报评论"
                 trigger={
-                  <Button
-                    className="h-6 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+                  <CommentTextAction
                     disabled={busy !== null}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
+                    hasReported={props.comment.viewer.hasReported}
+                    variant="report"
                   >
                     举报
-                  </Button>
+                  </CommentTextAction>
                 }
               />
             )
@@ -351,7 +334,7 @@ function RootCommentItem(props: {
                             @{reply.replyToDisplayName}
                           </span>
                         ) : null}
-                        <span className="text-[0.72rem] text-muted-foreground">{formatTime(reply.updatedAt)}</span>
+                        <CommentPublishedTime createdAt={reply.createdAt} />
                       </div>
                       <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
                     </div>
@@ -361,6 +344,7 @@ function RootCommentItem(props: {
                       canEdit={false}
                       canInteract={props.canInteract && !isPending}
                       disabled={busy !== null}
+                      hasLiked={reply.hasLiked}
                       likeCount={reply.likeCount}
                       onLike={() => {
                         setBusy("like");

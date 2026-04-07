@@ -74,7 +74,7 @@ function NotificationStatsSkeleton() {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       {Array.from({ length: 3 }).map((_, index) => (
-        <Card key={index} variant="muted">
+        <Card className="!border-0" key={index} variant="muted">
           <CardContent className="space-y-3 pt-[var(--panel-padding)]">
             <Skeleton className="h-4 w-20" />
             <Skeleton className="h-8 w-16" />
@@ -87,7 +87,7 @@ function NotificationStatsSkeleton() {
 
 function NotificationFeedSkeleton() {
   return (
-    <div className="border border-border/70 bg-white">
+    <div className="bg-white">
       {Array.from({ length: 5 }).map((_, index) => (
         <div className="border-b border-border/70 px-4 py-4 last:border-b-0" key={index}>
           <div className="flex items-start gap-3">
@@ -212,7 +212,7 @@ export function NotificationsPage() {
             const Icon = item.icon;
 
             return (
-              <Card key={item.label} variant="muted">
+              <Card className="!border-0" key={item.label} variant="muted">
                 <CardContent className="space-y-3 pt-[var(--panel-padding)]">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
@@ -290,6 +290,7 @@ export function NotificationsPage() {
         <NotificationFeedSkeleton />
       ) : (
         <VirtualFeed
+          className="!border-0"
           data={payload?.items ?? []}
           emptyState={
             <Alert>

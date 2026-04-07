@@ -8,6 +8,7 @@ import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { buildRankingDetailPath } from "@/lib/web-routes";
@@ -48,52 +49,55 @@ function RatingTargetScore({ score, totalRatings }: { score: number; totalRating
 
 function RankingCard({ ranking }: { ranking: RankingListItem }) {
   const previewItems = ranking.items.slice(0, 3);
+  const detailPath = buildRankingDetailPath(ranking.id);
 
   return (
-    <Link
-      className="flex min-w-0 flex-col gap-4 bg-white px-4 py-4 transition hover:bg-sky-50/40"
-      to={buildRankingDetailPath(ranking.id)}
-    >
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 space-y-2">
-          <div className="flex flex-wrap items-center gap-2">
-            <div className="line-clamp-2 text-[1.05rem] leading-6 font-semibold text-foreground">
-              {ranking.title}
-            </div>
-            {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
-          </div>
-          <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">{ranking.description}</div>
-        </div>
+    <div className="relative bg-white transition hover:bg-sky-50/40">
+      <div className="absolute top-2 right-2 z-10">
+        <PageShareControl sharePath={detailPath} stopPointerPropagation />
       </div>
-
-      <div className="border-t border-border/70 pt-3">
-        {previewItems.map((item, index) => (
-          <div
-            className={`grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_auto] items-center gap-3 py-2 ${
-              index < previewItems.length - 1 ? "border-b border-border/60" : ""
-            }`}
-            key={item.id}
-          >
-            <div className="text-[0.8rem] font-semibold text-primary/76">{item.rank}</div>
-            <img
-              alt={item.title}
-              className="h-12 w-12 object-cover"
-              src={
-                item.imageUrl ??
-                getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
-              }
-            />
-            <div className="min-w-0 space-y-1">
-              <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
-              <div className="text-xs text-muted-foreground">
-                {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
+      <Link className="flex min-w-0 flex-col gap-4 px-4 pt-4 pr-12 pb-4" to={detailPath}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="line-clamp-2 text-[1.05rem] leading-6 font-semibold text-foreground">
+                {ranking.title}
               </div>
+              {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
             </div>
-            <RatingTargetScore score={item.averageScore} totalRatings={item.totalRatings} />
+            <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">{ranking.description}</div>
           </div>
-        ))}
-      </div>
-    </Link>
+        </div>
+
+        <div className="border-t border-border/70 pt-3">
+          {previewItems.map((item, index) => (
+            <div
+              className={`grid grid-cols-[1.2rem_3rem_minmax(0,1fr)_auto] items-center gap-3 py-2 ${
+                index < previewItems.length - 1 ? "border-b border-border/60" : ""
+              }`}
+              key={item.id}
+            >
+              <div className="text-[0.8rem] font-semibold text-primary/76">{item.rank}</div>
+              <img
+                alt={item.title}
+                className="h-12 w-12 object-cover"
+                src={
+                  item.imageUrl ??
+                  getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
+                }
+              />
+              <div className="min-w-0 space-y-1">
+                <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
+                <div className="text-xs text-muted-foreground">
+                  {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
+                </div>
+              </div>
+              <RatingTargetScore score={item.averageScore} totalRatings={item.totalRatings} />
+            </div>
+          ))}
+        </div>
+      </Link>
+    </div>
   );
 }
 

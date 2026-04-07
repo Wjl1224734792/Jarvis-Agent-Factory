@@ -310,7 +310,7 @@ export function ProfilePage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <SitePanel className="overflow-hidden" variant="floating">
+      <SitePanel className="overflow-hidden !border-0" variant="floating">
         <div className="relative h-40 overflow-hidden border-b border-border/80 md:h-48">
           <img
             alt={`${displayName} 顶部横幅`}
@@ -404,13 +404,14 @@ export function ProfilePage() {
         </TabsList>
 
         <TabsContent className="space-y-4" value="activity">
-          <div className="rounded-[0.95rem] border border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+          <div className="rounded-[0.95rem] bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
             这里集中管理文章、动态、榜单、榜单条目、品牌申请和机型投稿。被驳回的内容会直接显示原因，修改后可重新提交。
           </div>
           <VirtualFeed
+            className="!border-0"
             data={activityItems}
             emptyState={
-              <div className="border border-border/70 bg-white px-5 py-5 text-sm text-muted-foreground">
+              <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
                 还没有公开内容。
               </div>
             }
@@ -429,9 +430,10 @@ export function ProfilePage() {
 
         <TabsContent className="space-y-4" value="favorites">
           <VirtualFeed
+            className="!border-0"
             data={favoriteItems}
             emptyState={
-              <div className="border border-border/70 bg-white px-5 py-5 text-sm text-muted-foreground">
+              <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
                 还没有收藏内容。
               </div>
             }

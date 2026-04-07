@@ -6,13 +6,13 @@ import {
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
-  MessageSquareTextIcon,
-  SendIcon
+  MessageSquareTextIcon
 } from "lucide-react";
 import { Fragment, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { PageShareControl } from "@/components/page-share-control";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -133,11 +133,11 @@ export function ModelDetailPage() {
     }
   ];
 
-  async function handleInteraction(type: "interested" | "favorite" | "share") {
+  async function handleInteraction(type: "interested" | "favorite") {
     if (!isAuthenticated) {
       promptLogin({
         title: "登录后才能互动",
-        description: "收藏、想买和分享前请先登录。"
+        description: "收藏、想买前请先登录。"
       });
       return;
     }
@@ -145,6 +145,23 @@ export function ModelDetailPage() {
     setInteractionBusy(type);
     try {
       await apiClient.interactModel(modelSlug, type);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] })
+      ]);
+    } finally {
+      setInteractionBusy(null);
+    }
+  }
+
+  async function recordModelShareAfterCopy() {
+    if (!isAuthenticated) {
+      return;
+    }
+    setInteractionBusy("share");
+    try {
+      await apiClient.interactModel(modelSlug, "share");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
         queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
@@ -222,12 +239,12 @@ export function ModelDetailPage() {
                       aria-label={`想买，${item.interactionSummary.interestCount} 人`}
                       aria-pressed={item.viewer.isInterested ? "true" : "false"}
                       className={cn(
-                        "inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition",
+                        "group inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
                         "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-rose-400/45 focus-visible:ring-offset-2",
                         "disabled:cursor-not-allowed disabled:opacity-45",
                         item.viewer.isInterested
                           ? "text-rose-600 dark:text-rose-400"
-                          : "text-rose-500/85 hover:text-rose-600 dark:text-rose-400/90 dark:hover:text-rose-300"
+                          : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
                       )}
                       disabled={interactionBusy !== null}
                       onClick={() => {
@@ -237,10 +254,10 @@ export function ModelDetailPage() {
                     >
                       <HeartIcon
                         className={cn(
-                          "size-[1.125rem] shrink-0 transition",
+                          "size-[1.125rem] shrink-0 transition-transform duration-150 ease-out",
                           item.viewer.isInterested
                             ? "scale-105 fill-rose-500 text-rose-600 dark:fill-rose-400 dark:text-rose-300"
-                            : "text-current"
+                            : "text-current group-active:scale-[0.92]"
                         )}
                       />
                       <span>{item.interactionSummary.interestCount}</span>
@@ -249,12 +266,12 @@ export function ModelDetailPage() {
                       aria-label={`收藏，${item.interactionSummary.favoriteCount} 人`}
                       aria-pressed={item.viewer.isFavorited ? "true" : "false"}
                       className={cn(
-                        "inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition",
+                        "group inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
                         "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-amber-400/45 focus-visible:ring-offset-2",
                         "disabled:cursor-not-allowed disabled:opacity-45",
                         item.viewer.isFavorited
                           ? "text-amber-700 dark:text-amber-400"
-                          : "text-amber-600/90 hover:text-amber-700 dark:text-amber-500 dark:hover:text-amber-400"
+                          : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
                       )}
                       disabled={interactionBusy !== null}
                       onClick={() => {
@@ -264,41 +281,36 @@ export function ModelDetailPage() {
                     >
                       <BookmarkIcon
                         className={cn(
-                          "size-[1.125rem] shrink-0 transition",
+                          "size-[1.125rem] shrink-0 transition-transform duration-150 ease-out",
                           item.viewer.isFavorited
                             ? "scale-105 fill-amber-500 text-amber-700 dark:fill-amber-400 dark:text-amber-300"
-                            : "text-current"
+                            : "text-current group-active:scale-[0.92]"
                         )}
                       />
                       <span>{item.interactionSummary.favoriteCount}</span>
                     </button>
-                    <button
-                      aria-label={`分享，${item.interactionSummary.shareCount} 次`}
-                      aria-pressed={item.viewer.hasShared ? "true" : "false"}
+                    <div
                       className={cn(
-                        "inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition",
-                        "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-sky-400/45 focus-visible:ring-offset-2",
-                        "disabled:cursor-not-allowed disabled:opacity-45",
+                        "inline-flex items-center gap-1.5 text-sm font-medium tabular-nums",
                         item.viewer.hasShared
                           ? "text-sky-700 dark:text-sky-300"
-                          : "text-sky-600/90 hover:text-sky-700 dark:text-sky-400 dark:hover:text-sky-300"
+                          : "text-muted-foreground"
                       )}
-                      disabled={interactionBusy !== null}
-                      onClick={() => {
-                        void handleInteraction("share");
-                      }}
-                      type="button"
                     >
-                      <SendIcon
-                        className={cn(
-                          "size-[1.125rem] shrink-0 transition",
-                          item.viewer.hasShared
-                            ? "scale-105 text-sky-700 dark:text-sky-300"
-                            : "text-current"
-                        )}
+                      <PageShareControl
+                        active={item.viewer.hasShared}
+                        aria-label={`分享，${item.interactionSummary.shareCount} 次`}
+                        className="[&_button]:p-0"
+                        disabled={interactionBusy !== null}
+                        iconClassName="size-[1.125rem]"
+                        onCopySuccess={() => {
+                          void recordModelShareAfterCopy();
+                        }}
+                        sharePath={APP_ROUTES.modelDetail.replace(":slug", modelSlug)}
+                        tone="sky"
                       />
                       <span>{item.interactionSummary.shareCount}</span>
-                    </button>
+                    </div>
                     <button
                       aria-label="前往评论区"
                       className={cn(

@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { ImageIcon, PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishShell } from "@/components/publish-shell";
@@ -393,35 +393,6 @@ export function PublishMomentPage() {
                 <p className="text-sm leading-6 text-muted-foreground">
                   {content || "动态内容会显示在这里。"}
                 </p>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <ImageIcon className="size-4.5 text-primary" />
-                飞友圈卡片
-              </div>
-              <div className="rounded-[0.9rem] border border-border bg-white p-2.5">
-                <div className="relative">
-                  <img alt="card" className="h-32 w-full rounded-[0.75rem] object-cover" src={coverUrl} />
-                  {uploadedVideo ? (
-                    <span className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
-                      <PlayIcon className="size-3.5 fill-current" />
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-2.5 text-sm font-semibold text-foreground">
-                  {title || "动态标题"}
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {uploadedVideo
-                    ? "当前为单视频动态"
-                    : uploadedImages.length > 0
-                      ? `当前共 ${uploadedImages.length} 张图片`
-                      : "未选择媒体"}
-                </div>
               </div>
             </SitePanelBody>
           </SitePanel>
