@@ -5,9 +5,9 @@ import {
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
-  MessageSquareTextIcon
+  MessageSquareTextIcon,
+  SendIcon
 } from "lucide-react";
-import { SendIcon } from "lucide-react";
 import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
@@ -164,8 +164,130 @@ export function ModelDetailPage() {
 
       <SiteGrid className="items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]" variant="sidebar">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid gap-4 border border-border/80 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-3">
+          <div className="space-y-6 border border-border/80 bg-white p-4">
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-start">
+              <div className="min-w-0 space-y-3">
+                <div className="overflow-hidden border border-border/70">
+                  <img
+                    alt={item.name}
+                    className="h-[280px] w-full object-cover sm:h-[320px] lg:h-[340px]"
+                    src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-4 gap-2">
+                  {gallery.map((image, index) => (
+                    <button
+                      className={`overflow-hidden border transition ${
+                        activeGalleryIndex === index ? "border-primary" : "border-border/70"
+                      }`}
+                      key={image}
+                      onClick={() => setActiveGalleryIndex(index)}
+                      type="button"
+                    >
+                      <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="min-w-0 space-y-4">
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {metrics.map((metric) => (
+                    <div className="border border-border/70 px-4 py-4" key={metric.label}>
+                      <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        {metric.label}
+                      </div>
+                      <div className="mt-2 text-[1.2rem] font-semibold leading-none text-foreground">
+                        {metric.value}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="space-y-3 border border-border/70 px-4 py-4">
+                  <div className="grid gap-3 sm:grid-cols-3">
+                    {[
+                      { label: "想买", value: item.interactionSummary.interestCount },
+                      { label: "收藏", value: item.interactionSummary.favoriteCount },
+                      { label: "分享", value: item.interactionSummary.shareCount }
+                    ].map((entry) => (
+                      <div key={entry.label}>
+                        <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">{entry.label}</div>
+                        <div className="mt-1 text-lg font-semibold text-foreground">{entry.value}</div>
+                      </div>
+                    ))}
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
+                    <Button
+                      disabled={interactionBusy !== null}
+                      onClick={() => {
+                        void handleInteraction("interested");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant={item.viewer.isInterested ? "panel" : "hero"}
+                    >
+                      <HeartIcon data-icon="inline-start" />
+                      {item.viewer.isInterested ? "已想买" : "想买"}
+                    </Button>
+                    <Button
+                      disabled={interactionBusy !== null}
+                      onClick={() => {
+                        void handleInteraction("favorite");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant={item.viewer.isFavorited ? "panel" : "outline"}
+                    >
+                      <BookmarkIcon data-icon="inline-start" />
+                      {item.viewer.isFavorited ? "已收藏" : "收藏"}
+                    </Button>
+                    <Button
+                      className="sm:col-span-2"
+                      disabled={interactionBusy !== null}
+                      onClick={() => {
+                        void handleInteraction("share");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <SendIcon data-icon="inline-start" />
+                      {item.viewer.hasShared ? "已记录分享" : "分享"}
+                    </Button>
+                    <ReportActionSheet
+                      description="请说明机型存在的问题，并至少上传 1 张证据图。"
+                      onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
+                      title="举报机型"
+                      trigger={
+                        <Button className="sm:col-span-2" size="sm" type="button" variant="outline">
+                          举报机型
+                        </Button>
+                      }
+                    />
+                  </div>
+
+                  <Button
+                    onClick={() => {
+                      document.getElementById("model-comment-area")?.scrollIntoView({
+                        behavior: "smooth",
+                        block: "start"
+                      });
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <MessageSquareTextIcon data-icon="inline-start" />
+                    去评论区
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-3 border-t border-border/70 pt-6">
               <div className="flex flex-wrap items-center gap-2">
                 <Badge variant="outline">
                   <BrandIdentity imageClassName="size-3.5" logoUrl={item.brand.logoUrl} name={item.brand.name} />
@@ -179,127 +301,9 @@ export function ModelDetailPage() {
               {priceLabel ? (
                 <div className="text-base font-semibold text-primary">{priceLabel}</div>
               ) : null}
-              <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
+              <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
                 {item.description ?? item.summary ?? "查看参数、图集与社区评论。"}
               </p>
-
-              <div className="overflow-hidden border border-border/70">
-                <img
-                  alt={item.name}
-                  className="h-[340px] w-full object-cover"
-                  src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                {gallery.map((image, index) => (
-                  <button
-                    className={`overflow-hidden border transition ${
-                      activeGalleryIndex === index ? "border-primary" : "border-border/70"
-                    }`}
-                    key={image}
-                    onClick={() => setActiveGalleryIndex(index)}
-                    type="button"
-                  >
-                    <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {metrics.map((metric) => (
-                  <div className="border border-border/70 px-4 py-4" key={metric.label}>
-                    <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      {metric.label}
-                    </div>
-                    <div className="mt-2 text-[1.2rem] font-semibold leading-none text-foreground">
-                      {metric.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3 border border-border/70 px-4 py-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {[
-                    { label: "想买", value: item.interactionSummary.interestCount },
-                    { label: "收藏", value: item.interactionSummary.favoriteCount },
-                    { label: "分享", value: item.interactionSummary.shareCount }
-                  ].map((entry) => (
-                    <div key={entry.label}>
-                      <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">{entry.label}</div>
-                      <div className="mt-1 text-lg font-semibold text-foreground">{entry.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("interested");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={item.viewer.isInterested ? "panel" : "hero"}
-                  >
-                    <HeartIcon data-icon="inline-start" />
-                    {item.viewer.isInterested ? "已想买" : "想买"}
-                  </Button>
-                  <Button
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("favorite");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={item.viewer.isFavorited ? "panel" : "outline"}
-                  >
-                    <BookmarkIcon data-icon="inline-start" />
-                    {item.viewer.isFavorited ? "已收藏" : "收藏"}
-                  </Button>
-                  <Button
-                    className="sm:col-span-2"
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("share");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <SendIcon data-icon="inline-start" />
-                    {item.viewer.hasShared ? "已记录分享" : "分享"}
-                  </Button>
-                  <ReportActionSheet
-                    description="请说明机型存在的问题，并至少上传 1 张证据图。"
-                    onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
-                    title="举报机型"
-                    trigger={
-                      <Button className="sm:col-span-2" size="sm" type="button" variant="outline">
-                        举报机型
-                      </Button>
-                    }
-                  />
-                </div>
-
-                <Button
-                  onClick={() => {
-                    document.getElementById("model-comment-area")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start"
-                    });
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <MessageSquareTextIcon data-icon="inline-start" />
-                  去评论区
-                </Button>
-              </div>
             </div>
           </div>
 
