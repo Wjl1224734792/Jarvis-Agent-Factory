@@ -1,4 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ChevronLeftIcon,
@@ -527,6 +528,7 @@ export function CirclePage() {
                           likeCount={selectedNote.engagement.likeCount}
                           postId={selectedNote.id}
                           shareCount={selectedNote.engagement.shareCount}
+                          sharePath={APP_ROUTES.postDetail.replace(":id", selectedNote.id)}
                           viewer={selectedNote.engagement.viewer}
                         />
                         <span className="inline-flex items-center gap-1.5 text-[0.82rem] text-foreground/62">

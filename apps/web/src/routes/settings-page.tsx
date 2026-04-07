@@ -1,9 +1,17 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, CameraIcon, LogOutIcon, ShieldCheckIcon, SmartphoneIcon } from "lucide-react";
+import {
+  BellIcon,
+  CameraIcon,
+  LogOutIcon,
+  PencilLineIcon,
+  ShieldCheckIcon,
+  SmartphoneIcon
+} from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { SitePage } from "@/components/site-shell";
+import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -36,6 +44,9 @@ import {
 import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-flow";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
+const MAX_BIO_LENGTH = 50;
+
+type EditableProfileField = "displayName" | "bio" | "profileVisibility" | null;
 
 function trimUrl(value: string | null | undefined): string | undefined {
   const next = value?.trim();
@@ -45,9 +56,12 @@ function trimUrl(value: string | null | undefined): string | undefined {
 function SettingsPageSkeleton() {
   return (
     <SitePage>
-      <div className="space-y-4">
-        <Skeleton className="h-24 rounded-[1rem]" />
-        <Skeleton className="h-[30rem] rounded-[1rem]" />
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]">
+        <Skeleton className="h-[44rem] rounded-[1rem]" />
+        <div className="space-y-6">
+          <Skeleton className="h-[14rem] rounded-[1rem]" />
+          <Skeleton className="h-[18rem] rounded-[1rem]" />
+        </div>
       </div>
     </SitePage>
   );
@@ -77,6 +91,28 @@ function SettingToggleRow({
   );
 }
 
+function SettingCard({
+  title,
+  children,
+  action
+}: {
+  title: string;
+  children: ReactNode;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="rounded-2xl border border-border/70 bg-white px-5 py-4">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0 flex-1">
+          <div className="text-sm font-medium text-foreground">{title}</div>
+          <div className="mt-3 min-w-0">{children}</div>
+        </div>
+        {action ? <div className="shrink-0">{action}</div> : null}
+      </div>
+    </div>
+  );
+}
+
 export function SettingsPage() {
   const navigate = useNavigate();
   const user = useAuthStore((state) => state.user);
@@ -100,9 +136,9 @@ export function SettingsPage() {
     })
   );
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [isSaving, setIsSaving] = useState(false);
-  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
-  const [isPhonePanelOpen, setIsPhonePanelOpen] = useState(false);
+  const [editingField, setEditingField] = useState<EditableProfileField>(null);
+  const [savingField, setSavingField] = useState<string | null>(null);
+  const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false);
   const [nextPhone, setNextPhone] = useState("");
   const [phoneRequestId, setPhoneRequestId] = useState<string | null>(null);
   const [phoneActionError, setPhoneActionError] = useState<string | null>(null);
@@ -121,6 +157,7 @@ export function SettingsPage() {
     if (!user) {
       return undefined;
     }
+
     return (
       trimUrl(draft.avatarUrl) ??
       trimUrl(profileItem?.avatarUrl) ??
@@ -148,7 +185,7 @@ export function SettingsPage() {
   }, [statusMessage]);
 
   useEffect(() => {
-    if (!isPhonePanelOpen || phoneSmsFlow.challenge) {
+    if (!isPhoneDialogOpen || phoneSmsFlow.challenge) {
       return;
     }
 
@@ -156,7 +193,7 @@ export function SettingsPage() {
       onError: setPhoneActionError,
       errorFallback: "图形验证码初始化失败"
     });
-  }, [isPhonePanelOpen, phoneSmsFlow]);
+  }, [isPhoneDialogOpen, phoneSmsFlow]);
 
   if (!user) {
     return <SettingsPageSkeleton />;
@@ -165,28 +202,36 @@ export function SettingsPage() {
   const displayName = draft.displayName || user.displayName;
   const profileLoading = profileQuery.isLoading && !profileQuery.data;
 
-  async function uploadAvatar(file: File) {
-    setIsUploadingAvatar(true);
-    try {
-      const uploaded = await apiClient.uploadAvatarImage(file);
-      setDraft((current) => ({
-        ...updateSettingsTextField(current, "avatarUrl", uploaded.item.url),
-        avatarFileId: uploaded.item.id
-      }));
-      setStatusMessage("头像已上传，保存后会更新到个人资料。");
-      void profileQuery.refetch();
-    } catch (reason: unknown) {
-      setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");
-    } finally {
-      setIsUploadingAvatar(false);
-      if (avatarInputRef.current) {
-        avatarInputRef.current.value = "";
-      }
-    }
+  function beginEdit(field: Exclude<EditableProfileField, null>) {
+    setStatusMessage(null);
+    setEditingField(field);
   }
 
-  async function saveSettings() {
-    setIsSaving(true);
+  function cancelEdit(field: Exclude<EditableProfileField, null>) {
+    if (profileItem) {
+      const snapshotDraft = createSettingsDraft(profileItem);
+      setDraft((current) => {
+        if (field === "displayName") {
+          return { ...current, displayName: snapshotDraft.displayName, hasPendingChanges: false };
+        }
+
+        if (field === "bio") {
+          return { ...current, bio: snapshotDraft.bio, hasPendingChanges: false };
+        }
+
+        return {
+          ...current,
+          profileVisibility: snapshotDraft.profileVisibility,
+          hasPendingChanges: false
+        };
+      });
+    }
+
+    setEditingField(null);
+  }
+
+  async function persistDraft(fieldKey: string, successMessage: string) {
+    setSavingField(fieldKey);
     try {
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(draft));
       const refreshedUser = await apiClient.getCurrentUser();
@@ -195,13 +240,83 @@ export function SettingsPage() {
       }
 
       setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
-      setStatusMessage("资料已保存。");
+      setStatusMessage(successMessage);
+      setEditingField(null);
       void profileQuery.refetch();
     } catch (reason: unknown) {
-      setStatusMessage(reason instanceof Error ? reason.message : "资料保存失败");
+      setStatusMessage(reason instanceof Error ? reason.message : "保存失败");
     } finally {
-      setIsSaving(false);
+      setSavingField(null);
     }
+  }
+
+  async function saveProfileField(field: Exclude<EditableProfileField, null>) {
+    if (field === "displayName" && !draft.displayName.trim()) {
+      setStatusMessage("昵称不能为空");
+      return;
+    }
+
+    await persistDraft(field, "资料已更新");
+  }
+
+  async function toggleNotificationField(
+    field: "notifyComments" | "notifyMentions",
+    successMessage: string
+  ) {
+    const nextDraft = toggleSettingsFlag(draft, field);
+    setDraft(nextDraft);
+    setSavingField(field);
+    try {
+      const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
+      setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
+      setStatusMessage(successMessage);
+      void profileQuery.refetch();
+    } catch (reason: unknown) {
+      setDraft(draft);
+      setStatusMessage(reason instanceof Error ? reason.message : "设置保存失败");
+    } finally {
+      setSavingField(null);
+    }
+  }
+
+  async function uploadAvatar(file: File) {
+    setSavingField("avatar");
+    try {
+      const uploaded = await apiClient.uploadAvatarImage(file);
+      const nextDraft = {
+        ...draft,
+        avatarUrl: uploaded.item.url,
+        avatarFileId: uploaded.item.id,
+        hasPendingChanges: true
+      };
+      setDraft(nextDraft);
+
+      const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
+      const refreshedUser = await apiClient.getCurrentUser();
+      if (refreshedUser) {
+        setAuthenticated(refreshedUser);
+      }
+
+      setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
+      setStatusMessage("头像已更新");
+      void profileQuery.refetch();
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");
+    } finally {
+      setSavingField(null);
+      if (avatarInputRef.current) {
+        avatarInputRef.current.value = "";
+      }
+    }
+  }
+
+  function closePhoneDialog() {
+    setIsPhoneDialogOpen(false);
+    setPhoneActionError(null);
+    setNextPhone("");
+    setPhoneRequestId(null);
+    setIsConfirmingPhone(false);
+    phoneSmsFlow.reset();
   }
 
   async function refreshPhoneChallenge() {
@@ -266,13 +381,11 @@ export function SettingsPage() {
       setDraft((current) => ({
         ...current,
         phone: snapshot.phone ?? "",
-        phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked)
+        phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
+        hasPendingChanges: false
       }));
-      setStatusMessage("手机号已完成换绑。");
-      setIsPhonePanelOpen(false);
-      phoneSmsFlow.reset();
-      setNextPhone("");
-      setPhoneRequestId(null);
+      setStatusMessage("手机号已完成换绑");
+      closePhoneDialog();
       void profileQuery.refetch();
     } catch (reason: unknown) {
       setPhoneActionError(reason instanceof Error ? reason.message : "手机号换绑失败");
@@ -282,12 +395,7 @@ export function SettingsPage() {
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-8">
-      <header className="space-y-1">
-        <h1 className="text-2xl font-semibold tracking-[-0.03em] text-foreground">设置</h1>
-        <p className="text-sm text-muted-foreground">管理公开资料、账号安全与通知偏好。修改后请点击「保存资料」生效。</p>
-      </header>
-
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-6">
       {profileQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>设置加载失败</AlertTitle>
@@ -302,33 +410,39 @@ export function SettingsPage() {
         </Alert>
       ) : null}
 
-      <div className="mx-auto flex w-full max-w-3xl flex-col gap-10">
-        <section className="space-y-6 rounded-2xl bg-surface-2/50 p-6 md:p-8">
-          <h2 className="text-lg font-semibold text-foreground">公开资料</h2>
+      <div className="mx-auto grid w-full max-w-[76rem] gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] xl:items-start">
+        <section className="space-y-4 rounded-2xl bg-surface-2/50 p-6 md:p-8">
+          <div className="text-lg font-semibold text-foreground">公开资料</div>
 
-          <div className="flex flex-wrap items-start gap-5">
-            {profileLoading ? (
-              <Skeleton className="size-22 shrink-0 rounded-[0.9rem] md:size-24" />
-            ) : (
-              <UserAvatar
-                className="size-22 shrink-0 rounded-[0.9rem] md:size-24"
-                displayName={displayName}
-                size="lg"
-                src={resolvedAvatarSrc}
-              />
-            )}
-            <div className="min-w-0 flex-1 space-y-2">
+          <SettingCard
+            action={
               <Button
-                disabled={isUploadingAvatar || profileQuery.isFetching}
+                disabled={savingField === "avatar" || profileQuery.isFetching}
                 onClick={() => avatarInputRef.current?.click()}
                 size="sm"
                 type="button"
                 variant="outline"
               >
                 <CameraIcon data-icon="inline-start" />
-                {isUploadingAvatar ? "上传中..." : "上传头像"}
+                {savingField === "avatar" ? "保存中..." : "编辑"}
               </Button>
-              <p className="text-xs leading-5 text-muted-foreground">建议使用清晰的方形头像。上传后需保存资料才会写入账号。</p>
+            }
+            title="头像"
+          >
+            <div className="flex flex-wrap items-center gap-5">
+              {profileLoading ? (
+                <Skeleton className="h-28 w-28 rounded-full md:h-32 md:w-32" />
+              ) : (
+                <UserAvatar
+                  className="!h-28 !w-28 md:!h-32 md:!w-32"
+                  displayName={displayName}
+                  size="lg"
+                  src={resolvedAvatarSrc}
+                />
+              )}
+              <div className="text-sm leading-6 text-muted-foreground">
+                建议使用清晰的方形头像。选择图片后会自动保存到账号资料。
+              </div>
               <input
                 accept="image/*"
                 className="hidden"
@@ -342,105 +456,272 @@ export function SettingsPage() {
                 type="file"
               />
             </div>
-          </div>
+          </SettingCard>
 
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="settings-display-name">
-              昵称
-            </label>
-            <Input
-              id="settings-display-name"
-              onChange={(event) => {
-                setDraft((current) => updateSettingsTextField(current, "displayName", event.target.value));
-              }}
-              value={draft.displayName}
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-sm font-medium text-foreground" htmlFor="settings-bio">
-              个人简介
-            </label>
-            <Textarea
-              className="min-h-28 resize-y"
-              id="settings-bio"
-              onChange={(event) => {
-                setDraft((current) => updateSettingsTextField(current, "bio", event.target.value));
-              }}
-              value={draft.bio}
-            />
-          </div>
-
-          <div className="space-y-3">
-            <div className="text-sm font-medium text-foreground">可见范围</div>
-            <div className="grid gap-3 md:grid-cols-3">
-              {visibilityOptions.map((option) => {
-                const selected = draft.profileVisibility === option;
-                return (
-                  <button
-                    className={cn(
-                      "rounded-xl px-4 py-4 text-left transition",
-                      selected
-                        ? "bg-primary/8 ring-2 ring-primary/35"
-                        : "bg-muted/25 hover:bg-muted/40"
-                    )}
-                    key={option}
+          <SettingCard
+            action={
+              editingField === "displayName" ? (
+                <div className="flex gap-2">
+                  <Button onClick={() => cancelEdit("displayName")} size="sm" type="button" variant="ghost">
+                    取消
+                  </Button>
+                  <Button
+                    disabled={savingField === "displayName"}
                     onClick={() => {
-                      setDraft((current) => setProfileVisibility(current, option));
+                      void saveProfileField("displayName");
                     }}
+                    size="sm"
                     type="button"
+                    variant="hero"
                   >
-                    <div className="text-sm font-medium text-foreground">{profileVisibilityLabel(option)}</div>
-                    <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                      {profileVisibilityDescription(option)}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+                    {savingField === "displayName" ? "保存中..." : "保存"}
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => beginEdit("displayName")} size="sm" type="button" variant="outline">
+                  <PencilLineIcon data-icon="inline-start" />
+                  编辑
+                </Button>
+              )
+            }
+            title="昵称"
+          >
+            {editingField === "displayName" ? (
+              <Input
+                id="settings-display-name"
+                maxLength={24}
+                onChange={(event) => {
+                  setDraft((current) => updateSettingsTextField(current, "displayName", event.target.value));
+                }}
+                value={draft.displayName}
+              />
+            ) : (
+              <div className="text-base font-semibold text-foreground">{displayName}</div>
+            )}
+          </SettingCard>
 
-          <div className="pt-2">
-            <Button
-              disabled={isSaving || isUploadingAvatar || profileQuery.isFetching}
-              onClick={() => {
-                void saveSettings();
-              }}
-              type="button"
-              variant="hero"
-            >
-              {isSaving ? "保存中..." : "保存资料"}
-            </Button>
-          </div>
+          <SettingCard
+            action={
+              editingField === "bio" ? (
+                <div className="flex gap-2">
+                  <Button onClick={() => cancelEdit("bio")} size="sm" type="button" variant="ghost">
+                    取消
+                  </Button>
+                  <Button
+                    disabled={savingField === "bio"}
+                    onClick={() => {
+                      void saveProfileField("bio");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="hero"
+                  >
+                    {savingField === "bio" ? "保存中..." : "保存"}
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => beginEdit("bio")} size="sm" type="button" variant="outline">
+                  <PencilLineIcon data-icon="inline-start" />
+                  编辑
+                </Button>
+              )
+            }
+            title="个人简介"
+          >
+            {editingField === "bio" ? (
+              <div className="relative">
+                <Textarea
+                  className="min-h-28 resize-none pb-8"
+                  id="settings-bio"
+                  maxLength={MAX_BIO_LENGTH}
+                  onChange={(event) => {
+                    setDraft((current) =>
+                      updateSettingsTextField(current, "bio", event.target.value.slice(0, MAX_BIO_LENGTH))
+                    );
+                  }}
+                  value={draft.bio}
+                />
+                <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
+                  {draft.bio.length}/{MAX_BIO_LENGTH}
+                </div>
+              </div>
+            ) : (
+              <div className="text-sm leading-6 text-muted-foreground">
+                {draft.bio.trim() || "还没有填写个人简介。"}
+              </div>
+            )}
+          </SettingCard>
+
+          <SettingCard
+            action={
+              editingField === "profileVisibility" ? (
+                <div className="flex gap-2">
+                  <Button onClick={() => cancelEdit("profileVisibility")} size="sm" type="button" variant="ghost">
+                    取消
+                  </Button>
+                  <Button
+                    disabled={savingField === "profileVisibility"}
+                    onClick={() => {
+                      void saveProfileField("profileVisibility");
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="hero"
+                  >
+                    {savingField === "profileVisibility" ? "保存中..." : "保存"}
+                  </Button>
+                </div>
+              ) : (
+                <Button onClick={() => beginEdit("profileVisibility")} size="sm" type="button" variant="outline">
+                  <PencilLineIcon data-icon="inline-start" />
+                  编辑
+                </Button>
+              )
+            }
+            title="可见范围"
+          >
+            {editingField === "profileVisibility" ? (
+              <div className="grid gap-3 md:grid-cols-3">
+                {visibilityOptions.map((option) => {
+                  const selected = draft.profileVisibility === option;
+                  return (
+                    <button
+                      className={cn(
+                        "rounded-xl px-4 py-4 text-left transition",
+                        selected ? "bg-primary/8 ring-2 ring-primary/35" : "bg-muted/25 hover:bg-muted/40"
+                      )}
+                      key={option}
+                      onClick={() => {
+                        setDraft((current) => setProfileVisibility(current, option));
+                      }}
+                      type="button"
+                    >
+                      <div className="text-sm font-medium text-foreground">{profileVisibilityLabel(option)}</div>
+                      <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {profileVisibilityDescription(option)}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="space-y-1">
+                <div className="text-sm font-medium text-foreground">
+                  {profileVisibilityLabel(draft.profileVisibility)}
+                </div>
+                <div className="text-sm leading-6 text-muted-foreground">
+                  {profileVisibilityDescription(draft.profileVisibility)}
+                </div>
+              </div>
+            )}
+          </SettingCard>
         </section>
 
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">账号与安全</h2>
-          <div className="grid gap-4 rounded-xl bg-muted/20 p-4 md:grid-cols-[minmax(0,1fr)_180px] md:items-center md:p-5">
-            <div className="space-y-1">
-              <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">当前手机号</div>
-              <div className="text-lg font-semibold text-foreground">
-                {resolveMaskedPhone(draft.phone || null, draft.phoneMasked)}
+        <div className="space-y-6">
+          <section className="space-y-4">
+            <div className="text-lg font-semibold text-foreground">账号与安全</div>
+
+            <SettingCard
+              action={
+                <Button
+                  onClick={() => {
+                    setPhoneActionError(null);
+                    setIsPhoneDialogOpen(true);
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <ShieldCheckIcon data-icon="inline-start" />
+                  编辑
+                </Button>
+              }
+              title="绑定手机"
+            >
+              <div className="space-y-1">
+                <div className="text-base font-semibold text-foreground">
+                  {resolveMaskedPhone(draft.phone || null, draft.phoneMasked)}
+                </div>
+                <div className="text-sm leading-6 text-muted-foreground">
+                  仅展示脱敏手机号，修改时会通过短信验证码完成校验。
+                </div>
               </div>
-              <div className="text-xs leading-5 text-muted-foreground">页面只展示后四位，换绑后立即更新。</div>
+            </SettingCard>
+          </section>
+
+          <section className="space-y-4">
+            <div className="text-lg font-semibold text-foreground">通知</div>
+            <div className="space-y-6 rounded-2xl bg-surface-2/50 p-6 md:p-8">
+              <SettingToggleRow
+                description="当有人评论或回复你时，消息中心优先显示。"
+                enabled={draft.notifyComments}
+                onToggle={() => {
+                  void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
+                }}
+                title="评论与回复提醒"
+              />
+              <SettingToggleRow
+                description="当有人在帖子、榜单或评论中提及你时提醒。"
+                enabled={draft.notifyMentions}
+                onToggle={() => {
+                  void toggleNotificationField("notifyMentions", "提及提醒已更新");
+                }}
+                title="提及提醒"
+              />
             </div>
+          </section>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 xl:col-span-2">
+          <Button asChild size="sm" type="button" variant="outline">
+            <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
+          </Button>
+          <div className="flex gap-3">
+            <Button asChild size="sm" type="button" variant="outline">
+              <Link to={APP_ROUTES.notifications}>
+                <BellIcon data-icon="inline-start" />
+                查看消息
+              </Link>
+            </Button>
             <Button
-              className="h-11 w-full"
               onClick={() => {
-                setIsPhonePanelOpen((current) => !current);
-                setPhoneActionError(null);
+                void apiClient
+                  .logout()
+                  .then(() => {
+                    setAnonymous();
+                    void navigate(APP_ROUTES.feedHome);
+                  })
+                  .catch((reason: unknown) => {
+                    setError(reason instanceof Error ? reason.message : "退出登录失败");
+                  });
               }}
               size="sm"
               type="button"
               variant="outline"
             >
-              <ShieldCheckIcon data-icon="inline-start" />
-              {isPhonePanelOpen ? "收起换绑" : "换绑手机号"}
+              <LogOutIcon data-icon="inline-start" />
+              退出登录
             </Button>
           </div>
+        </div>
+      </div>
 
-          {isPhonePanelOpen ? (
-            <div className="space-y-4 rounded-xl bg-muted/20 p-4 md:p-5">
+      {isPhoneDialogOpen ? (
+        <div className="fixed inset-0 z-[70] flex items-center justify-center bg-slate-950/38 px-4 py-8 backdrop-blur-sm">
+          <SitePanel className="w-full max-w-[560px]" variant="floating">
+            <SitePanelBody className="space-y-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-lg font-semibold text-foreground">更换绑定手机</div>
+                  <div className="mt-1 text-sm leading-6 text-muted-foreground">
+                    输入新手机号并完成验证码校验后，绑定会立即更新。
+                  </div>
+                </div>
+                <Button onClick={closePhoneDialog} size="sm" type="button" variant="ghost">
+                  关闭
+                </Button>
+              </div>
+
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                 <div className="space-y-2">
                   <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
@@ -481,35 +762,32 @@ export function SettingsPage() {
                     value={phoneSmsFlow.captchaCode}
                   />
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-transparent">操作</div>
-                  <Button
-                    className="h-12 w-full"
-                    disabled={
-                      phoneSmsFlow.isSendingSms ||
-                      phoneSmsFlow.cooldownSeconds > 0 ||
-                      !canRequestPhoneRebind({
-                        nextPhone,
-                        captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
-                        captchaCode: phoneSmsFlow.captchaCode
-                      })
-                    }
-                    onClick={() => {
-                      void requestPhoneCode();
-                    }}
-                    type="button"
-                    variant="panel"
-                  >
-                    <SmartphoneIcon data-icon="inline-start" />
-                    {phoneSmsFlow.isSendingSms
-                      ? "发送中..."
-                      : phoneSmsFlow.cooldownSeconds > 0
-                        ? `${phoneSmsFlow.cooldownSeconds} 秒后重新发送`
-                        : phoneSmsFlow.requestHint
-                          ? "重新发送验证码"
-                          : "获取验证码"}
-                  </Button>
-                </div>
+                <Button
+                  className="h-12 w-full"
+                  disabled={
+                    phoneSmsFlow.isSendingSms ||
+                    phoneSmsFlow.cooldownSeconds > 0 ||
+                    !canRequestPhoneRebind({
+                      nextPhone,
+                      captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
+                      captchaCode: phoneSmsFlow.captchaCode
+                    })
+                  }
+                  onClick={() => {
+                    void requestPhoneCode();
+                  }}
+                  type="button"
+                  variant="panel"
+                >
+                  <SmartphoneIcon data-icon="inline-start" />
+                  {phoneSmsFlow.isSendingSms
+                    ? "发送中..."
+                    : phoneSmsFlow.cooldownSeconds > 0
+                      ? `${phoneSmsFlow.cooldownSeconds} 秒后重发`
+                      : phoneSmsFlow.requestHint
+                        ? "重新发送验证码"
+                        : "获取验证码"}
+                </Button>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
@@ -524,32 +802,29 @@ export function SettingsPage() {
                     value={phoneSmsFlow.smsCode}
                   />
                 </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-transparent">确认</div>
-                  <Button
-                    className="h-12 w-full"
-                    disabled={
-                      isConfirmingPhone ||
-                      !canConfirmPhoneRebind({
-                        nextPhone,
-                        requestId: phoneRequestId,
-                        smsCode: phoneSmsFlow.smsCode
-                      })
-                    }
-                    onClick={() => {
-                      void confirmPhoneChange();
-                    }}
-                    type="button"
-                    variant="hero"
-                  >
-                    {isConfirmingPhone ? "换绑中..." : "确认换绑"}
-                  </Button>
-                </div>
+                <Button
+                  className="h-12 w-full"
+                  disabled={
+                    isConfirmingPhone ||
+                    !canConfirmPhoneRebind({
+                      nextPhone,
+                      requestId: phoneRequestId,
+                      smsCode: phoneSmsFlow.smsCode
+                    })
+                  }
+                  onClick={() => {
+                    void confirmPhoneChange();
+                  }}
+                  type="button"
+                  variant="hero"
+                >
+                  {isConfirmingPhone ? "保存中..." : "保存"}
+                </Button>
               </div>
 
               {phoneSmsFlow.requestHint ? (
                 <Alert>
-                  <AlertTitle>验证码已生成</AlertTitle>
+                  <AlertTitle>验证码已发送</AlertTitle>
                   <AlertDescription>{phoneSmsFlow.requestHint}</AlertDescription>
                 </Alert>
               ) : null}
@@ -560,65 +835,10 @@ export function SettingsPage() {
                   <AlertDescription>{phoneActionError}</AlertDescription>
                 </Alert>
               ) : null}
-            </div>
-          ) : null}
-        </section>
-
-        <section className="space-y-4">
-          <h2 className="text-lg font-semibold text-foreground">通知</h2>
-          <div className="space-y-6 rounded-2xl bg-surface-2/50 p-6 md:p-8">
-            <SettingToggleRow
-              description="当有人评论或回复你时，消息中心优先显示。"
-              enabled={draft.notifyComments}
-              onToggle={() => {
-                setDraft((current) => toggleSettingsFlag(current, "notifyComments"));
-              }}
-              title="评论与回复提醒"
-            />
-            <SettingToggleRow
-              description="当有人在帖子、榜单或评论中提及你时提醒。"
-              enabled={draft.notifyMentions}
-              onToggle={() => {
-                setDraft((current) => toggleSettingsFlag(current, "notifyMentions"));
-              }}
-              title="提及提醒"
-            />
-          </div>
-        </section>
-
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-4">
-          <Button asChild size="sm" type="button" variant="outline">
-            <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
-          </Button>
-          <div className="flex gap-3">
-            <Button asChild size="sm" type="button" variant="outline">
-              <Link to={APP_ROUTES.notifications}>
-                <BellIcon data-icon="inline-start" />
-                查看消息
-              </Link>
-            </Button>
-            <Button
-              onClick={() => {
-                void apiClient
-                  .logout()
-                  .then(() => {
-                    setAnonymous();
-                    void navigate(APP_ROUTES.feedHome);
-                  })
-                  .catch((reason: unknown) => {
-                    setError(reason instanceof Error ? reason.message : "退出登录失败");
-                  });
-              }}
-              size="sm"
-              type="button"
-              variant="outline"
-            >
-              <LogOutIcon data-icon="inline-start" />
-              退出登录
-            </Button>
-          </div>
+            </SitePanelBody>
+          </SitePanel>
         </div>
-      </div>
+      ) : null}
     </SitePage>
   );
 }
