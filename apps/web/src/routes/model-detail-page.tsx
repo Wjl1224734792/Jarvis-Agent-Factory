@@ -2,16 +2,17 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ModelDetail } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
+  AlertTriangleIcon,
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
   MessageSquareTextIcon
 } from "lucide-react";
-import { SendIcon } from "lucide-react";
-import { useState } from "react";
+import { Fragment, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { PageShareControl } from "@/components/page-share-control";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -21,6 +22,7 @@ import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { getModelGallery, getModelImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
+import { cn } from "@/lib/utils";
 import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";
 
@@ -131,11 +133,11 @@ export function ModelDetailPage() {
     }
   ];
 
-  async function handleInteraction(type: "interested" | "favorite" | "share") {
+  async function handleInteraction(type: "interested" | "favorite") {
     if (!isAuthenticated) {
       promptLogin({
         title: "登录后才能互动",
-        description: "收藏、想买和分享前请先登录。"
+        description: "收藏、想买前请先登录。"
       });
       return;
     }
@@ -143,6 +145,23 @@ export function ModelDetailPage() {
     setInteractionBusy(type);
     try {
       await apiClient.interactModel(modelSlug, type);
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
+        queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] })
+      ]);
+    } finally {
+      setInteractionBusy(null);
+    }
+  }
+
+  async function recordModelShareAfterCopy() {
+    if (!isAuthenticated) {
+      return;
+    }
+    setInteractionBusy("share");
+    try {
+      await apiClient.interactModel(modelSlug, "share");
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
         queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
@@ -164,146 +183,201 @@ export function ModelDetailPage() {
 
       <SiteGrid className="items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]" variant="sidebar">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="grid gap-4 border border-border/80 bg-white p-4 lg:grid-cols-[1.1fr_0.9fr]">
-            <div className="space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant="outline">
-                  <BrandIdentity imageClassName="size-3.5" logoUrl={item.brand.logoUrl} name={item.brand.name} />
-                </Badge>
-                <Badge variant="outline">{item.category.name}</Badge>
-                <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
-              </div>
-              <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
-                {item.name}
-              </div>
-              {priceLabel ? (
-                <div className="text-base font-semibold text-primary">{priceLabel}</div>
-              ) : null}
-              <p className="max-w-2xl text-sm leading-7 text-muted-foreground">
-                {item.description ?? item.summary ?? "查看参数、图集与社区评论。"}
-              </p>
-
-              <div className="overflow-hidden border border-border/70">
-                <img
-                  alt={item.name}
-                  className="h-[340px] w-full object-cover"
-                  src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
-                />
-              </div>
-
-              <div className="grid grid-cols-4 gap-2">
-                {gallery.map((image, index) => (
-                  <button
-                    className={`overflow-hidden border transition ${
-                      activeGalleryIndex === index ? "border-primary" : "border-border/70"
-                    }`}
-                    key={image}
-                    onClick={() => setActiveGalleryIndex(index)}
-                    type="button"
-                  >
-                    <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div className="space-y-4">
-              <div className="grid gap-2 sm:grid-cols-2">
-                {metrics.map((metric) => (
-                  <div className="border border-border/70 px-4 py-4" key={metric.label}>
-                    <div className="text-[0.7rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      {metric.label}
-                    </div>
-                    <div className="mt-2 text-[1.2rem] font-semibold leading-none text-foreground">
-                      {metric.value}
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <div className="space-y-3 border border-border/70 px-4 py-4">
-                <div className="grid gap-3 sm:grid-cols-3">
-                  {[
-                    { label: "想买", value: item.interactionSummary.interestCount },
-                    { label: "收藏", value: item.interactionSummary.favoriteCount },
-                    { label: "分享", value: item.interactionSummary.shareCount }
-                  ].map((entry) => (
-                    <div key={entry.label}>
-                      <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">{entry.label}</div>
-                      <div className="mt-1 text-lg font-semibold text-foreground">{entry.value}</div>
-                    </div>
-                  ))}
-                </div>
-
-                <div className="grid gap-2 sm:grid-cols-2">
-                  <Button
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("interested");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={item.viewer.isInterested ? "panel" : "hero"}
-                  >
-                    <HeartIcon data-icon="inline-start" />
-                    {item.viewer.isInterested ? "已想买" : "想买"}
-                  </Button>
-                  <Button
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("favorite");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={item.viewer.isFavorited ? "panel" : "outline"}
-                  >
-                    <BookmarkIcon data-icon="inline-start" />
-                    {item.viewer.isFavorited ? "已收藏" : "收藏"}
-                  </Button>
-                  <Button
-                    className="sm:col-span-2"
-                    disabled={interactionBusy !== null}
-                    onClick={() => {
-                      void handleInteraction("share");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <SendIcon data-icon="inline-start" />
-                    {item.viewer.hasShared ? "已记录分享" : "分享"}
-                  </Button>
-                  <ReportActionSheet
-                    description="请说明机型存在的问题，并至少上传 1 张证据图。"
-                    onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
-                    title="举报机型"
-                    trigger={
-                      <Button className="sm:col-span-2" size="sm" type="button" variant="outline">
-                        举报机型
-                      </Button>
-                    }
+          <div className="space-y-6 bg-white p-4">
+            <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
+              <div className="min-w-0 space-y-3 lg:min-h-0">
+                <div className="overflow-hidden">
+                  <img
+                    alt={item.name}
+                    className="h-[280px] w-full object-cover sm:h-[320px] lg:h-[340px]"
+                    src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
                   />
                 </div>
 
-                <Button
-                  onClick={() => {
-                    document.getElementById("model-comment-area")?.scrollIntoView({
-                      behavior: "smooth",
-                      block: "start"
-                    });
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="outline"
-                >
-                  <MessageSquareTextIcon data-icon="inline-start" />
-                  去评论区
-                </Button>
+                <div className="grid grid-cols-4 gap-2">
+                  {gallery.map((image, index) => (
+                    <button
+                      className={`overflow-hidden rounded-none border transition ${
+                        activeGalleryIndex === index ? "border-primary" : "border-border/70"
+                      }`}
+                      key={image}
+                      onClick={() => setActiveGalleryIndex(index)}
+                      type="button"
+                    >
+                      <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
+                    </button>
+                  ))}
+                </div>
               </div>
+
+              <div className="flex min-h-0 min-w-0 flex-col lg:h-full">
+                <div className="shrink-0 space-y-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">
+                      <BrandIdentity imageClassName="size-3.5" logoUrl={item.brand.logoUrl} name={item.brand.name} />
+                    </Badge>
+                    <Badge variant="outline">{item.category.name}</Badge>
+                    <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
+                  </div>
+                  <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
+                    {item.name}
+                  </div>
+                  {priceLabel ? (
+                    <div className="text-base font-semibold text-primary">{priceLabel}</div>
+                  ) : null}
+                </div>
+
+                <div className="min-h-0 max-h-[280px] flex-1 overflow-y-auto pr-1 sm:max-h-[320px] lg:max-h-[340px]">
+                  <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                    {item.description ?? item.summary ?? "查看参数、图集与社区评论。"}
+                  </p>
+                </div>
+
+                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3">
+                  <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
+                    <button
+                      aria-label={`想买，${item.interactionSummary.interestCount} 人`}
+                      aria-pressed={item.viewer.isInterested ? "true" : "false"}
+                      className={cn(
+                        "group inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
+                        "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-rose-400/45 focus-visible:ring-offset-2",
+                        "disabled:cursor-not-allowed disabled:opacity-45",
+                        item.viewer.isInterested
+                          ? "text-rose-600 dark:text-rose-400"
+                          : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
+                      )}
+                      disabled={interactionBusy !== null}
+                      onClick={() => {
+                        void handleInteraction("interested");
+                      }}
+                      type="button"
+                    >
+                      <HeartIcon
+                        className={cn(
+                          "size-[1.125rem] shrink-0 transition-transform duration-150 ease-out",
+                          item.viewer.isInterested
+                            ? "scale-105 fill-rose-500 text-rose-600 dark:fill-rose-400 dark:text-rose-300"
+                            : "text-current group-active:scale-[0.92]"
+                        )}
+                      />
+                      <span>{item.interactionSummary.interestCount}</span>
+                    </button>
+                    <button
+                      aria-label={`收藏，${item.interactionSummary.favoriteCount} 人`}
+                      aria-pressed={item.viewer.isFavorited ? "true" : "false"}
+                      className={cn(
+                        "group inline-flex items-center gap-1.5 border-0 bg-transparent p-0 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
+                        "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-amber-400/45 focus-visible:ring-offset-2",
+                        "disabled:cursor-not-allowed disabled:opacity-45",
+                        item.viewer.isFavorited
+                          ? "text-amber-700 dark:text-amber-400"
+                          : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
+                      )}
+                      disabled={interactionBusy !== null}
+                      onClick={() => {
+                        void handleInteraction("favorite");
+                      }}
+                      type="button"
+                    >
+                      <BookmarkIcon
+                        className={cn(
+                          "size-[1.125rem] shrink-0 transition-transform duration-150 ease-out",
+                          item.viewer.isFavorited
+                            ? "scale-105 fill-amber-500 text-amber-700 dark:fill-amber-400 dark:text-amber-300"
+                            : "text-current group-active:scale-[0.92]"
+                        )}
+                      />
+                      <span>{item.interactionSummary.favoriteCount}</span>
+                    </button>
+                    <div
+                      className={cn(
+                        "inline-flex items-center gap-1.5 text-sm font-medium tabular-nums",
+                        item.viewer.hasShared
+                          ? "text-sky-700 dark:text-sky-300"
+                          : "text-muted-foreground"
+                      )}
+                    >
+                      <PageShareControl
+                        active={item.viewer.hasShared}
+                        aria-label={`分享，${item.interactionSummary.shareCount} 次`}
+                        className="[&_button]:p-0"
+                        disabled={interactionBusy !== null}
+                        iconClassName="size-[1.125rem]"
+                        onCopySuccess={() => {
+                          void recordModelShareAfterCopy();
+                        }}
+                        sharePath={APP_ROUTES.modelDetail.replace(":slug", modelSlug)}
+                        tone="sky"
+                      />
+                      <span>{item.interactionSummary.shareCount}</span>
+                    </div>
+                    <button
+                      aria-label="前往评论区"
+                      className={cn(
+                        "inline-flex items-center justify-center border-0 bg-transparent p-0 text-muted-foreground shadow-none outline-none transition",
+                        "hover:text-foreground focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+                      )}
+                      onClick={() => {
+                        document.getElementById("model-comment-area")?.scrollIntoView({
+                          behavior: "smooth",
+                          block: "start"
+                        });
+                      }}
+                      type="button"
+                    >
+                      <MessageSquareTextIcon className="size-[1.125rem] shrink-0" />
+                    </button>
+                  </div>
+                  <div className="ml-auto flex shrink-0 items-center max-sm:ml-0 max-sm:w-full max-sm:flex-[1_1_100%] max-sm:justify-end">
+                    <ReportActionSheet
+                      description="请说明机型存在的问题，并至少上传 1 张证据图。"
+                      onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
+                      title="举报机型"
+                      trigger={
+                        <button
+                          aria-label="举报机型"
+                          className={cn(
+                            "inline-flex items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none transition",
+                            "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2",
+                            item.viewer.hasReported
+                              ? "text-orange-700 dark:text-orange-400"
+                              : "text-orange-600/90 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400"
+                          )}
+                          type="button"
+                        >
+                          <AlertTriangleIcon
+                            className={cn(
+                              "size-[1.125rem] shrink-0 transition",
+                              item.viewer.hasReported &&
+                                "scale-105 fill-orange-500 text-orange-700 dark:fill-orange-400 dark:text-orange-300"
+                            )}
+                          />
+                        </button>
+                      }
+                    />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="flex w-full flex-nowrap items-center justify-center gap-x-0 overflow-x-auto border-y border-border/35 py-2.5 text-[0.8125rem] [-ms-overflow-style:none] [scrollbar-width:none] sm:justify-between [&::-webkit-scrollbar]:hidden">
+              {metrics.map((metric, index) => (
+                <Fragment key={metric.label}>
+                  {index > 0 ? (
+                    <span aria-hidden className="shrink-0 px-2 text-muted-foreground/35 sm:px-3">
+                      |
+                    </span>
+                  ) : null}
+                  <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
+                    <span className="text-muted-foreground">{metric.label}</span>
+                    <span className="font-semibold text-foreground">{metric.value}</span>
+                  </div>
+                </Fragment>
+              ))}
             </div>
           </div>
 
-          <SitePanel className="bg-white">
+          <SitePanel className="rounded-none bg-white">
             <SitePanelBody className="space-y-6">
               <div className="space-y-5">
                 {specSections.map((section) => (
@@ -311,7 +385,7 @@ export function ModelDetailPage() {
                     <div className="text-[0.78rem] font-semibold uppercase tracking-[0.2em] text-primary">
                       {section.title}
                     </div>
-                    <div className="mt-3 border border-border/70">
+                    <div className="mt-3 rounded-none border border-border/70">
                       {section.rows.map(([label, value], index) => (
                         <div
                           className={`grid gap-2 px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)] ${

@@ -78,6 +78,13 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/auth/web/refresh']?.post?.responses?.['401']).toBeDefined();
     expect(payload.paths['/auth/protected/ping']?.get?.responses?.['401']).toBeDefined();
     expect(payload.paths['/admin/rankings/{id}/status']?.put?.responses?.['403']).toBeDefined();
+    expect(payload.paths['/auth/device/register']?.post).toBeDefined();
+    expect(payload.paths['/auth/device/unregister']?.post).toBeDefined();
+    expect(payload.components.schemas.DeviceRegisterRequest).toBeDefined();
+    expect(payload.components.schemas.DeviceRegisterResponse).toBeDefined();
+    expect(payload.components.schemas.DeviceUnregisterRequest).toBeDefined();
+    expect(payload.components.schemas.PaginationQuery).toBeDefined();
+    expect(payload.components.schemas.PaginationMeta).toBeDefined();
   });
 
   it('serves Swagger UI that points to the OpenAPI JSON route', async () => {

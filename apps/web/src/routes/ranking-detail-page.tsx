@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { PageShareControl } from "@/components/page-share-control";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -11,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+import { buildRankingDetailPath } from "@/lib/web-routes";
 
 function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
@@ -39,12 +41,15 @@ export function RankingDetailPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <Button asChild className="w-fit" variant="ghost">
-        <Link to={APP_ROUTES.rankings}>
-          <ArrowLeftIcon data-icon="inline-start" />
-          返回榜单
-        </Link>
-      </Button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <Button asChild className="w-fit" variant="ghost">
+          <Link to={APP_ROUTES.rankings}>
+            <ArrowLeftIcon data-icon="inline-start" />
+            返回榜单
+          </Link>
+        </Button>
+        {id ? <PageShareControl sharePath={buildRankingDetailPath(id)} /> : null}
+      </div>
 
       {rankingQuery.isError ? (
         <Alert variant="destructive">
@@ -62,7 +67,7 @@ export function RankingDetailPage() {
 
       {ranking ? (
         <>
-          <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+          <div className="grid gap-4 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
             <div className="overflow-hidden">
               <img
                 alt={ranking.title}
@@ -117,12 +122,12 @@ export function RankingDetailPage() {
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-border/60 pt-4">
-            <div className="text-base font-semibold text-foreground">完整排行</div>
-            <div className="space-y-3">
+          <div className="border-t border-border/60 pt-4">
+            <div className="mb-3 text-base font-semibold text-foreground">完整排行</div>
+            <div className="divide-y divide-border/80 border-t border-border/80">
               {ranking.items.map((item) => (
                 <Link
-                  className="grid gap-3 border border-border/80 bg-white px-4 py-4 transition hover:border-primary/30 hover:bg-sky-50/50 md:grid-cols-[44px_88px_minmax(0,1fr)]"
+                  className="grid gap-3 bg-white px-4 py-4 transition hover:bg-sky-50/50 md:grid-cols-[44px_88px_minmax(0,1fr)]"
                   key={item.id}
                   to={`${APP_ROUTES.ratingTargetDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >

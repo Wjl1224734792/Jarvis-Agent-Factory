@@ -3,7 +3,7 @@ import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
-  EyeIcon,
+  MessageSquareTextIcon,
   Trash2Icon,
   UserCheckIcon,
   UserPlusIcon
@@ -19,6 +19,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { InlineCommentComposer } from "../features/posts/inline-comment-composer";
@@ -48,6 +49,7 @@ export function PostDetailPage() {
   const promptLogin = useLoginPrompt();
   const [commentContent, setCommentContent] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
+  const [commentError, setCommentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const postQuery = useQuery({
@@ -97,8 +99,8 @@ export function PostDetailPage() {
   const isCommentRefreshing = postQuery.isFetching && !postQuery.isLoading && !isSubmitting;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-28 pt-2 md:px-6">
-      <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
+    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-8 pt-2 md:px-6">
+      <div className="flex items-center gap-4 border-b border-border/60 pb-4">
         <div className="flex items-center gap-3 text-sm text-foreground/80">
           <Button
             className="size-8 rounded-full p-0"
@@ -116,11 +118,6 @@ export function PostDetailPage() {
             <ArrowLeftIcon className="size-4" />
           </Button>
           <span className="font-medium">{APP_NAME}</span>
-        </div>
-
-        <div className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.16em] text-muted-foreground">
-          <EyeIcon className="size-3.5" />
-          {postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)}
         </div>
       </div>
 
@@ -219,7 +216,6 @@ export function PostDetailPage() {
           <PostInteractionBar
             compact
             hideFollow
-            hideShare
             iconOnly
             plain
             authorId={item.author.id}
@@ -228,6 +224,8 @@ export function PostDetailPage() {
             likeCount={item.engagement.likeCount}
             postId={item.id}
             shareCount={item.engagement.shareCount}
+            sharePath={APP_ROUTES.postDetail.replace(":id", item.id)}
+            viewCount={postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)}
             viewer={item.engagement.viewer}
           />
 
@@ -242,8 +240,24 @@ export function PostDetailPage() {
                 }
                 title="举报内容"
                 trigger={
-                  <Button size="sm" type="button" variant="ghost">
-                    <AlertTriangleIcon className="size-4" />
+                  <Button
+                    aria-label="举报内容"
+                    className={cn(
+                      "group inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 shadow-none",
+                      "hover:!bg-transparent active:translate-y-0",
+                      "focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2"
+                    )}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <AlertTriangleIcon
+                      className={cn(
+                        "size-4 transition-transform duration-150 ease-out",
+                        "text-muted-foreground group-hover:text-orange-600 group-active:scale-[0.92]",
+                        "dark:group-hover:text-orange-400"
+                      )}
+                    />
                   </Button>
                 }
               />
@@ -281,42 +295,19 @@ export function PostDetailPage() {
         ) : null}
       </section>
 
-      <section className="space-y-4 border-t border-border/60 pt-6">
+      <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
         <div className="space-y-1">
-          <div className="text-lg font-semibold text-foreground">评论 {item.commentCount}</div>
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <MessageSquareTextIcon className="size-4.5 text-primary" />
+            评论区
+          </div>
+          <div className="text-sm text-muted-foreground">共 {item.commentCount} 条评论</div>
           {isCommentRefreshing ? (
             <div className="text-xs text-muted-foreground">评论区正在更新...</div>
           ) : null}
         </div>
 
-        {item.comments.length > 0 ? (
-          <PostCommentThread
-            canInteract={canComment}
-            comments={item.comments}
-            currentUserId={currentUser?.id}
-            isRefreshing={isCommentRefreshing}
-            postId={item.id}
-            showPendingComment={isSubmitting}
-          />
-        ) : (
-          <div className="space-y-3 border-y border-border/70 py-4">
-            {isSubmitting ? (
-              <PostCommentThread
-                canInteract={canComment}
-                comments={[]}
-                currentUserId={currentUser?.id}
-                postId={item.id}
-                showPendingComment
-              />
-            ) : (
-              <div className="text-sm text-muted-foreground">欢迎留下第一条评论。</div>
-            )}
-          </div>
-        )}
-      </section>
-
-      <div className="fixed inset-x-0 bottom-0 z-20 border-t border-border/60 bg-background/96 px-4 pb-4 pt-3 backdrop-blur md:px-6 xl:left-[calc(var(--shell-sidebar-width)+2rem)]">
-        <div className="mx-auto w-full max-w-[840px]">
+        <div className="border border-border/70 bg-white px-5 py-5">
           {authStatus !== "authenticated" ? (
             <Button
               className="w-full"
@@ -346,7 +337,7 @@ export function PostDetailPage() {
                   return;
                 }
 
-                setActionError(null);
+                setCommentError(null);
                 setIsSubmitting(true);
 
                 void apiClient
@@ -363,7 +354,7 @@ export function PostDetailPage() {
                     ]);
                   })
                   .catch((value: unknown) => {
-                    setActionError(value instanceof Error ? value.message : "评论失败");
+                    setCommentError(value instanceof Error ? value.message : "评论失败");
                   })
                   .finally(() => {
                     setIsSubmitting(false);
@@ -373,8 +364,46 @@ export function PostDetailPage() {
               value={commentContent}
             />
           )}
+
+          {commentError ? (
+            <Alert className="mt-4" variant="destructive">
+              <AlertTitle>评论提交失败</AlertTitle>
+              <AlertDescription>{commentError}</AlertDescription>
+            </Alert>
+          ) : null}
         </div>
-      </div>
+
+        <div className="border border-border/70 bg-white">
+          {item.comments.length > 0 ? (
+            <div className="space-y-0 px-5 py-4">
+              <PostCommentThread
+                canInteract={canComment}
+                className="border-y-0"
+                comments={item.comments}
+                currentUserId={currentUser?.id}
+                isRefreshing={isCommentRefreshing}
+                postId={item.id}
+                showPendingComment={isSubmitting}
+              />
+            </div>
+          ) : (
+            <div className="px-5 py-5">
+              {isSubmitting ? (
+                <PostCommentThread
+                  canInteract={canComment}
+                  className="border-y-0"
+                  comments={[]}
+                  currentUserId={currentUser?.id}
+                  postId={item.id}
+                  showPendingComment
+                />
+              ) : (
+                <div className="text-[0.82rem] text-muted-foreground">欢迎留下第一条评论。</div>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
     </SitePage>
   );
 }

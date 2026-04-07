@@ -1,13 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  CameraIcon,
-  ImageIcon,
-  PlayIcon,
-  SendHorizonalIcon,
-  VideoIcon,
-  XIcon
-} from "lucide-react";
+import { SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishShell } from "@/components/publish-shell";
@@ -25,6 +18,8 @@ import {
   canReplaceWithMomentVideo,
   canSubmitMomentMedia
 } from "./publish-moment-helpers";
+
+const MOMENT_CONTENT_MAX = 1000;
 
 type UploadedImage = {
   id: string;
@@ -44,8 +39,7 @@ export function PublishMomentPage() {
   const promptLogin = useLoginPrompt();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
-  const imageInputRef = useRef<HTMLInputElement | null>(null);
-  const videoInputRef = useRef<HTMLInputElement | null>(null);
+  const zoneInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
@@ -71,7 +65,7 @@ export function PublishMomentPage() {
 
     const item = detailQuery.data.item;
     setTitle(item.title);
-    setContent(item.content);
+    setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
     setUploadedImages(
       item.images.map((image) => ({
         id: image.id,
@@ -120,9 +114,33 @@ export function PublishMomentPage() {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     } finally {
       setIsUploading(false);
-      if (imageInputRef.current) {
-        imageInputRef.current.value = "";
+      if (zoneInputRef.current) {
+        zoneInputRef.current.value = "";
       }
+    }
+  }
+
+  async function handleZoneMediaPick(files: FileList | null) {
+    if (!files || files.length === 0) {
+      return;
+    }
+
+    const list = Array.from(files);
+    const videos = list.filter((file) => file.type.startsWith("video/"));
+    if (videos.length > 0) {
+      const dataTransfer = new DataTransfer();
+      dataTransfer.items.add(videos[0]);
+      await handleVideoUpload(dataTransfer.files);
+      return;
+    }
+
+    const images = list.filter((file) => file.type.startsWith("image/"));
+    if (images.length > 0) {
+      const dataTransfer = new DataTransfer();
+      for (const file of images) {
+        dataTransfer.items.add(file);
+      }
+      await handleImageUpload(dataTransfer.files);
     }
   }
 
@@ -152,8 +170,8 @@ export function PublishMomentPage() {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     } finally {
       setIsUploading(false);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = "";
+      if (zoneInputRef.current) {
+        zoneInputRef.current.value = "";
       }
     }
   }
@@ -182,59 +200,40 @@ export function PublishMomentPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="text-base font-semibold text-foreground">内容</div>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    onClick={() => imageInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <CameraIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "添加图片"}
-                  </Button>
-                  <Button
-                    onClick={() => videoInputRef.current?.click()}
-                    size="sm"
-                    type="button"
-                    variant="outline"
-                  >
-                    <VideoIcon data-icon="inline-start" />
-                    {isUploading ? "上传中..." : "上传视频"}
-                  </Button>
-                </div>
-              </div>
+              <div className="text-base font-semibold text-foreground">内容</div>
 
               <Input
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="标题可选"
                 value={title}
               />
-              <Textarea
-                className="min-h-[220px]"
-                onChange={(event) => setContent(event.target.value)}
-                placeholder="写下你的飞行动态..."
-                value={content}
-              />
+              <div className="relative">
+                <Textarea
+                  className="min-h-[120px] resize-none pb-9 pr-14"
+                  maxLength={MOMENT_CONTENT_MAX}
+                  onChange={(event) => {
+                    const next = event.target.value.slice(0, MOMENT_CONTENT_MAX);
+                    setContent(next);
+                  }}
+                  placeholder="写下你的飞行动态..."
+                  value={content}
+                />
+                <div className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
+                  {content.length}/{MOMENT_CONTENT_MAX}
+                </div>
+              </div>
 
               <input
-                accept="image/*"
+                accept="image/*,video/*"
                 className="hidden"
                 multiple
                 onChange={(event) => {
-                  void handleImageUpload(event.target.files);
+                  void handleZoneMediaPick(event.target.files);
+                  if (zoneInputRef.current) {
+                    zoneInputRef.current.value = "";
+                  }
                 }}
-                ref={imageInputRef}
-                type="file"
-              />
-              <input
-                accept="video/*"
-                className="hidden"
-                onChange={(event) => {
-                  void handleVideoUpload(event.target.files);
-                }}
-                ref={videoInputRef}
+                ref={zoneInputRef}
                 type="file"
               />
 
@@ -267,6 +266,20 @@ export function PublishMomentPage() {
                 </div>
               ) : null}
 
+              {uploadedImages.length > 0 && uploadedImages.length < 6 && !uploadedVideo ? (
+                <button
+                  aria-label={`继续添加图片，还可上传 ${6 - uploadedImages.length} 张`}
+                  className="w-full rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 py-3 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
+                  onClick={() => zoneInputRef.current?.click()}
+                  type="button"
+                >
+                  {isUploading
+                    ? "上传中..."
+                    : `继续添加图片（还可上传 ${6 - uploadedImages.length} 张）`}
+                </button>
+              ) : null}
+
               {uploadedVideo ? (
                 <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950">
                   <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
@@ -283,9 +296,15 @@ export function PublishMomentPage() {
               ) : null}
 
               {uploadedImages.length === 0 && !uploadedVideo ? (
-                <div className="flex h-32 items-center justify-center rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 text-sm text-muted-foreground">
-                  还没有上传图片或视频
-                </div>
+                <button
+                  aria-label="上传图片或视频"
+                  className="flex h-32 w-full cursor-pointer items-center justify-center rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
+                  onClick={() => zoneInputRef.current?.click()}
+                  type="button"
+                >
+                  {isUploading ? "上传中..." : "点击上传图片或视频"}
+                </button>
               ) : null}
             </SitePanelBody>
           </SitePanel>
@@ -374,35 +393,6 @@ export function PublishMomentPage() {
                 <p className="text-sm leading-6 text-muted-foreground">
                   {content || "动态内容会显示在这里。"}
                 </p>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-3">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <ImageIcon className="size-4.5 text-primary" />
-                飞友圈卡片
-              </div>
-              <div className="rounded-[0.9rem] border border-border bg-white p-2.5">
-                <div className="relative">
-                  <img alt="card" className="h-32 w-full rounded-[0.75rem] object-cover" src={coverUrl} />
-                  {uploadedVideo ? (
-                    <span className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
-                      <PlayIcon className="size-3.5 fill-current" />
-                    </span>
-                  ) : null}
-                </div>
-                <div className="mt-2.5 text-sm font-semibold text-foreground">
-                  {title || "动态标题"}
-                </div>
-                <div className="mt-2 text-xs text-muted-foreground">
-                  {uploadedVideo
-                    ? "当前为单视频动态"
-                    : uploadedImages.length > 0
-                      ? `当前共 ${uploadedImages.length} 张图片`
-                      : "未选择媒体"}
-                </div>
               </div>
             </SitePanelBody>
           </SitePanel>

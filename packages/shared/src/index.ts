@@ -77,7 +77,9 @@ export const API_ROUTES = {
     adminLogout: "/auth/admin/logout",
     adminCurrentUser: "/auth/admin/me",
     adminProtectedPing: "/auth/admin/protected/ping",
-    adminSessions: "/admin/auth/sessions"
+    adminSessions: "/admin/auth/sessions",
+    deviceRegister: "/auth/device/register",
+    deviceUnregister: "/auth/device/unregister"
   },
   posts: {
     create: "/posts",

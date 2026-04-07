@@ -1,13 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  CompassIcon,
-  EyeIcon,
-  HeartIcon,
-  MessageCircleIcon,
-  SquarePenIcon,
-  TrophyIcon
-} from "lucide-react";
+import { EyeIcon, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
@@ -15,10 +8,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
-import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
@@ -48,7 +39,6 @@ function formatCount(value: number) {
 export function HomePage() {
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
-  const promptLogin = useLoginPrompt();
   const activeTab = useHomeTabStore((state) => state.activeTab);
   const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
 
@@ -140,7 +130,7 @@ export function HomePage() {
             </div>
           </div>
 
-          <section className="site-tab-panel relative mt-2.5 overflow-hidden border border-border bg-white">
+          <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
             {feedQuery.isError ? (
               <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
@@ -209,7 +199,7 @@ export function HomePage() {
                 ))}
 
                 {!feedQuery.isError && feedItems.length === 0 ? (
-                  <Alert>
+                  <Alert className="rounded-none">
                     <AlertTitle>首页还没有公开内容</AlertTitle>
                     <AlertDescription>
                       {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
@@ -228,42 +218,6 @@ export function HomePage() {
         </div>
 
         <SiteRail className="space-y-2">
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-2.5">
-              <div className="text-base font-semibold text-foreground">发布入口</div>
-              <Button asChild className="w-full" variant="hero">
-                <Link
-                  onClick={(event) => {
-                    if (isAuthenticated) {
-                      return;
-                    }
-                    event.preventDefault();
-                    promptLogin({
-                      title: "登录后才能创建内容",
-                      description: "发布文章前请先登录。"
-                    });
-                  }}
-                  to={APP_ROUTES.publishArticle}
-                >
-                  <SquarePenIcon data-icon="inline-start" />
-                  发布文章
-                </Link>
-              </Button>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-2.5">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <CompassIcon className="size-4.5 text-primary" />
-                飞友圈
-              </div>
-              <Button asChild className="w-full" size="sm" variant="outline">
-                <Link to={APP_ROUTES.flightCircle}>进入飞友圈</Link>
-              </Button>
-            </SitePanelBody>
-          </SitePanel>
-
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <div className="flex items-center gap-2 text-base font-semibold text-foreground">

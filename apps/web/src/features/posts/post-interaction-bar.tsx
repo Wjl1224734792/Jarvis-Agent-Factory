@@ -1,10 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { Bookmark, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
+import { Bookmark, Eye, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
 import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
+import { PageShareControl } from "@/components/page-share-control";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
+import { useAuthStore } from "../auth/auth-store";
 import { useLoginPrompt } from "../auth/use-login-prompt";
 
 type FeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
@@ -19,11 +21,15 @@ type Props = {
   likeCount: number;
   favoriteCount: number;
   shareCount: number;
+  /** 展示在互动条最前的浏览量（仅展示，无交互） */
+  viewCount?: number;
   hideShare?: boolean;
   compact?: boolean;
   iconOnly?: boolean;
   hideFollow?: boolean;
   plain?: boolean;
+  /** 传入后启用复制链接、悬浮二维码；已登录用户复制成功会记录分享 */
+  sharePath?: string;
 };
 
 type BusyAction = "follow" | "like" | "favorite" | "share" | null;
@@ -63,13 +69,24 @@ function ActionButton({
           ? "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
           : "border-sky-200 bg-sky-50 text-rating-blue hover:bg-sky-100 hover:text-rating-blue";
 
+  const plainActiveIconTone =
+    plain && active
+      ? tone === "like"
+        ? "text-like-red"
+        : tone === "favorite"
+          ? "text-rating-orange"
+          : tone === "share"
+            ? "text-rating-blue"
+            : "text-primary"
+      : null;
+
   return (
     <Button
       className={cn(
         "rounded-full",
         plain &&
-          "h-auto border-0 bg-transparent px-0 py-0 text-agree-gray shadow-none hover:bg-transparent hover:text-foreground",
-        active && activeClassName
+          "group h-auto border-0 bg-transparent px-0 py-0 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+        active && !plain && activeClassName
       )}
       disabled={disabled}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
@@ -81,13 +98,17 @@ function ActionButton({
       variant={plain ? "ghost" : active ? "secondary" : "outline"}
     >
       <Icon
-        className={cn("size-4", !iconOnly && "mr-0")}
+        className={cn(
+          "size-4 transition-transform duration-150 ease-out group-active:scale-[0.92]",
+          plainActiveIconTone,
+          !iconOnly && "mr-0"
+        )}
         fill={active && supportsFill ? "currentColor" : "none"}
         strokeWidth={active && supportsFill ? 1.7 : 2}
       />
       <span className="sr-only">{label}</span>
       {typeof count === "number" ? (
-        <span className={cn("text-xs tabular-nums", !plain && "ml-1")}>{count}</span>
+        <span className={cn("text-xs tabular-nums", !plain && "ml-1", plainActiveIconTone)}>{count}</span>
       ) : null}
     </Button>
   );
@@ -134,6 +155,16 @@ export function PostInteractionBar(props: Props) {
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-center gap-2">
+        {typeof props.viewCount === "number" ? (
+          <span
+            aria-label={`浏览量 ${props.viewCount}`}
+            className="mr-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
+          >
+            <Eye className="size-4 shrink-0" aria-hidden />
+            {props.viewCount}
+          </span>
+        ) : null}
+
         {!props.hideFollow && !props.viewer.isAuthor ? (
           <ActionButton
             active={props.viewer.isFollowingAuthor}
@@ -205,20 +236,53 @@ export function PostInteractionBar(props: Props) {
         />
 
         {!props.hideShare ? (
-          <ActionButton
-            active={props.viewer.hasShared}
-            compact={props.compact}
-            count={props.shareCount}
-            disabled={!props.isPublished || busyAction !== null}
-            icon={Share2}
-            iconOnly
-            label="分享"
-            onClick={() => {
-              setError("分享功能暂未开放。");
-            }}
-            plain={props.plain}
-            tone="share"
-          />
+          props.sharePath ? (
+            <div className="inline-flex items-center gap-1">
+              <PageShareControl
+                active={props.viewer.hasShared}
+                aria-label={`分享（${props.shareCount} 次）`}
+                className={cn(props.plain && "[&_button]:rounded-full")}
+                disabled={!props.isPublished || busyAction !== null}
+                iconClassName="size-4"
+                onCopySuccess={() => {
+                  if (useAuthStore.getState().status !== "authenticated") {
+                    return;
+                  }
+                  void runAction("share", async () => {
+                    await apiClient.togglePostInteraction(props.postId, "share");
+                  });
+                }}
+                sharePath={props.sharePath}
+                tone={props.plain ? "plainShare" : "default"}
+              />
+              <span
+                aria-hidden
+                className={cn(
+                  "text-xs tabular-nums",
+                  props.plain && props.viewer.hasShared && "text-rating-blue",
+                  props.plain && !props.viewer.hasShared && "text-agree-gray",
+                  !props.plain && "text-muted-foreground"
+                )}
+              >
+                {props.shareCount}
+              </span>
+            </div>
+          ) : (
+            <ActionButton
+              active={props.viewer.hasShared}
+              compact={props.compact}
+              count={props.shareCount}
+              disabled={!props.isPublished || busyAction !== null}
+              icon={Share2}
+              iconOnly
+              label="分享"
+              onClick={() => {
+                setError("分享功能暂未开放。");
+              }}
+              plain={props.plain}
+              tone="share"
+            />
+          )
         ) : null}
       </div>
 

@@ -18,17 +18,19 @@
 
 ## 实现
 
-| 代理 | 职责 | 模型 | 关键 Skills |
-|------|------|------|-------------|
-| `frontend_implementer` | 前端全栈（页面+状态+测试多维度时使用） | gpt-5.4 | ant-design, shadcn, frontend-design, ui-ux-pro-max, vercel-react-best-practices, test-driven-development |
-| `frontend_ui_worker` | 页面布局、组件、样式、响应式、a11y | gpt-5.4-mini | ant-design, antd, shadcn, frontend-design, ui-ux-pro-max, tailwind-design-system |
-| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由 | gpt-5.4 | hono, vercel-react-best-practices, composition-patterns |
-| `frontend_test_worker` | 前端测试、TDD 流程 | gpt-5.4-mini | test-driven-development, systematic-debugging, webapp-testing |
-| `backend_implementer` | 后端全栈（API+业务+数据+测试多维度时使用） | gpt-5.3-codex | hono, better-auth, docker-expert, bun-file-io, test-driven-development |
-| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | gpt-5.4 | hono, documentation-lookup, docker-expert |
-| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限 | gpt-5.3-codex | better-auth-best-practices, systematic-debugging |
-| `backend_data_worker` | 数据库 Schema、ORM、Repository、迁移 | gpt-5.4-mini | docker-expert, bun-file-io |
-| `backend_test_worker` | 后端测试、TDD 流程 | gpt-5.4-mini | test-driven-development, verification-before-completion, docker-expert |
+| 代理 | 职责 | 模型 | 技能标签（元数据） |
+|------|------|------|-------------------|
+| `frontend_implementer` | 前端全栈（页面+状态+测试多维度时使用） | gpt-5.4 | `frontend`, `ui`, `testing` |
+| `frontend_ui_worker` | 页面布局、组件、样式、响应式、a11y | gpt-5.4-mini | `ui`, `design` |
+| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由 | gpt-5.4 | `state`, `data-fetching` |
+| `frontend_test_worker` | 前端测试、TDD 流程 | gpt-5.4-mini | `testing`, `tdd` |
+| `backend_implementer` | 后端全栈（API+业务+数据+测试多维度时使用） | gpt-5.3-codex | `backend`, `api`, `data` |
+| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | gpt-5.4 | `api`, `routing` |
+| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限 | gpt-5.3-codex | `business-logic`, `auth` |
+| `backend_data_worker` | 数据库 Schema、ORM、Repository、迁移 | gpt-5.4-mini | `data`, `database` |
+| `backend_test_worker` | 后端测试、TDD 流程 | gpt-5.4-mini | `testing`, `tdd` |
+
+> **技能使用规则**：TOML 中的 `skills` 字段仅为路由提示元数据（2-3 个标签）。编排者应根据子任务类型按需加载具体技能，详见各 agent TOML 中的「技能使用指引」章节。
 
 ## 评审
 

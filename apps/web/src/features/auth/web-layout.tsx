@@ -196,7 +196,7 @@ export function WebLayout() {
 
   return (
     <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
-      <header className="sticky top-0 z-40 border-b border-border/75 bg-background/92 backdrop-blur-xl">
+      <header className="sticky top-0 z-40 bg-background/92 backdrop-blur-xl">
         <div className="flex items-center justify-between gap-4 px-4 py-2.5 xl:px-5">
           <div className="flex items-center gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
@@ -278,7 +278,7 @@ export function WebLayout() {
 
               {isPublishMenuOpen ? (
                 <div
-                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10rem] rounded-[0.95rem] border border-border/70 bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
+                  className="absolute right-0 top-[calc(100%+0.45rem)] z-50 w-[10rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur"
                   onMouseEnter={openPublishMenu}
                   onMouseLeave={scheduleClosePublishMenu}
                 >

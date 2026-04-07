@@ -64,19 +64,19 @@
 
 ### 4.1 App 形态
 
-- 技术实现：Flutter
+- 技术实现：uni-app (Vue 3 + TypeScript)
 - 鉴权建议：使用后端现有 `/auth/app/*` 接口
 - 会话模式：`accessToken + refreshToken`
 - 上传模式：沿用当前 `/uploads/init -> 对象存储直传 -> /uploads/complete`
 
 ### 4.2 微信小程序形态
 
-- 技术实现：Taro
+- 技术实现：uni-app (Vue 3 + TypeScript)
 - 第一阶段鉴权建议：同样使用 `/auth/app/*` 的 token 模式
 - 原因：
   - 当前后端已有 App 登录、注册完成、刷新、登出接口
   - 比 Cookie 方案更适合小程序宿主环境
-  - 便于后续与原生 App 保持统一状态模型
+  - 与 App 共用同一套代码库，降低维护成本
 
 ### 4.3 统一要求
 

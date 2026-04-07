@@ -11,6 +11,9 @@ import {
   completeAppRegistrationRequestSchema,
   completeWebRegistrationRequestSchema,
   currentUserResponseSchema,
+  deviceRegisterInputSchema,
+  deviceRegisterResponseSchema,
+  deviceUnregisterInputSchema,
   registrationDisplayNameSuggestRequestSchema,
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
@@ -347,6 +350,43 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
+
+// 设备注册/注销（需登录）
+authRoute.post(API_ROUTES.auth.deviceRegister, requireAuth, async (context) => {
+  const input = deviceRegisterInputSchema.parse(await context.req.json());
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "UNAUTHORIZED",
+        message: "未登录。"
+      }),
+      401
+    );
+  }
+  const result = await authService.registerDevice(currentUser.id, {
+    deviceType: input.deviceType,
+    deviceLabel: input.deviceLabel ?? null,
+    pushToken: input.pushToken
+  });
+  return context.json(deviceRegisterResponseSchema.parse(result));
+});
+
+authRoute.post(API_ROUTES.auth.deviceUnregister, requireAuth, async (context) => {
+  const input = deviceUnregisterInputSchema.parse(await context.req.json());
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "UNAUTHORIZED",
+        message: "未登录。"
+      }),
+      401
+    );
+  }
+  await authService.unregisterDevice(currentUser.id, input.pushToken);
+  return context.json({ success: true });
+});
 
 authRoute.get(API_ROUTES.auth.currentUser, (context) => {
   return context.json(

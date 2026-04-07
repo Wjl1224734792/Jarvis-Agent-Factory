@@ -1,12 +1,5 @@
 ﻿import { APP_ROUTES } from "@feijia/shared";
-import {
-  ImagePlusIcon,
-  InfoIcon,
-  ShieldCheckIcon,
-  SmartphoneIcon,
-  UserRoundIcon,
-  XIcon
-} from "lucide-react";
+import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import {
@@ -18,12 +11,11 @@ import {
   SitePanelBody
 } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { apiClient } from "../../lib/api-client";
-import { getAvatarImage } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 import { useSmsVerificationFlow } from "./use-sms-verification-flow";
 
@@ -67,7 +59,8 @@ export function LoginPage() {
       onError: setSubmitError,
       errorFallback: "图形验证码初始化失败"
     });
-  }, [smsFlow]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const redirectTo =
     searchParams.get("redirect") && searchParams.get("redirect") !== APP_ROUTES.webLogin
@@ -176,6 +169,9 @@ export function LoginPage() {
                   >
                     {smsFlow.challenge?.imageOrText ?? "----"}
                   </Button>
+                  <p className="text-center text-xs text-muted-foreground sm:text-left">
+                    看不清？点击上方验证码可刷新
+                  </p>
                 </div>
               </div>
 
@@ -203,6 +199,7 @@ export function LoginPage() {
                       !smsFlow.challenge ||
                       smsFlow.isSendingSms ||
                       smsFlow.cooldownSeconds > 0 ||
+                      smsFlow.isCaptchaExpired ||
                       smsFlow.captchaCode.trim().length < 4
                     }
                     onClick={() => {
@@ -215,11 +212,14 @@ export function LoginPage() {
                     {smsFlow.isSendingSms
                       ? "发送中..."
                       : smsFlow.cooldownSeconds > 0
-                        ? `${smsFlow.cooldownSeconds} 秒后重新发送`
+                        ? `${smsFlow.cooldownSeconds}s`
                         : smsFlow.requestHint
-                          ? "重新发送验证码"
+                          ? "重新获取验证码"
                           : "获取验证码"}
                   </Button>
+                  {smsFlow.isCaptchaExpired ? (
+                    <div className="text-xs text-destructive">图形验证码已过期，请刷新后重试</div>
+                  ) : null}
                 </div>
               </div>
 
@@ -236,19 +236,6 @@ export function LoginPage() {
                   <AlertDescription>{submitError}</AlertDescription>
                 </Alert>
               ) : null}
-
-              <div className="grid gap-3 rounded-[var(--radius-control)] bg-surface-2 p-4 text-sm text-muted-foreground">
-                <div className="flex items-center gap-3">
-                  <InfoIcon className="size-4 text-primary" />
-                  老用户直接登录，新手机号会继续补全资料。
-                </div>
-                <div className="flex items-center gap-3">
-                  <ShieldCheckIcon className="size-4 text-cert-gold" />
-                  发送短信验证码后会自动刷新图形验证码，重发前请先输入新的图形验证码。
-                </div>
-              </div>
-
-              <Separator />
 
               <div className="flex flex-col gap-3">
                 <Button
@@ -314,10 +301,12 @@ export function LoginPage() {
           ) : (
             <div className="space-y-6">
               <div className="grid gap-4 rounded-[var(--radius-control)] border border-border/70 bg-surface-1/72 p-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
-                <Avatar className="size-20" size="lg">
-                  <AvatarImage alt={displayName || phone} src={avatarPreview ?? getAvatarImage(phone)} />
-                  <AvatarFallback>{(displayName || phone).slice(0, 1)}</AvatarFallback>
-                </Avatar>
+                <UserAvatar
+                  className="size-20"
+                  displayName={displayName || phone}
+                  size="lg"
+                  src={avatarPreview ?? undefined}
+                />
                 <div className="space-y-3">
                   <div className="flex flex-wrap items-center gap-3">
                     <div>
@@ -335,7 +324,7 @@ export function LoginPage() {
                     </Button>
                   </div>
                   <div className="text-xs leading-5 text-muted-foreground">
-                    不上传头像时会使用默认头像占位，之后也可以在设置里更换。
+                    不上传头像时显示用户图标，之后可在设置里更换。
                   </div>
                 </div>
                 <input

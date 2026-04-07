@@ -82,6 +82,11 @@
       "description": "质量审查子代理。审查需求/任务/计划与实现结果的一致性，输出审查结论和追踪矩阵。",
       "mode": "subagent",
       "prompt": "{file:./agents/review_qa.md}"
+    },
+    "code-reviewer": {
+      "description": "代码审查子代理。当一个主要项目步骤完成并需要根据原始计划和编码标准进行审查时使用。",
+      "mode": "subagent",
+      "prompt": "{file:./agents/code-reviewer.md}"
     }
   }
 }

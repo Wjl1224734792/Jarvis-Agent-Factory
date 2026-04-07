@@ -1,15 +1,21 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import {
+  AlertTriangleIcon,
   ArrowLeftIcon,
   CornerDownRightIcon,
-  FlagIcon,
-  HeartIcon,
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useParams, useSearchParams } from "react-router-dom";
+import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
+import { CommentPublishedTime } from "@/components/comment-published-time";
+import {
+  CommentIconOnlyButton,
+  CommentLikeIconButton,
+  CommentTextAction
+} from "@/components/comment-thread-controls";
+import { PageShareControl } from "@/components/page-share-control";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { RatingBreakdown } from "@/components/rating-breakdown";
@@ -26,6 +32,8 @@ import { InlineCommentComposer } from "@/features/posts/inline-comment-composer"
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { apiClient } from "@/lib/api-client";
+import { buildRatingTargetDetailPath } from "@/lib/web-routes";
+import { cn } from "@/lib/utils";
 import { getAvatarImage, getEditorialImage, getModelImage } from "@/lib/aviation-media";
 
 type RatingTargetDetail = Awaited<ReturnType<typeof apiClient.getRatingTargetDetail>>["item"];
@@ -35,45 +43,30 @@ type RatingTargetCommentNode = (RatingTargetComment | RatingTargetCommentReply) 
   replies?: RatingTargetCommentReply[];
 };
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleString("zh-CN", { hour12: false });
-}
-
 function CommentActions(props: {
   itemId: string;
   comment: RatingTargetCommentNode;
   canInteract: boolean;
   disabled: boolean;
+  isEditing: boolean;
   onReply: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onLike: () => void;
 }) {
   return (
-    <div className="flex items-center gap-1">
-      <Button
-        className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+    <div className="flex shrink-0 items-center gap-1 self-start">
+      <CommentLikeIconButton
         disabled={props.disabled}
+        hasLiked={props.comment.viewer.hasLiked}
+        likeCount={props.comment.likeCount ?? 0}
         onClick={props.onLike}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        <HeartIcon className="size-3.5" />
-        {props.comment.likeCount ?? 0}
-      </Button>
+      />
 
       {props.canInteract ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-          disabled={props.disabled}
-          onClick={props.onReply}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
+        <CommentTextAction disabled={props.disabled} onClick={props.onReply} variant="reply">
           回复
-        </Button>
+        </CommentTextAction>
       ) : null}
 
       {!props.comment.viewer.canDelete ? (
@@ -84,45 +77,35 @@ function CommentActions(props: {
           }
           title="举报评论"
           trigger={
-            <Button
-              className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+            <CommentTextAction
               disabled={props.disabled}
-              size="sm"
-              type="button"
-              variant="ghost"
+              hasReported={props.comment.viewer.hasReported}
+              variant="report"
             >
               举报
-            </Button>
+            </CommentTextAction>
           }
         />
       ) : null}
 
       {props.comment.viewer.canEdit ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          active={props.isEditing}
           disabled={props.disabled}
+          icon={SquarePenIcon}
+          label="编辑评论"
           onClick={props.onEdit}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <SquarePenIcon className="size-3.5" />
-          <span className="sr-only">编辑评论</span>
-        </Button>
+        />
       ) : null}
 
       {props.comment.viewer.canDelete ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          destructiveHover
           disabled={props.disabled}
+          icon={Trash2Icon}
+          label="删除评论"
           onClick={props.onDelete}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2Icon className="size-3.5" />
-          <span className="sr-only">删除评论</span>
-        </Button>
+        />
       ) : null}
     </div>
   );
@@ -157,7 +140,7 @@ function RatingTargetCommentCard(props: {
   }
 
   return (
-    <article className={depth > 0 ? "border-l border-border/70 pl-4" : ""}>
+    <article>
       <div className="flex items-start gap-3">
         <ProfileLink userId={props.comment.author.id}>
           <Avatar className="mt-0.5" size="sm">
@@ -181,7 +164,7 @@ function RatingTargetCommentCard(props: {
               </span>
             ) : null}
             {props.comment.rating ? <RatingStars size="xs" tone="rating" value={props.comment.rating} /> : null}
-            <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
+            <CommentPublishedTime createdAt={props.comment.createdAt} />
           </div>
 
           {isEditing ? (
@@ -212,105 +195,108 @@ function RatingTargetCommentCard(props: {
           ) : (
             <p className="text-sm leading-6 text-foreground/84">{props.comment.content}</p>
           )}
-
-          <CommentActions
-            canInteract={props.canInteract}
-            comment={props.comment}
-            disabled={busy !== null}
-            itemId={props.itemId}
-            onDelete={() => {
-              setBusy("delete");
-              setError(null);
-              void apiClient
-                .deleteRatingTargetComment(props.itemId, props.comment.id)
-                .then(props.onRefresh)
-                .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "删除评论失败。");
-                })
-                .finally(() => setBusy(null));
-            }}
-            onEdit={() => {
-              setIsEditing((value) => !value);
-              setEditingContent(props.comment.content);
-            }}
-            onLike={() => {
-              if (!ensureCanInteract()) {
-                return;
-              }
-              setBusy("like");
-              setError(null);
-              void apiClient
-                .likeRatingTargetComment(props.itemId, props.comment.id)
-                .then(props.onRefresh)
-                .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "点赞失败。");
-                })
-                .finally(() => setBusy(null));
-            }}
-            onReply={() => {
-              if (!ensureCanInteract()) {
-                return;
-              }
-              setReplyingTo((value) => !value);
-              setReplyContent((current) => (current ? current : `@${props.comment.author.displayName} `));
-            }}
-          />
-
-          {replyingTo ? (
-            <InlineCommentComposer
-              busy={busy === "reply"}
-              disabled={busy !== null || !replyContent.trim()}
-              onChange={setReplyContent}
-              onSubmit={() => {
-                if (!replyContent.trim()) {
-                  return;
-                }
-                setBusy("reply");
-                setError(null);
-                void apiClient
-                  .createRatingTargetComment(props.itemId, {
-                    content: replyContent.trim(),
-                    parentCommentId: props.comment.id
-                  })
-                  .then(() => {
-                    setReplyingTo(false);
-                    setReplyContent("");
-                    return props.onRefresh();
-                  })
-                  .catch((reason: unknown) => {
-                    setError(reason instanceof Error ? reason.message : "回复评论失败。");
-                  })
-                  .finally(() => setBusy(null));
-              }}
-              placeholder={`回复 @${props.comment.author.displayName}`}
-              value={replyContent}
-            />
-          ) : null}
-
-          {error ? (
-            <Alert variant="destructive">
-              <AlertTitle>评论操作失败</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {replies.length > 0 ? (
-            <div className="space-y-4 pt-2">
-              {replies.map((reply) => (
-                <RatingTargetCommentCard
-                  canInteract={props.canInteract}
-                  comment={reply}
-                  depth={depth + 1}
-                  itemId={props.itemId}
-                  key={reply.id}
-                  onRefresh={props.onRefresh}
-                  onRequireLogin={props.onRequireLogin}
-                />
-              ))}
-            </div>
-          ) : null}
         </div>
+
+        <CommentActions
+          canInteract={props.canInteract}
+          comment={props.comment}
+          disabled={busy !== null}
+          isEditing={isEditing}
+          itemId={props.itemId}
+          onDelete={() => {
+            setBusy("delete");
+            setError(null);
+            void apiClient
+              .deleteRatingTargetComment(props.itemId, props.comment.id)
+              .then(props.onRefresh)
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "删除评论失败。");
+              })
+              .finally(() => setBusy(null));
+          }}
+          onEdit={() => {
+            setIsEditing((value) => !value);
+            setEditingContent(props.comment.content);
+          }}
+          onLike={() => {
+            if (!ensureCanInteract()) {
+              return;
+            }
+            setBusy("like");
+            setError(null);
+            void apiClient
+              .likeRatingTargetComment(props.itemId, props.comment.id)
+              .then(props.onRefresh)
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "点赞失败。");
+              })
+              .finally(() => setBusy(null));
+          }}
+          onReply={() => {
+            if (!ensureCanInteract()) {
+              return;
+            }
+            setReplyingTo((value) => !value);
+            setReplyContent((current) => (current ? current : `@${props.comment.author.displayName} `));
+          }}
+        />
       </div>
+
+      {replyingTo ? (
+        <div className="mt-3">
+          <InlineCommentComposer
+            busy={busy === "reply"}
+            disabled={busy !== null || !replyContent.trim()}
+            onChange={setReplyContent}
+            onSubmit={() => {
+              if (!replyContent.trim()) {
+                return;
+              }
+              setBusy("reply");
+              setError(null);
+              void apiClient
+                .createRatingTargetComment(props.itemId, {
+                  content: replyContent.trim(),
+                  parentCommentId: props.comment.id
+                })
+                .then(() => {
+                  setReplyingTo(false);
+                  setReplyContent("");
+                  return props.onRefresh();
+                })
+                .catch((reason: unknown) => {
+                  setError(reason instanceof Error ? reason.message : "回复评论失败。");
+                })
+                .finally(() => setBusy(null));
+            }}
+            placeholder={`回复 @${props.comment.author.displayName}`}
+            value={replyContent}
+          />
+        </div>
+      ) : null}
+
+      {error ? (
+        <Alert className="mt-3" variant="destructive">
+          <AlertTitle>评论操作失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {replies.length > 0 ? (
+        <div className="mt-3 space-y-4 border-l border-border/60 pl-4 dark:border-border/50">
+          {replies.map((reply) => (
+            <RatingTargetCommentCard
+              canInteract={props.canInteract}
+              comment={reply}
+              depth={depth + 1}
+              itemId={props.itemId}
+              key={reply.id}
+              onRefresh={props.onRefresh}
+              onRequireLogin={props.onRequireLogin}
+            />
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -318,6 +304,7 @@ function RatingTargetCommentCard(props: {
 export function RatingTargetDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
@@ -467,26 +454,46 @@ export function RatingTargetDetailPage() {
                   <RatingBreakdown entries={item.ratingBreakdown} totalCount={totalRatings} />
                 </div>
 
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   {item.linkedModel ? (
                     <Button asChild size="sm" variant="outline">
                       <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
                     </Button>
                   ) : null}
 
+                  <PageShareControl
+                    sharePath={`${buildRatingTargetDetailPath(item.id)}${location.search}`}
+                  />
+
                   <ReportActionSheet
                     description="请填写举报理由，并至少上传 1 张证据图。"
-                    onSubmit={(input) => apiClient.reportRatingTarget(item.id, input).then(() => {})}
+                    onSubmit={(input) =>
+                      apiClient.reportRatingTarget(item.id, input).then(() => {
+                        void queryClient.invalidateQueries({ queryKey: ["rating-target-detail", item.id] });
+                      })
+                    }
                     title="举报评分对象"
                     trigger={
                       <Button
                         aria-label="举报评分对象"
-                        className="size-9 p-0"
+                        className={cn(
+                          "group inline-flex size-auto min-h-0 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0.5 shadow-none",
+                          "hover:!bg-transparent active:translate-y-0",
+                          "focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2"
+                        )}
                         size="sm"
                         type="button"
-                        variant="outline"
+                        variant="ghost"
                       >
-                        <FlagIcon className="size-4" />
+                        <AlertTriangleIcon
+                          className={cn(
+                            "size-4 transition-transform duration-150 ease-out",
+                            "text-orange-600/90 group-hover:text-orange-700 group-active:scale-[0.92]",
+                            "dark:text-orange-400 dark:group-hover:text-orange-300",
+                            item.viewer.hasReported &&
+                              "fill-orange-500/40 text-orange-800 dark:fill-orange-400/45 dark:text-orange-300"
+                          )}
+                        />
                         <span className="sr-only">举报评分对象</span>
                       </Button>
                     }
@@ -567,12 +574,7 @@ export function RatingTargetDetailPage() {
           </div>
 
           <div className="space-y-4 border-t border-border/60 pt-4">
-            <div className="space-y-1">
-              <div className="text-base font-semibold text-foreground">评分与评论</div>
-              <div className="text-sm text-muted-foreground">
-                顶级评论必须先选评分；回复评论不需要评分，每次发布都会新增一条评论。
-              </div>
-            </div>
+            <div className="text-base font-semibold text-foreground">评分与评论</div>
 
             <div className="border border-border/70 bg-white px-5 py-5">
               <div className="space-y-4">

@@ -82,7 +82,7 @@ function FilterSection(props: {
 }) {
   return (
     <div
-      className={`space-y-2.5 border border-border/80 bg-white ${
+      className={`space-y-2.5 bg-white ${
         props.compact ? "px-3 py-3" : "px-4 py-4"
       }`}
     >
@@ -165,7 +165,7 @@ function PowerSection(props: {
 }) {
   return (
     <div
-      className={`space-y-2.5 border border-border/80 bg-white ${
+      className={`space-y-2.5 bg-white ${
         props.compact ? "px-3 py-3" : "px-4 py-4"
       }`}
     >
@@ -207,17 +207,17 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
 
   return (
     <Link
-      className="group block min-w-0 border border-border/80 bg-white px-2.5 py-2.5 transition hover:border-primary/24 hover:bg-sky-50/34"
+      className="group block min-w-0 overflow-hidden bg-white transition hover:bg-sky-50/34"
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
-      <div className="overflow-hidden border border-border/70">
+      <div className="overflow-hidden">
         <img
           alt={model.name}
           className="aspect-[4/3] w-full object-cover transition duration-200 group-hover:scale-[1.02]"
           src={getModelImage(model.slug, model.powerType, index)}
         />
       </div>
-      <div className="space-y-1.5 pt-2.5">
+      <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
         <BrandIdentity
           className="max-w-full text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted-foreground"
           imageClassName="size-3.5"
@@ -360,7 +360,7 @@ export function ModelsPage() {
         </div>
 
         <div className="space-y-4">
-          <div className="space-y-3 border border-border/80 bg-white px-4 py-4">
+          <div className="space-y-3 bg-white px-4 py-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="text-sm font-medium text-foreground">机型列表</div>
@@ -407,7 +407,7 @@ export function ModelsPage() {
                   ))}
                 </div>
               ) : (
-                <div className="border border-border/80 bg-white px-5 py-8">
+                <div className="bg-white px-5 py-8">
                   <div className="text-base font-semibold text-foreground">没有匹配机型</div>
                   <div className="mt-2 text-sm leading-6 text-muted-foreground">
                     可以清空部分筛选，或换一个关键词再试。
@@ -420,7 +420,7 @@ export function ModelsPage() {
                   <div className={MODEL_GRID_CLASS_NAME}>
                     {Array.from({ length: 10 }).map((_, index) => (
                       <div
-                        className="block min-w-0 border border-border bg-white px-3 py-3"
+                        className="block min-w-0 bg-white px-3 py-3"
                         key={index}
                       >
                         <div className="animate-pulse">

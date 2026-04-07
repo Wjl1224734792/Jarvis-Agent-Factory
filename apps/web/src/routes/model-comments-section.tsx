@@ -1,12 +1,17 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CornerDownRightIcon,
-  HeartIcon,
   MessageSquareTextIcon,
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CommentPublishedTime } from "@/components/comment-published-time";
+import {
+  CommentIconOnlyButton,
+  CommentLikeIconButton,
+  CommentTextAction
+} from "@/components/comment-thread-controls";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -23,45 +28,30 @@ type ModelCommentNode = (ModelComment | ModelCommentReply) & {
   replies?: ModelCommentReply[];
 };
 
-function formatTime(value: string) {
-  return new Date(value).toLocaleString("zh-CN", { hour12: false });
-}
-
 function CommentActions(props: {
   slug: string;
   comment: ModelCommentNode;
   canInteract: boolean;
   disabled: boolean;
+  isEditing: boolean;
   onReply: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onLike: () => void;
 }) {
   return (
-    <div className="flex shrink-0 items-center gap-1">
-      <Button
-        className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+    <div className="flex shrink-0 items-center gap-1 self-start">
+      <CommentLikeIconButton
         disabled={props.disabled}
+        hasLiked={props.comment.viewer.hasLiked}
+        likeCount={props.comment.likeCount ?? 0}
         onClick={props.onLike}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        <HeartIcon className="size-3.5" />
-        {props.comment.likeCount ?? 0}
-      </Button>
+      />
 
       {props.canInteract ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
-          disabled={props.disabled}
-          onClick={props.onReply}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
+        <CommentTextAction disabled={props.disabled} onClick={props.onReply} variant="reply">
           回复
-        </Button>
+        </CommentTextAction>
       ) : null}
 
       {!props.comment.viewer.canDelete ? (
@@ -72,45 +62,35 @@ function CommentActions(props: {
           }}
           title="举报评论"
           trigger={
-            <Button
-              className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+            <CommentTextAction
               disabled={props.disabled}
-              size="sm"
-              type="button"
-              variant="ghost"
+              hasReported={props.comment.viewer.hasReported}
+              variant="report"
             >
               举报
-            </Button>
+            </CommentTextAction>
           }
         />
       ) : null}
 
       {props.comment.viewer.canEdit ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          active={props.isEditing}
           disabled={props.disabled}
+          icon={SquarePenIcon}
+          label="编辑评论"
           onClick={props.onEdit}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <SquarePenIcon className="size-3.5" />
-          <span className="sr-only">编辑评论</span>
-        </Button>
+        />
       ) : null}
 
       {props.comment.viewer.canDelete ? (
-        <Button
-          className="h-7 rounded-none px-0 text-[0.72rem] text-muted-foreground"
+        <CommentIconOnlyButton
+          destructiveHover
           disabled={props.disabled}
+          icon={Trash2Icon}
+          label="删除评论"
           onClick={props.onDelete}
-          size="sm"
-          type="button"
-          variant="ghost"
-        >
-          <Trash2Icon className="size-3.5" />
-          <span className="sr-only">删除评论</span>
-        </Button>
+        />
       ) : null}
     </div>
   );
@@ -154,7 +134,7 @@ function ModelCommentCard(props: {
   }
 
   return (
-    <article className={depth > 0 ? "border-l border-border/70 pl-4" : ""}>
+    <article>
       <div className="flex items-start gap-3">
         <ProfileLink userId={props.comment.author.id}>
           <Avatar className="mt-0.5" size="sm">
@@ -182,7 +162,7 @@ function ModelCommentCard(props: {
                 待审核
               </span>
             ) : null}
-            <span className="text-[0.72rem] text-muted-foreground">{formatTime(props.comment.updatedAt)}</span>
+            <CommentPublishedTime createdAt={props.comment.createdAt} />
           </div>
 
           {isEditing ? (
@@ -217,105 +197,108 @@ function ModelCommentCard(props: {
           {isPending ? (
             <p className="text-[0.72rem] text-amber-700">这条评论正在审核中，目前仅你自己可见。</p>
           ) : null}
+        </div>
 
-          <CommentActions
+        <CommentActions
             canInteract={props.canInteract && !isPending}
             comment={props.comment}
             disabled={busy !== null}
-            onDelete={() => {
-              setBusy("delete");
-              setError(null);
-              void apiClient
-                .deleteModelComment(props.slug, props.comment.id)
-                .then(props.onRefresh)
-                .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "删除评论失败。");
-                })
-                .finally(() => setBusy(null));
-            }}
-            onEdit={() => {
-              setIsEditing((value) => !value);
-              setEditingContent(props.comment.content);
-            }}
-            onLike={() => {
-              if (!ensureCanInteract()) {
-                return;
-              }
-              setBusy("like");
-              setError(null);
-              void apiClient
-                .likeModelComment(props.slug, props.comment.id)
-                .then(props.onRefresh)
-                .catch((reason: unknown) => {
-                  setError(reason instanceof Error ? reason.message : "点赞失败。");
-                })
-                .finally(() => setBusy(null));
-            }}
-            onReply={() => {
-              if (!ensureCanInteract()) {
-                return;
-              }
-              setReplyingTo((value) => !value);
-              setReplyContent((current) => (current ? current : `@${props.comment.author.displayName} `));
-            }}
-            slug={props.slug}
-          />
-
-          {replyingTo && !isPending ? (
-            <InlineCommentComposer
-              busy={busy === "reply"}
-              disabled={busy !== null || !replyContent.trim()}
-              onChange={setReplyContent}
-              onSubmit={() => {
-                if (!replyContent.trim()) {
-                  return;
-                }
-                setBusy("reply");
-                setError(null);
-                void apiClient
-                  .createModelComment(props.slug, {
-                    content: replyContent.trim(),
-                    parentCommentId: props.comment.id
-                  })
-                  .then(() => {
-                    setReplyingTo(false);
-                    setReplyContent("");
-                    return props.onRefresh();
-                  })
-                  .catch((reason: unknown) => {
-                    setError(reason instanceof Error ? reason.message : "回复评论失败。");
-                  })
-                  .finally(() => setBusy(null));
-              }}
-              placeholder={`回复 @${props.comment.author.displayName}`}
-              value={replyContent}
-            />
-          ) : null}
-
-          {error ? (
-            <Alert variant="destructive">
-              <AlertTitle>评论操作失败</AlertTitle>
-              <AlertDescription>{error}</AlertDescription>
-            </Alert>
-          ) : null}
-
-          {childComments.length > 0 ? (
-            <div className="space-y-4 pt-2">
-              {childComments.map((reply) => (
-                <ModelCommentCard
-                  canInteract={props.canInteract}
-                  comment={reply}
-                  depth={depth + 1}
-                  key={reply.id}
-                  onRefresh={props.onRefresh}
-                  onRequireLogin={props.onRequireLogin}
-                  slug={props.slug}
-                />
-              ))}
-            </div>
-          ) : null}
-        </div>
+            isEditing={isEditing}
+          onDelete={() => {
+            setBusy("delete");
+            setError(null);
+            void apiClient
+              .deleteModelComment(props.slug, props.comment.id)
+              .then(props.onRefresh)
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "删除评论失败。");
+              })
+              .finally(() => setBusy(null));
+          }}
+          onEdit={() => {
+            setIsEditing((value) => !value);
+            setEditingContent(props.comment.content);
+          }}
+          onLike={() => {
+            if (!ensureCanInteract()) {
+              return;
+            }
+            setBusy("like");
+            setError(null);
+            void apiClient
+              .likeModelComment(props.slug, props.comment.id)
+              .then(props.onRefresh)
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "点赞失败。");
+              })
+              .finally(() => setBusy(null));
+          }}
+          onReply={() => {
+            if (!ensureCanInteract()) {
+              return;
+            }
+            setReplyingTo((value) => !value);
+            setReplyContent((current) => (current ? current : `@${props.comment.author.displayName} `));
+          }}
+          slug={props.slug}
+        />
       </div>
+
+      {replyingTo && !isPending ? (
+        <div className="mt-3">
+          <InlineCommentComposer
+            busy={busy === "reply"}
+            disabled={busy !== null || !replyContent.trim()}
+            onChange={setReplyContent}
+            onSubmit={() => {
+              if (!replyContent.trim()) {
+                return;
+              }
+              setBusy("reply");
+              setError(null);
+              void apiClient
+                .createModelComment(props.slug, {
+                  content: replyContent.trim(),
+                  parentCommentId: props.comment.id
+                })
+                .then(() => {
+                  setReplyingTo(false);
+                  setReplyContent("");
+                  return props.onRefresh();
+                })
+                .catch((reason: unknown) => {
+                  setError(reason instanceof Error ? reason.message : "回复评论失败。");
+                })
+                .finally(() => setBusy(null));
+            }}
+            placeholder={`回复 @${props.comment.author.displayName}`}
+            value={replyContent}
+          />
+        </div>
+      ) : null}
+
+      {error ? (
+        <Alert className="mt-3" variant="destructive">
+          <AlertTitle>评论操作失败</AlertTitle>
+          <AlertDescription>{error}</AlertDescription>
+        </Alert>
+      ) : null}
+
+      {childComments.length > 0 ? (
+        <div className="mt-3 space-y-4 border-l border-border/60 pl-4 dark:border-border/50">
+          {childComments.map((reply) => (
+            <ModelCommentCard
+              canInteract={props.canInteract}
+              comment={reply}
+              depth={depth + 1}
+              key={reply.id}
+              onRefresh={props.onRefresh}
+              onRequireLogin={props.onRequireLogin}
+              slug={props.slug}
+            />
+          ))}
+        </div>
+      ) : null}
     </article>
   );
 }
@@ -360,7 +343,7 @@ export function ModelCommentsSection(props: {
         <div className="text-sm text-muted-foreground">共 {visibleCount} 条可见评论</div>
       </div>
 
-      <div className="border border-border/70 bg-white px-5 py-5">
+      <div className="bg-white px-5 py-5">
         {!props.isAuthenticated ? (
           <Button className="w-full" onClick={openLoginPrompt} size="sm" type="button" variant="outline">
             登录后发表评论
@@ -407,14 +390,11 @@ export function ModelCommentsSection(props: {
         </Alert>
       ) : null}
 
-      <div className="border border-border/70 bg-white">
+      <div className="bg-white">
         {(commentsQuery.data?.items ?? []).length > 0 ? (
-          <div className="space-y-0 px-5 py-4">
-            {(commentsQuery.data?.items ?? []).map((comment, index) => (
-              <div
-                className={index === 0 ? "" : "border-t border-border/70 pt-4"}
-                key={comment.id}
-              >
+          <div className="space-y-6 px-5 py-4">
+            {(commentsQuery.data?.items ?? []).map((comment) => (
+              <div key={comment.id}>
                 <ModelCommentCard
                   canInteract={props.isAuthenticated}
                   comment={comment}

@@ -67,6 +67,9 @@ import {
   createReviewCommentResponseSchema,
   currentUserResponseSchema,
   currentUserProfileResponseSchema,
+  deviceRegisterInputSchema,
+  deviceRegisterResponseSchema,
+  deviceUnregisterInputSchema,
   errorResponseSchema,
   fileUrlResponseSchema,
   healthResponseSchema,
@@ -78,6 +81,8 @@ import {
   modelInteractionResponseSchema,
   modelListResponseSchema,
   modelReviewsResponseSchema,
+  paginationMetaSchema,
+  paginationQuerySchema,
   postDetailResponseSchema,
   ratingTargetDetailResponseSchema,
   ratingTargetResponseSchema,
@@ -218,6 +223,9 @@ const componentSchemas = {
   CreateAircraftSubmissionRequest: toOpenApiSchema(
     createAircraftSubmissionInputSchema
   ),
+  UpdateAircraftSubmissionRequest: toOpenApiSchema(
+    createAircraftSubmissionInputSchema
+  ),
   UpdateAircraftSubmissionStatusRequest: toOpenApiSchema(
     updateAircraftSubmissionStatusInputSchema
   ),
@@ -347,7 +355,12 @@ const componentSchemas = {
     submitRatingTargetReviewResponseSchema
   ),
   RankingsResponse: toOpenApiSchema(rankingsResponseSchema),
-  RankingResponse: toOpenApiSchema(rankingResponseSchema)
+  RankingResponse: toOpenApiSchema(rankingResponseSchema),
+  PaginationQuery: toOpenApiSchema(paginationQuerySchema),
+  PaginationMeta: toOpenApiSchema(paginationMetaSchema),
+  DeviceRegisterRequest: toOpenApiSchema(deviceRegisterInputSchema),
+  DeviceRegisterResponse: toOpenApiSchema(deviceRegisterResponseSchema),
+  DeviceUnregisterRequest: toOpenApiSchema(deviceUnregisterInputSchema)
 };
 
 function schemaRef(name: keyof typeof componentSchemas) {
@@ -410,7 +423,7 @@ function stringQueryParameter(name: string, description: string) {
   };
 }
 
-const sessionCookieSecurity = [{ sessionCookieAuth: [] }];
+const _sessionCookieSecurity = [{ sessionCookieAuth: [] }];
 const optionalSessionCookieSecurity = [{}, { sessionCookieAuth: [] }];
 const optionalBearerSecurity = [{}, { bearerAuth: [] }];
 const optionalSessionOrBearerSecurity = [
@@ -430,7 +443,28 @@ export const openApiDocument = {
     title: `${APP_NAME} API`,
     version: API_VERSION,
     description:
-      '飞加服务端的第一版 OpenAPI 文档，优先覆盖健康检查、认证、上传和核心内容接口。文档会先保证已描述接口可信，再逐步扩展覆盖范围。'
+      `飞加服务端 API 文档，供 Web、管理端和移动端（App）共同使用。
+
+## 通用约定
+
+### 日期格式
+所有日期字段统一使用 **ISO 8601** 格式（\`YYYY-MM-DDTHH:mm:ss.sssZ\`），例如 \`2026-04-07T12:00:00.000Z\`。
+
+### 分页
+列表接口统一使用 \`page\`（页码，从 1 开始）和 \`pageSize\`（每页条数，最大 100）作为查询参数。
+响应中通过 \`meta\` 字段返回分页元数据（\`page\`、\`pageSize\`、\`total\`）。
+
+### 错误码
+错误响应包含 \`code\`（业务错误码）和 \`message\`（人类可读描述）。
+认证相关错误码定义在 \`AuthErrorCode\` 枚举中，包括 \`INVALID_CAPTCHA\`、\`INVALID_SMS_CODE\`、\`INVALID_CREDENTIALS\` 等。
+
+### 上传规格
+- 图片支持格式：JPEG、PNG、WebP、GIF
+- 视频支持格式：MP4、WebM
+- 各业务类型文件大小限制由服务端环境变量控制，详见 \`UPLOAD_MAX_*_SIZE_MB\` 系列配置
+
+### API 版本
+当前 API 版本为 \`${API_VERSION}\`，所有路由无版本前缀。后续如有不兼容变更，将通过 \`/v2/\` 等前缀进行版本隔离。`
   },
   servers: [
     {
@@ -601,7 +635,7 @@ export const openApiDocument = {
         summary: 'App 端登录',
         requestBody: jsonRequestBody(
           'AppLoginRequest',
-          'App 登录请求，支持携带 deviceLabel。'
+          'App 登录请求，支持携带 deviceLabel（设备名称）、deviceType（ios/android/harmony）和 pushToken（推送令牌）。'
         ),
         responses: {
           '200': jsonResponse('AppLoginResponse', '返回已登录结果或注册补全信息。'),
@@ -615,7 +649,7 @@ export const openApiDocument = {
         summary: '补全 App 端注册信息',
         requestBody: jsonRequestBody(
           'CompleteAppRegistrationRequest',
-          'App 注册补全请求，会返回 accessToken 与 refreshToken。'
+          'App 注册补全请求，支持携带 deviceLabel、deviceType 和 pushToken，会返回 accessToken 与 refreshToken。'
         ),
         responses: {
           '200': jsonResponse('AppAuthSessionResponse', '注册完成并返回 App 会话。'),
@@ -765,7 +799,7 @@ export const openApiDocument = {
       get: {
         tags: ['auth'],
         summary: '查看最近登录会话',
-        security: sessionCookieSecurity,
+        security: adminSessionSecurity,
         responses: {
           '200': jsonResponse(
             'AdminRecentSessionsResponse',
@@ -773,6 +807,49 @@ export const openApiDocument = {
           ),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '403': jsonResponse('ErrorResponse', '非管理员会话。')
+        }
+      }
+    },
+    [API_ROUTES.auth.deviceRegister]: {
+      post: {
+        tags: ['auth'],
+        summary: '注册设备推送令牌',
+        description:
+          '移动端登录后调用，注册设备类型和推送令牌，用于后续推送通知。同一用户同一 pushToken 重复注册时会更新设备信息。',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'DeviceRegisterRequest',
+          '设备类型、推送令牌和可选的设备名称。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'DeviceRegisterResponse',
+            '设备注册成功，返回设备 ID 和注册时间。'
+          ),
+          '400': jsonResponse('ErrorResponse', '请求参数不合法。'),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.auth.deviceUnregister]: {
+      post: {
+        tags: ['auth'],
+        summary: '注销设备推送令牌',
+        description:
+          '移动端退出登录或关闭推送时调用。不传 pushToken 时注销当前用户所有设备。',
+        security: sessionOrBearerSecurity,
+        requestBody: {
+          description: '可选的推送令牌，不传则注销该用户所有设备。',
+          required: false,
+          content: {
+            'application/json': {
+              schema: schemaRef('DeviceUnregisterRequest')
+            }
+          }
+        },
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '设备注销成功。'),
+          '401': jsonResponse('ErrorResponse', '未登录。')
         }
       }
     },
@@ -812,9 +889,9 @@ export const openApiDocument = {
                 'review-comment',
                 'model-comment',
                 'ranking',
-                'ranking-item',
+                'rating-target',
                 'ranking-comment',
-                'ranking-item-comment'
+                'rating-target-comment'
               ]
             }
           },
@@ -1166,7 +1243,7 @@ export const openApiDocument = {
         security: sessionOrBearerSecurity,
         parameters: [stringPathParameter('id', '投稿 ID。')],
         requestBody: jsonRequestBody(
-          'CreateAircraftSubmissionRequest',
+          'UpdateAircraftSubmissionRequest',
           '更新已提交的投稿内容。'
         ),
         responses: {

@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  AlertTriangleIcon,
   ChevronLeftIcon,
   ChevronRightIcon,
   HeartIcon,
@@ -13,6 +14,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
+import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SitePage } from "@/components/site-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -181,10 +183,10 @@ export function CirclePage() {
 
             return (
               <button
-                className={`mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-[1.15rem] border text-left transition xl:mx-auto xl:max-w-[13.5rem] ${
+                className={`mb-2.5 block w-full break-inside-avoid overflow-hidden rounded-[1.15rem] text-left transition xl:mx-auto xl:max-w-[13.5rem] ${
                   selectedNoteId === item.id
-                    ? "border-primary/50 bg-sky-50 shadow-[var(--shadow-float)]"
-                    : "border-border/80 bg-white hover:border-primary/30 hover:bg-sky-50/45"
+                    ? "bg-sky-50 shadow-[var(--shadow-float)] ring-2 ring-primary/40"
+                    : "bg-white hover:bg-sky-50/45"
                 }`}
                 key={item.id}
                 onClick={() => openNote(item.id)}
@@ -420,7 +422,7 @@ export function CirclePage() {
                   ) : null}
 
                   {selectedNote ? (
-                    <div className="flex min-h-full flex-col justify-between gap-5">
+                    <div className="flex flex-col gap-5">
                       <div className="space-y-3">
                         <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                           {selectedNote.title}
@@ -512,12 +514,11 @@ export function CirclePage() {
                       </Button>
                     )}
 
-                    <div className="mt-3 flex items-center justify-between gap-3">
-                      <div className="flex min-w-0 items-center gap-3">
+                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                      <div className="flex min-w-0 flex-wrap items-center gap-3">
                         <PostInteractionBar
                           compact
                           hideFollow
-                          hideShare
                           iconOnly
                           plain
                           authorId={selectedNote.author.id}
@@ -533,6 +534,26 @@ export function CirclePage() {
                           {formatCount(selectedNote.commentCount)}
                         </span>
                       </div>
+
+                      {authStatus === "authenticated" && currentUser?.id !== selectedNote.author.id ? (
+                        <div className="flex shrink-0 items-center gap-2">
+                          <ReportActionSheet
+                            description="请填写举报理由，并至少上传 1 张证据图。"
+                            onSubmit={(input) =>
+                              apiClient.reportPost(selectedNote.id, input).then(() => {
+                                void queryClient.invalidateQueries({ queryKey: ["post-detail", selectedNote.id] });
+                                void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
+                              })
+                            }
+                            title="举报内容"
+                            trigger={
+                              <Button aria-label="举报内容" size="sm" type="button" variant="ghost">
+                                <AlertTriangleIcon className="size-4" />
+                              </Button>
+                            }
+                          />
+                        </div>
+                      ) : null}
                     </div>
                   </div>
                 ) : null}
