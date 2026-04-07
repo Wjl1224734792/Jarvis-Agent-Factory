@@ -6,6 +6,7 @@ import {
   adminModelInputSchema,
   adminModelResponseSchema,
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   adminOfficialArticleUpdateInputSchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
@@ -181,6 +182,7 @@ const componentSchemas = {
     completeAppRegistrationRequestSchema
   ),
   AdminLoginRequest: toOpenApiSchema(adminLoginRequestSchema),
+  AdminPasswordChangeRequest: toOpenApiSchema(adminPasswordChangeRequestSchema),
   AuthSuccessResponse: toOpenApiSchema(authSuccessResponseSchema),
   CurrentUserResponse: toOpenApiSchema(currentUserResponseSchema),
   CurrentUserProfileResponse: toOpenApiSchema(currentUserProfileResponseSchema),
@@ -669,6 +671,22 @@ export const openApiDocument = {
         responses: {
           '200': jsonResponse('AuthSuccessResponse', '登录成功并写入会话 Cookie。'),
           '400': jsonResponse('AuthErrorResponse', '账号或密码错误。')
+        }
+      }
+    },
+    [API_ROUTES.auth.adminChangePassword]: {
+      post: {
+        tags: ['auth'],
+        summary: '管理端修改密码',
+        security: adminSessionSecurity,
+        requestBody: jsonRequestBody(
+          'AdminPasswordChangeRequest',
+          '管理员修改密码时提交当前密码与新密码。'
+        ),
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '密码修改成功，当前会话已失效。'),
+          '400': jsonResponse('AuthErrorResponse', '当前密码错误或新密码不符合要求。'),
+          '403': jsonResponse('AuthErrorResponse', '仅管理员可执行该操作。')
         }
       }
     },

@@ -1,5 +1,6 @@
 import {
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   authErrorCodeSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,
@@ -12,6 +13,7 @@ import {
 
 export {
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   authErrorCodeSchema,
   authErrorResponseSchema,
   authSuccessResponseSchema,

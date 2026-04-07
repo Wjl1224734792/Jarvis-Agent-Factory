@@ -563,6 +563,30 @@ export const authService = {
       user: summary satisfies UserSummary
     };
   },
+  async changeAdminPassword(
+    userId: string,
+    input: { currentPassword: string; newPassword: string }
+  ) {
+    const admin = await authRepo.findAdminById(userId);
+    if (!admin) {
+      throw new AuthError("FORBIDDEN", "仅管理员可修改后台密码");
+    }
+
+    const currentPasswordPassed = await authRepo.verifyAdminPassword(
+      userId,
+      input.currentPassword
+    );
+    if (!currentPasswordPassed) {
+      throw new AuthError("INVALID_CREDENTIALS", "当前密码错误");
+    }
+
+    await authRepo.updateAdminPassword(userId, input.newPassword);
+    await authRepo.revokeUserSessions(userId);
+
+    return {
+      success: true as const
+    };
+  },
   async getCurrentUser(sessionId: string | undefined) {
     if (!sessionId) {
       return null;

@@ -6,6 +6,7 @@ import {
   FlagOutlined,
   GatewayOutlined,
   InboxOutlined,
+  LockOutlined,
   OrderedListOutlined,
   ReadOutlined,
   TagsOutlined,
@@ -61,6 +62,11 @@ const AdminOverviewPage = lazy(() =>
 const AdminSectionHubPage = lazy(() =>
   import("./features/auth/admin-section-hub-page").then((module) => ({
     default: module.AdminSectionHubPage
+  }))
+);
+const AdminPasswordPage = lazy(() =>
+  import("./features/auth/admin-password-page").then((module) => ({
+    default: module.AdminPasswordPage
   }))
 );
 const BrandApplicationsPage = lazy(() =>
@@ -279,6 +285,12 @@ const router = createBrowserRouter([
                 description: "文章与资讯栏目管理。",
                 to: ADMIN_ROUTE_PATHS.managementContentCategories,
                 icon: <TagsOutlined />
+              },
+              {
+                title: "安全设置",
+                description: "管理员密码修改与后台账号安全。",
+                to: ADMIN_ROUTE_PATHS.managementSecurity,
+                icon: <LockOutlined />
               }
             ]}
             title="管理"
@@ -344,6 +356,10 @@ const router = createBrowserRouter([
       {
         path: ADMIN_ROUTE_PATHS.managementContentCategories.slice("/admin/".length),
         element: withAdminRouteFallback(<ContentCategoriesPage />)
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.managementSecurity.slice("/admin/".length),
+        element: withAdminRouteFallback(<AdminPasswordPage />)
       },
 
       {

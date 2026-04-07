@@ -80,6 +80,7 @@ export const API_ROUTES = {
     appLogout: "/auth/app/logout",
     adminLogin: "/auth/admin/login",
     adminLogout: "/auth/admin/logout",
+    adminChangePassword: "/auth/admin/password/change",
     adminCurrentUser: "/auth/admin/me",
     adminProtectedPing: "/auth/admin/protected/ping",
     adminSessions: "/admin/auth/sessions",

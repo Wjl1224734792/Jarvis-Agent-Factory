@@ -6,10 +6,10 @@
  *
  * 数据规模：
  * - 用户：50 个
- * - 飞行器分类：6 个
+ * - 飞行器分类：4 个
  * - 品牌：20 个
  * - 飞行器型号：30 个
- * - 内容分类：5 个
+ * - 内容分类：3 个
  * - 帖子：60 个（文章 30 + 动态 30）
  * - 帖子评论：120 条
  * - 帖子互动：200 条
@@ -156,10 +156,8 @@ const CATEGORY_IDS: string[] = [];
 const CATEGORY_DATA = [
   { slug: "multirotor", name: "多旋翼" },
   { slug: "fixed-wing", name: "固定翼" },
-  { slug: "evtol", name: "电动垂直起降" },
+  { slug: "evtol", name: "eVTOL" },
   { slug: "helicopter", name: "直升机" },
-  { slug: "business-jet", name: "公务机" },
-  { slug: "vtol", name: "垂直起降固定翼" },
 ];
 
 const BRAND_IDS: string[] = [];
@@ -177,12 +175,12 @@ const BRAND_DATA = [
   { slug: "robinson", name: "Robinson 罗宾逊", categoryIdx: 3 },
   { slug: "airbus-heli", name: "Airbus Helicopters", categoryIdx: 3 },
   { slug: "bell", name: "Bell 贝尔", categoryIdx: 3 },
-  { slug: "cirrus", name: "Cirrus 西锐", categoryIdx: 4 },
-  { slug: "embraer", name: "Embraer 巴航工业", categoryIdx: 4 },
-  { slug: "textron", name: "Textron Aviation", categoryIdx: 4 },
+  { slug: "cirrus", name: "Cirrus 西锐", categoryIdx: 1 },
+  { slug: "embraer", name: "Embraer 巴航工业", categoryIdx: 1 },
+  { slug: "textron", name: "Textron Aviation", categoryIdx: 1 },
   { slug: "xpeng-aero", name: "小鹏汇天", categoryIdx: 2 },
-  { slug: "auto-flight", name: "峰飞航空", categoryIdx: 5 },
-  { slug: "tcab", name: "TCAB 太力", categoryIdx: 5 },
+  { slug: "auto-flight", name: "峰飞航空", categoryIdx: 2 },
+  { slug: "tcab", name: "TCAB 太力", categoryIdx: 2 },
   { slug: "vertical", name: "Vertical Aerospace", categoryIdx: 2 },
 ];
 
@@ -211,11 +209,11 @@ const MODEL_DATA = [
   { slug: "r66", name: "Robinson R66", brandIdx: 10, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 150, range: 600, speed: 240, weight: null },
   { slug: "h145", name: "Airbus H145", brandIdx: 11, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 680, speed: 280, weight: null },
   { slug: "bell-505", name: "Bell 505 Jet Ranger", brandIdx: 12, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 165, range: 540, speed: 230, weight: null },
-  { slug: "vision-jet", name: "Cirrus Vision Jet G2+", brandIdx: 13, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 2300, speed: 576, weight: null },
-  { slug: "phenom-300e", name: "Embraer Phenom 300E", brandIdx: 14, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 3700, speed: 860, weight: null },
+  { slug: "vision-jet", name: "Cirrus Vision Jet G2+", brandIdx: 13, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 2300, speed: 576, weight: null },
+  { slug: "phenom-300e", name: "Embraer Phenom 300E", brandIdx: 14, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 3700, speed: 860, weight: null },
   { slug: "xpeng-x3", name: "小鹏汇天陆地航母", brandIdx: 16, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 50, speed: 130, weight: null },
-  { slug: "autoflight-prosperity", name: "峰飞盛世龙", brandIdx: 17, catIdx: 5, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 250, speed: 200, weight: null },
-  { slug: "tcab-transition", name: "太力 Transition", brandIdx: 18, catIdx: 5, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 800, speed: 180, weight: null },
+  { slug: "autoflight-prosperity", name: "峰飞盛世龙", brandIdx: 17, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 250, speed: 200, weight: null },
+  { slug: "tcab-transition", name: "太力 Transition", brandIdx: 18, catIdx: 2, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 800, speed: 180, weight: null },
   { slug: "va-x4", name: "Vertical VA-X4", brandIdx: 19, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 160, speed: 320, weight: null },
   { slug: "dji-agras-t50", name: "DJI Agras T50", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 69999, priceMax: 89999, flight: 20, range: 5, speed: 36, weight: 40000 },
 ];
@@ -224,8 +222,6 @@ const CONTENT_CAT_IDS: string[] = [];
 const CONTENT_CAT_DATA = [
   { slug: "news", name: "资讯" },
   { slug: "review", name: "评测" },
-  { slug: "aerial", name: "航拍" },
-  { slug: "tech", name: "技术" },
   { slug: "guide", name: "指南" },
 ];
 
@@ -548,9 +544,9 @@ async function seedPostgreSQL() {
 
   // 1. 用户 (50)
   console.log("  👥 创建 50 个用户...");
-  const adminPasswordHash = await hashPassword("TestAdmin#123");
+  const adminPasswordHash = await hashPassword("Admin#123");
   const users = [
-    { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "testadmin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
+    { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "admin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
     ...USER_DISPLAY_NAMES.map((name) => ({
       id: uid("user"), role: "user" as const, displayName: name,
       phone: `138${String(10000000 + randInt(1000000, 9999999)).slice(0, 8)}`,
@@ -1294,29 +1290,29 @@ async function seedPostgreSQL() {
 
 // ==================== 主函数 ====================
 
-async function main() {
+export async function seedMockTestDataDatabase() {
   console.log("🚀 飞加项目海量测试数据生成脚本");
   console.log("================================");
 
-  try {
-    await seedMinIO();
-    await seedRedis();
-    await seedPostgreSQL();
+  await seedMinIO();
+  await seedRedis();
+  await seedPostgreSQL();
 
-    console.log("\n================================");
-    console.log("🎉 测试数据生成完成！");
-    console.log("\n📋 测试账号:");
-    console.log("  管理员: testadmin / TestAdmin#123");
-    console.log("  普通用户: 50 个 (手机号 138 开头，短信登录)");
-    console.log("\n🔑 Redis 测试数据:");
-    console.log("  图形验证码: test_captcha_001 (code: TEST01)");
-    console.log("  短信验证码: 13800138000 (code: 888888)");
-    console.log("  注册令牌: test_reg_001");
-    console.log("\n📦 MinIO: feijia-media bucket, test/ 前缀");
-  } catch (error) {
-    console.error("\n❌ 测试数据生成失败:", error);
-    process.exit(1);
-  }
+  console.log("\n================================");
+  console.log("🎉 测试数据生成完成！");
+  console.log("\n📋 测试账号:");
+  console.log("  管理员: admin / Admin#123");
+  console.log("  普通用户: 50 个 (手机号 138 开头，短信登录)");
+  console.log("\n🔑 Redis 测试数据:");
+  console.log("  图形验证码: test_captcha_001 (code: TEST01)");
+  console.log("  短信验证码: 13800138000 (code: 888888)");
+  console.log("  注册令牌: test_reg_001");
+  console.log("\n📦 MinIO: feijia-media bucket, test/ 前缀");
 }
 
-void main();
+if (import.meta.main) {
+  void seedMockTestDataDatabase().catch((error) => {
+    console.error("\n❌ 测试数据生成失败:", error);
+    process.exit(1);
+  });
+}

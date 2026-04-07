@@ -489,6 +489,12 @@ export const apiClient = {
   getAdminAuthSessions() {
     return getJson<{ items: AdminAuthSessionItem[] }>("/admin/auth/sessions");
   },
+  changeAdminPassword(input: {
+    currentPassword: string;
+    newPassword: string;
+  }) {
+    return sharedClient.changeAdminPassword(input);
+  },
   updateSiteSettings(input: SiteSettings) {
     return putJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings, input);
   },

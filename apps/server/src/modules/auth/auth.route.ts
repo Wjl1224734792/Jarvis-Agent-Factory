@@ -1,5 +1,7 @@
 import {
+  actionSuccessResponseSchema,
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   adminRecentSessionsResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
@@ -419,6 +421,44 @@ authRoute.get(
   async (context) => {
     const payload = await authService.listRecentSessions();
     return context.json(adminRecentSessionsResponseSchema.parse(payload));
+  }
+);
+
+authRoute.post(
+  API_ROUTES.auth.adminChangePassword,
+  requireAdmin,
+  async (context) => {
+    const input = adminPasswordChangeRequestSchema.parse(await context.req.json());
+    const currentUser = context.get("currentUser");
+
+    if (!currentUser || currentUser.role !== "admin") {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: "FORBIDDEN",
+          message: "仅管理员可修改后台密码。"
+        }),
+        403
+      );
+    }
+
+    try {
+      const result = await authService.changeAdminPassword(currentUser.id, input);
+      clearAuthCookies(context);
+      return context.json(actionSuccessResponseSchema.parse(result));
+    } catch (error) {
+      if (error instanceof AuthError) {
+        const status = error.code === "FORBIDDEN" ? 403 : 400;
+        return context.json(
+          authErrorResponseSchema.parse({
+            code: error.code,
+            message: error.message
+          }),
+          status
+        );
+      }
+
+      throw error;
+    }
   }
 );
 

@@ -1,6 +1,6 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
-import { Button, Flex, Form, Input, Space } from "antd";
+import { Alert, Button, Flex, Form, Input, Space } from "antd";
 import { useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
@@ -16,6 +16,7 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState("Admin#123");
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const notice = searchParams.get("notice");
   const redirectTo = resolveSafeRedirectPath({
     candidate: searchParams.get("redirect"),
     fallbackPath: APP_ROUTES.adminHome,
@@ -62,6 +63,16 @@ export function AdminLoginPage() {
             }}
             variant="filled"
           >
+            {notice === "password-updated" ? (
+              <Alert
+                message="密码已更新"
+                showIcon
+                style={{ marginBottom: 16 }}
+                type="success"
+                description="请使用新密码重新登录后台。"
+              />
+            ) : null}
+
             <Form.Item label="管理员账号" required>
               <Input
                 onChange={(event) => {

@@ -139,6 +139,16 @@ export const adminLoginRequestSchema = z.object({
   password: z.string().min(8)
 });
 
+export const adminPasswordChangeRequestSchema = z
+  .object({
+    currentPassword: z.string().min(8),
+    newPassword: z.string().min(8).max(100)
+  })
+  .refine((input) => input.currentPassword !== input.newPassword, {
+    message: "新密码不能与当前密码相同",
+    path: ["newPassword"]
+  });
+
 export const authSuccessResponseSchema = z.object({
   user: userSummarySchema
 });

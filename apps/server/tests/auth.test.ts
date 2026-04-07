@@ -842,6 +842,52 @@ describe("auth flows", () => {
     expect(adminProtected.status).toBe(200);
   });
 
+  it("allows admins to change password and requires the new password on next login", async () => {
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    expect(adminLoginResponse.status).toBe(200);
+    const adminCookie = extractCookies(adminLoginResponse);
+
+    const changePasswordResponse = await app.request("/auth/admin/password/change", {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        currentPassword: "Admin#123",
+        newPassword: "Admin#456"
+      })
+    });
+    expect(changePasswordResponse.status).toBe(200);
+
+    const oldPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    expect(oldPasswordLoginResponse.status).toBe(400);
+
+    const newPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#456"
+      })
+    });
+    expect(newPasswordLoginResponse.status).toBe(200);
+  });
+
   it("records session ip/device metadata and exposes recent sessions to admin", async () => {
     const webLoginPayload = await requestCaptchaAndSms("13800138121");
     const webLoginResponse = await app.request(API_ROUTES.auth.webLogin, {

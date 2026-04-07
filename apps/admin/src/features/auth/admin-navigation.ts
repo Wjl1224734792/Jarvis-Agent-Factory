@@ -14,6 +14,7 @@ import {
   OrderedListOutlined,
   RadarChartOutlined,
   ReadOutlined,
+  SafetyCertificateOutlined,
   TrophyOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
@@ -159,6 +160,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementSecurity,
+    label: "安全设置",
+    hint: "修改管理员密码与后台账号安全配置",
+    icon: SafetyCertificateOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: APP_ROUTES.adminReviews,
     label: "评测档案",
     hint: "评测存量内容管理与兜底入口",
@@ -215,6 +224,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === APP_ROUTES.adminContentCategories) {
     return ADMIN_ROUTE_PATHS.managementContentCategories;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.managementSecurity) {
+    return ADMIN_ROUTE_PATHS.managementSecurity;
   }
   if (pathname === APP_ROUTES.adminReviews) {
     return APP_ROUTES.adminReviews;

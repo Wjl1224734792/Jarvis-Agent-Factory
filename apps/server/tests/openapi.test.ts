@@ -60,6 +60,7 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/reviews/{reviewId}/comments']).toBeDefined();
     expect(payload.paths['/reviews/{reviewId}/comments/{commentId}']).toBeDefined();
     expect(payload.paths['/auth/admin/logout']).toBeDefined();
+    expect(payload.paths['/auth/admin/password/change']).toBeDefined();
     expect(payload.paths['/auth/protected/ping']).toBeDefined();
     expect(payload.components.securitySchemes.sessionCookieAuth).toBeDefined();
     expect(payload.components.securitySchemes.bearerAuth).toBeDefined();
@@ -68,6 +69,7 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.AircraftSubmissionResponse).toBeDefined();
     expect(payload.components.schemas.AdminAnalyticsOverviewResponse).toBeDefined();
     expect(payload.components.schemas.AdminReportRecordsResponse).toBeDefined();
+    expect(payload.components.schemas.AdminPasswordChangeRequest).toBeDefined();
     expect(payload.paths['/users/me/profile']?.put?.responses?.['409']).toBeDefined();
     expect(
       payload.paths['/users/me/phone/change/request']?.post?.responses?.['409']

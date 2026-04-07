@@ -2,6 +2,7 @@ import {
   createId,
   createSecretToken,
   db,
+  hashPassword,
   hashToken,
   verifyPassword,
   sessionsTable,
@@ -10,7 +11,7 @@ import {
 } from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import { randomInt } from "node:crypto";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
@@ -390,6 +391,37 @@ export const authRepo = {
 
     return user;
   },
+  async findAdminById(userId: string): Promise<UserRecord | null> {
+    const admin = await db
+      .select()
+      .from(usersTable)
+      .where(and(eq(usersTable.id, userId), eq(usersTable.role, "admin")))
+      .limit(1);
+
+    if (admin.length === 0) {
+      return null;
+    }
+
+    const localizedAdmin = await localizeAdminUser(admin[0]);
+    return toUserRecord(localizedAdmin);
+  },
+  async verifyAdminPassword(userId: string, password: string) {
+    const admin = await this.findAdminById(userId);
+    if (!admin?.password) {
+      return false;
+    }
+
+    return verifyPassword(password, admin.password);
+  },
+  async updateAdminPassword(userId: string, password: string) {
+    const passwordHash = await hashPassword(password);
+    await db
+      .update(usersTable)
+      .set({
+        passwordHash
+      })
+      .where(and(eq(usersTable.id, userId), eq(usersTable.role, "admin")));
+  },
   async recordAdminLoginFailure(account: string) {
     await ensureRedisConnected();
     const key = `admin_login_fail:${account}`;
@@ -624,6 +656,14 @@ export const authRepo = {
         revokedAt: new Date()
       })
       .where(eq(sessionsTable.id, sessionId));
+  },
+  async revokeUserSessions(userId: string) {
+    await db
+      .update(sessionsTable)
+      .set({
+        revokedAt: new Date()
+      })
+      .where(and(eq(sessionsTable.userId, userId), isNull(sessionsTable.revokedAt)));
   },
   async deleteSession(sessionId: string) {
     await this.revokeSession(sessionId);

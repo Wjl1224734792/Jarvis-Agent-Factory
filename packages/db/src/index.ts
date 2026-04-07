@@ -45,4 +45,5 @@ export {
 export { createId, createSecretToken, hashPassword, verifyPassword, hashToken } from "./helpers.js";
 export { runMigrations } from "./migrate.js";
 export { resetDatabaseState, seedAuthDatabase, seedDatabase } from "./seed.js";
+export { seedMockTestDataDatabase } from "./seed.test-data.js";
 export { seedRuntimeArtifacts } from "./runtime-seed.js";

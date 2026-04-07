@@ -32,6 +32,7 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewsResponseSchema,
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   aircraftSubmissionResponseSchema,
   aircraftSubmissionsResponseSchema,
   appAuthSessionResponseSchema,
@@ -156,6 +157,8 @@ type RegistrationDisplayNameSuggestInput =
 type AppRefreshInput = Parameters<typeof appRefreshRequestSchema.parse>[0];
 type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
+type AdminPasswordChangeInput =
+  Parameters<typeof adminPasswordChangeRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
@@ -534,6 +537,13 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.auth.adminLogin,
         authSuccessResponseSchema,
         adminLoginRequestSchema.parse(input)
+      );
+    },
+    async changeAdminPassword(input: AdminPasswordChangeInput) {
+      return postJson(
+        API_ROUTES.auth.adminChangePassword,
+        actionSuccessResponseSchema,
+        adminPasswordChangeRequestSchema.parse(input)
       );
     },
     async getCurrentUser(): Promise<UserSummary | null> {

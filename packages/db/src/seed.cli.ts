@@ -1,11 +1,8 @@
 import { dbPool } from "./client.js";
-import { seedDatabase } from "./seed.js";
-import { seedRuntimeArtifacts } from "./runtime-seed.js";
+import { seedMockTestDataDatabase } from "./seed.test-data.js";
 
 async function run() {
-  await seedDatabase();
-  const summary = await seedRuntimeArtifacts();
-  console.info("[db:seed] runtime artifacts", summary);
+  await seedMockTestDataDatabase();
   await dbPool.end();
 }
 

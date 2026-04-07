@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   adminLoginRequestSchema,
+  adminPasswordChangeRequestSchema,
   adminRecentSessionsResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
@@ -37,6 +38,22 @@ describe("auth contract", () => {
     });
 
     expect(payload.account).toBe("admin");
+  });
+
+  it("parses the admin password change payload", () => {
+    const payload = adminPasswordChangeRequestSchema.parse({
+      currentPassword: "Admin#123",
+      newPassword: "Admin#456"
+    });
+
+    expect(payload.currentPassword).toBe("Admin#123");
+    expect(payload.newPassword).toBe("Admin#456");
+    expect(
+      adminPasswordChangeRequestSchema.safeParse({
+        currentPassword: "Admin#123",
+        newPassword: "Admin#123"
+      }).success
+    ).toBe(false);
   });
 
   it("parses the current user response", () => {
