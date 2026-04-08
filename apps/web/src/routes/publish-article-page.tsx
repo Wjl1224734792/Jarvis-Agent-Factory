@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { FileImageIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { FileImageIcon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
@@ -514,11 +514,31 @@ export function PublishArticlePage() {
           <SitePanelBody className="space-y-4">
             <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
             {coverUrl ? (
-              <img alt="cover preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
+              <button
+                aria-label={isUploadingMedia ? "封面上传中" : "编辑文章封面"}
+                className="group relative block w-full overflow-hidden rounded-[0.9rem] text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                disabled={isUploadingMedia}
+                onClick={() => coverInputRef.current?.click()}
+                type="button"
+              >
+                <img alt="cover preview" className="h-48 w-full object-cover" src={coverUrl} />
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white group-focus-visible:bg-slate-950/30 group-focus-visible:text-white">
+                  <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                    <PencilLineIcon className="size-4" />
+                    {isUploadingMedia ? "上传中..." : "编辑"}
+                  </span>
+                </div>
+              </button>
             ) : (
-              <div className="flex h-48 w-full items-center justify-center rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground">
-                暂未设置封面
-              </div>
+              <button
+                aria-label="上传文章封面"
+                className="flex h-48 w-full cursor-pointer items-center justify-center rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
+                disabled={isUploadingMedia}
+                onClick={() => coverInputRef.current?.click()}
+                type="button"
+              >
+                {isUploadingMedia ? "上传中..." : "暂未设置封面"}
+              </button>
             )}
             <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
               {selectedCategory?.name ?? "未选择分类"}
