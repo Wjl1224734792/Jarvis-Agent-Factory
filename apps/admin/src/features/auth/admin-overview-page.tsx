@@ -209,7 +209,7 @@ export function AdminOverviewPage() {
       title: "文章审核",
       description: "文章发布队列单独查看，不再和飞友圈动态混在一起。",
       enabled: siteSettings?.articleModerationEnabled ?? true,
-      pendingCount: analytics?.totals.pendingRankings ?? 0,
+      pendingCount: analytics?.moderation.posts.pending ?? 0,
       onEnable: async () => updateSiteSettings({ articleModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ articleModerationEnabled: false })
     },
@@ -236,7 +236,7 @@ export function AdminOverviewPage() {
       title: "品牌申请",
       description: "品牌申请从机型投稿里拆分出来，走独立审核队列。",
       enabled: siteSettings?.brandModerationEnabled ?? true,
-      pendingCount: analytics?.totals.pendingBrandApplications ?? 0,
+      pendingCount: analytics?.moderation.brandApplications.pending ?? 0,
       onEnable: async () => updateSiteSettings({ brandModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ brandModerationEnabled: false })
     },
@@ -254,7 +254,7 @@ export function AdminOverviewPage() {
       title: "榜单审核",
       description: "社区榜单的创建和发布开关。",
       enabled: siteSettings?.rankingModerationEnabled ?? true,
-      pendingCount: analytics?.moderation.posts.pending ?? 0,
+      pendingCount: analytics?.moderation.rankings.pending ?? 0,
       onEnable: async () => updateSiteSettings({ rankingModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ rankingModerationEnabled: false })
     },
@@ -263,7 +263,7 @@ export function AdminOverviewPage() {
       title: "评分对象",
       description: "评分对象是否单独进入审核列表。",
       enabled: siteSettings?.ratingTargetModerationEnabled ?? true,
-      pendingCount: analytics?.totals.pendingRatingTargets ?? 0,
+      pendingCount: analytics?.moderation.ratingTargets.pending ?? 0,
       onEnable: async () => updateSiteSettings({ ratingTargetModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ ratingTargetModerationEnabled: false })
     }

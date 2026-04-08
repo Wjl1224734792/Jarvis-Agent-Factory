@@ -26,6 +26,9 @@ function buildAdminManualChunk(id: string) {
     return undefined;
   }
 
+  if (id.includes("@tiptap/")) {
+    return "editor-vendor";
+  }
   if (id.includes("@antv/")) {
     return "antv-vendor";
   }

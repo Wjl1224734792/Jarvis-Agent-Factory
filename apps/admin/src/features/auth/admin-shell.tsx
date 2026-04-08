@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   LogoutOutlined,
@@ -17,6 +18,7 @@ import { useAdminAuthStore } from "./auth-store";
 const { Header, Sider, Content } = Layout;
 
 export function AdminShell() {
+  const queryClient = useQueryClient();
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
@@ -26,6 +28,7 @@ export function AdminShell() {
 
   useEffect(() => {
     function handleAuthInvalid() {
+      queryClient.clear();
       setAnonymous();
     }
 
@@ -33,7 +36,7 @@ export function AdminShell() {
     return () => {
       window.removeEventListener(ADMIN_AUTH_INVALID_EVENT, handleAuthInvalid);
     };
-  }, [setAnonymous]);
+  }, [queryClient, setAnonymous]);
 
   const activeGroup = useMemo(
     () =>
@@ -97,6 +100,7 @@ export function AdminShell() {
                 void apiClient
                   .logoutAdmin()
                   .then(() => {
+                    queryClient.clear();
                     setAnonymous();
                     void navigate(APP_ROUTES.adminLogin, { replace: true });
                   })

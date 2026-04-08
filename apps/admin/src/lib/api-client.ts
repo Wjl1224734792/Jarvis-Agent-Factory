@@ -38,43 +38,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-let refreshingPromise: Promise<boolean> | null = null;
-
-function refreshSession(): Promise<boolean> {
-  if (!refreshingPromise) {
-    refreshingPromise = fetch(`${baseUrl}/auth/web/refresh`, {
-      method: "POST",
-      credentials: "include"
-    })
-      .then((r) => r.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshingPromise = null;
-      });
-  }
-  return refreshingPromise;
-}
-
 async function fetchWithAutoRefresh(
   input: RequestInfo,
   init: RequestInit
 ): Promise<Response> {
-  const response = await fetch(input, init);
-
-  if (response.status === 401) {
-    const clone = response.clone();
-    const payload = (await clone.json().catch(() => null)) as {
-      code?: string;
-    } | null;
-    if (payload?.code === "TOKEN_EXPIRED") {
-      const ok = await refreshSession();
-      if (ok) {
-        return fetch(input, init);
-      }
-    }
-  }
-
-  return response;
+  return fetch(input, init);
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
