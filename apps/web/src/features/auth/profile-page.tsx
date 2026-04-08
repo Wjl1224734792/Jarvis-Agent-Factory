@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
-import { getProfileBanner } from "../../lib/aviation-media";
+import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 import { profileVisibilityLabel } from "./profile-settings-state";
 
@@ -291,7 +291,8 @@ export function ProfilePage() {
   const settings = currentProfileQuery.data?.item;
   const displayName = settings?.displayName ?? user.displayName;
   const userId = user.id;
-  const avatarUrl = settings?.avatarUrl ?? user.avatarUrl ?? null;
+  const avatarSrc =
+    settings?.avatarUrl?.trim() || user.avatarUrl?.trim() || getAvatarImage(userId);
   const coverImageUrl = settings?.coverImageUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
 
@@ -390,7 +391,7 @@ export function ProfilePage() {
                 className="!h-28 !w-28 md:!h-32 md:!w-32"
                 displayName={displayName}
                 size="lg"
-                src={avatarUrl}
+                src={avatarSrc}
               />
               <div className="space-y-2 pb-3">
                 <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">

@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "bun --watch src/index.ts",
+    "dev": "cross-env NODE_ENV=development bun --watch src/index.ts",
     "start": "bun src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc -p tsconfig.json",
@@ -27,5 +27,8 @@
     "redis": "^5.8.2",
     "tencentcloud-sdk-nodejs": "^4.1.206",
     "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "cross-env": "^7.0.3"
   }
 }

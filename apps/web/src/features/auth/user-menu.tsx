@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import { Link, useNavigate } from "react-router-dom";
 import { UserAvatar } from "@/components/ui/user-avatar";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../../lib/api-client";
@@ -53,7 +54,7 @@ export function UserMenu() {
           className="size-8.5 ring-2 ring-white/80"
           displayName={user.displayName}
           size="sm"
-          src={user.avatarUrl}
+          src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
         />
         <span className="sr-only">进入个人中心</span>
       </Link>
@@ -63,7 +64,12 @@ export function UserMenu() {
           className="flex items-center gap-2 rounded-full pr-1 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
           to={APP_ROUTES.webProfile}
         >
-          <UserAvatar className="ring-2 ring-white/80" displayName={user.displayName} size="lg" src={user.avatarUrl} />
+          <UserAvatar
+            className="ring-2 ring-white/80"
+            displayName={user.displayName}
+            size="lg"
+            src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
+          />
           <span className="text-left sm:flex sm:flex-col">
             <span className="text-sm font-medium text-foreground">{user.displayName}</span>
             <span className="text-xs text-muted-foreground">

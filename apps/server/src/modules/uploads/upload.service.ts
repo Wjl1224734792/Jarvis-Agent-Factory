@@ -2,6 +2,7 @@ import { completeUploadResponseSchema, fileUrlResponseSchema, initUploadResponse
 import { createStorageProvider, resolveStorageProviderConfig, buildStorageObjectUrl } from "../posts/storage-provider";
 import { getUploadPolicy, isAllowedUploadMime } from "./upload.policy";
 import { uploadsRepo, type StoredFileRecord } from "./upload.repo";
+import { resolveUploadedFileUrl } from "./uploads.helpers";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
 
@@ -144,10 +145,16 @@ export const uploadsService = {
       return { kind: "not_found" as const };
     }
 
+    const baseItem = serializeFileItem(uploaded);
+    const resolvedUrl = await resolveUploadedFileUrl(uploaded.id);
+
     return {
       kind: "ok" as const,
       payload: completeUploadResponseSchema.parse({
-        item: serializeFileItem(uploaded)
+        item: {
+          ...baseItem,
+          url: resolvedUrl ?? baseItem.url
+        }
       })
     };
   },
