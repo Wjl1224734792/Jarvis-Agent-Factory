@@ -8,6 +8,7 @@ import {
   SitePageTitle,
   SiteRail
 } from "@/components/site-shell";
+import { cn } from "@/lib/utils";
 
 export function PublishShell(props: {
   eyebrow: string;
@@ -16,6 +17,8 @@ export function PublishShell(props: {
   main: ReactNode;
   aside: ReactNode;
   className?: string;
+  /** 覆盖主栏/侧栏网格，例如 `xl:grid-cols-[minmax(0,1fr)_22rem]` */
+  gridClassName?: string;
 }) {
   return (
     <SitePage className={props.className ?? "mx-auto w-full max-w-[72rem] gap-4"}>
@@ -27,7 +30,10 @@ export function PublishShell(props: {
         ) : null}
       </SitePageHead>
 
-      <SiteGrid className="items-start xl:grid-cols-[minmax(0,1fr)_18rem]" variant="default">
+      <SiteGrid
+        className={cn("items-start xl:grid-cols-[minmax(0,1fr)_18rem]", props.gridClassName)}
+        variant="default"
+      >
         <div className="space-y-4">{props.main}</div>
         <SiteRail className="top-[5.4rem]">{props.aside}</SiteRail>
       </SiteGrid>

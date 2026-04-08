@@ -92,7 +92,7 @@ export function PublishBrandPage() {
 
   return (
     <PublishShell
-      description="独立提交品牌申请，审核通过后才会进入飞行器发布可选品牌列表。"
+      description="填写品牌信息并提交。通过后即可在发布飞行器时从品牌列表中选择。"
       eyebrow="品牌申请"
       main={
         <>
@@ -121,14 +121,14 @@ export function PublishBrandPage() {
                   {logo ? (
                     <>
                       <img alt={logo.fileName ?? "brand logo"} className="h-full w-full object-cover" src={logo.url} />
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-3 py-2 text-xs font-medium backdrop-blur-sm">
-                          <FileImageIcon className="size-4" />
+                      <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/0 opacity-0 transition-opacity duration-200 group-hover:bg-slate-950/40 group-hover:opacity-100">
+                        <span className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-black/55 px-3 py-2 text-xs font-medium text-white backdrop-blur-sm">
+                          <FileImageIcon className="size-4 shrink-0" />
                           {isUploading ? "上传中..." : "点击更换 Logo"}
                         </span>
                       </div>
                       <span
-                        className="absolute right-2 top-2 inline-flex size-7 cursor-pointer items-center justify-center rounded-full bg-black/55 text-white"
+                        className="absolute right-2 top-2 z-10 inline-flex size-7 cursor-pointer items-center justify-center rounded-full bg-black/55 text-white"
                         onClick={(event) => {
                           event.stopPropagation();
                           setLogo(null);
@@ -171,7 +171,7 @@ export function PublishBrandPage() {
                   className="min-h-36 resize-none pb-8"
                   maxLength={BRAND_DESCRIPTION_MAX_LENGTH}
                   onChange={(event) => setDescription(event.target.value.slice(0, BRAND_DESCRIPTION_MAX_LENGTH))}
-                  placeholder="补充品牌定位、产品范围或你希望审核方了解的信息"
+                  placeholder="可补充品牌定位、产品线或官网等，便于我们核对"
                   value={description}
                 />
                 <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
@@ -199,7 +199,7 @@ export function PublishBrandPage() {
                   if (
                     !promptLogin({
                       title: "登录后才能提交品牌申请",
-                      description: "品牌申请会进入独立审核队列。"
+                      description: "登录后即可提交，我们会在审核通过后把品牌加入可选列表。"
                     })
                   ) {
                     return;
@@ -242,9 +242,9 @@ export function PublishBrandPage() {
         <SitePanel variant="highlight">
           <SitePanelBody className="space-y-4">
             <SparklesIcon className="size-6" />
-            <div className="text-xl font-semibold">独立审核</div>
+            <div className="text-xl font-semibold">发布机型前可先登记品牌</div>
             <p className="text-sm leading-6 text-panel-highlight-foreground/86">
-              品牌申请与机型投稿彻底分离。通过后会进入品牌库，之后发布飞行器时即可直接搜索选择。
+              通过后，在「发布飞行器」里搜索品牌即可选用；与填写机型参数互不干扰，也可先备好品牌再投稿机型。
             </p>
           </SitePanelBody>
         </SitePanel>

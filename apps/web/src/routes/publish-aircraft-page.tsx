@@ -3,7 +3,6 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   CheckCircle2Icon,
   FileImageIcon,
-  PlaneTakeoffIcon,
   SearchIcon,
   SendHorizonalIcon,
   TagsIcon,
@@ -12,6 +11,7 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { PublishAircraftLivePreview } from "@/components/publish-aircraft-live-preview";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
@@ -287,8 +287,10 @@ export function PublishAircraftPage() {
 
   return (
     <PublishShell
+      className="mx-auto w-full max-w-[76rem] gap-4"
       description="飞行器投稿"
       eyebrow="飞行器"
+      gridClassName="xl:grid-cols-[minmax(0,1fr)_22rem]"
       main={
         <>
           {error ? (
@@ -306,7 +308,9 @@ export function PublishAircraftPage() {
           ) : null}
 
           <SitePanel>
-            <SitePanelBody className="grid gap-4 md:grid-cols-2">
+            <SitePanelBody className="space-y-5">
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">基本信息</div>
+              <div className="grid gap-4 md:grid-cols-2">
               <div className="space-y-2">
                 <div className="text-sm font-medium text-foreground/72">机型分类</div>
                 <select
@@ -337,20 +341,20 @@ export function PublishAircraftPage() {
                 <div className="relative">
                   <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                   <Input
-                    className="pl-9"
+                    className="rounded-none pl-9"
                     onChange={(event) => setBrandKeyword(event.target.value)}
                     placeholder="搜索已有品牌"
                     value={brandKeyword}
                   />
                 </div>
-                <div className="grid max-h-56 gap-2 overflow-y-auto border border-border/70 bg-background/70 p-2">
+                <div className="grid max-h-[9.5rem] grid-cols-2 gap-1 overflow-y-auto border border-border/70 bg-background/70 p-1.5 sm:grid-cols-3 lg:grid-cols-4">
                   {filteredBrands.map((brand) => {
                     const selected = selectedBrandId === brand.id;
 
                     return (
                       <button
                         className={cn(
-                          "flex items-center justify-between gap-3 rounded-[0.9rem] border px-3 py-2 text-left text-sm transition",
+                          "flex min-h-9 items-center gap-2 rounded-none border px-2 py-1.5 text-left text-xs transition",
                           selected
                             ? "border-primary bg-primary/8 text-primary"
                             : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
@@ -360,24 +364,26 @@ export function PublishAircraftPage() {
                         type="button"
                       >
                         <BrandIdentity
-                          className="min-w-0"
-                          imageClassName="size-4"
+                          className="min-w-0 flex-1 truncate"
+                          imageClassName="size-3.5 shrink-0"
                           logoUrl={brand.logoUrl}
                           name={brand.name}
                         />
-                        {selected ? <span className="text-[0.72rem]">已选择</span> : null}
+                        {selected ? (
+                          <span className="shrink-0 text-[0.65rem] font-medium">✓</span>
+                        ) : null}
                       </button>
                     );
                   })}
 
                   {filteredBrands.length === 0 ? (
-                    <div className="px-3 py-6 text-sm text-muted-foreground">
+                    <div className="col-span-full px-2 py-4 text-center text-xs text-muted-foreground">
                       没有匹配的品牌。请先单独提交品牌申请。
                     </div>
                   ) : null}
                 </div>
-                <div className="flex flex-wrap items-center justify-between gap-3 rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-3 py-3 text-sm text-muted-foreground">
-                  <span>飞行器发布目前只支持选择已有品牌。</span>
+                <div className="rounded-none border border-dashed border-border/70 bg-surface-1 px-2 py-2 text-xs leading-snug text-muted-foreground">
+                  仅支持选择已有品牌。
                 </div>
               </div>
 
@@ -410,54 +416,124 @@ export function PublishAircraftPage() {
                   ))}
                 </select>
               </div>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">封面与图册</div>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">封面与图册</div>
 
-              <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
-                {uploadedVideo ? (
-                  <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
-                    <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
-                    <button
-                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                      onClick={() => {
-                        setUploadedVideo(null);
-                      }}
-                      type="button"
-                    >
-                      <XIcon className="size-3.5" />
-                    </button>
-                  </div>
-                ) : coverImage ? (
-                  <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70">
-                    <img alt="cover" className="h-56 w-full object-cover" src={coverImage.url} />
-                    <button
-                      className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                      onClick={() => {
-                        setCoverImage(null);
-                      }}
-                      type="button"
-                    >
-                      <XIcon className="size-3.5" />
-                    </button>
-                  </div>
-                ) : (
-                  <button
-                    className="group flex h-56 w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background transition hover:border-primary/35 hover:bg-accent/30"
-                    onClick={() => coverMediaInputRef.current?.click()}
-                    type="button"
-                  >
-                    <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground">
-                      <FileImageIcon className="size-8" />
-                      <div className="text-sm font-medium">
-                        {isUploading ? "上传中..." : "点击上传封面图片或视频"}
+              <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,13.5rem)] md:items-start">
+                <div className="space-y-3">
+                  <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
+                    {uploadedVideo ? (
+                      <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
+                        <video
+                          className="aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
+                          controls
+                          preload="metadata"
+                          src={uploadedVideo.url}
+                        />
+                        <button
+                          aria-label="移除视频"
+                          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                          onClick={() => {
+                            setUploadedVideo(null);
+                          }}
+                          type="button"
+                        >
+                          <XIcon className="size-3.5" />
+                        </button>
                       </div>
+                    ) : coverImage ? (
+                      <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70">
+                        <img
+                          alt="cover"
+                          className="aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
+                          src={coverImage.url}
+                        />
+                        <button
+                          aria-label="移除封面"
+                          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                          onClick={() => {
+                            setCoverImage(null);
+                          }}
+                          type="button"
+                        >
+                          <XIcon className="size-3.5" />
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        className="group flex aspect-[4/3] min-h-[12rem] w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background transition hover:border-primary/35 hover:bg-accent/30 sm:min-h-[14rem]"
+                        onClick={() => coverMediaInputRef.current?.click()}
+                        type="button"
+                      >
+                        <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground">
+                          <FileImageIcon className="size-8" />
+                          <div className="text-sm font-medium">
+                            {isUploading ? "上传中..." : "点击上传封面图片或视频"}
+                          </div>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                {!uploadedVideo ? (
+                  <div className="space-y-2 md:border-l md:border-border/50 md:pl-4">
+                    <div className="text-sm font-medium text-foreground/72">图册（可选，最多 {GALLERY_IMAGE_MAX} 张）</div>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button
+                        disabled={isUploading || galleryImages.length >= GALLERY_IMAGE_MAX}
+                        onClick={() => galleryInputRef.current?.click()}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        添加图片
+                      </Button>
+                      <span className="text-xs text-muted-foreground">
+                        {galleryImages.length}/{GALLERY_IMAGE_MAX}
+                      </span>
                     </div>
-                  </button>
-                )}
+                    {galleryImages.length > 0 ? (
+                      <div className="flex max-h-64 flex-wrap gap-2 overflow-y-auto pr-0.5 md:flex-col md:flex-nowrap">
+                        {galleryImages.map((img, index) => (
+                          <div
+                            className="relative w-[5.5rem] shrink-0 overflow-hidden rounded-md border border-border/70 sm:w-24"
+                            key={img.id}
+                          >
+                            <img alt="" className="aspect-square w-full object-cover sm:h-20" src={img.url} />
+                            <div className="flex flex-col gap-0.5 border-t border-border/60 bg-background/95 p-1">
+                              <button
+                                className="text-[0.65rem] font-medium text-primary"
+                                onClick={() => promoteGalleryImageToCover(index)}
+                                type="button"
+                              >
+                                设为封面
+                              </button>
+                              <button
+                                className="text-[0.65rem] text-muted-foreground"
+                                onClick={() => {
+                                  setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+                                }}
+                                type="button"
+                              >
+                                移除
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        批量选择时，若无封面则首张将作为封面，其余进入图册。
+                      </p>
+                    )}
+                  </div>
+                ) : null}
               </div>
 
               <input
@@ -470,68 +546,22 @@ export function PublishAircraftPage() {
                 type="file"
               />
 
-              {!uploadedVideo ? (
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-foreground/72">图册图片（可选，最多 {GALLERY_IMAGE_MAX} 张）</div>
-                  <div className="flex flex-wrap items-center gap-2">
-                    <Button
-                      disabled={isUploading || galleryImages.length >= GALLERY_IMAGE_MAX}
-                      onClick={() => galleryInputRef.current?.click()}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      添加图片
-                    </Button>
-                    <span className="text-xs text-muted-foreground">
-                      已选 {galleryImages.length}/{GALLERY_IMAGE_MAX} 张
-                    </span>
-                  </div>
-                  {galleryImages.length > 0 ? (
-                    <div className="flex flex-wrap gap-2">
-                      {galleryImages.map((img, index) => (
-                        <div className="relative w-24 shrink-0 overflow-hidden rounded-md border border-border/70" key={img.id}>
-                          <img alt="" className="h-20 w-full object-cover" src={img.url} />
-                          <div className="flex flex-col gap-0.5 border-t border-border/60 bg-background/95 p-1">
-                            <button
-                              className="text-[0.65rem] font-medium text-primary"
-                              onClick={() => promoteGalleryImageToCover(index)}
-                              type="button"
-                            >
-                              设为封面
-                            </button>
-                            <button
-                              className="text-[0.65rem] text-muted-foreground"
-                              onClick={() => {
-                                setGalleryImages((prev) => prev.filter((_, i) => i !== index));
-                              }}
-                              type="button"
-                            >
-                              移除
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : null}
-                  <input
-                    accept="image/*"
-                    className="hidden"
-                    multiple
-                    onChange={(event) => {
-                      void handleGalleryFilesAdded(event.target.files);
-                    }}
-                    ref={galleryInputRef}
-                    type="file"
-                  />
-                </div>
-              ) : null}
+              <input
+                accept="image/*"
+                className="hidden"
+                multiple
+                onChange={(event) => {
+                  void handleGalleryFilesAdded(event.target.files);
+                }}
+                ref={galleryInputRef}
+                type="file"
+              />
             </SitePanelBody>
           </SitePanel>
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">参数</div>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">参数与价格</div>
               <div className="grid gap-3 md:grid-cols-2">
                 <Input
                   inputMode="numeric"
@@ -577,7 +607,7 @@ export function PublishAircraftPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">简介</div>
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">简介</div>
               <div className="relative">
                 <Textarea
                   className="min-h-24 resize-none pb-8"
@@ -720,87 +750,48 @@ export function PublishAircraftPage() {
         </>
       }
       aside={
-        <>
-          <SitePanel variant="muted">
-            <SitePanelBody className="space-y-4">
-              <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              {uploadedVideo ? (
-                <video className="h-48 w-full rounded-[0.9rem] object-cover" controls preload="metadata" src={uploadedVideo.url} />
-              ) : (
-                <img alt="model preview" className="h-48 w-full rounded-[0.9rem] object-cover" src={coverUrl} />
-              )}
-              <div className="grid gap-3">
-                {[
-                  { label: "机型分类", value: selectedCategory?.name || "未选择" },
-                  {
-                    label: "品牌",
-                    value: selectedBrand?.name || "未选择"
-                  },
-                  {
-                    label: "动力",
-                    value: powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"
-                  },
-                  {
-                    label: "状态",
-                    value:
-                      lifecycleStatusOptions.find((item) => item.value === selectedLifecycleStatus)?.label ?? "未发布"
-                  },
-                  {
-                    label: "价格",
-                    value:
-                      priceMin && priceMax
-                        ? Number(priceMin) === Number(priceMax)
-                          ? `¥${Number(priceMin).toLocaleString("zh-CN")}`
-                          : `¥${Number(priceMin).toLocaleString("zh-CN")} - ¥${Number(priceMax).toLocaleString("zh-CN")}`
-                        : "未填写"
-                  }
-                ].map((item) => (
-                  <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3" key={item.label}>
-                    <div className="text-[0.72rem] uppercase tracking-[0.14em] text-muted-foreground">
-                      {item.label}
-                    </div>
-                    <div className="mt-1 text-sm font-medium text-foreground">
-                      {item.label === "品牌" && selectedBrand ? (
-                        <BrandIdentity
-                          imageClassName="size-4"
-                          logoUrl={selectedBrand.logoUrl}
-                          name={selectedBrand.name}
-                        />
-                      ) : (
-                        item.value
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3 text-sm text-muted-foreground">
-                {uploadedVideo
-                  ? "当前封面为视频"
-                  : coverImage
-                    ? `当前封面为图片，图册 ${galleryImages.length} 张`
-                    : "尚未选择封面"}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
+        <div className="space-y-3">
+          <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-muted-foreground">实时预览</div>
+          <PublishAircraftLivePreview
+            brand={selectedBrand}
+            categoryName={selectedCategory?.name ?? null}
+            coverImage={coverImage}
+            description={description}
+            galleryImages={galleryImages}
+            galleryMax={GALLERY_IMAGE_MAX}
+            lifecycleLabel={
+              lifecycleStatusOptions.find((item) => item.value === selectedLifecycleStatus)?.label ?? "未发布"
+            }
+            modelName={modelName}
+            placeholderImageUrl={coverUrl}
+            powerLabel={powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"}
+            priceMaxStr={priceMax}
+            priceMinStr={priceMin}
+            summary={summary}
+            uploadedVideo={uploadedVideo}
+          />
 
-          <SitePanel variant="highlight">
-            <SitePanelBody className="space-y-4">
-              <PlaneTakeoffIcon className="size-6" />
-              <div className="text-xl font-semibold">投稿说明</div>
-              <p className="text-sm leading-6 text-panel-highlight-foreground/86">
-                分类来自后台维护；品牌可以直接选择，带 logo 的品牌会在选择器和预览中同步展示。
-              </p>
-              <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
-                <TagsIcon className="size-4" />
-                通过审核后会进入机型库
-              </div>
-              <div className="inline-flex items-center gap-2 text-sm text-panel-highlight-foreground/84">
-                <CheckCircle2Icon className="size-4" />
-                没有现成品牌时，仍可提交品牌提案
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-        </>
+          <details className="group rounded-xl border border-primary/20 bg-primary/[0.04] px-3 py-2.5 dark:bg-primary/[0.08]">
+            <summary className="cursor-pointer list-none text-xs font-medium text-foreground/85 [&::-webkit-details-marker]:hidden">
+              <span className="inline-flex items-center gap-1.5">
+                <TagsIcon className="size-3.5 shrink-0 text-primary/80" />
+                投稿说明
+                <span className="text-[0.65rem] font-normal text-muted-foreground group-open:hidden">（点击展开）</span>
+              </span>
+            </summary>
+            <ul className="mt-2 space-y-2 border-t border-primary/15 pt-2 text-[0.72rem] leading-relaxed text-muted-foreground">
+              <li>分类由后台维护；选择品牌后，带 logo 的会在表单与预览中一致展示。</li>
+              <li className="flex gap-1.5">
+                <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0 text-primary/70" />
+                <span>审核通过后将进入机型库公开展示。</span>
+              </li>
+              <li className="flex gap-1.5">
+                <CheckCircle2Icon className="mt-0.5 size-3.5 shrink-0 text-primary/70" />
+                <span>若无现成品牌，可先走品牌提案流程。</span>
+              </li>
+            </ul>
+          </details>
+        </div>
       }
       title="发布飞行器"
     />
