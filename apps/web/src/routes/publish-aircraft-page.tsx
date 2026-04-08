@@ -308,136 +308,23 @@ export function PublishAircraftPage() {
           ) : null}
 
           <SitePanel>
-            <SitePanelBody className="space-y-5">
-              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">基本信息</div>
-              <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground/72">机型分类</div>
-                <select
-                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
-                  onChange={(event) => setSelectedCategoryId(event.target.value)}
-                  value={selectedCategoryId}
-                >
-                  <option value="">选择机型分类</option>
-                  {categories.map((category) => (
-                    <option key={category.id} value={category.id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground/72">机型名称</div>
-                <Input
-                  onChange={(event) => setModelName(event.target.value)}
-                  placeholder="例如 Mini 4 Pro"
-                  value={modelName}
-                />
-              </div>
-
-              <div className="space-y-2 md:col-span-2">
-                <div className="text-sm font-medium text-foreground/72">品牌</div>
-                <div className="relative">
-                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
-                  <Input
-                    className="rounded-none pl-9"
-                    onChange={(event) => setBrandKeyword(event.target.value)}
-                    placeholder="搜索已有品牌"
-                    value={brandKeyword}
-                  />
-                </div>
-                <div className="grid max-h-[9.5rem] grid-cols-2 gap-1 overflow-y-auto border border-border/70 bg-background/70 p-1.5 sm:grid-cols-3 lg:grid-cols-4">
-                  {filteredBrands.map((brand) => {
-                    const selected = selectedBrandId === brand.id;
-
-                    return (
-                      <button
-                        className={cn(
-                          "flex min-h-9 items-center gap-2 rounded-none border px-2 py-1.5 text-left text-xs transition",
-                          selected
-                            ? "border-primary bg-primary/8 text-primary"
-                            : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
-                        )}
-                        key={brand.id}
-                        onClick={() => setSelectedBrandId(brand.id)}
-                        type="button"
-                      >
-                        <BrandIdentity
-                          className="min-w-0 flex-1 truncate"
-                          imageClassName="size-3.5 shrink-0"
-                          logoUrl={brand.logoUrl}
-                          name={brand.name}
-                        />
-                        {selected ? (
-                          <span className="shrink-0 text-[0.65rem] font-medium">✓</span>
-                        ) : null}
-                      </button>
-                    );
-                  })}
-
-                  {filteredBrands.length === 0 ? (
-                    <div className="col-span-full px-2 py-4 text-center text-xs text-muted-foreground">
-                      没有匹配的品牌。请先单独提交品牌申请。
-                    </div>
-                  ) : null}
-                </div>
-                <div className="rounded-none border border-dashed border-border/70 bg-surface-1 px-2 py-2 text-xs leading-snug text-muted-foreground">
-                  仅支持选择已有品牌。
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground/72">动力</div>
-                <select
-                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
-                  onChange={(event) => setSelectedPowerType(event.target.value)}
-                  value={selectedPowerType}
-                >
-                  {powerTypeOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="space-y-2">
-                <div className="text-sm font-medium text-foreground/72">状态</div>
-                <select
-                  className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
-                  onChange={(event) => setSelectedLifecycleStatus(event.target.value)}
-                  value={selectedLifecycleStatus}
-                >
-                  {lifecycleStatusOptions.map((item) => (
-                    <option key={item.value} value={item.value}>
-                      {item.label}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel>
             <SitePanelBody className="space-y-4">
               <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">封面与图册</div>
 
               <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_minmax(0,13.5rem)] md:items-start">
-                <div className="space-y-3">
-                  <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
+                <div className="min-w-0">
+                  <div className="overflow-hidden rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-0">
                     {uploadedVideo ? (
-                      <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950">
+                      <div className="relative bg-slate-950">
                         <video
-                          className="aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
+                          className="block aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
                           controls
                           preload="metadata"
                           src={uploadedVideo.url}
                         />
                         <button
                           aria-label="移除视频"
-                          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                          className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                           onClick={() => {
                             setUploadedVideo(null);
                           }}
@@ -447,15 +334,15 @@ export function PublishAircraftPage() {
                         </button>
                       </div>
                     ) : coverImage ? (
-                      <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70">
+                      <div className="relative">
                         <img
                           alt="cover"
-                          className="aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
+                          className="block aspect-[4/3] w-full object-cover sm:min-h-[14rem]"
                           src={coverImage.url}
                         />
                         <button
                           aria-label="移除封面"
-                          className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                          className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                           onClick={() => {
                             setCoverImage(null);
                           }}
@@ -466,15 +353,13 @@ export function PublishAircraftPage() {
                       </div>
                     ) : (
                       <button
-                        className="group flex aspect-[4/3] min-h-[12rem] w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background transition hover:border-primary/35 hover:bg-accent/30 sm:min-h-[14rem]"
+                        className="group flex aspect-[4/3] min-h-[12rem] w-full flex-col items-center justify-center rounded-none border-0 bg-transparent text-muted-foreground transition hover:bg-accent/25 hover:text-foreground sm:min-h-[14rem]"
                         onClick={() => coverMediaInputRef.current?.click()}
                         type="button"
                       >
-                        <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground">
-                          <FileImageIcon className="size-8" />
-                          <div className="text-sm font-medium">
-                            {isUploading ? "上传中..." : "点击上传封面图片或视频"}
-                          </div>
+                        <FileImageIcon className="size-8" />
+                        <div className="mt-3 text-sm font-medium">
+                          {isUploading ? "上传中..." : "点击上传封面图片或视频"}
                         </div>
                       </button>
                     )}
@@ -556,6 +441,119 @@ export function PublishAircraftPage() {
                 ref={galleryInputRef}
                 type="file"
               />
+            </SitePanelBody>
+          </SitePanel>
+
+          <SitePanel>
+            <SitePanelBody className="space-y-5">
+              <div className="text-[0.72rem] font-semibold uppercase tracking-[0.2em] text-primary">基本信息</div>
+              <div className="grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground/72">机型分类</div>
+                  <select
+                    className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                    onChange={(event) => setSelectedCategoryId(event.target.value)}
+                    value={selectedCategoryId}
+                  >
+                    <option value="">选择机型分类</option>
+                    {categories.map((category) => (
+                      <option key={category.id} value={category.id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground/72">机型名称</div>
+                  <Input
+                    onChange={(event) => setModelName(event.target.value)}
+                    placeholder="例如 Mini 4 Pro"
+                    value={modelName}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground/72">动力</div>
+                  <select
+                    className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                    onChange={(event) => setSelectedPowerType(event.target.value)}
+                    value={selectedPowerType}
+                  >
+                    {powerTypeOptions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground/72">状态</div>
+                  <select
+                    className="h-10 rounded-[calc(var(--radius-control)-0.1rem)] border border-input bg-card/88 px-3 text-sm"
+                    onChange={(event) => setSelectedLifecycleStatus(event.target.value)}
+                    value={selectedLifecycleStatus}
+                  >
+                    {lifecycleStatusOptions.map((item) => (
+                      <option key={item.value} value={item.value}>
+                        {item.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="space-y-2 md:col-span-2">
+                  <div className="text-sm font-medium text-foreground/72">品牌</div>
+                  <div className="relative">
+                    <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                    <Input
+                      className="rounded-[calc(var(--radius-control)-0.1rem)] pl-9"
+                      onChange={(event) => setBrandKeyword(event.target.value)}
+                      placeholder="搜索已有品牌"
+                      value={brandKeyword}
+                    />
+                  </div>
+                  <div className="grid max-h-[9.5rem] grid-cols-2 gap-1 overflow-y-auto rounded-[calc(var(--radius-control)-0.15rem)] border border-border/70 bg-background/70 p-1.5 sm:grid-cols-3 lg:grid-cols-4">
+                    {filteredBrands.map((brand) => {
+                      const selected = selectedBrandId === brand.id;
+
+                      return (
+                        <button
+                          className={cn(
+                            "flex min-h-9 items-center gap-2 rounded-[calc(var(--radius-control)-0.2rem)] border px-2 py-1.5 text-left text-xs transition",
+                            selected
+                              ? "border-primary bg-primary/8 text-primary"
+                              : "border-border/70 bg-white hover:border-primary/18 hover:bg-accent/24"
+                          )}
+                          key={brand.id}
+                          onClick={() => setSelectedBrandId(brand.id)}
+                          type="button"
+                        >
+                          <BrandIdentity
+                            className="min-w-0 flex-1 truncate"
+                            imageClassName="size-3.5 shrink-0"
+                            logoUrl={brand.logoUrl}
+                            name={brand.name}
+                          />
+                          {selected ? (
+                            <span className="shrink-0 text-[0.65rem] font-medium">✓</span>
+                          ) : null}
+                        </button>
+                      );
+                    })}
+
+                    {filteredBrands.length === 0 ? (
+                      <div className="col-span-full px-2 py-4 text-center text-xs text-muted-foreground">
+                        没有匹配的品牌。请先单独提交品牌申请。
+                      </div>
+                    ) : null}
+                  </div>
+                  <div className="rounded-[0.85rem] border border-dashed border-border/70 bg-surface-1 px-3 py-2 text-xs leading-snug text-muted-foreground">
+                    仅支持选择已有品牌。
+                  </div>
+                </div>
+              </div>
             </SitePanelBody>
           </SitePanel>
 
