@@ -262,29 +262,8 @@ aircraftModelsRoute.post(API_ROUTES.models.adminList, requireAdmin, async (conte
     );
   }
 
-  return context.json(
-    adminModelResponseSchema.parse({
-      item: {
-        ...item,
-        parameters: {
-          maxFlightTimeMinutes: item.maxFlightTimeMinutes,
-          maxRangeKilometers: item.maxRangeKilometers,
-          maxSpeedKph: item.maxSpeedKph,
-          takeoffWeightGrams: item.takeoffWeightGrams
-        },
-        interactionSummary: {
-          interestCount: 0,
-          favoriteCount: 0,
-          shareCount: 0
-        },
-        viewer: {
-          isInterested: false,
-          isFavorited: false,
-          hasShared: false
-        }
-      }
-    })
-  );
+  const detailItem = await aircraftModelsService.buildAdminModelResponseItem(item);
+  return context.json(adminModelResponseSchema.parse({ item: detailItem }));
 });
 
 aircraftModelsRoute.put(
@@ -308,29 +287,8 @@ aircraftModelsRoute.put(
       );
     }
 
-    return context.json(
-      adminModelResponseSchema.parse({
-        item: {
-          ...item,
-          parameters: {
-            maxFlightTimeMinutes: item.maxFlightTimeMinutes,
-            maxRangeKilometers: item.maxRangeKilometers,
-            maxSpeedKph: item.maxSpeedKph,
-            takeoffWeightGrams: item.takeoffWeightGrams
-          },
-          interactionSummary: {
-            interestCount: 0,
-            favoriteCount: 0,
-            shareCount: 0
-          },
-          viewer: {
-            isInterested: false,
-            isFavorited: false,
-            hasShared: false
-          }
-        }
-      })
-    );
+    const detailItem = await aircraftModelsService.buildAdminModelResponseItem(item);
+    return context.json(adminModelResponseSchema.parse({ item: detailItem }));
   }
 );
 

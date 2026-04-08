@@ -123,6 +123,8 @@ export const aircraftModelsRepo = {
         maxRangeKilometers: aircraftModelsTable.maxRangeKilometers,
         maxSpeedKph: aircraftModelsTable.maxSpeedKph,
         takeoffWeightGrams: aircraftModelsTable.takeoffWeightGrams,
+        coverImageFileId: aircraftModelsTable.coverImageFileId,
+        galleryImageFileIds: aircraftModelsTable.galleryImageFileIds,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,
@@ -289,6 +291,8 @@ export const aircraftModelsRepo = {
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
+    coverImageFileId?: string | null;
+    galleryImageFileIds?: string[];
     isPublished: boolean;
   }) {
     const id = createId("model");
@@ -311,6 +315,8 @@ export const aircraftModelsRepo = {
       maxRangeKilometers: input.maxRangeKilometers,
       maxSpeedKph: input.maxSpeedKph,
       takeoffWeightGrams: input.takeoffWeightGrams,
+      coverImageFileId: input.coverImageFileId ?? null,
+      galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
       isPublished: input.isPublished
     });
 
@@ -335,6 +341,8 @@ export const aircraftModelsRepo = {
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
       takeoffWeightGrams: number | null;
+      coverImageFileId?: string | null;
+      galleryImageFileIds?: string[];
       isPublished: boolean;
     }
   ) {
@@ -357,6 +365,8 @@ export const aircraftModelsRepo = {
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
         takeoffWeightGrams: input.takeoffWeightGrams,
+        coverImageFileId: input.coverImageFileId ?? null,
+        galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
         isPublished: input.isPublished
       })
       .where(eq(aircraftModelsTable.id, id));
@@ -388,6 +398,8 @@ export const aircraftModelsRepo = {
         maxRangeKilometers: aircraftModelsTable.maxRangeKilometers,
         maxSpeedKph: aircraftModelsTable.maxSpeedKph,
         takeoffWeightGrams: aircraftModelsTable.takeoffWeightGrams,
+        coverImageFileId: aircraftModelsTable.coverImageFileId,
+        galleryImageFileIds: aircraftModelsTable.galleryImageFileIds,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,

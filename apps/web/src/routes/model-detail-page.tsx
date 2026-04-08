@@ -8,7 +8,7 @@ import {
   HeartIcon,
   MessageSquareTextIcon
 } from "lucide-react";
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
@@ -50,6 +50,27 @@ function formatMetric(label: string, value: number | null, formatter: (input: nu
   };
 }
 
+function buildModelDetailGalleryUrls(item: {
+  slug: string;
+  powerType: ModelDetail["powerType"];
+  coverImageUrl: string | null;
+  galleryImageUrls: string[];
+}): string[] {
+  const urls: string[] = [];
+  if (item.coverImageUrl) {
+    urls.push(item.coverImageUrl);
+  }
+  for (const url of item.galleryImageUrls) {
+    if (url && !urls.includes(url)) {
+      urls.push(url);
+    }
+  }
+  if (urls.length === 0) {
+    return getModelGallery(item.slug, item.powerType, 4);
+  }
+  return urls;
+}
+
 export function ModelDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug ?? "";
@@ -76,6 +97,30 @@ export function ModelDetailPage() {
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [interactionBusy, setInteractionBusy] = useState<string | null>(null);
+
+  const gallery = useMemo(() => {
+    const raw = detailQuery.data?.item;
+    if (!raw) {
+      return [] as string[];
+    }
+    return buildModelDetailGalleryUrls({
+      slug: raw.slug,
+      powerType: raw.powerType,
+      coverImageUrl: raw.coverImageUrl ?? null,
+      galleryImageUrls: raw.galleryImageUrls ?? []
+    });
+  }, [detailQuery.data?.item]);
+
+  useEffect(() => {
+    setActiveGalleryIndex(0);
+  }, [slug]);
+
+  useEffect(() => {
+    if (gallery.length === 0) {
+      return;
+    }
+    setActiveGalleryIndex((index) => Math.min(index, gallery.length - 1));
+  }, [gallery.length]);
 
   if (!slug) {
     return (
@@ -110,7 +155,6 @@ export function ModelDetailPage() {
     );
   }
 
-  const gallery = getModelGallery(item.slug, item.powerType, 4);
   const hotModels = hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
   const modelSlug = item.slug;
   const priceLabel = formatModelPriceRange(item.priceMin ?? null, item.priceMax ?? null);
@@ -204,17 +248,17 @@ export function ModelDetailPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-4 gap-2">
+                <div className="flex gap-2 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
                   {gallery.map((image, index) => (
                     <button
-                      className={`overflow-hidden rounded-none border transition ${
+                      className={`h-16 w-20 shrink-0 overflow-hidden rounded-none border transition ${
                         activeGalleryIndex === index ? "border-primary" : "border-border/70"
                       }`}
-                      key={image}
+                      key={`${image}-${index}`}
                       onClick={() => setActiveGalleryIndex(index)}
                       type="button"
                     >
-                      <img alt={`${item.name}-${index + 1}`} className="h-16 w-full object-cover" src={image} />
+                      <img alt={`${item.name}-${index + 1}`} className="h-full w-full object-cover" src={image} />
                     </button>
                   ))}
                 </div>

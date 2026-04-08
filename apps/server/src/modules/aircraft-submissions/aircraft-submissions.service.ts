@@ -165,6 +165,8 @@ async function syncApprovedModelVisibility(
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
+    coverImageFileId: string | null;
+    galleryImageFileIds: string[];
     isPublished: boolean;
   }
 ) {
@@ -190,6 +192,8 @@ async function syncApprovedModelVisibility(
     maxRangeKilometers: input.maxRangeKilometers,
     maxSpeedKph: input.maxSpeedKph,
     takeoffWeightGrams: input.takeoffWeightGrams,
+    coverImageFileId: input.coverImageFileId,
+    galleryImageFileIds: input.galleryImageFileIds,
     isPublished: input.isPublished
   });
 }
@@ -366,6 +370,8 @@ export const aircraftSubmissionsService = {
         maxRangeKilometers: input.maxRangeKilometers,
         maxSpeedKph: input.maxSpeedKph,
         takeoffWeightGrams: input.takeoffWeightGrams,
+        coverImageFileId: input.coverImageFileId,
+        galleryImageFileIds: input.galleryImageFileIds,
         isPublished: nextStatus === "approved"
       });
     }
@@ -430,6 +436,8 @@ export const aircraftSubmissionsService = {
           maxRangeKilometers: current.maxRangeKilometers,
           maxSpeedKph: current.maxSpeedKph,
           takeoffWeightGrams: current.takeoffWeightGrams,
+          coverImageFileId: current.coverImageFileId ?? null,
+          galleryImageFileIds: parseGallery(current.galleryImageFileIds),
           isPublished: false
         });
       }
@@ -471,6 +479,8 @@ export const aircraftSubmissionsService = {
         maxRangeKilometers: current.maxRangeKilometers,
         maxSpeedKph: current.maxSpeedKph,
         takeoffWeightGrams: current.takeoffWeightGrams,
+        coverImageFileId: current.coverImageFileId ?? null,
+        galleryImageFileIds: parseGallery(current.galleryImageFileIds),
         isPublished: true
       });
       const item = await aircraftSubmissionsRepo.approveSubmission(id, current.approvedModelId, brandId);
@@ -494,6 +504,8 @@ export const aircraftSubmissionsService = {
       maxRangeKilometers: current.maxRangeKilometers,
       maxSpeedKph: current.maxSpeedKph,
       takeoffWeightGrams: current.takeoffWeightGrams,
+      coverImageFileId: current.coverImageFileId ?? null,
+      galleryImageFileIds: parseGallery(current.galleryImageFileIds),
       isPublished: true
     });
 

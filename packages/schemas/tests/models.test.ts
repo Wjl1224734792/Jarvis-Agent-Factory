@@ -107,6 +107,10 @@ describe("models contract", () => {
           name: "DJI",
           logoUrl: "https://cdn.example.com/brands/dji.png"
         },
+        favoriteCount: 0,
+        commentCount: 0,
+        coverImageUrl: null,
+        galleryImageUrls: [],
         interactionSummary: {
           interestCount: 5,
           favoriteCount: 3,

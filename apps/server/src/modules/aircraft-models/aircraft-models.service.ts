@@ -226,8 +226,16 @@ export const aircraftModelsService = {
       currentUserId ? aircraftModelsRepo.listViewerModelReports([item.id], currentUserId) : Promise.resolve([])
     ]);
 
+    const { coverImageFileId, galleryImageFileIds, ...rest } = item;
+    const coverImageUrl = await resolveUploadedFileUrl(coverImageFileId ?? null);
+    const galleryImageUrls = (
+      await Promise.all(parseFileIdArray(galleryImageFileIds).map((id) => resolveUploadedFileUrl(id)))
+    ).filter((url): url is string => Boolean(url));
+
     return {
-      ...item,
+      ...rest,
+      coverImageUrl,
+      galleryImageUrls,
       interactionSummary,
       viewer: {
         ...viewer,
@@ -258,6 +266,8 @@ export const aircraftModelsService = {
     maxRangeKilometers: number | null;
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
+    coverImageFileId?: string | null;
+    galleryImageFileIds?: string[];
     isPublished: boolean;
   }) {
     return aircraftModelsRepo.create(input);
@@ -281,10 +291,60 @@ export const aircraftModelsService = {
       maxRangeKilometers: number | null;
       maxSpeedKph: number | null;
       takeoffWeightGrams: number | null;
+      coverImageFileId?: string | null;
+      galleryImageFileIds?: string[];
       isPublished: boolean;
     }
   ) {
     return aircraftModelsRepo.update(id, input);
+  },
+  async resolveModelGalleryForResponse(row: { coverImageFileId: string | null; galleryImageFileIds: string }) {
+    const coverImageUrl = await resolveUploadedFileUrl(row.coverImageFileId ?? null);
+    const galleryImageUrls = (
+      await Promise.all(parseFileIdArray(row.galleryImageFileIds).map((id) => resolveUploadedFileUrl(id)))
+    ).filter((url): url is string => Boolean(url));
+    return { coverImageUrl, galleryImageUrls };
+  },
+  async buildAdminModelResponseItem(
+    item: NonNullable<Awaited<ReturnType<typeof aircraftModelsRepo.findById>>>
+  ) {
+    const {
+      coverImageFileId,
+      galleryImageFileIds,
+      maxFlightTimeMinutes,
+      maxRangeKilometers,
+      maxSpeedKph,
+      takeoffWeightGrams,
+      ...rest
+    } = item;
+    const { coverImageUrl, galleryImageUrls } = await this.resolveModelGalleryForResponse({
+      coverImageFileId: coverImageFileId ?? null,
+      galleryImageFileIds
+    });
+    return {
+      ...rest,
+      coverImageUrl,
+      galleryImageUrls,
+      parameters: {
+        maxFlightTimeMinutes,
+        maxRangeKilometers,
+        maxSpeedKph,
+        takeoffWeightGrams
+      },
+      interactionSummary: {
+        interestCount: 0,
+        favoriteCount: 0,
+        shareCount: 0
+      },
+      viewer: {
+        isInterested: false,
+        isFavorited: false,
+        hasShared: false,
+        hasReported: false,
+        canEdit: false,
+        canDelete: false
+      }
+    };
   },
   async interactModel(
     slug: string,

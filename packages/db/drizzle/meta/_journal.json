@@ -50,6 +50,13 @@
       "when": 1775592135136,
       "tag": "0006_flimsy_praxagora",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1775636846219,
+      "tag": "0007_wonderful_doctor_spectrum",
+      "breakpoints": true
     }
   ]
 }

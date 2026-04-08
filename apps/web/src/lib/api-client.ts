@@ -252,6 +252,8 @@ type WebModelDetailResponse = {
   item: WebModelListResponse["items"][number] & {
     description: string | null;
     isPublished: boolean;
+    coverImageUrl: string | null;
+    galleryImageUrls: string[];
     parameters: {
       maxFlightTimeMinutes: number | null;
       maxRangeKilometers: number | null;

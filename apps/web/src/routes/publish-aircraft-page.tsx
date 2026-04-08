@@ -54,6 +54,7 @@ const lifecycleStatusOptions = [
 ] as const;
 const AIRCRAFT_SUMMARY_MAX_LENGTH = 50;
 const AIRCRAFT_DESCRIPTION_MAX_LENGTH = 300;
+const GALLERY_IMAGE_MAX = 6;
 
 export function PublishAircraftPage() {
   const navigate = useNavigate();
@@ -61,7 +62,8 @@ export function PublishAircraftPage() {
   const promptLogin = useLoginPrompt();
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
-  const mediaInputRef = useRef<HTMLInputElement | null>(null);
+  const coverMediaInputRef = useRef<HTMLInputElement | null>(null);
+  const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const [modelName, setModelName] = useState("");
   const [selectedBrandId, setSelectedBrandId] = useState("");
   const [selectedCategoryId, setSelectedCategoryId] = useState("");
@@ -76,7 +78,8 @@ export function PublishAircraftPage() {
   const [maxRangeKilometers, setMaxRangeKilometers] = useState("");
   const [maxSpeedKph, setMaxSpeedKph] = useState("");
   const [takeoffWeightGrams, setTakeoffWeightGrams] = useState("");
-  const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
+  const [galleryImages, setGalleryImages] = useState<UploadedImage[]>([]);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
@@ -115,7 +118,7 @@ export function PublishAircraftPage() {
 
   const selectedBrand = filteredBrands.find((item) => item.id === selectedBrandId) ?? null;
   const selectedCategory = categories.find((item) => item.id === selectedCategoryId) ?? null;
-  const coverUrl = uploadedImages[0]?.url ?? getModelImage("mini-4-pro", "electric");
+  const coverUrl = coverImage?.url ?? getModelImage("mini-4-pro", "electric");
 
   useEffect(() => {
     if (!submissionQuery.data?.item) {
@@ -136,11 +139,19 @@ export function PublishAircraftPage() {
     setMaxRangeKilometers(item.parameters.maxRangeKilometers?.toString() ?? "");
     setMaxSpeedKph(item.parameters.maxSpeedKph?.toString() ?? "");
     setTakeoffWeightGrams(item.parameters.takeoffWeightGrams?.toString() ?? "");
-    setUploadedImages(
+    setCoverImage(
       item.coverImageFileId && item.coverImageUrl
-        ? [{ id: item.coverImageFileId, url: item.coverImageUrl }]
-        : []
+        ? { id: item.coverImageFileId, url: item.coverImageUrl }
+        : null
     );
+    const galleryIds = item.galleryImageFileIds ?? [];
+    const galleryUrls = item.galleryImageUrls ?? [];
+    const coverId = item.coverImageFileId ?? null;
+    const galleryPairs = galleryIds
+      .map((id, index) => ({ id, url: galleryUrls[index] ?? "" }))
+      .filter((row) => row.id && row.url && row.id !== coverId)
+      .slice(0, GALLERY_IMAGE_MAX);
+    setGalleryImages(galleryPairs);
     setUploadedVideo(
       item.videoAsset
         ? {
@@ -152,34 +163,49 @@ export function PublishAircraftPage() {
     );
   }, [submissionQuery.data?.item]);
 
-  async function handleImageUpload(files: FileList | null) {
+  async function handleCoverImageFile(file: File) {
+    setError(null);
+    setIsUploading(true);
+    try {
+      const uploaded = await apiClient.uploadAircraftCoverImage(file);
+      setUploadedVideo(null);
+      setCoverImage({ id: uploaded.item.id, url: uploaded.item.url });
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "图片上传失败");
+    } finally {
+      setIsUploading(false);
+      if (coverMediaInputRef.current) {
+        coverMediaInputRef.current.value = "";
+      }
+    }
+  }
+
+  async function handleGalleryFilesAdded(files: FileList | null) {
     if (!files || files.length === 0) {
       return;
     }
 
     setError(null);
+    setUploadedVideo(null);
     setIsUploading(true);
 
     try {
-      const file = files[0];
-      if (!file) {
-        return;
-      }
-
-      const uploaded = await apiClient.uploadAircraftCoverImage(file);
-      setUploadedVideo(null);
-      setUploadedImages([
-        {
-          id: uploaded.item.id,
-          url: uploaded.item.url
+      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+      const next = [...galleryImages];
+      for (const file of imageFiles) {
+        if (next.length >= GALLERY_IMAGE_MAX) {
+          break;
         }
-      ]);
+        const uploaded = await apiClient.uploadAircraftCoverImage(file);
+        next.push({ id: uploaded.item.id, url: uploaded.item.url });
+      }
+      setGalleryImages(next);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "图片上传失败");
     } finally {
       setIsUploading(false);
-      if (mediaInputRef.current) {
-        mediaInputRef.current.value = "";
+      if (galleryInputRef.current) {
+        galleryInputRef.current.value = "";
       }
     }
   }
@@ -194,7 +220,8 @@ export function PublishAircraftPage() {
 
     try {
       const uploaded = await apiClient.uploadAircraftVideo(file);
-      setUploadedImages([]);
+      setCoverImage(null);
+      setGalleryImages([]);
       setUploadedVideo({
         id: uploaded.item.id,
         url: uploaded.item.url,
@@ -204,8 +231,8 @@ export function PublishAircraftPage() {
       setError(reason instanceof Error ? reason.message : "视频上传失败");
     } finally {
       setIsUploading(false);
-      if (mediaInputRef.current) {
-        mediaInputRef.current.value = "";
+      if (coverMediaInputRef.current) {
+        coverMediaInputRef.current.value = "";
       }
     }
   }
@@ -225,9 +252,22 @@ export function PublishAircraftPage() {
       return;
     }
 
-    const dataTransfer = new DataTransfer();
-    dataTransfer.items.add(file);
-    await handleImageUpload(dataTransfer.files);
+    await handleCoverImageFile(file);
+  }
+
+  function promoteGalleryImageToCover(index: number) {
+    const picked = galleryImages[index];
+    if (!picked) {
+      return;
+    }
+    const rest = galleryImages.filter((_, i) => i !== index);
+    if (coverImage) {
+      if (rest.length < GALLERY_IMAGE_MAX && !rest.some((g) => g.id === coverImage.id)) {
+        rest.unshift(coverImage);
+      }
+    }
+    setCoverImage(picked);
+    setGalleryImages(rest.slice(0, GALLERY_IMAGE_MAX));
   }
 
   if (categoriesQuery.isLoading || brandsQuery.isLoading || submissionQuery.isLoading) {
@@ -364,7 +404,7 @@ export function PublishAircraftPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">封面</div>
+              <div className="text-base font-semibold text-foreground">封面与图册</div>
 
               <div className="rounded-[0.95rem] border border-dashed border-border/70 bg-muted/20 p-3">
                 {uploadedVideo ? (
@@ -380,13 +420,13 @@ export function PublishAircraftPage() {
                       <XIcon className="size-3.5" />
                     </button>
                   </div>
-                ) : uploadedImages[0] ? (
+                ) : coverImage ? (
                   <div className="relative overflow-hidden rounded-[0.95rem] border border-border/70">
-                    <img alt="cover" className="h-56 w-full object-cover" src={uploadedImages[0].url} />
+                    <img alt="cover" className="h-56 w-full object-cover" src={coverImage.url} />
                     <button
                       className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                       onClick={() => {
-                        setUploadedImages([]);
+                        setCoverImage(null);
                       }}
                       type="button"
                     >
@@ -396,13 +436,13 @@ export function PublishAircraftPage() {
                 ) : (
                   <button
                     className="group flex h-56 w-full items-center justify-center rounded-[0.95rem] border border-dashed border-border/70 bg-background transition hover:border-primary/35 hover:bg-accent/30"
-                    onClick={() => mediaInputRef.current?.click()}
+                    onClick={() => coverMediaInputRef.current?.click()}
                     type="button"
                   >
                     <div className="flex flex-col items-center gap-3 text-muted-foreground group-hover:text-foreground">
                       <FileImageIcon className="size-8" />
                       <div className="text-sm font-medium">
-                        {isUploading ? "上传中..." : "点击上传图片或视频"}
+                        {isUploading ? "上传中..." : "点击上传封面图片或视频"}
                       </div>
                     </div>
                   </button>
@@ -415,12 +455,69 @@ export function PublishAircraftPage() {
                 onChange={(event) => {
                   void handleCoverMediaPick(event.target.files);
                 }}
-                ref={mediaInputRef}
+                ref={coverMediaInputRef}
                 type="file"
               />
 
+              {!uploadedVideo ? (
+                <div className="space-y-2">
+                  <div className="text-sm font-medium text-foreground/72">图册图片（可选，最多 {GALLERY_IMAGE_MAX} 张）</div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Button
+                      disabled={isUploading || galleryImages.length >= GALLERY_IMAGE_MAX}
+                      onClick={() => galleryInputRef.current?.click()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      添加图片
+                    </Button>
+                    <span className="text-xs text-muted-foreground">
+                      已选 {galleryImages.length}/{GALLERY_IMAGE_MAX} 张
+                    </span>
+                  </div>
+                  {galleryImages.length > 0 ? (
+                    <div className="flex flex-wrap gap-2">
+                      {galleryImages.map((img, index) => (
+                        <div className="relative w-24 shrink-0 overflow-hidden rounded-md border border-border/70" key={img.id}>
+                          <img alt="" className="h-20 w-full object-cover" src={img.url} />
+                          <div className="flex flex-col gap-0.5 border-t border-border/60 bg-background/95 p-1">
+                            <button
+                              className="text-[0.65rem] font-medium text-primary"
+                              onClick={() => promoteGalleryImageToCover(index)}
+                              type="button"
+                            >
+                              设为封面
+                            </button>
+                            <button
+                              className="text-[0.65rem] text-muted-foreground"
+                              onClick={() => {
+                                setGalleryImages((prev) => prev.filter((_, i) => i !== index));
+                              }}
+                              type="button"
+                            >
+                              移除
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                  <input
+                    accept="image/*"
+                    className="hidden"
+                    multiple
+                    onChange={(event) => {
+                      void handleGalleryFilesAdded(event.target.files);
+                    }}
+                    ref={galleryInputRef}
+                    type="file"
+                  />
+                </div>
+              ) : null}
+
               <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-                封面只能上传图片或视频其一，重新选择另一种素材会自动替换当前封面。
+                封面为一张主图或一段视频；选择视频时会清空图册。图册可与封面并存，审核通过后会在机型详情页展示为可横向滚动的缩略图列表。
               </div>
             </SitePanelBody>
           </SitePanel>
@@ -563,8 +660,13 @@ export function PublishAircraftPage() {
                       | "marketed",
                     summary: summary.trim() || null,
                     description: description.trim() || null,
-                    coverImageFileId: uploadedVideo ? null : uploadedImages[0]?.id ?? null,
-                    galleryImageFileIds: [],
+                    coverImageFileId: uploadedVideo ? null : coverImage?.id ?? null,
+                    galleryImageFileIds: uploadedVideo
+                      ? []
+                      : galleryImages
+                          .map((img) => img.id)
+                          .filter((id) => id !== coverImage?.id)
+                          .slice(0, GALLERY_IMAGE_MAX),
                     videoFileId: uploadedVideo?.id ?? null,
                     priceMin: nextPriceMin,
                     priceMax: nextPriceMax,
@@ -589,7 +691,7 @@ export function PublishAircraftPage() {
                         state: {
                           title: modelName.trim(),
                           description: summary.trim(),
-                          imageUrl: uploadedVideo ? null : uploadedImages[0]?.url ?? null
+                          imageUrl: uploadedVideo ? null : coverImage?.url ?? galleryImages[0]?.url ?? null
                         }
                       });
                     })
@@ -665,7 +767,11 @@ export function PublishAircraftPage() {
                 ))}
               </div>
               <div className="rounded-[0.85rem] border border-border/70 bg-white px-3 py-3 text-sm text-muted-foreground">
-                {uploadedVideo ? "当前封面为视频" : uploadedImages[0] ? "当前封面为图片" : "尚未选择封面"}
+                {uploadedVideo
+                  ? "当前封面为视频"
+                  : coverImage
+                    ? `当前封面为图片，图册 ${galleryImages.length} 张`
+                    : "尚未选择封面"}
               </div>
             </SitePanelBody>
           </SitePanel>

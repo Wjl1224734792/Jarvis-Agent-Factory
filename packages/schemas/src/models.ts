@@ -116,6 +116,8 @@ export const modelDetailSchema = modelListItemSchema.safeExtend({
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
   reportCount: z.number().int().nonnegative().default(0),
+  coverImageUrl: z.string().min(1).nullable(),
+  galleryImageUrls: z.array(z.string().min(1)).default([]),
   parameters: modelParameterSchema,
   interactionSummary: modelInteractionSummarySchema,
   viewer: modelInteractionViewerStateSchema
@@ -271,6 +273,8 @@ export const adminModelInputSchema = z.object({
   maxRangeKilometers: z.number().nonnegative().nullable(),
   maxSpeedKph: z.number().nonnegative().nullable(),
   takeoffWeightGrams: z.number().nonnegative().nullable(),
+  coverImageFileId: z.string().trim().min(1).nullable().optional().default(null),
+  galleryImageFileIds: z.array(z.string().trim().min(1)).max(6).optional().default([]),
   isPublished: z.boolean().default(true)
 }).superRefine(validatePriceRange);
 
