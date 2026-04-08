@@ -95,12 +95,18 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="flex items-center gap-3">
-      <div className="relative h-10 w-10 shrink-0 overflow-hidden rounded-[1rem] border border-primary/15 bg-white shadow-[var(--shadow-float)]">
+    <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
+      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-primary/12 bg-white shadow-[var(--shadow-soft)] xl:h-10 xl:w-10 xl:rounded-[1rem] xl:border-primary/15 xl:shadow-[var(--shadow-float)]">
         <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
       </div>
       <div className="min-w-0">
-        <div className="text-[0.9rem] font-semibold tracking-[0.08em] text-primary">
+        <div className="xl:hidden">
+          <div className="text-[0.78rem] font-semibold leading-none tracking-tight text-primary">{APP_NAME}</div>
+          <div className="mt-0.5 truncate text-[0.65rem] leading-snug text-muted-foreground">
+            飞友与飞行器社区
+          </div>
+        </div>
+        <div className="hidden text-[0.9rem] font-semibold tracking-[0.08em] text-primary xl:block">
           飞友与飞行器社区
         </div>
       </div>
@@ -250,13 +256,18 @@ export function WebLayout() {
 
   return (
     <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
-      <header className="sticky top-0 z-40 bg-background/92 backdrop-blur-xl">
-        <div className="flex items-center justify-between gap-4 px-4 py-2.5 xl:px-5">
-          <div className="flex items-center gap-3">
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/92 backdrop-blur-xl">
+        <div className="mx-auto flex h-14 max-w-[var(--page-width)] items-center justify-between gap-2 px-4 sm:gap-3 xl:gap-4 xl:px-5">
+          <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 xl:min-w-0 xl:flex-none xl:gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
               <SheetTrigger asChild>
-                <Button className="xl:hidden" size="icon-lg" variant="outline">
-                  <MenuIcon />
+                <Button
+                  className="shrink-0 text-muted-foreground hover:bg-accent/60 hover:text-foreground xl:hidden"
+                  size="icon-lg"
+                  type="button"
+                  variant="ghost"
+                >
+                  <MenuIcon className="size-[1.35rem]" />
                   <span className="sr-only">打开导航</span>
                 </Button>
               </SheetTrigger>
@@ -326,17 +337,17 @@ export function WebLayout() {
               </SheetContent>
             </Sheet>
 
-            <Link to={APP_ROUTES.feedHome}>
+            <Link className="min-w-0 rounded-lg outline-offset-2 focus-visible:ring-2 focus-visible:ring-primary/25" to={APP_ROUTES.feedHome}>
               <ShellBrand />
             </Link>
           </div>
 
-          <div className="hidden min-w-0 flex-1 xl:flex">
-            <div className="mx-auto w-full max-w-[39rem]">
+          <div className="hidden min-w-0 flex-1 justify-center px-2 xl:flex">
+            <div className="w-full max-w-[39rem]">
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/80" />
                 <Input
-                  className="rounded-[calc(var(--radius-control)-0.05rem)] border-border/80 bg-card/90 pl-10 shadow-[var(--shadow-soft)]"
+                  className="h-9 rounded-[var(--radius-control)] border-border/50 bg-card/60 pl-9 text-[0.8rem] shadow-none placeholder:text-muted-foreground/65"
                   placeholder={headerPlaceholder}
                   readOnly
                 />
@@ -344,10 +355,10 @@ export function WebLayout() {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3">
+          <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
             <div className="relative" onMouseEnter={openPublishMenu} onMouseLeave={scheduleClosePublishMenu}>
               <Button
-                className="min-w-[6.2rem] justify-center rounded-full px-4.5 text-[0.82rem] font-semibold max-sm:min-w-[4.4rem]"
+                className="h-9 min-w-[4.75rem] justify-center rounded-full px-3.5 text-[0.8rem] font-semibold sm:min-w-[5.25rem]"
                 onClick={() => {
                   if (authStatus !== "authenticated") {
                     promptLogin({
@@ -359,7 +370,7 @@ export function WebLayout() {
 
                   setIsPublishMenuOpen((value) => !value);
                 }}
-                size="default"
+                size="sm"
                 type="button"
                 variant="hero"
               >
@@ -405,7 +416,7 @@ export function WebLayout() {
       </header>
 
       <aside className="hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)]">
-        <div className="flex w-full px-4 pb-5 pt-[78px]">
+        <div className="flex w-full px-4 pb-5 pt-[calc(3.5rem+0.75rem)]">
           <SitePanel className="flex w-full flex-col" variant="muted">
             <SitePanelBody className="flex h-full flex-col gap-3">
               <NavButtons items={navItems} />

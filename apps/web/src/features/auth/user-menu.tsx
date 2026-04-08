@@ -21,20 +21,20 @@ export function UserMenu() {
 
   if (status === "idle" || status === "loading") {
     return (
-      <div className="flex items-center gap-3 rounded-full border border-border/80 bg-card/88 px-4 py-2 text-sm text-muted-foreground shadow-sm">
-        <RadarIcon className="size-4 text-primary" />
-        正在恢复会话
+      <div className="flex h-9 max-w-[10rem] items-center gap-2 rounded-full border border-border/45 bg-muted/35 px-3 text-[0.78rem] text-muted-foreground">
+        <RadarIcon className="size-3.5 shrink-0 text-primary" />
+        <span className="truncate">正在恢复会话</span>
       </div>
     );
   }
 
   if (status !== "authenticated" || !user) {
     return (
-      <div className="flex items-center gap-3">
-        <Badge className="hidden rounded-full px-3 py-1 lg:inline-flex" variant="outline">
+      <div className="flex items-center gap-2">
+        <Badge className="hidden rounded-full px-2.5 py-0.5 text-[0.7rem] lg:inline-flex" variant="outline">
           游客模式
         </Badge>
-        <Button asChild className="rounded-2xl px-5" size="lg">
+        <Button asChild className="h-9 rounded-full px-4 text-[0.8rem]" size="sm" variant="default">
           <Link to={APP_ROUTES.webLogin}>
             <SparklesIcon data-icon="inline-start" />
             登录 / 注册
@@ -45,13 +45,13 @@ export function UserMenu() {
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex items-center gap-0.5 sm:gap-1">
       <Link
-        className="flex size-11 items-center justify-center rounded-full border border-border/80 bg-card/88 shadow-sm transition hover:border-primary/30 md:hidden"
+        className="flex size-9 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent/55 hover:text-foreground md:hidden"
         to={APP_ROUTES.webProfile}
       >
         <UserAvatar
-          className="size-8.5 ring-2 ring-white/80"
+          className="size-8"
           displayName={user.displayName}
           size="sm"
           src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
@@ -59,28 +59,29 @@ export function UserMenu() {
         <span className="sr-only">进入个人中心</span>
       </Link>
 
-      <div className="hidden items-center gap-2 rounded-full bg-card/88 px-2.5 py-1.5 md:flex">
-        <Link
-          className="flex items-center gap-2 rounded-full pr-1 transition hover:text-primary focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/25"
-          to={APP_ROUTES.webProfile}
-        >
-          <UserAvatar
-            className="ring-2 ring-white/80"
-            displayName={user.displayName}
-            size="lg"
-            src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
-          />
-          <span className="text-left sm:flex sm:flex-col">
-            <span className="text-sm font-medium text-foreground">{user.displayName}</span>
-            <span className="text-xs text-muted-foreground">
-              {user.role === "admin" ? "进入个人中心" : "飞友身份"}
-            </span>
+      <Link
+        className="hidden h-9 max-w-[11rem] items-center gap-2 rounded-full px-1.5 transition hover:bg-accent/50 md:flex lg:max-w-[13rem]"
+        to={APP_ROUTES.webProfile}
+      >
+        <UserAvatar
+          displayName={user.displayName}
+          size="sm"
+          src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
+        />
+        <span className="min-w-0 flex-1 text-left">
+          <span className="block truncate text-[0.82rem] font-medium leading-tight text-foreground">
+            {user.displayName}
           </span>
-        </Link>
-      </div>
+          <span className="mt-0.5 hidden text-[0.68rem] leading-none text-muted-foreground lg:block">
+            {user.role === "admin" ? "进入个人中心" : "飞友"}
+          </span>
+        </span>
+      </Link>
+
+      <span aria-hidden className="mx-0.5 hidden h-6 w-px shrink-0 bg-border/55 sm:mx-1 md:block" />
 
       <Button
-        className="rounded-full"
+        className="size-9 shrink-0 rounded-full text-muted-foreground hover:bg-accent/55 hover:text-foreground sm:size-10"
         onClick={() => {
           void apiClient
             .logout()
@@ -92,11 +93,11 @@ export function UserMenu() {
               setError(error instanceof Error ? error.message : "退出登录失败");
             });
         }}
-        size="icon-lg"
+        size="icon"
         type="button"
         variant="ghost"
       >
-        <LogOutIcon />
+        <LogOutIcon className="size-[1.15rem]" />
         <span className="sr-only">退出登录</span>
       </Button>
     </div>
