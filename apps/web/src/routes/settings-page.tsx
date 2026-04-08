@@ -815,7 +815,7 @@ export function SettingsPage() {
               }}
               size="sm"
               type="button"
-              variant="outline"
+              variant="destructive"
             >
               <LogOutIcon data-icon="inline-start" />
               退出登录
