@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { FileImageIcon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
@@ -328,43 +328,16 @@ export function PublishArticlePage() {
                 ))}
               </div>
 
-              <div className="space-y-3 rounded-[0.9rem] border border-border/70 bg-background/72 p-4">
-                <div className="text-sm font-medium text-foreground">文章封面</div>
-                <button
-                  className="group relative block w-full overflow-hidden rounded-[0.9rem] border border-dashed border-border/70 bg-card text-left transition hover:border-primary/40"
-                  onClick={() => coverInputRef.current?.click()}
-                  type="button"
-                >
-                  {coverUrl ? (
-                    <>
-                      <img alt="cover preview" className="h-44 w-full object-cover" src={coverUrl} />
-                      <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white">
-                        <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
-                          <FileImageIcon className="size-4" />
-                          {isUploadingMedia ? "上传中..." : "点击更换封面"}
-                        </span>
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex h-44 w-full flex-col items-center justify-center gap-3 bg-surface-1 text-muted-foreground">
-                      <FileImageIcon className="size-8" />
-                      <div className="text-sm font-medium text-foreground">
-                        {isUploadingMedia ? "上传中..." : "点击上传文章封面"}
-                      </div>
-                    </div>
-                  )}
-                </button>
-                <div className="text-xs text-muted-foreground">封面会优先展示在文章卡片和发布结果页。</div>
-                <input
-                  accept="image/*"
-                  className="hidden"
-                  onChange={(event) => {
-                    void uploadCoverImage(event.target.files?.[0] ?? null);
-                  }}
-                  ref={coverInputRef}
-                  type="file"
-                />
-              </div>
+              <input
+                accept="image/*"
+                aria-label="选择文章封面图片"
+                className="hidden"
+                onChange={(event) => {
+                  void uploadCoverImage(event.target.files?.[0] ?? null);
+                }}
+                ref={coverInputRef}
+                type="file"
+              />
 
               <div className="relative">
                 <Textarea

@@ -1,14 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import {
-  ArrowDownIcon,
-  ArrowUpIcon,
-  CameraIcon,
-  ImagePlusIcon,
-  PencilLineIcon,
-  PlusIcon,
-  Trash2Icon
-} from "lucide-react";
+import { ArrowDownIcon, ArrowUpIcon, ImagePlusIcon, PencilLineIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishFormSkeleton } from "@/components/page-skeletons";
@@ -251,63 +243,31 @@ export function RankingEditorPage() {
             </SitePanelBody>
           </SitePanel>
 
-          <SitePanel>
-            <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">封面</div>
-              <button
-                className="group relative block w-full overflow-hidden rounded-[0.95rem] border border-dashed border-border/70 bg-card text-left transition hover:border-primary/40"
-                onClick={() => coverInputRef.current?.click()}
-                type="button"
-              >
-                {coverImageUrl ? (
-                  <>
-                    <img
-                      alt="ranking cover"
-                      className="h-[220px] w-full object-cover"
-                      src={coverImageUrl}
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white">
-                      <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
-                        <CameraIcon className="size-4" />
-                        {isUploading ? "上传中..." : "点击更换封面"}
-                      </span>
-                    </div>
-                  </>
-                ) : (
-                  <div className="flex h-[220px] w-full flex-col items-center justify-center gap-3 bg-surface-1 text-muted-foreground">
-                    <CameraIcon className="size-8" />
-                    <div className="text-sm font-medium text-foreground">
-                      {isUploading ? "上传中..." : "点击上传榜单封面"}
-                    </div>
-                  </div>
-                )}
-              </button>
-              <input
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  event.target.value = "";
-                  if (!file) {
-                    return;
-                  }
-                  setIsUploading(true);
-                  setSubmitError(null);
-                  void uploadCoverImage(file)
-                    .then((uploaded) => {
-                      setCoverImageFileId(uploaded.id);
-                      setCoverImageUrl(uploaded.url);
-                    })
-                    .catch((reason: unknown) => {
-                      setSubmitError(reason instanceof Error ? reason.message : "封面上传失败");
-                    })
-                    .finally(() => setIsUploading(false));
-                }}
-                ref={coverInputRef}
-                type="file"
-              />
-            </SitePanelBody>
-          </SitePanel>
+          <input
+            accept="image/*"
+            aria-label="选择榜单封面图片"
+            className="hidden"
+            onChange={(event) => {
+              const file = event.target.files?.[0];
+              event.target.value = "";
+              if (!file) {
+                return;
+              }
+              setIsUploading(true);
+              setSubmitError(null);
+              void uploadCoverImage(file)
+                .then((uploaded) => {
+                  setCoverImageFileId(uploaded.id);
+                  setCoverImageUrl(uploaded.url);
+                })
+                .catch((reason: unknown) => {
+                  setSubmitError(reason instanceof Error ? reason.message : "封面上传失败");
+                })
+                .finally(() => setIsUploading(false));
+            }}
+            ref={coverInputRef}
+            type="file"
+          />
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
