@@ -1,5 +1,6 @@
 import { createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
+import { dispatchWebAuthInvalidEvent } from "./auth-events";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
 type WebImportMetaEnv = {
@@ -31,6 +32,10 @@ async function parseResponse<T>(response: Response): Promise<T> {
   }
 
   if (!response.ok) {
+    if (response.status === 401) {
+      dispatchWebAuthInvalidEvent();
+    }
+
     const message =
       payload && typeof payload === "object" && "message" in payload
         ? String(payload.message)
@@ -105,9 +110,18 @@ export function sanitizeWebApiErrorMessage(message: string) {
 }
 
 // Web 端额外做一层错误文案翻译，避免把服务端原始错误直接暴露给终端用户。
+function isAuthErrorMessage(message: string) {
+  const normalized = message.trim().toLowerCase();
+  return normalized.includes("请先登录") || normalized.includes("login") || normalized.includes("unauthorized");
+}
+
 export function mapWebApiError(error: unknown) {
   if (error instanceof Error) {
-    return new Error(sanitizeWebApiErrorMessage(error.message));
+    const message = sanitizeWebApiErrorMessage(error.message);
+    if (isAuthErrorMessage(message)) {
+      dispatchWebAuthInvalidEvent();
+    }
+    return new Error(message);
   }
 
   return new Error("操作失败，请稍后重试。");

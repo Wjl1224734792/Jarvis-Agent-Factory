@@ -78,7 +78,7 @@ function getContentMeta(item: ContentItem) {
         label: "榜单",
         href: APP_ROUTES.rankingDetail.replace(":id", item.id),
         title: item.title,
-        summary: item.description
+        summary: "社区榜单"
       };
     case "rating-target":
       return {

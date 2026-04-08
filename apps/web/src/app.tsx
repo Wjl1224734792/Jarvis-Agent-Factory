@@ -183,7 +183,11 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.rankingEditor),
-        element: withPublishFallback(<RankingEditorPage />)
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <RankingEditorPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
@@ -199,19 +203,35 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
-        element: withPublishFallback(<PublishArticlePage />)
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <PublishArticlePage />
+          </ProtectedRoute>
+        )
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishMoment),
-        element: withPublishFallback(<PublishMomentPage />)
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <PublishMomentPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishAircraft),
-        element: withPublishFallback(<PublishAircraftPage />)
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <PublishAircraftPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: toRootChildPath(APP_ROUTES.publishBrand),
-        element: withPublishFallback(<PublishBrandPage />)
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <PublishBrandPage />
+          </ProtectedRoute>
+        )
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),

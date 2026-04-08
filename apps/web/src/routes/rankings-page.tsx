@@ -16,24 +16,9 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
+import { mergeRankingsByTab } from "./rankings-page-helpers";
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
-
-function getRankingSortScore(ranking: RankingListItem) {
-  return ranking.commentCount * 4 + ranking.itemCount * 2 + (ranking.viewer.canAddItems ? 1 : 0);
-}
-
-function mergeRankings(data: Awaited<ReturnType<typeof apiClient.listRankings>>) {
-  const merged = [...data.official, ...data.community];
-  const latest = [...merged].sort((left, right) => {
-    return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
-  });
-  const hot = [...merged].sort((left, right) => {
-    return getRankingSortScore(right) - getRankingSortScore(left);
-  });
-
-  return { hot, latest };
-}
 
 function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
@@ -65,7 +50,11 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
               </div>
               {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
             </div>
-            <div className="line-clamp-2 text-sm leading-6 text-muted-foreground">{ranking.description}</div>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <span>{ranking.itemCount} 个条目</span>
+              <span>{ranking.commentCount} 条评论</span>
+              <span>均分 {ranking.averageScore.toFixed(1)}</span>
+            </div>
           </div>
         </div>
 
@@ -117,7 +106,7 @@ export function RankingsPage() {
   });
 
   const merged = useMemo(
-    () => (rankingsQuery.data ? mergeRankings(rankingsQuery.data) : { hot: [], latest: [] }),
+    () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data) : { hot: [], latest: [] }),
     [rankingsQuery.data]
   );
 

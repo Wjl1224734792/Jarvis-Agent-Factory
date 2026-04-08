@@ -11,6 +11,7 @@ import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
@@ -299,6 +300,102 @@ afterAll(async () => {
 });
 
 describe.sequential("posts and social flows", () => {
+  it("ranks recommended feed items with a freshness plus relationship aware score", () => {
+    const ranked = rankFeedItemsByRecommendation(
+      [
+        {
+          id: "older_hot",
+          commentCount: 10,
+          engagement: {
+            likeCount: 28,
+            favoriteCount: 6,
+            shareCount: 4,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-06T08:00:00.000Z",
+          updatedAt: "2026-04-06T08:00:00.000Z",
+          publishedAt: "2026-04-06T08:00:00.000Z",
+          contentCategory: null
+        },
+        {
+          id: "fresh_following",
+          commentCount: 5,
+          engagement: {
+            likeCount: 14,
+            favoriteCount: 3,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [{ id: "img_1", url: "", fileName: "", mimeType: "image/png", byteSize: 1 }],
+          videos: [],
+          createdAt: "2026-04-08T07:20:00.000Z",
+          updatedAt: "2026-04-08T07:20:00.000Z",
+          publishedAt: "2026-04-08T07:20:00.000Z",
+          contentCategory: {
+            id: "cat_1",
+            slug: "news",
+            name: "资讯"
+          }
+        },
+        {
+          id: "official_pick",
+          commentCount: 3,
+          engagement: {
+            likeCount: 12,
+            favoriteCount: 4,
+            shareCount: 3,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "admin"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:45:00.000Z",
+          updatedAt: "2026-04-08T07:45:00.000Z",
+          publishedAt: "2026-04-08T07:45:00.000Z",
+          contentCategory: {
+            id: "cat_2",
+            slug: "guide",
+            name: "指南"
+          }
+        }
+      ],
+      {
+        now: new Date("2026-04-08T08:00:00.000Z"),
+        type: "article"
+      }
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["older_hot", "fresh_following", "official_pick"]);
+  });
+
   it("returns edited published posts to pending when moderation stays on", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {

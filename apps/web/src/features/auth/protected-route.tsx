@@ -1,6 +1,6 @@
 import type { PropsWithChildren } from "react";
 import { Navigate, useLocation } from "react-router-dom";
-import { APP_ROUTES, buildLoginRedirectUrl } from "@feijia/shared";
+import { APP_ROUTES } from "@feijia/shared";
 import {
   SiteGrid,
   SitePage,
@@ -15,6 +15,12 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "./auth-store";
+import { resolveProtectedRouteRedirect } from "./protected-route-helpers";
+
+type ProtectedRouteProps = PropsWithChildren<{
+  mode?: "login" | "fallback";
+  fallbackPath?: string;
+}>;
 
 function ProfileRouteSkeleton() {
   return (
@@ -176,7 +182,11 @@ function NotificationsRouteSkeleton() {
   );
 }
 
-export function ProtectedRoute({ children }: PropsWithChildren) {
+export function ProtectedRoute({
+  children,
+  mode = "login",
+  fallbackPath = APP_ROUTES.feedHome
+}: ProtectedRouteProps) {
   const location = useLocation();
   const status = useAuthStore((state) => state.status);
 
@@ -204,7 +214,11 @@ export function ProtectedRoute({ children }: PropsWithChildren) {
     return (
       <Navigate
         replace
-        to={buildLoginRedirectUrl(APP_ROUTES.webLogin, location)}
+        to={resolveProtectedRouteRedirect({
+          location,
+          mode,
+          fallbackPath
+        })}
       />
     );
   }

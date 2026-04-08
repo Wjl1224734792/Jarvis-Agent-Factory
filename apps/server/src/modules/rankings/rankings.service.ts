@@ -5,6 +5,7 @@ import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { buildCommentThreads } from "../../lib/comment-serializer";
+import { rankRatingTargetsByDynamicScore } from "./ranking-score";
 import {
   isValidAuthRole,
   isValidRankingType,
@@ -109,6 +110,53 @@ function canInspectRatingTarget(input: {
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
   return new Set(rows.map((row) => row[key]));
+}
+
+type RatingTargetAggregate = {
+  totalRatings: number;
+  averageRaw: number;
+};
+
+type RatingTargetSourceItem = Awaited<ReturnType<typeof rankingsRepo.listRatingTargets>>[number];
+
+function buildDynamicRankingAggregateMap(
+  items: RatingTargetSourceItem[],
+  aggregateMap: Map<string, RatingTargetAggregate>
+) {
+  return new Map(
+    items.map((item) => [
+      item.id,
+      {
+        averageRaw: aggregateMap.get(item.id)?.averageRaw ?? 0,
+        totalRatings: aggregateMap.get(item.id)?.totalRatings ?? 0,
+        commentCount: item.commentCount ?? 0,
+        likeCount: item.likeCount ?? 0
+      }
+    ])
+  );
+}
+
+function applyDynamicRanks<T extends { id: string; rank: number }>(
+  serializedItems: T[],
+  sourceItems: RatingTargetSourceItem[],
+  aggregateMap: Map<string, RatingTargetAggregate>
+) {
+  const rankById = new Map(
+    rankRatingTargetsByDynamicScore(
+      sourceItems.map((item) => ({
+        id: item.id,
+        rank: item.rank
+      })),
+      buildDynamicRankingAggregateMap(sourceItems, aggregateMap)
+    ).map((item) => [item.id, item.rank])
+  );
+
+  return [...serializedItems]
+    .map((item) => ({
+      ...item,
+      rank: rankById.get(item.id) ?? item.rank
+    }))
+    .sort((left, right) => left.rank - right.rank);
 }
 
 async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
@@ -406,8 +454,9 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         rankingType === "official"
           ? "owner"
           : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
+      const sourceItems = ratingTargetsByRanking.get(ranking.id) ?? [];
       const items = await Promise.all(
-        (ratingTargetsByRanking.get(ranking.id) ?? []).map((item) =>
+        sourceItems.map((item) =>
           serializeRatingTarget(item, itemAggregateMap, userItemRatingMap, {
             currentUser,
             rankingType,
@@ -417,20 +466,21 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         )
       );
 
+      const rankedItems = applyDynamicRanks(items, sourceItems, itemAggregateMap);
+
       return {
         id: ranking.id,
         type: rankingType,
         status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
-        description: ranking.description,
         coverImageFileId: ranking.coverImageFileId ?? null,
         coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
         itemAddPolicy,
-        averageScore: average(items.map((item) => item.averageScore).filter((value) => value > 0)),
+        averageScore: average(rankedItems.map((item) => item.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
         reportCount: ranking.reportCount ?? 0,
-        itemCount: items.length,
+        itemCount: rankedItems.length,
         createdAt: ranking.createdAt.toISOString(),
         author: {
           id: ranking.author.id,
@@ -445,7 +495,7 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
           type: rankingType,
           status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
         }),
-        items: items.slice(0, 3)
+        items: rankedItems.slice(0, 3)
       } satisfies RankingListItem;
     })
   );
@@ -466,7 +516,6 @@ export const rankingsService = {
     input: {
       type: "official" | "community";
       title: string;
-      description: string;
       coverImageFileId?: string | null;
       itemAddPolicy: "public" | "owner";
       items: Array<{
@@ -496,7 +545,7 @@ export const rankingsService = {
       type: input.type,
       status: rankingStatus,
       title: input.title,
-      description: input.description,
+      description: "",
       coverImageFileId: input.coverImageFileId ?? null,
       itemAddPolicy: input.type === "official" ? "owner" : input.itemAddPolicy
     });
@@ -537,7 +586,6 @@ export const rankingsService = {
     input: {
       type: "official" | "community";
       title: string;
-      description: string;
       coverImageFileId?: string | null;
       itemAddPolicy: "public" | "owner";
       items: Array<{
@@ -580,7 +628,7 @@ export const rankingsService = {
       status: nextRankingStatus,
       rejectionReason: null,
       title: input.title,
-      description: input.description,
+      description: "",
       coverImageFileId: input.coverImageFileId ?? null,
       itemAddPolicy: rankingType === "official" ? "owner" : input.itemAddPolicy
     });
@@ -809,6 +857,7 @@ export const rankingsService = {
         })
       )
     );
+    const rankedItems = applyDynamicRanks(serializedItems, items, aggregateMap);
     const itemAddPolicy =
       rankingType === "official"
         ? "owner"
@@ -821,7 +870,6 @@ export const rankingsService = {
         status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
-        description: ranking.description,
         coverImageFileId: ranking.coverImageFileId ?? null,
         coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
         itemAddPolicy,
@@ -832,10 +880,10 @@ export const rankingsService = {
           type: rankingType,
           status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
         }),
-        averageScore: average(serializedItems.map((entry) => entry.averageScore).filter((value) => value > 0)),
+        averageScore: average(rankedItems.map((entry) => entry.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
         reportCount: ranking.reportCount ?? 0,
-        itemCount: serializedItems.length,
+        itemCount: rankedItems.length,
         createdAt: ranking.createdAt.toISOString(),
         author: {
           id: ranking.author.id,
@@ -844,7 +892,7 @@ export const rankingsService = {
           role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
         },
         comments: await Promise.all(comments.map((comment) => serializeRankingComment(comment, currentUser))),
-        items: serializedItems
+        items: rankedItems
       }
     };
   },
@@ -903,8 +951,9 @@ export const rankingsService = {
                 rankingType === "official"
                   ? "owner"
                   : (isValidRatingTargetAddPolicy(ranking.itemAddPolicy) ? ranking.itemAddPolicy : "owner");
+              const sourceItems = rankingItemsByRanking.get(ranking.id) ?? [];
               const items = await Promise.all(
-                (rankingItemsByRanking.get(ranking.id) ?? []).map((entry) =>
+                sourceItems.map((entry) =>
                   serializeRatingTarget(entry, itemAggregateMap, new Map(), {
                     currentUser,
                     rankingType,
@@ -914,20 +963,21 @@ export const rankingsService = {
                 )
               );
 
+              const rankedItems = applyDynamicRanks(items, sourceItems, itemAggregateMap);
+
               return {
                 id: ranking.id,
                 type: rankingType,
                 status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
                 rejectionReason: ranking.rejectionReason ?? null,
                 title: ranking.title,
-                description: ranking.description,
                 coverImageFileId: ranking.coverImageFileId ?? null,
                 coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
                 itemAddPolicy,
-                averageScore: average(items.map((entry) => entry.averageScore).filter((value) => value > 0)),
+                averageScore: average(rankedItems.map((entry) => entry.averageScore).filter((value) => value > 0)),
                 commentCount: ranking.commentCount,
                 reportCount: ranking.reportCount ?? 0,
-                itemCount: items.length,
+                itemCount: rankedItems.length,
                 createdAt: ranking.createdAt.toISOString(),
                 author: {
                   id: ranking.author.id,
@@ -942,7 +992,7 @@ export const rankingsService = {
                   type: rankingType,
                   status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden")
                 }),
-                items: items.slice(0, 3)
+                items: rankedItems.slice(0, 3)
               };
             })
         )

@@ -1,5 +1,6 @@
 import { createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
+import { dispatchAdminAuthInvalidEvent } from "./auth-events";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
 type AdminImportMetaEnv = {
@@ -20,6 +21,10 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
+    if (response.status === 401) {
+      dispatchAdminAuthInvalidEvent();
+    }
+
     const replayableResponse = new Response(JSON.stringify(payload), {
       status: response.status,
       statusText: response.statusText,
@@ -140,7 +145,6 @@ type AdminRankingListItem = {
   status: "pending" | "published" | "rejected" | "hidden";
   rejectionReason?: string | null;
   title: string;
-  description: string;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   averageScore: number;
@@ -174,7 +178,6 @@ type RankingDraftItemInput = {
 type OfficialRankingUpsertInput = {
   type: "official";
   title: string;
-  description: string;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   items: RankingDraftItemInput[];
@@ -266,7 +269,6 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
       id: definition.id,
       type: "official" as const,
       title: definition.title,
-      description: definition.description,
       coverImageUrl: null,
       status: "published" as const,
       itemAddPolicy: "owner" as const,
@@ -284,7 +286,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
   });
 }
 
-export const apiClient = {
+const rawApiClient = {
   ...sharedClient,
   getAdminAnalyticsOverview() {
     return sharedClient.getAdminAnalyticsOverview();
@@ -513,3 +515,30 @@ export const apiClient = {
     return sharedClient.uploadPostImage(file);
   }
 };
+
+function wrapAdminApiClient<T extends Record<string, unknown>>(client: T): T {
+  return new Proxy(client, {
+    get(target, prop: string | symbol) {
+      const value = target[prop as keyof T];
+      if (typeof value !== "function") {
+        return value;
+      }
+
+      return async (...args: unknown[]) => {
+        try {
+          return await (value as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
+        } catch (error) {
+          if (
+            error instanceof Error &&
+            /登录|unauthorized|Authorization required/i.test(error.message)
+          ) {
+            dispatchAdminAuthInvalidEvent();
+          }
+          throw error;
+        }
+      };
+    }
+  });
+}
+
+export const apiClient = wrapAdminApiClient(rawApiClient);

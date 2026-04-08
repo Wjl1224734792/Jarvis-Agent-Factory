@@ -12,6 +12,7 @@ import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
+import { rankFeedItemsByRecommendation } from "./feed-recommendation";
 
 type CurrentUser = {
   id: string;
@@ -363,6 +364,12 @@ export const postsService = {
         })
       )
       .filter((item): item is NonNullable<typeof item> => item !== null);
+    const orderedItems =
+      tab === "recommended"
+        ? rankFeedItemsByRecommendation(serializedItems, {
+            type: input.type
+          })
+        : serializedItems;
 
     if (input.type === "article") {
       const categories = await contentCategoriesService.listEnabledCategories();
@@ -370,13 +377,13 @@ export const postsService = {
         tab,
         activeCategorySlug: input.contentCategorySlug ?? categories[0]?.slug ?? null,
         categories,
-        items: serializedItems
+        items: orderedItems
       };
     }
 
     return {
       tab,
-      items: serializedItems
+      items: orderedItems
     };
   },
   async createPost(input: {

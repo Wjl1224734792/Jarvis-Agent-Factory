@@ -66,7 +66,6 @@ describe("rankings contract", () => {
           type: "official",
           status: "published",
           title: "Official Endurance",
-          description: "Persisted official ranking.",
           coverImageFileId: null,
           coverImageUrl: null,
           itemAddPolicy: "owner",
@@ -115,7 +114,6 @@ describe("rankings contract", () => {
     const payload = createRankingInputSchema.parse({
       type: "community",
       title: "My ranking",
-      description: "desc",
       coverImageFileId: null,
       itemAddPolicy: "public",
       items: [
@@ -133,7 +131,6 @@ describe("rankings contract", () => {
     expect(() =>
       createRankingInputSchema.parse({
         title: "missing type",
-        description: "desc",
         coverImageFileId: null,
         itemAddPolicy: "public",
         items: [
@@ -183,7 +180,6 @@ describe("rankings contract", () => {
           type: "community",
           status: "pending",
           title: "Harbor picks",
-          description: "pending moderation",
           coverImageFileId: null,
           coverImageUrl: null,
           itemAddPolicy: "public",

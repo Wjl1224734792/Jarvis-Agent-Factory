@@ -13,6 +13,32 @@ function extractCookies(response: Response): string {
   return setCookies.map((c) => c.split(";")[0]).join("; ");
 }
 
+function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string) {
+  expect(actualUrl).toBeTruthy();
+  if (!actualUrl) {
+    return;
+  }
+
+  const actual = new URL(actualUrl);
+  const expected = new URL(expectedUrl);
+
+  expect(actual.origin).toBe(expected.origin);
+  expect(actual.pathname).toBe(expected.pathname);
+
+  for (const key of [
+    "X-Amz-Algorithm",
+    "X-Amz-Credential",
+    "X-Amz-Date",
+    "X-Amz-Expires",
+    "X-Amz-Signature",
+    "X-Amz-SignedHeaders",
+    "x-amz-checksum-mode",
+    "x-id"
+  ]) {
+    expect(actual.searchParams.get(key)).toBeTruthy();
+  }
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -566,7 +592,7 @@ describe("auth flows", () => {
     };
     expect(updatedPayload.item.displayName).toBe("Profile Pilot");
     expect(updatedPayload.item.bio).toBe("Low altitude test profile.");
-    expect(updatedPayload.item.avatarUrl).toBe(uploadedAvatar.item.url);
+    expectPresignedUrlToMatch(updatedPayload.item.avatarUrl, uploadedAvatar.item.url);
     expect(updatedPayload.item.phone).toBe("13800139009");
     expect(updatedPayload.item.phoneMasked).toMatch(/9009$/);
     expect(updatedPayload.item.profileVisibility).toBe("followers");
@@ -607,7 +633,7 @@ describe("auth flows", () => {
     };
     expect(afterPayload.item.displayName).toBe("Profile Pilot");
     expect(afterPayload.item.bio).toBe("Low altitude test profile.");
-    expect(afterPayload.item.avatarUrl).toBe(uploadedAvatar.item.url);
+    expectPresignedUrlToMatch(afterPayload.item.avatarUrl, uploadedAvatar.item.url);
     expect(afterPayload.item.phone).toBe("13800139009");
     expect(afterPayload.item.phoneMasked).toMatch(/9009$/);
     expect(afterPayload.item.profileVisibility).toBe("followers");

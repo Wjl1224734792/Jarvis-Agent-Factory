@@ -46,7 +46,6 @@ export function RankingEditorPage() {
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const itemImageInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
   const [coverImageFileId, setCoverImageFileId] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
   const [modelSearch, setModelSearch] = useState("");
@@ -79,7 +78,6 @@ export function RankingEditorPage() {
 
     const ranking = detailQuery.data.item;
     setTitle(ranking.title);
-    setDescription(ranking.description);
     setCoverImageFileId(ranking.coverImageFileId ?? "");
     setCoverImageUrl(ranking.coverImageUrl ?? "");
     setItemAddPolicy(ranking.itemAddPolicy);
@@ -114,8 +112,7 @@ export function RankingEditorPage() {
           model.brand.name.toLowerCase().includes(keyword) ||
           model.category.name.toLowerCase().includes(keyword)
         );
-      })
-      .slice(0, 8) ?? [];
+      }) ?? [];
 
   function appendModel(slug: string, name: string, brandName: string, imageUrl: string) {
     setDraftItems((items) => [
@@ -171,7 +168,6 @@ export function RankingEditorPage() {
 
   const isFormValid =
     title.trim().length >= 2 &&
-    description.trim().length > 0 &&
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0);
 
@@ -212,12 +208,6 @@ export function RankingEditorPage() {
                 {editId ? (addMode ? "新增排行对象" : "编辑榜单") : "创建榜单"}
               </div>
               <Input onChange={(event) => setTitle(event.target.value)} placeholder="榜单标题" value={title} />
-              <Textarea
-                className="min-h-28"
-                onChange={(event) => setDescription(event.target.value)}
-                placeholder="榜单简介"
-                value={description}
-              />
               <div className="space-y-2">
                 <div className="text-sm font-medium text-foreground/72">新增排行对象权限</div>
                 <div className="flex flex-wrap gap-2">
@@ -391,13 +381,16 @@ export function RankingEditorPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-4">
-              <div className="text-base font-semibold text-foreground">从飞行器库添加</div>
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-base font-semibold text-foreground">从飞行器库添加</div>
+                <div className="text-xs text-muted-foreground">{suggestedModels.length} 个可选机型</div>
+              </div>
               <Input
                 onChange={(event) => setModelSearch(event.target.value)}
                 placeholder="搜索机型、品牌或分类"
                 value={modelSearch}
               />
-              <div className="max-h-[28rem] overflow-y-auto pr-1">
+              <div className="max-h-[36rem] overflow-y-auto pr-1">
                 <div className="grid gap-3 md:grid-cols-2">
                   {suggestedModels.map((model, index) => (
                     <button
@@ -458,7 +451,6 @@ export function RankingEditorPage() {
                   const payload = {
                     type: "community",
                     title,
-                    description,
                     coverImageFileId: coverImageFileId || null,
                     itemAddPolicy,
                     items: draftItems.map((item) => ({
@@ -484,7 +476,6 @@ export function RankingEditorPage() {
                       void navigate(buildPublishStatusPath("ranking", response.item.id), {
                         state: {
                           title,
-                          description,
                           imageUrl: coverImageUrl || null
                         }
                       });
@@ -543,7 +534,6 @@ export function RankingEditorPage() {
               )}
               <div className="space-y-2">
                 <div className="text-[1.25rem] font-semibold text-foreground">{title || "榜单标题"}</div>
-                <div className="text-sm leading-6 text-muted-foreground">{description || "榜单简介"}</div>
               </div>
               <div className="space-y-3">
                 {draftItems.slice(0, 5).map((item, index) => (

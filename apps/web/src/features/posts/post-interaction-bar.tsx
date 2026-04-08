@@ -79,6 +79,16 @@ function ActionButton({
             ? "text-rating-blue"
             : "text-primary"
       : null;
+  const plainActiveButtonTone =
+    plain && active
+      ? tone === "like"
+        ? "text-like-red"
+        : tone === "favorite"
+          ? "text-rating-orange"
+          : tone === "share"
+            ? "text-rating-blue"
+            : "text-primary"
+      : null;
 
   return (
     <Button
@@ -86,6 +96,10 @@ function ActionButton({
         "rounded-full",
         plain &&
           "group h-auto border-0 bg-transparent px-0 py-0 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+        plain &&
+          active &&
+          "rounded-full bg-white/82 px-2 py-1 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]",
+        plainActiveButtonTone,
         active && !plain && activeClassName
       )}
       disabled={disabled}
@@ -101,6 +115,7 @@ function ActionButton({
         className={cn(
           "size-4 transition-transform duration-150 ease-out group-active:scale-[0.92]",
           plainActiveIconTone,
+          active && "motion-safe:animate-[reaction-pop_220ms_cubic-bezier(0.2,0.9,0.2,1)]",
           !iconOnly && "mr-0"
         )}
         fill={active && supportsFill ? "currentColor" : "none"}
@@ -108,7 +123,9 @@ function ActionButton({
       />
       <span className="sr-only">{label}</span>
       {typeof count === "number" ? (
-        <span className={cn("text-xs tabular-nums", !plain && "ml-1", plainActiveIconTone)}>{count}</span>
+        <span className={cn("text-xs tabular-nums transition-colors", !plain && "ml-1", plainActiveIconTone)}>
+          {count}
+        </span>
       ) : null}
     </Button>
   );

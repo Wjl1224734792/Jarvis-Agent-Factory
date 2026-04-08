@@ -25,7 +25,6 @@ import {
 
 type RankingFormValues = {
   title: string;
-  description: string;
   coverImageUrl?: string | null;
   itemAddPolicy: "public" | "owner";
 };
@@ -62,7 +61,6 @@ export function RankingEditorPage() {
     const ranking = detailQuery.data.item;
     form.setFieldsValue({
       title: ranking.title,
-      description: ranking.description,
       coverImageUrl: ranking.coverImageUrl ?? "",
       itemAddPolicy: ranking.itemAddPolicy ?? "owner"
     });
@@ -84,7 +82,6 @@ export function RankingEditorPage() {
     [modelsQuery.data?.items, selectedModelSlugs]
   );
   const watchedTitle = Form.useWatch("title", form);
-  const watchedDescription = Form.useWatch("description", form);
   const watchedCoverImageUrl = Form.useWatch("coverImageUrl", form);
   const watchedItemAddPolicy = Form.useWatch("itemAddPolicy", form) ?? "owner";
 
@@ -144,8 +141,7 @@ export function RankingEditorPage() {
   const isFormValid =
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0) &&
-    (watchedTitle?.trim()?.length ?? 0) > 1 &&
-    (watchedDescription?.trim()?.length ?? 0) > 0;
+    (watchedTitle?.trim()?.length ?? 0) > 1;
 
   return (
     <AdminPage
@@ -162,7 +158,6 @@ export function RankingEditorPage() {
               form={form}
               initialValues={{
                 title: "",
-                description: "",
                 coverImageUrl: "",
                 itemAddPolicy: "owner"
               }}
@@ -175,13 +170,6 @@ export function RankingEditorPage() {
                 rules={[{ required: true, message: "请输入榜单标题" }]}
               >
                 <Input placeholder="例如：2026 官方耐久榜" />
-              </Form.Item>
-              <Form.Item
-                label="榜单简介"
-                name="description"
-                rules={[{ required: true, message: "请输入榜单简介" }]}
-              >
-                <Input.TextArea autoSize={{ minRows: 3, maxRows: 5 }} placeholder="说明榜单的排序逻辑、适用场景和评估标准。" />
               </Form.Item>
               <Form.Item label="条目权限" name="itemAddPolicy">
                 <Segmented
@@ -367,7 +355,6 @@ export function RankingEditorPage() {
                   <div className="admin-table-title">{watchedTitle || "榜单标题"}</div>
                   <Tag color="blue">{watchedItemAddPolicy === "public" ? "开放访客添加" : "仅创建者添加"}</Tag>
                 </div>
-                <div className="admin-table-subtitle">{watchedDescription || "榜单简介会显示在这里。"}</div>
               </div>
 
               <div className="admin-preview-list">

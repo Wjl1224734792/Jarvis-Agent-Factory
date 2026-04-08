@@ -43,6 +43,7 @@
     "eslint-config-prettier": "10",
     "eslint-plugin-react": "7",
     "eslint-plugin-react-hooks": "5",
+    "playwright": "1.59.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",
     "typescript-eslint": "8",

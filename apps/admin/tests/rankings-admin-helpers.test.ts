@@ -39,7 +39,6 @@ describe("rankings admin helpers", () => {
       buildRankingPayload(
         {
           title: " Official Ranking ",
-          description: " Curated by admin ",
           coverImageUrl: " https://cdn.example.com/cover.jpg ",
           itemAddPolicy: "public"
         },
@@ -58,7 +57,6 @@ describe("rankings admin helpers", () => {
     ).toEqual({
       type: "official",
       title: "Official Ranking",
-      description: "Curated by admin",
       coverImageUrl: "https://cdn.example.com/cover.jpg",
       itemAddPolicy: "public",
       items: [
@@ -78,7 +76,6 @@ describe("rankings admin helpers", () => {
         type: "official",
         status: "published",
         title: "Official",
-        description: "desc",
         coverImageUrl: null,
         itemAddPolicy: "owner",
         commentCount: 0,
@@ -93,7 +90,6 @@ describe("rankings admin helpers", () => {
         type: "community",
         status: "pending",
         title: "Community",
-        description: "desc",
         coverImageUrl: null,
         itemAddPolicy: "public",
         commentCount: 0,

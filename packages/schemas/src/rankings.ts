@@ -145,7 +145,6 @@ export const rankingListItemSchema = z.object({
   status: rankingStatusSchema,
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
-  description: z.string().min(1),
   coverImageFileId: z.string().nullable().optional(),
   coverImageUrl: z.string().nullable(),
   itemAddPolicy: ratingTargetAddPolicySchema,
@@ -194,7 +193,6 @@ const rankingDraftItemSchema = z.object({
 export const createRankingInputSchema = z.object({
   type: rankingTypeSchema,
   title: z.string().trim().min(2).max(120),
-  description: z.string().trim().min(1).max(2000),
   coverImageFileId: z.string().trim().min(1).nullable(),
   itemAddPolicy: ratingTargetAddPolicySchema,
   items: z.array(rankingDraftItemSchema).min(1).max(20)

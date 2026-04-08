@@ -11,7 +11,12 @@ export function CommentLikeIconButton(props: {
 }) {
   return (
     <Button
-      className="group h-auto min-h-0 gap-0.5 rounded-none border-0 bg-transparent px-0 py-0.5 text-[0.72rem] shadow-none hover:!bg-transparent active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-1"
+      className={cn(
+        "group h-auto min-h-0 gap-0.5 rounded-full border-0 px-2 py-1 text-[0.72rem] shadow-none active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-1",
+        props.hasLiked
+          ? "bg-rose-50 text-like-red hover:!bg-rose-100"
+          : "bg-transparent text-muted-foreground hover:!bg-rose-50/70 hover:text-foreground"
+      )}
       disabled={props.disabled}
       onClick={(event: MouseEvent<HTMLButtonElement>) => {
         event.stopPropagation();
@@ -24,7 +29,7 @@ export function CommentLikeIconButton(props: {
         className={cn(
           "size-3.5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]",
           props.hasLiked
-            ? "fill-like-red text-like-red"
+            ? "fill-like-red text-like-red motion-safe:animate-[reaction-pop_220ms_cubic-bezier(0.2,0.9,0.2,1)]"
             : "text-muted-foreground group-hover:text-foreground"
         )}
         fill={props.hasLiked ? "currentColor" : "none"}
@@ -32,7 +37,7 @@ export function CommentLikeIconButton(props: {
       />
       <span
         className={cn(
-          "tabular-nums",
+          "tabular-nums transition-colors",
           props.hasLiked ? "text-like-red" : "text-muted-foreground group-hover:text-foreground"
         )}
       >
@@ -66,7 +71,7 @@ export function CommentIconOnlyButton(props: {
         className={cn(
           "size-3.5 transition-transform duration-150 ease-out group-active:scale-[0.92]",
           props.active
-            ? "text-primary"
+            ? "text-primary motion-safe:animate-[reaction-pop_220ms_cubic-bezier(0.2,0.9,0.2,1)]"
             : "text-muted-foreground group-hover:text-foreground",
           props.destructiveHover && "group-hover:text-destructive"
         )}
@@ -87,7 +92,7 @@ export function CommentTextAction(props: {
   return (
     <Button
       className={cn(
-        "h-6 rounded-none px-0 text-[0.72rem] transition-colors hover:!bg-transparent active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-1",
+        "h-6 rounded-full px-2 text-[0.72rem] transition-colors hover:!bg-transparent active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-1",
         props.variant === "reply" && "text-muted-foreground hover:text-primary",
         props.variant === "report" &&
           cn(

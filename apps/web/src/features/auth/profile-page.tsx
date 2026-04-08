@@ -14,6 +14,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
+import {
+  filterProfileItems,
+  getProfileItemLifecycle,
+  type ProfileContentCategory,
+  type ProfileLifecycle
+} from "./profile-content-filters";
 import { profileVisibilityLabel } from "./profile-settings-state";
 
 type ProfileTab = "activity" | "favorites";
@@ -22,6 +28,22 @@ type ContentItem = Awaited<ReturnType<typeof apiClient.listUserContent>>["items"
 const profileTabs: Array<{ value: ProfileTab; label: string }> = [
   { value: "activity", label: "内容" },
   { value: "favorites", label: "收藏" }
+];
+
+const profileContentCategories: Array<{ value: ProfileContentCategory; label: string }> = [
+  { value: "article", label: "文章" },
+  { value: "moment", label: "动态" },
+  { value: "ranking", label: "榜单" },
+  { value: "brand", label: "品牌" },
+  { value: "aircraft", label: "飞行器" }
+];
+
+const profileLifecycleFilters: Array<{ value: ProfileLifecycle; label: string }> = [
+  { value: "all", label: "全部" },
+  { value: "draft", label: "草稿" },
+  { value: "reviewing", label: "审核中" },
+  { value: "published", label: "已发布" },
+  { value: "rejected", label: "已驳回" }
 ];
 
 function ProfilePageSkeleton() {
@@ -103,7 +125,7 @@ function getContentMeta(item: ContentItem) {
         label: "榜单",
         href: APP_ROUTES.rankingDetail.replace(":id", item.id),
         title: item.title,
-        summary: item.description
+        summary: "社区榜单"
       };
     case "rating-target":
       return {
@@ -164,6 +186,34 @@ function getRejectionReason(item: ContentItem) {
     : null;
 }
 
+function getLifecycleBadge(item: ContentItem) {
+  const lifecycle = getProfileItemLifecycle(item);
+  switch (lifecycle) {
+    case "draft":
+      return {
+        label: "草稿",
+        className: "border-slate-300/80 bg-slate-50 text-slate-700"
+      };
+    case "reviewing":
+      return {
+        label: "审核中",
+        className: "border-sky-200 bg-sky-50 text-sky-700"
+      };
+    case "published":
+      return {
+        label: "已发布",
+        className: "border-emerald-200 bg-emerald-50 text-emerald-700"
+      };
+    case "rejected":
+      return {
+        label: "已驳回",
+        className: "border-amber-300/90 bg-amber-50 text-amber-800"
+      };
+    default:
+      return null;
+  }
+}
+
 function ContentFeedRow(props: {
   item: ContentItem;
   showManagement?: boolean;
@@ -173,11 +223,17 @@ function ContentFeedRow(props: {
   const meta = getContentMeta(props.item);
   const manageHref = getManageHref(props.item);
   const rejectionReason = getRejectionReason(props.item);
+  const lifecycleBadge = props.showManagement ? getLifecycleBadge(props.item) : null;
 
   const content = (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
       <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start md:gap-1">
         <Badge variant="outline">{meta.label}</Badge>
+        {lifecycleBadge ? (
+          <Badge className={lifecycleBadge.className} variant="outline">
+            {lifecycleBadge.label}
+          </Badge>
+        ) : null}
         <span className="text-[0.72rem] text-muted-foreground">
           {new Date(props.item.updatedAt).toLocaleDateString("zh-CN")}
         </span>
@@ -238,6 +294,9 @@ export function ProfilePage() {
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
+  const [activeContentCategory, setActiveContentCategory] = useState<ProfileContentCategory>("article");
+  const [activeFavoriteCategory, setActiveFavoriteCategory] = useState<ProfileContentCategory>("article");
+  const [activeLifecycle, setActiveLifecycle] = useState<ProfileLifecycle>("all");
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
@@ -268,19 +327,50 @@ export function ProfilePage() {
     enabled: Boolean(user)
   });
 
+  const allProfileItems = useMemo(() => contentQuery.data?.items ?? [], [contentQuery.data?.items]);
+  const contentCategoryCounts = useMemo(
+    () =>
+      new Map(
+        profileContentCategories.map((category) => [
+          category.value,
+          filterProfileItems(allProfileItems, {
+            primaryTab: "content",
+            category: category.value,
+            lifecycle: "all"
+          }).length
+        ])
+      ),
+    [allProfileItems]
+  );
+  const favoriteCategoryCounts = useMemo(
+    () =>
+      new Map(
+        profileContentCategories.map((category) => [
+          category.value,
+          filterProfileItems(allProfileItems, {
+            primaryTab: "favorites",
+            category: category.value
+          }).length
+        ])
+      ),
+    [allProfileItems]
+  );
   const favoriteItems = useMemo(
     () =>
-      (contentQuery.data?.items ?? []).filter(
-        (item) => item.type === "favorite-post" || item.type === "favorite-model"
-      ),
-    [contentQuery.data?.items]
+      filterProfileItems(allProfileItems, {
+        primaryTab: "favorites",
+        category: activeFavoriteCategory
+      }),
+    [activeFavoriteCategory, allProfileItems]
   );
   const activityItems = useMemo(
     () =>
-      (contentQuery.data?.items ?? []).filter(
-        (item) => item.type !== "favorite-post" && item.type !== "favorite-model"
-      ),
-    [contentQuery.data?.items]
+      filterProfileItems(allProfileItems, {
+        primaryTab: "content",
+        category: activeContentCategory,
+        lifecycle: activeLifecycle
+      }),
+    [activeContentCategory, activeLifecycle, allProfileItems]
   );
 
   if (!user) {
@@ -477,14 +567,49 @@ export function ProfilePage() {
 
         <TabsContent className="space-y-4" value="activity">
           <div className="rounded-[0.95rem] bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-            这里集中管理文章、动态、榜单、榜单条目、品牌申请和机型投稿。被驳回的内容会直接显示原因，修改后可重新提交。
+            这里按文章、动态、榜单、品牌、飞行器拆分管理，并补上草稿、审核中、已发布、已驳回等状态视图。
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {profileContentCategories.map((category) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeContentCategory === category.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 text-foreground/70 hover:text-foreground"
+                }`}
+                key={category.value}
+                onClick={() => setActiveContentCategory(category.value)}
+                type="button"
+              >
+                {category.label}
+                <span className="ml-1.5 text-[0.72rem] opacity-80">
+                  {contentCategoryCounts.get(category.value) ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {profileLifecycleFilters.map((lifecycle) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeLifecycle === lifecycle.value
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border/70 text-foreground/68 hover:text-foreground"
+                }`}
+                key={lifecycle.value}
+                onClick={() => setActiveLifecycle(lifecycle.value)}
+                type="button"
+              >
+                {lifecycle.label}
+              </button>
+            ))}
           </div>
           <VirtualFeed
             className="!border-0"
             data={activityItems}
             emptyState={
               <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
-                还没有公开内容。
+                当前分类下还没有内容。
               </div>
             }
             height={660}
@@ -496,12 +621,34 @@ export function ProfilePage() {
         </TabsContent>
 
         <TabsContent className="space-y-4" value="favorites">
+          <div className="rounded-[0.95rem] bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
+            收藏区同样拆成文章、动态、榜单、品牌、飞行器二级分类，当前仓库已有收藏能力会直接展示，没有数据的分类保留空态。
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {profileContentCategories.map((category) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeFavoriteCategory === category.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 text-foreground/70 hover:text-foreground"
+                }`}
+                key={category.value}
+                onClick={() => setActiveFavoriteCategory(category.value)}
+                type="button"
+              >
+                {category.label}
+                <span className="ml-1.5 text-[0.72rem] opacity-80">
+                  {favoriteCategoryCounts.get(category.value) ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
           <VirtualFeed
             className="!border-0"
             data={favoriteItems}
             emptyState={
               <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
-                还没有收藏内容。
+                当前分类下还没有收藏内容。
               </div>
             }
             height={660}

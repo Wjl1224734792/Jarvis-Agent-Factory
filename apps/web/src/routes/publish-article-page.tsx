@@ -173,8 +173,8 @@ export function PublishArticlePage() {
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
 
-  async function uploadImages(files: FileList | null) {
-    if (!files || files.length === 0) {
+  async function uploadImages(files: File[]) {
+    if (files.length === 0) {
       return [];
     }
 
@@ -189,7 +189,7 @@ export function PublishArticlePage() {
     try {
       const nextImages: UploadedImage[] = [];
 
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         const uploaded = await apiClient.uploadPostImage(file);
         nextImages.push({
           id: uploaded.item.id,
@@ -208,8 +208,8 @@ export function PublishArticlePage() {
     }
   }
 
-  async function uploadVideos(files: FileList | null) {
-    if (!files || files.length === 0) {
+  async function uploadVideos(files: File[]) {
+    if (files.length === 0) {
       return [];
     }
 
@@ -224,7 +224,7 @@ export function PublishArticlePage() {
     try {
       const nextVideos: UploadedVideo[] = [];
 
-      for (const file of Array.from(files)) {
+      for (const file of files) {
         const uploaded = await apiClient.uploadPostVideo(file);
         nextVideos.push({
           id: uploaded.item.id,

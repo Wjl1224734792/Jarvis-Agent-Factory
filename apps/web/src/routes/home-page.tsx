@@ -14,6 +14,7 @@ import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { apiClient } from "../lib/api-client";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { getEditorialImage } from "../lib/aviation-media";
+import { mergeRankingsByTab } from "./rankings-page-helpers";
 
 const fixedTabs = [
   { id: "recommended", label: "推荐" },
@@ -72,7 +73,10 @@ export function HomePage() {
   const feedItems = feedQuery.data?.items ?? [];
   const contentCategories = useMemo(() => feedQuery.data?.categories ?? [], [feedQuery.data?.categories]);
   const hotModels = modelsQuery.data?.items.slice(0, 3) ?? [];
-  const rankingCards = rankingsQuery.data?.community.slice(0, 2) ?? [];
+  const rankingCards = useMemo(
+    () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data).hot.slice(0, 2) : []),
+    [rankingsQuery.data]
+  );
 
   const allTabs = useMemo(
     () => [

@@ -6,10 +6,11 @@ import {
   SearchOutlined
 } from "@ant-design/icons";
 import { Button, Input, Layout, Space } from "antd";
-import { useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
+import { ADMIN_AUTH_INVALID_EVENT } from "../../lib/auth-events";
 import { ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS, isAdminNavItemActive } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
@@ -22,6 +23,17 @@ export function AdminShell() {
   const user = useAdminAuthStore((state) => state.user);
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
+
+  useEffect(() => {
+    function handleAuthInvalid() {
+      setAnonymous();
+    }
+
+    window.addEventListener(ADMIN_AUTH_INVALID_EVENT, handleAuthInvalid);
+    return () => {
+      window.removeEventListener(ADMIN_AUTH_INVALID_EVENT, handleAuthInvalid);
+    };
+  }, [setAnonymous]);
 
   const activeGroup = useMemo(
     () =>

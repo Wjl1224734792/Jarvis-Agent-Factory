@@ -84,7 +84,6 @@ export function RankingDetailPage() {
                   </div>
                   {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
                 </div>
-                <p className="max-w-2xl text-sm leading-7 text-muted-foreground">{ranking.description}</p>
               </div>
 
               <div className="grid gap-3 sm:grid-cols-3">

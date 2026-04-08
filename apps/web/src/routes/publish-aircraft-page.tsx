@@ -192,7 +192,7 @@ export function PublishAircraftPage() {
     try {
       const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
       let nextCover = coverImage;
-      let nextGallery = [...galleryImages];
+      const nextGallery = [...galleryImages];
 
       for (const file of imageFiles) {
         const uploaded = await apiClient.uploadAircraftCoverImage(file);

@@ -175,7 +175,6 @@ export const userContentRatingTargetSchema = z.object({
   status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
-  description: z.string().min(1),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -370,3 +369,4 @@ export const adminAnalyticsOverviewResponseSchema = z.object({
 
 export type NotificationType = z.infer<typeof notificationTypeSchema>;
 export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;
+export type UserContentItem = z.infer<typeof userContentItemSchema>;

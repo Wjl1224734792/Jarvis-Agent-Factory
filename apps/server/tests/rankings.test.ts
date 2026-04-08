@@ -3,6 +3,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { rankRatingTargetsByDynamicScore } from "../src/modules/rankings/ranking-score";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 
@@ -160,6 +161,48 @@ afterAll(async () => {
 });
 
 describe("rankings flows", () => {
+  it("recomputes rating target ranks from weighted scores instead of static editor order", () => {
+    const ranked = rankRatingTargetsByDynamicScore(
+      [
+        {
+          id: "seed_1",
+          rank: 1,
+          createdAt: "2026-04-08T08:00:00.000Z"
+        },
+        {
+          id: "seed_2",
+          rank: 2,
+          createdAt: "2026-04-08T08:10:00.000Z"
+        }
+      ],
+      new Map([
+        [
+          "seed_1",
+          {
+            averageRaw: 3.8,
+            totalRatings: 12,
+            commentCount: 4,
+            likeCount: 1
+          }
+        ],
+        [
+          "seed_2",
+          {
+            averageRaw: 4.8,
+            totalRatings: 48,
+            commentCount: 9,
+            likeCount: 6
+          }
+        ]
+      ])
+    );
+
+    expect(ranked.map((item) => ({ id: item.id, rank: item.rank }))).toEqual([
+      { id: "seed_2", rank: 1 },
+      { id: "seed_1", rank: 2 }
+    ]);
+  });
+
   it("returns persisted official rankings and community rankings", async () => {
     const response = await app.request(API_ROUTES.rankings.overview, { method: "GET" });
 

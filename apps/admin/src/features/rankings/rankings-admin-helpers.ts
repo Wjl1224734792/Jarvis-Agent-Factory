@@ -5,7 +5,6 @@ export type AdminRankingRecord = {
   type: "official" | "community";
   status: AdminRankingStatus;
   title: string;
-  description: string;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   commentCount: number;
@@ -72,7 +71,6 @@ export function toRankingDraftItems(items: AdminRankingRecord["items"]): Ranking
 export function buildRankingPayload(
   values: {
     title: string;
-    description: string;
     coverImageUrl?: string | null;
     itemAddPolicy: "public" | "owner";
   },
@@ -81,7 +79,6 @@ export function buildRankingPayload(
   return {
     type: "official" as const,
     title: values.title.trim(),
-    description: values.description.trim(),
     coverImageUrl: values.coverImageUrl?.trim() ? values.coverImageUrl.trim() : null,
     itemAddPolicy: values.itemAddPolicy,
     items: draftItems.map((item) => ({

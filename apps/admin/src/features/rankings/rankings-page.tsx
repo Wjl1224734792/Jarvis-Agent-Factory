@@ -81,7 +81,7 @@ export function RankingsPage() {
     }
 
     return officialItems.filter((item) =>
-      [item.title, item.description, item.author.displayName]
+      [item.title, item.author.displayName]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [officialItems, searchText]);
@@ -93,7 +93,7 @@ export function RankingsPage() {
     }
 
     return communityItems.filter((item) =>
-      [item.title, item.description, item.author.displayName]
+      [item.title, item.author.displayName]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [communityRankingsQuery.data?.items, searchText]);
@@ -185,7 +185,7 @@ export function RankingsPage() {
                       <div className="admin-table-title">{record.title}</div>
                       <RankingScopeTag type={record.type} />
                     </div>
-                    <div className="admin-table-subtitle">{record.description}</div>
+                    <div className="admin-table-subtitle">{record.itemCount} 个条目 · {record.commentCount} 条评论</div>
                   </div>
                 ),
                 title: "榜单"
@@ -283,7 +283,7 @@ export function RankingsPage() {
                 render: (_, record: RankingRecord) => (
                   <div className="admin-table-meta">
                     <div className="admin-table-title">{record.title}</div>
-                    <div className="admin-table-subtitle">{record.description}</div>
+                    <div className="admin-table-subtitle">{record.itemCount} 个条目 · {record.commentCount} 条评论</div>
                   </div>
                 ),
                 title: "榜单"
@@ -416,7 +416,7 @@ export function RankingsPage() {
             </div>
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
             <div className="admin-detail-sheet__body">
-              <p>{detailQuery.data.item.description}</p>
+              <p>{detailQuery.data.item.itemCount} 个条目，{detailQuery.data.item.commentCount} 条评论。</p>
             </div>
           </div>
         ) : null}

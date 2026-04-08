@@ -35,6 +35,8 @@
     "@tiptap/pm": "^3.21.0",
     "@tiptap/react": "^3.21.0",
     "@tiptap/starter-kit": "^3.21.0",
+    "@wangeditor/editor": "5.1.23",
+    "@wangeditor/editor-for-react": "1.0.6",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "dompurify": "^3.3.3",

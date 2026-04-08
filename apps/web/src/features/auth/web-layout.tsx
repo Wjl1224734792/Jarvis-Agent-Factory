@@ -35,6 +35,7 @@ import { shouldFetchNotifications } from "./notification-state";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
 import { useNotifications } from "./use-notifications";
 import { UserMenu } from "./user-menu";
+import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
 
 const navItems = [
   { to: APP_ROUTES.feedHome, label: "首页", icon: HouseIcon },
@@ -210,6 +211,7 @@ export function WebLayout() {
   const location = useLocation();
   const authStatus = useAuthStore((state) => state.status);
   const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
+  const setAnonymous = useAuthStore((state) => state.setAnonymous);
   const promptLogin = useLoginPrompt();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
@@ -227,6 +229,18 @@ export function WebLayout() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    function handleAuthInvalid() {
+      setAnonymous();
+      setIsPublishMenuOpen(false);
+    }
+
+    window.addEventListener(WEB_AUTH_INVALID_EVENT, handleAuthInvalid);
+    return () => {
+      window.removeEventListener(WEB_AUTH_INVALID_EVENT, handleAuthInvalid);
+    };
+  }, [setAnonymous]);
 
   function openPublishMenu() {
     if (closeTimerRef.current) {

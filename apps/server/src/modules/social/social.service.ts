@@ -324,7 +324,6 @@ export const socialService = {
         status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
-        description: ranking.description,
         canManage: isSelf,
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
