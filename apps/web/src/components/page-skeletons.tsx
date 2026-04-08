@@ -35,16 +35,16 @@ export function ListPageSkeleton(props: { rows?: number; withRail?: boolean }) {
   return (
     <div className={props.withRail ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]" : "space-y-3"}>
       <div className="space-y-3">
-        <Skeleton className="h-9 w-64" />
+        <Skeleton className="h-9 w-64 rounded-none" />
         {Array.from({ length: props.rows ?? 4 }).map((_, index) => (
-          <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
+          <div className="rounded-none bg-white p-3" key={index}>
             <div className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)]">
-              <Skeleton className="h-24 rounded-[0.8rem]" />
+              <Skeleton className="h-24 rounded-none" />
               <div className="space-y-2.5">
-                <Skeleton className="h-5 w-3/4" />
-                <Skeleton className="h-3.5 w-full" />
-                <Skeleton className="h-3.5 w-5/6" />
-                <Skeleton className="h-3.5 w-2/5" />
+                <Skeleton className="h-5 w-3/4 rounded-none" />
+                <Skeleton className="h-3.5 w-full rounded-none" />
+                <Skeleton className="h-3.5 w-5/6 rounded-none" />
+                <Skeleton className="h-3.5 w-2/5 rounded-none" />
               </div>
             </div>
           </div>
@@ -64,14 +64,14 @@ export function FeedStreamSkeleton(props: { rows?: number }) {
   return (
     <div className="space-y-3">
       {Array.from({ length: props.rows ?? 4 }).map((_, index) => (
-        <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
+        <div className="rounded-none bg-white p-3" key={index}>
           <div className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)]">
-            <Skeleton className="h-24 rounded-[0.8rem]" />
+            <Skeleton className="h-24 rounded-none" />
             <div className="space-y-2.5">
-              <Skeleton className="h-5 w-3/4" />
-              <Skeleton className="h-3.5 w-full" />
-              <Skeleton className="h-3.5 w-5/6" />
-              <Skeleton className="h-3.5 w-2/5" />
+              <Skeleton className="h-5 w-3/4 rounded-none" />
+              <Skeleton className="h-3.5 w-full rounded-none" />
+              <Skeleton className="h-3.5 w-5/6 rounded-none" />
+              <Skeleton className="h-3.5 w-2/5 rounded-none" />
             </div>
           </div>
         </div>
@@ -142,7 +142,7 @@ export function ModelsPageSkeleton(props: { count?: number }) {
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
       <div className="space-y-3 xl:order-2">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div className="border border-border bg-white p-3" key={index}>
+          <div className="rounded-none bg-white p-3" key={index}>
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
                 <Skeleton className="h-5 w-16 rounded-none" />
@@ -159,7 +159,7 @@ export function ModelsPageSkeleton(props: { count?: number }) {
         ))}
       </div>
       <div className="space-y-4 xl:order-1">
-        <div className="border border-border bg-white p-4">
+        <div className="rounded-none bg-white p-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-2">
@@ -185,18 +185,15 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
   return (
     <div className={RANKING_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 6 }).map((_, index) => (
-        <div
-          className="flex min-w-0 flex-col gap-3 border border-border bg-white px-3.5 py-3.5"
-          key={index}
-        >
+        <div className="flex min-w-0 flex-col gap-3 rounded-none bg-white px-3.5 py-3.5" key={index}>
           <div className="space-y-2">
             <Skeleton className="h-3.5 w-20 rounded-none" />
             <Skeleton className="h-5 w-4/5 rounded-none" />
           </div>
-          <div className="space-y-2.5">
+          <div className="flex flex-col gap-2.5">
             {Array.from({ length: 3 }).map((__, innerIndex) => (
               <div
-                className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
+                className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)] items-center gap-2.5"
                 key={innerIndex}
               >
                 <Skeleton className="h-4 w-3 rounded-none" />

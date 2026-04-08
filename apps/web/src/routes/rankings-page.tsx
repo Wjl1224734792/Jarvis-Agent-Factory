@@ -184,7 +184,7 @@ export function RankingsPage() {
       )}
 
       {!isRankingsLoading && rankingsQuery.isSuccess && activeItems.length === 0 ? (
-        <Alert>
+        <Alert className="rounded-none border-0 shadow-none">
           <AlertTitle>还没有榜单</AlertTitle>
           <AlertDescription>可以先创建一份自己的榜单，或稍后再回来查看。</AlertDescription>
         </Alert>

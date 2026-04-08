@@ -199,7 +199,7 @@ export function HomePage() {
                 ))}
 
                 {!feedQuery.isError && feedItems.length === 0 ? (
-                  <Alert className="rounded-none">
+                  <Alert className="rounded-none border-0 shadow-none">
                     <AlertTitle>首页还没有公开内容</AlertTitle>
                     <AlertDescription>
                       {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
@@ -225,11 +225,11 @@ export function HomePage() {
                 热门榜单
               </div>
               {isRankingsLoading ? (
-                <div className="space-y-3">
+                <div className="flex flex-col gap-3">
                   {Array.from({ length: 2 }).map((_, index) => (
-                    <div className="space-y-2 border-b border-border pb-2.5 last:border-b-0" key={index}>
-                      <Skeleton className="h-4 w-4/5" />
-                      <Skeleton className="h-3.5 w-3/5" />
+                    <div className="space-y-2" key={index}>
+                      <Skeleton className="h-4 w-4/5 rounded-none" />
+                      <Skeleton className="h-3.5 w-3/5 rounded-none" />
                     </div>
                   ))}
                 </div>
@@ -259,13 +259,13 @@ export function HomePage() {
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, index) => (
                     <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
-                      <Skeleton className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]" />
+                      <Skeleton className="h-[58px] w-full rounded-none" />
                       <div className="space-y-1.5">
-                        <Skeleton className="h-3.5 w-20" />
-                        <Skeleton className="h-3 w-14" />
-                        <Skeleton className="h-3 w-12" />
+                        <Skeleton className="h-3.5 w-20 rounded-none" />
+                        <Skeleton className="h-3 w-14 rounded-none" />
+                        <Skeleton className="h-3 w-12 rounded-none" />
                       </div>
-                      <Skeleton className="h-5 w-8" />
+                      <Skeleton className="h-5 w-8 rounded-none" />
                     </div>
                   ))}
                 </div>
