@@ -907,6 +907,7 @@ describe("rankings flows", () => {
   it("allows admins to reject ranking items with a reason and authors to edit-resubmit them", async () => {
     const ownerCookie = await loginUser("13800138021");
     const contributorCookie = await loginUser("13800138022");
+    const viewerCookie = await loginUser("13800138023");
     const adminCookie = await loginAdmin();
 
     const createRankingResponse = await app.request(API_ROUTES.rankings.create, {
@@ -992,6 +993,22 @@ describe("rankings flows", () => {
     };
     expect(detailAfterReject.item.status).toBe("rejected");
     expect(detailAfterReject.item.rejectionReason).toBe(rejectReason);
+
+    const hiddenFromViewerResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItemId), {
+      method: "GET",
+      headers: {
+        cookie: viewerCookie
+      }
+    });
+    expect(hiddenFromViewerResponse.status).toBe(404);
+
+    const adminDetailResponse = await app.request(API_ROUTES.rankings.itemDetail(contributedItemId), {
+      method: "GET",
+      headers: {
+        cookie: adminCookie
+      }
+    });
+    expect(adminDetailResponse.status).toBe(200);
 
     const contributorIdentityResponse = await app.request(API_ROUTES.auth.currentUser, {
       method: "GET",

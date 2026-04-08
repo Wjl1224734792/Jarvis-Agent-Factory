@@ -270,7 +270,7 @@ rankingsRoute.get(API_ROUTES.rankings.itemDetail(":id"), async (context) => {
     return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
   }
 
-  const payload = await rankingsService.getRatingTargetDetail(id, context.get("currentUser")?.id);
+  const payload = await rankingsService.getRatingTargetDetail(id, context.get("currentUser") ?? undefined);
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Ranking item not found." }, 404);
   }

@@ -262,6 +262,11 @@ const rawApiClient = {
   listAdminContentCategories() {
     return sharedClient.listAdminContentCategories();
   },
+  getAircraftSubmission(id: string) {
+    return getJson<Awaited<ReturnType<typeof sharedClient.getAircraftSubmission>>>(
+      API_ROUTES.submissions.adminDetail(id)
+    );
+  },
   createContentCategory(input: {
     slug: string;
     name: string;

@@ -38,6 +38,8 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/users/me/profile']).toBeDefined();
     expect(payload.paths['/brand-applications']).toBeDefined();
     expect(payload.paths['/aircraft-submissions']).toBeDefined();
+    expect(payload.paths['/aircraft-submissions/{id}']).toBeDefined();
+    expect(payload.paths['/admin/aircraft-submissions/{id}']).toBeDefined();
     expect(payload.paths['/content-categories']).toBeDefined();
     expect(payload.paths['/admin/categories']).toBeDefined();
     expect(payload.paths['/admin/brands']).toBeDefined();

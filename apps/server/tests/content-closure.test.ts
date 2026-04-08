@@ -171,6 +171,7 @@ describe.sequential("content closure flows", () => {
     expect(djiBrandId).toBeTruthy();
 
     const submissionAuthorCookie = await loginUser("13800138024");
+    const outsiderCookie = await loginUser("13800138025");
     const createResponse = await app.request(API_ROUTES.submissions.create, {
       method: "POST",
       headers: {
@@ -214,6 +215,24 @@ describe.sequential("content closure flows", () => {
     expect(created.item.approvedModelSlug).toBeNull();
     expect(created.item.priceMin).toBe(4999);
     expect(created.item.priceMax).toBe(6999);
+
+    const ownDetailResponse = await app.request(API_ROUTES.submissions.detail(created.item.id), {
+      method: "GET",
+      headers: { cookie: submissionAuthorCookie }
+    });
+    expect(ownDetailResponse.status).toBe(200);
+
+    const outsiderDetailResponse = await app.request(API_ROUTES.submissions.detail(created.item.id), {
+      method: "GET",
+      headers: { cookie: outsiderCookie }
+    });
+    expect(outsiderDetailResponse.status).toBe(403);
+
+    const adminDetailResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminDetailResponse.status).toBe(200);
 
     const rejectResponse = await app.request(API_ROUTES.submissions.adminDetail(created.item.id), {
       method: "PUT",

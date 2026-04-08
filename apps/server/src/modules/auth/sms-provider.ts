@@ -294,6 +294,10 @@ export function createSmsSender(config: SmsProviderConfig) {
         };
       }
 
+      if (process.env.NODE_ENV === "test") {
+        throw new Error(`${config.provider} sms dispatch is not implemented in test environment.`);
+      }
+
       if (config.provider === "aliyun") {
         if (!hasAliyunSmsConfig(config)) {
           throw new Error("Aliyun SMS provider is missing required configuration.");

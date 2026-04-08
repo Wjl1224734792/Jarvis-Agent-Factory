@@ -267,16 +267,27 @@ export const aircraftSubmissionsService = {
 
     return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
   },
-  async getSubmission(id: string) {
+  async getSubmission(
+    id: string,
+    currentUser: { id: string; role: "user" | "admin" }
+  ) {
     const item = await aircraftSubmissionsRepo.findById(id);
     if (!item) {
-      return null;
+      return { kind: "not_found" as const };
+    }
+
+    const canView = currentUser.role === "admin" || item.author.id === currentUser.id;
+    if (!canView) {
+      return { kind: "forbidden" as const };
     }
 
     const approvedModel = item.approvedModelId
       ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
       : null;
-    return { item: await serializeSubmissionOrThrow(item, approvedModel?.slug ?? null) };
+    return {
+      kind: "ok" as const,
+      payload: { item: await serializeSubmissionOrThrow(item, approvedModel?.slug ?? null) }
+    };
   },
   async listAdminSubmissions() {
     const items = await aircraftSubmissionsRepo.listAdmin();

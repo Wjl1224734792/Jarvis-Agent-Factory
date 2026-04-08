@@ -1,4 +1,4 @@
-import {
+﻿import {
   actionSuccessResponseSchema,
   adminAnalyticsOverviewResponseSchema,
   adminModelCommentResponseSchema,
@@ -1252,6 +1252,7 @@ export const openApiDocument = {
             '返回投稿详情。'
           ),
           '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '无权查看该投稿。'),
           '404': jsonResponse('ErrorResponse', '投稿不存在。')
         }
       },
@@ -1306,6 +1307,21 @@ export const openApiDocument = {
       }
     },
     [API_ROUTES.submissions.adminDetail('{id}')]: {
+      get: {
+        tags: ['submissions'],
+        summary: '管理端查看飞行器投稿详情',
+        security: adminSessionSecurity,
+        parameters: [stringPathParameter('id', '投稿 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'AircraftSubmissionResponse',
+            '返回投稿详情。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '非管理员会话。'),
+          '404': jsonResponse('ErrorResponse', '投稿不存在。')
+        }
+      },
       put: {
         tags: ['submissions'],
         summary: '管理端审核飞行器投稿',

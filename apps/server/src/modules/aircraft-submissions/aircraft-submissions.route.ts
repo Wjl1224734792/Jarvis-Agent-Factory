@@ -63,12 +63,20 @@ aircraftSubmissionsRoute.get(API_ROUTES.submissions.detail(":id"), requireAuth, 
     return id;
   }
 
-  const payload = await aircraftSubmissionsService.getSubmission(id);
-  if (!payload) {
-    return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
   }
 
-  return context.json(aircraftSubmissionResponseSchema.parse(payload));
+  const result = await aircraftSubmissionsService.getSubmission(id, currentUser);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
+  }
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(aircraftSubmissionResponseSchema.parse(result.payload));
 });
 
 aircraftSubmissionsRoute.put(API_ROUTES.submissions.detail(":id"), requireAuth, async (context) => {
@@ -118,6 +126,29 @@ aircraftSubmissionsRoute.get(API_ROUTES.submissions.adminList, requireAdmin, asy
   const payload = await aircraftSubmissionsService.listAdminSubmissions();
   return context.json(aircraftSubmissionsResponseSchema.parse(payload));
 });
+
+aircraftSubmissionsRoute.get(
+  API_ROUTES.submissions.adminDetail(":id"),
+  requireAdmin,
+  async (context) => {
+    const id = getRequiredIdOrBadRequest(context);
+    if (id instanceof Response) {
+      return id;
+    }
+
+    const currentUser = getCurrentUserOrUnauthorized(context);
+    if (currentUser instanceof Response) {
+      return currentUser;
+    }
+
+    const result = await aircraftSubmissionsService.getSubmission(id, currentUser);
+    if (result.kind === "not_found") {
+      return context.json({ code: "NOT_FOUND", message: "Submission not found." }, 404);
+    }
+
+    return context.json(aircraftSubmissionResponseSchema.parse(result.payload));
+  }
+);
 
 aircraftSubmissionsRoute.put(
   API_ROUTES.submissions.adminDetail(":id"),
