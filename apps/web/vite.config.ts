@@ -33,8 +33,17 @@ function buildWebManualChunk(id: string) {
     return undefined;
   }
 
+  if (id.includes("@wangeditor/")) {
+    return "editor-vendor";
+  }
   if (id.includes("@tiptap/")) {
     return "editor-vendor";
+  }
+  if (id.includes("react-virtuoso")) {
+    return "feed-vendor";
+  }
+  if (id.includes("qrcode")) {
+    return "share-vendor";
   }
   if (
     id.includes("react-router-dom") ||
@@ -53,7 +62,6 @@ function buildWebManualChunk(id: string) {
   }
   if (
     id.includes("lucide-react") ||
-    id.includes("qrcode") ||
     id.includes("dompurify")
   ) {
     return "utility-vendor";

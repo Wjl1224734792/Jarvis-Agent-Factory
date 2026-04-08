@@ -35,7 +35,8 @@ export function PageShareControl({
   "aria-label": ariaLabel = "分享"
 }: PageShareControlProps) {
   const absoluteUrl = useMemo(() => toAbsoluteShareUrl(sharePath), [sharePath]);
-  const { dataUrl, error: qrError } = useShareQrDataUrl(absoluteUrl);
+  const [isOpen, setIsOpen] = useState(false);
+  const { dataUrl, error: qrError } = useShareQrDataUrl(absoluteUrl, isOpen);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   const copyLink = useCallback(async () => {
@@ -70,7 +71,7 @@ export function PageShareControl({
 
   return (
     <span className={cn("inline-flex", className)}>
-      <HoverCard closeDelay={120} openDelay={180}>
+      <HoverCard closeDelay={120} onOpenChange={setIsOpen} openDelay={180}>
         <HoverCardTrigger asChild>
           <Button
             aria-label={ariaLabel}

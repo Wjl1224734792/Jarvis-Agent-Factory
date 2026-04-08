@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
   getNotificationNavTone,
+  getNotificationsQueryKey,
   hasUnreadNotifications,
-  NOTIFICATIONS_QUERY_KEY,
   shouldFetchNotifications
 } from "../src/features/auth/notification-state";
 
@@ -25,7 +25,8 @@ describe("notification-state", () => {
     expect(shouldFetchNotifications("authenticated", true)).toBe(true);
   });
 
-  it("uses a single shared query key for all notification surfaces", () => {
-    expect(NOTIFICATIONS_QUERY_KEY).toEqual(["notifications"]);
+  it("isolates notification caches by current auth scope", () => {
+    expect(getNotificationsQueryKey()).toEqual(["notifications", "anonymous"]);
+    expect(getNotificationsQueryKey("user_1")).toEqual(["notifications", "user_1"]);
   });
 });

@@ -1,4 +1,4 @@
-import { createApiClient } from "@feijia/http-client";
+import { ApiClientError, createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import { dispatchWebAuthInvalidEvent } from "./auth-events";
 
@@ -82,6 +82,10 @@ export function sanitizeWebApiErrorMessage(message: string) {
     return "请求的内容不存在或已被移除。";
   }
 
+  if (normalized.includes("已被占用") || normalized.includes("被占用")) {
+    return "用户名已被占用，请更换后重试。";
+  }
+
   if (
     normalized.includes("invalid") ||
     normalized.includes("required") ||
@@ -116,6 +120,14 @@ function isAuthErrorMessage(message: string) {
 }
 
 export function mapWebApiError(error: unknown) {
+  if (error instanceof ApiClientError) {
+    const message = sanitizeWebApiErrorMessage(error.message);
+    if (isAuthErrorMessage(message)) {
+      dispatchWebAuthInvalidEvent();
+    }
+    return new ApiClientError(message, error.code);
+  }
+
   if (error instanceof Error) {
     const message = sanitizeWebApiErrorMessage(error.message);
     if (isAuthErrorMessage(message)) {

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { APP_ROUTES } from "@feijia/shared";
-import { resolveProtectedRouteRedirect } from "../src/features/auth/protected-route-helpers";
+import {
+  resolveProtectedRouteRedirect,
+  shouldSuspendProtectedRoute
+} from "../src/features/auth/protected-route-helpers";
 
 describe("publish route guard redirects", () => {
   it("falls back to home for publish-only routes when login is missing", () => {
@@ -29,5 +32,11 @@ describe("publish route guard redirects", () => {
         fallbackPath: APP_ROUTES.feedHome
       })
     ).toBe("/login?redirect=%2Fsettings%3Ftab%3Dprivacy%23alerts");
+  });
+
+  it("keeps protected routes suspended until auth bootstrap finishes", () => {
+    expect(shouldSuspendProtectedRoute("authenticated", false)).toBe(true);
+    expect(shouldSuspendProtectedRoute("loading", true)).toBe(true);
+    expect(shouldSuspendProtectedRoute("authenticated", true)).toBe(false);
   });
 });

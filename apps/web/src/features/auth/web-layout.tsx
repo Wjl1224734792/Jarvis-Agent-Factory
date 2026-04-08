@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import logoUrl from "../../../../../packages/shared/assets/logo/logo.jpg";
 import {
@@ -28,6 +29,8 @@ import {
 } from "@/components/ui/sheet";
 import { cn } from "@/lib/utils";
 import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
+import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
+import { getAuthCacheScope, shouldResetAuthCache } from "./auth-cache-helpers";
 import { useAuthStore } from "./auth-store";
 import { AuthRequiredDialog } from "./auth-required-dialog";
 import { useLoginPrompt } from "./use-login-prompt";
@@ -35,7 +38,6 @@ import { shouldFetchNotifications } from "./notification-state";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
 import { useNotifications } from "./use-notifications";
 import { UserMenu } from "./user-menu";
-import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
 
 const navItems = [
   { to: APP_ROUTES.feedHome, label: "首页", icon: HouseIcon },
@@ -208,16 +210,21 @@ function MobileSheetNavRows({
 export function WebLayout() {
   useBootstrapAuth();
 
+  const queryClient = useQueryClient();
   const location = useLocation();
   const authStatus = useAuthStore((state) => state.status);
   const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
+  const authUserId = useAuthStore((state) => state.user?.id ?? null);
   const setAnonymous = useAuthStore((state) => state.setAnonymous);
   const promptLogin = useLoginPrompt();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const authCacheScopeRef = useRef<string | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
+  const authCacheScope = getAuthCacheScope(authStatus, authUserId);
   const notificationsQuery = useNotifications(
+    authUserId,
     shouldFetchNotifications(authStatus, isAuthBootstrapped)
   );
   const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
@@ -229,6 +236,18 @@ export function WebLayout() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    if (!isAuthBootstrapped) {
+      return;
+    }
+
+    if (shouldResetAuthCache(authCacheScopeRef.current, authCacheScope)) {
+      queryClient.clear();
+    }
+
+    authCacheScopeRef.current = authCacheScope;
+  }, [authCacheScope, isAuthBootstrapped, queryClient]);
 
   useEffect(() => {
     function handleAuthInvalid() {

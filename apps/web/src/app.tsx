@@ -7,7 +7,6 @@ import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
 import { WEB_ROUTE_PATHS } from "./lib/web-routes";
-import { CirclePage } from "./routes/circle-page";
 import { HomePage } from "./routes/home-page";
 
 const LoginPage = lazy(() =>
@@ -90,6 +89,11 @@ const PublishBrandPage = lazy(() =>
     default: module.PublishBrandPage
   }))
 );
+const CirclePage = lazy(() =>
+  import("./routes/circle-page").then((module) => ({
+    default: module.CirclePage
+  }))
+);
 const RankingEditorPage = lazy(() =>
   import("./routes/ranking-editor-page").then((module) => ({
     default: module.RankingEditorPage
@@ -135,7 +139,7 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.flightCircle),
-        element: <CirclePage />
+        element: withRouteFallback(<CirclePage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.webLogin),

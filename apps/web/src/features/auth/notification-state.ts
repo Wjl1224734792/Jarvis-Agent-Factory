@@ -1,4 +1,6 @@
-export const NOTIFICATIONS_QUERY_KEY = ["notifications"] as const;
+export function getNotificationsQueryKey(userId?: string | null) {
+  return ["notifications", userId ?? "anonymous"] as const;
+}
 
 export function hasUnreadNotifications(unreadCount?: number) {
   return typeof unreadCount === "number" && unreadCount > 0;

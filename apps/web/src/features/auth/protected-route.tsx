@@ -15,7 +15,10 @@ import {
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuthStore } from "./auth-store";
-import { resolveProtectedRouteRedirect } from "./protected-route-helpers";
+import {
+  resolveProtectedRouteRedirect,
+  shouldSuspendProtectedRoute
+} from "./protected-route-helpers";
 
 type ProtectedRouteProps = PropsWithChildren<{
   mode?: "login" | "fallback";
@@ -189,8 +192,9 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const location = useLocation();
   const status = useAuthStore((state) => state.status);
+  const isBootstrapped = useAuthStore((state) => state.isBootstrapped);
 
-  if (status === "idle" || status === "loading") {
+  if (shouldSuspendProtectedRoute(status, isBootstrapped)) {
     if (location.pathname.startsWith(APP_ROUTES.webProfile)) {
       return <ProfileRouteSkeleton />;
     }

@@ -1,12 +1,24 @@
-import QRCode from "qrcode";
 import { useEffect, useState } from "react";
 
-export function useShareQrDataUrl(shareUrl: string): { dataUrl: string | null; error: boolean } {
+async function generateShareQrDataUrl(shareUrl: string) {
+  const { default: QRCode } = await import("qrcode");
+
+  return QRCode.toDataURL(shareUrl, {
+    width: 200,
+    margin: 2,
+    errorCorrectionLevel: "M"
+  });
+}
+
+export function useShareQrDataUrl(
+  shareUrl: string,
+  enabled = true
+): { dataUrl: string | null; error: boolean } {
   const [dataUrl, setDataUrl] = useState<string | null>(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
-    if (!shareUrl) {
+    if (!enabled || !shareUrl) {
       setDataUrl(null);
       setError(false);
       return;
@@ -16,11 +28,7 @@ export function useShareQrDataUrl(shareUrl: string): { dataUrl: string | null; e
     setError(false);
     setDataUrl(null);
 
-    void QRCode.toDataURL(shareUrl, {
-      width: 200,
-      margin: 2,
-      errorCorrectionLevel: "M"
-    })
+    void generateShareQrDataUrl(shareUrl)
       .then((url) => {
         if (!cancelled) {
           setDataUrl(url);
@@ -35,7 +43,7 @@ export function useShareQrDataUrl(shareUrl: string): { dataUrl: string | null; e
     return () => {
       cancelled = true;
     };
-  }, [shareUrl]);
+  }, [enabled, shareUrl]);
 
   return { dataUrl, error };
 }

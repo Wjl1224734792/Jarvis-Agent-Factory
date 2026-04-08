@@ -1,5 +1,14 @@
 import { APP_ROUTES, buildLoginRedirectUrl } from "@feijia/shared";
 
+type ProtectedRouteStatus = "idle" | "loading" | "authenticated" | "anonymous";
+
+export function shouldSuspendProtectedRoute(
+  status: ProtectedRouteStatus,
+  isBootstrapped: boolean
+) {
+  return !isBootstrapped || status === "idle" || status === "loading";
+}
+
 export function resolveProtectedRouteRedirect(input: {
   location: {
     pathname: string;

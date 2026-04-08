@@ -22,7 +22,8 @@ import { APP_ROUTES } from "@feijia/shared";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage } from "../lib/aviation-media";
-import { NOTIFICATIONS_QUERY_KEY } from "../features/auth/notification-state";
+import { useAuthStore } from "../features/auth/auth-store";
+import { getNotificationsQueryKey } from "../features/auth/notification-state";
 import { useNotifications } from "../features/auth/use-notifications";
 
 type NotificationItem = Awaited<ReturnType<typeof apiClient.listNotifications>>["items"][number];
@@ -168,7 +169,8 @@ function NotificationRow(props: {
 export function NotificationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const notificationsQuery = useNotifications();
+  const authUserId = useAuthStore((state) => state.user?.id ?? null);
+  const notificationsQuery = useNotifications(authUserId);
   const [actionError, setActionError] = useState<string | null>(null);
 
   const isInitialLoading = notificationsQuery.isLoading;
@@ -179,7 +181,7 @@ export function NotificationsPage() {
     payload?.items.filter((item) => item.type === "post_commented" || item.type === "comment_replied").length ?? 0;
 
   async function refreshNotifications() {
-    await queryClient.invalidateQueries({ queryKey: NOTIFICATIONS_QUERY_KEY });
+    await queryClient.invalidateQueries({ queryKey: getNotificationsQueryKey(authUserId) });
   }
 
   async function handleViewNotification(item: NotificationItem) {
