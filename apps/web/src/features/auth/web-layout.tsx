@@ -9,15 +9,17 @@ import {
   PlaneIcon,
   SearchIcon,
   Settings2Icon,
-  TrophyIcon
+  TrophyIcon,
+  XIcon
 } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
   Sheet,
+  SheetClose,
   SheetContent,
   SheetDescription,
   SheetHeader,
@@ -150,6 +152,58 @@ function NavButtons({
   );
 }
 
+function MobileSheetNavSectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <div className="px-4 pb-2 pt-5 text-[0.68rem] font-semibold uppercase tracking-[0.16em] text-muted-foreground/85 first:pt-3">
+      {children}
+    </div>
+  );
+}
+
+function MobileSheetNavRows({
+  items,
+  onNavigate,
+  unreadNotifications
+}: {
+  items: readonly { to: string; label: string; icon: typeof HouseIcon }[];
+  onNavigate?: () => void;
+  unreadNotifications?: number;
+}) {
+  return (
+    <nav className="flex flex-col gap-0.5 px-3 pb-1">
+      {items.map((item) => {
+        const Icon = item.icon;
+        const hasUnread = item.to === APP_ROUTES.notifications && (unreadNotifications ?? 0) > 0;
+
+        return (
+          <NavLink
+            className={({ isActive }) =>
+              cn(
+                "flex items-center gap-3 rounded-xl px-2.5 py-2.5 text-[0.9rem] font-medium tracking-tight transition-colors",
+                isActive
+                  ? "bg-primary/12 text-primary shadow-[inset_0_0_0_1px_oklch(0.57_0.164_251.2/0.22)]"
+                  : "text-foreground/82 hover:bg-sidebar-accent/90 hover:text-foreground",
+                hasUnread && !isActive && "text-foreground/90"
+              )
+            }
+            key={item.to}
+            onClick={onNavigate}
+            to={item.to}
+          >
+            <span className="relative inline-flex shrink-0">
+              <Icon className={cn("size-5", hasUnread && "text-red-500")} />
+              {hasUnread ? (
+                <span className="absolute -right-0.5 -top-0.5 size-2 rounded-full bg-red-500 ring-2 ring-sidebar" />
+              ) : null}
+            </span>
+            <span className="min-w-0 flex-1">{item.label}</span>
+          </NavLink>
+        );
+      })}
+    </nav>
+  );
+}
+
 export function WebLayout() {
   useBootstrapAuth();
 
@@ -206,32 +260,68 @@ export function WebLayout() {
                   <span className="sr-only">打开导航</span>
                 </Button>
               </SheetTrigger>
-              <SheetContent className="w-[88vw] max-w-sm border-r border-border/80 bg-background/96" side="left">
-                <SheetHeader className="px-0">
-                  <SheetTitle>{APP_NAME}</SheetTitle>
-                  <SheetDescription>首页、飞友圈、飞行器、榜单与个人入口</SheetDescription>
+              <SheetContent
+                className="flex h-full w-[min(92vw,20.5rem)] flex-col gap-0 border-r border-sidebar-border bg-sidebar p-0 shadow-[0_0_0_1px_oklch(0.89_0.012_242.8/0.5),12px_0_48px_-28px_rgba(15,23,42,0.2)]"
+                showCloseButton={false}
+                side="left"
+              >
+                <SheetHeader className="gap-0 border-b border-sidebar-border/90 bg-gradient-to-br from-primary/[0.07] via-sidebar to-sidebar p-0">
+                  <div className="flex items-start gap-3 px-4 pb-4 pt-5">
+                    <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-primary/18 bg-white shadow-[var(--shadow-soft)]">
+                      <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
+                    </div>
+                    <div className="min-w-0 flex-1 pr-2 pt-0.5">
+                      <SheetTitle className="text-left text-lg font-semibold tracking-tight text-sidebar-foreground">
+                        {APP_NAME}
+                      </SheetTitle>
+                      <p className="mt-1 text-[0.72rem] leading-snug text-muted-foreground">
+                        飞友圈 · 机型库 · 榜单 · 个人中心
+                      </p>
+                    </div>
+                    <SheetClose asChild>
+                      <Button
+                        className="mt-0.5 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                        size="icon-sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <XIcon className="size-4" />
+                        <span className="sr-only">关闭导航</span>
+                      </Button>
+                    </SheetClose>
+                  </div>
+                  <SheetDescription className="sr-only">
+                    首页、飞友圈、飞行器、榜单与个人入口
+                  </SheetDescription>
                 </SheetHeader>
-                <div className="flex flex-col gap-5 pt-4">
-                  <NavButtons
+
+                <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overscroll-contain">
+                  <MobileSheetNavSectionTitle>浏览</MobileSheetNavSectionTitle>
+                  <MobileSheetNavRows
                     items={navItems}
                     onNavigate={() => {
                       setIsMobileNavOpen(false);
                     }}
                   />
                   {authStatus === "authenticated" ? (
-                    <div className="rounded-[calc(var(--radius-control)+0.1rem)] border border-border/80 bg-surface-2/72 p-2">
-                      <div className="px-3 pb-2 pt-1 text-[0.72rem] font-semibold uppercase tracking-[0.22em] text-muted-foreground">
-                        我的
-                      </div>
-                      <NavButtons
+                    <>
+                      <div className="mx-4 my-3 h-px bg-gradient-to-r from-transparent via-border to-transparent" />
+                      <MobileSheetNavSectionTitle>我的</MobileSheetNavSectionTitle>
+                      <MobileSheetNavRows
                         items={memberNavItems}
                         onNavigate={() => {
                           setIsMobileNavOpen(false);
                         }}
                         unreadNotifications={unreadNotifications}
                       />
-                    </div>
+                    </>
                   ) : null}
+                </div>
+
+                <div className="border-t border-sidebar-border/80 bg-surface-1/90 px-4 py-3">
+                  <p className="text-center text-[0.65rem] font-medium tracking-[0.12em] text-muted-foreground">
+                    飞友与飞行器社区
+                  </p>
                 </div>
               </SheetContent>
             </Sheet>
