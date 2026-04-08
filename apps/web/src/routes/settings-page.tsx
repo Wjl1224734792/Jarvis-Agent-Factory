@@ -12,7 +12,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { AuthCaptchaChallenge } from "@/components/auth-captcha-challenge";
-import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
+import {
+  SitePage,
+  SitePageDescription,
+  SitePageHead,
+  SitePageTitle,
+  SitePanel,
+  SitePanelBody
+} from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
@@ -56,36 +63,127 @@ function trimUrl(value: string | null | undefined): string | undefined {
 
 function SettingsPageSkeleton() {
   return (
-    <SitePage>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)]">
-        <Skeleton className="h-[44rem] rounded-[1rem]" />
-        <div className="space-y-6">
-          <Skeleton className="h-[14rem] rounded-[1rem]" />
-          <Skeleton className="h-[18rem] rounded-[1rem]" />
+    <SitePage className="mx-auto w-full max-w-[76rem] gap-6">
+      <div className="space-y-2">
+        <Skeleton className="h-6 w-32 rounded-md" />
+        <Skeleton className="h-4 w-64 max-w-full rounded-md" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] xl:items-start">
+        <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border/60 bg-surface-2/80">
+          <Skeleton className="h-11 w-full rounded-none" />
+          <div className="divide-y divide-border/60 p-0">
+            <div className="px-4 py-4">
+              <Skeleton className="h-4 w-16" />
+              <Skeleton className="mt-3 h-28 w-28 rounded-full" />
+            </div>
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div className="flex gap-4 px-4 py-4" key={i}>
+                <Skeleton className="h-4 w-20 shrink-0" />
+                <Skeleton className="h-4 flex-1 rounded-md" />
+                <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
+              </div>
+            ))}
+          </div>
+        </div>
+        <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border/60 bg-surface-2/80">
+          <Skeleton className="h-11 w-full rounded-none" />
+          <div className="divide-y divide-border/60">
+            <div className="flex gap-4 px-4 py-4">
+              <Skeleton className="h-4 w-24 shrink-0" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
+            </div>
+            <div className="px-4 py-2">
+              <Skeleton className="h-3 w-12" />
+            </div>
+            <div className="flex gap-4 px-4 py-4">
+              <Skeleton className="h-4 w-28 shrink-0" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-8 w-14 shrink-0 rounded-full" />
+            </div>
+            <div className="flex gap-4 px-4 py-4">
+              <Skeleton className="h-4 w-20 shrink-0" />
+              <Skeleton className="h-4 flex-1" />
+              <Skeleton className="h-8 w-14 shrink-0 rounded-full" />
+            </div>
+            <Skeleton className="h-14 w-full rounded-none" />
+          </div>
         </div>
       </div>
     </SitePage>
   );
 }
 
-function SettingCard({
-  title,
+function SettingsPanel({ className, children }: { className?: string; children: ReactNode }) {
+  return (
+    <SitePanel
+      className={cn("overflow-hidden border border-border/60 shadow-[var(--shadow-soft)]", className)}
+      variant="muted"
+    >
+      {children}
+    </SitePanel>
+  );
+}
+
+function SettingsPanelHeader({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-b border-border/60 bg-muted/25 px-4 py-3">
+      <h2 className="text-sm font-semibold text-foreground">{children}</h2>
+    </div>
+  );
+}
+
+function SettingsSubsectionTitle({ children }: { children: ReactNode }) {
+  return (
+    <div className="border-y border-border/60 bg-muted/15 px-4 py-2.5">
+      <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function SettingsRow({
+  label,
   children,
-  action
+  action,
+  alignTop
 }: {
-  title: string;
+  label: string;
   children: ReactNode;
   action?: ReactNode;
+  alignTop?: boolean;
 }) {
   return (
-    <div className="rounded-2xl border border-border/70 bg-white px-5 py-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1">
-          <div className="text-sm font-medium text-foreground">{title}</div>
-          <div className="mt-3 min-w-0">{children}</div>
-        </div>
+    <div
+      className={cn(
+        "grid gap-2 px-4 py-3.5 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_auto] sm:gap-x-4",
+        alignTop ? "sm:items-start" : "sm:items-center"
+      )}
+    >
+      <div className="text-sm font-medium text-foreground">{label}</div>
+      <div className="min-w-0 text-sm leading-relaxed sm:col-span-1">{children}</div>
+      {action ? <div className="flex shrink-0 items-center gap-2 sm:justify-end">{action}</div> : null}
+    </div>
+  );
+}
+
+function SettingsAvatarSection({
+  title,
+  action,
+  children
+}: {
+  title: string;
+  action?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <div className="px-4 py-3.5">
+      <div className="flex items-center justify-between gap-3">
+        <div className="text-sm font-medium text-foreground">{title}</div>
         {action ? <div className="shrink-0">{action}</div> : null}
       </div>
+      <div className="mt-3">{children}</div>
     </div>
   );
 }
@@ -374,7 +472,12 @@ export function SettingsPage() {
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-6">
+    <SitePage className="mx-auto w-full max-w-[76rem] gap-6">
+      <SitePageHead>
+        <SitePageTitle>设置</SitePageTitle>
+        <SitePageDescription>管理公开资料、账号安全与通知偏好。</SitePageDescription>
+      </SitePageHead>
+
       {profileQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>设置加载失败</AlertTitle>
@@ -389,303 +492,316 @@ export function SettingsPage() {
         </Alert>
       ) : null}
 
-      <div className="mx-auto grid w-full max-w-[76rem] gap-8 xl:grid-cols-[minmax(0,1fr)_minmax(0,0.92fr)] xl:items-start">
-        <section className="space-y-4">
-          <div className="text-lg font-semibold text-foreground">公开资料</div>
-
-          <SettingCard
-            action={
-              <Button
-                disabled={savingField === "avatar" || profileQuery.isFetching}
-                onClick={() => avatarInputRef.current?.click()}
-                size="sm"
-                type="button"
-                variant="outline"
-              >
-                <CameraIcon data-icon="inline-start" />
-                {savingField === "avatar" ? "保存中..." : "编辑"}
-              </Button>
-            }
-            title="头像"
-          >
-            <div className="flex flex-wrap items-center gap-5">
-              {profileLoading ? (
-                <Skeleton className="h-28 w-28 rounded-full md:h-32 md:w-32" />
-              ) : (
-                <UserAvatar
-                  className="!h-28 !w-28 md:!h-32 md:!w-32"
-                  displayName={displayName}
-                  size="lg"
-                  src={resolvedAvatarSrc}
-                />
-              )}
-              <div className="text-sm leading-6 text-muted-foreground">
-                建议使用清晰的方形头像。选择图片后会自动保存到账号资料。
-              </div>
-              <input
-                accept="image/*"
-                className="hidden"
-                onChange={(event) => {
-                  const file = event.target.files?.[0];
-                  if (file) {
-                    void uploadAvatar(file);
-                  }
-                }}
-                ref={avatarInputRef}
-                type="file"
-              />
-            </div>
-          </SettingCard>
-
-          <SettingCard
-            action={
-              editingField === "displayName" ? (
-                <div className="flex gap-2">
-                  <Button onClick={() => cancelEdit("displayName")} size="sm" type="button" variant="ghost">
-                    取消
-                  </Button>
-                  <Button
-                    disabled={savingField === "displayName"}
-                    onClick={() => {
-                      void saveProfileField("displayName");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="hero"
-                  >
-                    {savingField === "displayName" ? "保存中..." : "保存"}
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={() => beginEdit("displayName")} size="sm" type="button" variant="outline">
-                  <PencilLineIcon data-icon="inline-start" />
-                  编辑
-                </Button>
-              )
-            }
-            title="昵称"
-          >
-            {editingField === "displayName" ? (
-              <Input
-                id="settings-display-name"
-                maxLength={24}
-                onChange={(event) => {
-                  setDraft((current) => updateSettingsTextField(current, "displayName", event.target.value));
-                }}
-                value={draft.displayName}
-              />
-            ) : (
-              <div className="text-base font-semibold text-foreground">{displayName}</div>
-            )}
-          </SettingCard>
-
-          <SettingCard
-            action={
-              editingField === "bio" ? (
-                <div className="flex gap-2">
-                  <Button onClick={() => cancelEdit("bio")} size="sm" type="button" variant="ghost">
-                    取消
-                  </Button>
-                  <Button
-                    disabled={savingField === "bio"}
-                    onClick={() => {
-                      void saveProfileField("bio");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="hero"
-                  >
-                    {savingField === "bio" ? "保存中..." : "保存"}
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={() => beginEdit("bio")} size="sm" type="button" variant="outline">
-                  <PencilLineIcon data-icon="inline-start" />
-                  编辑
-                </Button>
-              )
-            }
-            title="个人简介"
-          >
-            {editingField === "bio" ? (
-              <div className="relative">
-                <Textarea
-                  className="min-h-28 resize-none pb-8"
-                  id="settings-bio"
-                  maxLength={MAX_BIO_LENGTH}
-                  onChange={(event) => {
-                    setDraft((current) =>
-                      updateSettingsTextField(current, "bio", event.target.value.slice(0, MAX_BIO_LENGTH))
-                    );
-                  }}
-                  value={draft.bio}
-                />
-                <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
-                  {draft.bio.length}/{MAX_BIO_LENGTH}
-                </div>
-              </div>
-            ) : (
-              <div className="text-sm leading-6 text-muted-foreground">
-                {draft.bio.trim() || "还没有填写个人简介。"}
-              </div>
-            )}
-          </SettingCard>
-
-          <SettingCard
-            action={
-              editingField === "profileVisibility" ? (
-                <div className="flex gap-2">
-                  <Button onClick={() => cancelEdit("profileVisibility")} size="sm" type="button" variant="ghost">
-                    取消
-                  </Button>
-                  <Button
-                    disabled={savingField === "profileVisibility"}
-                    onClick={() => {
-                      void saveProfileField("profileVisibility");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant="hero"
-                  >
-                    {savingField === "profileVisibility" ? "保存中..." : "保存"}
-                  </Button>
-                </div>
-              ) : (
-                <Button onClick={() => beginEdit("profileVisibility")} size="sm" type="button" variant="outline">
-                  <PencilLineIcon data-icon="inline-start" />
-                  编辑
-                </Button>
-              )
-            }
-            title="可见范围"
-          >
-            {editingField === "profileVisibility" ? (
-              <div className="grid gap-3 md:grid-cols-3">
-                {visibilityOptions.map((option) => {
-                  const selected = draft.profileVisibility === option;
-                  return (
-                    <button
-                      className={cn(
-                        "rounded-xl px-4 py-4 text-left transition",
-                        selected ? "bg-primary/8 ring-2 ring-primary/35" : "bg-muted/25 hover:bg-muted/40"
-                      )}
-                      key={option}
-                      onClick={() => {
-                        setDraft((current) => setProfileVisibility(current, option));
-                      }}
-                      type="button"
-                    >
-                      <div className="text-sm font-medium text-foreground">{profileVisibilityLabel(option)}</div>
-                      <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                        {profileVisibilityDescription(option)}
-                      </div>
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-foreground">
-                  {profileVisibilityLabel(draft.profileVisibility)}
-                </div>
-                <div className="text-sm leading-6 text-muted-foreground">
-                  {profileVisibilityDescription(draft.profileVisibility)}
-                </div>
-              </div>
-            )}
-          </SettingCard>
-        </section>
-
-        <div className="space-y-8 xl:pt-[0.2rem]">
-          <section className="space-y-4">
-            <div className="text-lg font-semibold text-foreground">账号与安全</div>
-
-            <SettingCard
+      <div className="grid w-full gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] xl:items-start">
+        <SettingsPanel>
+          <SettingsPanelHeader>公开资料</SettingsPanelHeader>
+          <div className="divide-y divide-border/60">
+            <SettingsAvatarSection
               action={
                 <Button
+                  className="rounded-full"
+                  disabled={savingField === "avatar" || profileQuery.isFetching}
+                  onClick={() => avatarInputRef.current?.click()}
+                  size="sm"
+                  type="button"
+                  variant="ghost"
+                >
+                  <CameraIcon data-icon="inline-start" />
+                  {savingField === "avatar" ? "保存中..." : "编辑"}
+                </Button>
+              }
+              title="头像"
+            >
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+                {profileLoading ? (
+                  <Skeleton className="h-28 w-28 shrink-0 rounded-full md:h-32 md:w-32" />
+                ) : (
+                  <UserAvatar
+                    className="!h-28 !w-28 shrink-0 md:!h-32 md:!w-32"
+                    displayName={displayName}
+                    size="lg"
+                    src={resolvedAvatarSrc}
+                  />
+                )}
+                <div className="min-w-0 text-sm leading-6 text-muted-foreground">
+                  建议使用清晰的方形头像。选择图片后会自动保存到账号资料。
+                </div>
+                <input
+                  accept="image/*"
+                  aria-label="上传头像图片"
+                  className="hidden"
+                  onChange={(event) => {
+                    const file = event.target.files?.[0];
+                    if (file) {
+                      void uploadAvatar(file);
+                    }
+                  }}
+                  ref={avatarInputRef}
+                  type="file"
+                />
+              </div>
+            </SettingsAvatarSection>
+
+            <SettingsRow
+              action={
+                editingField === "displayName" ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => cancelEdit("displayName")} size="sm" type="button" variant="ghost">
+                      取消
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      disabled={savingField === "displayName"}
+                      onClick={() => {
+                        void saveProfileField("displayName");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="hero"
+                    >
+                      {savingField === "displayName" ? "保存中..." : "保存"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="rounded-full"
+                    onClick={() => beginEdit("displayName")}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <PencilLineIcon data-icon="inline-start" />
+                    编辑
+                  </Button>
+                )
+              }
+              label="昵称"
+            >
+              {editingField === "displayName" ? (
+                <Input
+                  id="settings-display-name"
+                  maxLength={24}
+                  onChange={(event) => {
+                    setDraft((current) => updateSettingsTextField(current, "displayName", event.target.value));
+                  }}
+                  value={draft.displayName}
+                />
+              ) : (
+                <div className="text-base font-semibold text-foreground">{displayName}</div>
+              )}
+            </SettingsRow>
+
+            <SettingsRow
+              action={
+                editingField === "bio" ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => cancelEdit("bio")} size="sm" type="button" variant="ghost">
+                      取消
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      disabled={savingField === "bio"}
+                      onClick={() => {
+                        void saveProfileField("bio");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="hero"
+                    >
+                      {savingField === "bio" ? "保存中..." : "保存"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button className="rounded-full" onClick={() => beginEdit("bio")} size="sm" type="button" variant="ghost">
+                    <PencilLineIcon data-icon="inline-start" />
+                    编辑
+                  </Button>
+                )
+              }
+              alignTop
+              label="个人简介"
+            >
+              {editingField === "bio" ? (
+                <div className="relative">
+                  <Textarea
+                    className="min-h-28 resize-none pb-8"
+                    id="settings-bio"
+                    maxLength={MAX_BIO_LENGTH}
+                    onChange={(event) => {
+                      setDraft((current) =>
+                        updateSettingsTextField(current, "bio", event.target.value.slice(0, MAX_BIO_LENGTH))
+                      );
+                    }}
+                    value={draft.bio}
+                  />
+                  <div className="pointer-events-none absolute bottom-3 right-3 text-xs text-muted-foreground">
+                    {draft.bio.length}/{MAX_BIO_LENGTH}
+                  </div>
+                </div>
+              ) : (
+                <div className="text-muted-foreground">
+                  {draft.bio.trim() || "还没有填写个人简介。"}
+                </div>
+              )}
+            </SettingsRow>
+
+            <SettingsRow
+              action={
+                editingField === "profileVisibility" ? (
+                  <div className="flex flex-wrap gap-2">
+                    <Button onClick={() => cancelEdit("profileVisibility")} size="sm" type="button" variant="ghost">
+                      取消
+                    </Button>
+                    <Button
+                      className="rounded-full"
+                      disabled={savingField === "profileVisibility"}
+                      onClick={() => {
+                        void saveProfileField("profileVisibility");
+                      }}
+                      size="sm"
+                      type="button"
+                      variant="hero"
+                    >
+                      {savingField === "profileVisibility" ? "保存中..." : "保存"}
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    className="rounded-full"
+                    onClick={() => beginEdit("profileVisibility")}
+                    size="sm"
+                    type="button"
+                    variant="ghost"
+                  >
+                    <PencilLineIcon data-icon="inline-start" />
+                    编辑
+                  </Button>
+                )
+              }
+              alignTop={editingField === "profileVisibility"}
+              label="可见范围"
+            >
+              {editingField === "profileVisibility" ? (
+                <div className="grid gap-3 md:grid-cols-3">
+                  {visibilityOptions.map((option) => {
+                    const selected = draft.profileVisibility === option;
+                    return (
+                      <button
+                        className={cn(
+                          "rounded-xl px-4 py-4 text-left transition",
+                          selected ? "bg-primary/8 ring-2 ring-primary/35" : "bg-muted/25 hover:bg-muted/40"
+                        )}
+                        key={option}
+                        onClick={() => {
+                          setDraft((current) => setProfileVisibility(current, option));
+                        }}
+                        type="button"
+                      >
+                        <div className="text-sm font-medium text-foreground">{profileVisibilityLabel(option)}</div>
+                        <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                          {profileVisibilityDescription(option)}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="space-y-1">
+                  <div className="font-medium text-foreground">{profileVisibilityLabel(draft.profileVisibility)}</div>
+                  <div className="text-muted-foreground">{profileVisibilityDescription(draft.profileVisibility)}</div>
+                </div>
+              )}
+            </SettingsRow>
+          </div>
+        </SettingsPanel>
+
+        <SettingsPanel className="xl:pt-[0.15rem]">
+          <SettingsPanelHeader>账号与安全</SettingsPanelHeader>
+          <div className="divide-y divide-border/60">
+            <SettingsRow
+              action={
+                <Button
+                  className="rounded-full"
                   onClick={() => {
                     setPhoneActionError(null);
                     setIsPhoneDialogOpen(true);
                   }}
                   size="sm"
                   type="button"
-                  variant="outline"
+                  variant="ghost"
                 >
                   <ShieldCheckIcon data-icon="inline-start" />
                   编辑
                 </Button>
               }
-              title="绑定手机"
+              label="绑定手机"
             >
               <div className="space-y-1">
                 <div className="text-base font-semibold text-foreground">
                   {resolveMaskedPhone(draft.phone || null, draft.phoneMasked)}
                 </div>
-                <div className="text-sm leading-6 text-muted-foreground">
+                <div className="text-muted-foreground">
                   仅展示脱敏手机号，修改时会通过短信验证码完成校验。
                 </div>
               </div>
-            </SettingCard>
-          </section>
+            </SettingsRow>
+          </div>
 
-          <section className="space-y-4">
-            <div className="text-lg font-semibold text-foreground">通知</div>
-            <div className="space-y-6">
-              <SettingCard
-                action={
-                  <Button
-                    disabled={savingField === "notifyComments"}
-                    onClick={() => {
-                      void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={draft.notifyComments ? "panel" : "outline"}
-                  >
-                    {savingField === "notifyComments" ? "保存中..." : draft.notifyComments ? "开启" : "关闭"}
-                  </Button>
-                }
-                title="评论与回复提醒"
-              >
-                <div className="text-sm leading-6 text-muted-foreground">
-                  当有人评论或回复你时，消息中心优先显示。
-                </div>
-              </SettingCard>
+          <SettingsSubsectionTitle>通知</SettingsSubsectionTitle>
+          <div className="divide-y divide-border/60">
+            <SettingsRow
+              action={
+                <Button
+                  className="rounded-full"
+                  disabled={savingField === "notifyComments"}
+                  onClick={() => {
+                    void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
+                  }}
+                  size="sm"
+                  type="button"
+                  variant={draft.notifyComments ? "default" : "outline"}
+                >
+                  {savingField === "notifyComments" ? "保存中..." : draft.notifyComments ? "开启" : "关闭"}
+                </Button>
+              }
+              label="评论与回复提醒"
+            >
+              <div className="text-muted-foreground">当有人评论或回复你时，消息中心优先显示。</div>
+            </SettingsRow>
 
-              <SettingCard
-                action={
-                  <Button
-                    disabled={savingField === "notifyMentions"}
-                    onClick={() => {
-                      void toggleNotificationField("notifyMentions", "提及提醒已更新");
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={draft.notifyMentions ? "panel" : "outline"}
-                  >
-                    {savingField === "notifyMentions" ? "保存中..." : draft.notifyMentions ? "开启" : "关闭"}
-                  </Button>
-                }
-                title="提及提醒"
-              >
-                <div className="text-sm leading-6 text-muted-foreground">
-                  当有人在帖子、榜单或评论中提及你时提醒。
-                </div>
-              </SettingCard>
-            </div>
-          </section>
+            <SettingsRow
+              action={
+                <Button
+                  className="rounded-full"
+                  disabled={savingField === "notifyMentions"}
+                  onClick={() => {
+                    void toggleNotificationField("notifyMentions", "提及提醒已更新");
+                  }}
+                  size="sm"
+                  type="button"
+                  variant={draft.notifyMentions ? "default" : "outline"}
+                >
+                  {savingField === "notifyMentions" ? "保存中..." : draft.notifyMentions ? "开启" : "关闭"}
+                </Button>
+              }
+              label="提及提醒"
+            >
+              <div className="text-muted-foreground">当有人在帖子、榜单或评论中提及你时提醒。</div>
+            </SettingsRow>
+          </div>
 
-          <div className="flex flex-wrap items-center gap-3 pt-1">
-            <Button asChild size="sm" type="button" variant="outline">
+          <div className="flex flex-wrap gap-2 border-t border-border/60 bg-muted/10 px-4 py-3">
+            <Button asChild size="sm" type="button" variant="ghost">
               <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
             </Button>
-            <Button asChild size="sm" type="button" variant="outline">
+            <Button asChild size="sm" type="button" variant="ghost">
               <Link to={APP_ROUTES.notifications}>
                 <BellIcon data-icon="inline-start" />
                 查看消息
               </Link>
             </Button>
             <Button
+              className="rounded-full"
               onClick={() => {
                 void apiClient
                   .logout()
@@ -705,7 +821,7 @@ export function SettingsPage() {
               退出登录
             </Button>
           </div>
-        </div>
+        </SettingsPanel>
       </div>
 
       {isPhoneDialogOpen ? (

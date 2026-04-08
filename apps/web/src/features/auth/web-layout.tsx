@@ -100,13 +100,7 @@ function ShellBrand() {
         <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
       </div>
       <div className="min-w-0">
-        <div className="xl:hidden">
-          <div className="text-[0.78rem] font-semibold leading-none tracking-tight text-primary">{APP_NAME}</div>
-          <div className="mt-0.5 truncate text-[0.65rem] leading-snug text-muted-foreground">
-            飞友与飞行器社区
-          </div>
-        </div>
-        <div className="hidden text-[0.9rem] font-semibold tracking-[0.08em] text-primary xl:block">
+        <div className="truncate text-[0.82rem] font-semibold leading-tight tracking-tight text-primary xl:text-[0.9rem] xl:tracking-[0.08em]">
           飞友与飞行器社区
         </div>
       </div>
@@ -257,7 +251,7 @@ export function WebLayout() {
   return (
     <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
       <header className="sticky top-0 z-40 border-b border-border/50 bg-background/92 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-[var(--page-width)] items-center justify-between gap-2 px-4 sm:gap-3 xl:gap-4 xl:px-5">
+        <div className="flex h-14 w-full items-center justify-between gap-2 px-3 sm:gap-3 sm:px-4 xl:gap-4 xl:px-5">
           <div className="flex min-w-0 flex-1 items-center gap-1 sm:gap-2 xl:min-w-0 xl:flex-none xl:gap-3">
             <Sheet onOpenChange={setIsMobileNavOpen} open={isMobileNavOpen}>
               <SheetTrigger asChild>
