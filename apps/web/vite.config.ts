@@ -24,6 +24,44 @@ function parseDevPort(value: string | undefined, fallback: number): number {
   return n;
 }
 
+function isNodeModule(id: string) {
+  return id.includes("/node_modules/") || id.includes("\\node_modules\\");
+}
+
+function buildWebManualChunk(id: string) {
+  if (!isNodeModule(id)) {
+    return undefined;
+  }
+
+  if (id.includes("@tiptap/")) {
+    return "editor-vendor";
+  }
+  if (
+    id.includes("react-router-dom") ||
+    id.includes("@tanstack/react-query") ||
+    id.includes("zustand")
+  ) {
+    return "app-shell-vendor";
+  }
+  if (
+    id.includes("/react/") ||
+    id.includes("\\react\\") ||
+    id.includes("react-dom") ||
+    id.includes("scheduler")
+  ) {
+    return "react-vendor";
+  }
+  if (
+    id.includes("lucide-react") ||
+    id.includes("qrcode") ||
+    id.includes("dompurify")
+  ) {
+    return "utility-vendor";
+  }
+
+  return "vendor";
+}
+
 export default defineConfig(({ mode }) => {
   const repoRoot = path.resolve(__dirname, "../..");
   const mergedEnv = {
@@ -55,6 +93,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: devPort,
       host: devHost
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: buildWebManualChunk
+        }
+      }
     }
   };
 });

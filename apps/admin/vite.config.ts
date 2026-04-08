@@ -17,6 +17,52 @@ function parseDevPort(value: string | undefined, fallback: number): number {
   return n;
 }
 
+function isNodeModule(id: string) {
+  return id.includes("/node_modules/") || id.includes("\\node_modules\\");
+}
+
+function buildAdminManualChunk(id: string) {
+  if (!isNodeModule(id)) {
+    return undefined;
+  }
+
+  if (id.includes("@antv/")) {
+    return "antv-vendor";
+  }
+  if (id.includes("@ant-design/plots")) {
+    return "charts-vendor";
+  }
+  if (id.includes("@ant-design/icons")) {
+    return "icons-vendor";
+  }
+  if (id.includes("/rc-") || id.includes("\\rc-")) {
+    return "antd-rc-vendor";
+  }
+  if (
+    id.includes("/antd/") ||
+    id.includes("\\antd\\") ||
+    id.includes("@ant-design")
+  ) {
+    return "antd-vendor";
+  }
+  if (
+    id.includes("react-router-dom") ||
+    id.includes("@tanstack/react-query")
+  ) {
+    return "admin-shell-vendor";
+  }
+  if (
+    id.includes("/react/") ||
+    id.includes("\\react\\") ||
+    id.includes("react-dom") ||
+    id.includes("scheduler")
+  ) {
+    return "react-vendor";
+  }
+
+  return "vendor";
+}
+
 export default defineConfig(({ mode }) => {
   const repoRoot = path.resolve(__dirname, "../..");
   const mergedEnv = {
@@ -36,6 +82,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: devPort,
       host: devHost
+    },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: buildAdminManualChunk
+        }
+      }
     }
   };
 });

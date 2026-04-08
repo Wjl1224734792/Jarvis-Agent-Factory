@@ -135,9 +135,9 @@ export function AdminOverviewPage() {
       { domain: "机型投稿", status: "待审", value: analytics.moderation.submissions.pending },
       { domain: "机型投稿", status: "通过", value: analytics.moderation.submissions.approved },
       { domain: "机型投稿", status: "驳回/隐藏", value: analytics.funnel.submissions.rejectedOrHidden },
-      { domain: "榜单", status: "待审", value: analytics.moderation.posts.pending },
-      { domain: "榜单", status: "通过", value: analytics.moderation.posts.approved },
-      { domain: "榜单", status: "驳回/隐藏", value: analytics.funnel.posts.rejectedOrHidden },
+      { domain: "榜单", status: "待审", value: analytics.moderation.rankings.pending },
+      { domain: "榜单", status: "通过", value: analytics.moderation.rankings.approved },
+      { domain: "榜单", status: "驳回/隐藏", value: analytics.funnel.rankings.rejectedOrHidden },
       { domain: "评分对象", status: "待审", value: analytics.moderation.ratingTargets.pending },
       { domain: "评分对象", status: "通过", value: analytics.moderation.ratingTargets.approved },
       { domain: "评分对象", status: "驳回/隐藏", value: analytics.funnel.ratingTargets.rejectedOrHidden }
@@ -209,7 +209,7 @@ export function AdminOverviewPage() {
       title: "文章审核",
       description: "文章发布队列单独查看，不再和飞友圈动态混在一起。",
       enabled: siteSettings?.articleModerationEnabled ?? true,
-      pendingCount: analytics?.moderation.posts.pending ?? 0,
+      pendingCount: analytics?.totals.pendingRankings ?? 0,
       onEnable: async () => updateSiteSettings({ articleModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ articleModerationEnabled: false })
     },

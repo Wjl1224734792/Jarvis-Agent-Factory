@@ -1343,6 +1343,10 @@ describe.sequential("posts and social flows", () => {
           comments: { pending: number; approved: number; rejected: number; hidden: number };
           reviews: { pending: number; approved: number; rejected: number; hidden: number };
           submissions: { pending: number; approved: number; rejected: number; hidden: number };
+          rankings: { pending: number; approved: number; rejected: number; hidden: number };
+        };
+        totals: {
+          pendingRankings: number;
         };
         series: {
           registrationDaily: Array<{ periodStart: string; value: number }>;
@@ -1366,6 +1370,8 @@ describe.sequential("posts and social flows", () => {
     expect(payload.item.moderation.posts.approved).toBe(6);
     expect(payload.item.moderation.posts.rejected).toBe(1);
     expect(payload.item.moderation.posts.hidden).toBe(1);
+    expect(payload.item.moderation.rankings.pending).toBe(0);
+    expect(payload.item.totals.pendingRankings).toBe(0);
     expect(payload.item.series.registrationDaily).toHaveLength(30);
     expect(payload.item.series.registrationMonthly).toHaveLength(12);
     expect(payload.item.series.registrationYearly).toHaveLength(5);

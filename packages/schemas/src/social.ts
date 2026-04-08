@@ -268,6 +268,7 @@ export const adminAnalyticsOverviewSchema = z.object({
     pendingComments: adminAnalyticsCountSchema,
     pendingReviews: adminAnalyticsCountSchema,
     pendingSubmissions: adminAnalyticsCountSchema,
+    pendingRankings: adminAnalyticsCountSchema.default(0),
     pendingBrandApplications: adminAnalyticsCountSchema.default(0),
     pendingRatingTargets: adminAnalyticsCountSchema.default(0)
   }),
@@ -307,6 +308,13 @@ export const adminAnalyticsOverviewSchema = z.object({
     comments: adminAnalyticsModerationBucketSchema,
     reviews: adminAnalyticsModerationBucketSchema,
     submissions: adminAnalyticsModerationBucketSchema,
+    rankings: adminAnalyticsModerationBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejected: 0,
+      hidden: 0
+    }),
     brandApplications: adminAnalyticsModerationBucketSchema.default({
       queueEntered: 0,
       pending: 0,
@@ -327,6 +335,12 @@ export const adminAnalyticsOverviewSchema = z.object({
     comments: adminAnalyticsFunnelBucketSchema,
     reviews: adminAnalyticsFunnelBucketSchema,
     submissions: adminAnalyticsFunnelBucketSchema,
+    rankings: adminAnalyticsFunnelBucketSchema.default({
+      queueEntered: 0,
+      pending: 0,
+      approved: 0,
+      rejectedOrHidden: 0
+    }),
     brandApplications: adminAnalyticsFunnelBucketSchema.default({
       queueEntered: 0,
       pending: 0,

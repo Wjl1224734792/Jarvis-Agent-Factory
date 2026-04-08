@@ -198,6 +198,7 @@ export const adminAnalyticsService = {
       comments,
       reviews,
       submissions,
+      rankingRecords,
       brandApplications,
       rankingItems,
       allUsersCountRows,
@@ -247,6 +248,11 @@ export const adminAnalyticsService = {
         .from(aircraftSubmissionsTable),
       db
         .select({
+          status: rankingsTable.status
+        })
+        .from(rankingsTable),
+      db
+        .select({
           status: brandApplicationsTable.status
         })
         .from(brandApplicationsTable),
@@ -281,6 +287,7 @@ export const adminAnalyticsService = {
     const commentRows = comments.map((item) => ({ status: item.status }));
     const reviewRows = reviews.map((item) => ({ status: item.status }));
     const submissionRows = submissions.map((item) => ({ status: item.status }));
+    const rankingRows = rankingRecords.map((item) => ({ status: item.status }));
     const brandApplicationRows = brandApplications.map((item) => ({ status: item.status }));
     const rankingItemRows = rankingItems.map((item) => ({ status: item.status }));
 
@@ -314,6 +321,12 @@ export const adminAnalyticsService = {
       rejected: ["rejected"],
       hidden: []
     });
+    const rankingsModeration = moderationFromRows(rankingRows, {
+      pending: ["pending"],
+      approved: ["published"],
+      rejected: ["rejected"],
+      hidden: ["hidden"]
+    });
     const brandApplicationsModeration = moderationFromRows(brandApplicationRows, {
       pending: ["pending"],
       approved: ["approved"],
@@ -345,13 +358,17 @@ export const adminAnalyticsService = {
           postsModeration.pending +
           commentsModeration.pending +
           reviewsModeration.pending +
-          submissionsModeration.pending,
+          submissionsModeration.pending +
+          rankingsModeration.pending +
+          brandApplicationsModeration.pending +
+          rankingItemsModeration.pending,
         pendingPosts: postsModeration.pending,
         pendingComments: commentsModeration.pending,
         pendingReviews: reviewsModeration.pending,
         pendingSubmissions: submissionsModeration.pending,
+        pendingRankings: rankingsModeration.pending,
         pendingBrandApplications: brandApplicationsModeration.pending,
-        pendingRankingItems: rankingItemsModeration.pending
+        pendingRatingTargets: rankingItemsModeration.pending
       },
       registration: {
         total: allUsersTotal,
@@ -389,16 +406,18 @@ export const adminAnalyticsService = {
         comments: commentsModeration,
         reviews: reviewsModeration,
         submissions: submissionsModeration,
+        rankings: rankingsModeration,
         brandApplications: brandApplicationsModeration,
-        rankingItems: rankingItemsModeration
+        ratingTargets: rankingItemsModeration
       },
       funnel: {
         posts: buildFunnelBucket(postsModeration),
         comments: buildFunnelBucket(commentsModeration),
         reviews: buildFunnelBucket(reviewsModeration),
         submissions: buildFunnelBucket(submissionsModeration),
+        rankings: buildFunnelBucket(rankingsModeration),
         brandApplications: buildFunnelBucket(brandApplicationsModeration),
-        rankingItems: buildFunnelBucket(rankingItemsModeration)
+        ratingTargets: buildFunnelBucket(rankingItemsModeration)
       },
       series: {
         registrationDaily: buildDailyRegistrationSeries(registrationRecords, now),

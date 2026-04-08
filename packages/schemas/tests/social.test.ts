@@ -155,7 +155,10 @@ describe("social contract", () => {
           pendingPosts: 1,
           pendingComments: 3,
           pendingReviews: 2,
-          pendingSubmissions: 4
+          pendingSubmissions: 4,
+          pendingRankings: 2,
+          pendingBrandApplications: 1,
+          pendingRatingTargets: 3
         },
         registration: {
           total: 42,
@@ -192,13 +195,19 @@ describe("social contract", () => {
           posts: { queueEntered: 16, pending: 1, approved: 12, rejected: 2, hidden: 1 },
           comments: { queueEntered: 25, pending: 3, approved: 20, rejected: 0, hidden: 2 },
           reviews: { queueEntered: 12, pending: 2, approved: 9, rejected: 0, hidden: 1 },
-          submissions: { queueEntered: 10, pending: 4, approved: 5, rejected: 1, hidden: 0 }
+          submissions: { queueEntered: 10, pending: 4, approved: 5, rejected: 1, hidden: 0 },
+          rankings: { queueEntered: 8, pending: 2, approved: 4, rejected: 1, hidden: 1 },
+          brandApplications: { queueEntered: 6, pending: 1, approved: 3, rejected: 1, hidden: 1 },
+          ratingTargets: { queueEntered: 7, pending: 3, approved: 2, rejected: 1, hidden: 1 }
         },
         funnel: {
           posts: { queueEntered: 16, pending: 1, approved: 12, rejectedOrHidden: 3 },
           comments: { queueEntered: 25, pending: 3, approved: 20, rejectedOrHidden: 2 },
           reviews: { queueEntered: 12, pending: 2, approved: 9, rejectedOrHidden: 1 },
-          submissions: { queueEntered: 10, pending: 4, approved: 5, rejectedOrHidden: 1 }
+          submissions: { queueEntered: 10, pending: 4, approved: 5, rejectedOrHidden: 1 },
+          rankings: { queueEntered: 8, pending: 2, approved: 4, rejectedOrHidden: 2 },
+          brandApplications: { queueEntered: 6, pending: 1, approved: 3, rejectedOrHidden: 2 },
+          ratingTargets: { queueEntered: 7, pending: 3, approved: 2, rejectedOrHidden: 2 }
         },
         series: {
           registrationDaily: point30,

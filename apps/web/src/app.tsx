@@ -3,25 +3,73 @@ import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { PublishFormSkeleton } from "./components/page-skeletons";
-import { LoginPage } from "./features/auth/login-page";
-import { ProfilePage } from "./features/auth/profile-page";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
 import { WEB_ROUTE_PATHS } from "./lib/web-routes";
 import { CirclePage } from "./routes/circle-page";
 import { HomePage } from "./routes/home-page";
-import { ModelDetailPage } from "./routes/model-detail-page";
-import { ModelsPage } from "./routes/models-page";
-import { NotificationsPage } from "./routes/notifications-page";
-import { PostDetailPage } from "./routes/post-detail-page";
-import { PublishStatusPage } from "./routes/publish-status-page";
-import { RankingDetailPage } from "./routes/ranking-detail-page";
-import { RatingTargetDetailPage } from "./routes/rating-target-detail-page";
-import { RankingsPage } from "./routes/rankings-page";
-import { SettingsPage } from "./routes/settings-page";
-import { UserProfilePage } from "./routes/user-profile-page";
 
+const LoginPage = lazy(() =>
+  import("./features/auth/login-page").then((module) => ({
+    default: module.LoginPage
+  }))
+);
+const ProfilePage = lazy(() =>
+  import("./features/auth/profile-page").then((module) => ({
+    default: module.ProfilePage
+  }))
+);
+const ModelDetailPage = lazy(() =>
+  import("./routes/model-detail-page").then((module) => ({
+    default: module.ModelDetailPage
+  }))
+);
+const ModelsPage = lazy(() =>
+  import("./routes/models-page").then((module) => ({
+    default: module.ModelsPage
+  }))
+);
+const NotificationsPage = lazy(() =>
+  import("./routes/notifications-page").then((module) => ({
+    default: module.NotificationsPage
+  }))
+);
+const PostDetailPage = lazy(() =>
+  import("./routes/post-detail-page").then((module) => ({
+    default: module.PostDetailPage
+  }))
+);
+const PublishStatusPage = lazy(() =>
+  import("./routes/publish-status-page").then((module) => ({
+    default: module.PublishStatusPage
+  }))
+);
+const RankingDetailPage = lazy(() =>
+  import("./routes/ranking-detail-page").then((module) => ({
+    default: module.RankingDetailPage
+  }))
+);
+const RatingTargetDetailPage = lazy(() =>
+  import("./routes/rating-target-detail-page").then((module) => ({
+    default: module.RatingTargetDetailPage
+  }))
+);
+const RankingsPage = lazy(() =>
+  import("./routes/rankings-page").then((module) => ({
+    default: module.RankingsPage
+  }))
+);
+const SettingsPage = lazy(() =>
+  import("./routes/settings-page").then((module) => ({
+    default: module.SettingsPage
+  }))
+);
+const UserProfilePage = lazy(() =>
+  import("./routes/user-profile-page").then((module) => ({
+    default: module.UserProfilePage
+  }))
+);
 const PublishArticlePage = lazy(() =>
   import("./routes/publish-article-page").then((module) => ({
     default: module.PublishArticlePage
@@ -57,6 +105,20 @@ function withPublishFallback(children: ReactNode) {
   return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
 }
 
+function withRouteFallback(children: ReactNode) {
+  return (
+    <Suspense
+      fallback={
+        <div className="rounded-3xl border border-slate-200 bg-white p-8 text-sm text-slate-600 shadow-sm">
+          页面加载中...
+        </div>
+      }
+    >
+      {children}
+    </Suspense>
+  );
+}
+
 // Web 端路由把“公共浏览”和“需登录的个人区”放在同一个壳层里，靠 ProtectedRoute 做权限切分。
 const router = createBrowserRouter([
   {
@@ -77,11 +139,11 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.webLogin),
-        element: <LoginPage />
+        element: withRouteFallback(<LoginPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.webProfile),
-        element: (
+        element: withRouteFallback(
           <ProtectedRoute>
             <ProfilePage />
           </ProtectedRoute>
@@ -89,7 +151,7 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.webSettings),
-        element: (
+        element: withRouteFallback(
           <ProtectedRoute>
             <SettingsPage />
           </ProtectedRoute>
@@ -97,11 +159,11 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.webUserProfile),
-        element: <UserProfilePage />
+        element: withRouteFallback(<UserProfilePage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.notifications),
-        element: (
+        element: withRouteFallback(
           <ProtectedRoute>
             <NotificationsPage />
           </ProtectedRoute>
@@ -109,15 +171,15 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.models),
-        element: <ModelsPage />
+        element: withRouteFallback(<ModelsPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.modelDetail),
-        element: <ModelDetailPage />
+        element: withRouteFallback(<ModelDetailPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.rankings),
-        element: <RankingsPage />
+        element: withRouteFallback(<RankingsPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.rankingEditor),
@@ -125,15 +187,15 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
-        element: <RankingDetailPage />
+        element: withRouteFallback(<RankingDetailPage />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
-        element: <RatingTargetDetailPage />
+        element: withRouteFallback(<RatingTargetDetailPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.postDetail),
-        element: <PostDetailPage />
+        element: withRouteFallback(<PostDetailPage />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
@@ -153,7 +215,7 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
-        element: <PublishStatusPage />
+        element: withRouteFallback(<PublishStatusPage />)
       },
       {
         path: toRootChildPath(APP_ROUTES.compose),
