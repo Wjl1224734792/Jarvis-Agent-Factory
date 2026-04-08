@@ -123,13 +123,13 @@ export function ModelGridSkeleton(props: { count?: number }) {
     <div className={MODEL_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 8 }).map((_, index) => (
         <div className="block min-w-0 overflow-hidden bg-white" key={index}>
-          <Skeleton className="aspect-[4/3] w-full" />
+          <Skeleton className="aspect-[4/3] w-full rounded-none" />
           <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
-            <Skeleton className="h-3 w-14" />
-            <Skeleton className="h-4.5 w-4/5" />
-            <Skeleton className="h-3.5 w-2/5" />
-            <Skeleton className="h-3.5 w-full" />
-            <Skeleton className="h-3.5 w-4/5" />
+            <Skeleton className="h-3 w-14 rounded-none" />
+            <Skeleton className="h-4.5 w-4/5 rounded-none" />
+            <Skeleton className="h-3.5 w-2/5 rounded-none" />
+            <Skeleton className="h-3.5 w-full rounded-none" />
+            <Skeleton className="h-3.5 w-4/5 rounded-none" />
           </div>
         </div>
       ))}
@@ -142,16 +142,16 @@ export function ModelsPageSkeleton(props: { count?: number }) {
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
       <div className="space-y-3 xl:order-2">
         {Array.from({ length: 3 }).map((_, index) => (
-          <div className="rounded-[0.95rem] border border-border bg-white p-3" key={index}>
+          <div className="border border-border bg-white p-3" key={index}>
             <div className="space-y-3">
               <div className="flex items-center justify-between gap-3">
-                <Skeleton className="h-5 w-16" />
-                <Skeleton className="h-3 w-10" />
+                <Skeleton className="h-5 w-16 rounded-none" />
+                <Skeleton className="h-3 w-10 rounded-none" />
               </div>
-              <Skeleton className="h-10 rounded-[0.8rem]" />
+              <Skeleton className="h-10 rounded-none" />
               <div className="space-y-2">
                 {Array.from({ length: 4 }).map((__, innerIndex) => (
-                  <Skeleton className="h-10 rounded-[0.75rem]" key={innerIndex} />
+                  <Skeleton className="h-10 rounded-none" key={innerIndex} />
                 ))}
               </div>
             </div>
@@ -159,20 +159,20 @@ export function ModelsPageSkeleton(props: { count?: number }) {
         ))}
       </div>
       <div className="space-y-4 xl:order-1">
-        <div className="rounded-[0.95rem] border border-border bg-white p-4">
+        <div className="border border-border bg-white p-4">
           <div className="space-y-3">
             <div className="flex items-center justify-between gap-3">
               <div className="space-y-2">
-                <Skeleton className="h-5 w-24" />
-                <Skeleton className="h-3.5 w-48" />
+                <Skeleton className="h-5 w-24 rounded-none" />
+                <Skeleton className="h-3.5 w-48 rounded-none" />
               </div>
-              <Skeleton className="h-3.5 w-14" />
+              <Skeleton className="h-3.5 w-14 rounded-none" />
             </div>
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <Skeleton className="h-10 rounded-[0.8rem]" />
-              <Skeleton className="h-10 w-24 rounded-[0.8rem]" />
+              <Skeleton className="h-10 rounded-none" />
+              <Skeleton className="h-10 w-24 rounded-none" />
             </div>
-            <Skeleton className="h-4 w-3/5" />
+            <Skeleton className="h-4 w-3/5 rounded-none" />
           </div>
         </div>
         <ModelGridSkeleton count={props.count ?? 10} />
@@ -186,12 +186,12 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
     <div className={RANKING_GRID_CLASS_NAME}>
       {Array.from({ length: props.count ?? 6 }).map((_, index) => (
         <div
-          className="flex min-w-0 flex-col gap-3 rounded-[0.95rem] border border-border bg-white px-3.5 py-3.5"
+          className="flex min-w-0 flex-col gap-3 border border-border bg-white px-3.5 py-3.5"
           key={index}
         >
           <div className="space-y-2">
-            <Skeleton className="h-3.5 w-20" />
-            <Skeleton className="h-5 w-4/5" />
+            <Skeleton className="h-3.5 w-20 rounded-none" />
+            <Skeleton className="h-5 w-4/5 rounded-none" />
           </div>
           <div className="space-y-2.5">
             {Array.from({ length: 3 }).map((__, innerIndex) => (
@@ -199,11 +199,11 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
                 className="grid grid-cols-[1rem_2.75rem_minmax(0,1fr)] items-center gap-2.5 border-t border-border pt-2.5 first:border-t-0 first:pt-0"
                 key={innerIndex}
               >
-                <Skeleton className="h-4 w-3" />
-                <Skeleton className="h-11 w-11 rounded-[0.75rem]" />
+                <Skeleton className="h-4 w-3 rounded-none" />
+                <Skeleton className="h-11 w-11 rounded-none" />
                 <div className="space-y-1.5">
-                  <Skeleton className="h-3.5 w-full" />
-                  <Skeleton className="h-3 w-20" />
+                  <Skeleton className="h-3.5 w-full rounded-none" />
+                  <Skeleton className="h-3 w-20 rounded-none" />
                 </div>
               </div>
             ))}

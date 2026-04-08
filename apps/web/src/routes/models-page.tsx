@@ -426,9 +426,9 @@ export function ModelsPage() {
                         <div className="animate-pulse">
                           <div className="aspect-square w-full bg-slate-200" />
                           <div className="space-y-2 px-0.5 pb-0.5 pt-3">
-                            <div className="h-3.5 w-16 rounded bg-slate-200" />
-                            <div className="h-4 w-4/5 rounded bg-slate-200" />
-                            <div className="h-3.5 w-24 rounded bg-slate-200" />
+                            <div className="h-3.5 w-16 rounded-none bg-slate-200" />
+                            <div className="h-4 w-4/5 rounded-none bg-slate-200" />
+                            <div className="h-3.5 w-24 rounded-none bg-slate-200" />
                           </div>
                         </div>
                       </div>
