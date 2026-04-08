@@ -1,4 +1,4 @@
-# 飞加
+﻿# 飞加
 
 飞加是一个基于 Bun Monorepo 的低空飞行内容与管理平台，当前仓库包含用户端 Web、管理端 Admin、服务端 API，以及共享的数据库、协议与 HTTP Client 包。
 
@@ -56,14 +56,16 @@ bun install
 bun run infra:up
 ```
 
-### 4. 初始化数据库与测试数据
-
+### 4. 初始化数据库
 ```bash
-# 导入海量测试数据（推荐本地联调使用）
+# 开发默认：清库、迁移并导入基础 seed
 bun run setup:dev
 
-# 只做基础迁移与默认种子
-bun run db:reset
+# 测试/压测：清库、迁移并导入海量测试数据
+bun run setup:test-data
+
+# 只导入基础 seed（非破坏性，不清库）
+bun run db:seed
 ```
 
 ### 5. 启动应用
@@ -98,11 +100,22 @@ bun run infra:down
 bun run db:generate
 bun run db:migrate
 bun run db:seed
+bun run db:seed:dev
+bun run db:seed:prod
 bun run db:seed:test-data
 bun run db:clear
 bun run db:reset
+bun run db:reset:dev
 bun run db:reset:test-data
+bun run setup:dev
+bun run setup:test-data
 ```
+
+说明：
+- `db:seed` / `db:seed:dev` / `db:seed:prod` 指向同一套基础 seed，适合开发默认数据与未来生产初始化，默认不清库。
+- `db:seed:test-data` 仅用于测试环境或压测环境导入海量数据，不建议作为开发默认入口。
+- `db:reset:*` 都会先执行 `db:clear` 再迁移并注入，属于显式破坏性重建流程。
+- `setup:dev` 默认走基础 seed；`setup:test-data` 才会导入海量测试数据。
 
 ### 质量校验
 
@@ -169,6 +182,13 @@ UPLOAD_MAX_REPORT_IMAGE_SIZE_MB=5
 ```
 
 ## 测试账号
+
+基础 seed 导入后可使用：
+
+```text
+管理员账号：admin
+管理员密码：Admin#123
+```
 
 海量测试数据脚本导入后可使用：
 

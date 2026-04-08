@@ -1,8 +1,10 @@
 import { dbPool } from "./client.js";
-import { seedMockTestDataDatabase } from "./seed.test-data.js";
+import { seedDatabase } from "./seed.js";
 
 async function run() {
-  await seedMockTestDataDatabase();
+  await seedDatabase({
+    reset: false
+  });
   await dbPool.end();
 }
 
