@@ -191,15 +191,26 @@ export function PublishAircraftPage() {
 
     try {
       const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      const next = [...galleryImages];
+      let nextCover = coverImage;
+      let nextGallery = [...galleryImages];
+
       for (const file of imageFiles) {
-        if (next.length >= GALLERY_IMAGE_MAX) {
+        const uploaded = await apiClient.uploadAircraftCoverImage(file);
+        const row = { id: uploaded.item.id, url: uploaded.item.url };
+
+        if (!nextCover) {
+          nextCover = row;
+          continue;
+        }
+
+        if (nextGallery.length >= GALLERY_IMAGE_MAX) {
           break;
         }
-        const uploaded = await apiClient.uploadAircraftCoverImage(file);
-        next.push({ id: uploaded.item.id, url: uploaded.item.url });
+        nextGallery.push(row);
       }
-      setGalleryImages(next);
+
+      setCoverImage(nextCover);
+      setGalleryImages(nextGallery);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "图片上传失败");
     } finally {
@@ -515,10 +526,6 @@ export function PublishAircraftPage() {
                   />
                 </div>
               ) : null}
-
-              <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-                封面为一张主图或一段视频；选择视频时会清空图册。图册可与封面并存，审核通过后会在机型详情页展示为可横向滚动的缩略图列表。
-              </div>
             </SitePanelBody>
           </SitePanel>
 

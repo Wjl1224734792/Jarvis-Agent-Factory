@@ -225,6 +225,8 @@ type WebModelListResponse = {
     powerType: "electric" | "fuel" | "hybrid" | "other";
     favoriteCount: number;
     commentCount: number;
+    coverImageUrl: string | null;
+    coverVideoUrl: string | null;
     reviewSummary: {
       totalReviews: number;
     };
@@ -252,7 +254,7 @@ type WebModelDetailResponse = {
   item: WebModelListResponse["items"][number] & {
     description: string | null;
     isPublished: boolean;
-    coverImageUrl: string | null;
+    coverVideoUrl: string | null;
     galleryImageUrls: string[];
     parameters: {
       maxFlightTimeMinutes: number | null;

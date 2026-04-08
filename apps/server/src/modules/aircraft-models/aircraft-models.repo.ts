@@ -67,6 +67,8 @@ export const aircraftModelsRepo = {
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
         reportCount: aircraftModelsTable.reportCount,
+        coverImageFileId: aircraftModelsTable.coverImageFileId,
+        videoFileId: aircraftModelsTable.videoFileId,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,
@@ -125,6 +127,7 @@ export const aircraftModelsRepo = {
         takeoffWeightGrams: aircraftModelsTable.takeoffWeightGrams,
         coverImageFileId: aircraftModelsTable.coverImageFileId,
         galleryImageFileIds: aircraftModelsTable.galleryImageFileIds,
+        videoFileId: aircraftModelsTable.videoFileId,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,
@@ -293,6 +296,7 @@ export const aircraftModelsRepo = {
     takeoffWeightGrams: number | null;
     coverImageFileId?: string | null;
     galleryImageFileIds?: string[];
+    videoFileId?: string | null;
     isPublished: boolean;
   }) {
     const id = createId("model");
@@ -317,6 +321,7 @@ export const aircraftModelsRepo = {
       takeoffWeightGrams: input.takeoffWeightGrams,
       coverImageFileId: input.coverImageFileId ?? null,
       galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
+      videoFileId: input.videoFileId ?? null,
       isPublished: input.isPublished
     });
 
@@ -343,6 +348,7 @@ export const aircraftModelsRepo = {
       takeoffWeightGrams: number | null;
       coverImageFileId?: string | null;
       galleryImageFileIds?: string[];
+      videoFileId?: string | null;
       isPublished: boolean;
     }
   ) {
@@ -367,6 +373,7 @@ export const aircraftModelsRepo = {
         takeoffWeightGrams: input.takeoffWeightGrams,
         coverImageFileId: input.coverImageFileId ?? null,
         galleryImageFileIds: JSON.stringify(input.galleryImageFileIds ?? []),
+        videoFileId: input.videoFileId ?? null,
         isPublished: input.isPublished
       })
       .where(eq(aircraftModelsTable.id, id));
@@ -400,6 +407,7 @@ export const aircraftModelsRepo = {
         takeoffWeightGrams: aircraftModelsTable.takeoffWeightGrams,
         coverImageFileId: aircraftModelsTable.coverImageFileId,
         galleryImageFileIds: aircraftModelsTable.galleryImageFileIds,
+        videoFileId: aircraftModelsTable.videoFileId,
         category: {
           id: aircraftCategoriesTable.id,
           slug: aircraftCategoriesTable.slug,

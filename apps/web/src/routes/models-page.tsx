@@ -11,6 +11,7 @@ import { Link, useSearchParams } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
 import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { BrandIdentity } from "@/components/brand-identity";
+import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,7 +19,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { SitePage } from "@/components/site-shell";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
-import { getModelImage } from "../lib/aviation-media";
 import { formatModelPriceRange } from "./model-detail-helpers";
 import {
   buildModelFilterSearchParams,
@@ -210,11 +210,15 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
       className="group block min-w-0 overflow-hidden bg-white transition hover:bg-sky-50/34"
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
-      <div className="overflow-hidden">
-        <img
+      <div className="aspect-[4/3] w-full overflow-hidden">
+        <ModelThumbCover
           alt={model.name}
-          className="aspect-[4/3] w-full object-cover transition duration-200 group-hover:scale-[1.02]"
-          src={getModelImage(model.slug, model.powerType, index)}
+          className="h-full w-full transition duration-200 group-hover:scale-[1.02]"
+          coverImageUrl={model.coverImageUrl ?? null}
+          coverVideoUrl={model.coverVideoUrl ?? null}
+          index={index}
+          slug={model.slug}
+          powerType={model.powerType}
         />
       </div>
       <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">

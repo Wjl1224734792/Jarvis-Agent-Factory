@@ -195,11 +195,26 @@ function parseFileIdArray(value: string) {
 
 export const aircraftModelsService = {
   async listModels(filters: ListFilters) {
-    const [items, categories, brands] = await Promise.all([
+    const [rows, categories, brands] = await Promise.all([
       aircraftModelsRepo.list(filters),
       categoriesService.listCategories(),
       brandsService.listBrands()
     ]);
+
+    const items = await Promise.all(
+      rows.map(async (row) => {
+        const { coverImageFileId, videoFileId, ...rest } = row;
+        const [coverImageUrl, coverVideoUrl] = await Promise.all([
+          resolveUploadedFileUrl(coverImageFileId ?? null),
+          resolveUploadedFileUrl(videoFileId ?? null)
+        ]);
+        return {
+          ...rest,
+          coverImageUrl,
+          coverVideoUrl
+        };
+      })
+    );
 
     return {
       items,
@@ -226,15 +241,19 @@ export const aircraftModelsService = {
       currentUserId ? aircraftModelsRepo.listViewerModelReports([item.id], currentUserId) : Promise.resolve([])
     ]);
 
-    const { coverImageFileId, galleryImageFileIds, ...rest } = item;
-    const coverImageUrl = await resolveUploadedFileUrl(coverImageFileId ?? null);
-    const galleryImageUrls = (
-      await Promise.all(parseFileIdArray(galleryImageFileIds).map((id) => resolveUploadedFileUrl(id)))
-    ).filter((url): url is string => Boolean(url));
+    const { coverImageFileId, galleryImageFileIds, videoFileId, ...rest } = item;
+    const [coverImageUrl, coverVideoUrl, galleryImageUrls] = await Promise.all([
+      resolveUploadedFileUrl(coverImageFileId ?? null),
+      resolveUploadedFileUrl(videoFileId ?? null),
+      Promise.all(parseFileIdArray(galleryImageFileIds).map((id) => resolveUploadedFileUrl(id))).then((urls) =>
+        urls.filter((url): url is string => Boolean(url))
+      )
+    ]);
 
     return {
       ...rest,
       coverImageUrl,
+      coverVideoUrl,
       galleryImageUrls,
       interactionSummary,
       viewer: {
@@ -268,6 +287,7 @@ export const aircraftModelsService = {
     takeoffWeightGrams: number | null;
     coverImageFileId?: string | null;
     galleryImageFileIds?: string[];
+    videoFileId?: string | null;
     isPublished: boolean;
   }) {
     return aircraftModelsRepo.create(input);
@@ -293,17 +313,23 @@ export const aircraftModelsService = {
       takeoffWeightGrams: number | null;
       coverImageFileId?: string | null;
       galleryImageFileIds?: string[];
+      videoFileId?: string | null;
       isPublished: boolean;
     }
   ) {
     return aircraftModelsRepo.update(id, input);
   },
-  async resolveModelGalleryForResponse(row: { coverImageFileId: string | null; galleryImageFileIds: string }) {
+  async resolveModelGalleryForResponse(row: {
+    coverImageFileId: string | null;
+    galleryImageFileIds: string;
+    videoFileId: string | null;
+  }) {
     const coverImageUrl = await resolveUploadedFileUrl(row.coverImageFileId ?? null);
+    const coverVideoUrl = await resolveUploadedFileUrl(row.videoFileId ?? null);
     const galleryImageUrls = (
       await Promise.all(parseFileIdArray(row.galleryImageFileIds).map((id) => resolveUploadedFileUrl(id)))
     ).filter((url): url is string => Boolean(url));
-    return { coverImageUrl, galleryImageUrls };
+    return { coverImageUrl, coverVideoUrl, galleryImageUrls };
   },
   async buildAdminModelResponseItem(
     item: NonNullable<Awaited<ReturnType<typeof aircraftModelsRepo.findById>>>
@@ -311,19 +337,22 @@ export const aircraftModelsService = {
     const {
       coverImageFileId,
       galleryImageFileIds,
+      videoFileId,
       maxFlightTimeMinutes,
       maxRangeKilometers,
       maxSpeedKph,
       takeoffWeightGrams,
       ...rest
     } = item;
-    const { coverImageUrl, galleryImageUrls } = await this.resolveModelGalleryForResponse({
+    const { coverImageUrl, coverVideoUrl, galleryImageUrls } = await this.resolveModelGalleryForResponse({
       coverImageFileId: coverImageFileId ?? null,
-      galleryImageFileIds
+      galleryImageFileIds,
+      videoFileId: videoFileId ?? null
     });
     return {
       ...rest,
       coverImageUrl,
+      coverVideoUrl,
       galleryImageUrls,
       parameters: {
         maxFlightTimeMinutes,

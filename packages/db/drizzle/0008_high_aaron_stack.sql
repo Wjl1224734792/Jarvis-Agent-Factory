@@ -1,0 +1,1 @@
+ALTER TABLE "aircraft_models" ADD COLUMN "video_file_id" text;

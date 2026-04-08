@@ -221,6 +221,7 @@ export const aircraftModelsTable = pgTable(
     takeoffWeightGrams: integer("takeoff_weight_grams"),
     coverImageFileId: text("cover_image_file_id"),
     galleryImageFileIds: text("gallery_image_file_ids").default("[]").notNull(),
+    videoFileId: text("video_file_id"),
     reportCount: integer("report_count").default(0).notNull(),
     isPublished: boolean("is_published").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })

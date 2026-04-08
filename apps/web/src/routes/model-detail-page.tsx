@@ -6,11 +6,13 @@ import {
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
-  MessageSquareTextIcon
+  MessageSquareTextIcon,
+  PlayIcon
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { PageShareControl } from "@/components/page-share-control";
 import { ReportActionSheet } from "@/components/report-action-sheet";
@@ -50,25 +52,37 @@ function formatMetric(label: string, value: number | null, formatter: (input: nu
   };
 }
 
-function buildModelDetailGalleryUrls(item: {
+type ModelGalleryItem = { kind: "image" | "video"; url: string };
+
+function buildModelDetailGallery(item: {
   slug: string;
   powerType: ModelDetail["powerType"];
   coverImageUrl: string | null;
+  coverVideoUrl: string | null;
   galleryImageUrls: string[];
-}): string[] {
-  const urls: string[] = [];
-  if (item.coverImageUrl) {
-    urls.push(item.coverImageUrl);
+}): ModelGalleryItem[] {
+  const slots: ModelGalleryItem[] = [];
+  const seen = new Set<string>();
+
+  if (item.coverVideoUrl) {
+    slots.push({ kind: "video", url: item.coverVideoUrl });
+    seen.add(item.coverVideoUrl);
+  } else if (item.coverImageUrl) {
+    slots.push({ kind: "image", url: item.coverImageUrl });
+    seen.add(item.coverImageUrl);
   }
+
   for (const url of item.galleryImageUrls) {
-    if (url && !urls.includes(url)) {
-      urls.push(url);
+    if (url && !seen.has(url)) {
+      slots.push({ kind: "image", url });
+      seen.add(url);
     }
   }
-  if (urls.length === 0) {
-    return getModelGallery(item.slug, item.powerType, 4);
+
+  if (slots.length === 0) {
+    return getModelGallery(item.slug, item.powerType, 4).map((url) => ({ kind: "image" as const, url }));
   }
-  return urls;
+  return slots;
 }
 
 export function ModelDetailPage() {
@@ -97,16 +111,18 @@ export function ModelDetailPage() {
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [interactionBusy, setInteractionBusy] = useState<string | null>(null);
+  const mainVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const gallery = useMemo(() => {
     const raw = detailQuery.data?.item;
     if (!raw) {
-      return [] as string[];
+      return [] as ModelGalleryItem[];
     }
-    return buildModelDetailGalleryUrls({
+    return buildModelDetailGallery({
       slug: raw.slug,
       powerType: raw.powerType,
       coverImageUrl: raw.coverImageUrl ?? null,
+      coverVideoUrl: raw.coverVideoUrl ?? null,
       galleryImageUrls: raw.galleryImageUrls ?? []
     });
   }, [detailQuery.data?.item]);
@@ -114,6 +130,10 @@ export function ModelDetailPage() {
   useEffect(() => {
     setActiveGalleryIndex(0);
   }, [slug]);
+
+  useEffect(() => {
+    mainVideoRef.current?.pause();
+  }, [activeGalleryIndex]);
 
   useEffect(() => {
     if (gallery.length === 0) {
@@ -240,25 +260,53 @@ export function ModelDetailPage() {
           <div className="space-y-6 bg-white p-4">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
               <div className="min-w-0 space-y-3 lg:min-h-0">
-                <div className="overflow-hidden">
-                  <img
-                    alt={item.name}
-                    className="h-[280px] w-full object-cover sm:h-[320px] lg:h-[340px]"
-                    src={gallery[activeGalleryIndex] ?? getModelImage(item.slug, item.powerType)}
-                  />
+                <div className="overflow-hidden bg-black">
+                  {gallery[activeGalleryIndex]?.kind === "video" ? (
+                    <video
+                      ref={mainVideoRef}
+                      className="h-[280px] w-full object-cover sm:h-[320px] lg:h-[340px]"
+                      controls
+                      key={gallery[activeGalleryIndex]?.url}
+                      playsInline
+                      preload="metadata"
+                      src={gallery[activeGalleryIndex]?.url}
+                    />
+                  ) : (
+                    <img
+                      alt={item.name}
+                      className="h-[280px] w-full object-cover sm:h-[320px] lg:h-[340px]"
+                      src={gallery[activeGalleryIndex]?.url ?? getModelImage(item.slug, item.powerType)}
+                    />
+                  )}
                 </div>
 
                 <div className="flex gap-2 overflow-x-auto scroll-smooth pb-1 [-ms-overflow-style:none] [scrollbar-width:thin] [&::-webkit-scrollbar]:h-1.5">
-                  {gallery.map((image, index) => (
+                  {gallery.map((slot, index) => (
                     <button
                       className={`h-16 w-20 shrink-0 overflow-hidden rounded-none border transition ${
                         activeGalleryIndex === index ? "border-primary" : "border-border/70"
                       }`}
-                      key={`${image}-${index}`}
+                      key={`${slot.url}-${index}`}
                       onClick={() => setActiveGalleryIndex(index)}
                       type="button"
                     >
-                      <img alt={`${item.name}-${index + 1}`} className="h-full w-full object-cover" src={image} />
+                      {slot.kind === "video" ? (
+                        <span className="relative block h-full w-full">
+                          <video
+                            aria-hidden
+                            className="h-full w-full object-cover pointer-events-none"
+                            muted
+                            playsInline
+                            preload="metadata"
+                            src={slot.url}
+                          />
+                          <span className="pointer-events-none absolute inset-0 flex items-center justify-center bg-black/25">
+                            <PlayIcon className="size-4 fill-white text-white" />
+                          </span>
+                        </span>
+                      ) : (
+                        <img alt={`${item.name}-${index + 1}`} className="h-full w-full object-cover" src={slot.url} />
+                      )}
                     </button>
                   ))}
                 </div>
@@ -477,10 +525,14 @@ export function ModelDetailPage() {
                   key={model.slug}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
-                  <img
+                  <ModelThumbCover
                     alt={model.name}
-                    className="h-[58px] w-full object-cover"
-                    src={getModelImage(model.slug, model.powerType, index)}
+                    className="h-[58px] w-full"
+                    coverImageUrl={model.coverImageUrl ?? null}
+                    coverVideoUrl={model.coverVideoUrl ?? null}
+                    index={index}
+                    slug={model.slug}
+                    powerType={model.powerType}
                   />
                   <div className="min-w-0 space-y-1">
                     <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>

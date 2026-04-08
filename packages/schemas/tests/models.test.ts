@@ -46,7 +46,9 @@ describe("models contract", () => {
             slug: "dji",
             name: "DJI",
             logoUrl: "https://cdn.example.com/brands/dji.png"
-          }
+          },
+          coverImageUrl: "https://cdn.example.com/covers/mini.jpg",
+          coverVideoUrl: null
         }
       ],
       total: 1,
@@ -110,6 +112,7 @@ describe("models contract", () => {
         favoriteCount: 0,
         commentCount: 0,
         coverImageUrl: null,
+        coverVideoUrl: null,
         galleryImageUrls: [],
         interactionSummary: {
           interestCount: 5,

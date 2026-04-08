@@ -100,7 +100,9 @@ export const modelListItemSchema = z.object({
     slug: true,
     name: true,
     logoUrl: true
-  })
+  }),
+  coverImageUrl: z.string().min(1).nullable().default(null),
+  coverVideoUrl: z.string().min(1).nullable().default(null)
 }).superRefine(validatePriceRange);
 
 export const modelParameterSchema = z.object({
@@ -116,7 +118,6 @@ export const modelDetailSchema = modelListItemSchema.safeExtend({
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
   reportCount: z.number().int().nonnegative().default(0),
-  coverImageUrl: z.string().min(1).nullable(),
   galleryImageUrls: z.array(z.string().min(1)).default([]),
   parameters: modelParameterSchema,
   interactionSummary: modelInteractionSummarySchema,
@@ -275,6 +276,7 @@ export const adminModelInputSchema = z.object({
   takeoffWeightGrams: z.number().nonnegative().nullable(),
   coverImageFileId: z.string().trim().min(1).nullable().optional().default(null),
   galleryImageFileIds: z.array(z.string().trim().min(1)).max(6).optional().default([]),
+  videoFileId: z.string().trim().min(1).nullable().optional().default(null),
   isPublished: z.boolean().default(true)
 }).superRefine(validatePriceRange);
 

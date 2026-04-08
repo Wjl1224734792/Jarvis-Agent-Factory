@@ -167,6 +167,7 @@ async function syncApprovedModelVisibility(
     takeoffWeightGrams: number | null;
     coverImageFileId: string | null;
     galleryImageFileIds: string[];
+    videoFileId: string | null;
     isPublished: boolean;
   }
 ) {
@@ -194,6 +195,7 @@ async function syncApprovedModelVisibility(
     takeoffWeightGrams: input.takeoffWeightGrams,
     coverImageFileId: input.coverImageFileId,
     galleryImageFileIds: input.galleryImageFileIds,
+    videoFileId: input.videoFileId,
     isPublished: input.isPublished
   });
 }
@@ -372,6 +374,7 @@ export const aircraftSubmissionsService = {
         takeoffWeightGrams: input.takeoffWeightGrams,
         coverImageFileId: input.coverImageFileId,
         galleryImageFileIds: input.galleryImageFileIds,
+        videoFileId: input.videoFileId,
         isPublished: nextStatus === "approved"
       });
     }
@@ -438,6 +441,7 @@ export const aircraftSubmissionsService = {
           takeoffWeightGrams: current.takeoffWeightGrams,
           coverImageFileId: current.coverImageFileId ?? null,
           galleryImageFileIds: parseGallery(current.galleryImageFileIds),
+          videoFileId: current.videoFileId ?? null,
           isPublished: false
         });
       }
@@ -481,6 +485,7 @@ export const aircraftSubmissionsService = {
         takeoffWeightGrams: current.takeoffWeightGrams,
         coverImageFileId: current.coverImageFileId ?? null,
         galleryImageFileIds: parseGallery(current.galleryImageFileIds),
+        videoFileId: current.videoFileId ?? null,
         isPublished: true
       });
       const item = await aircraftSubmissionsRepo.approveSubmission(id, current.approvedModelId, brandId);
@@ -506,6 +511,7 @@ export const aircraftSubmissionsService = {
       takeoffWeightGrams: current.takeoffWeightGrams,
       coverImageFileId: current.coverImageFileId ?? null,
       galleryImageFileIds: parseGallery(current.galleryImageFileIds),
+      videoFileId: current.videoFileId ?? null,
       isPublished: true
     });
 

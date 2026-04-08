@@ -12,7 +12,8 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { apiClient } from "../lib/api-client";
-import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+import { ModelThumbCover } from "@/components/model-thumb-cover";
+import { getEditorialImage } from "../lib/aviation-media";
 
 const fixedTabs = [
   { id: "recommended", label: "推荐" },
@@ -276,10 +277,14 @@ export function HomePage() {
                     key={model.id}
                     to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                   >
-                    <img
+                    <ModelThumbCover
                       alt={model.name}
-                      className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)] object-cover"
-                      src={getModelImage(model.slug, model.powerType, index)}
+                      className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]"
+                      coverImageUrl={model.coverImageUrl ?? null}
+                      coverVideoUrl={model.coverVideoUrl ?? null}
+                      index={index}
+                      slug={model.slug}
+                      powerType={model.powerType}
                     />
                     <div className="min-w-0 space-y-1">
                       <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
