@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { SendHorizonalIcon, XIcon } from "lucide-react";
+import { PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishShell } from "@/components/publish-shell";
@@ -12,7 +12,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage } from "../lib/aviation-media";
+import { cn } from "@/lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
+import { getCircleCardHeightClass } from "./circle-page-helpers";
 import {
   canAppendMomentImages,
   canReplaceWithMomentVideo,
@@ -202,6 +204,94 @@ export function PublishMomentPage() {
             <SitePanelBody className="space-y-4">
               <div className="text-base font-semibold text-foreground">内容</div>
 
+              <input
+                accept="image/*,video/*"
+                aria-label="选择动态图片或视频"
+                className="hidden"
+                multiple
+                onChange={(event) => {
+                  void handleZoneMediaPick(event.target.files);
+                  if (zoneInputRef.current) {
+                    zoneInputRef.current.value = "";
+                  }
+                }}
+                ref={zoneInputRef}
+                type="file"
+              />
+
+              <p className="text-sm leading-relaxed text-muted-foreground">
+                支持多张图片或单个视频，二者不可同时使用；切换类型会替换当前已选媒体。
+              </p>
+
+              {uploadedImages.length > 0 ? (
+                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+                  {uploadedImages.map((image, index) => (
+                    <div
+                      className="relative overflow-hidden rounded-[1rem] border border-border/70 bg-slate-100"
+                      key={image.id}
+                    >
+                      <img
+                        alt={image.fileName ?? "moment"}
+                        className={cn("w-full object-cover", getCircleCardHeightClass(index))}
+                        src={image.url}
+                      />
+                      <button
+                        aria-label="移除该图片"
+                        className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                        onClick={() => {
+                          setUploadedImages((current) =>
+                            current.filter((item) => item.id !== image.id)
+                          );
+                        }}
+                        type="button"
+                      >
+                        <XIcon className="size-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              ) : null}
+
+              {uploadedImages.length > 0 && !uploadedVideo ? (
+                <button
+                  aria-label="继续添加图片"
+                  className="w-full rounded-[1rem] border border-dashed border-border/80 bg-surface-1 py-3 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
+                  onClick={() => zoneInputRef.current?.click()}
+                  type="button"
+                >
+                  {isUploading ? "上传中..." : "继续添加图片"}
+                </button>
+              ) : null}
+
+              {uploadedVideo ? (
+                <div className="relative overflow-hidden rounded-[1rem] border border-border/70 bg-slate-950">
+                  <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+                  <button
+                    aria-label="移除视频"
+                    className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                    onClick={() => {
+                      setUploadedVideo(null);
+                    }}
+                    type="button"
+                  >
+                    <XIcon className="size-3.5" />
+                  </button>
+                </div>
+              ) : null}
+
+              {uploadedImages.length === 0 && !uploadedVideo ? (
+                <button
+                  aria-label="上传图片或视频"
+                  className="flex min-h-32 w-full cursor-pointer items-center justify-center rounded-[1rem] border border-dashed border-border/80 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
+                  disabled={isUploading}
+                  onClick={() => zoneInputRef.current?.click()}
+                  type="button"
+                >
+                  {isUploading ? "上传中..." : "点击上传图片或视频"}
+                </button>
+              ) : null}
+
               <Input
                 onChange={(event) => setTitle(event.target.value)}
                 placeholder="标题可选"
@@ -222,88 +312,6 @@ export function PublishMomentPage() {
                   {content.length}/{MOMENT_CONTENT_MAX}
                 </div>
               </div>
-
-              <input
-                accept="image/*,video/*"
-                className="hidden"
-                multiple
-                onChange={(event) => {
-                  void handleZoneMediaPick(event.target.files);
-                  if (zoneInputRef.current) {
-                    zoneInputRef.current.value = "";
-                  }
-                }}
-                ref={zoneInputRef}
-                type="file"
-              />
-
-              <div className="rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
-                动态支持多张图片，或一个视频。图片和视频不能同时发布；切换上传类型会自动替换当前媒体。
-              </div>
-
-              {uploadedImages.length > 0 ? (
-                <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
-                  {uploadedImages.map((image) => (
-                    <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70" key={image.id}>
-                      <img
-                        alt={image.fileName ?? "moment"}
-                        className="h-36 w-full object-cover"
-                        src={image.url}
-                      />
-                      <button
-                        className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                        onClick={() => {
-                          setUploadedImages((current) =>
-                            current.filter((item) => item.id !== image.id)
-                          );
-                        }}
-                        type="button"
-                      >
-                        <XIcon className="size-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
-
-              {uploadedImages.length > 0 && !uploadedVideo ? (
-                <button
-                  aria-label="继续添加图片"
-                  className="w-full rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 py-3 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isUploading}
-                  onClick={() => zoneInputRef.current?.click()}
-                  type="button"
-                >
-                  {isUploading ? "上传中..." : "继续添加图片"}
-                </button>
-              ) : null}
-
-              {uploadedVideo ? (
-                <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950">
-                  <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
-                  <button
-                    className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                    onClick={() => {
-                      setUploadedVideo(null);
-                    }}
-                    type="button"
-                  >
-                    <XIcon className="size-3.5" />
-                  </button>
-                </div>
-              ) : null}
-
-              {uploadedImages.length === 0 && !uploadedVideo ? (
-                <button
-                  aria-label="上传图片或视频"
-                  className="flex h-32 w-full cursor-pointer items-center justify-center rounded-[0.9rem] border border-dashed border-border/80 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/35 hover:bg-accent/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
-                  disabled={isUploading}
-                  onClick={() => zoneInputRef.current?.click()}
-                  type="button"
-                >
-                  {isUploading ? "上传中..." : "点击上传图片或视频"}
-                </button>
-              ) : null}
             </SitePanelBody>
           </SitePanel>
 
@@ -375,22 +383,42 @@ export function PublishMomentPage() {
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-4">
               <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              {uploadedVideo ? (
-                <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950">
-                  <video className="h-48 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+              <div className="mx-auto w-full max-w-54 space-y-1.5">
+                {uploadedVideo ? (
+                  <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
+                    <video
+                      className={cn("w-full object-cover", getCircleCardHeightClass(0))}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      src={uploadedVideo.url}
+                    />
+                    <span className="pointer-events-none absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
+                      <PlayIcon className="size-3.5 fill-current" />
+                    </span>
+                  </div>
+                ) : (
+                  <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
+                    <img
+                      alt="preview"
+                      className={cn("w-full object-cover", getCircleCardHeightClass(0))}
+                      src={coverUrl}
+                    />
+                    {uploadedImages.length > 1 ? (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[0.7rem] font-medium text-white">
+                        共 {uploadedImages.length} 张
+                      </span>
+                    ) : null}
+                  </div>
+                )}
+                <div className="space-y-1 px-0.5 pb-0.5 pt-1.5">
+                  <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
+                    {title || "动态标题"}
+                  </h2>
+                  <p className="line-clamp-2 text-[0.82rem] leading-[1.35rem] text-foreground/72">
+                    {content || "动态内容会显示在这里。"}
+                  </p>
                 </div>
-              ) : (
-                <div className="overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-100">
-                  <img alt="preview" className="h-48 w-full object-cover" src={coverUrl} />
-                </div>
-              )}
-              <div className="space-y-2">
-                <div className="text-[1.15rem] font-semibold text-foreground">
-                  {title || "动态标题"}
-                </div>
-                <p className="text-sm leading-6 text-muted-foreground">
-                  {content || "动态内容会显示在这里。"}
-                </p>
               </div>
             </SitePanelBody>
           </SitePanel>

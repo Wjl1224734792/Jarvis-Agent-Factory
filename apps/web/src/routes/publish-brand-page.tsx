@@ -112,9 +112,9 @@ export function PublishBrandPage() {
 
           <SitePanel>
             <SitePanelBody className="space-y-5">
-              <div className="grid gap-4 md:grid-cols-[144px_minmax(0,1fr)] md:items-start">
+              <div className="grid gap-4 md:grid-cols-[144px_minmax(0,1fr)] md:items-stretch">
                 <button
-                  className="group relative flex h-36 w-full items-center justify-center overflow-hidden rounded-[1rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-accent/24"
+                  className="group relative flex min-h-36 w-full items-center justify-center overflow-hidden rounded-[1rem] border border-dashed border-border/70 bg-surface-1 text-sm text-muted-foreground transition hover:border-primary/40 hover:bg-accent/24 md:h-full md:min-h-0"
                   onClick={openLogoPicker}
                   type="button"
                 >
@@ -146,7 +146,7 @@ export function PublishBrandPage() {
                   )}
                 </button>
 
-                <div className="space-y-4">
+                <div className="min-w-0 space-y-4">
                   <Input
                     onChange={(event) => setName(event.target.value)}
                     placeholder="品牌名称"
