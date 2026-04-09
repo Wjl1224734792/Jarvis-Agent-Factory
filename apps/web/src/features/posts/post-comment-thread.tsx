@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { CornerDownRightIcon, SquarePenIcon, Trash2Icon } from "lucide-react";
-import { useMemo, useState, type ReactNode } from "react";
+import { startTransition, useMemo, useState, type ReactNode } from "react";
 import { CommentPublishedTime } from "@/components/comment-published-time";
 import {
   CommentIconOnlyButton,
@@ -16,6 +16,13 @@ import { InlineCommentComposer } from "@/features/posts/inline-comment-composer"
 import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
+import {
+  patchPostCommentCreated,
+  patchPostCommentDeleted,
+  patchPostCommentLikeToggle,
+  patchPostCommentReported,
+  patchPostCommentUpdated
+} from "./post-query-cache";
 
 type CommentNode = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"]["comments"][number];
 type CommentReply = CommentNode["replies"][number];
@@ -139,15 +146,6 @@ function RootCommentItem(props: {
   const [error, setError] = useState<string | null>(null);
   const isPending = props.comment.status === "pending";
 
-  async function refresh() {
-    await Promise.all([
-      queryClient.invalidateQueries({ queryKey: ["post-detail", props.postId] }),
-      queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-      queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
-      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-    ]);
-  }
-
   function openReply(targetId: string, displayName: string) {
     setReplyingTo({ id: targetId, displayName });
     setReplyContent(`@${displayName} `);
@@ -204,9 +202,15 @@ function RootCommentItem(props: {
                   .updatePostComment(props.postId, props.comment.id, {
                     content: editContent
                   })
-                  .then(() => {
+                  .then((payload) => {
+                    patchPostCommentUpdated(
+                      queryClient,
+                      props.postId,
+                      props.comment.id,
+                      payload.item,
+                      props.comment.status
+                    );
                     setEditing(false);
-                    return refresh();
                   })
                   .catch((value: unknown) => {
                     setError(value instanceof Error ? value.message : "编辑评论失败");
@@ -242,7 +246,15 @@ function RootCommentItem(props: {
             setError(null);
             void apiClient
               .deletePostComment(props.postId, props.comment.id)
-              .then(refresh)
+              .then(() => {
+                patchPostCommentDeleted(
+                  queryClient,
+                  props.postId,
+                  props.comment.id,
+                  (props.comment.status === "visible" ? 1 : 0) +
+                    props.comment.replies.filter((reply) => reply.status === "visible").length
+                );
+              })
               .catch((value: unknown) => {
                 setError(value instanceof Error ? value.message : "删除评论失败");
               })
@@ -258,11 +270,14 @@ function RootCommentItem(props: {
             isPending
               ? undefined
               : () => {
+                  const nextHasLiked = !props.comment.viewer.hasLiked;
                   setBusy("like");
                   setError(null);
                   void apiClient
                     .likePostComment(props.postId, props.comment.id)
-                    .then(refresh)
+                    .then(() => {
+                      patchPostCommentLikeToggle(queryClient, props.postId, props.comment.id, nextHasLiked);
+                    })
                     .catch((value: unknown) => {
                       setError(value instanceof Error ? value.message : "点赞失败");
                     })
@@ -281,7 +296,12 @@ function RootCommentItem(props: {
               <ReportActionSheet
                 description="请填写举报理由，并至少上传 1 张证据图。"
                 onSubmit={(input) =>
-                  apiClient.reportPostComment(props.postId, props.comment.id, input).then(refresh)
+                  apiClient.reportPostComment(props.postId, props.comment.id, input).then(() => {
+                    patchPostCommentReported(queryClient, props.postId, props.comment.id);
+                    startTransition(() => {
+                      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                    });
+                  })
                 }
                 title="举报评论"
                 trigger={
@@ -348,11 +368,14 @@ function RootCommentItem(props: {
                       hasLiked={reply.hasLiked}
                       likeCount={reply.likeCount}
                       onLike={() => {
+                        const nextHasLiked = !reply.hasLiked;
                         setBusy("like");
                         setError(null);
                         void apiClient
                           .likePostComment(props.postId, reply.id)
-                          .then(refresh)
+                          .then(() => {
+                            patchPostCommentLikeToggle(queryClient, props.postId, reply.id, nextHasLiked);
+                          })
                           .catch((value: unknown) => {
                             setError(value instanceof Error ? value.message : "点赞失败");
                           })
@@ -389,11 +412,14 @@ function RootCommentItem(props: {
                   content: replyContent,
                   parentCommentId: props.comment.id
                 })
-                .then(() => {
+                .then((payload) => {
+                  patchPostCommentCreated(queryClient, props.postId, payload.item);
                   setReplyingTo(null);
                   setReplyContent("");
                   setExpanded(true);
-                  return refresh();
+                  startTransition(() => {
+                    void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                  });
                 })
                 .catch((value: unknown) => {
                   setError(value instanceof Error ? value.message : "回复失败");

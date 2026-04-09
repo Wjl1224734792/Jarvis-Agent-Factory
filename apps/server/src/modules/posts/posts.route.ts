@@ -22,6 +22,7 @@ import {
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
+import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
   requireAdmin,
@@ -126,6 +127,23 @@ postsRoute.get(API_ROUTES.posts.detail(":id"), async (context) => {
   }
 
   return context.json(postDetailResponseSchema.parse(payload));
+});
+
+postsRoute.post(API_ROUTES.posts.view(":id"), async (context) => {
+  const id = context.req.param("id");
+  if (!id) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+  }
+
+  const result = await postsService.recordView(id, {
+    currentUserId: context.get("currentUser")?.id ?? null,
+    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null
+  });
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
 postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {

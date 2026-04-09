@@ -1,4 +1,5 @@
 import {
+  actionSuccessResponseSchema,
   adminReportRecordsResponseSchema,
   adminModelInputSchema,
   adminModelCommentResponseSchema,
@@ -18,6 +19,7 @@ import {
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
 import { Hono } from "hono";
+import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
   requireAdmin,
@@ -34,7 +36,9 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
     categorySlugs: context.req.queries("categorySlug"),
     brandSlugs: context.req.queries("brandSlug"),
     powerTypes: context.req.queries("powerType"),
-    keyword: context.req.query("keyword") || undefined
+    keyword: context.req.query("keyword") || undefined,
+    sort: context.req.query("sort") || undefined,
+    limit: context.req.query("limit") || undefined
   });
 
   const payload = await aircraftModelsService.listModels(query);
@@ -71,6 +75,23 @@ aircraftModelsRoute.get(API_ROUTES.models.detail(":slug"), async (context) => {
       }
     })
   );
+});
+
+aircraftModelsRoute.post(API_ROUTES.models.view(":slug"), async (context) => {
+  const slug = context.req.param("slug");
+  if (!slug) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing slug." }, 400);
+  }
+
+  const result = await aircraftModelsService.recordModelView(slug, {
+    currentUserId: context.get("currentUser")?.id ?? null,
+    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null
+  });
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Model not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
 });
 
 aircraftModelsRoute.get(API_ROUTES.models.comments(":slug"), async (context) => {

@@ -47,6 +47,7 @@ function postSelection() {
     likeCount: postsTable.likeCount,
     favoriteCount: postsTable.favoriteCount,
     shareCount: postsTable.shareCount,
+    viewCount: postsTable.viewCount,
     createdAt: postsTable.createdAt,
     updatedAt: postsTable.updatedAt,
     publishedAt: postsTable.publishedAt,
@@ -118,6 +119,15 @@ export const postsRepo = {
         likeCount: counts.like,
         favoriteCount: counts.favorite,
         shareCount: counts.share,
+        updatedAt: new Date()
+      })
+      .where(eq(postsTable.id, postId));
+  },
+  async incrementPostViewCount(postId: string) {
+    await db
+      .update(postsTable)
+      .set({
+        viewCount: sql`${postsTable.viewCount} + 1`,
         updatedAt: new Date()
       })
       .where(eq(postsTable.id, postId));

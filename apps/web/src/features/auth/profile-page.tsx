@@ -186,6 +186,14 @@ function getRejectionReason(item: ContentItem) {
     : null;
 }
 
+function getAuthorViewCount(item: ContentItem) {
+  if (item.type === "post" || item.type === "aircraft") {
+    return item.viewCount;
+  }
+
+  return null;
+}
+
 function getLifecycleBadge(item: ContentItem) {
   const lifecycle = getProfileItemLifecycle(item);
   switch (lifecycle) {
@@ -224,6 +232,10 @@ function ContentFeedRow(props: {
   const manageHref = getManageHref(props.item);
   const rejectionReason = getRejectionReason(props.item);
   const lifecycleBadge = props.showManagement ? getLifecycleBadge(props.item) : null;
+  const authorViewCount =
+    props.showManagement && "canManage" in props.item && props.item.canManage
+      ? getAuthorViewCount(props.item)
+      : null;
 
   const content = (
     <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
@@ -250,6 +262,7 @@ function ContentFeedRow(props: {
       <div className="flex items-center gap-2 text-[0.72rem] text-muted-foreground md:justify-end">
         <Clock3Icon className="size-3.5" />
         {new Date(props.item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
+        {typeof authorViewCount === "number" ? <span>浏览 {authorViewCount}</span> : null}
       </div>
       {props.showManagement ? (
         <div className="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">

@@ -1,6 +1,7 @@
 import { ApiClientError, createApiClient } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import { dispatchWebAuthInvalidEvent } from "./auth-events";
+import { getViewSessionId } from "./view-session";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
 type WebImportMetaEnv = {
@@ -251,6 +252,7 @@ type WebModelListResponse = {
     powerType: "electric" | "fuel" | "hybrid" | "other";
     favoriteCount: number;
     commentCount: number;
+    viewCount: number;
     coverImageUrl: string | null;
     coverVideoUrl: string | null;
     reviewSummary: {
@@ -306,6 +308,8 @@ function buildModelListSearch(input?: {
   brandSlugs?: string[];
   powerTypes?: string[];
   keyword?: string;
+  sort?: "hot" | "latest";
+  limit?: number;
 }) {
   const search = new URLSearchParams();
 
@@ -323,6 +327,14 @@ function buildModelListSearch(input?: {
 
   if (input?.keyword?.trim()) {
     search.set("keyword", input.keyword.trim());
+  }
+
+  if (input?.sort) {
+    search.set("sort", input.sort);
+  }
+
+  if (typeof input?.limit === "number") {
+    search.set("limit", String(input.limit));
   }
 
   const query = search.toString();
@@ -348,13 +360,17 @@ const rawApiClient = {
     keyword?: string;
     categorySlug?: string;
     brandSlug?: string;
+    sort?: "hot" | "latest";
+    limit?: number;
   }) {
     return getJson<WebModelListResponse>(
       `${API_ROUTES.models.list}${buildModelListSearch({
         categorySlugs: input?.categorySlugs ?? (input?.categorySlug ? [input.categorySlug] : []),
         brandSlugs: input?.brandSlugs ?? (input?.brandSlug ? [input.brandSlug] : []),
         powerTypes: input?.powerTypes ?? [],
-        keyword: input?.keyword ?? ""
+        keyword: input?.keyword ?? "",
+        sort: input?.sort,
+        limit: input?.limit
       })}`
     );
   },
@@ -411,6 +427,16 @@ const rawApiClient = {
   },
   uploadRatingTargetImage(file: File) {
     return sharedClient.uploadRankingItemImage(file);
+  },
+  recordPostView(id: string) {
+    return sharedClient.recordPostView(id, {
+      sessionId: getViewSessionId() ?? undefined
+    });
+  },
+  recordModelView(slug: string) {
+    return sharedClient.recordModelView(slug, {
+      sessionId: getViewSessionId() ?? undefined
+    });
   }
 };
 

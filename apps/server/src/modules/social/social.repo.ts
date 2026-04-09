@@ -227,6 +227,7 @@ export const socialRepo = {
         rejectionReason: postsTable.rejectionReason,
         title: postsTable.title,
         content: postsTable.content,
+        viewCount: postsTable.viewCount,
         createdAt: postsTable.createdAt,
         updatedAt: postsTable.updatedAt
       })
@@ -387,10 +388,12 @@ export const socialRepo = {
         summary: aircraftSubmissionsTable.summary,
         status: aircraftSubmissionsTable.status,
         rejectionReason: aircraftSubmissionsTable.rejectionReason,
+        approvedModelViewCount: aircraftModelsTable.viewCount,
         createdAt: aircraftSubmissionsTable.createdAt,
         updatedAt: aircraftSubmissionsTable.updatedAt
       })
       .from(aircraftSubmissionsTable)
+      .leftJoin(aircraftModelsTable, eq(aircraftSubmissionsTable.approvedModelId, aircraftModelsTable.id))
       .where(
         and(
           eq(aircraftSubmissionsTable.authorId, userId),

@@ -427,6 +427,8 @@ export function WebLayout() {
 
                           setIsPublishMenuOpen(false);
                         }}
+                        rel="noopener noreferrer"
+                        target="_blank"
                         to={entry.to}
                       >
                         <span className="truncate">{entry.label}</span>

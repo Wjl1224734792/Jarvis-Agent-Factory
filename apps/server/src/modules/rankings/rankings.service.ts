@@ -1113,10 +1113,11 @@ export const rankingsService = {
         ? { id: currentUserOrId, role: "user" as const }
         : currentUserOrId;
     const currentUserId = currentUser?.id;
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (
       !canInspectRatingTarget({
         currentUser,
-        rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
+        rankingType,
         rankingAuthorId: ranking.author.id,
         itemAuthorId: item.authorId,
         itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
@@ -1125,14 +1126,27 @@ export const rankingsService = {
       return null;
     }
 
-    const [userRatings, allComments, reportedItemRows] = await Promise.all([
+    const rankingItems = (await rankingsRepo.listRatingTargets(item.rankingId)).filter((entry) =>
+      canInspectRatingTarget({
+        currentUser,
+        rankingType,
+        rankingAuthorId: ranking.author.id,
+        itemAuthorId: entry.authorId,
+        itemStatus: isValidRankingStatus(entry.status) ? entry.status : ("published" satisfies RatingTargetStatus)
+      })
+    );
+    const rankingItemIds = rankingItems.map((entry) => entry.id);
+
+    const [userRatings, allComments, reportedItemRows, aggregates, ratingBreakdownRows] = await Promise.all([
       currentUserId
-        ? rankingsRepo.listUserRatingTargetRatings(currentUserId, [id])
+        ? rankingsRepo.listUserRatingTargetRatings(currentUserId, rankingItemIds)
         : Promise.resolve([]),
       rankingsRepo.listRatingTargetComments(id),
       currentUserId
         ? rankingsRepo.listViewerRatingTargetReports([id], currentUserId)
-        : Promise.resolve([])
+        : Promise.resolve([]),
+      rankingsRepo.listRatingTargetRatingAggregates(rankingItemIds),
+      rankingsRepo.listRatingTargetRatingBreakdown(id)
     ]);
     const comments = allComments.filter(
       (comment) =>
@@ -1158,39 +1172,37 @@ export const rankingsService = {
         : Promise.resolve([])
     ]);
 
-    const visibleRatingComments = allComments.filter(
-      (comment) => !comment.parentCommentId && comment.status === "visible" && comment.rating !== null
+    const aggregateMap = new Map(
+      aggregates.map((entry) => [
+        entry.ratingTargetId,
+        {
+          totalRatings: Number(entry.totalRatings ?? 0),
+          averageRaw: Number(entry.averageRaw ?? 0)
+        }
+      ])
     );
-    const aggregateMap = new Map<string, { totalRatings: number; averageRaw: number }>();
-    aggregateMap.set(id, {
-      totalRatings: visibleRatingComments.length,
-      averageRaw:
-        visibleRatingComments.length > 0
-          ? visibleRatingComments.reduce((sum, comment) => sum + Number(comment.rating ?? 0), 0) /
-            visibleRatingComments.length
-          : 0
-    });
-    const latestOwnRatedComment = currentUserId
-      ? allComments
-          .filter((comment) => !comment.parentCommentId && comment.author.id === currentUserId && comment.rating !== null)
-          .sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime())[0] ?? null
-      : null;
     const userRatingMap = new Map(
       userRatings.map((entry) => [entry.ratingTargetId, entry.rating])
     );
-    if (latestOwnRatedComment && latestOwnRatedComment.rating !== null) {
-      userRatingMap.set(id, latestOwnRatedComment.rating);
-    }
     const reportedItemIds = buildSet(
       reportedItemRows as Array<{ ratingTargetId: string }>,
       "ratingTargetId"
     );
     const serializedItem = await serializeRatingTarget(item, aggregateMap, userRatingMap, {
       currentUser,
-      rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
+      rankingType,
       rankingAuthorId: ranking.author.id,
       reportedItemIds
     });
+    const dynamicRanks = rankRatingTargetsByDynamicScore(
+      rankingItems.map((entry) => ({
+        id: entry.id,
+        rank: entry.rank,
+        createdAt: entry.createdAt.toISOString()
+      })),
+      buildDynamicRankingAggregateMap(rankingItems, aggregateMap)
+    );
+    const rankById = new Map(dynamicRanks.map((entry) => [entry.id, entry.rank]));
     const commentThreads = await buildRatingTargetCommentThreads({
       comments,
       currentUser,
@@ -1211,16 +1223,12 @@ export const rankingsService = {
         "commentId"
       )
     });
-    const ratingBreakdown = buildRatingBreakdownFromRows(
-      [5, 4, 3, 2, 1].map((score) => ({
-        score,
-        count: visibleRatingComments.filter((comment) => comment.rating === score).length
-      }))
-    );
+    const ratingBreakdown = buildRatingBreakdownFromRows(ratingBreakdownRows);
 
     return {
       item: {
         ...serializedItem,
+        rank: rankById.get(id) ?? serializedItem.rank,
         ranking: {
           id: ranking.id,
           title: ranking.title

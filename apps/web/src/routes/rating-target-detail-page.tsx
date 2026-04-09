@@ -7,7 +7,7 @@ import {
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { CommentPublishedTime } from "@/components/comment-published-time";
 import {
@@ -35,6 +35,12 @@ import { apiClient } from "@/lib/api-client";
 import { buildRatingTargetDetailPath } from "@/lib/web-routes";
 import { cn } from "@/lib/utils";
 import { getAvatarImage, getEditorialImage, getModelImage } from "@/lib/aviation-media";
+import {
+  buildRatingTargetSubmission,
+  canSubmitRatingTargetComment,
+  patchRatingTargetCommentCreated,
+  patchRatingTargetCommentLike
+} from "./rating-target-detail-helpers";
 
 type RatingTargetDetail = Awaited<ReturnType<typeof apiClient.getRatingTargetDetail>>["item"];
 type RatingTargetComment = RatingTargetDetail["comments"][number];
@@ -72,9 +78,9 @@ function CommentActions(props: {
       {!props.comment.viewer.canDelete ? (
         <ReportActionSheet
           description="请填写举报理由，并至少上传 1 张证据图。"
-          onSubmit={(input) =>
-            apiClient.reportRatingTargetComment(props.itemId, props.comment.id, input).then(() => {})
-          }
+          onSubmit={async (input) => {
+            await apiClient.reportRatingTargetComment(props.itemId, props.comment.id, input);
+          }}
           title="举报评论"
           trigger={
             <CommentTextAction
@@ -119,6 +125,7 @@ function RatingTargetCommentCard(props: {
   onRefresh: () => Promise<void>;
   onRequireLogin: () => void;
 }) {
+  const queryClient = useQueryClient();
   const depth = props.depth ?? 0;
   const [replyingTo, setReplyingTo] = useState(false);
   const [replyContent, setReplyContent] = useState("");
@@ -137,6 +144,24 @@ function RatingTargetCommentCard(props: {
     }
     props.onRequireLogin();
     return false;
+  }
+
+  function patchDetail(
+    updater: (item: RatingTargetDetail) => RatingTargetDetail
+  ) {
+    queryClient.setQueryData<Awaited<ReturnType<typeof apiClient.getRatingTargetDetail>>>(
+      ["rating-target-detail", props.itemId],
+      (current) => {
+        if (!current?.item) {
+          return current;
+        }
+
+        return {
+          ...current,
+          item: updater(current.item)
+        };
+      }
+    );
   }
 
   return (
@@ -226,7 +251,11 @@ function RatingTargetCommentCard(props: {
             setError(null);
             void apiClient
               .likeRatingTargetComment(props.itemId, props.comment.id)
-              .then(props.onRefresh)
+              .then(() => {
+                patchDetail((item) =>
+                  patchRatingTargetCommentLike(item, props.comment.id, !props.comment.viewer.hasLiked)
+                );
+              })
               .catch((reason: unknown) => {
                 setError(reason instanceof Error ? reason.message : "点赞失败。");
               })
@@ -259,10 +288,15 @@ function RatingTargetCommentCard(props: {
                   content: replyContent.trim(),
                   parentCommentId: props.comment.id
                 })
-                .then(() => {
+                .then((payload) => {
+                  patchDetail((item) =>
+                    patchRatingTargetCommentCreated(item, {
+                      ...payload.item,
+                      replies: []
+                    })
+                  );
                   setReplyingTo(false);
                   setReplyContent("");
-                  return props.onRefresh();
                 })
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "回复评论失败。");
@@ -352,6 +386,35 @@ export function RatingTargetDetailPage() {
       queryClient.invalidateQueries({ queryKey: ["ranking-detail", item.ranking.id] }),
       queryClient.invalidateQueries({ queryKey: ["rankings"] })
     ]);
+  }
+
+  function patchDetail(
+    updater: (current: RatingTargetDetail) => RatingTargetDetail
+  ) {
+    queryClient.setQueryData<Awaited<ReturnType<typeof apiClient.getRatingTargetDetail>>>(
+      ["rating-target-detail", id],
+      (current) => {
+        if (!current?.item) {
+          return current;
+        }
+
+        return {
+          ...current,
+          item: updater(current.item)
+        };
+      }
+    );
+  }
+
+  function refreshRankingDataInBackground() {
+    if (!item) {
+      return;
+    }
+
+    startTransition(() => {
+      void queryClient.invalidateQueries({ queryKey: ["ranking-detail", item.ranking.id] });
+      void queryClient.invalidateQueries({ queryKey: ["rankings"] });
+    });
   }
 
   function openLoginPrompt() {
@@ -637,7 +700,14 @@ export function RatingTargetDetailPage() {
                 {authStatus === "authenticated" ? (
                   <InlineCommentComposer
                     busy={busy}
-                    disabled={busy || !content.trim() || (!replyingTo && selectedRating === 0)}
+                    disabled={
+                      busy ||
+                      !canSubmitRatingTargetComment({
+                        rating: selectedRating,
+                        content,
+                        isReplying: Boolean(replyingTo)
+                      })
+                    }
                     onChange={setContent}
                     onSubmit={() => {
                       if (!content.trim()) {
@@ -650,22 +720,32 @@ export function RatingTargetDetailPage() {
 
                       setActionError(null);
                       setBusy(true);
+                      const topLevelSubmission = buildRatingTargetSubmission(selectedRating, content);
                       const request = replyingTo
                         ? apiClient.createRatingTargetComment(item.id, {
                             content: content.trim(),
                             parentCommentId: replyingTo.id
                           })
-                        : apiClient.createRatingTargetComment(item.id, {
-                            content: content.trim(),
-                            rating: selectedRating
-                          });
+                        : topLevelSubmission?.kind === "review"
+                          ? apiClient.createRatingTargetComment(item.id, topLevelSubmission.payload)
+                          : apiClient.submitRatingTargetRating(item.id, topLevelSubmission?.payload ?? { rating: selectedRating });
 
                       void request
-                        .then(() => {
+                        .then((payload) => {
+                          if ("ratingTargetId" in payload.item) {
+                            patchDetail((current) =>
+                              patchRatingTargetCommentCreated(current, {
+                                ...payload.item,
+                                replies: []
+                              })
+                            );
+                          }
                           setReplyingTo(null);
                           setContent("");
                           setSelectedRating(0);
-                          return refreshAll();
+                          if (!replyingTo) {
+                            refreshRankingDataInBackground();
+                          }
                         })
                         .catch((reason: unknown) => {
                           setActionError(reason instanceof Error ? reason.message : "评分对象评论提交失败。");

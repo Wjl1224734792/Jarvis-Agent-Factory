@@ -11,7 +11,7 @@ import {
   UserPlusIcon,
   XIcon
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -26,8 +26,14 @@ import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
+import {
+  patchPostAuthorFollowState,
+  patchPostCommentCreated,
+  patchPostViewCount
+} from "../features/posts/post-query-cache";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
+import { shouldRecordSessionView } from "../lib/view-session";
 import {
   buildCircleMediaItems,
   CIRCLE_CARD_COLUMN_GAP,
@@ -117,6 +123,21 @@ export function CirclePage() {
 
     setSelectedMediaIndex(0);
   }, [mediaItems.length, selectedMediaIndex]);
+
+  useEffect(() => {
+    if (!selectedNote || selectedNote.status !== "published" || !shouldRecordSessionView("post", selectedNote.id)) {
+      return;
+    }
+
+    void apiClient
+      .recordPostView(selectedNote.id)
+      .then(() => {
+        patchPostViewCount(queryClient, selectedNote.id);
+      })
+      .catch(() => {
+        // Ignore passive view-record failures to keep the modal responsive.
+      });
+  }, [queryClient, selectedNote]);
 
   function openNote(id: string) {
     const next = new URLSearchParams(searchParams);
@@ -370,18 +391,16 @@ export function CirclePage() {
                             return;
                           }
 
+                          const nextIsFollowing = !selectedNote.engagement.viewer.isFollowingAuthor;
                           setActionError(null);
                           void apiClient
                             .toggleFollow(selectedNote.author.id)
-                            .then(() =>
-                              Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["post-detail", selectedNote.id]
-                                }),
-                                queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
-                                queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                              ])
-                            )
+                            .then(() => {
+                              patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
+                              startTransition(() => {
+                                void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                              });
+                            })
                             .catch((reason: unknown) => {
                               setActionError(
                                 reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
@@ -496,14 +515,9 @@ export function CirclePage() {
                             .createPostComment(selectedNote.id, {
                               content: commentContent
                             })
-                            .then(() => {
+                            .then((payload) => {
+                              patchPostCommentCreated(queryClient, selectedNote.id, payload.item);
                               setCommentContent("");
-                              return Promise.all([
-                                queryClient.invalidateQueries({
-                                  queryKey: ["post-detail", selectedNote.id]
-                                }),
-                                queryClient.invalidateQueries({ queryKey: ["circle-feed"] })
-                              ]);
                             })
                             .catch((reason: unknown) => {
                               setActionError(
@@ -560,12 +574,9 @@ export function CirclePage() {
                         <div className="flex shrink-0 items-center gap-2">
                           <ReportActionSheet
                             description="请填写举报理由，并至少上传 1 张证据图。"
-                            onSubmit={(input) =>
-                              apiClient.reportPost(selectedNote.id, input).then(() => {
-                                void queryClient.invalidateQueries({ queryKey: ["post-detail", selectedNote.id] });
-                                void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
-                              })
-                            }
+                            onSubmit={async (input) => {
+                              await apiClient.reportPost(selectedNote.id, input);
+                            }}
                             title="举报内容"
                             trigger={
                               <Button aria-label="举报内容" size="sm" type="button" variant="ghost">

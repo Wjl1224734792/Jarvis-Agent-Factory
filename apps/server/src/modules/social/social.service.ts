@@ -293,6 +293,7 @@ export const socialService = {
         rejectionReason: post.rejectionReason ?? null,
         title: post.title,
         contentPreview: toPreview(post.content),
+        viewCount: isSelf ? (post.viewCount ?? 0) : null,
         canManage: isSelf,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString()
@@ -348,6 +349,7 @@ export const socialService = {
         summary: submission.summary,
         status: isValidAircraftSubmissionStatus(submission.status) ? submission.status : ("draft" as "draft" | "submitted" | "approved" | "rejected"),
         rejectionReason: submission.rejectionReason ?? null,
+        viewCount: isSelf ? (submission.approvedModelViewCount ?? 0) : null,
         canManage: isSelf,
         createdAt: submission.createdAt.toISOString(),
         updatedAt: submission.updatedAt.toISOString()

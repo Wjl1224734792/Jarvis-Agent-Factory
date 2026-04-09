@@ -161,7 +161,7 @@ afterAll(async () => {
 });
 
 describe("rankings flows", () => {
-  it("recomputes rating target ranks from weighted scores instead of static editor order", () => {
+  it("recomputes rating target ranks with average score as the primary signal", () => {
     const ranked = rankRatingTargetsByDynamicScore(
       [
         {
@@ -179,27 +179,27 @@ describe("rankings flows", () => {
         [
           "seed_1",
           {
-            averageRaw: 3.8,
-            totalRatings: 12,
-            commentCount: 4,
-            likeCount: 1
+            averageRaw: 4.9,
+            totalRatings: 3,
+            commentCount: 0,
+            likeCount: 0
           }
         ],
         [
           "seed_2",
           {
-            averageRaw: 4.8,
-            totalRatings: 48,
-            commentCount: 9,
-            likeCount: 6
+            averageRaw: 4.7,
+            totalRatings: 60,
+            commentCount: 24,
+            likeCount: 18
           }
         ]
       ])
     );
 
     expect(ranked.map((item) => ({ id: item.id, rank: item.rank }))).toEqual([
-      { id: "seed_2", rank: 1 },
-      { id: "seed_1", rank: 2 }
+      { id: "seed_1", rank: 1 },
+      { id: "seed_2", rank: 2 }
     ]);
   });
 

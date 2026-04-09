@@ -9,7 +9,7 @@ import {
   MessageSquareTextIcon,
   PlayIcon
 } from "lucide-react";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
@@ -25,6 +25,7 @@ import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { getModelGallery, getModelImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
+import { shouldRecordSessionView } from "@/lib/view-session";
 import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";
 
@@ -99,12 +100,15 @@ export function ModelDetailPage() {
     queryFn: () => apiClient.getModelDetail(slug),
     enabled: Boolean(slug)
   });
+  const item = detailQuery.data?.item as ModelDetail | undefined;
 
   const hotModelsQuery = useQuery({
     queryKey: ["hot-models-sidebar", detailQuery.data?.item.category.slug, slug],
     queryFn: () =>
       apiClient.listModels({
-        categorySlug: detailQuery.data?.item.category.slug
+        categorySlug: detailQuery.data?.item.category.slug,
+        sort: "hot",
+        limit: 4
       }),
     enabled: Boolean(detailQuery.data?.item.category.slug)
   });
@@ -142,6 +146,16 @@ export function ModelDetailPage() {
     setActiveGalleryIndex((index) => Math.min(index, gallery.length - 1));
   }, [gallery.length]);
 
+  useEffect(() => {
+    if (!item || !item.isPublished || !shouldRecordSessionView("model", item.slug)) {
+      return;
+    }
+
+    void apiClient.recordModelView(item.slug).catch(() => {
+      // Passive analytics failure should not affect detail rendering.
+    });
+  }, [item]);
+
   if (!slug) {
     return (
       <Alert variant="destructive">
@@ -163,8 +177,6 @@ export function ModelDetailPage() {
       </Alert>
     );
   }
-
-  const item = detailQuery.data?.item as ModelDetail | undefined;
 
   if (!item) {
     return (
@@ -207,6 +219,97 @@ export function ModelDetailPage() {
     }
   ];
 
+  function patchModelInteractionState(
+    type: "interested" | "favorite" | "share",
+    active: boolean
+  ) {
+    const summaryKey =
+      type === "interested"
+        ? "interestCount"
+        : type === "favorite"
+          ? "favoriteCount"
+          : "shareCount";
+    const viewerKey =
+      type === "interested"
+        ? "isInterested"
+        : type === "favorite"
+          ? "isFavorited"
+          : "hasShared";
+    const delta = active ? 1 : -1;
+
+    queryClient.setQueryData<Awaited<ReturnType<typeof apiClient.getModelDetail>>>(
+      ["model-detail", slug],
+      (current) => {
+        if (!current?.item) {
+          return current;
+        }
+
+        return {
+          ...current,
+          item: {
+            ...current.item,
+            interactionSummary: {
+              ...current.item.interactionSummary,
+              [summaryKey]: Math.max(0, current.item.interactionSummary[summaryKey] + delta)
+            },
+            viewer: {
+              ...current.item.viewer,
+              [viewerKey]: active
+            }
+          }
+        };
+      }
+    );
+
+    queryClient.setQueriesData<Awaited<ReturnType<typeof apiClient.listModels>>>(
+      { queryKey: ["home-shell-models"] },
+      (current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          items: current.items.map((model) =>
+            model.slug !== modelSlug
+              ? model
+              : {
+                  ...model,
+                  favoriteCount:
+                    type === "favorite"
+                      ? Math.max(0, model.favoriteCount + delta)
+                      : model.favoriteCount
+                }
+          )
+        };
+      }
+    );
+
+    queryClient.setQueriesData<Awaited<ReturnType<typeof apiClient.listModels>>>(
+      { queryKey: ["hot-models-sidebar"] },
+      (current) => {
+        if (!current) {
+          return current;
+        }
+
+        return {
+          ...current,
+          items: current.items.map((model) =>
+            model.slug !== modelSlug
+              ? model
+              : {
+                  ...model,
+                  favoriteCount:
+                    type === "favorite"
+                      ? Math.max(0, model.favoriteCount + delta)
+                      : model.favoriteCount
+                }
+          )
+        };
+      }
+    );
+  }
+
   async function handleInteraction(type: "interested" | "favorite") {
     if (!isAuthenticated) {
       promptLogin({
@@ -218,12 +321,12 @@ export function ModelDetailPage() {
 
     setInteractionBusy(type);
     try {
-      await apiClient.interactModel(modelSlug, type);
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
-        queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
-        queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] })
-      ]);
+      const response = await apiClient.interactModel(modelSlug, type);
+      patchModelInteractionState(type, response.item.active);
+      startTransition(() => {
+        void queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] });
+        void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
+      });
     } finally {
       setInteractionBusy(null);
     }
@@ -235,12 +338,12 @@ export function ModelDetailPage() {
     }
     setInteractionBusy("share");
     try {
-      await apiClient.interactModel(modelSlug, "share");
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["model-detail", slug] }),
-        queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] }),
-        queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] })
-      ]);
+      const response = await apiClient.interactModel(modelSlug, "share");
+      patchModelInteractionState("share", response.item.active);
+      startTransition(() => {
+        void queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] });
+        void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
+      });
     } finally {
       setInteractionBusy(null);
     }

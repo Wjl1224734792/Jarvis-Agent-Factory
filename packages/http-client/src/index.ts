@@ -363,6 +363,14 @@ function buildQueryString(input: ModelsQueryInput): string {
     search.set("keyword", query.keyword);
   }
 
+  if (query.sort) {
+    search.set("sort", query.sort);
+  }
+
+  if (typeof query.limit === "number") {
+    search.set("limit", String(query.limit));
+  }
+
   const queryString = search.toString();
   return queryString ? `?${queryString}` : "";
 }
@@ -699,6 +707,19 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, postDetailResponseSchema);
+    },
+    async recordPostView(id: string, input?: { sessionId?: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.posts.view(id)}`, {
+        method: "POST",
+        credentials: "include",
+        headers: input?.sessionId
+          ? {
+              "x-feijia-view-session": input.sessionId
+            }
+          : undefined
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
     },
     async createPostComment(postId: string, input: CreatePostCommentInput) {
       return postJson(
@@ -1247,6 +1268,19 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, modelDetailResponseSchema);
+    },
+    async recordModelView(slug: string, input?: { sessionId?: string }) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.view(slug)}`, {
+        method: "POST",
+        credentials: "include",
+        headers: input?.sessionId
+          ? {
+              "x-feijia-view-session": input.sessionId
+            }
+          : undefined
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
     },
     async listModelComments(slug: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.comments(slug)}`, {

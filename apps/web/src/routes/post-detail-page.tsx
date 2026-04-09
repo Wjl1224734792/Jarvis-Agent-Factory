@@ -8,7 +8,7 @@ import {
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
-import { useState } from "react";
+import { startTransition, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -25,12 +25,14 @@ import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { InlineCommentComposer } from "../features/posts/inline-comment-composer";
 import { PostCommentThread } from "../features/posts/post-comment-thread";
 import { PostInteractionBar } from "../features/posts/post-interaction-bar";
+import {
+  patchPostAuthorFollowState,
+  patchPostCommentCreated,
+  patchPostViewCount
+} from "../features/posts/post-query-cache";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
-
-function postViewCount(likeCount: number, commentCount: number, shareCount: number) {
-  return Math.max(likeCount * 14 + commentCount * 9 + shareCount * 12, 24);
-}
+import { shouldRecordSessionView } from "../lib/view-session";
 
 function splitContent(content: string) {
   return content
@@ -62,6 +64,21 @@ export function PostDetailPage() {
   const item = postQuery.data?.item;
   const paragraphs = splitContent(item?.content ?? "");
   const articleHtml = item?.type === "article" ? item.contentHtml?.trim() ?? "" : "";
+
+  useEffect(() => {
+    if (!item || item.status !== "published" || !shouldRecordSessionView("post", item.id)) {
+      return;
+    }
+
+    void apiClient
+      .recordPostView(item.id)
+      .then(() => {
+        patchPostViewCount(queryClient, item.id);
+      })
+      .catch(() => {
+        // Ignore passive view-record failures to keep detail navigation responsive.
+      });
+  }, [item, queryClient]);
 
   if (!id) {
     return (
@@ -162,16 +179,15 @@ export function PostDetailPage() {
                   ) {
                     return;
                   }
+                  const nextIsFollowing = !isFollowingAuthor;
                   setActionError(null);
                   void apiClient
                     .toggleFollow(item.author.id)
                     .then(() => {
-                      return Promise.all([
-                        queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
-                        queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-                        queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
-                        queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                      ]);
+                      patchPostAuthorFollowState(queryClient, item.author.id, nextIsFollowing);
+                      startTransition(() => {
+                        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                      });
                     })
                     .catch((value: unknown) => {
                       setActionError(value instanceof Error ? value.message : "关注失败");
@@ -226,7 +242,7 @@ export function PostDetailPage() {
             postId={item.id}
             shareCount={item.engagement.shareCount}
             sharePath={APP_ROUTES.postDetail.replace(":id", item.id)}
-            viewCount={postViewCount(item.engagement.likeCount, item.commentCount, item.engagement.shareCount)}
+            viewCount={item.viewCount}
             viewer={item.engagement.viewer}
           />
 
@@ -364,14 +380,12 @@ export function PostDetailPage() {
                   .createPostComment(item.id, {
                     content: commentContent
                   })
-                  .then(() => {
+                  .then((payload) => {
+                    patchPostCommentCreated(queryClient, item.id, payload.item);
                     setCommentContent("");
-                    return Promise.all([
-                      queryClient.invalidateQueries({ queryKey: ["post-detail", id] }),
-                      queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-                      queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
-                      queryClient.invalidateQueries({ queryKey: ["notifications"] })
-                    ]);
+                    startTransition(() => {
+                      void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+                    });
                   })
                   .catch((value: unknown) => {
                     setCommentError(value instanceof Error ? value.message : "评论失败");

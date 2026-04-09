@@ -13,6 +13,7 @@ import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
 import { rankFeedItemsByRecommendation } from "./feed-recommendation";
+import { shouldCountUniqueView } from "../../lib/view-tracking";
 
 type CurrentUser = {
   id: string;
@@ -171,6 +172,7 @@ function serializePostListItem(
     contentHtml: item.contentHtml,
     status: isValidPostStatus(item.status) ? item.status : ("pending" satisfies PostStatus),
     commentCount: item.commentCount,
+    viewCount: item.viewCount ?? 0,
     reportCount: item.reportCount,
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
@@ -515,6 +517,7 @@ export const postsService = {
         contentHtml: item.contentHtml,
         status: isValidPostStatus(item.status) ? item.status : ("pending" satisfies PostStatus),
         commentCount: item.commentCount,
+        viewCount: item.viewCount ?? 0,
         reportCount: item.reportCount,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
@@ -954,6 +957,31 @@ export const postsService = {
         type: notificationType[type],
         postId
       });
+    }
+
+    return { kind: "ok" as const };
+  },
+  async recordView(
+    postId: string,
+    input?: {
+      currentUserId?: string | null;
+      sessionId?: string | null;
+    }
+  ) {
+    const post = await postsRepo.getPostById(postId);
+    if (!post || post.status !== "published") {
+      return { kind: "not_found" as const };
+    }
+
+    const shouldIncrement = await shouldCountUniqueView({
+      contentType: "post",
+      contentId: postId,
+      sessionId: input?.sessionId ?? null,
+      viewerId: input?.currentUserId ?? null
+    });
+
+    if (shouldIncrement) {
+      await postsRepo.incrementPostViewCount(postId);
     }
 
     return { kind: "ok" as const };

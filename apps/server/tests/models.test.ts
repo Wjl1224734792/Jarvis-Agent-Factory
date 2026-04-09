@@ -280,6 +280,76 @@ describe("models flows", () => {
     ).toBe(true);
   });
 
+  it("supports hot model sorting with limits and records real model views per session", async () => {
+    const viewerCookie = await loginUser("13800138032");
+    const secondViewerCookie = await loginUser("13800138033");
+
+    for (const cookie of [viewerCookie, secondViewerCookie]) {
+      const favoriteResponse = await app.request(API_ROUTES.models.interactions("mini-4-pro", "favorite"), {
+        method: "POST",
+        headers: { cookie }
+      });
+      expect(favoriteResponse.status).toBe(200);
+    }
+
+    const firstViewResponse = await app.request(`${API_ROUTES.models.detail("mini-4-pro")}/view`, {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "x-feijia-view-session": "model-view-session-a"
+      }
+    });
+    expect(firstViewResponse.status).toBe(200);
+
+    const duplicateViewResponse = await app.request(`${API_ROUTES.models.detail("mini-4-pro")}/view`, {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "x-feijia-view-session": "model-view-session-a"
+      }
+    });
+    expect(duplicateViewResponse.status).toBe(200);
+
+    const secondSessionViewResponse = await app.request(`${API_ROUTES.models.detail("mini-4-pro")}/view`, {
+      method: "POST",
+      headers: {
+        cookie: secondViewerCookie,
+        "x-feijia-view-session": "model-view-session-b"
+      }
+    });
+    expect(secondSessionViewResponse.status).toBe(200);
+
+    const hotListResponse = await app.request(`${API_ROUTES.models.list}?sort=hot&limit=1`, {
+      method: "GET"
+    });
+    expect(hotListResponse.status).toBe(200);
+    const hotListPayload = (await hotListResponse.json()) as {
+      items: Array<{
+        slug: string;
+        favoriteCount: number;
+        viewCount: number;
+      }>;
+    };
+    expect(hotListPayload.items).toHaveLength(1);
+    expect(hotListPayload.items[0]?.slug).toBe("mini-4-pro");
+    expect(hotListPayload.items[0]?.favoriteCount).toBeGreaterThanOrEqual(2);
+    expect(hotListPayload.items[0]?.viewCount).toBe(2);
+
+    const detailResponse = await app.request(API_ROUTES.models.detail("mini-4-pro"), {
+      method: "GET",
+      headers: { cookie: viewerCookie }
+    });
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        slug: string;
+        viewCount: number;
+      };
+    };
+    expect(detailPayload.item.slug).toBe("mini-4-pro");
+    expect(detailPayload.item.viewCount).toBe(2);
+  });
+
   it("allows admin to create category, brand and model", async () => {
     const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
       method: "POST",

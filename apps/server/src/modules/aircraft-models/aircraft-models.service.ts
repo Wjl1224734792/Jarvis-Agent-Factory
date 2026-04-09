@@ -4,12 +4,16 @@ import { categoriesService } from "../categories/categories.service";
 import { brandsService } from "../brands/brands.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { aircraftModelsRepo } from "./aircraft-models.repo";
+import { shouldCountUniqueView } from "../../lib/view-tracking";
+import { sortModelsByHotScore } from "./model-hot-score";
 
 type ListFilters = {
   categorySlugs?: string[];
   brandSlugs?: string[];
   powerTypes?: string[];
   keyword?: string;
+  sort?: "hot" | "latest";
+  limit?: number;
 };
 
 type ModelCommentUserSummary = {
@@ -216,9 +220,21 @@ export const aircraftModelsService = {
       })
     );
 
+    const orderedItems =
+      filters.sort === "hot"
+        ? sortModelsByHotScore(
+            items.map((item) => ({
+              ...item,
+              reviewCount: item.reviewSummary.totalReviews
+            }))
+          )
+        : [...items].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    const limitedItems =
+      typeof filters.limit === "number" ? orderedItems.slice(0, filters.limit) : orderedItems;
+
     return {
-      items,
-      total: items.length,
+      items: limitedItems,
+      total: orderedItems.length,
       filters: {
         categories,
         brands,
@@ -406,6 +422,31 @@ export const aircraftModelsService = {
         viewer
       }
     };
+  },
+  async recordModelView(
+    slug: string,
+    input?: {
+      currentUserId?: string | null;
+      sessionId?: string | null;
+    }
+  ) {
+    const item = await aircraftModelsRepo.findBySlug(slug);
+    if (!item || !item.isPublished) {
+      return { kind: "not_found" as const };
+    }
+
+    const shouldIncrement = await shouldCountUniqueView({
+      contentType: "model",
+      contentId: item.id,
+      sessionId: input?.sessionId ?? null,
+      viewerId: input?.currentUserId ?? null
+    });
+
+    if (shouldIncrement) {
+      await aircraftModelsRepo.incrementModelViewCount(item.id);
+    }
+
+    return { kind: "ok" as const };
   },
   async listModelComments(slug: string, currentUserId?: string) {
     const item = await aircraftModelsRepo.findBySlug(slug);

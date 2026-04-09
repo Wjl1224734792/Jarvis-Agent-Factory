@@ -15,6 +15,7 @@ const sampleItems: UserContentItem[] = [
     rejectionReason: null,
     title: "Pending article",
     contentPreview: "pending article preview",
+    viewCount: 0,
     canManage: true,
     createdAt: "2026-04-08T08:00:00.000Z",
     updatedAt: "2026-04-08T08:00:00.000Z"
@@ -27,6 +28,7 @@ const sampleItems: UserContentItem[] = [
     rejectionReason: null,
     title: "Published moment",
     contentPreview: "published moment preview",
+    viewCount: 12,
     canManage: true,
     createdAt: "2026-04-08T08:10:00.000Z",
     updatedAt: "2026-04-08T08:10:00.000Z"
@@ -72,6 +74,7 @@ const sampleItems: UserContentItem[] = [
     summary: "draft aircraft",
     status: "draft",
     rejectionReason: null,
+    viewCount: 0,
     canManage: true,
     createdAt: "2026-04-08T08:50:00.000Z",
     updatedAt: "2026-04-08T08:50:00.000Z"

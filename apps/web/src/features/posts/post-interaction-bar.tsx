@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { Bookmark, Eye, Heart, Share2, UserCheck, UserPlus } from "lucide-react";
-import { useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
+import { startTransition, useState, type ComponentType, type MouseEvent, type SVGProps } from "react";
 import { PageShareControl } from "@/components/page-share-control";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 import { useAuthStore } from "../auth/auth-store";
 import { useLoginPrompt } from "../auth/use-login-prompt";
+import { patchPostAuthorFollowState, patchPostInteractionState } from "./post-query-cache";
 
 type FeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
 
@@ -156,12 +157,9 @@ export function PostInteractionBar(props: Props) {
 
     try {
       await task();
-      await Promise.all([
-        queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-        queryClient.invalidateQueries({ queryKey: ["circle-feed"] }),
-        queryClient.invalidateQueries({ queryKey: ["post-detail", props.postId] }),
-        queryClient.invalidateQueries({ queryKey: ["notifications"] })
-      ]);
+      startTransition(() => {
+        void queryClient.invalidateQueries({ queryKey: ["notifications"] });
+      });
     } catch (value: unknown) {
       setError(value instanceof Error ? value.message : "操作失败");
     } finally {
@@ -196,8 +194,10 @@ export function PostInteractionBar(props: Props) {
                   return;
                 }
 
+                const nextIsFollowing = !props.viewer.isFollowingAuthor;
                 void runAction("follow", async () => {
                   await apiClient.toggleFollow(props.authorId);
+                  patchPostAuthorFollowState(queryClient, props.authorId, nextIsFollowing);
                 });
               });
             }}
@@ -220,8 +220,14 @@ export function PostInteractionBar(props: Props) {
                 return;
               }
 
+              const nextHasLiked = !props.viewer.hasLiked;
               void runAction("like", async () => {
                 await apiClient.togglePostInteraction(props.postId, "like");
+                patchPostInteractionState(queryClient, {
+                  postId: props.postId,
+                  likeDelta: nextHasLiked ? 1 : -1,
+                  viewerPatch: { hasLiked: nextHasLiked }
+                });
               });
             });
           }}
@@ -243,8 +249,14 @@ export function PostInteractionBar(props: Props) {
                 return;
               }
 
+              const nextHasFavorited = !props.viewer.hasFavorited;
               void runAction("favorite", async () => {
                 await apiClient.togglePostInteraction(props.postId, "favorite");
+                patchPostInteractionState(queryClient, {
+                  postId: props.postId,
+                  favoriteDelta: nextHasFavorited ? 1 : -1,
+                  viewerPatch: { hasFavorited: nextHasFavorited }
+                });
               });
             });
           }}
@@ -265,8 +277,14 @@ export function PostInteractionBar(props: Props) {
                   if (useAuthStore.getState().status !== "authenticated") {
                     return;
                   }
+                  const nextHasShared = !props.viewer.hasShared;
                   void runAction("share", async () => {
                     await apiClient.togglePostInteraction(props.postId, "share");
+                    patchPostInteractionState(queryClient, {
+                      postId: props.postId,
+                      shareDelta: nextHasShared ? 1 : -1,
+                      viewerPatch: { hasShared: nextHasShared }
+                    });
                   });
                 }}
                 sharePath={props.sharePath}

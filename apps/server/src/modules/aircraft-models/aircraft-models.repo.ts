@@ -59,6 +59,7 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        viewCount: aircraftModelsTable.viewCount,
         favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
         commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         reviewSummary: {
@@ -67,6 +68,7 @@ export const aircraftModelsRepo = {
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
         reportCount: aircraftModelsTable.reportCount,
+        createdAt: aircraftModelsTable.createdAt,
         coverImageFileId: aircraftModelsTable.coverImageFileId,
         videoFileId: aircraftModelsTable.videoFileId,
         category: {
@@ -112,12 +114,14 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        viewCount: aircraftModelsTable.viewCount,
         favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
         commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
         reportCount: aircraftModelsTable.reportCount,
+        createdAt: aircraftModelsTable.createdAt,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },
@@ -184,6 +188,14 @@ export const aircraftModelsRepo = {
       favoriteCount: counts.favorite,
       shareCount: counts.share
     };
+  },
+  async incrementModelViewCount(modelId: string) {
+    await db
+      .update(aircraftModelsTable)
+      .set({
+        viewCount: sql`${aircraftModelsTable.viewCount} + 1`
+      })
+      .where(eq(aircraftModelsTable.id, modelId));
   },
   async getViewerInteractionState(modelId: string, userId?: string | null) {
     if (!userId) {
@@ -392,12 +404,14 @@ export const aircraftModelsRepo = {
         priceMax: aircraftModelsTable.priceMax,
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
+        viewCount: aircraftModelsTable.viewCount,
         favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
         commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
         isPublished: aircraftModelsTable.isPublished,
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
         reportCount: aircraftModelsTable.reportCount,
+        createdAt: aircraftModelsTable.createdAt,
         reviewSummary: {
           totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
         },

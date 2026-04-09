@@ -90,6 +90,7 @@ export const API_ROUTES = {
   posts: {
     create: "/posts",
     detail: (id: string) => `/posts/${id}`,
+    view: (id: string) => `/posts/${id}/view`,
     comments: (id: string) => `/posts/${id}/comments`,
     commentDetail: (postId: string, commentId: string) => `/posts/${postId}/comments/${commentId}`,
     commentLike: (postId: string, commentId: string) =>
@@ -184,6 +185,7 @@ export const API_ROUTES = {
   models: {
     list: "/models",
     detail: (slug: string) => `/models/${slug}`,
+    view: (slug: string) => `/models/${slug}/view`,
     comments: (slug: string) => `/models/${slug}/comments`,
     commentDetail: (slug: string, commentId: string) => `/models/${slug}/comments/${commentId}`,
     commentLike: (slug: string, commentId: string) =>

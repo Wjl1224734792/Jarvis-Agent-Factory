@@ -84,6 +84,7 @@ export const modelListItemSchema = z.object({
   lifecycleStatus: modelLifecycleStatusSchema,
   favoriteCount: z.number().int().nonnegative().default(0),
   commentCount: z.number().int().nonnegative().default(0),
+  viewCount: z.number().int().nonnegative().default(0),
   ownerId: z.string().min(1).nullable().optional(),
   sourceSubmissionId: z.string().min(1).nullable().optional(),
   reportCount: z.number().int().nonnegative().default(0),
@@ -131,13 +132,17 @@ export const modelListQuerySchema = z
     powerTypes: z.array(powerTypeSchema).optional(),
     keyword: z.string().trim().min(1).optional(),
     categorySlug: z.string().min(1).optional(),
-    brandSlug: z.string().min(1).optional()
+    brandSlug: z.string().min(1).optional(),
+    sort: z.enum(["hot", "latest"]).optional(),
+    limit: z.coerce.number().int().positive().max(20).optional()
   })
   .transform((input) => ({
     categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
     brandSlugs: input.brandSlugs ?? (input.brandSlug ? [input.brandSlug] : undefined),
     powerTypes: input.powerTypes,
-    keyword: input.keyword?.trim() || undefined
+    keyword: input.keyword?.trim() || undefined,
+    sort: input.sort,
+    limit: input.limit
   }));
 
 export const modelListResponseSchema = z.object({

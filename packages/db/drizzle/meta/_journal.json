@@ -64,6 +64,13 @@
       "when": 1775638462380,
       "tag": "0008_high_aaron_stack",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1775755335985,
+      "tag": "0009_complete_warbound",
+      "breakpoints": true
     }
   ]
 }

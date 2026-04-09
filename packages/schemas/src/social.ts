@@ -128,6 +128,7 @@ export const userContentPostItemSchema = z.object({
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   contentPreview: z.string().min(1),
+  viewCount: z.number().int().nonnegative().nullable().default(null),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -213,6 +214,7 @@ export const userContentAircraftItemSchema = z.object({
   summary: z.string().nullable(),
   status: z.enum(["draft", "submitted", "approved", "rejected"]),
   rejectionReason: z.string().nullable().default(null),
+  viewCount: z.number().int().nonnegative().nullable().default(null),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()

@@ -22,10 +22,6 @@ const fixedTabs = [
   { id: "following", label: "关注" }
 ] as const;
 
-function articleViewCount(likeCount: number, commentCount: number, shareCount: number) {
-  return Math.max(likeCount * 12 + commentCount * 8 + shareCount * 10, 18);
-}
-
 function formatCount(value: number) {
   if (value >= 10000) {
     return `${(value / 10000).toFixed(1).replace(/\.0$/, "")}w`;
@@ -61,7 +57,11 @@ export function HomePage() {
   const modelsQuery = useQuery({
     queryKey: ["home-shell-models"],
     placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listModels()
+    queryFn: () =>
+      apiClient.listModels({
+        sort: "hot",
+        limit: 3
+      })
   });
 
   const rankingsQuery = useQuery({
@@ -72,7 +72,7 @@ export function HomePage() {
 
   const feedItems = feedQuery.data?.items ?? [];
   const contentCategories = useMemo(() => feedQuery.data?.categories ?? [], [feedQuery.data?.categories]);
-  const hotModels = modelsQuery.data?.items.slice(0, 3) ?? [];
+  const hotModels = modelsQuery.data?.items ?? [];
   const rankingCards = useMemo(
     () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data).hot.slice(0, 2) : []),
     [rankingsQuery.data]
@@ -189,13 +189,7 @@ export function HomePage() {
                           </span>
                           <span className="inline-flex items-center gap-1.5">
                             <EyeIcon className="size-3.5" />
-                            {formatCount(
-                              articleViewCount(
-                                item.engagement.likeCount,
-                                item.commentCount,
-                                item.engagement.shareCount
-                              )
-                            )}
+                            {formatCount(item.viewCount)}
                           </span>
                         </div>
                       </div>

@@ -551,6 +551,92 @@ describe.sequential("posts and social flows", () => {
     expect(target?.viewer.hasReported).toBe(true);
   });
 
+  it("tracks real post views per session and keeps them decoupled from interactions", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginWebUser("13800138174");
+    const viewerCookie = await loginWebUser("13800138175");
+    const secondViewerCookie = await loginWebUser("13800138176");
+    const created = await createPost(authorCookie, {
+      type: "article",
+      title: "Tracked article",
+      content: "Track article views with a real counter.",
+      contentCategoryId: articleCategoryId
+    });
+    await publishPost(adminCookie, created.item.id);
+
+    const firstViewResponse = await app.request(`${API_ROUTES.posts.detail(created.item.id)}/view`, {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "x-feijia-view-session": "post-view-session-a"
+      }
+    });
+    expect(firstViewResponse.status).toBe(200);
+
+    const duplicateViewResponse = await app.request(`${API_ROUTES.posts.detail(created.item.id)}/view`, {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "x-feijia-view-session": "post-view-session-a"
+      }
+    });
+    expect(duplicateViewResponse.status).toBe(200);
+
+    const secondSessionViewResponse = await app.request(`${API_ROUTES.posts.detail(created.item.id)}/view`, {
+      method: "POST",
+      headers: {
+        cookie: secondViewerCookie,
+        "x-feijia-view-session": "post-view-session-b"
+      }
+    });
+    expect(secondSessionViewResponse.status).toBe(200);
+
+    const likeResponse = await app.request(API_ROUTES.posts.interaction(created.item.id, "like"), {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie
+      }
+    });
+    expect(likeResponse.status).toBe(200);
+
+    const detailResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "GET",
+      headers: { cookie: viewerCookie }
+    });
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        id: string;
+        viewCount: number;
+        engagement: {
+          likeCount: number;
+        };
+      };
+    };
+    expect(detailPayload.item.viewCount).toBe(2);
+    expect(detailPayload.item.engagement.likeCount).toBe(1);
+
+    const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, {
+      method: "GET",
+      headers: { cookie: viewerCookie }
+    });
+    expect(feedResponse.status).toBe(200);
+    const feedPayload = (await feedResponse.json()) as {
+      items: Array<{
+        id: string;
+        viewCount: number;
+      }>;
+    };
+    expect(feedPayload.items.find((item) => item.id === created.item.id)?.viewCount).toBe(2);
+  });
+
   it("supports dedicated admin official article detail/update/delete endpoints", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
