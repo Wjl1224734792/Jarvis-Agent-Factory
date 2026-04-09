@@ -205,8 +205,20 @@ export const aircraftModelsService = {
       brandsService.listBrands()
     ]);
 
+    const orderedRows =
+      filters.sort === "hot"
+        ? sortModelsByHotScore(
+            rows.map((row) => ({
+              ...row,
+              reviewCount: row.reviewSummary.totalReviews
+            }))
+          )
+        : [...rows].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    const limitedRows =
+      typeof filters.limit === "number" ? orderedRows.slice(0, filters.limit) : orderedRows;
+
     const items = await Promise.all(
-      rows.map(async (row) => {
+      limitedRows.map(async (row) => {
         const { coverImageFileId, videoFileId, ...rest } = row;
         const [coverImageUrl, coverVideoUrl] = await Promise.all([
           resolveUploadedFileUrl(coverImageFileId ?? null),
@@ -220,21 +232,9 @@ export const aircraftModelsService = {
       })
     );
 
-    const orderedItems =
-      filters.sort === "hot"
-        ? sortModelsByHotScore(
-            items.map((item) => ({
-              ...item,
-              reviewCount: item.reviewSummary.totalReviews
-            }))
-          )
-        : [...items].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
-    const limitedItems =
-      typeof filters.limit === "number" ? orderedItems.slice(0, filters.limit) : orderedItems;
-
     return {
-      items: limitedItems,
-      total: orderedItems.length,
+      items,
+      total: orderedRows.length,
       filters: {
         categories,
         brands,
@@ -430,7 +430,7 @@ export const aircraftModelsService = {
       sessionId?: string | null;
     }
   ) {
-    const item = await aircraftModelsRepo.findBySlug(slug);
+    const item = await aircraftModelsRepo.getModelViewStateBySlug(slug);
     if (!item || !item.isPublished) {
       return { kind: "not_found" as const };
     }

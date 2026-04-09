@@ -34,6 +34,8 @@ type PostCommentViewerState = {
 
 type PostCommentReply = {
   id: string;
+  parentCommentId: string | null;
+  replyToCommentId: string | null;
   status: "pending" | "visible" | "hidden";
   likeCount: number;
   reportCount: number;

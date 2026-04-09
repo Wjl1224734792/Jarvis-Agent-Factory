@@ -366,6 +366,47 @@ export const rankingsRepo = {
       .where(eq(ratingTargetsTable.rankingId, rankingId))
       .orderBy(asc(ratingTargetsTable.rank), asc(ratingTargetsTable.createdAt));
   },
+  async listRatingTargetsByRankingIds(rankingIds: string[]) {
+    if (rankingIds.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        id: ratingTargetsTable.id,
+        rankingId: ratingTargetsTable.rankingId,
+        authorId: ratingTargetsTable.authorId,
+        status: ratingTargetsTable.status,
+        rejectionReason: ratingTargetsTable.rejectionReason,
+        rank: ratingTargetsTable.rank,
+        title: ratingTargetsTable.title,
+        summary: ratingTargetsTable.summary,
+        imageFileId: ratingTargetsTable.imageFileId,
+        brandName: ratingTargetsTable.brandName,
+        commentCount: ratingTargetsTable.commentCount,
+        likeCount: ratingTargetsTable.likeCount,
+        reportCount: ratingTargetsTable.reportCount,
+        createdAt: ratingTargetsTable.createdAt,
+        updatedAt: ratingTargetsTable.updatedAt,
+        linkedModelId: aircraftModelsTable.id,
+        linkedModelSlug: aircraftModelsTable.slug,
+        linkedModelName: aircraftModelsTable.name,
+        linkedModelSummary: aircraftModelsTable.summary,
+        linkedModelPowerType: aircraftModelsTable.powerType,
+        linkedModelCategoryId: aircraftCategoriesTable.id,
+        linkedModelCategorySlug: aircraftCategoriesTable.slug,
+        linkedModelCategoryName: sql<string | null>`${aircraftCategoriesTable.name}`,
+        linkedModelBrandId: brandsTable.id,
+        linkedModelBrandSlug: brandsTable.slug,
+        linkedModelBrandName: sql<string | null>`${brandsTable.name}`
+      })
+      .from(ratingTargetsTable)
+      .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
+      .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
+      .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
+      .where(inArray(ratingTargetsTable.rankingId, rankingIds))
+      .orderBy(asc(ratingTargetsTable.rankingId), asc(ratingTargetsTable.rank), asc(ratingTargetsTable.createdAt));
+  },
   async getRatingTargetById(id: string) {
     const rows = await db
       .select({

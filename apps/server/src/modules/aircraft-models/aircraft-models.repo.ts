@@ -161,6 +161,18 @@ export const aircraftModelsRepo = {
 
     return items[0] ?? null;
   },
+  async getModelViewStateBySlug(slug: string) {
+    const items = await db
+      .select({
+        id: aircraftModelsTable.id,
+        isPublished: aircraftModelsTable.isPublished
+      })
+      .from(aircraftModelsTable)
+      .where(eq(aircraftModelsTable.slug, slug))
+      .limit(1);
+
+    return items[0] ?? null;
+  },
   async getInteractionSummary(modelId: string) {
     const rows = await db.execute(
       sql<{ type: "interested" | "favorite" | "share"; count: number }>`

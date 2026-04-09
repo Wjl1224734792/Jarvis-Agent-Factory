@@ -968,7 +968,7 @@ export const postsService = {
       sessionId?: string | null;
     }
   ) {
-    const post = await postsRepo.getPostById(postId);
+    const post = await postsRepo.getPostViewStateById(postId);
     if (!post || post.status !== "published") {
       return { kind: "not_found" as const };
     }

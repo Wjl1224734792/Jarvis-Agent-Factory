@@ -351,6 +351,18 @@ export const postsRepo = {
 
     return rows[0] ?? null;
   },
+  async getPostViewStateById(id: string) {
+    const rows = await db
+      .select({
+        id: postsTable.id,
+        status: postsTable.status
+      })
+      .from(postsTable)
+      .where(eq(postsTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
   async listFeed(input: {
     tab: FeedTab;
     type: PostType;

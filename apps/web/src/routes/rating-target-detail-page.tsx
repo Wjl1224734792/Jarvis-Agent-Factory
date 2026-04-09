@@ -733,11 +733,12 @@ export function RatingTargetDetailPage() {
                       void request
                         .then((payload) => {
                           if ("ratingTargetId" in payload.item) {
+                            const createdComment: RatingTargetCommentNode = {
+                              ...payload.item,
+                              replies: []
+                            };
                             patchDetail((current) =>
-                              patchRatingTargetCommentCreated(current, {
-                                ...payload.item,
-                                replies: []
-                              })
+                              patchRatingTargetCommentCreated(current, createdComment)
                             );
                           }
                           setReplyingTo(null);

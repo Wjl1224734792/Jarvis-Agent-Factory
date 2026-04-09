@@ -136,6 +136,18 @@ function buildDynamicRankingAggregateMap(
   );
 }
 
+function groupRatingTargetsByRankingId(items: RatingTargetSourceItem[]) {
+  const grouped = new Map<string, RatingTargetSourceItem[]>();
+
+  for (const item of items) {
+    const bucket = grouped.get(item.rankingId) ?? [];
+    bucket.push(item);
+    grouped.set(item.rankingId, bucket);
+  }
+
+  return grouped;
+}
+
 function applyDynamicRanks<T extends { id: string; rank: number }>(
   serializedItems: T[],
   sourceItems: RatingTargetSourceItem[],
@@ -401,23 +413,22 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
     return ranking.status === "published";
   });
 
-  const ratingTargetsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRatingTargets>>>();
-  await Promise.all(
-    rankings.map(async (ranking) => {
-      const items = await rankingsRepo.listRatingTargets(ranking.id);
-      ratingTargetsByRanking.set(
-        ranking.id,
-        items.filter((item) =>
-          canInspectRatingTarget({
-            currentUser,
-            rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
-            rankingAuthorId: ranking.author.id,
-            itemAuthorId: item.authorId,
-            itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
-          })
-        )
-      );
-    })
+  const groupedRatingTargets = groupRatingTargetsByRankingId(
+    await rankingsRepo.listRatingTargetsByRankingIds(rankings.map((ranking) => ranking.id))
+  );
+  const ratingTargetsByRanking = new Map<string, RatingTargetSourceItem[]>(
+    rankings.map((ranking) => [
+      ranking.id,
+      (groupedRatingTargets.get(ranking.id) ?? []).filter((item) =>
+        canInspectRatingTarget({
+          currentUser,
+          rankingType: isValidRankingType(ranking.type) ? ranking.type : "community",
+          rankingAuthorId: ranking.author.id,
+          itemAuthorId: item.authorId,
+          itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
+        })
+      )
+    ])
   );
 
   const allRatingTargetIds = Array.from(ratingTargetsByRanking.values())
@@ -909,11 +920,8 @@ export const rankingsService = {
     }
 
     const rankings = await rankingsRepo.listRankings();
-    const rankingItemsByRanking = new Map<string, Awaited<ReturnType<typeof rankingsRepo.listRatingTargets>>>();
-    await Promise.all(
-      rankings.map(async (ranking) => {
-        rankingItemsByRanking.set(ranking.id, await rankingsRepo.listRatingTargets(ranking.id));
-      })
+    const rankingItemsByRanking = groupRatingTargetsByRankingId(
+      await rankingsRepo.listRatingTargetsByRankingIds(rankings.map((ranking) => ranking.id))
     );
 
     const allRatingTargetIds = Array.from(rankingItemsByRanking.values())

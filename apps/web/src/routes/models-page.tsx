@@ -5,20 +5,20 @@ import type {
   ModelListItem,
   PowerType
 } from "@feijia/schemas";
+import { APP_ROUTES } from "@feijia/shared";
 import { SearchIcon } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { APP_ROUTES } from "@feijia/shared";
-import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
+import { ModelsPageSkeleton } from "@/components/page-skeletons";
+import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { SitePage } from "@/components/site-shell";
-import { cn } from "@/lib/utils";
 import { apiClient } from "../lib/api-client";
+import { cn } from "../lib/utils";
 import { formatModelPriceRange } from "./model-detail-helpers";
 import {
   buildModelFilterSearchParams,
@@ -81,11 +81,7 @@ function FilterSection(props: {
   withLogo?: boolean;
 }) {
   return (
-    <div
-      className={`space-y-2.5 bg-white ${
-        props.compact ? "px-3 py-3" : "px-4 py-4"
-      }`}
-    >
+    <div className={`space-y-2.5 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">{props.title}</div>
         <button className="text-[0.72rem] text-primary" onClick={props.onClear} type="button">
@@ -110,17 +106,13 @@ function FilterSection(props: {
           <button
             className={cn(
               "flex w-full items-center justify-between px-3 py-2.5 text-left text-sm transition",
-              props.activeSlugs.length === 0
-                ? "bg-primary/8 text-primary"
-                : "hover:bg-accent/28"
+              props.activeSlugs.length === 0 ? "bg-primary/8 text-primary" : "hover:bg-accent/28"
             )}
             onClick={props.onClear}
             type="button"
           >
             <span>全部</span>
-            {props.activeSlugs.length === 0 ? (
-              <span className="text-[0.72rem]">当前</span>
-            ) : null}
+            {props.activeSlugs.length === 0 ? <span className="text-[0.72rem]">当前</span> : null}
           </button>
 
           {props.items.map((item) => {
@@ -164,11 +156,7 @@ function PowerSection(props: {
   compact?: boolean;
 }) {
   return (
-    <div
-      className={`space-y-2.5 bg-white ${
-        props.compact ? "px-3 py-3" : "px-4 py-4"
-      }`}
-    >
+    <div className={`space-y-2.5 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}>
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">动力</div>
         <button className="text-[0.72rem] text-primary" onClick={props.onReset} type="button">
@@ -296,10 +284,7 @@ export function ModelsPage() {
     setSearchParams(buildModelFilterSearchParams(searchParams, next));
   }
 
-  function toggleGroupValue(
-    key: "categorySlugs" | "brandSlugs" | "powerTypes",
-    value: string
-  ) {
+  function toggleGroupValue(key: "categorySlugs" | "brandSlugs" | "powerTypes", value: string) {
     updateParams({
       [key]: toggleModelFilterValue(filtersState[key], value)
     });
@@ -307,17 +292,9 @@ export function ModelsPage() {
 
   const isGridLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
-  const activeCategoryName = formatActiveNames(
-    categories,
-    filtersState.categorySlugs,
-    "全部分类"
-  );
+  const activeCategoryName = formatActiveNames(categories, filtersState.categorySlugs, "全部分类");
   const activeBrandName = formatActiveNames(brands, filtersState.brandSlugs, "全部品牌");
-  const activePowerLabel = formatActiveNames(
-    powerTypeOptions,
-    filtersState.powerTypes,
-    "全部动力"
-  );
+  const activePowerLabel = formatActiveNames(powerTypeOptions, filtersState.powerTypes, "全部动力");
 
   if (isGridLoading) {
     return (
@@ -402,6 +379,13 @@ export function ModelsPage() {
             </div>
           </div>
 
+          {modelsQuery.isError ? (
+            <Alert variant="destructive">
+              <AlertTitle>飞行器加载失败</AlertTitle>
+              <AlertDescription>{modelsQuery.error.message}</AlertDescription>
+            </Alert>
+          ) : null}
+
           {modelsQuery.isSuccess ? (
             <div className="relative">
               {modelsQuery.data.items.length > 0 ? (
@@ -423,10 +407,7 @@ export function ModelsPage() {
                 <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
                   <div className={MODEL_GRID_CLASS_NAME}>
                     {Array.from({ length: 10 }).map((_, index) => (
-                      <div
-                        className="block min-w-0 bg-white px-3 py-3"
-                        key={index}
-                      >
+                      <div className="block min-w-0 bg-white px-3 py-3" key={index}>
                         <div className="animate-pulse">
                           <div className="aspect-square w-full bg-slate-200" />
                           <div className="space-y-2 px-0.5 pb-0.5 pt-3">
@@ -444,13 +425,6 @@ export function ModelsPage() {
           ) : null}
         </div>
       </div>
-
-      {modelsQuery.isError ? (
-        <Alert variant="destructive">
-          <AlertTitle>飞行器库加载失败</AlertTitle>
-          <AlertDescription>{modelsQuery.error.message}</AlertDescription>
-        </Alert>
-      ) : null}
     </SitePage>
   );
 }
