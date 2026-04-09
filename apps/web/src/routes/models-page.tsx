@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { apiClient } from "../lib/api-client";
 import { cn } from "../lib/utils";
+import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 import { formatModelPriceRange } from "./model-detail-helpers";
 import {
   buildModelFilterSearchParams,
@@ -196,6 +197,7 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
   return (
     <Link
       className="group block min-w-0 overflow-hidden bg-white transition hover:bg-sky-50/34"
+      {...DETAIL_PAGE_LINK_PROPS}
       to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
     >
       <div className="aspect-[4/3] w-full overflow-hidden">

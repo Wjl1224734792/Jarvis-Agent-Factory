@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
@@ -156,6 +157,7 @@ export function HomePage() {
                   >
                     <Link
                       className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
+                      {...DETAIL_PAGE_LINK_PROPS}
                       to={APP_ROUTES.postDetail.replace(":id", item.id)}
                     >
                       <div className="overflow-hidden bg-slate-100">
@@ -238,6 +240,7 @@ export function HomePage() {
                     <Link
                       className="block border-b border-border pb-2.5 last:border-b-0"
                       key={ranking.id}
+                      {...DETAIL_PAGE_LINK_PROPS}
                       to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
                     >
                       <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
@@ -273,6 +276,7 @@ export function HomePage() {
                   <Link
                     className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                     key={model.id}
+                    {...DETAIL_PAGE_LINK_PROPS}
                     to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                   >
                     <ModelThumbCover

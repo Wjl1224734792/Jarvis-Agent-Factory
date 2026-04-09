@@ -14,6 +14,7 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
+import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 
 type ContentItem = Awaited<ReturnType<typeof apiClient.listUserContent>>["items"][number];
 
@@ -143,7 +144,7 @@ function ContentFeedRow({ item }: { item: ContentItem }) {
   }
 
   return (
-    <Link className="block transition hover:bg-accent/28" to={meta.href}>
+    <Link className="block transition hover:bg-accent/28" {...DETAIL_PAGE_LINK_PROPS} to={meta.href}>
       {row}
     </Link>
   );

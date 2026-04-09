@@ -32,7 +32,7 @@ import { InlineCommentComposer } from "@/features/posts/inline-comment-composer"
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { apiClient } from "@/lib/api-client";
-import { buildRatingTargetDetailPath } from "@/lib/web-routes";
+import { buildRatingTargetDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { cn } from "@/lib/utils";
 import { getAvatarImage, getEditorialImage, getModelImage } from "@/lib/aviation-media";
 import {
@@ -539,7 +539,7 @@ export function RatingTargetDetailPage() {
                 <div className="flex flex-wrap items-center gap-2">
                   {item.linkedModel ? (
                     <Button asChild size="sm" variant="outline">
-                      <Link to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
+                      <Link {...DETAIL_PAGE_LINK_PROPS} to={APP_ROUTES.modelDetail.replace(":slug", item.linkedModel.slug)}>查看飞行器详情</Link>
                     </Button>
                   ) : null}
 

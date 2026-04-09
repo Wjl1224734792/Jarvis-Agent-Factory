@@ -13,6 +13,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
+import { DETAIL_PAGE_LINK_PROPS } from "../../lib/web-routes";
 import { useAuthStore } from "./auth-store";
 import {
   filterProfileItems,
@@ -296,7 +297,7 @@ function ContentFeedRow(props: {
   }
 
   return (
-    <Link className="block transition hover:bg-accent/28" to={meta.href}>
+    <Link className="block transition hover:bg-accent/28" {...DETAIL_PAGE_LINK_PROPS} to={meta.href}>
       {content}
     </Link>
   );

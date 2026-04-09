@@ -8,6 +8,11 @@ export const WEB_ROUTE_PATHS = {
   ratingTargetDetail: "/rating-targets/:id"
 } as const;
 
+export const DETAIL_PAGE_LINK_PROPS = {
+  target: "_blank",
+  rel: "noopener noreferrer"
+} as const;
+
 export type PublishStatusKind = "article" | "moment" | "aircraft" | "ranking";
 
 function replacePathParam(path: string, key: string, value: string) {
@@ -28,4 +33,15 @@ export function buildPublishStatusPath(kind: PublishStatusKind, id: string) {
     "id",
     id
   );
+}
+
+export function openDetailPageInNewTab(path: string) {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  const openedWindow = window.open(path, "_blank", "noopener,noreferrer");
+  if (openedWindow) {
+    openedWindow.opener = null;
+  }
 }

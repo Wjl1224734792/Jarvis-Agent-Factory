@@ -11,7 +11,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { buildRankingDetailPath } from "@/lib/web-routes";
+import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
@@ -41,7 +41,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
       <div className="absolute top-2 right-2 z-10">
         <PageShareControl sharePath={detailPath} stopPointerPropagation />
       </div>
-      <Link className="flex min-w-0 flex-col gap-4 px-4 pt-4 pr-12 pb-4" to={detailPath}>
+      <Link className="flex min-w-0 flex-col gap-4 px-4 pt-4 pr-12 pb-4" {...DETAIL_PAGE_LINK_PROPS} to={detailPath}>
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0 space-y-2">
             <div className="flex flex-wrap items-center gap-2">

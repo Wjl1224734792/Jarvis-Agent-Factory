@@ -25,6 +25,7 @@ import { getAvatarImage } from "../lib/aviation-media";
 import { useAuthStore } from "../features/auth/auth-store";
 import { getNotificationsQueryKey } from "../features/auth/notification-state";
 import { useNotifications } from "../features/auth/use-notifications";
+import { openDetailPageInNewTab } from "../lib/web-routes";
 
 type NotificationItem = Awaited<ReturnType<typeof apiClient.listNotifications>>["items"][number];
 
@@ -69,6 +70,10 @@ function notificationHref(item: NotificationItem) {
   }
 
   return APP_ROUTES.feedHome;
+}
+
+function isNotificationDetailHref(item: NotificationItem) {
+  return Boolean(item.comment?.postId || item.post?.id);
 }
 
 function NotificationStatsSkeleton() {
@@ -197,7 +202,13 @@ export function NotificationsPage() {
       }
     }
 
-    void navigate(notificationHref(item));
+    const href = notificationHref(item);
+    if (isNotificationDetailHref(item)) {
+      openDetailPageInNewTab(href);
+      return;
+    }
+
+    void navigate(href);
   }
 
   return (

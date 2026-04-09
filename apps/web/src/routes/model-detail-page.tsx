@@ -26,6 +26,7 @@ import { getModelGallery, getModelImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { shouldRecordSessionView } from "@/lib/view-session";
+import { DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";
 
@@ -626,6 +627,7 @@ export function ModelDetailPage() {
                 <Link
                   className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
                   key={model.slug}
+                  {...DETAIL_PAGE_LINK_PROPS}
                   to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
                 >
                   <ModelThumbCover

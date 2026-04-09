@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { apiClient } from "../lib/api-client";
 import { getEditorialImage, getModelImage } from "../lib/aviation-media";
-import { buildRankingDetailPath } from "@/lib/web-routes";
+import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 
 function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
@@ -128,6 +128,7 @@ export function RankingDetailPage() {
                 <Link
                   className="grid gap-3 bg-white px-4 py-4 transition hover:bg-sky-50/50 md:grid-cols-[44px_88px_minmax(0,1fr)]"
                   key={item.id}
+                  {...DETAIL_PAGE_LINK_PROPS}
                   to={`${APP_ROUTES.ratingTargetDetail.replace(":id", item.id)}?ranking=${ranking.id}`}
                 >
                   <div className="text-[1.4rem] font-semibold italic leading-none text-primary/46">
