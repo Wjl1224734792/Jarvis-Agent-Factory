@@ -1,7 +1,7 @@
 name = "frontend_test_worker"
 description = "前端测试专项工作者：在编排者分配明确子任务后执行；负责前端单元测试、组件测试、集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 nickname_candidates = ["Test-FE", "Spec-FE", "Verify-FE"]
-model = "gpt-5.4-mini"
+model = "gpt-5.1-codex-mini"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
 skills = ["testing", "tdd"]

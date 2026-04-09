@@ -21,14 +21,14 @@
 | 代理 | 职责 | 模型 | 技能标签（元数据） |
 |------|------|------|-------------------|
 | `frontend_implementer` | 前端全栈（页面+状态+测试多维度时使用） | gpt-5.4 | `frontend`, `ui`, `testing` |
-| `frontend_ui_worker` | 页面布局、组件、样式、响应式、a11y | gpt-5.4-mini | `ui`, `design` |
-| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由 | gpt-5.4 | `state`, `data-fetching` |
-| `frontend_test_worker` | 前端测试、TDD 流程 | gpt-5.4-mini | `testing`, `tdd` |
+| `frontend_ui_worker` | 页面布局、组件、样式、响应式、a11y | gpt-5.2-codex | `ui`, `design` |
+| `frontend_state_worker` | 状态管理、数据获取、缓存、请求客户端、路由 | gpt-5.3-codex | `state`, `data-fetching` |
+| `frontend_test_worker` | 前端测试、TDD 流程 | gpt-5.1-codex-mini | `testing`, `tdd` |
 | `backend_implementer` | 后端全栈（API+业务+数据+测试多维度时使用） | gpt-5.3-codex | `backend`, `api`, `data` |
-| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | gpt-5.4 | `api`, `routing` |
+| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | gpt-5.2-codex | `api`, `routing` |
 | `backend_service_worker` | 业务规则、领域逻辑、状态机、权限 | gpt-5.3-codex | `business-logic`, `auth` |
-| `backend_data_worker` | 数据库 Schema、ORM、Repository、迁移 | gpt-5.4-mini | `data`, `database` |
-| `backend_test_worker` | 后端测试、TDD 流程 | gpt-5.4-mini | `testing`, `tdd` |
+| `backend_data_worker` | 数据库 Schema、ORM、Repository、迁移 | gpt-5.2-codex | `data`, `database` |
+| `backend_test_worker` | 后端测试、TDD 流程 | gpt-5.1-codex-mini | `testing`, `tdd` |
 
 > **技能使用规则**：TOML 中的 `skills` 字段仅为路由提示元数据（2-3 个标签）。编排者应根据子任务类型按需加载具体技能，详见各 agent TOML 中的「技能使用指引」章节。
 

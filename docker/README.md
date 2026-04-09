@@ -1,101 +1,127 @@
 # Docker 本地基础设施
 
-飞加网开发环境依赖服务：PostgreSQL、Redis、MinIO。
+本目录维护飞加本地开发所需的基础设施：PostgreSQL、Redis、MinIO。推荐从仓库根目录通过 `bun run infra:*` 统一管理。
 
-## 快速开始
+## 目录结构
 
-### 启动 PostgreSQL (必需)
-
-```bash
-cd docker/database
-docker-compose up -d
+```text
+docker/
+├─ database/docker-compose.yml
+├─ redis/docker-compose.yml
+└─ storage/docker-compose.yml
 ```
 
-### 启动 Redis (可选)
+## 推荐用法
+
+### 一键启动全部服务
 
 ```bash
-cd docker/redis
-docker-compose up -d
+bun run infra:up
 ```
 
-### 启动 MinIO (可选)
+### 查看服务状态
 
 ```bash
-cd docker/storage
-docker-compose up -d
+bun run infra:ps
 ```
 
-### 一键启动所有服务
+### 停止服务
 
 ```bash
-cd docker/database && docker-compose up -d
-cd ../redis && docker-compose up -d
-cd ../storage && docker-compose up -d
+bun run infra:down
 ```
 
-## 查看服务状态
+## 等价的 `docker compose` 命令
+
+### 启动
 
 ```bash
-cd docker/database && docker-compose ps
-cd ../redis && docker-compose ps
-cd ../storage && docker-compose ps
+docker compose -f docker/database/docker-compose.yml up -d
+docker compose -f docker/redis/docker-compose.yml up -d
+docker compose -f docker/storage/docker-compose.yml up -d
 ```
 
-## 停止服务
+### 查看状态
 
 ```bash
-cd docker/database && docker-compose down
-cd ../redis && docker-compose down
-cd ../storage && docker-compose down
+docker compose -f docker/database/docker-compose.yml ps
+docker compose -f docker/redis/docker-compose.yml ps
+docker compose -f docker/storage/docker-compose.yml ps
 ```
 
-## 默认配置
+### 停止
 
-| 服务 | 地址/连接 | 用户名 | 密码 |
+```bash
+docker compose -f docker/database/docker-compose.yml down
+docker compose -f docker/redis/docker-compose.yml down
+docker compose -f docker/storage/docker-compose.yml down
+```
+
+## 默认连接信息
+
+以下默认值与根目录 [`.env.example`](../.env.example) 保持一致：
+
+| 服务 | 连接方式 | 用户名 | 密码 |
 |------|----------|--------|------|
-| PostgreSQL | `postgres://localhost:5432/feijia` | user | qwertyuiop |
-| Redis | `localhost:6379` | - | qwertyuiop |
-| MinIO API | `http://localhost:9000` | minioadmin | minioadmin123 |
-| MinIO Console | `http://localhost:9001` | minioadmin | minioadmin123 |
+| PostgreSQL | `postgres://feijia_dev:F3j%21a_D3v_2026%23pg@localhost:5432/feijia` | `feijia_dev` | `F3j!a_D3v_2026#pg` |
+| Redis | `redis://:F3j%21a_D3v_2026%23rd@localhost:6379/0` | - | `F3j!a_D3v_2026#rd` |
+| MinIO API | `http://localhost:9000` | `minioadmin` | `minioadmin123` |
+| MinIO Console | `http://localhost:9001` | `minioadmin` | `minioadmin123` |
+
+说明：
+
+- PostgreSQL 和 Redis 的连接串里对密码做了 URL 编码，便于直接写入环境变量。
+- 如果你修改了 Compose 文件中的账号、密码、端口或卷，记得同步更新 `.env.example` 与根 README。
+
+## 常见开发流程
+
+### 首次本地初始化
+
+```bash
+bun run infra:up
+bun run setup:dev
+```
+
+### 导入海量测试数据
+
+```bash
+bun run setup:test-data
+```
 
 ## 数据持久化
 
 所有服务使用 Docker 命名卷持久化数据：
 
-- `postgres_data` - PostgreSQL 数据
-- `redis_data` - Redis 数据
-- `minio_data` - MinIO 对象数据
-- `minio_config` - MinIO 配置
+- `postgres_data`：PostgreSQL 数据
+- `redis_data`：Redis 数据
+- `minio_data`：MinIO 对象数据
+- `minio_config`：MinIO 配置
 
 ## 故障排查
 
 ### 端口冲突
 
-修改 compose 文件中的端口映射：
+修改对应 `docker-compose.yml` 中的端口映射，并同步更新 `.env.example` 与文档。
 
-```yaml
-ports:
-  - "5433:5432"  # 改为其他端口
-```
-
-### 重置数据（⚠️ 会丢失数据）
+### 彻底重建本地数据（会丢失数据）
 
 ```bash
-docker-compose down -v
-docker-compose up -d
+docker compose -f docker/database/docker-compose.yml down -v
+docker compose -f docker/redis/docker-compose.yml down -v
+docker compose -f docker/storage/docker-compose.yml down -v
+bun run infra:up
 ```
 
 ### 查看日志
 
 ```bash
-docker-compose logs -f
+docker compose -f docker/database/docker-compose.yml logs -f
+docker compose -f docker/redis/docker-compose.yml logs -f
+docker compose -f docker/storage/docker-compose.yml logs -f
 ```
 
 ## 安全提示
 
-⚠️ **生产环境注意事项**
-
-- 修改所有默认密码
-- 不要暴露 Docker 端口到公网
-- 使用强密码和密钥
-- 定期备份数据
+- 这些默认账号密码只用于本地开发。
+- 生产环境必须替换所有默认密码与密钥。
+- 不要把本地 Compose 暴露到公网。

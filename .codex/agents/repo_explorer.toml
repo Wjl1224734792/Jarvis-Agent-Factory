@@ -1,6 +1,6 @@
 name = "repo_explorer"
 description = "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主会话澄清、task_design、planner 或实现前按需插入，为各阶段提供事实依据。"
-model = "gpt-5.4-mini"
+model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
 skills = ["exploration"]

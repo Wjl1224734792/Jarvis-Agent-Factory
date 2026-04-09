@@ -1,37 +1,46 @@
-﻿# 飞加
+# 飞加
 
-飞加是一个基于 Bun Monorepo 的低空飞行内容与管理平台，当前仓库包含用户端 Web、管理端 Admin、服务端 API，以及共享的数据库、协议与 HTTP Client 包。
+飞加是一个基于 Bun Monorepo 的低空飞行内容与管理平台。当前仓库维护用户端 Web、管理端 Admin、服务端 API，以及共享的配置、协议、路由常量、数据库与 HTTP Client。
+
+## 当前维护范围
+
+- `apps/web`：用户端 Web
+- `apps/admin`：管理端
+- `apps/server`：Bun + Hono API
+- `packages/*`：共享配置、协议、常量、数据库与请求客户端
+- `docker/*`：本地开发基础设施
+
+说明：
+
+- 微信小程序与 App 不在本仓库中开发。
+- 小程序建议独立使用 `Taro`。
+- App 建议独立使用 `Flutter`。
+- `apps/mobiles` 已删除，不再保留占位目录。
 
 ## 仓库结构
 
 ```text
 feijia/
 ├─ apps/
-│  ├─ web/       # 用户端 Web
-│  ├─ admin/     # 管理端
-│  └─ server/    # Bun + Hono API
+│  ├─ web/           # 用户端 Web
+│  ├─ admin/         # 管理端
+│  └─ server/        # Bun + Hono API
 ├─ packages/
-│  ├─ config/        # 共享 TS 配置
+│  ├─ config/        # 共享配置
 │  ├─ shared/        # 共享常量与路由
 │  ├─ schemas/       # Zod 协议
 │  ├─ http-client/   # 前端请求封装
-│  └─ db/            # Drizzle schema、迁移、种子数据
-├─ docker/       # PostgreSQL / Redis / MinIO 本地基础设施
-├─ docs/         # 设计、计划、评审等文档
-├─ AGENTS.md     # 项目级代理说明
-└─ .codex/AGENTS.md
+│  └─ db/            # Drizzle schema、迁移、seed
+├─ docker/           # PostgreSQL / Redis / MinIO 本地基础设施
+├─ docs/             # 需求、任务、计划、实现、评审与使用说明
+├─ AGENTS.md         # 项目级代理说明
+└─ .codex/AGENTS.md  # Codex 相关规则
 ```
-
-说明：
-- 微信小程序与 App 前端不再放在本仓库中维护。
-- 小程序建议独立使用 `Taro` 开发。
-- App 建议独立使用 `Flutter` 开发。
 
 ## 环境要求
 
 - Bun `1.3.11`
-- Docker Desktop
-- PostgreSQL、Redis、MinIO 通过 `docker compose` 启动
+- Docker Desktop（需要 Compose V2，也就是 `docker compose` 命令）
 
 ## 快速开始
 
@@ -43,11 +52,12 @@ bun install
 
 ### 2. 配置环境变量
 
-将根目录的 [`.env.example`](E:/CodeStore/feijia/.env.example) 复制为 `.env`，然后按实际部署环境修改。
+将根目录的 [`.env.example`](./.env.example) 复制为 `.env`，然后按实际部署环境修改。
 
 提示：
-- 本地默认值已经对齐仓库内的 Docker 配置，可直接启动联调。
-- URL 中如果密码包含 `#`、`!` 等特殊字符，需要做 URL 编码。
+
+- 本地默认值已经对齐 `docker/*` 中的 PostgreSQL、Redis、MinIO 配置，可直接启动联调。
+- URL 中如果密码包含 `#`、`!`、`@` 等特殊字符，需要做 URL 编码。
 - 生产环境建议显式设置 `NODE_ENV=production`，并根据需要将 `OPENAPI_ENABLED=false`。
 
 ### 3. 启动本地基础设施
@@ -56,12 +66,15 @@ bun install
 bun run infra:up
 ```
 
+如需查看底层 `docker compose` 方式，可参考 [`docker/README.md`](./docker/README.md)。
+
 ### 4. 初始化数据库
+
 ```bash
-# 开发默认：清库、迁移并导入基础 seed
+# 开发默认：启动基础设施、清库、迁移并导入基础 seed
 bun run setup:dev
 
-# 测试/压测：清库、迁移并导入海量测试数据
+# 测试 / 压测：启动基础设施、清库、迁移并导入海量测试数据
 bun run setup:test-data
 
 # 只导入基础 seed（非破坏性，不清库）
@@ -99,6 +112,7 @@ bun run infra:down
 ```bash
 bun run db:generate
 bun run db:migrate
+bun run db:push
 bun run db:seed
 bun run db:seed:dev
 bun run db:seed:prod
@@ -112,10 +126,11 @@ bun run setup:test-data
 ```
 
 说明：
-- `db:seed` / `db:seed:dev` / `db:seed:prod` 指向同一套基础 seed，适合开发默认数据与未来生产初始化，默认不清库。
-- `db:seed:test-data` 仅用于测试环境或压测环境导入海量数据，不建议作为开发默认入口。
+
+- `db:seed` / `db:seed:dev` / `db:seed:prod` 指向同一套基础 seed，默认不清库。
+- `db:seed:test-data` 只用于测试环境或压测环境导入海量数据，不建议作为开发默认入口。
 - `db:reset:*` 都会先执行 `db:clear` 再迁移并注入，属于显式破坏性重建流程。
-- `setup:dev` 默认走基础 seed；`setup:test-data` 才会导入海量测试数据。
+- `setup:dev` 与 `setup:test-data` 都会先执行 `infra:up`。
 
 ### 质量校验
 
@@ -139,10 +154,11 @@ bun run check
 
 服务端文档入口受环境变量控制：
 
-- 文档 JSON：`/openapi.json`
+- JSON：`/openapi.json`
 - Swagger UI：`/docs`
 
 控制规则：
+
 - `OPENAPI_ENABLED=true`：显式开启
 - `OPENAPI_ENABLED=false`：显式关闭
 - 未配置时：非生产环境默认开启，生产环境默认关闭
@@ -165,12 +181,7 @@ bun run check
 
 实际生效值会取“业务默认值”和环境变量中的最小值。
 
-建议：
-- 图片尽量控制在 `10 MB` 以内
-- 视频尽量控制在 `50 MB` 以内
-- 如需进一步节省存储，可继续下调三个环境变量
-
-本地默认示例：
+本地常见示例：
 
 ```bash
 UPLOAD_MAX_FILE_SIZE_MB=20
@@ -181,7 +192,7 @@ UPLOAD_MAX_POST_VIDEO_SIZE_MB=50
 UPLOAD_MAX_REPORT_IMAGE_SIZE_MB=5
 ```
 
-## 测试账号
+## 测试账号与调试数据
 
 基础 seed 导入后可使用：
 
@@ -198,12 +209,22 @@ UPLOAD_MAX_REPORT_IMAGE_SIZE_MB=5
 ```
 
 Redis 内还会写入以下调试数据：
+
 - 图形验证码：`test_captcha_001`
 - 短信验证码手机号：`13800138000`
 - 注册令牌：`test_reg_001`
+
+## 项目文档
+
+- [`docker/README.md`](./docker/README.md)：本地基础设施说明
+- [`docs/test-data-usage.md`](./docs/test-data-usage.md)：测试数据导入与使用说明
+- [`docs/openapi-frontend-integration-guide.md`](./docs/openapi-frontend-integration-guide.md)：前后端 OpenAPI 对接说明
+- [`AGENTS.md`](./AGENTS.md)：项目级代理约束
+- [`.codex/AGENTS.md`](./.codex/AGENTS.md)：Codex 相关规则
 
 ## 协作约定
 
 - 业务代码优先复用 `packages/*` 的现有协议与常量。
 - 修改共享 schema 后，需要检查 `server`、`web`、`admin` 的下游影响。
+- 修改环境变量、基础设施端口或默认账号密码时，同步更新 `.env.example` 与相关文档。
 - 提交前默认补齐 `lint`、`typecheck`、`test`、`build`。

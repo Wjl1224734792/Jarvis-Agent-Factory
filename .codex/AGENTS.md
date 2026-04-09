@@ -1,10 +1,10 @@
-# 通用代理规范
+# .codex/AGENTS.md
 
-本文件给仓库内代理使用。项目专属规则以根目录 [AGENTS.md](E:/CodeStore/feijia/AGENTS.md) 为准。
+本文件给仓库内 Codex 相关代理、编排文档与子代理配置使用。项目专属规则以根目录 [AGENTS.md](../AGENTS.md) 为准。
 
 ## 语言与环境
 
-- 对外说明、注释、文档使用中文。
+- 对外说明、注释、文档统一使用中文。
 - 本地终端默认是 Windows PowerShell。
 - 生产环境按 Linux 习惯考虑路径、权限和大小写问题。
 
@@ -28,6 +28,13 @@
 - 不依赖物理外键。
 - 一致性通过应用层事务和业务规则保证。
 - 级联删除在应用层显式处理。
+
+## 代理与文档同步要求
+
+- `.codex/agents/*.toml` 是子代理配置的真源，`model`、`model_reasoning_effort` 以 TOML 为准。
+- [`agent-orchestration/reference/agents-overview.md`](./skills/agent-orchestration/reference/agents-overview.md) 是面向人的摘要，调整 agent 配置后必须同步更新。
+- [`agent-orchestration/README.md`](./skills/agent-orchestration/README.md) 负责说明编排入口、流程和当前代理分工，不替代 TOML 配置。
+- 如果需要在其他文档里引用 agent 模型或职责，优先链接到上述文件，避免复制出第二份会漂移的清单。
 
 ## 交付要求
 
