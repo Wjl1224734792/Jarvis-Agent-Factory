@@ -1,5 +1,5 @@
 import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
-import { API_ROUTES, APP_PORTS } from "@feijia/shared";
+import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
 import { authRepo } from "../src/modules/auth/auth.repo";

@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { PublishFormSkeleton } from "./components/page-skeletons";
+import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
@@ -178,20 +179,26 @@ const router = createBrowserRouter([
         element: withRouteFallback(<ModelsPage />)
       },
       {
-        path: toRootChildPath(APP_ROUTES.modelDetail),
-        element: withRouteFallback(<ModelDetailPage />)
-      },
-      {
         path: toRootChildPath(APP_ROUTES.rankings),
         element: withRouteFallback(<RankingsPage />)
       },
       {
-        path: toRootChildPath(APP_ROUTES.rankingEditor),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <RankingEditorPage />
-          </ProtectedRoute>
-        )
+        path: toRootChildPath(APP_ROUTES.compose),
+        element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
+      },
+      {
+        path: "*",
+        element: <Navigate replace to={APP_ROUTES.feedHome} />
+      }
+    ]
+  },
+  {
+    path: APP_ROUTES.home,
+    element: <ImmersiveLayout />,
+    children: [
+      {
+        path: toRootChildPath(APP_ROUTES.modelDetail),
+        element: withRouteFallback(<ModelDetailPage />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
@@ -238,16 +245,16 @@ const router = createBrowserRouter([
         )
       },
       {
+        path: toRootChildPath(APP_ROUTES.rankingEditor),
+        element: withPublishFallback(
+          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+            <RankingEditorPage />
+          </ProtectedRoute>
+        )
+      },
+      {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
         element: withRouteFallback(<PublishStatusPage />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.compose),
-        element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
-      },
-      {
-        path: "*",
-        element: <Navigate replace to={APP_ROUTES.feedHome} />
       }
     ]
   }

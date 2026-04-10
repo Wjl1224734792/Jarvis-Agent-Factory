@@ -13,7 +13,7 @@ import { useNavigate, useParams } from "react-router-dom";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
-import { SitePage } from "@/components/site-shell";
+import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -117,11 +117,13 @@ export function PostDetailPage() {
   const isCommentRefreshing = postQuery.isFetching && !postQuery.isLoading && !isSubmitting;
 
   return (
-    <SitePage className="mx-auto w-full max-w-[840px] gap-8 bg-white px-4 pb-8 pt-2 md:px-6">
-      <div className="flex items-center gap-4 border-b border-border/60 pb-4">
-        <div className="flex items-center gap-3 text-sm text-foreground/80">
-          <Button
-            className="size-8 rounded-full p-0"
+    <ImmersivePageShell
+      className="max-w-[900px] gap-8 bg-transparent px-4 pb-8 pt-2 md:px-6 [&_section]:rounded-none"
+      header={
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-sm text-foreground/80">
+            <Button
+              className="size-8 rounded-full p-0"
             onClick={() => {
               if (window.history.length > 1) {
                 void navigate(-1);
@@ -135,9 +137,11 @@ export function PostDetailPage() {
           >
             <ArrowLeftIcon className="size-4" />
           </Button>
-          <span className="font-medium">{APP_NAME}</span>
+            <span className="font-medium">{APP_NAME}</span>
+          </div>
         </div>
-      </div>
+      }
+    >
 
       <article className="space-y-6">
         <header className="space-y-4">
@@ -204,7 +208,7 @@ export function PostDetailPage() {
           </div>
         </header>
 
-        <div className="overflow-hidden rounded-[0.95rem]">
+        <div className="overflow-hidden border border-border/70 rounded-none">
           <img
             alt={item.title}
             className="h-[280px] w-full object-cover md:h-[380px]"
@@ -440,6 +444,6 @@ export function PostDetailPage() {
           )}
         </div>
       </section>
-    </SitePage>
+    </ImmersivePageShell>
   );
 }

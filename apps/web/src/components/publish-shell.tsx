@@ -1,13 +1,6 @@
 import type { ReactNode } from "react";
-import {
-  SiteGrid,
-  SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
-  SitePageHead,
-  SitePageTitle,
-  SiteRail
-} from "@/components/site-shell";
+import { SitePageDescription, SitePageEyebrow, SitePageHead, SitePageTitle } from "@/components/site-shell";
+import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { cn } from "@/lib/utils";
 
 export function PublishShell(props: {
@@ -21,22 +14,32 @@ export function PublishShell(props: {
   gridClassName?: string;
 }) {
   return (
-    <SitePage className={props.className ?? "mx-auto w-full max-w-[72rem] gap-4"}>
-      <SitePageHead>
-        <SitePageEyebrow>{props.eyebrow}</SitePageEyebrow>
-        <SitePageTitle className="text-[2rem] md:text-[2.35rem]">{props.title}</SitePageTitle>
-        {props.description ? (
-          <SitePageDescription className="max-w-[44rem] text-sm">{props.description}</SitePageDescription>
-        ) : null}
-      </SitePageHead>
-
-      <SiteGrid
-        className={cn("items-start xl:grid-cols-[minmax(0,1fr)_18rem]", props.gridClassName)}
-        variant="default"
+    <ImmersivePageShell
+      className={cn(
+        "max-w-[1240px] gap-8 [&_.site-page-head]:gap-3 [&_.site-panel]:border-border/75",
+        "[&_.site-panel]:bg-white [&_.site-panel]:shadow-none",
+        props.className
+      )}
+      header={
+        <SitePageHead className="gap-3">
+          <SitePageEyebrow className="tracking-[0.22em]">{props.eyebrow}</SitePageEyebrow>
+          <SitePageTitle className="text-[2.05rem] md:text-[2.5rem]">{props.title}</SitePageTitle>
+          {props.description ? (
+            <SitePageDescription className="max-w-[54rem] text-sm">{props.description}</SitePageDescription>
+          ) : null}
+        </SitePageHead>
+      }
+    >
+      <section
+        className={cn(
+          "grid items-start gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]",
+          "[&>aside]:space-y-4",
+          props.gridClassName
+        )}
       >
         <div className="space-y-4">{props.main}</div>
-        <SiteRail className="top-[5.4rem]">{props.aside}</SiteRail>
-      </SiteGrid>
-    </SitePage>
+        <aside>{props.aside}</aside>
+      </section>
+    </ImmersivePageShell>
   );
 }
