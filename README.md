@@ -59,6 +59,7 @@ bun install
 - 本地默认值已经对齐 `docker/*` 中的 PostgreSQL、Redis、MinIO 配置，可直接启动联调。
 - URL 中如果密码包含 `#`、`!`、`@` 等特殊字符，需要做 URL 编码。
 - 生产环境建议显式设置 `NODE_ENV=production`，并根据需要将 `OPENAPI_ENABLED=false`。
+- 用手机或局域网 IP 打开前端时，需配置 `CORS_ORIGIN`（见下文「CORS 与局域网访问」）。
 
 ### 3. 启动本地基础设施
 
@@ -144,11 +145,21 @@ bun run check
 
 ## 默认访问地址
 
-- Web：`http://localhost:3000`
-- Admin：`http://localhost:3001`
-- Server：`http://localhost:3002`
+以下端口与 [`.env.example`](./.env.example) 中 `SERVER_PORT`、`WEB_DEV_PORT`、`ADMIN_DEV_PORT` 的默认值一致；若你在 `.env` 中改了端口，请以实际值为准。
+
+- Web：`http://localhost:<WEB_DEV_PORT>`（默认 `3000`）
+- Admin：`http://localhost:<ADMIN_DEV_PORT>`（默认 `3001`）
+- Server：`http://localhost:<SERVER_PORT>`（默认 `3002`）
 - MinIO API：`http://localhost:9000`
 - MinIO Console：`http://localhost:9001`
+
+## CORS 与局域网访问
+
+服务端（`apps/server`）使用 Hono 的 `cors` 中间件，且允许携带 Cookie（`credentials: true`）。
+
+- **未设置 `CORS_ORIGIN` 时**：默认允许的 Origin 为 `http://localhost` 与 `http://127.0.0.1`，端口取自环境变量 `WEB_DEV_PORT`、`ADMIN_DEV_PORT`；若未配置或无效，则回退到 `packages/shared` 中的 `APP_PORTS`（3000 / 3001）。实现见 [`apps/server/src/lib/cors-origins.ts`](./apps/server/src/lib/cors-origins.ts)。
+- **用局域网 IP 打开前端**（例如 `http://192.168.x.x:7001`）时，浏览器请求的 `Origin` 不是 `localhost`，必须在根目录 `.env` 中设置 `CORS_ORIGIN`：将允许的 Origin 用英文逗号列出（须含协议、主机、端口），或仅在可信本地网络开发时使用 `CORS_ORIGIN=all`（按请求回显 Origin，与 `credentials` 兼容）。说明与示例见 `.env.example` 中「服务端与前端端口」小节。
+- 修改 `CORS_ORIGIN` 后需重启 `dev:server`。
 
 ## OpenAPI 文档
 
@@ -226,5 +237,5 @@ Redis 内还会写入以下调试数据：
 
 - 业务代码优先复用 `packages/*` 的现有协议与常量。
 - 修改共享 schema 后，需要检查 `server`、`web`、`admin` 的下游影响。
-- 修改环境变量、基础设施端口或默认账号密码时，同步更新 `.env.example` 与相关文档。
+- 修改环境变量、基础设施端口或默认账号密码时，同步更新 `.env.example` 与相关文档（含 CORS 与局域网访问说明时，见上文「CORS 与局域网访问」）。
 - 提交前默认补齐 `lint`、`typecheck`、`test`、`build`。

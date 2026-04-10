@@ -47,12 +47,19 @@
   - [`.env.example`](./.env.example)
   - [`README.md`](./README.md)
   - 相关子目录的 `AGENTS.md` / `README.md`（如果文档中写到了该变量、命令或入口）
+  - 若涉及 `CORS_ORIGIN`、`WEB_DEV_PORT`、`ADMIN_DEV_PORT` 或前端监听地址（`WEB_DEV_HOST` / `ADMIN_DEV_HOST`），需在 [`README.md`](./README.md) 的「CORS 与局域网访问」中保持说明一致（或补充新条目）。
 - 调整本地基础设施时，优先沿用根脚本：
   - `bun run infra:up`
   - `bun run infra:ps`
   - `bun run infra:down`
 - 不要引入未接线目录、壳子工程、占位脚本。
 - 不要绕过 `packages/*` 在应用层重复定义共享结构。
+
+## CORS（跨域）
+
+- 服务端在 `apps/server/src/app.ts` 挂载全局 CORS；默认白名单端口由 `WEB_DEV_PORT` / `ADMIN_DEV_PORT` 与 `apps/server/src/lib/cors-origins.ts` 解析。
+- 局域网 IP 访问前端时，浏览器 `Origin` 非 `localhost`，须在根目录 `.env` 配置 `CORS_ORIGIN`（见 [`README.md`](./README.md)「CORS 与局域网访问」与 `.env.example`）。
+- 生产环境勿使用 `CORS_ORIGIN=all`，应使用明确 Origin 列表。
 
 ## OpenAPI 规则
 

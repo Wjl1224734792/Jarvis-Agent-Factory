@@ -1,6 +1,7 @@
 import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
@@ -216,8 +217,9 @@ describe("auth flows", () => {
   });
 
   it("returns credential-friendly CORS headers for web and admin origins", async () => {
-    const webOrigin = `http://localhost:${APP_PORTS.web}`;
-    const adminOrigin = `http://localhost:${APP_PORTS.admin}`;
+    const origins = buildDefaultCorsOrigins();
+    const webOrigin = origins[0];
+    const adminOrigin = origins[2];
 
     const preflightResponse = await app.request(API_ROUTES.auth.webLogin, {
       method: "OPTIONS",

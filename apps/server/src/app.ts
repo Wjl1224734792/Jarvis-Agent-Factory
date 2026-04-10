@@ -1,5 +1,5 @@
 import { swaggerUI } from '@hono/swagger-ui';
-import { APP_NAME, API_ROUTES, APP_PORTS, APP_ROUTES } from '@feijia/shared';
+import { APP_NAME, API_ROUTES, APP_ROUTES } from '@feijia/shared';
 import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
@@ -18,6 +18,7 @@ import { reviewsRoute } from './modules/reviews/reviews.route';
 import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
+import { buildDefaultCorsOrigins } from './lib/cors-origins';
 import { ensureServerEnvLoaded } from './lib/load-env';
 import { logger } from './lib/logger';
 import {
@@ -30,13 +31,6 @@ import { healthRoute } from './routes/health';
 ensureServerEnvLoaded();
 
 export const app = new Hono();
-
-const defaultCorsOrigins = [
-  `http://localhost:${APP_PORTS.web}`,
-  `http://127.0.0.1:${APP_PORTS.web}`,
-  `http://localhost:${APP_PORTS.admin}`,
-  `http://127.0.0.1:${APP_PORTS.admin}`
-] as const;
 
 function resolveCorsOrigin():
   | string[]
@@ -56,7 +50,7 @@ function resolveCorsOrigin():
     }
   }
 
-  return [...defaultCorsOrigins];
+  return [...buildDefaultCorsOrigins()];
 }
 
 function parseBooleanEnv(value: string | undefined): boolean | undefined {
