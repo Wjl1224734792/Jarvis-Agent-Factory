@@ -12,11 +12,12 @@ import {
 import { Fragment, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { PageShareControl } from "@/components/page-share-control";
 import { ReportActionSheet } from "@/components/report-action-sheet";
-import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
+import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -351,17 +352,17 @@ export function ModelDetailPage() {
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
-      <Button asChild className="w-fit" variant="ghost">
+    <ImmersivePageShell className="max-w-[1180px] gap-6">
+      <Button asChild className="w-fit border-b border-border/75 pb-4" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
           返回机型库
         </Link>
       </Button>
 
-      <SiteGrid className="items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]" variant="sidebar">
+      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-4">
-          <div className="space-y-6 bg-white p-4">
+          <div className="space-y-6 border border-border/75 bg-white p-4">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
               <div className="min-w-0 space-y-3 lg:min-h-0">
                 <div className="overflow-hidden bg-black">
@@ -619,7 +620,7 @@ export function ModelDetailPage() {
           <ModelCommentsSection currentUserId={currentUserId} isAuthenticated={isAuthenticated} slug={slug} />
         </div>
 
-        <SiteRail>
+        <aside className="space-y-5">
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <div className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-primary">热门机型</div>
@@ -652,8 +653,8 @@ export function ModelDetailPage() {
               ))}
             </SitePanelBody>
           </SitePanel>
-        </SiteRail>
-      </SiteGrid>
-    </SitePage>
+        </aside>
+      </section>
+    </ImmersivePageShell>
   );
 }

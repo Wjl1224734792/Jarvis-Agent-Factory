@@ -213,60 +213,86 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
 
 export function DetailPageSkeleton(props: { withRail?: boolean }) {
   return (
-    <div className={props.withRail ? "grid gap-4 xl:grid-cols-[minmax(0,1fr)_17rem]" : "space-y-4"}>
-      <div className="space-y-4">
-        <Skeleton className="h-8 w-28" />
-        <div className="rounded-[0.95rem] border border-border bg-white p-4">
-          <div className="grid gap-4 lg:grid-cols-[0.9fr_1.1fr]">
+    <div className={props.withRail ? "grid gap-6 xl:grid-cols-[minmax(0,1fr)_18rem]" : "space-y-6"}>
+      <div className="space-y-6">
+        <div className="border-b border-border/75 pb-4">
+          <Skeleton className="h-8 w-36 rounded-none" />
+        </div>
+        <div className="rounded-none border border-border/75 bg-white p-4">
+          <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
             <div className="space-y-3">
-              <Skeleton className="h-[320px] rounded-[0.9rem]" />
+              <Skeleton className="h-[320px] rounded-none" />
               <div className="grid grid-cols-4 gap-2">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton className="h-16 rounded-[0.7rem]" key={index} />
+                  <Skeleton className="h-16 rounded-none" key={index} />
                 ))}
               </div>
             </div>
             <div className="space-y-3">
-              <Skeleton className="h-4 w-32" />
-              <Skeleton className="h-12 w-3/4" />
+              <Skeleton className="h-4 w-36 rounded-none" />
+              <Skeleton className="h-12 w-3/4 rounded-none" />
               <Skeleton className="h-4 w-full" />
               <Skeleton className="h-4 w-5/6" />
               <div className="grid gap-2.5 sm:grid-cols-2">
                 {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton className="h-20 rounded-[0.8rem]" key={index} />
+                  <Skeleton className="h-20 rounded-none" key={index} />
                 ))}
               </div>
             </div>
           </div>
         </div>
+        <div className="rounded-none border border-border/75 bg-white p-5">
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-40 rounded-none" />
+            <Skeleton className="h-4 w-full rounded-none" />
+            <Skeleton className="h-4 w-11/12 rounded-none" />
+            <Skeleton className="h-4 w-10/12 rounded-none" />
+          </div>
+        </div>
       </div>
-      {props.withRail ? <RailCardSkeleton /> : null}
+      {props.withRail ? <RailCardSkeleton rows={4} /> : null}
     </div>
   );
 }
 
 export function PublishFormSkeleton() {
   return (
-    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_340px]">
-      <div className="space-y-4">
-        <div className="rounded-[0.95rem] border border-border bg-white p-4">
+    <div className="space-y-6">
+      <div className="border-b border-border/75 pb-4">
+        <Skeleton className="h-4 w-24 rounded-none" />
+        <Skeleton className="mt-3 h-11 w-72 rounded-none" />
+        <Skeleton className="mt-2 h-4 w-3/5 rounded-none" />
+      </div>
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="space-y-4">
+        <div className="rounded-none border border-border bg-white p-4">
           <div className="space-y-3">
-            <Skeleton className="h-5 w-40" />
-            <Skeleton className="h-10 rounded-[0.8rem]" />
-            <Skeleton className="h-10 rounded-[0.8rem]" />
-            <Skeleton className="h-28 rounded-[0.8rem]" />
+            <Skeleton className="h-5 w-40 rounded-none" />
+            <Skeleton className="h-10 rounded-sm" />
+            <Skeleton className="h-10 rounded-sm" />
+            <Skeleton className="h-28 rounded-none" />
           </div>
         </div>
-        <div className="rounded-[0.95rem] border border-border bg-white p-4">
-          <Skeleton className="h-5 w-32" />
+        <div className="rounded-none border border-border bg-white p-4">
+          <Skeleton className="h-5 w-32 rounded-none" />
           <div className="mt-3 grid gap-3 md:grid-cols-4">
             {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton className="h-24 rounded-[0.8rem]" key={index} />
+              <Skeleton className="h-24 rounded-none" key={index} />
             ))}
           </div>
         </div>
       </div>
-      <RailCardSkeleton rows={3} />
+      <div className="space-y-4">
+        <div className="rounded-none border border-border bg-white p-4">
+          <div className="space-y-3">
+            <Skeleton className="h-5 w-32 rounded-none" />
+            {Array.from({ length: 3 }).map((_, index) => (
+              <Skeleton className="h-20 rounded-none" key={index} />
+            ))}
+          </div>
+        </div>
+      </div>
+      </div>
     </div>
   );
 }

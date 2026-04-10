@@ -2,11 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
+import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { PageShareControl } from "@/components/page-share-control";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
-import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -40,8 +40,8 @@ export function RankingDetailPage() {
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-3">
+    <ImmersivePageShell className="max-w-[1100px] gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/75 pb-4">
         <Button asChild className="w-fit" variant="ghost">
           <Link to={APP_ROUTES.rankings}>
             <ArrowLeftIcon data-icon="inline-start" />
@@ -67,8 +67,8 @@ export function RankingDetailPage() {
 
       {ranking ? (
         <>
-          <div className="grid gap-4 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
-            <div className="overflow-hidden">
+          <div className="grid gap-4 border border-border/75 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+            <div className="overflow-hidden rounded-none">
               <img
                 alt={ranking.title}
                 className="h-[220px] w-full object-cover md:h-[300px]"
@@ -160,6 +160,6 @@ export function RankingDetailPage() {
           </div>
         </>
       ) : null}
-    </SitePage>
+    </ImmersivePageShell>
   );
 }

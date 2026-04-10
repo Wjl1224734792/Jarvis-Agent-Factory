@@ -15,6 +15,7 @@ import {
   CommentLikeIconButton,
   CommentTextAction
 } from "@/components/comment-thread-controls";
+import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { PageShareControl } from "@/components/page-share-control";
 import { DetailPageSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -22,7 +23,6 @@ import { RatingBreakdown } from "@/components/rating-breakdown";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { ReportActionSheet } from "@/components/report-action-sheet";
-import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -458,8 +458,8 @@ export function RatingTargetDetailPage() {
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <Button asChild className="w-fit" variant="ghost">
+    <ImmersivePageShell className="max-w-[1120px] gap-6">
+      <Button asChild className="w-fit border-b border-border/75 pb-4" variant="ghost">
         <Link
           to={
             parentRankingId
@@ -498,7 +498,7 @@ export function RatingTargetDetailPage() {
           ) : null}
 
           <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[320px_minmax(0,1fr)]">
-            <div className="overflow-hidden rounded-[1rem]">
+            <div className="overflow-hidden rounded-none">
               <img
                 alt={item.title}
                 className="h-[240px] w-full object-cover md:h-[280px]"
@@ -677,7 +677,7 @@ export function RatingTargetDetailPage() {
               </div>
             </div>
 
-            <div className="border border-border/70 bg-white px-5 py-5">
+            <div className="border border-border/70 bg-white px-5 py-5 rounded-none">
               <div className="space-y-4">
                 {replyingTo ? (
                   <Alert>
@@ -788,7 +788,7 @@ export function RatingTargetDetailPage() {
               </div>
             </div>
 
-            <div className="border border-border/70 bg-white">
+            <div className="border border-border/70 bg-white rounded-none">
               {sortedComments.length > 0 ? (
                 <div className="space-y-0 px-5 py-4">
                   {sortedComments.map((comment, index) => (
@@ -810,6 +810,6 @@ export function RatingTargetDetailPage() {
           </div>
         </>
       ) : null}
-    </SitePage>
+    </ImmersivePageShell>
   );
 }
