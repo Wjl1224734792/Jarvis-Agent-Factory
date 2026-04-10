@@ -258,10 +258,28 @@ export function DetailPageSkeleton(props: { withRail?: boolean }) {
 export function PublishFormSkeleton() {
   return (
     <div className="space-y-6">
-      <div className="border-b border-border/75 pb-4">
-        <Skeleton className="h-4 w-24 rounded-none" />
-        <Skeleton className="mt-3 h-11 w-72 rounded-none" />
-        <Skeleton className="mt-2 h-4 w-3/5 rounded-none" />
+      <div className="space-y-6 border-b border-border/75 pb-4">
+        <div className="flex items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <Skeleton className="size-11 rounded-sm" />
+            <div className="space-y-2">
+              <Skeleton className="h-3.5 w-16 rounded-none" />
+              <Skeleton className="h-4 w-28 rounded-none" />
+            </div>
+          </div>
+          <div className="flex items-center gap-3">
+            <div className="space-y-2 text-right">
+              <Skeleton className="ml-auto h-3.5 w-14 rounded-none" />
+              <Skeleton className="ml-auto h-4 w-20 rounded-none" />
+            </div>
+            <Skeleton className="size-11 rounded-sm" />
+          </div>
+        </div>
+        <div>
+          <Skeleton className="h-4 w-24 rounded-none" />
+          <Skeleton className="mt-3 h-11 w-72 rounded-none" />
+          <Skeleton className="mt-2 h-4 w-3/5 rounded-none" />
+        </div>
       </div>
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="space-y-4">
