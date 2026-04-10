@@ -91,6 +91,7 @@ bun run test:e2e:headed
 
 - `test:e2e` 会先执行 `infra:up` 和 `db:reset:test-data`，确保浏览器用例基于固定数据启动。
 - 若你单独手动跑 Playwright，也建议先执行 `bun run db:reset:test-data`。
+- Playwright 执行完成后，数据库仍会保留在 `test-data` 状态；如需继续运行依赖基础 seed 的脚本或测试，请先执行 `bun run db:reset:dev`。
 
 ## 注意事项
 

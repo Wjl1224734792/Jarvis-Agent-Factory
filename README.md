@@ -148,6 +148,7 @@ bun run check
 
 - `test:e2e` 会先启动本地基础设施、重置测试数据，再运行 Playwright 浏览器自动化。
 - 如需观察浏览器执行过程，可使用 `bun run test:e2e:headed`。
+- `test:e2e` 结束后数据库会停留在 `test-data` 状态；若后续还要跑依赖基础 seed 的用例，先执行 `bun run db:reset:dev`。
 
 ## 默认访问地址
 

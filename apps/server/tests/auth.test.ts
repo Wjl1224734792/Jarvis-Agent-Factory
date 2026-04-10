@@ -3,7 +3,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
 import { authRepo } from "../src/modules/auth/auth.repo";
-import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
 
 function extractCookies(response: Response): string {
@@ -62,6 +62,21 @@ async function completeRegistrationIfNeeded(response: Response) {
   return extractCookies(completeResponse);
 }
 
+async function resolveSmsCode(phone: string, payload: { mockCode?: string }) {
+  if (payload.mockCode) {
+    return payload.mockCode;
+  }
+
+  await ensureRedisConnected();
+  const raw = await redis.get(`sms:${phone}`);
+  if (!raw) {
+    throw new Error(`missing sms code for ${phone}`);
+  }
+
+  const record = JSON.parse(raw) as { code: string };
+  return record.code;
+}
+
 async function loginWebUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
     method: "POST"
@@ -80,7 +95,9 @@ async function loginWebUser(phone: string) {
       captchaCode: captchaPayload.imageOrText
     })
   });
+  expect(smsResponse.status).toBe(200);
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsCode = await resolveSmsCode(phone, smsPayload);
 
   const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
     method: "POST",
@@ -89,7 +106,7 @@ async function loginWebUser(phone: string) {
       phone,
       captchaChallengeId: captchaPayload.challengeId,
       captchaCode: captchaPayload.imageOrText,
-      smsCode: smsPayload.mockCode
+      smsCode
     })
   });
 
@@ -114,12 +131,14 @@ async function requestCaptchaAndSms(phone: string) {
       captchaCode: captchaPayload.imageOrText
     })
   });
+  expect(smsResponse.status).toBe(200);
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsCode = await resolveSmsCode(phone, smsPayload);
 
   return {
     challengeId: captchaPayload.challengeId,
     captchaCode: captchaPayload.imageOrText,
-    smsCode: smsPayload.mockCode ?? ""
+    smsCode
   };
 }
 
@@ -177,6 +196,24 @@ const originalUploadMaxImageSizeMb = process.env.UPLOAD_MAX_IMAGE_SIZE_MB;
 const originalUploadMaxAvatarImageSizeMb =
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB;
 
+async function resetAndSeedAuthState() {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await resetRedisForTesting();
+      authRepo.resetEphemeralState();
+      await resetDatabaseState();
+      await seedAuthDatabase();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -185,10 +222,7 @@ beforeEach(async () => {
   process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
     originalUploadMaxAvatarImageSizeMb;
-  await resetRedisForTesting();
-  authRepo.resetEphemeralState();
-  await resetDatabaseState();
-  await seedAuthDatabase();
+  await resetAndSeedAuthState();
 });
 
 afterAll(async () => {
@@ -450,6 +484,7 @@ describe("auth flows", () => {
       })
     });
     const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+    const smsCode = await resolveSmsCode("13800138991", smsPayload);
     const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -457,7 +492,7 @@ describe("auth flows", () => {
         phone: "13800138991",
         captchaChallengeId: captchaPayload.challengeId,
         captchaCode: captchaPayload.imageOrText,
-        smsCode: smsPayload.mockCode
+        smsCode
       })
     });
     const loginPayload = (await loginResponse.json()) as {
@@ -484,6 +519,7 @@ describe("auth flows", () => {
       })
     });
     const secondSmsPayload = (await secondSmsResponse.json()) as { mockCode?: string };
+    const secondSmsCode = await resolveSmsCode("13800138992", secondSmsPayload);
     const secondLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -491,7 +527,7 @@ describe("auth flows", () => {
         phone: "13800138992",
         captchaChallengeId: secondCaptchaPayload.challengeId,
         captchaCode: secondCaptchaPayload.imageOrText,
-        smsCode: secondSmsPayload.mockCode
+        smsCode: secondSmsCode
       })
     });
     const secondLoginPayload = (await secondLoginResponse.json()) as {
@@ -824,6 +860,7 @@ describe("auth flows", () => {
       })
     });
     const userSms = (await userSmsResponse.json()) as { mockCode?: string };
+    const userSmsCode = await resolveSmsCode("13800138001", userSms);
     const userLogin = await app.request(API_ROUTES.auth.webLogin, {
       method: "POST",
       headers: { "content-type": "application/json" },
@@ -831,7 +868,7 @@ describe("auth flows", () => {
         phone: "13800138001",
         captchaChallengeId: userCaptcha.challengeId,
         captchaCode: userCaptcha.imageOrText,
-        smsCode: userSms.mockCode
+        smsCode: userSmsCode
       })
     });
     const userCookie = await completeRegistrationIfNeeded(userLogin);

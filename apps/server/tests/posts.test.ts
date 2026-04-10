@@ -10,7 +10,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
-import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
@@ -53,6 +53,21 @@ async function completeRegistrationIfNeeded(response: Response) {
   return extractCookies(completeResponse);
 }
 
+async function resolveSmsCode(phone: string, payload: { mockCode?: string }) {
+  if (payload.mockCode) {
+    return payload.mockCode;
+  }
+
+  await ensureRedisConnected();
+  const raw = await redis.get(`sms:${phone}`);
+  if (!raw) {
+    throw new Error(`missing sms code for ${phone}`);
+  }
+
+  const record = JSON.parse(raw) as { code: string };
+  return record.code;
+}
+
 async function loginWebUser(phone: string) {
   const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
   const captchaPayload = (await captchaResponse.json()) as {
@@ -69,7 +84,9 @@ async function loginWebUser(phone: string) {
       captchaCode: captchaPayload.imageOrText
     })
   });
+  expect(smsResponse.status).toBe(200);
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsCode = await resolveSmsCode(phone, smsPayload);
 
   const authResponse = await app.request(API_ROUTES.auth.webLogin, {
     method: "POST",
@@ -78,7 +95,7 @@ async function loginWebUser(phone: string) {
       phone,
       captchaChallengeId: captchaPayload.challengeId,
       captchaCode: captchaPayload.imageOrText,
-      smsCode: smsPayload.mockCode
+      smsCode
     })
   });
 
@@ -276,6 +293,24 @@ const originalUploadMaxReportImageSizeMb =
 const originalUploadMaxPostVideoSizeMb =
   process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB;
 
+async function resetAndSeedPostState() {
+  let lastError: unknown;
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      await resetRedisForTesting();
+      authRepo.resetEphemeralState();
+      await resetDatabaseState();
+      await seedDatabase();
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  throw lastError;
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -285,10 +320,7 @@ beforeEach(async () => {
     originalUploadMaxReportImageSizeMb;
   process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
     originalUploadMaxPostVideoSizeMb;
-  await resetRedisForTesting();
-  authRepo.resetEphemeralState();
-  await resetDatabaseState();
-  await seedDatabase();
+  await resetAndSeedPostState();
 });
 
 afterAll(async () => {

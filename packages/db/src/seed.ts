@@ -183,18 +183,20 @@ async function ensureAdminUser() {
   const existing = await db
     .select({ id: usersTable.id, displayName: usersTable.displayName })
     .from(usersTable)
-    .where(eq(usersTable.account, "admin"))
+    .where(eq(usersTable.role, "admin"))
     .limit(1);
 
   if (existing.length > 0) {
-    if (existing[0].displayName === "System Admin") {
-      await db
-        .update(usersTable)
-        .set({
-          displayName: "系统管理员"
-        })
-        .where(eq(usersTable.id, existing[0].id));
-    }
+    const adminPasswordHash = await hashPassword("Admin#123");
+    await db
+      .update(usersTable)
+      .set({
+        displayName: "系统管理员",
+        account: "admin",
+        passwordHash: adminPasswordHash,
+        role: "admin"
+      })
+      .where(eq(usersTable.id, existing[0].id));
     return existing[0].id;
   }
 
