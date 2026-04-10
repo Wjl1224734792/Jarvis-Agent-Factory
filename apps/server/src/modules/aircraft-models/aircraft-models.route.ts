@@ -18,7 +18,7 @@ import {
   updateModelCommentStatusInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
@@ -30,6 +30,16 @@ import { aircraftModelsService } from "./aircraft-models.service";
 
 export const aircraftModelsRoute = new Hono<{ Variables: AuthVariables }>();
 aircraftModelsRoute.use("*", attachCurrentUser);
+
+function buildViewerFingerprint(context: Context<{ Variables: AuthVariables }>) {
+  const forwardedFor =
+    context.req.header("x-forwarded-for") ??
+    context.req.header("x-real-ip") ??
+    "";
+  const userAgent = context.req.header("user-agent") ?? "";
+  const fingerprint = `${forwardedFor}|${userAgent}`.trim();
+  return fingerprint.length > 1 ? fingerprint : null;
+}
 
 aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
   const query = modelListQuerySchema.parse({
@@ -85,7 +95,8 @@ aircraftModelsRoute.post(API_ROUTES.models.view(":slug"), async (context) => {
 
   const result = await aircraftModelsService.recordModelView(slug, {
     currentUserId: context.get("currentUser")?.id ?? null,
-    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null
+    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null,
+    viewerFingerprint: buildViewerFingerprint(context)
   });
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Model not found." }, 404);

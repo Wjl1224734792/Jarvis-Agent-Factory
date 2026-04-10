@@ -21,7 +21,7 @@ import {
   updatePostInputSchema
 } from "@feijia/schemas";
 import { API_ROUTES } from "@feijia/shared";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { VIEW_SESSION_HEADER } from "../../lib/view-tracking";
 import {
   attachCurrentUser,
@@ -32,6 +32,16 @@ import {
 import { postsService } from "./posts.service";
 
 export const postsRoute = new Hono<{ Variables: AuthVariables }>();
+
+function buildViewerFingerprint(context: Context<{ Variables: AuthVariables }>) {
+  const forwardedFor =
+    context.req.header("x-forwarded-for") ??
+    context.req.header("x-real-ip") ??
+    "";
+  const userAgent = context.req.header("user-agent") ?? "";
+  const fingerprint = `${forwardedFor}|${userAgent}`.trim();
+  return fingerprint.length > 1 ? fingerprint : null;
+}
 
 // 帖子路由既服务前台消费，又承载后台审核，所以先统一注入 currentUser 再按场景加权限。
 postsRoute.use('*', attachCurrentUser);
@@ -137,7 +147,8 @@ postsRoute.post(API_ROUTES.posts.view(":id"), async (context) => {
 
   const result = await postsService.recordView(id, {
     currentUserId: context.get("currentUser")?.id ?? null,
-    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null
+    sessionId: context.req.header(VIEW_SESSION_HEADER) ?? null,
+    viewerFingerprint: buildViewerFingerprint(context)
   });
   if (result.kind === "not_found") {
     return context.json({ code: "NOT_FOUND", message: "Post not found." }, 404);

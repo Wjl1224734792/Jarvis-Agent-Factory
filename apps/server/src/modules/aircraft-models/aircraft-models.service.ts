@@ -428,6 +428,7 @@ export const aircraftModelsService = {
     input?: {
       currentUserId?: string | null;
       sessionId?: string | null;
+      viewerFingerprint?: string | null;
     }
   ) {
     const item = await aircraftModelsRepo.getModelViewStateBySlug(slug);
@@ -439,7 +440,8 @@ export const aircraftModelsService = {
       contentType: "model",
       contentId: item.id,
       sessionId: input?.sessionId ?? null,
-      viewerId: input?.currentUserId ?? null
+      viewerId: input?.currentUserId ?? null,
+      viewerFingerprint: input?.viewerFingerprint ?? null
     });
 
     if (shouldIncrement) {

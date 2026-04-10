@@ -8,11 +8,17 @@ function normalizeSessionId(sessionId?: string | null) {
   return normalized ? normalized.slice(0, 160) : null;
 }
 
+function normalizeViewerFingerprint(fingerprint?: string | null) {
+  const normalized = fingerprint?.trim().toLowerCase();
+  return normalized ? normalized.slice(0, 240) : null;
+}
+
 function buildViewerScopeKey(input: {
   contentType: "post" | "model";
   contentId: string;
   sessionId?: string | null;
   viewerId?: string | null;
+  viewerFingerprint?: string | null;
 }) {
   const sessionId = normalizeSessionId(input.sessionId);
   if (sessionId) {
@@ -23,6 +29,11 @@ function buildViewerScopeKey(input: {
     return `view:${input.contentType}:${input.contentId}:user:${input.viewerId}`;
   }
 
+  const viewerFingerprint = normalizeViewerFingerprint(input.viewerFingerprint);
+  if (viewerFingerprint) {
+    return `view:${input.contentType}:${input.contentId}:fingerprint:${viewerFingerprint}`;
+  }
+
   return null;
 }
 
@@ -31,6 +42,7 @@ export async function shouldCountUniqueView(input: {
   contentId: string;
   sessionId?: string | null;
   viewerId?: string | null;
+  viewerFingerprint?: string | null;
 }) {
   const key = buildViewerScopeKey(input);
   if (!key) {

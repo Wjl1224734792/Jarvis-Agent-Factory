@@ -1,5 +1,6 @@
 import {
   aircraftCategoriesTable,
+  aircraftModelInteractionsTable,
   aircraftModelCommentsTable,
   aircraftModelCommentLikesTable,
   aircraftModelCommentReportsTable,
@@ -49,6 +50,36 @@ export const aircraftModelsRepo = {
       }
     }
 
+    const favoriteCounts = db
+      .select({
+        modelId: aircraftModelInteractionsTable.modelId,
+        favoriteCount: sql<number>`cast(count(*) as int)`.as("favorite_count")
+      })
+      .from(aircraftModelInteractionsTable)
+      .where(eq(aircraftModelInteractionsTable.type, "favorite"))
+      .groupBy(aircraftModelInteractionsTable.modelId)
+      .as("aircraft_model_favorite_counts");
+
+    const commentCounts = db
+      .select({
+        modelId: aircraftModelCommentsTable.modelId,
+        commentCount: sql<number>`cast(count(*) as int)`.as("comment_count")
+      })
+      .from(aircraftModelCommentsTable)
+      .where(eq(aircraftModelCommentsTable.status, "visible"))
+      .groupBy(aircraftModelCommentsTable.modelId)
+      .as("aircraft_model_comment_counts");
+
+    const reviewCounts = db
+      .select({
+        modelId: aircraftReviewsTable.modelId,
+        totalReviews: sql<number>`cast(count(*) as int)`.as("total_reviews")
+      })
+      .from(aircraftReviewsTable)
+      .where(eq(aircraftReviewsTable.status, "visible"))
+      .groupBy(aircraftReviewsTable.modelId)
+      .as("aircraft_model_review_counts");
+
     const query = db
       .select({
         id: aircraftModelsTable.id,
@@ -60,10 +91,10 @@ export const aircraftModelsRepo = {
         powerType: aircraftModelsTable.powerType,
         lifecycleStatus: aircraftModelsTable.lifecycleStatus,
         viewCount: aircraftModelsTable.viewCount,
-        favoriteCount: sql<number>`cast((select count(*) from "aircraft_model_interactions" ami where ami."model_id" = ${aircraftModelsTable.id} and ami."type" = 'favorite') as int)`,
-        commentCount: sql<number>`cast((select count(*) from "aircraft_model_comments" amc where amc."model_id" = ${aircraftModelsTable.id} and amc."status" = 'visible') as int)`,
+        favoriteCount: sql<number>`cast(coalesce(${favoriteCounts.favoriteCount}, 0) as int)`,
+        commentCount: sql<number>`cast(coalesce(${commentCounts.commentCount}, 0) as int)`,
         reviewSummary: {
-          totalReviews: sql<number>`cast(coalesce(count(case when ${aircraftReviewsTable.status} = 'visible' then 1 end), 0) as int)`
+          totalReviews: sql<number>`cast(coalesce(${reviewCounts.totalReviews}, 0) as int)`
         },
         ownerId: aircraftModelsTable.ownerId,
         sourceSubmissionId: aircraftModelsTable.sourceSubmissionId,
@@ -89,12 +120,9 @@ export const aircraftModelsRepo = {
         eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id)
       )
       .innerJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
-      .leftJoin(aircraftReviewsTable, eq(aircraftReviewsTable.modelId, aircraftModelsTable.id))
-      .groupBy(
-        aircraftModelsTable.id,
-        aircraftCategoriesTable.id,
-        brandsTable.id
-      );
+      .leftJoin(favoriteCounts, eq(favoriteCounts.modelId, aircraftModelsTable.id))
+      .leftJoin(commentCounts, eq(commentCounts.modelId, aircraftModelsTable.id))
+      .leftJoin(reviewCounts, eq(reviewCounts.modelId, aircraftModelsTable.id));
 
     if (conditions.length > 0) {
       return query.where(and(...conditions));

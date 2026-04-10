@@ -966,6 +966,7 @@ export const postsService = {
     input?: {
       currentUserId?: string | null;
       sessionId?: string | null;
+      viewerFingerprint?: string | null;
     }
   ) {
     const post = await postsRepo.getPostViewStateById(postId);
@@ -977,7 +978,8 @@ export const postsService = {
       contentType: "post",
       contentId: postId,
       sessionId: input?.sessionId ?? null,
-      viewerId: input?.currentUserId ?? null
+      viewerId: input?.currentUserId ?? null,
+      viewerFingerprint: input?.viewerFingerprint ?? null
     });
 
     if (shouldIncrement) {
