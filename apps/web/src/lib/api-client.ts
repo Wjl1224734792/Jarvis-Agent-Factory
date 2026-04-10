@@ -440,6 +440,8 @@ const rawApiClient = {
   }
 };
 
+export type WebApiClient = typeof rawApiClient;
+
 /**
  * 使用 Proxy 对 API 客户端所有方法统一包裹错误翻译。
  * 相比 for...of + as any 动态赋值，此方式：
