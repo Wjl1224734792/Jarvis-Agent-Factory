@@ -2,6 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
 import { Outlet, ScrollRestoration } from "react-router-dom";
 import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
+import { AuthRequiredDialog } from "./auth-required-dialog";
 import { getAuthCacheScope, shouldResetAuthCache } from "./auth-cache-helpers";
 import { useAuthStore } from "./auth-store";
 import { useBootstrapAuth } from "./use-bootstrap-auth";
@@ -44,6 +45,7 @@ export function ImmersiveLayout() {
     <div className="min-h-screen bg-[linear-gradient(180deg,#f4f6f8_0%,#f7f8fa_24%,#ffffff_100%)]">
       <ScrollRestoration />
       <Outlet />
+      <AuthRequiredDialog />
     </div>
   );
 }

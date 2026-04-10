@@ -139,9 +139,15 @@ bun run setup:test-data
 bun run lint
 bun run typecheck
 bun run test
+bun run test:e2e
 bun run build
 bun run check
 ```
+
+说明：
+
+- `test:e2e` 会先启动本地基础设施、重置测试数据，再运行 Playwright 浏览器自动化。
+- 如需观察浏览器执行过程，可使用 `bun run test:e2e:headed`。
 
 ## 默认访问地址
 
@@ -224,6 +230,14 @@ Redis 内还会写入以下调试数据：
 - 图形验证码：`test_captcha_001`
 - 短信验证码手机号：`13800138000`
 - 注册令牌：`test_reg_001`
+
+Playwright 浏览器自动化默认使用以下联调账号与验证码链路：
+
+```text
+手机号：13800138000
+图形验证码：动态向 /auth/captcha/challenge 请求
+短信验证码：固定使用测试数据中的 888888
+```
 
 ## 项目文档
 

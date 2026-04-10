@@ -338,7 +338,7 @@ export function RankingEditorPage() {
                           value={item.brandName}
                         />
                         <Textarea
-                          className="min-h-20"
+                          className="min-h-20 resize-none"
                           onChange={(event) => updateItem(item.id, { summary: event.target.value })}
                           placeholder="一句话摘要"
                           value={item.summary}

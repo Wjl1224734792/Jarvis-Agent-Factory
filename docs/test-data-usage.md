@@ -70,6 +70,28 @@ bun run packages/db/src/seed.test-data.ts
 | 热门排行 | `feed:hot-rankings` | 5 条数据 |
 | Hero 媒体 | `feed:hero-media` | 5 条数据 |
 
+## Playwright 浏览器自动化
+
+根目录的浏览器自动化脚本会复用这套测试数据：
+
+```bash
+bun run test:e2e
+bun run test:e2e:headed
+```
+
+默认测试身份与联调口径：
+
+| 项目 | 值 | 说明 |
+|------|----|------|
+| Web 端手机号 | `13800138000` | 作为普通用户登录 |
+| 图形验证码 | 动态请求 `/auth/captcha/challenge` | 用例运行时实时获取 |
+| 短信验证码 | `888888` | 直接复用测试数据中预置验证码，避免频控影响 |
+
+说明：
+
+- `test:e2e` 会先执行 `infra:up` 和 `db:reset:test-data`，确保浏览器用例基于固定数据启动。
+- 若你单独手动跑 Playwright，也建议先执行 `bun run db:reset:test-data`。
+
 ## 注意事项
 
 - 脚本会先 `TRUNCATE` 所有测试相关表，确保数据干净

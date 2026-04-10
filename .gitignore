@@ -117,4 +117,6 @@ dist
 .pnp.*
 
 tmp/*
+playwright-report/
+test-results/
 *.py
