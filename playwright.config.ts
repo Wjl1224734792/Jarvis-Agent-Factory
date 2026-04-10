@@ -23,13 +23,13 @@ export default defineConfig({
     {
       command: "bun run dev:server",
       url: `${serverBaseUrl}/health`,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120_000
     },
     {
       command: "bun run dev:web",
       url: webBaseUrl,
-      reuseExistingServer: false,
+      reuseExistingServer: true,
       timeout: 120_000
     }
   ],
