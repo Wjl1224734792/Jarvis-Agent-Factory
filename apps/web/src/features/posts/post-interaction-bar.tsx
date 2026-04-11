@@ -96,10 +96,10 @@ function ActionButton({
       className={cn(
         "rounded-full",
         plain &&
-          "group h-auto border-0 bg-transparent px-0 py-0 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+          "group h-auto border-0 bg-transparent px-2 py-1 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
         plain &&
           active &&
-          "rounded-full bg-white/82 px-2 py-1 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]",
+          "rounded-full bg-white/82 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]",
         plainActiveButtonTone,
         active && !plain && activeClassName
       )}
@@ -184,7 +184,7 @@ export function PostInteractionBar(props: Props) {
           <ActionButton
             active={props.viewer.isFollowingAuthor}
             compact={props.compact}
-            disabled={busyAction !== null}
+            disabled={busyAction === "follow"}
             icon={props.viewer.isFollowingAuthor ? UserCheck : UserPlus}
             iconOnly
             label={props.viewer.isFollowingAuthor ? "已关注作者" : "关注作者"}
@@ -210,7 +210,7 @@ export function PostInteractionBar(props: Props) {
           active={props.viewer.hasLiked}
           compact={props.compact}
           count={props.likeCount}
-          disabled={!props.isPublished || busyAction !== null}
+          disabled={!props.isPublished || busyAction === "like"}
           icon={Heart}
           iconOnly
           label="点赞"
@@ -239,7 +239,7 @@ export function PostInteractionBar(props: Props) {
           active={props.viewer.hasFavorited}
           compact={props.compact}
           count={props.favoriteCount}
-          disabled={!props.isPublished || busyAction !== null}
+          disabled={!props.isPublished || busyAction === "favorite"}
           icon={Bookmark}
           iconOnly
           label="收藏"
@@ -271,7 +271,7 @@ export function PostInteractionBar(props: Props) {
                 active={props.viewer.hasShared}
                 aria-label={`分享（${props.shareCount} 次）`}
                 className={cn(props.plain && "[&_button]:rounded-full")}
-                disabled={!props.isPublished || busyAction !== null}
+                disabled={!props.isPublished || busyAction === "share"}
                 iconClassName="size-4"
                 onCopySuccess={() => {
                   if (useAuthStore.getState().status !== "authenticated") {
@@ -307,7 +307,7 @@ export function PostInteractionBar(props: Props) {
               active={props.viewer.hasShared}
               compact={props.compact}
               count={props.shareCount}
-              disabled={!props.isPublished || busyAction !== null}
+              disabled={!props.isPublished || busyAction === "share"}
               icon={Share2}
               iconOnly
               label="分享"
