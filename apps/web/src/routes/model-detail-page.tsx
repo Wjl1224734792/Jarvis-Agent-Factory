@@ -429,15 +429,19 @@ export function ModelDetailPage() {
                   <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
                     {item.name}
                   </div>
-                  {priceLabel ? (
-                    <div className="text-base font-semibold text-primary">{priceLabel}</div>
-                  ) : null}
                 </div>
 
-                <div className="min-h-0 max-h-[280px] flex-1 overflow-y-auto pr-1 sm:max-h-[320px] lg:max-h-[340px]">
-                  <p className="max-w-3xl text-sm leading-7 text-muted-foreground">
+                <div className="flex min-h-0 max-h-[280px] flex-1 flex-col overflow-y-auto pr-1 sm:max-h-[320px] lg:max-h-[340px]">
+                  <p className="max-w-3xl shrink-0 text-sm leading-7 text-muted-foreground">
                     {item.description ?? item.summary ?? "查看参数、图集与社区评论。"}
                   </p>
+                  {priceLabel ? (
+                    <div className="mt-auto shrink-0 border-t border-border/25 pt-3">
+                      <div className="text-xl font-semibold tracking-tight text-primary md:text-[1.625rem]">
+                        {priceLabel}
+                      </div>
+                    </div>
+                  ) : null}
                 </div>
 
                 <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3">
@@ -453,7 +457,7 @@ export function ModelDetailPage() {
                           ? "text-rose-600 dark:text-rose-400"
                           : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
                       )}
-                      disabled={interactionBusy !== null}
+                      disabled={interactionBusy === "interested"}
                       onClick={() => {
                         void handleInteraction("interested");
                       }}
@@ -480,7 +484,7 @@ export function ModelDetailPage() {
                           ? "text-amber-700 dark:text-amber-400"
                           : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
                       )}
-                      disabled={interactionBusy !== null}
+                      disabled={interactionBusy === "favorite"}
                       onClick={() => {
                         void handleInteraction("favorite");
                       }}
@@ -508,7 +512,7 @@ export function ModelDetailPage() {
                         active={item.viewer.hasShared}
                         aria-label={`分享，${item.interactionSummary.shareCount} 次`}
                         className="[&_button]:p-0"
-                        disabled={interactionBusy !== null}
+                        disabled={interactionBusy === "share"}
                         iconClassName="size-[1.125rem]"
                         onCopySuccess={() => {
                           void recordModelShareAfterCopy();
@@ -567,20 +571,22 @@ export function ModelDetailPage() {
               </div>
             </div>
 
-            <div className="flex w-full flex-nowrap items-center justify-center gap-x-0 overflow-x-auto border-y border-border/35 py-2.5 text-[0.8125rem] [-ms-overflow-style:none] [scrollbar-width:none] sm:justify-between [&::-webkit-scrollbar]:hidden">
-              {metrics.map((metric, index) => (
-                <Fragment key={metric.label}>
-                  {index > 0 ? (
-                    <span aria-hidden className="shrink-0 px-2 text-muted-foreground/35 sm:px-3">
-                      |
-                    </span>
-                  ) : null}
-                  <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
-                    <span className="text-muted-foreground">{metric.label}</span>
-                    <span className="font-semibold text-foreground">{metric.value}</span>
-                  </div>
-                </Fragment>
-              ))}
+            <div className="w-full overflow-x-auto border-y border-border/35 py-2.5 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+              <div className="mx-auto flex min-w-min max-w-full flex-nowrap items-center justify-center gap-x-0 px-4 text-[0.8125rem]">
+                {metrics.map((metric, index) => (
+                  <Fragment key={metric.label}>
+                    {index > 0 ? (
+                      <span aria-hidden className="shrink-0 px-2 text-muted-foreground/35 sm:px-3">
+                        |
+                      </span>
+                    ) : null}
+                    <div className="flex shrink-0 items-baseline gap-1.5 whitespace-nowrap">
+                      <span className="text-muted-foreground">{metric.label}</span>
+                      <span className="font-semibold text-foreground">{metric.value}</span>
+                    </div>
+                  </Fragment>
+                ))}
+              </div>
             </div>
           </div>
 

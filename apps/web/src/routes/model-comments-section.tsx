@@ -32,24 +32,25 @@ function CommentActions(props: {
   slug: string;
   comment: ModelCommentNode;
   canInteract: boolean;
-  disabled: boolean;
+  busy: "reply" | "edit" | "delete" | "like" | null;
   isEditing: boolean;
   onReply: () => void;
   onEdit: () => void;
   onDelete: () => void;
   onLike: () => void;
 }) {
+  const busy = props.busy;
   return (
     <div className="flex shrink-0 items-center gap-1 self-start">
       <CommentLikeIconButton
-        disabled={props.disabled}
+        disabled={busy === "like"}
         hasLiked={props.comment.viewer.hasLiked}
         likeCount={props.comment.likeCount ?? 0}
         onClick={props.onLike}
       />
 
       {props.canInteract ? (
-        <CommentTextAction disabled={props.disabled} onClick={props.onReply} variant="reply">
+        <CommentTextAction disabled={busy === "reply"} onClick={props.onReply} variant="reply">
           回复
         </CommentTextAction>
       ) : null}
@@ -63,7 +64,7 @@ function CommentActions(props: {
           title="举报评论"
           trigger={
             <CommentTextAction
-              disabled={props.disabled}
+              disabled={false}
               hasReported={props.comment.viewer.hasReported}
               variant="report"
             >
@@ -76,7 +77,7 @@ function CommentActions(props: {
       {props.comment.viewer.canEdit ? (
         <CommentIconOnlyButton
           active={props.isEditing}
-          disabled={props.disabled}
+          disabled={busy === "edit"}
           icon={SquarePenIcon}
           label="编辑评论"
           onClick={props.onEdit}
@@ -86,7 +87,7 @@ function CommentActions(props: {
       {props.comment.viewer.canDelete ? (
         <CommentIconOnlyButton
           destructiveHover
-          disabled={props.disabled}
+          disabled={busy === "delete"}
           icon={Trash2Icon}
           label="删除评论"
           onClick={props.onDelete}
@@ -200,9 +201,9 @@ function ModelCommentCard(props: {
         </div>
 
         <CommentActions
+            busy={busy}
             canInteract={props.canInteract && !isPending}
             comment={props.comment}
-            disabled={busy !== null}
             isEditing={isEditing}
           onDelete={() => {
             setBusy("delete");
