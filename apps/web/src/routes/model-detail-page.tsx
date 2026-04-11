@@ -116,7 +116,7 @@ export function ModelDetailPage() {
   });
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-  const [interactionBusy, setInteractionBusy] = useState<string | null>(null);
+  const [interactionBusy, setInteractionBusy] = useState<"interested" | "favorite" | "share" | null>(null);
   const mainVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const gallery = useMemo(() => {
@@ -313,6 +313,10 @@ export function ModelDetailPage() {
   }
 
   async function handleInteraction(type: "interested" | "favorite") {
+    if (interactionBusy !== null) {
+      return;
+    }
+
     if (!isAuthenticated) {
       promptLogin({
         title: "登录后才能互动",
@@ -335,6 +339,10 @@ export function ModelDetailPage() {
   }
 
   async function recordModelShareAfterCopy() {
+    if (interactionBusy !== null) {
+      return;
+    }
+
     if (!isAuthenticated) {
       return;
     }
@@ -461,7 +469,7 @@ export function ModelDetailPage() {
                           ? "text-rose-600 dark:text-rose-400"
                           : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
                       )}
-                      disabled={interactionBusy === "interested"}
+                      disabled={interactionBusy !== null}
                       onClick={() => {
                         void handleInteraction("interested");
                       }}
@@ -488,7 +496,7 @@ export function ModelDetailPage() {
                           ? "text-amber-700 dark:text-amber-400"
                           : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
                       )}
-                      disabled={interactionBusy === "favorite"}
+                      disabled={interactionBusy !== null}
                       onClick={() => {
                         void handleInteraction("favorite");
                       }}
@@ -516,7 +524,7 @@ export function ModelDetailPage() {
                         active={item.viewer.hasShared}
                         aria-label={`分享，${item.interactionSummary.shareCount} 次`}
                         className="[&_button]:p-0"
-                        disabled={interactionBusy === "share"}
+                        disabled={interactionBusy !== null}
                         iconClassName="size-[1.125rem]"
                         onCopySuccess={() => {
                           void recordModelShareAfterCopy();

@@ -117,6 +117,7 @@ dist
 .pnp.*
 
 tmp/*
+.cursor/plans/
 playwright-report/
 test-results/
 *.py

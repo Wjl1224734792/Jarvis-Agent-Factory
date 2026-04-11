@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -168,6 +169,7 @@ export function UserProfilePage() {
   }
 
   const contentItems = contentQuery.data?.items ?? [];
+  const isContentLoading = profile.viewer.canViewContent && contentQuery.isLoading && !contentQuery.data;
   const profileUserId = profile.user.id;
 
   async function handleToggleFollow() {
@@ -291,7 +293,24 @@ export function UserProfilePage() {
         </TabsList>
 
         <TabsContent className="space-y-4" value="content">
-          {profile.viewer.canViewContent ? (
+          {isContentLoading ? (
+            <div className="space-y-0 bg-white">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <div className="grid gap-3 border-b border-border/70 px-4 py-4 last:border-b-0 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem]" key={index}>
+                  <div className="space-y-2">
+                    <Skeleton className="h-5 w-16 rounded-full" />
+                    <Skeleton className="h-3 w-20 rounded-none" />
+                  </div>
+                  <div className="space-y-2">
+                    <Skeleton className="h-4 w-2/3 rounded-none" />
+                    <Skeleton className="h-3.5 w-full rounded-none" />
+                    <Skeleton className="h-3.5 w-5/6 rounded-none" />
+                  </div>
+                  <Skeleton className="h-3 w-24 rounded-none md:ml-auto" />
+                </div>
+              ))}
+            </div>
+          ) : profile.viewer.canViewContent ? (
             <VirtualFeed
               className="!border-0"
               data={contentItems}

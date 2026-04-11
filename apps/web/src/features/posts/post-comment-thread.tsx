@@ -26,7 +26,6 @@ import {
 } from "./post-query-cache";
 
 type CommentNode = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"]["comments"][number];
-type CommentReply = CommentNode["replies"][number];
 
 type ThreadProps = {
   postId: string;
@@ -302,7 +301,7 @@ function RootCommentItem(props: {
                 title="举报评论"
                 trigger={
                   <CommentTextAction
-                    disabled={false}
+                    disabled={busy !== null}
                     hasReported={props.comment.viewer.hasReported}
                     variant="report"
                   >
@@ -411,11 +410,11 @@ function RootCommentItem(props: {
                       <InteractionRow
                         canDelete={replyCanDelete}
                         canEdit={replyCanEdit}
-                        canInteract={props.canInteract && !isPending}
+                        canInteract={props.canInteract && !replyPending}
                         disableDelete={busy?.action === "delete" && busy.targetId === reply.id}
                         disableEdit={busy?.action === "edit" && busy.targetId === reply.id}
                         disableLike={busy?.action === "like" && busy.targetId === reply.id}
-                        disableReply={busy?.action === "reply"}
+                        disableReply={replyPending || busy?.action === "reply"}
                         hasLiked={reply.viewer.hasLiked}
                         isEditing={editingCommentId === reply.id}
                         likeCount={reply.likeCount ?? 0}
@@ -479,7 +478,11 @@ function RootCommentItem(props: {
                                   });
                               }
                         }
-                        onReply={() => openReply(reply.id, reply.author.displayName)}
+                        onReply={
+                          replyPending
+                            ? undefined
+                            : () => openReply(reply.id, reply.author.displayName)
+                        }
                       />
                     </div>
                   </div>

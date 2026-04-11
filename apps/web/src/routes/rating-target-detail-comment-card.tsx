@@ -59,7 +59,7 @@ function CommentActions(props: CommentActionsProps) {
           title="举报评论"
           trigger={
             <CommentTextAction
-              disabled={false}
+              disabled={busy !== null}
               hasReported={props.comment.viewer.hasReported}
               variant="report"
             >
