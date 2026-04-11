@@ -580,9 +580,6 @@ export function ProfilePage() {
         </TabsList>
 
         <TabsContent className="space-y-4" value="activity">
-          <div className="rounded-[0.95rem] bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-            这里按文章、动态、榜单、品牌、飞行器拆分管理，并补上草稿、审核中、已发布、已驳回等状态视图。
-          </div>
           <div className="flex flex-wrap items-center gap-2">
             {profileContentCategories.map((category) => (
               <button
