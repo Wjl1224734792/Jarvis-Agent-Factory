@@ -49,6 +49,11 @@ type ReplyView = {
   replyToDisplayName?: string;
 };
 
+/** 点赞按 targetId 区分，避免回复点赞时整条线程的 InteractionRow 一起禁用 */
+type CommentBusyState =
+  | { action: "like"; targetId: string }
+  | { action: "reply" | "delete" | "edit" };
+
 function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): ReplyView[] {
   return nodes.map((node) => ({
     id: node.id,
@@ -78,7 +83,10 @@ function InteractionRow(props: {
   canDelete: boolean;
   canEdit: boolean;
   canInteract: boolean;
-  disabled: boolean;
+  disableLike: boolean;
+  disableReply: boolean;
+  disableEdit: boolean;
+  disableDelete: boolean;
   likeCount: number;
   hasLiked?: boolean;
   isEditing?: boolean;
@@ -93,14 +101,14 @@ function InteractionRow(props: {
     <div className="flex shrink-0 items-center gap-1 self-start">
       {props.onLike ? (
         <CommentLikeIconButton
-          disabled={props.disabled}
+          disabled={props.disableLike}
           hasLiked={hasLiked}
           likeCount={props.likeCount}
           onClick={props.onLike}
         />
       ) : null}
       {props.canInteract && props.onReply ? (
-        <CommentTextAction disabled={props.disabled} onClick={props.onReply} variant="reply">
+        <CommentTextAction disabled={props.disableReply} onClick={props.onReply} variant="reply">
           回复
         </CommentTextAction>
       ) : null}
@@ -108,7 +116,7 @@ function InteractionRow(props: {
       {props.canEdit && props.onEdit ? (
         <CommentIconOnlyButton
           active={props.isEditing}
-          disabled={props.disabled}
+          disabled={props.disableEdit}
           icon={SquarePenIcon}
           label="编辑评论"
           onClick={props.onEdit}
@@ -117,7 +125,7 @@ function InteractionRow(props: {
       {props.canDelete && props.onDelete ? (
         <CommentIconOnlyButton
           destructiveHover
-          disabled={props.disabled}
+          disabled={props.disableDelete}
           icon={Trash2Icon}
           label="删除评论"
           onClick={props.onDelete}
@@ -142,7 +150,7 @@ function RootCommentItem(props: {
   const [editing, setEditing] = useState(false);
   const [editContent, setEditContent] = useState(props.comment.content);
   const [expanded, setExpanded] = useState(false);
-  const [busy, setBusy] = useState<"reply" | "delete" | "edit" | "like" | "report" | null>(null);
+  const [busy, setBusy] = useState<CommentBusyState | null>(null);
   const [error, setError] = useState<string | null>(null);
   const isPending = props.comment.status === "pending";
 
@@ -156,7 +164,7 @@ function RootCommentItem(props: {
     <article
       className={cn(
         "border-b border-border/85 py-3.5 first:pt-0 last:border-b-0 last:pb-0",
-        busy === "delete" && "opacity-75"
+        busy?.action === "delete" && "opacity-75"
       )}
     >
       <div className="flex items-start gap-3">
@@ -188,7 +196,7 @@ function RootCommentItem(props: {
 
           {editing ? (
             <InlineCommentComposer
-              busy={busy === "edit"}
+              busy={busy?.action === "edit"}
               disabled={busy !== null}
               onChange={setEditContent}
               onSubmit={() => {
@@ -196,7 +204,7 @@ function RootCommentItem(props: {
                   return;
                 }
 
-                setBusy("edit");
+                setBusy({ action: "edit" });
                 setError(null);
                 void apiClient
                   .updatePostComment(props.postId, props.comment.id, {
@@ -237,12 +245,15 @@ function RootCommentItem(props: {
           canDelete={canDelete}
           canEdit={canEdit}
           canInteract={props.canInteract && !isPending}
-          disabled={busy !== null}
+          disableDelete={busy?.action === "delete"}
+          disableEdit={busy?.action === "edit"}
+          disableLike={busy?.action === "like" && busy.targetId === props.comment.id}
+          disableReply={busy?.action === "reply"}
           hasLiked={props.comment.viewer.hasLiked}
           isEditing={editing}
           likeCount={props.comment.likeCount ?? 0}
           onDelete={() => {
-            setBusy("delete");
+            setBusy({ action: "delete" });
             setError(null);
             void apiClient
               .deletePostComment(props.postId, props.comment.id)
@@ -271,7 +282,7 @@ function RootCommentItem(props: {
               ? undefined
               : () => {
                   const nextHasLiked = !props.comment.viewer.hasLiked;
-                  setBusy("like");
+                  setBusy({ action: "like", targetId: props.comment.id });
                   setError(null);
                   void apiClient
                     .likePostComment(props.postId, props.comment.id)
@@ -306,7 +317,7 @@ function RootCommentItem(props: {
                 title="举报评论"
                 trigger={
                   <CommentTextAction
-                    disabled={busy !== null}
+                    disabled={false}
                     hasReported={props.comment.viewer.hasReported}
                     variant="report"
                   >
@@ -364,12 +375,15 @@ function RootCommentItem(props: {
                       canDelete={false}
                       canEdit={false}
                       canInteract={props.canInteract && !isPending}
-                      disabled={busy !== null}
+                      disableDelete={false}
+                      disableEdit={false}
+                      disableLike={busy?.action === "like" && busy.targetId === reply.id}
+                      disableReply={busy?.action === "reply"}
                       hasLiked={reply.hasLiked}
                       likeCount={reply.likeCount}
                       onLike={() => {
                         const nextHasLiked = !reply.hasLiked;
-                        setBusy("like");
+                        setBusy({ action: "like", targetId: reply.id });
                         setError(null);
                         void apiClient
                           .likePostComment(props.postId, reply.id)
@@ -396,7 +410,7 @@ function RootCommentItem(props: {
       {replyingTo && !isPending ? (
         <div className="mt-3">
           <InlineCommentComposer
-            busy={busy === "reply"}
+            busy={busy?.action === "reply"}
             disabled={!props.canInteract}
             onChange={setReplyContent}
             onSubmit={() => {
@@ -404,7 +418,7 @@ function RootCommentItem(props: {
                 return;
               }
 
-              setBusy("reply");
+              setBusy({ action: "reply" });
               setError(null);
 
               void apiClient
@@ -431,7 +445,7 @@ function RootCommentItem(props: {
             placeholder={`回复 @${replyingTo.displayName}`}
             value={replyContent}
           />
-          {busy === "reply" ? (
+          {busy?.action === "reply" ? (
             <div className="mt-3 rounded-[calc(var(--radius-control)-0.08rem)] border border-border/70 bg-background/70 px-3 py-3">
               <CommentSkeletonItem compact />
             </div>
