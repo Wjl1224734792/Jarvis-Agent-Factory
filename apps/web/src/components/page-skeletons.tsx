@@ -301,6 +301,57 @@ export function HomePageRouteSkeleton() {
   );
 }
 
+/** 懒加载他人主页 chunk 或 profile 请求中，与 user-profile-page 的 SitePage + 头图 + 内容列表区一致 */
+export function UserProfilePageRouteSkeleton() {
+  return (
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+      <SitePanel className="overflow-hidden !border-0" variant="floating">
+        <div className="relative">
+          <Skeleton className="h-40 w-full md:h-48" />
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+            <div className="flex items-end gap-4">
+              <Skeleton className="h-28 w-28 rounded-full bg-white/22 md:h-32 md:w-32" />
+              <div className="space-y-2 pb-3">
+                <div className="flex gap-2">
+                  <Skeleton className="h-6 w-20 rounded-full bg-white/22" />
+                  <Skeleton className="h-6 w-24 rounded-full bg-white/22" />
+                </div>
+                <Skeleton className="h-10 w-52 max-w-[min(100%,16rem)] bg-white/28" />
+              </div>
+            </div>
+          </div>
+        </div>
+        <SitePanelBody className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="grid gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+              <div className="space-y-4">
+                <Skeleton className="h-4 w-full" />
+                <Skeleton className="h-4 w-5/6" />
+              </div>
+            </div>
+            <div className="grid gap-3 sm:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <Skeleton className="h-18 rounded-[0.8rem]" key={index} />
+              ))}
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-3 border-t border-border/70 pt-4">
+            <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
+            <Skeleton className="h-10 w-36 rounded-[0.8rem]" />
+          </div>
+        </SitePanelBody>
+      </SitePanel>
+      <div className="space-y-4">
+        <div className="flex gap-6 border-b border-border/70 pb-0">
+          <Skeleton className="mb-[-1px] h-9 w-14 rounded-none border-b-2 border-primary/40" />
+          <Skeleton className="h-9 w-14 rounded-none opacity-50" />
+        </div>
+        <Skeleton className="h-[660px] w-full rounded-none bg-white" />
+      </div>
+    </SitePage>
+  );
+}
+
 export function PostDetailPageSkeleton() {
   return (
     <ImmersivePageShell className="max-w-[900px] gap-8 bg-transparent px-4 pb-8 pt-2 md:px-6 [&_section]:rounded-none">

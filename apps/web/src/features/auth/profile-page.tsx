@@ -632,9 +632,6 @@ export function ProfilePage() {
         </TabsContent>
 
         <TabsContent className="space-y-4" value="favorites">
-          <div className="rounded-[0.95rem] bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-            收藏区同样拆成文章、动态、榜单、品牌、飞行器二级分类，当前仓库已有收藏能力会直接展示，没有数据的分类保留空态。
-          </div>
           <div className="flex flex-wrap items-center gap-2">
             {profileContentCategories.map((category) => (
               <button

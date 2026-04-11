@@ -3,13 +3,14 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
+import { UserProfilePageRouteSkeleton } from "@/components/page-skeletons";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
@@ -17,30 +18,6 @@ import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 
 type ContentItem = Awaited<ReturnType<typeof apiClient.listUserContent>>["items"][number];
-
-function UserProfileSkeleton() {
-  return (
-    <SitePage>
-      <SitePanel className="overflow-hidden">
-        <Skeleton className="h-44 w-full" />
-        <SitePanelBody className="grid gap-5 lg:grid-cols-[auto_minmax(0,1fr)]">
-          <Skeleton className="-mt-12 h-24 w-24 rounded-[0.8rem]" />
-          <div className="space-y-3">
-            <Skeleton className="h-6 w-48" />
-            <Skeleton className="h-4 w-28" />
-            <Skeleton className="h-4 w-full" />
-          </div>
-        </SitePanelBody>
-      </SitePanel>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {Array.from({ length: 3 }).map((_, index) => (
-          <Skeleton className="h-18 rounded-[0.8rem]" key={index} />
-        ))}
-      </div>
-      <Skeleton className="h-[30rem] rounded-[0.9rem]" />
-    </SitePage>
-  );
-}
 
 function MetricStrip(props: { label: string; value: number }) {
   return (
@@ -159,7 +136,6 @@ export function UserProfilePage() {
   const userId = params.id ?? "";
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-
   const profileQuery = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: () => apiClient.getUserProfile(userId),
@@ -177,7 +153,7 @@ export function UserProfilePage() {
   }
 
   if (!userId || (profileQuery.isLoading && !profileQuery.data)) {
-    return <UserProfileSkeleton />;
+    return <UserProfilePageRouteSkeleton />;
   }
 
   if (profileQuery.isError || !profile) {
@@ -218,42 +194,51 @@ export function UserProfilePage() {
     }
   }
 
+  const avatarSrc = profile.user.avatarUrl ?? getAvatarImage(profile.user.id);
+  const bioText = profile.viewer.canViewProfile
+    ? "这里展示对方当前开放给你的资料和内容。"
+    : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。";
+
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <SitePanel className="overflow-hidden" variant="floating">
+      <SitePanel className="overflow-hidden !border-0" variant="floating">
         <div className="relative h-40 overflow-hidden border-b border-border/80 md:h-48">
           <img
             alt={`${profile.user.displayName} 顶部横幅`}
             className="h-full w-full object-cover"
             src={getProfileBanner(profile.user.displayName)}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/58 via-slate-900/18 to-transparent" />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+            <div className="flex items-end gap-4">
+              <UserAvatar
+                className="!h-28 !w-28 md:!h-32 md:!w-32"
+                displayName={profile.user.displayName}
+                size="lg"
+                src={avatarSrc}
+              />
+              <div className="space-y-2 pb-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
+                    公开主页
+                  </Badge>
+                  <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
+                    {profile.viewer.canViewContent ? "内容可见" : "内容受限"}
+                  </Badge>
+                </div>
+                <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">
+                  {profile.user.displayName}
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <SitePanelBody className="space-y-4">
-          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-end">
-            <div className="grid gap-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-end">
-              <Avatar className="-mt-10 size-22 rounded-[0.9rem] ring-4 ring-white md:size-24" size="lg">
-                <AvatarImage
-                  alt={profile.user.displayName}
-                  src={profile.user.avatarUrl ?? getAvatarImage(profile.user.id)}
-                />
-                <AvatarFallback>{profile.user.displayName.slice(0, 1)}</AvatarFallback>
-              </Avatar>
-
-              <div className="space-y-2">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="eyebrow">公开主页</Badge>
-                  <Badge variant="outline">{profile.viewer.canViewContent ? "内容可见" : "内容受限"}</Badge>
-                </div>
-                <div className="text-[1.8rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.15rem]">
-                  {profile.user.displayName}
-                </div>
-                <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-                  {profile.viewer.canViewProfile
-                    ? "这里展示对方当前开放给你的资料和内容。"
-                    : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。"}
-                </p>
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="grid gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+              <div className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">{bioText}</p>
               </div>
             </div>
 
@@ -297,27 +282,39 @@ export function UserProfilePage() {
         </Alert>
       ) : null}
 
-      {profile.viewer.canViewContent ? (
-        <VirtualFeed
-          data={contentItems}
-          emptyState={
-            <div className="border border-border/70 bg-white px-5 py-5 text-sm text-muted-foreground">
-              这位飞友暂时还没有对你开放的内容。
-            </div>
-          }
-          height={660}
-          itemKey={(item) => `${item.type}-${item.id}`}
-          renderItem={(item) => <ContentFeedRow item={item} />}
-        />
-      ) : (
-        <Alert>
-          <EyeOffIcon className="size-4" />
-          <AlertTitle>当前内容不可见</AlertTitle>
-          <AlertDescription>
-            对方的公开范围限制了内容访问。建立关注关系后，这里会自动刷新可见性。
-          </AlertDescription>
-        </Alert>
-      )}
+      <Tabs defaultValue="content">
+        <TabsList variant="line">
+          <TabsTrigger value="content">内容</TabsTrigger>
+          <TabsTrigger disabled title="无法查看其他飞友的收藏列表" value="favorites">
+            收藏
+          </TabsTrigger>
+        </TabsList>
+
+        <TabsContent className="space-y-4" value="content">
+          {profile.viewer.canViewContent ? (
+            <VirtualFeed
+              className="!border-0"
+              data={contentItems}
+              emptyState={
+                <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
+                  这位飞友暂时还没有对你开放的内容。
+                </div>
+              }
+              height={660}
+              itemKey={(item) => `${item.type}-${item.id}`}
+              renderItem={(item) => <ContentFeedRow item={item} />}
+            />
+          ) : (
+            <Alert>
+              <EyeOffIcon className="size-4" />
+              <AlertTitle>当前内容不可见</AlertTitle>
+              <AlertDescription>
+                对方的公开范围限制了内容访问。建立关注关系后，这里会自动刷新可见性。
+              </AlertDescription>
+            </Alert>
+          )}
+        </TabsContent>
+      </Tabs>
     </SitePage>
   );
 }

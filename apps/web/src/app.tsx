@@ -10,7 +10,8 @@ import {
   PostDetailPageSkeleton,
   PublishFormSkeleton,
   RatingTargetDetailPageSkeleton,
-  RankingsPageRouteSkeleton
+  RankingsPageRouteSkeleton,
+  UserProfilePageRouteSkeleton
 } from "./components/page-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
@@ -182,7 +183,7 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.webUserProfile),
-        element: withRouteFallback(<UserProfilePage />)
+        element: withSuspenseFallback(<UserProfilePage />, <UserProfilePageRouteSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.notifications),
