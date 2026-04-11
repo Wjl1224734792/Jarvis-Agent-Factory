@@ -353,7 +353,7 @@ export function ModelDetailPage() {
 
   return (
     <ImmersivePageShell className="max-w-[1180px] gap-6">
-      <Button asChild className="w-fit border-b border-border/75 pb-4" variant="ghost">
+      <Button asChild className="w-fit border-0" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
           返回机型库
