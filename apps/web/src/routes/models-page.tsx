@@ -212,15 +212,15 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
         />
       </div>
       <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
+        <div className="line-clamp-2 text-[0.92rem] leading-5 font-semibold text-foreground">
+          {model.name}
+        </div>
         <BrandIdentity
           className="max-w-full text-[0.68rem] font-medium uppercase tracking-[0.16em] text-muted-foreground"
           imageClassName="size-3.5"
           logoUrl={model.brand.logoUrl}
           name={model.brand.name}
         />
-        <div className="line-clamp-2 text-[0.92rem] leading-5 font-semibold text-foreground">
-          {model.name}
-        </div>
         {priceLabel ? <div className="text-[0.78rem] font-semibold text-primary">{priceLabel}</div> : null}
         <div className="line-clamp-2 text-[0.8rem] leading-5 text-muted-foreground">
           {model.summary ?? `${model.category.name} / ${powerTypeLabels[model.powerType]}`}

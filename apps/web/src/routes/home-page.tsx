@@ -13,6 +13,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { apiClient } from "../lib/api-client";
+import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { getEditorialImage } from "../lib/aviation-media";
 import { mergeRankingsByTab } from "./rankings-page-helpers";
@@ -290,7 +291,12 @@ export function HomePage() {
                     />
                     <div className="min-w-0 space-y-1">
                       <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
-                      <div className="text-[0.72rem] text-muted-foreground">{model.brand.name}</div>
+                      <BrandIdentity
+                        className="min-w-0 text-[0.72rem] text-muted-foreground"
+                        imageClassName="size-3.5 shrink-0"
+                        logoUrl={model.brand.logoUrl}
+                        name={model.brand.name}
+                      />
                       <div className="flex items-center gap-3 text-[0.72rem] text-muted-foreground">
                         <span className="inline-flex items-center gap-1">
                           <HeartIcon className="size-3.5" />
