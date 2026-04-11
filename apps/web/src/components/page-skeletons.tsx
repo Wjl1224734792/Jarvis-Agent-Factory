@@ -1,5 +1,5 @@
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
-import { SitePanel, SitePanelBody } from "@/components/site-shell";
+import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   CIRCLE_CARD_COLUMN_GAP,
@@ -209,6 +209,95 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
         </div>
       ))}
     </div>
+  );
+}
+
+/** 懒加载 chunk 等待期间，与榜单页 SitePage + Tab 行 + 卡片栅格一致 */
+export function RankingsPageRouteSkeleton() {
+  return (
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
+        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+          <Skeleton className="h-9 w-24 shrink-0 rounded-none" />
+          <Skeleton className="h-9 w-24 shrink-0 rounded-none" />
+        </div>
+        <Skeleton className="h-8 w-28 shrink-0 rounded-full" />
+      </div>
+      <RankingCardGridSkeleton count={6} />
+    </SitePage>
+  );
+}
+
+/** 懒加载 chunk 等待期间，与飞友圈 Tab 行 + MasonryFeedSkeleton 一致 */
+export function CirclePageRouteSkeleton() {
+  return (
+    <SitePage className="gap-4">
+      <div className="border-b border-border/60">
+        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+          <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
+          <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
+          <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
+        </div>
+      </div>
+      <MasonryFeedSkeleton count={10} />
+    </SitePage>
+  );
+}
+
+/** 懒加载 chunk 等待期间，与首页 SiteGrid 双栏 + FeedStreamSkeleton + 右侧两栏一致 */
+export function HomePageRouteSkeleton() {
+  return (
+    <SitePage>
+      <SiteGrid className="items-start gap-4" variant="sidebar">
+        <div className="mx-auto w-full max-w-[920px] min-w-0">
+          <div className="border-b border-border px-1">
+            <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+              {Array.from({ length: 4 }).map((_, index) => (
+                <Skeleton className="h-9 w-14 shrink-0 rounded-none" key={index} />
+              ))}
+            </div>
+          </div>
+          <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
+            <div className="p-3">
+              <FeedStreamSkeleton rows={4} />
+            </div>
+          </section>
+        </div>
+        <SiteRail className="space-y-2">
+          <SitePanel variant="muted">
+            <SitePanelBody className="space-y-2.5">
+              <Skeleton className="h-5 w-24 rounded-none" />
+              <div className="flex flex-col gap-3">
+                {Array.from({ length: 2 }).map((_, index) => (
+                  <div className="space-y-2" key={index}>
+                    <Skeleton className="h-4 w-4/5 rounded-none" />
+                    <Skeleton className="h-3.5 w-3/5 rounded-none" />
+                  </div>
+                ))}
+              </div>
+            </SitePanelBody>
+          </SitePanel>
+          <SitePanel variant="muted">
+            <SitePanelBody className="space-y-2.5">
+              <Skeleton className="h-5 w-24 rounded-none" />
+              <div className="space-y-3">
+                {Array.from({ length: 3 }).map((_, index) => (
+                  <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
+                    <Skeleton className="h-[58px] w-full rounded-none" />
+                    <div className="space-y-1.5">
+                      <Skeleton className="h-3.5 w-20 rounded-none" />
+                      <Skeleton className="h-3 w-14 rounded-none" />
+                      <Skeleton className="h-3 w-12 rounded-none" />
+                    </div>
+                    <Skeleton className="h-5 w-8 rounded-none" />
+                  </div>
+                ))}
+              </div>
+            </SitePanelBody>
+          </SitePanel>
+        </SiteRail>
+      </SiteGrid>
+    </SitePage>
   );
 }
 

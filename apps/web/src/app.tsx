@@ -3,19 +3,26 @@ import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import {
+  CirclePageRouteSkeleton,
   DetailPageSkeleton,
+  HomePageRouteSkeleton,
   ModelDetailPageSkeleton,
   PostDetailPageSkeleton,
   PublishFormSkeleton,
-  RatingTargetDetailPageSkeleton
+  RatingTargetDetailPageSkeleton,
+  RankingsPageRouteSkeleton
 } from "./components/page-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
 import { WEB_ROUTE_PATHS } from "./lib/web-routes";
-import { HomePage } from "./routes/home-page";
 
+const HomePage = lazy(() =>
+  import("./routes/home-page").then((module) => ({
+    default: module.HomePage
+  }))
+);
 const LoginPage = lazy(() =>
   import("./features/auth/login-page").then((module) => ({
     default: module.LoginPage
@@ -130,8 +137,8 @@ function withRouteFallback(children: ReactNode) {
   );
 }
 
-/** 沉浸式详情页懒加载：与页内 `isLoading` 骨架一致，避免先出现「页面加载中…」再切骨架。 */
-function withDetailPageFallback(children: ReactNode, fallback: ReactNode) {
+/** 懒加载自定义 fallback（详情页骨架、首页/飞友圈/榜单路由骨架等），避免「页面加载中…」占位卡片。 */
+function withSuspenseFallback(children: ReactNode, fallback: ReactNode) {
   return <Suspense fallback={fallback}>{children}</Suspense>;
 }
 
@@ -147,11 +154,11 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.feedHome),
-        element: <HomePage />
+        element: withSuspenseFallback(<HomePage />, <HomePageRouteSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.flightCircle),
-        element: withRouteFallback(<CirclePage />)
+        element: withSuspenseFallback(<CirclePage />, <CirclePageRouteSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.webLogin),
@@ -191,7 +198,7 @@ const router = createBrowserRouter([
       },
       {
         path: toRootChildPath(APP_ROUTES.rankings),
-        element: withRouteFallback(<RankingsPage />)
+        element: withSuspenseFallback(<RankingsPage />, <RankingsPageRouteSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.compose),
@@ -209,19 +216,19 @@ const router = createBrowserRouter([
     children: [
       {
         path: toRootChildPath(APP_ROUTES.modelDetail),
-        element: withDetailPageFallback(<ModelDetailPage />, <ModelDetailPageSkeleton />)
+        element: withSuspenseFallback(<ModelDetailPage />, <ModelDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
-        element: withDetailPageFallback(<RankingDetailPage />, <DetailPageSkeleton />)
+        element: withSuspenseFallback(<RankingDetailPage />, <DetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
-        element: withDetailPageFallback(<RatingTargetDetailPage />, <RatingTargetDetailPageSkeleton />)
+        element: withSuspenseFallback(<RatingTargetDetailPage />, <RatingTargetDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.postDetail),
-        element: withDetailPageFallback(<PostDetailPage />, <PostDetailPageSkeleton />)
+        element: withSuspenseFallback(<PostDetailPage />, <PostDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
