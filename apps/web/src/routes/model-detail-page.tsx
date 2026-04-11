@@ -14,7 +14,7 @@ import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
-import { ModelDetailPageSkeleton } from "@/components/page-skeletons";
+import { ModelDetailPageSkeleton } from "@/components/route-skeletons";
 import { PageShareControl } from "@/components/page-share-control";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";

@@ -4,7 +4,7 @@ import { ArrowLeftIcon } from "lucide-react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { Link, useLocation, useParams, useSearchParams } from "react-router-dom";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
-import { RatingTargetDetailPageSkeleton } from "@/components/page-skeletons";
+import { RatingTargetDetailPageSkeleton } from "@/components/route-skeletons";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { useAuthStore } from "@/features/auth/auth-store";

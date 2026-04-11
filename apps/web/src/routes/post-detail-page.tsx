@@ -10,7 +10,7 @@ import {
 } from "lucide-react";
 import { startTransition, useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { PostDetailPageSkeleton } from "@/components/page-skeletons";
+import { PostDetailPageSkeleton } from "@/components/route-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";

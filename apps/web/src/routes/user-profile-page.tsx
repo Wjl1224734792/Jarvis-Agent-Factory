@@ -3,7 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
-import { UserProfilePageRouteSkeleton } from "@/components/page-skeletons";
+import { UserProfilePageRouteSkeleton } from "@/components/route-skeletons";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";

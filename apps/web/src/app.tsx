@@ -1,18 +1,8 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Suspense, lazy, type ReactNode } from "react";
+import { Suspense, lazy, useMemo, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import {
-  CirclePageRouteSkeleton,
-  DetailPageSkeleton,
-  HomePageRouteSkeleton,
-  ModelDetailPageSkeleton,
-  PostDetailPageSkeleton,
-  PublishFormSkeleton,
-  RatingTargetDetailPageSkeleton,
-  RankingsPageRouteSkeleton,
-  UserProfilePageRouteSkeleton
-} from "./components/page-skeletons";
+import { DetailPageSkeleton, PublishFormSkeleton } from "./components/page-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
@@ -115,11 +105,46 @@ const RankingEditorPage = lazy(() =>
   }))
 );
 
+const HomePageRouteSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.HomePageRouteSkeleton
+  }))
+);
+const CirclePageRouteSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.CirclePageRouteSkeleton
+  }))
+);
+const RankingsPageRouteSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.RankingsPageRouteSkeleton
+  }))
+);
+const UserProfilePageRouteSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.UserProfilePageRouteSkeleton
+  }))
+);
+const PostDetailPageSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.PostDetailPageSkeleton
+  }))
+);
+const ModelDetailPageSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.ModelDetailPageSkeleton
+  }))
+);
+const RatingTargetDetailPageSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.RatingTargetDetailPageSkeleton
+  }))
+);
+
 function toRootChildPath(path: string) {
   return path.slice(1);
 }
 
-// 发布类页面体积较大且访问频率低于主 feed，因此统一复用同一套懒加载骨架屏。
 function withPublishFallback(children: ReactNode) {
   return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
 }
@@ -138,150 +163,190 @@ function withRouteFallback(children: ReactNode) {
   );
 }
 
-/** 懒加载自定义 fallback（详情页骨架、首页/飞友圈/榜单路由骨架等），避免「页面加载中…」占位卡片。 */
+function DeferredFallback(props: { children: ReactNode }) {
+  return <Suspense fallback={null}>{props.children}</Suspense>;
+}
+
 function withSuspenseFallback(children: ReactNode, fallback: ReactNode) {
   return <Suspense fallback={fallback}>{children}</Suspense>;
 }
 
-// Web 端路由把“公共浏览”和“需登录的个人区”放在同一个壳层里，靠 ProtectedRoute 做权限切分。
-const router = createBrowserRouter([
-  {
-    path: APP_ROUTES.home,
-    element: <WebLayout />,
-    children: [
-      {
-        index: true,
-        element: <Navigate replace to={APP_ROUTES.feedHome} />
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.feedHome),
-        element: withSuspenseFallback(<HomePage />, <HomePageRouteSkeleton />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.flightCircle),
-        element: withSuspenseFallback(<CirclePage />, <CirclePageRouteSkeleton />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.webLogin),
-        element: withRouteFallback(<LoginPage />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.webProfile),
-        element: withRouteFallback(
-          <ProtectedRoute>
-            <ProfilePage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.webSettings),
-        element: withRouteFallback(
-          <ProtectedRoute>
-            <SettingsPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.webUserProfile),
-        element: withSuspenseFallback(<UserProfilePage />, <UserProfilePageRouteSkeleton />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.notifications),
-        element: withRouteFallback(
-          <ProtectedRoute>
-            <NotificationsPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.models),
-        element: withRouteFallback(<ModelsPage />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.rankings),
-        element: withSuspenseFallback(<RankingsPage />, <RankingsPageRouteSkeleton />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.compose),
-        element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
-      },
-      {
-        path: "*",
-        element: <Navigate replace to={APP_ROUTES.feedHome} />
-      }
-    ]
-  },
-  {
-    path: APP_ROUTES.home,
-    element: <ImmersiveLayout />,
-    children: [
-      {
-        path: toRootChildPath(APP_ROUTES.modelDetail),
-        element: withSuspenseFallback(<ModelDetailPage />, <ModelDetailPageSkeleton />)
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
-        element: withSuspenseFallback(<RankingDetailPage />, <DetailPageSkeleton />)
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
-        element: withSuspenseFallback(<RatingTargetDetailPage />, <RatingTargetDetailPageSkeleton />)
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.postDetail),
-        element: withSuspenseFallback(<PostDetailPage />, <PostDetailPageSkeleton />)
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <PublishArticlePage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.publishMoment),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <PublishMomentPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.publishAircraft),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <PublishAircraftPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.publishBrand),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <PublishBrandPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(APP_ROUTES.rankingEditor),
-        element: withPublishFallback(
-          <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
-            <RankingEditorPage />
-          </ProtectedRoute>
-        )
-      },
-      {
-        path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
-        element: withRouteFallback(<PublishStatusPage />)
-      }
-    ]
-  }
-]);
-
 export function App() {
+  const router = useMemo(
+    () =>
+      createBrowserRouter([
+        {
+          path: APP_ROUTES.home,
+          element: <WebLayout />,
+          children: [
+            {
+              index: true,
+              element: <Navigate replace to={APP_ROUTES.feedHome} />
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.feedHome),
+              element: withSuspenseFallback(
+                <HomePage />,
+                <DeferredFallback>
+                  <HomePageRouteSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.flightCircle),
+              element: withSuspenseFallback(
+                <CirclePage />,
+                <DeferredFallback>
+                  <CirclePageRouteSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.webLogin),
+              element: withRouteFallback(<LoginPage />)
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.webProfile),
+              element: withRouteFallback(
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.webSettings),
+              element: withRouteFallback(
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.webUserProfile),
+              element: withSuspenseFallback(
+                <UserProfilePage />,
+                <DeferredFallback>
+                  <UserProfilePageRouteSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.notifications),
+              element: withRouteFallback(
+                <ProtectedRoute>
+                  <NotificationsPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.models),
+              element: withRouteFallback(<ModelsPage />)
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.rankings),
+              element: withSuspenseFallback(
+                <RankingsPage />,
+                <DeferredFallback>
+                  <RankingsPageRouteSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.compose),
+              element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
+            },
+            {
+              path: "*",
+              element: <Navigate replace to={APP_ROUTES.feedHome} />
+            }
+          ]
+        },
+        {
+          path: APP_ROUTES.home,
+          element: <ImmersiveLayout />,
+          children: [
+            {
+              path: toRootChildPath(APP_ROUTES.modelDetail),
+              element: withSuspenseFallback(
+                <ModelDetailPage />,
+                <DeferredFallback>
+                  <ModelDetailPageSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
+              element: withSuspenseFallback(<RankingDetailPage />, <DetailPageSkeleton />)
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
+              element: withSuspenseFallback(
+                <RatingTargetDetailPage />,
+                <DeferredFallback>
+                  <RatingTargetDetailPageSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.postDetail),
+              element: withSuspenseFallback(
+                <PostDetailPage />,
+                <DeferredFallback>
+                  <PostDetailPageSkeleton />
+                </DeferredFallback>
+              )
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
+              element: withPublishFallback(
+                <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+                  <PublishArticlePage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.publishMoment),
+              element: withPublishFallback(
+                <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+                  <PublishMomentPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.publishAircraft),
+              element: withPublishFallback(
+                <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+                  <PublishAircraftPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.publishBrand),
+              element: withPublishFallback(
+                <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+                  <PublishBrandPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.rankingEditor),
+              element: withPublishFallback(
+                <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
+                  <RankingEditorPage />
+                </ProtectedRoute>
+              )
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
+              element: withRouteFallback(<PublishStatusPage />)
+            }
+          ]
+        }
+      ]),
+    []
+  );
+
   return (
-    // QueryClient 放在路由外层，保证跨页面切换时缓存和鉴权态能复用。
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
     </QueryClientProvider>

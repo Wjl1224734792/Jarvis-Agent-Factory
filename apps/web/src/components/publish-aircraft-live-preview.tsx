@@ -27,20 +27,25 @@ export type PublishAircraftLivePreviewProps = {
   galleryMax: number;
 };
 
-function buildMediaSlots(props: PublishAircraftLivePreviewProps): MediaSlot[] {
-  if (props.uploadedVideo) {
-    return [{ kind: "video", url: props.uploadedVideo.url }];
+type LivePreviewMediaInput = Pick<
+  PublishAircraftLivePreviewProps,
+  "uploadedVideo" | "coverImage" | "galleryImages" | "placeholderImageUrl"
+>;
+
+function buildMediaSlots(input: LivePreviewMediaInput): MediaSlot[] {
+  if (input.uploadedVideo) {
+    return [{ kind: "video", url: input.uploadedVideo.url }];
   }
 
   const slots: MediaSlot[] = [];
   const seen = new Set<string>();
 
-  if (props.coverImage) {
-    slots.push({ kind: "image", url: props.coverImage.url });
-    seen.add(props.coverImage.url);
+  if (input.coverImage) {
+    slots.push({ kind: "image", url: input.coverImage.url });
+    seen.add(input.coverImage.url);
   }
 
-  for (const row of props.galleryImages) {
+  for (const row of input.galleryImages) {
     if (!seen.has(row.url)) {
       slots.push({ kind: "image", url: row.url });
       seen.add(row.url);
@@ -48,31 +53,36 @@ function buildMediaSlots(props: PublishAircraftLivePreviewProps): MediaSlot[] {
   }
 
   if (slots.length === 0) {
-    return [{ kind: "image", url: props.placeholderImageUrl }];
+    return [{ kind: "image", url: input.placeholderImageUrl }];
   }
 
   return slots;
 }
 
 export function PublishAircraftLivePreview(props: PublishAircraftLivePreviewProps) {
-  const slots = useMemo(() => buildMediaSlots(props), [
-    props.uploadedVideo,
-    props.coverImage,
-    props.galleryImages,
-    props.placeholderImageUrl
-  ]);
+  const { uploadedVideo, coverImage, galleryImages, placeholderImageUrl } = props;
+  const slots = useMemo(
+    () =>
+      buildMediaSlots({
+        uploadedVideo,
+        coverImage,
+        galleryImages,
+        placeholderImageUrl
+      }),
+    [coverImage, galleryImages, placeholderImageUrl, uploadedVideo]
+  );
 
   const [activeIndex, setActiveIndex] = useState(0);
   const heroVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const galleryKey = useMemo(
-    () => props.galleryImages.map((g) => g.id).join(","),
-    [props.galleryImages]
+    () => galleryImages.map((g) => g.id).join(","),
+    [galleryImages]
   );
 
   useEffect(() => {
     setActiveIndex(0);
-  }, [props.uploadedVideo?.url, props.coverImage?.url, galleryKey]);
+  }, [uploadedVideo?.url, coverImage?.url, galleryKey]);
 
   useEffect(() => {
     heroVideoRef.current?.pause();
