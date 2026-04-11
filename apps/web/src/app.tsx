@@ -2,7 +2,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import { PublishFormSkeleton } from "./components/page-skeletons";
+import {
+  DetailPageSkeleton,
+  ModelDetailPageSkeleton,
+  PostDetailPageSkeleton,
+  PublishFormSkeleton,
+  RatingTargetDetailPageSkeleton
+} from "./components/page-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
@@ -124,6 +130,11 @@ function withRouteFallback(children: ReactNode) {
   );
 }
 
+/** 沉浸式详情页懒加载：与页内 `isLoading` 骨架一致，避免先出现「页面加载中…」再切骨架。 */
+function withDetailPageFallback(children: ReactNode, fallback: ReactNode) {
+  return <Suspense fallback={fallback}>{children}</Suspense>;
+}
+
 // Web 端路由把“公共浏览”和“需登录的个人区”放在同一个壳层里，靠 ProtectedRoute 做权限切分。
 const router = createBrowserRouter([
   {
@@ -198,19 +209,19 @@ const router = createBrowserRouter([
     children: [
       {
         path: toRootChildPath(APP_ROUTES.modelDetail),
-        element: withRouteFallback(<ModelDetailPage />)
+        element: withDetailPageFallback(<ModelDetailPage />, <ModelDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
-        element: withRouteFallback(<RankingDetailPage />)
+        element: withDetailPageFallback(<RankingDetailPage />, <DetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),
-        element: withRouteFallback(<RatingTargetDetailPage />)
+        element: withDetailPageFallback(<RatingTargetDetailPage />, <RatingTargetDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(APP_ROUTES.postDetail),
-        element: withRouteFallback(<PostDetailPage />)
+        element: withDetailPageFallback(<PostDetailPage />, <PostDetailPageSkeleton />)
       },
       {
         path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
