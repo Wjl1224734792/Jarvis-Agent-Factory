@@ -12,6 +12,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
 import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_AUTH_INVALID_EVENT } from "../../lib/auth-events";
+import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS, isAdminNavItemActive } from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
@@ -22,6 +23,7 @@ export function AdminShell() {
   const location = useLocation();
   const navigate = useNavigate();
   const [collapsed, setCollapsed] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const user = useAdminAuthStore((state) => state.user);
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
@@ -38,6 +40,14 @@ export function AdminShell() {
     };
   }, [queryClient, setAnonymous]);
 
+  useEffect(() => {
+    const currentQuery =
+      location.pathname === ADMIN_ROUTE_PATHS.search
+        ? new URLSearchParams(location.search).get("q") ?? ""
+        : "";
+    setSearchValue(currentQuery);
+  }, [location.pathname, location.search]);
+
   const activeGroup = useMemo(
     () =>
       ADMIN_NAV_GROUPS.find((group) =>
@@ -51,6 +61,15 @@ export function AdminShell() {
       activeGroup,
     [activeGroup, location.pathname]
   );
+
+  function submitSearch(value: string) {
+    const trimmed = value.trim();
+    const search = trimmed.length > 0 ? `?q=${encodeURIComponent(trimmed)}` : "";
+    void navigate({
+      pathname: ADMIN_ROUTE_PATHS.search,
+      search
+    });
+  }
 
   return (
     <Layout
@@ -82,10 +101,15 @@ export function AdminShell() {
           />
 
           <div className="admin-shell__search">
-            <Input
+            <Input.Search
               allowClear
+              onChange={(event) => {
+                setSearchValue(event.target.value);
+              }}
+              onSearch={submitSearch}
               placeholder="搜索页面、指标、发布入口或待审核内容..."
               prefix={<SearchOutlined />}
+              value={searchValue}
             />
           </div>
 

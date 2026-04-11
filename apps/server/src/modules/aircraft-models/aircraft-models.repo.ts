@@ -12,7 +12,8 @@ import {
   db,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { buildIlikeAnyCondition, buildSearchPatterns } from "../../lib/search";
 
 type ListFilters = {
   categorySlugs?: string[];
@@ -38,12 +39,14 @@ export const aircraftModelsRepo = {
     }
 
     if (filters.keyword) {
-      const keyword = `%${filters.keyword}%`;
-      const keywordCondition = or(
-        ilike(aircraftModelsTable.name, keyword),
-        ilike(brandsTable.name, keyword),
-        ilike(aircraftModelsTable.summary, keyword),
-        ilike(aircraftModelsTable.description, keyword)
+      const keywordCondition = buildIlikeAnyCondition(
+        [
+          aircraftModelsTable.name,
+          brandsTable.name,
+          aircraftModelsTable.summary,
+          aircraftModelsTable.description
+        ],
+        buildSearchPatterns(filters.keyword).contains
       );
       if (keywordCondition) {
         conditions.push(keywordCondition);

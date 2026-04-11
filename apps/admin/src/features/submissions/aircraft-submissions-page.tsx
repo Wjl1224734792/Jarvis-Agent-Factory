@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Image, Input, Modal, Space, Table, Tag } from "antd";
-import { useMemo, useState } from "react";
+import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -8,6 +9,15 @@ import { promptRejectionReason } from "../../lib/moderation-actions";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type SubmissionRecord = Awaited<ReturnType<typeof apiClient.listAdminAircraftSubmissions>>["items"][number];
+
+const statusOptions = [
+  { label: "全部", value: "all" },
+  { label: "待审核", value: "submitted" },
+  { label: "已通过", value: "approved" },
+  { label: "已驳回", value: "rejected" }
+] as const;
+
+type SubmissionStatusFilter = (typeof statusOptions)[number]["value"];
 
 function submissionStatusLabel(status: SubmissionRecord["status"]) {
   switch (status) {
@@ -33,11 +43,26 @@ function formatPriceRange(priceMin: number | null, priceMax: number | null) {
 }
 
 export function AircraftSubmissionsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [status, setStatus] = useState<SubmissionStatusFilter>(
+    urlStatus === "submitted" || urlStatus === "approved" || urlStatus === "rejected"
+      ? urlStatus
+      : "all"
+  );
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    setStatus(
+      urlStatus === "submitted" || urlStatus === "approved" || urlStatus === "rejected"
+        ? urlStatus
+        : "all"
+    );
+  }, [urlStatus]);
 
   const submissionsQuery = useQuery({
     queryKey: ["admin-aircraft-submissions"],
@@ -59,7 +84,9 @@ export function AircraftSubmissionsPage() {
   });
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
-    const items = submissionsQuery.data?.items ?? [];
+    const items = (submissionsQuery.data?.items ?? []).filter((item) =>
+      status === "all" ? true : item.status === status
+    );
     if (!keyword) {
       return items;
     }
@@ -74,7 +101,7 @@ export function AircraftSubmissionsPage() {
         item.description ?? ""
       ].some((value) => String(value).toLowerCase().includes(keyword))
     );
-  }, [submissionsQuery.data?.items, searchText]);
+  }, [submissionsQuery.data?.items, searchText, status]);
 
   function updateStatus(id: string, status: "approved" | "rejected", rejectionReason?: string | null) {
     setError(null);
@@ -116,7 +143,8 @@ export function AircraftSubmissionsPage() {
   return (
     <AdminPage
       actions={
-        <Input.Search
+        <Space wrap>
+          <Input.Search
           allowClear
           onChange={(event) => {
             setSearchText(event.target.value);
@@ -125,6 +153,24 @@ export function AircraftSubmissionsPage() {
           style={{ width: 280 }}
           value={searchText}
         />
+          <Select
+            onChange={(value) => {
+              setStatus(value);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                if (value === "all") {
+                  next.delete("status");
+                } else {
+                  next.set("status", value);
+                }
+                return next;
+              });
+            }}
+            options={statusOptions as unknown as Array<{ label: string; value: string }>}
+            style={{ width: 160 }}
+            value={status}
+          />
+        </Space>
       }
       description="集中处理用户提交的飞行器资料与机型投稿审核。"
       title="机型投稿审核"

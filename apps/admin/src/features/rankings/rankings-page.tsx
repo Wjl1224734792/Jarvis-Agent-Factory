@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
 import { APP_ROUTES } from "@feijia/shared";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
@@ -45,11 +46,25 @@ function RankingScopeTag(props: { type: RankingRecord["type"] }) {
 }
 
 export function RankingsPage() {
-  const [communityFilter, setCommunityFilter] = useState<AdminRankingStatus>("pending");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [communityFilter, setCommunityFilter] = useState<AdminRankingStatus>(
+    urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+      ? urlStatus
+      : "pending"
+  );
   const [actionError, setActionError] = useState<string | null>(null);
   const [isUpdatingSetting, setIsUpdatingSetting] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    setCommunityFilter(
+      urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+        ? urlStatus
+        : "pending"
+    );
+  }, [urlStatus]);
 
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-ranking-site-settings"],
@@ -254,6 +269,11 @@ export function RankingsPage() {
                 onChange={(value) => {
                   if (isAdminRankingStatus(value)) {
                     setCommunityFilter(value);
+                    setSearchParams((current) => {
+                      const next = new URLSearchParams(current);
+                      next.set("status", value);
+                      return next;
+                    });
                   }
                 }}
                 options={communityStatusOptions}

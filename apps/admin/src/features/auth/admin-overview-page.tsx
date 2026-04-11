@@ -8,6 +8,7 @@ import {
   CommentOutlined,
   FileSearchOutlined,
   FlagOutlined,
+  ReadOutlined,
   RocketOutlined,
   SafetyCertificateOutlined,
   TrophyOutlined
@@ -308,6 +309,65 @@ export function AdminOverviewPage() {
     }
   ];
 
+  const pendingEntries = [
+    {
+      title: "待审核文章",
+      description: "直接打开文章审核列表并带上待审核筛选",
+      to: `${ADMIN_ROUTE_PATHS.moderationArticles}?status=pending`,
+      count: analytics?.moderation.posts.pending ?? 0,
+      icon: <FlagOutlined />
+    },
+    {
+      title: "待审核动态",
+      description: "直接进入飞友圈动态待审核队列",
+      to: `${ADMIN_ROUTE_PATHS.moderationMoments}?status=pending`,
+      count: analytics?.moderation.posts.pending ?? 0,
+      icon: <ReadOutlined />
+    },
+    {
+      title: "待审核评论",
+      description: "统一处理帖子、机型、榜单与评分对象评论",
+      to: `${ADMIN_ROUTE_PATHS.moderationComments}?status=pending`,
+      count: analytics?.moderation.comments.pending ?? 0,
+      icon: <CommentOutlined />
+    },
+    {
+      title: "待审核品牌申请",
+      description: "集中处理待审核品牌申请",
+      to: `${ADMIN_ROUTE_PATHS.moderationBrandApplications}?status=pending`,
+      count: analytics?.moderation.brandApplications.pending ?? 0,
+      icon: <FileSearchOutlined />
+    },
+    {
+      title: "待审核机型投稿",
+      description: "查看机型投稿待审核列表",
+      to: `${ADMIN_ROUTE_PATHS.moderationAircraftSubmissions}?status=submitted`,
+      count: analytics?.moderation.submissions.pending ?? 0,
+      icon: <ClockCircleOutlined />
+    },
+    {
+      title: "待审核榜单",
+      description: "快速进入社区榜单审核队列",
+      to: `${ADMIN_ROUTE_PATHS.moderationRankings}?status=pending`,
+      count: analytics?.moderation.rankings.pending ?? 0,
+      icon: <TrophyOutlined />
+    },
+    {
+      title: "待审核评分对象",
+      description: "查看榜单条目待审核内容",
+      to: `${ADMIN_ROUTE_PATHS.moderationRatingTargets}?status=pending`,
+      count: analytics?.moderation.ratingTargets.pending ?? 0,
+      icon: <SafetyCertificateOutlined />
+    },
+    {
+      title: "待处理举报",
+      description: "集中查看被举报的内容与评论",
+      to: ADMIN_ROUTE_PATHS.moderationReports,
+      count: null,
+      icon: <FileSearchOutlined />
+    }
+  ];
+
   const topStats = [
     { label: "本月新增注册", value: analytics?.registration.month ?? 0, icon: <BarChartOutlined /> },
     { label: "本年新增注册", value: analytics?.registration.year ?? 0, icon: <BarChartOutlined /> },
@@ -459,6 +519,21 @@ export function AdminOverviewPage() {
               pendingCount={item.pendingCount}
               title={item.title}
             />
+          ))}
+        </div>
+      </AdminPanel>
+
+      <AdminPanel description="把高频人工处理队列集中到一屏，减少后台运营时来回找入口。" title="待处理快捷入口">
+        <div className="admin-section-grid admin-section-grid--compact">
+          {pendingEntries.map((entry) => (
+            <Link className="admin-section-card admin-section-card--compact" key={entry.to} to={entry.to}>
+              <div className="admin-section-card__icon">{entry.icon}</div>
+              <div className="admin-section-card__title">
+                {entry.title}
+                {entry.count !== null ? ` · ${entry.count}` : ""}
+              </div>
+              <div className="admin-section-card__description">{entry.description}</div>
+            </Link>
           ))}
         </div>
       </AdminPanel>

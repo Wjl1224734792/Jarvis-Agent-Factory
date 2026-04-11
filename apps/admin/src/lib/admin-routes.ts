@@ -1,6 +1,7 @@
 // 后台二级导航和跳转都依赖这组常量，集中维护可以避免运营区和审核区路径漂移。
 export const ADMIN_ROUTE_PATHS = {
   overview: "/admin/overview",
+  search: "/admin/search",
   moderation: "/admin/moderation",
   moderationArticles: "/admin/moderation/articles",
   moderationMoments: "/admin/moderation/moments",

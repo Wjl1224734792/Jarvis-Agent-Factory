@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Image, Input, Modal, Space, Table, Tag } from "antd";
-import { useMemo, useState } from "react";
+import { Button, Empty, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -10,6 +11,16 @@ import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 type BrandApplicationRecord = Awaited<
   ReturnType<typeof apiClient.listAdminBrandApplications>
 >["items"][number];
+
+const statusOptions = [
+  { label: "全部", value: "all" },
+  { label: "待审核", value: "pending" },
+  { label: "已通过", value: "approved" },
+  { label: "已驳回", value: "rejected" },
+  { label: "已隐藏", value: "hidden" }
+] as const;
+
+type BrandApplicationStatusFilter = (typeof statusOptions)[number]["value"];
 
 function statusLabel(status: BrandApplicationRecord["status"]) {
   switch (status) {
@@ -25,11 +36,26 @@ function statusLabel(status: BrandApplicationRecord["status"]) {
 }
 
 export function BrandApplicationsPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [status, setStatus] = useState<BrandApplicationStatusFilter>(
+    urlStatus === "pending" || urlStatus === "approved" || urlStatus === "rejected" || urlStatus === "hidden"
+      ? urlStatus
+      : "all"
+  );
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    setStatus(
+      urlStatus === "pending" || urlStatus === "approved" || urlStatus === "rejected" || urlStatus === "hidden"
+        ? urlStatus
+        : "all"
+    );
+  }, [urlStatus]);
 
   const applicationsQuery = useQuery({
     queryKey: ["admin-brand-applications"],
@@ -51,7 +77,9 @@ export function BrandApplicationsPage() {
   });
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
-    const items = applicationsQuery.data?.items ?? [];
+    const items = (applicationsQuery.data?.items ?? []).filter((item) =>
+      status === "all" ? true : item.status === status
+    );
     if (!keyword) {
       return items;
     }
@@ -60,7 +88,7 @@ export function BrandApplicationsPage() {
       [item.name, item.slug, item.applicant.displayName, item.description ?? ""]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
-  }, [applicationsQuery.data?.items, searchText]);
+  }, [applicationsQuery.data?.items, searchText, status]);
 
   async function updateStatus(
     id: string,
@@ -104,7 +132,8 @@ export function BrandApplicationsPage() {
   return (
     <AdminPage
       actions={
-        <Input.Search
+        <Space wrap>
+          <Input.Search
           allowClear
           onChange={(event) => {
             setSearchText(event.target.value);
@@ -113,6 +142,24 @@ export function BrandApplicationsPage() {
           style={{ width: 280 }}
           value={searchText}
         />
+          <Select
+            onChange={(value) => {
+              setStatus(value);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                if (value === "all") {
+                  next.delete("status");
+                } else {
+                  next.set("status", value);
+                }
+                return next;
+              });
+            }}
+            options={statusOptions as unknown as Array<{ label: string; value: string }>}
+            style={{ width: 160 }}
+            value={status}
+          />
+        </Space>
       }
       description="品牌申请从机型投稿里拆分出来，单独在这里审核并沉淀到品牌库。"
       title="品牌申请审核"

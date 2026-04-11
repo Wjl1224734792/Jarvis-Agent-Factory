@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Empty, Input, Segmented, Select, Space, Table, Tag, Button } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -51,12 +52,41 @@ function statusLabel(status: UnifiedRecord["status"]) {
 }
 
 export function PostCommentsPage() {
-  const [status, setStatus] = useState<CommentStatusFilter>("all");
-  const [domain, setDomain] = useState<CommentDomain>("post");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const urlDomain = searchParams.get("domain");
+  const [status, setStatus] = useState<CommentStatusFilter>(
+    urlStatus === "pending" || urlStatus === "visible" || urlStatus === "hidden" ? urlStatus : "all"
+  );
+  const [domain, setDomain] = useState<CommentDomain>(
+    urlDomain === "review" ||
+      urlDomain === "model" ||
+      urlDomain === "ranking" ||
+      urlDomain === "rating-target"
+      ? urlDomain
+      : "post"
+  );
   const [searchText, setSearchText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
+
+  useEffect(() => {
+    setStatus(
+      urlStatus === "pending" || urlStatus === "visible" || urlStatus === "hidden" ? urlStatus : "all"
+    );
+  }, [urlStatus]);
+
+  useEffect(() => {
+    setDomain(
+      urlDomain === "review" ||
+        urlDomain === "model" ||
+        urlDomain === "ranking" ||
+        urlDomain === "rating-target"
+        ? urlDomain
+        : "post"
+    );
+  }, [urlDomain]);
 
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-comment-site-settings"],
@@ -209,6 +239,11 @@ export function PostCommentsPage() {
           <Segmented
             onChange={(value) => {
               setDomain(value as CommentDomain);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                next.set("domain", String(value));
+                return next;
+              });
             }}
             options={domainSegmentedOptions}
             value={domain}
@@ -216,6 +251,15 @@ export function PostCommentsPage() {
           <Select
             onChange={(value) => {
               setStatus(value);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                if (value === "all") {
+                  next.delete("status");
+                } else {
+                  next.set("status", value);
+                }
+                return next;
+              });
             }}
             options={statusOptions as unknown as Array<{ label: string; value: string }>}
             style={{ width: 180 }}

@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -34,12 +35,26 @@ function itemStatusLabel(status: RatingTargetRecord["status"] = "published") {
 }
 
 export function RatingTargetsPage() {
-  const [status, setStatus] = useState<ItemStatus | "all">("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [status, setStatus] = useState<ItemStatus | "all">(
+    urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+      ? urlStatus
+      : "all"
+  );
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [searchText, setSearchText] = useState("");
   const [actionError, setActionError] = useState<string | null>(null);
   const [detailId, setDetailId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setStatus(
+      urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+        ? urlStatus
+        : "all"
+    );
+  }, [urlStatus]);
 
   const itemsQuery = useQuery({
     queryKey: ["admin-rating-targets", status],
@@ -129,6 +144,15 @@ export function RatingTargetsPage() {
           <Segmented
             onChange={(value) => {
               setStatus(value);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                if (value === "all") {
+                  next.delete("status");
+                } else {
+                  next.set("status", value);
+                }
+                return next;
+              });
             }}
             options={itemStatusOptions}
             value={status}

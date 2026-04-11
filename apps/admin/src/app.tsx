@@ -69,6 +69,11 @@ const AdminPasswordPage = lazy(() =>
     default: module.AdminPasswordPage
   }))
 );
+const AdminSearchPage = lazy(() =>
+  import("./features/search/admin-search-page").then((module) => ({
+    default: module.AdminSearchPage
+  }))
+);
 const BrandApplicationsPage = lazy(() =>
   import("./features/models/brand-applications-page").then((module) => ({
     default: module.BrandApplicationsPage
@@ -167,6 +172,10 @@ const router = createBrowserRouter([
       {
         path: ADMIN_ROUTE_PATHS.overview.slice("/admin/".length),
         element: withAdminRouteFallback(<AdminOverviewPage />)
+      },
+      {
+        path: ADMIN_ROUTE_PATHS.search.slice("/admin/".length),
+        element: withAdminRouteFallback(<AdminSearchPage />)
       },
       {
         path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),

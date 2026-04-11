@@ -69,6 +69,11 @@ const SettingsPage = lazy(() =>
     default: module.SettingsPage
   }))
 );
+const SearchPage = lazy(() =>
+  import("./routes/search-page").then((module) => ({
+    default: module.SearchPage
+  }))
+);
 const UserProfilePage = lazy(() =>
   import("./routes/user-profile-page").then((module) => ({
     default: module.UserProfilePage
@@ -241,6 +246,10 @@ export function App() {
             {
               path: toRootChildPath(APP_ROUTES.models),
               element: withRouteFallback(<ModelsPage />)
+            },
+            {
+              path: toRootChildPath(APP_ROUTES.search),
+              element: withRouteFallback(<SearchPage />)
             },
             {
               path: toRootChildPath(APP_ROUTES.rankings),

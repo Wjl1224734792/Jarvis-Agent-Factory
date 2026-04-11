@@ -14,7 +14,7 @@ import {
   XIcon
 } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Link, NavLink, Outlet, ScrollRestoration, useLocation } from "react-router-dom";
+import { Link, NavLink, Outlet, ScrollRestoration, useLocation, useNavigate } from "react-router-dom";
 import { SitePanel, SitePanelBody, SiteShell } from "@/components/site-shell";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -212,6 +212,7 @@ export function WebLayout() {
 
   const queryClient = useQueryClient();
   const location = useLocation();
+  const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
   const authUserId = useAuthStore((state) => state.user?.id ?? null);
@@ -219,6 +220,7 @@ export function WebLayout() {
   const promptLogin = useLoginPrompt();
   const [isMobileNavOpen, setIsMobileNavOpen] = useState(false);
   const [isPublishMenuOpen, setIsPublishMenuOpen] = useState(false);
+  const [searchValue, setSearchValue] = useState("");
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const authCacheScopeRef = useRef<string | null>(null);
   const headerPlaceholder = getHeaderCopy(location.pathname);
@@ -236,6 +238,14 @@ export function WebLayout() {
       }
     };
   }, []);
+
+  useEffect(() => {
+    const currentQuery =
+      location.pathname === APP_ROUTES.search
+        ? new URLSearchParams(location.search).get("q") ?? ""
+        : "";
+    setSearchValue(currentQuery);
+  }, [location.pathname, location.search]);
 
   useEffect(() => {
     if (!isAuthBootstrapped) {
@@ -279,6 +289,15 @@ export function WebLayout() {
       setIsPublishMenuOpen(false);
       closeTimerRef.current = null;
     }, 160);
+  }
+
+  function submitSearch(rawValue: string) {
+    const trimmed = rawValue.trim();
+    const search = trimmed.length > 0 ? `?q=${encodeURIComponent(trimmed)}` : "";
+    void navigate({
+      pathname: APP_ROUTES.search,
+      search
+    });
   }
 
   return (
@@ -371,18 +390,46 @@ export function WebLayout() {
 
           <div className="hidden min-w-0 flex-1 justify-center px-2 xl:flex">
             <div className="w-full max-w-[39rem]">
-              <div className="relative">
+              <form
+                className="relative"
+                onSubmit={(event) => {
+                  event.preventDefault();
+                  submitSearch(searchValue);
+                }}
+              >
                 <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/80" />
                 <Input
+                  aria-label="全文搜索"
                   className="h-9 rounded-[var(--radius-control)] border-border/50 bg-card/60 pl-9 text-[0.8rem] shadow-none placeholder:text-muted-foreground/65"
+                  onChange={(event) => {
+                    setSearchValue(event.target.value);
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter") {
+                      event.preventDefault();
+                      submitSearch(searchValue);
+                    }
+                  }}
                   placeholder={headerPlaceholder}
-                  readOnly
+                  value={searchValue}
                 />
-              </div>
+              </form>
             </div>
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
+            <Button
+              className="text-muted-foreground hover:bg-accent/60 hover:text-foreground xl:hidden"
+              onClick={() => {
+                submitSearch(searchValue);
+              }}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <SearchIcon className="size-4.5" />
+              <span className="sr-only">打开全文搜索</span>
+            </Button>
             <div className="relative" onMouseEnter={openPublishMenu} onMouseLeave={scheduleClosePublishMenu}>
               <Button
                 className="h-9 min-w-[4.75rem] justify-center rounded-full px-3.5 text-[0.8rem] font-semibold sm:min-w-[5.25rem]"

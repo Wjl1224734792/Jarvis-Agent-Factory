@@ -1,6 +1,7 @@
 import { defineConfig, devices } from "playwright/test";
 
 const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
 const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:3002";
 
 export default defineConfig({
@@ -29,6 +30,12 @@ export default defineConfig({
     {
       command: "bun run dev:web",
       url: webBaseUrl,
+      reuseExistingServer: true,
+      timeout: 120_000
+    },
+    {
+      command: "bun run dev:admin",
+      url: `${adminBaseUrl}/admin/login`,
       reuseExistingServer: true,
       timeout: 120_000
     }

@@ -31,6 +31,7 @@ import {
   adminReviewCommentResponseSchema,
   adminReviewCommentsResponseSchema,
   adminReviewsResponseSchema,
+  adminSearchResponseSchema,
   adminLoginRequestSchema,
   adminPasswordChangeRequestSchema,
   aircraftSubmissionResponseSchema,
@@ -129,6 +130,8 @@ import {
   webLoginRequestSchema,
   webLoginResponseSchema,
   siteSettingsResponseSchema,
+  siteSearchResponseSchema,
+  searchQuerySchema,
   type HealthResponse,
   type UserSummary
 } from "@feijia/schemas";
@@ -215,6 +218,7 @@ type PhoneChangeRequestInput = Parameters<typeof phoneChangeRequestInputSchema.p
 type PhoneChangeConfirmInput = Parameters<typeof phoneChangeConfirmInputSchema.parse>[0];
 type UpdateSiteSettingsInput = Parameters<typeof updateSiteSettingsInputSchema.parse>[0];
 type InitUploadInput = Parameters<typeof initUploadInputSchema.parse>[0];
+type SearchQueryInput = Parameters<typeof searchQuerySchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -373,6 +377,14 @@ function buildQueryString(input: ModelsQueryInput): string {
 
   const queryString = search.toString();
   return queryString ? `?${queryString}` : "";
+}
+
+function buildSearchQueryString(input: SearchQueryInput): string {
+  const query = searchQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  search.set("q", query.q);
+  search.set("limit", String(query.limit));
+  return `?${search.toString()}`;
 }
 
 // 这里是前后端共享契约的主入口：路径常量、schema 校验和 fetch 细节都在这一层收敛。
@@ -1244,6 +1256,22 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminAnalyticsOverviewResponseSchema);
+    },
+    async searchSite(input: SearchQueryInput) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.search.site}${buildSearchQueryString(input)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, siteSearchResponseSchema);
+    },
+    async searchAdmin(input: SearchQueryInput) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.search.admin}${buildSearchQueryString(input)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminSearchResponseSchema);
     },
     async getAdminReportDetails(kind: string, id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.admin.reportDetail(kind, id)}`, {

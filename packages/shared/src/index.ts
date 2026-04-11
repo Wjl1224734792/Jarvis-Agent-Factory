@@ -25,6 +25,7 @@ export const APP_ROUTES = {
   rankingDetail: "/rankings/:id",
   ratingTargetDetail: "/rating-targets/:id",
   postDetail: "/posts/:id",
+  search: "/search",
   compose: "/compose",
   publishArticle: "/publish/article",
   publishMoment: "/publish/moment",
@@ -37,6 +38,7 @@ export const APP_ROUTES = {
   webSettings: "/settings",
   adminLogin: "/admin/login",
   adminHome: "/admin",
+  adminSearch: "/admin/search",
   adminOverview: "/admin/overview",
   adminModeration: "/admin/moderation",
   adminOperations: "/admin/operations",
@@ -55,6 +57,10 @@ export const APP_ROUTES = {
 
 export const API_ROUTES = {
   health: "/health",
+  search: {
+    site: "/search",
+    admin: "/admin/search"
+  },
   feed: "/home/feed",
   circleFeed: "/circle/feed",
   admin: {

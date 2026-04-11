@@ -39,6 +39,7 @@ export {
   rankingsTable,
   sessionsTable,
   siteSettingsTable,
+  userSettingsTable,
   userFollowsTable,
   usersTable
 } from "./schema.js";

@@ -11,3 +11,4 @@ export * from "./posts";
 export * from "./reports";
 export * from "./social";
 export * from "./site-settings";
+export * from "./search";

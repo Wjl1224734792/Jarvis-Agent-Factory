@@ -2,8 +2,10 @@ import { expect, type APIRequestContext, type Page } from "playwright/test";
 
 const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:3002";
 const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:3000";
+const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
 
 export const seededUserStorageStatePath = "tmp/playwright/storage-states/user.json";
+export const seededAdminStorageStatePath = "tmp/playwright/storage-states/admin.json";
 
 type WebLoginResponse =
   | { kind: "authenticated"; user: { id: string; displayName: string } }
@@ -66,6 +68,24 @@ export async function loginAsSeededUser(page: Page) {
   }
 
   const cookies = extractAuthCookies(authHeaders);
+  expect(cookies.length).toBeGreaterThanOrEqual(2);
+  await page.context().addCookies(cookies);
+}
+
+export async function loginAsSeededAdmin(page: Page) {
+  const request = page.context().request;
+  const response = await request.post(`${serverBaseUrl}/auth/admin/login`, {
+    data: {
+      account: "admin",
+      password: "Admin#123"
+    }
+  });
+  expect(response.ok()).toBeTruthy();
+
+  const cookies = extractAuthCookies(response.headersArray()).map((cookie) => ({
+    ...cookie,
+    url: adminBaseUrl
+  }));
   expect(cookies.length).toBeGreaterThanOrEqual(2);
   await page.context().addCookies(cookies);
 }

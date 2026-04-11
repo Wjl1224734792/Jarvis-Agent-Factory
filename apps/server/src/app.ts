@@ -15,6 +15,7 @@ import { contentCategoriesRoute } from './modules/content-categories/content-cat
 import { postsRoute } from './modules/posts/posts.route';
 import { rankingsRoute } from './modules/rankings/rankings.route';
 import { reviewsRoute } from './modules/reviews/reviews.route';
+import { searchRoute } from './modules/search/search.route';
 import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
@@ -124,6 +125,7 @@ app.route('/', authRoute);
 app.route('/', uploadsRoute);
 app.route('/', postsRoute);
 app.route('/', socialRoute);
+app.route('/', searchRoute);
 app.route('/', adminAnalyticsRoute);
 app.route('/', adminReportsRoute);
 app.route('/', rankingsRoute);

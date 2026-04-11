@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -32,12 +33,26 @@ function postStatusLabel(status: PostRecord["status"]) {
 }
 
 export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
-  const [status, setStatus] = useState<PostStatusFilter>("all");
+  const [searchParams, setSearchParams] = useSearchParams();
+  const urlStatus = searchParams.get("status");
+  const [status, setStatus] = useState<PostStatusFilter>(
+    urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+      ? urlStatus
+      : "all"
+  );
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
+
+  useEffect(() => {
+    setStatus(
+      urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
+        ? urlStatus
+        : "all"
+    );
+  }, [urlStatus]);
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", status],
@@ -161,6 +176,15 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
           <Select
             onChange={(value) => {
               setStatus(value);
+              setSearchParams((current) => {
+                const next = new URLSearchParams(current);
+                if (value === "all") {
+                  next.delete("status");
+                } else {
+                  next.set("status", value);
+                }
+                return next;
+              });
             }}
             options={statusOptions as unknown as Array<{ label: string; value: string }>}
             style={{ width: 180 }}
