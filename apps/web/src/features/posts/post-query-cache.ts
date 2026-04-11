@@ -28,6 +28,8 @@ type CircleFeedData = {
 };
 
 type PostCommentViewerState = {
+  canEdit?: boolean;
+  canDelete?: boolean;
   hasLiked: boolean;
   hasReported: boolean;
 };
@@ -323,6 +325,35 @@ export function patchPostCommentDeleted(
     ...item,
     commentCount: clampCount(item.commentCount - removedVisibleCount),
     comments: item.comments.filter((comment) => comment.id !== rootCommentId)
+  }));
+}
+
+/** 删除一条回复：从父线程 replies 移除并同步帖子 commentCount */
+export function patchPostReplyDeleted(
+  queryClient: QueryClient,
+  postId: string,
+  parentCommentId: string,
+  replyId: string,
+  removedVisibleCount: number
+) {
+  updatePostFeedItemById(queryClient, postId, (item) => ({
+    ...item,
+    commentCount: clampCount(item.commentCount - removedVisibleCount)
+  }));
+  updatePostDetailById(queryClient, postId, (item) => ({
+    ...item,
+    commentCount: clampCount(item.commentCount - removedVisibleCount),
+    comments: item.comments.map((thread) => {
+      if (thread.id !== parentCommentId) {
+        return thread;
+      }
+      const nextReplies = thread.replies.filter((r) => r.id !== replyId);
+      return {
+        ...thread,
+        replies: nextReplies,
+        replyCount: nextReplies.length
+      };
+    })
   }));
 }
 

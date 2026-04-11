@@ -21,7 +21,8 @@ import {
   patchPostCommentDeleted,
   patchPostCommentLikeToggle,
   patchPostCommentReported,
-  patchPostCommentUpdated
+  patchPostCommentUpdated,
+  patchPostReplyDeleted
 } from "./post-query-cache";
 
 type CommentNode = Awaited<ReturnType<typeof apiClient.getPostDetail>>["item"]["comments"][number];
@@ -39,32 +40,12 @@ type ThreadProps = {
   className?: string;
 };
 
-type ReplyView = {
-  id: string;
-  content: string;
-  likeCount: number;
-  createdAt: string;
-  hasLiked: boolean;
-  author: CommentNode["author"];
-  replyToDisplayName?: string;
-};
-
-/** 点赞按 targetId 区分，避免回复点赞时整条线程的 InteractionRow 一起禁用 */
+/** 点赞 / 编辑 / 删除按 targetId 区分，避免同线程内其它行一起禁用 */
 type CommentBusyState =
   | { action: "like"; targetId: string }
-  | { action: "reply" | "delete" | "edit" };
-
-function flattenReplies(nodes: CommentReply[], replyToDisplayName?: string): ReplyView[] {
-  return nodes.map((node) => ({
-    id: node.id,
-    content: node.content,
-    likeCount: node.likeCount ?? 0,
-    createdAt: node.createdAt,
-    hasLiked: node.viewer.hasLiked,
-    author: node.author,
-    replyToDisplayName: node.replyToUser?.displayName ?? replyToDisplayName
-  }));
-}
+  | { action: "reply" }
+  | { action: "edit"; targetId: string }
+  | { action: "delete"; targetId: string };
 
 function CommentSkeletonItem(props: { compact?: boolean }) {
   return (
@@ -142,12 +123,12 @@ function RootCommentItem(props: {
   canInteract: boolean;
 }) {
   const queryClient = useQueryClient();
-  const canDelete = props.currentUserId === props.comment.author.id;
-  const canEdit = props.currentUserId === props.comment.author.id;
-  const replies = useMemo(() => flattenReplies(props.comment.replies), [props.comment.replies]);
+  const canDelete = props.comment.viewer.canDelete;
+  const canEdit = props.comment.viewer.canEdit;
+  const replyList = props.comment.replies;
   const [replyingTo, setReplyingTo] = useState<{ id: string; displayName: string } | null>(null);
   const [replyContent, setReplyContent] = useState("");
-  const [editing, setEditing] = useState(false);
+  const [editingCommentId, setEditingCommentId] = useState<string | null>(null);
   const [editContent, setEditContent] = useState(props.comment.content);
   const [expanded, setExpanded] = useState(false);
   const [busy, setBusy] = useState<CommentBusyState | null>(null);
@@ -164,7 +145,7 @@ function RootCommentItem(props: {
     <article
       className={cn(
         "border-b border-border/85 py-3.5 first:pt-0 last:border-b-0 last:pb-0",
-        busy?.action === "delete" && "opacity-75"
+        busy?.action === "delete" && busy.targetId === props.comment.id && "opacity-75"
       )}
     >
       <div className="flex items-start gap-3">
@@ -194,9 +175,9 @@ function RootCommentItem(props: {
             <CommentPublishedTime createdAt={props.comment.createdAt} />
           </div>
 
-          {editing ? (
+          {editingCommentId === props.comment.id ? (
             <InlineCommentComposer
-              busy={busy?.action === "edit"}
+              busy={busy?.action === "edit" && busy.targetId === props.comment.id}
               disabled={busy !== null}
               onChange={setEditContent}
               onSubmit={() => {
@@ -204,11 +185,11 @@ function RootCommentItem(props: {
                   return;
                 }
 
-                setBusy({ action: "edit" });
+                setBusy({ action: "edit", targetId: props.comment.id });
                 setError(null);
                 void apiClient
                   .updatePostComment(props.postId, props.comment.id, {
-                    content: editContent
+                    content: editContent.trim()
                   })
                   .then((payload) => {
                     patchPostCommentUpdated(
@@ -218,7 +199,7 @@ function RootCommentItem(props: {
                       payload.item,
                       props.comment.status
                     );
-                    setEditing(false);
+                    setEditingCommentId(null);
                   })
                   .catch((value: unknown) => {
                     setError(value instanceof Error ? value.message : "编辑评论失败");
@@ -245,15 +226,15 @@ function RootCommentItem(props: {
           canDelete={canDelete}
           canEdit={canEdit}
           canInteract={props.canInteract && !isPending}
-          disableDelete={busy?.action === "delete"}
-          disableEdit={busy?.action === "edit"}
+          disableDelete={busy?.action === "delete" && busy.targetId === props.comment.id}
+          disableEdit={busy?.action === "edit" && busy.targetId === props.comment.id}
           disableLike={busy?.action === "like" && busy.targetId === props.comment.id}
           disableReply={busy?.action === "reply"}
           hasLiked={props.comment.viewer.hasLiked}
-          isEditing={editing}
+          isEditing={editingCommentId === props.comment.id}
           likeCount={props.comment.likeCount ?? 0}
           onDelete={() => {
-            setBusy({ action: "delete" });
+            setBusy({ action: "delete", targetId: props.comment.id });
             setError(null);
             void apiClient
               .deletePostComment(props.postId, props.comment.id)
@@ -274,8 +255,12 @@ function RootCommentItem(props: {
               });
           }}
           onEdit={() => {
-            setEditing((value) => !value);
-            setEditContent(props.comment.content);
+            if (editingCommentId === props.comment.id) {
+              setEditingCommentId(null);
+            } else {
+              setEditingCommentId(props.comment.id);
+              setEditContent(props.comment.content);
+            }
           }}
           onLike={
             isPending
@@ -330,78 +315,176 @@ function RootCommentItem(props: {
         />
       </div>
 
-      {replies.length > 0 ? (
+      {replyList.length > 0 ? (
         <div className="mt-3 border-l border-border/85 pl-4">
           <button
             className="text-[0.72rem] font-medium text-primary"
             onClick={() => setExpanded((value) => !value)}
             type="button"
           >
-            {expanded ? "收起回复" : `展开全部回复 (${replies.length})`}
+            {expanded ? "收起回复" : `展开全部回复 (${replyList.length})`}
           </button>
 
           {expanded ? (
             <div className="mt-3">
-              {replies.map((reply) => (
-                <div className="border-t border-border/80 py-3 first:border-t-0 first:pt-0" key={reply.id}>
-                  <div className="flex items-start gap-3">
-                    <ProfileLink userId={reply.author.id}>
-                      <Avatar className="mt-0.5" size="sm">
-                        <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
-                        <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
-                      </Avatar>
-                    </ProfileLink>
+              {replyList.map((reply) => {
+                const replyPending = reply.status === "pending";
+                const replyCanEdit = reply.viewer.canEdit;
+                const replyCanDelete = reply.viewer.canDelete;
+                const replyToName = reply.replyToUser?.displayName;
 
-                    <div className="min-w-0 flex-1 space-y-1.5">
-                      <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
-                        <ProfileLink
-                          className="font-medium text-foreground hover:text-primary"
-                          userId={reply.author.id}
-                        >
-                          {reply.author.displayName}
-                        </ProfileLink>
-                        {reply.replyToDisplayName ? (
-                          <span className="inline-flex items-center gap-1 text-[0.72rem] text-primary/82">
-                            <CornerDownRightIcon className="size-3.25" />
-                            @{reply.replyToDisplayName}
-                          </span>
+                return (
+                  <div className="border-t border-border/80 py-3 first:border-t-0 first:pt-0" key={reply.id}>
+                    <div className="flex items-start gap-3">
+                      <ProfileLink userId={reply.author.id}>
+                        <Avatar className="mt-0.5" size="sm">
+                          <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
+                          <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
+                        </Avatar>
+                      </ProfileLink>
+
+                      <div className="min-w-0 flex-1 space-y-1.5">
+                        <div className="flex flex-wrap items-center gap-x-2.5 gap-y-1 text-sm">
+                          <ProfileLink
+                            className="font-medium text-foreground hover:text-primary"
+                            userId={reply.author.id}
+                          >
+                            {reply.author.displayName}
+                          </ProfileLink>
+                          {replyToName ? (
+                            <span className="inline-flex items-center gap-1 text-[0.72rem] text-primary/82">
+                              <CornerDownRightIcon className="size-3.25" />
+                              @{replyToName}
+                            </span>
+                          ) : null}
+                          {replyPending ? (
+                            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[0.68rem] font-medium text-amber-700">
+                              待审核
+                            </span>
+                          ) : null}
+                          <CommentPublishedTime createdAt={reply.createdAt} />
+                        </div>
+                        {editingCommentId === reply.id ? (
+                          <InlineCommentComposer
+                            busy={busy?.action === "edit" && busy.targetId === reply.id}
+                            disabled={busy !== null}
+                            onChange={setEditContent}
+                            onSubmit={() => {
+                              if (!editContent.trim()) {
+                                return;
+                              }
+
+                              setBusy({ action: "edit", targetId: reply.id });
+                              setError(null);
+                              void apiClient
+                                .updatePostComment(props.postId, reply.id, {
+                                  content: editContent.trim()
+                                })
+                                .then((payload) => {
+                                  patchPostCommentUpdated(
+                                    queryClient,
+                                    props.postId,
+                                    reply.id,
+                                    payload.item,
+                                    reply.status
+                                  );
+                                  setEditingCommentId(null);
+                                })
+                                .catch((value: unknown) => {
+                                  setError(value instanceof Error ? value.message : "编辑评论失败");
+                                })
+                                .finally(() => {
+                                  setBusy(null);
+                                });
+                            }}
+                            placeholder="编辑评论"
+                            value={editContent}
+                          />
+                        ) : (
+                          <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
+                        )}
+                        {replyPending ? (
+                          <p className="text-[0.72rem] text-amber-700">仅你自己可见，审核通过后会公开显示。</p>
                         ) : null}
-                        <CommentPublishedTime createdAt={reply.createdAt} />
                       </div>
-                      <p className="text-sm leading-6 text-foreground/80">{reply.content}</p>
-                    </div>
 
-                    <InteractionRow
-                      canDelete={false}
-                      canEdit={false}
-                      canInteract={props.canInteract && !isPending}
-                      disableDelete={false}
-                      disableEdit={false}
-                      disableLike={busy?.action === "like" && busy.targetId === reply.id}
-                      disableReply={busy?.action === "reply"}
-                      hasLiked={reply.hasLiked}
-                      likeCount={reply.likeCount}
-                      onLike={() => {
-                        const nextHasLiked = !reply.hasLiked;
-                        setBusy({ action: "like", targetId: reply.id });
-                        setError(null);
-                        void apiClient
-                          .likePostComment(props.postId, reply.id)
-                          .then(() => {
-                            patchPostCommentLikeToggle(queryClient, props.postId, reply.id, nextHasLiked);
-                          })
-                          .catch((value: unknown) => {
-                            setError(value instanceof Error ? value.message : "点赞失败");
-                          })
-                          .finally(() => {
-                            setBusy(null);
-                          });
-                      }}
-                      onReply={() => openReply(reply.id, reply.author.displayName)}
-                    />
+                      <InteractionRow
+                        canDelete={replyCanDelete}
+                        canEdit={replyCanEdit}
+                        canInteract={props.canInteract && !isPending}
+                        disableDelete={busy?.action === "delete" && busy.targetId === reply.id}
+                        disableEdit={busy?.action === "edit" && busy.targetId === reply.id}
+                        disableLike={busy?.action === "like" && busy.targetId === reply.id}
+                        disableReply={busy?.action === "reply"}
+                        hasLiked={reply.viewer.hasLiked}
+                        isEditing={editingCommentId === reply.id}
+                        likeCount={reply.likeCount ?? 0}
+                        onDelete={
+                          replyCanDelete
+                            ? () => {
+                                setBusy({ action: "delete", targetId: reply.id });
+                                setError(null);
+                                void apiClient
+                                  .deletePostComment(props.postId, reply.id)
+                                  .then(() => {
+                                    patchPostReplyDeleted(
+                                      queryClient,
+                                      props.postId,
+                                      props.comment.id,
+                                      reply.id,
+                                      reply.status === "visible" ? 1 : 0
+                                    );
+                                    if (editingCommentId === reply.id) {
+                                      setEditingCommentId(null);
+                                    }
+                                  })
+                                  .catch((value: unknown) => {
+                                    setError(value instanceof Error ? value.message : "删除评论失败");
+                                  })
+                                  .finally(() => {
+                                    setBusy(null);
+                                  });
+                              }
+                            : undefined
+                        }
+                        onEdit={
+                          replyCanEdit
+                            ? () => {
+                                if (editingCommentId === reply.id) {
+                                  setEditingCommentId(null);
+                                } else {
+                                  setEditingCommentId(reply.id);
+                                  setEditContent(reply.content);
+                                }
+                              }
+                            : undefined
+                        }
+                        onLike={
+                          replyPending
+                            ? undefined
+                            : () => {
+                                const nextHasLiked = !reply.viewer.hasLiked;
+                                setBusy({ action: "like", targetId: reply.id });
+                                setError(null);
+                                void apiClient
+                                  .likePostComment(props.postId, reply.id)
+                                  .then(() => {
+                                    patchPostCommentLikeToggle(queryClient, props.postId, reply.id, nextHasLiked);
+                                  })
+                                  .catch((value: unknown) => {
+                                    setError(value instanceof Error ? value.message : "点赞失败");
+                                  })
+                                  .finally(() => {
+                                    setBusy(null);
+                                  });
+                              }
+                        }
+                        onReply={() => openReply(reply.id, reply.author.displayName)}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           ) : null}
         </div>
