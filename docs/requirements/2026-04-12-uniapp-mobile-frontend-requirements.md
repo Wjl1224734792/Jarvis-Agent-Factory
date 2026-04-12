@@ -3,7 +3,7 @@
 > 文档版本：v1.0  
 > 更新时间：2026-04-12  
 > 适用范围：微信小程序、Android App（UniApp 同构开发）  
-> 关联文档：[移动端登录接入文档](../mobile-login-guide.md)、[OpenAPI 前端对接指南](../openapi-frontend-integration-guide.md)、[OpenAPI 文档](http://localhost:3002/docs)、[移动端 / 微信小程序页面开发任务清单](../mobile-wechat-page-task-checklist.md)
+> 关联文档：[移动端登录接入文档](./mobile-login-guide.md)、[OpenAPI 前端对接指南](./openapi-frontend-integration-guide.md)、[OpenAPI 文档](http://localhost:3002/docs)、[移动端 / 微信小程序页面开发任务清单](./mobile-wechat-page-task-checklist.md)
 
 ## 1. 文档目标
 
