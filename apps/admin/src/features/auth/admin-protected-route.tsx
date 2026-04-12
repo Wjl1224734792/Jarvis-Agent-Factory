@@ -6,6 +6,7 @@ import { useBootstrapAdminAuth } from "./use-bootstrap-admin-auth";
 import { useAdminAuthStore } from "./auth-store";
 
 export function AdminProtectedRoute({ children }: PropsWithChildren) {
+  // 守卫本身负责触发后台登录态自举，避免每个后台页面重复调用。
   useBootstrapAdminAuth();
 
   const location = useLocation();
@@ -25,6 +26,7 @@ export function AdminProtectedRoute({ children }: PropsWithChildren) {
   }
 
   if (status !== "authenticated") {
+    // 保留来源地址，管理员登录成功后可以回到原始目标页。
     return <Navigate replace to={buildLoginRedirectUrl(APP_ROUTES.adminLogin, location)} />;
   }
 

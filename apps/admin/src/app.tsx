@@ -54,6 +54,7 @@ function withAdminRouteFallback(children: ReactNode) {
   return <Suspense fallback={<AdminRouteLoading />}>{children}</Suspense>;
 }
 
+// 后台页面体积较大，按模块懒加载，首次进入时只加载当前管理域所需代码。
 const AdminOverviewPage = lazy(() =>
   import("./features/auth/admin-overview-page").then((module) => ({
     default: module.AdminOverviewPage
@@ -149,6 +150,7 @@ const AircraftSubmissionsPage = lazy(() =>
 const router = createBrowserRouter([
   {
     path: "/",
+    // 根路径始终归一到后台首页，减少多入口带来的状态分叉。
     element: <Navigate replace to={APP_ROUTES.adminHome} />
   },
   {
@@ -179,6 +181,7 @@ const router = createBrowserRouter([
       },
       {
         path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),
+        // Hub 页面只负责聚合入口，具体审核逻辑仍拆在各自独立模块里。
         element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="把文章、动态、评论、品牌申请、机型投稿、榜单和榜单条目拆成独立审核入口。"
@@ -423,6 +426,7 @@ const router = createBrowserRouter([
   },
   {
     path: "*",
+    // 任意未知后台路径都收敛到总览页，避免用户停留在无权限或无内容路由。
     element: <Navigate replace to={ADMIN_ROUTE_PATHS.overview} />
   }
 ]);

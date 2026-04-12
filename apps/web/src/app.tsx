@@ -146,14 +146,17 @@ const RatingTargetDetailPageSkeleton = lazy(() =>
   }))
 );
 
+// React Router 的子路由 path 不能带根路径前缀，这里把共享常量里的绝对路径转成相对写法。
 function toRootChildPath(path: string) {
   return path.slice(1);
 }
 
+// 发布相关页面共用表单级骨架，避免每个发布路由重复包一层 Suspense。
 function withPublishFallback(children: ReactNode) {
   return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
 }
 
+// 通用页面兜底用于轻量页面，保持路由切换期间的基础可读性。
 function withRouteFallback(children: ReactNode) {
   return (
     <Suspense
@@ -168,6 +171,7 @@ function withRouteFallback(children: ReactNode) {
   );
 }
 
+// 骨架本身也走懒加载时，先用 null 避免“双层占位”造成闪烁。
 function DeferredFallback(props: { children: ReactNode }) {
   return <Suspense fallback={null}>{props.children}</Suspense>;
 }
@@ -179,6 +183,8 @@ function withSuspenseFallback(children: ReactNode, fallback: ReactNode) {
 export function App() {
   const router = useMemo(
     () =>
+      // 整个站点拆成 WebLayout 与 ImmersiveLayout 两套壳层：
+      // 前者负责带导航的主站页面，后者承载详情页与发布页这类更沉浸的场景。
       createBrowserRouter([
         {
           path: APP_ROUTES.home,
@@ -264,6 +270,7 @@ export function App() {
               path: toRootChildPath(APP_ROUTES.compose),
               element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
             },
+            // 主站兜底统一回到首页 feed，避免落入空白页。
             {
               path: "*",
               element: <Navigate replace to={APP_ROUTES.feedHome} />
@@ -307,6 +314,7 @@ export function App() {
             },
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
+              // 发布链路必须登录，但这里使用 fallback 模式，避免把用户带回登录页后丢失上下文。
               element: withPublishFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <PublishArticlePage />

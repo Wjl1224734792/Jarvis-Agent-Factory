@@ -29,6 +29,7 @@ export function AdminShell() {
   const setError = useAdminAuthStore((state) => state.setError);
 
   useEffect(() => {
+    // 任意接口广播后台鉴权失效后，统一清缓存并回到匿名态，避免继续展示旧管理数据。
     function handleAuthInvalid() {
       queryClient.clear();
       setAnonymous();
@@ -41,6 +42,7 @@ export function AdminShell() {
   }, [queryClient, setAnonymous]);
 
   useEffect(() => {
+    // 搜索页把 URL 中的 q 参数同步回输入框，保证刷新后还能还原当前查询词。
     const currentQuery =
       location.pathname === ADMIN_ROUTE_PATHS.search
         ? new URLSearchParams(location.search).get("q") ?? ""
@@ -64,6 +66,7 @@ export function AdminShell() {
 
   function submitSearch(value: string) {
     const trimmed = value.trim();
+    // 后台搜索状态以路由参数承载，便于刷新、分享和历史记录回退。
     const search = trimmed.length > 0 ? `?q=${encodeURIComponent(trimmed)}` : "";
     void navigate({
       pathname: ADMIN_ROUTE_PATHS.search,

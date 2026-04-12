@@ -195,6 +195,7 @@ export function ProtectedRoute({
   const isBootstrapped = useAuthStore((state) => state.isBootstrapped);
 
   if (shouldSuspendProtectedRoute(status, isBootstrapped)) {
+    // 不同受保护页面使用各自骨架，避免用户在恢复登录态时看到与页面完全无关的占位内容。
     if (location.pathname.startsWith(APP_ROUTES.webProfile)) {
       return <ProfileRouteSkeleton />;
     }
@@ -218,6 +219,7 @@ export function ProtectedRoute({
     return (
       <Navigate
         replace
+        // redirect 逻辑统一交给 helper，确保登录页跳转与 fallback 模式行为一致。
         to={resolveProtectedRouteRedirect({
           location,
           mode,

@@ -18,6 +18,7 @@ type AppSessionResponse = {
 
 const REFRESH_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 
+// 将数据库唯一键错误映射为业务态错误码，前端才能给出明确可操作提示。
 function mapRegistrationPersistenceError(error: unknown): AuthError | null {
   if (!(error instanceof Error)) {
     return null;
@@ -46,6 +47,7 @@ function mapRegistrationPersistenceError(error: unknown): AuthError | null {
   return null;
 }
 
+// 设备标签优先使用显式输入，其次根据 UA 推导一个更适合展示给用户的名字。
 function buildDeviceLabel(input: {
   explicitDeviceLabel?: string | null;
   userAgent?: string | null;
@@ -78,6 +80,7 @@ function buildDeviceLabel(input: {
   return userAgent.trim() ? userAgent.slice(0, 80) : null;
 }
 
+// App 端会话返回 accessToken + refreshToken，和 Web 端的 Cookie 模式分开维护。
 async function createAppSession(
   user: UserRecord,
   metadata?: RequestSessionMetadata
@@ -195,6 +198,7 @@ export const authService = {
 
     const user = await authRepo.findUserByPhone(input.phone);
     if (!user) {
+      // Web 端在验证码通过但用户不存在时，不直接报错，而是转入“待完成注册”分支。
       const pendingRegistration = await authRepo.createPendingRegistration(
         input.phone,
         {
@@ -317,6 +321,7 @@ export const authService = {
       normalizedDisplayName
     );
     if (duplicateName) {
+      // 用户名冲突时恢复 pending registration，避免用户改名后还得重新走短信流程。
       await authRepo.restorePendingRegistration(pending);
       throw new AuthError(
         "DISPLAY_NAME_TAKEN",
@@ -449,6 +454,7 @@ export const authService = {
       throw new AuthError("SESSION_EXPIRED", "Refresh token missing.");
     }
 
+    // Web 端 refresh 依赖 HttpOnly cookie，查不到会话时直接要求重新登录。
     const session = await authRepo.findSessionByRefreshToken(refreshToken);
     if (!session) {
       throw new AuthError(
@@ -522,7 +528,7 @@ export const authService = {
     input: { account: string; password: string },
     metadata?: RequestSessionMetadata
   ) {
-    // 检查是否被锁定
+    // 后台登录带失败次数限制，优先在认证前拦截暴力尝试。
     const failures = await authRepo.getAdminLoginFailures(input.account);
     if (failures >= ADMIN_LOGIN_MAX_FAILURES) {
       throw new AuthError("ADMIN_ACCOUNT_LOCKED", "账号已被锁定，请 5 分钟后再试");
@@ -538,7 +544,7 @@ export const authService = {
       throw new AuthError("INVALID_CREDENTIALS", "管理员账号或密码错误");
     }
 
-    // 登录成功，清除失败计数
+    // 登录成功后立即清理失败计数，避免后续正常登录被历史失败影响。
     await authRepo.clearAdminLoginFailures(input.account);
 
     const refreshToken = createSecretToken(32);
@@ -581,6 +587,7 @@ export const authService = {
     }
 
     await authRepo.updateAdminPassword(userId, input.newPassword);
+    // 改密后立即撤销现有会话，确保旧后台会话和已签发 token 全部失效。
     await authRepo.revokeUserSessions(userId);
 
     return {
