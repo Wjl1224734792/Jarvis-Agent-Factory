@@ -91,7 +91,7 @@ async function ensureDevServers() {
 
 async function main() {
   await runCommand(["bun", "run", "infra:up"], "infra:up");
-  await runCommand(["bun", "run", "db:reset:test-data"], "db:reset:test-data");
+  await runCommand(["bun", "run", "db:reset:mock"], "db:reset:mock");
 
   const managedProcesses = await ensureDevServers();
 

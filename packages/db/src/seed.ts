@@ -18,6 +18,7 @@ import {
   ratingTargetRatingsTable,
   ratingTargetsTable,
   rankingsTable,
+  siteSettingsTable,
   userFollowsTable,
   usersTable
 } from "./schema.js";
@@ -40,7 +41,6 @@ const USER_IDS = {
 const CONTENT_CATEGORY_IDS = {
   news: "seed_ccat_news",
   review: "seed_ccat_review",
-  aerial: "seed_ccat_aerial",
   tech: "seed_ccat_tech",
   guide: "seed_ccat_guide"
 } as const;
@@ -220,14 +220,13 @@ async function seedContentCategories() {
     .values([
       { id: CONTENT_CATEGORY_IDS.news, slug: "news", name: "资讯", sortOrder: 1, isEnabled: true },
       { id: CONTENT_CATEGORY_IDS.review, slug: "review", name: "评测", sortOrder: 2, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.aerial, slug: "aerial", name: "航拍", sortOrder: 3, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "技术", sortOrder: 4, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "指南", sortOrder: 5, isEnabled: true }
+      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "技术", sortOrder: 3, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "指南", sortOrder: 4, isEnabled: true }
     ])
     .onConflictDoNothing();
 }
 
-async function seedAircraftCatalog() {
+async function seedAircraftCategories() {
   await db
     .insert(aircraftCategoriesTable)
     .values([
@@ -237,7 +236,9 @@ async function seedAircraftCatalog() {
       { id: AIRCRAFT_CATEGORY_IDS.businessJet, slug: "business-jet", name: "公务机", sortOrder: 4, isEnabled: true }
     ])
     .onConflictDoNothing();
+}
 
+async function seedDemoAircraftCatalog() {
   await db
     .insert(brandsTable)
     .values([
@@ -471,6 +472,25 @@ async function seedAircraftSubmissions() {
     .onConflictDoNothing();
 }
 
+async function seedSiteSettings() {
+  await db
+    .insert(siteSettingsTable)
+    .values({
+      id: "seed_site_settings_default",
+      postModerationEnabled: true,
+      commentModerationEnabled: false,
+      reviewModerationEnabled: false,
+      submissionModerationEnabled: true,
+      rankingModerationEnabled: false,
+      articleModerationEnabled: true,
+      momentModerationEnabled: true,
+      brandModerationEnabled: true,
+      modelModerationEnabled: true,
+      ratingTargetModerationEnabled: true
+    })
+    .onConflictDoNothing();
+}
+
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
@@ -483,13 +503,20 @@ export async function seedAuthDatabase() {
   await ensureAdminUser();
 }
 
-export async function seedDatabase(options?: { reset?: boolean }) {
+export async function seedBaseDatabase(options?: { reset?: boolean }) {
   if (options?.reset !== false) {
     await resetDatabaseState();
   }
-  const adminUserId = await ensureAdminUser();
+  await ensureAdminUser();
   await seedContentCategories();
-  await seedAircraftCatalog();
+  await seedAircraftCategories();
+  await seedSiteSettings();
+}
+
+export async function seedDemoDatabase(options?: { reset?: boolean }) {
+  await seedBaseDatabase(options);
+  const adminUserId = await ensureAdminUser();
+  await seedDemoAircraftCatalog();
   await seedUsers();
   await seedReviewsAndModelFavorites();
   await seedPosts(adminUserId);
@@ -498,4 +525,8 @@ export async function seedDatabase(options?: { reset?: boolean }) {
   await seedSocialGraph(adminUserId);
   await seedRankings(adminUserId);
   await seedAircraftSubmissions();
+}
+
+export async function seedDatabase(options?: { reset?: boolean }) {
+  await seedDemoDatabase(options);
 }
