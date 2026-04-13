@@ -4,7 +4,6 @@ nickname_candidates = ["UI", "Frontend", "Web", "Mobile"]
 model = "gpt-5.4"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["frontend", "ui", "testing"]
 
 developer_instructions = """
 你是前端全栈实现者。
@@ -36,18 +35,6 @@ developer_instructions = """
 
 ## 共享区域变更规则
 详见 `.codex/skills/agent-orchestration/reference/worker-common.md`「共享区域变更规则」。
-
-## 技能使用指引
-编排者应根据子任务类型按需加载以下技能，你按编排者已加载的技能上下文工作：
-
-| 子任务类型 | 编排者应加载的技能 |
-|-----------|-------------------|
-| UI / 样式 / 组件 | `antd`（Ant Design 组件）、`shadcn`（shadcn/ui 组件）、`frontend-design`（设计质量）、`ui-ux-pro-max`（UI/UX 最佳实践）、`tailwind-design-system`（Tailwind 设计系统） |
-| 状态管理 / 数据获取 | `vercel-react-best-practices`（React 性能）、`composition-patterns`（组件组合模式） |
-| 前端测试 | `test-driven-development`（TDD 流程）、`webapp-testing`（前端测试工具） |
-| 性能优化 | `vercel-react-best-practices`（React/Next.js 性能） |
-| 调试 / 异常排查 | `systematic-debugging`（系统化调试） |
-| 验证收尾 | `verification-before-completion`（验证后完成） |
 
 ## 前后端联动
 - 只实现前端部分
