@@ -27,6 +27,10 @@ import {
   SheetTitle,
   SheetTrigger
 } from "@/components/ui/sheet";
+import {
+  buildSearchLocation,
+  shouldShowCompactSearchBar
+} from "@/lib/search-navigation";
 import { cn } from "@/lib/utils";
 import { WEB_ROUTE_PATHS } from "@/lib/web-routes";
 import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
@@ -230,6 +234,7 @@ export function WebLayout() {
     shouldFetchNotifications(authStatus, isAuthBootstrapped)
   );
   const unreadNotifications = notificationsQuery.data?.unreadCount ?? 0;
+  const showCompactSearchBar = shouldShowCompactSearchBar(location.pathname);
 
   useEffect(() => {
     return () => {
@@ -292,12 +297,7 @@ export function WebLayout() {
   }
 
   function submitSearch(rawValue: string) {
-    const trimmed = rawValue.trim();
-    const search = trimmed.length > 0 ? `?q=${encodeURIComponent(trimmed)}` : "";
-    void navigate({
-      pathname: APP_ROUTES.search,
-      search
-    });
+    void navigate(buildSearchLocation(rawValue));
   }
 
   return (
@@ -383,9 +383,47 @@ export function WebLayout() {
               </SheetContent>
             </Sheet>
 
-            <Link className="min-w-0 rounded-lg outline-offset-2 focus-visible:ring-2 focus-visible:ring-primary/25" to={APP_ROUTES.feedHome}>
-              <ShellBrand />
-            </Link>
+            {showCompactSearchBar ? (
+              <>
+                <form
+                  className="relative min-w-0 flex-1 xl:hidden"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    submitSearch(searchValue);
+                  }}
+                >
+                  <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground/80" />
+                  <Input
+                    aria-label="全文搜索"
+                    className="h-9 rounded-[var(--radius-control)] border-border/50 bg-card/75 pl-9 text-[0.8rem] shadow-none placeholder:text-muted-foreground/65"
+                    onChange={(event) => {
+                      setSearchValue(event.target.value);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter") {
+                        event.preventDefault();
+                        submitSearch(searchValue);
+                      }
+                    }}
+                    placeholder="搜索站内内容..."
+                    value={searchValue}
+                  />
+                </form>
+                <Link
+                  className="hidden min-w-0 rounded-lg outline-offset-2 focus-visible:ring-2 focus-visible:ring-primary/25 xl:block"
+                  to={APP_ROUTES.feedHome}
+                >
+                  <ShellBrand />
+                </Link>
+              </>
+            ) : (
+              <Link
+                className="min-w-0 rounded-lg outline-offset-2 focus-visible:ring-2 focus-visible:ring-primary/25"
+                to={APP_ROUTES.feedHome}
+              >
+                <ShellBrand />
+              </Link>
+            )}
           </div>
 
           <div className="hidden min-w-0 flex-1 justify-center px-2 xl:flex">
@@ -418,19 +456,25 @@ export function WebLayout() {
           </div>
 
           <div className="flex shrink-0 items-center gap-1.5 sm:gap-2">
-            <Button
-              className="text-muted-foreground hover:bg-accent/60 hover:text-foreground xl:hidden"
-              onClick={() => {
-                submitSearch(searchValue);
-              }}
-              size="icon"
-              type="button"
-              variant="ghost"
+            {showCompactSearchBar ? null : (
+              <Button
+                className="text-muted-foreground hover:bg-accent/60 hover:text-foreground xl:hidden"
+                onClick={() => {
+                  submitSearch(searchValue);
+                }}
+                size="icon"
+                type="button"
+                variant="ghost"
+              >
+                <SearchIcon className="size-4.5" />
+                <span className="sr-only">打开全文搜索</span>
+              </Button>
+            )}
+            <div
+              className={cn("relative", showCompactSearchBar && "hidden sm:block")}
+              onMouseEnter={openPublishMenu}
+              onMouseLeave={scheduleClosePublishMenu}
             >
-              <SearchIcon className="size-4.5" />
-              <span className="sr-only">打开全文搜索</span>
-            </Button>
-            <div className="relative" onMouseEnter={openPublishMenu} onMouseLeave={scheduleClosePublishMenu}>
               <Button
                 className="h-9 min-w-[4.75rem] justify-center rounded-full px-3.5 text-[0.8rem] font-semibold sm:min-w-[5.25rem]"
                 onClick={() => {
