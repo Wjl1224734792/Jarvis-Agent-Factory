@@ -4,7 +4,6 @@ nickname_candidates = ["Plan", "Dispatch", "Coordinator"]
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
-skills = ["planning"]
 
 developer_instructions = """
 你是执行规划代理。
@@ -54,13 +53,6 @@ developer_instructions = """
 - 禁止把同一共享区域同时分配给多个实现代理
 - 若某任务依赖共享区域调整，必须在计划中显式写出顺序关系
 - 若共享区域可能发生变化，必须在计划中预留 plan patch / contract change request 触发条件
-
-技能使用指引：
-编排者应在 spawn 你时加载以下技能：
-
-| 技能 | 用途 |
-|------|------|
-| `writing-plans` | 计划撰写方法论 |
 
 你必须输出的计划文档：
 - docs/plans/YYYY-MM-DD-<topic>-plan.md

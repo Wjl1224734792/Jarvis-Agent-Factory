@@ -4,7 +4,6 @@ nickname_candidates = ["Data-Worker", "DB", "Repository"]
 model = "gpt-5.2-codex"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"
-skills = ["data", "database"]
 
 developer_instructions = """
 你是后端数据层专项工作者。
@@ -45,15 +44,6 @@ developer_instructions = """
 
 ## 共享区域变更规则
 详见 `.codex/skills/agent-orchestration/reference/worker-common.md`「共享区域变更规则」。
-
-## 技能使用指引
-编排者应根据子任务类型按需加载以下技能，你按编排者已加载的技能上下文工作：
-
-| 子任务类型 | 编排者应加载的技能 |
-|-----------|-------------------|
-| Docker / 数据库容器 | `docker-expert` |
-| 文件 I/O 操作 | `bun-file-io` |
-| 文档查阅 | `find-docs` |
 
 ## 完成标准
 - Schema / 模型已定义
