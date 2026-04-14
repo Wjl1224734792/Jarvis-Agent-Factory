@@ -96,6 +96,24 @@ export async function readFirstPostPath(page: Page) {
   return `/posts/${payload.items[0]?.id ?? ""}`;
 }
 
+export async function readAnotherUserProfilePath(page: Page) {
+  const mePayload = await fetchJson<{ user: { id: string } | null }>(
+    page.context().request,
+    "/auth/me"
+  );
+  const payload = await fetchJson<{ items: Array<{ author?: { id: string } }> }>(
+    page.context().request,
+    "/home/feed"
+  );
+  const currentUserId = mePayload.user?.id ?? null;
+  const authorId =
+    payload.items.map((item) => item.author?.id).find((id) => id && id !== currentUserId) ??
+    payload.items[0]?.author?.id;
+
+  expect(authorId).toBeTruthy();
+  return `/users/${authorId ?? ""}`;
+}
+
 export async function readFirstModelPath(page: Page) {
   const payload = await fetchJson<{ items: Array<{ slug: string }> }>(page.context().request, "/models?limit=1");
   expect(payload.items.length).toBeGreaterThan(0);
@@ -123,7 +141,17 @@ export async function readFirstRatingTargetPath(page: Page) {
   return `/rating-targets/${payload.item.items[0]?.id ?? ""}?ranking=${rankingId}`;
 }
 
-export async function expectImmersiveShell(page: Page) {
+export async function expectLegacyImmersiveShell(page: Page) {
   await expect(page.getByRole("button", { name: "发布" })).toHaveCount(0);
   await expect(page.getByText("飞友与飞行器社区")).toHaveCount(0);
+}
+export async function expectImmersiveShell(page: Page) {
+  await expect(page.locator("header")).toBeVisible();
+  await expect(page.locator("header input")).toBeVisible();
+}
+
+export async function expectPublishShellTopNav(page: Page) {
+  await expect(page.locator("header")).toBeVisible();
+  await expect(page.locator("header input")).toHaveCount(0);
+  await expect(page.locator('header a[href="/me"]').first()).toBeVisible();
 }

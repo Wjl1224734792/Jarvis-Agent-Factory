@@ -1,6 +1,8 @@
 import { expect, test } from "playwright/test";
 import {
   expectImmersiveShell,
+  expectPublishShellTopNav,
+  readAnotherUserProfilePath,
   readFirstModelPath,
   readFirstPostPath,
   readFirstRankingPath,
@@ -46,23 +48,35 @@ test.describe("登录后核心创作冒烟", () => {
 
   test("登录后核心创作页都能打开", async ({ page }) => {
     await page.goto("/publish/article");
+    await expectPublishShellTopNav(page);
     await expect(page.getByRole("heading", { name: "发布文章" })).toBeVisible();
     await expect(page.getByRole("button", { name: "提交文章" })).toBeVisible();
 
     await page.goto("/publish/moment");
+    await expectPublishShellTopNav(page);
     await expect(page.getByRole("heading", { name: "发布动态" })).toBeVisible();
     await expect(page.getByRole("button", { name: "提交动态" })).toBeVisible();
 
     await page.goto("/publish/aircraft");
+    await expectPublishShellTopNav(page);
     await expect(page.getByRole("heading", { name: "发布飞行器" })).toBeVisible();
     await expect(page.getByRole("button", { name: "提交审核" })).toBeVisible();
 
     await page.goto("/publish/brand");
+    await expectPublishShellTopNav(page);
     await expect(page.getByRole("heading", { name: "申请品牌" })).toBeVisible();
     await expect(page.getByRole("button", { name: "提交品牌申请" })).toBeVisible();
 
     await page.goto("/rankings/create");
+    await expectPublishShellTopNav(page);
     await expect(page.getByRole("heading", { name: "创建榜单" })).toBeVisible();
     await expect(page.getByRole("button", { name: "发布榜单" })).toBeVisible();
+  });
+
+  test("authenticated user keeps self profile entry visible on another profile page", async ({ page }) => {
+    await page.goto(await readAnotherUserProfilePath(page));
+
+    await expect(page.locator("header input")).toBeVisible();
+    await expect(page.locator('header a[href="/me"]').first()).toBeVisible();
   });
 });
