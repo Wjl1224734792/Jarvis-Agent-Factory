@@ -4,6 +4,7 @@ import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { RANKING_GRID_CLASS_NAME, RankingCardGridSkeleton } from "@/components/page-skeletons";
+import { VirtualGrid } from "@/components/virtual-feed";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
@@ -171,11 +172,14 @@ export function RankingsPage() {
       {isRankingsLoading ? (
         <RankingCardGridSkeleton count={6} />
       ) : (
-        <div className={RANKING_GRID_CLASS_NAME}>
-          {activeItems.map((ranking) => (
-            <RankingCard key={ranking.id} ranking={ranking} />
-          ))}
-        </div>
+        <VirtualGrid
+          className="w-full"
+          data={activeItems}
+          itemClassName="min-w-0"
+          itemKey={(ranking) => ranking.id}
+          listClassName={RANKING_GRID_CLASS_NAME}
+          renderItem={(ranking) => <RankingCard ranking={ranking} />}
+        />
       )}
 
       {!isRankingsLoading && rankingsQuery.isSuccess && activeItems.length === 0 ? (

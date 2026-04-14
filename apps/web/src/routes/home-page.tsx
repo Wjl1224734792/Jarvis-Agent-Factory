@@ -3,19 +3,20 @@ import { APP_ROUTES } from "@feijia/shared";
 import { EyeIcon, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
+import { BrandIdentity } from "@/components/brand-identity";
+import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
-import { Skeleton } from "@/components/ui/skeleton";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
-import { cn } from "@/lib/utils";
-import { useAuthStore } from "../features/auth/auth-store";
+import { Skeleton } from "@/components/ui/skeleton";
+import { VirtualFeed } from "@/components/virtual-feed";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
-import { apiClient } from "../lib/api-client";
-import { BrandIdentity } from "@/components/brand-identity";
-import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { getEditorialImage } from "../lib/aviation-media";
+import { apiClient } from "../lib/api-client";
+import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
+import { cn } from "../lib/utils";
+import { useAuthStore } from "../features/auth/auth-store";
 import { mergeRankingsByTab } from "./rankings-page-helpers";
 
 const fixedTabs = [
@@ -23,6 +24,8 @@ const fixedTabs = [
   { id: "latest", label: "最新" },
   { id: "following", label: "关注" }
 ] as const;
+
+type HomeFeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -34,6 +37,54 @@ function formatCount(value: number) {
   }
 
   return String(value);
+}
+
+function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
+  return (
+    <article className="bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55">
+      <Link
+        className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
+        {...DETAIL_PAGE_LINK_PROPS}
+        to={APP_ROUTES.postDetail.replace(":id", item.id)}
+      >
+        <div className="overflow-hidden bg-slate-100">
+          <img
+            alt={item.title}
+            className="h-[96px] w-full object-cover"
+            src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
+          />
+        </div>
+
+        <div className="flex min-h-[96px] min-w-0 flex-col">
+          <div className="flex items-start gap-2">
+            <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
+              {item.title}
+            </h2>
+            {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+          </div>
+
+          <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
+            {item.contentPreview}
+          </p>
+
+          <div className="mt-auto flex items-center gap-3.5 pt-2.5 text-[0.76rem] text-foreground/68">
+            <span className="inline-flex items-center gap-1.5">
+              <HeartIcon className="size-3.5" />
+              {formatCount(item.engagement.likeCount)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <MessageCircleIcon className="size-3.5" />
+              {formatCount(item.commentCount)}
+            </span>
+            <span className="inline-flex items-center gap-1.5">
+              <EyeIcon className="size-3.5" />
+              {formatCount(item.viewCount)}
+            </span>
+          </div>
+        </div>
+      </Link>
+    </article>
+  );
 }
 
 export function HomePage() {
@@ -138,8 +189,8 @@ export function HomePage() {
           </div>
 
           <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
-            {feedQuery.isError ? (
-              <Alert variant="destructive">
+              {feedQuery.isError ? (
+                <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
                 <AlertDescription>{feedQuery.error.message}</AlertDescription>
               </Alert>
@@ -150,65 +201,25 @@ export function HomePage() {
                 <FeedStreamSkeleton rows={4} />
               </div>
             ) : (
-              <>
-                {feedItems.map((item, index) => (
-                  <article
-                    className="border-b border-border bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55 first:border-t last:border-b-0"
-                    key={item.id}
-                  >
-                    <Link
-                      className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
-                      {...DETAIL_PAGE_LINK_PROPS}
-                      to={APP_ROUTES.postDetail.replace(":id", item.id)}
-                    >
-                      <div className="overflow-hidden bg-slate-100">
-                        <img
-                          alt={item.title}
-                          className="h-[96px] w-full object-cover"
-                          src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
-                        />
-                      </div>
-
-                      <div className="flex min-h-[96px] min-w-0 flex-col">
-                        <div className="flex items-start gap-2">
-                          <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
-                            {item.title}
-                          </h2>
-                          {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
-                        </div>
-
-                        <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
-                          {item.contentPreview}
-                        </p>
-
-                        <div className="mt-auto flex items-center gap-3.5 pt-2.5 text-[0.76rem] text-foreground/68">
-                          <span className="inline-flex items-center gap-1.5">
-                            <HeartIcon className="size-3.5" />
-                            {formatCount(item.engagement.likeCount)}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <MessageCircleIcon className="size-3.5" />
-                            {formatCount(item.commentCount)}
-                          </span>
-                          <span className="inline-flex items-center gap-1.5">
-                            <EyeIcon className="size-3.5" />
-                            {formatCount(item.viewCount)}
-                          </span>
-                        </div>
-                      </div>
-                    </Link>
-                  </article>
-                ))}
-
-                {!feedQuery.isError && feedItems.length === 0 ? (
-                  <Alert className="rounded-none border-0 shadow-none">
-                    <AlertTitle>首页还没有公开内容</AlertTitle>
-                    <AlertDescription>
-                      {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
-                    </AlertDescription>
-                  </Alert>
-                ) : null}
-              </>
+              <VirtualFeed
+                className="border-t border-border !border-x-0 !border-b-0 bg-transparent"
+                data={feedItems}
+                emptyState={
+                  !feedQuery.isError ? (
+                    <Alert className="rounded-none border-0 shadow-none">
+                      <AlertTitle>首页还没有公开内容</AlertTitle>
+                      <AlertDescription>
+                        {isAuthenticated
+                          ? "你可以先发布一篇内容。"
+                          : "登录后可发布动态和文章。"}
+                      </AlertDescription>
+                    </Alert>
+                  ) : null
+                }
+                itemKey={(item) => item.id}
+                renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                useWindowScroll
+              />
             )}
 
             {isFeedRefreshing ? (

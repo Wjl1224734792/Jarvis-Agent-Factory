@@ -11,12 +11,13 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
-import { ModelsPageSkeleton } from "@/components/page-skeletons";
+import { MODEL_GRID_CLASS_NAME, ModelsPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { VirtualGrid } from "@/components/virtual-feed";
 import { apiClient } from "../lib/api-client";
 import { cn } from "../lib/utils";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
@@ -38,9 +39,6 @@ type WebBrand = Brand & { logoUrl?: string | null };
 type WebModelListItem = ModelListItem & {
   brand: ModelListItem["brand"] & { logoUrl?: string | null };
 };
-
-const MODEL_GRID_CLASS_NAME =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,11.5rem),1fr))] gap-x-3 gap-y-4";
 
 const powerTypeLabels: Record<PowerType, string> = {
   electric: "电动",
@@ -391,11 +389,14 @@ export function ModelsPage() {
           {modelsQuery.isSuccess ? (
             <div className="relative">
               {modelsQuery.data.items.length > 0 ? (
-                <div className={MODEL_GRID_CLASS_NAME}>
-                  {modelsQuery.data.items.map((model, index) => (
-                    <ModelCard index={index} key={model.id} model={model as WebModelListItem} />
-                  ))}
-                </div>
+                <VirtualGrid
+                  className="w-full"
+                  data={modelsQuery.data.items as WebModelListItem[]}
+                  itemClassName="min-w-0"
+                  itemKey={(model) => model.id}
+                  listClassName={MODEL_GRID_CLASS_NAME}
+                  renderItem={(model, index) => <ModelCard index={index} model={model} />}
+                />
               ) : (
                 <div className="bg-white px-5 py-8">
                   <div className="text-base font-semibold text-foreground">没有匹配机型</div>
