@@ -2,6 +2,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import {
   CloudUploadOutlined,
   CommentOutlined,
+  DatabaseOutlined,
   FileSearchOutlined,
   FlagOutlined,
   GatewayOutlined,
@@ -73,6 +74,11 @@ const AdminPasswordPage = lazy(() =>
 const AdminSearchPage = lazy(() =>
   import("./features/search/admin-search-page").then((module) => ({
     default: module.AdminSearchPage
+  }))
+);
+const AdminLogsPage = lazy(() =>
+  import("./features/system/admin-logs-page").then((module) => ({
+    default: module.AdminLogsPage
   }))
 );
 const BrandApplicationsPage = lazy(() =>
@@ -176,6 +182,10 @@ const router = createBrowserRouter([
         element: withAdminRouteFallback(<AdminOverviewPage />)
       },
       {
+        path: ADMIN_ROUTE_PATHS.logs.slice("/admin/".length),
+        element: withAdminRouteFallback(<AdminLogsPage />)
+      },
+      {
         path: ADMIN_ROUTE_PATHS.search.slice("/admin/".length),
         element: withAdminRouteFallback(<AdminSearchPage />)
       },
@@ -274,6 +284,12 @@ const router = createBrowserRouter([
           <AdminSectionHubPage
             description="品牌库、机型库和分类配置放到同一层，便于资料维护。"
             items={[
+              {
+                title: "日志监控",
+                description: "查看日志分类、文件清单和最近日志行。",
+                to: ADMIN_ROUTE_PATHS.logs,
+                icon: <DatabaseOutlined />
+              },
               {
                 title: "品牌库",
                 description: "品牌资料维护，不再显示和一级分类强绑定。",

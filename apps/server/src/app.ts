@@ -4,6 +4,7 @@ import { Hono } from 'hono';
 import { cors } from 'hono/cors';
 
 import { adminAnalyticsRoute } from './modules/admin-analytics/admin-analytics.route';
+import { adminLogsRoute } from './modules/admin-logs/admin-logs.route';
 import { adminReportsRoute } from './modules/admin-reports/admin-reports.route';
 import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.route';
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
@@ -92,7 +93,8 @@ app.use(
 );
 
 const shouldLogHttp =
-  process.env.NODE_ENV !== 'production' && process.env.NODE_ENV !== 'test';
+  process.env.NODE_ENV !== 'test' &&
+  parseBooleanEnv(process.env.LOG_HTTP_ENABLED) !== false;
 
 if (shouldLogHttp) {
   app.use('*', async (c, next) => {
@@ -100,7 +102,7 @@ if (shouldLogHttp) {
     await next();
     // 仅在非生产输出简洁请求日志，方便本地排查接口耗时与状态码。
     const ms = Math.round(performance.now() - started);
-    logger.info(`${c.req.method} ${c.req.path}`, {
+    logger.request(`${c.req.method} ${c.req.path}`, {
       status: c.res.status,
       ms
     });
@@ -133,6 +135,7 @@ app.route('/', postsRoute);
 app.route('/', socialRoute);
 app.route('/', searchRoute);
 app.route('/', adminAnalyticsRoute);
+app.route('/', adminLogsRoute);
 app.route('/', adminReportsRoute);
 app.route('/', rankingsRoute);
 app.route('/', aircraftModelsRoute);

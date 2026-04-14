@@ -66,6 +66,11 @@ export const API_ROUTES = {
   admin: {
     siteSettings: "/admin/site-settings",
     analyticsOverview: "/admin/analytics/overview",
+    logsSummary: "/admin/logs/summary",
+    logsRead: "/admin/logs/read",
+    logsOverview: "/admin/logs/overview",
+    logsFiles: "/admin/logs/files",
+    logsEntries: "/admin/logs/entries",
     reports: "/admin/reports",
     reportDetail: (kind: string, id: string) => `/admin/reports/${kind}/${id}`
   },

@@ -244,6 +244,40 @@ bun run check
 - `OPENAPI_ENABLED=false`：显式关闭
 - 未配置时：非生产默认开启，生产默认关闭
 
+## 日志与监控
+
+服务端日志默认以文件作为主持久化介质。开发环境默认输出到控制台；生产环境默认写入 `apps/server/logs/*`（可通过 `LOG_DIR` 覆盖），并按分类输出：
+
+- `logs/app/app-YYYY-MM-DD.log`：通用业务日志
+- `logs/request/request-YYYY-MM-DD.log`：HTTP 请求日志
+- `logs/error/error-YYYY-MM-DD.log`：错误日志
+- `logs/security/security-YYYY-MM-DD.log`：安全审计日志（如后台日志查看操作）
+
+推荐做法：
+
+- 生产环境把 `LOG_DIR` 挂载到持久卷或宿主机目录
+- Admin 后台直接读取文件日志做实时查看
+- 对象存储只用于后续归档，不作为实时日志主存
+- 业务数据库不存原始运行日志
+
+日志相关环境变量：
+
+- `LOG_MODE`：`auto` / `console` / `file` / `both`，默认 `auto`（开发走控制台，生产走文件）
+- `LOG_DIR`：日志目录，默认 `logs`
+- `LOG_LEVEL`：`DEBUG` / `INFO` / `WARN` / `ERROR`
+- `LOG_HTTP_ENABLED`：是否记录 HTTP 请求日志，默认 `true`
+- `LOG_MAX_READ_LINES`：后台日志 API 单次读取最大行数，默认 `200`
+
+后台日志监控入口：
+
+- Admin 页面：`/admin/logs`
+
+后台日志监控 API（仅管理员可访问）：
+
+- `GET /admin/logs/overview`
+- `GET /admin/logs/files?category=app|request|error|security`
+- `GET /admin/logs/entries?category=...&fileName=...&limit=...`
+
 ## 测试账号与数据说明
 
 基础 / demo 数据导入后可使用：

@@ -23,6 +23,20 @@
 - 未配置时：非生产默认开启，生产默认关闭
 - 生产相关改动不要默认暴露文档
 
+## 日志配置
+
+- 日志实现位于 `src/lib/logger.ts`，支持 `app/request/error/security` 分类。
+- 涉及日志行为或日志监控 API 的改动时，同步检查：
+  - `.env.example`
+  - 根 `README.md`
+- 相关环境变量：
+  - `LOG_MODE`（`auto|console|file|both`）
+  - `LOG_DIR`
+  - `LOG_LEVEL`（`DEBUG|INFO|WARN|ERROR`）
+  - `LOG_HTTP_ENABLED`
+  - `LOG_MAX_READ_LINES`
+- 生产环境日志持久化优先使用文件目录挂载；原始运行日志不要写入业务数据库，对象存储只适合后续归档，不作为实时日志主存。
+
 ## 上传限制
 
 - 上传大小限制由以下环境变量控制：

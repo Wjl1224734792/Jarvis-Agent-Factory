@@ -65,6 +65,11 @@ import {
   createRatingTargetCommentResponseSchema,
   currentUserProfileResponseSchema,
   adminAnalyticsOverviewResponseSchema,
+  adminLogEntriesQuerySchema,
+  adminLogEntriesResponseSchema,
+  adminLogFilesQuerySchema,
+  adminLogFilesResponseSchema,
+  adminLogsOverviewResponseSchema,
   currentUserResponseSchema,
   errorResponseSchema,
   feedTabSchema,
@@ -219,6 +224,8 @@ type PhoneChangeConfirmInput = Parameters<typeof phoneChangeConfirmInputSchema.p
 type UpdateSiteSettingsInput = Parameters<typeof updateSiteSettingsInputSchema.parse>[0];
 type InitUploadInput = Parameters<typeof initUploadInputSchema.parse>[0];
 type SearchQueryInput = Parameters<typeof searchQuerySchema.parse>[0];
+type AdminLogFilesQueryInput = Parameters<typeof adminLogFilesQuerySchema.parse>[0];
+type AdminLogEntriesQueryInput = Parameters<typeof adminLogEntriesQuerySchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -384,6 +391,29 @@ function buildSearchQueryString(input: SearchQueryInput): string {
   const search = new URLSearchParams();
   search.set("q", query.q);
   search.set("limit", String(query.limit));
+  return `?${search.toString()}`;
+}
+
+function buildAdminLogFilesQueryString(input: AdminLogFilesQueryInput): string {
+  const query = adminLogFilesQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  search.set("category", query.category);
+  search.set("limit", String(query.limit));
+  return `?${search.toString()}`;
+}
+
+function buildAdminLogEntriesQueryString(input: AdminLogEntriesQueryInput): string {
+  const query = adminLogEntriesQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  search.set("category", query.category);
+  search.set("fileName", query.fileName);
+  search.set("limit", String(query.limit));
+  if (query.level) {
+    search.set("level", query.level);
+  }
+  if (query.search) {
+    search.set("search", query.search);
+  }
   return `?${search.toString()}`;
 }
 
@@ -1256,6 +1286,36 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminAnalyticsOverviewResponseSchema);
+    },
+    async getAdminLogsOverview() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.logsOverview}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminLogsOverviewResponseSchema);
+    },
+    async listAdminLogFiles(input: AdminLogFilesQueryInput) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.admin.logsFiles}${buildAdminLogFilesQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, adminLogFilesResponseSchema);
+    },
+    async getAdminLogEntries(input: AdminLogEntriesQueryInput) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.admin.logsEntries}${buildAdminLogEntriesQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, adminLogEntriesResponseSchema);
     },
     async searchSite(input: SearchQueryInput) {
       const response = await fetch(`${baseUrl}${API_ROUTES.search.site}${buildSearchQueryString(input)}`, {

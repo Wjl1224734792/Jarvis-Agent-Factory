@@ -12,3 +12,4 @@ export * from "./reports";
 export * from "./social";
 export * from "./site-settings";
 export * from "./search";
+export * from "./admin-logs";

@@ -6,6 +6,7 @@ import {
   ClusterOutlined,
   CloudUploadOutlined,
   CommentOutlined,
+  DatabaseOutlined,
   FileSearchOutlined,
   FlagOutlined,
   GatewayOutlined,
@@ -37,6 +38,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     hint: "增长、活跃、待处理与近期开启的全局视图",
     icon: RadarChartOutlined,
     end: true
+  },
+  {
+    group: "数据总览",
+    to: ADMIN_ROUTE_PATHS.logs,
+    label: "日志监控",
+    hint: "查看服务端日志分类、文件和最近日志行",
+    icon: DatabaseOutlined,
+    end: false
   },
   {
     group: "审核",
@@ -203,6 +212,9 @@ export function isAdminNavItemActive(pathname: string, item: AdminNavItem) {
 function normalizeAdminPath(pathname: string) {
   if (pathname === APP_ROUTES.adminHome) {
     return ADMIN_ROUTE_PATHS.overview;
+  }
+  if (pathname.startsWith(ADMIN_ROUTE_PATHS.logs)) {
+    return ADMIN_ROUTE_PATHS.logs;
   }
   if (pathname === APP_ROUTES.adminPosts) {
     return ADMIN_ROUTE_PATHS.moderationArticles;

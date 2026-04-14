@@ -259,6 +259,15 @@ const rawApiClient = {
   getAdminAnalyticsOverview() {
     return sharedClient.getAdminAnalyticsOverview();
   },
+  getAdminLogsOverview() {
+    return sharedClient.getAdminLogsOverview();
+  },
+  listAdminLogFiles(input: Parameters<typeof sharedClient.listAdminLogFiles>[0]) {
+    return sharedClient.listAdminLogFiles(input);
+  },
+  getAdminLogEntries(input: Parameters<typeof sharedClient.getAdminLogEntries>[0]) {
+    return sharedClient.getAdminLogEntries(input);
+  },
   listAdminContentCategories() {
     return sharedClient.listAdminContentCategories();
   },

@@ -12,6 +12,7 @@ describe("getActiveAdminNavItemPaths", () => {
     expect(getActiveAdminNavItemPaths(APP_ROUTES.adminPosts)).toEqual([
       ADMIN_ROUTE_PATHS.moderationArticles
     ]);
+    expect(getActiveAdminNavItemPaths(ADMIN_ROUTE_PATHS.logs)).toEqual([ADMIN_ROUTE_PATHS.logs]);
     expect(getActiveAdminNavItemPaths(`${APP_ROUTES.adminRankings}/new`)).toEqual([
       ADMIN_ROUTE_PATHS.operationsRankings
     ]);
