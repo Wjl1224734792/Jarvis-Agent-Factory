@@ -17,7 +17,8 @@
     "seed:demo": "bun run ./src/seed.demo.cli.ts",
     "seed:mock": "bun run ./src/seed.mock.cli.ts",
     "seed:test-data": "bun run ./src/seed.mock.cli.ts",
-    "clear": "bun run ./src/clear.cli.ts"
+    "clear": "bun run ./src/clear.cli.ts",
+    "wipe-schema": "bun run ./src/wipe-schema.cli.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.901.0",

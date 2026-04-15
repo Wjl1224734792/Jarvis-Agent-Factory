@@ -1,21 +1,6 @@
 # 飞加
 
-飞加是一个基于 Bun Monorepo 的低空飞行内容与管理平台。当前仓库维护用户端 Web、管理端 Admin、服务端 API，以及共享配置、协议、数据库与 HTTP Client。
-
-## 当前维护范围
-
-- `apps/web`：用户端 Web
-- `apps/admin`：管理端
-- `apps/server`：Bun + Hono API
-- `packages/*`：共享配置、协议、常量、数据库与请求客户端
-- `docker/*`：本地开发基础设施
-
-说明：
-
-- 微信小程序与 App 不在本仓库开发。
-- 小程序建议独立使用 `Taro`。
-- App 建议独立使用 `Flutter`。
-- `apps/mobiles` 已删除，不再保留占位目录。
+Bun Monorepo：用户端 Web（`apps/web`）、管理端（`apps/admin`）、API（`apps/server`）、共享包（`packages/*`）、本地 Docker（`docker/*`）。小程序 / App 不在本仓库；`apps/mobiles` 已删除。
 
 ## 仓库结构
 
@@ -83,51 +68,11 @@ bun run dev:admin
 
 ## 数据环境分层
 
-仓库现在明确区分 3 类数据：
-
-### `base`
-
-用于部署 / 生产初始化，只包含最小可运行数据：
-
-- 管理员账号
-- 站点设置
-- 内容分类
-- 飞行器分类
-
-适用场景：
-
-- 新环境首次部署
-- 生产环境初始化
-- 预发布环境最小可运行引导
-
-### `demo`
-
-用于开发环境，在 `base` 之上追加演示内容：
-
-- 演示品牌与机型目录
-- 演示文章与动态
-- 演示榜单与排行对象
-- 互动、评论、通知、投稿等示例数据
-
-适用场景：
-
-- 本地开发联调
-- 产品演示
-- UI 联调
-
-### `mock`
-
-用于测试 / E2E / 压测的大规模 mock 数据：
-
-- 海量用户、帖子、评论、互动、榜单、投稿
-- Redis 测试缓存
-- MinIO 测试资源
-
-适用场景：
-
-- Playwright E2E
-- 测试环境联调
-- 压测与性能验证
+| 类型 | 含义 | 典型用途 |
+|------|------|----------|
+| `base` | 最小可运行（管理员、站点设置、分类等） | `setup:deploy`、`db:seed:base` |
+| `demo` | 在 base 上增加演示内容（机型、帖子、榜单等） | 本地开发、`db:seed` / `db:seed:demo` |
+| `mock` | 大规模测试数据（PostgreSQL + Redis + MinIO） | E2E、`db:seed:mock`、`setup:test` |
 
 ## 常用脚本
 
@@ -149,47 +94,39 @@ bun run infra:down
 
 ### 数据库与数据初始化
 
+根目录 `db:*` 与 `packages/db` 中脚本一一对应；`db:seed` 即执行 `packages/db` 的 `seed`（当前与 `seed:demo` 相同）。
+
 ```bash
 bun run db:generate
 bun run db:migrate
 bun run db:push
 
-bun run db:seed
-bun run db:seed:base
-bun run db:seed:demo
-bun run db:seed:mock
-bun run db:seed:dev
-bun run db:seed:prod
-bun run db:seed:test-data
+# 只灌数据（不删表）
+bun run db:seed              # 同 packages/db seed，当前 = demo
+bun run db:seed:base | demo | mock
+bun run db:seed:dev          # 同 db:seed
+bun run db:seed:prod         # 同 db:seed:base
+bun run db:seed:test-data    # 同 packages/db seed:test-data（= mock）
 
-bun run db:clear
+# 清数据或重建 schema
+bun run db:clear             # 截断业务表 + 清 Redis，保留表结构
+bun run db:wipe-schema       # 删并重建 public + 清 Redis（破坏性）
 
-bun run db:reset
-bun run db:reset:base
-bun run db:reset:demo
-bun run db:reset:mock
-bun run db:reset:dev
-bun run db:reset:test-data
+# 全量重建：wipe-schema → migrate → seed
+bun run db:reset             # 默认 = db:reset:demo
+bun run db:reset:base | demo | mock
+bun run db:reset:dev | test-data   # 别名见下
 
-bun run setup:deploy
-bun run setup:dev
-bun run setup:test
-bun run setup:test-data
+bun run setup:deploy         # migrate + seed:base，不启 Docker
+bun run setup:dev            # infra:up + db:reset:demo
+bun run setup:test           # infra:up + db:reset:mock（setup:test-data 同义）
 ```
 
-说明：
+要点：
 
-- `db:seed:base`：导入基础 seed，不清库。
-- `db:seed:demo`：导入开发演示数据，不清库。
-- `db:seed:mock`：导入 mock / test 数据，不清库。
-- `db:seed` 与 `db:seed:dev` 默认指向 `db:seed:demo`。
-- `db:seed:prod` 默认指向 `db:seed:base`。
-- `db:seed:test-data` 兼容旧叫法，等价于 `db:seed:mock`。
-- `db:reset:*` 都会先执行 `db:clear`，再迁移并导入对应数据，属于显式破坏性重建流程。
-- `setup:deploy` 不会启动本地基础设施，只做迁移和基础 seed 初始化。
-- `setup:dev` 会先执行 `infra:up`，再重建为 `demo` 数据环境。
-- `setup:test` 会先执行 `infra:up`，再重建为 `mock` 数据环境。
-- `setup:test-data` 兼容旧叫法，等价于 `setup:test`。
+- **只想清空数据**：用 `db:clear`。不要在「迁移记录与真实结构不一致」时指望单独再跑 `db:migrate` 自动修好。
+- **要干净库 + 迁移**：用 `db:reset:*`（或手动 `db:wipe-schema && db:migrate && db:seed:…`）。
+- **别名**：`db:reset:dev` = `db:reset:demo`；`db:reset:test-data` = `db:reset:mock`。
 
 ### 质量校验
 
@@ -204,14 +141,9 @@ bun run build
 bun run check
 ```
 
-说明：
-
-- `test:unit`：只运行 schemas / http-client / web / admin 的无状态单元测试。
-- `test:server`：只运行 server 侧测试。
-- `test`：顺序执行 `test:unit` 和 `test:server`，不再在总测试脚本里额外清库。
-- `test:e2e`：会先启动本地基础设施并重置为 `mock` 数据，再执行 Playwright。
-- `test:e2e:headed`：带界面执行 Playwright。
-- `test:e2e` 结束后数据库会停留在 `mock` 状态；若要回到开发演示环境，执行 `bun run db:reset:demo`。
+- `test` = `test:unit` + `test:server`。
+- `test:e2e`：先 `infra:up` 与 `db:reset:mock`，再 Playwright；结束后库为 `mock`，需 demo 可 `bun run db:reset:demo`。
+- `check` = lint + test + typecheck + build。
 
 ## 默认访问地址
 
@@ -255,37 +187,7 @@ Stop-Process -Id <PID> -Force
 
 ## 日志与监控
 
-服务端日志默认以文件作为主持久化介质。开发环境默认输出到控制台；生产环境默认写入 `apps/server/logs/*`（可通过 `LOG_DIR` 覆盖），并按分类输出：
-
-- `logs/app/app-YYYY-MM-DD.log`：通用业务日志
-- `logs/request/request-YYYY-MM-DD.log`：HTTP 请求日志
-- `logs/error/error-YYYY-MM-DD.log`：错误日志
-- `logs/security/security-YYYY-MM-DD.log`：安全审计日志（如后台日志查看操作）
-
-推荐做法：
-
-- 生产环境把 `LOG_DIR` 挂载到持久卷或宿主机目录
-- Admin 后台直接读取文件日志做实时查看
-- 对象存储只用于后续归档，不作为实时日志主存
-- 业务数据库不存原始运行日志
-
-日志相关环境变量：
-
-- `LOG_MODE`：`auto` / `console` / `file` / `both`，默认 `auto`（开发走控制台，生产走文件）
-- `LOG_DIR`：日志目录，默认 `logs`
-- `LOG_LEVEL`：`DEBUG` / `INFO` / `WARN` / `ERROR`
-- `LOG_HTTP_ENABLED`：是否记录 HTTP 请求日志，默认 `true`
-- `LOG_MAX_READ_LINES`：后台日志 API 单次读取最大行数，默认 `200`
-
-后台日志监控入口：
-
-- Admin 页面：`/admin/logs`
-
-后台日志监控 API（仅管理员可访问）：
-
-- `GET /admin/logs/overview`
-- `GET /admin/logs/files?category=app|request|error|security`
-- `GET /admin/logs/entries?category=...&fileName=...&limit=...`
+开发默认控制台；生产默认写入 `apps/server/logs/*`（`LOG_DIR` 可覆盖），分 `app` / `request` / `error` / `security`。环境变量：`LOG_MODE`、`LOG_DIR`、`LOG_LEVEL`、`LOG_HTTP_ENABLED`、`LOG_MAX_READ_LINES`。Admin：`/admin/logs`；API：`GET /admin/logs/overview|files|entries`（管理员）。
 
 ## 测试账号与数据说明
 

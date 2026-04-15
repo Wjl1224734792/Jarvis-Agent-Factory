@@ -35,9 +35,7 @@
   - `apps/server`
   - `apps/web`
   - `apps/admin`
-- 改数据库相关时，先检查：
-  - `packages/db`
-  - `apps/server`
+- 改数据库相关时，先检查 `packages/db`、`apps/server`，并阅读 [`README.md`](./README.md)「数据库与数据初始化」（`db:clear` 只清数据；`db:wipe-schema` 删并重建 `public`；`db:reset:*` = wipe → migrate → seed）。若改根目录 `db:*` 或 `packages/db` 脚本名/语义，同步更新该节 README。
 - 改环境变量时，必须同步更新：
   - [`.env.example`](./.env.example)
   - [`README.md`](./README.md)
