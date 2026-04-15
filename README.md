@@ -217,11 +217,20 @@ bun run check
 
 以下端口与 [`.env.example`](./.env.example) 中的默认值一致：
 
-- Web：`http://localhost:3000`
-- Admin：`http://localhost:3001`
-- Server：`http://localhost:3002`
+- Web：`http://localhost:17380`
+- Admin：`http://localhost:17381`
+- Server：`http://localhost:17382`
 - MinIO API：`http://localhost:9000`
 - MinIO Console：`http://localhost:9001`
+
+若启动 `dev:server` 时出现 `Failed to start server. Is port ... in use?`，说明 **SERVER_PORT**（默认与上表 Server 端口一致）已被占用：请先关闭其它正在运行的 `bun dev:server` 终端，或在 Windows 上查出并结束占用进程，例如：
+
+```powershell
+Get-NetTCPConnection -LocalPort 17382 | Select-Object OwningProcess
+Stop-Process -Id <PID> -Force
+```
+
+也可使用 `netstat -ano | findstr :17382` 查看最后一列 PID，再 `taskkill /PID <pid> /F`。
 
 ## CORS 与局域网访问
 

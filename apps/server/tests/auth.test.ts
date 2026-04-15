@@ -5,6 +5,10 @@ import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
+import {
+  readCaptchaAnswerForTests,
+  WEB_LOGIN_CAPTCHA_PLACEHOLDER
+} from "./captcha-test-helpers";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -86,13 +90,15 @@ async function loginWebUser(phone: string) {
     imageOrText: string;
   };
 
+  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
   const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
       captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText
+      captchaCode: captchaAnswer
     })
   });
   expect(smsResponse.status).toBe(200);
@@ -104,8 +110,8 @@ async function loginWebUser(phone: string) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText,
+      captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+      captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
       smsCode
     })
   });
@@ -122,13 +128,15 @@ async function requestCaptchaAndSms(phone: string) {
     imageOrText: string;
   };
 
+  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
   const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
       captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText
+      captchaCode: captchaAnswer
     })
   });
   expect(smsResponse.status).toBe(200);
@@ -137,7 +145,7 @@ async function requestCaptchaAndSms(phone: string) {
 
   return {
     challengeId: captchaPayload.challengeId,
-    captchaCode: captchaPayload.imageOrText,
+    captchaCode: captchaAnswer,
     smsCode
   };
 }
@@ -293,13 +301,15 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
     const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138000",
         captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
+        captchaCode: captchaAnswer
       })
     });
     expect(smsResponse.status).toBe(200);
@@ -311,8 +321,8 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138000",
-        captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText,
+        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: smsPayload.mockCode
       })
     });
@@ -374,13 +384,15 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const firstCaptchaAnswer = await readCaptchaAnswerForTests(firstCaptchaPayload.challengeId);
+
     const firstSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138151",
         captchaChallengeId: firstCaptchaPayload.challengeId,
-        captchaCode: firstCaptchaPayload.imageOrText
+        captchaCode: firstCaptchaAnswer
       })
     });
     expect(firstSmsResponse.status).toBe(200);
@@ -393,13 +405,15 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const secondCaptchaAnswer = await readCaptchaAnswerForTests(secondCaptchaPayload.challengeId);
+
     const secondSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138151",
         captchaChallengeId: secondCaptchaPayload.challengeId,
-        captchaCode: secondCaptchaPayload.imageOrText
+        captchaCode: secondCaptchaAnswer
       })
     });
 
@@ -418,13 +432,15 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
     const firstResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138166",
         captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
+        captchaCode: captchaAnswer
       })
     });
     expect(firstResponse.status).toBe(200);
@@ -437,13 +453,15 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const secondCaptchaAnswer = await readCaptchaAnswerForTests(secondCaptchaPayload.challengeId);
+
     const secondResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138166",
         captchaChallengeId: secondCaptchaPayload.challengeId,
-        captchaCode: secondCaptchaPayload.imageOrText
+        captchaCode: secondCaptchaAnswer
       })
     });
 
@@ -474,13 +492,14 @@ describe("auth flows", () => {
       challengeId: string;
       imageOrText: string;
     };
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
     const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138991",
         captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
+        captchaCode: captchaAnswer
       })
     });
     const smsPayload = (await smsResponse.json()) as { mockCode?: string };
@@ -490,8 +509,8 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138991",
-        captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText,
+        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode
       })
     });
@@ -509,13 +528,14 @@ describe("auth flows", () => {
       challengeId: string;
       imageOrText: string;
     };
+    const secondCaptchaAnswer = await readCaptchaAnswerForTests(secondCaptchaPayload.challengeId);
     const secondSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138992",
         captchaChallengeId: secondCaptchaPayload.challengeId,
-        captchaCode: secondCaptchaPayload.imageOrText
+        captchaCode: secondCaptchaAnswer
       })
     });
     const secondSmsPayload = (await secondSmsResponse.json()) as { mockCode?: string };
@@ -525,8 +545,8 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138992",
-        captchaChallengeId: secondCaptchaPayload.challengeId,
-        captchaCode: secondCaptchaPayload.imageOrText,
+        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: secondSmsCode
       })
     });
@@ -745,6 +765,8 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
     const requestResponse = await app.request(API_ROUTES.users.mePhoneChangeRequest, {
       method: "POST",
       headers: {
@@ -754,7 +776,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         phone: "13800138119",
         captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
+        captchaCode: captchaAnswer
       })
     });
     expect(requestResponse.status).toBe(200);
@@ -814,6 +836,8 @@ describe("auth flows", () => {
       imageOrText: string;
     };
 
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
     const requestResponse = await app.request(API_ROUTES.users.mePhoneChangeRequest, {
       method: "POST",
       headers: {
@@ -823,7 +847,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         phone: "13800138039",
         captchaChallengeId: captchaPayload.challengeId,
-        captchaCode: captchaPayload.imageOrText
+        captchaCode: captchaAnswer
       })
     });
     expect(requestResponse.status).toBe(409);
@@ -850,13 +874,14 @@ describe("auth flows", () => {
       challengeId: string;
       imageOrText: string;
     };
+    const userCaptchaAnswer = await readCaptchaAnswerForTests(userCaptcha.challengeId);
     const userSmsResponse = await app.request(API_ROUTES.auth.smsRequest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138001",
         captchaChallengeId: userCaptcha.challengeId,
-        captchaCode: userCaptcha.imageOrText
+        captchaCode: userCaptchaAnswer
       })
     });
     const userSms = (await userSmsResponse.json()) as { mockCode?: string };
@@ -866,8 +891,8 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138001",
-        captchaChallengeId: userCaptcha.challengeId,
-        captchaCode: userCaptcha.imageOrText,
+        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: userSmsCode
       })
     });

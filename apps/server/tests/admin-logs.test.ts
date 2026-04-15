@@ -36,7 +36,7 @@ beforeEach(() => {
   process.env.LOG_MAX_READ_LINES = "50";
 
   writeLog("app", "app-2026-04-14.log", [
-    '2026-04-14T10:00:00.000Z [INFO] [app] server started {"port":3002}'
+    '2026-04-14T10:00:00.000Z [INFO] [app] server started {"port":17382}'
   ]);
   writeLog("request", "request-2026-04-14.log", [
     '2026-04-14T10:01:00.000Z [INFO] [request] GET /admin/logs {"status":200,"ms":12}',

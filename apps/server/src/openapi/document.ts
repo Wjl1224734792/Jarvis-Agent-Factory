@@ -564,6 +564,8 @@ export const openApiDocument = {
       post: {
         tags: ['auth'],
         summary: '申请图形验证码挑战',
+        description:
+          '返回 challengeId 与 imageOrText（SVG 标记字符串，用于前端展示）。答案仅服务端保存，请用户识别后配合短信接口提交 captchaCode。',
         responses: {
           '200': jsonResponse('CaptchaChallengeResponse', '验证码挑战已生成。')
         }

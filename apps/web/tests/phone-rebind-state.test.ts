@@ -13,20 +13,8 @@ describe("phone rebind helpers", () => {
   });
 
   it("validates when a phone rebind sms can be requested", () => {
-    expect(
-      canRequestPhoneRebind({
-        nextPhone: "13800138123",
-        captchaChallengeId: "captcha_1",
-        captchaCode: "ABCD"
-      })
-    ).toBe(true);
-    expect(
-      canRequestPhoneRebind({
-        nextPhone: "123",
-        captchaChallengeId: "captcha_1",
-        captchaCode: "ABCD"
-      })
-    ).toBe(false);
+    expect(canRequestPhoneRebind({ nextPhone: "13800138123" })).toBe(true);
+    expect(canRequestPhoneRebind({ nextPhone: "123" })).toBe(false);
   });
 
   it("validates when a phone rebind can be confirmed", () => {

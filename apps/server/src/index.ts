@@ -12,12 +12,16 @@ const port = Number(
 
 await ensureRedisConnected();
 
-serve({
-  fetch: app.fetch,
-  port
-});
-
-logger.info(`${APP_NAME} server running at http://localhost:${port}`);
-logger.info(
-  `${APP_NAME} api docs available at http://localhost:${port}${API_DOCS_PATH}`
+serve(
+  {
+    fetch: app.fetch,
+    port
+  },
+  (info) => {
+    const listenPort = info.port;
+    logger.info(`${APP_NAME} server running at http://localhost:${listenPort}`);
+    logger.info(
+      `${APP_NAME} api docs available at http://localhost:${listenPort}${API_DOCS_PATH}`
+    );
+  }
 );

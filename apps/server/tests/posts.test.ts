@@ -14,6 +14,10 @@ import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/module
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
+import {
+  readCaptchaAnswerForTests,
+  WEB_LOGIN_CAPTCHA_PLACEHOLDER
+} from "./captcha-test-helpers";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -75,13 +79,15 @@ async function loginWebUser(phone: string) {
     imageOrText: string;
   };
 
+  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
   const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
       captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText
+      captchaCode: captchaAnswer
     })
   });
   expect(smsResponse.status).toBe(200);
@@ -93,8 +99,8 @@ async function loginWebUser(phone: string) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText,
+      captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+      captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
       smsCode
     })
   });

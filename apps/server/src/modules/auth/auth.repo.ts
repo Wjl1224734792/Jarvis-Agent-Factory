@@ -12,7 +12,16 @@ import {
 import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
 import { and, desc, eq, isNull } from "drizzle-orm";
+import svgCaptcha from "@zhennann/svg-captcha";
+import { createRequire } from "node:module";
+import { dirname, join } from "node:path";
 import { randomInt } from "node:crypto";
+
+const require = createRequire(import.meta.url);
+const svgCaptchaPackageRoot = dirname(
+  require.resolve("@zhennann/svg-captcha/package.json")
+);
+svgCaptcha.loadFont(join(svgCaptchaPackageRoot, "fonts", "Comismsh.ttf"));
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import type { UserRecord } from "../users/users.schema";
 import { ensureRedisConnected, redis } from "./redis-client";
@@ -125,14 +134,26 @@ export const authRepo = {
   },
   async createCaptchaChallenge() {
     await ensureRedisConnected();
-    // 使用密码学安全的随机数生成验证码
-    const code = randomInt(0, 10000).toString().padStart(4, "0").toUpperCase();
+    const { data: svg, text } = svgCaptcha.create({
+      size: 4,
+      ignoreChars: "0oO1iIl",
+      noise: 2,
+      color: true,
+      width: 150,
+      height: 44
+    });
+    const code = text;
     const challengeId = createId("captcha");
     const record = { challengeId, code };
     await redis.set(`captcha:${challengeId}`, JSON.stringify(record), {
       EX: CAPTCHA_TTL_S
     });
-    return { ...record, expiresAt: now() + CAPTCHA_TTL_S * 1000 };
+    return {
+      challengeId,
+      code,
+      svg,
+      expiresAt: now() + CAPTCHA_TTL_S * 1000
+    };
   },
   async validateCaptcha(challengeId: string, code: string) {
     await ensureRedisConnected();

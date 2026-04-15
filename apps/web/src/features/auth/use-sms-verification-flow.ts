@@ -108,10 +108,15 @@ export function useSmsVerificationFlow() {
       setSmsCode("");
       setCooldownSeconds(input.cooldownSeconds ?? 60);
       input.onSuccess?.(response);
-      // 不再自动刷新验证码，有效期内可重复发送
+      // 图形挑战为一次性消费，清空以便下次打开发送弹窗时重新拉取
+      setChallenge(null);
+      setCaptchaCode("");
       return response;
     } catch (error: unknown) {
       input.onError(error instanceof Error ? error.message : input.errorFallback);
+      // 服务端校验图形码为一次性 getDel，失败也需重新拉取挑战
+      setChallenge(null);
+      setCaptchaCode("");
       return null;
     } finally {
       setIsSendingSms(false);

@@ -137,7 +137,7 @@ export const authService = {
     const captcha = await authRepo.createCaptchaChallenge();
     return {
       challengeId: captcha.challengeId,
-      imageOrText: captcha.code,
+      imageOrText: captcha.svg,
       expiresInSeconds: 300
     };
   },

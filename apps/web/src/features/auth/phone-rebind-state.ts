@@ -12,16 +12,9 @@ export function resolveMaskedPhone(phone: string | null | undefined, phoneMasked
   return "未绑定手机号";
 }
 
-export function canRequestPhoneRebind(input: {
-  nextPhone: string;
-  captchaChallengeId: string | null;
-  captchaCode: string;
-}) {
-  return (
-    MAINLAND_PHONE_PATTERN.test(input.nextPhone.trim()) &&
-    Boolean(input.captchaChallengeId) &&
-    input.captchaCode.trim().length >= 4
-  );
+/** 仅校验新手机号格式；图形验证在发送短信前的弹窗内完成 */
+export function canRequestPhoneRebind(input: { nextPhone: string }) {
+  return MAINLAND_PHONE_PATTERN.test(input.nextPhone.trim());
 }
 
 export function canConfirmPhoneRebind(input: {

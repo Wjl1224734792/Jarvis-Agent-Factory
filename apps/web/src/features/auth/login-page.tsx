@@ -2,9 +2,9 @@
 import { ApiClientError } from "@feijia/http-client";
 import { resolveSafeRedirectPath } from "@feijia/shared";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { AuthCaptchaChallenge } from "@/components/auth-captcha-challenge";
+import { SendSmsCaptchaDialog } from "./send-sms-captcha-dialog";
 import {
   SitePageDescription,
   SitePageEyebrow,
@@ -57,14 +57,13 @@ export function LoginPage() {
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [isCompletingProfile, setIsCompletingProfile] = useState(false);
   const smsFlow = useSmsVerificationFlow();
+  const [isSmsCaptchaOpen, setIsSmsCaptchaOpen] = useState(false);
 
-  useEffect(() => {
-    void smsFlow.refreshCaptcha({
-      onError: setSubmitError,
-      errorFallback: "图形验证码初始化失败"
-    });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  /** 登录接口仍要求图形验证码字段，但服务端登录流程不校验；短信已单独完成图形验证 */
+  const webLoginCaptchaPlaceholder = {
+    captchaChallengeId: "web-login",
+    captchaCode: "0000"
+  } as const;
 
   const redirectTo = resolveSafeRedirectPath({
     candidate: searchParams.get("redirect"),
@@ -87,7 +86,10 @@ export function LoginPage() {
           ? "短信验证码已生成，请在开发工具网络面板查看。"
           : "短信验证码已发送。",
       onError: setSubmitError,
-      errorFallback: "短信验证码发送失败"
+      errorFallback: "短信验证码发送失败",
+      onSuccess: () => {
+        setIsSmsCaptchaOpen(false);
+      }
     });
   }
 
@@ -144,38 +146,6 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px] sm:items-start">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground" htmlFor="login-captcha">
-                    图形验证码
-                  </label>
-                  <Input
-                    className="h-12"
-                    id="login-captcha"
-                    onChange={event => {
-                      smsFlow.setCaptchaCode(event.target.value.toUpperCase());
-                    }}
-                    placeholder="请输入图形验证码"
-                    value={smsFlow.captchaCode}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-muted-foreground">验证码</div>
-                  <AuthCaptchaChallenge
-                    code={smsFlow.challenge?.imageOrText ?? "----"}
-                    hintClassName="text-left"
-                    onRefresh={() => {
-                      setSubmitError(null);
-                      void smsFlow.refreshCaptcha({
-                        onError: setSubmitError,
-                        errorFallback: "刷新验证码失败"
-                      });
-                    }}
-                  />
-                </div>
-              </div>
-
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px] sm:items-end">
                 <div className="space-y-3">
                   <label className="text-sm font-medium text-muted-foreground" htmlFor="login-sms">
@@ -196,15 +166,10 @@ export function LoginPage() {
                   <div className="text-sm font-medium text-transparent">操作</div>
                   <Button
                     className="h-12 w-full"
-                    disabled={
-                      !smsFlow.challenge ||
-                      smsFlow.isSendingSms ||
-                      smsFlow.cooldownSeconds > 0 ||
-                      smsFlow.isCaptchaExpired ||
-                      smsFlow.captchaCode.trim().length < 4
-                    }
+                    disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
                     onClick={() => {
-                      void requestLoginSmsCode();
+                      setSubmitError(null);
+                      setIsSmsCaptchaOpen(true);
                     }}
                     type="button"
                     variant="panel"
@@ -218,9 +183,6 @@ export function LoginPage() {
                           ? "重新获取验证码"
                           : "获取验证码"}
                   </Button>
-                  {smsFlow.isCaptchaExpired ? (
-                    <div className="text-xs text-destructive">图形验证码已过期，请刷新后重试</div>
-                  ) : null}
                 </div>
               </div>
 
@@ -241,20 +203,16 @@ export function LoginPage() {
               <div className="flex flex-col gap-3">
                 <Button
                   className="w-full"
-                  disabled={!smsFlow.challenge || isSubmitting}
+                  disabled={isSubmitting}
                   onClick={() => {
-                    if (!smsFlow.challenge) {
-                      return;
-                    }
-
                     setIsSubmitting(true);
                     setSubmitError(null);
 
                     void apiClient
                       .loginWeb({
                         phone,
-                        captchaChallengeId: smsFlow.challenge.challengeId,
-                        captchaCode: smsFlow.captchaCode,
+                        captchaChallengeId: webLoginCaptchaPlaceholder.captchaChallengeId,
+                        captchaCode: webLoginCaptchaPlaceholder.captchaCode,
                         smsCode: smsFlow.smsCode
                       })
                       .then(response => {
@@ -467,6 +425,16 @@ export function LoginPage() {
           </p>
         </SitePanelBody>
       </SitePanel>
+
+      <SendSmsCaptchaDialog
+        flow={smsFlow}
+        onConfirmSend={requestLoginSmsCode}
+        onOpenChange={setIsSmsCaptchaOpen}
+        onRefreshError={setSubmitError}
+        open={isSmsCaptchaOpen}
+        refreshErrorFallback="图形验证码加载失败"
+        title="安全验证"
+      />
     </div>
   );
 }

@@ -33,6 +33,7 @@ export const currentUserResponseSchema = z.object({
 
 export const captchaChallengeResponseSchema = z.object({
   challengeId: z.string().min(1),
+  /** SVG 片段字符串，供前端直接插入 DOM 展示（不含答案明文） */
   imageOrText: z.string().min(1),
   expiresInSeconds: z.number().int().positive()
 });

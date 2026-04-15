@@ -4,6 +4,10 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
+import {
+  readCaptchaAnswerForTests,
+  WEB_LOGIN_CAPTCHA_PLACEHOLDER
+} from "./captcha-test-helpers";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -44,13 +48,15 @@ async function loginWebUser(phone: string) {
     imageOrText: string;
   };
 
+  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
   const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
       captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText
+      captchaCode: captchaAnswer
     })
   });
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
@@ -60,8 +66,8 @@ async function loginWebUser(phone: string) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText,
+      captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
+      captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
       smsCode: smsPayload.mockCode
     })
   });

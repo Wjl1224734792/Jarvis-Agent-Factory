@@ -5,10 +5,11 @@ export {
   resolveSafeRedirectPath
 } from "./redirects";
 
+/** 本地开发默认端口（避开 3000/3001/3002 等常见占用） */
 export const APP_PORTS = {
-  web: 3000,
-  admin: 3001,
-  server: 3002
+  web: 17_380,
+  admin: 17_381,
+  server: 17_382
 } as const;
 
 export const DEFAULT_PORTS = APP_PORTS;

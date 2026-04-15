@@ -1,8 +1,8 @@
 import { expect, type APIRequestContext, type Page } from "playwright/test";
 
-const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:3002";
-const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:3000";
-const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
+const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:17382";
+const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:17380";
+const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:17381";
 
 export const seededUserStorageStatePath = "tmp/playwright/storage-states/user.json";
 export const seededAdminStorageStatePath = "tmp/playwright/storage-states/admin.json";
@@ -36,18 +36,12 @@ async function fetchJson<T>(request: APIRequestContext, path: string) {
 export async function loginAsSeededUser(page: Page) {
   const request = page.context().request;
 
-  const captchaResponse = await request.post(`${serverBaseUrl}/auth/captcha/challenge`);
-  expect(captchaResponse.ok()).toBeTruthy();
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
+  /** 与前台登录一致：服务端登录不校验图形码字段，仅占位 */
   const loginResponse = await request.post(`${serverBaseUrl}/auth/web/login`, {
     data: {
       phone: "13800138000",
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaPayload.imageOrText,
+      captchaChallengeId: "web-login",
+      captchaCode: "0000",
       smsCode: "888888"
     }
   });

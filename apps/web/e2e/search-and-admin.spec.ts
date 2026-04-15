@@ -1,7 +1,7 @@
 import { expect, test } from "playwright/test";
 import { loginAsSeededAdmin } from "./support/auth";
 
-const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
+const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:17381";
 
 test.describe("搜索与后台快捷入口", () => {
   test("Web 顶部搜索会进入结果页并支持继续跳转", async ({ page }) => {

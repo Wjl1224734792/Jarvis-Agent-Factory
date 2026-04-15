@@ -11,7 +11,6 @@ import {
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { AuthCaptchaChallenge } from "@/components/auth-captcha-challenge";
 import {
   SitePage,
   SitePageDescription,
@@ -49,6 +48,7 @@ import {
   canRequestPhoneRebind,
   resolveMaskedPhone
 } from "../features/auth/phone-rebind-state";
+import { SendSmsCaptchaDialog } from "../features/auth/send-sms-captcha-dialog";
 import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-flow";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
@@ -216,6 +216,7 @@ export function SettingsPage() {
   const [editingField, setEditingField] = useState<EditableProfileField>(null);
   const [savingField, setSavingField] = useState<string | null>(null);
   const [isPhoneDialogOpen, setIsPhoneDialogOpen] = useState(false);
+  const [isPhoneSmsCaptchaOpen, setIsPhoneSmsCaptchaOpen] = useState(false);
   const [nextPhone, setNextPhone] = useState("");
   const [phoneRequestId, setPhoneRequestId] = useState<string | null>(null);
   const [phoneActionError, setPhoneActionError] = useState<string | null>(null);
@@ -260,17 +261,6 @@ export function SettingsPage() {
     const timer = window.setTimeout(() => setStatusMessage(null), 3200);
     return () => window.clearTimeout(timer);
   }, [statusMessage]);
-
-  useEffect(() => {
-    if (!isPhoneDialogOpen || phoneSmsFlow.challenge) {
-      return;
-    }
-
-    void phoneSmsFlow.refreshCaptcha({
-      onError: setPhoneActionError,
-      errorFallback: "图形验证码初始化失败"
-    });
-  }, [isPhoneDialogOpen, phoneSmsFlow]);
 
   if (!user) {
     return <SettingsPageSkeleton />;
@@ -389,6 +379,7 @@ export function SettingsPage() {
 
   function closePhoneDialog() {
     setIsPhoneDialogOpen(false);
+    setIsPhoneSmsCaptchaOpen(false);
     setPhoneActionError(null);
     setNextPhone("");
     setPhoneRequestId(null);
@@ -396,23 +387,8 @@ export function SettingsPage() {
     phoneSmsFlow.reset();
   }
 
-  async function refreshPhoneChallenge() {
-    setPhoneActionError(null);
-    await phoneSmsFlow.refreshCaptcha({
-      onError: setPhoneActionError,
-      errorFallback: "刷新验证码失败"
-    });
-  }
-
   async function requestPhoneCode() {
-    if (
-      !canRequestPhoneRebind({
-        nextPhone,
-        captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
-        captchaCode: phoneSmsFlow.captchaCode
-      }) ||
-      !phoneSmsFlow.challenge
-    ) {
+    if (!canRequestPhoneRebind({ nextPhone }) || !phoneSmsFlow.challenge) {
       return;
     }
 
@@ -430,6 +406,7 @@ export function SettingsPage() {
       errorFallback: "获取短信验证码失败",
       onSuccess: (response) => {
         setPhoneRequestId(response.requestId);
+        setIsPhoneSmsCaptchaOpen(false);
       }
     });
   }
@@ -840,71 +817,43 @@ export function SettingsPage() {
                 </Button>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-start">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
-                    新手机号
-                  </label>
-                  <Input
-                    id="settings-next-phone"
-                    inputMode="numeric"
-                    onChange={(event) => setNextPhone(event.target.value)}
-                    placeholder="请输入新的手机号"
-                    type="tel"
-                    value={nextPhone}
-                  />
-                </div>
-                <div className="space-y-2">
-                  <div className="text-sm font-medium text-muted-foreground">图形验证码</div>
-                  <AuthCaptchaChallenge
-                    code={phoneSmsFlow.challenge?.imageOrText ?? "----"}
-                    hintClassName="text-left"
-                    onRefresh={() => {
-                      void refreshPhoneChallenge();
-                    }}
-                  />
-                </div>
+              <div className="space-y-2">
+                <label className="text-sm font-medium text-foreground" htmlFor="settings-next-phone">
+                  新手机号
+                </label>
+                <Input
+                  id="settings-next-phone"
+                  inputMode="numeric"
+                  onChange={(event) => setNextPhone(event.target.value)}
+                  placeholder="请输入新的手机号"
+                  type="tel"
+                  value={nextPhone}
+                />
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-foreground" htmlFor="settings-phone-captcha">
-                    输入图形验证码
-                  </label>
-                  <Input
-                    id="settings-phone-captcha"
-                    onChange={(event) => phoneSmsFlow.setCaptchaCode(event.target.value.toUpperCase())}
-                    placeholder="请输入图形验证码"
-                    value={phoneSmsFlow.captchaCode}
-                  />
-                </div>
-                <Button
-                  className="h-12 w-full"
-                  disabled={
-                    phoneSmsFlow.isSendingSms ||
-                    phoneSmsFlow.cooldownSeconds > 0 ||
-                    !canRequestPhoneRebind({
-                      nextPhone,
-                      captchaChallengeId: phoneSmsFlow.challenge?.challengeId ?? null,
-                      captchaCode: phoneSmsFlow.captchaCode
-                    })
-                  }
-                  onClick={() => {
-                    void requestPhoneCode();
-                  }}
-                  type="button"
-                  variant="panel"
-                >
-                  <SmartphoneIcon data-icon="inline-start" />
-                  {phoneSmsFlow.isSendingSms
-                    ? "发送中..."
-                    : phoneSmsFlow.cooldownSeconds > 0
-                      ? `${phoneSmsFlow.cooldownSeconds} 秒后重发`
-                      : phoneSmsFlow.requestHint
-                        ? "重新发送验证码"
-                        : "获取验证码"}
-                </Button>
-              </div>
+              <Button
+                className="h-12 w-full"
+                disabled={
+                  phoneSmsFlow.isSendingSms ||
+                  phoneSmsFlow.cooldownSeconds > 0 ||
+                  !canRequestPhoneRebind({ nextPhone })
+                }
+                onClick={() => {
+                  setPhoneActionError(null);
+                  setIsPhoneSmsCaptchaOpen(true);
+                }}
+                type="button"
+                variant="panel"
+              >
+                <SmartphoneIcon data-icon="inline-start" />
+                {phoneSmsFlow.isSendingSms
+                  ? "发送中..."
+                  : phoneSmsFlow.cooldownSeconds > 0
+                    ? `${phoneSmsFlow.cooldownSeconds} 秒后重发`
+                    : phoneSmsFlow.requestHint
+                      ? "重新发送验证码"
+                      : "获取验证码"}
+              </Button>
 
               <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
                 <div className="space-y-2">
@@ -954,6 +903,20 @@ export function SettingsPage() {
             </SitePanelBody>
           </SitePanel>
         </div>
+      ) : null}
+
+      {isPhoneDialogOpen ? (
+        <SendSmsCaptchaDialog
+          description="验证通过后将向新手机号发送短信验证码。"
+          flow={phoneSmsFlow}
+          onConfirmSend={requestPhoneCode}
+          onOpenChange={setIsPhoneSmsCaptchaOpen}
+          onRefreshError={setPhoneActionError}
+          open={isPhoneSmsCaptchaOpen}
+          overlayClassName="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/45 px-4 py-8 backdrop-blur-sm"
+          refreshErrorFallback="图形验证码加载失败"
+          title="安全验证"
+        />
       ) : null}
     </SitePage>
   );

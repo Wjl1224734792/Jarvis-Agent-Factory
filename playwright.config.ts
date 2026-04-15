@@ -1,8 +1,8 @@
 import { defineConfig, devices } from "playwright/test";
 
-const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:3000";
-const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
-const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:3002";
+const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:17380";
+const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:17381";
+const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:17382";
 
 export default defineConfig({
   testDir: "./apps/web/e2e",

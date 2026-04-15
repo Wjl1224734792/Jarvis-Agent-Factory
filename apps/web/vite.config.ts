@@ -4,7 +4,7 @@ import path from "node:path";
 import { defineConfig, loadEnv } from "vite";
 
 const DEFAULT_DEV_HOST = "0.0.0.0";
-const DEFAULT_DEV_PORT = 3000;
+const DEFAULT_DEV_PORT = 17_380;
 
 /**
  * 将环境变量中的端口字符串解析为合法端口号。

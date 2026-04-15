@@ -25,14 +25,14 @@ describe("posts api client", () => {
     );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     const payload = await client.listHomeFeed("recommended");
 
     expect(payload.tab).toBe("recommended");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3002/home/feed?tab=recommended",
+      "http://localhost:17382/home/feed?tab=recommended",
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -71,7 +71,7 @@ describe("posts api client", () => {
     );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     await client.createPostComment("post_1", {
@@ -79,7 +79,7 @@ describe("posts api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3002/posts/post_1/comments",
+      "http://localhost:17382/posts/post_1/comments",
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -140,7 +140,7 @@ describe("posts api client", () => {
     );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     await client.updatePost("post_1", {
@@ -154,7 +154,7 @@ describe("posts api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:3002/posts/post_1",
+      "http://localhost:17382/posts/post_1",
       expect.objectContaining({
         method: "PUT",
         credentials: "include"
@@ -179,7 +179,7 @@ describe("posts api client", () => {
     );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     await expect(
@@ -241,7 +241,7 @@ describe("posts api client", () => {
       );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     const file = new File([Uint8Array.from([1, 2, 3])], "cover.png", {
@@ -252,7 +252,7 @@ describe("posts api client", () => {
     expect(payload.item.id).toBe("file_1");
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:3002/uploads/init",
+      "http://localhost:17382/uploads/init",
       expect.objectContaining({
         method: "POST",
         credentials: "include"
@@ -270,7 +270,7 @@ describe("posts api client", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      "http://localhost:3002/uploads/complete",
+      "http://localhost:17382/uploads/complete",
       expect.objectContaining({
         method: "POST",
         credentials: "include"
@@ -306,7 +306,7 @@ describe("posts api client", () => {
     );
 
     const client = createApiClient({
-      baseUrl: "http://localhost:3002"
+      baseUrl: "http://localhost:17382"
     });
 
     const file = new File([Uint8Array.from([1, 2, 3])], "cover.png", {

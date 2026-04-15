@@ -1,10 +1,5 @@
 # AGENTS.md
 
-仓库内代理必须同时遵循：
-
-1. 本文件
-2. [`.codex/AGENTS.md`](./.codex/AGENTS.md)
-
 项目规则优先于通用规则。
 
 ## 目标
