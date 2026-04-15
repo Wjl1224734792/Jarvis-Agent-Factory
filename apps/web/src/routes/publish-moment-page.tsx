@@ -15,7 +15,7 @@ import { apiClient } from "../lib/api-client";
 import { getEditorialImage } from "../lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
-import { getCircleCardHeightClass } from "./circle-page-helpers";
+import { getCircleCardMediaAspectClass } from "./circle-page-helpers";
 import {
   canAppendMomentImages,
   canReplaceWithMomentVideo,
@@ -237,7 +237,7 @@ export function PublishMomentPage() {
                     >
                       <img
                         alt={image.fileName ?? "moment"}
-                        className={cn("w-full object-cover", getCircleCardHeightClass(index))}
+                        className={cn("w-full object-cover", getCircleCardMediaAspectClass(index))}
                         src={image.url}
                       />
                       <button
@@ -392,7 +392,7 @@ export function PublishMomentPage() {
                 {uploadedVideo ? (
                   <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
                     <video
-                      className={cn("w-full object-cover", getCircleCardHeightClass(0))}
+                      className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
                       muted
                       playsInline
                       preload="metadata"
@@ -406,7 +406,7 @@ export function PublishMomentPage() {
                   <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
                     <img
                       alt="preview"
-                      className={cn("w-full object-cover", getCircleCardHeightClass(0))}
+                      className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
                       src={coverUrl}
                     />
                     {uploadedImages.length > 1 ? (

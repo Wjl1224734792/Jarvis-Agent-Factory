@@ -3,7 +3,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import {
   CIRCLE_CARD_COLUMN_GAP,
   CIRCLE_CARD_COLUMN_WIDTH,
-  getCircleCardHeightClass
+  getCircleCardMediaAspectClass
 } from "@/routes/circle-page-helpers";
 
 export const MODEL_GRID_CLASS_NAME =
@@ -95,7 +95,7 @@ export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: numbe
           key={index}
         >
           <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
-            <Skeleton className={`w-full rounded-[1rem] ${getCircleCardHeightClass(index)}`} />
+            <Skeleton className={`w-full rounded-[1rem] ${getCircleCardMediaAspectClass(index)}`} />
             {index % 4 === 1 ? (
               <div className="absolute right-3 top-3">
                 <Skeleton className="size-7 rounded-full" />

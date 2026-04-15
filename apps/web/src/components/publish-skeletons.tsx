@@ -10,7 +10,7 @@ import {
 } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { cn } from "@/lib/utils";
-import { getCircleCardHeightClass } from "@/routes/circle-page-helpers";
+import { getCircleCardMediaAspectClass } from "@/routes/circle-page-helpers";
 
 /** 与 [publish-shell.tsx](publish-shell.tsx) 同构：ImmersivePageShell + SitePageHead + 主/侧栏栅格 */
 export function PublishShellSkeleton(props: {
@@ -124,7 +124,7 @@ export function PublishMomentPageSkeleton() {
           <SitePanelBody className="space-y-4">
             <Skeleton className="h-3 w-16 rounded-none uppercase tracking-[0.18em]" />
             <div className="mx-auto w-full max-w-54 space-y-1.5">
-              <Skeleton className={cn("w-full rounded-[1rem]", getCircleCardHeightClass(0))} />
+              <Skeleton className={cn("w-full rounded-[1rem]", getCircleCardMediaAspectClass(0))} />
               <div className="space-y-1 px-0.5 pt-1.5">
                 <Skeleton className="h-3.5 w-4/5 rounded-none" />
                 <Skeleton className="h-3 w-full rounded-none" />

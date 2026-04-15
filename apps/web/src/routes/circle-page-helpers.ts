@@ -8,12 +8,13 @@ export type CircleMediaItem = {
   label: string;
 };
 
-const masonryHeightClasses = [
-  "h-[15.25rem]",
-  "h-[17rem]",
-  "h-[18.5rem]",
-  "h-[16.25rem]",
-  "h-[19.25rem]"
+/** 竖版封面，均接近 9:16，随索引轮换以保留轻微错落感 */
+const masonryAspectClasses = [
+  "aspect-[9/16]",
+  "aspect-[10/17]",
+  "aspect-[11/18]",
+  "aspect-[9/15]",
+  "aspect-[8/15]"
 ] as const;
 
 export const CIRCLE_CARD_COLUMN_WIDTH = "13.35rem";
@@ -24,8 +25,8 @@ export type VirtualCircleRow<T> = {
   items: Array<T & { absoluteIndex: number }>;
 };
 
-export function getCircleCardHeightClass(index: number) {
-  return masonryHeightClasses[index % masonryHeightClasses.length];
+export function getCircleCardMediaAspectClass(index: number) {
+  return masonryAspectClasses[index % masonryAspectClasses.length];
 }
 
 export function getCircleColumnCount(viewportWidth: number) {

@@ -3,16 +3,16 @@ import {
   buildCircleMediaItems,
   buildVirtualCircleRows,
   getCircleColumnCount,
-  getCircleCardHeightClass,
+  getCircleCardMediaAspectClass,
   getLoopedNextIndex,
   getLoopedPrevIndex
 } from "../src/routes/circle-page-helpers";
 
 describe("circle page helpers", () => {
-  it("cycles masonry heights without a fixed three-column pattern", () => {
-    expect(getCircleCardHeightClass(0)).toBe("h-[15.25rem]");
-    expect(getCircleCardHeightClass(3)).toBe("h-[16.25rem]");
-    expect(getCircleCardHeightClass(5)).toBe("h-[15.25rem]");
+  it("cycles portrait aspect ratios near 9:16 without a fixed three-column pattern", () => {
+    expect(getCircleCardMediaAspectClass(0)).toBe("aspect-[9/16]");
+    expect(getCircleCardMediaAspectClass(3)).toBe("aspect-[9/15]");
+    expect(getCircleCardMediaAspectClass(5)).toBe("aspect-[9/16]");
   });
 
   it("builds image media items unless a video exists", () => {

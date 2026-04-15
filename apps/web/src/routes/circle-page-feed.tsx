@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
   buildVirtualCircleRows,
-  getCircleCardHeightClass,
+  getCircleCardMediaAspectClass,
   getCircleColumnCount
 } from "./circle-page-helpers";
 
@@ -80,7 +80,7 @@ function CircleFeedCard(props: {
       <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
         <img
           alt={item.title}
-          className={cn("w-full rounded-[1rem] object-cover", getCircleCardHeightClass(absoluteIndex))}
+          className={cn("w-full rounded-[1rem] object-cover", getCircleCardMediaAspectClass(absoluteIndex))}
           src={previewImage}
         />
         {item.videos.length > 0 ? (
