@@ -164,7 +164,7 @@ export function CirclePageFeed({
       </div>
 
       {isError ? (
-        <Alert variant="destructive">
+        <Alert className="rounded-none border-0" variant="destructive">
           <AlertTitle>飞友圈加载失败</AlertTitle>
           <AlertDescription>{errorMessage ?? "网络开小差了"}</AlertDescription>
         </Alert>
