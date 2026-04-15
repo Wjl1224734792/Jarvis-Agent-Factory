@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getVisibleRootComments, shouldShowCommentCollapseToggle } from "@/features/posts/comment-collapse-helpers";
 import type { RatingTargetComment } from "./rating-target-detail-types";
 import { RatingTargetCommentCard } from "./rating-target-detail-comment-card";
 
@@ -20,14 +21,12 @@ type RatingTargetCommentListProps = {
 export function RatingTargetCommentList(props: RatingTargetCommentListProps) {
   const [expanded, setExpanded] = useState(false);
 
-  const displayedComments = useMemo(() => {
-    if (expanded || props.sortedComments.length <= COLLAPSED_ROOT_LIMIT) {
-      return props.sortedComments;
-    }
-    return props.sortedComments.slice(0, COLLAPSED_ROOT_LIMIT);
-  }, [expanded, props.sortedComments]);
+  const displayedComments = useMemo(
+    () => getVisibleRootComments(props.sortedComments, COLLAPSED_ROOT_LIMIT, expanded),
+    [expanded, props.sortedComments]
+  );
 
-  const canToggle = props.sortedComments.length > COLLAPSED_ROOT_LIMIT;
+  const canToggle = shouldShowCommentCollapseToggle(props.sortedComments.length, COLLAPSED_ROOT_LIMIT);
 
   useEffect(() => {
     setExpanded(false);

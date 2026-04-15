@@ -18,6 +18,11 @@ import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 import {
+  estimateTotalCommentsFromPostRoots,
+  getVisibleRootComments,
+  shouldShowCommentCollapseToggle
+} from "./comment-collapse-helpers";
+import {
   patchPostCommentCreated,
   patchPostCommentDeleted,
   patchPostCommentLikeToggle,
@@ -581,17 +586,14 @@ export function PostCommentThread(props: ThreadProps) {
   }, [props.comments, props.sortOrder]);
 
   const limit = props.collapsedRootLimit;
-  const displayComments = useMemo(() => {
-    if (!limit || rootsExpanded) {
-      return sortedComments;
-    }
-    return sortedComments.slice(0, limit);
-  }, [limit, rootsExpanded, sortedComments]);
+  const displayComments = useMemo(
+    () => getVisibleRootComments(sortedComments, limit, rootsExpanded),
+    [limit, rootsExpanded, sortedComments]
+  );
 
-  const canToggleRoots = Boolean(limit && sortedComments.length > limit);
+  const canToggleRoots = shouldShowCommentCollapseToggle(sortedComments.length, limit);
   const totalForLabel =
-    props.totalCommentCount ??
-    sortedComments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
+    props.totalCommentCount ?? estimateTotalCommentsFromPostRoots(sortedComments);
 
   return (
     <div

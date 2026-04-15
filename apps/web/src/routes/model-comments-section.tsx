@@ -18,6 +18,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
+import { getVisibleRootComments, shouldShowCommentCollapseToggle } from "@/features/posts/comment-collapse-helpers";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { getAvatarImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
@@ -355,14 +356,12 @@ export function ModelCommentsSection(props: {
   }, [commentsQuery.data?.items, sortOrder]);
 
   const COLLAPSED_ROOT_LIMIT = 3;
-  const displayedComments = useMemo(() => {
-    if (commentsExpanded || sortedComments.length <= COLLAPSED_ROOT_LIMIT) {
-      return sortedComments;
-    }
-    return sortedComments.slice(0, COLLAPSED_ROOT_LIMIT);
-  }, [commentsExpanded, sortedComments]);
+  const displayedComments = useMemo(
+    () => getVisibleRootComments(sortedComments, COLLAPSED_ROOT_LIMIT, commentsExpanded),
+    [commentsExpanded, sortedComments]
+  );
 
-  const canToggleCommentList = sortedComments.length > COLLAPSED_ROOT_LIMIT;
+  const canToggleCommentList = shouldShowCommentCollapseToggle(sortedComments.length, COLLAPSED_ROOT_LIMIT);
 
   useEffect(() => {
     setCommentsExpanded(false);
