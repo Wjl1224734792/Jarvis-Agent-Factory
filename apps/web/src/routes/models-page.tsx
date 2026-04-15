@@ -349,9 +349,6 @@ export function ModelsPage() {
                   {activeCategoryName} / {activeBrandName} / {activePowerLabel}
                 </div>
               </div>
-              <div className="text-[0.72rem] text-muted-foreground">
-                {modelsQuery.data?.items.length ?? 0} / {modelsQuery.data?.total ?? 0}
-              </div>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
