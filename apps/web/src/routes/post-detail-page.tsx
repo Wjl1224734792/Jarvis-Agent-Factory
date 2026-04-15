@@ -417,12 +417,14 @@ export function PostDetailPage() {
               <PostCommentThread
                 canInteract={canComment}
                 className="border-y-0"
+                collapsedRootLimit={3}
                 comments={item.comments}
                 currentUserId={currentUser?.id}
                 isRefreshing={isCommentRefreshing}
                 postId={item.id}
                 showPendingComment={isSubmitting}
                 sortOrder={commentSort}
+                totalCommentCount={item.commentCount}
               />
             </div>
           ) : (

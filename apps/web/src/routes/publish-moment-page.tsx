@@ -3,6 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { PublishMomentPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -179,6 +180,10 @@ export function PublishMomentPage() {
   }
 
   const coverUrl = uploadedImages[0]?.url ?? getEditorialImage("moment-create");
+
+  if (editId && detailQuery.isLoading) {
+    return <PublishMomentPageSkeleton />;
+  }
 
   return (
     <PublishShell

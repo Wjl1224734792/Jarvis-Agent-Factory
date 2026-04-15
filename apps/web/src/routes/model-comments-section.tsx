@@ -5,7 +5,7 @@ import {
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { CommentPublishedTime } from "@/components/comment-published-time";
 import {
   CommentIconOnlyButton,
@@ -315,6 +315,7 @@ export function ModelCommentsSection(props: {
   const [sortOrder, setSortOrder] = useState<"latest" | "hot">("latest");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [commentsExpanded, setCommentsExpanded] = useState(false);
 
   const commentsQuery = useQuery({
     queryKey: ["model-comments", props.slug],
@@ -352,6 +353,20 @@ export function ModelCommentsSection(props: {
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     });
   }, [commentsQuery.data?.items, sortOrder]);
+
+  const COLLAPSED_ROOT_LIMIT = 3;
+  const displayedComments = useMemo(() => {
+    if (commentsExpanded || sortedComments.length <= COLLAPSED_ROOT_LIMIT) {
+      return sortedComments;
+    }
+    return sortedComments.slice(0, COLLAPSED_ROOT_LIMIT);
+  }, [commentsExpanded, sortedComments]);
+
+  const canToggleCommentList = sortedComments.length > COLLAPSED_ROOT_LIMIT;
+
+  useEffect(() => {
+    setCommentsExpanded(false);
+  }, [sortOrder]);
 
   return (
     <section className="space-y-4" id="model-comment-area">
@@ -430,18 +445,47 @@ export function ModelCommentsSection(props: {
 
       <div className="bg-white">
         {sortedComments.length > 0 ? (
-          <div className="space-y-6 px-5 py-4">
-            {sortedComments.map((comment) => (
-              <div key={comment.id}>
-                <ModelCommentCard
-                  canInteract={props.isAuthenticated}
-                  comment={comment}
-                  onRefresh={refresh}
-                  onRequireLogin={openLoginPrompt}
-                  slug={props.slug}
-                />
+          <div className="px-5 py-4">
+            <div className="space-y-6">
+              {displayedComments.map((comment) => (
+                <div key={comment.id}>
+                  <ModelCommentCard
+                    canInteract={props.isAuthenticated}
+                    comment={comment}
+                    onRefresh={refresh}
+                    onRequireLogin={openLoginPrompt}
+                    slug={props.slug}
+                  />
+                </div>
+              ))}
+            </div>
+            {canToggleCommentList ? (
+              <div className="border-t border-border/70 pt-3">
+                {commentsExpanded ? (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setCommentsExpanded(false);
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    收起评论
+                  </Button>
+                ) : (
+                  <Button
+                    className="w-full"
+                    onClick={() => {
+                      setCommentsExpanded(true);
+                    }}
+                    type="button"
+                    variant="ghost"
+                  >
+                    展开全部评论（共 {visibleCount} 条）
+                  </Button>
+                )}
               </div>
-            ))}
+            ) : null}
           </div>
         ) : (
           <div className="px-5 py-5 text-[0.82rem] text-muted-foreground">还没有公开评论。</div>

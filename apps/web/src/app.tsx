@@ -2,7 +2,13 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, useMemo, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import { PublishFormSkeleton } from "./components/page-skeletons";
+import {
+  PublishAircraftPageSkeleton,
+  PublishArticlePageSkeleton,
+  PublishBrandPageSkeleton,
+  PublishMomentPageSkeleton,
+  RankingEditorPageSkeleton
+} from "./components/publish-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
@@ -156,9 +162,24 @@ function toRootChildPath(path: string) {
   return path.slice(1);
 }
 
-// 发布相关页面共用表单级骨架，避免每个发布路由重复包一层 Suspense。
-function withPublishFallback(children: ReactNode) {
-  return <Suspense fallback={<PublishFormSkeleton />}>{children}</Suspense>;
+function withPublishArticleFallback(children: ReactNode) {
+  return <Suspense fallback={<PublishArticlePageSkeleton />}>{children}</Suspense>;
+}
+
+function withPublishMomentFallback(children: ReactNode) {
+  return <Suspense fallback={<PublishMomentPageSkeleton />}>{children}</Suspense>;
+}
+
+function withPublishAircraftFallback(children: ReactNode) {
+  return <Suspense fallback={<PublishAircraftPageSkeleton />}>{children}</Suspense>;
+}
+
+function withPublishBrandFallback(children: ReactNode) {
+  return <Suspense fallback={<PublishBrandPageSkeleton />}>{children}</Suspense>;
+}
+
+function withRankingEditorFallback(children: ReactNode) {
+  return <Suspense fallback={<RankingEditorPageSkeleton />}>{children}</Suspense>;
 }
 
 // 通用页面兜底用于轻量页面，保持路由切换期间的基础可读性。
@@ -325,7 +346,7 @@ export function App() {
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
               // 发布链路必须登录，但这里使用 fallback 模式，避免把用户带回登录页后丢失上下文。
-              element: withPublishFallback(
+              element: withPublishArticleFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <PublishArticlePage />
                 </ProtectedRoute>
@@ -333,7 +354,7 @@ export function App() {
             },
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishMoment),
-              element: withPublishFallback(
+              element: withPublishMomentFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <PublishMomentPage />
                 </ProtectedRoute>
@@ -341,7 +362,7 @@ export function App() {
             },
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishAircraft),
-              element: withPublishFallback(
+              element: withPublishAircraftFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <PublishAircraftPage />
                 </ProtectedRoute>
@@ -349,7 +370,7 @@ export function App() {
             },
             {
               path: toRootChildPath(APP_ROUTES.publishBrand),
-              element: withPublishFallback(
+              element: withPublishBrandFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <PublishBrandPage />
                 </ProtectedRoute>
@@ -357,7 +378,7 @@ export function App() {
             },
             {
               path: toRootChildPath(APP_ROUTES.rankingEditor),
-              element: withPublishFallback(
+              element: withRankingEditorFallback(
                 <ProtectedRoute fallbackPath={APP_ROUTES.feedHome} mode="fallback">
                   <RankingEditorPage />
                 </ProtectedRoute>

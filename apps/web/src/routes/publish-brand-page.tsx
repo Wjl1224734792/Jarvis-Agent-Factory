@@ -4,7 +4,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { Clock3Icon, FileImageIcon, SendHorizonalIcon, SparklesIcon, XIcon } from "lucide-react";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { PublishBrandPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -189,7 +189,7 @@ export function PublishBrandPage() {
   const successApplication = submittedApplication ?? submittedQuery.data?.item ?? null;
 
   if (submittedId && submittedQuery.isLoading && !successApplication) {
-    return <PublishFormSkeleton />;
+    return <PublishBrandPageSkeleton />;
   }
 
   if (successApplication) {

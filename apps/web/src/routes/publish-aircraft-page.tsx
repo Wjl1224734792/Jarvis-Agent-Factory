@@ -12,7 +12,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { PublishAircraftLivePreview } from "@/components/publish-aircraft-live-preview";
-import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { PublishAircraftPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -282,7 +282,7 @@ export function PublishAircraftPage() {
   }
 
   if (categoriesQuery.isLoading || brandsQuery.isLoading || submissionQuery.isLoading) {
-    return <PublishFormSkeleton />;
+    return <PublishAircraftPageSkeleton />;
   }
 
   return (

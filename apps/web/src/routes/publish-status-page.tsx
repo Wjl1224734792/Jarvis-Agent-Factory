@@ -1,7 +1,7 @@
 import { APP_ROUTES } from "@feijia/shared";
 import { CheckCircle2Icon, Clock3Icon, FileSearchIcon, TrophyIcon } from "lucide-react";
 import { Link, useLocation, useParams } from "react-router-dom";
-import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { PublishStatusPageSkeleton } from "@/components/page-skeletons";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { useQuery } from "@tanstack/react-query";
@@ -35,7 +35,7 @@ export function PublishStatusPage() {
   }
 
   if (kind === "aircraft" && submissionQuery.isLoading) {
-    return <PublishFormSkeleton />;
+    return <PublishStatusPageSkeleton />;
   }
 
   const aircraft = submissionQuery.data?.item ?? null;

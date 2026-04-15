@@ -1,6 +1,6 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { CornerDownRightIcon, SquarePenIcon, Trash2Icon } from "lucide-react";
-import { startTransition, useMemo, useState, type ReactNode } from "react";
+import { startTransition, useEffect, useMemo, useState, type ReactNode } from "react";
 import { CommentPublishedTime } from "@/components/comment-published-time";
 import {
   CommentIconOnlyButton,
@@ -8,6 +8,7 @@ import {
   CommentTextAction
 } from "@/components/comment-thread-controls";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
@@ -37,6 +38,10 @@ type ThreadProps = {
   sortOrder?: "latest" | "hot";
   /** 嵌入带外边框的面板时可去掉根节点纵向边框，避免重复描边 */
   className?: string;
+  /** 默认只展示前 N 条顶级评论，其余通过按钮展开 */
+  collapsedRootLimit?: number;
+  /** 展开按钮展示的总条数（含回复），通常传帖子 commentCount */
+  totalCommentCount?: number;
 };
 
 /** 点赞 / 编辑 / 删除按 targetId 区分，避免同线程内其它行一起禁用 */
@@ -550,6 +555,12 @@ function RootCommentItem(props: {
 }
 
 export function PostCommentThread(props: ThreadProps) {
+  const [rootsExpanded, setRootsExpanded] = useState(false);
+
+  useEffect(() => {
+    setRootsExpanded(false);
+  }, [props.sortOrder]);
+
   const sortedComments = useMemo(() => {
     const items = [...props.comments];
     if ((props.sortOrder ?? "latest") === "latest") {
@@ -568,6 +579,19 @@ export function PostCommentThread(props: ThreadProps) {
       return new Date(right.createdAt).getTime() - new Date(left.createdAt).getTime();
     });
   }, [props.comments, props.sortOrder]);
+
+  const limit = props.collapsedRootLimit;
+  const displayComments = useMemo(() => {
+    if (!limit || rootsExpanded) {
+      return sortedComments;
+    }
+    return sortedComments.slice(0, limit);
+  }, [limit, rootsExpanded, sortedComments]);
+
+  const canToggleRoots = Boolean(limit && sortedComments.length > limit);
+  const totalForLabel =
+    props.totalCommentCount ??
+    sortedComments.reduce((acc, c) => acc + 1 + (c.replies?.length ?? 0), 0);
 
   return (
     <div
@@ -589,7 +613,7 @@ export function PostCommentThread(props: ThreadProps) {
         </div>
       ) : null}
 
-      {sortedComments.map((comment) => (
+      {displayComments.map((comment) => (
         <RootCommentItem
           canInteract={props.canInteract}
           comment={comment}
@@ -598,6 +622,34 @@ export function PostCommentThread(props: ThreadProps) {
           postId={props.postId}
         />
       ))}
+
+      {canToggleRoots ? (
+        <div className="border-t border-border/80 py-3">
+          {rootsExpanded ? (
+            <Button
+              className="w-full"
+              onClick={() => {
+                setRootsExpanded(false);
+              }}
+              type="button"
+              variant="ghost"
+            >
+              收起评论
+            </Button>
+          ) : (
+            <Button
+              className="w-full"
+              onClick={() => {
+                setRootsExpanded(true);
+              }}
+              type="button"
+              variant="ghost"
+            >
+              展开全部评论（共 {totalForLabel} 条）
+            </Button>
+          )}
+        </div>
+      ) : null}
     </div>
   );
 }

@@ -307,10 +307,12 @@ export function RatingTargetDetailPage() {
 
             <RatingTargetCommentList
               canInteract={authStatus === "authenticated"}
+              commentSort={commentSort}
               itemId={item.id}
               onRefresh={refreshAll}
               onRequireLogin={openLoginPrompt}
               sortedComments={sortedComments}
+              totalCommentCount={item.commentCount}
             />
           </div>
         </>

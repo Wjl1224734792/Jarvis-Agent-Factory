@@ -3,7 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowDownIcon, ArrowUpIcon, ImagePlusIcon, PencilLineIcon, PlusIcon, Trash2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { RankingEditorPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -172,7 +172,7 @@ export function RankingEditorPage() {
     draftItems.every((item) => item.title.trim().length > 0);
 
   if (modelsQuery.isLoading || (editId && detailQuery.isLoading)) {
-    return <PublishFormSkeleton />;
+    return <RankingEditorPageSkeleton />;
   }
 
   return (

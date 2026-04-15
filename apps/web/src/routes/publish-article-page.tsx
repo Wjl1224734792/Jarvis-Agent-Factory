@@ -3,7 +3,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { PublishFormSkeleton } from "@/components/page-skeletons";
+import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
@@ -284,7 +284,7 @@ export function PublishArticlePage() {
   }
 
   if (categoriesQuery.isLoading || detailQuery.isLoading) {
-    return <PublishFormSkeleton />;
+    return <PublishArticlePageSkeleton />;
   }
 
   return (

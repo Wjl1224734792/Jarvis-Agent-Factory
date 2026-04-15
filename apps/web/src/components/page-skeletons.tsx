@@ -211,62 +211,12 @@ export function RankingCardGridSkeleton(props: { count?: number }) {
   );
 }
 
-export function PublishFormSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="space-y-6 border-b border-border/75 pb-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <Skeleton className="size-11 rounded-sm" />
-            <div className="space-y-2">
-              <Skeleton className="h-3.5 w-16 rounded-none" />
-              <Skeleton className="h-4 w-28 rounded-none" />
-            </div>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="space-y-2 text-right">
-              <Skeleton className="ml-auto h-3.5 w-14 rounded-none" />
-              <Skeleton className="ml-auto h-4 w-20 rounded-none" />
-            </div>
-            <Skeleton className="size-11 rounded-sm" />
-          </div>
-        </div>
-        <div>
-          <Skeleton className="h-4 w-24 rounded-none" />
-          <Skeleton className="mt-3 h-11 w-72 rounded-none" />
-          <Skeleton className="mt-2 h-4 w-3/5 rounded-none" />
-        </div>
-      </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="space-y-4">
-        <div className="rounded-none border border-border bg-white p-4">
-          <div className="space-y-3">
-            <Skeleton className="h-5 w-40 rounded-none" />
-            <Skeleton className="h-10 rounded-sm" />
-            <Skeleton className="h-10 rounded-sm" />
-            <Skeleton className="h-28 rounded-none" />
-          </div>
-        </div>
-        <div className="rounded-none border border-border bg-white p-4">
-          <Skeleton className="h-5 w-32 rounded-none" />
-          <div className="mt-3 grid gap-3 md:grid-cols-4">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <Skeleton className="h-24 rounded-none" key={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-      <div className="space-y-4">
-        <div className="rounded-none border border-border bg-white p-4">
-          <div className="space-y-3">
-            <Skeleton className="h-5 w-32 rounded-none" />
-            {Array.from({ length: 3 }).map((_, index) => (
-              <Skeleton className="h-20 rounded-none" key={index} />
-            ))}
-          </div>
-        </div>
-      </div>
-      </div>
-    </div>
-  );
-}
+export {
+  PublishArticlePageSkeleton,
+  PublishAircraftPageSkeleton,
+  PublishBrandPageSkeleton,
+  PublishMomentPageSkeleton,
+  PublishShellSkeleton,
+  PublishStatusPageSkeleton,
+  RankingEditorPageSkeleton
+} from "@/components/publish-skeletons";
