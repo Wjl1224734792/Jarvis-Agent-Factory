@@ -147,15 +147,8 @@ function getHeaderCopy(pathname: string) {
 
 function ShellBrand() {
   return (
-    <div className="flex min-w-0 items-center gap-2 sm:gap-2.5">
-      <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-primary/12 bg-white shadow-[var(--shadow-soft)] xl:h-10 xl:w-10 xl:rounded-[1rem] xl:border-primary/15 xl:shadow-[var(--shadow-float)]">
-        <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
-      </div>
-      <div className="min-w-0">
-        <div className="truncate text-[0.82rem] font-semibold leading-tight tracking-tight text-primary xl:text-[0.9rem] xl:tracking-[0.08em]">
-          飞友与飞行器社区
-        </div>
-      </div>
+    <div className="relative h-9 w-9 shrink-0 overflow-hidden rounded-xl border border-primary/12 bg-white shadow-[var(--shadow-soft)] xl:h-10 xl:w-10 xl:rounded-[1rem] xl:border-primary/15 xl:shadow-[var(--shadow-float)]">
+      <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
     </div>
   );
 }

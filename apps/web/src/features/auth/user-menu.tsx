@@ -51,9 +51,9 @@ export function UserMenu() {
         to={APP_ROUTES.webProfile}
       >
         <UserAvatar
-          className="size-8"
+          className="size-9"
           displayName={user.displayName}
-          size="sm"
+          size="default"
           src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
         />
         <span className="sr-only">进入个人中心</span>
@@ -64,8 +64,9 @@ export function UserMenu() {
         to={APP_ROUTES.webProfile}
       >
         <UserAvatar
+          className="size-9 shrink-0"
           displayName={user.displayName}
-          size="sm"
+          size="default"
           src={user.avatarUrl?.trim() ? user.avatarUrl : getAvatarImage(user.id)}
         />
         <span className="min-w-0 flex-1 text-left">

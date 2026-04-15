@@ -400,8 +400,7 @@ export function SettingsPage() {
           captchaChallengeId: challengeId,
           captchaCode
         }),
-      successHint: (response) =>
-        response.mockCode ? "验证码已生成，请在开发工具网络面板查看。" : "验证码已发送到新手机号",
+      successHint: () => " ",
       onError: setPhoneActionError,
       errorFallback: "获取短信验证码失败",
       onSuccess: (response) => {
@@ -890,7 +889,7 @@ export function SettingsPage() {
               {phoneSmsFlow.requestHint ? (
                 <Alert>
                   <AlertTitle>验证码已发送</AlertTitle>
-                  <AlertDescription>{phoneSmsFlow.requestHint}</AlertDescription>
+                  <AlertDescription>请查收新手机号短信并填写验证码。</AlertDescription>
                 </Alert>
               ) : null}
 

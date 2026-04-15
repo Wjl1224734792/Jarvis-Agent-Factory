@@ -46,7 +46,7 @@ export function LoginPage() {
   const setAuthenticated = useAuthStore(state => state.setAuthenticated);
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
-  const [phone, setPhone] = useState("13800138000");
+  const [phone, setPhone] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<LoginStep>("verify");
@@ -81,10 +81,8 @@ export function LoginPage() {
           captchaChallengeId: challengeId,
           captchaCode
         }),
-      successHint: response =>
-        response.mockCode
-          ? "短信验证码已生成，请在开发工具网络面板查看。"
-          : "短信验证码已发送。",
+      // 仅用于内部标记「已请求过短信」，不在 UI 展示文案（避免 mock 环境下出现开发者提示）
+      successHint: () => " ",
       onError: setSubmitError,
       errorFallback: "短信验证码发送失败",
       onSuccess: () => {
@@ -185,13 +183,6 @@ export function LoginPage() {
                   </Button>
                 </div>
               </div>
-
-              {smsFlow.requestHint ? (
-                <Alert>
-                  <AlertTitle>验证码已生成</AlertTitle>
-                  <AlertDescription>{smsFlow.requestHint}</AlertDescription>
-                </Alert>
-              ) : null}
 
               {submitError ? (
                 <Alert variant="destructive">
