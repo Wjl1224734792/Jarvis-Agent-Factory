@@ -4,7 +4,7 @@ import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { PageShareControl } from "@/components/page-share-control";
-import { DetailPageSkeleton } from "@/components/page-skeletons";
+import { RankingDetailPageSkeleton } from "@/components/route-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -36,7 +36,7 @@ export function RankingDetailPage() {
   const ranking = rankingQuery.data?.item;
 
   if (rankingQuery.isLoading) {
-    return <DetailPageSkeleton />;
+    return <RankingDetailPageSkeleton />;
   }
 
   return (

@@ -2,7 +2,7 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Suspense, lazy, useMemo, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
-import { DetailPageSkeleton, PublishFormSkeleton } from "./components/page-skeletons";
+import { PublishFormSkeleton } from "./components/page-skeletons";
 import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
@@ -143,6 +143,11 @@ const ModelDetailPageSkeleton = lazy(() =>
 const RatingTargetDetailPageSkeleton = lazy(() =>
   import("./components/route-skeletons").then((module) => ({
     default: module.RatingTargetDetailPageSkeleton
+  }))
+);
+const RankingDetailPageSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.RankingDetailPageSkeleton
   }))
 );
 
@@ -292,7 +297,12 @@ export function App() {
             },
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.rankingDetail),
-              element: withSuspenseFallback(<RankingDetailPage />, <DetailPageSkeleton />)
+              element: withSuspenseFallback(
+                <RankingDetailPage />,
+                <DeferredFallback>
+                  <RankingDetailPageSkeleton />
+                </DeferredFallback>
+              )
             },
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.ratingTargetDetail),

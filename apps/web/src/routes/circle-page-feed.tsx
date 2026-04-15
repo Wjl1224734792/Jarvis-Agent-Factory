@@ -171,7 +171,7 @@ export function CirclePageFeed({
       ) : null}
 
       {!isLoading && !isError && posts.length === 0 ? (
-        <Alert>
+        <Alert className="rounded-none border-0">
           <AlertTitle>飞友圈还没有新动态</AlertTitle>
           <AlertDescription>先发一条动态试试。</AlertDescription>
         </Alert>

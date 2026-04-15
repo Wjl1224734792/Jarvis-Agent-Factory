@@ -148,13 +148,21 @@ export function UserProfilePageRouteSkeleton() {
 
 export function PostDetailPageSkeleton() {
   return (
-    <ImmersivePageShell className="max-w-[900px] gap-8 bg-transparent px-4 pb-8 pt-2 md:px-6 [&_section]:rounded-none">
+    <ImmersivePageShell
+      className="max-w-[900px] gap-8 bg-transparent px-4 pb-8 pt-2 md:px-6 [&_section]:rounded-none"
+      header={
+        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-3 text-sm">
+            <Skeleton className="size-8 shrink-0 rounded-full" />
+            <Skeleton className="h-4 w-24 rounded-none" />
+          </div>
+        </div>
+      }
+    >
       <article className="space-y-6">
         <header className="space-y-4">
-          <div className="space-y-2">
-            <Skeleton className="h-10 w-24 rounded-none md:h-12" />
-            <Skeleton className="h-4 w-full max-w-[14ch] rounded-none" />
-          </div>
+          <Skeleton className="h-12 w-full max-w-[14ch] rounded-none md:h-16" />
+
           <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-4">
             <div className="flex min-w-0 items-center gap-3">
               <Skeleton className="size-11 shrink-0 rounded-full" />
@@ -178,6 +186,98 @@ export function PostDetailPageSkeleton() {
           <Skeleton className="h-4 w-4/5 rounded-none" />
         </div>
       </article>
+
+      <section className="space-y-5 border-t border-border/60 pt-6">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="flex flex-wrap items-center gap-3">
+            {Array.from({ length: 5 }).map((_, index) => (
+              <Skeleton className="size-9 shrink-0 rounded-md" key={index} />
+            ))}
+          </div>
+          <Skeleton className="size-9 shrink-0 rounded-md" />
+        </div>
+      </section>
+
+      <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
+        <div className="space-y-1">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="flex items-center gap-2">
+              <Skeleton className="size-4.5 rounded-none" />
+              <Skeleton className="h-5 w-14 rounded-none" />
+            </div>
+            <div className="flex items-center gap-2">
+              <Skeleton className="h-7 w-14 rounded-full" />
+              <Skeleton className="h-7 w-14 rounded-full" />
+            </div>
+          </div>
+          <Skeleton className="h-4 w-40 rounded-none" />
+        </div>
+
+        <div className="border border-border/70 bg-white px-5 py-5">
+          <Skeleton className="h-24 w-full rounded-none" />
+        </div>
+      </section>
+    </ImmersivePageShell>
+  );
+}
+
+export function RankingDetailPageSkeleton() {
+  return (
+    <ImmersivePageShell className="max-w-[1100px] gap-6">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/75 pb-4">
+        <Skeleton className="h-9 w-28 rounded-none" />
+        <Skeleton className="size-9 shrink-0 rounded-none" />
+      </div>
+
+      <div className="grid gap-4 border border-border/75 bg-white p-4 md:grid-cols-[minmax(0,460px)_minmax(0,1fr)]">
+        <Skeleton className="h-[220px] w-full rounded-none md:h-[300px]" />
+        <div className="flex min-w-0 flex-col justify-between gap-6">
+          <div className="space-y-3">
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-10 w-full max-w-[min(100%,24rem)] rounded-none md:h-12" />
+              <Skeleton className="h-6 w-16 shrink-0 rounded-none" />
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <div className="border border-border/70 px-4 py-3" key={index}>
+                <Skeleton className="h-3 w-16 rounded-none" />
+                <Skeleton className="mt-2 h-6 w-20 rounded-none" />
+              </div>
+            ))}
+          </div>
+          <div className="flex flex-wrap gap-2.5 border-t border-border/70 pt-3">
+            <Skeleton className="h-9 w-28 rounded-none" />
+            <Skeleton className="h-9 w-28 rounded-none" />
+          </div>
+        </div>
+      </div>
+
+      <div className="border-t border-border/60 pt-4">
+        <Skeleton className="mb-3 h-6 w-24 rounded-none" />
+        <div className="divide-y divide-border/80 border-t border-border/80">
+          {Array.from({ length: 3 }).map((_, index) => (
+            <div
+              className="grid gap-3 bg-white px-4 py-4 md:grid-cols-[44px_88px_minmax(0,1fr)]"
+              key={index}
+            >
+              <Skeleton className="h-8 w-8 rounded-none" />
+              <Skeleton className="h-[74px] w-full rounded-none" />
+              <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_auto]">
+                <div className="space-y-2">
+                  <Skeleton className="h-4 w-full rounded-none" />
+                  <Skeleton className="h-3 w-32 rounded-none" />
+                  <Skeleton className="h-3 w-full max-w-[20rem] rounded-none" />
+                </div>
+                <div className="flex flex-col items-end gap-1">
+                  <Skeleton className="h-7 w-12 rounded-none" />
+                  <Skeleton className="h-3 w-10 rounded-none" />
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </ImmersivePageShell>
   );
 }
@@ -185,21 +285,22 @@ export function PostDetailPageSkeleton() {
 export function ModelDetailPageSkeleton() {
   return (
     <ImmersivePageShell className="max-w-[1180px] gap-6">
-      <Skeleton className="h-9 w-40 rounded-none" />
+      <Skeleton className="h-9 w-32 rounded-none" />
+
       <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="flex min-w-0 flex-col gap-4">
           <div className="space-y-6 border border-border/75 bg-white p-4">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
               <div className="min-w-0 space-y-3">
                 <Skeleton className="h-[280px] w-full rounded-none sm:h-[320px] lg:h-[340px]" />
-                <div className="flex gap-2 overflow-hidden">
+                <div className="flex gap-2 overflow-hidden pb-1">
                   {Array.from({ length: 4 }).map((_, index) => (
                     <Skeleton className="h-16 w-20 shrink-0 rounded-none" key={index} />
                   ))}
                 </div>
               </div>
               <div className="space-y-3">
-                <Skeleton className="h-10 w-4/5 rounded-none md:h-12" />
+                <Skeleton className="h-10 w-4/5 rounded-none md:h-14" />
                 <div className="flex flex-wrap gap-2">
                   <Skeleton className="h-6 w-24 rounded-none" />
                   <Skeleton className="h-6 w-20 rounded-none" />
@@ -208,14 +309,88 @@ export function ModelDetailPageSkeleton() {
                 <Skeleton className="h-3.5 w-full rounded-none" />
                 <Skeleton className="h-3.5 w-full rounded-none" />
                 <Skeleton className="h-3.5 w-4/5 rounded-none" />
-                <Skeleton className="h-9 w-48 rounded-none md:h-10" />
+                <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3">
+                  {Array.from({ length: 4 }).map((_, index) => (
+                    <Skeleton className="h-5 w-16 rounded-none" key={index} />
+                  ))}
+                  <Skeleton className="ml-auto h-5 w-5 rounded-none max-sm:ml-0" />
+                </div>
+              </div>
+            </div>
+
+            <div className="w-full overflow-x-auto border-y border-border/35">
+              <div className="grid min-w-0 w-full grid-cols-2 divide-x divide-y divide-border/35 sm:grid-cols-4 sm:divide-y-0">
+                {Array.from({ length: 4 }).map((_, index) => (
+                  <div
+                    className="flex min-h-12 flex-col items-center justify-center gap-1 px-2 py-2.5 text-center sm:min-h-0"
+                    key={index}
+                  >
+                    <Skeleton className="h-3 w-12 rounded-none" />
+                    <Skeleton className="h-4 w-16 rounded-none" />
+                  </div>
+                ))}
               </div>
             </div>
           </div>
+
+          <SitePanel className="rounded-none bg-white">
+            <SitePanelBody className="space-y-6">
+              {Array.from({ length: 2 }).map((_, sectionIndex) => (
+                <div className="space-y-5" key={sectionIndex}>
+                  <Skeleton className="h-4 w-28 rounded-none" />
+                  <div className="rounded-none border border-border/70">
+                    {Array.from({ length: 3 }).map((__, rowIndex) => (
+                      <div
+                        className={`grid gap-2 px-4 py-3 md:grid-cols-[180px_minmax(0,1fr)] ${
+                          rowIndex !== 2 ? "border-b border-border/70" : ""
+                        }`}
+                        key={rowIndex}
+                      >
+                        <Skeleton className="h-4 w-20 rounded-none" />
+                        <Skeleton className="h-4 w-full max-w-[16rem] rounded-none" />
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              ))}
+            </SitePanelBody>
+          </SitePanel>
+
+          <section className="space-y-4">
+            <div className="space-y-1">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div className="flex items-center gap-2">
+                  <Skeleton className="size-4.5 rounded-none" />
+                  <Skeleton className="h-5 w-14 rounded-none" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Skeleton className="h-7 w-14 rounded-full" />
+                  <Skeleton className="h-7 w-14 rounded-full" />
+                </div>
+              </div>
+              <Skeleton className="h-4 w-36 rounded-none" />
+            </div>
+            <div className="bg-white px-5 py-5">
+              <Skeleton className="h-24 w-full rounded-none" />
+            </div>
+            <div className="space-y-6 bg-white px-5 py-4">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div className="flex gap-3" key={index}>
+                  <Skeleton className="size-10 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-32 rounded-none" />
+                    <Skeleton className="h-3.5 w-full rounded-none" />
+                    <Skeleton className="h-3.5 w-11/12 rounded-none" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
         </div>
-        <div className="min-w-0 xl:max-w-[20rem]">
+
+        <aside className="min-w-0 space-y-5 xl:max-w-[20rem]">
           <RailCardSkeleton rows={4} />
-        </div>
+        </aside>
       </section>
     </ImmersivePageShell>
   );
@@ -224,18 +399,85 @@ export function ModelDetailPageSkeleton() {
 export function RatingTargetDetailPageSkeleton() {
   return (
     <ImmersivePageShell className="max-w-[1120px] gap-6">
-      <Skeleton className="h-9 w-40 rounded-none" />
+      <Skeleton className="h-9 w-32 rounded-none" />
+
       <div className="grid gap-4 border border-border/80 bg-white p-4 md:grid-cols-[320px_minmax(0,1fr)]">
-        <Skeleton className="h-[240px] w-full rounded-none md:min-h-[200px]" />
-        <div className="space-y-3">
-          <Skeleton className="h-5 w-40 rounded-none" />
-          <Skeleton className="h-10 w-4/5 rounded-none md:h-12" />
-          <Skeleton className="h-4 w-full rounded-none" />
-          <Skeleton className="h-4 w-11/12 rounded-none" />
-          <div className="flex gap-2 pt-1">
-            <Skeleton className="h-8 w-36 rounded-none" />
-            <Skeleton className="h-12 w-28 rounded-none" />
+        <Skeleton className="h-[240px] w-full rounded-none md:h-[280px]" />
+
+        <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_16rem]">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Skeleton className="h-4 w-40 rounded-none" />
+              <Skeleton className="h-10 w-full max-w-[min(100%,28rem)] rounded-none md:h-12" />
+              <Skeleton className="h-3.5 w-full rounded-none" />
+              <Skeleton className="h-3.5 w-11/12 rounded-none" />
+            </div>
+
+            <div className="space-y-2">
+              <Skeleton className="h-10 w-28 rounded-none" />
+              <Skeleton className="h-6 w-40 rounded-none" />
+              <Skeleton className="h-4 w-48 rounded-none" />
+            </div>
+
+            <div className="border-t border-border/70 pt-4">
+              <div className="space-y-2">
+                {Array.from({ length: 5 }).map((_, index) => (
+                  <div className="flex items-center gap-3" key={index}>
+                    <Skeleton className="h-4 w-8 rounded-none" />
+                    <Skeleton className="h-2 flex-1 rounded-none" />
+                    <Skeleton className="h-4 w-10 rounded-none" />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Skeleton className="h-9 w-36 rounded-none" />
+              <Skeleton className="h-9 w-24 rounded-none" />
+              <Skeleton className="size-9 rounded-none" />
+            </div>
           </div>
+
+          <div className="space-y-4 border border-border/70 px-4 py-4">
+            <Skeleton className="h-3 w-20 rounded-none" />
+            <Skeleton className="h-4 w-full rounded-none" />
+            <Skeleton className="mt-4 h-3 w-16 rounded-none" />
+            <Skeleton className="h-8 w-12 rounded-none" />
+          </div>
+        </div>
+      </div>
+
+      <div className="space-y-4 border-t border-border/60 pt-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Skeleton className="h-6 w-28 rounded-none" />
+          <div className="flex items-center gap-2">
+            <Skeleton className="h-7 w-14 rounded-full" />
+            <Skeleton className="h-7 w-14 rounded-full" />
+          </div>
+        </div>
+
+        <div className="space-y-3 rounded-none border border-border/70 bg-white p-4">
+          <div className="flex flex-wrap items-end gap-3">
+            <Skeleton className="h-12 w-40 rounded-none" />
+            <Skeleton className="h-10 flex-1 rounded-none" />
+          </div>
+          <Skeleton className="h-28 w-full rounded-none" />
+          <Skeleton className="h-10 w-full max-w-[12rem] rounded-none" />
+        </div>
+
+        <div className="space-y-4 bg-white px-4 py-4">
+          {Array.from({ length: 2 }).map((_, index) => (
+            <div className="border-b border-border/60 pb-4 last:border-b-0" key={index}>
+              <div className="flex gap-3">
+                <Skeleton className="size-10 shrink-0 rounded-full" />
+                <div className="min-w-0 flex-1 space-y-2">
+                  <Skeleton className="h-4 w-36 rounded-none" />
+                  <Skeleton className="h-3.5 w-full rounded-none" />
+                  <Skeleton className="h-3.5 w-4/5 rounded-none" />
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </ImmersivePageShell>
