@@ -1,18 +1,19 @@
 import { describe, expect, it } from "vitest";
 import {
   buildCircleMediaItems,
-  buildVirtualCircleRows,
   getCircleColumnCount,
   getCircleCardMediaAspectClass,
   getLoopedNextIndex,
-  getLoopedPrevIndex
+  getLoopedPrevIndex,
+  partitionCircleFeedIntoColumns,
+  partitionCircleFeedShortestColumn
 } from "../src/routes/circle-page-helpers";
 
 describe("circle page helpers", () => {
-  it("cycles portrait aspect ratios near 9:16 without a fixed three-column pattern", () => {
-    expect(getCircleCardMediaAspectClass(0)).toBe("aspect-[9/16]");
-    expect(getCircleCardMediaAspectClass(3)).toBe("aspect-[9/15]");
-    expect(getCircleCardMediaAspectClass(5)).toBe("aspect-[9/16]");
+  it("cycles shorter portrait ratios for web without a fixed three-column pattern", () => {
+    expect(getCircleCardMediaAspectClass(0)).toBe("aspect-[3/4]");
+    expect(getCircleCardMediaAspectClass(3)).toBe("aspect-[2/3]");
+    expect(getCircleCardMediaAspectClass(5)).toBe("aspect-[3/4]");
   });
 
   it("builds image media items unless a video exists", () => {
@@ -48,39 +49,44 @@ describe("circle page helpers", () => {
     expect(getCircleColumnCount(768)).toBe(2);
     expect(getCircleColumnCount(1200)).toBe(3);
     expect(getCircleColumnCount(1440)).toBe(4);
+    expect(getCircleColumnCount(1600)).toBe(5);
   });
 
-  it("groups posts into virtual rows while preserving order", () => {
+  it("partitions posts into round-robin columns with stable absoluteIndex", () => {
     expect(
-      buildVirtualCircleRows(
-        [
-          { id: "a" },
-          { id: "b" },
-          { id: "c" },
-          { id: "d" },
-          { id: "e" }
-        ],
+      partitionCircleFeedIntoColumns(
+        [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }],
         2
       )
     ).toEqual([
-      {
-        id: "a:b",
-        items: [
-          { id: "a", absoluteIndex: 0 },
-          { id: "b", absoluteIndex: 1 }
-        ]
-      },
-      {
-        id: "c:d",
-        items: [
-          { id: "c", absoluteIndex: 2 },
-          { id: "d", absoluteIndex: 3 }
-        ]
-      },
-      {
-        id: "e",
-        items: [{ id: "e", absoluteIndex: 4 }]
-      }
+      [
+        { item: { id: "a" }, absoluteIndex: 0 },
+        { item: { id: "c" }, absoluteIndex: 2 },
+        { item: { id: "e" }, absoluteIndex: 4 }
+      ],
+      [
+        { item: { id: "b" }, absoluteIndex: 1 },
+        { item: { id: "d" }, absoluteIndex: 3 }
+      ]
+    ]);
+  });
+
+  it("partitions into shortest-column stacks by estimated card height", () => {
+    expect(
+      partitionCircleFeedShortestColumn(
+        [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }, { id: "e" }],
+        2
+      )
+    ).toEqual([
+      [
+        { item: { id: "a" }, absoluteIndex: 0 },
+        { item: { id: "d" }, absoluteIndex: 3 }
+      ],
+      [
+        { item: { id: "b" }, absoluteIndex: 1 },
+        { item: { id: "c" }, absoluteIndex: 2 },
+        { item: { id: "e" }, absoluteIndex: 4 }
+      ]
     ]);
   });
 });

@@ -1,9 +1,11 @@
+import { useMemo } from "react";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import {
   CIRCLE_CARD_COLUMN_GAP,
-  CIRCLE_CARD_COLUMN_WIDTH,
-  getCircleCardMediaAspectClass
+  getCircleCardMediaAspectClass,
+  partitionCircleFeedShortestColumn
 } from "@/routes/circle-page-helpers";
 
 export const MODEL_GRID_CLASS_NAME =
@@ -80,38 +82,52 @@ export function FeedStreamSkeleton(props: { rows?: number }) {
   );
 }
 
-export function MasonryFeedSkeleton(props: { count?: number; columnWidth?: number | string; columnGap?: number | string }) {
+export function MasonryFeedSkeleton(props: {
+  count?: number;
+  columnCount?: number;
+  columnGap?: number | string;
+}) {
+  const count = props.count ?? 9;
+  const columnGap = props.columnGap ?? CIRCLE_CARD_COLUMN_GAP;
+  const columnCount = useCircleColumnCount(props.columnCount);
+
+  const skeletonColumns = useMemo(() => {
+    const slots = Array.from({ length: count }, (_, index) => index);
+    return partitionCircleFeedShortestColumn(slots, columnCount);
+  }, [count, columnCount]);
+
   return (
     <div
-      className="w-full"
+      className="grid w-full min-w-0"
       style={{
-        columnWidth: props.columnWidth ?? CIRCLE_CARD_COLUMN_WIDTH,
-        columnGap: props.columnGap ?? CIRCLE_CARD_COLUMN_GAP
+        gap: columnGap,
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
       }}
     >
-      {Array.from({ length: props.count ?? 9 }).map((_, index) => (
-        <div
-          className="mb-2.5 break-inside-avoid overflow-hidden rounded-[1.15rem] bg-white xl:mx-auto xl:max-w-[13.5rem]"
-          key={index}
-        >
-          <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
-            <Skeleton className={`w-full rounded-[1rem] ${getCircleCardMediaAspectClass(index)}`} />
-            {index % 4 === 1 ? (
-              <div className="absolute right-3 top-3">
-                <Skeleton className="size-7 rounded-full" />
+      {skeletonColumns.map((column, colIndex) => (
+        <div className="flex min-w-0 flex-col" key={colIndex} style={{ gap: columnGap }}>
+          {column.map(({ item: slotIndex, absoluteIndex }) => (
+            <div className="overflow-hidden rounded-[1.15rem] bg-white" key={slotIndex}>
+              <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
+                <Skeleton className={`w-full rounded-[1rem] ${getCircleCardMediaAspectClass(absoluteIndex)}`} />
+                {absoluteIndex % 4 === 1 ? (
+                  <div className="absolute right-3 top-3">
+                    <Skeleton className="size-7 rounded-full" />
+                  </div>
+                ) : null}
               </div>
-            ) : null}
-          </div>
-          <div className="space-y-1.5 px-3 pb-3 pt-1.5">
-            <Skeleton className="h-4.5 w-4/5" />
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <Skeleton className="size-6 rounded-full" />
-                <Skeleton className="h-3.5 w-20" />
+              <div className="space-y-1.5 px-3 pb-3 pt-1.5">
+                <Skeleton className="h-4.5 w-4/5" />
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <Skeleton className="size-6 rounded-full" />
+                    <Skeleton className="h-3.5 w-20" />
+                  </div>
+                  <Skeleton className="h-3.5 w-8" />
+                </div>
               </div>
-              <Skeleton className="h-3.5 w-8" />
             </div>
-          </div>
+          ))}
         </div>
       ))}
     </div>

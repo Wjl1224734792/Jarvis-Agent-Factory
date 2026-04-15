@@ -1,17 +1,16 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useMemo } from "react";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VirtualFeed } from "@/components/virtual-feed";
 import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
-  buildVirtualCircleRows,
   getCircleCardMediaAspectClass,
-  getCircleColumnCount
+  partitionCircleFeedShortestColumn
 } from "./circle-page-helpers";
 
 const feedTabs = [
@@ -49,14 +48,6 @@ type CirclePageFeedProps = {
   errorMessage?: string;
   formatCount: (value: number) => string;
 };
-
-function getInitialColumnCount() {
-  if (typeof window === "undefined") {
-    return 3;
-  }
-
-  return getCircleColumnCount(window.innerWidth);
-}
 
 function CircleFeedCard(props: {
   item: CircleFeedItem;
@@ -125,22 +116,12 @@ export function CirclePageFeed({
   errorMessage,
   formatCount
 }: CirclePageFeedProps) {
-  const [columnCount, setColumnCount] = useState(getInitialColumnCount);
+  const columnCount = useCircleColumnCount();
 
-  useEffect(() => {
-    function syncColumnCount() {
-      setColumnCount(getCircleColumnCount(window.innerWidth));
-    }
-
-    syncColumnCount();
-    window.addEventListener("resize", syncColumnCount);
-
-    return () => {
-      window.removeEventListener("resize", syncColumnCount);
-    };
-  }, []);
-
-  const rows = useMemo(() => buildVirtualCircleRows(posts, columnCount), [posts, columnCount]);
+  const columns = useMemo(
+    () => partitionCircleFeedShortestColumn(posts, columnCount),
+    [posts, columnCount]
+  );
 
   return (
     <>
@@ -177,25 +158,26 @@ export function CirclePageFeed({
         </Alert>
       ) : null}
 
-      {isLoading ? <MasonryFeedSkeleton count={10} /> : null}
+      {isLoading ? <MasonryFeedSkeleton columnCount={columnCount} count={10} /> : null}
 
       {posts.length > 0 ? (
         <div className="site-tab-panel relative w-full">
-          <VirtualFeed
-            className="!border-0 bg-transparent"
-            data={rows}
-            itemKey={(row) => row.id}
-            renderItem={(row) => (
+          <div
+            className="grid w-full min-w-0"
+            style={{
+              gap: CIRCLE_CARD_COLUMN_GAP,
+              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
+            }}
+          >
+            {columns.map((column, colIndex) => (
               <div
-                className="grid items-start"
-                style={{
-                  gap: CIRCLE_CARD_COLUMN_GAP,
-                  gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-                }}
+                className="flex min-w-0 flex-col"
+                key={colIndex}
+                style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
               >
-                {row.items.map((item) => (
+                {column.map(({ item, absoluteIndex }) => (
                   <CircleFeedCard
-                    absoluteIndex={item.absoluteIndex}
+                    absoluteIndex={absoluteIndex}
                     formatCount={formatCount}
                     item={item}
                     key={item.id}
@@ -204,14 +186,12 @@ export function CirclePageFeed({
                   />
                 ))}
               </div>
-            )}
-            showItemDividers={false}
-            useWindowScroll
-          />
+            ))}
+          </div>
 
           {isRefreshing ? (
             <div className="absolute inset-0 z-10 bg-background/78 p-1.5 backdrop-blur-[1px]">
-              <MasonryFeedSkeleton count={10} />
+              <MasonryFeedSkeleton columnCount={columnCount} count={10} />
             </div>
           ) : null}
         </div>
