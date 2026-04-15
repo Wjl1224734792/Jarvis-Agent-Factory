@@ -7,7 +7,9 @@ const cwd = fileURLToPath(workspaceRoot);
 function processEnv() {
   return {
     ...process.env,
-    E2E_ADMIN_BASE_URL: process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001"
+    E2E_BASE_URL: process.env.E2E_BASE_URL ?? "http://localhost:17380",
+    E2E_ADMIN_BASE_URL: process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:17381",
+    E2E_SERVER_BASE_URL: process.env.E2E_SERVER_BASE_URL ?? "http://localhost:17382"
   };
 }
 
@@ -60,10 +62,12 @@ function startManagedProcess(command) {
 }
 
 async function ensureDevServers() {
-  const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:3001";
+  const webBaseUrl = process.env.E2E_BASE_URL ?? "http://localhost:17380";
+  const adminBaseUrl = process.env.E2E_ADMIN_BASE_URL ?? "http://localhost:17381";
+  const serverBaseUrl = process.env.E2E_SERVER_BASE_URL ?? "http://localhost:17382";
   const urls = [
-    "http://localhost:3002/health",
-    "http://localhost:3000",
+    `${serverBaseUrl}/health`,
+    webBaseUrl,
     `${adminBaseUrl}/admin/login`
   ];
 

@@ -6,6 +6,13 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
+import {
+  buildAdminCommentQueryKey,
+  countPendingAdminComments,
+  shouldEnableAdminCommentQuery,
+  type AdminCommentStatus,
+  type CommentDomain
+} from "./post-comments-page-helpers";
 
 const statusOptions = [
   { label: "全部", value: "all" },
@@ -26,8 +33,7 @@ const domainSegmentedOptions: Array<{ label: string; value: string }> = domainOp
   value: item.value
 }));
 
-type CommentStatusFilter = (typeof statusOptions)[number]["value"];
-type CommentDomain = (typeof domainOptions)[number]["value"];
+type CommentStatusFilter = AdminCommentStatus;
 
 type UnifiedRecord = {
   key: string;
@@ -92,35 +98,46 @@ export function PostCommentsPage() {
     queryKey: ["admin-comment-site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+  const activeStatus = status === "all" ? undefined : status;
   const postCommentsQuery = useQuery({
-    queryKey: ["admin-post-comments-all"],
-    queryFn: () => apiClient.listAdminPostComments()
+    queryKey: buildAdminCommentQueryKey("post", status),
+    queryFn: () => apiClient.listAdminPostComments(activeStatus),
+    enabled: shouldEnableAdminCommentQuery(domain, "post")
   });
   const reviewCommentsQuery = useQuery({
-    queryKey: ["admin-review-comments-all"],
-    queryFn: () => apiClient.listAdminReviewComments()
+    queryKey: buildAdminCommentQueryKey("review", status),
+    queryFn: () => apiClient.listAdminReviewComments(activeStatus),
+    enabled: shouldEnableAdminCommentQuery(domain, "review")
   });
   const modelCommentsQuery = useQuery({
-    queryKey: ["admin-model-comments-all"],
-    queryFn: () => apiClient.listAdminModelComments()
+    queryKey: buildAdminCommentQueryKey("model", status),
+    queryFn: () => apiClient.listAdminModelComments(activeStatus),
+    enabled: shouldEnableAdminCommentQuery(domain, "model")
   });
   const rankingCommentsQuery = useQuery({
-    queryKey: ["admin-ranking-comments-all"],
-    queryFn: () => apiClient.listAdminRankingComments()
+    queryKey: buildAdminCommentQueryKey("ranking", status),
+    queryFn: () => apiClient.listAdminRankingComments(activeStatus),
+    enabled: shouldEnableAdminCommentQuery(domain, "ranking")
   });
   const ratingTargetCommentsQuery = useQuery({
-    queryKey: ["admin-rating-target-comments-all"],
-    queryFn: () => apiClient.listAdminRatingTargetComments()
+    queryKey: buildAdminCommentQueryKey("rating-target", status),
+    queryFn: () => apiClient.listAdminRatingTargetComments(activeStatus),
+    enabled: shouldEnableAdminCommentQuery(domain, "rating-target")
   });
 
-  async function refreshAll() {
-    await Promise.all([
-      postCommentsQuery.refetch(),
-      reviewCommentsQuery.refetch(),
-      modelCommentsQuery.refetch(),
-      rankingCommentsQuery.refetch(),
-      ratingTargetCommentsQuery.refetch()
-    ]);
+  const currentDomainQuery =
+    domain === "post"
+      ? postCommentsQuery
+      : domain === "review"
+        ? reviewCommentsQuery
+        : domain === "model"
+          ? modelCommentsQuery
+          : domain === "ranking"
+            ? rankingCommentsQuery
+            : ratingTargetCommentsQuery;
+
+  async function refreshCurrentDomain() {
+    await currentDomainQuery.refetch();
   }
 
   async function updateModeration(enabled: boolean) {
@@ -136,7 +153,7 @@ export function PostCommentsPage() {
           commentModerationEnabled: enabled
         })
       );
-      await Promise.all([siteSettingsQuery.refetch(), refreshAll()]);
+      await Promise.all([siteSettingsQuery.refetch(), refreshCurrentDomain()]);
     } catch (reason: unknown) {
       setSettingsError(reason instanceof Error ? reason.message : "更新评论审核开关失败");
     } finally {
@@ -219,9 +236,7 @@ export function PostCommentsPage() {
       );
   }, [domain, records, searchText, status]);
 
-  const pendingCount = Object.values(records)
-    .flat()
-    .filter((item) => item.status === "pending").length;
+  const pendingCount = countPendingAdminComments(records[domain]);
 
   return (
     <AdminPage
@@ -340,7 +355,7 @@ export function PostCommentsPage() {
                     setError(null);
                     void record
                       .onToggle()
-                      .then(() => refreshAll())
+                      .then(() => refreshCurrentDomain())
                       .catch((reason: unknown) => {
                         setError(reason instanceof Error ? reason.message : "更新评论状态失败");
                       });
@@ -357,13 +372,7 @@ export function PostCommentsPage() {
           ]}
           dataSource={filteredItems}
           locale={{ emptyText: <Empty description="当前筛选下没有评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
-          loading={
-            postCommentsQuery.isLoading ||
-            reviewCommentsQuery.isLoading ||
-            modelCommentsQuery.isLoading ||
-            rankingCommentsQuery.isLoading ||
-            ratingTargetCommentsQuery.isLoading
-          }
+          loading={currentDomainQuery.isLoading || currentDomainQuery.isFetching}
           rowKey={(record) => record.key}
           size="middle"
         />

@@ -13,6 +13,7 @@ import {
   usersTable
 } from "@feijia/db";
 import { eq } from "drizzle-orm";
+import { buildAdminReportEvidenceImages } from "./admin-reports.helpers";
 import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 
 type ReportKind =
@@ -61,11 +62,10 @@ async function serializeReportRows(
         avatarUrl: await resolveUploadedFileUrl(row.reporter.avatarFileId),
         role: row.reporter.role as "user" | "admin"
       },
-      evidenceImages: (await resolveUploadedFileUrls(parseImageIds(row.imageFileIds))).map((url, index) => ({
-        id: `${row.id}-${index}`,
-        url,
-        fileName: null
-      }))
+      evidenceImages: buildAdminReportEvidenceImages(
+        row.id,
+        await resolveUploadedFileUrls(parseImageIds(row.imageFileIds))
+      )
     }))
   );
 }

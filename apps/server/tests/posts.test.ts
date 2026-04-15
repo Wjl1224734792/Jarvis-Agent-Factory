@@ -589,6 +589,61 @@ describe.sequential("posts and social flows", () => {
     expect(target?.viewer.hasReported).toBe(true);
   });
 
+  it("returns generic admin report details with schema-complete evidence images", async () => {
+    const authorCookie = await loginWebUser("13800138177");
+    const created = await createPost(authorCookie, {
+      type: "moment",
+      title: "Admin report detail source",
+      content: "A published post that will be reported."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+
+    const reporterCookie = await loginWebUser("13800138178");
+    const reportImage = await uploadReportImage(reporterCookie, "post-report.png");
+    const reportResponse = await app.request(API_ROUTES.posts.report(created.item.id), {
+      method: "POST",
+      headers: {
+        cookie: reporterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        reason: "需要管理员核查",
+        imageIds: [reportImage.item.id]
+      })
+    });
+    expect(reportResponse.status).toBe(200);
+
+    const adminReportResponse = await app.request(
+      API_ROUTES.admin.reportDetail("post", created.item.id),
+      {
+        method: "GET",
+        headers: { cookie: adminCookie }
+      }
+    );
+    expect(adminReportResponse.status).toBe(200);
+
+    const adminReportPayload = (await adminReportResponse.json()) as {
+      items: Array<{
+        reason: string;
+        evidenceImages: Array<{
+          id: string;
+          url: string;
+          fileName: string | null;
+          mimeType: string;
+          byteSize: number;
+        }>;
+      }>;
+    };
+
+    expect(adminReportPayload.items[0]?.reason).toBe("需要管理员核查");
+    expect(adminReportPayload.items[0]?.evidenceImages[0]).toMatchObject({
+      fileName: "report-1.png",
+      mimeType: "image/png",
+      byteSize: 0
+    });
+  });
+
   it("tracks real post views per session and keeps them decoupled from interactions", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {

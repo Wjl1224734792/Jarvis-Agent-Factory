@@ -19,7 +19,7 @@ multi_agent = true
 
 | 代理 | 职责 | 当前模型 |
 |------|------|----------|
-| `task_design` | 需求拆解、DDD/TDD 分类 | `gpt-5.4-mini` |
+| `task_design` | 需求拆解、DDD/TDD 分类 | `gpt-5.4` |
 | `planner` | 执行计划、分工与 Execution Packet | `gpt-5.4` |
 | `review_qa` | 需求一致性、实现质量与回归审查 | `gpt-5.4` |
 
@@ -27,8 +27,8 @@ multi_agent = true
 
 | 代理 | 职责 | 当前模型 |
 |------|------|----------|
-| `repo_explorer` | 只读探索代码库与风险边界 | `gpt-5.3-codex-spark` |
-| `docs_researcher` | 外部文档与示例检索 | `gpt-5.4-mini` |
+| `repo_explorer` | 只读探索代码库与风险边界 | `gpt-5.3-codex` |
+| `docs_researcher` | 外部文档与示例检索 | `gpt-5.4` |
 
 ### 前端实现
 

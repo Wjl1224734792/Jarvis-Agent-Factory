@@ -5,6 +5,7 @@ import {
   requireAdmin,
   type AuthVariables
 } from "../auth/auth.middleware";
+import { parseAdminReportRecordsResponse } from "./admin-reports.helpers";
 import { adminReportsService } from "./admin-reports.service";
 
 export const adminReportsRoute = new Hono<{ Variables: AuthVariables }>();
@@ -42,5 +43,5 @@ adminReportsRoute.get(API_ROUTES.admin.reportDetail(":kind", ":id"), requireAdmi
   }
 
   const payload = await adminReportsService.getReportDetails(kind, id);
-  return context.json(payload);
+  return context.json(parseAdminReportRecordsResponse(payload));
 });

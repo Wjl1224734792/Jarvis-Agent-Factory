@@ -66,7 +66,7 @@ export function partitionCircleFeedIntoColumns<T>(items: T[], columnCount: numbe
 export function partitionCircleFeedShortestColumn<T>(items: T[], columnCount: number): CircleFeedColumnCell<T>[][] {
   const n = normalizeCircleColumnCount(columnCount);
   const columns: CircleFeedColumnCell<T>[][] = Array.from({ length: n }, () => []);
-  const scores = new Array(n).fill(0);
+  const scores: number[] = Array.from({ length: n }, () => 0);
 
   for (let absoluteIndex = 0; absoluteIndex < items.length; absoluteIndex += 1) {
     let targetCol = 0;
