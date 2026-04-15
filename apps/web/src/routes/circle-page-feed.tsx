@@ -9,6 +9,7 @@ import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
+  CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
   getCircleCardMediaAspectClass,
   partitionCircleFeedShortestColumn
 } from "./circle-page-helpers";
@@ -68,10 +69,16 @@ function CircleFeedCard(props: {
       onClick={() => openNote(item.id)}
       type="button"
     >
-      <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
+      <div
+        className={cn(
+          "relative w-full overflow-hidden rounded-[1rem] bg-slate-100",
+          CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
+          getCircleCardMediaAspectClass(absoluteIndex)
+        )}
+      >
         <img
           alt={item.title}
-          className={cn("w-full rounded-[1rem] object-cover", getCircleCardMediaAspectClass(absoluteIndex))}
+          className="h-full w-full rounded-[1rem] object-cover"
           src={previewImage}
         />
         {item.videos.length > 0 ? (

@@ -3,7 +3,7 @@ import { getCircleColumnCount } from "@/routes/circle-page-helpers";
 
 function getInitialCircleColumnCount() {
   if (typeof window === "undefined") {
-    return 3;
+    return 2;
   }
 
   return getCircleColumnCount(window.innerWidth);

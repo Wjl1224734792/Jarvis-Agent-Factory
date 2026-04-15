@@ -26,6 +26,16 @@ const CARD_META_RELATIVE_HEIGHT = 0.42;
 export const CIRCLE_CARD_COLUMN_WIDTH = "13.35rem";
 export const CIRCLE_CARD_COLUMN_GAP = "8px";
 
+/** 飞友圈至少两列，避免单列下过宽、封面竖版比例显得过高 */
+export const CIRCLE_FEED_MIN_COLUMNS = 2;
+
+/** 封面区最大高度（与竖版 aspect 同时生效，避免图区过长） */
+export const CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS = "max-h-[min(22rem,70vh)]";
+
+function normalizeCircleColumnCount(columnCount: number): number {
+  return Math.max(CIRCLE_FEED_MIN_COLUMNS, Math.max(1, Math.floor(columnCount)));
+}
+
 function estimateCardRelativeHeight(absoluteIndex: number): number {
   const wh = masonryAspectRatioWh[absoluteIndex % masonryAspectRatioWh.length];
   const imageHeight = 1 / wh;
@@ -39,7 +49,7 @@ export type CircleFeedColumnCell<T> = {
 
 /** 按索引轮转落列（第 i 条进 i % columnCount 列），保证从左到右、从上到下的阅读顺序 */
 export function partitionCircleFeedIntoColumns<T>(items: T[], columnCount: number): CircleFeedColumnCell<T>[][] {
-  const n = Math.max(1, Math.floor(columnCount));
+  const n = normalizeCircleColumnCount(columnCount);
   const columns: CircleFeedColumnCell<T>[][] = Array.from({ length: n }, () => []);
 
   for (let absoluteIndex = 0; absoluteIndex < items.length; absoluteIndex += 1) {
@@ -54,7 +64,7 @@ export function partitionCircleFeedIntoColumns<T>(items: T[], columnCount: numbe
 
 /** 按估算高度放入当前最短列（小红书式瀑布），absoluteIndex 与封面比例一致 */
 export function partitionCircleFeedShortestColumn<T>(items: T[], columnCount: number): CircleFeedColumnCell<T>[][] {
-  const n = Math.max(1, Math.floor(columnCount));
+  const n = normalizeCircleColumnCount(columnCount);
   const columns: CircleFeedColumnCell<T>[][] = Array.from({ length: n }, () => []);
   const scores = new Array(n).fill(0);
 
@@ -83,10 +93,6 @@ export function getCircleCardMediaAspectClass(index: number) {
 }
 
 export function getCircleColumnCount(viewportWidth: number) {
-  if (viewportWidth < 640) {
-    return 1;
-  }
-
   if (viewportWidth < 960) {
     return 2;
   }

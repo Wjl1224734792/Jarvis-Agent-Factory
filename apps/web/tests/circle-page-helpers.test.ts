@@ -45,7 +45,7 @@ describe("circle page helpers", () => {
   });
 
   it("derives responsive circle column counts from viewport width", () => {
-    expect(getCircleColumnCount(375)).toBe(1);
+    expect(getCircleColumnCount(375)).toBe(2);
     expect(getCircleColumnCount(768)).toBe(2);
     expect(getCircleColumnCount(1200)).toBe(3);
     expect(getCircleColumnCount(1440)).toBe(4);

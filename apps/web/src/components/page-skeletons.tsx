@@ -1,9 +1,11 @@
 import { useMemo } from "react";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import {
   CIRCLE_CARD_COLUMN_GAP,
+  CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
   getCircleCardMediaAspectClass,
   partitionCircleFeedShortestColumn
 } from "@/routes/circle-page-helpers";
@@ -109,7 +111,13 @@ export function MasonryFeedSkeleton(props: {
           {column.map(({ item: slotIndex, absoluteIndex }) => (
             <div className="overflow-hidden rounded-[1.15rem] bg-white" key={slotIndex}>
               <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
-                <Skeleton className={`w-full rounded-[1rem] ${getCircleCardMediaAspectClass(absoluteIndex)}`} />
+                <Skeleton
+                  className={cn(
+                    "w-full rounded-[1rem]",
+                    CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
+                    getCircleCardMediaAspectClass(absoluteIndex)
+                  )}
+                />
                 {absoluteIndex % 4 === 1 ? (
                   <div className="absolute right-3 top-3">
                     <Skeleton className="size-7 rounded-full" />
