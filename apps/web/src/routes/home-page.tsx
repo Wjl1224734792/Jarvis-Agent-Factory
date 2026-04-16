@@ -15,6 +15,11 @@ import { VirtualFeed } from "@/components/virtual-feed";
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { getEditorialImage } from "../lib/aviation-media";
+import {
+  combineHomeFeedRequestSignal,
+  getHomeFeedErrorDescription,
+  HOME_FEED_FETCH_TIMEOUT_MS
+} from "../lib/home-feed-query";
 import { apiClient } from "../lib/api-client";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 import { cn } from "../lib/utils";
@@ -217,11 +222,14 @@ export function HomePage() {
       activeTab.kind === "category" ? activeTab.slug : null
     ],
     placeholderData: keepPreviousData,
-    queryFn: () =>
-      apiClient.listHomeFeed({
-        tab: activeTab.kind === "fixed" ? activeTab.id : "recommended",
-        categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined
-      })
+    queryFn: ({ signal }) =>
+      apiClient.listHomeFeed(
+        {
+          tab: activeTab.kind === "fixed" ? activeTab.id : "recommended",
+          categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined
+        },
+        { signal: combineHomeFeedRequestSignal(signal) }
+      )
   });
 
   const modelsQuery = useQuery({
@@ -309,7 +317,9 @@ export function HomePage() {
               {feedQuery.isError ? (
                 <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
-                <AlertDescription>{feedQuery.error.message}</AlertDescription>
+                <AlertDescription>
+                  {getHomeFeedErrorDescription(feedQuery.error, HOME_FEED_FETCH_TIMEOUT_MS)}
+                </AlertDescription>
               </Alert>
             ) : null}
 
@@ -334,7 +344,7 @@ export function HomePage() {
                   ) : null
                 }
                 itemKey={(item) => item.id}
-                refetchFooterLabel="更新中…"
+                refetchFooterLabel="加载中…"
                 renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
                 showRefetchFooter={feedQuery.isRefetching}
                 useWindowScroll

@@ -659,7 +659,7 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminRecentSessionsResponseSchema);
     },
-    async listHomeFeed(input: HomeFeedInput) {
+    async listHomeFeed(input: HomeFeedInput, options?: { signal?: AbortSignal }) {
       const normalized =
         typeof input === "string"
           ? { tab: input, categorySlug: undefined }
@@ -672,7 +672,8 @@ export function createApiClient(options: ApiClientOptions) {
 
       const response = await fetch(`${baseUrl}${API_ROUTES.feed}?${search.toString()}`, {
         method: "GET",
-        credentials: "include"
+        credentials: "include",
+        signal: options?.signal
       });
 
       return readJson(response, homeFeedResponseSchema);
