@@ -23,11 +23,26 @@ const masonryAspectRatioWh = [3 / 4, 4 / 5, 5 / 7, 2 / 3, 7 / 10] as const;
 /** 卡片在「宽度归一化为 1」时，标题+作者+点赞区近似高度（与封面估算相加用于最短列） */
 const CARD_META_RELATIVE_HEIGHT = 0.42;
 
-export const CIRCLE_CARD_COLUMN_WIDTH = "13.35rem";
+/** 与下列 gap 像素值对应，用于需要 rem 的样式时（根字号 16px 时约 16rem≈256px） */
+export const CIRCLE_CARD_COLUMN_WIDTH = "16rem";
+
 export const CIRCLE_CARD_COLUMN_GAP = "8px";
+
+/** 与 `CIRCLE_CARD_COLUMN_GAP` 一致，供列数公式使用 */
+export const CIRCLE_CARD_COLUMN_GAP_PX = 8;
+
+/** 目标单列宽度（px）：网格按此与间距推算列数，避免宽屏仅 3 列导致卡片过宽 */
+export const CIRCLE_CARD_IDEAL_WIDTH_PX = 256;
+
+/** 单列过窄时再减列；过宽时再加列（在最大列数内） */
+export const CIRCLE_CARD_SOFT_MIN_WIDTH_PX = 200;
+export const CIRCLE_CARD_SOFT_MAX_WIDTH_PX = 320;
 
 /** 飞友圈至少两列，避免单列下过宽、封面竖版比例显得过高 */
 export const CIRCLE_FEED_MIN_COLUMNS = 2;
+
+/** 与瀑布流 masonry 分区上限一致 */
+export const CIRCLE_FEED_MAX_COLUMNS = 8;
 
 /** 封面区最大高度（与竖版 aspect 同时生效，避免图区过长） */
 export const CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS = "max-h-[min(22rem,70vh)]";
@@ -92,32 +107,52 @@ export function getCircleCardMediaAspectClass(index: number) {
   return masonryAspectClasses[index % masonryAspectClasses.length];
 }
 
-export function getCircleColumnCount(viewportWidth: number) {
-  if (viewportWidth < 960) {
-    return 2;
+function circleColumnWidthForCount(contentWidthPx: number, columnCount: number, gapPx: number): number {
+  if (columnCount <= 0) {
+    return 0;
   }
 
-  if (viewportWidth < 1280) {
-    return 3;
+  return (contentWidthPx - (columnCount - 1) * gapPx) / columnCount;
+}
+
+/**
+ * 按内容区可用宽度与目标单列宽度推算列数（用于 `repeat(n, minmax(0,1fr))` 铺满时的观感上限）。
+ * 无可用宽度时返回 {@link CIRCLE_FEED_MIN_COLUMNS}。
+ */
+export function getCircleColumnCountForContentWidth(contentWidthPx: number): number {
+  const gap = CIRCLE_CARD_COLUMN_GAP_PX;
+  const minCols = CIRCLE_FEED_MIN_COLUMNS;
+  const maxCols = CIRCLE_FEED_MAX_COLUMNS;
+  const ideal = CIRCLE_CARD_IDEAL_WIDTH_PX;
+  const softMin = CIRCLE_CARD_SOFT_MIN_WIDTH_PX;
+  const softMax = CIRCLE_CARD_SOFT_MAX_WIDTH_PX;
+
+  const w = Math.max(0, contentWidthPx);
+  if (w <= 0) {
+    return minCols;
   }
 
-  if (viewportWidth < 1536) {
-    return 4;
+  let n = Math.ceil((w + gap) / (ideal + gap));
+  n = Math.max(minCols, Math.min(maxCols, n));
+
+  let cardW = circleColumnWidthForCount(w, n, gap);
+
+  while (cardW > softMax && n < maxCols) {
+    n += 1;
+    cardW = circleColumnWidthForCount(w, n, gap);
   }
 
-  if (viewportWidth < 1920) {
-    return 5;
+  while (cardW < softMin && n > minCols) {
+    n -= 1;
+    cardW = circleColumnWidthForCount(w, n, gap);
   }
 
-  if (viewportWidth < 2240) {
-    return 6;
-  }
+  return n;
+}
 
-  if (viewportWidth < 2560) {
-    return 7;
-  }
-
-  return 8;
+/** 按视口或内容区宽度推算列数；未测量容器时可用 `window.innerWidth` 近似。 */
+export function getCircleColumnCount(widthPx: number) {
+  return getCircleColumnCountForContentWidth(widthPx);
 }
 
 export function buildCircleMediaItems(input: {

@@ -1,5 +1,5 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
@@ -124,7 +124,8 @@ export function CirclePageFeed({
   errorMessage,
   formatCount
 }: CirclePageFeedProps) {
-  const columnCount = useCircleColumnCount();
+  const feedMeasureRef = useRef<HTMLDivElement>(null);
+  const columnCount = useCircleColumnCount(undefined, { widthElementRef: feedMeasureRef });
 
   const columns = useMemo(
     () => partitionCircleFeedShortestColumn(posts, columnCount),
@@ -132,7 +133,7 @@ export function CirclePageFeed({
   );
 
   return (
-    <>
+    <div ref={feedMeasureRef} className="w-full min-w-0">
       <div className="border-b border-border/60">
         <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {feedTabs.map((tab) => (
@@ -199,6 +200,6 @@ export function CirclePageFeed({
           <FeedRefetchFooter show={isRefetching} />
         </div>
       ) : null}
-    </>
+    </div>
   );
 }
