@@ -16,7 +16,9 @@ export function WebLayout() {
 
   const { pathname } = useLocation();
   const isFeedWideShell =
-    pathname === APP_ROUTES.flightCircle || pathname === APP_ROUTES.rankings;
+    pathname === APP_ROUTES.flightCircle ||
+    pathname === APP_ROUTES.rankings ||
+    pathname === APP_ROUTES.models;
 
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);

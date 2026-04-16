@@ -311,14 +311,14 @@ export function ModelsPage() {
 
   if (isGridLoading) {
     return (
-      <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
+      <SitePage className="w-full min-w-0 gap-4">
         <ModelsPageSkeleton count={10} />
       </SitePage>
     );
   }
 
   return (
-    <SitePage className="mx-auto w-full max-w-[76rem] gap-4">
+    <SitePage className="w-full min-w-0 gap-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
         <div className="space-y-3 xl:order-2 xl:sticky xl:top-[5.5rem] xl:self-start">
           <FilterSection
