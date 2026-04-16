@@ -405,7 +405,7 @@ export function WebTopNav({
               className={cn(
                 "flex min-h-0 min-w-0 flex-1 flex-col",
                 sidebarCollapsed
-                  ? "overflow-hidden !rounded-[9999px] border border-border/35 shadow-[var(--shadow-soft)]"
+                  ? "overflow-hidden !rounded-[9999px] shadow-[var(--shadow-soft)]"
                   : "overflow-x-hidden"
               )}
               variant="muted"
