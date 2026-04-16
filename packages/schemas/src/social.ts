@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { userSummarySchema } from "./auth";
+import { chinaMainlandMobilePhoneSchema } from "./phone";
 import { powerTypeSchema } from "./models";
 
 export const profileVisibilitySchema = z.enum(["community", "followers", "private"]);
@@ -85,7 +86,7 @@ export const currentUserProfileResponseSchema = z.object({
 });
 
 export const phoneChangeRequestInputSchema = z.object({
-  phone: z.string().regex(/^1\d{10}$/),
+  phone: chinaMainlandMobilePhoneSchema,
   captchaChallengeId: z.string().min(1),
   captchaCode: z.string().min(4).max(8)
 });
@@ -97,7 +98,7 @@ export const phoneChangeRequestResponseSchema = z.object({
 });
 
 export const phoneChangeConfirmInputSchema = z.object({
-  phone: z.string().regex(/^1\d{10}$/),
+  phone: chinaMainlandMobilePhoneSchema,
   requestId: z.string().min(1),
   smsCode: z.string().length(6)
 });

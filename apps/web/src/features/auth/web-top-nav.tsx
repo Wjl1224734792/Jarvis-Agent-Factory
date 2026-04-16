@@ -347,21 +347,14 @@ export function WebTopNav({
                 side="left"
               >
                 <SheetHeader className="gap-0 border-b border-sidebar-border/90 bg-gradient-to-br from-primary/[0.07] via-sidebar to-sidebar p-0">
-                  <div className="flex items-start gap-3 px-4 pb-4 pt-5">
+                  <SheetTitle className="sr-only">{APP_NAME}</SheetTitle>
+                  <div className="flex items-center justify-between gap-3 px-4 pb-4 pt-5">
                     <div className="relative h-11 w-11 shrink-0 overflow-hidden rounded-xl border border-primary/18 bg-white shadow-[var(--shadow-soft)]">
                       <img alt={`${APP_NAME} logo`} className="h-full w-full object-cover" src={logoUrl} />
                     </div>
-                    <div className="min-w-0 flex-1 pr-2 pt-0.5">
-                      <SheetTitle className="text-left text-lg font-semibold tracking-tight text-sidebar-foreground">
-                        {APP_NAME}
-                      </SheetTitle>
-                      <p className="mt-1 text-[0.72rem] leading-snug text-muted-foreground">
-                        飞友圈 · 机型库 · 榜单 · 自己
-                      </p>
-                    </div>
                     <SheetClose asChild>
                       <Button
-                        className="mt-0.5 shrink-0 rounded-full text-muted-foreground hover:text-foreground"
+                        className="shrink-0 rounded-full text-muted-foreground hover:text-foreground"
                         size="icon-sm"
                         type="button"
                         variant="ghost"

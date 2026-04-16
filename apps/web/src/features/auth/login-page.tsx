@@ -1,4 +1,5 @@
-﻿import { APP_ROUTES } from "@feijia/shared";
+﻿import { isChinaMainlandMobilePhone } from "@feijia/schemas";
+import { APP_ROUTES } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
 import { resolveSafeRedirectPath } from "@feijia/shared";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
@@ -130,11 +131,12 @@ export function LoginPage() {
                     +86
                   </div>
                   <Input
-                    className="h-12"
+                    className="h-12 min-w-0 md:h-12"
                     id="login-phone"
                     inputMode="numeric"
+                    maxLength={11}
                     onChange={event => {
-                      setPhone(event.target.value);
+                      setPhone(event.target.value.replace(/\D/g, "").slice(0, 11));
                     }}
                     placeholder="请输入手机号"
                     value={phone}
@@ -165,6 +167,10 @@ export function LoginPage() {
                     disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
                     onClick={() => {
                       setSubmitError(null);
+                      if (!isChinaMainlandMobilePhone(phone)) {
+                        setSubmitError("请输入有效的手机号");
+                        return;
+                      }
                       setIsSmsCaptchaOpen(true);
                     }}
                     type="button"
@@ -194,8 +200,13 @@ export function LoginPage() {
                   className="w-full"
                   disabled={isSubmitting}
                   onClick={() => {
-                    setIsSubmitting(true);
                     setSubmitError(null);
+                    if (!isChinaMainlandMobilePhone(phone)) {
+                      setSubmitError("请输入有效的手机号");
+                      return;
+                    }
+
+                    setIsSubmitting(true);
 
                     void apiClient
                       .loginWeb({

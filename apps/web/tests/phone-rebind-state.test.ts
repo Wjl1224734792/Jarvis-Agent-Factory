@@ -15,6 +15,7 @@ describe("phone rebind helpers", () => {
   it("validates when a phone rebind sms can be requested", () => {
     expect(canRequestPhoneRebind({ nextPhone: "13800138123" })).toBe(true);
     expect(canRequestPhoneRebind({ nextPhone: "123" })).toBe(false);
+    expect(canRequestPhoneRebind({ nextPhone: "12000000000" })).toBe(false);
   });
 
   it("validates when a phone rebind can be confirmed", () => {

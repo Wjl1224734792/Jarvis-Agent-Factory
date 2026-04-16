@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import { isChinaMainlandMobilePhone } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   BellIcon,
@@ -46,6 +47,7 @@ import {
 import {
   canConfirmPhoneRebind,
   canRequestPhoneRebind,
+  normalizeChinaMobilePhoneInput,
   resolveMaskedPhone
 } from "../features/auth/phone-rebind-state";
 import { SendSmsCaptchaDialog } from "../features/auth/send-sms-captcha-dialog";
@@ -269,6 +271,10 @@ export function SettingsPage() {
   const displayName = draft.displayName || user.displayName;
   const profileLoading = profileQuery.isLoading && !profileQuery.data;
 
+  const nextPhoneDigits = normalizeChinaMobilePhoneInput(nextPhone);
+  const showNextPhoneInvalid =
+    nextPhoneDigits.length === 11 && !isChinaMainlandMobilePhone(nextPhoneDigits);
+
   function beginEdit(field: Exclude<EditableProfileField, null>) {
     setStatusMessage(null);
     setEditingField(field);
@@ -396,7 +402,7 @@ export function SettingsPage() {
     await phoneSmsFlow.sendSmsCode({
       request: ({ challengeId, captchaCode }) =>
         apiClient.requestPhoneChange({
-          phone: nextPhone.trim(),
+          phone: nextPhoneDigits,
           captchaChallengeId: challengeId,
           captchaCode
         }),
@@ -426,7 +432,7 @@ export function SettingsPage() {
     setPhoneActionError(null);
     try {
       const payload = await apiClient.confirmPhoneChange({
-        phone: nextPhone.trim(),
+        phone: nextPhoneDigits,
         requestId: phoneRequestId,
         smsCode: phoneSmsFlow.smsCode.trim()
       });
@@ -823,11 +829,15 @@ export function SettingsPage() {
                 <Input
                   id="settings-next-phone"
                   inputMode="numeric"
-                  onChange={(event) => setNextPhone(event.target.value)}
+                  maxLength={11}
+                  onChange={(event) => setNextPhone(normalizeChinaMobilePhoneInput(event.target.value))}
                   placeholder="请输入新的手机号"
                   type="tel"
                   value={nextPhone}
                 />
+                {showNextPhoneInvalid ? (
+                  <p className="text-xs text-destructive">请输入有效的手机号</p>
+                ) : null}
               </div>
 
               <Button
