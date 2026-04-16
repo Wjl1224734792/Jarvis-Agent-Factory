@@ -6,7 +6,7 @@ import type {
   PowerType
 } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
-import { SearchIcon } from "lucide-react";
+import { SearchIcon, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
@@ -18,6 +18,14 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle
+} from "@/components/ui/sheet";
+import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { partitionByShortestColumn } from "@/lib/masonry-partition";
 import { apiClient } from "../lib/api-client";
@@ -45,10 +53,10 @@ type WebModelListItem = ModelListItem & {
 };
 
 const powerTypeLabels: Record<PowerType, string> = {
-  electric: "电动",
-  fuel: "燃油",
-  hybrid: "混动",
-  other: "其他"
+  electric: "\u7535\u52a8",
+  fuel: "\u71c3\u6cb9",
+  hybrid: "\u6df7\u52a8",
+  other: "\u5176\u4ed6"
 };
 
 function ensureOtherOption<T extends FilterOption>(items: T[]): T[] {
@@ -56,7 +64,7 @@ function ensureOtherOption<T extends FilterOption>(items: T[]): T[] {
     return items;
   }
 
-  return [...items, { slug: "other", name: "其他" } as T];
+  return [...items, { slug: "other", name: "\u5176\u4ed6" } as T];
 }
 
 function formatActiveNames(items: FilterOption[], activeSlugs: string[], fallback: string) {
@@ -88,7 +96,7 @@ function FilterSection(props: {
       <div className="flex items-center justify-between gap-3">
         <div className="text-sm font-medium text-foreground">{props.title}</div>
         <button className="text-[0.72rem] text-primary" onClick={props.onClear} type="button">
-          全部
+          {"\u5168\u90e8"}
         </button>
       </div>
 
@@ -98,7 +106,7 @@ function FilterSection(props: {
           <Input
             className="pl-9"
             onChange={(event) => props.onSearchChange?.(event.target.value)}
-            placeholder={`搜索${props.title}`}
+            placeholder={"\u641c\u7d22" + props.title}
             value={props.searchValue ?? ""}
           />
         </div>
@@ -114,8 +122,10 @@ function FilterSection(props: {
             onClick={props.onClear}
             type="button"
           >
-            <span>全部</span>
-            {props.activeSlugs.length === 0 ? <span className="text-[0.72rem]">当前</span> : null}
+            <span>{"\u5168\u90e8"}</span>
+            {props.activeSlugs.length === 0 ? (
+              <span className="text-[0.72rem]">{"\u5f53\u524d"}</span>
+            ) : null}
           </button>
 
           {props.items.map((item) => {
@@ -141,7 +151,7 @@ function FilterSection(props: {
                 ) : (
                   <span className="truncate">{item.name}</span>
                 )}
-                {active ? <span className="text-[0.72rem]">已选</span> : null}
+                {active ? <span className="text-[0.72rem]">{"\u5df2\u9009"}</span> : null}
               </button>
             );
           })}
@@ -161,9 +171,9 @@ function PowerSection(props: {
   return (
     <div className={`space-y-2.5 bg-white ${props.compact ? "px-3 py-3" : "px-4 py-4"}`}>
       <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-foreground">动力</div>
+        <div className="text-sm font-medium text-foreground">{"\u52a8\u529b"}</div>
         <button className="text-[0.72rem] text-primary" onClick={props.onReset} type="button">
-          全部
+          {"\u5168\u90e8"}
         </button>
       </div>
 
@@ -183,7 +193,7 @@ function PowerSection(props: {
                 type="button"
               >
                 <span>{option.name}</span>
-                {active ? <span className="text-[0.72rem]">已选</span> : null}
+                {active ? <span className="text-[0.72rem]">{"\u5df2\u9009"}</span> : null}
               </button>
             );
           })}
@@ -236,12 +246,20 @@ export function ModelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [categorySearch, setCategorySearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
+  const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
   const filtersState = readModelFilterParams(searchParams);
   const [keywordDraft, setKeywordDraft] = useState(filtersState.keyword);
 
   useEffect(() => {
     setKeywordDraft(filtersState.keyword);
   }, [filtersState.keyword]);
+
+  useEffect(() => {
+    if (isXlViewport) {
+      setMobileFiltersOpen(false);
+    }
+  }, [isXlViewport]);
 
   const categoryQuery = categorySearch.trim().toLowerCase();
   const brandQuery = brandSearch.trim().toLowerCase();
@@ -310,9 +328,17 @@ export function ModelsPage() {
       ),
     [modelsQuery.data?.items, columnCount]
   );
-  const activeCategoryName = formatActiveNames(categories, filtersState.categorySlugs, "全部分类");
-  const activeBrandName = formatActiveNames(brands, filtersState.brandSlugs, "全部品牌");
-  const activePowerLabel = formatActiveNames(powerTypeOptions, filtersState.powerTypes, "全部动力");
+  const activeCategoryName = formatActiveNames(
+    categories,
+    filtersState.categorySlugs,
+    "\u5168\u90e8\u5206\u7c7b"
+  );
+  const activeBrandName = formatActiveNames(brands, filtersState.brandSlugs, "\u5168\u90e8\u54c1\u724c");
+  const activePowerLabel = formatActiveNames(
+    powerTypeOptions,
+    filtersState.powerTypes,
+    "\u5168\u90e8\u52a8\u529b"
+  );
 
   if (isGridLoading) {
     return (
@@ -322,51 +348,71 @@ export function ModelsPage() {
     );
   }
 
+  const filterPanels = (
+    <>
+      <FilterSection
+        activeSlugs={filtersState.categorySlugs}
+        compact
+        items={visibleCategories}
+        onClear={() => updateParams({ categorySlugs: [] })}
+        onSearchChange={setCategorySearch}
+        onToggle={(slug) => toggleGroupValue("categorySlugs", slug)}
+        searchValue={categorySearch}
+        searchable
+        title={"\u5206\u7c7b"}
+      />
+      <FilterSection
+        activeSlugs={filtersState.brandSlugs}
+        compact
+        items={visibleBrands}
+        onClear={() => updateParams({ brandSlugs: [] })}
+        onSearchChange={setBrandSearch}
+        onToggle={(slug) => toggleGroupValue("brandSlugs", slug)}
+        searchValue={brandSearch}
+        searchable
+        title={"\u54c1\u724c"}
+        withLogo
+      />
+      <PowerSection
+        activePowerTypes={filtersState.powerTypes}
+        compact
+        onReset={() => updateParams({ powerTypes: [] })}
+        onToggle={(slug) => toggleGroupValue("powerTypes", slug)}
+        options={powerTypeOptions}
+      />
+    </>
+  );
+
   return (
     <SitePage className="w-full min-w-0 gap-4">
       <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
-        <div className="space-y-3 xl:order-2 xl:sticky xl:top-[5.5rem] xl:self-start">
-          <FilterSection
-            activeSlugs={filtersState.categorySlugs}
-            compact
-            items={visibleCategories}
-            onClear={() => updateParams({ categorySlugs: [] })}
-            onSearchChange={setCategorySearch}
-            onToggle={(slug) => toggleGroupValue("categorySlugs", slug)}
-            searchValue={categorySearch}
-            searchable
-            title="分类"
-          />
-          <FilterSection
-            activeSlugs={filtersState.brandSlugs}
-            compact
-            items={visibleBrands}
-            onClear={() => updateParams({ brandSlugs: [] })}
-            onSearchChange={setBrandSearch}
-            onToggle={(slug) => toggleGroupValue("brandSlugs", slug)}
-            searchValue={brandSearch}
-            searchable
-            title="品牌"
-            withLogo
-          />
-          <PowerSection
-            activePowerTypes={filtersState.powerTypes}
-            compact
-            onReset={() => updateParams({ powerTypes: [] })}
-            onToggle={(slug) => toggleGroupValue("powerTypes", slug)}
-            options={powerTypeOptions}
-          />
+        <div className="hidden space-y-3 xl:order-2 xl:block xl:sticky xl:top-[5.5rem] xl:self-start">
+          {filterPanels}
         </div>
 
         <div className="space-y-4 xl:order-1">
           <div className="space-y-3 bg-white px-4 py-4">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className="space-y-1">
-                <div className="text-sm font-medium text-foreground">机型列表</div>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div className="min-w-0 flex-1 space-y-1">
+                <div className="text-sm font-medium text-foreground">
+                  {"\u673a\u578b\u5217\u8868"}
+                </div>
                 <div className="text-[0.78rem] leading-5 text-muted-foreground">
                   {activeCategoryName} / {activeBrandName} / {activePowerLabel}
                 </div>
               </div>
+              <Button
+                className="shrink-0 gap-1.5 xl:hidden"
+                onClick={() => {
+                  setMobileFiltersOpen(true);
+                }}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <SlidersHorizontal className="size-4" />
+                {"\u7b5b\u9009"}
+              </Button>
             </div>
 
             <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
@@ -382,7 +428,9 @@ export function ModelsPage() {
                     event.preventDefault();
                     updateParams({ keyword: keywordDraft });
                   }}
-                  placeholder="输入关键词后按回车搜索"
+                  placeholder={
+                    "\u8f93\u5165\u5173\u952e\u8bcd\u540e\u6309\u56de\u8f66\u641c\u7d22"
+                  }
                   value={keywordDraft}
                 />
               </div>
@@ -396,14 +444,14 @@ export function ModelsPage() {
                 type="button"
                 variant="outline"
               >
-                清空筛选
+                {"\u6e05\u7a7a\u7b5b\u9009"}
               </Button>
             </div>
           </div>
 
           {modelsQuery.isError ? (
             <Alert variant="destructive">
-              <AlertTitle>飞行器加载失败</AlertTitle>
+              <AlertTitle>{"\u98de\u884c\u5668\u52a0\u8f7d\u5931\u8d25"}</AlertTitle>
               <AlertDescription>{modelsQuery.error.message}</AlertDescription>
             </Alert>
           ) : null}
@@ -432,9 +480,13 @@ export function ModelsPage() {
                 </div>
               ) : (
                 <div className="bg-white px-5 py-8">
-                  <div className="text-base font-semibold text-foreground">没有匹配机型</div>
+                  <div className="text-base font-semibold text-foreground">
+                    {"\u6ca1\u6709\u5339\u914d\u673a\u578b"}
+                  </div>
                   <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                    可以清空部分筛选，或换一个关键词再试。
+                    {
+                      "\u53ef\u4ee5\u6e05\u7a7a\u90e8\u5206\u7b5b\u9009\uff0c\u6216\u6362\u4e00\u4e2a\u5173\u952e\u8bcd\u518d\u8bd5\u3002"
+                    }
                   </div>
                 </div>
               )}
@@ -444,6 +496,18 @@ export function ModelsPage() {
           ) : null}
         </div>
       </div>
+
+      <Sheet onOpenChange={setMobileFiltersOpen} open={mobileFiltersOpen}>
+        <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-md" side="right">
+          <SheetHeader className="border-b border-border/60">
+            <SheetTitle>{"\u7b5b\u9009\u6761\u4ef6"}</SheetTitle>
+            <SheetDescription className="sr-only">
+              {"\u5206\u7c7b\u3001\u54c1\u724c\u3001\u52a8\u529b"}
+            </SheetDescription>
+          </SheetHeader>
+          <div className="flex flex-col gap-0 pb-8">{filterPanels}</div>
+        </SheetContent>
+      </Sheet>
     </SitePage>
   );
 }
