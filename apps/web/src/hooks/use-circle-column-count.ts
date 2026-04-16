@@ -72,6 +72,10 @@ export function useCircleColumnCount(override?: number, options?: UseCircleColum
     typeof override === "number" ? override : getInitialCircleColumnCount(minColumns, minTrackWidthPx)
   );
 
+  /** 与 state 同步，便于 resize 回调中若列数未变则完全跳过 startTransition */
+  const columnCountRef = useRef(columnCount);
+  columnCountRef.current = columnCount;
+
   const rafIdRef = useRef<number | null>(null);
   const resizeObserverWidthRef = useRef(0);
 
@@ -89,6 +93,9 @@ export function useCircleColumnCount(override?: number, options?: UseCircleColum
     }
     const raw = getCircleColumnCount(basis, minColumnsRef.current);
     const next = capColumnCountByMinTrackWidth(basis, raw, minTrackWidthPxRef.current);
+    if (next === columnCountRef.current) {
+      return;
+    }
     startTransition(() => {
       setColumnCount((prev) => (prev === next ? prev : next));
     });
