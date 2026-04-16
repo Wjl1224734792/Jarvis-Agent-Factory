@@ -1,10 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
-import { RANKING_GRID_CLASS_NAME, RankingCardGridSkeleton } from "@/components/page-skeletons";
-import { VirtualGrid } from "@/components/virtual-feed";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
@@ -13,11 +13,14 @@ import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
+import { partitionByShortestColumn } from "@/lib/masonry-partition";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
-import { mergeRankingsByTab } from "./rankings-page-helpers";
+import { CIRCLE_CARD_COLUMN_GAP } from "./circle-page-helpers";
+import { estimateRankingListItemRelativeHeight, mergeRankingsByTab } from "./rankings-page-helpers";
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
@@ -103,6 +106,7 @@ export function RankingsPage() {
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
     queryKey: ["rankings"],
+    placeholderData: keepPreviousData,
     queryFn: () => apiClient.listRankings()
   });
 
@@ -113,6 +117,12 @@ export function RankingsPage() {
 
   const activeItems = activeTab === "hot" ? merged.hot : merged.latest;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
+  const columnCount = useCircleColumnCount();
+  const rankingColumns = useMemo(
+    () =>
+      partitionByShortestColumn(activeItems, columnCount, estimateRankingListItemRelativeHeight),
+    [activeItems, columnCount]
+  );
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
@@ -172,14 +182,30 @@ export function RankingsPage() {
       {isRankingsLoading ? (
         <RankingCardGridSkeleton count={6} />
       ) : (
-        <VirtualGrid
-          className="w-full"
-          data={activeItems}
-          itemClassName="min-w-0"
-          itemKey={(ranking) => ranking.id}
-          listClassName={RANKING_GRID_CLASS_NAME}
-          renderItem={(ranking) => <RankingCard ranking={ranking} />}
-        />
+        <div className="space-y-0">
+          {activeItems.length > 0 ? (
+            <div
+              className="grid w-full min-w-0"
+              style={{
+                gap: CIRCLE_CARD_COLUMN_GAP,
+                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
+              }}
+            >
+              {rankingColumns.map((column, colIndex) => (
+                <div
+                  className="flex min-w-0 flex-col"
+                  key={colIndex}
+                  style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
+                >
+                  {column.map(({ item: ranking }) => (
+                    <RankingCard key={ranking.id} ranking={ranking} />
+                  ))}
+                </div>
+              ))}
+            </div>
+          ) : null}
+          <FeedRefetchFooter show={rankingsQuery.isRefetching} />
+        </div>
       )}
 
       {!isRankingsLoading && rankingsQuery.isSuccess && activeItems.length === 0 ? (

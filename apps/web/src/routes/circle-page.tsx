@@ -93,7 +93,6 @@ export function CirclePage() {
   }
 
   const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
-  const isFeedRefreshing = feedQuery.isFetching && !isFeedLoading;
 
   function handleToggleFollow() {
     if (!selectedNote) {
@@ -160,7 +159,7 @@ export function CirclePage() {
         openNote={openNote}
         selectedNoteId={selectedNoteId}
         isLoading={isFeedLoading}
-        isRefreshing={isFeedRefreshing}
+        isRefetching={feedQuery.isRefetching}
         isError={feedQuery.isError}
         errorMessage={feedQuery.error?.message}
         formatCount={formatCount}

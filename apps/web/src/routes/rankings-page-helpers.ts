@@ -1,5 +1,15 @@
 import type { RankingListItem } from "@feijia/schemas";
 
+/** 卡片宽度归一化为 1 时的相对高度，用于瀑布流最短列估算 */
+export function estimateRankingListItemRelativeHeight(ranking: RankingListItem, _absoluteIndex: number): number {
+  const previewRows = Math.min(3, ranking.items.length);
+  const titleBlock = 1.15;
+  const metaLine = 0.42;
+  const previewRow = 1.05;
+  const divider = 0.35;
+  return titleBlock + metaLine + divider + previewRows * previewRow + 0.5;
+}
+
 function toTimestamp(value: string) {
   return new Date(value).getTime();
 }

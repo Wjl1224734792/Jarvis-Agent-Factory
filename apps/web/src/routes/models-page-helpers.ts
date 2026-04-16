@@ -1,3 +1,13 @@
+import type { ModelListItem } from "@feijia/schemas";
+
+/** 卡片宽度归一化为 1 时的相对高度，用于瀑布流最短列估算 */
+export function estimateModelListItemRelativeHeight(item: ModelListItem, absoluteIndex: number): number {
+  const image = 3 / 4;
+  const summaryLen = (item.summary?.length ?? 0) + item.name.length;
+  const textBump = Math.min(0.14, summaryLen / 600);
+  return image + 0.92 + textBump + (absoluteIndex % 4) * 0.015;
+}
+
 export type ModelFilterParams = {
   categorySlugs: string[];
   brandSlugs: string[];

@@ -160,7 +160,6 @@ export function HomePage() {
   }
 
   const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
-  const isFeedRefreshing = feedQuery.isFetching && !isFeedLoading;
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
 
@@ -217,16 +216,12 @@ export function HomePage() {
                   ) : null
                 }
                 itemKey={(item) => item.id}
+                refetchFooterLabel="更新中…"
                 renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                showRefetchFooter={feedQuery.isRefetching}
                 useWindowScroll
               />
             )}
-
-            {isFeedRefreshing ? (
-              <div className="absolute inset-0 z-10 bg-background/78 px-3 py-3 backdrop-blur-[1px]">
-                <FeedStreamSkeleton rows={4} />
-              </div>
-            ) : null}
           </section>
         </div>
 

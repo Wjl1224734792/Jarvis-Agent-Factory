@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Virtuoso, VirtuosoGrid } from "react-virtuoso";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { cn } from "@/lib/utils";
 
 type VirtualFeedProps<T> = {
@@ -11,6 +12,9 @@ type VirtualFeedProps<T> = {
   useWindowScroll?: boolean;
   showItemDividers?: boolean;
   emptyState?: ReactNode;
+  /** 后台刷新时在列表末尾显示轻量加载，避免全屏遮罩抖动 */
+  showRefetchFooter?: boolean;
+  refetchFooterLabel?: string;
 };
 
 export function VirtualFeed<T>({
@@ -21,7 +25,9 @@ export function VirtualFeed<T>({
   height = 640,
   useWindowScroll = false,
   showItemDividers = true,
-  emptyState
+  emptyState,
+  showRefetchFooter,
+  refetchFooterLabel
 }: VirtualFeedProps<T>) {
   if (data.length === 0) {
     return emptyState ?? null;
@@ -31,6 +37,13 @@ export function VirtualFeed<T>({
     <div className={cn("border border-border/70 bg-white", className)}>
       <Virtuoso
         className="virtual-feed"
+        components={
+          showRefetchFooter
+            ? {
+                Footer: () => <FeedRefetchFooter label={refetchFooterLabel} show />
+              }
+            : undefined
+        }
         computeItemKey={(index, item) => itemKey(item, index)}
         data={data}
         increaseViewportBy={{ top: 280, bottom: 420 }}

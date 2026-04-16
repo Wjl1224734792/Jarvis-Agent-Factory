@@ -1,5 +1,6 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo } from "react";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
@@ -44,7 +45,7 @@ type CirclePageFeedProps = {
   openNote: (id: string) => void;
   selectedNoteId: string | null;
   isLoading: boolean;
-  isRefreshing: boolean;
+  isRefetching: boolean;
   isError: boolean;
   errorMessage?: string;
   formatCount: (value: number) => string;
@@ -118,7 +119,7 @@ export function CirclePageFeed({
   openNote,
   selectedNoteId,
   isLoading,
-  isRefreshing,
+  isRefetching,
   isError,
   errorMessage,
   formatCount
@@ -168,7 +169,7 @@ export function CirclePageFeed({
       {isLoading ? <MasonryFeedSkeleton columnCount={columnCount} count={10} /> : null}
 
       {posts.length > 0 ? (
-        <div className="site-tab-panel relative w-full">
+        <div className="site-tab-panel w-full space-y-0">
           <div
             className="grid w-full min-w-0"
             style={{
@@ -195,12 +196,7 @@ export function CirclePageFeed({
               </div>
             ))}
           </div>
-
-          {isRefreshing ? (
-            <div className="absolute inset-0 z-10 bg-background/78 p-1.5 backdrop-blur-[1px]">
-              <MasonryFeedSkeleton columnCount={columnCount} count={10} />
-            </div>
-          ) : null}
+          <FeedRefetchFooter show={isRefetching} />
         </div>
       ) : null}
     </>

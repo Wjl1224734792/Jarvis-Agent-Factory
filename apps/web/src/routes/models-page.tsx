@@ -11,19 +11,23 @@ import { useDeferredValue, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
-import { MODEL_GRID_CLASS_NAME, ModelsPageSkeleton } from "@/components/page-skeletons";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { VirtualGrid } from "@/components/virtual-feed";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
+import { partitionByShortestColumn } from "@/lib/masonry-partition";
 import { apiClient } from "../lib/api-client";
 import { cn } from "../lib/utils";
+import { CIRCLE_CARD_COLUMN_GAP } from "./circle-page-helpers";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 import { formatModelPriceRange } from "./model-detail-helpers";
 import {
   buildModelFilterSearchParams,
+  estimateModelListItemRelativeHeight,
   readModelFilterParams,
   toggleModelFilterValue
 } from "./models-page-helpers";
@@ -291,7 +295,16 @@ export function ModelsPage() {
   }
 
   const isGridLoading = modelsQuery.isLoading && !modelsQuery.data;
-  const isGridRefreshing = modelsQuery.isFetching && !isGridLoading;
+  const columnCount = useCircleColumnCount();
+  const modelColumns = useMemo(
+    () =>
+      partitionByShortestColumn(
+        (modelsQuery.data?.items ?? []) as WebModelListItem[],
+        columnCount,
+        estimateModelListItemRelativeHeight
+      ),
+    [modelsQuery.data?.items, columnCount]
+  );
   const activeCategoryName = formatActiveNames(categories, filtersState.categorySlugs, "全部分类");
   const activeBrandName = formatActiveNames(brands, filtersState.brandSlugs, "全部品牌");
   const activePowerLabel = formatActiveNames(powerTypeOptions, filtersState.powerTypes, "全部动力");
@@ -384,16 +397,27 @@ export function ModelsPage() {
           ) : null}
 
           {modelsQuery.isSuccess ? (
-            <div className="relative">
+            <div className="space-y-0">
               {modelsQuery.data.items.length > 0 ? (
-                <VirtualGrid
-                  className="w-full"
-                  data={modelsQuery.data.items as WebModelListItem[]}
-                  itemClassName="min-w-0"
-                  itemKey={(model) => model.id}
-                  listClassName={MODEL_GRID_CLASS_NAME}
-                  renderItem={(model, index) => <ModelCard index={index} model={model} />}
-                />
+                <div
+                  className="grid w-full min-w-0"
+                  style={{
+                    gap: CIRCLE_CARD_COLUMN_GAP,
+                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
+                  }}
+                >
+                  {modelColumns.map((column, colIndex) => (
+                    <div
+                      className="flex min-w-0 flex-col"
+                      key={colIndex}
+                      style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
+                    >
+                      {column.map(({ item: model, absoluteIndex }) => (
+                        <ModelCard index={absoluteIndex} key={model.id} model={model} />
+                      ))}
+                    </div>
+                  ))}
+                </div>
               ) : (
                 <div className="bg-white px-5 py-8">
                   <div className="text-base font-semibold text-foreground">没有匹配机型</div>
@@ -403,24 +427,7 @@ export function ModelsPage() {
                 </div>
               )}
 
-              {isGridRefreshing ? (
-                <div className="absolute inset-0 z-10 bg-background/76 backdrop-blur-[1px]">
-                  <div className={MODEL_GRID_CLASS_NAME}>
-                    {Array.from({ length: 10 }).map((_, index) => (
-                      <div className="block min-w-0 bg-white px-3 py-3" key={index}>
-                        <div className="animate-pulse">
-                          <div className="aspect-square w-full bg-slate-200" />
-                          <div className="space-y-2 px-0.5 pb-0.5 pt-3">
-                            <div className="h-3.5 w-16 rounded-none bg-slate-200" />
-                            <div className="h-4 w-4/5 rounded-none bg-slate-200" />
-                            <div className="h-3.5 w-24 rounded-none bg-slate-200" />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              ) : null}
+              <FeedRefetchFooter show={modelsQuery.isRefetching} />
             </div>
           ) : null}
         </div>
