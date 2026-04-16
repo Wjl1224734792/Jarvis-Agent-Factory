@@ -131,6 +131,11 @@ const RankingsPageRouteSkeleton = lazy(() =>
     default: module.RankingsPageRouteSkeleton
   }))
 );
+const ModelsPageRouteSkeleton = lazy(() =>
+  import("./components/route-skeletons").then((module) => ({
+    default: module.ModelsPageRouteSkeleton
+  }))
+);
 const UserProfilePageRouteSkeleton = lazy(() =>
   import("./components/route-skeletons").then((module) => ({
     default: module.UserProfilePageRouteSkeleton
@@ -277,7 +282,12 @@ export function App() {
             },
             {
               path: toRootChildPath(APP_ROUTES.models),
-              element: withRouteFallback(<ModelsPage />)
+              element: withSuspenseFallback(
+                <ModelsPage />,
+                <DeferredFallback>
+                  <ModelsPageRouteSkeleton />
+                </DeferredFallback>
+              )
             },
             {
               path: toRootChildPath(APP_ROUTES.search),

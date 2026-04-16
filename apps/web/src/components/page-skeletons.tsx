@@ -1,17 +1,23 @@
+import type { ModelListItem } from "@feijia/schemas";
 import { useMemo } from "react";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
+import { partitionByShortestColumn } from "@/lib/masonry-partition";
+import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
   CIRCLE_FEED_MEDIA_MAX_HEIGHT_CLASS,
   getCircleCardMediaAspectClass,
   partitionCircleFeedShortestColumn
 } from "@/routes/circle-page-helpers";
+import { estimateModelListItemRelativeHeight } from "@/routes/models-page-helpers";
 
-export const MODEL_GRID_CLASS_NAME =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,11.5rem),1fr))] gap-x-3 gap-y-4";
+/** 与 {@link estimateModelListItemRelativeHeight} 配合，使骨架瀑布分列与真实列表接近 */
+const MODEL_GRID_SKELETON_HEIGHT_PROBE = {
+  name: "Placeholder",
+  summary: "Typical summary text for skeleton masonry column balance."
+} as ModelListItem;
 
 export const RANKING_GRID_CLASS_NAME =
   "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17.25rem),1fr))] gap-3";
@@ -142,19 +148,56 @@ export function MasonryFeedSkeleton(props: {
   );
 }
 
-export function ModelGridSkeleton(props: { count?: number }) {
+function ModelCardSkeletonBlock() {
   return (
-    <div className={MODEL_GRID_CLASS_NAME}>
-      {Array.from({ length: props.count ?? 8 }).map((_, index) => (
-        <div className="block min-w-0 overflow-hidden bg-white" key={index}>
-          <Skeleton className="aspect-[4/3] w-full rounded-none" />
-          <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
-            <Skeleton className="h-3 w-14 rounded-none" />
-            <Skeleton className="h-4.5 w-4/5 rounded-none" />
-            <Skeleton className="h-3.5 w-2/5 rounded-none" />
-            <Skeleton className="h-3.5 w-full rounded-none" />
-            <Skeleton className="h-3.5 w-4/5 rounded-none" />
-          </div>
+    <div className="block min-w-0 overflow-hidden bg-white">
+      <div className="aspect-[4/3] w-full overflow-hidden">
+        <Skeleton className="h-full w-full rounded-none" />
+      </div>
+      <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
+        <div className="space-y-1">
+          <Skeleton className="h-4.5 w-[92%] rounded-none" />
+          <Skeleton className="h-4.5 w-4/5 rounded-none" />
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5">
+          <Skeleton className="size-3.5 shrink-0 rounded-none" />
+          <Skeleton className="h-3 w-24 max-w-full rounded-none" />
+        </div>
+        <Skeleton className="h-3.5 w-20 rounded-none" />
+        <div className="space-y-1">
+          <Skeleton className="h-3.5 w-full rounded-none" />
+          <Skeleton className="h-3.5 w-11/12 rounded-none" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function ModelGridSkeleton(props: { count?: number }) {
+  const count = props.count ?? 10;
+  const columnCount = useCircleColumnCount();
+  const columnGap = CIRCLE_CARD_COLUMN_GAP;
+
+  const skeletonColumns = useMemo(() => {
+    const slots = Array.from({ length: count }, (_, index) => index);
+    return partitionByShortestColumn(slots, columnCount, (_item, absoluteIndex) =>
+      estimateModelListItemRelativeHeight(MODEL_GRID_SKELETON_HEIGHT_PROBE, absoluteIndex)
+    );
+  }, [count, columnCount]);
+
+  return (
+    <div
+      className="grid w-full min-w-0"
+      style={{
+        gap: columnGap,
+        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
+      }}
+    >
+      {skeletonColumns.map((column, colIndex) => (
+        <div className="flex min-w-0 flex-col" key={colIndex} style={{ gap: columnGap }}>
+          {column.map(({ item: slotIndex }) => (
+            <ModelCardSkeletonBlock key={slotIndex} />
+          ))}
         </div>
       ))}
     </div>
@@ -164,7 +207,7 @@ export function ModelGridSkeleton(props: { count?: number }) {
 export function ModelsPageSkeleton(props: { count?: number }) {
   return (
     <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_17.5rem]">
-      <div className="space-y-3 xl:order-2">
+      <div className="hidden space-y-3 xl:order-2 xl:block xl:sticky xl:top-[5.5rem] xl:self-start">
         {Array.from({ length: 3 }).map((_, index) => (
           <div className="rounded-none bg-white p-3" key={index}>
             <div className="space-y-3">
@@ -183,20 +226,17 @@ export function ModelsPageSkeleton(props: { count?: number }) {
         ))}
       </div>
       <div className="space-y-4 xl:order-1">
-        <div className="rounded-none bg-white p-4">
-          <div className="space-y-3">
-            <div className="flex items-center justify-between gap-3">
-              <div className="space-y-2">
-                <Skeleton className="h-5 w-24 rounded-none" />
-                <Skeleton className="h-3.5 w-48 rounded-none" />
-              </div>
-              <Skeleton className="h-3.5 w-14 rounded-none" />
+        <div className="space-y-3 bg-white px-4 py-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="min-w-0 flex-1 space-y-1">
+              <Skeleton className="h-5 w-24 rounded-none" />
+              <Skeleton className="h-3.5 w-48 rounded-none" />
             </div>
-            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto]">
-              <Skeleton className="h-10 rounded-none" />
-              <Skeleton className="h-10 w-24 rounded-none" />
-            </div>
-            <Skeleton className="h-4 w-3/5 rounded-none" />
+            <Skeleton className="h-8 shrink-0 rounded-none xl:hidden" />
+          </div>
+          <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-center">
+            <Skeleton className="h-10 rounded-none" />
+            <Skeleton className="h-10 w-24 rounded-none" />
           </div>
         </div>
         <ModelGridSkeleton count={props.count ?? 10} />

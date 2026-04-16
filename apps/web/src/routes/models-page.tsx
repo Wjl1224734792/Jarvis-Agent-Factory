@@ -11,7 +11,6 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
-import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -490,8 +489,6 @@ export function ModelsPage() {
                   </div>
                 </div>
               )}
-
-              <FeedRefetchFooter show={modelsQuery.isRefetching} />
             </div>
           ) : null}
         </div>

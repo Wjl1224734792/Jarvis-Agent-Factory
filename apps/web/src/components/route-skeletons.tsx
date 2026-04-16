@@ -2,6 +2,7 @@ import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import {
   FeedStreamSkeleton,
   MasonryFeedSkeleton,
+  ModelsPageSkeleton,
   RailCardSkeleton,
   RankingCardGridSkeleton
 } from "@/components/page-skeletons";
@@ -12,15 +13,23 @@ import { Skeleton } from "@/components/ui/skeleton";
 
 export function RankingsPageRouteSkeleton() {
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
-        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+    <SitePage className="w-full min-w-0 gap-4">
+      <div className="flex flex-wrap items-center gap-4 border-b border-border/60 pb-3">
+        <div className="flex min-w-0 gap-5 overflow-x-auto whitespace-nowrap">
           <Skeleton className="h-9 w-24 shrink-0 rounded-none" />
           <Skeleton className="h-9 w-24 shrink-0 rounded-none" />
         </div>
-        <Skeleton className="h-8 w-28 shrink-0 rounded-full" />
       </div>
       <RankingCardGridSkeleton count={6} />
+    </SitePage>
+  );
+}
+
+/** 飞行器列表路由懒加载 fallback，与页内 ModelsPageSkeleton 一致。 */
+export function ModelsPageRouteSkeleton() {
+  return (
+    <SitePage className="w-full min-w-0 gap-4">
+      <ModelsPageSkeleton count={10} />
     </SitePage>
   );
 }
@@ -58,7 +67,7 @@ export function HomePageRouteSkeleton() {
             </div>
           </section>
         </div>
-        <SiteRail className="space-y-2">
+        <SiteRail className="hidden space-y-2 xl:flex">
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <Skeleton className="h-5 w-24 rounded-none" />
