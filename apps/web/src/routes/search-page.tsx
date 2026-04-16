@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { Virtuoso } from "react-virtuoso";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -26,6 +27,10 @@ const SEARCH_TYPE_LABEL: Record<(typeof SEARCH_TYPE_ORDER)[number], string> = {
 
 type SearchType = (typeof SEARCH_TYPE_ORDER)[number];
 
+function isSearchType(value: string): value is SearchType {
+  return (SEARCH_TYPE_ORDER as readonly string[]).includes(value);
+}
+
 function formatUpdatedAt(value: string | null) {
   if (!value) {
     return null;
@@ -36,8 +41,63 @@ function formatUpdatedAt(value: string | null) {
   });
 }
 
+/** 摘要若与标题重复或仅为标题续接，则不单独展示 */
+function getDisplaySummary(title: string, summary: string | null): string | null {
+  if (!summary?.trim()) {
+    return null;
+  }
+
+  const t = title.trim();
+  const s = summary.trim();
+  if (s === t) {
+    return null;
+  }
+
+  if (s.startsWith(t)) {
+    const rest = s
+      .slice(t.length)
+      .trim()
+      .replace(/^[，。；：、\s]+/u, "");
+    if (rest.length === 0) {
+      return null;
+    }
+  }
+
+  return s;
+}
+
+function SearchResultRow({
+  item,
+  index,
+  total
+}: {
+  item: SearchItem;
+  index: number;
+  total: number;
+}) {
+  const updatedAt = formatUpdatedAt(item.updatedAt);
+  const summaryText = getDisplaySummary(item.title, item.summary);
+
+  return (
+    <div className={cn(index < total - 1 && "border-b border-border/70")}>
+      <Link className="block px-4 py-3.5 transition-colors hover:bg-sky-50/45" to={item.href}>
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[0.72rem] text-muted-foreground">
+          {updatedAt ? <span>更新于 {updatedAt}</span> : null}
+        </div>
+        <div className="mt-1 text-base font-semibold tracking-tight text-foreground">{item.title}</div>
+        {item.subtitle ? (
+          <div className="mt-0.5 text-sm text-muted-foreground">{item.subtitle}</div>
+        ) : null}
+        {summaryText ? (
+          <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-muted-foreground">{summaryText}</p>
+        ) : null}
+      </Link>
+    </div>
+  );
+}
+
 export function SearchPage() {
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const searchQuery = searchParams.get("q")?.trim() ?? "";
 
   const searchResultQuery = useQuery({
@@ -65,6 +125,66 @@ export function SearchPage() {
 
     return groups;
   }, [searchResultQuery.data?.items]);
+
+  const typesWithResults = useMemo(
+    () => SEARCH_TYPE_ORDER.filter((t) => (groupedItems.get(t) ?? []).length > 0),
+    [groupedItems]
+  );
+
+  const typeFromUrl = searchParams.get("type");
+  const activeType: SearchType | null = useMemo(() => {
+    if (typesWithResults.length === 0) {
+      return null;
+    }
+    if (typeFromUrl && isSearchType(typeFromUrl) && typesWithResults.includes(typeFromUrl)) {
+      return typeFromUrl;
+    }
+    return typesWithResults[0] ?? null;
+  }, [typesWithResults, typeFromUrl]);
+
+  useEffect(() => {
+    if (searchQuery.length < 2 || !searchResultQuery.data || typesWithResults.length === 0) {
+      return;
+    }
+
+    const requested = searchParams.get("type");
+    const valid =
+      requested && isSearchType(requested) && typesWithResults.includes(requested);
+
+    if (valid) {
+      return;
+    }
+
+    const fallbackType = typesWithResults[0];
+    if (fallbackType === undefined) {
+      return;
+    }
+
+    const next = new URLSearchParams(searchParams);
+    next.set("q", searchQuery);
+    next.set("type", fallbackType);
+    setSearchParams(next, { replace: true });
+  }, [
+    searchQuery,
+    searchResultQuery.data,
+    typesWithResults,
+    searchParams,
+    setSearchParams
+  ]);
+
+  const activeItems = activeType ? (groupedItems.get(activeType) ?? []) : [];
+
+  function selectSearchType(type: SearchType) {
+    setSearchParams(
+      (prev) => {
+        const p = new URLSearchParams(prev);
+        p.set("q", searchQuery);
+        p.set("type", type);
+        return p;
+      },
+      { replace: false }
+    );
+  }
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
@@ -106,64 +226,54 @@ export function SearchPage() {
       {searchQuery.length >= 2 &&
       !searchResultQuery.isLoading &&
       !searchResultQuery.isError &&
-      searchResultQuery.data
-        ? SEARCH_TYPE_ORDER.map((type) => {
-            const items = groupedItems.get(type) ?? [];
-            if (items.length === 0) {
-              return null;
-            }
+      searchResultQuery.data &&
+      searchResultQuery.data.total > 0 &&
+      activeType ? (
+        <>
+          {typesWithResults.length > 1 ? (
+            <div className="border-b border-border/60 px-1">
+              <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+                {typesWithResults.map((type) => {
+                  const count = groupedItems.get(type)?.length ?? 0;
+                  const isActive = type === activeType;
 
-            return (
-              <section
-                className="rounded-[1.25rem] border border-border/70 bg-card/70 p-5 shadow-[var(--shadow-soft)]"
-                key={type}
-              >
-                <div className="mb-4 flex items-center justify-between gap-3">
-                  <div>
-                    <h2 className="text-lg font-semibold tracking-tight text-foreground">
+                  return (
+                    <button
+                      className={cn(
+                        "site-tab-trigger relative border-b-2 border-transparent px-0 py-2.5 text-[0.9rem] text-foreground/70 transition-colors",
+                        isActive && "border-primary font-semibold text-primary"
+                      )}
+                      key={type}
+                      onClick={() => {
+                        selectSearchType(type);
+                      }}
+                      type="button"
+                    >
                       {SEARCH_TYPE_LABEL[type]}
-                    </h2>
-                    <p className="mt-1 text-sm text-muted-foreground">命中 {items.length} 条</p>
-                  </div>
-                </div>
+                      <span className="ml-1 text-[0.85rem] opacity-80">({count})</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          ) : null}
 
-                <div className="grid gap-3">
-                  {items.map((item) => {
-                    const updatedAt = formatUpdatedAt(item.updatedAt);
-
-                    return (
-                      <Link
-                        className={cn(
-                          "rounded-[1.1rem] border border-border/60 bg-background/85 p-4 transition-colors",
-                          "hover:border-primary/30 hover:bg-accent/35"
-                        )}
-                        key={`${item.type}-${item.id}`}
-                        to={item.href}
-                      >
-                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                          <span className="rounded-full bg-primary/8 px-2 py-1 font-medium text-primary">
-                            {SEARCH_TYPE_LABEL[type]}
-                          </span>
-                          <span>匹配字段: {item.matchedField}</span>
-                          {updatedAt ? <span>更新于 {updatedAt}</span> : null}
-                        </div>
-                        <div className="mt-3 text-base font-semibold tracking-tight text-foreground">
-                          {item.title}
-                        </div>
-                        {item.subtitle ? (
-                          <div className="mt-1 text-sm text-muted-foreground">{item.subtitle}</div>
-                        ) : null}
-                        {item.summary ? (
-                          <p className="mt-3 text-sm leading-6 text-muted-foreground">{item.summary}</p>
-                        ) : null}
-                      </Link>
-                    );
-                  })}
-                </div>
-              </section>
-            );
-          })
-        : null}
+          <section className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-white shadow-[var(--shadow-soft)]">
+            {activeItems.length > 0 ? (
+              <Virtuoso
+                className="virtual-feed"
+                computeItemKey={(_, item) => `${item.type}-${item.id}`}
+                data={activeItems}
+                increaseViewportBy={{ top: 240, bottom: 360 }}
+                itemContent={(index, item) => (
+                  <SearchResultRow index={index} item={item} total={activeItems.length} />
+                )}
+                useWindowScroll
+              />
+            ) : null}
+          </section>
+        </>
+      ) : null}
     </div>
   );
 }
