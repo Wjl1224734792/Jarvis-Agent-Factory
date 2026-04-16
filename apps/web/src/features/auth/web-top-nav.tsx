@@ -122,6 +122,10 @@ function ShellBrand() {
   );
 }
 
+/** 折叠侧栏：圆形控件（border-radius 50% / 正圆） */
+const sidebarCollapsedCircle =
+  "!flex !size-9 !shrink-0 !items-center !justify-center !rounded-full !border-0 !px-0 !py-0 mx-auto aspect-square";
+
 function NavButtons({
   items,
   collapsed
@@ -130,7 +134,7 @@ function NavButtons({
   collapsed: boolean;
 }) {
   return (
-    <nav className="flex min-w-0 flex-col gap-1.5">
+    <nav className={cn("flex min-w-0 flex-col", collapsed ? "items-center gap-2" : "gap-1.5")}>
       {items.map((item) => {
         const Icon = item.icon;
 
@@ -142,7 +146,7 @@ function NavButtons({
                   size: "default",
                   variant: "nav",
                   className: collapsed
-                    ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                    ? sidebarCollapsedCircle
                     : "w-full min-w-0 justify-start px-3"
                 }),
                 isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]"
@@ -338,7 +342,7 @@ export function WebTopNav({
       </header>
 
       {showSidebar ? (
-        <aside className="hidden min-w-0 overflow-x-hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)]">
+        <aside className="hidden min-w-0 overflow-x-hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)] xl:transition-[width] xl:duration-300 xl:ease-out">
           <div
             className={cn(
               "flex min-w-0 flex-1 pb-5 pt-[calc(3.5rem+0.75rem)]",
@@ -372,17 +376,26 @@ export function WebTopNav({
                 </div>
 
                 {authStatus === "authenticated" && authUser ? (
-                  <div className="mt-auto flex min-w-0 flex-col gap-2 border-t border-border/40 pt-3">
+                  <div
+                    className={cn(
+                      "mt-auto flex min-w-0 flex-col gap-2 border-t border-border/40 pt-3",
+                      sidebarCollapsed && "items-center"
+                    )}
+                  >
                     <Link
                       className={cn(
                         "flex min-w-0 items-center gap-2 rounded-xl px-2 py-2 text-[0.82rem] font-medium text-foreground transition hover:bg-accent/50",
-                        sidebarCollapsed && "justify-center px-0"
+                        sidebarCollapsed &&
+                          cn(
+                            sidebarCollapsedCircle,
+                            "overflow-hidden ring-1 ring-transparent hover:ring-border/40"
+                          )
                       )}
                       title={authUser.displayName}
                       to={APP_ROUTES.webProfile}
                     >
                       <UserAvatar
-                        className={cn("shrink-0", sidebarCollapsed ? "size-8" : "size-9")}
+                        className={cn("shrink-0", sidebarCollapsed ? "!size-9 rounded-full" : "size-9")}
                         displayName={authUser.displayName}
                         size="default"
                         src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
@@ -400,7 +413,7 @@ export function WebTopNav({
                           size: "default",
                           variant: "nav",
                           className: sidebarCollapsed
-                            ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                            ? sidebarCollapsedCircle
                             : "w-full min-w-0 justify-start gap-2 px-3"
                         })
                       )}
@@ -423,14 +436,19 @@ export function WebTopNav({
                     </button>
                   </div>
                 ) : (
-                  <div className="mt-auto min-w-0 border-t border-border/40 pt-3">
+                  <div
+                    className={cn(
+                      "mt-auto min-w-0 border-t border-border/40 pt-3",
+                      sidebarCollapsed && "flex flex-col items-center"
+                    )}
+                  >
                     <button
                       className={cn(
                         buttonVariants({
                           size: "default",
                           variant: "nav",
                           className: sidebarCollapsed
-                            ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                            ? sidebarCollapsedCircle
                             : "w-full min-w-0 justify-start gap-2 px-3"
                         })
                       )}
