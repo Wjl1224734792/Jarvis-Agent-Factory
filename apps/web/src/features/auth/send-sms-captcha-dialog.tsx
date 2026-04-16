@@ -68,33 +68,39 @@ export function SendSmsCaptchaDialog(props: SendSmsCaptchaDialogProps) {
             )}
           </div>
 
-          <AuthCaptchaSvg
-            hintClassName="text-left"
-            onRefresh={() => {
-              void flow.refreshCaptcha({
-                onError: props.onRefreshError,
-                errorFallback: props.refreshErrorFallback
-              });
-            }}
-            svgMarkup={flow.challenge?.imageOrText ?? ""}
-          />
-
           <div className="space-y-2">
             <label className="text-sm font-medium text-foreground" htmlFor="send-sms-captcha-input">
               图形验证码
             </label>
-            <Input
-              autoComplete="off"
-              className="h-12"
-              id="send-sms-captcha-input"
-              onChange={(event) => flow.setCaptchaCode(event.target.value.toUpperCase())}
-              placeholder="请输入图中字符"
-              value={flow.captchaCode}
-            />
+            <div className="flex gap-2 items-start">
+              <Input
+                autoComplete="off"
+                className="h-12 min-w-0 flex-1 md:h-12"
+                id="send-sms-captcha-input"
+                onChange={(event) => flow.setCaptchaCode(event.target.value.toUpperCase())}
+                placeholder="请输入图中字符"
+                value={flow.captchaCode}
+              />
+              <div className="flex w-[132px] shrink-0 flex-col gap-1">
+                <AuthCaptchaSvg
+                  buttonClassName="w-full"
+                  className="w-full"
+                  onRefresh={() => {
+                    void flow.refreshCaptcha({
+                      onError: props.onRefreshError,
+                      errorFallback: props.refreshErrorFallback
+                    });
+                  }}
+                  showHint={false}
+                  svgMarkup={flow.challenge?.imageOrText ?? ""}
+                />
+                <p className="text-center text-xs text-stone-600">看不清？点击验证码可刷新</p>
+              </div>
+            </div>
           </div>
 
           {flow.isCaptchaExpired ? (
-            <div className="text-xs text-destructive">图形验证码已过期，请点击上图刷新</div>
+            <div className="text-xs text-destructive">图形验证码已过期，请点击验证码刷新</div>
           ) : null}
 
           <div className="flex flex-wrap justify-end gap-2 pt-1">

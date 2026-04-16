@@ -5,7 +5,11 @@ type AuthCaptchaSvgProps = {
   svgMarkup: string;
   onRefresh: () => void;
   className?: string;
+  /** 与默认按钮类合并；横向布局可传 `shrink-0 w-[132px]` 等覆盖 `w-full` */
+  buttonClassName?: string;
   hintClassName?: string;
+  /** 为 false 时不渲染下方提示（由父级整行展示） */
+  showHint?: boolean;
 };
 
 /**
@@ -13,11 +17,15 @@ type AuthCaptchaSvgProps = {
  */
 export function AuthCaptchaSvg(props: AuthCaptchaSvgProps) {
   const hasSvg = props.svgMarkup.trim().startsWith("<svg");
+  const showHint = props.showHint !== false;
 
   return (
-    <div className={cn("space-y-2", props.className)}>
+    <div className={cn(showHint && "space-y-2", props.className)}>
       <button
-        className="flex h-12 w-full max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-[var(--radius-control)] border border-stone-200/90 bg-[#f7f5f0] px-1 shadow-sm transition hover:bg-[#efeae2]"
+        className={cn(
+          "flex h-12 w-full max-w-full cursor-pointer items-center justify-center overflow-hidden rounded-[var(--radius-control)] border border-stone-200/90 bg-[#f7f5f0] px-1 shadow-sm transition hover:bg-[#efeae2]",
+          props.buttonClassName
+        )}
         onClick={props.onRefresh}
         type="button"
       >
@@ -32,7 +40,9 @@ export function AuthCaptchaSvg(props: AuthCaptchaSvgProps) {
         )}
         <span className="sr-only">刷新图形验证码</span>
       </button>
-      <p className={cn("text-xs text-stone-600", props.hintClassName)}>看不清？点击上方验证码可刷新</p>
+      {showHint ? (
+        <p className={cn("text-xs text-stone-600", props.hintClassName)}>看不清？点击上方验证码可刷新</p>
+      ) : null}
     </div>
   );
 }
