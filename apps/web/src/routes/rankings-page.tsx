@@ -20,7 +20,11 @@ import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
 import { CIRCLE_CARD_COLUMN_GAP, RANKING_GRID_MIN_COLUMNS } from "./circle-page-helpers";
-import { estimateRankingListItemRelativeHeight, mergeRankingsByTab } from "./rankings-page-helpers";
+import {
+  estimateRankingListItemRelativeHeight,
+  mergeRankingsByTab,
+  RANKING_CARD_MIN_WIDTH_PX
+} from "./rankings-page-helpers";
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
@@ -115,7 +119,10 @@ export function RankingsPage() {
 
   const activeItems = activeTab === "hot" ? merged.hot : merged.latest;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
-  const columnCount = useCircleColumnCount(undefined, { minColumns: RANKING_GRID_MIN_COLUMNS });
+  const columnCount = useCircleColumnCount(undefined, {
+    minColumns: RANKING_GRID_MIN_COLUMNS,
+    minTrackWidthPx: RANKING_CARD_MIN_WIDTH_PX
+  });
   const rankingColumns = useMemo(
     () =>
       partitionByShortestColumn(activeItems, columnCount, estimateRankingListItemRelativeHeight),

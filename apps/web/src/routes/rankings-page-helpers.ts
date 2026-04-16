@@ -1,5 +1,8 @@
 import type { RankingListItem } from "@feijia/schemas";
 
+/** 榜单卡片单列最小宽度（px），与 page-skeletons 中 RANKING_GRID_CLASS_NAME 的 17.25rem 一致 */
+export const RANKING_CARD_MIN_WIDTH_PX = 276;
+
 /** 卡片宽度归一化为 1 时的相对高度，用于瀑布流最短列估算 */
 export function estimateRankingListItemRelativeHeight(ranking: RankingListItem, _absoluteIndex: number): number {
   const previewRows = Math.min(3, ranking.items.length);

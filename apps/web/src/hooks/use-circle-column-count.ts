@@ -7,6 +7,7 @@ import {
   type RefObject
 } from "react";
 import {
+  CIRCLE_CARD_COLUMN_GAP_PX,
   CIRCLE_FEED_MAX_COLUMNS,
   CIRCLE_FEED_MIN_COLUMNS,
   getCircleColumnCount
@@ -17,15 +18,38 @@ export type UseCircleColumnCountOptions = {
   widthElementRef?: RefObject<HTMLElement | null>;
   /** 最小列数，默认与飞友圈一致为 2；榜单页可传 1 允许单列 */
   minColumns?: number;
+  /**
+   * 单列目标最小宽度（px）。若设置，列数不超过 `floor((width+gap)/(minTrackWidthPx+gap))`，
+   * 配合 `minmax(0,1fr)` 可避免网格撑出容器而出现横向滚动条（榜单页与 RANKING_CARD_MIN_WIDTH_PX 对齐）。
+   */
+  minTrackWidthPx?: number;
 };
 
-function getInitialCircleColumnCount(minColumns: number) {
+function capColumnCountByMinTrackWidth(
+  basisPx: number,
+  columnCount: number,
+  minTrackWidthPx: number | undefined
+): number {
+  if (minTrackWidthPx === undefined || basisPx <= 0) {
+    return columnCount;
+  }
+
+  const maxColsByMinTrack = Math.max(
+    1,
+    Math.floor((basisPx + CIRCLE_CARD_COLUMN_GAP_PX) / (minTrackWidthPx + CIRCLE_CARD_COLUMN_GAP_PX))
+  );
+  return Math.min(columnCount, maxColsByMinTrack);
+}
+
+function getInitialCircleColumnCount(minColumns: number, minTrackWidthPx?: number) {
   const fallback = Math.min(Math.max(1, minColumns), CIRCLE_FEED_MAX_COLUMNS);
   if (typeof window === "undefined") {
     return fallback;
   }
 
-  return getCircleColumnCount(window.innerWidth, minColumns);
+  const w = window.innerWidth;
+  const raw = getCircleColumnCount(w, minColumns);
+  return capColumnCountByMinTrackWidth(w, raw, minTrackWidthPx);
 }
 
 /**
@@ -38,11 +62,14 @@ function getInitialCircleColumnCount(minColumns: number) {
 export function useCircleColumnCount(override?: number, options?: UseCircleColumnCountOptions) {
   const widthElementRef = options?.widthElementRef;
   const minColumns = options?.minColumns ?? CIRCLE_FEED_MIN_COLUMNS;
+  const minTrackWidthPx = options?.minTrackWidthPx;
   const minColumnsRef = useRef(minColumns);
   minColumnsRef.current = minColumns;
+  const minTrackWidthPxRef = useRef(minTrackWidthPx);
+  minTrackWidthPxRef.current = minTrackWidthPx;
 
   const [columnCount, setColumnCount] = useState(() =>
-    typeof override === "number" ? override : getInitialCircleColumnCount(minColumns)
+    typeof override === "number" ? override : getInitialCircleColumnCount(minColumns, minTrackWidthPx)
   );
 
   const rafIdRef = useRef<number | null>(null);
@@ -60,7 +87,8 @@ export function useCircleColumnCount(override?: number, options?: UseCircleColum
     if (basis <= 0 && typeof window !== "undefined") {
       basis = window.innerWidth;
     }
-    const next = getCircleColumnCount(basis, minColumnsRef.current);
+    const raw = getCircleColumnCount(basis, minColumnsRef.current);
+    const next = capColumnCountByMinTrackWidth(basis, raw, minTrackWidthPxRef.current);
     startTransition(() => {
       setColumnCount((prev) => (prev === next ? prev : next));
     });
@@ -100,7 +128,7 @@ export function useCircleColumnCount(override?: number, options?: UseCircleColum
       window.removeEventListener("resize", scheduleFromWindow);
       cancelScheduledRaf();
     };
-  }, [override, widthElementRef, minColumns]);
+  }, [override, widthElementRef, minColumns, minTrackWidthPx]);
 
   useLayoutEffect(() => {
     if (typeof override === "number") {
@@ -144,7 +172,7 @@ export function useCircleColumnCount(override?: number, options?: UseCircleColum
       ro.disconnect();
       cancelScheduledRaf();
     };
-  }, [override, widthElementRef, minColumns]);
+  }, [override, widthElementRef, minColumns, minTrackWidthPx]);
 
   return typeof override === "number" ? override : columnCount;
 }
