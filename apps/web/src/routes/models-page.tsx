@@ -7,7 +7,7 @@ import type {
 } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { SearchIcon } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
@@ -99,7 +99,7 @@ function FilterSection(props: {
             className="pl-9"
             onChange={(event) => props.onSearchChange?.(event.target.value)}
             placeholder={`搜索${props.title}`}
-            value={props.searchValue}
+            value={props.searchValue ?? ""}
           />
         </div>
       ) : null}
@@ -236,10 +236,15 @@ export function ModelsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [categorySearch, setCategorySearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
-  const deferredCategorySearch = useDeferredValue(categorySearch.trim().toLowerCase());
-  const deferredBrandSearch = useDeferredValue(brandSearch.trim().toLowerCase());
   const filtersState = readModelFilterParams(searchParams);
-  const deferredKeyword = useDeferredValue(filtersState.keyword);
+  const [keywordDraft, setKeywordDraft] = useState(filtersState.keyword);
+
+  useEffect(() => {
+    setKeywordDraft(filtersState.keyword);
+  }, [filtersState.keyword]);
+
+  const categoryQuery = categorySearch.trim().toLowerCase();
+  const brandQuery = brandSearch.trim().toLowerCase();
 
   const modelsQuery = useQuery({
     queryKey: [
@@ -247,7 +252,7 @@ export function ModelsPage() {
       filtersState.categorySlugs,
       filtersState.brandSlugs,
       filtersState.powerTypes,
-      deferredKeyword
+      filtersState.keyword
     ],
     placeholderData: keepPreviousData,
     queryFn: () =>
@@ -255,7 +260,7 @@ export function ModelsPage() {
         categorySlugs: filtersState.categorySlugs,
         brandSlugs: filtersState.brandSlugs,
         powerTypes: filtersState.powerTypes,
-        keyword: deferredKeyword
+        keyword: filtersState.keyword
       })
   });
 
@@ -272,16 +277,16 @@ export function ModelsPage() {
   const visibleCategories = useMemo(
     () =>
       categories.filter((item) =>
-        !deferredCategorySearch ? true : item.name.toLowerCase().includes(deferredCategorySearch)
+        !categoryQuery ? true : item.name.toLowerCase().includes(categoryQuery)
       ),
-    [categories, deferredCategorySearch]
+    [categories, categoryQuery]
   );
   const visibleBrands = useMemo(
     () =>
       brands.filter((item) =>
-        !deferredBrandSearch ? true : item.name.toLowerCase().includes(deferredBrandSearch)
+        !brandQuery ? true : item.name.toLowerCase().includes(brandQuery)
       ),
-    [brands, deferredBrandSearch]
+    [brands, brandQuery]
   );
 
   function updateParams(next: Partial<ReturnType<typeof readModelFilterParams>>) {
@@ -369,9 +374,16 @@ export function ModelsPage() {
                 <SearchIcon className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   className="pl-9"
-                  onChange={(event) => updateParams({ keyword: event.target.value })}
-                  placeholder="搜索机型、品牌或摘要"
-                  value={filtersState.keyword}
+                  onChange={(event) => setKeywordDraft(event.target.value)}
+                  onKeyDown={(event) => {
+                    if (event.key !== "Enter") {
+                      return;
+                    }
+                    event.preventDefault();
+                    updateParams({ keyword: keywordDraft });
+                  }}
+                  placeholder="输入关键词后按回车搜索"
+                  value={keywordDraft}
                 />
               </div>
               <Button
