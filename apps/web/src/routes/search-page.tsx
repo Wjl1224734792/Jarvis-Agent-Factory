@@ -258,7 +258,7 @@ export function SearchPage() {
             </div>
           ) : null}
 
-          <section className="overflow-hidden rounded-none border border-border/70 bg-white shadow-[var(--shadow-soft)]">
+          <section className="overflow-hidden rounded-none bg-white">
             {activeItems.length > 0 ? (
               <Virtuoso
                 className="virtual-feed"
