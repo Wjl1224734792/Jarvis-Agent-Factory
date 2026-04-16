@@ -1,7 +1,7 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
-import { useMemo, useState } from "react";
+import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
@@ -19,7 +19,7 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
-import { CIRCLE_CARD_COLUMN_GAP } from "./circle-page-helpers";
+import { CIRCLE_CARD_COLUMN_GAP, RANKING_GRID_MIN_COLUMNS } from "./circle-page-helpers";
 import { estimateRankingListItemRelativeHeight, mergeRankingsByTab } from "./rankings-page-helpers";
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
@@ -27,9 +27,9 @@ type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["offic
 /** 卡片内预览条：与榜单详情一致展示分数 + 五星 + 评数 */
 function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
-    <div className="flex min-w-0 flex-col items-end gap-0.5 text-right">
+    <div className="flex w-max max-w-[4.75rem] shrink-0 flex-col items-end gap-0.5 text-right">
       <RatingValue className="tabular-nums" score={score} size="sm" />
-      <RatingStars className="max-w-full justify-end" size="xs" tone="rating" value={toFiveStarRating(score)} />
+      <RatingStars className="shrink-0 flex-nowrap" size="xs" tone="rating" value={toFiveStarRating(score)} />
       {totalRatings > 0 ? (
         <span className="text-[0.7rem] leading-none text-muted-foreground">{totalRatings} 评</span>
       ) : null}
@@ -37,7 +37,7 @@ function RatingTargetScoreCompact({ score, totalRatings }: { score: number; tota
   );
 }
 
-function RankingCard({ ranking }: { ranking: RankingListItem }) {
+const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingListItem }) {
   const previewItems = ranking.items.slice(0, 3);
   const detailPath = buildRankingDetailPath(ranking.id);
 
@@ -65,7 +65,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
         <div className="min-w-0 border-t border-border/70 pt-3">
           {previewItems.map((item, index) => (
             <div
-              className={`grid min-w-0 grid-cols-[1.25rem_3rem_minmax(0,1fr)_minmax(0,4.75rem)] items-start gap-x-2 gap-y-0 py-2 ${
+              className={`grid min-w-0 grid-cols-[1.25rem_3rem_minmax(0,1fr)_minmax(4.5rem,max-content)] items-start gap-x-2 gap-y-0 py-2 ${
                 index < previewItems.length - 1 ? "border-b border-border/60" : ""
               }`}
               key={item.id}
@@ -87,7 +87,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
                   {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                 </div>
               </div>
-              <div className="min-w-0 justify-self-end">
+              <div className="shrink-0 justify-self-end">
                 <RatingTargetScoreCompact score={item.averageScore} totalRatings={item.totalRatings} />
               </div>
             </div>
@@ -96,7 +96,7 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
       </Link>
     </div>
   );
-}
+});
 
 export function RankingsPage() {
   const authStatus = useAuthStore((state) => state.status);
@@ -115,7 +115,7 @@ export function RankingsPage() {
 
   const activeItems = activeTab === "hot" ? merged.hot : merged.latest;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
-  const columnCount = useCircleColumnCount();
+  const columnCount = useCircleColumnCount(undefined, { minColumns: RANKING_GRID_MIN_COLUMNS });
   const rankingColumns = useMemo(
     () =>
       partitionByShortestColumn(activeItems, columnCount, estimateRankingListItemRelativeHeight),

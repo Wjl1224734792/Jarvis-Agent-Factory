@@ -41,6 +41,9 @@ export const CIRCLE_CARD_SOFT_MAX_WIDTH_PX = 320;
 /** 飞友圈至少两列，避免单列下过宽、封面竖版比例显得过高 */
 export const CIRCLE_FEED_MIN_COLUMNS = 2;
 
+/** 榜单页瀑布流允许单列（极窄屏） */
+export const RANKING_GRID_MIN_COLUMNS = 1;
+
 /** 与瀑布流 masonry 分区上限一致 */
 export const CIRCLE_FEED_MAX_COLUMNS = 8;
 
@@ -117,12 +120,16 @@ function circleColumnWidthForCount(contentWidthPx: number, columnCount: number, 
 
 /**
  * 按内容区可用宽度与目标单列宽度推算列数（用于 `repeat(n, minmax(0,1fr))` 铺满时的观感上限）。
- * 无可用宽度时返回 {@link CIRCLE_FEED_MIN_COLUMNS}。
+ * `minColumns` 默认 {@link CIRCLE_FEED_MIN_COLUMNS}；榜单等可传 {@link RANKING_GRID_MIN_COLUMNS} 允许单列。
+ * 无可用宽度时返回夹在 `[1, maxCols]` 的 `minColumns`。
  */
-export function getCircleColumnCountForContentWidth(contentWidthPx: number): number {
+export function getCircleColumnCountForContentWidth(
+  contentWidthPx: number,
+  minColumns: number = CIRCLE_FEED_MIN_COLUMNS
+): number {
   const gap = CIRCLE_CARD_COLUMN_GAP_PX;
-  const minCols = CIRCLE_FEED_MIN_COLUMNS;
   const maxCols = CIRCLE_FEED_MAX_COLUMNS;
+  const minCols = Math.min(Math.max(1, minColumns), maxCols);
   const ideal = CIRCLE_CARD_IDEAL_WIDTH_PX;
   const softMin = CIRCLE_CARD_SOFT_MIN_WIDTH_PX;
   const softMax = CIRCLE_CARD_SOFT_MAX_WIDTH_PX;
@@ -151,8 +158,8 @@ export function getCircleColumnCountForContentWidth(contentWidthPx: number): num
 }
 
 /** 按视口或内容区宽度推算列数；未测量容器时可用 `window.innerWidth` 近似。 */
-export function getCircleColumnCount(widthPx: number) {
-  return getCircleColumnCountForContentWidth(widthPx);
+export function getCircleColumnCount(widthPx: number, minColumns: number = CIRCLE_FEED_MIN_COLUMNS) {
+  return getCircleColumnCountForContentWidth(widthPx, minColumns);
 }
 
 export function buildCircleMediaItems(input: {
