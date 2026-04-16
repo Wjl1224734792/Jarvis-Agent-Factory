@@ -7,7 +7,6 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { SendSmsCaptchaDialog } from "./send-sms-captcha-dialog";
 import {
   SitePageDescription,
-  SitePageEyebrow,
   SitePageHead,
   SitePageTitle,
   SitePanel,
@@ -97,15 +96,14 @@ export function LoginPage() {
         <SitePanelBody className="space-y-8">
           <div className="flex items-start justify-between gap-4">
             <SitePageHead className="gap-3 px-0">
-              <SitePageEyebrow>FEIJIA HORIZON</SitePageEyebrow>
               <SitePageTitle className="text-5xl">
                 {step === "verify" ? "登录 / 注册" : "完善资料"}
               </SitePageTitle>
-              <SitePageDescription className="text-base">
-                {step === "verify"
-                  ? "手机号验证通过后，老用户直接登录，新用户会在弹窗内继续完善用户名和头像。"
-                  : "这是你的首次登录。确认用户名和头像后，再进入站内继续发帖、点评和关注。"}
-              </SitePageDescription>
+              {step === "profile" ? (
+                <SitePageDescription className="text-base">
+                  这是你的首次登录。确认用户名和头像后，再进入站内继续发帖、点评和关注。
+                </SitePageDescription>
+              ) : null}
             </SitePageHead>
 
             <Button
