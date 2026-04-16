@@ -1,7 +1,9 @@
+import { APP_ROUTES } from "@feijia/shared";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useRef } from "react";
-import { Outlet, ScrollRestoration } from "react-router-dom";
+import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SiteShell } from "@/components/site-shell";
+import { cn } from "@/lib/utils";
 import { WEB_AUTH_INVALID_EVENT } from "@/lib/auth-events";
 import { getAuthCacheScope, shouldResetAuthCache } from "./auth-cache-helpers";
 import { useAuthStore } from "./auth-store";
@@ -11,6 +13,10 @@ import { WebTopNav } from "./web-top-nav";
 
 export function WebLayout() {
   useBootstrapAuth();
+
+  const { pathname } = useLocation();
+  const isFeedWideShell =
+    pathname === APP_ROUTES.flightCircle || pathname === APP_ROUTES.rankings;
 
   const queryClient = useQueryClient();
   const authStatus = useAuthStore((state) => state.status);
@@ -48,7 +54,7 @@ export function WebLayout() {
       <WebTopNav />
 
       <div className="px-[var(--page-pad-x)] py-5 xl:ml-[var(--shell-sidebar-width)] xl:px-6">
-        <SiteShell>
+        <SiteShell className={cn(isFeedWideShell && "site-shell--feed-wide")}>
           <div className="min-w-0">
             <Outlet />
             <ScrollRestoration />

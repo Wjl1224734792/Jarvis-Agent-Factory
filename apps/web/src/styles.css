@@ -180,6 +180,10 @@
     margin-inline: auto;
   }
 
+  .site-shell--feed-wide {
+    max-width: none;
+  }
+
   .site-page {
     display: flex;
     flex-direction: column;

@@ -6,6 +6,7 @@ import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
+import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
@@ -23,11 +24,12 @@ import { estimateRankingListItemRelativeHeight, mergeRankingsByTab } from "./ran
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
-/** 卡片内预览条：仅数字 + 评数，避免窄列下星标与分数横向撑破布局 */
+/** 卡片内预览条：与榜单详情一致展示分数 + 五星 + 评数 */
 function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
     <div className="flex min-w-0 flex-col items-end gap-0.5 text-right">
       <RatingValue className="tabular-nums" score={score} size="sm" />
+      <RatingStars className="max-w-full justify-end" size="xs" tone="rating" value={toFiveStarRating(score)} />
       {totalRatings > 0 ? (
         <span className="text-[0.7rem] leading-none text-muted-foreground">{totalRatings} 评</span>
       ) : null}
@@ -54,7 +56,6 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
               {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <span>{ranking.itemCount} 个条目</span>
               <span>{ranking.commentCount} 条评论</span>
               <span>均分 {ranking.averageScore.toFixed(1)}</span>
             </div>

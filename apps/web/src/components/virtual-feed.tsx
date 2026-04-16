@@ -37,13 +37,13 @@ export function VirtualFeed<T>({
     <div className={cn("border border-border/70 bg-white", className)}>
       <Virtuoso
         className="virtual-feed"
-        components={
-          showRefetchFooter
-            ? {
+        {...(showRefetchFooter
+          ? {
+              components: {
                 Footer: () => <FeedRefetchFooter label={refetchFooterLabel} show />
               }
-            : undefined
-        }
+            }
+          : {})}
         computeItemKey={(index, item) => itemKey(item, index)}
         data={data}
         increaseViewportBy={{ top: 280, bottom: 420 }}
