@@ -201,7 +201,7 @@ export function HomePage() {
               </div>
             ) : (
               <VirtualFeed
-                className="border-t border-border !border-x-0 !border-b-0 bg-transparent"
+                className="!border-0 bg-transparent"
                 data={feedItems}
                 emptyState={
                   !feedQuery.isError ? (

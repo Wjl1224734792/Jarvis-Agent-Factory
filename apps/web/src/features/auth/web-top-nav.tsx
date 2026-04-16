@@ -6,9 +6,10 @@ import {
   SearchIcon,
   type LucideIcon
 } from "lucide-react";
-import { useEffect, useState } from "react";
-import { Link, NavLink, useLocation, useNavigate } from "react-router-dom";
+import { useEffect, useState, type ReactElement } from "react";
+import { Link, matchPath, NavLink, useLocation, useNavigate } from "react-router-dom";
 import logoUrl from "../../../../../packages/shared/assets/logo/logo.jpg";
+import { HoverCard, HoverCardContent, HoverCardTrigger } from "../../components/ui/hover-card";
 import { SitePanel, SitePanelBody } from "../../components/site-shell";
 import { UserAvatar } from "../../components/ui/user-avatar";
 import { Button, buttonVariants } from "../../components/ui/button";
@@ -27,6 +28,15 @@ import { UserMenu } from "./user-menu";
 import { WebBottomNav } from "./web-bottom-nav";
 import { webMainNavItems, webSidebarMemberNavItems } from "./web-nav-config";
 import { WebPublishFab } from "./web-publish-fab";
+
+/**
+ * 与 NavLink 常用行为一致：首页、设置为精确匹配，其余为前缀匹配（含子路径）。
+ * 避免折叠侧栏外包 HoverCardTrigger 时 `className={fn}` 与 Radix Slot 合并异常导致「全像选中」。
+ */
+function isSidebarNavItemActive(pathname: string, to: string): boolean {
+  const endExact = to === APP_ROUTES.feedHome || to === APP_ROUTES.webSettings;
+  return matchPath({ path: to, end: endExact }, pathname) != null;
+}
 
 export function shouldRenderTopNavSearch(showSearch: boolean) {
   return showSearch;
@@ -126,6 +136,29 @@ function ShellBrand() {
 const sidebarCollapsedCircle =
   "!flex !size-9 !shrink-0 !items-center !justify-center !rounded-full !border-0 !px-0 !py-0 mx-auto aspect-square";
 
+/** 折叠态：Portal 悬浮标题（不被侧栏 overflow 裁切） */
+function SidebarCollapsedHover({
+  label,
+  children
+}: {
+  label: string;
+  children: ReactElement;
+}) {
+  return (
+    <HoverCard closeDelay={80} openDelay={200}>
+      <HoverCardTrigger asChild>{children}</HoverCardTrigger>
+      <HoverCardContent
+        align="center"
+        className="z-[100] w-max max-w-[14rem] border-border/80 bg-popover px-2.5 py-1.5 text-[0.78rem] font-medium text-popover-foreground shadow-lg"
+        side="right"
+        sideOffset={10}
+      >
+        {label}
+      </HoverCardContent>
+    </HoverCard>
+  );
+}
+
 function NavButtons({
   items,
   collapsed
@@ -133,33 +166,51 @@ function NavButtons({
   items: readonly { to: string; label: string; icon: LucideIcon }[];
   collapsed: boolean;
 }) {
+  const { pathname } = useLocation();
+
   return (
     <nav className={cn("flex min-w-0 flex-col", collapsed ? "items-center gap-2" : "gap-1.5")}>
       {items.map((item) => {
         const Icon = item.icon;
+        const isActive = isSidebarNavItemActive(pathname, item.to);
 
-        return (
-          <NavLink
-            className={({ isActive }) =>
-              cn(
-                buttonVariants({
-                  size: "default",
-                  variant: "nav",
-                  className: collapsed
-                    ? sidebarCollapsedCircle
-                    : "w-full min-w-0 justify-start px-3"
-                }),
-                isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]"
-              )
-            }
-            key={item.to}
-            to={item.to}
-          >
+        const linkClassName = cn(
+          buttonVariants({
+            size: "default",
+            variant: "nav",
+            className: collapsed
+              ? sidebarCollapsedCircle
+              : "w-full min-w-0 justify-start px-3"
+          }),
+          isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]",
+          !isActive && collapsed && "text-muted-foreground"
+        );
+
+        const linkBody = (
+          <>
             <span className="relative inline-flex">
-              <Icon className="size-4.5" />
+              <Icon
+                className={cn("size-4.5", isActive ? "text-primary" : "text-muted-foreground")}
+              />
             </span>
             {collapsed ? <span className="sr-only">{item.label}</span> : item.label}
-          </NavLink>
+          </>
+        );
+
+        if (!collapsed) {
+          return (
+            <NavLink className={linkClassName} key={item.to} to={item.to}>
+              {linkBody}
+            </NavLink>
+          );
+        }
+
+        return (
+          <SidebarCollapsedHover key={item.to} label={item.label}>
+            <NavLink className={linkClassName} title={item.label} to={item.to}>
+              {linkBody}
+            </NavLink>
+          </SidebarCollapsedHover>
         );
       })}
     </nav>
@@ -349,11 +400,19 @@ export function WebTopNav({
               sidebarCollapsed ? "px-1.5" : "px-3 sm:px-4"
             )}
           >
-            <SitePanel className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden" variant="muted">
+            <SitePanel
+              className={cn(
+                "flex min-h-0 min-w-0 flex-1 flex-col",
+                sidebarCollapsed
+                  ? "overflow-hidden !rounded-[9999px] border border-border/35 shadow-[var(--shadow-soft)]"
+                  : "overflow-x-hidden"
+              )}
+              variant="muted"
+            >
               <SitePanelBody
                 className={cn(
                   "flex min-h-0 min-w-0 flex-1 flex-col gap-3",
-                  sidebarCollapsed && "!px-1.5 !py-2"
+                  sidebarCollapsed && "!px-1.5 !py-3"
                 )}
               >
                 <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
@@ -382,58 +441,80 @@ export function WebTopNav({
                       sidebarCollapsed && "items-center"
                     )}
                   >
-                    <Link
-                      className={cn(
-                        "flex min-w-0 items-center gap-2 rounded-xl px-2 py-2 text-[0.82rem] font-medium text-foreground transition hover:bg-accent/50",
-                        sidebarCollapsed &&
-                          cn(
+                    {sidebarCollapsed ? (
+                      <SidebarCollapsedHover label={authUser.displayName}>
+                        <Link
+                          className={cn(
                             sidebarCollapsedCircle,
-                            "overflow-hidden ring-1 ring-transparent hover:ring-border/40"
-                          )
-                      )}
-                      title={authUser.displayName}
-                      to={APP_ROUTES.webProfile}
-                    >
-                      <UserAvatar
-                        className={cn("shrink-0", sidebarCollapsed ? "!size-9 rounded-full" : "size-9")}
-                        displayName={authUser.displayName}
-                        size="default"
-                        src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
-                      />
-                      {sidebarCollapsed ? (
-                        <span className="sr-only">个人主页</span>
-                      ) : (
+                            "overflow-hidden ring-1 ring-transparent transition hover:ring-border/40"
+                          )}
+                          title={authUser.displayName}
+                          to={APP_ROUTES.webProfile}
+                        >
+                          <UserAvatar
+                            className="!size-9 shrink-0 rounded-full"
+                            displayName={authUser.displayName}
+                            size="default"
+                            src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
+                          />
+                          <span className="sr-only">个人主页</span>
+                        </Link>
+                      </SidebarCollapsedHover>
+                    ) : (
+                      <Link
+                        className="flex min-w-0 items-center gap-2 rounded-xl px-2 py-2 text-[0.82rem] font-medium text-foreground transition hover:bg-accent/50"
+                        title={authUser.displayName}
+                        to={APP_ROUTES.webProfile}
+                      >
+                        <UserAvatar
+                          className="size-9 shrink-0"
+                          displayName={authUser.displayName}
+                          size="default"
+                          src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
+                        />
                         <span className="min-w-0 flex-1 truncate">{authUser.displayName}</span>
-                      )}
-                    </Link>
+                      </Link>
+                    )}
 
-                    <button
-                      className={cn(
-                        buttonVariants({
-                          size: "default",
-                          variant: "nav",
-                          className: sidebarCollapsed
-                            ? sidebarCollapsedCircle
-                            : "w-full min-w-0 justify-start gap-2 px-3"
-                        })
-                      )}
-                      onClick={() => {
-                        setCollapsed(!sidebarCollapsed);
-                      }}
-                      type="button"
-                    >
-                      {sidebarCollapsed ? (
-                        <PanelLeftOpenIcon className="size-4" />
-                      ) : (
-                        <>
-                          <PanelLeftCloseIcon className="size-4 shrink-0" />
-                          <span>收起侧栏</span>
-                        </>
-                      )}
-                      {sidebarCollapsed ? (
-                        <span className="sr-only">展开侧栏</span>
-                      ) : null}
-                    </button>
+                    {sidebarCollapsed ? (
+                      <SidebarCollapsedHover label="展开侧栏">
+                        <button
+                          className={cn(
+                            buttonVariants({
+                              size: "default",
+                              variant: "nav",
+                              className: sidebarCollapsedCircle
+                            })
+                          )}
+                          onClick={() => {
+                            setCollapsed(!sidebarCollapsed);
+                          }}
+                          title="展开侧栏"
+                          type="button"
+                        >
+                          <PanelLeftOpenIcon className="size-4" />
+                          <span className="sr-only">展开侧栏</span>
+                        </button>
+                      </SidebarCollapsedHover>
+                    ) : (
+                      <button
+                        className={cn(
+                          buttonVariants({
+                            size: "default",
+                            variant: "nav",
+                            className: "w-full min-w-0 justify-start gap-2 px-3"
+                          })
+                        )}
+                        onClick={() => {
+                          setCollapsed(!sidebarCollapsed);
+                        }}
+                        title="收起侧栏"
+                        type="button"
+                      >
+                        <PanelLeftCloseIcon className="size-4 shrink-0" />
+                        <span>收起侧栏</span>
+                      </button>
+                    )}
                   </div>
                 ) : (
                   <div
@@ -442,33 +523,45 @@ export function WebTopNav({
                       sidebarCollapsed && "flex flex-col items-center"
                     )}
                   >
-                    <button
-                      className={cn(
-                        buttonVariants({
-                          size: "default",
-                          variant: "nav",
-                          className: sidebarCollapsed
-                            ? sidebarCollapsedCircle
-                            : "w-full min-w-0 justify-start gap-2 px-3"
-                        })
-                      )}
-                      onClick={() => {
-                        setCollapsed(!sidebarCollapsed);
-                      }}
-                      type="button"
-                    >
-                      {sidebarCollapsed ? (
-                        <PanelLeftOpenIcon className="size-4" />
-                      ) : (
-                        <>
-                          <PanelLeftCloseIcon className="size-4 shrink-0" />
-                          <span>收起侧栏</span>
-                        </>
-                      )}
-                      {sidebarCollapsed ? (
-                        <span className="sr-only">展开侧栏</span>
-                      ) : null}
-                    </button>
+                    {sidebarCollapsed ? (
+                      <SidebarCollapsedHover label="展开侧栏">
+                        <button
+                          className={cn(
+                            buttonVariants({
+                              size: "default",
+                              variant: "nav",
+                              className: sidebarCollapsedCircle
+                            })
+                          )}
+                          onClick={() => {
+                            setCollapsed(!sidebarCollapsed);
+                          }}
+                          title="展开侧栏"
+                          type="button"
+                        >
+                          <PanelLeftOpenIcon className="size-4" />
+                          <span className="sr-only">展开侧栏</span>
+                        </button>
+                      </SidebarCollapsedHover>
+                    ) : (
+                      <button
+                        className={cn(
+                          buttonVariants({
+                            size: "default",
+                            variant: "nav",
+                            className: "w-full min-w-0 justify-start gap-2 px-3"
+                          })
+                        )}
+                        onClick={() => {
+                          setCollapsed(!sidebarCollapsed);
+                        }}
+                        title="收起侧栏"
+                        type="button"
+                      >
+                        <PanelLeftCloseIcon className="size-4 shrink-0" />
+                        <span>收起侧栏</span>
+                      </button>
+                    )}
                   </div>
                 )}
               </SitePanelBody>
