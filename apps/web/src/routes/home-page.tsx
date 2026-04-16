@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { EyeIcon, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
+import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
@@ -229,7 +229,7 @@ export function HomePage() {
           <SitePanel className="bg-white backdrop-blur-none">
             <SitePanelBody className="space-y-2.5">
               <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <TrophyIcon className="size-4.5 text-primary" />
+                <TrophyIcon className="size-4.5 text-amber-600 dark:text-amber-400" />
                 热门榜单
               </div>
               {isRankingsLoading ? (
@@ -263,7 +263,10 @@ export function HomePage() {
 
           <SitePanel className="bg-white backdrop-blur-none">
             <SitePanelBody className="space-y-2.5">
-              <div className="text-base font-semibold text-foreground">热门机型</div>
+              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+                <Flame className="size-4.5 text-orange-600 dark:text-orange-400" />
+                热门机型
+              </div>
               {isModelsLoading ? (
                 <div className="space-y-3">
                   {Array.from({ length: 3 }).map((_, index) => (
