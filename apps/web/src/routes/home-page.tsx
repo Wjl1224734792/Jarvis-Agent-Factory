@@ -43,18 +43,10 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
   return (
     <article className="bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55">
       <Link
-        className="grid gap-3 md:grid-cols-[148px_minmax(0,1fr)] md:items-start"
+        className="grid grid-cols-[minmax(0,1fr)_148px] items-start gap-3"
         {...DETAIL_PAGE_LINK_PROPS}
         to={APP_ROUTES.postDetail.replace(":id", item.id)}
       >
-        <div className="overflow-hidden bg-slate-100">
-          <img
-            alt={item.title}
-            className="h-[96px] w-full object-cover"
-            src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
-          />
-        </div>
-
         <div className="flex min-h-[96px] min-w-0 flex-col">
           <div className="flex items-start gap-2">
             <h2 className="line-clamp-2 max-w-[30rem] text-[1rem] leading-[1.25] font-semibold text-foreground">
@@ -81,6 +73,14 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
               {formatCount(item.viewCount)}
             </span>
           </div>
+        </div>
+
+        <div className="shrink-0 overflow-hidden bg-slate-100">
+          <img
+            alt={item.title}
+            className="h-[96px] w-full object-cover"
+            src={item.images[0]?.url ?? getEditorialImage(item.id, index)}
+          />
         </div>
       </Link>
     </article>
