@@ -75,7 +75,7 @@ export function WebLayout() {
         sidebarCollapsed={sidebarCollapsed}
       />
 
-      <div className="px-[var(--page-pad-x)] pt-5 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] xl:ml-[var(--shell-sidebar-width)] xl:px-6 xl:pb-5 xl:transition-[margin-left] xl:duration-300 xl:ease-out">
+      <div className="px-[var(--page-pad-x)] pt-5 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-5 xl:ml-[var(--shell-sidebar-width)] xl:px-6 xl:transition-[margin-left] xl:duration-300 xl:ease-out">
         <SiteShell className={cn(isFeedWideShell && "site-shell--feed-wide")}>
           <div className="min-w-0">
             <Outlet />

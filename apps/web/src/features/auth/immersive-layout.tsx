@@ -45,7 +45,7 @@ export function ImmersiveLayout() {
   }, [setAnonymous]);
 
   return (
-    <div className="min-h-screen bg-[linear-gradient(180deg,#f4f6f8_0%,#f7f8fa_24%,#ffffff_100%)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))] xl:pb-0">
+    <div className="min-h-screen bg-[linear-gradient(180deg,#f4f6f8_0%,#f7f8fa_24%,#ffffff_100%)] pb-[calc(5rem+env(safe-area-inset-bottom,0px))] md:pb-0">
       <WebTopNav showSearch={showTopNavSearch} showSidebar={false} />
       <ScrollRestoration />
       <Outlet />

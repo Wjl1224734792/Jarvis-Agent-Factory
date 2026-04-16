@@ -1,5 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
+import type { RankingListItem } from "@feijia/schemas";
 import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
@@ -11,6 +12,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualFeed } from "@/components/virtual-feed";
+import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
 import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { getEditorialImage } from "../lib/aviation-media";
 import { apiClient } from "../lib/api-client";
@@ -37,6 +39,121 @@ function formatCount(value: number) {
   }
 
   return String(value);
+}
+
+type HomeModelListItem = Awaited<ReturnType<typeof apiClient.listModels>>["items"][number];
+
+function HomeRailPanels({
+  rankingCards,
+  isRankingsLoading,
+  hotModels,
+  isModelsLoading
+}: {
+  rankingCards: RankingListItem[];
+  isRankingsLoading: boolean;
+  hotModels: HomeModelListItem[];
+  isModelsLoading: boolean;
+}) {
+  return (
+    <>
+      <SitePanel className="bg-white backdrop-blur-none">
+        <SitePanelBody className="space-y-2.5">
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <TrophyIcon className="size-4.5 text-amber-600 dark:text-amber-400" />
+            热门榜单
+          </div>
+          {isRankingsLoading ? (
+            <div className="flex flex-col gap-3">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div className="space-y-2" key={index}>
+                  <Skeleton className="h-4 w-4/5 rounded-none" />
+                  <Skeleton className="h-3.5 w-3/5 rounded-none" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {rankingCards.map((ranking) => (
+                <Link
+                  className="block border-b border-border pb-2.5 last:border-b-0"
+                  key={ranking.id}
+                  {...DETAIL_PAGE_LINK_PROPS}
+                  to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
+                >
+                  <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
+                  <div className="mt-1 text-xs text-muted-foreground">
+                    {ranking.items.slice(0, 2).map((item) => item.title).join(" / ")}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </SitePanelBody>
+      </SitePanel>
+
+      <SitePanel className="bg-white backdrop-blur-none">
+        <SitePanelBody className="space-y-2.5">
+          <div className="flex items-center gap-2 text-base font-semibold text-foreground">
+            <Flame className="size-4.5 text-orange-600 dark:text-orange-400" />
+            热门机型
+          </div>
+          {isModelsLoading ? (
+            <div className="space-y-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
+                  <Skeleton className="h-[58px] w-full rounded-none" />
+                  <div className="space-y-1.5">
+                    <Skeleton className="h-3.5 w-20 rounded-none" />
+                    <Skeleton className="h-3 w-14 rounded-none" />
+                    <Skeleton className="h-3 w-12 rounded-none" />
+                  </div>
+                  <Skeleton className="h-5 w-8 rounded-none" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            hotModels.map((model, index) => (
+              <Link
+                className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
+                key={model.id}
+                {...DETAIL_PAGE_LINK_PROPS}
+                to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
+              >
+                <ModelThumbCover
+                  alt={model.name}
+                  className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]"
+                  coverImageUrl={model.coverImageUrl ?? null}
+                  coverVideoUrl={model.coverVideoUrl ?? null}
+                  index={index}
+                  slug={model.slug}
+                  powerType={model.powerType}
+                />
+                <div className="min-w-0 space-y-1">
+                  <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
+                  <BrandIdentity
+                    className="min-w-0 text-[0.72rem] text-muted-foreground"
+                    imageClassName="size-3.5 shrink-0"
+                    logoUrl={model.brand.logoUrl}
+                    name={model.brand.name}
+                  />
+                  <div className="flex items-center gap-3 text-[0.72rem] text-muted-foreground">
+                    <span className="inline-flex items-center gap-1">
+                      <HeartIcon className="size-3.5" />
+                      {formatCount(model.favoriteCount)}
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <MessageCircleIcon className="size-3.5" />
+                      {formatCount(model.commentCount)}
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            ))
+          )}
+        </SitePanelBody>
+      </SitePanel>
+    </>
+  );
 }
 
 function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
@@ -162,6 +279,7 @@ export function HomePage() {
   const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
+  const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
 
   return (
     <SitePage>
@@ -225,104 +343,16 @@ export function HomePage() {
           </section>
         </div>
 
-        <SiteRail className="space-y-2">
-          <SitePanel className="bg-white backdrop-blur-none">
-            <SitePanelBody className="space-y-2.5">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <TrophyIcon className="size-4.5 text-amber-600 dark:text-amber-400" />
-                热门榜单
-              </div>
-              {isRankingsLoading ? (
-                <div className="flex flex-col gap-3">
-                  {Array.from({ length: 2 }).map((_, index) => (
-                    <div className="space-y-2" key={index}>
-                      <Skeleton className="h-4 w-4/5 rounded-none" />
-                      <Skeleton className="h-3.5 w-3/5 rounded-none" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="space-y-2">
-                  {rankingCards.map((ranking) => (
-                    <Link
-                      className="block border-b border-border pb-2.5 last:border-b-0"
-                      key={ranking.id}
-                      {...DETAIL_PAGE_LINK_PROPS}
-                      to={APP_ROUTES.rankingDetail.replace(":id", ranking.id)}
-                    >
-                      <div className="text-sm font-semibold text-foreground">{ranking.title}</div>
-                      <div className="mt-1 text-xs text-muted-foreground">
-                        {ranking.items.slice(0, 2).map((item) => item.title).join(" / ")}
-                      </div>
-                    </Link>
-                  ))}
-                </div>
-              )}
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel className="bg-white backdrop-blur-none">
-            <SitePanelBody className="space-y-2.5">
-              <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                <Flame className="size-4.5 text-orange-600 dark:text-orange-400" />
-                热门机型
-              </div>
-              {isModelsLoading ? (
-                <div className="space-y-3">
-                  {Array.from({ length: 3 }).map((_, index) => (
-                    <div className="grid grid-cols-[58px_minmax(0,1fr)_auto] items-center gap-2.5" key={index}>
-                      <Skeleton className="h-[58px] w-full rounded-none" />
-                      <div className="space-y-1.5">
-                        <Skeleton className="h-3.5 w-20 rounded-none" />
-                        <Skeleton className="h-3 w-14 rounded-none" />
-                        <Skeleton className="h-3 w-12 rounded-none" />
-                      </div>
-                      <Skeleton className="h-5 w-8 rounded-none" />
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                hotModels.map((model, index) => (
-                  <Link
-                    className="grid grid-cols-[58px_minmax(0,1fr)] items-center gap-2.5 rounded-[calc(var(--radius-control)-0.05rem)] border border-transparent p-1.5 transition hover:border-primary/18 hover:bg-background"
-                    key={model.id}
-                    {...DETAIL_PAGE_LINK_PROPS}
-                    to={APP_ROUTES.modelDetail.replace(":slug", model.slug)}
-                  >
-                    <ModelThumbCover
-                      alt={model.name}
-                      className="h-[58px] w-full rounded-[calc(var(--radius-control)-0.15rem)]"
-                      coverImageUrl={model.coverImageUrl ?? null}
-                      coverVideoUrl={model.coverVideoUrl ?? null}
-                      index={index}
-                      slug={model.slug}
-                      powerType={model.powerType}
-                    />
-                    <div className="min-w-0 space-y-1">
-                      <div className="truncate text-[0.84rem] font-semibold text-foreground">{model.name}</div>
-                      <BrandIdentity
-                        className="min-w-0 text-[0.72rem] text-muted-foreground"
-                        imageClassName="size-3.5 shrink-0"
-                        logoUrl={model.brand.logoUrl}
-                        name={model.brand.name}
-                      />
-                      <div className="flex items-center gap-3 text-[0.72rem] text-muted-foreground">
-                        <span className="inline-flex items-center gap-1">
-                          <HeartIcon className="size-3.5" />
-                          {formatCount(model.favoriteCount)}
-                        </span>
-                        <span className="inline-flex items-center gap-1">
-                          <MessageCircleIcon className="size-3.5" />
-                          {formatCount(model.commentCount)}
-                        </span>
-                      </div>
-                    </div>
-                  </Link>
-                ))
-              )}
-            </SitePanelBody>
-          </SitePanel>
-        </SiteRail>
+        {isXlViewport ? (
+          <SiteRail className="space-y-2">
+            <HomeRailPanels
+              hotModels={hotModels}
+              isModelsLoading={isModelsLoading}
+              isRankingsLoading={isRankingsLoading}
+              rankingCards={rankingCards}
+            />
+          </SiteRail>
+        ) : null}
       </SiteGrid>
     </SitePage>
   );

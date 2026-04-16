@@ -12,7 +12,7 @@ export function WebBottomNav() {
   return (
     <nav
       aria-label="主导航"
-      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/92 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl xl:hidden"
+      className="fixed inset-x-0 bottom-0 z-40 border-t border-border/60 bg-background/92 pb-[env(safe-area-inset-bottom,0px)] backdrop-blur-xl md:hidden"
     >
       <div className="mx-auto flex h-14 max-w-3xl items-stretch justify-around gap-0.5 px-1">
         {webBottomNavItems.map((item) => {

@@ -18,6 +18,7 @@ import {
   buildSearchLocation,
   shouldShowCompactSearchBar
 } from "../../lib/search-navigation";
+import { TAILWIND_XL_MEDIA, useMatchMedia } from "../../hooks/use-match-media";
 import { getAvatarImage } from "../../lib/aviation-media";
 import { cn } from "../../lib/utils";
 import { WEB_ROUTE_PATHS } from "../../lib/web-routes";
@@ -271,6 +272,7 @@ export function WebTopNav({
 
   const showMobileMessages =
     authStatus === "authenticated" && (searchSlots.mobileCompactSearch || searchSlots.mobileSearchButton);
+  const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
 
   return (
     <>
@@ -392,8 +394,8 @@ export function WebTopNav({
         </div>
       </header>
 
-      {showSidebar ? (
-        <aside className="hidden min-w-0 overflow-x-hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)] xl:transition-[width] xl:duration-300 xl:ease-out">
+      {showSidebar && isXlViewport ? (
+        <aside className="fixed inset-y-0 left-0 z-30 flex min-w-0 w-[var(--shell-sidebar-width)] overflow-x-hidden transition-[width] duration-300 ease-out">
           <div
             className={cn(
               "flex min-w-0 flex-1 pb-5 pt-[calc(3.5rem+0.75rem)]",
