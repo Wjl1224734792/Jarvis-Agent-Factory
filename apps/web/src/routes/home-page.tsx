@@ -226,7 +226,7 @@ export function HomePage() {
         </div>
 
         <SiteRail className="space-y-2">
-          <SitePanel variant="muted">
+          <SitePanel className="bg-white backdrop-blur-none">
             <SitePanelBody className="space-y-2.5">
               <div className="flex items-center gap-2 text-base font-semibold text-foreground">
                 <TrophyIcon className="size-4.5 text-primary" />
@@ -261,7 +261,7 @@ export function HomePage() {
             </SitePanelBody>
           </SitePanel>
 
-          <SitePanel variant="muted">
+          <SitePanel className="bg-white backdrop-blur-none">
             <SitePanelBody className="space-y-2.5">
               <div className="text-base font-semibold text-foreground">热门机型</div>
               {isModelsLoading ? (
