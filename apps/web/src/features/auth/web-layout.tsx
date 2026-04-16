@@ -1,6 +1,6 @@
 import { APP_ROUTES } from "@feijia/shared";
 import { useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Outlet, ScrollRestoration, useLocation } from "react-router-dom";
 import { SiteShell } from "@/components/site-shell";
 import { cn } from "@/lib/utils";
@@ -28,6 +28,18 @@ export function WebLayout() {
   const authCacheScopeRef = useRef<string | null>(null);
   const authCacheScope = getAuthCacheScope(authStatus, authUserId);
 
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(() => {
+    if (typeof window === "undefined") {
+      return false;
+    }
+
+    return window.localStorage.getItem("feijia-web-sidebar-collapsed") === "1";
+  });
+
+  useEffect(() => {
+    window.localStorage.setItem("feijia-web-sidebar-collapsed", sidebarCollapsed ? "1" : "0");
+  }, [sidebarCollapsed]);
+
   useEffect(() => {
     if (!isAuthBootstrapped) {
       return;
@@ -52,10 +64,18 @@ export function WebLayout() {
   }, [setAnonymous]);
 
   return (
-    <div className="min-h-screen" style={{ ["--shell-sidebar-width" as string]: "224px" }}>
-      <WebTopNav />
+    <div
+      className="min-h-screen"
+      style={{
+        ["--shell-sidebar-width" as string]: sidebarCollapsed ? "72px" : "224px"
+      }}
+    >
+      <WebTopNav
+        onSidebarCollapsedChange={setSidebarCollapsed}
+        sidebarCollapsed={sidebarCollapsed}
+      />
 
-      <div className="px-[var(--page-pad-x)] py-5 xl:ml-[var(--shell-sidebar-width)] xl:px-6">
+      <div className="px-[var(--page-pad-x)] pt-5 pb-[calc(5rem+env(safe-area-inset-bottom,0px))] xl:ml-[var(--shell-sidebar-width)] xl:px-6 xl:pb-5">
         <SiteShell className={cn(isFeedWideShell && "site-shell--feed-wide")}>
           <div className="min-w-0">
             <Outlet />

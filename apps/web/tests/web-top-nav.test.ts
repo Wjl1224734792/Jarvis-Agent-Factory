@@ -15,14 +15,25 @@ vi.mock("../src/components/ui/input", () => ({
   Input: () => null
 }));
 
-vi.mock("../src/components/ui/sheet", () => ({
-  Sheet: () => null,
-  SheetClose: () => null,
-  SheetContent: () => null,
-  SheetDescription: () => null,
-  SheetHeader: () => null,
-  SheetTitle: () => null,
-  SheetTrigger: () => null
+vi.mock("../src/components/ui/user-avatar", () => ({
+  UserAvatar: () => null
+}));
+
+vi.mock("../src/features/auth/web-nav-config", () => ({
+  webMainNavItems: [],
+  webSidebarMemberNavItems: []
+}));
+
+vi.mock("../src/features/auth/web-bottom-nav", () => ({
+  WebBottomNav: () => null
+}));
+
+vi.mock("../src/features/auth/web-publish-fab", () => ({
+  WebPublishFab: () => null
+}));
+
+vi.mock("../src/lib/aviation-media", () => ({
+  getAvatarImage: () => ""
 }));
 
 vi.mock("../src/lib/search-navigation", () => ({

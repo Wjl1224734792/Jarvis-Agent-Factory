@@ -1,6 +1,5 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
-import { Clock3Icon, FlameIcon, PlusIcon } from "lucide-react";
+import { Clock3Icon, FlameIcon } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
@@ -11,12 +10,9 @@ import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { partitionByShortestColumn } from "@/lib/masonry-partition";
-import { useAuthStore } from "../features/auth/auth-store";
-import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
 import { CIRCLE_CARD_COLUMN_GAP, RANKING_GRID_MIN_COLUMNS } from "./circle-page-helpers";
@@ -103,8 +99,6 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
 });
 
 export function RankingsPage() {
-  const authStatus = useAuthStore((state) => state.status);
-  const promptLogin = useLoginPrompt();
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
     queryKey: ["rankings"],
@@ -131,8 +125,8 @@ export function RankingsPage() {
 
   return (
     <SitePage className="w-full min-w-0 gap-4">
-      <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
-        <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
+      <div className="flex flex-wrap items-center gap-4 border-b border-border/60 pb-3">
+        <div className="flex min-w-0 gap-5 overflow-x-auto whitespace-nowrap">
           {[
             { id: "hot" as const, label: "热门", icon: FlameIcon },
             { id: "latest" as const, label: "最新", icon: Clock3Icon }
@@ -156,25 +150,6 @@ export function RankingsPage() {
             );
           })}
         </div>
-
-        <Button asChild className="rounded-full" size="sm" variant="hero">
-          <Link
-            onClick={(event) => {
-              if (authStatus === "authenticated") {
-                return;
-              }
-              event.preventDefault();
-              promptLogin({
-                title: "登录后才能创建榜单",
-                description: "社区榜单需要登录后才能发布。"
-              });
-            }}
-            to={APP_ROUTES.rankingEditor}
-          >
-            <PlusIcon data-icon="inline-start" />
-            创建榜单
-          </Link>
-        </Button>
       </div>
 
       {rankingsQuery.isError ? (

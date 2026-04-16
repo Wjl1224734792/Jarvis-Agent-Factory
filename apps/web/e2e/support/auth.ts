@@ -136,7 +136,7 @@ export async function readFirstRatingTargetPath(page: Page) {
 }
 
 export async function expectLegacyImmersiveShell(page: Page) {
-  await expect(page.getByRole("button", { name: "发布" })).toHaveCount(0);
+  await expect(page.locator("header").getByRole("button", { name: "发布" })).toHaveCount(0);
   await expect(page.getByText("飞友与飞行器社区")).toHaveCount(0);
 }
 export async function expectImmersiveShell(page: Page) {
@@ -147,5 +147,5 @@ export async function expectImmersiveShell(page: Page) {
 export async function expectPublishShellTopNav(page: Page) {
   await expect(page.locator("header")).toBeVisible();
   await expect(page.locator("header input")).toHaveCount(0);
-  await expect(page.locator('header a[href="/me"]').first()).toBeVisible();
+  await expect(page.getByRole("button", { name: "打开发布菜单" })).toBeVisible();
 }
