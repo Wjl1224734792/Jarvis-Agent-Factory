@@ -67,7 +67,7 @@ export function WebLayout() {
     <div
       className="min-h-screen"
       style={{
-        ["--shell-sidebar-width" as string]: sidebarCollapsed ? "72px" : "224px"
+        ["--shell-sidebar-width" as string]: sidebarCollapsed ? "84px" : "224px"
       }}
     >
       <WebTopNav

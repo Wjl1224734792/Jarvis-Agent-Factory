@@ -1,4 +1,4 @@
-import { PenLineIcon } from "lucide-react";
+import { PlusIcon } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -55,11 +55,11 @@ export function WebPublishFab() {
           type="button"
           variant="hero"
         >
-          <PenLineIcon className="size-6" />
+          <PlusIcon className="size-6" />
         </Button>
 
         {open ? (
-          <div className="absolute right-0 bottom-[calc(100%+0.45rem)] z-50 w-[10.5rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur xl:bottom-auto xl:top-[calc(100%+0.45rem)]">
+          <div className="absolute right-0 bottom-[calc(100%+0.45rem)] z-50 w-[10.5rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
             <div className="space-y-0.5">
               {webPublishMenuEntries.map((entry) => (
                 <Link

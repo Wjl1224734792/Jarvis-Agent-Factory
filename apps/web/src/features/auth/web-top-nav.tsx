@@ -130,7 +130,7 @@ function NavButtons({
   collapsed: boolean;
 }) {
   return (
-    <nav className="flex flex-col gap-1.5">
+    <nav className="flex min-w-0 flex-col gap-1.5">
       {items.map((item) => {
         const Icon = item.icon;
 
@@ -141,7 +141,9 @@ function NavButtons({
                 buttonVariants({
                   size: "default",
                   variant: "nav",
-                  className: collapsed ? "w-full justify-center px-0" : "w-full justify-start px-3"
+                  className: collapsed
+                    ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                    : "w-full min-w-0 justify-start px-3"
                 }),
                 isActive && "bg-primary/10 text-primary shadow-[var(--shadow-soft)]"
               )
@@ -336,11 +338,21 @@ export function WebTopNav({
       </header>
 
       {showSidebar ? (
-        <aside className="hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)]">
-          <div className="flex w-full px-3 pb-5 pt-[calc(3.5rem+0.75rem)] sm:px-4">
-            <SitePanel className="flex w-full min-h-0 flex-1 flex-col" variant="muted">
-              <SitePanelBody className="flex min-h-0 flex-1 flex-col gap-3">
-                <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain">
+        <aside className="hidden min-w-0 overflow-x-hidden xl:fixed xl:inset-y-0 xl:left-0 xl:z-30 xl:flex xl:w-[var(--shell-sidebar-width)]">
+          <div
+            className={cn(
+              "flex min-w-0 flex-1 pb-5 pt-[calc(3.5rem+0.75rem)]",
+              sidebarCollapsed ? "px-1.5" : "px-3 sm:px-4"
+            )}
+          >
+            <SitePanel className="flex min-h-0 min-w-0 flex-1 flex-col overflow-x-hidden" variant="muted">
+              <SitePanelBody
+                className={cn(
+                  "flex min-h-0 min-w-0 flex-1 flex-col gap-3",
+                  sidebarCollapsed && "!px-1.5 !py-2"
+                )}
+              >
+                <div className="min-h-0 min-w-0 flex-1 overflow-x-hidden overflow-y-auto overscroll-contain">
                   <NavButtons collapsed={sidebarCollapsed} items={webMainNavItems} />
                   {authStatus === "authenticated" ? (
                     <>
@@ -360,7 +372,7 @@ export function WebTopNav({
                 </div>
 
                 {authStatus === "authenticated" && authUser ? (
-                  <div className="mt-auto flex flex-col gap-2 border-t border-border/40 pt-3">
+                  <div className="mt-auto flex min-w-0 flex-col gap-2 border-t border-border/40 pt-3">
                     <Link
                       className={cn(
                         "flex min-w-0 items-center gap-2 rounded-xl px-2 py-2 text-[0.82rem] font-medium text-foreground transition hover:bg-accent/50",
@@ -370,7 +382,7 @@ export function WebTopNav({
                       to={APP_ROUTES.webProfile}
                     >
                       <UserAvatar
-                        className="size-9 shrink-0"
+                        className={cn("shrink-0", sidebarCollapsed ? "size-8" : "size-9")}
                         displayName={authUser.displayName}
                         size="default"
                         src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
@@ -382,52 +394,63 @@ export function WebTopNav({
                       )}
                     </Link>
 
-                    <Button
+                    <button
                       className={cn(
-                        "w-full gap-2 border-border/60",
-                        sidebarCollapsed && "justify-center px-0"
+                        buttonVariants({
+                          size: "default",
+                          variant: "nav",
+                          className: sidebarCollapsed
+                            ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                            : "w-full min-w-0 justify-start gap-2 px-3"
+                        })
                       )}
                       onClick={() => {
                         setCollapsed(!sidebarCollapsed);
                       }}
-                      size="sm"
                       type="button"
-                      variant="outline"
                     >
                       {sidebarCollapsed ? (
                         <PanelLeftOpenIcon className="size-4" />
                       ) : (
-                        <PanelLeftCloseIcon className="size-4" />
+                        <>
+                          <PanelLeftCloseIcon className="size-4 shrink-0" />
+                          <span>收起侧栏</span>
+                        </>
                       )}
                       {sidebarCollapsed ? (
                         <span className="sr-only">展开侧栏</span>
-                      ) : (
-                        <span>收起侧栏</span>
-                      )}
-                    </Button>
+                      ) : null}
+                    </button>
                   </div>
                 ) : (
-                  <div className="mt-auto border-t border-border/40 pt-3">
-                    <Button
-                      className={cn("w-full gap-2 border-border/60", sidebarCollapsed && "justify-center px-0")}
+                  <div className="mt-auto min-w-0 border-t border-border/40 pt-3">
+                    <button
+                      className={cn(
+                        buttonVariants({
+                          size: "default",
+                          variant: "nav",
+                          className: sidebarCollapsed
+                            ? "h-9 w-full min-w-0 shrink-0 justify-center px-0"
+                            : "w-full min-w-0 justify-start gap-2 px-3"
+                        })
+                      )}
                       onClick={() => {
                         setCollapsed(!sidebarCollapsed);
                       }}
-                      size="sm"
                       type="button"
-                      variant="outline"
                     >
                       {sidebarCollapsed ? (
                         <PanelLeftOpenIcon className="size-4" />
                       ) : (
-                        <PanelLeftCloseIcon className="size-4" />
+                        <>
+                          <PanelLeftCloseIcon className="size-4 shrink-0" />
+                          <span>收起侧栏</span>
+                        </>
                       )}
                       {sidebarCollapsed ? (
                         <span className="sr-only">展开侧栏</span>
-                      ) : (
-                        <span>收起侧栏</span>
-                      )}
-                    </Button>
+                      ) : null}
+                    </button>
                   </div>
                 )}
               </SitePanelBody>
