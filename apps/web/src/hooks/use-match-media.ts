@@ -28,5 +28,5 @@ export function useMatchMedia(query: string) {
 /** Tailwind 默认 `min-width: 1280px` → `xl:` */
 export const TAILWIND_XL_MEDIA = "(min-width: 1280px)";
 
-/** Tailwind 默认 `min-width: 768px` → `md:`；与底部主导航（仅窄屏/手机）显示范围一致。 */
+/** Tailwind 默认 `min-width: 768px` → `md:` */
 export const TAILWIND_MD_MEDIA = "(min-width: 768px)";

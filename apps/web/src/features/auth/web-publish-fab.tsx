@@ -33,7 +33,7 @@ export function WebPublishFab() {
   }, [open]);
 
   return (
-    <div className="fixed right-4 z-[45] max-md:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] md:bottom-6">
+    <div className="fixed right-4 z-[45] max-xl:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] xl:bottom-6">
       <div className="relative" ref={rootRef}>
         <Button
           aria-expanded={open}

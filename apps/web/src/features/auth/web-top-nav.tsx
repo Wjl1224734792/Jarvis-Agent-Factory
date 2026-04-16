@@ -270,8 +270,7 @@ export function WebTopNav({
     onSidebarCollapsedChange?.(next);
   }
 
-  const showMobileMessages =
-    authStatus === "authenticated" && (searchSlots.mobileCompactSearch || searchSlots.mobileSearchButton);
+  const showNotificationsLink = authStatus === "authenticated";
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
 
   return (
@@ -369,13 +368,13 @@ export function WebTopNav({
               </Button>
             ) : null}
 
-            {showMobileMessages ? (
+            {showNotificationsLink ? (
               <Link
                 aria-label={
                   unreadNotifications > 0 ? `消息，${unreadNotifications} 条未读` : "消息"
                 }
                 className={cn(
-                  "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent/55 hover:text-foreground xl:hidden",
+                  "relative inline-flex size-10 shrink-0 items-center justify-center rounded-full text-muted-foreground transition hover:bg-accent/55 hover:text-foreground",
                   unreadNotifications > 0 && "text-red-500 hover:text-red-600"
                 )}
                 to={APP_ROUTES.notifications}
