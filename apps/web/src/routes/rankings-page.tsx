@@ -6,7 +6,6 @@ import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
-import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
 import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
@@ -24,14 +23,14 @@ import { estimateRankingListItemRelativeHeight, mergeRankingsByTab } from "./ran
 
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
-function RatingTargetScore({ score, totalRatings }: { score: number; totalRatings: number }) {
+/** 卡片内预览条：仅数字 + 评数，避免窄列下星标与分数横向撑破布局 */
+function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
-    <div className="flex shrink-0 flex-col items-end gap-1 text-right">
-      <div className="flex items-center gap-2">
-        <RatingStars size="xs" tone="rating" value={toFiveStarRating(score)} />
-        <RatingValue className="min-w-[2.8rem] text-right" score={score} />
-      </div>
-      {totalRatings > 0 ? <span className="text-[0.72rem] text-muted-foreground">{totalRatings} 评</span> : null}
+    <div className="flex min-w-0 flex-col items-end gap-0.5 text-right">
+      <RatingValue className="tabular-nums" score={score} size="sm" />
+      {totalRatings > 0 ? (
+        <span className="text-[0.7rem] leading-none text-muted-foreground">{totalRatings} 评</span>
+      ) : null}
     </div>
   );
 }
@@ -41,13 +40,13 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
   const detailPath = buildRankingDetailPath(ranking.id);
 
   return (
-    <div className="relative bg-white transition hover:bg-sky-50/40">
+    <div className="relative overflow-hidden rounded-[var(--radius-panel)] bg-white transition hover:bg-sky-50/40">
       <div className="absolute top-2 right-2 z-10">
         <PageShareControl sharePath={detailPath} stopPointerPropagation />
       </div>
       <Link className="flex min-w-0 flex-col gap-4 px-4 pt-4 pr-12 pb-4" {...DETAIL_PAGE_LINK_PROPS} to={detailPath}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0 space-y-2">
+        <div className="flex min-w-0 items-start justify-between gap-3">
+          <div className="min-w-0 space-y-2 overflow-hidden">
             <div className="flex flex-wrap items-center gap-2">
               <div className="line-clamp-2 text-[1.05rem] leading-6 font-semibold text-foreground">
                 {ranking.title}
@@ -62,35 +61,33 @@ function RankingCard({ ranking }: { ranking: RankingListItem }) {
           </div>
         </div>
 
-        <div className="border-t border-border/70 pt-3">
+        <div className="min-w-0 border-t border-border/70 pt-3">
           {previewItems.map((item, index) => (
             <div
-              className={`flex min-w-0 items-center gap-3 py-2 ${
+              className={`grid min-w-0 grid-cols-[1.25rem_3rem_minmax(0,1fr)_minmax(0,4.75rem)] items-start gap-x-2 gap-y-0 py-2 ${
                 index < previewItems.length - 1 ? "border-b border-border/60" : ""
               }`}
               key={item.id}
             >
-              <div className="flex shrink-0 items-center gap-3">
-                <div className="min-w-[1.2rem] shrink-0 text-center text-[0.8rem] font-semibold text-primary/76 tabular-nums">
-                  {item.rank}
-                </div>
-                <img
-                  alt={item.title}
-                  className="h-12 w-12 shrink-0 object-cover"
-                  src={
-                    item.imageUrl ??
-                    getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
-                  }
-                />
+              <div className="pt-0.5 text-center text-[0.8rem] font-semibold text-primary/76 tabular-nums">
+                {item.rank}
               </div>
-              <div className="flex min-w-0 flex-1 items-start justify-between gap-2">
-                <div className="min-w-0 flex-1 space-y-1">
-                  <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
-                  <div className="truncate text-xs text-muted-foreground">
-                    {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
-                  </div>
+              <img
+                alt={item.title}
+                className="h-12 w-12 shrink-0 object-cover"
+                src={
+                  item.imageUrl ??
+                  getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
+                }
+              />
+              <div className="min-w-0 space-y-1 overflow-hidden pt-0.5">
+                <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
+                <div className="truncate text-xs text-muted-foreground">
+                  {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                 </div>
-                <RatingTargetScore score={item.averageScore} totalRatings={item.totalRatings} />
+              </div>
+              <div className="min-w-0 justify-self-end">
+                <RatingTargetScoreCompact score={item.averageScore} totalRatings={item.totalRatings} />
               </div>
             </div>
           ))}
@@ -125,7 +122,7 @@ export function RankingsPage() {
   );
 
   return (
-    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+    <SitePage className="w-full min-w-0 gap-4">
       <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border/60 pb-3">
         <div className="flex gap-5 overflow-x-auto whitespace-nowrap">
           {[

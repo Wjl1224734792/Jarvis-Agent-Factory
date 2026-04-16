@@ -105,7 +105,19 @@ export function getCircleColumnCount(viewportWidth: number) {
     return 4;
   }
 
-  return 5;
+  if (viewportWidth < 1920) {
+    return 5;
+  }
+
+  if (viewportWidth < 2240) {
+    return 6;
+  }
+
+  if (viewportWidth < 2560) {
+    return 7;
+  }
+
+  return 8;
 }
 
 export function buildCircleMediaItems(input: {
