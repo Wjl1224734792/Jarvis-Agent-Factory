@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 export const searchQuerySchema = z.object({
-  q: z.string().trim().min(2).max(80),
+  q: z.string().trim().min(1).max(80),
   limit: z.coerce.number().int().positive().max(50).default(24)
 });
 

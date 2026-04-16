@@ -107,7 +107,7 @@ export function SearchPage() {
         q: searchQuery,
         limit: 24
       }),
-    enabled: searchQuery.length >= 2
+    enabled: searchQuery.length >= 1
   });
 
   const groupedItems = useMemo(() => {
@@ -143,7 +143,7 @@ export function SearchPage() {
   }, [typesWithResults, typeFromUrl]);
 
   useEffect(() => {
-    if (searchQuery.length < 2 || !searchResultQuery.data || typesWithResults.length === 0) {
+    if (searchQuery.length < 1 || !searchResultQuery.data || typesWithResults.length === 0) {
       return;
     }
 
@@ -188,12 +188,12 @@ export function SearchPage() {
 
   return (
     <div className="mx-auto flex w-full max-w-5xl flex-col gap-4">
-      {searchQuery.length < 2 ? (
-        <section className="rounded-[1.25rem] border border-dashed border-border/70 bg-background/70 p-8 text-center text-sm text-muted-foreground">
-          请使用顶部搜索栏输入至少 2 个字符开始搜索。
+      {searchQuery.length < 1 ? (
+        <section className="rounded-none border border-dashed border-border/70 bg-background/70 p-8 text-center text-sm text-muted-foreground">
+          请使用顶部搜索栏输入关键词开始搜索。
         </section>
       ) : (
-        <section className="rounded-[1.25rem] border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
+        <section className="rounded-none border border-border/70 bg-card/70 px-4 py-3 text-sm text-muted-foreground shadow-[var(--shadow-soft)]">
           当前关键词 <span className="font-medium text-foreground">{searchQuery}</span>
           {searchResultQuery.data ? (
             <span className="ml-2">共 {searchResultQuery.data.total} 条结果</span>
@@ -201,29 +201,29 @@ export function SearchPage() {
         </section>
       )}
 
-      {searchQuery.length >= 2 && searchResultQuery.isLoading ? (
-        <section className="rounded-[1.25rem] border border-border/70 bg-card/70 p-8 text-sm text-muted-foreground">
+      {searchQuery.length >= 1 && searchResultQuery.isLoading ? (
+        <section className="rounded-none border border-border/70 bg-card/70 p-8 text-sm text-muted-foreground">
           正在整理搜索结果...
         </section>
       ) : null}
 
-      {searchQuery.length >= 2 && searchResultQuery.isError ? (
-        <section className="rounded-[1.25rem] border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
+      {searchQuery.length >= 1 && searchResultQuery.isError ? (
+        <section className="rounded-none border border-destructive/30 bg-destructive/5 p-6 text-sm text-destructive">
           {searchResultQuery.error.message}
         </section>
       ) : null}
 
-      {searchQuery.length >= 2 &&
+      {searchQuery.length >= 1 &&
       !searchResultQuery.isLoading &&
       !searchResultQuery.isError &&
       searchResultQuery.data &&
       searchResultQuery.data.total === 0 ? (
-        <section className="rounded-[1.25rem] border border-border/70 bg-card/70 p-8 text-center text-sm text-muted-foreground">
+        <section className="rounded-none border border-border/70 bg-card/70 p-8 text-center text-sm text-muted-foreground">
           没有找到与“{searchQuery}”相关的公开内容。
         </section>
       ) : null}
 
-      {searchQuery.length >= 2 &&
+      {searchQuery.length >= 1 &&
       !searchResultQuery.isLoading &&
       !searchResultQuery.isError &&
       searchResultQuery.data &&
@@ -258,7 +258,7 @@ export function SearchPage() {
             </div>
           ) : null}
 
-          <section className="overflow-hidden rounded-[1.25rem] border border-border/70 bg-white shadow-[var(--shadow-soft)]">
+          <section className="overflow-hidden rounded-none border border-border/70 bg-white shadow-[var(--shadow-soft)]">
             {activeItems.length > 0 ? (
               <Virtuoso
                 className="virtual-feed"

@@ -52,7 +52,7 @@ export function AdminSearchPage() {
         q: searchQuery,
         limit: 24
       }),
-    enabled: searchQuery.length >= 2
+    enabled: searchQuery.length >= 1
   });
 
   const groupedItems = useMemo(() => {
@@ -97,21 +97,21 @@ export function AdminSearchPage() {
       description="后台全局搜索按审核、运营、管理三组展示，并提供直接跳转目标。"
       title="全局搜索"
     >
-      {searchQuery.length < 2 ? (
+      {searchQuery.length < 1 ? (
         <AdminPanel title="搜索提示">
-          <Empty description="请输入至少 2 个字符后开始搜索" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          <Empty description="请输入关键词后开始搜索" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         </AdminPanel>
       ) : null}
 
-      {searchQuery.length >= 2 && searchResultQuery.isLoading ? (
+      {searchQuery.length >= 1 && searchResultQuery.isLoading ? (
         <Card loading title="正在搜索" />
       ) : null}
 
-      {searchQuery.length >= 2 && searchResultQuery.isError ? (
+      {searchQuery.length >= 1 && searchResultQuery.isError ? (
         <div className="admin-login__error">{searchResultQuery.error.message}</div>
       ) : null}
 
-      {searchQuery.length >= 2 &&
+      {searchQuery.length >= 1 &&
       searchResultQuery.data &&
       !searchResultQuery.isLoading &&
       searchResultQuery.data.total === 0 ? (
@@ -120,7 +120,7 @@ export function AdminSearchPage() {
         </AdminPanel>
       ) : null}
 
-      {searchQuery.length >= 2 && searchResultQuery.data
+      {searchQuery.length >= 1 && searchResultQuery.data
         ? SECTION_ORDER.map((section) => {
             const items = groupedItems.get(section) ?? [];
             if (items.length === 0) {
