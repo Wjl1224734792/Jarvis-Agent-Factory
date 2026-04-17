@@ -8,7 +8,7 @@ import {
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
-import { startTransition, useEffect, useState } from "react";
+import { startTransition, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -41,6 +41,36 @@ function splitContent(content: string) {
     .filter(Boolean);
 }
 
+function extractVideoSrcSet(html: string) {
+  const sourceSet = new Set<string>();
+  const content = html.trim();
+
+  if (!content) {
+    return sourceSet;
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(content, "text/html");
+    const mediaNodes = documentNode.querySelectorAll("video[src], video source[src]");
+    for (const node of mediaNodes) {
+      const src = node.getAttribute("src")?.trim();
+      if (src) {
+        sourceSet.add(src);
+      }
+    }
+    return sourceSet;
+  }
+
+  for (const match of content.matchAll(/<(?:video|source)\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
+    const src = match[1]?.trim();
+    if (src) {
+      sourceSet.add(src);
+    }
+  }
+
+  return sourceSet;
+}
+
 export function PostDetailPage() {
   const params = useParams<{ id: string }>();
   const id = params.id ?? "";
@@ -64,6 +94,17 @@ export function PostDetailPage() {
   const item = postQuery.data?.item;
   const paragraphs = splitContent(item?.content ?? "");
   const articleHtml = item?.type === "article" ? item.contentHtml?.trim() ?? "" : "";
+  const embeddedVideoSrcSet = useMemo(() => extractVideoSrcSet(articleHtml), [articleHtml]);
+  const fallbackVideos = useMemo(() => {
+    if (!item || item.type !== "article") {
+      return [];
+    }
+
+    return item.videos.filter((video) => {
+      const src = video.url.trim();
+      return src.length > 0 && !embeddedVideoSrcSet.has(src);
+    });
+  }, [embeddedVideoSrcSet, item]);
 
   useEffect(() => {
     if (!item || item.status !== "published" || !shouldRecordSessionView("post", item.id)) {
@@ -230,6 +271,16 @@ export function PostDetailPage() {
             ))}
           </div>
         )}
+
+        {item.type === "article" && fallbackVideos.length > 0 ? (
+          <div className="space-y-4">
+            {fallbackVideos.map((video) => (
+              <div className="overflow-hidden rounded-[0.95rem] border border-border/70 bg-slate-950" key={video.id}>
+                <video className="h-auto w-full" controls preload="metadata" src={video.url} />
+              </div>
+            ))}
+          </div>
+        ) : null}
       </article>
 
       <section className="space-y-5 border-t border-border/60 pt-6">
