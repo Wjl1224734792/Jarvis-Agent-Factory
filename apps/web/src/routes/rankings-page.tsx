@@ -27,7 +27,7 @@ type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["offic
 /** 卡片内预览条：与榜单详情一致展示分数 + 五星 + 评数 */
 function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
   return (
-    <div className="flex w-max max-w-[4.75rem] shrink-0 flex-col items-end gap-0.5 text-right">
+    <div className="flex w-max max-w-[4.25rem] shrink-0 flex-col items-end gap-0.5 text-right">
       <RatingValue className="tabular-nums" score={score} size="sm" />
       <RatingStars className="shrink-0 flex-nowrap" size="xs" tone="rating" value={toFiveStarRating(score)} />
       {totalRatings > 0 ? (
@@ -65,7 +65,7 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
         <div className="min-w-0 border-t border-border/70 pt-3">
           {previewItems.map((item, index) => (
             <div
-              className={`grid min-w-0 grid-cols-[1.25rem_3rem_minmax(0,1fr)_minmax(4.5rem,max-content)] items-start gap-x-2 gap-y-0 py-2 ${
+              className={`grid min-w-0 grid-cols-[1.25rem_2.75rem_minmax(0,1fr)_minmax(3.75rem,max-content)] items-start gap-x-2 gap-y-0 py-2 ${
                 index < previewItems.length - 1 ? "border-b border-border/60" : ""
               }`}
               key={item.id}
@@ -75,15 +75,17 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
               </div>
               <img
                 alt={item.title}
-                className="h-12 w-12 shrink-0 object-cover"
+                className="h-11 w-11 shrink-0 object-cover"
                 src={
                   item.imageUrl ??
                   getModelImage(item.linkedModel?.slug ?? item.id, item.linkedModel?.powerType ?? "electric")
                 }
               />
-              <div className="min-w-0 space-y-1 overflow-hidden pt-0.5">
-                <div className="truncate text-[0.86rem] font-medium text-foreground">{item.title}</div>
-                <div className="truncate text-xs text-muted-foreground">
+              <div className="min-h-0 min-w-0 space-y-0.5 overflow-hidden pt-0.5">
+                <div className="line-clamp-2 break-words text-[0.86rem] font-medium leading-snug text-foreground">
+                  {item.title}
+                </div>
+                <div className="line-clamp-1 text-xs text-muted-foreground">
                   {item.brandName ?? item.linkedModel?.brand.name ?? "榜单条目"}
                 </div>
               </div>

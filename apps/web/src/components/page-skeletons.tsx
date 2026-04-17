@@ -19,8 +19,9 @@ const MODEL_GRID_SKELETON_HEIGHT_PROBE = {
   summary: "Typical summary text for skeleton masonry column balance."
 } as ModelListItem;
 
+/** 与 rankings-page-helpers 中 RANKING_CARD_MIN_WIDTH_PX（380px ≈ 23.75rem）对齐 */
 export const RANKING_GRID_CLASS_NAME =
-  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,17.25rem),1fr))] gap-3";
+  "grid grid-cols-[repeat(auto-fill,minmax(min(100%,23.75rem),1fr))] gap-3";
 
 export function RailCardSkeleton(props: { rows?: number }) {
   return (
