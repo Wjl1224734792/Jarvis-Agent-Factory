@@ -25,10 +25,6 @@ function ProfileGridPagination(props: {
   totalPages: number;
   onPageChange: (page: number) => void;
 }) {
-  if (props.totalPages <= 1) {
-    return null;
-  }
-
   return (
     <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/60 pt-4">
       <Button
