@@ -41,6 +41,14 @@ describe("posts contract", () => {
   });
 
   it("allows moment posts with empty content and rejects empty content for articles", () => {
+    const momentWithoutContent = createPostInputSchema.parse({
+      type: "moment",
+      title: "无正文也可发布",
+      imageIds: [],
+      videoIds: []
+    });
+    expect(momentWithoutContent.content).toBe("");
+
     const momentOnlyTitle = createPostInputSchema.parse({
       type: "moment",
       title: "仅标题",
@@ -74,6 +82,15 @@ describe("posts contract", () => {
         type: "article",
         title: "空白正文文章",
         content: "   ",
+        imageIds: [],
+        videoIds: []
+      })
+    ).toThrow();
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "article",
+        title: "缺失正文文章",
         imageIds: [],
         videoIds: []
       })

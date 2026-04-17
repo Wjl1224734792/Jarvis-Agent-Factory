@@ -6,7 +6,7 @@ import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
@@ -59,7 +59,7 @@ function CircleFeedCard(props: {
   formatCount: (value: number) => string;
 }) {
   const { item, absoluteIndex, selectedNoteId, openNote, formatCount } = props;
-  const previewImage = item.images[0]?.url ?? getEditorialImage(item.id, absoluteIndex);
+  const previewImage = item.images[0]?.url ?? null;
 
   return (
     <button
@@ -77,11 +77,17 @@ function CircleFeedCard(props: {
           getCircleCardMediaAspectClass(absoluteIndex)
         )}
       >
-        <img
-          alt={item.title}
-          className="h-full w-full rounded-[1rem] object-cover"
-          src={previewImage}
-        />
+        {previewImage ? (
+          <img
+            alt={item.title}
+            className="h-full w-full rounded-[1rem] object-cover"
+            src={previewImage}
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center rounded-[1rem] bg-slate-100 text-xs text-muted-foreground">
+            未设置封面
+          </div>
+        )}
         {item.videos.length > 0 ? (
           <span className="absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
             <PlayIcon className="size-3.5 fill-current" />

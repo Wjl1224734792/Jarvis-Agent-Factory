@@ -50,7 +50,7 @@ export const createPostInputSchema = z
   .object({
     type: postTypeSchema,
     title: z.string().trim().min(1).max(100),
-    content: z.string().trim().max(8000),
+    content: z.string().trim().max(8000).optional().default(""),
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1).nullable().optional(),
     imageIds: z.array(z.string().min(1)).default([]),

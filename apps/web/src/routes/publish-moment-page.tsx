@@ -12,7 +12,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
-import { getEditorialImage } from "../lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
 import { getCircleCardMediaAspectClass } from "./circle-page-helpers";
@@ -179,7 +178,7 @@ export function PublishMomentPage() {
     }
   }
 
-  const coverUrl = uploadedImages[0]?.url ?? getEditorialImage("moment-create");
+  const previewImageUrl = uploadedImages[0]?.url ?? null;
 
   if (editId && detailQuery.isLoading) {
     return <PublishMomentPageSkeleton />;
@@ -409,11 +408,22 @@ export function PublishMomentPage() {
                   </div>
                 ) : (
                   <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
-                    <img
-                      alt="preview"
-                      className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
-                      src={coverUrl}
-                    />
+                    {previewImageUrl ? (
+                      <img
+                        alt="preview"
+                        className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
+                        src={previewImageUrl}
+                      />
+                    ) : (
+                      <div
+                        className={cn(
+                          "flex w-full items-center justify-center bg-slate-100 text-xs text-muted-foreground",
+                          getCircleCardMediaAspectClass(0)
+                        )}
+                      >
+                        未设置封面
+                      </div>
+                    )}
                     {uploadedImages.length > 1 ? (
                       <span className="absolute bottom-2 right-2 rounded-full bg-black/55 px-2 py-0.5 text-[0.7rem] font-medium text-white">
                         共 {uploadedImages.length} 张
