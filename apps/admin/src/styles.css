@@ -938,8 +938,32 @@ body {
   min-height: 44px;
 }
 
+/* Input.Search：输入框与右侧搜索按钮同高（否则 affix 44px 与默认 middle 按钮 32px 错位） */
+.admin-shell__search .ant-input-search.ant-space-compact {
+  align-items: stretch;
+  width: 100%;
+}
+
+.admin-shell__search .ant-input-search-btn.ant-btn.ant-btn-icon-only {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+}
+
 .admin-shell__header-actions {
   justify-self: end;
+  min-height: 44px;
+  flex-wrap: nowrap;
+  max-width: 100%;
+}
+
+.admin-shell__header-actions .ant-space-item:last-child {
+  flex-shrink: 0;
+}
+
+.admin-shell__header-actions .admin-shell__session-meta {
+  min-width: 0;
+  max-width: min(200px, 28vw);
 }
 
 .admin-shell__session-meta {
@@ -956,6 +980,9 @@ body {
 .admin-shell__session-value {
   font-weight: 700;
   color: var(--admin-text-strong);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .admin-shell__layout.ant-layout {
@@ -1077,14 +1104,10 @@ body {
 }
 
 @media (max-width: 1199px) {
+  /* 保持四列单行，避免把右侧操作区整体挤到下一行 */
   .admin-shell__brand-row {
-    grid-template-columns: auto auto minmax(0, 1fr);
-  }
-
-  .admin-shell__header-actions {
-    grid-column: 1 / -1;
-    justify-self: stretch;
-    justify-content: space-between;
+    grid-template-columns: auto auto minmax(160px, 1fr) auto;
+    gap: 12px;
   }
 }
 
@@ -1097,6 +1120,16 @@ body {
 
   .admin-shell__search {
     grid-column: 1 / -1;
+  }
+
+  .admin-shell__header-actions {
+    grid-column: 1 / -1;
+    justify-self: stretch;
+    justify-content: space-between;
+  }
+
+  .admin-shell__header-actions .admin-shell__session-meta {
+    max-width: none;
   }
 
   .admin-shell__content-inner {
