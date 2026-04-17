@@ -1,4 +1,5 @@
 import { socialRepo } from "./social.repo";
+import { rankingsRepo } from "../rankings/rankings.repo";
 import { AuthError, authService } from "../auth/auth.service";
 import { postsRepo } from "../posts/posts.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
@@ -75,6 +76,14 @@ function postViewCountForViewer(
     return viewCount ?? 0;
   }
   return isSelf ? (viewCount ?? 0) : null;
+}
+
+/** 与 rankings.service 中 toTenPointScore 一致：原始均分 1–5 星制 → 0–10 分展示 */
+function toTenPointScoreFromRaw(rawAverage: number): number {
+  if (rawAverage <= 0) {
+    return 0;
+  }
+  return Number((rawAverage * 2).toFixed(1));
 }
 
 function toPhoneMasked(phone: string | null) {
@@ -358,6 +367,18 @@ export const socialService = {
       ])
     ]);
 
+    const ratingTargetIds = ratingTargets.map((t) => t.id);
+    const ratingAggregates = await rankingsRepo.listRatingTargetRatingAggregates(ratingTargetIds);
+    const ratingAggById = new Map(
+      ratingAggregates.map((row) => [
+        row.ratingTargetId,
+        {
+          totalRatings: Number(row.totalRatings ?? 0),
+          averageRaw: Number(row.averageRaw ?? 0)
+        }
+      ])
+    );
+
     const items = [
       ...posts.map((post) => {
         const status = isValidPostStatus(post.status) ? post.status : ("published" as const);
@@ -425,22 +446,29 @@ export const socialService = {
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
       })),
-      ...ratingTargets.map((item) => ({
-        type: "rating-target" as const,
-        id: item.id,
-        rankingId: item.rankingId,
-        rankingTitle: item.rankingTitle,
-        status: isValidRankingStatus(item.status) ? item.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
-        rejectionReason: item.rejectionReason ?? null,
-        title: item.title,
-        summary: item.summary,
-        likeCount: item.likeCount ?? 0,
-        commentCount: item.commentCount ?? 0,
-        coverImageUrl: item.imageFileId ? (coverFileUrlMap.get(item.imageFileId) ?? null) : null,
-        canManage: isSelf,
-        createdAt: item.createdAt.toISOString(),
-        updatedAt: item.updatedAt.toISOString()
-      })),
+      ...ratingTargets.map((item) => {
+        const agg = ratingAggById.get(item.id);
+        const averageRaw = agg?.averageRaw ?? 0;
+        const totalRatings = agg?.totalRatings ?? 0;
+        return {
+          type: "rating-target" as const,
+          id: item.id,
+          rankingId: item.rankingId,
+          rankingTitle: item.rankingTitle,
+          status: isValidRankingStatus(item.status) ? item.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
+          rejectionReason: item.rejectionReason ?? null,
+          title: item.title,
+          summary: item.summary,
+          likeCount: item.likeCount ?? 0,
+          commentCount: item.commentCount ?? 0,
+          averageScore: toTenPointScoreFromRaw(averageRaw),
+          totalRatings,
+          coverImageUrl: item.imageFileId ? (coverFileUrlMap.get(item.imageFileId) ?? null) : null,
+          canManage: isSelf,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString()
+        };
+      }),
       ...aircraft.map((submission) => ({
         type: "aircraft" as const,
         id: submission.id,

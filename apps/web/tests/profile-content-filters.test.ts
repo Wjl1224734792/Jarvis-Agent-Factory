@@ -52,6 +52,8 @@ const sampleItems: UserContentItem[] = [
     rejectionReason: null,
     title: "Published target",
     summary: "rating target",
+    averageScore: 0,
+    totalRatings: 0,
     canManage: true,
     createdAt: "2026-04-08T08:30:00.000Z",
     updatedAt: "2026-04-08T08:30:00.000Z"

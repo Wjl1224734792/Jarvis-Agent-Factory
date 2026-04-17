@@ -210,6 +210,9 @@ export const userContentRatingTargetEntrySchema = z.object({
   summary: z.string().nullable(),
   likeCount: z.number().int().nonnegative().optional(),
   commentCount: z.number().int().nonnegative().optional(),
+  /** 0–10 分制综合评分 */
+  averageScore: z.number().min(0).max(10).optional().default(0),
+  totalRatings: z.number().int().nonnegative().optional().default(0),
   coverImageUrl: z.string().nullable().optional(),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),

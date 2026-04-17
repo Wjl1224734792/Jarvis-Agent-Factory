@@ -7,6 +7,7 @@ import {
   HeartIcon,
   MessageCircleIcon,
   Share2Icon,
+  StarIcon,
   Trash2Icon
 } from "lucide-react";
 import { Link } from "react-router-dom";
@@ -231,11 +232,11 @@ function collectEngagementMetrics(item: ContentItem): Metric[] {
       pushView(item.model.viewCount);
       break;
     case "ranking":
-      pushComment(item.commentCount);
+      pushComment(item.commentCount ?? 0);
       break;
     case "rating-target":
-      pushLike(item.likeCount);
-      pushComment(item.commentCount);
+      pushLike(item.likeCount ?? 0);
+      pushComment(item.commentCount ?? 0);
       break;
     case "review":
       pushLike(item.likeCount);
@@ -248,6 +249,28 @@ function collectEngagementMetrics(item: ContentItem): Metric[] {
   }
 
   return metrics;
+}
+
+function RatingTargetScoreStrip(props: { averageScore: number; totalRatings: number }) {
+  const filled = Math.min(5, Math.max(0, Math.round(props.averageScore / 2)));
+  return (
+    <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[0.68rem] text-muted-foreground sm:text-[0.72rem]">
+      <span className="inline-flex items-center gap-0.5 text-amber-500" title="综合评分（10 分制）">
+        {Array.from({ length: 5 }).map((_, i) => (
+          <StarIcon
+            aria-hidden
+            className={cn(
+              "size-3.5 shrink-0 sm:size-4",
+              i < filled ? "fill-current" : "fill-none opacity-35"
+            )}
+            key={i}
+          />
+        ))}
+      </span>
+      <span className="font-medium text-foreground tabular-nums">{props.averageScore.toFixed(1)}分</span>
+      <span className="opacity-90">（{formatContentMetric(props.totalRatings)}人评）</span>
+    </div>
+  );
 }
 
 export function ContentFeedListRow(props: {
@@ -297,6 +320,9 @@ export function ContentFeedListRow(props: {
         <div className="rounded-md border border-amber-300/80 bg-amber-50 px-2 py-1 text-[0.72rem] leading-snug text-amber-950">
           驳回原因：{rejectionReason}
         </div>
+      ) : null}
+      {item.type === "rating-target" ? (
+        <RatingTargetScoreStrip averageScore={item.averageScore ?? 0} totalRatings={item.totalRatings ?? 0} />
       ) : null}
       {metrics.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.68rem] text-muted-foreground sm:gap-x-3 sm:text-[0.72rem]">
