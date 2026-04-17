@@ -64,7 +64,7 @@ function CircleFeedCard(props: {
   return (
     <button
       className={cn(
-        "block w-full overflow-hidden rounded-[1.15rem] bg-white text-left transition hover:bg-sky-50/45",
+        "block w-full overflow-hidden rounded-[1.15rem] bg-transparent text-left transition hover:bg-sky-50/45",
         selectedNoteId === item.id && "bg-sky-50 shadow-[var(--shadow-float)] ring-2 ring-primary/40"
       )}
       onClick={() => openNote(item.id)}
