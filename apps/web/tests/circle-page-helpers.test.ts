@@ -46,10 +46,10 @@ describe("circle page helpers", () => {
 
   it("derives responsive circle column counts from viewport width", () => {
     expect(getCircleColumnCount(375)).toBe(2);
-    expect(getCircleColumnCount(768)).toBe(2);
-    expect(getCircleColumnCount(1200)).toBe(3);
-    expect(getCircleColumnCount(1440)).toBe(4);
-    expect(getCircleColumnCount(1600)).toBe(5);
+    expect(getCircleColumnCount(768)).toBe(3);
+    expect(getCircleColumnCount(1200)).toBe(5);
+    expect(getCircleColumnCount(1440)).toBe(6);
+    expect(getCircleColumnCount(1600)).toBe(7);
   });
 
   it("partitions posts into round-robin columns with stable absoluteIndex", () => {

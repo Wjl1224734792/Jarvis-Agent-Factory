@@ -1,8 +1,11 @@
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
+import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
 import { app } from "../src/app";
+import { authRepo } from "../src/modules/auth/auth.repo";
+import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 
 let tempLogDir = "";
 
@@ -47,12 +50,27 @@ beforeEach(() => {
   ]);
 });
 
+beforeAll(async () => {
+  await runMigrations();
+});
+
+beforeEach(async () => {
+  await resetRedisForTesting();
+  authRepo.resetEphemeralState();
+  await resetDatabaseState();
+  await seedAuthDatabase();
+});
+
 afterEach(() => {
   rmSync(tempLogDir, { recursive: true, force: true });
   delete process.env.LOG_DIR;
   delete process.env.LOG_MODE;
   delete process.env.LOG_LEVEL;
   delete process.env.LOG_MAX_READ_LINES;
+});
+
+afterAll(async () => {
+  await dbPool.end();
 });
 
 describe("admin logs route", () => {

@@ -932,6 +932,32 @@ describe("auth flows", () => {
     expect(adminProtected.status).toBe(200);
   });
 
+  it("marks auth cookies as secure in production mode", async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    process.env.NODE_ENV = "production";
+
+    try {
+      const loginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          account: "admin",
+          password: "Admin#123"
+        })
+      });
+
+      expect(loginResponse.status).toBe(200);
+      const setCookies = loginResponse.headers.getSetCookie();
+      const rawSetCookie = loginResponse.headers.get("set-cookie");
+      const cookieHeaders = setCookies.length > 0 ? setCookies : rawSetCookie ? [rawSetCookie] : [];
+
+      expect(cookieHeaders.length).toBeGreaterThan(0);
+      expect(cookieHeaders.every((cookie) => cookie.includes("Secure"))).toBe(true);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv ?? "test";
+    }
+  });
+
   it("allows admins to change password and requires the new password on next login", async () => {
     const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
       method: "POST",

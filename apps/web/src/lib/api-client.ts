@@ -14,6 +14,41 @@ const resolvedBaseUrl =
     ? rawBaseUrl.trim()
     : fallbackBaseUrl;
 
+const NON_RETRIABLE_STATUS_CODES = new Set([400, 401, 403, 404, 409, 422]);
+const NON_RETRIABLE_ERROR_CODES = new Set([
+  "BAD_REQUEST",
+  "DISPLAY_NAME_TAKEN",
+  "FORBIDDEN",
+  "INVALID_CAPTCHA",
+  "INVALID_CREDENTIALS",
+  "INVALID_REFRESH_TOKEN",
+  "INVALID_REGISTRATION_TOKEN",
+  "INVALID_SMS_CODE",
+  "NOT_FOUND",
+  "PHONE_ALREADY_REGISTERED",
+  "SESSION_EXPIRED",
+  "TOKEN_EXPIRED",
+  "UNAUTHORIZED"
+]);
+const AUTH_INVALID_ERROR_CODES = new Set([
+  "INVALID_REFRESH_TOKEN",
+  "SESSION_EXPIRED",
+  "TOKEN_EXPIRED",
+  "UNAUTHORIZED"
+]);
+
+type WebApiErrorOptions = {
+  code?: string;
+  status?: number;
+};
+
+type WebApiErrorMeta = {
+  authInvalid?: boolean;
+  retryable?: boolean;
+  status?: number;
+  webMapped?: boolean;
+};
+
 // 共享 client 负责大部分“服务端 schema 已覆盖”的接口，web 侧只扩展额外页面专属能力。
 const sharedClient = createApiClient({
   baseUrl: resolvedBaseUrl
@@ -26,22 +61,28 @@ async function parseResponse<T>(response: Response): Promise<T> {
   } catch {
     // 非 JSON 响应，记录原始状态码
     if (!response.ok) {
-      throw new Error(`Request failed with status ${response.status}`);
+      throw mapWebApiError(new Error(`Request failed with status ${response.status}`), {
+        status: response.status
+      });
     }
     // 对于成功但非 JSON 的响应，返回空对象作为降级
     return {} as T;
   }
 
   if (!response.ok) {
-    if (response.status === 401) {
-      dispatchWebAuthInvalidEvent();
-    }
-
     const message =
       payload && typeof payload === "object" && "message" in payload
         ? String(payload.message)
         : `Request failed with status ${response.status}`;
-    throw mapWebApiError(message);
+    const code =
+      payload && typeof payload === "object" && "code" in payload
+        ? String(payload.code)
+        : undefined;
+
+    throw mapWebApiError(new ApiClientError(message, code), {
+      code,
+      status: response.status
+    });
   }
 
   return payload as T;
@@ -115,26 +156,169 @@ export function sanitizeWebApiErrorMessage(message: string) {
 }
 
 // Web 端额外做一层错误文案翻译，避免把服务端原始错误直接暴露给终端用户。
+function getWebApiErrorCode(error: unknown, overrideCode?: string) {
+  if (overrideCode) {
+    return overrideCode;
+  }
+
+  if (error instanceof ApiClientError) {
+    return error.code;
+  }
+
+  if (
+    error instanceof Error &&
+    "code" in error &&
+    typeof (error as { code?: unknown }).code === "string"
+  ) {
+    return (error as { code: string }).code;
+  }
+
+  return undefined;
+}
+
+function getWebApiErrorStatus(error: unknown, overrideStatus?: number) {
+  if (typeof overrideStatus === "number") {
+    return overrideStatus;
+  }
+
+  if (
+    error instanceof Error &&
+    "status" in error &&
+    typeof (error as { status?: unknown }).status === "number"
+  ) {
+    return (error as { status: number }).status;
+  }
+
+  return undefined;
+}
+
+function isNonRetriableWebError(status: number | undefined, code: string | undefined) {
+  return (
+    (typeof status === "number" && NON_RETRIABLE_STATUS_CODES.has(status)) ||
+    (typeof code === "string" && NON_RETRIABLE_ERROR_CODES.has(code))
+  );
+}
+
+function resolveAuthInvalidWebError(status: number | undefined, code: string | undefined) {
+  return (
+    status === 401 ||
+    (typeof code === "string" && AUTH_INVALID_ERROR_CODES.has(code))
+  );
+}
+
+function attachWebApiErrorMeta<T extends Error>(
+  error: T,
+  sourceError: unknown,
+  options?: WebApiErrorOptions
+) {
+  const code = getWebApiErrorCode(sourceError, options?.code);
+  const status = getWebApiErrorStatus(sourceError, options?.status);
+  const retryable = !isNonRetriableWebError(status, code);
+  const authInvalid = resolveAuthInvalidWebError(status, code);
+
+  Object.defineProperties(error, {
+    authInvalid: {
+      configurable: true,
+      enumerable: false,
+      value: authInvalid
+    },
+    retryable: {
+      configurable: true,
+      enumerable: false,
+      value: retryable
+    },
+    status: {
+      configurable: true,
+      enumerable: false,
+      value: status
+    },
+    webMapped: {
+      configurable: true,
+      enumerable: false,
+      value: true
+    }
+  } satisfies Record<keyof WebApiErrorMeta, PropertyDescriptor>);
+
+  return error as T & WebApiErrorMeta;
+}
+
+export function getWebErrorRetryable(error: unknown) {
+  if (!(error instanceof Error)) {
+    return undefined;
+  }
+
+  if (
+    "retryable" in error &&
+    typeof (error as { retryable?: unknown }).retryable === "boolean"
+  ) {
+    return (error as { retryable: boolean }).retryable;
+  }
+
+  const code = getWebApiErrorCode(error);
+  const status = getWebApiErrorStatus(error);
+  if (typeof status === "number" || typeof code === "string") {
+    return !isNonRetriableWebError(status, code);
+  }
+
+  return undefined;
+}
+
+export function isWebAuthInvalidError(error: unknown) {
+  if (!(error instanceof Error)) {
+    return false;
+  }
+
+  if (
+    "authInvalid" in error &&
+    typeof (error as { authInvalid?: unknown }).authInvalid === "boolean"
+  ) {
+    return (error as { authInvalid: boolean }).authInvalid;
+  }
+
+  const status = getWebApiErrorStatus(error);
+  const code = getWebApiErrorCode(error);
+
+  if (typeof status === "number" || typeof code === "string") {
+    return resolveAuthInvalidWebError(status, code);
+  }
+
+  return isAuthErrorMessage(error.message);
+}
+
+function isMappedWebApiError(error: unknown) {
+  return (
+    error instanceof Error &&
+    "webMapped" in error &&
+    (error as { webMapped?: unknown }).webMapped === true
+  );
+}
+
 function isAuthErrorMessage(message: string) {
   const normalized = message.trim().toLowerCase();
   return normalized.includes("请先登录") || normalized.includes("login") || normalized.includes("unauthorized");
 }
 
-export function mapWebApiError(error: unknown) {
+export function mapWebApiError(error: unknown, options?: WebApiErrorOptions) {
   if (error instanceof ApiClientError) {
     const message = sanitizeWebApiErrorMessage(error.message);
-    if (isAuthErrorMessage(message)) {
+    const mappedError = attachWebApiErrorMeta(
+      new ApiClientError(message, options?.code ?? error.code),
+      error,
+      options
+    );
+    if (isWebAuthInvalidError(mappedError)) {
       dispatchWebAuthInvalidEvent();
     }
-    return new ApiClientError(message, error.code);
+    return mappedError;
   }
 
   if (error instanceof Error) {
     const message = sanitizeWebApiErrorMessage(error.message);
-    if (isAuthErrorMessage(message)) {
+    const mappedError = attachWebApiErrorMeta(new Error(message), error, options);
+    if (isWebAuthInvalidError(mappedError)) {
       dispatchWebAuthInvalidEvent();
     }
-    return new Error(message);
+    return mappedError;
   }
 
   return new Error("操作失败，请稍后重试。");
@@ -458,7 +642,7 @@ function createWrappedApiClient<T extends Record<string, unknown>>(client: T): T
           try {
             return await (value as (...args: unknown[]) => Promise<unknown>)(...args);
           } catch (error) {
-            throw mapWebApiError(error);
+            throw isMappedWebApiError(error) ? error : mapWebApiError(error);
           }
         };
       }

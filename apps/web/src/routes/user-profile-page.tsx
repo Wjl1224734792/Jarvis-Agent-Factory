@@ -82,7 +82,10 @@ export function UserProfilePage() {
     queryFn: () => apiClient.listUserContent(userId),
     enabled: Boolean(userId && profile?.viewer.canViewContent)
   });
-  const rawContentItems = contentQuery.data?.items ?? [];
+  const rawContentItems = useMemo(
+    () => contentQuery.data?.items ?? [],
+    [contentQuery.data?.items]
+  );
   const visitorContentItems = useMemo(
     () => rawContentItems.filter((item) => !isFavoriteItem(item)),
     [rawContentItems]

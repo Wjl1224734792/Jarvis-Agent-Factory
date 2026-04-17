@@ -1,4 +1,5 @@
 import { QueryClient } from "@tanstack/react-query";
+import { getWebErrorRetryable } from "./api-client";
 
 const nonRetriableStatusPattern = /\b(?:400|401|403|404|409|422)\b/;
 const nonRetriableMessagePattern =
@@ -11,6 +12,11 @@ export function shouldRetryQuery(failureCount: number, error: unknown) {
 
   if (!(error instanceof Error)) {
     return true;
+  }
+
+  const retryable = getWebErrorRetryable(error);
+  if (typeof retryable === "boolean") {
+    return retryable;
   }
 
   return !(

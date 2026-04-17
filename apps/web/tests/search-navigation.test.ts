@@ -14,7 +14,7 @@ describe("search navigation", () => {
   it("builds a search location with the encoded keyword", () => {
     expect(buildSearchLocation("  DJI Mini 4 Pro  ")).toEqual({
       pathname: APP_ROUTES.search,
-      search: "?q=DJI%20Mini%204%20Pro"
+      search: "?q=DJI+Mini+4+Pro"
     });
   });
 

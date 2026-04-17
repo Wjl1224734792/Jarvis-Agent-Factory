@@ -19,6 +19,12 @@ vi.mock("../src/components/ui/user-avatar", () => ({
   UserAvatar: () => null
 }));
 
+vi.mock("../src/components/ui/hover-card", () => ({
+  HoverCard: ({ children }: { children: unknown }) => children,
+  HoverCardTrigger: ({ children }: { children: unknown }) => children,
+  HoverCardContent: () => null
+}));
+
 vi.mock("../src/features/auth/web-nav-config", () => ({
   webMainNavItems: [],
   webSidebarMemberNavItems: []
@@ -39,10 +45,6 @@ vi.mock("../src/lib/aviation-media", () => ({
 vi.mock("../src/lib/search-navigation", () => ({
   buildSearchLocation: () => ({ pathname: APP_ROUTES.search, search: "" }),
   shouldShowCompactSearchBar: () => false
-}));
-
-vi.mock("../src/lib/utils", () => ({
-  cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" ")
 }));
 
 vi.mock("../src/lib/web-routes", () => ({

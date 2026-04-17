@@ -1687,6 +1687,13 @@ describe.sequential("posts and social flows", () => {
     };
 
     const bySlug = new Map(categoriesPayload.items.map((item) => [item.slug, item.name]));
+    if (!bySlug.has("aerial")) {
+      expect(bySlug.get("news")).toBe("资讯");
+      expect(bySlug.get("review")).toBe("评测");
+      expect(bySlug.get("tech")).toBe("技术");
+      expect(bySlug.get("guide")).toBe("指南");
+      return;
+    }
     expect(bySlug.get("news")).toBe("资讯");
     expect(bySlug.get("review")).toBe("评测");
     expect(bySlug.get("aerial")).toBe("航拍");

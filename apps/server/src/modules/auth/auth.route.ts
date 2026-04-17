@@ -40,6 +40,10 @@ const authRoute = new Hono<{ Variables: AuthVariables }>();
 const ACCESS_COOKIE_NAME = "feijia_access";
 const REFRESH_COOKIE_NAME = "feijia_refresh";
 
+function shouldUseSecureCookies() {
+  return process.env.NODE_ENV === "production";
+}
+
 /** Access token cookie 有效期（秒），与 ACCESS_TTL_MS 保持一致 */
 const ACCESS_COOKIE_MAX_AGE = 2 * 60 * 60;
 /** Refresh token cookie 有效期（秒），与 SESSION_TTL_MS 保持一致 */
@@ -54,7 +58,8 @@ function setAuthCookies(
     httpOnly: true,
     sameSite: "Lax",
     path: "/",
-    maxAge: ACCESS_COOKIE_MAX_AGE
+    maxAge: ACCESS_COOKIE_MAX_AGE,
+    secure: shouldUseSecureCookies()
   });
 
   if (refreshToken) {
@@ -62,7 +67,8 @@ function setAuthCookies(
       httpOnly: true,
       sameSite: "Lax",
       path: "/",
-      maxAge: REFRESH_COOKIE_MAX_AGE
+      maxAge: REFRESH_COOKIE_MAX_AGE,
+      secure: shouldUseSecureCookies()
     });
   }
 }

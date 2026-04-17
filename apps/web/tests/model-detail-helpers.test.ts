@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  getHotModelsSidebarQueryKey,
   formatModelMetric,
   formatModelPriceRange
 } from "../src/routes/model-detail-helpers";
@@ -23,5 +24,13 @@ describe("model detail helpers", () => {
 
   it("returns null when price is unknown", () => {
     expect(formatModelPriceRange(null, null)).toBeNull();
+  });
+
+  it("builds the hot-models sidebar key from category only", () => {
+    expect(getHotModelsSidebarQueryKey("camera-drone")).toEqual([
+      "hot-models-sidebar",
+      "camera-drone"
+    ]);
+    expect(getHotModelsSidebarQueryKey(null)).toEqual(["hot-models-sidebar", null]);
   });
 });

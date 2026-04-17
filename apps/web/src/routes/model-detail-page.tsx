@@ -28,7 +28,11 @@ import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { shouldRecordSessionView } from "@/lib/view-session";
 import { DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
-import { formatModelMetric, formatModelPriceRange } from "./model-detail-helpers";
+import {
+  formatModelMetric,
+  formatModelPriceRange,
+  getHotModelsSidebarQueryKey
+} from "./model-detail-helpers";
 import { ModelCommentsSection } from "./model-comments-section";
 
 const powerTypeLabels = {
@@ -105,7 +109,7 @@ export function ModelDetailPage() {
   const item = detailQuery.data?.item as ModelDetail | undefined;
 
   const hotModelsQuery = useQuery({
-    queryKey: ["hot-models-sidebar", detailQuery.data?.item.category.slug, slug],
+    queryKey: getHotModelsSidebarQueryKey(detailQuery.data?.item.category.slug),
     queryFn: () =>
       apiClient.listModels({
         categorySlug: detailQuery.data?.item.category.slug,

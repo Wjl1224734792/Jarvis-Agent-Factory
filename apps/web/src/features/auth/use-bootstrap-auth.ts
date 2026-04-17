@@ -1,6 +1,19 @@
 import { useEffect, useRef } from "react";
-import { apiClient } from "../../lib/api-client";
+import { apiClient, isWebAuthInvalidError } from "../../lib/api-client";
 import { useAuthStore } from "./auth-store";
+
+type BootstrapAuthStatus = "idle" | "loading" | "authenticated" | "anonymous";
+
+export function resolveBootstrapFailureAction(
+  status: BootstrapAuthStatus,
+  error: unknown
+) {
+  if (status === "authenticated" && !isWebAuthInvalidError(error)) {
+    return "keep-user" as const;
+  }
+
+  return "clear-auth" as const;
+}
 
 export function useBootstrapAuth() {
   // 严格模式下 effect 可能重复触发，这里保证身份恢复请求在首轮挂载时只发一次。
@@ -37,7 +50,9 @@ export function useBootstrapAuth() {
       })
       .catch((error: unknown) => {
         // 启动恢复失败时按匿名态收敛，同时保留错误信息供页面提示或排查。
-        setAnonymous();
+        if (resolveBootstrapFailureAction(status, error) === "clear-auth") {
+          setAnonymous();
+        }
         setError(error instanceof Error ? error.message : "Identity bootstrap failed");
         setBootstrapped();
       });

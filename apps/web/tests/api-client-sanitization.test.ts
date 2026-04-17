@@ -1,6 +1,11 @@
 import { ApiClientError } from "@feijia/http-client";
 import { describe, expect, it } from "vitest";
-import { mapWebApiError, sanitizeWebApiErrorMessage } from "../src/lib/api-client";
+import {
+  getWebErrorRetryable,
+  isWebAuthInvalidError,
+  mapWebApiError,
+  sanitizeWebApiErrorMessage
+} from "../src/lib/api-client";
 
 const LOGIN_REQUIRED = "\u8bf7\u5148\u767b\u5f55\u540e\u518d\u7ee7\u7eed\u64cd\u4f5c\u3002";
 const FORBIDDEN = "\u5f53\u524d\u65e0\u6743\u6267\u884c\u6b64\u64cd\u4f5c\u3002";
@@ -33,5 +38,24 @@ describe("sanitizeWebApiErrorMessage", () => {
     expect(result).toBeInstanceOf(ApiClientError);
     expect((result as ApiClientError).code).toBe("DISPLAY_NAME_TAKEN");
     expect(result.message).toBe(DISPLAY_NAME_TAKEN);
+  });
+
+  it("marks explicit unauthorized errors as auth-invalid and non-retriable", () => {
+    const result = mapWebApiError(new ApiClientError("Login required.", "UNAUTHORIZED"), {
+      status: 401
+    });
+
+    expect(isWebAuthInvalidError(result)).toBe(true);
+    expect(getWebErrorRetryable(result)).toBe(false);
+  });
+
+  it("keeps transient server failures retriable", () => {
+    const result = mapWebApiError(new Error("Unexpected server error."), {
+      status: 503
+    });
+
+    expect(isWebAuthInvalidError(result)).toBe(false);
+    expect(getWebErrorRetryable(result)).toBe(true);
+    expect(result.message).toBe(SERVER_UNAVAILABLE);
   });
 });
