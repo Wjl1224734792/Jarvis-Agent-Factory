@@ -1,5 +1,6 @@
 import { socialRepo } from "./social.repo";
 import { AuthError, authService } from "../auth/auth.service";
+import { postsRepo } from "../posts/posts.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import {
   isValidAuthRole,
@@ -12,6 +13,68 @@ import {
 
 function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
+}
+
+async function resolveFileUrlMap(fileIds: Iterable<string | null | undefined>) {
+  const unique = [
+    ...new Set(
+      [...fileIds].filter((id): id is string => typeof id === "string" && id.trim().length > 0)
+    )
+  ];
+  const entries = await Promise.all(
+    unique.map(async (id) => [id, await resolveUploadedFileUrl(id)] as const)
+  );
+  return new Map(entries);
+}
+
+async function buildFirstPostCoverUrlMap(postIds: string[]) {
+  if (postIds.length === 0) {
+    return new Map<string, string | null>();
+  }
+
+  const images = await postsRepo.listPostImages(postIds);
+  const byPost = new Map<string, typeof images>();
+  for (const img of images) {
+    if (!img.postId) {
+      continue;
+    }
+    const list = byPost.get(img.postId) ?? [];
+    list.push(img);
+    byPost.set(img.postId, list);
+  }
+
+  const firstFileIds: { postId: string; fileId: string }[] = [];
+  for (const [postId, list] of byPost) {
+    list.sort((a, b) => {
+      const ta =
+        a.createdAt instanceof Date ? a.createdAt.getTime() : new Date(a.createdAt).getTime();
+      const tb =
+        b.createdAt instanceof Date ? b.createdAt.getTime() : new Date(b.createdAt).getTime();
+      return ta - tb;
+    });
+    const first = list[0];
+    if (first) {
+      firstFileIds.push({ postId, fileId: first.id });
+    }
+  }
+
+  const urlByFile = await resolveFileUrlMap(firstFileIds.map((row) => row.fileId));
+  const result = new Map<string, string | null>();
+  for (const { postId, fileId } of firstFileIds) {
+    result.set(postId, urlByFile.get(fileId) ?? null);
+  }
+  return result;
+}
+
+function postViewCountForViewer(
+  status: string,
+  viewCount: number | null | undefined,
+  isSelf: boolean
+): number | null {
+  if (status === "published") {
+    return viewCount ?? 0;
+  }
+  return isSelf ? (viewCount ?? 0) : null;
 }
 
 function toPhoneMasked(phone: string | null) {
@@ -284,26 +347,51 @@ export const socialService = {
       socialRepo.listUserBrandApplications(targetUserId, isSelf)
     ]);
 
+    const postIdsForCovers = [...new Set([...posts.map((p) => p.id), ...favoritePosts.map((p) => p.id)])];
+    const [firstCoverByPostId, coverFileUrlMap] = await Promise.all([
+      buildFirstPostCoverUrlMap(postIdsForCovers),
+      resolveFileUrlMap([
+        ...rankings.map((r) => r.coverImageFileId),
+        ...ratingTargets.map((t) => t.imageFileId),
+        ...favoriteModels.map((m) => m.coverImageFileId),
+        ...reviews.map((r) => r.model.coverImageFileId)
+      ])
+    ]);
+
     const items = [
-      ...posts.map((post) => ({
-        type: "post" as const,
-        id: post.id,
-        postType: isValidPostType(post.type) ? post.type : ("article" as "article" | "moment"),
-        status: isValidPostStatus(post.status) ? post.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
-        rejectionReason: post.rejectionReason ?? null,
-        title: post.title,
-        contentPreview: toPreview(post.content),
-        viewCount: isSelf ? (post.viewCount ?? 0) : null,
-        canManage: isSelf,
-        createdAt: post.createdAt.toISOString(),
-        updatedAt: post.updatedAt.toISOString()
-      })),
+      ...posts.map((post) => {
+        const status = isValidPostStatus(post.status) ? post.status : ("published" as const);
+        return {
+          type: "post" as const,
+          id: post.id,
+          postType: isValidPostType(post.type) ? post.type : ("article" as "article" | "moment"),
+          status,
+          rejectionReason: post.rejectionReason ?? null,
+          title: post.title,
+          contentPreview: toPreview(post.content),
+          coverImageUrl: firstCoverByPostId.get(post.id) ?? null,
+          viewCount: postViewCountForViewer(status, post.viewCount ?? 0, isSelf),
+          commentCount: post.commentCount ?? 0,
+          likeCount: post.likeCount ?? 0,
+          favoriteCount: post.favoriteCount ?? 0,
+          shareCount: post.shareCount ?? 0,
+          canManage: isSelf,
+          createdAt: post.createdAt.toISOString(),
+          updatedAt: post.updatedAt.toISOString()
+        };
+      }),
       ...favoritePosts.map((post) => ({
         type: "favorite-post" as const,
         id: post.id,
         postType: isValidPostType(post.type) ? post.type : ("article" as "article" | "moment"),
         title: post.title,
         contentPreview: toPreview(post.content),
+        coverImageUrl: firstCoverByPostId.get(post.id) ?? null,
+        viewCount: post.viewCount ?? 0,
+        commentCount: post.commentCount ?? 0,
+        likeCount: post.likeCount ?? 0,
+        favoriteCount: post.favoriteCount ?? 0,
+        shareCount: post.shareCount ?? 0,
         createdAt: post.createdAt.toISOString(),
         updatedAt: post.updatedAt.toISOString()
       })),
@@ -314,7 +402,11 @@ export const socialService = {
           id: entry.modelId,
           slug: entry.slug,
           name: entry.name,
-          powerType: entry.powerType
+          powerType: entry.powerType,
+          coverImageUrl: entry.coverImageFileId
+            ? (coverFileUrlMap.get(entry.coverImageFileId) ?? null)
+            : null,
+          viewCount: entry.viewCount ?? 0
         },
         createdAt: new Date(entry.createdAt).toISOString(),
         updatedAt: new Date(entry.updatedAt).toISOString()
@@ -325,6 +417,10 @@ export const socialService = {
         status: isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden"),
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
+        commentCount: ranking.commentCount ?? 0,
+        coverImageUrl: ranking.coverImageFileId
+          ? (coverFileUrlMap.get(ranking.coverImageFileId) ?? null)
+          : null,
         canManage: isSelf,
         createdAt: ranking.createdAt.toISOString(),
         updatedAt: ranking.updatedAt.toISOString()
@@ -338,6 +434,9 @@ export const socialService = {
         rejectionReason: item.rejectionReason ?? null,
         title: item.title,
         summary: item.summary,
+        likeCount: item.likeCount ?? 0,
+        commentCount: item.commentCount ?? 0,
+        coverImageUrl: item.imageFileId ? (coverFileUrlMap.get(item.imageFileId) ?? null) : null,
         canManage: isSelf,
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString()
@@ -369,7 +468,15 @@ export const socialService = {
         type: "review" as const,
         id: review.id,
         content: review.content,
-        model: review.model,
+        likeCount: review.likeCount ?? 0,
+        model: {
+          id: review.model.id,
+          slug: review.model.slug,
+          name: review.model.name,
+          coverImageUrl: review.model.coverImageFileId
+            ? (coverFileUrlMap.get(review.model.coverImageFileId) ?? null)
+            : null
+        },
         createdAt: review.createdAt.toISOString(),
         updatedAt: review.updatedAt.toISOString()
       }))

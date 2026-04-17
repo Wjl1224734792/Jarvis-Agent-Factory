@@ -228,6 +228,10 @@ export const socialRepo = {
         title: postsTable.title,
         content: postsTable.content,
         viewCount: postsTable.viewCount,
+        commentCount: postsTable.commentCount,
+        likeCount: postsTable.likeCount,
+        favoriteCount: postsTable.favoriteCount,
+        shareCount: postsTable.shareCount,
         createdAt: postsTable.createdAt,
         updatedAt: postsTable.updatedAt
       })
@@ -249,6 +253,11 @@ export const socialRepo = {
         type: postsTable.type,
         title: postsTable.title,
         content: postsTable.content,
+        viewCount: postsTable.viewCount,
+        commentCount: postsTable.commentCount,
+        likeCount: postsTable.likeCount,
+        favoriteCount: postsTable.favoriteCount,
+        shareCount: postsTable.shareCount,
         createdAt: postsTable.createdAt,
         updatedAt: postsTable.updatedAt
       })
@@ -270,6 +279,8 @@ export const socialRepo = {
       slug: string | null;
       name: string | null;
       powerType: string | null;
+      coverImageFileId: string | null;
+      viewCount: number | null;
       createdAt: Date | string | number | null;
       updatedAt: Date | string | number | null;
     }>(
@@ -280,6 +291,8 @@ export const socialRepo = {
         model."slug" as "slug",
         model."name" as "name",
         model."power_type" as "powerType",
+        model."cover_image_file_id" as "coverImageFileId",
+        model."view_count" as "viewCount",
         interaction."created_at" as "createdAt",
         interaction."updated_at" as "updatedAt"
       from "aircraft_model_interactions" as interaction
@@ -299,6 +312,8 @@ export const socialRepo = {
       modelId: row.modelId ?? "",
       slug: row.slug ?? "",
       name: row.name ?? "",
+      coverImageFileId: row.coverImageFileId ?? null,
+      viewCount: row.viewCount != null ? Number(row.viewCount) : 0,
       powerType:
         row.powerType === "fuel" ||
         row.powerType === "hybrid" ||
@@ -324,12 +339,14 @@ export const socialRepo = {
       .select({
         id: aircraftReviewsTable.id,
         content: aircraftReviewsTable.content,
+        likeCount: aircraftReviewsTable.likeCount,
         createdAt: aircraftReviewsTable.createdAt,
         updatedAt: aircraftReviewsTable.updatedAt,
         model: {
           id: aircraftModelsTable.id,
           slug: aircraftModelsTable.slug,
-          name: aircraftModelsTable.name
+          name: aircraftModelsTable.name,
+          coverImageFileId: aircraftModelsTable.coverImageFileId
         }
       })
       .from(aircraftReviewsTable)
@@ -345,6 +362,8 @@ export const socialRepo = {
         rejectionReason: rankingsTable.rejectionReason,
         title: rankingsTable.title,
         description: rankingsTable.description,
+        commentCount: rankingsTable.commentCount,
+        coverImageFileId: rankingsTable.coverImageFileId,
         createdAt: rankingsTable.createdAt,
         updatedAt: rankingsTable.updatedAt
       })
@@ -367,6 +386,9 @@ export const socialRepo = {
         summary: ratingTargetsTable.summary,
         status: ratingTargetsTable.status,
         rejectionReason: ratingTargetsTable.rejectionReason,
+        likeCount: ratingTargetsTable.likeCount,
+        commentCount: ratingTargetsTable.commentCount,
+        imageFileId: ratingTargetsTable.imageFileId,
         createdAt: ratingTargetsTable.createdAt,
         updatedAt: ratingTargetsTable.updatedAt
       })

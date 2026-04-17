@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, CameraIcon, Clock3Icon, PenSquareIcon, Settings2Icon, Trash2Icon } from "lucide-react";
+import { BellIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
 import { useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { VirtualFeed } from "@/components/virtual-feed";
+import { VirtualGrid } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -13,18 +13,16 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
-import { DETAIL_PAGE_LINK_PROPS } from "../../lib/web-routes";
 import { useAuthStore } from "./auth-store";
+import { ContentFeedCard, type ContentItem } from "./profile-content-card";
 import {
   filterProfileItems,
-  getProfileItemLifecycle,
   type ProfileContentCategory,
   type ProfileLifecycle
 } from "./profile-content-filters";
 import { profileVisibilityLabel } from "./profile-settings-state";
 
 type ProfileTab = "activity" | "favorites";
-type ContentItem = Awaited<ReturnType<typeof apiClient.listUserContent>>["items"][number];
 
 const profileTabs: Array<{ value: ProfileTab; label: string }> = [
   { value: "activity", label: "内容" },
@@ -95,211 +93,6 @@ function MetricStrip(props: { label: string; value: number }) {
       <div className="text-[0.72rem] uppercase tracking-[0.16em] text-muted-foreground">{props.label}</div>
       <div className="text-lg font-semibold text-foreground">{props.value}</div>
     </div>
-  );
-}
-
-function getContentMeta(item: ContentItem) {
-  switch (item.type) {
-    case "post":
-      return {
-        label: item.postType === "article" ? "文章" : "动态",
-        href: APP_ROUTES.postDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.contentPreview
-      };
-    case "favorite-post":
-      return {
-        label: item.postType === "article" ? "收藏文章" : "收藏动态",
-        href: APP_ROUTES.postDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.contentPreview
-      };
-    case "favorite-model":
-      return {
-        label: "收藏机型",
-        href: APP_ROUTES.modelDetail.replace(":slug", item.model.slug),
-        title: item.model.name,
-        summary: "这款机型已经加入收藏列表。"
-      };
-    case "ranking":
-      return {
-        label: "榜单",
-        href: APP_ROUTES.rankingDetail.replace(":id", item.id),
-        title: item.title,
-        summary: "社区榜单"
-      };
-    case "rating-target":
-      return {
-        label: "评分对象",
-        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.summary ?? `${item.rankingTitle} 评分对象`
-      };
-    case "aircraft":
-      return {
-        label: "飞行器投稿",
-        href: null,
-        title: item.modelName,
-        summary: item.summary ?? "机型投稿仍在审核或等待重新提交。"
-      };
-    case "review":
-      return {
-        label: "机型评测",
-        href: APP_ROUTES.modelDetail.replace(":slug", item.model.slug),
-        title: item.model.name,
-        summary: item.content ?? "这条评测暂时没有补充长文。"
-      };
-    case "brand-application":
-      return {
-        label: "品牌申请",
-        href: null,
-        title: item.name,
-        summary: item.description ?? "品牌申请正在审核或等待修改后重新提交。"
-      };
-  }
-}
-
-function getManageHref(item: ContentItem) {
-  switch (item.type) {
-    case "post":
-      return item.postType === "article"
-        ? `${APP_ROUTES.publishArticle}?edit=${item.id}`
-        : `${APP_ROUTES.publishMoment}?edit=${item.id}`;
-    case "ranking":
-      return `${APP_ROUTES.rankingEditor}?edit=${item.id}`;
-    case "rating-target":
-      return `${APP_ROUTES.ratingTargetDetail.replace(":id", item.id)}?edit=1&ranking=${item.rankingId}`;
-    case "aircraft":
-      return `${APP_ROUTES.publishAircraft}?edit=${item.id}`;
-    case "brand-application":
-      return `${APP_ROUTES.publishBrand}?edit=${item.id}`;
-    default:
-      return null;
-  }
-}
-
-function getRejectionReason(item: ContentItem) {
-  if (!("rejectionReason" in item)) {
-    return null;
-  }
-  return typeof item.rejectionReason === "string" && item.rejectionReason.trim().length > 0
-    ? item.rejectionReason
-    : null;
-}
-
-function getAuthorViewCount(item: ContentItem) {
-  if (item.type === "post" || item.type === "aircraft") {
-    return item.viewCount;
-  }
-
-  return null;
-}
-
-function getLifecycleBadge(item: ContentItem) {
-  const lifecycle = getProfileItemLifecycle(item);
-  switch (lifecycle) {
-    case "draft":
-      return {
-        label: "草稿",
-        className: "border-slate-300/80 bg-slate-50 text-slate-700"
-      };
-    case "reviewing":
-      return {
-        label: "审核中",
-        className: "border-sky-200 bg-sky-50 text-sky-700"
-      };
-    case "published":
-      return {
-        label: "已发布",
-        className: "border-emerald-200 bg-emerald-50 text-emerald-700"
-      };
-    case "rejected":
-      return {
-        label: "已驳回",
-        className: "border-amber-300/90 bg-amber-50 text-amber-800"
-      };
-    default:
-      return null;
-  }
-}
-
-function ContentFeedRow(props: {
-  item: ContentItem;
-  showManagement?: boolean;
-  onDelete?: (item: ContentItem) => void;
-  deletingId?: string | null;
-}) {
-  const meta = getContentMeta(props.item);
-  const manageHref = getManageHref(props.item);
-  const rejectionReason = getRejectionReason(props.item);
-  const lifecycleBadge = props.showManagement ? getLifecycleBadge(props.item) : null;
-  const authorViewCount =
-    props.showManagement && "canManage" in props.item && props.item.canManage
-      ? getAuthorViewCount(props.item)
-      : null;
-
-  const content = (
-    <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
-      <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start md:gap-1">
-        <Badge variant="outline">{meta.label}</Badge>
-        {lifecycleBadge ? (
-          <Badge className={lifecycleBadge.className} variant="outline">
-            {lifecycleBadge.label}
-          </Badge>
-        ) : null}
-        <span className="text-[0.72rem] text-muted-foreground">
-          {new Date(props.item.updatedAt).toLocaleDateString("zh-CN")}
-        </span>
-      </div>
-      <div className="min-w-0 space-y-2">
-        <div className="truncate text-[0.95rem] font-semibold text-foreground">{meta.title}</div>
-        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{meta.summary}</p>
-        {rejectionReason ? (
-          <div className="rounded-[0.75rem] border border-amber-300/80 bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-950">
-            驳回原因：{rejectionReason}
-          </div>
-        ) : null}
-      </div>
-      <div className="flex items-center gap-2 text-[0.72rem] text-muted-foreground md:justify-end">
-        <Clock3Icon className="size-3.5" />
-        {new Date(props.item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-        {typeof authorViewCount === "number" ? <span>浏览 {authorViewCount}</span> : null}
-      </div>
-      {props.showManagement ? (
-        <div className="flex flex-wrap items-center gap-2 md:col-span-3 md:justify-end">
-          {manageHref ? (
-            <Button asChild size="sm" type="button" variant="outline">
-              <Link to={manageHref}>编辑</Link>
-            </Button>
-          ) : null}
-          {props.onDelete &&
-          (props.item.type === "post" ||
-            props.item.type === "aircraft" ||
-            props.item.type === "rating-target") ? (
-            <Button
-              disabled={props.deletingId === props.item.id}
-              onClick={() => props.onDelete?.(props.item)}
-              size="sm"
-              type="button"
-              variant="ghost"
-            >
-              <Trash2Icon data-icon="inline-start" />
-              {props.deletingId === props.item.id ? "处理中..." : "删除"}
-            </Button>
-          ) : null}
-        </div>
-      ) : null}
-    </div>
-  );
-
-  if (!meta.href) {
-    return content;
-  }
-
-  return (
-    <Link className="block transition hover:bg-accent/28" {...DETAIL_PAGE_LINK_PROPS} to={meta.href}>
-      {content}
-    </Link>
   );
 }
 
@@ -615,8 +408,8 @@ export function ProfilePage() {
               </button>
             ))}
           </div>
-          <VirtualFeed
-            className="!border-0"
+          <VirtualGrid
+            className="w-full !border-0"
             data={activityItems}
             emptyState={
               <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
@@ -624,10 +417,19 @@ export function ProfilePage() {
               </div>
             }
             height={660}
+            itemClassName="min-w-0"
             itemKey={(item) => `${item.type}-${item.id}`}
-            renderItem={(item) => (
-              <ContentFeedRow deletingId={deletingId} item={item} onDelete={handleDelete} showManagement />
+            listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            renderItem={(item, index) => (
+              <ContentFeedCard
+                deletingId={deletingId}
+                index={index}
+                item={item}
+                onDelete={handleDelete}
+                showManagement
+              />
             )}
+            useWindowScroll={false}
           />
         </TabsContent>
 
@@ -651,8 +453,8 @@ export function ProfilePage() {
               </button>
             ))}
           </div>
-          <VirtualFeed
-            className="!border-0"
+          <VirtualGrid
+            className="w-full !border-0"
             data={favoriteItems}
             emptyState={
               <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
@@ -660,8 +462,11 @@ export function ProfilePage() {
               </div>
             }
             height={660}
+            itemClassName="min-w-0"
             itemKey={(item) => `${item.type}-${item.id}`}
-            renderItem={(item) => <ContentFeedRow item={item} />}
+            listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+            renderItem={(item, index) => <ContentFeedCard index={index} item={item} />}
+            useWindowScroll={false}
           />
         </TabsContent>
       </Tabs>

@@ -129,7 +129,12 @@ export const userContentPostItemSchema = z.object({
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   contentPreview: z.string().min(1),
+  coverImageUrl: z.string().nullable().optional(),
   viewCount: z.number().int().nonnegative().nullable().default(null),
+  commentCount: z.number().int().nonnegative().optional(),
+  likeCount: z.number().int().nonnegative().optional(),
+  favoriteCount: z.number().int().nonnegative().optional(),
+  shareCount: z.number().int().nonnegative().optional(),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -141,6 +146,12 @@ export const userContentFavoritePostItemSchema = z.object({
   postType: z.enum(["article", "moment"]),
   title: z.string().min(1),
   contentPreview: z.string().min(1),
+  coverImageUrl: z.string().nullable().optional(),
+  viewCount: z.number().int().nonnegative().optional(),
+  commentCount: z.number().int().nonnegative().optional(),
+  likeCount: z.number().int().nonnegative().optional(),
+  favoriteCount: z.number().int().nonnegative().optional(),
+  shareCount: z.number().int().nonnegative().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
 });
@@ -149,10 +160,12 @@ export const userContentReviewItemSchema = z.object({
   type: z.literal("review"),
   id: z.string().min(1),
   content: z.string().nullable(),
+  likeCount: z.number().int().nonnegative().optional(),
   model: z.object({
     id: z.string().min(1),
     slug: z.string().min(1),
-    name: z.string().min(1)
+    name: z.string().min(1),
+    coverImageUrl: z.string().nullable().optional()
   }),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -165,7 +178,9 @@ export const userContentFavoriteModelItemSchema = z.object({
     id: z.string().min(1),
     slug: z.string().min(1),
     name: z.string().min(1),
-    powerType: powerTypeSchema
+    powerType: powerTypeSchema,
+    coverImageUrl: z.string().nullable().optional(),
+    viewCount: z.number().int().nonnegative().optional()
   }),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -177,6 +192,8 @@ export const userContentRatingTargetSchema = z.object({
   status: z.enum(["pending", "published", "rejected", "hidden"]).default("published"),
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
+  commentCount: z.number().int().nonnegative().optional(),
+  coverImageUrl: z.string().nullable().optional(),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()
@@ -191,6 +208,9 @@ export const userContentRatingTargetEntrySchema = z.object({
   rejectionReason: z.string().nullable().default(null),
   title: z.string().min(1),
   summary: z.string().nullable(),
+  likeCount: z.number().int().nonnegative().optional(),
+  commentCount: z.number().int().nonnegative().optional(),
+  coverImageUrl: z.string().nullable().optional(),
   canManage: z.boolean().default(false),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime()

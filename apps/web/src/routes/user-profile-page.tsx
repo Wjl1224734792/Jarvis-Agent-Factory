@@ -4,7 +4,7 @@ import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
 import { useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
 import { UserProfilePageRouteSkeleton } from "@/components/route-skeletons";
-import { VirtualFeed } from "@/components/virtual-feed";
+import { VirtualGrid } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -16,9 +16,7 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
-import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
-
-type ContentItem = Awaited<ReturnType<typeof apiClient.listUserContent>>["items"][number];
+import { ContentFeedCard } from "../features/auth/profile-content-card";
 
 function MetricStrip(props: { label: string; value: number }) {
   return (
@@ -26,105 +24,6 @@ function MetricStrip(props: { label: string; value: number }) {
       <div className="text-[0.72rem] uppercase tracking-[0.16em] text-muted-foreground">{props.label}</div>
       <div className="text-lg font-semibold text-foreground">{props.value}</div>
     </div>
-  );
-}
-
-function getContentMeta(item: ContentItem) {
-  switch (item.type) {
-    case "post":
-      return {
-        label: item.postType === "article" ? "文章" : "动态",
-        href: APP_ROUTES.postDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.contentPreview
-      };
-    case "favorite-post":
-      return {
-        label: item.postType === "article" ? "收藏文章" : "收藏动态",
-        href: APP_ROUTES.postDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.contentPreview
-      };
-    case "favorite-model":
-      return {
-        label: "收藏机型",
-        href: APP_ROUTES.modelDetail.replace(":slug", item.model.slug),
-        title: item.model.name,
-        summary: "这款机型已出现在对方的收藏列表中。"
-      };
-    case "ranking":
-      return {
-        label: "榜单",
-        href: APP_ROUTES.rankingDetail.replace(":id", item.id),
-        title: item.title,
-        summary: "社区榜单"
-      };
-    case "rating-target":
-      return {
-        label: "评分对象",
-        href: APP_ROUTES.ratingTargetDetail.replace(":id", item.id),
-        title: item.title,
-        summary: item.summary ?? item.rankingTitle
-      };
-    case "aircraft":
-      return {
-        label: "飞行器投稿",
-        href: null,
-        title: item.modelName,
-        summary: item.summary ?? "对方提交了机型资料，等待进一步处理。"
-      };
-    case "review":
-      return {
-        label: "机型评论",
-        href: APP_ROUTES.modelDetail.replace(":slug", item.model.slug),
-        title: item.model.name,
-        summary: item.content ?? "只留下了评分，没有补充长评。"
-      };
-    case "brand-application":
-      return {
-        label: "品牌申请",
-        href: null,
-        title: item.name,
-        summary: item.description ?? "品牌申请等待审核处理。"
-      };
-  }
-
-  return {
-    label: "内容",
-    href: null,
-    title: "未知内容",
-    summary: ""
-  };
-}
-
-function ContentFeedRow({ item }: { item: ContentItem }) {
-  const meta = getContentMeta(item);
-  const row = (
-    <div className="grid gap-3 px-4 py-4 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem] md:items-start">
-      <div className="flex flex-wrap items-center gap-2 md:flex-col md:items-start md:gap-1">
-        <Badge variant="outline">{meta.label}</Badge>
-        <span className="text-[0.72rem] text-muted-foreground">
-          {new Date(item.updatedAt).toLocaleDateString("zh-CN")}
-        </span>
-      </div>
-      <div className="min-w-0 space-y-1.5">
-        <div className="truncate text-[0.95rem] font-semibold text-foreground">{meta.title}</div>
-        <p className="line-clamp-2 text-sm leading-6 text-muted-foreground">{meta.summary}</p>
-      </div>
-      <div className="text-[0.72rem] text-muted-foreground md:text-right">
-        {new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}
-      </div>
-    </div>
-  );
-
-  if (!meta.href) {
-    return row;
-  }
-
-  return (
-    <Link className="block transition hover:bg-accent/28" {...DETAIL_PAGE_LINK_PROPS} to={meta.href}>
-      {row}
-    </Link>
   );
 }
 
@@ -294,25 +193,21 @@ export function UserProfilePage() {
 
         <TabsContent className="space-y-4" value="content">
           {isContentLoading ? (
-            <div className="space-y-0 bg-white">
-              {Array.from({ length: 5 }).map((_, index) => (
-                <div className="grid gap-3 border-b border-border/70 px-4 py-4 last:border-b-0 md:grid-cols-[7rem_minmax(0,1fr)_8.5rem]" key={index}>
-                  <div className="space-y-2">
-                    <Skeleton className="h-5 w-16 rounded-full" />
-                    <Skeleton className="h-3 w-20 rounded-none" />
-                  </div>
-                  <div className="space-y-2">
-                    <Skeleton className="h-4 w-2/3 rounded-none" />
+            <div className="grid grid-cols-1 gap-3 bg-white sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 6 }).map((_, index) => (
+                <div className="overflow-hidden rounded-[0.85rem] border border-border/70" key={index}>
+                  <Skeleton className="aspect-[16/10] w-full rounded-none" />
+                  <div className="space-y-2 p-3">
+                    <Skeleton className="h-4 w-20 rounded-full" />
+                    <Skeleton className="h-4 w-full rounded-none" />
                     <Skeleton className="h-3.5 w-full rounded-none" />
-                    <Skeleton className="h-3.5 w-5/6 rounded-none" />
                   </div>
-                  <Skeleton className="h-3 w-24 rounded-none md:ml-auto" />
                 </div>
               ))}
             </div>
           ) : profile.viewer.canViewContent ? (
-            <VirtualFeed
-              className="!border-0"
+            <VirtualGrid
+              className="w-full !border-0"
               data={contentItems}
               emptyState={
                 <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
@@ -320,8 +215,11 @@ export function UserProfilePage() {
                 </div>
               }
               height={660}
+              itemClassName="min-w-0"
               itemKey={(item) => `${item.type}-${item.id}`}
-              renderItem={(item) => <ContentFeedRow item={item} />}
+              listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
+              renderItem={(item, index) => <ContentFeedCard index={index} item={item} viewer="visitor" />}
+              useWindowScroll={false}
             />
           ) : (
             <Alert>
