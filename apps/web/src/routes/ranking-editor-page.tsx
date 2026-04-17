@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
-import { getEditorialImage, getModelImage } from "../lib/aviation-media";
+import { getModelImage } from "../lib/aviation-media";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
 type DraftItem = {
@@ -320,12 +320,22 @@ export function RankingEditorPage() {
                       </div>
                     </div>
                     <div className="mt-3 grid gap-3 md:grid-cols-[108px_minmax(0,1fr)]">
-                      <div className="overflow-hidden rounded-[0.8rem] border border-border/70 bg-slate-100">
-                        <img
-                          alt={item.title || "ranking item"}
-                          className="h-[108px] w-full object-cover"
-                          src={item.imageUrl || getEditorialImage(`ranking-item-${item.id}`)}
-                        />
+                      <div className="size-[108px] shrink-0 overflow-hidden rounded-[0.8rem] border border-border/70 bg-slate-100">
+                        {item.imageUrl ? (
+                          <img
+                            alt={item.title || "排行条目配图"}
+                            className="size-full object-cover"
+                            src={item.imageUrl}
+                          />
+                        ) : (
+                          <div
+                            aria-label="尚未上传配图"
+                            className="flex size-full items-center justify-center text-muted-foreground"
+                            role="img"
+                          >
+                            <ImagePlusIcon aria-hidden className="size-9 opacity-45" />
+                          </div>
+                        )}
                       </div>
                       <div className="space-y-3">
                         <Input
