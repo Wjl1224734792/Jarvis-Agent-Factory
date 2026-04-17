@@ -1,9 +1,8 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { BellIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
-import { useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { VirtualGrid } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -14,7 +13,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
-import { ContentFeedCard, type ContentItem } from "./profile-content-card";
+import { ContentFeedListRow, type ContentItem } from "./profile-content-card";
 import {
   filterProfileItems,
   type ProfileContentCategory,
@@ -37,6 +36,9 @@ const profileContentCategories: Array<{ value: ProfileContentCategory; label: st
   { value: "aircraft", label: "飞行器" }
 ];
 
+/** 收藏 Tab 不展示「品牌」分类（内容 Tab 仍保留） */
+const profileFavoriteCategories = profileContentCategories.filter((c) => c.value !== "brand");
+
 const profileLifecycleFilters: Array<{ value: ProfileLifecycle; label: string }> = [
   { value: "all", label: "全部" },
   { value: "draft", label: "草稿" },
@@ -44,6 +46,44 @@ const profileLifecycleFilters: Array<{ value: ProfileLifecycle; label: string }>
   { value: "published", label: "已发布" },
   { value: "rejected", label: "已驳回" }
 ];
+
+const PROFILE_CONTENT_PAGE_SIZE = 9;
+
+function ProfileGridPagination(props: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (props.totalPages <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/60 pt-4">
+      <Button
+        disabled={props.page <= 1}
+        onClick={() => props.onPageChange(props.page - 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        上一页
+      </Button>
+      <span className="text-sm tabular-nums text-muted-foreground">
+        {props.page} / {props.totalPages}
+      </span>
+      <Button
+        disabled={props.page >= props.totalPages}
+        onClick={() => props.onPageChange(props.page + 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        下一页
+      </Button>
+    </div>
+  );
+}
 
 function ProfilePageSkeleton() {
   return (
@@ -107,6 +147,8 @@ export function ProfilePage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
+  const [activityPage, setActivityPage] = useState(1);
+  const [favoritePage, setFavoritePage] = useState(1);
 
   const currentProfileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -152,7 +194,7 @@ export function ProfilePage() {
   const favoriteCategoryCounts = useMemo(
     () =>
       new Map(
-        profileContentCategories.map((category) => [
+        profileFavoriteCategories.map((category) => [
           category.value,
           filterProfileItems(allProfileItems, {
             primaryTab: "favorites",
@@ -179,6 +221,41 @@ export function ProfilePage() {
       }),
     [activeContentCategory, activeLifecycle, allProfileItems]
   );
+
+  const activityTotalPages = Math.max(1, Math.ceil(activityItems.length / PROFILE_CONTENT_PAGE_SIZE));
+  const favoriteTotalPages = Math.max(1, Math.ceil(favoriteItems.length / PROFILE_CONTENT_PAGE_SIZE));
+
+  const paginatedActivityItems = useMemo(() => {
+    const start = (activityPage - 1) * PROFILE_CONTENT_PAGE_SIZE;
+    return activityItems.slice(start, start + PROFILE_CONTENT_PAGE_SIZE);
+  }, [activityItems, activityPage]);
+
+  const paginatedFavoriteItems = useMemo(() => {
+    const start = (favoritePage - 1) * PROFILE_CONTENT_PAGE_SIZE;
+    return favoriteItems.slice(start, start + PROFILE_CONTENT_PAGE_SIZE);
+  }, [favoriteItems, favoritePage]);
+
+  useEffect(() => {
+    setActivityPage(1);
+  }, [activeContentCategory, activeLifecycle]);
+
+  useEffect(() => {
+    setFavoritePage(1);
+  }, [activeFavoriteCategory]);
+
+  useEffect(() => {
+    if (activeFavoriteCategory === "brand") {
+      setActiveFavoriteCategory("article");
+    }
+  }, [activeFavoriteCategory]);
+
+  useEffect(() => {
+    setActivityPage((page) => Math.min(page, activityTotalPages));
+  }, [activityTotalPages]);
+
+  useEffect(() => {
+    setFavoritePage((page) => Math.min(page, favoriteTotalPages));
+  }, [favoriteTotalPages]);
 
   if (!user) {
     return <ProfilePageSkeleton />;
@@ -408,34 +485,34 @@ export function ProfilePage() {
               </button>
             ))}
           </div>
-          <VirtualGrid
-            className="w-full !border-0"
-            data={activityItems}
-            emptyState={
-              <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
-                当前分类下还没有内容。
+          {activityItems.length === 0 ? (
+            <div className="bg-white px-5 py-5 text-sm text-muted-foreground">当前分类下还没有内容。</div>
+          ) : (
+            <>
+              <div className="divide-y divide-border/60 border border-border/70 bg-white">
+                {paginatedActivityItems.map((item, idx) => (
+                  <ContentFeedListRow
+                    deletingId={deletingId}
+                    index={(activityPage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
+                    item={item}
+                    key={`${item.type}-${item.id}`}
+                    onDelete={handleDelete}
+                    showManagement
+                  />
+                ))}
               </div>
-            }
-            height={660}
-            itemClassName="min-w-0"
-            itemKey={(item) => `${item.type}-${item.id}`}
-            listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            renderItem={(item, index) => (
-              <ContentFeedCard
-                deletingId={deletingId}
-                index={index}
-                item={item}
-                onDelete={handleDelete}
-                showManagement
+              <ProfileGridPagination
+                onPageChange={setActivityPage}
+                page={activityPage}
+                totalPages={activityTotalPages}
               />
-            )}
-            useWindowScroll={false}
-          />
+            </>
+          )}
         </TabsContent>
 
         <TabsContent className="space-y-4" value="favorites">
           <div className="flex flex-wrap items-center gap-2">
-            {profileContentCategories.map((category) => (
+            {profileFavoriteCategories.map((category) => (
               <button
                 className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
                   activeFavoriteCategory === category.value
@@ -453,21 +530,26 @@ export function ProfilePage() {
               </button>
             ))}
           </div>
-          <VirtualGrid
-            className="w-full !border-0"
-            data={favoriteItems}
-            emptyState={
-              <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
-                当前分类下还没有收藏内容。
+          {favoriteItems.length === 0 ? (
+            <div className="bg-white px-5 py-5 text-sm text-muted-foreground">当前分类下还没有收藏内容。</div>
+          ) : (
+            <>
+              <div className="divide-y divide-border/60 border border-border/70 bg-white">
+                {paginatedFavoriteItems.map((item, idx) => (
+                  <ContentFeedListRow
+                    index={(favoritePage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
+                    item={item}
+                    key={`${item.type}-${item.id}`}
+                  />
+                ))}
               </div>
-            }
-            height={660}
-            itemClassName="min-w-0"
-            itemKey={(item) => `${item.type}-${item.id}`}
-            listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-            renderItem={(item, index) => <ContentFeedCard index={index} item={item} />}
-            useWindowScroll={false}
-          />
+              <ProfileGridPagination
+                onPageChange={setFavoritePage}
+                page={favoritePage}
+                totalPages={favoriteTotalPages}
+              />
+            </>
+          )}
         </TabsContent>
       </Tabs>
     </SitePage>

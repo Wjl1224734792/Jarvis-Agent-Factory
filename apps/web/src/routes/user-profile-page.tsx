@@ -1,10 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { ArrowRightIcon, EyeOffIcon, UserPlusIcon } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Navigate, Link, useParams } from "react-router-dom";
 import { UserProfilePageRouteSkeleton } from "@/components/route-skeletons";
-import { VirtualGrid } from "@/components/virtual-feed";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
@@ -16,7 +15,46 @@ import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
-import { ContentFeedCard } from "../features/auth/profile-content-card";
+import { ContentFeedListRow } from "../features/auth/profile-content-card";
+import { isFavoriteItem } from "../features/auth/profile-content-filters";
+
+const VISITOR_PROFILE_PAGE_SIZE = 9;
+
+function ProfileGridPagination(props: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  if (props.totalPages <= 1) {
+    return null;
+  }
+
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/60 pt-4">
+      <Button
+        disabled={props.page <= 1}
+        onClick={() => props.onPageChange(props.page - 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        上一页
+      </Button>
+      <span className="text-sm tabular-nums text-muted-foreground">
+        {props.page} / {props.totalPages}
+      </span>
+      <Button
+        disabled={props.page >= props.totalPages}
+        onClick={() => props.onPageChange(props.page + 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        下一页
+      </Button>
+    </div>
+  );
+}
 
 function MetricStrip(props: { label: string; value: number }) {
   return (
@@ -36,6 +74,7 @@ export function UserProfilePage() {
   const userId = params.id ?? "";
   const [isTogglingFollow, setIsTogglingFollow] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [visitorPage, setVisitorPage] = useState(1);
   const profileQuery = useQuery({
     queryKey: ["user-profile", userId],
     queryFn: () => apiClient.getUserProfile(userId),
@@ -47,6 +86,26 @@ export function UserProfilePage() {
     queryFn: () => apiClient.listUserContent(userId),
     enabled: Boolean(userId && profile?.viewer.canViewContent)
   });
+  const rawContentItems = contentQuery.data?.items ?? [];
+  const visitorContentItems = useMemo(
+    () => rawContentItems.filter((item) => !isFavoriteItem(item)),
+    [rawContentItems]
+  );
+
+  const visitorTotalPages = Math.max(1, Math.ceil(visitorContentItems.length / VISITOR_PROFILE_PAGE_SIZE));
+
+  const paginatedVisitorItems = useMemo(() => {
+    const start = (visitorPage - 1) * VISITOR_PROFILE_PAGE_SIZE;
+    return visitorContentItems.slice(start, start + VISITOR_PROFILE_PAGE_SIZE);
+  }, [visitorContentItems, visitorPage]);
+
+  useEffect(() => {
+    setVisitorPage(1);
+  }, [userId]);
+
+  useEffect(() => {
+    setVisitorPage((page) => Math.min(page, visitorTotalPages));
+  }, [visitorTotalPages]);
 
   if (currentUser?.id && currentUser.id === userId) {
     return <Navigate replace to={APP_ROUTES.webProfile} />;
@@ -67,7 +126,6 @@ export function UserProfilePage() {
     );
   }
 
-  const contentItems = contentQuery.data?.items ?? [];
   const isContentLoading = profile.viewer.canViewContent && contentQuery.isLoading && !contentQuery.data;
   const profileUserId = profile.user.id;
 
@@ -193,34 +251,43 @@ export function UserProfilePage() {
 
         <TabsContent className="space-y-4" value="content">
           {isContentLoading ? (
-            <div className="grid grid-cols-1 gap-3 bg-white sm:grid-cols-2 lg:grid-cols-3">
+            <div className="divide-y divide-border/60 border border-border/70 bg-white">
               {Array.from({ length: 6 }).map((_, index) => (
-                <div className="overflow-hidden rounded-[0.85rem] border border-border/70" key={index}>
-                  <Skeleton className="aspect-[16/10] w-full rounded-none" />
-                  <div className="space-y-2 p-3">
-                    <Skeleton className="h-4 w-20 rounded-full" />
-                    <Skeleton className="h-4 w-full rounded-none" />
-                    <Skeleton className="h-3.5 w-full rounded-none" />
+                <div className="flex gap-3 px-3 py-3 sm:gap-3 sm:px-4" key={index}>
+                  <Skeleton className="h-20 w-28 shrink-0 rounded-md sm:h-24 sm:w-32" />
+                  <div className="min-w-0 flex-1 space-y-2 pt-0.5">
+                    <Skeleton className="h-4 w-24 rounded-full" />
+                    <Skeleton className="h-4 w-full rounded-md" />
+                    <Skeleton className="h-3.5 w-full rounded-md" />
+                    <Skeleton className="h-3 w-2/3 rounded-md" />
                   </div>
                 </div>
               ))}
             </div>
           ) : profile.viewer.canViewContent ? (
-            <VirtualGrid
-              className="w-full !border-0"
-              data={contentItems}
-              emptyState={
-                <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
-                  这位飞友暂时还没有对你开放的内容。
+            visitorContentItems.length === 0 ? (
+              <div className="bg-white px-5 py-5 text-sm text-muted-foreground">
+                这位飞友暂时还没有对你开放的内容。
+              </div>
+            ) : (
+              <>
+                <div className="divide-y divide-border/60 border border-border/70 bg-white">
+                  {paginatedVisitorItems.map((item, idx) => (
+                    <ContentFeedListRow
+                      index={(visitorPage - 1) * VISITOR_PROFILE_PAGE_SIZE + idx}
+                      item={item}
+                      key={`${item.type}-${item.id}`}
+                      viewer="visitor"
+                    />
+                  ))}
                 </div>
-              }
-              height={660}
-              itemClassName="min-w-0"
-              itemKey={(item) => `${item.type}-${item.id}`}
-              listClassName="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3"
-              renderItem={(item, index) => <ContentFeedCard index={index} item={item} viewer="visitor" />}
-              useWindowScroll={false}
-            />
+                <ProfileGridPagination
+                  onPageChange={setVisitorPage}
+                  page={visitorPage}
+                  totalPages={visitorTotalPages}
+                />
+              </>
+            )
           ) : (
             <Alert>
               <EyeOffIcon className="size-4" />

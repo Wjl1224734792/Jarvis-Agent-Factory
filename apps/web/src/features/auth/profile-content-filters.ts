@@ -4,7 +4,7 @@ export type ProfilePrimaryTab = "content" | "favorites";
 export type ProfileContentCategory = "article" | "moment" | "ranking" | "brand" | "aircraft";
 export type ProfileLifecycle = "all" | "draft" | "reviewing" | "published" | "rejected";
 
-function isFavoriteItem(item: UserContentItem) {
+export function isFavoriteItem(item: UserContentItem) {
   return item.type === "favorite-post" || item.type === "favorite-model";
 }
 

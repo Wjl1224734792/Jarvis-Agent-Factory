@@ -250,7 +250,7 @@ function collectEngagementMetrics(item: ContentItem): Metric[] {
   return metrics;
 }
 
-export function ContentFeedCard(props: {
+export function ContentFeedListRow(props: {
   item: ContentItem;
   index: number;
   showManagement?: boolean;
@@ -259,88 +259,113 @@ export function ContentFeedCard(props: {
   viewer?: "self" | "visitor";
 }) {
   const { item, index } = props;
-  const meta = getContentMeta(item, props.viewer ?? "self");
+  const viewer = props.viewer ?? "self";
+  const meta = getContentMeta(item, viewer);
   const manageHref = getManageHref(item);
   const rejectionReason = getRejectionReason(item);
   const lifecycleBadge = props.showManagement ? getLifecycleBadge(item) : null;
   const coverSrc = resolveCoverImageUrl(item, index);
   const metrics = collectEngagementMetrics(item);
 
-  const body = (
-    <article
-      className={cn(
-        "flex h-full min-h-[19rem] flex-col overflow-hidden rounded-[0.85rem] border border-border/70 bg-white shadow-sm transition",
-        meta.href && "hover:border-primary/28 hover:shadow-md"
-      )}
-    >
-      <div className="relative aspect-[16/10] shrink-0 overflow-hidden bg-slate-100">
-        <img alt={meta.title} className="h-full w-full object-cover" decoding="async" src={coverSrc} />
-      </div>
-      <div className="flex min-h-0 flex-1 flex-col gap-2 p-3">
-        <div className="flex flex-wrap items-center gap-1.5">
-          <Badge variant="outline">{meta.label}</Badge>
-          {lifecycleBadge ? (
-            <Badge className={lifecycleBadge.className} variant="outline">
-              {lifecycleBadge.label}
-            </Badge>
-          ) : null}
-        </div>
-        <div className="min-w-0 space-y-1">
-          <div className="line-clamp-2 text-[0.92rem] font-semibold leading-snug text-foreground">{meta.title}</div>
-          <p className="line-clamp-2 text-[0.8rem] leading-relaxed text-muted-foreground">{meta.summary}</p>
-        </div>
-        {rejectionReason ? (
-          <div className="rounded-[0.65rem] border border-amber-300/80 bg-amber-50 px-2.5 py-1.5 text-[0.72rem] leading-snug text-amber-950">
-            驳回原因：{rejectionReason}
-          </div>
-        ) : null}
-        {metrics.length > 0 ? (
-          <div className="mt-auto flex flex-wrap gap-x-3 gap-y-1 pt-1 text-[0.72rem] text-muted-foreground">
-            {metrics.map((m) => (
-              <span className="inline-flex items-center gap-1" key={m.key} title={m.label}>
-                <m.Icon aria-hidden className="size-3.5 shrink-0 opacity-80" />
-                {formatContentMetric(m.value)}
-              </span>
-            ))}
-          </div>
-        ) : null}
-        <div className="flex items-center gap-1.5 text-[0.7rem] text-muted-foreground">
-          <Clock3Icon className="size-3.5 shrink-0" />
-          <span>{new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}</span>
-        </div>
-        {props.showManagement ? (
-          <div className="flex flex-wrap gap-2 border-t border-border/60 pt-2">
-            {manageHref ? (
-              <Button asChild size="sm" type="button" variant="outline">
-                <Link to={manageHref}>编辑</Link>
-              </Button>
-            ) : null}
-            {props.onDelete &&
-            (item.type === "post" || item.type === "aircraft" || item.type === "rating-target") ? (
-              <Button
-                disabled={props.deletingId === item.id}
-                onClick={() => props.onDelete?.(item)}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <Trash2Icon data-icon="inline-start" />
-                {props.deletingId === item.id ? "处理中..." : "删除"}
-              </Button>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
-    </article>
+  const thumb = (
+    <div className="relative h-20 w-28 shrink-0 overflow-hidden rounded-md bg-slate-100 sm:h-24 sm:w-32">
+      <img alt={meta.title} className="h-full w-full object-cover" decoding="async" src={coverSrc} />
+    </div>
   );
 
-  if (!meta.href) {
-    return body;
-  }
+  const textBlock = (
+    <div className="min-w-0 flex-1 space-y-1">
+      <div className="flex flex-wrap items-center gap-1">
+        <Badge className="text-[0.72rem]" variant="outline">
+          {meta.label}
+        </Badge>
+        {lifecycleBadge ? (
+          <Badge className={`text-[0.72rem] ${lifecycleBadge.className}`} variant="outline">
+            {lifecycleBadge.label}
+          </Badge>
+        ) : null}
+      </div>
+      <div className="min-w-0 space-y-0.5">
+        <div className="line-clamp-2 text-[0.84rem] font-semibold leading-snug text-foreground sm:text-[0.88rem]">
+          {meta.title}
+        </div>
+        <p className="line-clamp-2 text-[0.75rem] leading-snug text-muted-foreground sm:text-[0.8rem]">
+          {meta.summary}
+        </p>
+      </div>
+      {rejectionReason ? (
+        <div className="rounded-md border border-amber-300/80 bg-amber-50 px-2 py-1 text-[0.72rem] leading-snug text-amber-950">
+          驳回原因：{rejectionReason}
+        </div>
+      ) : null}
+      {metrics.length > 0 ? (
+        <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.68rem] text-muted-foreground sm:gap-x-3 sm:text-[0.72rem]">
+          {metrics.map((m) => (
+            <span className="inline-flex items-center gap-0.5" key={m.key} title={m.label}>
+              <m.Icon aria-hidden className="size-3 shrink-0 opacity-80 sm:size-3.5" />
+              {formatContentMetric(m.value)}
+            </span>
+          ))}
+        </div>
+      ) : null}
+      <div className="flex items-center gap-1 text-[0.65rem] text-muted-foreground sm:text-[0.7rem]">
+        <Clock3Icon className="size-3 shrink-0 sm:size-3.5" />
+        <span>{new Date(item.updatedAt).toLocaleString("zh-CN", { hour12: false })}</span>
+      </div>
+    </div>
+  );
+
+  const management =
+    props.showManagement ? (
+      <div className="flex shrink-0 flex-col items-stretch gap-1.5 self-start pt-0.5 sm:min-w-22">
+        {manageHref ? (
+          <Button asChild className="h-8 px-2.5 text-[0.76rem]" size="sm" type="button" variant="outline">
+            <Link to={manageHref}>编辑</Link>
+          </Button>
+        ) : null}
+        {props.onDelete && (item.type === "post" || item.type === "aircraft" || item.type === "rating-target") ? (
+          <Button
+            className="h-8 px-2.5 text-[0.76rem]"
+            disabled={props.deletingId === item.id}
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              props.onDelete?.(item);
+            }}
+            size="sm"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2Icon data-icon="inline-start" />
+            {props.deletingId === item.id ? "处理中..." : "删除"}
+          </Button>
+        ) : null}
+      </div>
+    ) : null;
+
+  const main = meta.href ? (
+    <Link
+      className={cn(
+        "flex min-w-0 flex-1 items-start gap-3 rounded-md px-0 py-0.5 outline-none transition",
+        "hover:bg-muted/35 focus-visible:ring-2 focus-visible:ring-ring/40"
+      )}
+      {...DETAIL_PAGE_LINK_PROPS}
+      to={meta.href}
+    >
+      {thumb}
+      {textBlock}
+    </Link>
+  ) : (
+    <div className="flex min-w-0 flex-1 items-start gap-3 py-0.5">
+      {thumb}
+      {textBlock}
+    </div>
+  );
 
   return (
-    <Link className="block h-full min-h-0" {...DETAIL_PAGE_LINK_PROPS} to={meta.href}>
-      {body}
-    </Link>
+    <article className="flex w-full items-start gap-2 px-3 py-3 sm:gap-3 sm:px-4">
+      {main}
+      {management}
+    </article>
   );
 }
