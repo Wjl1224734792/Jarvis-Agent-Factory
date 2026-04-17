@@ -90,6 +90,17 @@ export function CirclePageDetail({
     }
   }, [mediaItems.length, selectedMediaIndex]);
 
+  useEffect(() => {
+    if (!selectedNoteId) {
+      return;
+    }
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [selectedNoteId]);
+
   const canComment = authStatus === "authenticated" && selectedNote?.status === "published";
 
   if (!selectedNoteId) {
@@ -98,11 +109,11 @@ export function CirclePageDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/46 p-3 backdrop-blur-[2px] transition-opacity"
+      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden overscroll-none bg-black/46 p-3 backdrop-blur-[2px] transition-opacity"
       onClick={onClose}
     >
       <div
-        className="relative flex h-[min(92vh,860px)] w-full max-w-[1220px] flex-col overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:flex-row"
+        className="relative flex h-[min(92dvh,860px,calc(100dvh-1.5rem))] w-full max-w-[1220px] flex-col overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:flex-row"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -113,7 +124,7 @@ export function CirclePageDetail({
           <XIcon className="size-4" />
         </button>
 
-        <div className="relative flex min-h-[320px] flex-1 items-center justify-center bg-black md:min-h-0">
+        <div className="relative flex min-h-0 max-h-[45vh] flex-1 items-center justify-center bg-black md:max-h-none md:min-h-0 md:flex-1">
           {activeMedia?.kind === "video" ? (
             <video
               className="h-full max-h-full w-full object-contain"
@@ -180,8 +191,8 @@ export function CirclePageDetail({
           ) : null}
         </div>
 
-        <div className="flex w-full min-w-0 flex-col bg-white md:w-[420px]">
-          <div className="border-b border-border/70 px-4 pb-3.5 pt-4 pr-14">
+        <div className="flex min-h-0 w-full min-w-0 flex-1 flex-col overflow-hidden bg-white md:min-h-0 md:w-[420px] md:shrink-0 md:flex-none">
+          <div className="shrink-0 border-b border-border/70 px-4 pb-3.5 pt-4 pr-14">
             {selectedNote ? (
               <div className="flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-3">
@@ -229,8 +240,8 @@ export function CirclePageDetail({
             ) : null}
           </div>
 
-          <div className="flex min-h-0 flex-1 flex-col">
-            <div className="flex-1 overflow-y-auto px-4 py-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+            <div className="min-h-0 flex-1 touch-pan-y overflow-y-auto overscroll-contain px-4 py-4">
               {noteQuery.isLoading ? (
                 <div className="space-y-4">
                   <div className="h-6 w-3/5 animate-pulse rounded bg-muted" />
@@ -297,7 +308,7 @@ export function CirclePageDetail({
             </div>
 
             {selectedNote ? (
-              <div className="border-t border-border bg-white px-4 pb-3.5 pt-3">
+              <div className="shrink-0 border-t border-border bg-white px-4 pt-3 pb-[max(0.875rem,env(safe-area-inset-bottom))]">
                 {actionError ? (
                   <Alert className="mb-3" variant="destructive">
                     <AlertTitle>评论失败</AlertTitle>
