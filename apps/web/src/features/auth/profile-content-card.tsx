@@ -214,18 +214,18 @@ function collectEngagementMetrics(item: ContentItem): Metric[] {
 
   switch (item.type) {
     case "post":
-      pushView(item.viewCount);
-      pushLike(item.likeCount);
-      pushFavorite(item.favoriteCount);
-      pushShare(item.shareCount);
-      pushComment(item.commentCount);
+      pushView(item.viewCount ?? 0);
+      pushLike(item.likeCount ?? 0);
+      pushFavorite(item.favoriteCount ?? 0);
+      pushShare(item.shareCount ?? 0);
+      pushComment(item.commentCount ?? 0);
       break;
     case "favorite-post":
-      pushView(item.viewCount);
-      pushLike(item.likeCount);
-      pushFavorite(item.favoriteCount);
-      pushShare(item.shareCount);
-      pushComment(item.commentCount);
+      pushView(item.viewCount ?? 0);
+      pushLike(item.likeCount ?? 0);
+      pushFavorite(item.favoriteCount ?? 0);
+      pushShare(item.shareCount ?? 0);
+      pushComment(item.commentCount ?? 0);
       break;
     case "favorite-model":
       pushView(item.model.viewCount);
@@ -301,9 +301,15 @@ export function ContentFeedListRow(props: {
       {metrics.length > 0 ? (
         <div className="flex flex-wrap gap-x-2.5 gap-y-0.5 text-[0.68rem] text-muted-foreground sm:gap-x-3 sm:text-[0.72rem]">
           {metrics.map((m) => (
-            <span className="inline-flex items-center gap-0.5" key={m.key} title={m.label}>
+            <span
+              aria-label={`${m.label} ${formatContentMetric(m.value)}`}
+              className="inline-flex items-center gap-0.5"
+              key={m.key}
+              title={`${m.label} ${formatContentMetric(m.value)}`}
+            >
               <m.Icon aria-hidden className="size-3 shrink-0 opacity-80 sm:size-3.5" />
-              {formatContentMetric(m.value)}
+              <span className="text-[0.65rem] opacity-90 sm:text-[0.7rem]">{m.label}</span>
+              <span className="tabular-nums">{formatContentMetric(m.value)}</span>
             </span>
           ))}
         </div>
