@@ -10,6 +10,8 @@ type AuthCaptchaSvgProps = {
   hintClassName?: string;
   /** 为 false 时不渲染下方提示（由父级整行展示） */
   showHint?: boolean;
+  /** 为 true 且无有效 SVG 时表示正在请求，显示「加载中…」；否则显示可点击刷新提示 */
+  isLoading?: boolean;
 };
 
 /**
@@ -18,6 +20,7 @@ type AuthCaptchaSvgProps = {
 export function AuthCaptchaSvg(props: AuthCaptchaSvgProps) {
   const hasSvg = props.svgMarkup.trim().startsWith("<svg");
   const showHint = props.showHint !== false;
+  const isLoading = props.isLoading === true;
 
   return (
     <div className={cn(showHint && "space-y-2", props.className)}>
@@ -35,8 +38,10 @@ export function AuthCaptchaSvg(props: AuthCaptchaSvgProps) {
             // 图形由自有 API 生成，非用户输入
             dangerouslySetInnerHTML={{ __html: props.svgMarkup }}
           />
-        ) : (
+        ) : isLoading ? (
           <span className="text-sm text-stone-500">加载中…</span>
+        ) : (
+          <span className="px-1 text-center text-xs leading-tight text-stone-600">点击刷新</span>
         )}
         <span className="sr-only">刷新图形验证码</span>
       </button>

@@ -93,15 +93,15 @@ export function LoginPage() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/48 px-4 py-8 backdrop-blur-md">
-      <SitePanel className="w-full max-w-[700px]" variant="floating">
-        <SitePanelBody className="space-y-8">
-          <div className="flex items-start justify-between gap-4">
-            <SitePageHead className="gap-3 px-0">
-              <SitePageTitle className="text-5xl">
+      <SitePanel className="w-full max-w-[420px]" variant="floating">
+        <SitePanelBody className="space-y-5">
+          <div className="flex items-start justify-between gap-3">
+            <SitePageHead className="min-w-0 gap-1.5 px-0">
+              <SitePageTitle className="text-2xl font-semibold tracking-tight sm:text-[1.65rem]">
                 {step === "verify" ? "登录 / 注册" : "完善资料"}
               </SitePageTitle>
               {step === "profile" ? (
-                <SitePageDescription className="text-base">
+                <SitePageDescription className="text-sm leading-relaxed">
                   这是你的首次登录。确认用户名和头像后，再进入站内继续发帖、点评和关注。
                 </SitePageDescription>
               ) : null}
@@ -121,13 +121,13 @@ export function LoginPage() {
           </div>
 
           {step === "verify" ? (
-            <div className="space-y-6">
-              <div className="space-y-3">
+            <div className="space-y-4">
+              <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground" htmlFor="login-phone">
                   手机号
                 </label>
-                <div className="grid grid-cols-[96px_minmax(0,1fr)] gap-3">
-                  <div className="flex items-center rounded-[var(--radius-control)] bg-surface-2 px-4 text-lg font-semibold text-foreground">
+                <div className="grid grid-cols-[4rem_minmax(0,1fr)] gap-2 sm:grid-cols-[4.5rem_minmax(0,1fr)] sm:gap-2.5">
+                  <div className="flex h-12 shrink-0 items-center justify-center rounded-[var(--radius-control)] bg-surface-2 px-2 text-sm font-semibold tabular-nums text-foreground sm:px-2.5 sm:text-base">
                     +86
                   </div>
                   <Input
@@ -144,8 +144,8 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="grid gap-3 sm:grid-cols-[minmax(0,1fr)_168px] sm:items-end">
-                <div className="space-y-3">
+              <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
+                <div className="space-y-2">
                   <label className="text-sm font-medium text-muted-foreground" htmlFor="login-sms">
                     短信验证码
                   </label>
@@ -160,10 +160,10 @@ export function LoginPage() {
                   />
                 </div>
 
-                <div className="space-y-3">
-                  <div className="text-sm font-medium text-transparent">操作</div>
+                <div className="space-y-2 sm:min-w-[7.25rem]">
+                  <div className="hidden text-sm font-medium sm:block sm:text-transparent">操作</div>
                   <Button
-                    className="h-12 w-full"
+                    className="h-12 w-full whitespace-nowrap sm:w-auto sm:min-w-[7.25rem]"
                     disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
                     onClick={() => {
                       setSubmitError(null);
@@ -195,7 +195,7 @@ export function LoginPage() {
                 </Alert>
               ) : null}
 
-              <div className="flex flex-col gap-3">
+              <div className="flex flex-col gap-2.5 pt-0.5">
                 <Button
                   className="w-full"
                   disabled={isSubmitting}
@@ -238,7 +238,7 @@ export function LoginPage() {
                         setIsSubmitting(false);
                       });
                   }}
-                  size="xl"
+                  size="lg"
                   type="button"
                   variant="hero"
                 >
@@ -250,7 +250,7 @@ export function LoginPage() {
                   onClick={() => {
                     void navigate(APP_ROUTES.feedHome);
                   }}
-                  size="lg"
+                  size="default"
                   type="button"
                   variant="ghost"
                 >
@@ -259,8 +259,8 @@ export function LoginPage() {
               </div>
             </div>
           ) : (
-            <div className="space-y-6">
-              <div className="grid gap-4 rounded-[var(--radius-control)] border border-border/70 bg-surface-1/72 p-4 md:grid-cols-[auto_minmax(0,1fr)] md:items-center">
+            <div className="space-y-5">
+              <div className="grid gap-3 rounded-[var(--radius-control)] border border-border/70 bg-surface-1/72 p-3 md:grid-cols-[auto_minmax(0,1fr)] md:items-center md:p-4">
                 <UserAvatar
                   className="size-20"
                   displayName={displayName || phone}
@@ -407,7 +407,7 @@ export function LoginPage() {
                         setIsCompletingProfile(false);
                       });
                   }}
-                  size="xl"
+                  size="lg"
                   type="button"
                   variant="hero"
                 >
@@ -417,7 +417,7 @@ export function LoginPage() {
             </div>
           )}
 
-          <p className="text-center text-sm text-muted-foreground">
+          <p className="text-center text-xs leading-relaxed text-muted-foreground sm:text-sm">
             登录即代表您同意
             <span className="mx-1 text-primary">服务协议</span>
             与

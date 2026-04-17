@@ -8,7 +8,7 @@ import { contentCategoriesService } from "../content-categories/content-categori
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { uploadsRepo } from "../uploads/upload.repo";
-import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
@@ -69,10 +69,11 @@ function serializeVideo(
   };
 }
 
-function buildImagesByPostId(
+async function buildImagesByPostId(
   images: Awaited<ReturnType<typeof postsRepo.listPostImages>>
 ) {
-  const imagesByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>[]>();
+  type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
+  const rows: Row[] = [];
 
   for (const image of images) {
     if (!image.postId) {
@@ -84,18 +85,29 @@ function buildImagesByPostId(
       continue;
     }
 
-    const bucket = imagesByPostId.get(image.postId) ?? [];
-    bucket.push(serialized);
-    imagesByPostId.set(image.postId, bucket);
+    rows.push({ postId: image.postId, serialized });
+  }
+
+  const resolvedUrls = await Promise.all(rows.map((row) => resolveUploadedFileUrl(row.serialized.id)));
+
+  const imagesByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>[]>();
+  for (let index = 0; index < rows.length; index++) {
+    const { postId, serialized } = rows[index];
+    const resolved = resolvedUrls[index];
+    const item = { ...serialized, url: resolved ?? serialized.url };
+    const bucket = imagesByPostId.get(postId) ?? [];
+    bucket.push(item);
+    imagesByPostId.set(postId, bucket);
   }
 
   return imagesByPostId;
 }
 
-function buildVideosByPostId(
+async function buildVideosByPostId(
   videos: Awaited<ReturnType<typeof postsRepo.listPostVideos>>
 ) {
-  const videosByPostId = new Map<string, NonNullable<ReturnType<typeof serializeVideo>>[]>();
+  type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeVideo>> };
+  const rows: Row[] = [];
 
   for (const video of videos) {
     if (!video.postId) {
@@ -107,9 +119,19 @@ function buildVideosByPostId(
       continue;
     }
 
-    const bucket = videosByPostId.get(video.postId) ?? [];
-    bucket.push(serialized);
-    videosByPostId.set(video.postId, bucket);
+    rows.push({ postId: video.postId, serialized });
+  }
+
+  const resolvedUrls = await Promise.all(rows.map((row) => resolveUploadedFileUrl(row.serialized.id)));
+
+  const videosByPostId = new Map<string, NonNullable<ReturnType<typeof serializeVideo>>[]>();
+  for (let index = 0; index < rows.length; index++) {
+    const { postId, serialized } = rows[index];
+    const resolved = resolvedUrls[index];
+    const item = { ...serialized, url: resolved ?? serialized.url };
+    const bucket = videosByPostId.get(postId) ?? [];
+    bucket.push(item);
+    videosByPostId.set(postId, bucket);
   }
 
   return videosByPostId;
@@ -349,8 +371,10 @@ export const postsService = {
       currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
     ]);
 
-    const imagesByPostId = buildImagesByPostId(images);
-    const videosByPostId = buildVideosByPostId(videos);
+    const [imagesByPostId, videosByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos)
+    ]);
     const interactionMap = buildInteractionMap(interactions);
     const serializedItems = items
       .map((item) =>
@@ -449,9 +473,13 @@ export const postsService = {
       postsRepo.listPostImages([item.id]),
       postsRepo.listPostVideos([item.id])
     ]);
+    const [imagesForPost, videosForPost] = await Promise.all([
+      buildImagesByPostId(attachedImages),
+      buildVideosByPostId(attachedVideos)
+    ]);
     const serialized = serializePostListItem(item, {
-      images: buildImagesByPostId(attachedImages).get(item.id) ?? [],
-      videos: buildVideosByPostId(attachedVideos).get(item.id) ?? [],
+      images: imagesForPost.get(item.id) ?? [],
+      videos: videosForPost.get(item.id) ?? [],
       viewer: {
         isAuthor: true,
         isFollowingAuthor: false,
@@ -507,6 +535,10 @@ export const postsService = {
     const interactionMap = buildInteractionMap(interactions);
     const likedCommentIds = buildCommentStateSet(likedComments);
     const reportedCommentIds = buildCommentStateSet(reportedComments);
+    const [imagesByPostId, videosByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos)
+    ]);
 
     return {
       item: {
@@ -527,8 +559,8 @@ export const postsService = {
           displayName: item.author.displayName,
           role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
         },
-        images: buildImagesByPostId(images).get(item.id) ?? [],
-        videos: buildVideosByPostId(videos).get(item.id) ?? [],
+        images: imagesByPostId.get(item.id) ?? [],
+        videos: videosByPostId.get(item.id) ?? [],
         contentCategory: item.contentCategory?.id
           ? {
               id: item.contentCategory.id,
@@ -562,8 +594,10 @@ export const postsService = {
       postsRepo.listPostImages(items.map((item) => item.id)),
       postsRepo.listPostVideos(items.map((item) => item.id))
     ]);
-    const imagesByPostId = buildImagesByPostId(images);
-    const videosByPostId = buildVideosByPostId(videos);
+    const [imagesByPostId, videosByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos)
+    ]);
 
     return {
       items: items
@@ -593,9 +627,13 @@ export const postsService = {
       postsRepo.listPostImages([item.id]),
       postsRepo.listPostVideos([item.id])
     ]);
+    const [imagesByPostId, videosByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos)
+    ]);
     const serialized = serializePostListItem(item, {
-      images: buildImagesByPostId(images).get(item.id) ?? [],
-      videos: buildVideosByPostId(videos).get(item.id) ?? [],
+      images: imagesByPostId.get(item.id) ?? [],
+      videos: videosByPostId.get(item.id) ?? [],
       viewer: {
         isAuthor: false,
         isFollowingAuthor: false,
@@ -695,9 +733,13 @@ export const postsService = {
       postsRepo.listPostImages([item.id]),
       postsRepo.listPostVideos([item.id])
     ]);
+    const [imagesByPostId, videosByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos)
+    ]);
     return serializePostListItem(item, {
-      images: buildImagesByPostId(images).get(item.id) ?? [],
-      videos: buildVideosByPostId(videos).get(item.id) ?? [],
+      images: imagesByPostId.get(item.id) ?? [],
+      videos: videosByPostId.get(item.id) ?? [],
       viewer: {
         isAuthor: false,
         isFollowingAuthor: false,

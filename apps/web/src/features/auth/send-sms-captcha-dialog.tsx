@@ -85,6 +85,7 @@ export function SendSmsCaptchaDialog(props: SendSmsCaptchaDialogProps) {
                 <AuthCaptchaSvg
                   buttonClassName="w-full"
                   className="w-full"
+                  isLoading={flow.isCaptchaLoading}
                   onRefresh={() => {
                     void flow.refreshCaptcha({
                       onError: props.onRefreshError,

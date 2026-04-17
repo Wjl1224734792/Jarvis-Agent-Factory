@@ -27,6 +27,7 @@ export function useSmsVerificationFlow() {
   const [isSendingSms, setIsSendingSms] = useState(false);
   const [cooldownSeconds, setCooldownSeconds] = useState(0);
   const [captchaRemainingSeconds, setCaptchaRemainingSeconds] = useState(0);
+  const [isCaptchaLoading, setIsCaptchaLoading] = useState(false);
 
   // 短信发送倒计时
   useEffect(() => {
@@ -77,6 +78,7 @@ export function useSmsVerificationFlow() {
     clearCaptchaCode?: boolean;
   }) => {
     errorRef.current = { onError: input.onError, errorFallback: input.errorFallback };
+    setIsCaptchaLoading(true);
     try {
       const nextChallenge = await apiClient.requestCaptchaChallenge();
       setChallenge(nextChallenge);
@@ -85,9 +87,12 @@ export function useSmsVerificationFlow() {
       }
       return nextChallenge;
     } catch (error: unknown) {
+      setChallenge(null);
       const { onError, errorFallback } = errorRef.current;
       onError(error instanceof Error ? error.message : errorFallback);
       return null;
+    } finally {
+      setIsCaptchaLoading(false);
     }
   }, []);
 
@@ -114,9 +119,18 @@ export function useSmsVerificationFlow() {
       return response;
     } catch (error: unknown) {
       input.onError(error instanceof Error ? error.message : input.errorFallback);
-      // 服务端校验图形码为一次性 getDel，失败也需重新拉取挑战
-      setChallenge(null);
+      // 服务端校验图形码为一次性消费，失败后清空输入并自动拉取新挑战，避免界面长期停在假「加载中」
       setCaptchaCode("");
+      setChallenge(null);
+      setIsCaptchaLoading(true);
+      try {
+        const nextChallenge = await apiClient.requestCaptchaChallenge();
+        setChallenge(nextChallenge);
+      } catch {
+        setChallenge(null);
+      } finally {
+        setIsCaptchaLoading(false);
+      }
       return null;
     } finally {
       setIsSendingSms(false);
@@ -131,6 +145,7 @@ export function useSmsVerificationFlow() {
     setCooldownSeconds(0);
     setCaptchaRemainingSeconds(0);
     setIsSendingSms(false);
+    setIsCaptchaLoading(false);
   }, []);
 
   return useMemo(() => ({
@@ -139,6 +154,7 @@ export function useSmsVerificationFlow() {
     cooldownSeconds,
     captchaRemainingSeconds,
     isCaptchaExpired,
+    isCaptchaLoading,
     isSendingSms,
     requestHint,
     reset,
@@ -154,6 +170,7 @@ export function useSmsVerificationFlow() {
     cooldownSeconds,
     captchaRemainingSeconds,
     isCaptchaExpired,
+    isCaptchaLoading,
     isSendingSms,
     requestHint,
     refreshCaptcha,
