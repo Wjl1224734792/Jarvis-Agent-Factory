@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
@@ -495,8 +496,20 @@ export function PublishArticlePage() {
                 type="button"
               >
                 <img alt="cover preview" className="h-48 w-full object-cover" src={coverUrl} />
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-slate-950/0 text-transparent transition group-hover:bg-slate-950/30 group-hover:text-white group-focus-visible:bg-slate-950/30 group-focus-visible:text-white">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium backdrop-blur-sm">
+                <div
+                  className={cn(
+                    "pointer-events-none absolute inset-0 flex items-center justify-center transition",
+                    isUploadingMedia ? "bg-slate-950/30" : "bg-slate-950/0 group-hover:bg-slate-950/30 group-focus-visible:bg-slate-950/30"
+                  )}
+                >
+                  <span
+                    className={cn(
+                      "inline-flex items-center gap-2 rounded-full border border-white/30 bg-black/30 px-4 py-2 text-sm font-medium text-white backdrop-blur-sm transition",
+                      isUploadingMedia
+                        ? "opacity-100"
+                        : "opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100"
+                    )}
+                  >
                     <PencilLineIcon className="size-4" />
                     {isUploadingMedia ? "上传中..." : "编辑"}
                   </span>
