@@ -76,7 +76,17 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
   }
 
-  const parsedInput = createPostInputSchema.safeParse(await context.req.json());
+  const rawInput: unknown = await context.req.json();
+  const normalizedInput =
+    rawInput &&
+    typeof rawInput === "object" &&
+    !Array.isArray(rawInput) &&
+    "content" in rawInput &&
+    rawInput.content === null
+      ? { ...rawInput, content: "" }
+      : rawInput;
+
+  const parsedInput = createPostInputSchema.safeParse(normalizedInput);
   if (!parsedInput.success) {
     return context.json({ code: "BAD_REQUEST", message: "Invalid post payload." }, 400);
   }
@@ -89,6 +99,7 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
   });
@@ -113,6 +124,10 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
       },
       400
     );
+  }
+
+  if (payload.kind === "invalid_cover") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid cover image." }, 400);
   }
 
   if (payload.kind === "not_found") {
@@ -175,6 +190,7 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
   });
@@ -183,6 +199,9 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
   }
   if (result.kind === "forbidden") {
     return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+  if (result.kind === "invalid_cover") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid cover image." }, 400);
   }
 
   return context.json(postDetailResponseSchema.parse({ item: result.item }));

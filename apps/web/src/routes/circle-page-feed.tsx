@@ -26,6 +26,7 @@ export type FeedTab = (typeof feedTabs)[number]["id"];
 export type CircleFeedItem = {
   id: string;
   title: string;
+  cover?: { url?: string | null } | null;
   images: Array<{ url?: string | null }>;
   videos: Array<{ url?: string | null }>;
   author: {
@@ -59,7 +60,8 @@ function CircleFeedCard(props: {
   formatCount: (value: number) => string;
 }) {
   const { item, absoluteIndex, selectedNoteId, openNote, formatCount } = props;
-  const previewImage = item.images[0]?.url ?? null;
+  const previewImage = item.cover?.url ?? item.images[0]?.url ?? null;
+  const previewVideo = item.videos[0]?.url ?? null;
 
   return (
     <button
@@ -82,6 +84,14 @@ function CircleFeedCard(props: {
             alt={item.title}
             className="h-full w-full rounded-[1rem] object-cover"
             src={previewImage}
+          />
+        ) : previewVideo ? (
+          <video
+            className="h-full w-full rounded-[1rem] object-cover"
+            muted
+            playsInline
+            preload="metadata"
+            src={previewVideo}
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center rounded-[1rem] bg-slate-100 text-xs text-muted-foreground">

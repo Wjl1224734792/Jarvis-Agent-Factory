@@ -67,6 +67,15 @@ describe("posts contract", () => {
     });
     expect(momentWithMedia.content).toBe("");
 
+    const momentWithNullContent = createPostInputSchema.parse({
+      type: "moment",
+      title: "空值正文动态",
+      content: null,
+      imageIds: [],
+      videoIds: []
+    });
+    expect(momentWithNullContent.content).toBe("");
+
     expect(() =>
       createPostInputSchema.parse({
         type: "article",
@@ -95,6 +104,49 @@ describe("posts contract", () => {
         videoIds: []
       })
     ).toThrow();
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "article",
+        title: "空值正文文章",
+        content: null,
+        imageIds: [],
+        videoIds: []
+      })
+    ).toThrow();
+  });
+
+  it("supports moment cover selection rules", () => {
+    const imageMoment = createPostInputSchema.parse({
+      type: "moment",
+      title: "图文封面",
+      content: "",
+      imageIds: ["file_1", "file_2"],
+      videoIds: [],
+      coverImageId: "file_2"
+    });
+    expect(imageMoment.coverImageId).toBe("file_2");
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "moment",
+        title: "非法封面",
+        content: "",
+        imageIds: ["file_1", "file_2"],
+        videoIds: [],
+        coverImageId: "file_9"
+      })
+    ).toThrow();
+
+    const videoMoment = createPostInputSchema.parse({
+      type: "moment",
+      title: "视频封面",
+      content: "",
+      imageIds: [],
+      videoIds: ["video_1"],
+      coverImageId: "cover_1"
+    });
+    expect(videoMoment.coverImageId).toBe("cover_1");
   });
 
   it("rejects moment payloads that mix images and videos or contain multiple videos", () => {

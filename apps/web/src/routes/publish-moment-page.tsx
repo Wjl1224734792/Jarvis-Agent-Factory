@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
-import { useEffect, useRef, useState } from "react";
+import { FileImageIcon, PlayIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishMomentPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
@@ -22,6 +22,7 @@ import {
 } from "./publish-moment-helpers";
 
 const MOMENT_CONTENT_MAX = 1000;
+const VIDEO_COVER_RATIO_DEFAULT = 10;
 
 type UploadedImage = {
   id: string;
@@ -35,6 +36,74 @@ type UploadedVideo = {
   fileName?: string;
 };
 
+async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "metadata";
+  video.src = videoUrl;
+
+  await new Promise<void>((resolve, reject) => {
+    video.onloadedmetadata = () => resolve();
+    video.onerror = () => reject(new Error("无法加载视频，请稍后重试或改用手动封面。"));
+  });
+
+  const normalizedRatio = Number.isFinite(seekRatio) ? Math.min(1, Math.max(0, seekRatio)) : 0;
+  const seekTime =
+    Number.isFinite(video.duration) && video.duration > 0
+      ? video.duration * normalizedRatio
+      : 0.05;
+
+  await new Promise<void>((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      resolve();
+    };
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("error", () => reject(new Error("无法定位到视频帧。")), { once: true });
+    video.currentTime = seekTime;
+  });
+
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (!w || !h) {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法读取视频画面，请改用手动封面。");
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法生成视频封面。");
+  }
+
+  try {
+    ctx.drawImage(video, 0, 0, w, h);
+  } catch {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法截取视频画面（可能被跨域限制），请改用手动封面。");
+  }
+
+  video.removeAttribute("src");
+  video.load();
+
+  const blob = await new Promise<Blob | null>((resolve) => {
+    canvas.toBlob(resolve, "image/jpeg", 0.9);
+  });
+  if (!blob) {
+    throw new Error("视频封面导出失败。");
+  }
+
+  return new File([blob], "moment-video-cover.jpg", { type: "image/jpeg" });
+}
+
 export function PublishMomentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -42,10 +111,17 @@ export function PublishMomentPage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
   const zoneInputRef = useRef<HTMLInputElement | null>(null);
+  const videoCoverInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
+  const [selectedImageCoverId, setSelectedImageCoverId] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
+  const [videoCoverImage, setVideoCoverImage] = useState<UploadedImage | null>(null);
+  const [videoCoverSource, setVideoCoverSource] = useState<"frame" | "manual">("frame");
+  const [videoFrameRatio, setVideoFrameRatio] = useState(VIDEO_COVER_RATIO_DEFAULT);
+  const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [isCapturingVideoFrame, setIsCapturingVideoFrame] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -60,6 +136,52 @@ export function PublishMomentPage() {
     enabled: Boolean(editId)
   });
 
+  const uploadVideoFrameCover = useCallback(
+    async (videoUrl: string, ratio: number) => {
+      setError(null);
+      setIsCapturingVideoFrame(true);
+      try {
+        const frameFile = await captureVideoFrameAsJpegFile(videoUrl, ratio);
+        const uploaded = await apiClient.uploadPostImage(frameFile);
+        setVideoCoverImage({
+          id: uploaded.item.id,
+          url: uploaded.item.url,
+          fileName: uploaded.item.fileName
+        });
+        setVideoCoverSource("frame");
+      } catch (reason: unknown) {
+        setError(reason instanceof Error ? reason.message : "封面生成失败，请稍后重试。");
+      } finally {
+        setIsCapturingVideoFrame(false);
+      }
+    },
+    []
+  );
+
+  const handleManualVideoCoverUpload = useCallback(async (files: FileList | null) => {
+    if (!files || files.length === 0) {
+      return;
+    }
+    setError(null);
+    setIsUploading(true);
+    try {
+      const uploaded = await apiClient.uploadPostImage(files[0]);
+      setVideoCoverImage({
+        id: uploaded.item.id,
+        url: uploaded.item.url,
+        fileName: uploaded.item.fileName
+      });
+      setVideoCoverSource("manual");
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "封面上传失败，请稍后重试。");
+    } finally {
+      setIsUploading(false);
+      if (videoCoverInputRef.current) {
+        videoCoverInputRef.current.value = "";
+      }
+    }
+  }, []);
+
   useEffect(() => {
     if (!detailQuery.data?.item) {
       return;
@@ -68,23 +190,61 @@ export function PublishMomentPage() {
     const item = detailQuery.data.item;
     setTitle(item.title);
     setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
-    setUploadedImages(
-      item.images.map((image) => ({
-        id: image.id,
-        url: image.url,
-        fileName: image.fileName
-      }))
-    );
-    setUploadedVideo(
-      item.videos[0]
-        ? {
-            id: item.videos[0].id,
-            url: item.videos[0].url,
-            fileName: item.videos[0].fileName
-          }
-        : null
-    );
+    const nextImages = item.images.map((image) => ({
+      id: image.id,
+      url: image.url,
+      fileName: image.fileName
+    }));
+    const nextVideo = item.videos[0]
+      ? {
+          id: item.videos[0].id,
+          url: item.videos[0].url,
+          fileName: item.videos[0].fileName
+        }
+      : null;
+    const nextCover = item.cover
+      ? {
+          id: item.cover.id,
+          url: item.cover.url,
+          fileName: item.cover.fileName
+        }
+      : null;
+
+    if (nextVideo) {
+      setUploadedVideo(nextVideo);
+      setUploadedImages([]);
+      setSelectedImageCoverId(null);
+      setVideoCoverImage(nextCover);
+      setVideoCoverSource(nextCover ? "manual" : "frame");
+      setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
+      setVideoDuration(null);
+      return;
+    }
+
+    setUploadedVideo(null);
+    setVideoCoverImage(null);
+    setVideoDuration(null);
+    setUploadedImages(nextImages);
+    const fallbackImageCoverId =
+      nextCover && nextImages.some((image) => image.id === nextCover.id)
+        ? nextCover.id
+        : nextImages[0]?.id ?? null;
+    setSelectedImageCoverId(fallbackImageCoverId);
   }, [detailQuery.data?.item]);
+
+  useEffect(() => {
+    if (uploadedImages.length === 0) {
+      if (selectedImageCoverId !== null) {
+        setSelectedImageCoverId(null);
+      }
+      return;
+    }
+
+    if (selectedImageCoverId && uploadedImages.some((image) => image.id === selectedImageCoverId)) {
+      return;
+    }
+    setSelectedImageCoverId(uploadedImages[0]?.id ?? null);
+  }, [uploadedImages, selectedImageCoverId]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -111,6 +271,9 @@ export function PublishMomentPage() {
       }
 
       setUploadedVideo(null);
+      setVideoCoverImage(null);
+      setVideoDuration(null);
+      setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
       setUploadedImages((current) => [...current, ...nextImages]);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
@@ -163,11 +326,15 @@ export function PublishMomentPage() {
       const file = files[0];
       const uploaded = await apiClient.uploadPostVideo(file);
       setUploadedImages([]);
+      setSelectedImageCoverId(null);
       setUploadedVideo({
         id: uploaded.item.id,
         url: uploaded.item.url,
         fileName: uploaded.item.fileName
       });
+      setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
+      setVideoDuration(null);
+      await uploadVideoFrameCover(uploaded.item.url, VIDEO_COVER_RATIO_DEFAULT / 100);
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
     } finally {
@@ -178,7 +345,20 @@ export function PublishMomentPage() {
     }
   }
 
-  const previewImageUrl = uploadedImages[0]?.url ?? null;
+  const selectedImageCover =
+    selectedImageCoverId
+      ? uploadedImages.find((image) => image.id === selectedImageCoverId) ?? null
+      : uploadedImages[0] ?? null;
+  const submitCoverImageId = uploadedVideo
+    ? videoCoverImage?.id ?? null
+    : selectedImageCover?.id ?? null;
+  const previewImageUrl = uploadedVideo
+    ? videoCoverImage?.url ?? null
+    : selectedImageCover?.url ?? null;
+  const selectedFrameSecondText =
+    videoDuration && Number.isFinite(videoDuration)
+      ? `${((videoDuration * videoFrameRatio) / 100).toFixed(1)}s`
+      : null;
 
   if (editId && detailQuery.isLoading) {
     return <PublishMomentPageSkeleton />;
@@ -251,6 +431,18 @@ export function PublishMomentPage() {
                       >
                         <XIcon className="size-3.5" />
                       </button>
+                      <button
+                        className={cn(
+                          "absolute bottom-2 left-2 rounded-full px-2 py-0.5 text-[0.7rem] font-medium",
+                          selectedImageCoverId === image.id
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-black/55 text-white"
+                        )}
+                        onClick={() => setSelectedImageCoverId(image.id)}
+                        type="button"
+                      >
+                        {selectedImageCoverId === image.id ? "当前封面" : "设为封面"}
+                      </button>
                     </div>
                   ))}
                 </div>
@@ -270,17 +462,113 @@ export function PublishMomentPage() {
 
               {uploadedVideo ? (
                 <div className="relative overflow-hidden rounded-[1rem] border border-border/70 bg-slate-950">
-                  <video className="h-56 w-full object-cover" controls preload="metadata" src={uploadedVideo.url} />
+                  <video
+                    className="h-56 w-full object-cover"
+                    controls
+                    onLoadedMetadata={(event) => {
+                      const duration = event.currentTarget.duration;
+                      setVideoDuration(Number.isFinite(duration) && duration > 0 ? duration : null);
+                    }}
+                    preload="metadata"
+                    src={uploadedVideo.url}
+                  />
                   <button
                     aria-label="移除视频"
                     className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                     onClick={() => {
                       setUploadedVideo(null);
+                      setVideoCoverImage(null);
+                      setVideoDuration(null);
                     }}
                     type="button"
                   >
                     <XIcon className="size-3.5" />
                   </button>
+                </div>
+              ) : null}
+
+              {uploadedVideo ? (
+                <div className="space-y-3 rounded-[1rem] border border-border/70 bg-surface-1 p-3">
+                  <div className="text-xs font-medium text-muted-foreground">视频封面</div>
+                  <div className="flex flex-wrap gap-2">
+                    <Button
+                      onClick={() => setVideoCoverSource("frame")}
+                      size="sm"
+                      type="button"
+                      variant={videoCoverSource === "frame" ? "default" : "outline"}
+                    >
+                      选帧生成
+                    </Button>
+                    <Button
+                      onClick={() => setVideoCoverSource("manual")}
+                      size="sm"
+                      type="button"
+                      variant={videoCoverSource === "manual" ? "default" : "outline"}
+                    >
+                      手动上传
+                    </Button>
+                  </div>
+                  {videoCoverSource === "frame" ? (
+                    <div className="space-y-2">
+                      <label className="block text-xs text-muted-foreground">
+                        帧位置 {selectedFrameSecondText ? `(${selectedFrameSecondText})` : ""}
+                      </label>
+                      <input
+                        aria-label="视频封面选帧位置"
+                        className="w-full"
+                        max={100}
+                        min={0}
+                        onChange={(event) => setVideoFrameRatio(Number(event.target.value))}
+                        step={1}
+                        type="range"
+                        value={videoFrameRatio}
+                      />
+                      <Button
+                        disabled={isCapturingVideoFrame || !uploadedVideo}
+                        onClick={() => {
+                          if (!uploadedVideo) {
+                            return;
+                          }
+                          void uploadVideoFrameCover(uploadedVideo.url, videoFrameRatio / 100);
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="outline"
+                      >
+                        {isCapturingVideoFrame ? "生成中..." : "使用当前帧生成封面"}
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      onClick={() => videoCoverInputRef.current?.click()}
+                      size="sm"
+                      type="button"
+                      variant="outline"
+                    >
+                      <FileImageIcon data-icon="inline-start" />
+                      上传封面图
+                    </Button>
+                  )}
+                  <input
+                    accept="image/*"
+                    aria-label="上传视频封面图片"
+                    className="hidden"
+                    onChange={(event) => {
+                      void handleManualVideoCoverUpload(event.target.files);
+                    }}
+                    ref={videoCoverInputRef}
+                    type="file"
+                  />
+                  {videoCoverImage ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <img
+                        alt="video cover"
+                        className="h-12 w-16 rounded-md border border-border/70 object-cover"
+                        src={videoCoverImage.url}
+                      />
+                      当前封面已设置
+                    </div>
+                  ) : null}
                 </div>
               ) : null}
 
@@ -357,6 +645,7 @@ export function PublishMomentPage() {
                       type: "moment",
                       title: title.trim(),
                       content,
+                      coverImageId: submitCoverImageId,
                       imageIds: uploadedImages.map((item) => item.id),
                       videoIds: uploadedVideo ? [uploadedVideo.id] : []
                     })
@@ -366,7 +655,7 @@ export function PublishMomentPage() {
                         state: {
                           title: title.trim(),
                           description: content.trim().slice(0, 120),
-                          imageUrl: uploadedImages[0]?.url ?? null
+                          imageUrl: previewImageUrl
                         }
                       });
                     })
@@ -395,13 +684,21 @@ export function PublishMomentPage() {
               <div className="mx-auto w-full max-w-54 space-y-1.5">
                 {uploadedVideo ? (
                   <div className="relative overflow-hidden rounded-[1rem] bg-slate-100">
-                    <video
-                      className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
-                      muted
-                      playsInline
-                      preload="metadata"
-                      src={uploadedVideo.url}
-                    />
+                    {previewImageUrl ? (
+                      <img
+                        alt="preview"
+                        className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
+                        src={previewImageUrl}
+                      />
+                    ) : (
+                      <video
+                        className={cn("w-full object-cover", getCircleCardMediaAspectClass(0))}
+                        muted
+                        playsInline
+                        preload="metadata"
+                        src={uploadedVideo.url}
+                      />
+                    )}
                     <span className="pointer-events-none absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
                       <PlayIcon className="size-3.5 fill-current" />
                     </span>

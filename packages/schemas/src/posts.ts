@@ -31,6 +31,8 @@ export const postVideoSchema = z.object({
   byteSize: z.number().int().nonnegative()
 });
 
+export const postCoverSchema = postImageSchema;
+
 export const postViewerStateSchema = z.object({
   isAuthor: z.boolean(),
   isFollowingAuthor: z.boolean(),
@@ -50,9 +52,10 @@ export const createPostInputSchema = z
   .object({
     type: postTypeSchema,
     title: z.string().trim().min(1).max(100),
-    content: z.string().trim().max(8000).optional().default(""),
+    content: z.preprocess((value) => (value == null ? "" : value), z.string().trim().max(8000)),
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1).nullable().optional(),
+    coverImageId: z.string().min(1).nullable().optional().default(null),
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).max(2).default([])
   })
@@ -82,6 +85,14 @@ export const createPostInputSchema = z
         code: z.ZodIssueCode.custom,
         message: "Moment posts support only one video.",
         path: ["videoIds"]
+      });
+    }
+
+    if (input.imageIds.length > 0 && input.coverImageId && !input.imageIds.includes(input.coverImageId)) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Moment cover must be selected from uploaded images.",
+        path: ["coverImageId"]
       });
     }
   });
@@ -149,6 +160,7 @@ export const postFeedItemSchema = z.object({
   updatedAt: z.string().datetime(),
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
+  cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
   contentCategory: postContentCategorySummarySchema.nullable(),
@@ -203,6 +215,7 @@ export const postDetailSchema = z.object({
   updatedAt: z.string().datetime(),
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
+  cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
   contentCategory: postContentCategorySummarySchema.nullable(),

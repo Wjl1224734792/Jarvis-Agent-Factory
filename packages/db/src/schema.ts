@@ -477,6 +477,7 @@ export const postsTable = pgTable("posts", {
   contentCategoryId: text("content_category_id").references(() => contentCategoriesTable.id, {
     onDelete: "set null"
   }),
+  coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),
   rejectionReason: text("rejection_reason"),
   commentCount: integer("comment_count").default(0).notNull(),

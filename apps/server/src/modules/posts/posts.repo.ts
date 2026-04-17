@@ -42,6 +42,7 @@ function postSelection() {
     contentPlainText: postsTable.contentPlainText,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
+    coverImageFileId: postsTable.coverImageFileId,
     commentCount: postsTable.commentCount,
     reportCount: postsTable.reportCount,
     likeCount: postsTable.likeCount,
@@ -237,6 +238,7 @@ export const postsRepo = {
     status: PostStatus;
     rejectionReason?: string | null;
     publishedAt: Date | null;
+    coverImageFileId: string | null;
     imageIds: string[];
     videoIds: string[];
   }) {
@@ -251,6 +253,7 @@ export const postsRepo = {
       contentHtml: input.contentHtml,
       contentPlainText: input.contentPlainText,
       contentCategoryId: input.contentCategoryId,
+      coverImageFileId: input.coverImageFileId,
       status: input.status,
       rejectionReason: input.rejectionReason ?? null,
       commentCount: 0,
@@ -318,6 +321,7 @@ export const postsRepo = {
     status: PostStatus;
     rejectionReason?: string | null;
     ownerId: string;
+    coverImageFileId: string | null;
     imageIds: string[];
     videoIds: string[];
   }) {
@@ -329,6 +333,7 @@ export const postsRepo = {
         contentHtml: input.contentHtml,
         contentPlainText: input.contentPlainText,
         contentCategoryId: input.contentCategoryId,
+        coverImageFileId: input.coverImageFileId,
         status: input.status,
         rejectionReason: input.rejectionReason ?? null,
         updatedAt: new Date()
