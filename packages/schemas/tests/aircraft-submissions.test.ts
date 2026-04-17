@@ -77,6 +77,30 @@ describe("aircraft submissions contract", () => {
     ).toThrow(/price/i);
   });
 
+  it("rejects non-integer parameter values", () => {
+    expect(() =>
+      createAircraftSubmissionInputSchema.parse({
+        categoryId: "cat_1",
+        brandId: "brand_1",
+        proposedBrandName: null,
+        modelName: "X1",
+        powerType: "electric",
+        lifecycleStatus: "unreleased",
+        summary: null,
+        description: null,
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null,
+        priceMin: null,
+        priceMax: null,
+        maxFlightTimeMinutes: 45.5,
+        maxRangeKilometers: null,
+        maxSpeedKph: null,
+        takeoffWeightGrams: null
+      })
+    ).toThrow();
+  });
+
   it("exposes structured category and brand info in submission response", () => {
     const payload = aircraftSubmissionResponseSchema.parse({
       item: {

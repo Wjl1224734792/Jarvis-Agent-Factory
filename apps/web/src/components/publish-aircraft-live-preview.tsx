@@ -9,6 +9,8 @@ type GalleryImage = { id: string; url: string };
 
 type MediaSlot = { kind: "image" | "video"; url: string };
 
+export type PublishAircraftCoverMode = "manual" | "videoFrame" | null;
+
 export type PublishAircraftLivePreviewProps = {
   modelName: string;
   categoryName: string | null;
@@ -22,27 +24,30 @@ export type PublishAircraftLivePreviewProps = {
   coverImage: { url: string } | null;
   galleryImages: GalleryImage[];
   uploadedVideo: { url: string } | null;
-  /** 无封面时的占位图 URL */
-  placeholderImageUrl: string;
+  /** 有视频时为封面策略；仅图片投稿时可视为 manual 或 null */
+  coverMode: PublishAircraftCoverMode;
   galleryMax: number;
 };
 
 type LivePreviewMediaInput = Pick<
   PublishAircraftLivePreviewProps,
-  "uploadedVideo" | "coverImage" | "galleryImages" | "placeholderImageUrl"
+  "uploadedVideo" | "coverImage" | "galleryImages"
 >;
 
 function buildMediaSlots(input: LivePreviewMediaInput): MediaSlot[] {
-  if (input.uploadedVideo) {
-    return [{ kind: "video", url: input.uploadedVideo.url }];
-  }
-
   const slots: MediaSlot[] = [];
   const seen = new Set<string>();
 
   if (input.coverImage) {
     slots.push({ kind: "image", url: input.coverImage.url });
     seen.add(input.coverImage.url);
+  }
+
+  if (input.uploadedVideo) {
+    if (!seen.has(input.uploadedVideo.url)) {
+      slots.push({ kind: "video", url: input.uploadedVideo.url });
+      seen.add(input.uploadedVideo.url);
+    }
   }
 
   for (const row of input.galleryImages) {
@@ -52,24 +57,19 @@ function buildMediaSlots(input: LivePreviewMediaInput): MediaSlot[] {
     }
   }
 
-  if (slots.length === 0) {
-    return [{ kind: "image", url: input.placeholderImageUrl }];
-  }
-
   return slots;
 }
 
 export function PublishAircraftLivePreview(props: PublishAircraftLivePreviewProps) {
-  const { uploadedVideo, coverImage, galleryImages, placeholderImageUrl } = props;
+  const { uploadedVideo, coverImage, galleryImages } = props;
   const slots = useMemo(
     () =>
       buildMediaSlots({
         uploadedVideo,
         coverImage,
-        galleryImages,
-        placeholderImageUrl
+        galleryImages
       }),
-    [coverImage, galleryImages, placeholderImageUrl, uploadedVideo]
+    [coverImage, galleryImages, uploadedVideo]
   );
 
   const [activeIndex, setActiveIndex] = useState(0);
@@ -105,11 +105,21 @@ export function PublishAircraftLivePreview(props: PublishAircraftLivePreviewProp
   const blurb =
     props.summary.trim() || props.description.trim() || "填写摘要或描述后，将显示在机型详情摘要区域。";
 
-  const footerHint = props.uploadedVideo
-    ? "封面为视频"
-    : props.coverImage
-      ? `图册 ${props.galleryImages.length}/${props.galleryMax} 张`
-      : "尚未上传封面（示意配图）";
+  const footerHint = (() => {
+    if (slots.length === 0) {
+      return "未选择封面";
+    }
+    if (uploadedVideo) {
+      if (props.coverMode === "manual") {
+        return "封面来源：自定义上传（另含视频）";
+      }
+      if (props.coverMode === "videoFrame") {
+        return "封面来源：视频首帧（另含视频）";
+      }
+      return "含视频与图册";
+    }
+    return `图册 ${props.galleryImages.length}/${props.galleryMax} 张`;
+  })();
 
   return (
     <div
@@ -118,7 +128,9 @@ export function PublishAircraftLivePreview(props: PublishAircraftLivePreviewProp
         "ring-1 ring-black/3 dark:ring-white/6"
       )}
     >
-      <div className="border-b border-border/60 bg-black">
+      <div
+        className={cn("border-b border-border/60", slots.length === 0 ? "bg-muted/25" : "bg-black")}
+      >
         {active?.kind === "video" ? (
           <div className="relative aspect-[4/3] w-full">
             <video
@@ -139,12 +151,16 @@ export function PublishAircraftLivePreview(props: PublishAircraftLivePreviewProp
               </span>
             </span>
           </div>
+        ) : slots.length === 0 ? (
+          <div
+            aria-label="尚未选择封面"
+            className="flex aspect-[4/3] w-full items-center justify-center text-sm text-muted-foreground"
+            role="img"
+          >
+            未选择封面
+          </div>
         ) : (
-          <img
-            alt=""
-            className="aspect-[4/3] w-full object-cover"
-            src={active?.url ?? props.placeholderImageUrl}
-          />
+          <img alt="" className="aspect-[4/3] w-full object-cover" src={active.url} />
         )}
       </div>
 

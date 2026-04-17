@@ -50,13 +50,21 @@ export const createPostInputSchema = z
   .object({
     type: postTypeSchema,
     title: z.string().trim().min(1).max(100),
-    content: z.string().trim().min(1).max(8000),
+    content: z.string().trim().max(8000),
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1).nullable().optional(),
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).max(2).default([])
   })
   .superRefine((input, context) => {
+    if (input.type === "article" && input.content.trim().length < 1) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Article content is required.",
+        path: ["content"]
+      });
+    }
+
     if (input.type !== "moment") {
       return;
     }
@@ -130,7 +138,7 @@ export const postFeedItemSchema = z.object({
   id: z.string().min(1),
   type: postTypeSchema,
   title: z.string().min(1),
-  contentPreview: z.string().min(1),
+  contentPreview: z.string(),
   contentHtml: z.string().nullable().optional(),
   status: postStatusSchema,
   rejectionReason: z.string().nullable().default(null),
@@ -184,7 +192,7 @@ export const postDetailSchema = z.object({
   id: z.string().min(1),
   type: postTypeSchema,
   title: z.string().min(1),
-  content: z.string().min(1),
+  content: z.string(),
   contentHtml: z.string().nullable(),
   status: postStatusSchema,
   rejectionReason: z.string().nullable().default(null),

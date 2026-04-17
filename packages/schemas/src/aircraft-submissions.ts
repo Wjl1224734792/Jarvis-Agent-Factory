@@ -37,10 +37,10 @@ export const aircraftSubmissionStatusSchema = z.enum([
 ]);
 
 export const aircraftSubmissionParametersSchema = z.object({
-  maxFlightTimeMinutes: z.number().nonnegative().nullable(),
-  maxRangeKilometers: z.number().nonnegative().nullable(),
-  maxSpeedKph: z.number().nonnegative().nullable(),
-  takeoffWeightGrams: z.number().nonnegative().nullable()
+  maxFlightTimeMinutes: z.number().int().nonnegative().nullable(),
+  maxRangeKilometers: z.number().int().nonnegative().nullable(),
+  maxSpeedKph: z.number().int().nonnegative().nullable(),
+  takeoffWeightGrams: z.number().int().nonnegative().nullable()
 });
 
 export const aircraftSubmissionVideoAssetSchema = z.object({
@@ -103,10 +103,10 @@ export const createAircraftSubmissionInputSchema = z.object({
   videoFileId: z.string().trim().min(1).nullable(),
   priceMin: priceValueSchema,
   priceMax: priceValueSchema,
-  maxFlightTimeMinutes: z.number().nonnegative().nullable(),
-  maxRangeKilometers: z.number().nonnegative().nullable(),
-  maxSpeedKph: z.number().nonnegative().nullable(),
-  takeoffWeightGrams: z.number().nonnegative().nullable()
+  maxFlightTimeMinutes: z.number().int().nonnegative().nullable(),
+  maxRangeKilometers: z.number().int().nonnegative().nullable(),
+  maxSpeedKph: z.number().int().nonnegative().nullable(),
+  takeoffWeightGrams: z.number().int().nonnegative().nullable()
 }).superRefine(validatePriceRange);
 
 export const updateAircraftSubmissionStatusInputSchema = z.object({

@@ -299,7 +299,7 @@ export function PublishMomentPage() {
 
               <Input
                 onChange={(event) => setTitle(event.target.value)}
-                placeholder="标题可选"
+                placeholder="请输入标题（必填）"
                 value={title}
               />
               <div className="relative">
@@ -310,7 +310,7 @@ export function PublishMomentPage() {
                     const next = event.target.value.slice(0, MOMENT_CONTENT_MAX);
                     setContent(next);
                   }}
-                  placeholder="写下你的飞行动态..."
+                  placeholder="正文（可选），也可仅上传图片或视频"
                   value={content}
                 />
                 <div className="pointer-events-none absolute bottom-2 right-3 text-xs tabular-nums text-muted-foreground">
@@ -327,7 +327,7 @@ export function PublishMomentPage() {
               </Button>
               <Button
                 disabled={
-                  !content.trim() ||
+                  !title.trim() ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -342,6 +342,11 @@ export function PublishMomentPage() {
                     return;
                   }
 
+                  if (!title.trim()) {
+                    setError("请填写标题。");
+                    return;
+                  }
+
                   setError(null);
                   setIsPublishing(true);
 
@@ -351,7 +356,7 @@ export function PublishMomentPage() {
                   void submitPost
                     ({
                       type: "moment",
-                      title: title.trim() || "飞友圈动态",
+                      title: title.trim(),
                       content,
                       imageIds: uploadedImages.map((item) => item.id),
                       videoIds: uploadedVideo ? [uploadedVideo.id] : []
@@ -360,7 +365,7 @@ export function PublishMomentPage() {
                       void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
                       void navigate(buildPublishStatusPath("moment", payload.item.id), {
                         state: {
-                          title: title.trim() || "飞友圈动态",
+                          title: title.trim(),
                           description: content.trim().slice(0, 120),
                           imageUrl: uploadedImages[0]?.url ?? null
                         }

@@ -40,6 +40,46 @@ describe("posts contract", () => {
     expect(payload.videoIds).toEqual(["file_3"]);
   });
 
+  it("allows moment posts with empty content and rejects empty content for articles", () => {
+    const momentOnlyTitle = createPostInputSchema.parse({
+      type: "moment",
+      title: "仅标题",
+      content: "",
+      imageIds: [],
+      videoIds: []
+    });
+    expect(momentOnlyTitle.content).toBe("");
+
+    const momentWithMedia = createPostInputSchema.parse({
+      type: "moment",
+      title: "图说",
+      content: "   ",
+      imageIds: ["file_1"],
+      videoIds: []
+    });
+    expect(momentWithMedia.content).toBe("");
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "article",
+        title: "空正文文章",
+        content: "",
+        imageIds: [],
+        videoIds: []
+      })
+    ).toThrow();
+
+    expect(() =>
+      createPostInputSchema.parse({
+        type: "article",
+        title: "空白正文文章",
+        content: "   ",
+        imageIds: [],
+        videoIds: []
+      })
+    ).toThrow();
+  });
+
   it("rejects moment payloads that mix images and videos or contain multiple videos", () => {
     expect(() =>
       createPostInputSchema.parse({
