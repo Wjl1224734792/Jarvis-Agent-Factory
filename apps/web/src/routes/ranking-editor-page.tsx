@@ -6,6 +6,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RankingEditorPageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
+import { VirtualGrid } from "@/components/virtual-feed";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -390,43 +391,47 @@ export function RankingEditorPage() {
                 placeholder="搜索机型、品牌或分类"
                 value={modelSearch}
               />
-              <div className="max-h-[36rem] overflow-y-auto pr-1">
-                <div className="grid gap-3 md:grid-cols-2">
-                  {suggestedModels.map((model, index) => (
-                    <button
-                      className="grid grid-cols-[72px_minmax(0,1fr)] items-center gap-3 rounded-[0.9rem] border border-border/70 p-3 text-left transition hover:border-primary/30 hover:bg-sky-50/55"
-                      key={model.id}
-                      onClick={() =>
-                        appendModel(
-                          model.slug,
-                          model.name,
-                          model.brand.name,
-                          getModelImage(model.slug, model.powerType, index)
-                        )
-                      }
-                      type="button"
-                    >
-                      <img
-                        alt={model.name}
-                        className="h-[72px] w-full rounded-[0.8rem] object-cover"
-                        src={getModelImage(model.slug, model.powerType, index)}
-                      />
-                      <div className="min-w-0 space-y-1">
-                        <div className="truncate text-sm font-semibold text-foreground">{model.name}</div>
-                        <div className="text-xs text-muted-foreground">{model.brand.name}</div>
-                        <div className="line-clamp-2 text-xs leading-5 text-muted-foreground">
-                          {model.summary ?? `${model.category.name} / ${model.brand.name}`}
-                        </div>
+              <VirtualGrid
+                className="pr-1"
+                data={suggestedModels}
+                emptyState={
+                  <div className="rounded-[0.85rem] border border-dashed border-border/70 px-4 py-4 text-sm text-muted-foreground">
+                    没有匹配的机型，可直接添加排行对象。
+                  </div>
+                }
+                height={576}
+                itemClassName="box-border flex w-full flex-none md:w-[calc(50%-0.375rem)]"
+                itemKey={(model) => model.id}
+                listClassName="flex flex-wrap gap-3"
+                renderItem={(model, index) => (
+                  <button
+                    className="grid h-20 w-full grid-cols-[48px_minmax(0,1fr)] items-center gap-2 rounded-xl border border-border/70 p-2 text-left transition hover:border-primary/30 hover:bg-sky-50/55"
+                    onClick={() =>
+                      appendModel(
+                        model.slug,
+                        model.name,
+                        model.brand.name,
+                        getModelImage(model.slug, model.powerType, index)
+                      )
+                    }
+                    type="button"
+                  >
+                    <img
+                      alt={model.name}
+                      className="h-12 w-12 shrink-0 rounded-lg object-cover"
+                      src={getModelImage(model.slug, model.powerType, index)}
+                    />
+                    <div className="flex min-h-0 min-w-0 flex-col justify-center gap-0.5">
+                      <div className="truncate text-sm font-semibold leading-tight text-foreground">{model.name}</div>
+                      <div className="truncate text-[11px] leading-tight text-muted-foreground">{model.brand.name}</div>
+                      <div className="line-clamp-2 text-[11px] leading-snug text-muted-foreground">
+                        {model.summary ?? `${model.category.name} / ${model.brand.name}`}
                       </div>
-                    </button>
-                  ))}
-                </div>
-              </div>
-              {suggestedModels.length === 0 ? (
-                <div className="rounded-[0.85rem] border border-dashed border-border/70 px-4 py-4 text-sm text-muted-foreground">
-                  没有匹配的机型，可直接添加排行对象。
-                </div>
-              ) : null}
+                    </div>
+                  </button>
+                )}
+                useWindowScroll={false}
+              />
             </SitePanelBody>
           </SitePanel>
 
