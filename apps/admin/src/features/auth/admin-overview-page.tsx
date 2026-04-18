@@ -11,7 +11,16 @@ import {
   TrophyOutlined
 } from "@ant-design/icons";
 import { Button, Empty, Segmented, Space } from "antd";
-import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { Link } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
@@ -28,33 +37,48 @@ import {
 } from "./admin-session-helpers";
 import { useAdminAuthStore } from "./auth-store";
 
+type ChartMode = "day" | "month" | "year";
+type IdleDeadline = {
+  didTimeout: boolean;
+  timeRemaining: () => number;
+};
+type IdleCapableWindow = Window & {
+  requestIdleCallback?: (
+    callback: (deadline: IdleDeadline) => void,
+    options?: { timeout: number }
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+const loadOverviewCharts = () => import("./admin-overview-charts");
+
 const RegistrationTrendChart = lazy(() =>
-  import("./admin-overview-charts").then((module) => ({
+  loadOverviewCharts().then((module) => ({
     default: module.RegistrationTrendChart
   }))
 );
 const ContentMixChart = lazy(() =>
-  import("./admin-overview-charts").then((module) => ({
+  loadOverviewCharts().then((module) => ({
     default: module.ContentMixChart
   }))
 );
 const ActivityTrendChart = lazy(() =>
-  import("./admin-overview-charts").then((module) => ({
+  loadOverviewCharts().then((module) => ({
     default: module.ActivityTrendChart
   }))
 );
 const ModerationFunnelChart = lazy(() =>
-  import("./admin-overview-charts").then((module) => ({
+  loadOverviewCharts().then((module) => ({
     default: module.ModerationFunnelChart
   }))
 );
 const ModerationStatusChart = lazy(() =>
-  import("./admin-overview-charts").then((module) => ({
+  loadOverviewCharts().then((module) => ({
     default: module.ModerationStatusChart
   }))
 );
 
-function formatPeriodLabel(periodStart: string, mode: "day" | "month" | "year") {
+function formatPeriodLabel(periodStart: string, mode: ChartMode) {
   const date = new Date(periodStart);
   if (mode === "day") {
     return `${date.getUTCMonth() + 1}/${date.getUTCDate()}`;
@@ -82,9 +106,10 @@ export function AdminOverviewPage() {
   });
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [registrationMode, setRegistrationMode] = useState<"day" | "month" | "year">("day");
-  const [activityMode, setActivityMode] = useState<"day" | "month" | "year">("day");
+  const [registrationMode, setRegistrationMode] = useState<ChartMode>("day");
+  const [activityMode, setActivityMode] = useState<ChartMode>("day");
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
+  const chartsViewportRef = useRef<HTMLDivElement | null>(null);
 
   const analyticsQuery = useQuery({
     queryKey: ["admin-overview", "analytics"],
@@ -102,20 +127,61 @@ export function AdminOverviewPage() {
   const analytics = analyticsQuery.data?.item;
   const siteSettings = siteSettingsQuery.data?.item;
 
+  const requestChartsLoad = useEffectEvent(() => {
+    startTransition(() => {
+      setShouldLoadCharts(true);
+    });
+  });
+
   useEffect(() => {
-    const timer = window.setTimeout(() => {
-      startTransition(() => {
-        setShouldLoadCharts(true);
-      });
-    }, 0);
+    if (shouldLoadCharts) {
+      return undefined;
+    }
+
+    const idleWindow = window as IdleCapableWindow;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+    let observer: IntersectionObserver | undefined;
+
+    const chartViewport = chartsViewportRef.current;
+    if (chartViewport && "IntersectionObserver" in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            requestChartsLoad();
+            observer?.disconnect();
+          }
+        },
+        {
+          rootMargin: "240px 0px"
+        }
+      );
+      observer.observe(chartViewport);
+    }
+
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(() => {
+        requestChartsLoad();
+      }, { timeout: 1500 });
+    } else {
+      timeoutHandle = window.setTimeout(() => {
+        requestChartsLoad();
+      }, 1500);
+    }
 
     return () => {
-      window.clearTimeout(timer);
+      observer?.disconnect();
+      if (idleHandle !== undefined) {
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
+      if (timeoutHandle !== undefined) {
+        window.clearTimeout(timeoutHandle);
+      }
     };
-  }, []);
+  }, [requestChartsLoad, shouldLoadCharts]);
 
   const registrationSeries = useMemo(() => {
-    if (!analytics) {
+    if (!shouldLoadCharts || !analytics) {
       return [];
     }
     const source =
@@ -129,10 +195,10 @@ export function AdminOverviewPage() {
       label: formatPeriodLabel(item.periodStart, registrationMode),
       value: item.value
     }));
-  }, [analytics, registrationMode]);
+  }, [analytics, registrationMode, shouldLoadCharts]);
 
   const activitySeries = useMemo(() => {
-    if (!analytics) {
+    if (!shouldLoadCharts || !analytics) {
       return [];
     }
     const source =
@@ -146,10 +212,10 @@ export function AdminOverviewPage() {
       label: formatPeriodLabel(item.periodStart, activityMode),
       value: item.value
     }));
-  }, [analytics, activityMode]);
+  }, [analytics, activityMode, shouldLoadCharts]);
 
   const contentMixData = useMemo(() => {
-    if (!analytics) {
+    if (!shouldLoadCharts || !analytics) {
       return [];
     }
 
@@ -159,10 +225,10 @@ export function AdminOverviewPage() {
       { type: "飞行器", value: analytics.contentMix.aircraft },
       { type: "榜单", value: analytics.contentMix.rankings }
     ];
-  }, [analytics]);
+  }, [analytics, shouldLoadCharts]);
 
   const moderationBarData = useMemo(() => {
-    if (!analytics) {
+    if (!shouldLoadCharts || !analytics) {
       return [];
     }
 
@@ -189,10 +255,10 @@ export function AdminOverviewPage() {
       { domain: "评分对象", status: "通过", value: analytics.moderation.ratingTargets.approved },
       { domain: "评分对象", status: "驳回/隐藏", value: analytics.funnel.ratingTargets.rejectedOrHidden }
     ];
-  }, [analytics]);
+  }, [analytics, shouldLoadCharts]);
 
   const funnelData = useMemo(() => {
-    if (!analytics) {
+    if (!shouldLoadCharts || !analytics) {
       return [];
     }
 
@@ -231,7 +297,7 @@ export function AdminOverviewPage() {
       { stage: "已通过", value: approved },
       { stage: "驳回/隐藏", value: rejectedOrHidden }
     ];
-  }, [analytics]);
+  }, [analytics, shouldLoadCharts]);
 
   async function updateSiteSettings(partial: Record<string, boolean>) {
     if (!siteSettings) {
@@ -502,12 +568,14 @@ export function AdminOverviewPage() {
         </div>
       </AdminPanel>
 
-      <div className="admin-overview-layout">
+      <div aria-busy={!shouldLoadCharts} className="admin-overview-layout" ref={chartsViewportRef}>
         <AdminPanel
           actions={
             <Segmented
               onChange={(value) => {
-                setRegistrationMode(value as "day" | "month" | "year");
+                startTransition(() => {
+                  setRegistrationMode(value as ChartMode);
+                });
               }}
               options={[
                 { label: "日", value: "day" },
@@ -551,7 +619,9 @@ export function AdminOverviewPage() {
           actions={
             <Segmented
               onChange={(value) => {
-                setActivityMode(value as "day" | "month" | "year");
+                startTransition(() => {
+                  setActivityMode(value as ChartMode);
+                });
               }}
               options={[
                 { label: "日", value: "day" },

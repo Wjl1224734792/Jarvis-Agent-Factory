@@ -1,3 +1,4 @@
+import { memo } from "react";
 import { Bar, Column, Funnel, Line, Pie } from "@ant-design/plots";
 
 type TimeSeriesDatum = {
@@ -21,7 +22,9 @@ type FunnelDatum = {
   value: number;
 };
 
-export function RegistrationTrendChart(props: { data: TimeSeriesDatum[] }) {
+export const RegistrationTrendChart = memo(function RegistrationTrendChart(props: {
+  data: TimeSeriesDatum[];
+}) {
   return (
     <Column
       autoFit
@@ -34,9 +37,9 @@ export function RegistrationTrendChart(props: { data: TimeSeriesDatum[] }) {
       yField="value"
     />
   );
-}
+});
 
-export function ContentMixChart(props: { data: ContentMixDatum[] }) {
+export const ContentMixChart = memo(function ContentMixChart(props: { data: ContentMixDatum[] }) {
   return (
     <Pie
       angleField="value"
@@ -49,9 +52,9 @@ export function ContentMixChart(props: { data: ContentMixDatum[] }) {
       legend={{ color: { title: false, position: "bottom" } }}
     />
   );
-}
+});
 
-export function ActivityTrendChart(props: { data: TimeSeriesDatum[] }) {
+export const ActivityTrendChart = memo(function ActivityTrendChart(props: { data: TimeSeriesDatum[] }) {
   return (
     <Line
       autoFit
@@ -65,9 +68,11 @@ export function ActivityTrendChart(props: { data: TimeSeriesDatum[] }) {
       yField="value"
     />
   );
-}
+});
 
-export function ModerationFunnelChart(props: { data: FunnelDatum[] }) {
+export const ModerationFunnelChart = memo(function ModerationFunnelChart(props: {
+  data: FunnelDatum[];
+}) {
   return (
     <Funnel
       autoFit
@@ -78,9 +83,11 @@ export function ModerationFunnelChart(props: { data: FunnelDatum[] }) {
       yField="value"
     />
   );
-}
+});
 
-export function ModerationStatusChart(props: { data: ModerationDatum[] }) {
+export const ModerationStatusChart = memo(function ModerationStatusChart(props: {
+  data: ModerationDatum[];
+}) {
   return (
     <Bar
       autoFit
@@ -93,4 +100,4 @@ export function ModerationStatusChart(props: { data: ModerationDatum[] }) {
       yField="domain"
     />
   );
-}
+});

@@ -59,6 +59,7 @@ function resolveAntdChunk(subpath: string) {
       "es/app/",
       "es/button/",
       "es/config-provider/",
+      "es/empty/",
       "es/flex/",
       "es/grid/",
       "es/input/",
@@ -74,18 +75,16 @@ function resolveAntdChunk(subpath: string) {
     return "antd-shell-vendor";
   }
 
-  if (
-    matchesSubpath(subpath, [
-      "es/form/",
-      "es/image/",
-      "es/modal/",
-      "es/segmented/",
-      "es/select/",
-      "es/tag/",
-      "es/upload/"
-    ])
-  ) {
-    return "antd-editor-vendor";
+  if (matchesSubpath(subpath, ["es/form/", "es/select/", "es/segmented/"])) {
+    return "antd-form-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["es/image/", "es/upload/"])) {
+    return "antd-media-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["es/modal/", "es/tag/"])) {
+    return "antd-feedback-vendor";
   }
 
   if (matchesSubpath(subpath, ["es/table/", "es/pagination/"])) {
@@ -108,12 +107,40 @@ function buildAdminManualChunk(id: string) {
     return "lucide-vendor";
   }
 
-  if (packageName.startsWith("@tiptap/") || packageName.startsWith("prosemirror-")) {
-    return "editor-vendor";
+  if (packageName === "@tiptap/react") {
+    return "editor-react-vendor";
   }
 
-  if (packageName === "@ant-design/plots" || packageName.startsWith("@antv/")) {
-    return "charts-vendor";
+  if (
+    packageName === "@tiptap/pm" ||
+    packageName.startsWith("prosemirror-") ||
+    packageName === "orderedmap"
+  ) {
+    return "editor-core-vendor";
+  }
+
+  if (
+    packageName === "@tiptap/core" ||
+    packageName === "@tiptap/starter-kit" ||
+    packageName.startsWith("@tiptap/extension-")
+  ) {
+    return "editor-kit-vendor";
+  }
+
+  if (packageName === "@ant-design/plots") {
+    return "plots-vendor";
+  }
+
+  if (packageName === "@antv/g2" || packageName.startsWith("@antv/g2")) {
+    return "charts-grammar-vendor";
+  }
+
+  if (packageName === "@antv/g" || packageName.startsWith("@antv/g-")) {
+    return "charts-renderer-vendor";
+  }
+
+  if (packageName.startsWith("@antv/")) {
+    return "charts-runtime-vendor";
   }
 
   if (packageName === "@ant-design/icons") {
@@ -148,19 +175,22 @@ function buildAdminManualChunk(id: string) {
   if (
     [
       "@rc-component/async-validator",
-      "rc-dialog",
       "rc-field-form",
-      "rc-image",
-      "rc-picker",
-      "rc-progress",
       "rc-segmented",
       "rc-select",
       "rc-textarea",
-      "rc-upload",
       "rc-virtual-list"
     ].includes(packageName)
   ) {
-    return "antd-editor-vendor";
+    return "antd-form-vendor";
+  }
+
+  if (["rc-image", "rc-progress", "rc-upload"].includes(packageName)) {
+    return "antd-media-vendor";
+  }
+
+  if (packageName === "rc-dialog") {
+    return "antd-feedback-vendor";
   }
 
   if (["rc-pagination", "rc-table"].includes(packageName)) {
