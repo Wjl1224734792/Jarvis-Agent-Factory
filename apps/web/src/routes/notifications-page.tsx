@@ -17,8 +17,6 @@ import { useNavigate } from "react-router-dom";
 import { VirtualFeed } from "@/components/virtual-feed";
 import {
   SitePage,
-  SitePageDescription,
-  SitePageEyebrow,
   SitePageHead,
   SitePageTitle
 } from "@/components/site-shell";
@@ -45,31 +43,26 @@ import { openDetailPageInNewTab } from "../lib/web-routes";
 const messageCenterCategories: Array<{
   value: MessageCenterCategory;
   label: string;
-  description: string;
   icon: typeof HeartIcon;
 }> = [
   {
     value: "engagement",
     label: "点赞和收藏",
-    description: "集中查看点赞、收藏和分享这类互动信号。",
     icon: HeartIcon
   },
   {
     value: "follow",
     label: "新增关注",
-    description: "查看新建立的关注关系和对方主页入口。",
     icon: UsersIcon
   },
   {
     value: "comment",
     label: "评论和@",
-    description: "优先处理评论回复、评论上下文和 @ 提醒。",
     icon: MessageSquareTextIcon
   },
   {
     value: "system",
     label: "系统消息",
-    description: "承接内容发布状态、审核反馈和系统通知。",
     icon: SparklesIcon
   }
 ];
@@ -96,9 +89,9 @@ function NotificationStatsSkeleton() {
 
 function NotificationFeedSkeleton() {
   return (
-    <div className="border border-border/70 bg-white">
+    <div className="space-y-2">
       {Array.from({ length: 5 }).map((_, index) => (
-        <div className="border-b border-border/70 px-4 py-4 last:border-b-0" key={index}>
+        <div className="rounded-[0.9rem] bg-card px-4 py-4" key={index}>
           <div className="flex items-start gap-3">
             <Skeleton className="size-11 rounded-full" />
             <div className="min-w-0 flex-1 space-y-2">
@@ -215,6 +208,8 @@ export function NotificationsPage() {
   );
   const contractMismatch = hasMessageCenterContractMismatch(messageCenter);
   const activeItems = messageCenter.items.filter((item) => item.category === activeCategory);
+  const activeCategoryMeta = messageCenterCategories.find((item) => item.value === activeCategory);
+  const ActiveCategoryIcon = activeCategoryMeta?.icon;
 
   async function refreshNotifications() {
     await queryClient.invalidateQueries({ queryKey: getNotificationsQueryKey(authUserId) });
@@ -245,13 +240,8 @@ export function NotificationsPage() {
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
-      <SitePageHead className="gap-3">
-        <SitePageEyebrow>消息中心</SitePageEyebrow>
-        <SitePageTitle>按统一分类处理互动、关系和系统通知</SitePageTitle>
-        <SitePageDescription>
-          一级分类完全跟随共享契约的 <code>category</code> 渲染，列表使用单列虚拟长列表展示，
-          方便你连续处理未读消息。
-        </SitePageDescription>
+      <SitePageHead>
+        <SitePageTitle>消息中心</SitePageTitle>
       </SitePageHead>
 
       {isInitialLoading ? (
@@ -268,23 +258,23 @@ export function NotificationsPage() {
                 key={item.value}
                 variant={activeCategory === item.value ? "highlight" : "muted"}
               >
-                <CardContent className="space-y-3 pt-[var(--panel-padding)]">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[0.72rem] uppercase tracking-[0.18em] text-muted-foreground">
-                      {item.label}
+                <button
+                  className="w-full text-left"
+                  onClick={() => setActiveCategory(item.value)}
+                  type="button"
+                >
+                  <CardContent className="space-y-3 pt-[var(--panel-padding)]">
+                    <div className="relative inline-flex size-9 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+                      <Icon className="size-4" />
+                      {count > 0 ? (
+                        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.6rem] font-bold leading-none text-white">
+                          {count > 99 ? "99+" : count}
+                        </span>
+                      ) : null}
                     </div>
-                    <Icon
-                      className={cn(
-                        "size-4",
-                        count > 0 ? "text-primary" : "text-muted-foreground"
-                      )}
-                    />
-                  </div>
-                  <div className="text-2xl font-semibold tracking-[-0.03em] text-foreground">
-                    {count}
-                  </div>
-                  <p className="text-sm leading-6 text-muted-foreground">{item.description}</p>
-                </CardContent>
+                    <div className="text-sm font-medium text-foreground">{item.label}</div>
+                  </CardContent>
+                </button>
               </Card>
             );
           })}
@@ -293,23 +283,11 @@ export function NotificationsPage() {
 
       <Card className="!border-0" variant="muted">
         <CardContent className="space-y-4 pt-[var(--panel-padding)]">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div className="space-y-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <Badge variant={messageCenter.stats.unread > 0 ? "destructive" : "outline"}>
-                  {messageCenter.stats.unread > 0
-                    ? `${messageCenter.stats.unread} 条未读`
-                    : "全部已读"}
-                </Badge>
-                <Badge variant="secondary">{messageCenter.stats.total} 条可渲染消息</Badge>
-              </div>
-              <div className="text-sm text-muted-foreground">
-                批量已读、单条跳转和长列表刷新都集中在这里处理。
-              </div>
-            </div>
-
-            <div className="flex flex-wrap gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm font-medium text-foreground">{activeCategoryMeta?.label}</div>
+            <div className="flex flex-wrap gap-2">
               <Button
+                aria-label="全部标记已读"
                 disabled={messageCenter.stats.unread === 0 || pendingItemId !== null}
                 onClick={() => {
                   setActionError(null);
@@ -324,61 +302,41 @@ export function NotificationsPage() {
                       );
                     });
                 }}
-                size="sm"
+                size="icon"
+                title="全部标记已读"
                 type="button"
               >
-                <ShieldCheckIcon data-icon="inline-start" />
-                全部标记已读
+                <ShieldCheckIcon />
+                <span className="sr-only">全部标记已读</span>
               </Button>
               <Button
+                aria-label="刷新"
                 onClick={() => {
                   setActionError(null);
                   void refreshNotifications();
                 }}
-                size="sm"
+                size="icon"
+                title="刷新"
                 type="button"
                 variant="outline"
               >
-                <RefreshCcwIcon data-icon="inline-start" />
-                刷新
+                <RefreshCcwIcon />
+                <span className="sr-only">刷新</span>
               </Button>
               <Button
+                aria-label="通知设置"
                 onClick={() => {
                   void navigate(APP_ROUTES.webSettings);
                 }}
-                size="sm"
+                size="icon"
+                title="通知设置"
                 type="button"
                 variant="outline"
               >
-                <Settings2Icon data-icon="inline-start" />
-                通知设置
+                <Settings2Icon />
+                <span className="sr-only">通知设置</span>
               </Button>
             </div>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            {messageCenterCategories.map((item) => {
-              const Icon = item.icon;
-              const count = messageCenter.stats.byCategory[item.value];
-
-              return (
-                <button
-                  className={cn(
-                    "site-tab-trigger inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-[0.8rem] transition",
-                    activeCategory === item.value
-                      ? "border-primary bg-primary text-primary-foreground"
-                      : "border-border/70 bg-white text-foreground/75 hover:text-foreground"
-                  )}
-                  key={item.value}
-                  onClick={() => setActiveCategory(item.value)}
-                  type="button"
-                >
-                  <Icon className="size-3.5" />
-                  <span>{item.label}</span>
-                  <span className="text-[0.72rem] opacity-85">{count}</span>
-                </button>
-              );
-            })}
           </div>
         </CardContent>
       </Card>
@@ -387,8 +345,7 @@ export function NotificationsPage() {
         <Alert>
           <AlertTitle>消息契约待同步</AlertTitle>
           <AlertDescription>
-            当前返回中有 {messageCenter.contract.missingCategoryCount} 条消息缺少共享{" "}
-            <code>category</code>，前端不会再基于旧 <code>type</code> 本地分组，因此这些消息暂不渲染。
+            有 {messageCenter.contract.missingCategoryCount} 条消息缺少 <code>category</code>，暂不展示。
           </AlertDescription>
         </Alert>
       ) : null}
@@ -409,25 +366,18 @@ export function NotificationsPage() {
         <NotificationFeedSkeleton />
       ) : messageCenter.items.length === 0 && contractMismatch ? (
         <Alert>
-          <AlertTitle>消息中心等待共享契约上线</AlertTitle>
-          <AlertDescription>
-            接口已经返回数据，但缺少当前页面要求的统一分类字段，暂时无法进入消息流展示。
-          </AlertDescription>
+          <AlertTitle>分类字段缺失</AlertTitle>
+          <AlertDescription>当前消息缺少统一分类，暂不可展示。</AlertDescription>
         </Alert>
       ) : (
         <VirtualFeed
           className="!border-0"
           data={activeItems}
           emptyState={
-            <Alert>
-              <AlertTitle>
-                {messageCenterCategories.find((item) => item.value === activeCategory)?.label}
-                暂无消息
-              </AlertTitle>
-              <AlertDescription>
-                {messageCenterCategories.find((item) => item.value === activeCategory)?.description}
-              </AlertDescription>
-            </Alert>
+            <div className="flex min-h-32 flex-col items-center justify-center gap-2 rounded-[0.9rem] py-6 text-muted-foreground">
+              {ActiveCategoryIcon ? <ActiveCategoryIcon className="size-5" /> : null}
+              <p className="text-sm">{activeCategoryMeta?.label ?? "当前分类"}暂无消息</p>
+            </div>
           }
           height={720}
           itemKey={(item) => item.id}
