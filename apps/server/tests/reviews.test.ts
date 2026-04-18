@@ -54,6 +54,8 @@ describe("reviews service", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     uploadsRepoMock.listOwnedUploadedFiles.mockResolvedValue([{ id: "file_report_1" }]);
+    repo.toggleReviewLike.mockResolvedValue({ active: false });
+    repo.toggleReviewCommentLike.mockResolvedValue({ active: false });
   });
 
   it("enriches top-level model reviews with like/report counts and viewer state", async () => {

@@ -388,7 +388,6 @@ export const reviewsService = {
           userId: targetUserId,
           actorId: currentUser.id,
           type: parentComment ? "comment_replied" : "post_commented",
-          commentId: item.id,
           target: {
             type: "status",
             id: review.model.id,
@@ -398,7 +397,8 @@ export const reviewsService = {
           title: parentComment ? "评测评论收到回复" : "评测收到新评论",
           summary: parentComment
             ? `有人回复了你在《${review.model.name}》评测下的评论`
-            : `有人评论了你发布的《${review.model.name}》评测`
+            : `有人评论了你发布的《${review.model.name}》评测`,
+          metadata: { reviewCommentId: item.id }
         });
       }
     }
@@ -532,7 +532,6 @@ export const reviewsService = {
           userId: comment.author.id,
           actorId: currentUser.id,
           type: "post_liked",
-          commentId,
           target: {
             type: "status",
             id: review.model.id,
@@ -540,7 +539,8 @@ export const reviewsService = {
             href: `/models/${review.model.slug}`
           },
           title: "评测评论收到点赞",
-          summary: `有人点赞了你在《${review.model.name}》评测下的评论`
+          summary: `有人点赞了你在《${review.model.name}》评测下的评论`,
+          metadata: { reviewCommentId: commentId }
         });
       }
     }
