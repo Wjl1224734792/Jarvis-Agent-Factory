@@ -73,14 +73,13 @@ function formatMessageTime(value: string) {
 
 function NotificationStatsSkeleton() {
   return (
-    <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+    <div className="grid min-w-0 grid-cols-4 gap-1.5 sm:gap-2">
       {Array.from({ length: 4 }).map((_, index) => (
-        <Card className="!border-0" key={index} variant="muted">
-          <CardContent className="space-y-3 pt-[var(--panel-padding)]">
-            <Skeleton className="h-4 w-20" />
-            <Skeleton className="h-8 w-16" />
-            <Skeleton className="h-3.5 w-full" />
-          </CardContent>
+        <Card className="!border-0 min-w-0" key={index} size="sm" variant="muted">
+          <div className="flex flex-col items-center justify-center gap-1 px-1 py-2">
+            <Skeleton className="size-7 shrink-0 rounded-full" />
+            <Skeleton className="h-2.5 w-11 max-w-full rounded-sm" />
+          </div>
         </Card>
       ))}
     </div>
@@ -247,33 +246,34 @@ export function NotificationsPage() {
       {isInitialLoading ? (
         <NotificationStatsSkeleton />
       ) : notificationsQuery.isError ? null : (
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid min-w-0 grid-cols-4 gap-1.5 sm:gap-2">
           {messageCenterCategories.map((item) => {
             const Icon = item.icon;
             const count = messageCenter.stats.byCategory[item.value];
 
             return (
               <Card
-                className="!border-0"
+                className="!border-0 min-w-0"
                 key={item.value}
+                size="sm"
                 variant={activeCategory === item.value ? "highlight" : "muted"}
               >
                 <button
-                  className="w-full text-left"
+                  className="flex w-full min-w-0 flex-col items-center justify-center gap-1 px-1 py-2 text-center touch-manipulation"
                   onClick={() => setActiveCategory(item.value)}
                   type="button"
                 >
-                  <CardContent className="space-y-3 pt-[var(--panel-padding)]">
-                    <div className="relative inline-flex size-9 items-center justify-center rounded-full bg-white text-primary shadow-sm">
-                      <Icon className="size-4" />
-                      {count > 0 ? (
-                        <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-red-500 px-1 text-[0.6rem] font-bold leading-none text-white">
-                          {count > 99 ? "99+" : count}
-                        </span>
-                      ) : null}
-                    </div>
-                    <div className="text-sm font-medium text-foreground">{item.label}</div>
-                  </CardContent>
+                  <div className="relative inline-flex size-7 shrink-0 items-center justify-center rounded-full bg-white text-primary shadow-sm">
+                    <Icon className="size-3.5" />
+                    {count > 0 ? (
+                      <span className="absolute -right-1 -top-1 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-red-500 px-0.5 text-[0.55rem] font-bold leading-none text-white">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    ) : null}
+                  </div>
+                  <span className="line-clamp-2 w-full px-0.5 text-center text-[0.625rem] font-medium leading-snug text-foreground sm:text-[0.6875rem]">
+                    {item.label}
+                  </span>
                 </button>
               </Card>
             );
