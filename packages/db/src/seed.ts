@@ -6,6 +6,7 @@ import {
   aircraftModelsTable,
   aircraftReviewsTable,
   aircraftSubmissionsTable,
+  brandApplicationsTable,
   brandsTable,
   contentCategoriesTable,
   filesTable,
@@ -134,6 +135,12 @@ const SUBMISSION_IDS = {
   submitted: "seed_submission_submitted",
   approved: "seed_submission_approved",
   rejected: "seed_submission_rejected"
+} as const;
+
+const BRAND_APPLICATION_IDS = {
+  pending: "seed_brand_app_pending",
+  approved: "seed_brand_app_approved",
+  rejected: "seed_brand_app_rejected"
 } as const;
 
 function seededDate(day: number, hour: number, minute = 0) {
@@ -394,7 +401,7 @@ async function seedPostCommentsAndInteractions() {
     .onConflictDoNothing();
 }
 
-async function seedSocialGraph(adminUserId: string) {
+async function seedSocialGraph(_adminUserId: string) {
   await db
     .insert(userFollowsTable)
     .values([
@@ -404,13 +411,184 @@ async function seedSocialGraph(adminUserId: string) {
       { id: "seed_follow_b_review", followerId: USER_IDS.followerB, followeeId: USER_IDS.review, createdAt: seededDate(22, 11) }
     ])
     .onConflictDoNothing();
+}
 
+async function seedBrandApplications() {
+  await db
+    .insert(brandApplicationsTable)
+    .values([
+      {
+        id: BRAND_APPLICATION_IDS.pending,
+        applicantId: USER_IDS.submitterA,
+        status: "pending",
+        slug: "blue-harbor-air",
+        name: "Blue Harbor Air",
+        logoUrl: null,
+        description: "Pending brand application for demo data.",
+        rejectionReason: null,
+        approvedBrandId: null,
+        createdAt: seededDate(24, 16),
+        updatedAt: seededDate(24, 16)
+      },
+      {
+        id: BRAND_APPLICATION_IDS.approved,
+        applicantId: USER_IDS.submitterB,
+        status: "approved",
+        slug: "coastal-lift",
+        name: "Coastal Lift",
+        logoUrl: null,
+        description: "Approved brand application for demo data.",
+        rejectionReason: null,
+        approvedBrandId: BRAND_IDS.joby,
+        createdAt: seededDate(24, 17),
+        updatedAt: seededDate(24, 18)
+      },
+      {
+        id: BRAND_APPLICATION_IDS.rejected,
+        applicantId: USER_IDS.submitterA,
+        status: "rejected",
+        slug: "autel-labs",
+        name: "Autel Labs",
+        logoUrl: null,
+        description: "Rejected brand application for demo data.",
+        rejectionReason: "资料不完整",
+        approvedBrandId: null,
+        createdAt: seededDate(24, 19),
+        updatedAt: seededDate(24, 20)
+      }
+    ])
+    .onConflictDoNothing();
+}
+
+async function seedNotifications() {
   await db
     .insert(notificationsTable)
     .values([
-      { id: "seed_notification_followed", userId: USER_IDS.skyline, actorId: USER_IDS.followerA, type: "followed", postId: null, commentId: null, isRead: false, createdAt: seededDate(24, 7) },
-      { id: "seed_notification_post_commented", userId: adminUserId, actorId: USER_IDS.followerA, type: "post_commented", postId: POST_IDS.officialLaunch, commentId: COMMENT_IDS.officialRoot, isRead: false, createdAt: seededDate(24, 9, 35) },
-      { id: "seed_notification_comment_replied", userId: USER_IDS.aero, actorId: USER_IDS.skyline, type: "comment_replied", postId: POST_IDS.skylineArticle, commentId: COMMENT_IDS.skylineReply, isRead: true, createdAt: seededDate(23, 13, 5) }
+      {
+        id: "seed_notice_follow_skyline",
+        userId: USER_IDS.skyline,
+        actorId: USER_IDS.followerA,
+        category: "new_followers",
+        type: "followed",
+        targetType: "user",
+        targetId: USER_IDS.followerA,
+        targetTitle: "Follower A",
+        title: "新增关注",
+        summary: "Follower A 关注了你",
+        preview: null,
+        metadata: JSON.stringify({
+          href: `/users/${USER_IDS.followerA}`
+        }),
+        postId: null,
+        commentId: null,
+        isRead: false,
+        createdAt: seededDate(24, 7)
+      },
+      {
+        id: "seed_notice_like_skyline",
+        userId: USER_IDS.skyline,
+        actorId: USER_IDS.aero,
+        category: "likes_and_favorites",
+        type: "post_liked",
+        targetType: "post",
+        targetId: POST_IDS.skylineArticle,
+        targetTitle: "2026 eVTOL aerodynamic snapshot",
+        title: "收到新的点赞",
+        summary: "Aero 点赞了你的《2026 eVTOL aerodynamic snapshot》",
+        preview: null,
+        metadata: JSON.stringify({
+          href: `/posts/${POST_IDS.skylineArticle}`
+        }),
+        postId: POST_IDS.skylineArticle,
+        commentId: null,
+        isRead: false,
+        createdAt: seededDate(24, 8)
+      },
+      {
+        id: "seed_notice_reply_aero",
+        userId: USER_IDS.aero,
+        actorId: USER_IDS.skyline,
+        category: "comments_and_mentions",
+        type: "comment_replied",
+        targetType: "comment",
+        targetId: COMMENT_IDS.skylineReply,
+        targetTitle: "Skyline comment reply",
+        title: "收到新的回复",
+        summary: "Skyline 回复了你在《2026 eVTOL aerodynamic snapshot》下的评论",
+        preview: "感谢反馈，我们下一次再试高海拔航线。",
+        metadata: JSON.stringify({
+          href: `/posts/${POST_IDS.skylineArticle}`
+        }),
+        postId: POST_IDS.skylineArticle,
+        commentId: COMMENT_IDS.skylineReply,
+        isRead: true,
+        createdAt: seededDate(24, 9)
+      },
+      {
+        id: "seed_notice_post_status",
+        userId: USER_IDS.night,
+        actorId: null,
+        category: "system",
+        type: "post_status_changed",
+        targetType: "status",
+        targetId: POST_IDS.rejectedArticle,
+        targetTitle: "Rejected sample article",
+        targetStatus: "rejected",
+        title: "内容审核未通过",
+        summary: "你的文章《Rejected sample article》当前状态：未通过审核",
+        preview: "原因：资料不完整",
+        metadata: JSON.stringify({
+          href: `/publish/status/article/${POST_IDS.rejectedArticle}`,
+          rejectionReason: "资料不完整"
+        }),
+        postId: POST_IDS.rejectedArticle,
+        commentId: null,
+        isRead: false,
+        createdAt: seededDate(24, 10)
+      },
+      {
+        id: "seed_notice_submission_status",
+        userId: USER_IDS.submitterA,
+        actorId: null,
+        category: "system",
+        type: "aircraft_submission_status_changed",
+        targetType: "aircraft_submission",
+        targetId: SUBMISSION_IDS.rejected,
+        targetTitle: "Autel Concept X",
+        targetStatus: "rejected",
+        title: "机型投稿审核未通过",
+        summary: "机型投稿《Autel Concept X》未通过审核",
+        preview: "原因：Rejected sample for moderation history.",
+        metadata: JSON.stringify({
+          href: `/publish/status/aircraft/${SUBMISSION_IDS.rejected}`,
+          rejectionReason: "Rejected sample for moderation history."
+        }),
+        postId: null,
+        commentId: null,
+        isRead: false,
+        createdAt: seededDate(24, 11)
+      },
+      {
+        id: "seed_notice_brand_application_status",
+        userId: USER_IDS.submitterB,
+        actorId: null,
+        category: "system",
+        type: "brand_application_status_changed",
+        targetType: "brand_application",
+        targetId: BRAND_APPLICATION_IDS.approved,
+        targetTitle: "Coastal Lift",
+        targetStatus: "approved",
+        title: "品牌申请审核通过",
+        summary: "品牌申请《Coastal Lift》当前状态：已通过",
+        preview: null,
+        metadata: JSON.stringify({
+          href: `/brand-applications/${BRAND_APPLICATION_IDS.approved}`
+        }),
+        postId: null,
+        commentId: null,
+        isRead: false,
+        createdAt: seededDate(24, 12)
+      }
     ])
     .onConflictDoNothing();
 }
@@ -525,6 +703,8 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedSocialGraph(adminUserId);
   await seedRankings(adminUserId);
   await seedAircraftSubmissions();
+  await seedBrandApplications();
+  await seedNotifications();
 }
 
 export async function seedDatabase(options?: { reset?: boolean }) {

@@ -12,6 +12,89 @@ import {
   isValidBrandApplicationStatus
 } from "../../lib/type-guards";
 
+type NotificationCategory =
+  | "likes_and_favorites"
+  | "new_followers"
+  | "comments_and_mentions"
+  | "system";
+
+type NotificationType =
+  | "followed"
+  | "post_liked"
+  | "post_favorited"
+  | "post_shared"
+  | "post_commented"
+  | "comment_replied"
+  | "post_status_changed"
+  | "ranking_status_changed"
+  | "rating_target_status_changed"
+  | "aircraft_submission_status_changed"
+  | "brand_application_status_changed";
+
+type NotificationTargetType =
+  | "user"
+  | "post"
+  | "comment"
+  | "ranking"
+  | "rating_target"
+  | "aircraft_submission"
+  | "brand_application"
+  | "status";
+
+const NOTIFICATION_CATEGORY_BY_TYPE: Record<NotificationType, NotificationCategory> = {
+  followed: "new_followers",
+  post_liked: "likes_and_favorites",
+  post_favorited: "likes_and_favorites",
+  post_shared: "likes_and_favorites",
+  post_commented: "comments_and_mentions",
+  comment_replied: "comments_and_mentions",
+  post_status_changed: "system",
+  ranking_status_changed: "system",
+  rating_target_status_changed: "system",
+  aircraft_submission_status_changed: "system",
+  brand_application_status_changed: "system"
+};
+
+const NOTIFICATION_TYPES = Object.keys(
+  NOTIFICATION_CATEGORY_BY_TYPE
+) as NotificationType[];
+
+function isNotificationType(value: unknown): value is NotificationType {
+  return typeof value === "string" && NOTIFICATION_TYPES.includes(value as NotificationType);
+}
+
+function normalizeCategory(
+  value: unknown,
+  type: NotificationType
+): NotificationCategory {
+  if (
+    value === "likes_and_favorites" ||
+    value === "new_followers" ||
+    value === "comments_and_mentions" ||
+    value === "system"
+  ) {
+    return value;
+  }
+
+  return NOTIFICATION_CATEGORY_BY_TYPE[type];
+}
+
+function parseMetadata(value: string | null | undefined): Record<string, unknown> {
+  if (!value) {
+    return {};
+  }
+
+  try {
+    const parsed: unknown = JSON.parse(value);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      return {};
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return {};
+  }
+}
+
 function toPreview(content: string) {
   return content.length > 80 ? `${content.slice(0, 80)}...` : content;
 }
@@ -146,13 +229,15 @@ export const socialService = {
   async recordNotification(input: {
     userId: string;
     actorId: string;
-    type:
+    type: Extract<
+      NotificationType,
       | "followed"
       | "post_liked"
       | "post_favorited"
       | "post_shared"
       | "post_commented"
-      | "comment_replied";
+      | "comment_replied"
+    >;
     postId?: string | null;
     commentId?: string | null;
   }) {
@@ -168,7 +253,114 @@ export const socialService = {
       return;
     }
 
-    await socialRepo.createNotification(input);
+    const [actor, post, comment] = await Promise.all([
+      socialRepo.getUserById(input.actorId),
+      input.postId ? socialRepo.getPostById(input.postId) : Promise.resolve(null),
+      input.commentId ? socialRepo.getCommentById(input.commentId) : Promise.resolve(null)
+    ]);
+    if (!actor || !isValidAuthRole(actor.role)) {
+      return;
+    }
+
+    const fallbackPost = !post && comment?.postId ? await socialRepo.getPostById(comment.postId) : null;
+    const targetPost = post ?? fallbackPost;
+    const targetId = targetPost?.id ?? comment?.id ?? actor.id;
+    const targetTitle = targetPost?.title ?? "相关动态";
+    const commentPreview = comment?.content ? toPreview(comment.content) : null;
+
+    let title = "互动提醒";
+    let summary = `${actor.displayName} 与你的内容发生了互动`;
+
+    switch (input.type) {
+      case "followed":
+        title = "新增关注";
+        summary = `${actor.displayName} 关注了你`;
+        break;
+      case "post_liked":
+        title = "收到新的点赞";
+        summary = `${actor.displayName} 点赞了你的《${targetTitle}》`;
+        break;
+      case "post_favorited":
+        title = "收到新的收藏";
+        summary = `${actor.displayName} 收藏了你的《${targetTitle}》`;
+        break;
+      case "post_shared":
+        title = "内容被分享";
+        summary = `${actor.displayName} 分享了你的《${targetTitle}》`;
+        break;
+      case "post_commented":
+        title = "收到新的评论";
+        summary = `${actor.displayName} 评论了你的《${targetTitle}》`;
+        break;
+      case "comment_replied":
+        title = "收到新的回复";
+        summary = `${actor.displayName} 回复了你的评论`;
+        break;
+    }
+
+    const targetType: NotificationTargetType = input.type === "followed" ? "user" : "post";
+    await socialRepo.createNotification({
+      userId: input.userId,
+      actorId: actor.id,
+      category: NOTIFICATION_CATEGORY_BY_TYPE[input.type],
+      type: input.type,
+      targetType,
+      targetId,
+      targetTitle: targetType === "user" ? actor.displayName : targetTitle,
+      title,
+      summary,
+      preview: commentPreview,
+      metadata: {
+        trigger: input.type,
+        postId: targetPost?.id ?? null,
+        commentId: comment?.id ?? null
+      },
+      postId: targetPost?.id ?? input.postId ?? comment?.postId ?? null,
+      commentId: comment?.id ?? input.commentId ?? null
+    });
+  },
+  async recordSystemNotification(input: {
+    userId: string;
+    type: Extract<
+      NotificationType,
+      | "post_status_changed"
+      | "ranking_status_changed"
+      | "rating_target_status_changed"
+      | "aircraft_submission_status_changed"
+      | "brand_application_status_changed"
+    >;
+    title: string;
+    summary: string;
+    target: {
+      type: NotificationTargetType;
+      id: string;
+      title: string;
+      status?: string | null;
+      href?: string | null;
+    };
+    preview?: {
+      text?: string | null;
+      imageUrl?: string | null;
+    } | null;
+    metadata?: Record<string, unknown>;
+  }) {
+    await socialRepo.createNotification({
+      userId: input.userId,
+      actorId: null,
+      category: NOTIFICATION_CATEGORY_BY_TYPE[input.type],
+      type: input.type,
+      targetType: input.target.type,
+      targetId: input.target.id,
+      targetTitle: input.target.title,
+      targetStatus: input.target.status ?? null,
+      title: input.title,
+      summary: input.summary,
+      preview: input.preview?.text ?? null,
+      metadata: {
+        ...(input.metadata ?? {}),
+        href: input.target.href ?? null
+      }
+    });
   },
   async listFollowingStateSet(currentUserId: string, authorIds: string[]) {
     const rows = await socialRepo.listFollowingStates(
@@ -180,67 +372,87 @@ export const socialService = {
   },
   async listNotifications(userId: string) {
     const rows = await socialRepo.listNotifications(userId);
-    const actorIds = Array.from(new Set(rows.map((item) => item.actorId)));
-    const postIds = Array.from(
-      new Set(rows.map((item) => item.postId).filter((item): item is string => Boolean(item)))
+    const actorIds = Array.from(
+      new Set(rows.map((item) => item.actorId).filter((id): id is string => Boolean(id)))
     );
-    const commentIds = Array.from(
-      new Set(rows.map((item) => item.commentId).filter((item): item is string => Boolean(item)))
-    );
-
-    const [actors, posts, comments] = await Promise.all([
-      socialRepo.listUsersByIds(actorIds),
-      socialRepo.listPostsByIds(postIds),
-      socialRepo.listCommentsByIds(commentIds)
-    ]);
-
+    const actors = await socialRepo.listUsersByIds(actorIds);
     const actorById = new Map(actors.map((actor) => [actor.id, actor]));
-    const postById = new Map(posts.map((post) => [post.id, post]));
-    const commentById = new Map(comments.map((comment) => [comment.id, comment]));
+
+    const unreadByCategory = {
+      likesAndFavorites: 0,
+      newFollowers: 0,
+      commentsAndMentions: 0,
+      system: 0
+    };
 
     const items = (
       await Promise.all(
         rows.map(async (item) => {
-          const actor = actorById.get(item.actorId);
-
-          if (!actor) {
+          if (!isNotificationType(item.type)) {
             return null;
           }
 
-          const post = item.postId ? postById.get(item.postId) ?? null : null;
-          const comment = item.commentId ? commentById.get(item.commentId) ?? null : null;
+          const category = normalizeCategory(item.category, item.type);
+          if (!item.isRead) {
+            if (category === "likes_and_favorites") {
+              unreadByCategory.likesAndFavorites += 1;
+            } else if (category === "new_followers") {
+              unreadByCategory.newFollowers += 1;
+            } else if (category === "comments_and_mentions") {
+              unreadByCategory.commentsAndMentions += 1;
+            } else {
+              unreadByCategory.system += 1;
+            }
+          }
+
+          const actorRecord = item.actorId ? actorById.get(item.actorId) ?? null : null;
+          const actor =
+            actorRecord && isValidAuthRole(actorRecord.role)
+              ? {
+                  id: actorRecord.id,
+                  displayName: actorRecord.displayName,
+                  avatarUrl: await resolveUploadedFileUrl(actorRecord.avatarFileId ?? null),
+                  role: actorRecord.role
+                }
+              : null;
+          const metadata = parseMetadata(item.metadata);
+          const href = typeof metadata.href === "string" ? metadata.href : null;
+
+          const targetType: NotificationTargetType =
+            item.targetType === "user" ||
+            item.targetType === "post" ||
+            item.targetType === "comment" ||
+            item.targetType === "ranking" ||
+            item.targetType === "rating_target" ||
+            item.targetType === "aircraft_submission" ||
+            item.targetType === "brand_application" ||
+            item.targetType === "status"
+              ? item.targetType
+              : "status";
 
           return {
             id: item.id,
-            type: item.type as
-              | "followed"
-              | "post_liked"
-              | "post_favorited"
-              | "post_shared"
-              | "post_commented"
-              | "comment_replied",
+            category,
+            type: item.type,
             isRead: item.isRead,
             createdAt: item.createdAt.toISOString(),
-            actor: {
-              id: actor.id,
-              displayName: actor.displayName,
-              avatarUrl: await resolveUploadedFileUrl(actor.avatarFileId ?? null),
-              // Database text column constrained to valid AuthRole values at insert time
-              role: isValidAuthRole(actor.role) ? actor.role : ("user" as "user" | "admin")
+            title: item.title,
+            summary: item.summary,
+            target: {
+              type: targetType,
+              id: item.targetId,
+              title: item.targetTitle,
+              status: item.targetStatus ?? null,
+              href
             },
-            post: post
+            actor,
+            preview: item.preview
               ? {
-                  id: post.id,
-                  title: post.title
+                  text: item.preview,
+                  imageUrl: null
                 }
               : null,
-            comment: comment
-              ? {
-                  id: comment.id,
-                  postId: comment.postId,
-                  contentPreview: toPreview(comment.content)
-                }
-              : null
+            metadata
           };
         })
       )
@@ -248,6 +460,7 @@ export const socialService = {
 
     return {
       unreadCount: rows.filter((item) => !item.isRead).length,
+      unreadByCategory,
       items
     };
   },

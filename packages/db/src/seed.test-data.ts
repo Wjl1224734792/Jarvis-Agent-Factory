@@ -1083,15 +1083,77 @@ async function seedPostgreSQL() {
   // 21. 通知 (100)
   console.log("  🔔 创建通知...");
   const notifications = [];
-  const notifTypes = ["followed", "post_commented", "comment_replied", "post_liked", "ranking_commented", "model_reviewed"] as const;
+  const notifTypes = [
+    "followed",
+    "post_commented",
+    "comment_replied",
+    "post_liked",
+    "post_favorited",
+    "post_status_changed",
+    "aircraft_submission_status_changed",
+    "brand_application_status_changed"
+  ] as const;
   for (let i = 0; i < 100; i++) {
+    const type = pick(notifTypes);
+    const postId = Math.random() > 0.5 ? pick(allPostIds) : null;
+    const commentId = Math.random() > 0.6 ? pick(commentIds) : null;
+    const actorId = type.endsWith("_changed") ? null : pick(regularUsers);
+    const category =
+      type === "followed"
+        ? "new_followers"
+        : type === "post_liked" || type === "post_favorited"
+          ? "likes_and_favorites"
+          : type === "post_commented" || type === "comment_replied"
+            ? "comments_and_mentions"
+            : "system";
+    const targetType =
+      type === "followed"
+        ? "user"
+        : type === "aircraft_submission_status_changed"
+          ? "aircraft_submission"
+          : type === "brand_application_status_changed"
+            ? "brand_application"
+            : type === "post_status_changed"
+              ? "status"
+              : "post";
+    const targetId =
+      targetType === "user"
+        ? actorId ?? pick(regularUsers)
+        : targetType === "aircraft_submission"
+          ? uid("submission_target")
+          : targetType === "brand_application"
+            ? uid("brand_app_target")
+            : postId ?? pick(allPostIds);
     notifications.push({
       id: uid("notif"),
       userId: pick(regularUsers),
-      actorId: pick(regularUsers),
-      type: pick(notifTypes),
-      postId: Math.random() > 0.5 ? pick(allPostIds) : null,
-      commentId: Math.random() > 0.6 ? pick(commentIds) : null,
+      actorId,
+      category,
+      type,
+      targetType,
+      targetId,
+      targetTitle:
+        targetType === "user"
+          ? "新关注飞友"
+          : targetType === "brand_application"
+            ? "品牌申请状态"
+            : targetType === "aircraft_submission"
+              ? "机型投稿状态"
+              : "相关内容",
+      targetStatus: type.endsWith("_changed") ? pick(["pending", "approved", "rejected", "published"]) : null,
+      title: type.endsWith("_changed") ? "系统消息" : "互动提醒",
+      summary: type.endsWith("_changed") ? "内容状态已更新" : "你收到了一条新的互动消息",
+      preview: commentId ? "这是一条测试评论预览" : null,
+      metadata: JSON.stringify({
+        href:
+          targetType === "user"
+            ? `/users/${targetId}`
+            : targetType === "post" || targetType === "status"
+              ? `/posts/${targetId}`
+              : null
+      }),
+      postId,
+      commentId,
       isRead: Math.random() > 0.6,
       createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
     });

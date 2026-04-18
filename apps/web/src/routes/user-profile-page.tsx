@@ -17,6 +17,8 @@ import { apiClient } from "../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
 import { ContentFeedListRow } from "../features/auth/profile-content-card";
 import { isFavoriteItem } from "../features/auth/profile-content-filters";
+import { getVisitorProfileRelationshipSummary } from "../features/auth/profile-overview";
+import { ProfileOverviewCard } from "../features/auth/profile-surface";
 
 const VISITOR_PROFILE_PAGE_SIZE = 9;
 
@@ -156,6 +158,13 @@ export function UserProfilePage() {
   const bioText = profile.viewer.canViewProfile
     ? "这里展示对方当前开放给你的资料和内容。"
     : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。";
+  const relationshipSummary = getVisitorProfileRelationshipSummary({
+    canViewContent: profile.viewer.canViewContent,
+    canFollow: profile.viewer.canFollow,
+    isFollowing: profile.viewer.isFollowing
+  });
+  const visibleContentCount =
+    profile.postCount + profile.rankingCount + profile.aircraftCount + profile.reviewCount;
 
   return (
     <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
@@ -200,10 +209,19 @@ export function UserProfilePage() {
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <MetricStrip label="关注者" value={profile.followerCount} />
-              <MetricStrip label="关注中" value={profile.followingCount} />
-              <MetricStrip label="收藏" value={profile.favoriteCount} />
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                <MetricStrip label="关注者" value={profile.followerCount} />
+                <MetricStrip label="关注中" value={profile.followingCount} />
+                <MetricStrip label="收藏" value={profile.favoriteCount} />
+                <MetricStrip label="公开内容" value={visibleContentCount} />
+              </div>
+              <ProfileOverviewCard
+                description={relationshipSummary.description}
+                eyebrow="关系状态"
+                title={relationshipSummary.title}
+                tone={profile.viewer.canViewContent ? "default" : "highlight"}
+              />
             </div>
           </div>
 

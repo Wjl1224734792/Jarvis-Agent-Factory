@@ -783,9 +783,51 @@ export const postsService = {
     return { kind: "ok" as const };
   },
   async updatePostStatus(id: string, status: PostStatus, rejectionReason?: string | null) {
+    const previous = await postsRepo.getPostById(id);
+    if (!previous) {
+      return null;
+    }
+
     const item = await postsRepo.updatePostStatus(id, status, rejectionReason);
     if (!item) {
       return null;
+    }
+
+    if (previous.status !== item.status) {
+      const postType = isValidPostType(item.type) ? item.type : ("article" as const);
+      const statusLabel =
+        item.status === "published"
+          ? "已发布"
+          : item.status === "rejected"
+            ? "未通过审核"
+            : item.status === "hidden"
+              ? "已下架"
+              : "待审核";
+
+      await socialService.recordSystemNotification({
+        userId: item.author.id,
+        type: "post_status_changed",
+        title:
+          item.status === "published"
+            ? "内容审核通过"
+            : item.status === "rejected"
+              ? "内容审核未通过"
+              : "内容状态更新",
+        summary: `${postType === "article" ? "文章" : "动态"}《${item.title}》当前状态：${statusLabel}`,
+        target: {
+          type: "post",
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          href: `/posts/${item.id}`
+        },
+        metadata: {
+          fromStatus: previous.status,
+          toStatus: item.status,
+          rejectionReason: item.rejectionReason ?? null,
+          postType
+        }
+      });
     }
 
     const [images, videos] = await Promise.all([

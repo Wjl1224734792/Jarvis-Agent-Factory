@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { BellIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
+import { BellIcon, BellRingIcon, CameraIcon, PenSquareIcon, Settings2Icon } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { SitePage, SitePanel, SitePanelBody } from "@/components/site-shell";
@@ -19,7 +19,14 @@ import {
   type ProfileContentCategory,
   type ProfileLifecycle
 } from "./profile-content-filters";
+import {
+  buildSelfProfileOverviewMetrics,
+  getProfileMessageSummary
+} from "./profile-overview";
+import { getNotificationNavTone, shouldFetchNotifications } from "./notification-state";
+import { ProfileOverviewCard } from "./profile-surface";
 import { profileVisibilityLabel } from "./profile-settings-state";
+import { useNotifications } from "./use-notifications";
 
 type ProfileTab = "activity" | "favorites";
 
@@ -134,6 +141,8 @@ function MetricStrip(props: { label: string; value: number }) {
 
 export function ProfilePage() {
   const user = useAuthStore((state) => state.user);
+  const authStatus = useAuthStore((state) => state.status);
+  const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
   const queryClient = useQueryClient();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const [activeTab, setActiveTab] = useState<ProfileTab>("activity");
@@ -145,6 +154,10 @@ export function ProfilePage() {
   const [isUpdatingCover, setIsUpdatingCover] = useState(false);
   const [activityPage, setActivityPage] = useState(1);
   const [favoritePage, setFavoritePage] = useState(1);
+  const notificationsQuery = useNotifications(
+    user?.id,
+    shouldFetchNotifications(authStatus, isAuthBootstrapped)
+  );
 
   const currentProfileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -265,6 +278,17 @@ export function ProfilePage() {
     settings?.avatarUrl?.trim() || user.avatarUrl?.trim() || getAvatarImage(userId);
   const coverImageUrl = settings?.coverImageUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
+  const overviewMetrics = buildSelfProfileOverviewMetrics({
+    followerCount: profile?.followerCount ?? 0,
+    followingCount: profile?.followingCount ?? 0,
+    favoriteCount: profile?.favoriteCount ?? 0,
+    postCount: profile?.postCount ?? 0,
+    rankingCount: profile?.rankingCount ?? 0,
+    aircraftCount: profile?.aircraftCount ?? 0,
+    reviewCount: profile?.reviewCount ?? 0
+  });
+  const messageSummary = getProfileMessageSummary(notificationsQuery.data?.unreadCount ?? 0);
+  const messageTone = getNotificationNavTone(notificationsQuery.data?.unreadCount);
 
   if ((profileQuery.isLoading && !profile) || (currentProfileQuery.isLoading && !settings)) {
     return <ProfilePageSkeleton />;
@@ -385,10 +409,25 @@ export function ProfilePage() {
               </div>
             </div>
 
-            <div className="grid gap-2 sm:grid-cols-3">
-              <MetricStrip label="关注者" value={profile?.followerCount ?? 0} />
-              <MetricStrip label="关注中" value={profile?.followingCount ?? 0} />
-              <MetricStrip label="收藏" value={profile?.favoriteCount ?? 0} />
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {overviewMetrics.map((metric) => (
+                  <MetricStrip key={metric.key} label={metric.label} value={metric.value} />
+                ))}
+              </div>
+              <ProfileOverviewCard
+                description={messageSummary.description}
+                eyebrow="消息中心"
+                title={messageSummary.title}
+                tone={messageSummary.tone === "unread" ? "highlight" : "default"}
+              >
+                <Button asChild size="sm" variant={messageTone === "unread" ? "hero" : "outline"}>
+                  <Link to={APP_ROUTES.notifications}>
+                    {messageTone === "unread" ? <BellRingIcon data-icon="inline-start" /> : <BellIcon data-icon="inline-start" />}
+                    进入消息中心
+                  </Link>
+                </Button>
+              </ProfileOverviewCard>
             </div>
           </div>
 
@@ -401,8 +440,8 @@ export function ProfilePage() {
             </Button>
             <Button asChild size="sm" variant="panel">
               <Link to={APP_ROUTES.notifications}>
-                <BellIcon data-icon="inline-start" />
-                查看消息
+                {messageTone === "unread" ? <BellRingIcon data-icon="inline-start" /> : <BellIcon data-icon="inline-start" />}
+                {messageSummary.title}
               </Link>
             </Button>
             <Button asChild size="sm" variant="hero">

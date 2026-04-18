@@ -658,10 +658,17 @@ export const notificationsTable = pgTable("notifications", {
   userId: text("user_id")
     .notNull()
     .references(() => usersTable.id, { onDelete: "cascade" }),
-  actorId: text("actor_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+  actorId: text("actor_id").references(() => usersTable.id, { onDelete: "set null" }),
+  category: text("category").default("comments_and_mentions").notNull(),
   type: text("type").notNull(),
+  targetType: text("target_type").default("status").notNull(),
+  targetId: text("target_id").default("status").notNull(),
+  targetTitle: text("target_title").default("状态更新").notNull(),
+  targetStatus: text("target_status"),
+  title: text("title").default("系统消息").notNull(),
+  summary: text("summary").default("状态已更新").notNull(),
+  preview: text("preview"),
+  metadata: text("metadata").default("{}").notNull(),
   postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
   commentId: text("comment_id").references(() => postCommentsTable.id, { onDelete: "cascade" }),
   isRead: boolean("is_read").default(false).notNull(),

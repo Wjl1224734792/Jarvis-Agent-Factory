@@ -22,7 +22,28 @@ type NotificationType =
   | "post_favorited"
   | "post_shared"
   | "post_commented"
-  | "comment_replied";
+  | "comment_replied"
+  | "post_status_changed"
+  | "ranking_status_changed"
+  | "rating_target_status_changed"
+  | "aircraft_submission_status_changed"
+  | "brand_application_status_changed";
+
+type NotificationCategory =
+  | "likes_and_favorites"
+  | "new_followers"
+  | "comments_and_mentions"
+  | "system";
+
+type NotificationTargetType =
+  | "user"
+  | "post"
+  | "comment"
+  | "ranking"
+  | "rating_target"
+  | "aircraft_submission"
+  | "brand_application"
+  | "status";
 
 type ProfileVisibility = "community" | "followers" | "private";
 
@@ -443,16 +464,34 @@ export const socialRepo = {
   },
   async createNotification(input: {
     userId: string;
-    actorId: string;
+    actorId?: string | null;
+    category: NotificationCategory;
     type: NotificationType;
+    targetType: NotificationTargetType;
+    targetId: string;
+    targetTitle: string;
+    targetStatus?: string | null;
+    title: string;
+    summary: string;
+    preview?: string | null;
+    metadata?: Record<string, unknown>;
     postId?: string | null;
     commentId?: string | null;
   }) {
     await db.insert(notificationsTable).values({
       id: createId("notice"),
       userId: input.userId,
-      actorId: input.actorId,
+      actorId: input.actorId ?? null,
+      category: input.category,
       type: input.type,
+      targetType: input.targetType,
+      targetId: input.targetId,
+      targetTitle: input.targetTitle,
+      targetStatus: input.targetStatus ?? null,
+      title: input.title,
+      summary: input.summary,
+      preview: input.preview ?? null,
+      metadata: JSON.stringify(input.metadata ?? {}),
       postId: input.postId ?? null,
       commentId: input.commentId ?? null,
       isRead: false
@@ -464,7 +503,16 @@ export const socialRepo = {
         id: notificationsTable.id,
         userId: notificationsTable.userId,
         actorId: notificationsTable.actorId,
+        category: notificationsTable.category,
         type: notificationsTable.type,
+        targetType: notificationsTable.targetType,
+        targetId: notificationsTable.targetId,
+        targetTitle: notificationsTable.targetTitle,
+        targetStatus: notificationsTable.targetStatus,
+        title: notificationsTable.title,
+        summary: notificationsTable.summary,
+        preview: notificationsTable.preview,
+        metadata: notificationsTable.metadata,
         postId: notificationsTable.postId,
         commentId: notificationsTable.commentId,
         isRead: notificationsTable.isRead,
@@ -696,6 +744,31 @@ export const socialRepo = {
       })
       .from(postCommentsTable)
       .where(inArray(postCommentsTable.id, ids));
+  },
+  async getPostById(id: string) {
+    const rows = await db
+      .select({
+        id: postsTable.id,
+        title: postsTable.title
+      })
+      .from(postsTable)
+      .where(eq(postsTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
+  },
+  async getCommentById(id: string) {
+    const rows = await db
+      .select({
+        id: postCommentsTable.id,
+        postId: postCommentsTable.postId,
+        content: postCommentsTable.content
+      })
+      .from(postCommentsTable)
+      .where(eq(postCommentsTable.id, id))
+      .limit(1);
+
+    return rows[0] ?? null;
   },
   defaultUserSettings() {
     return defaultUserSettings;

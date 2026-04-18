@@ -1056,10 +1056,14 @@ describe.sequential("posts and social flows", () => {
     });
     expect(notificationsResponse.status).toBe(200);
     const notificationsPayload = (await notificationsResponse.json()) as {
-      items: Array<{ actor: { avatarUrl: string | null } }>;
+      items: Array<{ actor: { avatarUrl: string | null } | null }>;
     };
     expect(notificationsPayload.items.length).toBeGreaterThan(0);
-    expect(notificationsPayload.items.every((item) => item.actor.avatarUrl === null)).toBe(true);
+    expect(
+      notificationsPayload.items
+        .filter((item) => item.actor !== null)
+        .every((item) => item.actor?.avatarUrl === null)
+    ).toBe(true);
 
     const followingFeedResponse = await app.request(`${API_ROUTES.circleFeed}?tab=following`, {
       method: "GET",
@@ -1508,11 +1512,17 @@ describe.sequential("posts and social flows", () => {
     });
     expect(authorNotificationsAfterDisabled.status).toBe(200);
     const authorNotificationsAfterDisabledPayload = (await authorNotificationsAfterDisabled.json()) as {
-      items: Array<{ type: string; post?: { id: string } | null }>;
+      items: Array<{
+        type: string;
+        target: { type: string; id: string };
+      }>;
     };
     expect(
       authorNotificationsAfterDisabledPayload.items.some(
-        (item) => item.type === "post_commented" && item.post?.id === post.item.id
+        (item) =>
+          item.type === "post_commented" &&
+          item.target.type === "post" &&
+          item.target.id === post.item.id
       )
     ).toBe(false);
 
@@ -1546,11 +1556,213 @@ describe.sequential("posts and social flows", () => {
     });
     expect(authorNotificationsAfterEnabled.status).toBe(200);
     const authorNotificationsAfterEnabledPayload = (await authorNotificationsAfterEnabled.json()) as {
-      items: Array<{ type: string; post?: { id: string } | null }>;
+      items: Array<{
+        type: string;
+        target: { type: string; id: string };
+      }>;
     };
     expect(
       authorNotificationsAfterEnabledPayload.items.some(
-        (item) => item.type === "post_commented" && item.post?.id === post.item.id
+        (item) =>
+          item.type === "post_commented" &&
+          item.target.type === "post" &&
+          item.target.id === post.item.id
+      )
+    ).toBe(true);
+  });
+
+  it("emits system notifications for moderation status changes across domains", async () => {
+    const adminCookie = await loginAdmin();
+
+    const momentAuthorCookie = await loginWebUser("13800138210");
+    const createdMoment = await createPost(momentAuthorCookie, {
+      type: "moment",
+      title: "System notification source moment",
+      content: "This moment should trigger moderation system notification."
+    });
+
+    const rejectMomentResponse = await app.request(
+      API_ROUTES.posts.adminDetail(createdMoment.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "rejected",
+          rejectionReason: "内容不符合发布规范"
+        })
+      }
+    );
+    expect(rejectMomentResponse.status).toBe(200);
+
+    const momentAuthorNotifications = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: momentAuthorCookie }
+    });
+    expect(momentAuthorNotifications.status).toBe(200);
+    const momentAuthorPayload = (await momentAuthorNotifications.json()) as {
+      unreadByCategory: { system: number };
+      items: Array<{ type: string; target: { id: string } }>;
+    };
+    expect(momentAuthorPayload.unreadByCategory.system).toBeGreaterThan(0);
+    expect(
+      momentAuthorPayload.items.some(
+        (item) => item.type === "post_status_changed" && item.target.id === createdMoment.item.id
+      )
+    ).toBe(true);
+
+    const adminRankingsResponse = await app.request(API_ROUTES.rankings.adminList, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminRankingsResponse.status).toBe(200);
+    const adminRankingsPayload = (await adminRankingsResponse.json()) as {
+      items: Array<{ id: string; type: "official" | "community"; status: string; items: Array<{ id: string }> }>;
+    };
+    const communityRanking = adminRankingsPayload.items.find((item) => item.type === "community");
+    expect(communityRanking?.id).toBeTruthy();
+    const rankingId = expectDefined(communityRanking?.id);
+
+    const updateRankingStatusResponse = await app.request(API_ROUTES.rankings.adminStatus(rankingId), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "hidden"
+      })
+    });
+    expect(updateRankingStatusResponse.status).toBe(200);
+
+    const rankingItemId = expectDefined(communityRanking?.items[0]?.id);
+    const updateRatingTargetStatusResponse = await app.request(
+      API_ROUTES.rankings.adminItemStatus(rankingItemId),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "hidden"
+        })
+      }
+    );
+    expect(updateRatingTargetStatusResponse.status).toBe(200);
+
+    const rankingOwnerCookie = await loginWebUser("13800138103");
+    const rankingOwnerNotifications = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: rankingOwnerCookie }
+    });
+    expect(rankingOwnerNotifications.status).toBe(200);
+    const rankingOwnerPayload = (await rankingOwnerNotifications.json()) as {
+      items: Array<{ type: string; target: { id: string } }>;
+    };
+    expect(
+      rankingOwnerPayload.items.some(
+        (item) => item.type === "ranking_status_changed" && item.target.id === rankingId
+      )
+    ).toBe(true);
+    expect(
+      rankingOwnerPayload.items.some(
+        (item) =>
+          item.type === "rating_target_status_changed" && item.target.id === rankingItemId
+      )
+    ).toBe(true);
+
+    const adminSubmissionsResponse = await app.request(API_ROUTES.submissions.adminList, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminSubmissionsResponse.status).toBe(200);
+    const adminSubmissionsPayload = (await adminSubmissionsResponse.json()) as {
+      items: Array<{ id: string; status: string }>;
+    };
+    const submitted = adminSubmissionsPayload.items.find((item) => item.status === "submitted");
+    expect(submitted?.id).toBeTruthy();
+    const submissionId = expectDefined(submitted?.id);
+
+    const approveSubmissionResponse = await app.request(
+      API_ROUTES.submissions.adminDetail(submissionId),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "approved"
+        })
+      }
+    );
+    expect(approveSubmissionResponse.status).toBe(200);
+
+    const submitterNotifications = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: await loginWebUser("13800138109") }
+    });
+    expect(submitterNotifications.status).toBe(200);
+    const submitterPayload = (await submitterNotifications.json()) as {
+      items: Array<{ type: string; target: { id: string } }>;
+    };
+    expect(
+      submitterPayload.items.some(
+        (item) =>
+          item.type === "aircraft_submission_status_changed" && item.target.id === submissionId
+      )
+    ).toBe(true);
+
+    const applicantCookie = await loginWebUser("13800138211");
+    const createBrandApplicationResponse = await app.request(API_ROUTES.brandApplications.create, {
+      method: "POST",
+      headers: {
+        cookie: applicantCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "system-notify-brand",
+        name: "System Notify Brand",
+        logoUrl: null,
+        description: "Brand application for system notification tests"
+      })
+    });
+    expect(createBrandApplicationResponse.status).toBe(200);
+    const createdBrandApplication = (await createBrandApplicationResponse.json()) as {
+      item: { id: string };
+    };
+
+    const approveBrandApplicationResponse = await app.request(
+      API_ROUTES.brandApplications.adminDetail(createdBrandApplication.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "approved"
+        })
+      }
+    );
+    expect(approveBrandApplicationResponse.status).toBe(200);
+
+    const applicantNotifications = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: applicantCookie }
+    });
+    expect(applicantNotifications.status).toBe(200);
+    const applicantPayload = (await applicantNotifications.json()) as {
+      items: Array<{ type: string; target: { id: string } }>;
+    };
+    expect(
+      applicantPayload.items.some(
+        (item) =>
+          item.type === "brand_application_status_changed" &&
+          item.target.id === createdBrandApplication.item.id
       )
     ).toBe(true);
   });

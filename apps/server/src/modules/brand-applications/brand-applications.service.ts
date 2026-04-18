@@ -1,4 +1,5 @@
 import { brandsService } from "../brands/brands.service";
+import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { brandApplicationsRepo } from "./brand-applications.repo";
 
@@ -190,6 +191,7 @@ export const brandApplicationsService = {
     if (!current) {
       return null;
     }
+    const previousStatus = current.status;
 
     let approvedBrandId = current.approvedBrandId ?? null;
     if (status === "approved" && !approvedBrandId) {
@@ -205,6 +207,30 @@ export const brandApplicationsService = {
       approvedBrandId,
       rejectionReason: status === "rejected" ? rejectionReason ?? null : null
     });
+
+    if (item && previousStatus !== status) {
+      const statusLabel =
+        status === "approved" ? "已通过" : status === "rejected" ? "未通过审核" : "已隐藏";
+      await socialService.recordSystemNotification({
+        userId: current.applicant.id,
+        type: "brand_application_status_changed",
+        title: status === "approved" ? "品牌申请审核通过" : "品牌申请状态更新",
+        summary: `品牌申请《${current.name}》当前状态：${statusLabel}`,
+        target: {
+          type: "brand_application",
+          id: current.id,
+          title: current.name,
+          status,
+          href: `/brand-applications/${current.id}`
+        },
+        metadata: {
+          fromStatus: previousStatus,
+          toStatus: status,
+          approvedBrandId: approvedBrandId ?? null,
+          rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+        }
+      });
+    }
 
     return item ? { item: await serializeApplicationOrThrow(item) } : null;
   }

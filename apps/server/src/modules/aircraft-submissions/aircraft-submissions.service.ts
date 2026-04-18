@@ -1,5 +1,6 @@
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
+import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
@@ -431,6 +432,7 @@ export const aircraftSubmissionsService = {
     if (!current) {
       return null;
     }
+    const previousStatus = current.status;
 
     if (status === "rejected") {
       if (current.approvedModelId && current.brandId) {
@@ -462,6 +464,26 @@ export const aircraftSubmissionsService = {
         "rejected",
         rejectionReason ?? null
       );
+      if (item && previousStatus !== "rejected") {
+        await socialService.recordSystemNotification({
+          userId: current.author.id,
+          type: "aircraft_submission_status_changed",
+          title: "机型投稿审核未通过",
+          summary: `机型投稿《${current.modelName}》未通过审核`,
+          target: {
+            type: "aircraft_submission",
+            id: current.id,
+            title: current.modelName,
+            status: "rejected",
+            href: `/aircraft-submissions/${current.id}`
+          },
+          metadata: {
+            fromStatus: previousStatus,
+            toStatus: "rejected",
+            rejectionReason: rejectionReason ?? null
+          }
+        });
+      }
       const approvedModel = item?.approvedModelId
         ? await aircraftModelsService.getModelDetailById(item.approvedModelId)
         : null;
@@ -500,6 +522,26 @@ export const aircraftSubmissionsService = {
         isPublished: true
       });
       const item = await aircraftSubmissionsRepo.approveSubmission(id, current.approvedModelId, brandId);
+      if (item && previousStatus !== "approved") {
+        await socialService.recordSystemNotification({
+          userId: current.author.id,
+          type: "aircraft_submission_status_changed",
+          title: "机型投稿审核通过",
+          summary: `机型投稿《${current.modelName}》已通过审核`,
+          target: {
+            type: "aircraft_submission",
+            id: current.id,
+            title: current.modelName,
+            status: "approved",
+            href: `/aircraft-submissions/${current.id}`
+          },
+          metadata: {
+            fromStatus: previousStatus,
+            toStatus: "approved",
+            approvedModelId: item.approvedModelId ?? null
+          }
+        });
+      }
       return { item: await serializeSubmissionOrThrow(item, model?.slug ?? null) };
     }
 
@@ -531,6 +573,26 @@ export const aircraftSubmissionsService = {
     }
 
     const item = await aircraftSubmissionsRepo.approveSubmission(id, model.id, brandId);
+    if (item && previousStatus !== "approved") {
+      await socialService.recordSystemNotification({
+        userId: current.author.id,
+        type: "aircraft_submission_status_changed",
+        title: "机型投稿审核通过",
+        summary: `机型投稿《${current.modelName}》已通过审核`,
+        target: {
+          type: "aircraft_submission",
+          id: current.id,
+          title: current.modelName,
+          status: "approved",
+          href: `/aircraft-submissions/${current.id}`
+        },
+        metadata: {
+          fromStatus: previousStatus,
+          toStatus: "approved",
+          approvedModelId: item.approvedModelId ?? null
+        }
+      });
+    }
     return { item: await serializeSubmissionOrThrow(item, model.slug) };
   }
 };

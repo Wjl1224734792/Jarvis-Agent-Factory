@@ -4,6 +4,7 @@ import { rankingsRepo } from "./rankings.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { socialService } from "../social/social.service";
 import { buildCommentThreads } from "../../lib/comment-serializer";
 import { rankRatingTargetsByDynamicScore } from "./ranking-score";
 import {
@@ -1028,10 +1029,34 @@ export const rankingsService = {
       return { kind: "forbidden" as const };
     }
 
+    const previousStatus = ranking.status;
     await rankingsRepo.updateRankingStatus(rankingId, status, rejectionReason ?? null);
     const payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
+    }
+
+    if (previousStatus !== status) {
+      const statusLabel =
+        status === "published" ? "已发布" : status === "rejected" ? "未通过审核" : "已下架";
+      await socialService.recordSystemNotification({
+        userId: ranking.author.id,
+        type: "ranking_status_changed",
+        title: status === "published" ? "榜单审核通过" : "榜单状态更新",
+        summary: `榜单《${ranking.title}》当前状态：${statusLabel}`,
+        target: {
+          type: "ranking",
+          id: ranking.id,
+          title: ranking.title,
+          status,
+          href: `/rankings/${ranking.id}`
+        },
+        metadata: {
+          fromStatus: previousStatus,
+          toStatus: status,
+          rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+        }
+      });
     }
 
     return { kind: "ok" as const, payload };
@@ -1339,6 +1364,7 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
+    const previousStatus = item.status;
     await rankingsRepo.updateRatingTargetStatus(id, {
       status,
       rejectionReason: status === "rejected" ? rejectionReason ?? null : null
@@ -1346,6 +1372,30 @@ export const rankingsService = {
     const payload = await this.getRatingTargetDetail(id, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
+    }
+
+    if (previousStatus !== status) {
+      const statusLabel =
+        status === "published" ? "已发布" : status === "rejected" ? "未通过审核" : "已下架";
+      await socialService.recordSystemNotification({
+        userId: item.authorId,
+        type: "rating_target_status_changed",
+        title: status === "published" ? "榜单条目审核通过" : "榜单条目状态更新",
+        summary: `条目《${item.title}》当前状态：${statusLabel}`,
+        target: {
+          type: "rating_target",
+          id: item.id,
+          title: item.title,
+          status,
+          href: `/rankings/items/${item.id}`
+        },
+        metadata: {
+          rankingId: item.rankingId,
+          fromStatus: previousStatus,
+          toStatus: status,
+          rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+        }
+      });
     }
 
     return { kind: "ok" as const, payload };

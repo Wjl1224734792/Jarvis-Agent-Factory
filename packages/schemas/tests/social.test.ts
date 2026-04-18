@@ -10,27 +10,47 @@ describe("social contract", () => {
   it("parses the notifications response", () => {
     const payload = notificationsResponseSchema.parse({
       unreadCount: 1,
+      unreadByCategory: {
+        likesAndFavorites: 1,
+        newFollowers: 0,
+        commentsAndMentions: 0,
+        system: 0
+      },
       items: [
         {
           id: "notice_1",
+          category: "likes_and_favorites",
           type: "post_liked",
           isRead: false,
           createdAt: new Date().toISOString(),
+          title: "帖子收到新点赞",
+          summary: "Sky Rider 点赞了你的《Harbor session》",
+          target: {
+            type: "post",
+            id: "post_1",
+            title: "Harbor session",
+            status: "published",
+            href: "/posts/post_1"
+          },
           actor: {
             id: "user_1",
             displayName: "Sky Rider",
             role: "user"
           },
-          post: {
-            id: "post_1",
-            title: "Harbor session"
+          preview: {
+            text: "Nice post",
+            imageUrl: null
           },
-          comment: null
+          metadata: {
+            trigger: "post_like",
+            source: "social"
+          }
         }
       ]
     });
 
     expect(payload.unreadCount).toBe(1);
+    expect(payload.unreadByCategory.likesAndFavorites).toBe(1);
     expect(payload.items[0]?.type).toBe("post_liked");
   });
 

@@ -5,39 +5,78 @@ import { powerTypeSchema } from "./models";
 
 export const profileVisibilitySchema = z.enum(["community", "followers", "private"]);
 
-export const notificationTypeSchema = z.enum([
+export const messageCategorySchema = z.enum([
+  "likes_and_favorites",
+  "new_followers",
+  "comments_and_mentions",
+  "system"
+]);
+
+export const messageTypeSchema = z.enum([
   "followed",
   "post_liked",
   "post_favorited",
   "post_shared",
   "post_commented",
-  "comment_replied"
+  "comment_replied",
+  "post_status_changed",
+  "ranking_status_changed",
+  "rating_target_status_changed",
+  "aircraft_submission_status_changed",
+  "brand_application_status_changed"
 ]);
 
-export const notificationPostSchema = z.object({
+export const messageTargetTypeSchema = z.enum([
+  "user",
+  "post",
+  "comment",
+  "ranking",
+  "rating_target",
+  "aircraft_submission",
+  "brand_application",
+  "status"
+]);
+
+export const messageTargetSchema = z.object({
+  type: messageTargetTypeSchema,
   id: z.string().min(1),
-  title: z.string().min(1)
+  title: z.string().trim().min(1),
+  status: z.string().trim().min(1).nullable().default(null),
+  href: z.string().trim().min(1).nullable().default(null)
 });
 
-export const notificationCommentSchema = z.object({
-  id: z.string().min(1),
-  postId: z.string().min(1),
-  contentPreview: z.string().min(1)
+export const messagePreviewSchema = z.object({
+  text: z.string().trim().min(1).nullable().default(null),
+  imageUrl: z.string().trim().min(1).nullable().default(null)
 });
 
-export const notificationItemSchema = z.object({
+export const messageMetadataSchema = z.record(z.string(), z.unknown());
+
+export const messageCardSchema = z.object({
   id: z.string().min(1),
-  type: notificationTypeSchema,
+  category: messageCategorySchema,
+  type: messageTypeSchema,
   isRead: z.boolean(),
   createdAt: z.string().datetime(),
-  actor: userSummarySchema,
-  post: notificationPostSchema.nullable(),
-  comment: notificationCommentSchema.nullable()
+  title: z.string().trim().min(1),
+  summary: z.string().trim().min(1),
+  target: messageTargetSchema,
+  actor: userSummarySchema.nullable(),
+  preview: messagePreviewSchema.nullable().default(null),
+  metadata: messageMetadataSchema.default({})
+});
+
+export const notificationsUnreadByCategorySchema = z.object({
+  likesAndFavorites: z.number().int().nonnegative(),
+  newFollowers: z.number().int().nonnegative(),
+  commentsAndMentions: z.number().int().nonnegative(),
+  system: z.number().int().nonnegative()
 });
 
 export const notificationsResponseSchema = z.object({
   unreadCount: z.number().int().nonnegative(),
-  items: z.array(notificationItemSchema)
+  unreadByCategory: notificationsUnreadByCategorySchema,
+  items: z.array(messageCardSchema)
 });
 
 export const userProfileViewerSchema = z.object({
@@ -393,6 +432,8 @@ export const adminAnalyticsOverviewResponseSchema = z.object({
   item: adminAnalyticsOverviewSchema
 });
 
-export type NotificationType = z.infer<typeof notificationTypeSchema>;
+export type NotificationCategory = z.infer<typeof messageCategorySchema>;
+export type NotificationType = z.infer<typeof messageTypeSchema>;
+export type MessageCard = z.infer<typeof messageCardSchema>;
 export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;
 export type UserContentItem = z.infer<typeof userContentItemSchema>;
