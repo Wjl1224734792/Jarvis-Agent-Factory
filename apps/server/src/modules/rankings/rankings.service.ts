@@ -495,6 +495,10 @@ async function buildRankingListItems(
   };
 }
 
+/**
+ * Owns ranking and rating-target orchestration, including permission checks,
+ * score aggregation, moderation state transitions and comment/review flows.
+ */
 export const rankingsService = {
   async listRankings(currentUser?: CurrentUser, input?: { page?: number; limit?: number }) {
     return buildRankingListItems(currentUser, input);

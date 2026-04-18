@@ -179,6 +179,10 @@ async function captureVideoFirstFrameAsJpegFile(videoUrl: string): Promise<File>
   return new File([blob], "video-cover.jpg", { type: "image/jpeg" });
 }
 
+/**
+ * Drives aircraft submission authoring, including local media preview restore,
+ * cover/video coordination and edit-vs-create submission reuse.
+ */
 export function PublishAircraftPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

@@ -40,8 +40,6 @@ export async function loginAsSeededUser(page: Page) {
   const loginResponse = await request.post(`${serverBaseUrl}/auth/web/login`, {
     data: {
       phone: "13800138000",
-      captchaChallengeId: "web-login",
-      captchaCode: "0000",
       smsCode: "888888"
     }
   });

@@ -188,6 +188,10 @@ async function captureVideoFramePreviewDataUrl(videoUrl: string, seekRatio: numb
   return canvas.toDataURL("image/jpeg", 0.72);
 }
 
+/**
+ * Covers moment publishing for mutually exclusive image/video media, including
+ * draft restore, video-cover generation and final moderation submission.
+ */
 export function PublishMomentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

@@ -59,12 +59,6 @@ export function LoginPage() {
   const smsFlow = useSmsVerificationFlow();
   const [isSmsCaptchaOpen, setIsSmsCaptchaOpen] = useState(false);
 
-  /** 登录接口仍要求图形验证码字段，但服务端登录流程不校验；短信已单独完成图形验证 */
-  const webLoginCaptchaPlaceholder = {
-    captchaChallengeId: "web-login",
-    captchaCode: "0000"
-  } as const;
-
   const redirectTo = resolveSafeRedirectPath({
     candidate: searchParams.get("redirect"),
     fallbackPath: APP_ROUTES.feedHome,
@@ -211,8 +205,6 @@ export function LoginPage() {
                     void apiClient
                       .loginWeb({
                         phone,
-                        captchaChallengeId: webLoginCaptchaPlaceholder.captchaChallengeId,
-                        captchaCode: webLoginCaptchaPlaceholder.captchaCode,
                         smsCode: smsFlow.smsCode
                       })
                       .then(response => {

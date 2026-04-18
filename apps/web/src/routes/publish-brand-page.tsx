@@ -119,6 +119,10 @@ function BrandApplicationSuccessState(props: {
   );
 }
 
+/**
+ * Manages brand-application drafting and submission so users can move from a
+ * rejected draft back to a fresh pending application without losing context.
+ */
 export function PublishBrandPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

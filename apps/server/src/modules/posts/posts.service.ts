@@ -260,6 +260,11 @@ function isOfficialArticlePost(
   return item?.type === "article" && item.author.role === "admin";
 }
 
+/**
+ * Coordinates post-domain read/write flows for feeds, post details, comments,
+ * interactions and moderation-facing projections while keeping repo access and
+ * side-effect orchestration in one place.
+ */
 export const postsService = {
   async listFeed(
     tab: FeedTab,

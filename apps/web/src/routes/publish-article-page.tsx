@@ -98,6 +98,10 @@ function ArticleEditorFallback() {
   );
 }
 
+/**
+ * Handles article authoring with local draft persistence, deferred rich-text
+ * editor loading and staged media upload before the final publish request.
+ */
 export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();

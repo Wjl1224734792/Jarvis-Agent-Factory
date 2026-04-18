@@ -184,12 +184,12 @@ export const authService = {
   async loginWeb(
     input: {
       phone: string;
-      captchaChallengeId: string;
-      captchaCode: string;
       smsCode: string;
     },
     metadata?: RequestSessionMetadata
   ) {
+    // SMS request already owns the captcha challenge. Login only needs the
+    // verified phone number plus the issued SMS code.
     const smsPassed = await authRepo.validateSmsCode(input.phone, input.smsCode);
 
     if (!smsPassed) {
@@ -244,8 +244,6 @@ export const authService = {
   async loginApp(
     input: {
       phone: string;
-      captchaChallengeId: string;
-      captchaCode: string;
       smsCode: string;
       deviceLabel?: string | null;
     },

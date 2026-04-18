@@ -6,8 +6,7 @@ import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
 import {
-  readCaptchaAnswerForTests,
-  WEB_LOGIN_CAPTCHA_PLACEHOLDER
+  readCaptchaAnswerForTests
 } from "./captcha-test-helpers";
 
 function extractCookies(response: Response): string {
@@ -110,8 +109,6 @@ async function loginWebUser(phone: string) {
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
-      captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
-      captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
       smsCode
     })
   });
@@ -321,8 +318,6 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138000",
-        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
-        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: smsPayload.mockCode
       })
     });
@@ -509,8 +504,6 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138991",
-        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
-        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode
       })
     });
@@ -545,8 +538,6 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138992",
-        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
-        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: secondSmsCode
       })
     });
@@ -891,8 +882,6 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138001",
-        captchaChallengeId: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaChallengeId,
-        captchaCode: WEB_LOGIN_CAPTCHA_PLACEHOLDER.captchaCode,
         smsCode: userSmsCode
       })
     });
@@ -1016,8 +1005,6 @@ describe("auth flows", () => {
       },
       body: JSON.stringify({
         phone: "13800138121",
-        captchaChallengeId: webLoginPayload.challengeId,
-        captchaCode: webLoginPayload.captchaCode,
         smsCode: webLoginPayload.smsCode
       })
     });
@@ -1074,8 +1061,6 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         phone: "13800138131",
-        captchaChallengeId: loginPayload.challengeId,
-        captchaCode: loginPayload.captchaCode,
         smsCode: loginPayload.smsCode
       })
     });
@@ -1127,8 +1112,6 @@ describe("auth flows", () => {
       },
       body: JSON.stringify({
         phone: "13800138141",
-        captchaChallengeId: loginPayload.challengeId,
-        captchaCode: loginPayload.captchaCode,
         smsCode: loginPayload.smsCode,
         deviceLabel: "iPhone 16 Pro"
       })

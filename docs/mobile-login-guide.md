@@ -123,8 +123,6 @@ Session ID (即 Access Token) 格式: sess_ + 24字节随机token
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | phone | string | 是 | 中国大陆手机号 |
-| captchaChallengeId | string | 是 | 图形验证码挑战 ID |
-| captchaCode | string | 是 | 图形验证码，4-8 位 |
 | smsCode | string | 是 | 6 位短信验证码 |
 | deviceLabel | string (可选) | 否 | 设备标识，最大 120 字符 |
 
@@ -133,8 +131,6 @@ Session ID (即 Access Token) 格式: sess_ + 24字节随机token
 ```json
 {
   "phone": "13800138000",
-  "captchaChallengeId": "cpt_abc123",
-  "captchaCode": "A3F7",
   "smsCode": "123456",
   "deviceLabel": "iPhone 15 Pro - iOS 17.2"
 }

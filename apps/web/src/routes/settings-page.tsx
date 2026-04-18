@@ -52,6 +52,7 @@ import {
 } from "../features/auth/phone-rebind-state";
 import { SendSmsCaptchaDialog } from "../features/auth/send-sms-captcha-dialog";
 import { useSmsVerificationFlow } from "../features/auth/use-sms-verification-flow";
+import { settingsNotificationOptions } from "../features/auth/settings-notification-options";
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
 const MAX_BIO_LENGTH = 50;
@@ -333,7 +334,7 @@ export function SettingsPage() {
   }
 
   async function toggleNotificationField(
-    field: "notifyComments" | "notifyMentions",
+    field: (typeof settingsNotificationOptions)[number]["field"],
     successMessage: string
   ) {
     const nextDraft = toggleSettingsFlag(draft, field);
@@ -772,6 +773,32 @@ export function SettingsPage() {
             </SettingsRow>
           </div>
 
+            {settingsNotificationOptions.slice(2).map((option) => (
+              <SettingsRow
+                action={
+                  <Button
+                    className="rounded-full"
+                    disabled={savingField === option.field}
+                    onClick={() => {
+                      void toggleNotificationField(option.field, option.successMessage);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant={draft[option.field] ? "default" : "outline"}
+                  >
+                    {savingField === option.field
+                      ? "\u4fdd\u5b58\u4e2d..."
+                      : draft[option.field]
+                        ? "\u5f00\u542f"
+                        : "\u5173\u95ed"}
+                  </Button>
+                }
+                key={option.field}
+                label={option.label}
+              >
+                <div className="text-muted-foreground">{option.description}</div>
+              </SettingsRow>
+            ))}
           <div className="flex flex-wrap gap-2 border-t border-border/60 bg-muted/10 px-4 py-3">
             <Button asChild size="sm" type="button" variant="ghost">
               <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>

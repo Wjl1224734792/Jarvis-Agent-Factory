@@ -54,8 +54,6 @@ export const smsCodeResponseSchema = z.object({
 
 export const webLoginRequestSchema = z.object({
   phone: chinaMainlandMobilePhoneSchema,
-  captchaChallengeId: z.string().min(1),
-  captchaCode: z.string().min(4).max(8),
   smsCode: z.string().length(6)
 });
 

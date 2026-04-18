@@ -141,6 +141,8 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
 });
 
 authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
+  // Captcha is consumed when requesting the SMS code, so the login request only
+  // validates the SMS challenge result plus session metadata.
   const input = webLoginRequestSchema.parse(await context.req.json());
 
   try {

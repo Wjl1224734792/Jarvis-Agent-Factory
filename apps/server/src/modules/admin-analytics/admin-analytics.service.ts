@@ -190,6 +190,10 @@ function toModerationBucket(row: ModerationCountRow | undefined): ModerationBuck
   };
 }
 
+/**
+ * Produces the admin dashboard overview from database aggregates plus bounded
+ * activity series so the route can stay schema-focused and side-effect free.
+ */
 export const adminAnalyticsService = {
   async getOverview() {
     const now = new Date();

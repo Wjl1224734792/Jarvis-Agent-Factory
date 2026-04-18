@@ -592,7 +592,7 @@ export const openApiDocument = {
         summary: 'Web 端登录',
         requestBody: jsonRequestBody(
           'WebLoginRequest',
-          'Web 登录所需的手机号、图形验证码和短信验证码。'
+          'Web 登录所需的手机号和短信验证码。图形验证码已在短信发送阶段完成。'
         ),
         responses: {
           '200': jsonResponse('WebLoginResponse', '返回已登录结果或注册补全信息。'),
@@ -639,7 +639,7 @@ export const openApiDocument = {
         summary: 'App 端登录',
         requestBody: jsonRequestBody(
           'AppLoginRequest',
-          'App 登录请求，支持携带 deviceLabel（设备名称）、deviceType（ios/android/harmony/miniapp-wechat/web）和 pushToken（推送令牌）。'
+          'App 登录请求，需要手机号和短信验证码，并支持携带 deviceLabel（设备名称）、deviceType（ios/android/harmony/miniapp-wechat/web）和 pushToken（推送令牌）。'
         ),
         responses: {
           '200': jsonResponse('AppLoginResponse', '返回已登录结果或注册补全信息。'),

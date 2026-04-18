@@ -64,7 +64,7 @@
 
 1. `POST /auth/captcha/challenge`
 2. `POST /auth/sms/request`
-3. `POST /auth/app/login`
+3. `POST /auth/app/login`，仅提交手机号与短信验证码
 4. 若返回 `registration_required`
    进入补全资料流程
 5. `POST /auth/app/register/complete`
