@@ -8,11 +8,7 @@ import { contentCategoriesService } from "../content-categories/content-categori
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { uploadsRepo } from "../uploads/upload.repo";
-import {
-  resolveUploadedFileUrl,
-  resolveUploadedFileUrls
-} from "../uploads/uploads.helpers";
-import { uploadsService } from "../uploads/upload.service";
+import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { postsRepo } from "./posts.repo";
 import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from "./post-media";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";

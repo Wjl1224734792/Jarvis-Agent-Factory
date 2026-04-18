@@ -1,7 +1,7 @@
 import { uploadsRepo } from "../uploads/upload.repo";
 import { resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
-import { postsRepo } from "./posts.repo";
+import type { postsRepo } from "./posts.repo";
 
 type PostRecord = Awaited<ReturnType<typeof postsRepo.getPostById>>;
 

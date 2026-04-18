@@ -3,7 +3,7 @@ import { flushRedisIfConfigured, wipePublicSchemaForMigration } from "./wipe-sch
 
 async function run() {
   await wipePublicSchemaForMigration();
-  console.info("[db:wipe-schema] public schema recreated");
+  console.info("[db:wipe-schema] public and drizzle schemas recreated");
   await flushRedisIfConfigured();
   await dbPool.end();
 }

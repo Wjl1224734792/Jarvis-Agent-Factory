@@ -9,8 +9,8 @@ import {
 
 const createObjectURLMock = vi.fn<(file: File) => string>();
 const revokeObjectURLMock = vi.fn<(url: string) => void>();
-const originalCreateObjectURL = URL.createObjectURL;
-const originalRevokeObjectURL = URL.revokeObjectURL;
+const originalCreateObjectURL = URL.createObjectURL.bind(URL);
+const originalRevokeObjectURL = URL.revokeObjectURL.bind(URL);
 
 beforeEach(() => {
   createObjectURLMock.mockReset();

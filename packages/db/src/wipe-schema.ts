@@ -3,12 +3,13 @@ import { createClient } from "redis";
 import { db } from "./client.js";
 
 /**
- * 删除并重建 `public`  schema，使 `db:migrate` 能在任意脏状态下从头应用迁移。
- * 用于 `db:reset:*`，替代仅 TRUNCATE 的 `db:clear`（后者会保留表结构，易导致迁移与结构不一致）。
+ * Rebuild all schemas touched by local migrations so the next `db:migrate`
+ * truly replays from scratch instead of reusing stale Drizzle metadata.
  */
 export async function wipePublicSchemaForMigration(): Promise<void> {
   await db.execute(
     sql.raw(`
+      DROP SCHEMA IF EXISTS drizzle CASCADE;
       DROP SCHEMA IF EXISTS public CASCADE;
       CREATE SCHEMA public AUTHORIZATION CURRENT_USER;
       GRANT ALL ON SCHEMA public TO public;

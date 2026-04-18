@@ -132,7 +132,7 @@ bun run db:seed:test-data    # 同 packages/db seed:test-data（= mock）
 
 # 清数据或重建 schema
 bun run db:clear             # 截断业务表 + 清 Redis，保留表结构
-bun run db:wipe-schema       # 删并重建 public + 清 Redis（破坏性）
+bun run db:wipe-schema       # 删并重建 public / drizzle schema + 清 Redis（破坏性）
 
 # 全量重建：wipe-schema → migrate → seed
 bun run db:reset             # 默认 = db:reset:demo
