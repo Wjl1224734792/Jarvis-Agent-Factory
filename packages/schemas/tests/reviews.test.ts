@@ -37,6 +37,12 @@ describe("reviews contract", () => {
       summary: {
         totalReviews: 1,
         myReview: null
+      },
+      pagination: {
+        page: 1,
+        limit: 20,
+        total: 1,
+        hasMore: false
       }
     });
 

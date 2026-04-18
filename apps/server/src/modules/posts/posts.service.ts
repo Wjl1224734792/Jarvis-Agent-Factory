@@ -8,9 +8,13 @@ import { contentCategoriesService } from "../content-categories/content-categori
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { uploadsRepo } from "../uploads/upload.repo";
-import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import {
+  resolveUploadedFileUrl,
+  resolveUploadedFileUrls
+} from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import { postsRepo } from "./posts.repo";
+import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from "./post-media";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
 import { rankFeedItemsByRecommendation } from "./feed-recommendation";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
@@ -26,6 +30,16 @@ type PostType = "article" | "moment";
 type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
 type CommentSort = "hot" | "latest";
+type SerializedPostMedia = {
+  id: string;
+  url: string;
+  fileName: string;
+  mimeType: string;
+  byteSize: number;
+};
+const DEFAULT_FEED_PAGE = 1;
+const DEFAULT_FEED_LIMIT = 20;
+const MAX_FEED_LIMIT = 50;
 
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
@@ -33,135 +47,6 @@ function toIsoString(value: Date | null) {
 
 function toPreview(content: string) {
   return content.length > 160 ? `${content.slice(0, 160)}...` : content;
-}
-
-function serializeImage(
-  image: Awaited<ReturnType<typeof postsRepo.getImageUploadById>>
-) {
-  if (!image) {
-    return null;
-  }
-
-  const serialized = uploadsService.serializeFileItem(image);
-  return {
-    id: serialized.id,
-    url: serialized.url,
-    fileName: serialized.fileName,
-    mimeType: serialized.mimeType,
-    byteSize: serialized.byteSize
-  };
-}
-
-function serializeVideo(
-  video: Awaited<ReturnType<typeof postsRepo.getVideoUploadById>>
-) {
-  if (!video) {
-    return null;
-  }
-
-  const serialized = uploadsService.serializeFileItem(video);
-  return {
-    id: serialized.id,
-    url: serialized.url,
-    fileName: serialized.fileName,
-    mimeType: serialized.mimeType,
-    byteSize: serialized.byteSize
-  };
-}
-
-async function buildImagesByPostId(
-  images: Awaited<ReturnType<typeof postsRepo.listPostImages>>
-) {
-  type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
-  const rows: Row[] = [];
-
-  for (const image of images) {
-    if (!image.postId) {
-      continue;
-    }
-
-    const serialized = serializeImage(image);
-    if (!serialized) {
-      continue;
-    }
-
-    rows.push({ postId: image.postId, serialized });
-  }
-
-  const resolvedUrls = await Promise.all(rows.map((row) => resolveUploadedFileUrl(row.serialized.id)));
-
-  const imagesByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>[]>();
-  for (let index = 0; index < rows.length; index++) {
-    const { postId, serialized } = rows[index];
-    const resolved = resolvedUrls[index];
-    const item = { ...serialized, url: resolved ?? serialized.url };
-    const bucket = imagesByPostId.get(postId) ?? [];
-    bucket.push(item);
-    imagesByPostId.set(postId, bucket);
-  }
-
-  return imagesByPostId;
-}
-
-async function buildVideosByPostId(
-  videos: Awaited<ReturnType<typeof postsRepo.listPostVideos>>
-) {
-  type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeVideo>> };
-  const rows: Row[] = [];
-
-  for (const video of videos) {
-    if (!video.postId) {
-      continue;
-    }
-
-    const serialized = serializeVideo(video);
-    if (!serialized) {
-      continue;
-    }
-
-    rows.push({ postId: video.postId, serialized });
-  }
-
-  const resolvedUrls = await Promise.all(rows.map((row) => resolveUploadedFileUrl(row.serialized.id)));
-
-  const videosByPostId = new Map<string, NonNullable<ReturnType<typeof serializeVideo>>[]>();
-  for (let index = 0; index < rows.length; index++) {
-    const { postId, serialized } = rows[index];
-    const resolved = resolvedUrls[index];
-    const item = { ...serialized, url: resolved ?? serialized.url };
-    const bucket = videosByPostId.get(postId) ?? [];
-    bucket.push(item);
-    videosByPostId.set(postId, bucket);
-  }
-
-  return videosByPostId;
-}
-
-async function buildCoversByPostId(items: Array<Awaited<ReturnType<typeof postsRepo.getPostById>>>) {
-  type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
-  const rows: Row[] = [];
-
-  for (const item of items) {
-    if (!item?.id || !item.coverImageFileId) {
-      continue;
-    }
-    const image = await postsRepo.getImageUploadById(item.coverImageFileId);
-    const serialized = serializeImage(image);
-    if (!serialized) {
-      continue;
-    }
-    rows.push({ postId: item.id, serialized });
-  }
-
-  const resolvedUrls = await Promise.all(rows.map((row) => resolveUploadedFileUrl(row.serialized.id)));
-  const coversByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>>();
-  for (let index = 0; index < rows.length; index++) {
-    const { postId, serialized } = rows[index];
-    const resolved = resolvedUrls[index];
-    coversByPostId.set(postId, { ...serialized, url: resolved ?? serialized.url });
-  }
-
-  return coversByPostId;
 }
 
 function buildInteractionMap(
@@ -204,9 +89,9 @@ function toViewerState(input: {
 function serializePostListItem(
   item: Awaited<ReturnType<typeof postsRepo.getPostById>>,
   options: {
-    cover: NonNullable<ReturnType<typeof serializeImage>> | null;
-    images: NonNullable<ReturnType<typeof serializeImage>>[];
-    videos: NonNullable<ReturnType<typeof serializeVideo>>[];
+    cover: SerializedPostMedia | null;
+    images: SerializedPostMedia[];
+    videos: SerializedPostMedia[];
     viewer: ReturnType<typeof toViewerState>;
   }
 ) {
@@ -383,14 +268,19 @@ export const postsService = {
   async listFeed(
     tab: FeedTab,
     currentUser: CurrentUser | null | undefined,
-    input: { type: PostType; contentCategorySlug?: string }
+    input: { type: PostType; contentCategorySlug?: string; page?: number; limit?: number }
   ) {
-    const items = await postsRepo.listFeed({
+    const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
+    const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
+    const feedResult = await postsRepo.listFeed({
       tab,
       type: input.type,
       currentUserId: currentUser?.id,
-      contentCategorySlug: input.contentCategorySlug
+      contentCategorySlug: input.contentCategorySlug,
+      page,
+      limit
     });
+    const items = feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
     const [images, videos, interactions, followingAuthorIds] = await Promise.all([
@@ -434,13 +324,25 @@ export const postsService = {
         tab,
         activeCategorySlug: input.contentCategorySlug ?? categories[0]?.slug ?? null,
         categories,
-        items: orderedItems
+        items: orderedItems,
+        pagination: {
+          page,
+          limit,
+          total: feedResult.total,
+          hasMore: page * limit < feedResult.total
+        }
       };
     }
 
     return {
       tab,
-      items: orderedItems
+      items: orderedItems,
+      pagination: {
+        page,
+        limit,
+        total: feedResult.total,
+        hasMore: page * limit < feedResult.total
+      }
     };
   },
   async createPost(input: {

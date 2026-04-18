@@ -136,21 +136,28 @@ function parseFileIdArray(value: string) {
 }
 
 export const reviewsService = {
-  async listModelReviews(slug: string, currentUserId?: string) {
+  async listModelReviews(
+    slug: string,
+    currentUserId?: string,
+    input?: { page?: number; limit?: number }
+  ) {
     const model = await reviewsRepo.findModelBySlug(slug);
 
     if (!model) {
       return null;
     }
 
+    const page = Math.max(1, input?.page ?? 1);
+    const limit = Math.min(50, Math.max(1, input?.limit ?? 20));
     const [items, aggregate, myReview] = await Promise.all([
-      reviewsRepo.listReviewsForViewer(model.id, currentUserId),
+      reviewsRepo.listReviewsForViewer(model.id, currentUserId, { page, limit }),
       reviewsRepo.getReviewAggregate(model.id),
       currentUserId ? reviewsRepo.getUserReview(model.id, currentUserId) : Promise.resolve(null)
     ]);
+    const reviewItems = items.items;
     const reviewIds = Array.from(
       new Set([
-        ...items.map((item) => item.id),
+        ...reviewItems.map((item) => item.id),
         ...(myReview ? [myReview.id] : [])
       ])
     );
@@ -162,7 +169,7 @@ export const reviewsService = {
     const reportedReviewIds = buildStateSet(reportedReviews, "reviewId");
 
     return {
-      items: await Promise.all(items.map(async (item) => ({
+      items: await Promise.all(reviewItems.map(async (item) => ({
         ...serializeReview(item),
         likeCount: item.likeCount ?? 0,
         reportCount: item.reportCount ?? 0,
@@ -196,6 +203,12 @@ export const reviewsService = {
               }
             }
           : null
+      },
+      pagination: {
+        page,
+        limit,
+        total: items.total,
+        hasMore: page * limit < items.total
       }
     };
   },

@@ -176,6 +176,10 @@ type AdminContentCategoryInput = Parameters<typeof adminContentCategoryInputSche
 type CreateBrandApplicationInput = Parameters<typeof createBrandApplicationInputSchema.parse>[0];
 type UpdateBrandApplicationInput = Parameters<typeof updateBrandApplicationInputSchema.parse>[0];
 type FeedTabInput = "recommended" | "latest" | "following";
+type FeedPaginationInput = {
+  page?: number;
+  limit?: number;
+};
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
 type UpdatePostInput = Parameters<typeof updatePostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
@@ -197,7 +201,7 @@ type UpdateModelCommentStatusInput =
 type UpdateReviewCommentStatusInput =
   Parameters<typeof updateReviewCommentStatusInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
-type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string } | FeedTabInput;
+type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string; page?: number; limit?: number } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
 type UpdateRankingInput = Parameters<typeof updateRankingInputSchema.parse>[0];
 type AddRatingTargetInput = Parameters<typeof addRatingTargetInputSchema.parse>[0];
@@ -662,12 +666,18 @@ export function createApiClient(options: ApiClientOptions) {
     async listHomeFeed(input: HomeFeedInput, options?: { signal?: AbortSignal }) {
       const normalized =
         typeof input === "string"
-          ? { tab: input, categorySlug: undefined }
-          : { tab: input.tab, categorySlug: input.categorySlug };
+          ? { tab: input, categorySlug: undefined, page: undefined, limit: undefined }
+          : { tab: input.tab, categorySlug: input.categorySlug, page: input.page, limit: input.limit };
       const parsedTab = feedTabSchema.parse(normalized.tab);
       const search = new URLSearchParams({ tab: parsedTab });
       if (normalized.categorySlug) {
         search.set("categorySlug", normalized.categorySlug);
+      }
+      if (normalized.page) {
+        search.set("page", String(normalized.page));
+      }
+      if (normalized.limit) {
+        search.set("limit", String(normalized.limit));
       }
 
       const response = await fetch(`${baseUrl}${API_ROUTES.feed}?${search.toString()}`, {
@@ -678,9 +688,16 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, homeFeedResponseSchema);
     },
-    async listCircleFeed(tab: FeedTabInput) {
+    async listCircleFeed(tab: FeedTabInput, pagination?: FeedPaginationInput) {
       const parsedTab = feedTabSchema.parse(tab);
-      const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?tab=${parsedTab}`, {
+      const search = new URLSearchParams({ tab: parsedTab });
+      if (pagination?.page) {
+        search.set("page", String(pagination.page));
+      }
+      if (pagination?.limit) {
+        search.set("limit", String(pagination.limit));
+      }
+      const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?${search.toString()}`, {
         method: "GET",
         credentials: "include"
       });
@@ -1014,8 +1031,16 @@ export function createApiClient(options: ApiClientOptions) {
         updateBrandApplicationStatusInputSchema.parse(input)
       );
     },
-    async listRankings() {
-      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.overview}`, {
+    async listRankings(input?: FeedPaginationInput) {
+      const search = new URLSearchParams();
+      if (input?.page) {
+        search.set("page", String(input.page));
+      }
+      if (input?.limit) {
+        search.set("limit", String(input.limit));
+      }
+      const query = search.size > 0 ? `?${search.toString()}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.overview}${query}`, {
         method: "GET",
         credentials: "include"
       });
@@ -1425,8 +1450,16 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, modelInteractionResponseSchema);
     },
-    async listModelReviews(slug: string) {
-      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviews(slug)}`, {
+    async listModelReviews(slug: string, input?: FeedPaginationInput) {
+      const search = new URLSearchParams();
+      if (input?.page) {
+        search.set("page", String(input.page));
+      }
+      if (input?.limit) {
+        search.set("limit", String(input.limit));
+      }
+      const query = search.size > 0 ? `?${search.toString()}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.reviews(slug)}${query}`, {
         method: "GET",
         credentials: "include"
       });

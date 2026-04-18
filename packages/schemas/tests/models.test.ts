@@ -52,6 +52,11 @@ describe("models contract", () => {
         }
       ],
       total: 1,
+      pagination: {
+        page: 1,
+        limit: 20,
+        hasMore: false
+      },
       filters: {
         categories: [
           {

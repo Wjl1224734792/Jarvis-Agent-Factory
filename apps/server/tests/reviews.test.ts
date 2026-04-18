@@ -66,23 +66,26 @@ describe("reviews service", () => {
       slug: "joby-s4",
       name: "Joby S4"
     });
-    repo.listReviewsForViewer.mockResolvedValue([
-      {
-        id: "review_1",
-        content: "Great review",
-        status: "visible",
-        likeCount: 2,
-        reportCount: 1,
-        createdAt: new Date("2026-03-29T00:00:00.000Z"),
-        updatedAt: new Date("2026-03-29T00:00:00.000Z"),
-        author: {
-          id: "author_1",
-          displayName: "Author",
-          avatarFileId: null,
-          role: "user"
+    repo.listReviewsForViewer.mockResolvedValue({
+      items: [
+        {
+          id: "review_1",
+          content: "Great review",
+          status: "visible",
+          likeCount: 2,
+          reportCount: 1,
+          createdAt: new Date("2026-03-29T00:00:00.000Z"),
+          updatedAt: new Date("2026-03-29T00:00:00.000Z"),
+          author: {
+            id: "author_1",
+            displayName: "Author",
+            avatarFileId: null,
+            role: "user"
+          }
         }
-      }
-    ]);
+      ],
+      total: 1
+    });
     repo.getReviewAggregate.mockResolvedValue({ totalReviews: 1 });
     repo.getUserReview.mockResolvedValue(null);
     repo.listViewerReviewLikes.mockResolvedValue([{ reviewId: "review_1" }]);

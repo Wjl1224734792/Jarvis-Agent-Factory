@@ -373,6 +373,8 @@ export const postsRepo = {
     type: PostType;
     currentUserId?: string | null;
     contentCategorySlug?: string;
+    page: number;
+    limit: number;
   }) {
     const conditions = [
       eq(postsTable.status, "published"),
@@ -383,6 +385,13 @@ export const postsRepo = {
       conditions.push(eq(contentCategoriesTable.slug, input.contentCategorySlug));
     }
 
+    const offset = (input.page - 1) * input.limit;
+    const baseCountQuery = db
+      .select({ count: sql<number>`count(*)` })
+      .from(postsTable)
+      .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
+      .where(and(...conditions));
+
     const baseQuery = db
       .select(postSelection())
       .from(postsTable)
@@ -392,21 +401,45 @@ export const postsRepo = {
 
     if (input.tab === "following") {
       if (!input.currentUserId) {
-        return [];
+        return { items: [], total: 0 };
       }
 
-      return baseQuery
-        .innerJoin(
+      const [rows, countRows] = await Promise.all([
+        baseQuery
+          .innerJoin(
+            userFollowsTable,
+            and(
+              eq(userFollowsTable.followeeId, postsTable.authorId),
+              eq(userFollowsTable.followerId, input.currentUserId)
+            )
+          )
+          .orderBy(...buildFeedOrder(input.tab))
+          .limit(input.limit)
+          .offset(offset),
+        baseCountQuery.innerJoin(
           userFollowsTable,
           and(
             eq(userFollowsTable.followeeId, postsTable.authorId),
             eq(userFollowsTable.followerId, input.currentUserId)
           )
         )
-        .orderBy(...buildFeedOrder(input.tab));
+      ]);
+
+      return {
+        items: rows,
+        total: Number(countRows[0]?.count ?? 0)
+      };
     }
 
-    return baseQuery.orderBy(...buildFeedOrder(input.tab));
+    const [rows, countRows] = await Promise.all([
+      baseQuery.orderBy(...buildFeedOrder(input.tab)).limit(input.limit).offset(offset),
+      baseCountQuery
+    ]);
+
+    return {
+      items: rows,
+      total: Number(countRows[0]?.count ?? 0)
+    };
   },
   async listAdminPosts(status?: PostStatus) {
     const query = db

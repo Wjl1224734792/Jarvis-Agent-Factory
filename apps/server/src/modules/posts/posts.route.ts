@@ -43,16 +43,31 @@ function buildViewerFingerprint(context: Context<{ Variables: AuthVariables }>) 
   return fingerprint.length > 1 ? fingerprint : null;
 }
 
+function parsePositiveInt(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return undefined;
+  }
+  return parsed;
+}
+
 // 帖子路由既服务前台消费，又承载后台审核，所以先统一注入 currentUser 再按场景加权限。
 postsRoute.use('*', attachCurrentUser);
 
 postsRoute.get(API_ROUTES.feed, async (context) => {
   const tabQuery = context.req.query("tab");
   const categorySlug = context.req.query("categorySlug") || undefined;
+  const page = parsePositiveInt(context.req.query("page"));
+  const limit = parsePositiveInt(context.req.query("limit"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
     type: "article",
-    contentCategorySlug: categorySlug
+    contentCategorySlug: categorySlug,
+    page,
+    limit
   });
 
   return context.json(payload);
@@ -60,9 +75,13 @@ postsRoute.get(API_ROUTES.feed, async (context) => {
 
 postsRoute.get(API_ROUTES.circleFeed, async (context) => {
   const tabQuery = context.req.query("tab");
+  const page = parsePositiveInt(context.req.query("page"));
+  const limit = parsePositiveInt(context.req.query("limit"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
-    type: "moment"
+    type: "moment",
+    page,
+    limit
   });
 
   return context.json(payload);

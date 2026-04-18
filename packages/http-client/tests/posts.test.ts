@@ -13,7 +13,13 @@ describe("posts api client", () => {
           tab: "recommended",
           activeCategorySlug: null,
           categories: [],
-          items: []
+          items: [],
+          pagination: {
+            page: 1,
+            limit: 20,
+            total: 0,
+            hasMore: false
+          }
         }),
         {
           status: 200,

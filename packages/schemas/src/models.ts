@@ -134,7 +134,8 @@ export const modelListQuerySchema = z
     categorySlug: z.string().min(1).optional(),
     brandSlug: z.string().min(1).optional(),
     sort: z.enum(["hot", "latest"]).optional(),
-    limit: z.coerce.number().int().positive().max(20).optional()
+    limit: z.coerce.number().int().positive().max(20).optional(),
+    page: z.coerce.number().int().positive().optional()
   })
   .transform((input) => ({
     categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
@@ -142,12 +143,18 @@ export const modelListQuerySchema = z
     powerTypes: input.powerTypes,
     keyword: input.keyword?.trim() || undefined,
     sort: input.sort,
-    limit: input.limit
+    limit: input.limit,
+    page: input.page
   }));
 
 export const modelListResponseSchema = z.object({
   items: z.array(modelListItemSchema),
   total: z.number().int().nonnegative(),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    hasMore: z.boolean()
+  }),
   filters: z.object({
     categories: z.array(aircraftCategorySchema),
     brands: z.array(brandSchema),

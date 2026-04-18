@@ -24,6 +24,11 @@ import { buildDefaultCorsOrigins } from './lib/cors-origins';
 import { ensureServerEnvLoaded } from './lib/load-env';
 import { logger } from './lib/logger';
 import {
+  getRequestFileLookupCount,
+  isApiMetricsEnabled,
+  runWithRequestMetrics
+} from './lib/request-metrics';
+import {
   API_DOCS_PATH,
   OPENAPI_DOCUMENT_PATH,
   openApiDocument
@@ -95,16 +100,60 @@ app.use(
 const shouldLogHttp =
   process.env.NODE_ENV !== 'test' &&
   parseBooleanEnv(process.env.LOG_HTTP_ENABLED) !== false;
+const shouldLogApiMetrics = process.env.NODE_ENV !== 'test' && isApiMetricsEnabled();
+const monitoredMetricsPaths = new Set<string>([
+  API_ROUTES.feed,
+  API_ROUTES.models.list,
+  API_ROUTES.rankings.overview
+]);
+
+function parseResponseContentLength(value: string | null) {
+  if (!value) {
+    return null;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
+}
 
 if (shouldLogHttp) {
   app.use('*', async (c, next) => {
     const started = performance.now();
-    await next();
+    await runWithRequestMetrics(async () => {
+      await next();
+    });
     // 仅在非生产输出简洁请求日志，方便本地排查接口耗时与状态码。
     const ms = Math.round(performance.now() - started);
     logger.request(`${c.req.method} ${c.req.path}`, {
       status: c.res.status,
       ms
+    });
+
+    if (!shouldLogApiMetrics || c.req.method !== 'GET' || !monitoredMetricsPaths.has(c.req.path)) {
+      return;
+    }
+
+    let responseBytes = parseResponseContentLength(c.res.headers.get('content-length'));
+    if (responseBytes === null) {
+      try {
+        const text = await c.res.clone().text();
+        responseBytes = Buffer.byteLength(text, 'utf8');
+      } catch {
+        responseBytes = null;
+      }
+    }
+
+    logger.info('api.performance.baseline', {
+      path: c.req.path,
+      method: c.req.method,
+      status: c.res.status,
+      ms,
+      responseBytes,
+      fileLookupCount: getRequestFileLookupCount()
     });
   });
 }

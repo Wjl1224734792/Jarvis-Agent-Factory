@@ -2,6 +2,7 @@ import {
   boolean,
   check,
   foreignKey,
+  index,
   integer,
   pgTable,
   text,
@@ -495,7 +496,26 @@ export const postsTable = pgTable("posts", {
     .notNull()
 }, (table) => ({
   typeCheck: check("posts_type_check", sql`${table.type} IN ('article', 'moment')`),
-  statusCheck: check("posts_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
+  statusCheck: check("posts_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`),
+  feedStatusTypePublishedIdx: index("posts_feed_status_type_published_idx").on(
+    table.status,
+    table.type,
+    table.publishedAt,
+    table.createdAt
+  ),
+  feedCategoryStatusTypeIdx: index("posts_feed_category_status_type_idx").on(
+    table.contentCategoryId,
+    table.status,
+    table.type,
+    table.publishedAt
+  ),
+  feedRecommendedScoreIdx: index("posts_feed_recommended_score_idx").on(
+    table.status,
+    table.type,
+    table.likeCount,
+    table.commentCount,
+    table.publishedAt
+  )
 }));
 
 export const postCommentsTable = pgTable(

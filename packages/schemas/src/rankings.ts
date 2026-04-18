@@ -175,7 +175,21 @@ export const ratingTargetDetailSchema = ratingTargetSchema.extend({
 
 export const rankingsResponseSchema = z.object({
   official: z.array(rankingListItemSchema),
-  community: z.array(rankingListItemSchema)
+  community: z.array(rankingListItemSchema),
+  pagination: z.object({
+    official: z.object({
+      page: z.number().int().positive(),
+      limit: z.number().int().positive(),
+      total: z.number().int().nonnegative(),
+      hasMore: z.boolean()
+    }),
+    community: z.object({
+      page: z.number().int().positive(),
+      limit: z.number().int().positive(),
+      total: z.number().int().nonnegative(),
+      hasMore: z.boolean()
+    })
+  })
 });
 
 export const adminRankingsResponseSchema = z.object({

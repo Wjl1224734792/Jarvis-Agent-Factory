@@ -2,7 +2,8 @@ import {
   buildStorageObjectUrl,
   createStorageProvider,
   resolveStorageProviderConfig
-} from "../posts/storage-provider";
+} from "../../lib/storage-provider";
+import { getCachedFileUrl, setCachedFileUrl } from "../../lib/request-metrics";
 import { uploadsRepo } from "./upload.repo";
 
 function isTruthyEnv(value: string | undefined) {
@@ -36,8 +37,14 @@ export async function resolveUploadedFileUrl(fileId: string | null | undefined) 
     return null;
   }
 
+  const cached = getCachedFileUrl(fileId);
+  if (cached.hit) {
+    return cached.value;
+  }
+
   const file = await uploadsRepo.getFileById(fileId);
   if (!file) {
+    setCachedFileUrl(fileId, null);
     return null;
   }
 
@@ -45,16 +52,73 @@ export async function resolveUploadedFileUrl(fileId: string | null | undefined) 
   if (shouldPresignReadUrls(config.endpoint)) {
     const provider = createStorageProvider(config);
     // 不传 filename，避免 Response-Disposition: attachment 影响 <img src> 内联展示
-    return provider.getDownloadUrl({
+    const url = await provider.getDownloadUrl({
       objectKey: file.objectKey,
       expiresIn: 60 * 60
     });
+    setCachedFileUrl(fileId, url);
+    return url;
   }
 
-  return buildStorageObjectUrl(config, file.objectKey);
+  const url = buildStorageObjectUrl(config, file.objectKey);
+  setCachedFileUrl(fileId, url);
+  return url;
 }
 
 export async function resolveUploadedFileUrls(fileIds: Array<string | null | undefined>) {
-  const urls = await Promise.all(fileIds.map((fileId) => resolveUploadedFileUrl(fileId)));
-  return urls.filter((value): value is string => Boolean(value));
+  const fileUrlMap = await resolveUploadedFileUrlMap(fileIds);
+  return fileIds
+    .map((fileId) => (fileId ? fileUrlMap.get(fileId) ?? null : null))
+    .filter((value): value is string => Boolean(value));
+}
+
+export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | undefined>) {
+  const uniqueIds = Array.from(
+    new Set(fileIds.filter((fileId): fileId is string => typeof fileId === "string" && fileId.length > 0))
+  );
+  const urlMap = new Map<string, string | null>();
+  const unresolvedIds: string[] = [];
+
+  for (const fileId of uniqueIds) {
+    const cached = getCachedFileUrl(fileId);
+    if (cached.hit) {
+      urlMap.set(fileId, cached.value);
+      continue;
+    }
+    unresolvedIds.push(fileId);
+  }
+
+  if (unresolvedIds.length === 0) {
+    return urlMap;
+  }
+
+  const files = await uploadsRepo.listFilesByIds(unresolvedIds);
+  const fileById = new Map(files.map((file) => [file.id, file]));
+  const config = resolveStorageProviderConfig();
+  const provider = shouldPresignReadUrls(config.endpoint) ? createStorageProvider(config) : null;
+
+  for (const fileId of unresolvedIds) {
+    const file = fileById.get(fileId);
+    if (!file) {
+      urlMap.set(fileId, null);
+      setCachedFileUrl(fileId, null);
+      continue;
+    }
+
+    if (provider) {
+      const url = await provider.getDownloadUrl({
+        objectKey: file.objectKey,
+        expiresIn: 60 * 60
+      });
+      urlMap.set(fileId, url);
+      setCachedFileUrl(fileId, url);
+      continue;
+    }
+
+    const url = buildStorageObjectUrl(config, file.objectKey);
+    urlMap.set(fileId, url);
+    setCachedFileUrl(fileId, url);
+  }
+
+  return urlMap;
 }

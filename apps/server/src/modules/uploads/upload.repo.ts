@@ -1,5 +1,6 @@
 import { createId, db, filesTable } from "@feijia/db";
 import { and, eq, inArray, isNotNull, notInArray } from "drizzle-orm";
+import { incrementFileLookupCount } from "../../lib/request-metrics";
 
 function fileSelection() {
   return {
@@ -65,6 +66,7 @@ export const uploadsRepo = {
     return this.getFileById(id);
   },
   async getFileById(id: string) {
+    incrementFileLookupCount();
     const rows = await db
       .select(fileSelection())
       .from(filesTable)
@@ -81,6 +83,17 @@ export const uploadsRepo = {
       .limit(1);
 
     return rows[0] ?? null;
+  },
+  async listFilesByIds(fileIds: string[]) {
+    if (fileIds.length === 0) {
+      return [];
+    }
+
+    incrementFileLookupCount();
+    return db
+      .select(fileSelection())
+      .from(filesTable)
+      .where(inArray(filesTable.id, fileIds));
   },
   async markFileUploaded(input: {
     fileId: string;

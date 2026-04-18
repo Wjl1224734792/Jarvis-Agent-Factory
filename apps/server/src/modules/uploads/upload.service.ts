@@ -1,5 +1,5 @@
 import { completeUploadResponseSchema, fileUrlResponseSchema, initUploadResponseSchema, type FileBizType } from "@feijia/schemas";
-import { createStorageProvider, resolveStorageProviderConfig, buildStorageObjectUrl } from "../posts/storage-provider";
+import { createStorageProvider, resolveStorageProviderConfig, buildStorageObjectUrl } from "../../lib/storage-provider";
 import { getUploadPolicy, isAllowedUploadMime } from "./upload.policy";
 import { uploadsRepo, type StoredFileRecord } from "./upload.repo";
 import { resolveUploadedFileUrl } from "./uploads.helpers";

@@ -227,12 +227,24 @@ export const homeFeedResponseSchema = z.object({
   tab: feedTabSchema,
   activeCategorySlug: z.string().nullable(),
   categories: z.array(contentCategorySchema),
-  items: z.array(postFeedItemSchema)
+  items: z.array(postFeedItemSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    hasMore: z.boolean()
+  })
 });
 
 export const circleFeedResponseSchema = z.object({
   tab: feedTabSchema,
-  items: z.array(postFeedItemSchema)
+  items: z.array(postFeedItemSchema),
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    hasMore: z.boolean()
+  })
 });
 
 export const createPostResponseSchema = z.object({

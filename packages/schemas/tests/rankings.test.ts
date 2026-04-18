@@ -102,7 +102,21 @@ describe("rankings contract", () => {
           ]
         }
       ],
-      community: []
+      community: [],
+      pagination: {
+        official: {
+          page: 1,
+          limit: 20,
+          total: 1,
+          hasMore: false
+        },
+        community: {
+          page: 1,
+          limit: 20,
+          total: 0,
+          hasMore: false
+        }
+      }
     });
 
     expect(payload.official).toHaveLength(1);

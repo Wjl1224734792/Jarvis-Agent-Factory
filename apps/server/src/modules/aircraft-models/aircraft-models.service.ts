@@ -1,4 +1,8 @@
-import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import {
+  resolveUploadedFileUrl,
+  resolveUploadedFileUrlMap,
+  resolveUploadedFileUrls
+} from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { categoriesService } from "../categories/categories.service";
 import { brandsService } from "../brands/brands.service";
@@ -15,7 +19,10 @@ type ListFilters = {
   keyword?: string;
   sort?: "hot" | "latest";
   limit?: number;
+  page?: number;
 };
+const DEFAULT_MODELS_PAGE = 1;
+const DEFAULT_MODELS_LIMIT = 20;
 
 type ModelCommentUserSummary = {
   id: string;
@@ -215,27 +222,31 @@ export const aircraftModelsService = {
             }))
           )
         : [...rows].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
-    const limitedRows =
-      typeof filters.limit === "number" ? orderedRows.slice(0, filters.limit) : orderedRows;
+    const page = Math.max(DEFAULT_MODELS_PAGE, filters.page ?? DEFAULT_MODELS_PAGE);
+    const limit = Math.max(1, filters.limit ?? DEFAULT_MODELS_LIMIT);
+    const offset = (page - 1) * limit;
+    const pagedRows = orderedRows.slice(offset, offset + limit);
 
-    const items = await Promise.all(
-      limitedRows.map(async (row) => {
-        const { coverImageFileId, videoFileId, ...rest } = row;
-        const [coverImageUrl, coverVideoUrl] = await Promise.all([
-          resolveUploadedFileUrl(coverImageFileId ?? null),
-          resolveUploadedFileUrl(videoFileId ?? null)
-        ]);
-        return {
-          ...rest,
-          coverImageUrl,
-          coverVideoUrl
-        };
-      })
+    const fileUrlMap = await resolveUploadedFileUrlMap(
+      pagedRows.flatMap((row) => [row.coverImageFileId ?? null, row.videoFileId ?? null])
     );
+    const items = pagedRows.map((row) => {
+      const { coverImageFileId, videoFileId, ...rest } = row;
+      return {
+        ...rest,
+        coverImageUrl: coverImageFileId ? fileUrlMap.get(coverImageFileId) ?? null : null,
+        coverVideoUrl: videoFileId ? fileUrlMap.get(videoFileId) ?? null : null
+      };
+    });
 
     return {
       items,
       total: orderedRows.length,
+      pagination: {
+        page,
+        limit,
+        hasMore: offset + items.length < orderedRows.length
+      },
       filters: {
         categories,
         brands,

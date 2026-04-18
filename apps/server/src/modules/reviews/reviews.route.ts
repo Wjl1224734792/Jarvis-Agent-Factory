@@ -28,6 +28,19 @@ import { reviewsService } from "./reviews.service";
 
 export const reviewsRoute = new Hono<{ Variables: AuthVariables }>();
 
+function parsePositiveInt(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 // 评测接口同时包含公开浏览、用户互动和后台审核三类场景，先统一注入当前用户上下文。
 reviewsRoute.use('*', attachCurrentUser);
 
@@ -39,7 +52,10 @@ reviewsRoute.get(API_ROUTES.models.reviews(":slug"), async (context) => {
   }
 
   const currentUser = context.get("currentUser");
-  const payload = await reviewsService.listModelReviews(slug, currentUser?.id);
+  const payload = await reviewsService.listModelReviews(slug, currentUser?.id, {
+    page: parsePositiveInt(context.req.query("page")),
+    limit: parsePositiveInt(context.req.query("limit"))
+  });
 
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "Model not found." }, 404);

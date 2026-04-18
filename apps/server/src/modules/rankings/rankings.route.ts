@@ -41,9 +41,25 @@ export const rankingsRoute = new Hono<{ Variables: AuthVariables }>();
 
 rankingsRoute.use("*", attachCurrentUser);
 
+function parsePositiveInt(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const parsed = Number(value);
+  if (!Number.isInteger(parsed) || parsed <= 0) {
+    return undefined;
+  }
+
+  return parsed;
+}
+
 rankingsRoute.get(API_ROUTES.rankings.overview, async (context) => {
   const currentUser = context.get("currentUser");
-  const payload = await rankingsService.listRankings(currentUser ?? undefined);
+  const payload = await rankingsService.listRankings(currentUser ?? undefined, {
+    page: parsePositiveInt(context.req.query("page")),
+    limit: parsePositiveInt(context.req.query("limit"))
+  });
   return context.json(rankingsResponseSchema.parse(payload));
 });
 

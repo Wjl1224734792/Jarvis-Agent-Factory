@@ -1,12 +1,18 @@
 import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
-import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import { resolveUploadedFileUrl, resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { buildCommentThreads } from "../../lib/comment-serializer";
 import { rankRatingTargetsByDynamicScore } from "./ranking-score";
+import {
+  canInspectRatingTarget,
+  canManageRanking,
+  canManageRatingTarget,
+  toRankingViewer
+} from "./ranking-permissions";
 import {
   isValidAuthRole,
   isValidRankingType,
@@ -23,6 +29,9 @@ type CurrentUser = {
 };
 
 type RatingTargetStatus = "pending" | "published" | "rejected" | "hidden";
+const DEFAULT_RANKINGS_PAGE = 1;
+const DEFAULT_RANKINGS_LIMIT = 20;
+const MAX_RANKINGS_LIMIT = 50;
 
 function toTenPointScore(rawAverage: number): number {
   if (rawAverage <= 0) {
@@ -56,57 +65,6 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
 
 async function resolveRankingImage(fileId: string | null | undefined) {
   return resolveUploadedFileUrl(fileId ?? null);
-}
-
-function canManageRanking(input: {
-  currentUser?: CurrentUser;
-  rankingType: "official" | "community";
-  rankingAuthorId: string;
-}) {
-  if (!input.currentUser) {
-    return false;
-  }
-
-  if (input.currentUser.role === "admin") {
-    return true;
-  }
-
-  return input.rankingType === "community" && input.currentUser.id === input.rankingAuthorId;
-}
-
-function canManageRatingTarget(input: {
-  currentUser?: CurrentUser;
-  rankingType: "official" | "community";
-  rankingAuthorId: string;
-  itemAuthorId: string;
-}) {
-  if (!input.currentUser) {
-    return false;
-  }
-
-  if (input.currentUser.role === "admin") {
-    return true;
-  }
-
-  if (input.rankingType === "community" && input.currentUser.id === input.rankingAuthorId) {
-    return true;
-  }
-
-  return input.currentUser.id === input.itemAuthorId;
-}
-
-function canInspectRatingTarget(input: {
-  currentUser?: CurrentUser;
-  rankingType: "official" | "community";
-  rankingAuthorId: string;
-  itemAuthorId: string;
-  itemStatus: RatingTargetStatus;
-}) {
-  if (input.itemStatus === "published") {
-    return true;
-  }
-
-  return canManageRatingTarget(input);
 }
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
@@ -190,6 +148,7 @@ async function serializeRatingTarget(
     rankingType: "official" | "community";
     rankingAuthorId: string;
     reportedItemIds?: Set<string>;
+    imageUrlMap?: Map<string, string | null>;
   }
 ): Promise<RatingTarget> {
   const aggregate = aggregateMap.get(item.id) ?? {
@@ -249,7 +208,9 @@ async function serializeRatingTarget(
     title: item.title,
     summary: item.summary,
     imageFileId: item.imageFileId ?? null,
-    imageUrl: await resolveRankingImage(item.imageFileId),
+    imageUrl: item.imageFileId
+      ? (input.imageUrlMap?.get(item.imageFileId) ?? (await resolveRankingImage(item.imageFileId)))
+      : null,
     brandName: item.brandName,
     linkedModel,
     averageScore: toTenPointScore(aggregate.averageRaw),
@@ -382,29 +343,13 @@ async function buildRatingTargetCommentThreads(input: {
   return buildCommentThreads(serialized, { compare });
 }
 
-function toRankingViewer(input: {
-  currentUser?: CurrentUser;
-  authorId: string;
-  itemAddPolicy: "public" | "owner";
-  type: "official" | "community";
-  status: "pending" | "published" | "rejected" | "hidden";
-}) {
-  const canEdit = canManageRanking({
-    currentUser: input.currentUser,
-    rankingType: input.type,
-    rankingAuthorId: input.authorId
-  });
-  const canOpenPublicAdd = input.type === "community" && input.status === "published";
-
-  return {
-    canEdit,
-    canAddItems:
-      Boolean(input.currentUser) &&
-      (canEdit || (input.itemAddPolicy === "public" && canOpenPublicAdd))
-  };
-}
-
-async function buildRankingListItems(currentUser?: CurrentUser) {
+async function buildRankingListItems(
+  currentUser?: CurrentUser,
+  input?: { page?: number; limit?: number }
+) {
+  const page = Math.max(DEFAULT_RANKINGS_PAGE, input?.page ?? DEFAULT_RANKINGS_PAGE);
+  const limit = Math.min(MAX_RANKINGS_LIMIT, Math.max(1, input?.limit ?? DEFAULT_RANKINGS_LIMIT));
+  const offset = (page - 1) * limit;
   const rankings = (await rankingsRepo.listRankings()).filter((ranking) => {
     const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
     if (rankingType === "official") {
@@ -458,6 +403,14 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
     reportedItemRows as Array<{ ratingTargetId: string }>,
     "ratingTargetId"
   );
+  const rankingFileUrlMap = await resolveUploadedFileUrlMap(
+    rankings.flatMap((ranking) => [ranking.coverImageFileId ?? null, ranking.author.avatarFileId ?? null])
+  );
+  const ratingTargetImageUrlMap = await resolveUploadedFileUrlMap(
+    Array.from(ratingTargetsByRanking.values())
+      .flat()
+      .map((item) => item.imageFileId ?? null)
+  );
 
   const all = await Promise.all(
     rankings.map(async (ranking) => {
@@ -473,7 +426,8 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
             currentUser,
             rankingType,
             rankingAuthorId: ranking.author.id,
-            reportedItemIds
+            reportedItemIds,
+            imageUrlMap: ratingTargetImageUrlMap
           })
         )
       );
@@ -487,7 +441,9 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         coverImageFileId: ranking.coverImageFileId ?? null,
-        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
+        coverImageUrl: ranking.coverImageFileId
+          ? rankingFileUrlMap.get(ranking.coverImageFileId) ?? null
+          : null,
         itemAddPolicy,
         averageScore: average(rankedItems.map((item) => item.averageScore).filter((value) => value > 0)),
         commentCount: ranking.commentCount,
@@ -497,7 +453,9 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
         author: {
           id: ranking.author.id,
           displayName: ranking.author.displayName,
-          avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
+          avatarUrl: ranking.author.avatarFileId
+            ? rankingFileUrlMap.get(ranking.author.avatarFileId) ?? null
+            : null,
           role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
         },
         viewer: toRankingViewer({
@@ -512,15 +470,34 @@ async function buildRankingListItems(currentUser?: CurrentUser) {
     })
   );
 
+  const officialItems = all.filter((item) => item.type === "official");
+  const communityItems = all.filter((item) => item.type === "community");
+  const pagedOfficialItems = officialItems.slice(offset, offset + limit);
+  const pagedCommunityItems = communityItems.slice(offset, offset + limit);
+
   return {
-    official: all.filter((item) => item.type === "official"),
-    community: all.filter((item) => item.type === "community")
+    official: pagedOfficialItems,
+    community: pagedCommunityItems,
+    pagination: {
+      official: {
+        page,
+        limit,
+        total: officialItems.length,
+        hasMore: offset + pagedOfficialItems.length < officialItems.length
+      },
+      community: {
+        page,
+        limit,
+        total: communityItems.length,
+        hasMore: offset + pagedCommunityItems.length < communityItems.length
+      }
+    }
   };
 }
 
 export const rankingsService = {
-  async listRankings(currentUser?: CurrentUser) {
-    return buildRankingListItems(currentUser);
+  async listRankings(currentUser?: CurrentUser, input?: { page?: number; limit?: number }) {
+    return buildRankingListItems(currentUser, input);
   },
 
   async createRanking(

@@ -101,7 +101,7 @@ export const reviewsRepo = {
 
     return rows[0] ?? null;
   },
-  async listReviewsForViewer(modelId: string, viewerId?: string) {
+  async listReviewsForViewer(modelId: string, viewerId?: string, input?: { page?: number; limit?: number }) {
     const visibilityCondition = viewerId
       ? or(
           eq(aircraftReviewsTable.status, "visible"),
@@ -109,26 +109,43 @@ export const reviewsRepo = {
         )
       : eq(aircraftReviewsTable.status, "visible");
 
-    return db
-      .select({
-        id: aircraftReviewsTable.id,
-        content: aircraftReviewsTable.content,
-        status: aircraftReviewsTable.status,
-        likeCount: aircraftReviewsTable.likeCount,
-        reportCount: aircraftReviewsTable.reportCount,
-        createdAt: aircraftReviewsTable.createdAt,
-        updatedAt: aircraftReviewsTable.updatedAt,
-        author: {
-          id: usersTable.id,
-          displayName: usersTable.displayName,
-          avatarFileId: usersTable.avatarFileId,
-          role: usersTable.role
-        }
-      })
-      .from(aircraftReviewsTable)
-      .innerJoin(usersTable, eq(aircraftReviewsTable.userId, usersTable.id))
-      .where(and(eq(aircraftReviewsTable.modelId, modelId), visibilityCondition))
-      .orderBy(desc(aircraftReviewsTable.updatedAt));
+    const page = Math.max(1, input?.page ?? 1);
+    const limit = Math.max(1, input?.limit ?? 20);
+    const offset = (page - 1) * limit;
+
+    const [items, countRows] = await Promise.all([
+      db
+        .select({
+          id: aircraftReviewsTable.id,
+          content: aircraftReviewsTable.content,
+          status: aircraftReviewsTable.status,
+          likeCount: aircraftReviewsTable.likeCount,
+          reportCount: aircraftReviewsTable.reportCount,
+          createdAt: aircraftReviewsTable.createdAt,
+          updatedAt: aircraftReviewsTable.updatedAt,
+          author: {
+            id: usersTable.id,
+            displayName: usersTable.displayName,
+            avatarFileId: usersTable.avatarFileId,
+            role: usersTable.role
+          }
+        })
+        .from(aircraftReviewsTable)
+        .innerJoin(usersTable, eq(aircraftReviewsTable.userId, usersTable.id))
+        .where(and(eq(aircraftReviewsTable.modelId, modelId), visibilityCondition))
+        .orderBy(desc(aircraftReviewsTable.updatedAt))
+        .limit(limit)
+        .offset(offset),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftReviewsTable)
+        .where(and(eq(aircraftReviewsTable.modelId, modelId), visibilityCondition))
+    ]);
+
+    return {
+      items,
+      total: Number(countRows[0]?.count ?? 0)
+    };
   },
   async getUserReview(modelId: string, userId: string) {
     const rows = await db

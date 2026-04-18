@@ -45,7 +45,13 @@ export const submitModelReviewResponseSchema = z.object({
 
 export const modelReviewsResponseSchema = z.object({
   items: z.array(modelReviewSchema),
-  summary: modelReviewSummarySchema
+  summary: modelReviewSummarySchema,
+  pagination: z.object({
+    page: z.number().int().positive(),
+    limit: z.number().int().positive(),
+    total: z.number().int().nonnegative(),
+    hasMore: z.boolean()
+  })
 });
 
 export const adminReviewListItemSchema = modelReviewSchema.extend({
