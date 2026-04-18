@@ -14,6 +14,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { apiClient } from "@/lib/api-client";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
+import {
+  restorePersistedPreviewAsset,
+  revokePreviewAsset
+} from "@/lib/uploads/local-preview-assets";
 import { buildBrandApplicationSuccessView } from "./publish-brand-page-helpers";
 
 type UploadedLogo = {
@@ -163,10 +167,11 @@ export function PublishBrandPage() {
           return;
         }
         const draft = snapshot.data;
+        const restoredLogo = restorePersistedPreviewAsset(draft.logo ?? null);
         setName(draft.name ?? "");
         setSlug(draft.slug ?? "");
         setDescription(draft.description ?? "");
-        setLogo(draft.logo ?? null);
+        setLogo(restoredLogo?.asset ?? null);
       })
       .catch(() => {
         // noop
@@ -205,9 +210,7 @@ export function PublishBrandPage() {
 
   useEffect(() => {
     return () => {
-      if (logo?.isLocal) {
-        URL.revokeObjectURL(logo.url);
-      }
+      revokePreviewAsset(logo);
     };
   }, [logo]);
 
@@ -222,9 +225,7 @@ export function PublishBrandPage() {
       }
       setError(null);
       setLogo((current) => {
-        if (current?.isLocal) {
-          URL.revokeObjectURL(current.url);
-        }
+        revokePreviewAsset(current);
         return {
           id: `local-${crypto.randomUUID()}`,
           url: URL.createObjectURL(file),

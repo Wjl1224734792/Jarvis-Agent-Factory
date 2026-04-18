@@ -22,6 +22,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/uploads/draft-store";
+import {
+  restorePersistedPreviewAsset,
+  restorePersistedPreviewAssets,
+  revokePreviewAsset,
+  revokePreviewAssets
+} from "../lib/uploads/local-preview-assets";
 import { cn } from "../lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
@@ -206,6 +212,15 @@ export function PublishAircraftPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverSource, setCoverSource] = useState<CoverSource>("manual");
   const [isCapturingVideoFrame, setIsCapturingVideoFrame] = useState(false);
+  const previewAssetsRef = useRef<{
+    coverImage: UploadedImage | null;
+    galleryImages: UploadedImage[];
+    uploadedVideo: UploadedVideo | null;
+  }>({
+    coverImage: null,
+    galleryImages: [],
+    uploadedVideo: null
+  });
 
   const categoriesQuery = useQuery({
     queryKey: ["aircraft-submission-categories"],
@@ -239,6 +254,9 @@ export function PublishAircraftPage() {
           return;
         }
         const draft = snapshot.data;
+        const restoredCoverImage = restorePersistedPreviewAsset(draft.coverImage ?? null);
+        const restoredGalleryEntries = restorePersistedPreviewAssets(draft.galleryImages ?? []);
+        const restoredVideo = restorePersistedPreviewAsset(draft.uploadedVideo ?? null);
         setModelName(draft.modelName ?? "");
         setSelectedBrandId(draft.selectedBrandId ?? "");
         setSelectedCategoryId(draft.selectedCategoryId ?? "");
@@ -253,15 +271,31 @@ export function PublishAircraftPage() {
         setMaxRangeKilometers(draft.maxRangeKilometers ?? "");
         setMaxSpeedKph(draft.maxSpeedKph ?? "");
         setTakeoffWeightGrams(draft.takeoffWeightGrams ?? "");
-        setCoverImage(draft.coverImage ?? null);
-        setGalleryImages(draft.galleryImages ?? []);
-        setUploadedVideo(draft.uploadedVideo ?? null);
+        setCoverImage(restoredCoverImage?.asset ?? null);
+        setGalleryImages(restoredGalleryEntries.map((entry) => entry.asset));
+        setUploadedVideo(restoredVideo?.asset ?? null);
         setCoverSource(draft.coverSource ?? "manual");
       })
       .catch(() => {
         // noop
       });
   }, [editId]);
+
+  useEffect(() => {
+    previewAssetsRef.current = {
+      coverImage,
+      galleryImages,
+      uploadedVideo
+    };
+  }, [coverImage, galleryImages, uploadedVideo]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewAsset(previewAssetsRef.current.coverImage);
+      revokePreviewAssets(previewAssetsRef.current.galleryImages);
+      revokePreviewAsset(previewAssetsRef.current.uploadedVideo);
+    };
+  }, []);
 
   const filteredBrands = useMemo(() => {
     const keyword = brandKeyword.trim().toLowerCase();
@@ -334,9 +368,7 @@ export function PublishAircraftPage() {
     setCoverSource("manual");
     frameCoverReadyVideoUrlRef.current = null;
     setCoverImage((current) => {
-      if (current?.isLocal) {
-        URL.revokeObjectURL(current.url);
-      }
+      revokePreviewAsset(current);
       return {
         id: `local-cover-${crypto.randomUUID()}`,
         url: URL.createObjectURL(file),
@@ -364,6 +396,10 @@ export function PublishAircraftPage() {
     const nextGallery = [...galleryImages];
 
     for (const file of imageFiles) {
+      if (nextGallery.length >= GALLERY_IMAGE_MAX && nextCover) {
+        break;
+      }
+
       const row: UploadedImage = {
         id: `local-gallery-${crypto.randomUUID()}`,
         url: URL.createObjectURL(file),
@@ -380,6 +416,7 @@ export function PublishAircraftPage() {
       }
 
       if (nextGallery.length >= GALLERY_IMAGE_MAX) {
+        revokePreviewAsset(row);
         break;
       }
       nextGallery.push(row);
@@ -400,6 +437,8 @@ export function PublishAircraftPage() {
     setError(null);
     frameCoverReadyVideoUrlRef.current = null;
     setCoverSource("videoFrame");
+    revokePreviewAsset(coverImage);
+    revokePreviewAsset(uploadedVideo);
     setCoverImage(null);
     setUploadedVideo({
       id: `local-video-${crypto.randomUUID()}`,
@@ -457,7 +496,10 @@ export function PublishAircraftPage() {
       file,
       isLocal: true
     };
-    setCoverImage(row);
+    setCoverImage((current) => {
+      revokePreviewAsset(current);
+      return row;
+    });
     frameCoverReadyVideoUrlRef.current = videoUrl;
     return row;
   }, []);
@@ -615,6 +657,7 @@ export function PublishAircraftPage() {
                             className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                             onClick={() => {
                               frameCoverReadyVideoUrlRef.current = null;
+                              revokePreviewAsset(uploadedVideo);
                               setUploadedVideo(null);
                               setCoverSource("manual");
                             }}
@@ -678,6 +721,7 @@ export function PublishAircraftPage() {
                               </div>
                               <Button
                                 onClick={() => {
+                                  revokePreviewAsset(coverImage);
                                   setCoverImage(null);
                                   frameCoverReadyVideoUrlRef.current = null;
                                 }}
@@ -706,6 +750,7 @@ export function PublishAircraftPage() {
                           aria-label="移除封面"
                           className="absolute right-2 top-2 z-10 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                           onClick={() => {
+                            revokePreviewAsset(coverImage);
                             setCoverImage(null);
                             frameCoverReadyVideoUrlRef.current = null;
                           }}
@@ -764,6 +809,7 @@ export function PublishAircraftPage() {
                             <button
                               className="text-[0.65rem] text-muted-foreground"
                               onClick={() => {
+                                revokePreviewAsset(img);
                                 setGalleryImages((prev) => prev.filter((_, i) => i !== index));
                               }}
                               type="button"

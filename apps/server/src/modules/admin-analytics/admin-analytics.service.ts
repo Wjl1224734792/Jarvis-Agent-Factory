@@ -11,7 +11,7 @@ import {
   sessionsTable,
   usersTable
 } from "@feijia/db";
-import { and, eq, inArray, sql } from "drizzle-orm";
+import { and, eq, gte, inArray, sql } from "drizzle-orm";
 
 type RegistrationRecord = {
   createdAt: Date;
@@ -23,6 +23,14 @@ type SessionRecord = {
 };
 
 type ModerationBucket = {
+  queueEntered: number;
+  pending: number;
+  approved: number;
+  rejected: number;
+  hidden: number;
+};
+
+type ModerationCountRow = {
   queueEntered: number;
   pending: number;
   approved: number;
@@ -172,35 +180,33 @@ function buildFunnelBucket(bucket: ModerationBucket) {
   };
 }
 
-function moderationFromRows(
-  rows: Array<{ status: string }>,
-  mapping: { pending: string[]; approved: string[]; rejected: string[]; hidden: string[] }
-): ModerationBucket {
-  const count = (statuses: string[]) => rows.filter((row) => statuses.includes(row.status)).length;
-
+function toModerationBucket(row: ModerationCountRow | undefined): ModerationBucket {
   return {
-    queueEntered: rows.length,
-    pending: count(mapping.pending),
-    approved: count(mapping.approved),
-    rejected: count(mapping.rejected),
-    hidden: count(mapping.hidden)
+    queueEntered: Number(row?.queueEntered ?? 0),
+    pending: Number(row?.pending ?? 0),
+    approved: Number(row?.approved ?? 0),
+    rejected: Number(row?.rejected ?? 0),
+    hidden: Number(row?.hidden ?? 0)
   };
 }
 
 export const adminAnalyticsService = {
   async getOverview() {
     const now = new Date();
+    // Daily/monthly/yearly charts only render the trailing 30d/12m/5y windows,
+    // so trimming source rows here avoids scanning historical tables on every refresh.
+    const seriesWindowStart = addUtcYears(startOfUtcYear(now), -4);
     const [
       users,
       sessions,
       allSessions,
-      posts,
-      comments,
-      reviews,
-      submissions,
-      rankingRecords,
-      brandApplications,
-      rankingItems,
+      postMetricsRows,
+      commentMetricsRows,
+      reviewMetricsRows,
+      submissionMetricsRows,
+      rankingMetricsRows,
+      brandApplicationMetricsRows,
+      ratingTargetMetricsRows,
       allUsersCountRows,
       rankingsCountRows,
       publishedModelsCountRows
@@ -210,7 +216,7 @@ export const adminAnalyticsService = {
           createdAt: usersTable.createdAt
         })
         .from(usersTable)
-        .where(eq(usersTable.role, "user")),
+        .where(and(eq(usersTable.role, "user"), gte(usersTable.createdAt, seriesWindowStart))),
       db
         .select({
           userId: sessionsTable.userId,
@@ -218,47 +224,83 @@ export const adminAnalyticsService = {
         })
         .from(sessionsTable)
         .innerJoin(usersTable, eq(sessionsTable.userId, usersTable.id))
-        .where(and(inArray(sessionsTable.scope, ["web", "app"]), eq(usersTable.role, "user"))),
+        .where(
+          and(
+            inArray(sessionsTable.scope, ["web", "app"]),
+            eq(usersTable.role, "user"),
+            gte(sessionsTable.createdAt, seriesWindowStart)
+          )
+        ),
       db
         .select({
           userId: sessionsTable.userId,
           createdAt: sessionsTable.createdAt
         })
-        .from(sessionsTable),
+        .from(sessionsTable)
+        .where(gte(sessionsTable.createdAt, seriesWindowStart)),
       db
         .select({
-          type: postsTable.type,
-          status: postsTable.status
+          queueEntered: sql<number>`count(*)`,
+          articles: sql<number>`count(*) filter (where ${postsTable.type} = 'article')`,
+          moments: sql<number>`count(*) filter (where ${postsTable.type} = 'moment')`,
+          pending: sql<number>`count(*) filter (where ${postsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${postsTable.status} = 'published')`,
+          rejected: sql<number>`count(*) filter (where ${postsTable.status} = 'rejected')`,
+          hidden: sql<number>`count(*) filter (where ${postsTable.status} = 'hidden')`
         })
         .from(postsTable),
       db
         .select({
-          status: postCommentsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${postCommentsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${postCommentsTable.status} = 'visible')`,
+          rejected: sql<number>`0`,
+          hidden: sql<number>`count(*) filter (where ${postCommentsTable.status} = 'hidden')`
         })
         .from(postCommentsTable),
       db
         .select({
-          status: aircraftReviewsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${aircraftReviewsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${aircraftReviewsTable.status} = 'visible')`,
+          rejected: sql<number>`0`,
+          hidden: sql<number>`count(*) filter (where ${aircraftReviewsTable.status} = 'hidden')`
         })
         .from(aircraftReviewsTable),
       db
         .select({
-          status: aircraftSubmissionsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${aircraftSubmissionsTable.status} = 'submitted')`,
+          approved: sql<number>`count(*) filter (where ${aircraftSubmissionsTable.status} = 'approved')`,
+          rejected: sql<number>`count(*) filter (where ${aircraftSubmissionsTable.status} = 'rejected')`,
+          hidden: sql<number>`0`
         })
         .from(aircraftSubmissionsTable),
       db
         .select({
-          status: rankingsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${rankingsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${rankingsTable.status} = 'published')`,
+          rejected: sql<number>`count(*) filter (where ${rankingsTable.status} = 'rejected')`,
+          hidden: sql<number>`count(*) filter (where ${rankingsTable.status} = 'hidden')`
         })
         .from(rankingsTable),
       db
         .select({
-          status: brandApplicationsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${brandApplicationsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${brandApplicationsTable.status} = 'approved')`,
+          rejected: sql<number>`count(*) filter (where ${brandApplicationsTable.status} = 'rejected')`,
+          hidden: sql<number>`0`
         })
         .from(brandApplicationsTable),
       db
         .select({
-          status: ratingTargetsTable.status
+          queueEntered: sql<number>`count(*)`,
+          pending: sql<number>`count(*) filter (where ${ratingTargetsTable.status} = 'pending')`,
+          approved: sql<number>`count(*) filter (where ${ratingTargetsTable.status} = 'published')`,
+          rejected: sql<number>`count(*) filter (where ${ratingTargetsTable.status} = 'rejected')`,
+          hidden: sql<number>`count(*) filter (where ${ratingTargetsTable.status} = 'hidden')`
         })
         .from(ratingTargetsTable),
       db
@@ -282,63 +324,20 @@ export const adminAnalyticsService = {
     const registrationRecords = users as RegistrationRecord[];
     const sessionRecords = sessions as SessionRecord[];
     const allSessionRecords = allSessions as SessionRecord[];
-
-    const postRows = posts.map((item) => ({ type: item.type, status: item.status }));
-    const commentRows = comments.map((item) => ({ status: item.status }));
-    const reviewRows = reviews.map((item) => ({ status: item.status }));
-    const submissionRows = submissions.map((item) => ({ status: item.status }));
-    const rankingRows = rankingRecords.map((item) => ({ status: item.status }));
-    const brandApplicationRows = brandApplications.map((item) => ({ status: item.status }));
-    const rankingItemRows = rankingItems.map((item) => ({ status: item.status }));
-
-    const articles = postRows.filter((item) => item.type === "article").length;
-    const moments = postRows.filter((item) => item.type === "moment").length;
+    const postMetrics = postMetricsRows[0];
+    const articles = Number(postMetrics?.articles ?? 0);
+    const moments = Number(postMetrics?.moments ?? 0);
     const aircraft = Number(publishedModelsCountRows[0]?.count ?? 0);
     const rankings = Number(rankingsCountRows[0]?.count ?? 0);
     const allUsersTotal = Number(allUsersCountRows[0]?.count ?? 0);
 
-    const postsModeration = moderationFromRows(postRows, {
-      pending: ["pending"],
-      approved: ["published"],
-      rejected: ["rejected"],
-      hidden: ["hidden"]
-    });
-    const commentsModeration = moderationFromRows(commentRows, {
-      pending: ["pending"],
-      approved: ["visible"],
-      rejected: [],
-      hidden: ["hidden"]
-    });
-    const reviewsModeration = moderationFromRows(reviewRows, {
-      pending: ["pending"],
-      approved: ["visible"],
-      rejected: [],
-      hidden: ["hidden"]
-    });
-    const submissionsModeration = moderationFromRows(submissionRows, {
-      pending: ["submitted"],
-      approved: ["approved"],
-      rejected: ["rejected"],
-      hidden: []
-    });
-    const rankingsModeration = moderationFromRows(rankingRows, {
-      pending: ["pending"],
-      approved: ["published"],
-      rejected: ["rejected"],
-      hidden: ["hidden"]
-    });
-    const brandApplicationsModeration = moderationFromRows(brandApplicationRows, {
-      pending: ["pending"],
-      approved: ["approved"],
-      rejected: ["rejected"],
-      hidden: ["hidden"]
-    });
-    const rankingItemsModeration = moderationFromRows(rankingItemRows, {
-      pending: ["pending"],
-      approved: ["published"],
-      rejected: ["rejected"],
-      hidden: ["hidden"]
-    });
+    const postsModeration = toModerationBucket(postMetrics);
+    const commentsModeration = toModerationBucket(commentMetricsRows[0]);
+    const reviewsModeration = toModerationBucket(reviewMetricsRows[0]);
+    const submissionsModeration = toModerationBucket(submissionMetricsRows[0]);
+    const rankingsModeration = toModerationBucket(rankingMetricsRows[0]);
+    const brandApplicationsModeration = toModerationBucket(brandApplicationMetricsRows[0]);
+    const rankingItemsModeration = toModerationBucket(ratingTargetMetricsRows[0]);
 
     const startOfToday = startOfUtcDay(now);
     const startOfTomorrow = addUtcDays(startOfToday, 1);

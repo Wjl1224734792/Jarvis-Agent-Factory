@@ -1,11 +1,10 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
-import { RichTextEditor } from "@/components/rich-text-editor";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -13,6 +12,13 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
+import {
+  buildRestoredPreviewUrlMap,
+  restorePersistedPreviewAsset,
+  restorePersistedPreviewAssets,
+  revokePreviewAsset,
+  revokePreviewAssets
+} from "@/lib/uploads/local-preview-assets";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
@@ -47,6 +53,12 @@ type ArticleDraftData = {
   uploadedVideos: UploadedVideo[];
 };
 
+const RichTextEditor = lazy(() =>
+  import("@/components/rich-text-editor").then((module) => ({
+    default: module.RichTextEditor
+  }))
+);
+
 function escapeHtml(input: string) {
   return input
     .replaceAll("&", "&amp;")
@@ -78,6 +90,14 @@ function replaceLocalMediaUrls(html: string, mapping: Record<string, string>) {
   return Object.entries(mapping).reduce((current, [from, to]) => current.split(from).join(to), html);
 }
 
+function ArticleEditorFallback() {
+  return (
+    <div className="rounded-[0.9rem] border border-border/70 bg-surface-1 px-4 py-6 text-sm text-muted-foreground">
+      正在加载编辑器...
+    </div>
+  );
+}
+
 export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -95,6 +115,15 @@ export function PublishArticlePage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const isUploadingMedia = false;
+  const previewAssetsRef = useRef<{
+    coverImage: UploadedImage | null;
+    uploadedImages: UploadedImage[];
+    uploadedVideos: UploadedVideo[];
+  }>({
+    coverImage: null,
+    uploadedImages: [],
+    uploadedVideos: []
+  });
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -121,18 +150,41 @@ export function PublishArticlePage() {
           return;
         }
         const parsed = snapshot.data;
+        const restoredCoverImage = restorePersistedPreviewAsset(parsed.coverImage ?? null);
+        const restoredImageEntries = restorePersistedPreviewAssets(parsed.uploadedImages ?? []);
+        const restoredVideoEntries = restorePersistedPreviewAssets(parsed.uploadedVideos ?? []);
+        const restoredMediaUrlMap = {
+          ...buildRestoredPreviewUrlMap(restoredImageEntries),
+          ...buildRestoredPreviewUrlMap(restoredVideoEntries)
+        };
         setTitle(parsed.title ?? "");
         setSummary(parsed.summary ?? "");
-        setEditorHtml(parsed.editorHtml ?? "");
+        setEditorHtml(replaceLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap));
         setCategoryId(parsed.categoryId ?? "");
-        setCoverImage(parsed.coverImage ?? null);
-        setUploadedImages(parsed.uploadedImages ?? []);
-        setUploadedVideos(parsed.uploadedVideos ?? []);
+        setCoverImage(restoredCoverImage?.asset ?? null);
+        setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
+        setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
       })
       .catch(() => {
         // noop
       });
   }, [editId]);
+
+  useEffect(() => {
+    previewAssetsRef.current = {
+      coverImage,
+      uploadedImages,
+      uploadedVideos
+    };
+  }, [coverImage, uploadedImages, uploadedVideos]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewAsset(previewAssetsRef.current.coverImage);
+      revokePreviewAssets(previewAssetsRef.current.uploadedImages);
+      revokePreviewAssets(previewAssetsRef.current.uploadedVideos);
+    };
+  }, []);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {
@@ -359,13 +411,15 @@ export function PublishArticlePage() {
                 </div>
               </div>
 
-              <RichTextEditor
+              <Suspense fallback={<ArticleEditorFallback />}>
+                <RichTextEditor
                 onChange={setEditorHtml}
                 onUploadImage={uploadImages}
                 onUploadVideo={uploadVideos}
                 placeholder="从这里开始写正文，图片与视频先本地预览，提交后统一上传。"
                 value={editorHtml}
-              />
+                />
+              </Suspense>
 
               {uploadedImages.length === 0 && uploadedVideos.length === 0 ? (
                 <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">

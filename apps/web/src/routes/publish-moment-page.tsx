@@ -14,6 +14,12 @@ import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { cn } from "@/lib/utils";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
+import {
+  restorePersistedPreviewAsset,
+  restorePersistedPreviewAssets,
+  revokePreviewAsset,
+  revokePreviewAssets
+} from "@/lib/uploads/local-preview-assets";
 import { buildPublishStatusPath } from "../lib/web-routes";
 import { getCircleCardMediaAspectClass } from "./circle-page-helpers";
 import {
@@ -204,6 +210,15 @@ export function PublishMomentPage() {
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
   const isUploading = false;
+  const previewAssetsRef = useRef<{
+    uploadedImages: UploadedImage[];
+    uploadedVideo: UploadedVideo | null;
+    videoCoverImage: UploadedImage | null;
+  }>({
+    uploadedImages: [],
+    uploadedVideo: null,
+    videoCoverImage: null
+  });
   const detailQuery = useQuery({
     queryKey: ["publish-moment-edit", editId],
     queryFn: () => {
@@ -222,9 +237,7 @@ export function PublishMomentPage() {
       try {
         const frameFile = await captureVideoFrameAsJpegFile(videoUrl, ratio);
         setVideoCoverImage((current) => {
-          if (current?.isLocal) {
-            URL.revokeObjectURL(current.url);
-          }
+          revokePreviewAsset(current);
           return {
             id: `local-video-cover-${crypto.randomUUID()}`,
             url: URL.createObjectURL(frameFile),
@@ -250,9 +263,7 @@ export function PublishMomentPage() {
     setError(null);
     const file = files[0];
     setVideoCoverImage((current) => {
-      if (current?.isLocal) {
-        URL.revokeObjectURL(current.url);
-      }
+      revokePreviewAsset(current);
       return {
         id: `local-video-cover-${crypto.randomUUID()}`,
         url: URL.createObjectURL(file),
@@ -277,12 +288,15 @@ export function PublishMomentPage() {
           return;
         }
         const draft = snapshot.data;
+        const restoredImageEntries = restorePersistedPreviewAssets(draft.uploadedImages ?? []);
+        const restoredVideo = restorePersistedPreviewAsset(draft.uploadedVideo ?? null);
+        const restoredVideoCover = restorePersistedPreviewAsset(draft.videoCoverImage ?? null);
         setTitle(draft.title ?? "");
         setContent(draft.content ?? "");
-        setUploadedImages(draft.uploadedImages ?? []);
+        setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
-        setUploadedVideo(draft.uploadedVideo ?? null);
-        setVideoCoverImage(draft.videoCoverImage ?? null);
+        setUploadedVideo(restoredVideo?.asset ?? null);
+        setVideoCoverImage(restoredVideoCover?.asset ?? null);
         setVideoCoverSource(draft.videoCoverSource ?? "frame");
         setVideoFrameRatio(draft.videoFrameRatio ?? VIDEO_COVER_RATIO_DEFAULT);
       })
@@ -290,6 +304,22 @@ export function PublishMomentPage() {
         // noop
       });
   }, [editId]);
+
+  useEffect(() => {
+    previewAssetsRef.current = {
+      uploadedImages,
+      uploadedVideo,
+      videoCoverImage
+    };
+  }, [uploadedImages, uploadedVideo, videoCoverImage]);
+
+  useEffect(() => {
+    return () => {
+      revokePreviewAssets(previewAssetsRef.current.uploadedImages);
+      revokePreviewAsset(previewAssetsRef.current.uploadedVideo);
+      revokePreviewAsset(previewAssetsRef.current.videoCoverImage);
+    };
+  }, []);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {
@@ -432,6 +462,8 @@ export function PublishMomentPage() {
       file,
       isLocal: true
     }));
+    revokePreviewAsset(uploadedVideo);
+    revokePreviewAsset(videoCoverImage);
     setUploadedVideo(null);
     setVideoCoverImage(null);
     setVideoDuration(null);
@@ -478,6 +510,9 @@ export function PublishMomentPage() {
 
     setError(null);
     const file = files[0];
+    revokePreviewAssets(uploadedImages);
+    revokePreviewAsset(uploadedVideo);
+    revokePreviewAsset(videoCoverImage);
     setUploadedImages([]);
     setSelectedImageCoverId(null);
     setUploadedVideo({
@@ -571,6 +606,7 @@ export function PublishMomentPage() {
                         aria-label="移除该图片"
                         className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                         onClick={() => {
+                          revokePreviewAsset(image);
                           setUploadedImages((current) =>
                             current.filter((item) => item.id !== image.id)
                           );
@@ -624,6 +660,8 @@ export function PublishMomentPage() {
                     aria-label="移除视频"
                     className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                     onClick={() => {
+                      revokePreviewAsset(uploadedVideo);
+                      revokePreviewAsset(videoCoverImage);
                       setUploadedVideo(null);
                       setVideoCoverImage(null);
                       setVideoDuration(null);
