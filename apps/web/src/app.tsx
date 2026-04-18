@@ -244,7 +244,8 @@ export function App() {
         return;
       }
       event.preventDefault();
-      window.location.assign(buildSafeRedirectPath(new URL(href, window.location.origin).toString()));
+      const fromPath = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+      window.location.assign(buildSafeRedirectPath(new URL(href, window.location.origin).toString(), fromPath));
     };
 
     document.addEventListener("click", onDocumentClick, true);

@@ -36,8 +36,14 @@ export function buildPublishStatusPath(kind: PublishStatusKind, id: string) {
   );
 }
 
-export function buildSafeRedirectPath(target: string) {
-  return `${WEB_ROUTE_PATHS.safeRedirect}?target=${encodeURIComponent(target)}`;
+export function buildSafeRedirectPath(target: string, fromPath?: string) {
+  const query = new URLSearchParams({
+    target
+  });
+  if (fromPath) {
+    query.set("from", fromPath);
+  }
+  return `${WEB_ROUTE_PATHS.safeRedirect}?${query.toString()}`;
 }
 
 export function isExternalHttpUrl(value: string, currentOrigin: string) {

@@ -17,7 +17,20 @@ function getExternalTarget(rawTarget: string | null) {
 export function SafeRedirectPage() {
   const [searchParams] = useSearchParams();
   const target = searchParams.get("target");
+  const from = searchParams.get("from");
   const targetUrl = useMemo(() => getExternalTarget(target), [target]);
+  const backToPath = useMemo(() => {
+    if (!from) {
+      return "/";
+    }
+    if (!from.startsWith("/")) {
+      return "/";
+    }
+    if (from.startsWith(WEB_ROUTE_PATHS.safeRedirect)) {
+      return "/";
+    }
+    return from;
+  }, [from]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-2xl items-center px-4 py-10 md:px-6">
@@ -39,7 +52,7 @@ export function SafeRedirectPage() {
             </div>
             <div className="mt-6 flex flex-wrap gap-3">
               <Button asChild variant="outline">
-                <Link to={WEB_ROUTE_PATHS.publishArticle}>返回站内</Link>
+                <Link to={backToPath}>返回站内</Link>
               </Button>
               <Button asChild variant="hero">
                 <a
