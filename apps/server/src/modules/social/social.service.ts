@@ -240,6 +240,17 @@ export const socialService = {
     >;
     postId?: string | null;
     commentId?: string | null;
+    target?: {
+      type: NotificationTargetType;
+      id: string;
+      title: string;
+      status?: string | null;
+      href?: string | null;
+    };
+    title?: string;
+    summary?: string;
+    preview?: string | null;
+    metadata?: Record<string, unknown>;
   }) {
     if (input.userId === input.actorId) {
       return;
@@ -264,41 +275,47 @@ export const socialService = {
 
     const fallbackPost = !post && comment?.postId ? await socialRepo.getPostById(comment.postId) : null;
     const targetPost = post ?? fallbackPost;
-    const targetId = targetPost?.id ?? comment?.id ?? actor.id;
-    const targetTitle = targetPost?.title ?? "相关动态";
+    const targetId = input.target?.id ?? targetPost?.id ?? comment?.id ?? actor.id;
+    const targetTitle = input.target?.title ?? targetPost?.title ?? "相关动态";
     const commentPreview = comment?.content ? toPreview(comment.content) : null;
 
-    let title = "互动提醒";
-    let summary = `${actor.displayName} 与你的内容发生了互动`;
-
-    switch (input.type) {
-      case "followed":
-        title = "新增关注";
-        summary = `${actor.displayName} 关注了你`;
-        break;
-      case "post_liked":
-        title = "收到新的点赞";
-        summary = `${actor.displayName} 点赞了你的《${targetTitle}》`;
-        break;
-      case "post_favorited":
-        title = "收到新的收藏";
-        summary = `${actor.displayName} 收藏了你的《${targetTitle}》`;
-        break;
-      case "post_shared":
-        title = "内容被分享";
-        summary = `${actor.displayName} 分享了你的《${targetTitle}》`;
-        break;
-      case "post_commented":
-        title = "收到新的评论";
-        summary = `${actor.displayName} 评论了你的《${targetTitle}》`;
-        break;
-      case "comment_replied":
-        title = "收到新的回复";
-        summary = `${actor.displayName} 回复了你的评论`;
-        break;
+    let title = input.title;
+    let summary = input.summary;
+    if (!title || !summary) {
+      title = title ?? "互动提醒";
+      summary = summary ?? `${actor.displayName} 与你的内容发生了互动`;
+      switch (input.type) {
+        case "followed":
+          title = "新增关注";
+          summary = `${actor.displayName} 关注了你`;
+          break;
+        case "post_liked":
+          title = "收到新的点赞";
+          summary = `${actor.displayName} 点赞了你的《${targetTitle}》`;
+          break;
+        case "post_favorited":
+          title = "收到新的收藏";
+          summary = `${actor.displayName} 收藏了你的《${targetTitle}》`;
+          break;
+        case "post_shared":
+          title = "内容被分享";
+          summary = `${actor.displayName} 分享了你的《${targetTitle}》`;
+          break;
+        case "post_commented":
+          title = "收到新的评论";
+          summary = `${actor.displayName} 评论了你的《${targetTitle}》`;
+          break;
+        case "comment_replied":
+          title = "收到新的回复";
+          summary = `${actor.displayName} 回复了你的评论`;
+          break;
+      }
     }
 
-    const targetType: NotificationTargetType = input.type === "followed" ? "user" : "post";
+    const targetType: NotificationTargetType =
+      input.target?.type ?? (input.type === "followed" ? "user" : "post");
+    const targetStatus = input.target?.status ?? null;
+    const targetHref = input.target?.href ?? null;
     await socialRepo.createNotification({
       userId: input.userId,
       actorId: actor.id,
@@ -307,13 +324,16 @@ export const socialService = {
       targetType,
       targetId,
       targetTitle: targetType === "user" ? actor.displayName : targetTitle,
+      targetStatus,
       title,
       summary,
-      preview: commentPreview,
+      preview: input.preview ?? commentPreview,
       metadata: {
+        ...(input.metadata ?? {}),
         trigger: input.type,
         postId: targetPost?.id ?? null,
-        commentId: comment?.id ?? null
+        commentId: comment?.id ?? null,
+        href: targetHref
       },
       postId: targetPost?.id ?? input.postId ?? comment?.postId ?? null,
       commentId: comment?.id ?? input.commentId ?? null

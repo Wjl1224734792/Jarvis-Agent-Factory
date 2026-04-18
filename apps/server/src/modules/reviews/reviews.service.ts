@@ -2,6 +2,7 @@ import { reviewsRepo } from "./reviews.repo";
 import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { socialService } from "../social/social.service";
 import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
 import { isValidAuthRole, isValidReviewCommentStatus } from "../../lib/type-guards";
 
@@ -211,11 +212,14 @@ export const reviewsService = {
       return null;
     }
 
+    const status = (await siteSettingsService.getResolvedSettings()).reviewModerationEnabled
+      ? "pending"
+      : "visible";
     await reviewsRepo.upsertReview({
       modelId: model.id,
       userId,
       content: input.content,
-      status: (await siteSettingsService.getResolvedSettings()).reviewModerationEnabled ? "pending" : "visible"
+      status
     });
 
     const [item, summary] = await Promise.all([
@@ -225,6 +229,21 @@ export const reviewsService = {
 
     if (!item || !summary) {
       return null;
+    }
+    if (status === "visible" && model.ownerId && model.ownerId !== userId) {
+      await socialService.recordNotification({
+        userId: model.ownerId,
+        actorId: userId,
+        type: "post_commented",
+        target: {
+          type: "status",
+          id: model.id,
+          title: model.name,
+          href: `/models/${model.slug}`
+        },
+        title: "机型收到新评测",
+        summary: `有人发布了机型《${model.name}》的评测`
+      });
     }
 
     return {
@@ -362,6 +381,27 @@ export const reviewsService = {
     if (!serialized) {
       return { kind: "not_found" as const };
     }
+    if (status === "visible") {
+      const targetUserId = parentComment ? parentComment.author.id : review.author.id;
+      if (targetUserId !== currentUser.id) {
+        await socialService.recordNotification({
+          userId: targetUserId,
+          actorId: currentUser.id,
+          type: parentComment ? "comment_replied" : "post_commented",
+          commentId: item.id,
+          target: {
+            type: "status",
+            id: review.model.id,
+            title: review.model.name,
+            href: `/models/${review.model.slug}`
+          },
+          title: parentComment ? "评测评论收到回复" : "评测收到新评论",
+          summary: parentComment
+            ? `有人回复了你在《${review.model.name}》评测下的评论`
+            : `有人评论了你发布的《${review.model.name}》评测`
+        });
+      }
+    }
 
     return { kind: "ok" as const, item: serialized };
   },
@@ -392,7 +432,22 @@ export const reviewsService = {
       return { kind: "not_found" as const };
     }
 
-    await reviewsRepo.toggleReviewLike(reviewId, currentUser.id);
+    const result = await reviewsRepo.toggleReviewLike(reviewId, currentUser.id);
+    if (result.active && review.author.id !== currentUser.id) {
+      await socialService.recordNotification({
+        userId: review.author.id,
+        actorId: currentUser.id,
+        type: "post_liked",
+        target: {
+          type: "status",
+          id: review.model.id,
+          title: review.model.name,
+          href: `/models/${review.model.slug}`
+        },
+        title: "评测收到点赞",
+        summary: `有人点赞了你发布的《${review.model.name}》评测`
+      });
+    }
     return { kind: "ok" as const };
   },
   async reportReview(
@@ -469,7 +524,26 @@ export const reviewsService = {
       return { kind: "not_found" as const };
     }
 
-    await reviewsRepo.toggleReviewCommentLike(commentId, currentUser.id);
+    const result = await reviewsRepo.toggleReviewCommentLike(commentId, currentUser.id);
+    if (result.active && comment.author.id !== currentUser.id) {
+      const review = await reviewsRepo.getReviewById(reviewId);
+      if (review) {
+        await socialService.recordNotification({
+          userId: comment.author.id,
+          actorId: currentUser.id,
+          type: "post_liked",
+          commentId,
+          target: {
+            type: "status",
+            id: review.model.id,
+            title: review.model.name,
+            href: `/models/${review.model.slug}`
+          },
+          title: "评测评论收到点赞",
+          summary: `有人点赞了你在《${review.model.name}》评测下的评论`
+        });
+      }
+    }
     return { kind: "ok" as const };
   },
   async reportReviewComment(

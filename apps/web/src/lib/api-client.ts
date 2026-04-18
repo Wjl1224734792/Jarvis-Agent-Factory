@@ -561,9 +561,6 @@ const rawApiClient = {
   getModelDetail(slug: string) {
     return getJson<WebModelDetailResponse>(API_ROUTES.models.detail(slug));
   },
-  markNotificationRead(id: string) {
-    return postJson<{ success: true }>(`/notifications/${id}/read`);
-  },
   listAircraftCategories() {
     return getJson<WebCategory[]>(API_ROUTES.models.categories);
   },

@@ -3,6 +3,7 @@ import { uploadsRepo } from "../uploads/upload.repo";
 import { categoriesService } from "../categories/categories.service";
 import { brandsService } from "../brands/brands.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
+import { socialService } from "../social/social.service";
 import { aircraftModelsRepo } from "./aircraft-models.repo";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
 import { sortModelsByHotScore } from "./model-hot-score";
@@ -413,6 +414,31 @@ export const aircraftModelsService = {
       aircraftModelsRepo.getInteractionSummary(item.id),
       aircraftModelsRepo.getViewerInteractionState(item.id, userId)
     ]);
+    if (result.active && item.ownerId && item.ownerId !== userId) {
+      const notificationTypeByInteraction = {
+        interested: "post_liked",
+        favorite: "post_favorited",
+        share: "post_shared"
+      } as const;
+      const titleByInteraction = {
+        interested: "机型收到关注",
+        favorite: "机型收到收藏",
+        share: "机型被分享"
+      } as const;
+      await socialService.recordNotification({
+        userId: item.ownerId,
+        actorId: userId,
+        type: notificationTypeByInteraction[type],
+        target: {
+          type: "status",
+          id: item.id,
+          title: item.name,
+          href: `/models/${item.slug}`
+        },
+        title: titleByInteraction[type],
+        summary: `有人与你互动了机型《${item.name}》`
+      });
+    }
 
     return {
       item: {
@@ -525,6 +551,30 @@ export const aircraftModelsService = {
     if (!serialized) {
       return { kind: "not_found" as const };
     }
+    if (status === "visible") {
+      const targetUserId = parentComment ? parentComment.author.id : item.ownerId;
+      const notificationType = parentComment ? "comment_replied" : "post_commented";
+      const notificationTitle = parentComment ? "机型评论收到回复" : "机型收到新评论";
+      const notificationSummary = parentComment
+        ? `有人回复了你在机型《${item.name}》下的评论`
+        : `有人评论了你的机型《${item.name}》`;
+      if (targetUserId && targetUserId !== currentUser.id) {
+        await socialService.recordNotification({
+          userId: targetUserId,
+          actorId: currentUser.id,
+          type: notificationType,
+          commentId: created.id,
+          target: {
+            type: "status",
+            id: item.id,
+            title: item.name,
+            href: `/models/${slug}`
+          },
+          title: notificationTitle,
+          summary: notificationSummary
+        });
+      }
+    }
 
     return { kind: "ok" as const, item: serialized };
   },
@@ -601,7 +651,23 @@ export const aircraftModelsService = {
       return { kind: "not_found" as const };
     }
 
-    await aircraftModelsRepo.toggleModelCommentLike(commentId, currentUser.id);
+    const result = await aircraftModelsRepo.toggleModelCommentLike(commentId, currentUser.id);
+    if (result.active && comment.author.id !== currentUser.id) {
+      await socialService.recordNotification({
+        userId: comment.author.id,
+        actorId: currentUser.id,
+        type: "post_liked",
+        commentId,
+        target: {
+          type: "status",
+          id: item.id,
+          title: item.name,
+          href: `/models/${slug}`
+        },
+        title: "机型评论收到点赞",
+        summary: `有人点赞了你在机型《${item.name}》下的评论`
+      });
+    }
     return { kind: "ok" as const };
   },
   async reportModelComment(

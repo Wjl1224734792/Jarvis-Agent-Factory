@@ -18,7 +18,8 @@ export const reviewsRepo = {
       .select({
         id: aircraftModelsTable.id,
         slug: aircraftModelsTable.slug,
-        name: aircraftModelsTable.name
+        name: aircraftModelsTable.name,
+        ownerId: aircraftModelsTable.ownerId
       })
       .from(aircraftModelsTable)
       .where(eq(aircraftModelsTable.slug, slug))
