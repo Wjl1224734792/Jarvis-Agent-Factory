@@ -563,6 +563,7 @@ export const aircraftModelsService = {
           userId: targetUserId,
           actorId: currentUser.id,
           type: notificationType,
+          commentId: created.id,
           target: {
             type: "status",
             id: item.id,
@@ -570,8 +571,7 @@ export const aircraftModelsService = {
             href: `/models/${slug}`
           },
           title: notificationTitle,
-          summary: notificationSummary,
-          metadata: { modelCommentId: created.id }
+          summary: notificationSummary
         });
       }
     }
@@ -657,6 +657,7 @@ export const aircraftModelsService = {
         userId: comment.author.id,
         actorId: currentUser.id,
         type: "post_liked",
+        commentId,
         target: {
           type: "status",
           id: item.id,
@@ -664,8 +665,7 @@ export const aircraftModelsService = {
           href: `/models/${slug}`
         },
         title: "机型评论收到点赞",
-        summary: `有人点赞了你在机型《${item.name}》下的评论`,
-        metadata: { modelCommentId: commentId }
+        summary: `有人点赞了你在机型《${item.name}》下的评论`
       });
     }
     return { kind: "ok" as const };

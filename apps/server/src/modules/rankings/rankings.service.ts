@@ -1460,6 +1460,7 @@ export const rankingsService = {
           userId: targetUserId,
           actorId: currentUserId,
           type: parentComment ? "comment_replied" : "post_commented",
+          commentId: created.id,
           target: {
             type: "rating_target",
             id: item.id,
@@ -1469,8 +1470,7 @@ export const rankingsService = {
           title: parentComment ? "榜单条目评论收到回复" : "榜单条目收到新评论",
           summary: parentComment
             ? `有人回复了你在《${item.title}》下的评论`
-            : `有人评论了你的榜单条目《${item.title}》`,
-          metadata: { ratingTargetCommentId: created.id }
+            : `有人评论了你的榜单条目《${item.title}》`
         });
       }
     }
@@ -1550,6 +1550,7 @@ export const rankingsService = {
           userId: comment.author.id,
           actorId: currentUser.id,
           type: "post_liked",
+          commentId,
           target: {
             type: "rating_target",
             id: target.id,
@@ -1557,8 +1558,7 @@ export const rankingsService = {
             href: `/rating-targets/${target.id}`
           },
           title: "榜单条目评论收到点赞",
-          summary: `有人点赞了你在《${target.title}》下的评论`,
-          metadata: { ratingTargetCommentId: commentId }
+          summary: `有人点赞了你在《${target.title}》下的评论`
         });
       }
     }

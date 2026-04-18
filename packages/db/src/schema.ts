@@ -655,10 +655,8 @@ export const postInteractionsTable = pgTable(
 
 export const notificationsTable = pgTable("notifications", {
   id: text("id").primaryKey(),
-  userId: text("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  actorId: text("actor_id").references(() => usersTable.id, { onDelete: "set null" }),
+  userId: text("user_id").notNull(),
+  actorId: text("actor_id"),
   category: text("category").default("comments_and_mentions").notNull(),
   type: text("type").notNull(),
   targetType: text("target_type").default("status").notNull(),
@@ -669,8 +667,8 @@ export const notificationsTable = pgTable("notifications", {
   summary: text("summary").default("状态已更新").notNull(),
   preview: text("preview"),
   metadata: text("metadata").default("{}").notNull(),
-  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
-  commentId: text("comment_id").references(() => postCommentsTable.id, { onDelete: "cascade" }),
+  postId: text("post_id"),
+  commentId: text("comment_id"),
   isRead: boolean("is_read").default(false).notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
