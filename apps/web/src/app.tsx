@@ -1,6 +1,6 @@
 import { QueryClientProvider } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Suspense, lazy, useMemo, type ReactNode } from "react";
+import { Suspense, lazy, useEffect, useMemo, type ReactNode } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import {
   PublishAircraftPageSkeleton,
@@ -13,7 +13,7 @@ import { ImmersiveLayout } from "./features/auth/immersive-layout";
 import { ProtectedRoute } from "./features/auth/protected-route";
 import { WebLayout } from "./features/auth/web-layout";
 import { queryClient } from "./lib/query-client";
-import { WEB_ROUTE_PATHS } from "./lib/web-routes";
+import { WEB_ROUTE_PATHS, buildSafeRedirectPath, isExternalHttpUrl } from "./lib/web-routes";
 
 const HomePage = lazy(() =>
   import("./routes/home-page").then((module) => ({
@@ -115,6 +115,11 @@ const RankingEditorPage = lazy(() =>
     default: module.RankingEditorPage
   }))
 );
+const SafeRedirectPage = lazy(() =>
+  import("./routes/safe-redirect-page").then((module) => ({
+    default: module.SafeRedirectPage
+  }))
+);
 
 const HomePageRouteSkeleton = lazy(() =>
   import("./components/route-skeletons").then((module) => ({
@@ -212,6 +217,42 @@ function withSuspenseFallback(children: ReactNode, fallback: ReactNode) {
 }
 
 export function App() {
+  useEffect(() => {
+    const onDocumentClick = (event: MouseEvent) => {
+      if (event.defaultPrevented || event.button !== 0) {
+        return;
+      }
+      if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) {
+        return;
+      }
+      const target = event.target;
+      if (!(target instanceof HTMLElement)) {
+        return;
+      }
+      const linkElement = target.closest("a[href]");
+      if (!linkElement) {
+        return;
+      }
+      if (linkElement.getAttribute("data-skip-safe-redirect") === "true") {
+        return;
+      }
+      const href = linkElement.getAttribute("href");
+      if (!href || typeof window === "undefined") {
+        return;
+      }
+      if (!isExternalHttpUrl(href, window.location.origin)) {
+        return;
+      }
+      event.preventDefault();
+      window.location.assign(buildSafeRedirectPath(new URL(href, window.location.origin).toString()));
+    };
+
+    document.addEventListener("click", onDocumentClick, true);
+    return () => {
+      document.removeEventListener("click", onDocumentClick, true);
+    };
+  }, []);
+
   const router = useMemo(
     () =>
       // 整个站点拆成 WebLayout 与 ImmersiveLayout 两套壳层：
@@ -292,6 +333,10 @@ export function App() {
             {
               path: toRootChildPath(APP_ROUTES.search),
               element: withRouteFallback(<SearchPage />)
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.safeRedirect),
+              element: withRouteFallback(<SafeRedirectPage />)
             },
             {
               path: toRootChildPath(APP_ROUTES.rankings),
@@ -397,6 +442,10 @@ export function App() {
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishStatus),
               element: withRouteFallback(<PublishStatusPage />)
+            },
+            {
+              path: toRootChildPath(WEB_ROUTE_PATHS.safeRedirect),
+              element: withRouteFallback(<SafeRedirectPage />)
             }
           ]
         }

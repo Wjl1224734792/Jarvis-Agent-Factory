@@ -28,12 +28,16 @@ type UploadedImage = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 type UploadedVideo = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
@@ -186,7 +190,7 @@ export function PublishMomentPage() {
   const [isCapturingVideoFrame, setIsCapturingVideoFrame] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const isUploading = false;
   const detailQuery = useQuery({
     queryKey: ["publish-moment-edit", editId],
     queryFn: () => {
@@ -204,11 +208,17 @@ export function PublishMomentPage() {
       setIsCapturingVideoFrame(true);
       try {
         const frameFile = await captureVideoFrameAsJpegFile(videoUrl, ratio);
-        const uploaded = await apiClient.uploadPostImage(frameFile);
-        setVideoCoverImage({
-          id: uploaded.item.id,
-          url: uploaded.item.url,
-          fileName: uploaded.item.fileName
+        setVideoCoverImage((current) => {
+          if (current?.isLocal) {
+            URL.revokeObjectURL(current.url);
+          }
+          return {
+            id: `local-video-cover-${crypto.randomUUID()}`,
+            url: URL.createObjectURL(frameFile),
+            fileName: frameFile.name,
+            file: frameFile,
+            isLocal: true
+          };
         });
         setVideoCoverSource("frame");
       } catch (reason: unknown) {
@@ -225,22 +235,22 @@ export function PublishMomentPage() {
       return;
     }
     setError(null);
-    setIsUploading(true);
-    try {
-      const uploaded = await apiClient.uploadPostImage(files[0]);
-      setVideoCoverImage({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-      setVideoCoverSource("manual");
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面上传失败，请稍后重试。");
-    } finally {
-      setIsUploading(false);
-      if (videoCoverInputRef.current) {
-        videoCoverInputRef.current.value = "";
+    const file = files[0];
+    setVideoCoverImage((current) => {
+      if (current?.isLocal) {
+        URL.revokeObjectURL(current.url);
       }
+      return {
+        id: `local-video-cover-${crypto.randomUUID()}`,
+        url: URL.createObjectURL(file),
+        fileName: file.name,
+        file,
+        isLocal: true
+      };
+    });
+    setVideoCoverSource("manual");
+    if (videoCoverInputRef.current) {
+      videoCoverInputRef.current.value = "";
     }
   }, []);
 
@@ -346,31 +356,20 @@ export function PublishMomentPage() {
     }
 
     setError(null);
-    setIsUploading(true);
-
-    try {
-      const nextImages: UploadedImage[] = [];
-      for (const file of Array.from(files)) {
-        const uploaded = await apiClient.uploadPostImage(file);
-        nextImages.push({
-          id: uploaded.item.id,
-          url: uploaded.item.url,
-          fileName: uploaded.item.fileName
-        });
-      }
-
-      setUploadedVideo(null);
-      setVideoCoverImage(null);
-      setVideoDuration(null);
-      setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
-      setUploadedImages((current) => [...current, ...nextImages]);
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
-    } finally {
-      setIsUploading(false);
-      if (zoneInputRef.current) {
-        zoneInputRef.current.value = "";
-      }
+    const nextImages: UploadedImage[] = Array.from(files).map((file) => ({
+      id: `local-image-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    }));
+    setUploadedVideo(null);
+    setVideoCoverImage(null);
+    setVideoDuration(null);
+    setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
+    setUploadedImages((current) => [...current, ...nextImages]);
+    if (zoneInputRef.current) {
+      zoneInputRef.current.value = "";
     }
   }
 
@@ -409,28 +408,21 @@ export function PublishMomentPage() {
     }
 
     setError(null);
-    setIsUploading(true);
-
-    try {
-      const file = files[0];
-      const uploaded = await apiClient.uploadPostVideo(file);
-      setUploadedImages([]);
-      setSelectedImageCoverId(null);
-      setUploadedVideo({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-      setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
-      setVideoDuration(null);
-      await uploadVideoFrameCover(uploaded.item.url, VIDEO_COVER_RATIO_DEFAULT / 100);
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "操作失败，请稍后重试。");
-    } finally {
-      setIsUploading(false);
-      if (zoneInputRef.current) {
-        zoneInputRef.current.value = "";
-      }
+    const file = files[0];
+    setUploadedImages([]);
+    setSelectedImageCoverId(null);
+    setUploadedVideo({
+      id: `local-video-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    });
+    setVideoCoverImage(null);
+    setVideoFrameRatio(VIDEO_COVER_RATIO_DEFAULT);
+    setVideoDuration(null);
+    if (zoneInputRef.current) {
+      zoneInputRef.current.value = "";
     }
   }
 
@@ -438,9 +430,7 @@ export function PublishMomentPage() {
     selectedImageCoverId
       ? uploadedImages.find((image) => image.id === selectedImageCoverId) ?? null
       : uploadedImages[0] ?? null;
-  const submitCoverImageId = uploadedVideo
-    ? videoCoverImage?.id ?? null
-    : selectedImageCover?.id ?? null;
+  const submitCoverReady = uploadedVideo ? Boolean(videoCoverImage) : Boolean(selectedImageCover);
   const previewImageUrl = uploadedVideo
     ? videoCoverImage?.url ?? null
     : selectedImageCover?.url ?? null;
@@ -724,7 +714,7 @@ export function PublishMomentPage() {
               <Button
                 disabled={
                   !title.trim() ||
-                  !submitCoverImageId ||
+                  !submitCoverReady ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -743,7 +733,7 @@ export function PublishMomentPage() {
                     setError("请填写标题。");
                     return;
                   }
-                  if (!submitCoverImageId) {
+                  if (!submitCoverReady) {
                     setError("请先上传封面。");
                     return;
                   }
@@ -754,22 +744,62 @@ export function PublishMomentPage() {
                   const submitPost = editId
                     ? (input: Parameters<typeof apiClient.createPost>[0]) => apiClient.updatePost(editId, input)
                     : (input: Parameters<typeof apiClient.createPost>[0]) => apiClient.createPost(input);
-                  void submitPost
-                    ({
+                  void (async () => {
+                    if (uploadedVideo) {
+                      const submitVideo = uploadedVideo.file
+                        ? (await apiClient.uploadPostVideo(uploadedVideo.file)).item
+                        : uploadedVideo;
+                      const submitCover = videoCoverImage?.file
+                        ? (await apiClient.uploadPostImage(videoCoverImage.file)).item
+                        : videoCoverImage;
+                      if (!submitCover) {
+                        throw new Error("请先上传封面。");
+                      }
+                      const response = await submitPost({
+                        type: "moment",
+                        title: title.trim(),
+                        content,
+                        coverImageId: submitCover.id,
+                        imageIds: [],
+                        videoIds: [submitVideo.id]
+                      });
+                      return { response, imageUrl: submitCover.url };
+                    }
+
+                    const submitImages = await Promise.all(
+                      uploadedImages.map(async (item) => {
+                        if (!item.file) {
+                          return { originId: item.id, item };
+                        }
+                        const uploaded = await apiClient.uploadPostImage(item.file);
+                        return { originId: item.id, item: uploaded.item };
+                      })
+                    );
+                    const coverId = selectedImageCover
+                      ? submitImages.find((entry) => entry.originId === selectedImageCover.id)?.item.id ?? selectedImageCover.id
+                      : null;
+                    if (!coverId) {
+                      throw new Error("请先上传封面。");
+                    }
+                    const response = await submitPost({
                       type: "moment",
                       title: title.trim(),
                       content,
-                      coverImageId: submitCoverImageId,
-                      imageIds: uploadedImages.map((item) => item.id),
-                      videoIds: uploadedVideo ? [uploadedVideo.id] : []
-                    })
-                    .then((payload) => {
+                      coverImageId: coverId,
+                      imageIds: submitImages.map((entry) => entry.item.id),
+                      videoIds: []
+                    });
+                    const previewCover =
+                      submitImages.find((entry) => entry.item.id === coverId)?.item.url ?? selectedImageCover?.url ?? null;
+                    return { response, imageUrl: previewCover };
+                  })()
+                    .then(({ response, imageUrl }) => {
                       void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
-                      void navigate(buildPublishStatusPath("moment", payload.item.id), {
+                      void navigate(buildPublishStatusPath("moment", response.item.id), {
                         state: {
                           title: title.trim(),
                           description: content.trim().slice(0, 120),
-                          imageUrl: previewImageUrl
+                          imageUrl
                         }
                       });
                     })

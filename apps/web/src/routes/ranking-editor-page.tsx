@@ -24,6 +24,8 @@ type DraftItem = {
   imageUrl: string;
   brandName: string;
   linkedModelSlug: string | null;
+  pendingImageFile: File | null;
+  pendingImageFileName: string | null;
 };
 
 function emptyDraftItem(): DraftItem {
@@ -34,7 +36,9 @@ function emptyDraftItem(): DraftItem {
     imageFileId: "",
     imageUrl: "",
     brandName: "",
-    linkedModelSlug: null
+    linkedModelSlug: null,
+    pendingImageFile: null,
+    pendingImageFileName: null
   };
 }
 
@@ -49,13 +53,14 @@ export function RankingEditorPage() {
   const [title, setTitle] = useState("");
   const [coverImageFileId, setCoverImageFileId] = useState("");
   const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [coverImageFile, setCoverImageFile] = useState<File | null>(null);
   const [modelSearch, setModelSearch] = useState("");
   const [itemAddPolicy, setItemAddPolicy] = useState<"public" | "owner">("owner");
   const [draftItems, setDraftItems] = useState<DraftItem[]>([]);
   const [selectedImageItemId, setSelectedImageItemId] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const isUploading = false;
 
   const modelsQuery = useQuery({
     queryKey: ["ranking-editor-models"],
@@ -81,6 +86,7 @@ export function RankingEditorPage() {
     setTitle(ranking.title);
     setCoverImageFileId(ranking.coverImageFileId ?? "");
     setCoverImageUrl(ranking.coverImageUrl ?? "");
+    setCoverImageFile(null);
     setItemAddPolicy(ranking.itemAddPolicy);
     setDraftItems(
       ranking.items.map((item) => ({
@@ -90,7 +96,9 @@ export function RankingEditorPage() {
         imageFileId: item.imageFileId ?? "",
         imageUrl: item.imageUrl ?? "",
         brandName: item.brandName ?? item.linkedModel?.brand.name ?? "",
-        linkedModelSlug: item.linkedModel?.slug ?? null
+        linkedModelSlug: item.linkedModel?.slug ?? null,
+        pendingImageFile: null,
+        pendingImageFileName: null
       }))
     );
   }, [detailQuery.data?.item]);
@@ -125,7 +133,9 @@ export function RankingEditorPage() {
         imageFileId: "",
         imageUrl,
         brandName,
-        linkedModelSlug: slug
+        linkedModelSlug: slug,
+        pendingImageFile: null,
+        pendingImageFileName: null
       }
     ]);
   }
@@ -157,19 +167,9 @@ export function RankingEditorPage() {
     });
   }
 
-  async function uploadSingleImage(file: File) {
-    const uploaded = await apiClient.uploadRatingTargetImage(file);
-    return uploaded.item;
-  }
-
-  async function uploadCoverImage(file: File) {
-    const uploaded = await apiClient.uploadRankingCoverImage(file);
-    return uploaded.item;
-  }
-
   const isFormValid =
     title.trim().length >= 2 &&
-    coverImageFileId.trim().length > 0 &&
+    (coverImageFileId.trim().length > 0 || Boolean(coverImageFile)) &&
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0);
 
@@ -245,17 +245,13 @@ export function RankingEditorPage() {
               if (!file) {
                 return;
               }
-              setIsUploading(true);
               setSubmitError(null);
-              void uploadCoverImage(file)
-                .then((uploaded) => {
-                  setCoverImageFileId(uploaded.id);
-                  setCoverImageUrl(uploaded.url);
-                })
-                .catch((reason: unknown) => {
-                  setSubmitError(reason instanceof Error ? reason.message : "封面上传失败");
-                })
-                .finally(() => setIsUploading(false));
+              if (coverImageUrl.startsWith("blob:")) {
+                URL.revokeObjectURL(coverImageUrl);
+              }
+              setCoverImageFile(file);
+              setCoverImageFileId("");
+              setCoverImageUrl(URL.createObjectURL(file));
             }}
             ref={coverInputRef}
             type="file"
@@ -371,19 +367,25 @@ export function RankingEditorPage() {
                   if (!file || !targetId) {
                     return;
                   }
-                  setIsUploading(true);
                   setSubmitError(null);
-                  void uploadSingleImage(file)
-                    .then((uploaded) => {
-                      updateItem(targetId, { imageFileId: uploaded.id, imageUrl: uploaded.url });
+                  setDraftItems((items) =>
+                    items.map((item) => {
+                      if (item.id !== targetId) {
+                        return item;
+                      }
+                      if (item.imageUrl.startsWith("blob:")) {
+                        URL.revokeObjectURL(item.imageUrl);
+                      }
+                      return {
+                        ...item,
+                        imageFileId: "",
+                        imageUrl: URL.createObjectURL(file),
+                        pendingImageFile: file,
+                        pendingImageFileName: file.name
+                      };
                     })
-                    .catch((reason: unknown) => {
-                      setSubmitError(reason instanceof Error ? reason.message : "条目图片上传失败");
-                    })
-                    .finally(() => {
-                      setSelectedImageItemId(null);
-                      setIsUploading(false);
-                    });
+                  );
+                  setSelectedImageItemId(null);
                 }}
                 ref={itemImageInputRef}
                 type="file"
@@ -462,32 +464,65 @@ export function RankingEditorPage() {
                   ) {
                     return;
                   }
-                  if (!coverImageFileId.trim()) {
+                  if (!coverImageFileId.trim() && !coverImageFile) {
                     setSubmitError("请先上传封面。");
                     return;
                   }
                   setSubmitError(null);
                   setIsSubmitting(true);
-                  const payload = {
-                    type: "community",
-                    title,
-                    coverImageFileId: coverImageFileId || null,
-                    itemAddPolicy,
-                    items: draftItems.map((item) => ({
-                      title: item.title.trim(),
-                      summary: item.summary.trim() ? item.summary.trim() : null,
-                      imageFileId: item.imageFileId.trim() ? item.imageFileId.trim() : null,
-                      brandName: item.brandName.trim() ? item.brandName.trim() : null,
-                      linkedModelSlug: item.linkedModelSlug
-                    }))
-                  } as Parameters<typeof apiClient.createRanking>[0];
+                  void (async () => {
+                    let nextCoverImageFileId = coverImageFileId.trim() || null;
+                    let nextCoverImageUrl = coverImageUrl || null;
+                    if (coverImageFile) {
+                      const uploaded = await apiClient.uploadRankingCoverImage(coverImageFile);
+                      nextCoverImageFileId = uploaded.item.id;
+                      nextCoverImageUrl = uploaded.item.url;
+                    }
 
-                  const request = editId
-                    ? apiClient.updateRanking(editId, payload)
-                    : apiClient.createRanking(payload);
+                    const uploadedItemImageIds = await Promise.all(
+                      draftItems.map(async (item) => {
+                        if (!item.pendingImageFile) {
+                          return item.imageFileId.trim() ? item.imageFileId.trim() : null;
+                        }
+                        const uploaded = await apiClient.uploadRatingTargetImage(item.pendingImageFile);
+                        return uploaded.item.id;
+                      })
+                    );
 
-                  void request
-                    .then((response) => {
+                    const payload = {
+                      type: "community",
+                      title,
+                      coverImageFileId: nextCoverImageFileId,
+                      itemAddPolicy,
+                      items: draftItems.map((item, index) => ({
+                        title: item.title.trim(),
+                        summary: item.summary.trim() ? item.summary.trim() : null,
+                        imageFileId: uploadedItemImageIds[index],
+                        brandName: item.brandName.trim() ? item.brandName.trim() : null,
+                        linkedModelSlug: item.linkedModelSlug
+                      }))
+                    } as Parameters<typeof apiClient.createRanking>[0];
+
+                    const response = editId
+                      ? await apiClient.updateRanking(editId, payload)
+                      : await apiClient.createRanking(payload);
+                    return { response, nextCoverImageFileId, nextCoverImageUrl };
+                  })()
+                    .then(({ response, nextCoverImageFileId, nextCoverImageUrl }) => {
+                      setCoverImageFile(null);
+                      if (nextCoverImageFileId) {
+                        setCoverImageFileId(nextCoverImageFileId);
+                      }
+                      if (nextCoverImageUrl) {
+                        setCoverImageUrl(nextCoverImageUrl);
+                      }
+                      setDraftItems((items) =>
+                        items.map((item) => ({
+                          ...item,
+                          pendingImageFile: null,
+                          pendingImageFileName: null
+                        }))
+                      );
                       if (editId) {
                         void navigate(APP_ROUTES.rankingDetail.replace(":id", response.item.id));
                         return;
@@ -496,7 +531,7 @@ export function RankingEditorPage() {
                       void navigate(buildPublishStatusPath("ranking", response.item.id), {
                         state: {
                           title,
-                          imageUrl: coverImageUrl || null
+                          imageUrl: nextCoverImageUrl || null
                         }
                       });
                     })

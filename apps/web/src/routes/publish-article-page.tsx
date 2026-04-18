@@ -24,12 +24,16 @@ type UploadedImage = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 type UploadedVideo = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 function escapeHtml(input: string) {
@@ -59,6 +63,10 @@ function buildArticleHtml(summary: string, editorHtml: string) {
   return [summaryBlock, editorHtml.trim()].filter(Boolean).join("");
 }
 
+function replaceLocalMediaUrls(html: string, mapping: Record<string, string>) {
+  return Object.entries(mapping).reduce((current, [from, to]) => current.split(from).join(to), html);
+}
+
 export function PublishArticlePage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -75,7 +83,7 @@ export function PublishArticlePage() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [isUploadingMedia, setIsUploadingMedia] = useState(false);
+  const isUploadingMedia = false;
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -185,28 +193,15 @@ export function PublishArticlePage() {
     }
 
     setError(null);
-    setIsUploadingMedia(true);
-
-    try {
-      const nextImages: UploadedImage[] = [];
-
-      for (const file of files) {
-        const uploaded = await apiClient.uploadPostImage(file);
-        nextImages.push({
-          id: uploaded.item.id,
-          url: uploaded.item.url,
-          fileName: uploaded.item.fileName
-        });
-      }
-
-      setUploadedImages((current) => [...current, ...nextImages]);
-      return nextImages;
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "图片上传失败");
-      return [];
-    } finally {
-      setIsUploadingMedia(false);
-    }
+    const nextImages: UploadedImage[] = files.map((file) => ({
+      id: `local-image-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    }));
+    setUploadedImages((current) => [...current, ...nextImages]);
+    return nextImages;
   }
 
   async function uploadVideos(files: File[]) {
@@ -220,28 +215,15 @@ export function PublishArticlePage() {
     }
 
     setError(null);
-    setIsUploadingMedia(true);
-
-    try {
-      const nextVideos: UploadedVideo[] = [];
-
-      for (const file of files) {
-        const uploaded = await apiClient.uploadPostVideo(file);
-        nextVideos.push({
-          id: uploaded.item.id,
-          url: uploaded.item.url,
-          fileName: uploaded.item.fileName
-        });
-      }
-
-      setUploadedVideos((current) => [...current, ...nextVideos]);
-      return nextVideos;
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "视频上传失败");
-      return [];
-    } finally {
-      setIsUploadingMedia(false);
-    }
+    const nextVideos: UploadedVideo[] = files.map((file) => ({
+      id: `local-video-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    }));
+    setUploadedVideos((current) => [...current, ...nextVideos]);
+    return nextVideos;
   }
 
   async function uploadCoverImage(file: File | null) {
@@ -250,22 +232,20 @@ export function PublishArticlePage() {
     }
 
     setError(null);
-    setIsUploadingMedia(true);
-
-    try {
-      const uploaded = await apiClient.uploadPostImage(file);
-      setCoverImage({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面上传失败");
-    } finally {
-      setIsUploadingMedia(false);
-      if (coverInputRef.current) {
-        coverInputRef.current.value = "";
+    setCoverImage((current) => {
+      if (current?.isLocal) {
+        URL.revokeObjectURL(current.url);
       }
+      return {
+        id: `local-cover-${crypto.randomUUID()}`,
+        url: URL.createObjectURL(file),
+        fileName: file.name,
+        file,
+        isLocal: true
+      };
+    });
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
     }
   }
 
@@ -357,13 +337,13 @@ export function PublishArticlePage() {
                 onChange={setEditorHtml}
                 onUploadImage={uploadImages}
                 onUploadVideo={uploadVideos}
-                placeholder="从这里开始写正文，支持图片与视频直接上传后内嵌。"
+                placeholder="从这里开始写正文，图片与视频先本地预览，提交后统一上传。"
                 value={editorHtml}
               />
 
               {uploadedImages.length === 0 && uploadedVideos.length === 0 ? (
                 <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-                  还没有插入媒体。可以直接从编辑器工具栏上传图片和视频文件。
+                  还没有插入媒体。可以从编辑器工具栏选择图片和视频文件，本地预览后提交时统一上传。
                 </div>
               ) : (
                 <div className="grid gap-4 lg:grid-cols-2">
@@ -376,6 +356,9 @@ export function PublishArticlePage() {
                           <button
                             className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                             onClick={() => {
+                              if (image.isLocal) {
+                                URL.revokeObjectURL(image.url);
+                              }
                               setUploadedImages((current) => current.filter((item) => item.id !== image.id));
                             }}
                             type="button"
@@ -396,6 +379,9 @@ export function PublishArticlePage() {
                           <button
                             className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
                             onClick={() => {
+                              if (video.isLocal) {
+                                URL.revokeObjectURL(video.url);
+                              }
                               setUploadedVideos((current) => current.filter((item) => item.id !== video.id));
                             }}
                             type="button"
@@ -444,30 +430,74 @@ export function PublishArticlePage() {
                   }
                   setError(null);
                   setIsPublishing(true);
-                  const payload = {
-                    type: "article" as const,
-                    title,
-                    content: articleText,
-                    contentHtml: articleHtml,
-                    contentCategoryId: categoryId,
-                    imageIds: Array.from(
-                      new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))
-                    ),
-                    videoIds: uploadedVideos.map((item) => item.id)
-                  };
+                  void (async () => {
+                    const mediaUrlMapping: Record<string, string> = {};
 
-                  void (editId ? apiClient.updatePost(editId, payload) : apiClient.createPost(payload))
-                    .then((payload) => {
+                    let submitCoverImage = coverImage;
+                    if (coverImage.file) {
+                      const uploaded = await apiClient.uploadPostImage(coverImage.file);
+                      submitCoverImage = {
+                        id: uploaded.item.id,
+                        url: uploaded.item.url,
+                        fileName: uploaded.item.fileName
+                      };
+                      mediaUrlMapping[coverImage.url] = uploaded.item.url;
+                    }
+
+                    const submitImages = await Promise.all(
+                      uploadedImages.map(async (item) => {
+                        if (!item.file) {
+                          return item;
+                        }
+                        const uploaded = await apiClient.uploadPostImage(item.file);
+                        mediaUrlMapping[item.url] = uploaded.item.url;
+                        return {
+                          id: uploaded.item.id,
+                          url: uploaded.item.url,
+                          fileName: uploaded.item.fileName
+                        } satisfies UploadedImage;
+                      })
+                    );
+                    const submitVideos = await Promise.all(
+                      uploadedVideos.map(async (item) => {
+                        if (!item.file) {
+                          return item;
+                        }
+                        const uploaded = await apiClient.uploadPostVideo(item.file);
+                        mediaUrlMapping[item.url] = uploaded.item.url;
+                        return {
+                          id: uploaded.item.id,
+                          url: uploaded.item.url,
+                          fileName: uploaded.item.fileName
+                        } satisfies UploadedVideo;
+                      })
+                    );
+
+                    const payload = {
+                      type: "article" as const,
+                      title,
+                      content: articleText,
+                      contentHtml: replaceLocalMediaUrls(articleHtml, mediaUrlMapping),
+                      contentCategoryId: categoryId,
+                      imageIds: Array.from(
+                        new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
+                      ),
+                      videoIds: submitVideos.map((item) => item.id)
+                    };
+                    const response = editId ? await apiClient.updatePost(editId, payload) : await apiClient.createPost(payload);
+                    return { response, submitCoverImage };
+                  })()
+                    .then(({ response, submitCoverImage }) => {
                       window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
                       void Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
-                        queryClient.invalidateQueries({ queryKey: ["post-detail", payload.item.id] })
+                        queryClient.invalidateQueries({ queryKey: ["post-detail", response.item.id] })
                       ]);
-                      void navigate(buildPublishStatusPath("article", payload.item.id), {
+                      void navigate(buildPublishStatusPath("article", response.item.id), {
                         state: {
                           title,
                           description: summary,
-                          imageUrl: coverImage?.url ?? null
+                          imageUrl: submitCoverImage?.url ?? null
                         }
                       });
                     })

@@ -4,6 +4,7 @@ export const WEB_ROUTE_PATHS = {
   publishMoment: "/publish/moment",
   publishAircraft: "/publish/aircraft",
   publishStatus: "/publish/status/:kind/:id",
+  safeRedirect: "/safe-redirect",
   rankingDetail: "/rankings/:id",
   ratingTargetDetail: "/rating-targets/:id"
 } as const;
@@ -33,6 +34,22 @@ export function buildPublishStatusPath(kind: PublishStatusKind, id: string) {
     "id",
     id
   );
+}
+
+export function buildSafeRedirectPath(target: string) {
+  return `${WEB_ROUTE_PATHS.safeRedirect}?target=${encodeURIComponent(target)}`;
+}
+
+export function isExternalHttpUrl(value: string, currentOrigin: string) {
+  try {
+    const url = new URL(value, currentOrigin);
+    if (url.protocol !== "http:" && url.protocol !== "https:") {
+      return false;
+    }
+    return url.origin !== currentOrigin;
+  } catch {
+    return false;
+  }
 }
 
 export function openDetailPageInNewTab(path: string) {

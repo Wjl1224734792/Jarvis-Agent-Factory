@@ -19,6 +19,8 @@ type UploadedLogo = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 const BRAND_DESCRIPTION_MAX_LENGTH = 500;
@@ -117,7 +119,7 @@ export function PublishBrandPage() {
   const [logo, setLogo] = useState<UploadedLogo | null>(null);
   const [submittedApplication, setSubmittedApplication] = useState<BrandApplication | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const isUploading = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const detailQuery = useQuery({
@@ -154,6 +156,14 @@ export function PublishBrandPage() {
     setLogo(item.logoUrl ? { id: item.id, url: item.logoUrl } : null);
   }, [detailQuery.data?.item, submittedApplication, submittedId]);
 
+  useEffect(() => {
+    return () => {
+      if (logo?.isLocal) {
+        URL.revokeObjectURL(logo.url);
+      }
+    };
+  }, [logo]);
+
   function openLogoPicker() {
     const input = document.createElement("input");
     input.type = "file";
@@ -163,24 +173,19 @@ export function PublishBrandPage() {
       if (!file) {
         return;
       }
-
-      setIsUploading(true);
       setError(null);
-      void apiClient
-        .uploadPostImage(file)
-        .then((uploaded) => {
-          setLogo({
-            id: uploaded.item.id,
-            url: uploaded.item.url,
-            fileName: uploaded.item.fileName
-          });
-        })
-        .catch((reason: unknown) => {
-          setError(reason instanceof Error ? reason.message : "Logo 上传失败");
-        })
-        .finally(() => {
-          setIsUploading(false);
-        });
+      setLogo((current) => {
+        if (current?.isLocal) {
+          URL.revokeObjectURL(current.url);
+        }
+        return {
+          id: `local-${crypto.randomUUID()}`,
+          url: URL.createObjectURL(file),
+          fileName: file.name,
+          file,
+          isLocal: true
+        };
+      });
     };
     input.click();
   }
@@ -326,16 +331,22 @@ export function PublishBrandPage() {
 
                   setError(null);
                   setIsSubmitting(true);
-                  const payload = {
-                    slug: slug.trim(),
-                    name: name.trim(),
-                    logoUrl: logo?.url ?? null,
-                    description: description.trim()
-                  };
-
-                  void (editId
-                    ? apiClient.updateBrandApplication(editId, payload)
-                    : apiClient.createBrandApplication(payload))
+                  void (async () => {
+                    let logoUrl = logo?.url ?? null;
+                    if (logo?.file) {
+                      const uploaded = await apiClient.uploadPostImage(logo.file);
+                      logoUrl = uploaded.item.url;
+                    }
+                    const payload = {
+                      slug: slug.trim(),
+                      name: name.trim(),
+                      logoUrl,
+                      description: description.trim()
+                    };
+                    return editId
+                      ? apiClient.updateBrandApplication(editId, payload)
+                      : apiClient.createBrandApplication(payload);
+                  })()
                     .then((response) => {
                       void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
                       if (editId) {

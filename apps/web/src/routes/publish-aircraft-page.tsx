@@ -28,12 +28,16 @@ type UploadedImage = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 type UploadedVideo = {
   id: string;
   url: string;
   fileName?: string;
+  file?: File;
+  isLocal?: boolean;
 };
 
 const powerTypeOptions = [
@@ -175,7 +179,7 @@ export function PublishAircraftPage() {
   const [galleryImages, setGalleryImages] = useState<UploadedImage[]>([]);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const isUploading = false;
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [coverSource, setCoverSource] = useState<CoverSource>("manual");
   const [isCapturingVideoFrame, setIsCapturingVideoFrame] = useState(false);
@@ -270,22 +274,25 @@ export function PublishAircraftPage() {
 
   async function handleCoverImageFile(file: File) {
     setError(null);
-    setIsUploading(true);
     setCoverSource("manual");
     frameCoverReadyVideoUrlRef.current = null;
-    try {
-      const uploaded = await apiClient.uploadAircraftCoverImage(file);
-      setCoverImage({ id: uploaded.item.id, url: uploaded.item.url });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "图片上传失败");
-    } finally {
-      setIsUploading(false);
-      if (coverMediaInputRef.current) {
-        coverMediaInputRef.current.value = "";
+    setCoverImage((current) => {
+      if (current?.isLocal) {
+        URL.revokeObjectURL(current.url);
       }
-      if (coverManualOnlyInputRef.current) {
-        coverManualOnlyInputRef.current.value = "";
-      }
+      return {
+        id: `local-cover-${crypto.randomUUID()}`,
+        url: URL.createObjectURL(file),
+        fileName: file.name,
+        file,
+        isLocal: true
+      };
+    });
+    if (coverMediaInputRef.current) {
+      coverMediaInputRef.current.value = "";
+    }
+    if (coverManualOnlyInputRef.current) {
+      coverManualOnlyInputRef.current.value = "";
     }
   }
 
@@ -295,39 +302,36 @@ export function PublishAircraftPage() {
     }
 
     setError(null);
-    setIsUploading(true);
+    const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
+    let nextCover = coverImage;
+    const nextGallery = [...galleryImages];
 
-    try {
-      const imageFiles = Array.from(files).filter((f) => f.type.startsWith("image/"));
-      let nextCover = coverImage;
-      const nextGallery = [...galleryImages];
+    for (const file of imageFiles) {
+      const row: UploadedImage = {
+        id: `local-gallery-${crypto.randomUUID()}`,
+        url: URL.createObjectURL(file),
+        fileName: file.name,
+        file,
+        isLocal: true
+      };
 
-      for (const file of imageFiles) {
-        const uploaded = await apiClient.uploadAircraftCoverImage(file);
-        const row = { id: uploaded.item.id, url: uploaded.item.url };
-
-        if (!nextCover) {
-          nextCover = row;
-          setCoverSource("manual");
-          frameCoverReadyVideoUrlRef.current = null;
-          continue;
-        }
-
-        if (nextGallery.length >= GALLERY_IMAGE_MAX) {
-          break;
-        }
-        nextGallery.push(row);
+      if (!nextCover) {
+        nextCover = row;
+        setCoverSource("manual");
+        frameCoverReadyVideoUrlRef.current = null;
+        continue;
       }
 
-      setCoverImage(nextCover);
-      setGalleryImages(nextGallery);
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "图片上传失败");
-    } finally {
-      setIsUploading(false);
-      if (galleryInputRef.current) {
-        galleryInputRef.current.value = "";
+      if (nextGallery.length >= GALLERY_IMAGE_MAX) {
+        break;
       }
+      nextGallery.push(row);
+    }
+
+    setCoverImage(nextCover);
+    setGalleryImages(nextGallery);
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = "";
     }
   }
 
@@ -337,25 +341,18 @@ export function PublishAircraftPage() {
     }
 
     setError(null);
-    setIsUploading(true);
-
-    try {
-      const uploaded = await apiClient.uploadAircraftVideo(file);
-      frameCoverReadyVideoUrlRef.current = null;
-      setCoverSource("videoFrame");
-      setCoverImage(null);
-      setUploadedVideo({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "视频上传失败");
-    } finally {
-      setIsUploading(false);
-      if (coverMediaInputRef.current) {
-        coverMediaInputRef.current.value = "";
-      }
+    frameCoverReadyVideoUrlRef.current = null;
+    setCoverSource("videoFrame");
+    setCoverImage(null);
+    setUploadedVideo({
+      id: `local-video-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    });
+    if (coverMediaInputRef.current) {
+      coverMediaInputRef.current.value = "";
     }
   }
 
@@ -396,8 +393,13 @@ export function PublishAircraftPage() {
 
   const uploadVideoFrameCover = useCallback(async (videoUrl: string): Promise<UploadedImage> => {
     const file = await captureVideoFirstFrameAsJpegFile(videoUrl);
-    const uploaded = await apiClient.uploadAircraftCoverImage(file);
-    const row: UploadedImage = { id: uploaded.item.id, url: uploaded.item.url };
+    const row: UploadedImage = {
+      id: `local-frame-cover-${crypto.randomUUID()}`,
+      url: URL.createObjectURL(file),
+      fileName: file.name,
+      file,
+      isLocal: true
+    };
     setCoverImage(row);
     frameCoverReadyVideoUrlRef.current = videoUrl;
     return row;
@@ -1005,11 +1007,35 @@ export function PublishAircraftPage() {
                       return;
                     }
 
-                    const effectiveCover = await ensureVideoCoverForSubmit();
+                    let effectiveCover = await ensureVideoCoverForSubmit();
                     if (!effectiveCover) {
                       setError("请先上传封面。");
                       setIsSubmitting(false);
                       return;
+                    }
+
+                    const uploadedGallery = await Promise.all(
+                      galleryImages.map(async (image) => {
+                        if (!image.file) {
+                          return { originId: image.id, item: image };
+                        }
+                        const uploaded = await apiClient.uploadAircraftCoverImage(image.file);
+                        return {
+                          originId: image.id,
+                          item: { id: uploaded.item.id, url: uploaded.item.url, fileName: uploaded.item.fileName }
+                        };
+                      })
+                    );
+                    const submitVideoAsset = uploadedVideo?.file
+                      ? (await apiClient.uploadAircraftVideo(uploadedVideo.file)).item
+                      : uploadedVideo;
+                    if (effectiveCover.file) {
+                      const uploaded = await apiClient.uploadAircraftCoverImage(effectiveCover.file);
+                      effectiveCover = {
+                        id: uploaded.item.id,
+                        url: uploaded.item.url,
+                        fileName: uploaded.item.fileName
+                      };
                     }
 
                     const submissionPayload = {
@@ -1030,11 +1056,11 @@ export function PublishAircraftPage() {
                       summary: summary.trim() || null,
                       description: description.trim() || null,
                       coverImageFileId: effectiveCover?.id ?? null,
-                      galleryImageFileIds: galleryImages
-                        .map((img) => img.id)
+                      galleryImageFileIds: uploadedGallery
+                        .map((entry) => entry.item.id)
                         .filter((id) => id !== effectiveCover?.id)
                         .slice(0, GALLERY_IMAGE_MAX),
-                      videoFileId: uploadedVideo?.id ?? null,
+                      videoFileId: submitVideoAsset?.id ?? null,
                       priceMin: nextPriceMin,
                       priceMax: nextPriceMax,
                       maxFlightTimeMinutes: parsedMft.value,
@@ -1049,6 +1075,9 @@ export function PublishAircraftPage() {
 
                     try {
                       const payload = await request;
+                      setCoverImage(effectiveCover);
+                      setGalleryImages(uploadedGallery.map((entry) => entry.item));
+                      setUploadedVideo(submitVideoAsset);
                       void queryClient.invalidateQueries({ queryKey: ["models"] });
                       void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
                       void navigate(buildPublishStatusPath("aircraft", payload.item.id), {

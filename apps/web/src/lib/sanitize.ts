@@ -155,6 +155,41 @@ function sanitizeIframes(dirty: string) {
   });
 }
 
+function sanitizeAnchors(dirty: string) {
+  if (!dirty.includes("<a")) {
+    return dirty;
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(dirty, "text/html");
+    const anchorNodes = Array.from(documentNode.querySelectorAll("a"));
+    for (const anchorNode of anchorNodes) {
+      const href = anchorNode.getAttribute("href")?.trim() ?? "";
+      if (!href) {
+        anchorNode.removeAttribute("target");
+        anchorNode.removeAttribute("rel");
+        continue;
+      }
+      const isHttpLink = /^https?:\/\//i.test(href) || href.startsWith("//");
+      if (isHttpLink) {
+        anchorNode.setAttribute("target", "_blank");
+        anchorNode.setAttribute("rel", "noopener noreferrer nofollow");
+      }
+    }
+    return documentNode.body.innerHTML;
+  }
+
+  return dirty.replace(/<a\b([^>]*)>/gi, (full, attrs: string) => {
+    if (!/\bhref\s*=\s*(['"])(https?:\/\/|\/\/)/i.test(attrs)) {
+      return `<a${attrs}>`;
+    }
+    const nextAttrs = attrs
+      .replace(/\starget\s*=\s*(['"]).*?\1/gi, "")
+      .replace(/\srel\s*=\s*(['"]).*?\1/gi, "");
+    return `<a${nextAttrs} target="_blank" rel="noopener noreferrer nofollow">`;
+  });
+}
+
 function ssrSanitize(dirty: string): string {
   const sanitized = String(dirty)
     .replace(/<script[\s\S]*?<\/script>/gi, "")
@@ -166,7 +201,7 @@ function ssrSanitize(dirty: string): string {
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
     .replace(/on\w+\s*=\s*\S+/gi, "")
     .replace(/javascript\s*:/gi, "");
-  return sanitizeIframes(sanitized);
+  return sanitizeAnchors(sanitizeIframes(sanitized));
 }
 
 type DomPurifySanitizer = (dirty: string, config?: Config) => string;
@@ -206,7 +241,7 @@ export function sanitizeHtml(dirty: string): string {
     return ssrSanitize(dirty);
   }
 
-  return sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG)));
+  return sanitizeAnchors(sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG))));
 }
 
 export function escapeHtml(text: string): string {
