@@ -120,8 +120,15 @@ function BrandApplicationSuccessState(props: {
 }
 
 /**
- * Manages brand-application drafting and submission so users can move from a
- * rejected draft back to a fresh pending application without losing context.
+ * Handles the brand-application route for draft, edit and submitted states.
+ *
+ * Boundaries:
+ * - Manages the page-local draft and logo preview so users can resume or fix a
+ *   rejected application without re-entering the full form.
+ * - Switches between editable and submitted-success presentations, but leaves
+ *   moderation status, storage and validation authority to `apiClient`.
+ * - Keeps the route scoped to brand application UX; aircraft submission logic
+ *   stays in its own publish entry.
  */
 export function PublishBrandPage() {
   const navigate = useNavigate();

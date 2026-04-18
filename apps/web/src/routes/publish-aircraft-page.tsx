@@ -180,8 +180,15 @@ async function captureVideoFirstFrameAsJpegFile(videoUrl: string): Promise<File>
 }
 
 /**
- * Drives aircraft submission authoring, including local media preview restore,
- * cover/video coordination and edit-vs-create submission reuse.
+ * Handles the aircraft submission publish/edit route.
+ *
+ * Boundaries:
+ * - Owns form-state assembly for model basics, numeric parameters and local
+ *   preview assets, including restoring unfinished drafts in the browser.
+ * - Keeps cover, gallery and optional video mutually consistent, and ensures a
+ *   submit-ready cover exists before handing media off to `apiClient`.
+ * - Stops at client-side normalization/validation; moderation workflow and
+ *   submission persistence remain in the server layer.
  */
 export function PublishAircraftPage() {
   const navigate = useNavigate();

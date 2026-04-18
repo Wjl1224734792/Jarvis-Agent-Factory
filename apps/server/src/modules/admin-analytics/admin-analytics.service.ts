@@ -191,8 +191,15 @@ function toModerationBucket(row: ModerationCountRow | undefined): ModerationBuck
 }
 
 /**
- * Produces the admin dashboard overview from database aggregates plus bounded
- * activity series so the route can stay schema-focused and side-effect free.
+ * Produces the admin dashboard overview payload from bounded aggregate queries.
+ *
+ * Boundaries:
+ * - Collects raw counts and short trailing time-series windows for the admin
+ *   dashboard so the route can stay thin and schema-oriented.
+ * - Normalizes different moderation domains into one comparable funnel model
+ *   without introducing write side effects or route-specific presentation.
+ * - Intentionally caps source windows in this service to keep refresh cost
+ *   predictable instead of scanning full history tables on every request.
  */
 export const adminAnalyticsService = {
   async getOverview() {

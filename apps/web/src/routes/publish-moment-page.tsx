@@ -189,8 +189,15 @@ async function captureVideoFramePreviewDataUrl(videoUrl: string, seekRatio: numb
 }
 
 /**
- * Covers moment publishing for mutually exclusive image/video media, including
- * draft restore, video-cover generation and final moderation submission.
+ * Handles the moment publish/edit route.
+ *
+ * Boundaries:
+ * - Coordinates the page-local draft, preview assets and cover selection for a
+ *   moment that may use either images or one video, but never both together.
+ * - Generates or accepts a video cover before submit, while leaving upload,
+ *   moderation and final persistence rules to `apiClient`.
+ * - Reuses the same entry for create/edit so rejected moments can be reopened
+ *   with their existing media decisions intact.
  */
 export function PublishMomentPage() {
   const navigate = useNavigate();

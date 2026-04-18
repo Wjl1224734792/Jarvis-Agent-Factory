@@ -99,8 +99,15 @@ function ArticleEditorFallback() {
 }
 
 /**
- * Handles article authoring with local draft persistence, deferred rich-text
- * editor loading and staged media upload before the final publish request.
+ * Handles the article publish/edit route.
+ *
+ * Boundaries:
+ * - Owns browser-side draft restore/save, local preview asset lifecycle and
+ *   rich-text composition state for the page shell.
+ * - Defers all persistence and moderation rules to `apiClient`; this route
+ *   only prepares payloads, uploads local media first and then submits once.
+ * - Keeps edit and create in one entry so rejected articles can be revised
+ *   without branching into a second route component.
  */
 export function PublishArticlePage() {
   const navigate = useNavigate();

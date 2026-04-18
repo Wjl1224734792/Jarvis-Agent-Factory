@@ -1,0 +1,176 @@
+import { API_ROUTES } from '@feijia/shared';
+
+import {
+  jsonRequestBody,
+  jsonResponse,
+  stringPathParameter
+} from '../builders';
+
+import {
+  optionalSessionOrBearerSecurity,
+  sessionOrBearerSecurity
+} from '../security';
+
+export const socialPaths = {
+    [API_ROUTES.users.profile('{userId}')]: {
+      get: {
+        tags: ['social'],
+        summary: '查看用户资料',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '用户 ID。')],
+        responses: {
+          '200': jsonResponse('UserProfileResponse', '返回公开可见的用户资料。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.users.content('{userId}')]: {
+      get: {
+        tags: ['social'],
+        summary: '查看用户公开内容',
+        security: optionalSessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '用户 ID。')],
+        responses: {
+          '200': jsonResponse('UserContentResponse', '返回当前查看者可见的用户内容。'),
+          '403': jsonResponse('ErrorResponse', '当前无权查看该用户内容。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.users.meProfile]: {
+      get: {
+        tags: ['social'],
+        summary: '查看当前用户资料',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '返回当前会话可编辑的个人资料。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。')
+        }
+      },
+      put: {
+        tags: ['social'],
+        summary: '更新当前用户资料',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'UpdateCurrentUserProfileRequest',
+          '按需增量更新个人资料，至少提交一个字段。支持头像、封面图、简介、昵称、手机号与可见范围等资料字段。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '更新后的个人资料。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '昵称已被占用。')
+        }
+      }
+    },
+    [API_ROUTES.users.mePhoneChangeRequest]: {
+      post: {
+        tags: ['social'],
+        summary: '申请更换手机号',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'PhoneChangeRequest',
+          '提交目标手机号和图形验证码，换取短信验证请求。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'PhoneChangeRequestResponse',
+            '返回短信验证请求信息。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
+        }
+      }
+    },
+    [API_ROUTES.users.mePhoneChangeConfirm]: {
+      post: {
+        tags: ['social'],
+        summary: '确认更换手机号',
+        security: sessionOrBearerSecurity,
+        requestBody: jsonRequestBody(
+          'PhoneChangeConfirmRequest',
+          '提交短信验证码，完成手机号换绑。'
+        ),
+        responses: {
+          '200': jsonResponse(
+            'CurrentUserProfileResponse',
+            '返回更新后的个人资料。'
+          ),
+          '400': jsonResponse('ErrorResponse', '短信验证码无效或已过期。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '用户不存在。'),
+          '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
+        }
+      }
+    },
+    [API_ROUTES.social.follow('{userId}')]: {
+      post: {
+        tags: ['social'],
+        summary: '关注或取消关注用户',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('userId', '目标用户 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '关注关系更新成功。'
+          ),
+          '400': jsonResponse('ErrorResponse', '参数错误或不能关注自己。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '目标用户不存在。')
+        }
+      }
+    },
+    [API_ROUTES.social.notifications]: {
+      get: {
+        tags: ['social'],
+        summary: '查看通知列表',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'NotificationsResponse',
+            '返回当前用户的通知列表和未读数。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.social.notificationsReadAll]: {
+      post: {
+        tags: ['social'],
+        summary: '将所有通知标记为已读',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '所有通知已标记为已读。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。')
+        }
+      }
+    },
+    [API_ROUTES.social.notificationRead('{id}')]: {
+      post: {
+        tags: ['social'],
+        summary: '将单条通知标记为已读',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '通知 ID。')],
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '通知已标记为已读。'
+          ),
+          '400': jsonResponse('ErrorResponse', '缺少通知 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '404': jsonResponse('ErrorResponse', '通知不存在。')
+        }
+      }
+    },
+} as const;

@@ -771,8 +771,6 @@ export function SettingsPage() {
             >
               <div className="text-muted-foreground">当有人在帖子、榜单或评论中提及你时提醒。</div>
             </SettingsRow>
-          </div>
-
             {settingsNotificationOptions.slice(2).map((option) => (
               <SettingsRow
                 action={
@@ -799,6 +797,7 @@ export function SettingsPage() {
                 <div className="text-muted-foreground">{option.description}</div>
               </SettingsRow>
             ))}
+          </div>
           <div className="flex flex-wrap gap-2 border-t border-border/60 bg-muted/10 px-4 py-3">
             <Button asChild size="sm" type="button" variant="ghost">
               <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>

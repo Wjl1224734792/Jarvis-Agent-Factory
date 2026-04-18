@@ -496,8 +496,15 @@ async function buildRankingListItems(
 }
 
 /**
- * Owns ranking and rating-target orchestration, including permission checks,
- * score aggregation, moderation state transitions and comment/review flows.
+ * Orchestrates rankings and rating-target domain workflows.
+ *
+ * Boundaries:
+ * - Composes permission checks, score aggregation, dynamic reranking, comment
+ *   threading and moderation transitions on top of repo-level data access.
+ * - Keeps ranking-level and item-level rules together so list/detail payloads
+ *   expose a consistent viewer model across official and community scenarios.
+ * - Leaves transport validation to routes and low-level persistence to repos;
+ *   this layer focuses on domain invariants and side effects.
  */
 export const rankingsService = {
   async listRankings(currentUser?: CurrentUser, input?: { page?: number; limit?: number }) {

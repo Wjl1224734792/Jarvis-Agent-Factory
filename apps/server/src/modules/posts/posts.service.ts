@@ -261,9 +261,16 @@ function isOfficialArticlePost(
 }
 
 /**
- * Coordinates post-domain read/write flows for feeds, post details, comments,
- * interactions and moderation-facing projections while keeping repo access and
- * side-effect orchestration in one place.
+ * Orchestrates the posts domain across feed reads, detail hydration, write
+ * operations and moderation-facing projections.
+ *
+ * Boundaries:
+ * - Centralizes cross-repo composition such as media hydration, viewer state,
+ *   comment-thread shaping, moderation defaults and notification side effects.
+ * - Enforces post-specific invariants here before persistence, for example
+ *   moment media exclusivity, cover resolution and ownership checks.
+ * - Does not own HTTP concerns or raw SQL details; routes validate transport
+ *   input and repos remain the source of persistence primitives.
  */
 export const postsService = {
   async listFeed(

@@ -1,7 +1,4 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Empty, Segmented, Space } from "antd";
-import { Bar, Column, Funnel, Line, Pie } from "@ant-design/plots";
-import { useMemo, useState } from "react";
 import {
   BarChartOutlined,
   ClockCircleOutlined,
@@ -13,6 +10,8 @@ import {
   SafetyCertificateOutlined,
   TrophyOutlined
 } from "@ant-design/icons";
+import { Button, Empty, Segmented, Space } from "antd";
+import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
@@ -29,6 +28,32 @@ import {
 } from "./admin-session-helpers";
 import { useAdminAuthStore } from "./auth-store";
 
+const RegistrationTrendChart = lazy(() =>
+  import("./admin-overview-charts").then((module) => ({
+    default: module.RegistrationTrendChart
+  }))
+);
+const ContentMixChart = lazy(() =>
+  import("./admin-overview-charts").then((module) => ({
+    default: module.ContentMixChart
+  }))
+);
+const ActivityTrendChart = lazy(() =>
+  import("./admin-overview-charts").then((module) => ({
+    default: module.ActivityTrendChart
+  }))
+);
+const ModerationFunnelChart = lazy(() =>
+  import("./admin-overview-charts").then((module) => ({
+    default: module.ModerationFunnelChart
+  }))
+);
+const ModerationStatusChart = lazy(() =>
+  import("./admin-overview-charts").then((module) => ({
+    default: module.ModerationStatusChart
+  }))
+);
+
 function formatPeriodLabel(periodStart: string, mode: "day" | "month" | "year") {
   const date = new Date(periodStart);
   if (mode === "day") {
@@ -40,6 +65,14 @@ function formatPeriodLabel(periodStart: string, mode: "day" | "month" | "year") 
   return `${date.getUTCFullYear()}`;
 }
 
+function ChartLoadingFallback(props: { label: string }) {
+  return <div className="admin-empty">{props.label}</div>;
+}
+
+/**
+ * The overview keeps the first screen focused on actionable KPI and moderation
+ * entry points, while chart-heavy analytics are loaded after the shell paints.
+ */
 export function AdminOverviewPage() {
   const user = useAdminAuthStore((state) => state.user);
   const error = useAdminAuthStore((state) => state.error);
@@ -51,6 +84,7 @@ export function AdminOverviewPage() {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
   const [registrationMode, setRegistrationMode] = useState<"day" | "month" | "year">("day");
   const [activityMode, setActivityMode] = useState<"day" | "month" | "year">("day");
+  const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
 
   const analyticsQuery = useQuery({
     queryKey: ["admin-overview", "analytics"],
@@ -68,6 +102,18 @@ export function AdminOverviewPage() {
   const analytics = analyticsQuery.data?.item;
   const siteSettings = siteSettingsQuery.data?.item;
 
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      startTransition(() => {
+        setShouldLoadCharts(true);
+      });
+    }, 0);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, []);
+
   const registrationSeries = useMemo(() => {
     if (!analytics) {
       return [];
@@ -80,8 +126,8 @@ export function AdminOverviewPage() {
           : analytics.registration.yearly;
 
     return source.map((item) => ({
-      时间: formatPeriodLabel(item.periodStart, registrationMode),
-      注册数: item.value
+      label: formatPeriodLabel(item.periodStart, registrationMode),
+      value: item.value
     }));
   }, [analytics, registrationMode]);
 
@@ -97,8 +143,8 @@ export function AdminOverviewPage() {
           : analytics.activity.yearly;
 
     return source.map((item) => ({
-      时间: formatPeriodLabel(item.periodStart, activityMode),
-      活跃用户: item.value
+      label: formatPeriodLabel(item.periodStart, activityMode),
+      value: item.value
     }));
   }, [analytics, activityMode]);
 
@@ -208,7 +254,7 @@ export function AdminOverviewPage() {
     {
       key: "article",
       title: "文章审核",
-      description: "文章发布队列单独查看，不再和飞友圈动态混在一起。",
+      description: "文章发布队列独立查看，不再和飞友圈动态混在一起。",
       enabled: siteSettings?.articleModerationEnabled ?? true,
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       onEnable: async () => updateSiteSettings({ articleModerationEnabled: true }),
@@ -217,7 +263,7 @@ export function AdminOverviewPage() {
     {
       key: "moment",
       title: "飞友圈动态",
-      description: "动态审核入口独立存在，并和文章审核完全分开。",
+      description: "动态审核入口独立存在，和文章审核完全分开。",
       enabled: siteSettings?.momentModerationEnabled ?? true,
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       onEnable: async () => updateSiteSettings({ momentModerationEnabled: true }),
@@ -387,7 +433,7 @@ export function AdminOverviewPage() {
           <Button href={ADMIN_ROUTE_PATHS.operations}>进入运营分区</Button>
         </Space>
       }
-      description={`当前管理员：${user?.displayName ?? "系统管理员"}。总览首页现在优先展示指标、趋势和待处理数据，再给出常用入口。`}
+      description={`当前管理员：${user?.displayName ?? "系统管理员"}。首屏优先展示待处理入口和核心指标，重图表按需加载。`}
       title="数据总览"
     >
       {authError ? <div className="admin-login__error">{authError}</div> : null}
@@ -406,99 +452,32 @@ export function AdminOverviewPage() {
         ))}
       </div>
 
-      <div className="admin-overview-layout">
-        <AdminPanel
-          actions={
-            <Segmented
-              onChange={(value) => {
-                setRegistrationMode(value as "day" | "month" | "year");
-              }}
-              options={[
-                { label: "日", value: "day" },
-                { label: "月", value: "month" },
-                { label: "年", value: "year" }
-              ]}
-              value={registrationMode}
-            />
-          }
-          description="最近一段时间内的注册变化。"
-          title="注册趋势"
-        >
-          {registrationSeries.length > 0 ? (
-            <Column
-              autoFit
-              color="#1f78ff"
-              data={registrationSeries}
-              height={280}
-              xAxis={{ labelAutoRotate: false }}
-              xField="时间"
-              yAxis={{ nice: true }}
-              yField="注册数"
-            />
-          ) : (
-            <Empty description="暂无注册数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </AdminPanel>
+      <AdminPanel description="把高频人工处理队列集中到一屏，减少后台运营时来回找入口。" title="待处理快捷入口">
+        <div className="admin-section-grid admin-section-grid--compact">
+          {pendingEntries.map((entry) => (
+            <Link className="admin-section-card admin-section-card--compact" key={entry.to} to={entry.to}>
+              <div className="admin-section-card__icon">{entry.icon}</div>
+              <div className="admin-section-card__title">
+                {entry.title}
+                {entry.count !== null ? ` · ${entry.count}` : ""}
+              </div>
+              <div className="admin-section-card__description">{entry.description}</div>
+            </Link>
+          ))}
+        </div>
+      </AdminPanel>
 
-        <AdminPanel description="内容发布结构占比。" title="内容构成">
-          {contentMixData.length > 0 ? (
-            <Pie
-              angleField="value"
-              autoFit
-              colorField="type"
-              data={contentMixData}
-              height={280}
-              innerRadius={0.62}
-              label={{ text: "type", style: { fontSize: 12 } }}
-              legend={{ color: { title: false, position: "bottom" } }}
-            />
-          ) : (
-            <Empty description="暂无内容数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </AdminPanel>
-
-        <AdminPanel
-          actions={
-            <Segmented
-              onChange={(value) => {
-                setActivityMode(value as "day" | "month" | "year");
-              }}
-              options={[
-                { label: "日", value: "day" },
-                { label: "月", value: "month" },
-                { label: "年", value: "year" }
-              ]}
-              value={activityMode}
-            />
-          }
-          description="按会话去重计算的活跃用户变化。"
-          title="活跃趋势"
-        >
-          {activitySeries.length > 0 ? (
-            <Line
-              autoFit
-              color="#14b8a6"
-              data={activitySeries}
-              height={280}
-              point={{ size: 3 }}
-              smooth
-              xField="时间"
-              yAxis={{ nice: true }}
-              yField="活跃用户"
-            />
-          ) : (
-            <Empty description="暂无活跃数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </AdminPanel>
-
-        <AdminPanel description="聚合各业务的审核漏斗，用来判断堆积位置。" title="审核漏斗">
-          {funnelData.length > 0 ? (
-            <Funnel autoFit colorField="stage" data={funnelData} height={280} xField="stage" yField="value" />
-          ) : (
-            <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          )}
-        </AdminPanel>
-      </div>
+      <AdminPanel description="缩成更紧凑的次级入口，避免首屏入口卡片压住数据。" title="常用入口">
+        <div className="admin-section-grid admin-section-grid--compact">
+          {quickEntries.map((entry) => (
+            <Link className="admin-section-card admin-section-card--compact" key={entry.to} to={entry.to}>
+              <div className="admin-section-card__icon">{entry.icon}</div>
+              <div className="admin-section-card__title">{entry.title}</div>
+              <div className="admin-section-card__description">{entry.description}</div>
+            </Link>
+          ))}
+        </div>
+      </AdminPanel>
 
       <AdminPanel description="按内容类型拆开的独立审核开关。" title="审核开关矩阵">
         <div className="admin-moderation-grid admin-moderation-grid--wide">
@@ -523,33 +502,105 @@ export function AdminOverviewPage() {
         </div>
       </AdminPanel>
 
-      <AdminPanel description="把高频人工处理队列集中到一屏，减少后台运营时来回找入口。" title="待处理快捷入口">
-        <div className="admin-section-grid admin-section-grid--compact">
-          {pendingEntries.map((entry) => (
-            <Link className="admin-section-card admin-section-card--compact" key={entry.to} to={entry.to}>
-              <div className="admin-section-card__icon">{entry.icon}</div>
-              <div className="admin-section-card__title">
-                {entry.title}
-                {entry.count !== null ? ` · ${entry.count}` : ""}
-              </div>
-              <div className="admin-section-card__description">{entry.description}</div>
-            </Link>
-          ))}
-        </div>
-      </AdminPanel>
+      <div className="admin-overview-layout">
+        <AdminPanel
+          actions={
+            <Segmented
+              onChange={(value) => {
+                setRegistrationMode(value as "day" | "month" | "year");
+              }}
+              options={[
+                { label: "日", value: "day" },
+                { label: "月", value: "month" },
+                { label: "年", value: "year" }
+              ]}
+              value={registrationMode}
+            />
+          }
+          description="最近一段时间内的注册变化。"
+          title="注册趋势"
+        >
+          {registrationSeries.length > 0 ? (
+            shouldLoadCharts ? (
+              <Suspense fallback={<ChartLoadingFallback label="正在加载注册图表..." />}>
+                <RegistrationTrendChart data={registrationSeries} />
+              </Suspense>
+            ) : (
+              <ChartLoadingFallback label="正在加载注册图表..." />
+            )
+          ) : (
+            <Empty description="暂无注册数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </AdminPanel>
+
+        <AdminPanel description="内容发布结构占比。" title="内容构成">
+          {contentMixData.length > 0 ? (
+            shouldLoadCharts ? (
+              <Suspense fallback={<ChartLoadingFallback label="正在加载内容构成图表..." />}>
+                <ContentMixChart data={contentMixData} />
+              </Suspense>
+            ) : (
+              <ChartLoadingFallback label="正在加载内容构成图表..." />
+            )
+          ) : (
+            <Empty description="暂无内容数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </AdminPanel>
+
+        <AdminPanel
+          actions={
+            <Segmented
+              onChange={(value) => {
+                setActivityMode(value as "day" | "month" | "year");
+              }}
+              options={[
+                { label: "日", value: "day" },
+                { label: "月", value: "month" },
+                { label: "年", value: "year" }
+              ]}
+              value={activityMode}
+            />
+          }
+          description="按会话去重计算的活跃用户变化。"
+          title="活跃趋势"
+        >
+          {activitySeries.length > 0 ? (
+            shouldLoadCharts ? (
+              <Suspense fallback={<ChartLoadingFallback label="正在加载活跃图表..." />}>
+                <ActivityTrendChart data={activitySeries} />
+              </Suspense>
+            ) : (
+              <ChartLoadingFallback label="正在加载活跃图表..." />
+            )
+          ) : (
+            <Empty description="暂无活跃数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </AdminPanel>
+
+        <AdminPanel description="聚合各业务的审核漏斗，用来判断堆积位置。" title="审核漏斗">
+          {funnelData.length > 0 ? (
+            shouldLoadCharts ? (
+              <Suspense fallback={<ChartLoadingFallback label="正在加载审核漏斗..." />}>
+                <ModerationFunnelChart data={funnelData} />
+              </Suspense>
+            ) : (
+              <ChartLoadingFallback label="正在加载审核漏斗..." />
+            )
+          ) : (
+            <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          )}
+        </AdminPanel>
+      </div>
 
       <AdminPanel description="横向比较主要业务的待审、通过和驳回/隐藏数量。" title="审核状态对比">
         {moderationBarData.length > 0 ? (
-          <Bar
-            autoFit
-            data={moderationBarData}
-            height={320}
-            isStack
-            legend={{ color: { position: "bottom" } }}
-            seriesField="status"
-            xField="value"
-            yField="domain"
-          />
+          shouldLoadCharts ? (
+            <Suspense fallback={<ChartLoadingFallback label="正在加载审核状态对比图..." />}>
+              <ModerationStatusChart data={moderationBarData} />
+            </Suspense>
+          ) : (
+            <ChartLoadingFallback label="正在加载审核状态对比图..." />
+          )
         ) : (
           <Empty description="暂无审核数据" image={Empty.PRESENTED_IMAGE_SIMPLE} />
         )}
@@ -570,31 +621,19 @@ export function AdminOverviewPage() {
                   <div>
                     <div className="admin-session-card__title">{formatAdminSessionIdentity(item)}</div>
                     <div className="admin-session-card__meta">
-                      {formatAdminSessionScope(item.scope)} 路 {formatAdminSessionStatus(item.status)}
+                      {formatAdminSessionScope(item.scope)} · {formatAdminSessionStatus(item.status)}
                     </div>
                   </div>
                   <div className="admin-session-card__status">{item.clientIp ?? "未知 IP"}</div>
                 </div>
                 <div className="admin-session-card__detail">{item.deviceLabel ?? item.userAgent ?? "未识别设备"}</div>
                 <div className="admin-session-card__meta">
-                  创建于 {formatAdminSessionTime(item.createdAt)} 路 最近活跃 {formatAdminSessionTime(item.lastSeenAt)}
+                  创建于 {formatAdminSessionTime(item.createdAt)} · 最近活跃 {formatAdminSessionTime(item.lastSeenAt)}
                 </div>
               </div>
             ))}
           </div>
         ) : null}
-      </AdminPanel>
-
-      <AdminPanel description="缩成更紧凑的次级入口，避免首屏入口卡片压住数据。" title="常用入口">
-        <div className="admin-section-grid admin-section-grid--compact">
-          {quickEntries.map((entry) => (
-            <Link className="admin-section-card admin-section-card--compact" key={entry.to} to={entry.to}>
-              <div className="admin-section-card__icon">{entry.icon}</div>
-              <div className="admin-section-card__title">{entry.title}</div>
-              <div className="admin-section-card__description">{entry.description}</div>
-            </Link>
-          ))}
-        </div>
       </AdminPanel>
     </AdminPage>
   );
