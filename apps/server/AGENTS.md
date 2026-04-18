@@ -1,54 +1,43 @@
-# @feijia/server AGENTS
+# @feijia/server — AGENTS
+
+> `scope`: `apps/server`  
+> `pre`: [`../../AGENTS.md`](../../AGENTS.md) **L0–L3**；若涉 CORS/OpenAPI → **L4**；[`../AGENTS.md`](../AGENTS.md)  
+> `human`: 根 [`README.md`](../../README.md)（CORS、OpenAPI、端口、日志说明）
+
+**禁止**：复述根 [`AGENTS.md`](../../AGENTS.md) **L4** 中 CORS/OpenAPI 默认值全文；OpenAPI 行为以根 L4 为准。
+
+## 加载顺序
+
+1. 根 L0–L3 + `apps/AGENTS.md`  
+2. 本节「入口与结构」「修改要求」  
+3. 仅当改日志/上传/监控 → 对应小节
 
 ## 入口与结构
 
-- 入口：`src/index.ts`
-- 应用实例：`src/app.ts`
-- 顶层路由与健康检查在 `src/routes/*`
-- OpenAPI 相关实现放 `src/openapi/*`
-- 业务模块优先放 `src/modules/<domain>/*`
-- 模块内优先按 `*.route.ts` / `*.service.ts` / `*.repo.ts` / `*.schema.ts` 分层
+- `src/index.ts` · `src/app.ts`
+- 顶层/健康检查：`src/routes/*`
+- OpenAPI 实现：`src/openapi/*`（语义见根 L4）
+- 业务模块：`src/modules/<domain>/*`
+- 分层：`*.route.ts` · `*.service.ts` · `*.repo.ts` · `*.schema.ts`
 
 ## 修改要求
 
-- 路由常量对齐 `@feijia/shared.API_ROUTES`。
-- 请求与响应结构对齐 `@feijia/schemas`。
-- 数据访问优先复用 `@feijia/db` 与现有 repo 层。
-- 改认证、上传、会话、缓存、短信、OpenAPI 时，检查 `.env.example`、根 `README.md` 与相关文档是否需要同步。
+- 路由常量：`@feijia/shared.API_ROUTES`；请求/响应：`@feijia/schemas`；数据：`@feijia/db` + 现有 repo。
+- 改认证、上传、会话、缓存、短信、OpenAPI → 核对 `.env.example`、根 `README.md`。
 
-## OpenAPI
+## OpenAPI 实现位置
 
-- 路径：`/docs`、`/openapi.json`
-- 由 `OPENAPI_ENABLED` 控制
-- 未配置时：非生产默认开启，生产默认关闭
-- 生产相关改动不要默认暴露文档
+代码在 `src/openapi/*`。URL、开关、默认启用策略 → **仅** 根 [`AGENTS.md`](../../AGENTS.md) **L4**。
 
-## 日志配置
+## 日志（条件加载）
 
-- 日志实现位于 `src/lib/logger.ts`，支持 `app/request/error/security` 分类。
-- 涉及日志行为或日志监控 API 的改动时，同步检查：
-  - `.env.example`
-  - 根 `README.md`
-- 相关环境变量：
-  - `LOG_MODE`（`auto|console|file|both`）
-  - `LOG_DIR`
-  - `LOG_LEVEL`（`DEBUG|INFO|WARN|ERROR`）
-  - `LOG_HTTP_ENABLED`
-  - `LOG_MAX_READ_LINES`
-- 生产环境日志持久化优先使用文件目录挂载；原始运行日志不要写入业务数据库，对象存储只适合后续归档，不作为实时日志主存。
+- 实现：`src/lib/logger.ts`（`app` / `request` / `error` / `security`）。
+- 改日志行为或监控 API → 同步 `.env.example`、根 `README.md`。
+- Env：`LOG_MODE` · `LOG_DIR` · `LOG_LEVEL` · `LOG_HTTP_ENABLED` · `LOG_MAX_READ_LINES`。
+- 生产：日志落盘/挂载；**禁止** 把实时运行日志主存到业务库；对象存储仅作归档用途。
 
-## 上传限制
+## 上传 env（条件加载）
 
-- 上传大小限制由以下环境变量控制：
-  - `UPLOAD_MAX_FILE_SIZE_MB`
-  - `UPLOAD_MAX_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_VIDEO_SIZE_MB`
-  - `UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_POST_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_POST_VIDEO_SIZE_MB`
-  - `UPLOAD_MAX_AIRCRAFT_COVER_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_AIRCRAFT_VIDEO_SIZE_MB`
-  - `UPLOAD_MAX_RANKING_COVER_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_RANKING_ITEM_IMAGE_SIZE_MB`
-  - `UPLOAD_MAX_REPORT_IMAGE_SIZE_MB`
-- 改上传限制时，同步更新 `.env.example` 与 `README.md`
+改任一下列变量 → 同步 `.env.example` 与根 `README.md`：
+
+`UPLOAD_MAX_FILE_SIZE_MB` · `UPLOAD_MAX_IMAGE_SIZE_MB` · `UPLOAD_MAX_VIDEO_SIZE_MB` · `UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB` · `UPLOAD_MAX_POST_IMAGE_SIZE_MB` · `UPLOAD_MAX_POST_VIDEO_SIZE_MB` · `UPLOAD_MAX_AIRCRAFT_COVER_IMAGE_SIZE_MB` · `UPLOAD_MAX_AIRCRAFT_VIDEO_SIZE_MB` · `UPLOAD_MAX_RANKING_COVER_IMAGE_SIZE_MB` · `UPLOAD_MAX_RANKING_ITEM_IMAGE_SIZE_MB` · `UPLOAD_MAX_REPORT_IMAGE_SIZE_MB`

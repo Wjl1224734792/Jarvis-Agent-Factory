@@ -1,20 +1,31 @@
-# @feijia/admin AGENTS
+# @feijia/admin — AGENTS
 
-## 作用
+> `scope`: `apps/admin`  
+> `pre`: [`../../AGENTS.md`](../../AGENTS.md) **L0–L2**；[`../AGENTS.md`](../AGENTS.md)  
+> `human`: 根 [`README.md`](../../README.md)
 
-- 管理端前端。
-- 入口文件：`src/main.tsx`、`src/app.tsx`。
+**禁止**：描述 `web`、`server`、`packages` 内部（除依赖关系外）。
 
-## 当前结构
+## 加载顺序
 
-- 管理台业务页面优先放 `src/features/*`
-- 通用组件优先放 `src/components/*`
-- 请求封装、路由常量、查询客户端与公共工具优先放 `src/lib/*`
-- 静态资源放 `src/assets/*`
+1. 根 L0–L2 + `apps/AGENTS.md`  
+2. 本节
+
+## 入口
+
+`src/main.tsx` · `src/app.tsx`
+
+## 目录约定
+
+| 类型 | 路径 |
+|------|------|
+| 业务 | `src/features/*` |
+| 组件 | `src/components/*` |
+| lib/工具/路由封装 | `src/lib/*` |
+| 静态资源 | `src/assets/*` |
 
 ## 修改要求
 
-- 接口调用统一走 `@feijia/http-client`。
-- 类型统一复用 `@feijia/schemas`。
-- 不要把请求细节、鉴权流程和接口适配散落到页面组件里。
-- 与 `web` 共用的协议、常量或可抽象逻辑，优先上提到 `packages/*`。
+- HTTP：`@feijia/http-client`；类型：`@feijia/schemas`。
+- **禁止** 在页面散落请求、鉴权、接口适配。
+- 与 `web` 可共享部分 → `packages/*`。

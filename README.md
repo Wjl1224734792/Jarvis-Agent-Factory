@@ -1,24 +1,46 @@
 # 飞加
 
-Bun Monorepo：用户端 Web（`apps/web`）、管理端（`apps/admin`）、API（`apps/server`）、共享包（`packages/*`）、本地 Docker（`docker/*`）。小程序 / App 不在本仓库；`apps/mobiles` 已删除。
+面向本地与团队协作的 Bun Monorepo：包含用户端 Web、管理后台、API 服务、共享包，以及用 Docker 起的开发用数据库与对象存储。日常从下面 **快速开始** 就能把环境跑起来；小程序和原生 App **不在**本仓库维护（`apps/mobiles` 已移除）。
+
+---
+
+## 文档怎么分：人读 README，代理读 AGENTS
+
+- **你（人类）**：克隆、装依赖、配环境、跑脚本、查端口和测试账号——**以本 README 与各目录下的 `README.md` 为主**。文字偏说明与流程，方便同事之间对齐。
+- **Cursor / Copilot 等代理**：需要遵守的硬性规矩、分层读哪些文件、什么算「收尾」——写在根目录 **[`AGENTS.md`](./AGENTS.md)**。那是给工具执行的**指令集**，文风偏硬、按 L0–L5 按需阅读，**不必**当故事念给同事听。
+- **对照示例**（非业务代码）：[`EXAMPLES.md`](./EXAMPLES.md)，配合 `AGENTS` 里编码准则使用。
+
+一句话：**协作与上手看 README；约束代理行为看 AGENTS。**
+
+| 想做的事 | 打开 |
+|----------|------|
+| 装环境、跑 `dev:*`、`db:*`、端口、CORS 操作步骤 | **本 README**（及 [`docker/README.md`](./docker/README.md)） |
+| 改 `packages` / `apps` 前先弄清目录分工 | [`packages/README.md`](./packages/README.md)、[`apps/README.md`](./apps/README.md) |
+| 给 AI 定规矩、查审查标准、收尾要跑什么命令 | [`AGENTS.md`](./AGENTS.md) |
+| Codex 相关 | [`.codex/AGENTS.md`](./.codex/AGENTS.md) |
+
+各子目录的 **`AGENTS.md` 只写该目录范围内**的约束，细则见根 [`AGENTS.md`](./AGENTS.md) 文首「分层写作规则」。
+
+---
 
 ## 仓库结构
 
 ```text
 feijia/
-├─ apps/
+├─ apps/              ← 说明见 apps/README.md
 │  ├─ web/
 │  ├─ admin/
 │  └─ server/
-├─ packages/
+├─ packages/          ← 说明见 packages/README.md
 │  ├─ config/
 │  ├─ shared/
 │  ├─ schemas/
 │  ├─ http-client/
 │  └─ db/
-├─ docker/
+├─ docker/            ← 说明见 docker/README.md
 ├─ docs/
-├─ AGENTS.md
+├─ AGENTS.md          ← 代理指令（L0–L5）
+├─ EXAMPLES.md        ← 编码准则正反例示意
 └─ .codex/AGENTS.md
 ```
 
@@ -211,10 +233,21 @@ mock 数据导入后可使用：
 
 更多 mock 数据说明见 [docs/test-data-usage.md](./docs/test-data-usage.md)。
 
-## 项目文档
+---
 
-- [docker/README.md](./docker/README.md)：本地基础设施说明
-- [docs/test-data-usage.md](./docs/test-data-usage.md)：mock 数据导入与使用说明
-- [docs/openapi-frontend-integration-guide.md](./docs/openapi-frontend-integration-guide.md)：前后端 OpenAPI 对接说明
-- [AGENTS.md](./AGENTS.md)：项目级代理约束
-- [.codex/AGENTS.md](./.codex/AGENTS.md)：Codex 相关规则
+## 项目文档索引
+
+### 日常协作（人类优先）
+
+- [apps/README.md](./apps/README.md)：三条应用各自干什么、从哪下手改
+- [packages/README.md](./packages/README.md)：共享包分工、和 `apps` 的依赖关系
+- [docker/README.md](./docker/README.md)：Compose、连接串、排障
+- [docs/test-data-usage.md](./docs/test-data-usage.md)：mock 数据说明
+- [docs/openapi-frontend-integration-guide.md](./docs/openapi-frontend-integration-guide.md)：前后端 OpenAPI 对接
+
+### 代理与审查（工具执行）
+
+- [AGENTS.md](./AGENTS.md)：根约束，L0–L5
+- [EXAMPLES.md](./EXAMPLES.md)：编码准则正反例示意
+- [apps/AGENTS.md](./apps/AGENTS.md)、[packages/AGENTS.md](./packages/AGENTS.md)、[docker/AGENTS.md](./docker/AGENTS.md)：各层范围
+- [`.codex/AGENTS.md`](./.codex/AGENTS.md)：Codex

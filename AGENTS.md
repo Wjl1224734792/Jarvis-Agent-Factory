@@ -1,79 +1,125 @@
 # AGENTS.md
 
-项目规则优先于通用规则。
+> **用途**：约束**自动化代理**在本仓库中的行为（读代码、改代码、收尾）。  
+> **文体**：指令、检查清单、可判定规则；**不**承担叙事、上手教程、端口说明——那些只在 [`README.md`](./README.md)。  
+> **禁止**：把本文件当作人类入职文档朗读；人类日常以 README 与各层 `README.md` 为准。
 
-## 目标
+子路径 `**/AGENTS.md` 仅补充该路径下的可执行约束；与根文件冲突时 **以根文件为准**。
 
-- 只做与用户请求直接相关的变更。
-- 优先最小正确改动，不做顺手重构。
-- 修改前先读相关目录、调用链、环境变量和脚本。
+### 分层写作规则（各 AGENTS 共用）
 
-## 编码与审查准则（简洁优先）
+- 只写**本路径职责内**边界；不复制根文件 L0–L5、不复制 [`EXAMPLES.md`](./EXAMPLES.md) 中的准则全文。
+- 不越级描述兄弟目录实现；需要时用链接指向上级 [`AGENTS.md`](./AGENTS.md) 或人类文档 [`README.md`](./README.md)。
+- 牵连其它包时：允许一行「须同步检查 `…`」，契约以 `schemas` / README 为准。
 
-以下偏谨慎而非抢速；极简单改动可自行取舍。
+---
 
-- **思考**：实现前写清假设；多解时并列说明，勿静默选边；有更简路径可提出；不清则问。
-- **简洁**：最小可行实现；不扩展未请求功能；不为单处抽抽象；不为「不可能」场景堆分支与错误处理。
-- **手术式修改**：只动必要行；不顺手改相邻逻辑、注释或格式；风格与周边一致。本 diff 引入的未使用符号/导入须删掉；既有死代码勿动除非另有任务。
-- **可验证目标**：把需求落成可检查的结果（例：先测非法输入再实现；先复现 bug 再修；重构前后测试一致）。多步任务用简短步骤 + 每步验收。
-- **注释与审查**：新增与修改的代码须具备项目要求的注释（关键逻辑、公共 API、边界与非显而易见处；见各包 TSDoc/JSDoc 约定）。**无注释或注释不足以说明意图与契约的变更，不得视为通过审查。**
+## 索引：读哪一段（渐进式披露）
 
-## 当前仓库范围
+自上而下按需加载；**不得**为「读完」而阅读与当前任务无关的节。
 
-- 当前只维护 `apps/web`、`apps/admin`、`apps/server`。
-- `packages/*` 提供共享配置、常量、协议、数据库与 HTTP Client。
-- `docker/` 只维护本地开发基础设施，不承载生产部署编排。
-- `docs/` 记录需求、任务、计划、实现、评审与使用说明。
-- `apps/mobiles` 已删除，不要恢复占位目录。
-- 微信小程序不在本仓库开发，建议独立使用 `Taro`。
-- App 不在本仓库开发，建议独立使用 `Flutter`。
+| 标记 | 节 | 触发条件 |
+|------|-----|----------|
+| L0 | [硬约束](#l0) | 每个任务 |
+| L1 | [编码与审查](#l1) | 任意写码/改码 |
+| L2 | [范围与技术栈](#l2) | 选模块、判断是否属本仓 |
+| L3 | [修改规则](#l3) | 协议、DB、env、Compose |
+| L4 | [CORS / OpenAPI](#l4) | 跨域、文档开关、相关 env |
+| L5 | [收尾验证](#l5) | 宣称完成或提交前 |
+| — | [附录：路径路由](#appendix) | 需子树或 EXAMPLES |
 
-## 技术边界
+任务落在 `apps/*`、`packages/*`、`docker/*` 子目录：读完 **L0–L2** 后打开该目录 `AGENTS.md`。
 
-- 运行时：Bun
-- 测试框架：Vitest
-- ORM：Drizzle
-- 服务端框架：Hono
-- 依赖方向：`apps -> packages -> 独立`
+---
 
-## 修改规则
+<a id="l0"></a>
 
-- 改共享协议时，先检查：
-  - `packages/schemas`
-  - `packages/http-client`
-  - `packages/shared`
-  - `apps/server`
-  - `apps/web`
-  - `apps/admin`
-- 改数据库相关时，先检查 `packages/db`、`apps/server`，并阅读 [`README.md`](./README.md)「数据库与数据初始化」（`db:clear` 只清数据；`db:wipe-schema` 删并重建 `public`；`db:reset:*` = wipe → migrate → seed）。若改根目录 `db:*` 或 `packages/db` 脚本名/语义，同步更新该节 README。
-- 改环境变量时，必须同步更新：
-  - [`.env.example`](./.env.example)
-  - [`README.md`](./README.md)
-  - 相关子目录的 `AGENTS.md` / `README.md`（如果文档中写到了该变量、命令或入口）
-  - 若涉及 `CORS_ORIGIN`、`WEB_DEV_PORT`、`ADMIN_DEV_PORT` 或前端监听地址（`WEB_DEV_HOST` / `ADMIN_DEV_HOST`），需在 [`README.md`](./README.md) 的「CORS 与局域网访问」中保持说明一致（或补充新条目）。
-- 调整本地基础设施时，优先沿用根脚本：
-  - `bun run infra:up`
-  - `bun run infra:ps`
-  - `bun run infra:down`
-- 不要引入未接线目录、壳子工程、占位脚本。
-- 不要绕过 `packages/*` 在应用层重复定义共享结构。
+## L0 硬约束
 
-## CORS（跨域）
+- **必须**：变更范围 ⊆ 用户请求；最小正确 diff；改前扫相关目录、调用链、[`.env.example`](./.env.example)、README 中与本次相关的节。
+- **必须**：删除本 diff 引入的未使用符号/导入。
+- **禁止**：顺手重构、改无关注释/格式、删既有死代码（除非任务明确要求）。
 
-- 服务端在 `apps/server/src/app.ts` 挂载全局 CORS；默认白名单端口由 `WEB_DEV_PORT` / `ADMIN_DEV_PORT` 与 `apps/server/src/lib/cors-origins.ts` 解析。
-- 局域网 IP 访问前端时，浏览器 `Origin` 非 `localhost`，须在根目录 `.env` 配置 `CORS_ORIGIN`（见 [`README.md`](./README.md)「CORS 与局域网访问」与 `.env.example`）。
-- 生产环境勿使用 `CORS_ORIGIN=all`，应使用明确 Origin 列表。
+---
 
-## OpenAPI 规则
+<a id="l1"></a>
 
-- 文档入口：`/docs`、`/openapi.json`
-- 由 `OPENAPI_ENABLED` 控制
-- 未配置时：非生产默认开启，生产默认关闭
-- 生产相关改动不要默认暴露文档
+## L1 编码与审查
 
-## 默认验证
+极简单改动可弱化执行。
 
-除非用户明确要求跳过，否则收尾至少考虑：
+- **思考**：先列假设；多解并列；有更简路径可声明；不确定则提问。
+- **简洁**：最小实现；不扩需求；不单处抽象；不为不可能路径堆逻辑。
+- **手术式**：只改必要行；风格贴合周边文件。
+- **可验证**：产出可检查（测试、复现步骤、前后行为对比）；多步任务每步有验收。
+- **注释**：关键逻辑、公共 API、边界须 TSDoc/JSDoc；**注释不足以说明意图与契约 → 视为未通过审查。**
+
+反例库（示意代码）：[`EXAMPLES.md`](./EXAMPLES.md)。
+
+---
+
+<a id="l2"></a>
+
+## L2 范围与技术栈
+
+**在仓**：`apps/web`、`apps/admin`、`apps/server`；`packages/*`；`docker/*`（仅本地基座，非生产编排）；`docs/`。
+
+**不在仓**：`apps/mobiles`（勿恢复）；小程序/App（Taro/Flutter 另库）。
+
+**栈**：Bun · Vitest · Drizzle · Hono。依赖：`apps` → `packages` → 外部；**禁止** `packages` → `apps`。
+
+---
+
+<a id="l3"></a>
+
+## L3 修改规则
+
+### 共享协议
+
+改 API 形状、路由常量、请求/响应类型 → 按序打开并评估影响：
+
+`packages/schemas` → `packages/http-client` → `packages/shared` → `apps/server` → `apps/web` | `apps/admin`。
+
+禁止在 `apps/*` 重复定义应属于 `packages/*` 的结构。
+
+### 数据库
+
+动 schema / 迁移 / seed → 涉及 `packages/db`、`apps/server`。  
+语义：`db:clear` 仅清数据；`db:wipe-schema` 重建 `public`；`db:reset:*` = wipe → migrate → seed。  
+若改根 `db:*` 或 `packages/db` 脚本 → **同步** [`README.md`](./README.md)「数据库与数据初始化」。
+
+### 环境变量
+
+改 env → **必须**同步：[`.env.example`](./.env.example)、根 [`README.md`](./README.md)、已提到该变量的子目录文档。  
+`CORS_ORIGIN` / `WEB_DEV_PORT` / `ADMIN_DEV_PORT` / `WEB_DEV_HOST` / `ADMIN_DEV_HOST` → 同步 README「CORS 与局域网访问」。
+
+### 基础设施
+
+优先 `bun run infra:up` · `infra:ps` · `infra:down`。禁止未接线目录、壳工程、占位脚本。
+
+---
+
+<a id="l4"></a>
+
+## L4 CORS 与 OpenAPI
+
+**CORS**
+
+- 挂载：`apps/server/src/app.ts`；白名单端口：`WEB_DEV_PORT`、`ADMIN_DEV_PORT`、`apps/server/src/lib/cors-origins.ts`。
+- 局域网 IP 访问前端 → 根 `.env` 配 `CORS_ORIGIN`；**操作说明** → [`README.md`](./README.md) 对应节。
+- 生产 **禁止** `CORS_ORIGIN=all`。
+
+**OpenAPI**
+
+- `/docs`、`/openapi.json`；`OPENAPI_ENABLED`；未配置时非生产默认开、生产默认关；生产改动 **禁止** 默认暴露文档。
+
+---
+
+<a id="l5"></a>
+
+## L5 收尾验证
+
+宣称完成前至少跑（除非用户明确跳过）：
 
 ```bash
 bun run lint
@@ -81,3 +127,20 @@ bun run typecheck
 bun run test
 bun run build
 ```
+
+---
+
+<a id="appendix"></a>
+
+## 附录：路径路由
+
+| 路径 | 加载时机 |
+|------|----------|
+| [`EXAMPLES.md`](./EXAMPLES.md) | L1 对照、审查 |
+| [`apps/AGENTS.md`](./apps/AGENTS.md) | 任务在 `apps/*` |
+| [`packages/AGENTS.md`](./packages/AGENTS.md) | 任务在 `packages/*` |
+| [`docker/AGENTS.md`](./docker/AGENTS.md) | 任务在 `docker/*` |
+| `apps/web` \| `admin` \| `server` 下 `AGENTS.md` | 进入该应用 |
+| [`README.md`](./README.md) | 脚本表、端口、账号、排障（**唯一长表源**；AGENTS 不复制） |
+
+人类文档入口（AGENTS 不复制其正文）：[`apps/README.md`](./apps/README.md)、[`packages/README.md`](./packages/README.md)、[`docker/README.md`](./docker/README.md)。

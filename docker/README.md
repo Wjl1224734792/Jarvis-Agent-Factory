@@ -1,6 +1,9 @@
 # Docker 本地基础设施
 
-本目录维护飞加本地开发所需的基础设施：PostgreSQL、Redis、MinIO。推荐从仓库根目录通过 `bun run infra:*` 统一管理。
+写给**在笔记本上把数据库和对象存储跑起来**的同事：连接方式、常用命令和踩坑在下面。  
+若你需要的是「改 Compose 时要同步哪些文档、代理不许写什么」——那是 [`AGENTS.md`](./AGENTS.md) 的职责，文风与本 README 不同。
+
+本目录只服务**本地开发**：PostgreSQL、Redis、MinIO。请在仓库根用 `bun run infra:*` 一键管理；除非你明确要手写 `docker compose`。
 
 ## 目录结构
 
@@ -125,3 +128,9 @@ docker compose -f docker/storage/docker-compose.yml logs -f
 - 这些默认账号密码只用于本地开发。
 - 生产环境必须替换所有默认密码与密钥。
 - 不要把本地 Compose 暴露到公网。
+
+## 相关文档
+
+- [仓库根 README](../README.md)：全仓脚本、数据环境、端口与 CORS 操作说明
+- [docker/AGENTS.md](./AGENTS.md)：给代理的硬性约束（改 Compose 须同步哪些文件）
+- [仓库根 AGENTS.md](../AGENTS.md)：全仓 L0–L5（与 Docker 重叠部分以你能改什么为准）

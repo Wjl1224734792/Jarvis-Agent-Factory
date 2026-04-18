@@ -1,27 +1,20 @@
 # docker/AGENTS.md
 
-适用于 `docker/*`。
+> `scope`: `docker/*`（本地开发 Compose）  
+> `pre`: [`../AGENTS.md`](../AGENTS.md) **L0–L3**（含 env 同步）  
+> `human`: [`README.md`](./README.md)、根 [`README.md`](../README.md)
 
-## 作用
+**禁止**：生产编排、云资源、CI/CD；**禁止** 展开 `apps/*`、`packages/*` 实现。
 
-- 只维护本地开发基础设施：
-  - PostgreSQL
-  - Redis
-  - MinIO
+## 服务范围
+
+PostgreSQL · Redis · MinIO（仅本地）。
 
 ## 修改要求
 
-- 优先通过仓库根脚本操作：
-
-```bash
-bun run infra:up
-bun run infra:ps
-bun run infra:down
-```
-
-- 如果必须直接执行 Compose，使用 `docker compose -f ...`，不要继续写 `docker-compose`。
-- 调整端口、账号、密码、卷、服务名或健康检查后，必须同步更新：
+- **优先** 根脚本：`bun run infra:up` · `infra:ps` · `infra:down`。
+- 直接 Compose → `docker compose -f ...`（**禁止** `docker-compose` 命令形式）。
+- 改端口/账号/密码/卷/服务名/健康检查 → **必须** 同步：
   - [`.env.example`](../.env.example)
-  - [`README.md`](../README.md)
+  - 根 [`README.md`](../README.md)
   - [`docker/README.md`](./README.md)
-- 不要把生产部署、云资源编排或 CI/CD 逻辑塞进这里。
