@@ -169,6 +169,7 @@ export function RankingEditorPage() {
 
   const isFormValid =
     title.trim().length >= 2 &&
+    coverImageFileId.trim().length > 0 &&
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0);
 
@@ -459,6 +460,10 @@ export function RankingEditorPage() {
                       description: "创建社区榜单前请先登录。"
                     })
                   ) {
+                    return;
+                  }
+                  if (!coverImageFileId.trim()) {
+                    setSubmitError("请先上传封面。");
                     return;
                   }
                   setSubmitError(null);

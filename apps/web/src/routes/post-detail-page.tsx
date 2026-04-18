@@ -31,7 +31,7 @@ import {
   patchPostViewCount
 } from "../features/posts/post-query-cache";
 import { apiClient } from "../lib/api-client";
-import { getAvatarImage, getEditorialImage } from "../lib/aviation-media";
+import { getAvatarImage } from "../lib/aviation-media";
 import { shouldRecordSessionView } from "../lib/view-session";
 
 function splitContent(content: string) {
@@ -102,6 +102,7 @@ export function PostDetailPage() {
   const item = postQuery.data?.item;
   const paragraphs = splitContent(item?.content ?? "");
   const articleHtml = item?.type === "article" ? item.contentHtml?.trim() ?? "" : "";
+  const detailCoverUrl = item?.cover?.url ?? item?.images[0]?.url ?? null;
   const sanitizedArticleHtml = useMemo(
     () => (item?.type === "article" ? sanitizeHtml(articleHtml) : ""),
     [articleHtml, item?.type]
@@ -265,16 +266,22 @@ export function PostDetailPage() {
         </header>
 
         <div className="overflow-hidden border border-border/70 rounded-none">
-          <img
-            alt={item.title}
-            className="h-[280px] w-full object-cover md:h-[380px]"
-            src={item.images[0]?.url ?? getEditorialImage(item.id)}
-          />
+          {detailCoverUrl ? (
+            <img
+              alt={item.title}
+              className="h-[280px] w-full object-cover md:h-[380px]"
+              src={detailCoverUrl}
+            />
+          ) : (
+            <div className="flex h-[280px] w-full items-center justify-center bg-surface-1 text-sm text-muted-foreground md:h-[380px]">
+              暂未上传封面
+            </div>
+          )}
         </div>
 
         {item.type === "article" && sanitizedArticleHtml ? (
           <div
-              className="text-[1rem] leading-8 text-foreground/82 [&_a]:text-primary [&_blockquote]:my-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-5 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_figure]:my-6 [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[1.55rem] [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.2rem] [&_h3]:font-semibold [&_hr]:my-6 [&_hr]:border-dashed [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-6 [&_video]:w-full [&_video]:rounded-[0.95rem]"
+              className="text-[1rem] leading-8 text-foreground/82 [&_a]:text-primary [&_blockquote]:my-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-5 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_figure]:my-6 [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[1.55rem] [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.2rem] [&_h3]:font-semibold [&_hr]:my-6 [&_hr]:border-dashed [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-6 [&_video]:w-full [&_video]:rounded-[0.95rem]"
             dangerouslySetInnerHTML={{ __html: sanitizedArticleHtml }}
           />
         ) : (

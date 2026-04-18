@@ -615,6 +615,7 @@ export function PublishMomentPage() {
               <Button
                 disabled={
                   !title.trim() ||
+                  !submitCoverImageId ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -631,6 +632,10 @@ export function PublishMomentPage() {
 
                   if (!title.trim()) {
                     setError("请填写标题。");
+                    return;
+                  }
+                  if (!submitCoverImageId) {
+                    setError("请先上传封面。");
                     return;
                   }
 

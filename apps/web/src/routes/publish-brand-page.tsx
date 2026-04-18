@@ -259,7 +259,7 @@ export function PublishBrandPage() {
                     <div className="space-y-2 text-center">
                       <FileImageIcon className="mx-auto size-7" />
                       <div>{isUploading ? "上传中..." : "点击上传 Logo"}</div>
-                      <div className="text-xs">可选</div>
+                      <div className="text-xs">必填</div>
                     </div>
                   )}
                 </button>
@@ -306,6 +306,7 @@ export function PublishBrandPage() {
                   !slug.trim() ||
                   !slugValid ||
                   !description.trim() ||
+                  !logo ||
                   isUploading ||
                   isSubmitting
                 }
@@ -316,6 +317,10 @@ export function PublishBrandPage() {
                       description: "登录后即可提交，我们会在审核通过后把品牌加入可选列表。"
                     })
                   ) {
+                    return;
+                  }
+                  if (!logo) {
+                    setError("请先上传封面。");
                     return;
                   }
 

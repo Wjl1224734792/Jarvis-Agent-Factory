@@ -389,7 +389,19 @@
   border-radius: 1rem;
   background: #050816;
   padding: 1rem;
-  color: #e2e8f0;
+  color: #f8fafc;
+}
+
+.wang-editor-shell .w-e-text-container [data-slate-editor] pre code {
+  background: transparent;
+  color: inherit;
+  padding: 0;
+  font-family: var(--font-mono);
+}
+
+.wang-editor-shell .w-e-text-container [data-slate-editor] pre * {
+  color: inherit;
+  caret-color: #ffffff;
 }
 
 .wang-editor-shell .w-e-text-container [data-slate-editor] img,

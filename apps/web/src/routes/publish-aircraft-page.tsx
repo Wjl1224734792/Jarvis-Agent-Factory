@@ -949,6 +949,7 @@ export function PublishAircraftPage() {
                   !modelName.trim() ||
                   !selectedCategoryId ||
                   !selectedBrandId ||
+                  !coverImage ||
                   isSubmitting ||
                   isUploading ||
                   isCapturingVideoFrame
@@ -1005,8 +1006,8 @@ export function PublishAircraftPage() {
                     }
 
                     const effectiveCover = await ensureVideoCoverForSubmit();
-                    if (uploadedVideo && !effectiveCover) {
-                      setError("请等待首帧封面生成完成，或上传自定义封面。");
+                    if (!effectiveCover) {
+                      setError("请先上传封面。");
                       setIsSubmitting(false);
                       return;
                     }
