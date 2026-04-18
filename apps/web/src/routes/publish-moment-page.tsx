@@ -104,6 +104,67 @@ async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number):
   return new File([blob], "moment-video-cover.jpg", { type: "image/jpeg" });
 }
 
+async function captureVideoFramePreviewDataUrl(videoUrl: string, seekRatio: number): Promise<string> {
+  const video = document.createElement("video");
+  video.crossOrigin = "anonymous";
+  video.muted = true;
+  video.playsInline = true;
+  video.preload = "metadata";
+  video.src = videoUrl;
+
+  await new Promise<void>((resolve, reject) => {
+    video.onloadedmetadata = () => resolve();
+    video.onerror = () => reject(new Error("无法加载视频预览帧。"));
+  });
+
+  const normalizedRatio = Number.isFinite(seekRatio) ? Math.min(1, Math.max(0, seekRatio)) : 0;
+  const seekTime =
+    Number.isFinite(video.duration) && video.duration > 0
+      ? video.duration * normalizedRatio
+      : 0.05;
+
+  await new Promise<void>((resolve, reject) => {
+    const onSeeked = () => {
+      video.removeEventListener("seeked", onSeeked);
+      resolve();
+    };
+    video.addEventListener("seeked", onSeeked);
+    video.addEventListener("error", () => reject(new Error("无法定位到预览帧。")), { once: true });
+    video.currentTime = seekTime;
+  });
+
+  const w = video.videoWidth;
+  const h = video.videoHeight;
+  if (!w || !h) {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法读取视频预览帧。");
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = w;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法生成视频预览帧。");
+  }
+
+  try {
+    ctx.drawImage(video, 0, 0, w, h);
+  } catch {
+    video.removeAttribute("src");
+    video.load();
+    throw new Error("无法截取视频预览帧（可能被跨域限制）。");
+  }
+
+  video.removeAttribute("src");
+  video.load();
+
+  return canvas.toDataURL("image/jpeg", 0.72);
+}
+
 export function PublishMomentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -121,6 +182,7 @@ export function PublishMomentPage() {
   const [videoCoverSource, setVideoCoverSource] = useState<"frame" | "manual">("frame");
   const [videoFrameRatio, setVideoFrameRatio] = useState(VIDEO_COVER_RATIO_DEFAULT);
   const [videoDuration, setVideoDuration] = useState<number | null>(null);
+  const [framePreviewUrl, setFramePreviewUrl] = useState<string | null>(null);
   const [isCapturingVideoFrame, setIsCapturingVideoFrame] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
@@ -245,6 +307,33 @@ export function PublishMomentPage() {
     }
     setSelectedImageCoverId(uploadedImages[0]?.id ?? null);
   }, [uploadedImages, selectedImageCoverId]);
+
+  useEffect(() => {
+    if (!uploadedVideo || videoCoverSource !== "frame") {
+      setFramePreviewUrl(null);
+      return;
+    }
+
+    let cancelled = false;
+    const timer = window.setTimeout(() => {
+      void captureVideoFramePreviewDataUrl(uploadedVideo.url, videoFrameRatio / 100)
+        .then((url) => {
+          if (!cancelled) {
+            setFramePreviewUrl(url);
+          }
+        })
+        .catch(() => {
+          if (!cancelled) {
+            setFramePreviewUrl(null);
+          }
+        });
+    }, 120);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [uploadedVideo, videoCoverSource, videoFrameRatio]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -559,7 +648,27 @@ export function PublishMomentPage() {
                     ref={videoCoverInputRef}
                     type="file"
                   />
-                  {videoCoverImage ? (
+                  {videoCoverSource === "frame" ? (
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                      <div className="overflow-hidden rounded-md border border-border/70 bg-slate-100">
+                        {framePreviewUrl ? (
+                          <img
+                            alt="frame preview"
+                            className="h-12 w-16 object-cover"
+                            src={framePreviewUrl}
+                          />
+                        ) : (
+                          <div className="flex h-12 w-16 items-center justify-center text-[10px] text-muted-foreground">
+                            预览中
+                          </div>
+                        )}
+                      </div>
+                      <div className="space-y-0.5">
+                        <div>实时预览帧</div>
+                        <div>{selectedFrameSecondText ? `当前时间：${selectedFrameSecondText}` : "当前时间：--"}</div>
+                      </div>
+                    </div>
+                  ) : videoCoverImage ? (
                     <div className="flex items-center gap-2 text-xs text-muted-foreground">
                       <img
                         alt="video cover"
