@@ -41,6 +41,14 @@ function splitContent(content: string) {
     .filter(Boolean);
 }
 
+function normalizeMediaSrc(input: string) {
+  const value = input.trim();
+  if (!value) {
+    return "";
+  }
+  return value.startsWith("//") ? `https:${value}` : value;
+}
+
 function extractVideoSrcSet(html: string) {
   const sourceSet = new Set<string>();
   const content = html.trim();
@@ -53,7 +61,7 @@ function extractVideoSrcSet(html: string) {
     const documentNode = new DOMParser().parseFromString(content, "text/html");
     const mediaNodes = documentNode.querySelectorAll("video[src], video source[src]");
     for (const node of mediaNodes) {
-      const src = node.getAttribute("src")?.trim();
+      const src = normalizeMediaSrc(node.getAttribute("src") ?? "");
       if (src) {
         sourceSet.add(src);
       }
@@ -62,7 +70,7 @@ function extractVideoSrcSet(html: string) {
   }
 
   for (const match of content.matchAll(/<(?:video|source)\b[^>]*\bsrc=["']([^"']+)["'][^>]*>/gi)) {
-    const src = match[1]?.trim();
+    const src = normalizeMediaSrc(match[1] ?? "");
     if (src) {
       sourceSet.add(src);
     }
@@ -94,14 +102,21 @@ export function PostDetailPage() {
   const item = postQuery.data?.item;
   const paragraphs = splitContent(item?.content ?? "");
   const articleHtml = item?.type === "article" ? item.contentHtml?.trim() ?? "" : "";
-  const embeddedVideoSrcSet = useMemo(() => extractVideoSrcSet(articleHtml), [articleHtml]);
+  const sanitizedArticleHtml = useMemo(
+    () => (item?.type === "article" ? sanitizeHtml(articleHtml) : ""),
+    [articleHtml, item?.type]
+  );
+  const embeddedVideoSrcSet = useMemo(
+    () => extractVideoSrcSet(sanitizedArticleHtml),
+    [sanitizedArticleHtml]
+  );
   const fallbackVideos = useMemo(() => {
     if (!item || item.type !== "article") {
       return [];
     }
 
     return item.videos.filter((video) => {
-      const src = video.url.trim();
+      const src = normalizeMediaSrc(video.url);
       return src.length > 0 && !embeddedVideoSrcSet.has(src);
     });
   }, [embeddedVideoSrcSet, item]);
@@ -257,10 +272,10 @@ export function PostDetailPage() {
           />
         </div>
 
-        {item.type === "article" && articleHtml ? (
+        {item.type === "article" && sanitizedArticleHtml ? (
           <div
               className="text-[1rem] leading-8 text-foreground/82 [&_a]:text-primary [&_blockquote]:my-5 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-5 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_figure]:my-6 [&_h2]:mt-8 [&_h2]:mb-3 [&_h2]:text-[1.55rem] [&_h2]:font-semibold [&_h3]:mt-6 [&_h3]:mb-2 [&_h3]:text-[1.2rem] [&_h3]:font-semibold [&_hr]:my-6 [&_hr]:border-dashed [&_img]:w-full [&_img]:rounded-[0.95rem] [&_ol]:list-decimal [&_ol]:pl-6 [&_p]:mb-5 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-4 [&_pre]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-3 [&_td]:py-2 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-3 [&_th]:py-2 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-6 [&_video]:w-full [&_video]:rounded-[0.95rem]"
-            dangerouslySetInnerHTML={{ __html: sanitizeHtml(articleHtml) }}
+            dangerouslySetInnerHTML={{ __html: sanitizedArticleHtml }}
           />
         ) : (
           <div className="space-y-6">

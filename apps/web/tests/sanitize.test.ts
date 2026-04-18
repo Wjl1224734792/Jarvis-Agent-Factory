@@ -10,4 +10,23 @@ describe("sanitizeHtml", () => {
     expect(sanitized).not.toContain('href="data:');
     expect(sanitized).toContain('href="https://example.com/page"');
   });
+
+  it("keeps video source tags for network videos", () => {
+    const sanitized = sanitizeHtml(
+      '<video controls><source src="https://cdn.example.com/video.mp4" type="video/mp4" /></video>'
+    );
+
+    expect(sanitized).toContain("<video");
+    expect(sanitized).toContain("<source");
+    expect(sanitized).toContain('src="https://cdn.example.com/video.mp4"');
+  });
+
+  it("keeps trusted iframes and removes untrusted ones", () => {
+    const sanitized = sanitizeHtml(
+      '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx411x7xx"></iframe><iframe src="https://evil.example/embed"></iframe>'
+    );
+
+    expect(sanitized).toContain("player.bilibili.com");
+    expect(sanitized).not.toContain("evil.example");
+  });
 });

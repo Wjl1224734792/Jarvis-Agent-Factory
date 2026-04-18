@@ -4,6 +4,7 @@ import type { Config } from "dompurify";
 const ALLOWED_TAGS: Config["ALLOWED_TAGS"] = [
   "a",
   "img",
+  "source",
   "strong",
   "em",
   "p",
@@ -31,6 +32,7 @@ const ALLOWED_TAGS: Config["ALLOWED_TAGS"] = [
   "td",
   "span",
   "div",
+  "iframe",
   "hr",
   "mark",
   "del",
@@ -54,6 +56,12 @@ const ALLOWED_ATTR: Config["ALLOWED_ATTR"] = [
   "controls",
   "preload",
   "poster",
+  "type",
+  "allow",
+  "allowfullscreen",
+  "frameborder",
+  "loading",
+  "referrerpolicy",
   "colspan",
   "rowspan",
   "style",
@@ -64,6 +72,8 @@ const ALLOWED_ATTR: Config["ALLOWED_ATTR"] = [
 const ALLOWED_URI_REGEXP =
   /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
+const TRUSTED_IFRAME_HOSTS = ["youtube.com", "youtu.be", "bilibili.com", "player.bilibili.com"];
+
 const SANITIZE_CONFIG: Config = {
   ALLOWED_TAGS,
   ALLOWED_ATTR,
@@ -71,21 +81,92 @@ const SANITIZE_CONFIG: Config = {
   ADD_ATTR: ["target", "rel"],
   ADD_DATA_URI_TAGS: ["img"],
   FORBID_ATTR: ["onerror", "onload", "onclick", "onmouseover", "onfocus", "onblur"],
-  FORBID_TAGS: ["script", "iframe", "object", "embed", "form"],
+  FORBID_TAGS: ["script", "object", "embed", "form"],
   RETURN_DOM: false,
   RETURN_DOM_FRAGMENT: false,
   RETURN_TRUSTED_TYPE: false
 };
 
+function normalizeUrl(input: string) {
+  if (input.startsWith("//")) {
+    return `https:${input}`;
+  }
+  return input;
+}
+
+function isTrustedIframeSrc(src: string) {
+  const value = src.trim();
+  if (!value) {
+    return false;
+  }
+
+  try {
+    const url = new URL(normalizeUrl(value));
+    if (url.protocol !== "https:" && url.protocol !== "http:") {
+      return false;
+    }
+    return TRUSTED_IFRAME_HOSTS.some(
+      (host) => url.hostname === host || url.hostname.endsWith(`.${host}`)
+    );
+  } catch {
+    return false;
+  }
+}
+
+function extractIframeSrc(iframeHtml: string) {
+  const quoted = iframeHtml.match(/\ssrc\s*=\s*(["'])(.*?)\1/i);
+  if (quoted?.[2]) {
+    return quoted[2].trim();
+  }
+  const unquoted = iframeHtml.match(/\ssrc\s*=\s*([^\s>]+)/i);
+  return unquoted?.[1]?.trim() ?? "";
+}
+
+function sanitizeIframes(dirty: string) {
+  if (!dirty.includes("<iframe")) {
+    return dirty;
+  }
+
+  if (typeof DOMParser !== "undefined" && typeof XMLSerializer !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(dirty, "text/html");
+    const iframeNodes = Array.from(documentNode.querySelectorAll("iframe"));
+    for (const iframeNode of iframeNodes) {
+      const src = iframeNode.getAttribute("src")?.trim() ?? "";
+      if (!isTrustedIframeSrc(src)) {
+        iframeNode.remove();
+        continue;
+      }
+
+      iframeNode.setAttribute("src", normalizeUrl(src));
+      iframeNode.setAttribute("loading", "lazy");
+      iframeNode.setAttribute("referrerpolicy", "no-referrer");
+      iframeNode.setAttribute("allowfullscreen", "true");
+      const allowValue = iframeNode.getAttribute("allow");
+      if (!allowValue) {
+        iframeNode.setAttribute("allow", "accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture");
+      }
+    }
+    return documentNode.body.innerHTML;
+  }
+
+  return dirty.replace(/<iframe\b[\s\S]*?<\/iframe>/gi, (iframeHtml) => {
+    const src = extractIframeSrc(iframeHtml);
+    return isTrustedIframeSrc(src) ? iframeHtml : "";
+  });
+}
+
 function ssrSanitize(dirty: string): string {
-  return String(dirty)
+  const sanitized = String(dirty)
     .replace(/<script[\s\S]*?<\/script>/gi, "")
-    .replace(/<iframe[\s\S]*?<\/iframe>/gi, "")
+    .replace(/<object[\s\S]*?<\/object>/gi, "")
+    .replace(/<embed[\s\S]*?<\/embed>/gi, "")
+    .replace(/<form[\s\S]*?<\/form>/gi, "")
     .replace(/\shref\s*=\s*(["'])\s*data:[\s\S]*?\1/gi, "")
     .replace(/\shref\s*=\s*data:[^\s>]+/gi, "")
     .replace(/on\w+\s*=\s*["'][^"']*["']/gi, "")
     .replace(/on\w+\s*=\s*\S+/gi, "")
     .replace(/javascript\s*:/gi, "");
+  return sanitizeIframes(sanitized);
 }
 
 type DomPurifySanitizer = (dirty: string, config?: Config) => string;
@@ -125,7 +206,7 @@ export function sanitizeHtml(dirty: string): string {
     return ssrSanitize(dirty);
   }
 
-  return String(sanitize(dirty, SANITIZE_CONFIG));
+  return sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG)));
 }
 
 export function escapeHtml(text: string): string {

@@ -351,6 +351,11 @@
   color: var(--primary);
 }
 
+.wang-editor-shell .w-e-drop-panel,
+.wang-editor-shell .w-e-modal {
+  z-index: 50;
+}
+
 .wang-editor-shell .w-e-text-container {
   background: #ffffff;
 }

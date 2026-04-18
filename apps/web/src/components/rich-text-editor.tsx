@@ -136,7 +136,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
   }, [editor]);
 
   return (
-    <div className="wang-editor-shell overflow-hidden rounded-[0.9rem] border border-border/70 bg-white">
+    <div className="wang-editor-shell overflow-visible rounded-[0.9rem] border border-border/70 bg-white">
       <Toolbar
         defaultConfig={toolbarConfig}
         editor={editor}
