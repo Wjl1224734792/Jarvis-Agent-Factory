@@ -13,6 +13,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
 import { apiClient } from "@/lib/api-client";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import { buildBrandApplicationSuccessView } from "./publish-brand-page-helpers";
 
 type UploadedLogo = {
@@ -25,6 +26,14 @@ type UploadedLogo = {
 
 const BRAND_DESCRIPTION_MAX_LENGTH = 500;
 const BRAND_SLUG_PATTERN = /^[a-z0-9-]+$/;
+const BRAND_DRAFT_KEY = "feijia:brand-draft";
+
+type BrandDraftData = {
+  name: string;
+  slug: string;
+  description: string;
+  logo: UploadedLogo | null;
+};
 
 function BrandApplicationSuccessState(props: {
   application: BrandApplication;
@@ -145,6 +154,26 @@ export function PublishBrandPage() {
   });
 
   useEffect(() => {
+    if (editId || submittedId) {
+      return;
+    }
+    void loadDraftSnapshot<BrandDraftData>(BRAND_DRAFT_KEY)
+      .then((snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+        const draft = snapshot.data;
+        setName(draft.name ?? "");
+        setSlug(draft.slug ?? "");
+        setDescription(draft.description ?? "");
+        setLogo(draft.logo ?? null);
+      })
+      .catch(() => {
+        // noop
+      });
+  }, [editId, submittedId]);
+
+  useEffect(() => {
     if (!detailQuery.data?.item || submittedApplication || submittedId) {
       return;
     }
@@ -155,6 +184,24 @@ export function PublishBrandPage() {
     setDescription(item.description ?? "");
     setLogo(item.logoUrl ? { id: item.id, url: item.logoUrl } : null);
   }, [detailQuery.data?.item, submittedApplication, submittedId]);
+
+  useEffect(() => {
+    if (editId || submittedId) {
+      return;
+    }
+    void saveDraftSnapshot<BrandDraftData>({
+      key: BRAND_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        name,
+        slug,
+        description,
+        logo
+      },
+      filesBySlot: {}
+    });
+  }, [description, editId, logo, name, slug, submittedId]);
 
   useEffect(() => {
     return () => {
@@ -348,6 +395,7 @@ export function PublishBrandPage() {
                       : apiClient.createBrandApplication(payload);
                   })()
                     .then((response) => {
+                      void clearDraftSnapshot(BRAND_DRAFT_KEY);
                       void queryClient.invalidateQueries({ queryKey: ["self-profile-content"] });
                       if (editId) {
                         void queryClient.invalidateQueries({ queryKey: ["brand-application-edit", editId] });

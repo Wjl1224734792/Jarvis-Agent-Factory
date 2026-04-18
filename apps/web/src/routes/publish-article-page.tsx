@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
@@ -34,6 +35,16 @@ type UploadedVideo = {
   fileName?: string;
   file?: File;
   isLocal?: boolean;
+};
+
+type ArticleDraftData = {
+  title: string;
+  summary: string;
+  editorHtml: string;
+  categoryId: string;
+  coverImage: UploadedImage | null;
+  uploadedImages: UploadedImage[];
+  uploadedVideos: UploadedVideo[];
 };
 
 function escapeHtml(input: string) {
@@ -104,32 +115,23 @@ export function PublishArticlePage() {
     if (editId) {
       return;
     }
-    const draft = window.localStorage.getItem(ARTICLE_DRAFT_KEY);
-    if (!draft) {
-      return;
-    }
-
-    try {
-      const parsed = JSON.parse(draft) as {
-        title?: string;
-        summary?: string;
-        editorHtml?: string;
-        categoryId?: string;
-        coverImage?: UploadedImage | null;
-        uploadedImages?: UploadedImage[];
-        uploadedVideos?: UploadedVideo[];
-      };
-
-      setTitle(parsed.title ?? "");
-      setSummary(parsed.summary ?? "");
-      setEditorHtml(parsed.editorHtml ?? "");
-      setCategoryId(parsed.categoryId ?? "");
-      setCoverImage(parsed.coverImage ?? null);
-      setUploadedImages(parsed.uploadedImages ?? []);
-      setUploadedVideos(parsed.uploadedVideos ?? []);
-    } catch {
-      window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
-    }
+    void loadDraftSnapshot<ArticleDraftData>(ARTICLE_DRAFT_KEY)
+      .then((snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+        const parsed = snapshot.data;
+        setTitle(parsed.title ?? "");
+        setSummary(parsed.summary ?? "");
+        setEditorHtml(parsed.editorHtml ?? "");
+        setCategoryId(parsed.categoryId ?? "");
+        setCoverImage(parsed.coverImage ?? null);
+        setUploadedImages(parsed.uploadedImages ?? []);
+        setUploadedVideos(parsed.uploadedVideos ?? []);
+      })
+      .catch(() => {
+        // noop
+      });
   }, [editId]);
 
   useEffect(() => {
@@ -250,9 +252,11 @@ export function PublishArticlePage() {
   }
 
   function saveDraft() {
-    window.localStorage.setItem(
-      ARTICLE_DRAFT_KEY,
-      JSON.stringify({
+    void saveDraftSnapshot<ArticleDraftData>({
+      key: ARTICLE_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
         title,
         summary,
         editorHtml,
@@ -260,9 +264,31 @@ export function PublishArticlePage() {
         coverImage,
         uploadedImages,
         uploadedVideos
-      })
-    );
+      },
+      filesBySlot: {}
+    });
   }
+
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+    void saveDraftSnapshot<ArticleDraftData>({
+      key: ARTICLE_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        title,
+        summary,
+        editorHtml,
+        categoryId,
+        coverImage,
+        uploadedImages,
+        uploadedVideos
+      },
+      filesBySlot: {}
+    });
+  }, [categoryId, coverImage, editId, editorHtml, summary, title, uploadedImages, uploadedVideos]);
 
   if (categoriesQuery.isLoading || detailQuery.isLoading) {
     return <PublishArticlePageSkeleton />;
@@ -488,7 +514,7 @@ export function PublishArticlePage() {
                     return { response, submitCoverImage };
                   })()
                     .then(({ response, submitCoverImage }) => {
-                      window.localStorage.removeItem(ARTICLE_DRAFT_KEY);
+                      void clearDraftSnapshot(ARTICLE_DRAFT_KEY);
                       void Promise.all([
                         queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] }),
                         queryClient.invalidateQueries({ queryKey: ["post-detail", response.item.id] })

@@ -21,6 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/uploads/draft-store";
 import { cn } from "../lib/utils";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
@@ -59,6 +60,7 @@ const AIRCRAFT_SUMMARY_MAX_LENGTH = 50;
 const AIRCRAFT_DESCRIPTION_MAX_LENGTH = 300;
 const GALLERY_IMAGE_MAX = 6;
 const UNSIGNED_INT_INPUT_MAX_LEN = 16;
+const AIRCRAFT_DRAFT_KEY = "feijia:aircraft-draft";
 
 function sanitizeUnsignedIntInput(raw: string): string {
   return raw.replace(/\D/g, "").slice(0, UNSIGNED_INT_INPUT_MAX_LEN);
@@ -80,6 +82,27 @@ function parseNullableNonNegativeInt(str: string): { ok: true; value: number | n
 }
 
 type CoverSource = "manual" | "videoFrame";
+
+type AircraftDraftData = {
+  modelName: string;
+  selectedBrandId: string;
+  selectedCategoryId: string;
+  selectedPowerType: string;
+  selectedLifecycleStatus: string;
+  brandKeyword: string;
+  summary: string;
+  description: string;
+  priceMin: string;
+  priceMax: string;
+  maxFlightTimeMinutes: string;
+  maxRangeKilometers: string;
+  maxSpeedKph: string;
+  takeoffWeightGrams: string;
+  coverImage: UploadedImage | null;
+  galleryImages: UploadedImage[];
+  uploadedVideo: UploadedVideo | null;
+  coverSource: CoverSource;
+};
 
 /** 从已上传视频 URL 截取一帧为 JPEG（需视频资源允许 canvas 读取，同源或 CORS） */
 async function captureVideoFirstFrameAsJpegFile(videoUrl: string): Promise<File> {
@@ -205,6 +228,40 @@ export function PublishAircraftPage() {
 
   const categories = categoriesQuery.data ?? [];
   const brands = useMemo(() => brandsQuery.data ?? [], [brandsQuery.data]);
+
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+    void loadDraftSnapshot<AircraftDraftData>(AIRCRAFT_DRAFT_KEY)
+      .then((snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+        const draft = snapshot.data;
+        setModelName(draft.modelName ?? "");
+        setSelectedBrandId(draft.selectedBrandId ?? "");
+        setSelectedCategoryId(draft.selectedCategoryId ?? "");
+        setSelectedPowerType(draft.selectedPowerType ?? "other");
+        setSelectedLifecycleStatus(draft.selectedLifecycleStatus ?? "unreleased");
+        setBrandKeyword(draft.brandKeyword ?? "");
+        setSummary(draft.summary ?? "");
+        setDescription(draft.description ?? "");
+        setPriceMin(draft.priceMin ?? "");
+        setPriceMax(draft.priceMax ?? "");
+        setMaxFlightTimeMinutes(draft.maxFlightTimeMinutes ?? "");
+        setMaxRangeKilometers(draft.maxRangeKilometers ?? "");
+        setMaxSpeedKph(draft.maxSpeedKph ?? "");
+        setTakeoffWeightGrams(draft.takeoffWeightGrams ?? "");
+        setCoverImage(draft.coverImage ?? null);
+        setGalleryImages(draft.galleryImages ?? []);
+        setUploadedVideo(draft.uploadedVideo ?? null);
+        setCoverSource(draft.coverSource ?? "manual");
+      })
+      .catch(() => {
+        // noop
+      });
+  }, [editId]);
 
   const filteredBrands = useMemo(() => {
     const keyword = brandKeyword.trim().toLowerCase();
@@ -435,6 +492,58 @@ export function PublishAircraftPage() {
       cancelled = true;
     };
   }, [uploadedVideo, coverSource, uploadVideoFrameCover]);
+
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+    void saveDraftSnapshot<AircraftDraftData>({
+      key: AIRCRAFT_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        modelName,
+        selectedBrandId,
+        selectedCategoryId,
+        selectedPowerType,
+        selectedLifecycleStatus,
+        brandKeyword,
+        summary,
+        description,
+        priceMin,
+        priceMax,
+        maxFlightTimeMinutes,
+        maxRangeKilometers,
+        maxSpeedKph,
+        takeoffWeightGrams,
+        coverImage,
+        galleryImages,
+        uploadedVideo,
+        coverSource
+      },
+      filesBySlot: {}
+    });
+  }, [
+    brandKeyword,
+    coverImage,
+    coverSource,
+    description,
+    editId,
+    galleryImages,
+    maxFlightTimeMinutes,
+    maxRangeKilometers,
+    maxSpeedKph,
+    modelName,
+    priceMax,
+    priceMin,
+    selectedBrandId,
+    selectedCategoryId,
+    selectedLifecycleStatus,
+    selectedPowerType,
+    summary,
+    takeoffWeightGrams,
+    uploadedVideo
+  ]);
 
   /** 提交前确保：视频 + 首帧模式时已有封面文件 */
   async function ensureVideoCoverForSubmit(): Promise<UploadedImage | null> {
@@ -1075,6 +1184,7 @@ export function PublishAircraftPage() {
 
                     try {
                       const payload = await request;
+                      void clearDraftSnapshot(AIRCRAFT_DRAFT_KEY);
                       setCoverImage(effectiveCover);
                       setGalleryImages(uploadedGallery.map((entry) => entry.item));
                       setUploadedVideo(submitVideoAsset);

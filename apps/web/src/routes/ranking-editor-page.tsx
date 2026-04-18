@@ -14,6 +14,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { getModelImage } from "../lib/aviation-media";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "../lib/uploads/draft-store";
 import { buildPublishStatusPath } from "../lib/web-routes";
 
 type DraftItem = {
@@ -41,6 +42,17 @@ function emptyDraftItem(): DraftItem {
     pendingImageFileName: null
   };
 }
+
+const RANKING_DRAFT_KEY = "feijia:ranking-draft";
+
+type RankingDraftData = {
+  title: string;
+  coverImageFileId: string;
+  coverImageUrl: string;
+  coverImageFile: File | null;
+  itemAddPolicy: "public" | "owner";
+  draftItems: DraftItem[];
+};
 
 export function RankingEditorPage() {
   const navigate = useNavigate();
@@ -76,6 +88,28 @@ export function RankingEditorPage() {
     },
     enabled: Boolean(editId)
   });
+
+  useEffect(() => {
+    if (editId || addMode) {
+      return;
+    }
+    void loadDraftSnapshot<RankingDraftData>(RANKING_DRAFT_KEY)
+      .then((snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+        const draft = snapshot.data;
+        setTitle(draft.title ?? "");
+        setCoverImageFileId(draft.coverImageFileId ?? "");
+        setCoverImageUrl(draft.coverImageUrl ?? "");
+        setCoverImageFile(draft.coverImageFile ?? null);
+        setItemAddPolicy(draft.itemAddPolicy ?? "owner");
+        setDraftItems(draft.draftItems ?? []);
+      })
+      .catch(() => {
+        // noop
+      });
+  }, [addMode, editId]);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {
@@ -172,6 +206,26 @@ export function RankingEditorPage() {
     (coverImageFileId.trim().length > 0 || Boolean(coverImageFile)) &&
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0);
+
+  useEffect(() => {
+    if (editId || addMode) {
+      return;
+    }
+    void saveDraftSnapshot<RankingDraftData>({
+      key: RANKING_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        title,
+        coverImageFileId,
+        coverImageUrl,
+        coverImageFile,
+        itemAddPolicy,
+        draftItems
+      },
+      filesBySlot: {}
+    });
+  }, [addMode, coverImageFile, coverImageFileId, coverImageUrl, draftItems, editId, itemAddPolicy, title]);
 
   if (modelsQuery.isLoading || (editId && detailQuery.isLoading)) {
     return <RankingEditorPageSkeleton />;
@@ -509,6 +563,7 @@ export function RankingEditorPage() {
                     return { response, nextCoverImageFileId, nextCoverImageUrl };
                   })()
                     .then(({ response, nextCoverImageFileId, nextCoverImageUrl }) => {
+                      void clearDraftSnapshot(RANKING_DRAFT_KEY);
                       setCoverImageFile(null);
                       if (nextCoverImageFileId) {
                         setCoverImageFileId(nextCoverImageFileId);

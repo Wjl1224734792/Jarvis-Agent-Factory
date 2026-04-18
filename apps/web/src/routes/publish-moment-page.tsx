@@ -13,6 +13,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { cn } from "@/lib/utils";
+import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import { buildPublishStatusPath } from "../lib/web-routes";
 import { getCircleCardMediaAspectClass } from "./circle-page-helpers";
 import {
@@ -23,6 +24,7 @@ import {
 
 const MOMENT_CONTENT_MAX = 1000;
 const VIDEO_COVER_RATIO_DEFAULT = 10;
+const MOMENT_DRAFT_KEY = "feijia:moment-draft";
 
 type UploadedImage = {
   id: string;
@@ -38,6 +40,17 @@ type UploadedVideo = {
   fileName?: string;
   file?: File;
   isLocal?: boolean;
+};
+
+type MomentDraftData = {
+  title: string;
+  content: string;
+  uploadedImages: UploadedImage[];
+  selectedImageCoverId: string | null;
+  uploadedVideo: UploadedVideo | null;
+  videoCoverImage: UploadedImage | null;
+  videoCoverSource: "frame" | "manual";
+  videoFrameRatio: number;
 };
 
 async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
@@ -255,6 +268,30 @@ export function PublishMomentPage() {
   }, []);
 
   useEffect(() => {
+    if (editId) {
+      return;
+    }
+    void loadDraftSnapshot<MomentDraftData>(MOMENT_DRAFT_KEY)
+      .then((snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+        const draft = snapshot.data;
+        setTitle(draft.title ?? "");
+        setContent(draft.content ?? "");
+        setUploadedImages(draft.uploadedImages ?? []);
+        setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
+        setUploadedVideo(draft.uploadedVideo ?? null);
+        setVideoCoverImage(draft.videoCoverImage ?? null);
+        setVideoCoverSource(draft.videoCoverSource ?? "frame");
+        setVideoFrameRatio(draft.videoFrameRatio ?? VIDEO_COVER_RATIO_DEFAULT);
+      })
+      .catch(() => {
+        // noop
+      });
+  }, [editId]);
+
+  useEffect(() => {
     if (!detailQuery.data?.item) {
       return;
     }
@@ -344,6 +381,38 @@ export function PublishMomentPage() {
       window.clearTimeout(timer);
     };
   }, [uploadedVideo, videoCoverSource, videoFrameRatio]);
+
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+    void saveDraftSnapshot<MomentDraftData>({
+      key: MOMENT_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        title,
+        content,
+        uploadedImages,
+        selectedImageCoverId,
+        uploadedVideo,
+        videoCoverImage,
+        videoCoverSource,
+        videoFrameRatio
+      },
+      filesBySlot: {}
+    });
+  }, [
+    content,
+    editId,
+    selectedImageCoverId,
+    title,
+    uploadedImages,
+    uploadedVideo,
+    videoCoverImage,
+    videoCoverSource,
+    videoFrameRatio
+  ]);
 
   async function handleImageUpload(files: FileList | null) {
     if (!files || files.length === 0) {
@@ -794,6 +863,7 @@ export function PublishMomentPage() {
                     return { response, imageUrl: previewCover };
                   })()
                     .then(({ response, imageUrl }) => {
+                      void clearDraftSnapshot(MOMENT_DRAFT_KEY);
                       void queryClient.invalidateQueries({ queryKey: ["circle-feed"] });
                       void navigate(buildPublishStatusPath("moment", response.item.id), {
                         state: {
