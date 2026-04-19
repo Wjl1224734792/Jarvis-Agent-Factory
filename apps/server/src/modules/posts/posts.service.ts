@@ -13,6 +13,7 @@ import { postsRepo } from "./posts.repo";
 import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from "./post-media";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
 import { rankFeedItemsByRecommendation } from "./feed-recommendation";
+import { postsSensitiveFilterService } from "./posts-sensitive-filter";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
 
 type CurrentUser = {
@@ -36,6 +37,8 @@ type SerializedPostMedia = {
 const DEFAULT_FEED_PAGE = 1;
 const DEFAULT_FEED_LIMIT = 20;
 const MAX_FEED_LIMIT = 50;
+const DEFAULT_RECOMMENDED_CANDIDATE_WINDOW = 60;
+const MAX_RECOMMENDED_CANDIDATE_WINDOW = 200;
 
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
@@ -280,13 +283,21 @@ export const postsService = {
   ) {
     const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
+    const offset = (page - 1) * limit;
+    const candidateLimit =
+      tab === "recommended"
+        ? Math.min(
+            MAX_RECOMMENDED_CANDIDATE_WINDOW,
+            Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, page * limit * 4)
+          )
+        : limit;
     const feedResult = await postsRepo.listFeed({
       tab,
       type: input.type,
       currentUserId: currentUser?.id,
       contentCategorySlug: input.contentCategorySlug,
-      page,
-      limit
+      page: tab === "recommended" ? 1 : page,
+      limit: candidateLimit
     });
     const items = feedResult.items;
     const postIds = items.map((item) => item.id);
@@ -323,7 +334,7 @@ export const postsService = {
       tab === "recommended"
         ? rankFeedItemsByRecommendation(serializedItems, {
             type: input.type
-          })
+          }).slice(offset, offset + limit)
         : serializedItems;
 
     if (input.type === "article") {
@@ -365,6 +376,17 @@ export const postsService = {
     videoIds: string[];
     contentCategoryId: string | null;
   }) {
+    const sensitiveCheck = postsSensitiveFilterService.inspect({
+      title: input.title,
+      content: input.content
+    });
+    if (!sensitiveCheck.ok) {
+      return {
+        kind: "sensitive_content" as const,
+        detection: sensitiveCheck.detection
+      };
+    }
+
     const uniqueImageIds = Array.from(new Set(input.imageIds));
     const images = await postsRepo.listOwnedUnattachedImages(input.authorId, uniqueImageIds);
     const uniqueVideoIds = Array.from(new Set(input.videoIds));
@@ -637,6 +659,16 @@ export const postsService = {
     const existing = await postsRepo.getPostById(id);
     if (!isOfficialArticlePost(existing)) {
       return { kind: "not_found" as const };
+    }
+    const sensitiveCheck = postsSensitiveFilterService.inspect({
+      title: input.title,
+      content: input.content
+    });
+    if (!sensitiveCheck.ok) {
+      return {
+        kind: "sensitive_content" as const,
+        detection: sensitiveCheck.detection
+      };
     }
 
     const uniqueImageIds = Array.from(new Set(input.imageIds));
@@ -960,6 +992,16 @@ export const postsService = {
     const canEdit = currentUser.role === "admin" || currentUser.id === existing.author.id;
     if (!canEdit) {
       return { kind: "forbidden" as const };
+    }
+    const sensitiveCheck = postsSensitiveFilterService.inspect({
+      title: input.title,
+      content: input.content
+    });
+    if (!sensitiveCheck.ok) {
+      return {
+        kind: "sensitive_content" as const,
+        detection: sensitiveCheck.detection
+      };
     }
 
     const requestedCoverImageId = input.coverImageId?.trim() ? input.coverImageId : null;

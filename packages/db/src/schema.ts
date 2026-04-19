@@ -1,8 +1,6 @@
 import {
   boolean,
-  check,
-  foreignKey,
-  index,
+  check,  index,
   integer,
   pgTable,
   text,
@@ -47,8 +45,7 @@ export const usersTable = pgTable(
 export const sessionsTable = pgTable("sessions", {
   id: text("id").primaryKey(),
   userId: text("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   scope: text("scope").notNull(),
   clientIp: text("client_ip"),
   userAgent: text("user_agent"),
@@ -71,8 +68,7 @@ export const sessionsTable = pgTable("sessions", {
 export const devicesTable = pgTable("devices", {
   id: text("id").primaryKey(),
   userId: text("user_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   deviceType: text("device_type").notNull(),
   deviceLabel: text("device_label"),
   pushToken: text("push_token").notNull(),
@@ -91,8 +87,7 @@ export const userSettingsTable = pgTable(
   {
     id: text("id").primaryKey(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     profileVisibility: text("profile_visibility").default("community").notNull(),
     notifyComments: boolean("notify_comments").default(true).notNull(),
     notifyMentions: boolean("notify_mentions").default(true).notNull(),
@@ -156,9 +151,7 @@ export const brandsTable = pgTable(
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     logoUrl: text("logo_url"),
-    categoryId: text("category_id").references(() => aircraftCategoriesTable.id, {
-      onDelete: "set null"
-    }),
+    categoryId: text("category_id"),
     sortOrder: integer("sort_order").default(0).notNull(),
     isEnabled: boolean("is_enabled").default(true).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -173,17 +166,14 @@ export const brandsTable = pgTable(
 export const brandApplicationsTable = pgTable("brand_applications", {
   id: text("id").primaryKey(),
   applicantId: text("applicant_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   status: text("status").default("pending").notNull(),
   slug: text("slug").notNull(),
   name: text("name").notNull(),
   logoUrl: text("logo_url"),
   description: text("description"),
   rejectionReason: text("rejection_reason"),
-  approvedBrandId: text("approved_brand_id").references(() => brandsTable.id, {
-    onDelete: "set null"
-  }),
+  approvedBrandId: text("approved_brand_id"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -201,14 +191,10 @@ export const aircraftModelsTable = pgTable(
     slug: text("slug").notNull(),
     name: text("name").notNull(),
     categoryId: text("category_id")
-      .notNull()
-      .references(() => aircraftCategoriesTable.id, { onDelete: "restrict" }),
+      .notNull(),
     brandId: text("brand_id")
-      .notNull()
-      .references(() => brandsTable.id, { onDelete: "restrict" }),
-    ownerId: text("owner_id").references(() => usersTable.id, {
-      onDelete: "set null"
-    }),
+      .notNull(),
+    ownerId: text("owner_id"),
     sourceSubmissionId: text("source_submission_id"),
     powerType: text("power_type").notNull(),
     lifecycleStatus: text("lifecycle_status").default("unreleased").notNull(),
@@ -240,11 +226,9 @@ export const aircraftModelReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     modelId: text("model_id")
-      .notNull()
-      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -281,11 +265,9 @@ export const aircraftReviewsTable = pgTable(
   {
     id: text("id").primaryKey(),
     modelId: text("model_id")
-      .notNull()
-      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     rating: integer("rating"),
     content: text("content"),
     status: text("status").default("visible").notNull(),
@@ -312,11 +294,9 @@ export const aircraftReviewLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     reviewId: text("review_id")
-      .notNull()
-      .references(() => aircraftReviewsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -334,11 +314,9 @@ export const aircraftReviewReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     reviewId: text("review_id")
-      .notNull()
-      .references(() => aircraftReviewsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -358,11 +336,9 @@ export const aircraftModelInteractionsTable = pgTable(
   {
     id: text("id").primaryKey(),
     modelId: text("model_id")
-      .notNull()
-      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     type: text("type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -385,16 +361,12 @@ export const reviewCommentsTable = pgTable(
   {
     id: text("id").primaryKey(),
     reviewId: text("review_id")
-      .notNull()
-      .references(() => aircraftReviewsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     authorId: text("author_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     parentCommentId: text("parent_comment_id"),
     replyToCommentId: text("reply_to_comment_id"),
-    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
-      onDelete: "set null"
-    }),
+    replyToUserId: text("reply_to_user_id"),
     content: text("content").notNull(),
     status: text("status").default("visible").notNull(),
     likeCount: integer("like_count").default(0).notNull(),
@@ -406,15 +378,7 @@ export const reviewCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
-    parentCommentFk: foreignKey({
-      columns: [table.parentCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
-    replyToCommentFk: foreignKey({
-      columns: [table.replyToCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
+  (table) => ({
     statusCheck: check("review_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -424,11 +388,9 @@ export const reviewCommentLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => reviewCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -446,11 +408,9 @@ export const reviewCommentReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => reviewCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -468,16 +428,13 @@ export const reviewCommentReportsTable = pgTable(
 export const postsTable = pgTable("posts", {
   id: text("id").primaryKey(),
   authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   type: text("type").default("moment").notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(),
   contentHtml: text("content_html"),
   contentPlainText: text("content_plain_text"),
-  contentCategoryId: text("content_category_id").references(() => contentCategoriesTable.id, {
-    onDelete: "set null"
-  }),
+  contentCategoryId: text("content_category_id"),
   coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),
   rejectionReason: text("rejection_reason"),
@@ -523,16 +480,12 @@ export const postCommentsTable = pgTable(
   {
     id: text("id").primaryKey(),
     postId: text("post_id")
-      .notNull()
-      .references(() => postsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     authorId: text("author_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     parentCommentId: text("parent_comment_id"),
     replyToCommentId: text("reply_to_comment_id"),
-    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
-      onDelete: "set null"
-    }),
+    replyToUserId: text("reply_to_user_id"),
     content: text("content").notNull(),
     status: text("status").default("visible").notNull(),
     likeCount: integer("like_count").default(0).notNull(),
@@ -544,15 +497,7 @@ export const postCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
-    parentCommentFk: foreignKey({
-      columns: [table.parentCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
-    replyToCommentFk: foreignKey({
-      columns: [table.replyToCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
+  (table) => ({
     statusCheck: check("post_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -562,11 +507,9 @@ export const postCommentLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => postCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -584,11 +527,9 @@ export const postCommentReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => postCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -608,11 +549,9 @@ export const postReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     postId: text("post_id")
-      .notNull()
-      .references(() => postsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -632,11 +571,9 @@ export const userFollowsTable = pgTable(
   {
     id: text("id").primaryKey(),
     followerId: text("follower_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     followeeId: text("followee_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -654,11 +591,9 @@ export const postInteractionsTable = pgTable(
   {
     id: text("id").primaryKey(),
     postId: text("post_id")
-      .notNull()
-      .references(() => postsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     type: text("type").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -698,15 +633,11 @@ export const notificationsTable = pgTable("notifications", {
 export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   id: text("id").primaryKey(),
   authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   status: text("status").default("submitted").notNull(),
   categoryId: text("category_id")
-    .notNull()
-    .references(() => aircraftCategoriesTable.id, { onDelete: "restrict" }),
-  brandId: text("brand_id").references(() => brandsTable.id, {
-    onDelete: "set null"
-  }),
+    .notNull(),
+  brandId: text("brand_id"),
   proposedBrandName: text("proposed_brand_name"),
   modelName: text("model_name").notNull(),
   powerType: text("power_type").notNull(),
@@ -723,9 +654,7 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
   maxRangeKilometers: integer("max_range_kilometers"),
   maxSpeedKph: integer("max_speed_kph"),
   takeoffWeightGrams: integer("takeoff_weight_grams"),
-  approvedModelId: text("approved_model_id").references(() => aircraftModelsTable.id, {
-    onDelete: "set null"
-  }),
+  approvedModelId: text("approved_model_id"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -739,8 +668,7 @@ export const aircraftSubmissionsTable = pgTable("aircraft_submissions", {
 export const rankingsTable = pgTable("rankings", {
   id: text("id").primaryKey(),
   authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   type: text("type").default("community").notNull(),
   status: text("status").default("published").notNull(),
   rejectionReason: text("rejection_reason"),
@@ -766,11 +694,9 @@ export const rankingReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     rankingId: text("ranking_id")
-      .notNull()
-      .references(() => rankingsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -788,14 +714,10 @@ export const rankingReportsTable = pgTable(
 export const ratingTargetsTable = pgTable("rating_targets", {
   id: text("id").primaryKey(),
   rankingId: text("ranking_id")
-    .notNull()
-    .references(() => rankingsTable.id, { onDelete: "cascade" }),
+    .notNull(),
   authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  linkedModelId: text("linked_model_id").references(() => aircraftModelsTable.id, {
-    onDelete: "set null"
-  }),
+    .notNull(),
+  linkedModelId: text("linked_model_id"),
   status: text("status").default("published").notNull(),
   rejectionReason: text("rejection_reason"),
   rank: integer("rank").notNull(),
@@ -821,11 +743,9 @@ export const ratingTargetReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     ratingTargetId: text("rating_target_id")
-      .notNull()
-      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -843,11 +763,9 @@ export const ratingTargetReportsTable = pgTable(
 export const rankingCommentsTable = pgTable("ranking_comments", {
   id: text("id").primaryKey(),
   rankingId: text("ranking_id")
-    .notNull()
-    .references(() => rankingsTable.id, { onDelete: "cascade" }),
+    .notNull(),
   authorId: text("author_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
+    .notNull(),
   content: text("content").notNull(),
   status: text("status").default("visible").notNull(),
   likeCount: integer("like_count").default(0).notNull(),
@@ -867,11 +785,9 @@ export const rankingCommentLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => rankingCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -889,11 +805,9 @@ export const rankingCommentReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => rankingCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -913,11 +827,9 @@ export const ratingTargetRatingsTable = pgTable(
   {
     id: text("id").primaryKey(),
     ratingTargetId: text("rating_target_id")
-      .notNull()
-      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     rating: integer("rating").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
@@ -939,16 +851,12 @@ export const ratingTargetCommentsTable = pgTable(
   {
     id: text("id").primaryKey(),
     ratingTargetId: text("rating_target_id")
-      .notNull()
-      .references(() => ratingTargetsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     authorId: text("author_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     parentCommentId: text("parent_comment_id"),
     replyToCommentId: text("reply_to_comment_id"),
-    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
-      onDelete: "set null"
-    }),
+    replyToUserId: text("reply_to_user_id"),
     content: text("content").notNull(),
     rating: integer("rating"),
     status: text("status").default("visible").notNull(),
@@ -961,15 +869,7 @@ export const ratingTargetCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
-    parentCommentFk: foreignKey({
-      columns: [table.parentCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
-    replyToCommentFk: foreignKey({
-      columns: [table.replyToCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
+  (table) => ({
     statusCheck: check("rating_target_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -979,11 +879,9 @@ export const ratingTargetCommentLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => ratingTargetCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -1001,11 +899,9 @@ export const ratingTargetCommentReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => ratingTargetCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -1025,16 +921,12 @@ export const aircraftModelCommentsTable = pgTable(
   {
     id: text("id").primaryKey(),
     modelId: text("model_id")
-      .notNull()
-      .references(() => aircraftModelsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     authorId: text("author_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     parentCommentId: text("parent_comment_id"),
     replyToCommentId: text("reply_to_comment_id"),
-    replyToUserId: text("reply_to_user_id").references(() => usersTable.id, {
-      onDelete: "set null"
-    }),
+    replyToUserId: text("reply_to_user_id"),
     content: text("content").notNull(),
     status: text("status").default("visible").notNull(),
     likeCount: integer("like_count").default(0).notNull(),
@@ -1046,15 +938,7 @@ export const aircraftModelCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
-    parentCommentFk: foreignKey({
-      columns: [table.parentCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
-    replyToCommentFk: foreignKey({
-      columns: [table.replyToCommentId],
-      foreignColumns: [table.id]
-    }).onDelete("cascade"),
+  (table) => ({
     statusCheck: check("aircraft_model_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -1064,11 +948,9 @@ export const aircraftModelCommentLikesTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => aircraftModelCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     userId: text("user_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .defaultNow()
       .notNull()
@@ -1086,11 +968,9 @@ export const aircraftModelCommentReportsTable = pgTable(
   {
     id: text("id").primaryKey(),
     commentId: text("comment_id")
-      .notNull()
-      .references(() => aircraftModelCommentsTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reporterId: text("reporter_id")
-      .notNull()
-      .references(() => usersTable.id, { onDelete: "cascade" }),
+      .notNull(),
     reason: text("reason").notNull(),
     imageFileIds: text("image_file_ids").default("[]").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -1108,9 +988,8 @@ export const aircraftModelCommentReportsTable = pgTable(
 export const filesTable = pgTable("files", {
   id: text("id").primaryKey(),
   ownerId: text("owner_id")
-    .notNull()
-    .references(() => usersTable.id, { onDelete: "cascade" }),
-  postId: text("post_id").references(() => postsTable.id, { onDelete: "cascade" }),
+    .notNull(),
+  postId: text("post_id"),
   bizType: text("biz_type").notNull(),
   mediaKind: text("media_kind").notNull(),
   provider: text("provider").notNull(),

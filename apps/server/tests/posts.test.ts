@@ -1,4 +1,4 @@
-import {
+﻿import {
   contentCategoriesTable,
   db,
   dbPool,
@@ -339,6 +339,10 @@ describe.sequential("posts and social flows", () => {
       [
         {
           id: "older_hot",
+          title: "Older but highly engaging article",
+          contentPreview: "A detailed breakdown of a long route with practical takeaways.",
+          viewCount: 420,
+          reportCount: 0,
           commentCount: 10,
           engagement: {
             likeCount: 28,
@@ -364,6 +368,10 @@ describe.sequential("posts and social flows", () => {
         },
         {
           id: "fresh_following",
+          title: "Fresh following update with balanced quality",
+          contentPreview: "A concise post with clear context, updated numbers, and useful references.",
+          viewCount: 220,
+          reportCount: 0,
           commentCount: 5,
           engagement: {
             likeCount: 14,
@@ -388,11 +396,15 @@ describe.sequential("posts and social flows", () => {
           contentCategory: {
             id: "cat_1",
             slug: "news",
-            name: "资讯"
+            name: "璧勮"
           }
         },
         {
           id: "official_pick",
+          title: "Official brief",
+          contentPreview: "Tiny",
+          viewCount: 40,
+          reportCount: 0,
           commentCount: 3,
           engagement: {
             likeCount: 12,
@@ -417,7 +429,7 @@ describe.sequential("posts and social flows", () => {
           contentCategory: {
             id: "cat_2",
             slug: "guide",
-            name: "指南"
+            name: "鎸囧崡"
           }
         }
       ],
@@ -427,7 +439,78 @@ describe.sequential("posts and social flows", () => {
       }
     );
 
-    expect(ranked.map((item) => item.id)).toEqual(["older_hot", "fresh_following", "official_pick"]);
+    expect(ranked.map((item) => item.id)).toEqual(["fresh_following", "older_hot", "official_pick"]);
+  });
+
+  it("suppresses already engaged content in recommended ranking", () => {
+    const ranked = rankFeedItemsByRecommendation(
+      [
+        {
+          id: "already_liked",
+          title: "Already liked content",
+          contentPreview: "A familiar post the viewer already interacted with.",
+          viewCount: 220,
+          reportCount: 0,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: true,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [{ id: "img_1", url: "", fileName: "", mimeType: "image/png", byteSize: 1 }],
+          videos: [],
+          createdAt: "2026-04-08T07:40:00.000Z",
+          updatedAt: "2026-04-08T07:40:00.000Z",
+          publishedAt: "2026-04-08T07:40:00.000Z",
+          contentCategory: null
+        },
+        {
+          id: "fresh_unseen",
+          title: "Fresh unseen content",
+          contentPreview: "A similar but still unseen post should rank ahead for discovery.",
+          viewCount: 180,
+          reportCount: 0,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [{ id: "img_2", url: "", fileName: "", mimeType: "image/png", byteSize: 1 }],
+          videos: [],
+          createdAt: "2026-04-08T07:42:00.000Z",
+          updatedAt: "2026-04-08T07:42:00.000Z",
+          publishedAt: "2026-04-08T07:42:00.000Z",
+          contentCategory: null
+        }
+      ],
+      {
+        now: new Date("2026-04-08T08:00:00.000Z"),
+        type: "moment"
+      }
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
   });
 
   it("returns edited published posts to pending when moderation stays on", async () => {
@@ -604,7 +687,7 @@ describe.sequential("posts and social flows", () => {
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        reason: "需要管理员核查",
+        reason: "闇€瑕佺鐞嗗憳鏍告煡",
         imageIds: [reportImage.item.id]
       })
     });
@@ -632,7 +715,7 @@ describe.sequential("posts and social flows", () => {
       }>;
     };
 
-    expect(adminReportPayload.items[0]?.reason).toBe("需要管理员核查");
+    expect(adminReportPayload.items[0]?.reason).toBe("闇€瑕佺鐞嗗憳鏍告煡");
     expect(adminReportPayload.items[0]?.evidenceImages[0]).toMatchObject({
       fileName: "report-1.png",
       mimeType: "image/png",
@@ -807,6 +890,120 @@ describe.sequential("posts and social flows", () => {
     expect(detailAfterDeleteResponse.status).toBe(404);
   });
 
+  it("rejects sensitive content when creating a post", async () => {
+    const cookie = await loginWebUser("13800138196");
+
+    const response = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie
+      },
+      body: JSON.stringify({
+        type: "moment",
+        title: "forbiddenword in title",
+        content: "Normal content.",
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as { code: string; message: string };
+    expect(payload.code).toBe("BAD_REQUEST");
+    expect(payload.message).toBe("Post content contains blocked words.");
+  });
+
+  it("rejects sensitive content when updating a post", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const cookie = await loginWebUser("13800138197");
+    const created = await createPost(cookie, {
+      type: "article",
+      title: "Safe title",
+      content: "Safe article content.",
+      contentCategoryId: articleCategoryId
+    });
+
+    const response = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Updated safe title",
+        content: "This article body has for bidden-word and should fail.",
+        contentHtml: "<p>This article body has for bidden-word and should fail.</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as { code: string; message: string };
+    expect(payload.code).toBe("BAD_REQUEST");
+    expect(payload.message).toBe("Post content contains blocked words.");
+  });
+
+  it("rejects sensitive content when updating an official article", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const createResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Official safe title",
+        content: "Initial official article content",
+        contentHtml: "<p>Initial official article content</p>",
+        imageIds: [],
+        videoIds: [],
+        contentCategoryId: articleCategoryId
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const response = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "违 禁 词 测 试",
+        content: "Safe update content.",
+        contentHtml: "<p>Safe update content.</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(response.status).toBe(400);
+    const payload = (await response.json()) as { code: string; message: string };
+    expect(payload.code).toBe("BAD_REQUEST");
+    expect(payload.message).toBe("Post content contains blocked words.");
+  });
   it("rejects moment creation when images and videos are mixed or when multiple videos are attached", async () => {
     const cookie = await loginWebUser("13800138151");
     const image = await uploadImage(cookie, "moment-cover.png");
@@ -1007,6 +1204,67 @@ describe.sequential("posts and social flows", () => {
     expect(feedItem).toBeUndefined();
   });
 
+  it("keeps latest and following feeds in descending published time order", async () => {
+    const latestArticlesResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, {
+      method: "GET"
+    });
+    expect(latestArticlesResponse.status).toBe(200);
+    const latestArticlesPayload = (await latestArticlesResponse.json()) as {
+      items: Array<{ publishedAt: string | null; createdAt: string }>;
+    };
+    const articleTimes = latestArticlesPayload.items.map((item) =>
+      new Date(item.publishedAt ?? item.createdAt).getTime()
+    );
+    expect(articleTimes).toEqual([...articleTimes].sort((left, right) => right - left));
+
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginWebUser("13800138180");
+    const followerCookie = await loginWebUser("13800138181");
+
+    const firstMoment = await createPost(authorCookie, {
+      type: "moment",
+      title: "Following order first",
+      content: "First moment in following order check."
+    });
+    await publishPost(adminCookie, firstMoment.item.id);
+    await new Promise((resolve) => setTimeout(resolve, 20));
+
+    const secondMoment = await createPost(authorCookie, {
+      type: "moment",
+      title: "Following order second",
+      content: "Second moment in following order check."
+    });
+    await publishPost(adminCookie, secondMoment.item.id);
+
+    const followResponse = await app.request(API_ROUTES.social.follow(firstMoment.item.author.id), {
+      method: "POST",
+      headers: {
+        cookie: followerCookie
+      }
+    });
+    expect(followResponse.status).toBe(200);
+
+    const followingResponse = await app.request(`${API_ROUTES.circleFeed}?tab=following`, {
+      method: "GET",
+      headers: {
+        cookie: followerCookie
+      }
+    });
+    expect(followingResponse.status).toBe(200);
+    const followingPayload = (await followingResponse.json()) as {
+      items: Array<{ id: string; publishedAt: string | null; createdAt: string }>;
+    };
+    const focusedIds = followingPayload.items
+      .filter((item) => item.id === firstMoment.item.id || item.id === secondMoment.item.id)
+      .map((item) => item.id);
+    expect(focusedIds.slice(0, 2)).toEqual([secondMoment.item.id, firstMoment.item.id]);
+
+    const followingTimes = followingPayload.items.map((item) =>
+      new Date(item.publishedAt ?? item.createdAt).getTime()
+    );
+    expect(followingTimes).toEqual([...followingTimes].sort((left, right) => right - left));
+  });
+
   it("splits article and moment feeds correctly", async () => {
     const homeResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, { method: "GET" });
     const homePayload = (await homeResponse.json()) as {
@@ -1106,7 +1364,7 @@ describe.sequential("posts and social flows", () => {
         cookie: authorCookie
       },
       body: JSON.stringify({
-        content: "@飞友13800138008 Yes, I softened yaw to keep the arc clean.",
+        content: "@椋炲弸13800138008 Yes, I softened yaw to keep the arc clean.",
         parentCommentId: topLevelPayload.item.id
       })
     });
@@ -1119,7 +1377,7 @@ describe.sequential("posts and social flows", () => {
         cookie: commenterCookie
       },
       body: JSON.stringify({
-        content: "@飞友8007 That makes sense for the tighter turns.",
+        content: "@椋炲弸8007 That makes sense for the tighter turns.",
         parentCommentId: secondLevelPayload.item.id
       })
     });
@@ -1587,7 +1845,7 @@ describe.sequential("posts and social flows", () => {
         },
         body: JSON.stringify({
           status: "rejected",
-          rejectionReason: "内容不符合发布规范"
+          rejectionReason: "Content does not meet publishing standards."
         })
       }
     );
@@ -1840,7 +2098,7 @@ describe.sequential("posts and social flows", () => {
         },
         body: JSON.stringify({
           status: "rejected",
-          rejectionReason: "触发 admin 消息中心测试"
+          rejectionReason: "瑙﹀彂 admin 娑堟伅涓績娴嬭瘯"
         })
       }
     );
@@ -1885,8 +2143,8 @@ describe.sequential("posts and social flows", () => {
       targetId: "manual_notice",
       targetTitle: "Manual notice",
       targetStatus: "pending",
-      title: "非 admin inbox 通知",
-      summary: "这条通知不应被 admin read-all 误伤",
+      title: "闈?admin inbox 閫氱煡",
+      summary: "杩欐潯閫氱煡涓嶅簲琚?admin read-all 璇激",
       preview: null,
       metadata: JSON.stringify({
         adminInbox: false
@@ -2098,4 +2356,5 @@ describe.sequential("posts and social flows", () => {
     expect(bySlug.get("guide")).toBe("指南");
   });
 });
+
 

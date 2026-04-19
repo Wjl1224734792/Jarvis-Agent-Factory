@@ -125,34 +125,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_model_comment_likes_comment_id_aircraft_model_comments_id_fk": {
-          "name": "aircraft_model_comment_likes_comment_id_aircraft_model_comments_id_fk",
-          "tableFrom": "aircraft_model_comment_likes",
-          "tableTo": "aircraft_model_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comment_likes_user_id_users_id_fk": {
-          "name": "aircraft_model_comment_likes_user_id_users_id_fk",
-          "tableFrom": "aircraft_model_comment_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -225,34 +198,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_model_comment_reports_comment_id_aircraft_model_comments_id_fk": {
-          "name": "aircraft_model_comment_reports_comment_id_aircraft_model_comments_id_fk",
-          "tableFrom": "aircraft_model_comment_reports",
-          "tableTo": "aircraft_model_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comment_reports_reporter_id_users_id_fk": {
-          "name": "aircraft_model_comment_reports_reporter_id_users_id_fk",
-          "tableFrom": "aircraft_model_comment_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -342,73 +288,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "aircraft_model_comments_model_id_aircraft_models_id_fk": {
-          "name": "aircraft_model_comments_model_id_aircraft_models_id_fk",
-          "tableFrom": "aircraft_model_comments",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comments_author_id_users_id_fk": {
-          "name": "aircraft_model_comments_author_id_users_id_fk",
-          "tableFrom": "aircraft_model_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comments_reply_to_user_id_users_id_fk": {
-          "name": "aircraft_model_comments_reply_to_user_id_users_id_fk",
-          "tableFrom": "aircraft_model_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reply_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comments_parent_comment_id_aircraft_model_comments_id_fk": {
-          "name": "aircraft_model_comments_parent_comment_id_aircraft_model_comments_id_fk",
-          "tableFrom": "aircraft_model_comments",
-          "tableTo": "aircraft_model_comments",
-          "columnsFrom": [
-            "parent_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_comments_reply_to_comment_id_aircraft_model_comments_id_fk": {
-          "name": "aircraft_model_comments_reply_to_comment_id_aircraft_model_comments_id_fk",
-          "tableFrom": "aircraft_model_comments",
-          "tableTo": "aircraft_model_comments",
-          "columnsFrom": [
-            "reply_to_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -492,34 +372,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_model_interactions_model_id_aircraft_models_id_fk": {
-          "name": "aircraft_model_interactions_model_id_aircraft_models_id_fk",
-          "tableFrom": "aircraft_model_interactions",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_interactions_user_id_users_id_fk": {
-          "name": "aircraft_model_interactions_user_id_users_id_fk",
-          "tableFrom": "aircraft_model_interactions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -592,34 +445,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_model_reports_model_id_aircraft_models_id_fk": {
-          "name": "aircraft_model_reports_model_id_aircraft_models_id_fk",
-          "tableFrom": "aircraft_model_reports",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_model_reports_reporter_id_users_id_fk": {
-          "name": "aircraft_model_reports_reporter_id_users_id_fk",
-          "tableFrom": "aircraft_model_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -798,47 +624,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_models_category_id_aircraft_categories_id_fk": {
-          "name": "aircraft_models_category_id_aircraft_categories_id_fk",
-          "tableFrom": "aircraft_models",
-          "tableTo": "aircraft_categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "aircraft_models_brand_id_brands_id_fk": {
-          "name": "aircraft_models_brand_id_brands_id_fk",
-          "tableFrom": "aircraft_models",
-          "tableTo": "brands",
-          "columnsFrom": [
-            "brand_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "aircraft_models_owner_id_users_id_fk": {
-          "name": "aircraft_models_owner_id_users_id_fk",
-          "tableFrom": "aircraft_models",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -898,34 +684,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_review_likes_review_id_aircraft_reviews_id_fk": {
-          "name": "aircraft_review_likes_review_id_aircraft_reviews_id_fk",
-          "tableFrom": "aircraft_review_likes",
-          "tableTo": "aircraft_reviews",
-          "columnsFrom": [
-            "review_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_review_likes_user_id_users_id_fk": {
-          "name": "aircraft_review_likes_user_id_users_id_fk",
-          "tableFrom": "aircraft_review_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -998,34 +757,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_review_reports_review_id_aircraft_reviews_id_fk": {
-          "name": "aircraft_review_reports_review_id_aircraft_reviews_id_fk",
-          "tableFrom": "aircraft_review_reports",
-          "tableTo": "aircraft_reviews",
-          "columnsFrom": [
-            "review_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_review_reports_reporter_id_users_id_fk": {
-          "name": "aircraft_review_reports_reporter_id_users_id_fk",
-          "tableFrom": "aircraft_review_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1125,34 +857,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "aircraft_reviews_model_id_aircraft_models_id_fk": {
-          "name": "aircraft_reviews_model_id_aircraft_models_id_fk",
-          "tableFrom": "aircraft_reviews",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_reviews_user_id_users_id_fk": {
-          "name": "aircraft_reviews_user_id_users_id_fk",
-          "tableFrom": "aircraft_reviews",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1319,60 +1024,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "aircraft_submissions_author_id_users_id_fk": {
-          "name": "aircraft_submissions_author_id_users_id_fk",
-          "tableFrom": "aircraft_submissions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "aircraft_submissions_category_id_aircraft_categories_id_fk": {
-          "name": "aircraft_submissions_category_id_aircraft_categories_id_fk",
-          "tableFrom": "aircraft_submissions",
-          "tableTo": "aircraft_categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "restrict",
-          "onUpdate": "no action"
-        },
-        "aircraft_submissions_brand_id_brands_id_fk": {
-          "name": "aircraft_submissions_brand_id_brands_id_fk",
-          "tableFrom": "aircraft_submissions",
-          "tableTo": "brands",
-          "columnsFrom": [
-            "brand_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "aircraft_submissions_approved_model_id_aircraft_models_id_fk": {
-          "name": "aircraft_submissions_approved_model_id_aircraft_models_id_fk",
-          "tableFrom": "aircraft_submissions",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "approved_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1459,34 +1111,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "brand_applications_applicant_id_users_id_fk": {
-          "name": "brand_applications_applicant_id_users_id_fk",
-          "tableFrom": "brand_applications",
-          "tableTo": "users",
-          "columnsFrom": [
-            "applicant_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "brand_applications_approved_brand_id_brands_id_fk": {
-          "name": "brand_applications_approved_brand_id_brands_id_fk",
-          "tableFrom": "brand_applications",
-          "tableTo": "brands",
-          "columnsFrom": [
-            "approved_brand_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1571,21 +1196,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "brands_category_id_aircraft_categories_id_fk": {
-          "name": "brands_category_id_aircraft_categories_id_fk",
-          "tableFrom": "brands",
-          "tableTo": "aircraft_categories",
-          "columnsFrom": [
-            "category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1732,21 +1343,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "devices_user_id_users_id_fk": {
-          "name": "devices_user_id_users_id_fk",
-          "tableFrom": "devices",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -1868,34 +1465,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "files_owner_id_users_id_fk": {
-          "name": "files_owner_id_users_id_fk",
-          "tableFrom": "files",
-          "tableTo": "users",
-          "columnsFrom": [
-            "owner_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "files_post_id_posts_id_fk": {
-          "name": "files_post_id_posts_id_fk",
-          "tableFrom": "files",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2092,34 +1662,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "post_comment_likes_comment_id_post_comments_id_fk": {
-          "name": "post_comment_likes_comment_id_post_comments_id_fk",
-          "tableFrom": "post_comment_likes",
-          "tableTo": "post_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_comment_likes_user_id_users_id_fk": {
-          "name": "post_comment_likes_user_id_users_id_fk",
-          "tableFrom": "post_comment_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2192,34 +1735,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "post_comment_reports_comment_id_post_comments_id_fk": {
-          "name": "post_comment_reports_comment_id_post_comments_id_fk",
-          "tableFrom": "post_comment_reports",
-          "tableTo": "post_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_comment_reports_reporter_id_users_id_fk": {
-          "name": "post_comment_reports_reporter_id_users_id_fk",
-          "tableFrom": "post_comment_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2309,73 +1825,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "post_comments_post_id_posts_id_fk": {
-          "name": "post_comments_post_id_posts_id_fk",
-          "tableFrom": "post_comments",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_comments_author_id_users_id_fk": {
-          "name": "post_comments_author_id_users_id_fk",
-          "tableFrom": "post_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_comments_reply_to_user_id_users_id_fk": {
-          "name": "post_comments_reply_to_user_id_users_id_fk",
-          "tableFrom": "post_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reply_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "post_comments_parent_comment_id_post_comments_id_fk": {
-          "name": "post_comments_parent_comment_id_post_comments_id_fk",
-          "tableFrom": "post_comments",
-          "tableTo": "post_comments",
-          "columnsFrom": [
-            "parent_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_comments_reply_to_comment_id_post_comments_id_fk": {
-          "name": "post_comments_reply_to_comment_id_post_comments_id_fk",
-          "tableFrom": "post_comments",
-          "tableTo": "post_comments",
-          "columnsFrom": [
-            "reply_to_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2452,34 +1902,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "post_interactions_post_id_posts_id_fk": {
-          "name": "post_interactions_post_id_posts_id_fk",
-          "tableFrom": "post_interactions",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_interactions_user_id_users_id_fk": {
-          "name": "post_interactions_user_id_users_id_fk",
-          "tableFrom": "post_interactions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2552,34 +1975,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "post_reports_post_id_posts_id_fk": {
-          "name": "post_reports_post_id_posts_id_fk",
-          "tableFrom": "post_reports",
-          "tableTo": "posts",
-          "columnsFrom": [
-            "post_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "post_reports_reporter_id_users_id_fk": {
-          "name": "post_reports_reporter_id_users_id_fk",
-          "tableFrom": "post_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2828,34 +2224,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "posts_author_id_users_id_fk": {
-          "name": "posts_author_id_users_id_fk",
-          "tableFrom": "posts",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "posts_content_category_id_content_categories_id_fk": {
-          "name": "posts_content_category_id_content_categories_id_fk",
-          "tableFrom": "posts",
-          "tableTo": "content_categories",
-          "columnsFrom": [
-            "content_category_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -2924,34 +2293,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "ranking_comment_likes_comment_id_ranking_comments_id_fk": {
-          "name": "ranking_comment_likes_comment_id_ranking_comments_id_fk",
-          "tableFrom": "ranking_comment_likes",
-          "tableTo": "ranking_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ranking_comment_likes_user_id_users_id_fk": {
-          "name": "ranking_comment_likes_user_id_users_id_fk",
-          "tableFrom": "ranking_comment_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3024,34 +2366,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "ranking_comment_reports_comment_id_ranking_comments_id_fk": {
-          "name": "ranking_comment_reports_comment_id_ranking_comments_id_fk",
-          "tableFrom": "ranking_comment_reports",
-          "tableTo": "ranking_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ranking_comment_reports_reporter_id_users_id_fk": {
-          "name": "ranking_comment_reports_reporter_id_users_id_fk",
-          "tableFrom": "ranking_comment_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3123,34 +2438,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "ranking_comments_ranking_id_rankings_id_fk": {
-          "name": "ranking_comments_ranking_id_rankings_id_fk",
-          "tableFrom": "ranking_comments",
-          "tableTo": "rankings",
-          "columnsFrom": [
-            "ranking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ranking_comments_author_id_users_id_fk": {
-          "name": "ranking_comments_author_id_users_id_fk",
-          "tableFrom": "ranking_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3228,34 +2516,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "ranking_reports_ranking_id_rankings_id_fk": {
-          "name": "ranking_reports_ranking_id_rankings_id_fk",
-          "tableFrom": "ranking_reports",
-          "tableTo": "rankings",
-          "columnsFrom": [
-            "ranking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "ranking_reports_reporter_id_users_id_fk": {
-          "name": "ranking_reports_reporter_id_users_id_fk",
-          "tableFrom": "ranking_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3353,21 +2614,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "rankings_author_id_users_id_fk": {
-          "name": "rankings_author_id_users_id_fk",
-          "tableFrom": "rankings",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3436,34 +2683,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "rating_target_comment_likes_comment_id_rating_target_comments_id_fk": {
-          "name": "rating_target_comment_likes_comment_id_rating_target_comments_id_fk",
-          "tableFrom": "rating_target_comment_likes",
-          "tableTo": "rating_target_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_comment_likes_user_id_users_id_fk": {
-          "name": "rating_target_comment_likes_user_id_users_id_fk",
-          "tableFrom": "rating_target_comment_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3536,34 +2756,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "rating_target_comment_reports_comment_id_rating_target_comments_id_fk": {
-          "name": "rating_target_comment_reports_comment_id_rating_target_comments_id_fk",
-          "tableFrom": "rating_target_comment_reports",
-          "tableTo": "rating_target_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_comment_reports_reporter_id_users_id_fk": {
-          "name": "rating_target_comment_reports_reporter_id_users_id_fk",
-          "tableFrom": "rating_target_comment_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3659,73 +2852,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "rating_target_comments_rating_target_id_rating_targets_id_fk": {
-          "name": "rating_target_comments_rating_target_id_rating_targets_id_fk",
-          "tableFrom": "rating_target_comments",
-          "tableTo": "rating_targets",
-          "columnsFrom": [
-            "rating_target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_comments_author_id_users_id_fk": {
-          "name": "rating_target_comments_author_id_users_id_fk",
-          "tableFrom": "rating_target_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_comments_reply_to_user_id_users_id_fk": {
-          "name": "rating_target_comments_reply_to_user_id_users_id_fk",
-          "tableFrom": "rating_target_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reply_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "rating_target_comments_parent_comment_id_rating_target_comments_id_fk": {
-          "name": "rating_target_comments_parent_comment_id_rating_target_comments_id_fk",
-          "tableFrom": "rating_target_comments",
-          "tableTo": "rating_target_comments",
-          "columnsFrom": [
-            "parent_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_comments_reply_to_comment_id_rating_target_comments_id_fk": {
-          "name": "rating_target_comments_reply_to_comment_id_rating_target_comments_id_fk",
-          "tableFrom": "rating_target_comments",
-          "tableTo": "rating_target_comments",
-          "columnsFrom": [
-            "reply_to_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3803,34 +2930,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "rating_target_ratings_rating_target_id_rating_targets_id_fk": {
-          "name": "rating_target_ratings_rating_target_id_rating_targets_id_fk",
-          "tableFrom": "rating_target_ratings",
-          "tableTo": "rating_targets",
-          "columnsFrom": [
-            "rating_target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_ratings_user_id_users_id_fk": {
-          "name": "rating_target_ratings_user_id_users_id_fk",
-          "tableFrom": "rating_target_ratings",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -3903,34 +3003,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "rating_target_reports_rating_target_id_rating_targets_id_fk": {
-          "name": "rating_target_reports_rating_target_id_rating_targets_id_fk",
-          "tableFrom": "rating_target_reports",
-          "tableTo": "rating_targets",
-          "columnsFrom": [
-            "rating_target_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_target_reports_reporter_id_users_id_fk": {
-          "name": "rating_target_reports_reporter_id_users_id_fk",
-          "tableFrom": "rating_target_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4045,47 +3118,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "rating_targets_ranking_id_rankings_id_fk": {
-          "name": "rating_targets_ranking_id_rankings_id_fk",
-          "tableFrom": "rating_targets",
-          "tableTo": "rankings",
-          "columnsFrom": [
-            "ranking_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_targets_author_id_users_id_fk": {
-          "name": "rating_targets_author_id_users_id_fk",
-          "tableFrom": "rating_targets",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "rating_targets_linked_model_id_aircraft_models_id_fk": {
-          "name": "rating_targets_linked_model_id_aircraft_models_id_fk",
-          "tableFrom": "rating_targets",
-          "tableTo": "aircraft_models",
-          "columnsFrom": [
-            "linked_model_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4150,34 +3183,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "review_comment_likes_comment_id_review_comments_id_fk": {
-          "name": "review_comment_likes_comment_id_review_comments_id_fk",
-          "tableFrom": "review_comment_likes",
-          "tableTo": "review_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_comment_likes_user_id_users_id_fk": {
-          "name": "review_comment_likes_user_id_users_id_fk",
-          "tableFrom": "review_comment_likes",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4250,34 +3256,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "review_comment_reports_comment_id_review_comments_id_fk": {
-          "name": "review_comment_reports_comment_id_review_comments_id_fk",
-          "tableFrom": "review_comment_reports",
-          "tableTo": "review_comments",
-          "columnsFrom": [
-            "comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_comment_reports_reporter_id_users_id_fk": {
-          "name": "review_comment_reports_reporter_id_users_id_fk",
-          "tableFrom": "review_comment_reports",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reporter_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4367,73 +3346,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "review_comments_review_id_aircraft_reviews_id_fk": {
-          "name": "review_comments_review_id_aircraft_reviews_id_fk",
-          "tableFrom": "review_comments",
-          "tableTo": "aircraft_reviews",
-          "columnsFrom": [
-            "review_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_comments_author_id_users_id_fk": {
-          "name": "review_comments_author_id_users_id_fk",
-          "tableFrom": "review_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "author_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_comments_reply_to_user_id_users_id_fk": {
-          "name": "review_comments_reply_to_user_id_users_id_fk",
-          "tableFrom": "review_comments",
-          "tableTo": "users",
-          "columnsFrom": [
-            "reply_to_user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "set null",
-          "onUpdate": "no action"
-        },
-        "review_comments_parent_comment_id_review_comments_id_fk": {
-          "name": "review_comments_parent_comment_id_review_comments_id_fk",
-          "tableFrom": "review_comments",
-          "tableTo": "review_comments",
-          "columnsFrom": [
-            "parent_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "review_comments_reply_to_comment_id_review_comments_id_fk": {
-          "name": "review_comments_reply_to_comment_id_review_comments_id_fk",
-          "tableFrom": "review_comments",
-          "tableTo": "review_comments",
-          "columnsFrom": [
-            "reply_to_comment_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4531,21 +3444,7 @@
         }
       },
       "indexes": {},
-      "foreignKeys": {
-        "sessions_user_id_users_id_fk": {
-          "name": "sessions_user_id_users_id_fk",
-          "tableFrom": "sessions",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4713,34 +3612,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "user_follows_follower_id_users_id_fk": {
-          "name": "user_follows_follower_id_users_id_fk",
-          "tableFrom": "user_follows",
-          "tableTo": "users",
-          "columnsFrom": [
-            "follower_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
-        "user_follows_followee_id_users_id_fk": {
-          "name": "user_follows_followee_id_users_id_fk",
-          "tableFrom": "user_follows",
-          "tableTo": "users",
-          "columnsFrom": [
-            "followee_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
@@ -4830,21 +3702,7 @@
           "with": {}
         }
       },
-      "foreignKeys": {
-        "user_settings_user_id_users_id_fk": {
-          "name": "user_settings_user_id_users_id_fk",
-          "tableFrom": "user_settings",
-          "tableTo": "users",
-          "columnsFrom": [
-            "user_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        }
-      },
+      "foreignKeys": {},
       "compositePrimaryKeys": {},
       "uniqueConstraints": {},
       "policies": {},
