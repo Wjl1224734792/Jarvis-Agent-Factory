@@ -12,7 +12,6 @@ export function AdminPage(props: {
       <Flex align="flex-start" className="admin-page__header" gap={16} justify="space-between" wrap>
         <div className="admin-page__title-group">
           <div className="admin-page__title">{props.title}</div>
-          {props.description ? <div className="admin-page__description">{props.description}</div> : null}
         </div>
         {props.actions ? <Space size="middle" wrap>{props.actions}</Space> : null}
       </Flex>
@@ -34,7 +33,6 @@ export function AdminPanel(props: {
         <Flex align="flex-start" className="admin-panel__header" gap={16} justify="space-between" wrap>
           <div>
             {props.title ? <div className="admin-panel__title">{props.title}</div> : null}
-            {props.description ? <div className="admin-panel__description">{props.description}</div> : null}
           </div>
           {props.actions ? <Space size="small" wrap>{props.actions}</Space> : null}
         </Flex>
@@ -50,10 +48,9 @@ export function AdminMetric(props: {
   hint?: string;
 }) {
   return (
-    <div className="admin-metric">
-      <div className="admin-metric__label">{props.label}</div>
-      <div className="admin-metric__value">{props.value}</div>
-      {props.hint ? <div className="admin-metric__hint">{props.hint}</div> : null}
-    </div>
+      <div className="admin-metric">
+        <div className="admin-metric__label">{props.label}</div>
+        <div className="admin-metric__value">{props.value}</div>
+      </div>
   );
 }

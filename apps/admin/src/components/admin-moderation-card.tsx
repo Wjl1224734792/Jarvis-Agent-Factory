@@ -2,10 +2,10 @@ import { Button } from "antd";
 
 export function AdminModerationCard(props: {
   title: string;
-  description: string;
+  description?: string;
   enabled: boolean;
-  autoCopy: string;
-  manualCopy: string;
+  autoCopy?: string;
+  manualCopy?: string;
   pendingCount: number;
   loading?: boolean;
   onEnable: () => void;
@@ -17,11 +17,7 @@ export function AdminModerationCard(props: {
         <span className={`admin-pill ${props.enabled ? "is-on" : "is-off"}`}>
           {props.enabled ? "人工审核" : "自动通过"}
         </span>
-        <div>
-          <div className="admin-moderation-card__title">{props.title}</div>
-          <div className="admin-moderation-card__description">{props.description}</div>
-        </div>
-        <div className="admin-moderation-card__copy">{props.enabled ? props.manualCopy : props.autoCopy}</div>
+        <div className="admin-moderation-card__title">{props.title}</div>
         <div className="admin-moderation-card__meta">当前待处理 {props.pendingCount}</div>
       </div>
       <div className="admin-moderation-card__actions">

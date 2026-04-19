@@ -1,5 +1,5 @@
 import { memo } from "react";
-import { Bar, Column, Funnel, Line, Pie } from "@ant-design/plots";
+import { Bar, Column, Funnel, Line, Pie, Radar, Rose } from "@ant-design/plots";
 
 type TimeSeriesDatum = {
   label: string;
@@ -19,6 +19,12 @@ type ModerationDatum = {
 
 type FunnelDatum = {
   stage: string;
+  value: number;
+};
+
+type ModerationRadarDatum = {
+  domain: string;
+  metric: string;
   value: number;
 };
 
@@ -50,6 +56,22 @@ export const ContentMixChart = memo(function ContentMixChart(props: { data: Cont
       innerRadius={0.62}
       label={{ text: "type", style: { fontSize: 12 } }}
       legend={{ color: { title: false, position: "bottom" } }}
+    />
+  );
+});
+
+export const ContentMixRoseChart = memo(function ContentMixRoseChart(props: {
+  data: ContentMixDatum[];
+}) {
+  return (
+    <Rose
+      autoFit
+      colorField="type"
+      data={props.data}
+      height={280}
+      radius={0.92}
+      xField="type"
+      yField="value"
     />
   );
 });
@@ -98,6 +120,23 @@ export const ModerationStatusChart = memo(function ModerationStatusChart(props: 
       seriesField="status"
       xField="value"
       yField="domain"
+    />
+  );
+});
+
+export const ModerationDomainRadarChart = memo(function ModerationDomainRadarChart(props: {
+  data: ModerationRadarDatum[];
+}) {
+  return (
+    <Radar
+      autoFit
+      area={{ style: { fillOpacity: 0.12 } }}
+      data={props.data}
+      height={320}
+      seriesField="metric"
+      xField="domain"
+      yAxis={{ nice: true }}
+      yField="value"
     />
   );
 });

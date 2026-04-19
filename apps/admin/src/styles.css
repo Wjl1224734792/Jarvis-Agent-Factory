@@ -938,7 +938,7 @@ body {
   min-height: 44px;
 }
 
-/* Input.Search：输入框与右侧搜索按钮同高（否则 affix 44px 与默认 middle 按钮 32px 错位） */
+/* Input.Search锛氳緭鍏ユ涓庡彸渚ф悳绱㈡寜閽悓楂橈紙鍚﹀垯 affix 44px 涓庨粯璁?middle 鎸夐挳 32px 閿欎綅锛?*/
 .admin-shell__search .ant-input-search.ant-space-compact {
   align-items: stretch;
   width: 100%;
@@ -1104,7 +1104,7 @@ body {
 }
 
 @media (max-width: 1199px) {
-  /* 保持四列单行，避免把右侧操作区整体挤到下一行 */
+  /* 淇濇寔鍥涘垪鍗曡锛岄伩鍏嶆妸鍙充晶鎿嶄綔鍖烘暣浣撴尋鍒颁笅涓€琛?*/
   .admin-shell__brand-row {
     grid-template-columns: auto auto minmax(160px, 1fr) auto;
     gap: 12px;
@@ -2037,6 +2037,22 @@ body {
   display: grid;
   gap: 16px;
   grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.admin-overview-collapse {
+  margin-top: 4px;
+}
+
+.admin-overview-collapse .ant-collapse-item {
+  border-radius: 18px !important;
+  margin-bottom: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.08) !important;
+  background: rgba(255, 255, 255, 0.68);
+}
+
+.admin-overview-collapse .ant-collapse-header {
+  font-weight: 700;
+  color: var(--admin-text-strong) !important;
 }
 
 .admin-overview-home-grid,
