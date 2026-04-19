@@ -20,21 +20,25 @@ export const adminLogsRoute = new Hono<{ Variables: AuthVariables }>();
 adminLogsRoute.use("*", attachCurrentUser);
 
 adminLogsRoute.get(API_ROUTES.admin.logsOverview, requireAdmin, async (context) => {
+  const source = context.req.query("source") ?? undefined;
   logger.security("admin viewed logs overview", {
-    adminUserId: context.var.currentUser?.id ?? null
+    adminUserId: context.var.currentUser?.id ?? null,
+    source
   });
   return context.json(adminLogsOverviewResponseSchema.parse({
-    item: await adminLogsService.getOverview()
+    item: await adminLogsService.getOverview(source)
   }));
 });
 
 adminLogsRoute.get(API_ROUTES.admin.logsFiles, requireAdmin, async (context) => {
   const input = adminLogFilesQuerySchema.parse({
+    source: context.req.query("source"),
     category: context.req.query("category"),
     limit: context.req.query("limit")
   });
   logger.security("admin listed log files", {
     adminUserId: context.var.currentUser?.id ?? null,
+    source: input.source,
     category: input.category,
     limit: input.limit
   });
@@ -46,6 +50,7 @@ adminLogsRoute.get(API_ROUTES.admin.logsFiles, requireAdmin, async (context) => 
 
 adminLogsRoute.get(API_ROUTES.admin.logsEntries, requireAdmin, async (context) => {
   const input = adminLogEntriesQuerySchema.parse({
+    source: context.req.query("source"),
     category: context.req.query("category"),
     fileName: context.req.query("fileName"),
     limit: context.req.query("limit"),
@@ -54,6 +59,7 @@ adminLogsRoute.get(API_ROUTES.admin.logsEntries, requireAdmin, async (context) =
   });
   logger.security("admin read log entries", {
     adminUserId: context.var.currentUser?.id ?? null,
+    source: input.source,
     category: input.category,
     fileName: input.fileName,
     level: input.level ?? null,

@@ -313,8 +313,8 @@ const rawApiClient = {
   getAdminAnalyticsOverview() {
     return sharedClient.getAdminAnalyticsOverview();
   },
-  getAdminLogsOverview() {
-    return sharedClient.getAdminLogsOverview();
+  getAdminLogsOverview(input?: { source?: string }) {
+    return sharedClient.getAdminLogsOverview(input);
   },
   listAdminLogFiles(input: Parameters<typeof sharedClient.listAdminLogFiles>[0]) {
     return sharedClient.listAdminLogFiles(input);

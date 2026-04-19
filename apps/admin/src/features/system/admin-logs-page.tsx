@@ -67,6 +67,7 @@ function getLevelColor(level: AdminLogEntryItem["level"]) {
 }
 
 export function AdminLogsPage() {
+  const [selectedSource, setSelectedSource] = useState<string | undefined>(undefined);
   const [selectedCategory, setSelectedCategory] = useState<AdminLogCategory | undefined>(undefined);
   const [selectedFile, setSelectedFile] = useState<string | undefined>(undefined);
   const [levelFilter, setLevelFilter] = useState<AdminLogEntryItem["level"] | undefined>(undefined);
@@ -74,21 +75,23 @@ export function AdminLogsPage() {
   const [searchDraft, setSearchDraft] = useState("");
 
   const overviewQuery = useQuery({
-    queryKey: ["admin-logs", "overview"],
-    queryFn: () => apiClient.getAdminLogsOverview()
+    queryKey: ["admin-logs", "overview", selectedSource ?? "default"],
+    queryFn: () => apiClient.getAdminLogsOverview(selectedSource ? { source: selectedSource } : undefined)
   });
 
+  const activeSource = selectedSource ?? overviewQuery.data?.item.activeSourceKey;
   const activeCategory = selectedCategory ?? overviewQuery.data?.item.categories[0]?.category;
 
   const filesQuery = useQuery({
-    enabled: Boolean(activeCategory),
-    queryKey: ["admin-logs", "files", activeCategory ?? "none"],
+    enabled: Boolean(activeSource && activeCategory),
+    queryKey: ["admin-logs", "files", activeSource ?? "none", activeCategory ?? "none"],
     queryFn: () => {
-      if (!activeCategory) {
-        throw new Error("未选择日志分类");
+      if (!activeSource || !activeCategory) {
+        throw new Error("未选择日志源或分类");
       }
 
       return apiClient.listAdminLogFiles({
+        source: activeSource,
         category: activeCategory,
         limit: 50
       });
@@ -98,14 +101,23 @@ export function AdminLogsPage() {
   const activeFile = selectedFile ?? filesQuery.data?.items[0]?.fileName;
 
   const entriesQuery = useQuery({
-    enabled: Boolean(activeCategory && activeFile),
-    queryKey: ["admin-logs", "entries", activeCategory ?? "none", activeFile ?? "none", levelFilter ?? "all", searchValue],
+    enabled: Boolean(activeSource && activeCategory && activeFile),
+    queryKey: [
+      "admin-logs",
+      "entries",
+      activeSource ?? "none",
+      activeCategory ?? "none",
+      activeFile ?? "none",
+      levelFilter ?? "all",
+      searchValue
+    ],
     queryFn: () => {
-      if (!activeCategory || !activeFile) {
-        throw new Error("未选择日志文件");
+      if (!activeSource || !activeCategory || !activeFile) {
+        throw new Error("未选择日志源或文件");
       }
 
       return apiClient.getAdminLogEntries({
+        source: activeSource,
         category: activeCategory,
         fileName: activeFile,
         limit: 200,
@@ -114,6 +126,12 @@ export function AdminLogsPage() {
       });
     }
   });
+
+  useEffect(() => {
+    if (!selectedSource && overviewQuery.data?.item.activeSourceKey) {
+      setSelectedSource(overviewQuery.data.item.activeSourceKey);
+    }
+  }, [overviewQuery.data?.item.activeSourceKey, selectedSource]);
 
   useEffect(() => {
     if (!selectedCategory && overviewQuery.data?.item.categories[0]?.category) {
@@ -134,6 +152,16 @@ export function AdminLogsPage() {
     () => categories.find((item) => item.category === activeCategory) ?? null,
     [activeCategory, categories]
   );
+  const sourceOptions = useMemo(
+    () =>
+      (overviewQuery.data?.item.sources ?? []).map((item) => ({
+        label: item.label,
+        value: item.key
+      })),
+    [overviewQuery.data?.item.sources]
+  );
+  const activeSourceLabel =
+    overviewQuery.data?.item.sources.find((item) => item.key === activeSource)?.label ?? "未知";
 
   const categoryOptions = categories.map((item) => ({
     label: getCategoryLabel(item.category),
@@ -152,7 +180,7 @@ export function AdminLogsPage() {
       render: (_, record) => (
         <div className="admin-table-meta">
           <div className="admin-table-title">{record.fileName}</div>
-          <div className="admin-table-subtitle">{record.absolutePath}</div>
+          <div className="admin-table-subtitle">{record.pathLabel}</div>
         </div>
       )
     },
@@ -227,7 +255,7 @@ export function AdminLogsPage() {
           </Button>
         </Space>
       }
-      description="查看服务端日志模式、分类、文件和最近日志行，优先用于排查生产环境文件日志。"
+      description="查看日志源、分类、文件和最近日志行，当前默认接入本地文件日志。"
       title="日志监控"
     >
       {anyError ? (
@@ -241,9 +269,9 @@ export function AdminLogsPage() {
 
       <div className="admin-overview-footer-grid admin-overview-footer-grid--top">
         <AdminMetric
-          hint="开发环境通常是 console / both，生产环境应重点关注 file / both"
-          label="日志模式"
-          value={overviewQuery.data?.item.mode ?? "未知"}
+          hint="当前管理页面正在查看的日志源"
+          label="日志源"
+          value={activeSourceLabel}
         />
         <AdminMetric
           hint="后端限制的单次读取最大行数"
@@ -260,6 +288,17 @@ export function AdminLogsPage() {
       <AdminPanel
         actions={
           <Space wrap>
+            <Select
+              onChange={(value: string) => {
+                setSelectedSource(value);
+                setSelectedCategory(undefined);
+                setSelectedFile(undefined);
+              }}
+              options={sourceOptions}
+              placeholder="选择日志源"
+              style={{ minWidth: 180 }}
+              value={activeSource}
+            />
             <Select
               onChange={(value: AdminLogCategory) => {
                 setSelectedCategory(value);
@@ -281,7 +320,7 @@ export function AdminLogsPage() {
             />
           </Space>
         }
-        description={`日志目录：${overviewQuery.data?.item.dir ?? "未知"}；当前级别：${overviewQuery.data?.item.level ?? "未知"}`}
+        description={`日志模式：${overviewQuery.data?.item.mode ?? "未知"}；当前级别：${overviewQuery.data?.item.level ?? "未知"}`}
         title="日志概览"
       >
         {categories.length === 0 && !overviewQuery.isLoading ? (
@@ -338,7 +377,7 @@ export function AdminLogsPage() {
           loading={filesQuery.isLoading}
           locale={{ emptyText: "暂无日志文件" }}
           pagination={false}
-          rowKey={(record) => `${record.category}:${record.fileName}`}
+          rowKey={(record) => `${record.sourceKey}:${record.category}:${record.fileName}`}
           scroll={{ x: 820 }}
           size="middle"
         />

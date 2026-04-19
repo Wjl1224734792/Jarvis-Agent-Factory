@@ -407,6 +407,7 @@ function buildSearchQueryString(input: SearchQueryInput): string {
 function buildAdminLogFilesQueryString(input: AdminLogFilesQueryInput): string {
   const query = adminLogFilesQuerySchema.parse(input);
   const search = new URLSearchParams();
+  search.set("source", query.source);
   search.set("category", query.category);
   search.set("limit", String(query.limit));
   return `?${search.toString()}`;
@@ -415,6 +416,7 @@ function buildAdminLogFilesQueryString(input: AdminLogFilesQueryInput): string {
 function buildAdminLogEntriesQueryString(input: AdminLogEntriesQueryInput): string {
   const query = adminLogEntriesQuerySchema.parse(input);
   const search = new URLSearchParams();
+  search.set("source", query.source);
   search.set("category", query.category);
   search.set("fileName", query.fileName);
   search.set("limit", String(query.limit));
@@ -1380,8 +1382,13 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminAnalyticsOverviewResponseSchema);
     },
-    async getAdminLogsOverview() {
-      const response = await fetch(`${baseUrl}${API_ROUTES.admin.logsOverview}`, {
+    async getAdminLogsOverview(input?: { source?: string }) {
+      const search = new URLSearchParams();
+      if (input?.source) {
+        search.set("source", input.source);
+      }
+      const suffix = search.size > 0 ? `?${search.toString()}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.logsOverview}${suffix}`, {
         method: "GET",
         credentials: "include"
       });

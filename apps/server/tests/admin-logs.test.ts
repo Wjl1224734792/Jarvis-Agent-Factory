@@ -85,10 +85,17 @@ describe("admin logs route", () => {
 
     expect(response.status).toBe(200);
     const payload = (await response.json()) as {
-      item: { dir: string; categories: Array<{ category: string; fileCount: number }> };
+      item: {
+        dir: string;
+        activeSourceKey: string;
+        sources: Array<{ key: string }>;
+        categories: Array<{ category: string; fileCount: number }>;
+      };
     };
 
     expect(payload.item.dir).toBe(tempLogDir);
+    expect(payload.item.activeSourceKey).toBe("local-files");
+    expect(payload.item.sources[0]?.key).toBe("local-files");
     expect(payload.item.categories.find((item) => item.category === "request")?.fileCount).toBe(1);
   });
 
@@ -103,9 +110,11 @@ describe("admin logs route", () => {
 
     expect(filesResponse.status).toBe(200);
     const filesPayload = (await filesResponse.json()) as {
-      items: Array<{ fileName: string; category: string }>;
+      items: Array<{ fileName: string; category: string; sourceKey: string; pathLabel: string }>;
     };
     expect(filesPayload.items[0]?.category).toBe("request");
+    expect(filesPayload.items[0]?.sourceKey).toBe("local-files");
+    expect(filesPayload.items[0]?.pathLabel).toContain("request");
 
     const entriesResponse = await app.request(
       `/admin/logs/entries?category=request&fileName=${encodeURIComponent(filesPayload.items[0]?.fileName ?? "")}&level=WARN&limit=10`,

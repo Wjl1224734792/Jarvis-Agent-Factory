@@ -14,6 +14,14 @@ describe("admin logs contract", () => {
         dir: "E:/CodeStore/feijia/apps/server/logs",
         level: "INFO",
         maxReadLines: 200,
+        activeSourceKey: "local-files",
+        sources: [
+          {
+            key: "local-files",
+            label: "本地文件日志",
+            kind: "local-files"
+          }
+        ],
         categories: [
           {
             category: "app",
@@ -32,10 +40,12 @@ describe("admin logs contract", () => {
 
   it("parses files and entry queries", () => {
     const filesQuery = adminLogFilesQuerySchema.parse({
+      source: "local-files",
       category: "error",
       limit: 20
     });
     const entriesQuery = adminLogEntriesQuerySchema.parse({
+      source: "local-files",
       category: "request",
       fileName: "request-2026-04-14.log",
       limit: 120,
@@ -51,9 +61,10 @@ describe("admin logs contract", () => {
   it("parses log entry response payload", () => {
     const payload = adminLogEntriesResponseSchema.parse({
       file: {
+        sourceKey: "local-files",
         category: "request",
         fileName: "request-2026-04-14.log",
-        absolutePath: "E:/CodeStore/feijia/apps/server/logs/request/request-2026-04-14.log",
+        pathLabel: "request/request-2026-04-14.log",
         sizeBytes: 1024,
         modifiedAt: "2026-04-14T12:00:00.000Z"
       },
