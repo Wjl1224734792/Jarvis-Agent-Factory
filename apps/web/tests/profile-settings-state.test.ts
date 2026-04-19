@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import {
   buildUpdateCurrentUserProfileInput,
   createSettingsDraft,
+  mergeSettingsSnapshotIntoUserSummary,
   markSettingsSaved,
   profileVisibilityDescription,
   profileVisibilityLabel,
+  restoreSettingsBooleanField,
   setProfileVisibility,
   syncSettingsDraft,
   toggleSettingsFlag,
@@ -94,5 +96,43 @@ describe("profile settings state helpers", () => {
     expect(input.bio).toBe("Updated bio");
     expect(input.emailDigest).toBe(true);
     expect(input.profileVisibility).toBe("followers");
+  });
+
+  it("restores only the failed boolean field without clobbering other edits", () => {
+    const draft = {
+      ...createSettingsDraft(sampleSnapshot),
+      bio: "Dirty bio",
+      notifyComments: false,
+      hasPendingChanges: true
+    };
+
+    const restored = restoreSettingsBooleanField(draft, "notifyComments", true);
+
+    expect(restored.notifyComments).toBe(true);
+    expect(restored.bio).toBe("Dirty bio");
+    expect(restored.hasPendingChanges).toBe(true);
+  });
+
+  it("merges profile snapshot updates back into the auth user summary", () => {
+    const merged = mergeSettingsSnapshotIntoUserSummary(
+      {
+        id: "user_1",
+        displayName: "Old name",
+        avatarUrl: "https://cdn.example.com/old.png",
+        role: "user"
+      },
+      {
+        ...sampleSnapshot,
+        displayName: "New name",
+        avatarUrl: "https://cdn.example.com/new.png"
+      }
+    );
+
+    expect(merged).toEqual({
+      id: "user_1",
+      displayName: "New name",
+      avatarUrl: "https://cdn.example.com/new.png",
+      role: "user"
+    });
   });
 });

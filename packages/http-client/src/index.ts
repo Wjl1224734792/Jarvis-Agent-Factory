@@ -1627,6 +1627,14 @@ export function createApiClient(options: ApiClientOptions) {
         adminModelInputSchema.parse(input)
       );
     },
+    async getAdminModel(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.models.adminDetail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminModelResponseSchema);
+    },
     async listAdminReviews() {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.adminReviews}`, {
         method: "GET",

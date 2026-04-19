@@ -524,6 +524,9 @@ const rawApiClient = {
   getSiteSettings() {
     return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);
   },
+  getAdminModel(id: string) {
+    return sharedClient.getAdminModel(id);
+  },
   getAdminAuthSessions() {
     return getJson<{ items: AdminAuthSessionItem[] }>("/admin/auth/sessions");
   },

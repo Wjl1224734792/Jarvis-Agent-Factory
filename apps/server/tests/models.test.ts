@@ -497,6 +497,145 @@ describe("models flows", () => {
     ).toBe(true);
   });
 
+  it("returns admin model detail with editable media file ids and parameters", async () => {
+    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    const adminCookie = extractCookies(adminLoginResponse);
+
+    const adminUserResult = await dbPool.query<{ id: string }>(
+      `select id from users where role = 'admin' limit 1`
+    );
+    const adminUserId = adminUserResult.rows[0]?.id;
+    expect(adminUserId).toBeTruthy();
+
+    const categoriesResponse = await app.request(API_ROUTES.models.categories, {
+      method: "GET"
+    });
+    expect(categoriesResponse.status).toBe(200);
+    const categoriesPayload = (await categoriesResponse.json()) as Array<{ id: string; slug: string }>;
+    const droneCategoryId = categoriesPayload.find((item) => item.slug === "drone")?.id;
+    expect(droneCategoryId).toBeTruthy();
+
+    const brandsResponse = await app.request(API_ROUTES.models.brands, {
+      method: "GET"
+    });
+    expect(brandsResponse.status).toBe(200);
+    const brandsPayload = (await brandsResponse.json()) as Array<{ id: string; slug: string }>;
+    const djiBrandId = brandsPayload.find((item) => item.slug === "dji")?.id;
+    expect(djiBrandId).toBeTruthy();
+
+    const coverPending = await uploadsRepo.createPendingFile({
+      ownerId: expectDefined(adminUserId),
+      bizType: "aircraft-cover-image",
+      mediaKind: "image",
+      provider: "minio",
+      bucket: "feijia-media",
+      region: "us-east-1",
+      objectKey: `aircraft-cover-image/${adminUserId}/admin-detail-cover.png`,
+      fileName: "admin-detail-cover.png",
+      mimeType: "image/png",
+      byteSize: 128,
+      visibility: "public"
+    });
+    const galleryPending = await uploadsRepo.createPendingFile({
+      ownerId: expectDefined(adminUserId),
+      bizType: "aircraft-gallery-image",
+      mediaKind: "image",
+      provider: "minio",
+      bucket: "feijia-media",
+      region: "us-east-1",
+      objectKey: `aircraft-gallery-image/${adminUserId}/admin-detail-gallery.png`,
+      fileName: "admin-detail-gallery.png",
+      mimeType: "image/png",
+      byteSize: 128,
+      visibility: "public"
+    });
+    expect(coverPending?.id).toBeTruthy();
+    expect(galleryPending?.id).toBeTruthy();
+
+    await uploadsRepo.markFileUploaded({
+      fileId: expectDefined(coverPending?.id),
+      etag: "etag-cover"
+    });
+    await uploadsRepo.markFileUploaded({
+      fileId: expectDefined(galleryPending?.id),
+      etag: "etag-gallery"
+    });
+
+    const createResponse = await app.request(API_ROUTES.models.adminList, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "admin-detail-probe",
+        name: "Admin Detail Probe",
+        categoryId: droneCategoryId,
+        brandId: djiBrandId,
+        powerType: "electric",
+        lifecycleStatus: "released",
+        summary: "Admin detail route coverage",
+        description: "Carries media ids for admin editing.",
+        priceMin: 1000,
+        priceMax: 2000,
+        maxFlightTimeMinutes: 12,
+        maxRangeKilometers: 4,
+        maxSpeedKph: 50,
+        takeoffWeightGrams: 300,
+        coverImageFileId: coverPending?.id,
+        galleryImageFileIds: [galleryPending?.id],
+        videoFileId: null,
+        isPublished: false
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const createdPayload = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const detailResponse = await app.request(
+      API_ROUTES.models.adminDetail(createdPayload.item.id),
+      {
+        method: "GET",
+        headers: { cookie: adminCookie }
+      }
+    );
+    expect(detailResponse.status).toBe(200);
+
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        id: string;
+        coverImageFileId: string | null;
+        galleryImageFileIds: string[];
+        videoFileId: string | null;
+        parameters: {
+          maxFlightTimeMinutes: number | null;
+          maxRangeKilometers: number | null;
+          maxSpeedKph: number | null;
+          takeoffWeightGrams: number | null;
+        };
+      };
+    };
+
+    expect(detailPayload.item.id).toBe(createdPayload.item.id);
+    expect(detailPayload.item.coverImageFileId).toBe(coverPending?.id ?? null);
+    expect(detailPayload.item.galleryImageFileIds).toEqual([galleryPending?.id]);
+    expect(detailPayload.item.videoFileId).toBeNull();
+    expect(detailPayload.item.parameters).toEqual({
+      maxFlightTimeMinutes: 12,
+      maxRangeKilometers: 4,
+      maxSpeedKph: 50,
+      takeoffWeightGrams: 300
+    });
+  });
+
   it("supports multi-category, multi-brand and keyword model filtering", async () => {
     const response = await app.request(
       `${API_ROUTES.models.list}?categorySlug=drone&categorySlug=business-jet&brandSlug=dji&brandSlug=cirrus&keyword=pro`,

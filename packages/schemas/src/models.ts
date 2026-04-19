@@ -292,8 +292,14 @@ export const adminModelInputSchema = z.object({
   isPublished: z.boolean().default(true)
 }).superRefine(validatePriceRange);
 
+export const adminModelDetailSchema = modelDetailSchema.extend({
+  coverImageFileId: z.string().trim().min(1).nullable().default(null),
+  galleryImageFileIds: z.array(z.string().trim().min(1)).default([]),
+  videoFileId: z.string().trim().min(1).nullable().default(null)
+});
+
 export const adminModelResponseSchema = z.object({
-  item: modelDetailSchema
+  item: adminModelDetailSchema
 });
 
 export type AircraftCategory = z.infer<typeof aircraftCategorySchema>;

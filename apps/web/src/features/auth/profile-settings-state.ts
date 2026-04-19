@@ -1,3 +1,4 @@
+import type { UserSummary } from "@feijia/schemas";
 import { resolveMaskedPhone } from "./phone-rebind-state";
 
 export type ProfileVisibility = "community" | "followers" | "private";
@@ -102,6 +103,17 @@ export function toggleSettingsFlag(
   };
 }
 
+export function restoreSettingsBooleanField(
+  draft: SettingsDraft,
+  field: SettingsBooleanField,
+  value: boolean
+): SettingsDraft {
+  return {
+    ...draft,
+    [field]: value
+  };
+}
+
 export function setProfileVisibility(
   draft: SettingsDraft,
   profileVisibility: ProfileVisibility
@@ -117,6 +129,17 @@ export function markSettingsSaved(draft: SettingsDraft): SettingsDraft {
   return {
     ...draft,
     hasPendingChanges: false
+  };
+}
+
+export function mergeSettingsSnapshotIntoUserSummary(
+  user: UserSummary,
+  snapshot: Pick<UserSettingsSnapshot, "displayName" | "avatarUrl">
+): UserSummary {
+  return {
+    ...user,
+    displayName: snapshot.displayName,
+    avatarUrl: snapshot.avatarUrl
   };
 }
 

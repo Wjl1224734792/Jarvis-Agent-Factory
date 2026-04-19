@@ -299,6 +299,25 @@ aircraftModelsRoute.post(API_ROUTES.models.adminList, requireAdmin, async (conte
   return context.json(adminModelResponseSchema.parse({ item: detailItem }));
 });
 
+aircraftModelsRoute.get(
+  API_ROUTES.models.adminDetail(":id"),
+  requireAdmin,
+  async (context) => {
+    const id = context.req.param("id");
+    if (!id) {
+      return context.json({ code: "BAD_REQUEST", message: "Missing id." }, 400);
+    }
+
+    const item = await aircraftModelsService.getModelDetailById(id);
+    if (!item) {
+      return context.json({ code: "NOT_FOUND", message: "Model not found." }, 404);
+    }
+
+    const detailItem = await aircraftModelsService.buildAdminModelResponseItem(item);
+    return context.json(adminModelResponseSchema.parse({ item: detailItem }));
+  }
+);
+
 aircraftModelsRoute.put(
   API_ROUTES.models.adminDetail(":id"),
   requireAdmin,

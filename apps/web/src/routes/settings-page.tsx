@@ -1,4 +1,4 @@
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isChinaMainlandMobilePhone } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
@@ -33,9 +33,11 @@ import { useAuthStore } from "../features/auth/auth-store";
 import {
   buildUpdateCurrentUserProfileInput,
   createSettingsDraft,
+  mergeSettingsSnapshotIntoUserSummary,
   markSettingsSaved,
   profileVisibilityDescription,
   profileVisibilityLabel,
+  restoreSettingsBooleanField,
   setProfileVisibility,
   syncSettingsDraft,
   toggleSettingsFlag,
@@ -197,6 +199,7 @@ export function SettingsPage() {
   const setAuthenticated = useAuthStore((state) => state.setAuthenticated);
   const setAnonymous = useAuthStore((state) => state.setAnonymous);
   const setError = useAuthStore((state) => state.setError);
+  const queryClient = useQueryClient();
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
   const [draft, setDraft] = useState<SettingsDraft>(() =>
     createSettingsDraft({
@@ -269,6 +272,7 @@ export function SettingsPage() {
     return <SettingsPageSkeleton />;
   }
 
+  const currentUser = user;
   const displayName = draft.displayName || user.displayName;
   const profileLoading = profileQuery.isLoading && !profileQuery.data;
 
@@ -279,6 +283,14 @@ export function SettingsPage() {
   function beginEdit(field: Exclude<EditableProfileField, null>) {
     setStatusMessage(null);
     setEditingField(field);
+  }
+
+  function applyProfileSnapshot(snapshot: UserSettingsSnapshot) {
+    setDraft(markSettingsSaved(createSettingsDraft(snapshot)));
+    setAuthenticated(mergeSettingsSnapshotIntoUserSummary(currentUser, snapshot));
+    queryClient.setQueryData(["current-user-profile", currentUser.id], {
+      item: snapshot
+    });
   }
 
   function cancelEdit(field: Exclude<EditableProfileField, null>) {
@@ -308,15 +320,9 @@ export function SettingsPage() {
     setSavingField(fieldKey);
     try {
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(draft));
-      const refreshedUser = await apiClient.getCurrentUser();
-      if (refreshedUser) {
-        setAuthenticated(refreshedUser);
-      }
-
-      setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
+      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
       setStatusMessage(successMessage);
       setEditingField(null);
-      void profileQuery.refetch();
     } catch (reason: unknown) {
       setStatusMessage(reason instanceof Error ? reason.message : "保存失败");
     } finally {
@@ -337,16 +343,16 @@ export function SettingsPage() {
     field: (typeof settingsNotificationOptions)[number]["field"],
     successMessage: string
   ) {
+    const previousValue = draft[field];
     const nextDraft = toggleSettingsFlag(draft, field);
     setDraft(nextDraft);
     setSavingField(field);
     try {
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
-      setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
+      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
       setStatusMessage(successMessage);
-      void profileQuery.refetch();
     } catch (reason: unknown) {
-      setDraft(draft);
+      setDraft((current) => restoreSettingsBooleanField(current, field, previousValue));
       setStatusMessage(reason instanceof Error ? reason.message : "设置保存失败");
     } finally {
       setSavingField(null);
@@ -366,14 +372,8 @@ export function SettingsPage() {
       setDraft(nextDraft);
 
       const payload = await apiClient.updateCurrentUserProfile(buildUpdateCurrentUserProfileInput(nextDraft));
-      const refreshedUser = await apiClient.getCurrentUser();
-      if (refreshedUser) {
-        setAuthenticated(refreshedUser);
-      }
-
-      setDraft(markSettingsSaved(createSettingsDraft(payload.item as UserSettingsSnapshot)));
+      applyProfileSnapshot(payload.item as UserSettingsSnapshot);
       setStatusMessage("头像已更新");
-      void profileQuery.refetch();
     } catch (reason: unknown) {
       setStatusMessage(reason instanceof Error ? reason.message : "头像上传失败");
     } finally {
@@ -444,9 +444,11 @@ export function SettingsPage() {
         phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
         hasPendingChanges: false
       }));
+      queryClient.setQueryData(["current-user-profile", currentUser.id], {
+        item: snapshot
+      });
       setStatusMessage("手机号已完成换绑");
       closePhoneDialog();
-      void profileQuery.refetch();
     } catch (reason: unknown) {
       setPhoneActionError(reason instanceof Error ? reason.message : "手机号换绑失败");
     } finally {

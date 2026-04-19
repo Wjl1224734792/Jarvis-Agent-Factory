@@ -51,6 +51,33 @@ export type UploadedModelMedia = {
   videoFileId: string | null;
 };
 
+export type AdminEditableModelDetail = {
+  name: string;
+  slug: string;
+  category: {
+    id: string;
+  };
+  brand: {
+    id: string;
+  };
+  powerType: ModelPowerType;
+  lifecycleStatus: ModelLifecycleStatus;
+  summary: string | null;
+  description: string | null;
+  priceMin: number | null;
+  priceMax: number | null;
+  parameters: {
+    maxFlightTimeMinutes: number | null;
+    maxRangeKilometers: number | null;
+    maxSpeedKph: number | null;
+    takeoffWeightGrams: number | null;
+  };
+  coverImageFileId?: string | null;
+  galleryImageFileIds?: string[];
+  videoFileId?: string | null;
+  isPublished: boolean;
+};
+
 function normalizeNullableText(value: string): string | null {
   const trimmed = value.trim();
   return trimmed.length > 0 ? trimmed : null;
@@ -96,5 +123,35 @@ export function buildModelUpsertPayload(values: ModelEditorValues, media: Upload
       .slice(0, MODEL_GALLERY_IMAGE_LIMIT),
     videoFileId: media.videoFileId,
     isPublished: values.isPublished
+  };
+}
+
+export function buildModelEditorInitialState(model: AdminEditableModelDetail): {
+  values: ModelEditorValues;
+  media: UploadedModelMedia;
+} {
+  return {
+    values: {
+      name: model.name,
+      slug: model.slug,
+      categoryId: model.category.id,
+      brandId: model.brand.id,
+      powerType: model.powerType,
+      lifecycleStatus: model.lifecycleStatus,
+      summary: model.summary ?? "",
+      description: model.description ?? "",
+      priceMin: model.priceMin,
+      priceMax: model.priceMax,
+      maxFlightTimeMinutes: model.parameters.maxFlightTimeMinutes,
+      maxRangeKilometers: model.parameters.maxRangeKilometers,
+      maxSpeedKph: model.parameters.maxSpeedKph,
+      takeoffWeightGrams: model.parameters.takeoffWeightGrams,
+      isPublished: model.isPublished
+    },
+    media: {
+      coverImageFileId: model.coverImageFileId ?? null,
+      galleryImageFileIds: model.galleryImageFileIds ?? [],
+      videoFileId: model.videoFileId ?? null
+    }
   };
 }

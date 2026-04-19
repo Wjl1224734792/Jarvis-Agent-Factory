@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  buildModelEditorInitialState,
   buildModelUpsertPayload,
   validateModelPriceRange
 } from "../src/features/models/model-editor-helpers";
@@ -60,6 +61,58 @@ describe("model editor helpers", () => {
       galleryImageFileIds: ["gallery_1", "gallery_2"],
       videoFileId: "video_1",
       isPublished: true
+    });
+  });
+
+  it("maps admin model detail into editable form values and media state", () => {
+    const state = buildModelEditorInitialState({
+      slug: "mini-4-pro",
+      name: "Mini 4 Pro",
+      summary: "Portable flagship",
+      description: "Detailed description",
+      priceMin: 4999,
+      priceMax: 6999,
+      powerType: "electric",
+      lifecycleStatus: "released",
+      category: {
+        id: "cat_1"
+      },
+      brand: {
+        id: "brand_1"
+      },
+      parameters: {
+        maxFlightTimeMinutes: 45,
+        maxRangeKilometers: 18,
+        maxSpeedKph: 58,
+        takeoffWeightGrams: 249
+      },
+      isPublished: true,
+      coverImageFileId: "cover_1",
+      galleryImageFileIds: ["gallery_1", "gallery_2"],
+      videoFileId: "video_1"
+    });
+
+    expect(state.values).toEqual({
+      name: "Mini 4 Pro",
+      slug: "mini-4-pro",
+      categoryId: "cat_1",
+      brandId: "brand_1",
+      powerType: "electric",
+      lifecycleStatus: "released",
+      summary: "Portable flagship",
+      description: "Detailed description",
+      priceMin: 4999,
+      priceMax: 6999,
+      maxFlightTimeMinutes: 45,
+      maxRangeKilometers: 18,
+      maxSpeedKph: 58,
+      takeoffWeightGrams: 249,
+      isPublished: true
+    });
+    expect(state.media).toEqual({
+      coverImageFileId: "cover_1",
+      galleryImageFileIds: ["gallery_1", "gallery_2"],
+      videoFileId: "video_1"
     });
   });
 });

@@ -5,10 +5,12 @@ import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { apiClient } from "../../lib/api-client";
 import {
+  buildModelEditorInitialState,
   modelLifecycleStatusOptions,
   modelPowerOptions,
   type ModelLifecycleStatus,
-  type ModelPowerType
+  type ModelPowerType,
+  type UploadedModelMedia
 } from "./model-editor-helpers";
 
 type ModelRecord = Awaited<ReturnType<typeof apiClient.listModels>>["items"][number];
@@ -72,7 +74,13 @@ export function ModelsPage() {
 
   const [editForm] = Form.useForm<ModelEditFormValues>();
   const [editing, setEditing] = useState<ModelRecord | null>(null);
+  const [editingMedia, setEditingMedia] = useState<UploadedModelMedia>({
+    coverImageFileId: null,
+    galleryImageFileIds: [],
+    videoFileId: null
+  });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isLoadingEditDetail, setIsLoadingEditDetail] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [searchText, setSearchText] = useState("");
   const filteredModels = useMemo(() => {
@@ -111,12 +119,17 @@ export function ModelsPage() {
         maxRangeKilometers: values.maxRangeKilometers ?? null,
         maxSpeedKph: values.maxSpeedKph ?? null,
         takeoffWeightGrams: values.takeoffWeightGrams ?? null,
-        coverImageFileId: null,
-        galleryImageFileIds: [],
-        videoFileId: null,
+        coverImageFileId: editingMedia.coverImageFileId,
+        galleryImageFileIds: editingMedia.galleryImageFileIds,
+        videoFileId: editingMedia.videoFileId,
         isPublished: values.isPublished
       });
       setEditing(null);
+      setEditingMedia({
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null
+      });
       await modelsQuery.refetch();
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "更新机型失败");
@@ -208,24 +221,23 @@ export function ModelsPage() {
               render: (_, record: ModelRecord) => (
                 <Button
                   onClick={() => {
+                    setError(null);
                     setEditing(record);
-                    editForm.setFieldsValue({
-                      name: record.name,
-                      slug: record.slug,
-                      categoryId: record.category.id,
-                      brandId: record.brand.id,
-                      powerType: record.powerType,
-                      lifecycleStatus: record.lifecycleStatus,
-                      summary: record.summary ?? "",
-                      description: "",
-                      priceMin: record.priceMin ?? null,
-                      priceMax: record.priceMax ?? null,
-                      maxFlightTimeMinutes: null,
-                      maxRangeKilometers: null,
-                      maxSpeedKph: null,
-                      takeoffWeightGrams: null,
-                      isPublished: true
-                    });
+                    setIsLoadingEditDetail(true);
+                    void apiClient
+                      .getAdminModel(record.id)
+                      .then((response) => {
+                        const initialState = buildModelEditorInitialState(response.item);
+                        editForm.setFieldsValue(initialState.values);
+                        setEditingMedia(initialState.media);
+                      })
+                      .catch((reason: unknown) => {
+                        setEditing(null);
+                        setError(reason instanceof Error ? reason.message : "加载机型详情失败");
+                      })
+                      .finally(() => {
+                        setIsLoadingEditDetail(false);
+                      });
                   }}
                   size="small"
                   type="link"
@@ -246,15 +258,23 @@ export function ModelsPage() {
 
       <Modal
         centered
-        confirmLoading={isSubmitting}
-        onCancel={() => setEditing(null)}
+        confirmLoading={isSubmitting || isLoadingEditDetail}
+        onCancel={() => {
+          setEditing(null);
+          setEditingMedia({
+            coverImageFileId: null,
+            galleryImageFileIds: [],
+            videoFileId: null
+          });
+          setIsLoadingEditDetail(false);
+        }}
         onOk={() => {
           void editForm.validateFields().then(updateModel);
         }}
         open={Boolean(editing)}
         title="编辑机型"
       >
-        <Form form={editForm} layout="vertical" variant="filled">
+        <Form disabled={isLoadingEditDetail} form={editForm} layout="vertical" variant="filled">
           <Form.Item label="机型名称" name="name" rules={[{ required: true, message: "请输入机型名称" }]}>
             <Input />
           </Form.Item>

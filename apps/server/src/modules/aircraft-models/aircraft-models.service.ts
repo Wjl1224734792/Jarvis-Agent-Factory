@@ -280,6 +280,9 @@ export const aircraftModelsService = {
 
     return {
       ...rest,
+      coverImageFileId: coverImageFileId ?? null,
+      galleryImageFileIds: parseFileIdArray(galleryImageFileIds),
+      videoFileId: videoFileId ?? null,
       coverImageUrl,
       coverVideoUrl,
       galleryImageUrls,
@@ -379,6 +382,9 @@ export const aircraftModelsService = {
     });
     return {
       ...rest,
+      coverImageFileId: coverImageFileId ?? null,
+      galleryImageFileIds: parseFileIdArray(galleryImageFileIds),
+      videoFileId: videoFileId ?? null,
       coverImageUrl,
       coverVideoUrl,
       galleryImageUrls,
