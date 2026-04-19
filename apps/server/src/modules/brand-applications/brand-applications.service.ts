@@ -21,7 +21,7 @@ async function serializeApplication(
 
   return {
     id: item.id,
-    status: item.status as "pending" | "approved" | "rejected" | "hidden",
+    status: item.status as "pending" | "approved" | "rejected",
     slug: item.slug,
     name: item.name,
     logoUrl: item.logoUrl ?? null,
@@ -184,7 +184,7 @@ export const brandApplicationsService = {
   },
   async updateStatus(
     id: string,
-    status: "approved" | "rejected" | "hidden",
+    status: "approved" | "rejected",
     rejectionReason?: string | null
   ) {
     const current = await brandApplicationsRepo.findById(id);
@@ -209,8 +209,7 @@ export const brandApplicationsService = {
     });
 
     if (item && previousStatus !== status) {
-      const statusLabel =
-        status === "approved" ? "已通过" : status === "rejected" ? "未通过审核" : "已隐藏";
+      const statusLabel = status === "approved" ? "已通过" : "未通过审核";
       await socialService.recordSystemNotification({
         userId: current.applicant.id,
         type: "brand_application_status_changed",

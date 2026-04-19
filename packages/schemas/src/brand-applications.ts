@@ -4,8 +4,7 @@ import { userSummarySchema } from "./auth";
 export const brandApplicationStatusSchema = z.enum([
   "pending",
   "approved",
-  "rejected",
-  "hidden"
+  "rejected"
 ]);
 
 export const brandApplicationSchema = z.object({
@@ -53,4 +52,5 @@ export const brandApplicationsResponseSchema = z.object({
 });
 
 export type BrandApplication = z.infer<typeof brandApplicationSchema>;
-export type BrandApplicationStatus = z.infer<typeof brandApplicationStatusSchema>;
+// Keep legacy type compatibility for call-sites outside the brand-applications module.
+export type BrandApplicationStatus = z.infer<typeof brandApplicationStatusSchema> | "hidden";

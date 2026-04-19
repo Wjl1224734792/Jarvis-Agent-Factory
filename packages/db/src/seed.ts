@@ -707,6 +707,14 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedNotifications();
 }
 
-export async function seedDatabase(options?: { reset?: boolean }) {
+type SeedDatabaseProfile = "demo" | "catalog";
+
+export async function seedDatabase(options?: { reset?: boolean; profile?: SeedDatabaseProfile }) {
+  if (options?.profile === "catalog") {
+    await seedBaseDatabase(options);
+    await seedDemoAircraftCatalog();
+    return;
+  }
+
   await seedDemoDatabase(options);
 }

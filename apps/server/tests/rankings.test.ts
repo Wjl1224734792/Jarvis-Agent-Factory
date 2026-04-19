@@ -544,6 +544,19 @@ describe("rankings flows", () => {
     expect(itemDetailPayload.item.myReview?.rating).toBe(4);
     expect(itemDetailPayload.item.myReview?.content).toContain("updated review");
 
+    const officialItemBeforeRatingResponse = await app.request(API_ROUTES.rankings.itemDetail(officialItemId), {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(officialItemBeforeRatingResponse.status).toBe(200);
+    const officialItemBeforeRatingPayload = (await officialItemBeforeRatingResponse.json()) as {
+      item: {
+        commentCount: number;
+        myReview: { id: string } | null;
+      };
+    };
+    expect(officialItemBeforeRatingPayload.item.myReview).toBeNull();
+
     const officialRatingResponse = await app.request(API_ROUTES.rankings.itemRatings(officialItemId), {
       method: "POST",
       headers: {
@@ -566,6 +579,8 @@ describe("rankings flows", () => {
       item: {
         totalRatings: number;
         ratingBreakdown: Array<{ score: number; count: number }>;
+        commentCount: number;
+        myReview: { id: string } | null;
       };
     };
     expect(officialItemDetailPayload.item.ratingBreakdown).toHaveLength(5);
@@ -573,6 +588,10 @@ describe("rankings flows", () => {
     expect(
       officialItemDetailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)
     ).toBe(officialItemDetailPayload.item.totalRatings);
+    expect(officialItemDetailPayload.item.commentCount).toBe(
+      officialItemBeforeRatingPayload.item.commentCount
+    );
+    expect(officialItemDetailPayload.item.myReview).toBeNull();
   });
 
   it("puts new community rankings into pending when ranking moderation is enabled and only exposes published ones publicly", async () => {

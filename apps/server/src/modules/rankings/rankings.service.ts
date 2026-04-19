@@ -1355,14 +1355,10 @@ export const rankingsService = {
       return null;
     }
 
-    await rankingsRepo.upsertRatingTargetReview({
+    await rankingsRepo.upsertRatingTargetRating({
       ratingTargetId: id,
-      authorId: currentUserId,
-      rating,
-      content: "Rating only",
-      status: (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
-        ? "pending"
-        : "visible"
+      userId: currentUserId,
+      rating
     });
 
     const payload = await this.getRatingTargetDetail(id, currentUserId);

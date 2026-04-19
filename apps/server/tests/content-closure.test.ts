@@ -411,6 +411,57 @@ describe.sequential("content closure flows", () => {
     expect(revised.item.rejectionReason).toBeNull();
   });
 
+  it("rejects hidden as an invalid brand application status", async () => {
+    const adminCookie = await loginAdmin();
+    const applicantCookie = await loginUser("13800138024");
+
+    const createResponse = await app.request(API_ROUTES.brandApplications.create, {
+      method: "POST",
+      headers: {
+        cookie: applicantCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "hidden-attempt",
+        name: "Hidden Attempt",
+        logoUrl: null,
+        description: "Status validation check"
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string; status: string };
+    };
+    expect(created.item.status).toBe("pending");
+
+    const hiddenStatusResponse = await app.request(
+      API_ROUTES.brandApplications.adminDetail(created.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "hidden"
+        })
+      }
+    );
+    expect(hiddenStatusResponse.status).toBe(400);
+
+    const detailResponse = await app.request(API_ROUTES.brandApplications.detail(created.item.id), {
+      method: "GET",
+      headers: {
+        cookie: applicantCookie
+      }
+    });
+    expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: { status: string };
+    };
+    expect(detailPayload.item.status).toBe("pending");
+  });
+
   it("hides approved user models after rejection and keeps the same model on resubmission approval", async () => {
     const adminCookie = await loginAdmin();
     const authorCookie = await loginUser("13800138026");

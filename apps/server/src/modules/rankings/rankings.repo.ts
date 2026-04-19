@@ -778,6 +778,32 @@ export const rankingsRepo = {
       userId: input.authorId,
       rating: input.rating
     });
+    const existing = await db
+      .select({ id: ratingTargetCommentsTable.id })
+      .from(ratingTargetCommentsTable)
+      .where(
+        and(
+          eq(ratingTargetCommentsTable.ratingTargetId, input.ratingTargetId),
+          eq(ratingTargetCommentsTable.authorId, input.authorId),
+          isNull(ratingTargetCommentsTable.parentCommentId)
+        )
+      )
+      .orderBy(desc(ratingTargetCommentsTable.updatedAt), desc(ratingTargetCommentsTable.createdAt))
+      .limit(1);
+
+    if (existing.length > 0) {
+      await db
+        .update(ratingTargetCommentsTable)
+        .set({
+          content: input.content,
+          rating: input.rating,
+          status: input.status,
+          updatedAt: new Date()
+        })
+        .where(eq(ratingTargetCommentsTable.id, existing[0].id));
+      await this.syncRatingTargetCommentCount(input.ratingTargetId);
+      return;
+    }
 
     await this.createRatingTargetComment({
       ratingTargetId: input.ratingTargetId,

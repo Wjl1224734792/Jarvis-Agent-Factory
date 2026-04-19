@@ -181,8 +181,7 @@ export function isValidAircraftSubmissionStatus(value: unknown): value is Aircra
 const BRAND_APPLICATION_STATUS_VALUES: readonly BrandApplicationStatus[] = [
   "pending",
   "approved",
-  "rejected",
-  "hidden"
+  "rejected"
 ];
 
 /** 验证值是否为合法的 BrandApplicationStatus */

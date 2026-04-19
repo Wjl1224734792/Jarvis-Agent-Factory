@@ -13,63 +13,58 @@ type BrandApplicationRecord = Awaited<
 >["items"][number];
 
 const statusOptions = [
-  { label: "全部", value: "all" },
-  { label: "待审核", value: "pending" },
-  { label: "已通过", value: "approved" },
-  { label: "已驳回", value: "rejected" },
-  { label: "已隐藏", value: "hidden" }
+  { label: "All", value: "all" },
+  { label: "Pending", value: "pending" },
+  { label: "Approved", value: "approved" },
+  { label: "Rejected", value: "rejected" }
 ] as const;
 
 type BrandApplicationStatusFilter = (typeof statusOptions)[number]["value"];
 
-function statusLabel(status: BrandApplicationRecord["status"]) {
+function statusMeta(status: BrandApplicationRecord["status"]) {
   switch (status) {
     case "pending":
-      return { color: "gold", text: "待审核" };
+      return { color: "gold", text: "Pending" };
     case "approved":
-      return { color: "green", text: "已通过" };
+      return { color: "green", text: "Approved" };
     case "rejected":
-      return { color: "red", text: "已驳回" };
-    case "hidden":
-      return { color: "default", text: "已隐藏" };
+      return { color: "red", text: "Rejected" };
   }
+}
+
+function normalizeStatusFilter(status: string | null): BrandApplicationStatusFilter {
+  return status === "pending" || status === "approved" || status === "rejected" ? status : "all";
 }
 
 export function BrandApplicationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
-  const urlStatus = searchParams.get("status");
-  const urlTargetId = searchParams.get("targetId");
   const [status, setStatus] = useState<BrandApplicationStatusFilter>(
-    urlStatus === "pending" || urlStatus === "approved" || urlStatus === "rejected" || urlStatus === "hidden"
-      ? urlStatus
-      : "all"
+    normalizeStatusFilter(searchParams.get("status"))
   );
+  const [detailId, setDetailId] = useState<string | null>(searchParams.get("targetId"));
+  const [searchText, setSearchText] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [settingsError, setSettingsError] = useState<string | null>(null);
   const [isSavingSettings, setIsSavingSettings] = useState(false);
-  const [detailId, setDetailId] = useState<string | null>(null);
-  const [searchText, setSearchText] = useState("");
 
   useEffect(() => {
-    setStatus(
-      urlStatus === "pending" || urlStatus === "approved" || urlStatus === "rejected" || urlStatus === "hidden"
-        ? urlStatus
-        : "all"
-    );
-  }, [urlStatus]);
+    setStatus(normalizeStatusFilter(searchParams.get("status")));
+  }, [searchParams]);
 
   useEffect(() => {
-    setDetailId(urlTargetId);
-  }, [urlTargetId]);
+    setDetailId(searchParams.get("targetId"));
+  }, [searchParams]);
 
   const applicationsQuery = useQuery({
     queryKey: ["admin-brand-applications"],
     queryFn: () => apiClient.listAdminBrandApplications()
   });
+
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-brand-applications", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
   });
+
   const detailQuery = useQuery({
     queryKey: ["admin-brand-application-detail", detailId],
     queryFn: () => {
@@ -80,11 +75,13 @@ export function BrandApplicationsPage() {
     },
     enabled: Boolean(detailId)
   });
+
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
     const items = (applicationsQuery.data?.items ?? []).filter((item) =>
       status === "all" ? true : item.status === status
     );
+
     if (!keyword) {
       return items;
     }
@@ -97,18 +94,21 @@ export function BrandApplicationsPage() {
 
   async function updateStatus(
     id: string,
-    status: "approved" | "rejected" | "hidden",
+    nextStatus: "approved" | "rejected",
     rejectionReason?: string | null
   ) {
     setError(null);
     try {
       await apiClient.updateBrandApplicationStatus(id, {
-        status,
-        rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+        status: nextStatus,
+        rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
       });
       await applicationsQuery.refetch();
+      if (detailId === id) {
+        await detailQuery.refetch();
+      }
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "更新品牌申请状态失败");
+      setError(reason instanceof Error ? reason.message : "Failed to update brand application status.");
     }
   }
 
@@ -128,7 +128,7 @@ export function BrandApplicationsPage() {
       );
       await Promise.all([siteSettingsQuery.refetch(), applicationsQuery.refetch()]);
     } catch (reason: unknown) {
-      setSettingsError(reason instanceof Error ? reason.message : "更新品牌审核开关失败");
+      setSettingsError(reason instanceof Error ? reason.message : "Failed to update moderation setting.");
     } finally {
       setIsSavingSettings(false);
     }
@@ -136,18 +136,23 @@ export function BrandApplicationsPage() {
 
   return (
     <AdminPage
+      title="Brand Application Review"
+      description="Review community-submitted brand applications and sync approved entries into the brand library."
       actions={
         <Space wrap>
           <Input.Search
-          allowClear
-          onChange={(event) => {
-            setSearchText(event.target.value);
-          }}
-          placeholder="搜索品牌、slug、申请人或说明"
-          style={{ width: 280 }}
-          value={searchText}
-        />
+            allowClear
+            placeholder="Search by brand, slug, applicant, or description"
+            style={{ width: 280 }}
+            value={searchText}
+            onChange={(event) => {
+              setSearchText(event.target.value);
+            }}
+          />
           <Select
+            options={statusOptions as unknown as Array<{ label: string; value: string }>}
+            style={{ width: 160 }}
+            value={status}
             onChange={(value) => {
               setStatus(value);
               setSearchParams((current) => {
@@ -160,99 +165,113 @@ export function BrandApplicationsPage() {
                 return next;
               });
             }}
-            options={statusOptions as unknown as Array<{ label: string; value: string }>}
-            style={{ width: 160 }}
-            value={status}
           />
         </Space>
       }
-      description="品牌申请从机型投稿里拆分出来，单独在这里审核并沉淀到品牌库。"
-      title="品牌申请审核"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="品牌申请使用独立审核开关，和总览中心保持同步。" title="当前模式">
+      <AdminPanel
+        title="Moderation Mode"
+        description="Brand applications use their own moderation switch and remain aligned with the admin overview counters."
+      >
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新的品牌申请会直接沉淀到品牌库。"
-          description="开启人工审核后，品牌申请会单独进入品牌申请队列。"
+          title="Brand Application Moderation"
+          description="When manual moderation is enabled, new brand applications stay in the review queue."
+          manualCopy="New brand applications will enter the moderation queue first."
+          autoCopy="When manual moderation is disabled, new brand applications go straight into the brand library."
           enabled={siteSettingsQuery.data?.item.brandModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的品牌申请会先进入待审核队列。"
-          onDisable={() => {
-            void updateModeration(false);
-          }}
+          pendingCount={(applicationsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
           onEnable={() => {
             void updateModeration(true);
           }}
-          pendingCount={(applicationsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
-          title="品牌申请审核"
+          onDisable={() => {
+            void updateModeration(false);
+          }}
         />
       </AdminPanel>
 
-      <AdminPanel title="申请列表">
+      <AdminPanel title="Applications">
         <Table
           bordered
+          rowKey={(record) => record.id}
+          size="middle"
+          loading={applicationsQuery.isLoading}
+          dataSource={filteredItems}
+          locale={{
+            emptyText: <Empty description="No brand applications found." image={Empty.PRESENTED_IMAGE_SIMPLE} />
+          }}
           columns={[
             {
               key: "logo",
+              title: "Logo",
+              width: 96,
               render: (_, record: BrandApplicationRecord) =>
                 record.logoUrl ? (
                   <Image alt={record.name} height={64} preview={false} src={record.logoUrl} width={64} />
                 ) : (
-                  <div className="admin-cover-thumb admin-cover-thumb--empty">无 Logo</div>
-                ),
-              title: "Logo",
-              width: 96
+                  <div className="admin-cover-thumb admin-cover-thumb--empty">No Logo</div>
+                )
             },
             {
               key: "name",
+              title: "Brand Application",
               render: (_, record: BrandApplicationRecord) => (
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.name}</div>
                   <div className="admin-table-subtitle">
-                    {record.slug} 路 {record.applicant.displayName}
+                    {record.slug} / {record.applicant.displayName}
                   </div>
                 </div>
-              ),
-              title: "品牌申请"
+              )
             },
             {
               dataIndex: "description",
               key: "description",
-              render: (value: string | null) => value ?? "申请人未补充说明",
-              title: "说明"
+              title: "Description",
+              render: (value: string | null) => value ?? "No description provided."
             },
             {
               dataIndex: "status",
               key: "status",
+              title: "Status",
+              width: 120,
               render: (value: BrandApplicationRecord["status"]) => {
-                const meta = statusLabel(value);
+                const meta = statusMeta(value);
                 return <Tag color={meta.color}>{meta.text}</Tag>;
-              },
-              title: "状态",
-              width: 120
+              }
             },
             {
               key: "action",
+              title: "Actions",
+              width: 220,
               render: (_, record: BrandApplicationRecord) => (
                 <Space size="small" wrap>
                   <Button
+                    size="small"
+                    type="link"
                     onClick={() => {
                       setDetailId(record.id);
                     }}
-                    size="small"
-                    type="link"
                   >
-                    详情
+                    Details
                   </Button>
                   {record.status !== "approved" ? (
-                    <Button onClick={() => void updateStatus(record.id, "approved")} size="small" type="primary">
-                      {record.status === "pending" ? "通过入库" : "恢复通过"}
+                    <Button
+                      size="small"
+                      type="primary"
+                      onClick={() => {
+                        void updateStatus(record.id, "approved");
+                      }}
+                    >
+                      {record.status === "pending" ? "Approve" : "Restore"}
                     </Button>
                   ) : null}
                   {record.status !== "rejected" ? (
                     <Button
+                      size="small"
                       onClick={() => {
                         const reason = promptRejectionReason();
                         if (!reason) {
@@ -260,38 +279,23 @@ export function BrandApplicationsPage() {
                         }
                         void updateStatus(record.id, "rejected", reason);
                       }}
-                      size="small"
                     >
-                      驳回
-                    </Button>
-                  ) : null}
-                  {record.status !== "hidden" ? (
-                    <Button danger onClick={() => void updateStatus(record.id, "hidden")} size="small">
-                      隐藏
+                      Reject
                     </Button>
                   ) : null}
                 </Space>
-              ),
-              title: "操作",
-              width: 220
+              )
             }
           ]}
-          dataSource={filteredItems}
-          locale={{
-            emptyText: <Empty description="暂时还没有品牌申请" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-          }}
-          loading={applicationsQuery.isLoading}
-          rowKey={(record) => record.id}
-          size="middle"
         />
       </AdminPanel>
 
       <Modal
+        open={Boolean(detailId)}
+        title="Brand Application Details"
+        width={760}
         footer={null}
         onCancel={() => setDetailId(null)}
-        open={Boolean(detailId)}
-        title="品牌申请详情"
-        width={760}
       >
         {detailQuery.data?.item ? (
           <div className="admin-detail-sheet">
@@ -303,15 +307,15 @@ export function BrandApplicationsPage() {
                 src={detailQuery.data.item.logoUrl}
               />
             ) : (
-              <div className="admin-detail-sheet__logo admin-detail-sheet__logo--empty">暂无 Logo</div>
+              <div className="admin-detail-sheet__logo admin-detail-sheet__logo--empty">No Logo</div>
             )}
             <div className="admin-detail-sheet__meta">
-              <Tag>{statusLabel(detailQuery.data.item.status).text}</Tag>
+              <Tag>{statusMeta(detailQuery.data.item.status).text}</Tag>
               <span>{detailQuery.data.item.applicant.displayName}</span>
             </div>
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.name}</h3>
             <div className="admin-detail-sheet__body">
-              <p>{detailQuery.data.item.description ?? "申请人未补充说明"}</p>
+              <p>{detailQuery.data.item.description ?? "No description provided."}</p>
             </div>
           </div>
         ) : null}
