@@ -1,4 +1,34 @@
-import { describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const mockAws = vi.hoisted(() => ({
+  sendMock: vi.fn(async () => ({})),
+  getSignedUrlMock: vi.fn(async () => "https://signed.example.com/upload")
+}));
+
+vi.mock("@aws-sdk/client-s3", () => ({
+  S3Client: class {
+    send = mockAws.sendMock;
+  },
+  PutObjectCommand: class {
+    constructor(public readonly input: unknown) {}
+  },
+  HeadObjectCommand: class {
+    constructor(public readonly input: unknown) {}
+  },
+  GetObjectCommand: class {
+    constructor(public readonly input: unknown) {}
+  },
+  HeadBucketCommand: class {
+    constructor(public readonly input: unknown) {}
+  },
+  CreateBucketCommand: class {
+    constructor(public readonly input: unknown) {}
+  }
+}));
+
+vi.mock("@aws-sdk/s3-request-presigner", () => ({
+  getSignedUrl: mockAws.getSignedUrlMock
+}));
 import {
   createStorageProvider,
   isStorageProviderExplicitlyConfigured,
@@ -21,6 +51,11 @@ function createEnv(input: Record<string, string | undefined>): NodeJS.ProcessEnv
 }
 
 describe("provider config", () => {
+  beforeEach(() => {
+    mockAws.sendMock.mockReset().mockResolvedValue({});
+    mockAws.getSignedUrlMock.mockReset().mockResolvedValue("https://signed.example.com/upload");
+  });
+
   it("parses s3-compatible storage providers from env", () => {
     const providers: StorageProvider[] = ["minio", "cos", "oss", "kodo"];
 
@@ -144,6 +179,7 @@ describe("provider config", () => {
 
     expect(descriptor.mode).toBe("presigned-put");
     expect(descriptor.expiresIn).toBeGreaterThan(0);
+    expect(mockAws.getSignedUrlMock).toHaveBeenCalled();
   });
 
   it("detects explicit storage configuration", () => {

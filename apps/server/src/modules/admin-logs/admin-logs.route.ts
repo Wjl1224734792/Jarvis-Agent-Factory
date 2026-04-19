@@ -1,4 +1,5 @@
 import {
+  adminLogSourceKindSchema,
   adminLogEntriesQuerySchema,
   adminLogEntriesResponseSchema,
   adminLogFilesQuerySchema,
@@ -19,15 +20,33 @@ export const adminLogsRoute = new Hono<{ Variables: AuthVariables }>();
 
 adminLogsRoute.use("*", attachCurrentUser);
 
+function mapInvalidLogSourceError(error: unknown) {
+  return error instanceof Error && error.message === "Selected log source is not configured yet.";
+}
+
+function getLogSourceErrorMessage(error: unknown) {
+  return error instanceof Error ? error.message : "Invalid log source.";
+}
+
 adminLogsRoute.get(API_ROUTES.admin.logsOverview, requireAdmin, async (context) => {
-  const source = context.req.query("source") ?? undefined;
+  const sourceInput = context.req.query("source");
+  const source = sourceInput
+    ? adminLogSourceKindSchema.parse(sourceInput)
+    : undefined;
   logger.security("admin viewed logs overview", {
     adminUserId: context.var.currentUser?.id ?? null,
     source
   });
-  return context.json(adminLogsOverviewResponseSchema.parse({
-    item: await adminLogsService.getOverview(source)
-  }));
+  try {
+    return context.json(adminLogsOverviewResponseSchema.parse({
+      item: await adminLogsService.getOverview(source)
+    }));
+  } catch (error) {
+    if (mapInvalidLogSourceError(error)) {
+      return context.json({ code: "BAD_REQUEST", message: getLogSourceErrorMessage(error) }, 400);
+    }
+    throw error;
+  }
 });
 
 adminLogsRoute.get(API_ROUTES.admin.logsFiles, requireAdmin, async (context) => {
@@ -43,9 +62,16 @@ adminLogsRoute.get(API_ROUTES.admin.logsFiles, requireAdmin, async (context) => 
     limit: input.limit
   });
 
-  return context.json(adminLogFilesResponseSchema.parse({
-    items: await adminLogsService.listFiles(input)
-  }));
+  try {
+    return context.json(adminLogFilesResponseSchema.parse({
+      items: await adminLogsService.listFiles(input)
+    }));
+  } catch (error) {
+    if (mapInvalidLogSourceError(error)) {
+      return context.json({ code: "BAD_REQUEST", message: getLogSourceErrorMessage(error) }, 400);
+    }
+    throw error;
+  }
 });
 
 adminLogsRoute.get(API_ROUTES.admin.logsEntries, requireAdmin, async (context) => {
@@ -67,5 +93,12 @@ adminLogsRoute.get(API_ROUTES.admin.logsEntries, requireAdmin, async (context) =
     limit: input.limit
   });
 
-  return context.json(adminLogEntriesResponseSchema.parse(await adminLogsService.readEntries(input)));
+  try {
+    return context.json(adminLogEntriesResponseSchema.parse(await adminLogsService.readEntries(input)));
+  } catch (error) {
+    if (mapInvalidLogSourceError(error)) {
+      return context.json({ code: "BAD_REQUEST", message: getLogSourceErrorMessage(error) }, 400);
+    }
+    throw error;
+  }
 });

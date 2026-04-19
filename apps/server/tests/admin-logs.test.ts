@@ -135,4 +135,19 @@ describe("admin logs route", () => {
     expect(entriesPayload.items[0]?.level).toBe("WARN");
     expect(entriesPayload.items[0]?.message).toContain("GET /admin/reports");
   });
+
+  it("returns 400 when selecting an unconfigured future log source", async () => {
+    const cookie = await loginAdmin();
+    const response = await app.request("/admin/logs/overview?source=managed-log-service", {
+      method: "GET",
+      headers: {
+        Cookie: cookie
+      }
+    });
+
+    expect(response.status).toBe(400);
+    await expect(response.json()).resolves.toMatchObject({
+      code: "BAD_REQUEST"
+    });
+  });
 });

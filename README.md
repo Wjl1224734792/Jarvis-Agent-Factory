@@ -227,8 +227,15 @@ Stop-Process -Id <PID> -Force
 - `STORAGE_PROVIDER=cos` 对接腾讯云 COS。
 - `STORAGE_PROVIDER=kodo` 或 `STORAGE_PROVIDER=qiniu` 对接七牛云 Kodo。
 - 当前实现统一走 S3 兼容接口，核心配置是 `STORAGE_ENDPOINT`、`STORAGE_REGION`、`STORAGE_BUCKET`、`STORAGE_ACCESS_KEY_ID`、`STORAGE_SECRET_ACCESS_KEY`。
+- 云厂商环境请显式设置 `STORAGE_FORCE_PATH_STYLE=false`；`true` 只适合 MinIO 等本地 S3 兼容存储。
 - 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
 - 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。
+
+日志源：
+
+- 当前生产主源建议继续使用 `local-files`。
+- 现有日志契约已经为未来接入 `managed-log-service` 预留扩展位，后续可以在不改 Admin 页面模型的前提下增加阿里云 `SLS` 或腾讯云 `CLS` 适配。
+- 在正式接入托管日志服务之前，后台不会把未实现的日志源暴露成可选项。
 
 ## 测试账号与数据说明
 

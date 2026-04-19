@@ -1,4 +1,3 @@
-import { execFile } from "node:child_process";
 import { createReadStream } from "node:fs";
 import {
   access,
@@ -7,7 +6,6 @@ import {
   stat
 } from "node:fs/promises";
 import path from "node:path";
-import { promisify } from "node:util";
 import readline from "node:readline";
 import type {
   AdminLogCategory,
@@ -34,8 +32,7 @@ type ParsedLogEntry = ReturnType<typeof parseLogLine>;
 type LogSourceAdapter = {
   key: string;
   label: string;
-  kind: "local-files" | "journald";
-  isAvailable: () => Promise<boolean>;
+  kind: "local-files";
   listCategories: () => Promise<
     Array<{
       category: AdminLogCategory;
@@ -52,9 +49,6 @@ type LogSourceAdapter = {
     items: ParsedLogEntry[];
   }>;
 };
-
-const execFileAsync = promisify(execFile);
-let journalctlAvailable: boolean | null = null;
 
 function normalizeCategory(category: AdminLogCategory) {
   return category;
@@ -166,9 +160,6 @@ function createLocalFilesLogSource(): LogSourceAdapter {
     key: sourceKey,
     label: "本地文件日志",
     kind: "local-files",
-    async isAvailable() {
-      return true;
-    },
     async listCategories() {
       return Promise.all(
         LOG_CATEGORIES.map(async (category) => {
@@ -222,183 +213,48 @@ function createLocalFilesLogSource(): LogSourceAdapter {
   };
 }
 
-async function ensureJournalctlAvailable() {
-  if (process.platform !== "linux") {
-    return false;
-  }
-
-  if (journalctlAvailable !== null) {
-    return journalctlAvailable;
-  }
-
-  try {
-    await execFileAsync("journalctl", ["--version"]);
-    journalctlAvailable = true;
-  } catch {
-    journalctlAvailable = false;
-  }
-
-  return journalctlAvailable;
-}
-
-async function readJournalLines(limit: number) {
-  if (!(await ensureJournalctlAvailable())) {
-    return [];
-  }
-
-  const args = ["--no-pager", "-o", "cat", "-n", String(limit)];
-  const unit = process.env.LOG_JOURNAL_UNIT?.trim();
-  if (unit) {
-    args.unshift(unit);
-    args.unshift("-u");
-  }
-
-  const { stdout } = await execFileAsync("journalctl", args, {
-    maxBuffer: 8 * 1024 * 1024
-  });
-
-  return stdout
-    .split(/\r?\n/)
-    .map((line) => line.trim())
-    .filter(Boolean);
-}
-
-function createJournalLogSource(): LogSourceAdapter {
-  const sourceKey = "journald";
-
-  return {
-    key: sourceKey,
-    label: "systemd journal",
-    kind: "journald",
-    async isAvailable() {
-      return ensureJournalctlAvailable();
-    },
-    async listCategories() {
-      const lines = await readJournalLines(2000);
-      return LOG_CATEGORIES.map((category) => {
-        const filtered = filterEntries(lines, { category });
-        const latestEntry = filtered[filtered.length - 1] ?? null;
-        return {
-          category,
-          fileCount: filtered.length > 0 ? 1 : 0,
-          totalSizeBytes: filtered.reduce((sum, entry) => sum + entry.raw.length, 0),
-          latestFileName: filtered.length > 0 ? `${category}.journal` : null,
-          latestFileModifiedAt: latestEntry?.timestamp ?? null
-        };
-      });
-    },
-    async listFiles(input: LogFilesQuery) {
-      const category = normalizeCategory(input.category);
-      const lines = await readJournalLines(2000);
-      const filtered = filterEntries(lines, { category });
-      if (filtered.length === 0) {
-        return [];
-      }
-
-      const latestEntry = filtered[filtered.length - 1] ?? null;
-      return [
-        {
-          sourceKey,
-          category,
-          fileName: `${category}.journal`,
-          pathLabel: `journald/${category}`,
-          sizeBytes: filtered.reduce((sum, entry) => sum + entry.raw.length, 0),
-          modifiedAt: latestEntry?.timestamp ?? new Date().toISOString()
-        }
-      ];
-    },
-    async readEntries(input: LogEntriesQuery) {
-      const category = normalizeCategory(input.category);
-      const lines = await readJournalLines(4000);
-      const filtered = filterEntries(lines, {
-        category,
-        level: input.level,
-        search: input.search
-      });
-      const limit = input.limit ?? getLoggerConfig().maxReadLines;
-      const latestEntry = filtered[filtered.length - 1] ?? null;
-
-      return {
-        file: {
-          sourceKey,
-          category,
-          fileName: `${category}.journal`,
-          pathLabel: `journald/${category}`,
-          sizeBytes: filtered.reduce((sum, entry) => sum + entry.raw.length, 0),
-          modifiedAt: latestEntry?.timestamp ?? new Date().toISOString()
-        },
-        totalLines: filtered.length,
-        items: filtered.slice(-limit).reverse()
-      };
-    }
-  };
-}
-
-const allLogSources = [createLocalFilesLogSource(), createJournalLogSource()] as const;
-
-async function listAvailableLogSources() {
-  const availability = await Promise.all(
-    allLogSources.map(async (source) => ({
-      source,
-      available: await source.isAvailable()
-    }))
-  );
-
-  return availability.filter((entry) => entry.available).map((entry) => entry.source);
-}
-
-async function resolveLogSource(sourceKey?: string) {
-  const availableSources = await listAvailableLogSources();
-  const resolved =
-    availableSources.find((source) => source.key === sourceKey) ??
-    availableSources[0];
-
-  if (!resolved) {
-    throw new Error("No log source configured.");
-  }
-
-  return {
-    resolved,
-    availableSources
-  };
-}
+const activeLogSource = createLocalFilesLogSource();
 
 export const adminLogsService = {
   async getOverview(sourceKey?: string) {
+    if (sourceKey && sourceKey !== activeLogSource.key) {
+      throw new Error("Selected log source is not configured yet.");
+    }
     const config = getLoggerConfig();
-    const { resolved, availableSources } = await resolveLogSource(sourceKey);
 
     return {
       mode: config.mode,
       dir: config.dir,
       level: config.level,
       maxReadLines: config.maxReadLines,
-      activeSourceKey: resolved.key,
-      sources: availableSources.map((source) => ({
-        key: source.key,
-        label: source.label,
-        kind: source.kind
-      })),
-      categories: await resolved.listCategories()
+      activeSourceKey: activeLogSource.key,
+      sources: [
+        {
+          key: activeLogSource.key,
+          label: activeLogSource.label,
+          kind: activeLogSource.kind
+        }
+      ],
+      categories: await activeLogSource.listCategories()
     };
   },
 
   async listFiles(input: LogFilesQuery) {
-    const { resolved } = await resolveLogSource(input.source);
-    return resolved.listFiles(input);
+    if (input.source !== activeLogSource.key) {
+      throw new Error("Selected log source is not configured yet.");
+    }
+    return activeLogSource.listFiles(input);
   },
 
   async readEntries(input: LogEntriesQuery) {
-    const { resolved } = await resolveLogSource(input.source);
-    return resolved.readEntries(input);
+    if (input.source !== activeLogSource.key) {
+      throw new Error("Selected log source is not configured yet.");
+    }
+    return activeLogSource.readEntries(input);
   },
 
-  async readRawFile(category: AdminLogCategory, fileName: string, sourceKey?: string) {
-    const { resolved } = await resolveLogSource(sourceKey);
-    if (resolved.kind !== "local-files") {
-      throw new Error("Raw file reads are not supported for this log source.");
-    }
-
+  // Keep an async raw-read helper for future adapters (SLS/CLS, object storage, log gateways).
+  async readRawFile(category: AdminLogCategory, fileName: string) {
     const baseDir = getLogCategoryDir(category);
     const normalizedFileName = path.basename(fileName);
     const absolutePath = path.resolve(baseDir, normalizedFileName);

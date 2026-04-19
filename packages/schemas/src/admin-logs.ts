@@ -6,7 +6,7 @@ export const adminLogLevelSchema = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]);
 
 export const adminLogModeSchema = z.enum(["auto", "console", "file", "both"]);
 
-export const adminLogSourceKindSchema = z.enum(["local-files", "journald"]);
+export const adminLogSourceKindSchema = z.enum(["local-files"]);
 
 export const adminLogSourceSchema = z.object({
   key: z.string().min(1),
@@ -64,13 +64,13 @@ export const adminLogEntriesResponseSchema = z.object({
 });
 
 export const adminLogFilesQuerySchema = z.object({
-  source: z.string().min(1).default("local-files"),
+  source: adminLogSourceKindSchema.default("local-files"),
   category: adminLogCategorySchema,
   limit: z.coerce.number().int().min(1).max(200).default(50)
 });
 
 export const adminLogEntriesQuerySchema = z.object({
-  source: z.string().min(1).default("local-files"),
+  source: adminLogSourceKindSchema.default("local-files"),
   category: adminLogCategorySchema,
   fileName: z.string().min(1),
   limit: z.coerce.number().int().min(1).max(500).default(200),
