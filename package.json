@@ -7,7 +7,7 @@
     "packages/*"
   ],
   "scripts": {
-    "dev:server": "bun run --cwd apps/server dev",
+    "dev:server": "bun --watch apps/server/src/index.ts",
     "dev:web": "bun run --cwd apps/web dev",
     "dev:admin": "bun run --cwd apps/admin dev",
     "start:server": "bun run --cwd apps/server start",

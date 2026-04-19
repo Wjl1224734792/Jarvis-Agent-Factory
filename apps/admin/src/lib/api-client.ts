@@ -7,10 +7,47 @@ type AdminImportMetaEnv = {
   VITE_ADMIN_API_BASE_URL?: string;
 };
 const configuredBaseUrl = (import.meta.env as AdminImportMetaEnv).VITE_ADMIN_API_BASE_URL;
-const baseUrl =
-  typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
-    ? configuredBaseUrl.trim()
-    : fallbackBaseUrl;
+
+function isLoopbackHost(hostname: string): boolean {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+}
+
+function resolveAdminApiBaseUrl() {
+  const rawConfigured =
+    typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
+      ? configuredBaseUrl.trim()
+      : fallbackBaseUrl;
+
+  if (typeof window === "undefined") {
+    return rawConfigured;
+  }
+
+  try {
+    const url = new URL(rawConfigured);
+    const pageHost = window.location.hostname.toLowerCase();
+    const apiHost = url.hostname.toLowerCase();
+    const pageIsLoopback = isLoopbackHost(pageHost);
+    const apiIsLoopback = isLoopbackHost(apiHost);
+
+    // 通过局域网 IP 打开 admin 时，把默认 localhost API 自动切到同主机，
+    // 避免跨站 Cookie 在 SameSite=Lax 下不携带，导致反复 401。
+    if (!pageIsLoopback && apiIsLoopback) {
+      const protocol = window.location.protocol === "https:" ? "https:" : "http:";
+      url.protocol = protocol;
+      url.hostname = pageHost;
+      if (!url.port) {
+        url.port = String(APP_PORTS.server);
+      }
+      return url.toString().replace(/\/$/, "");
+    }
+
+    return rawConfigured;
+  } catch {
+    return rawConfigured;
+  }
+}
+
+const baseUrl = resolveAdminApiBaseUrl();
 
 // 管理端优先复用共享 client，再按后台工作流补充聚合接口和兼容逻辑。
 const sharedClient = createApiClient({

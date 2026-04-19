@@ -20,7 +20,7 @@ import { searchRoute } from './modules/search/search.route';
 import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
-import { buildDefaultCorsOrigins } from './lib/cors-origins';
+import { buildDefaultCorsOrigins, isAllowedDevCorsOrigin } from './lib/cors-origins';
 import { ensureServerEnvLoaded } from './lib/load-env';
 import { logger } from './lib/logger';
 import {
@@ -56,6 +56,10 @@ function resolveCorsOrigin():
     if (list.length > 0) {
       return list;
     }
+  }
+
+  if (process.env.NODE_ENV !== 'production') {
+    return (origin: string) => (isAllowedDevCorsOrigin(origin) ? origin : undefined);
   }
 
   return [...buildDefaultCorsOrigins()];
