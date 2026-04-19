@@ -1,4 +1,5 @@
 import {
+  aircraftModelCommentsTable,
   aircraftSubmissionsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
@@ -9,7 +10,10 @@ import {
   postCommentsTable,
   postInteractionsTable,
   postsTable,
+  rankingCommentsTable,
   ratingTargetsTable,
+  ratingTargetCommentsTable,
+  reviewCommentsTable,
   rankingsTable,
   userFollowsTable,
   usersTable
@@ -24,6 +28,7 @@ type NotificationType =
   | "post_commented"
   | "comment_replied"
   | "post_status_changed"
+  | "review_status_changed"
   | "ranking_status_changed"
   | "rating_target_status_changed"
   | "aircraft_submission_status_changed"
@@ -46,6 +51,7 @@ type NotificationTargetType =
   | "status";
 
 type ProfileVisibility = "community" | "followers" | "private";
+type AdminInboxReadStatus = "all" | "read" | "unread";
 
 export type UserSettingsRecord = {
   profileVisibility: ProfileVisibility;
@@ -81,6 +87,20 @@ function toProfileVisibility(value: unknown): ProfileVisibility {
     return value;
   }
   return "community";
+}
+
+function adminInboxFilter() {
+  return sql<boolean>`(${notificationsTable.metadata}::jsonb ->> 'adminInbox') = 'true'`;
+}
+
+function adminInboxReadFilter(readStatus: AdminInboxReadStatus) {
+  if (readStatus === "read") {
+    return eq(notificationsTable.isRead, true);
+  }
+  if (readStatus === "unread") {
+    return eq(notificationsTable.isRead, false);
+  }
+  return sql`true`;
 }
 
 export const socialRepo = {
@@ -522,6 +542,68 @@ export const socialRepo = {
       .where(eq(notificationsTable.userId, userId))
       .orderBy(desc(notificationsTable.createdAt));
   },
+  async listAdminInboxNotifications(input: {
+    userId: string;
+    readStatus: AdminInboxReadStatus;
+    types?: NotificationType[];
+    limit: number;
+  }) {
+    const conditions = and(
+      eq(notificationsTable.userId, input.userId),
+      adminInboxFilter(),
+      adminInboxReadFilter(input.readStatus),
+      input.types && input.types.length > 0
+        ? inArray(notificationsTable.type, input.types)
+        : sql`true`
+    );
+
+    return db
+      .select({
+        id: notificationsTable.id,
+        userId: notificationsTable.userId,
+        actorId: notificationsTable.actorId,
+        category: notificationsTable.category,
+        type: notificationsTable.type,
+        targetType: notificationsTable.targetType,
+        targetId: notificationsTable.targetId,
+        targetTitle: notificationsTable.targetTitle,
+        targetStatus: notificationsTable.targetStatus,
+        title: notificationsTable.title,
+        summary: notificationsTable.summary,
+        preview: notificationsTable.preview,
+        metadata: notificationsTable.metadata,
+        postId: notificationsTable.postId,
+        commentId: notificationsTable.commentId,
+        isRead: notificationsTable.isRead,
+        createdAt: notificationsTable.createdAt
+      })
+      .from(notificationsTable)
+      .where(conditions)
+      .orderBy(desc(notificationsTable.createdAt))
+      .limit(input.limit);
+  },
+  async countAdminInboxUnreadNotifications(input: {
+    userId: string;
+    types?: NotificationType[];
+  }) {
+    const rows = await db
+      .select({
+        count: sql<number>`count(*)`
+      })
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.userId, input.userId),
+          adminInboxFilter(),
+          eq(notificationsTable.isRead, false),
+          input.types && input.types.length > 0
+            ? inArray(notificationsTable.type, input.types)
+            : sql`true`
+        )
+      );
+
+    return Number(rows[0]?.count ?? 0);
+  },
   async markAllNotificationsRead(userId: string) {
     await db
       .update(notificationsTable)
@@ -529,6 +611,20 @@ export const socialRepo = {
         isRead: true
       })
       .where(eq(notificationsTable.userId, userId));
+  },
+  async markAllAdminInboxNotificationsRead(userId: string) {
+    await db
+      .update(notificationsTable)
+      .set({
+        isRead: true
+      })
+      .where(
+        and(
+          eq(notificationsTable.userId, userId),
+          adminInboxFilter(),
+          eq(notificationsTable.isRead, false)
+        )
+      );
   },
   async markNotificationRead(userId: string, notificationId: string) {
     const rows = await db
@@ -540,6 +636,34 @@ export const socialRepo = {
         and(
           eq(notificationsTable.userId, userId),
           eq(notificationsTable.id, notificationId)
+        )
+      )
+      .limit(1);
+
+    if (rows.length === 0) {
+      return false;
+    }
+
+    await db
+      .update(notificationsTable)
+      .set({
+        isRead: true
+      })
+      .where(eq(notificationsTable.id, notificationId));
+
+    return true;
+  },
+  async markAdminInboxNotificationRead(userId: string, notificationId: string) {
+    const rows = await db
+      .select({
+        id: notificationsTable.id
+      })
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.userId, userId),
+          eq(notificationsTable.id, notificationId),
+          adminInboxFilter()
         )
       )
       .limit(1);
@@ -571,6 +695,17 @@ export const socialRepo = {
       })
       .from(usersTable)
       .where(inArray(usersTable.id, ids));
+  },
+  async listAdminUsers() {
+    return db
+      .select({
+        id: usersTable.id,
+        displayName: usersTable.displayName,
+        avatarFileId: usersTable.avatarFileId,
+        role: usersTable.role
+      })
+      .from(usersTable)
+      .where(eq(usersTable.role, "admin"));
   },
   async getCurrentUserProfile(userId: string) {
     const rows = await db
@@ -717,6 +852,80 @@ export const socialRepo = {
     }
 
     return this.getCurrentUserProfile(userId);
+  },
+  async getAdminModerationTodoCounts() {
+    const [
+      postRows,
+      postCommentRows,
+      modelCommentRows,
+      reviewRows,
+      reviewCommentRows,
+      rankingRows,
+      rankingCommentRows,
+      ratingTargetRows,
+      ratingTargetCommentRows,
+      submissionRows,
+      brandApplicationRows
+    ] = await Promise.all([
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(postsTable)
+        .where(eq(postsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(postCommentsTable)
+        .where(eq(postCommentsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftModelCommentsTable)
+        .where(eq(aircraftModelCommentsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftReviewsTable)
+        .where(eq(aircraftReviewsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(reviewCommentsTable)
+        .where(eq(reviewCommentsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(rankingsTable)
+        .where(eq(rankingsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(rankingCommentsTable)
+        .where(eq(rankingCommentsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(ratingTargetsTable)
+        .where(eq(ratingTargetsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(ratingTargetCommentsTable)
+        .where(eq(ratingTargetCommentsTable.status, "pending")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(aircraftSubmissionsTable)
+        .where(eq(aircraftSubmissionsTable.status, "submitted")),
+      db
+        .select({ count: sql<number>`count(*)` })
+        .from(brandApplicationsTable)
+        .where(eq(brandApplicationsTable.status, "pending"))
+    ]);
+
+    return {
+      posts: Number(postRows[0]?.count ?? 0),
+      postComments: Number(postCommentRows[0]?.count ?? 0),
+      modelComments: Number(modelCommentRows[0]?.count ?? 0),
+      reviews: Number(reviewRows[0]?.count ?? 0),
+      reviewComments: Number(reviewCommentRows[0]?.count ?? 0),
+      rankings: Number(rankingRows[0]?.count ?? 0),
+      rankingComments: Number(rankingCommentRows[0]?.count ?? 0),
+      ratingTargets: Number(ratingTargetRows[0]?.count ?? 0),
+      ratingTargetComments: Number(ratingTargetCommentRows[0]?.count ?? 0),
+      aircraftSubmissions: Number(submissionRows[0]?.count ?? 0),
+      brandApplications: Number(brandApplicationRows[0]?.count ?? 0)
+    };
   },
   async listPostsByIds(ids: string[]) {
     if (ids.length === 0) {

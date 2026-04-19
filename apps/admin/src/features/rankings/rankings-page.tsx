@@ -48,6 +48,7 @@ function RankingScopeTag(props: { type: RankingRecord["type"] }) {
 export function RankingsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
+  const urlTargetId = searchParams.get("targetId");
   const [communityFilter, setCommunityFilter] = useState<AdminRankingStatus>(
     urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
       ? urlStatus
@@ -65,6 +66,10 @@ export function RankingsPage() {
         : "pending"
     );
   }, [urlStatus]);
+
+  useEffect(() => {
+    setDetailId(urlTargetId);
+  }, [urlTargetId]);
 
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-ranking-site-settings"],

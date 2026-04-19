@@ -1,5 +1,8 @@
 import {
   actionSuccessResponseSchema,
+  adminMessageListQuerySchema,
+  adminMessageListResponseSchema,
+  adminModerationTodosResponseSchema,
   currentUserProfileResponseSchema,
   notificationsResponseSchema,
   phoneChangeConfirmInputSchema,
@@ -14,6 +17,7 @@ import { Hono } from "hono";
 import {
   attachCurrentUser,
   type AuthContext,
+  requireAdmin,
   requireAuth,
   type AuthVariables
 } from "../auth/auth.middleware";
@@ -102,6 +106,57 @@ socialRoute.post(API_ROUTES.social.notificationRead(":id"), requireAuth, async (
   }
 
   return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+socialRoute.get(API_ROUTES.admin.messages, requireAdmin, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
+  }
+
+  const query = adminMessageListQuerySchema.parse(context.req.query());
+  const payload = await socialService.listAdminMessages(currentUser.id, query);
+  return context.json(adminMessageListResponseSchema.parse(payload));
+});
+
+socialRoute.post(API_ROUTES.admin.messagesReadAll, requireAdmin, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
+  }
+
+  await socialService.markAllAdminMessagesRead(currentUser.id);
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+socialRoute.post(API_ROUTES.admin.messageRead(":id"), requireAdmin, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
+  }
+
+  const notificationId = getRequiredParam(context, "id", "Missing notification id.");
+  if (notificationId instanceof Response) {
+    return notificationId;
+  }
+
+  const result = await socialService.markAdminMessageRead(currentUser.id, notificationId);
+  if (result.kind === "not_found") {
+    return context.json({ code: "NOT_FOUND", message: "Notification not found." }, 404);
+  }
+
+  return context.json(actionSuccessResponseSchema.parse({ success: true }));
+});
+
+socialRoute.get(API_ROUTES.admin.messageTodos, requireAdmin, async (context) => {
+  const currentUser = getCurrentUserOrUnauthorized(context);
+  if (currentUser instanceof Response) {
+    return currentUser;
+  }
+
+  const payload = await socialService.listAdminModerationTodos();
+  return context.json(adminModerationTodosResponseSchema.parse(payload));
 });
 
 socialRoute.get(API_ROUTES.users.meProfile, requireAuth, async (context) => {

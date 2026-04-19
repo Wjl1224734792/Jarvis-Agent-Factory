@@ -300,24 +300,63 @@ export const reviewsService = {
     };
   },
   async updateReviewStatus(id: string, status: "pending" | "visible" | "hidden") {
+    const previous = await reviewsRepo.getReviewById(id);
+    if (!previous) {
+      return null;
+    }
+
     const item = await reviewsRepo.updateReviewStatus(id, status);
-    return item
-      ? {
-          ...serializeReview(item),
-          likeCount: item.likeCount ?? 0,
-          reportCount: item.reportCount ?? 0,
-          author: {
-            ...item.author,
-            avatarUrl: await resolveAuthorAvatar(item.author)
-          },
-          viewer: {
-            canEdit: false,
-            canDelete: false,
-            hasLiked: false,
-            hasReported: false
-          }
+    if (!item) {
+      return null;
+    }
+
+    if (previous.status !== item.status) {
+      const statusLabel =
+        item.status === "visible"
+          ? "已通过审核"
+          : item.status === "hidden"
+            ? "已隐藏"
+            : "待审核";
+      await socialService.recordSystemNotification({
+        userId: item.author.id,
+        type: "review_status_changed",
+        title:
+          item.status === "visible"
+            ? "评测审核通过"
+            : item.status === "hidden"
+              ? "评测已隐藏"
+              : "评测进入待审核",
+        summary: `你发布的《${item.model.name}》评测当前状态：${statusLabel}`,
+        target: {
+          type: "status",
+          id: item.id,
+          title: `${item.model.name} 评测`,
+          status: item.status,
+          href: `/models/${item.model.slug}`
+        },
+        metadata: {
+          modelId: item.model.id,
+          fromStatus: previous.status,
+          toStatus: item.status
         }
-      : null;
+      });
+    }
+
+    return {
+      ...serializeReview(item),
+      likeCount: item.likeCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      author: {
+        ...item.author,
+        avatarUrl: await resolveAuthorAvatar(item.author)
+      },
+      viewer: {
+        canEdit: false,
+        canDelete: false,
+        hasLiked: false,
+        hasReported: false
+      }
+    };
   },
   async listReviewComments(reviewId: string, currentUserId?: string) {
     const review = await reviewsRepo.getReviewById(reviewId);

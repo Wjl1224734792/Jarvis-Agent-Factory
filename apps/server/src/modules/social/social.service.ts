@@ -3,6 +3,7 @@ import { rankingsRepo } from "../rankings/rankings.repo";
 import { AuthError, authService } from "../auth/auth.service";
 import { postsRepo } from "../posts/posts.repo";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import { APP_ROUTES } from "@feijia/shared";
 import {
   isNotificationType,
   normalizeCategory,
@@ -140,6 +141,112 @@ function canViewProfileContent(input: {
   }
 
   return false;
+}
+
+type AdminMessageDomain =
+  | "posts"
+  | "post_comments"
+  | "model_comments"
+  | "reviews"
+  | "review_comments"
+  | "rankings"
+  | "ranking_comments"
+  | "rating_targets"
+  | "rating_target_comments"
+  | "aircraft_submissions"
+  | "brand_applications";
+
+type AdminMessageReadStatus = "all" | "read" | "unread";
+
+const ADMIN_MESSAGE_DOMAIN_BY_TYPE: Partial<Record<NotificationType, AdminMessageDomain>> = {
+  post_status_changed: "posts",
+  review_status_changed: "reviews",
+  ranking_status_changed: "rankings",
+  rating_target_status_changed: "rating_targets",
+  aircraft_submission_status_changed: "aircraft_submissions",
+  brand_application_status_changed: "brand_applications"
+};
+
+const ADMIN_TODO_TITLES: Record<AdminMessageDomain, string> = {
+  posts: "内容待审核",
+  post_comments: "帖子评论待审核",
+  model_comments: "机型评论待审核",
+  reviews: "评测待审核",
+  review_comments: "评测评论待审核",
+  rankings: "榜单待审核",
+  ranking_comments: "榜单评论待审核",
+  rating_targets: "榜单条目待审核",
+  rating_target_comments: "榜单条目评论待审核",
+  aircraft_submissions: "机型投稿待审核",
+  brand_applications: "品牌申请待审核"
+};
+
+const ADMIN_TODO_HREFS: Record<AdminMessageDomain, string> = {
+  posts: APP_ROUTES.adminPosts,
+  post_comments: APP_ROUTES.adminPostComments,
+  model_comments: APP_ROUTES.adminModels,
+  reviews: APP_ROUTES.adminReviews,
+  review_comments: APP_ROUTES.adminReviewComments,
+  rankings: APP_ROUTES.adminRankings,
+  ranking_comments: APP_ROUTES.adminRankingComments,
+  rating_targets: APP_ROUTES.adminRankings,
+  rating_target_comments: APP_ROUTES.adminRatingTargetComments,
+  aircraft_submissions: APP_ROUTES.adminAircraftSubmissions,
+  brand_applications: APP_ROUTES.adminBrandApplications
+};
+
+const ADMIN_TODO_STATUS_FILTER: Record<AdminMessageDomain, string> = {
+  posts: "pending",
+  post_comments: "pending",
+  model_comments: "pending",
+  reviews: "pending",
+  review_comments: "pending",
+  rankings: "pending",
+  ranking_comments: "pending",
+  rating_targets: "pending",
+  rating_target_comments: "pending",
+  aircraft_submissions: "submitted",
+  brand_applications: "pending"
+};
+
+/**
+ * Admin 待办总是回落到管理端自己的 canonical 落点，避免把历史 alias 路由固化到消费层。
+ */
+function getAdminMessageDomain(type: NotificationType): AdminMessageDomain | null {
+  return ADMIN_MESSAGE_DOMAIN_BY_TYPE[type] ?? null;
+}
+
+const ADMIN_MESSAGE_TYPES_BY_DOMAIN: Partial<Record<AdminMessageDomain, NotificationType[]>> = {
+  posts: ["post_status_changed"],
+  reviews: ["review_status_changed"],
+  rankings: ["ranking_status_changed"],
+  rating_targets: ["rating_target_status_changed"],
+  aircraft_submissions: ["aircraft_submission_status_changed"],
+  brand_applications: ["brand_application_status_changed"]
+};
+
+function toNavigationFilters(input: {
+  domain: AdminMessageDomain;
+  targetId: string;
+  targetStatus: string | null;
+  metadata: Record<string, unknown>;
+}) {
+  const filters: Record<string, string> = {};
+  if (input.targetStatus) {
+    filters.status = input.targetStatus;
+  }
+  filters.targetId = input.targetId;
+
+  const rankingId =
+    typeof input.metadata.rankingId === "string" ? input.metadata.rankingId : null;
+  if (rankingId) {
+    filters.rankingId = rankingId;
+  }
+  if (input.domain === "rating_targets") {
+    filters.entity = "rating_target";
+  }
+
+  return filters;
 }
 
 export const socialService = {
@@ -284,6 +391,7 @@ export const socialService = {
     type: Extract<
       NotificationType,
       | "post_status_changed"
+      | "review_status_changed"
       | "ranking_status_changed"
       | "rating_target_status_changed"
       | "aircraft_submission_status_changed"
@@ -304,6 +412,14 @@ export const socialService = {
     } | null;
     metadata?: Record<string, unknown>;
   }) {
+    const owner = await socialRepo.getUserById(input.userId);
+    const metadata = {
+      ...(input.metadata ?? {}),
+      href: input.target.href ?? null
+    };
+
+    // 原作者保留终端侧系统消息，管理员则收到 admin inbox 副本。
+    // 这样能在不改 notifications 表结构的前提下，给管理端提供完整的审核消息流。
     await socialRepo.createNotification({
       userId: input.userId,
       actorId: null,
@@ -316,11 +432,210 @@ export const socialService = {
       title: input.title,
       summary: input.summary,
       preview: input.preview?.text ?? null,
-      metadata: {
-        ...(input.metadata ?? {}),
-        href: input.target.href ?? null
-      }
+      metadata
     });
+
+    const admins = await socialRepo.listAdminUsers();
+    const adminRecipients = admins.filter((admin) => admin.id !== input.userId);
+    await Promise.all(
+      adminRecipients.map(async (admin) =>
+        socialRepo.createNotification({
+          userId: admin.id,
+          actorId: null,
+          category: NOTIFICATION_CATEGORY_BY_TYPE[input.type],
+          type: input.type,
+          targetType: input.target.type,
+          targetId: input.target.id,
+          targetTitle: input.target.title,
+          targetStatus: input.target.status ?? null,
+          title: input.title,
+          summary: input.summary,
+          preview: input.preview?.text ?? null,
+          metadata: {
+            ...metadata,
+            adminInbox: true,
+            subjectUserId: input.userId,
+            subjectUserDisplayName: owner?.displayName ?? null
+          }
+        })
+      )
+    );
+  },
+  async listAdminMessages(
+    adminUserId: string,
+    input?: {
+      domain?: AdminMessageDomain;
+      type?: NotificationType;
+      readStatus?: AdminMessageReadStatus;
+      limit?: number;
+    }
+  ) {
+    const query = {
+      domain: input?.domain,
+      type: input?.type,
+      readStatus: input?.readStatus ?? ("all" as AdminMessageReadStatus),
+      limit: input?.limit ?? 50
+    };
+    const queryTypes = query.type
+      ? [query.type]
+      : query.domain
+        ? (ADMIN_MESSAGE_TYPES_BY_DOMAIN[query.domain] ?? [])
+        : undefined;
+    if (query.domain && queryTypes && queryTypes.length === 0) {
+      return {
+        unreadCount: 0,
+        items: []
+      };
+    }
+
+    const [adminRows, unreadCount] = await Promise.all([
+      socialRepo.listAdminInboxNotifications({
+        userId: adminUserId,
+        readStatus: query.readStatus,
+        types: queryTypes,
+        limit: query.limit
+      }),
+      query.readStatus === "read"
+        ? Promise.resolve(0)
+        : socialRepo.countAdminInboxUnreadNotifications({
+            userId: adminUserId,
+            types: queryTypes
+          })
+    ]);
+
+    const subjectUserIds = Array.from(
+      new Set(
+        adminRows
+          .map((row) => {
+            const metadata = parseMetadata(row.metadata);
+            return typeof metadata.subjectUserId === "string" ? metadata.subjectUserId : null;
+          })
+          .filter((value): value is string => Boolean(value))
+      )
+    );
+    const subjectUsers = await socialRepo.listUsersByIds(subjectUserIds);
+    const subjectUserById = new Map(subjectUsers.map((user) => [user.id, user]));
+
+    const items = (
+      await Promise.all(
+        adminRows.map(async (item) => {
+          if (!isNotificationType(item.type)) {
+            return null;
+          }
+          const domain = getAdminMessageDomain(item.type);
+          if (!domain) {
+            return null;
+          }
+
+          const metadata = parseMetadata(item.metadata);
+          const href = typeof metadata.href === "string" ? metadata.href : null;
+          const subjectUserId =
+            typeof metadata.subjectUserId === "string" ? metadata.subjectUserId : null;
+          const subjectUserRecord = subjectUserId ? subjectUserById.get(subjectUserId) ?? null : null;
+          const subjectUser =
+            subjectUserRecord && isValidAuthRole(subjectUserRecord.role)
+              ? {
+                  id: subjectUserRecord.id,
+                  displayName: subjectUserRecord.displayName,
+                  avatarUrl: await resolveUploadedFileUrl(subjectUserRecord.avatarFileId ?? null),
+                  role: subjectUserRecord.role
+                }
+              : null;
+
+          const targetType: NotificationTargetType =
+            item.targetType === "user" ||
+            item.targetType === "post" ||
+            item.targetType === "comment" ||
+            item.targetType === "ranking" ||
+            item.targetType === "rating_target" ||
+            item.targetType === "aircraft_submission" ||
+            item.targetType === "brand_application" ||
+            item.targetType === "status"
+              ? item.targetType
+              : "status";
+
+          return {
+            id: item.id,
+            category: "system" as const,
+            type: item.type,
+            domain,
+            isRead: item.isRead,
+            createdAt: item.createdAt.toISOString(),
+            title: item.title,
+            summary: item.summary,
+            target: {
+              type: targetType,
+              id: item.targetId,
+              title: item.targetTitle,
+              status: item.targetStatus ?? null,
+              href
+            },
+            actor: null,
+            preview: item.preview
+              ? {
+                  text: item.preview,
+                  imageUrl: null
+                }
+              : null,
+            metadata,
+            subjectUser,
+            navigation: {
+              href: ADMIN_TODO_HREFS[domain],
+              filters: toNavigationFilters({
+                domain,
+                targetId: item.targetId,
+                targetStatus: item.targetStatus ?? null,
+                metadata
+              })
+            }
+          };
+        })
+      )
+    ).filter((item): item is NonNullable<typeof item> => item !== null);
+
+    return {
+      unreadCount,
+      items
+    };
+  },
+  async markAllAdminMessagesRead(adminUserId: string) {
+    await socialRepo.markAllAdminInboxNotificationsRead(adminUserId);
+    return { success: true as const };
+  },
+  async listAdminModerationTodos() {
+    const counts = await socialRepo.getAdminModerationTodoCounts();
+    const domainCounts: Record<AdminMessageDomain, number> = {
+      posts: counts.posts,
+      post_comments: counts.postComments,
+      model_comments: counts.modelComments,
+      reviews: counts.reviews,
+      review_comments: counts.reviewComments,
+      rankings: counts.rankings,
+      ranking_comments: counts.rankingComments,
+      rating_targets: counts.ratingTargets,
+      rating_target_comments: counts.ratingTargetComments,
+      aircraft_submissions: counts.aircraftSubmissions,
+      brand_applications: counts.brandApplications
+    };
+
+    const items = (Object.entries(domainCounts) as Array<[AdminMessageDomain, number]>).map(
+      ([domain, pendingCount]) => ({
+        domain,
+        title: ADMIN_TODO_TITLES[domain],
+        pendingCount,
+        navigation: {
+          href: ADMIN_TODO_HREFS[domain],
+          filters: {
+            status: ADMIN_TODO_STATUS_FILTER[domain]
+          }
+        }
+      })
+    );
+
+    return {
+      pendingCount: items.reduce((sum, item) => sum + item.pendingCount, 0),
+      items
+    };
   },
   async listFollowingStateSet(currentUserId: string, authorIds: string[]) {
     const rows = await socialRepo.listFollowingStates(
@@ -430,6 +745,14 @@ export const socialService = {
   },
   async markNotificationRead(userId: string, notificationId: string) {
     const updated = await socialRepo.markNotificationRead(userId, notificationId);
+    if (!updated) {
+      return { kind: "not_found" as const };
+    }
+
+    return { kind: "ok" as const, success: true as const };
+  },
+  async markAdminMessageRead(adminUserId: string, notificationId: string) {
+    const updated = await socialRepo.markAdminInboxNotificationRead(adminUserId, notificationId);
     if (!updated) {
       return { kind: "not_found" as const };
     }

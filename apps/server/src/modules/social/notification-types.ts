@@ -12,6 +12,7 @@ export type NotificationType =
   | "post_commented"
   | "comment_replied"
   | "post_status_changed"
+  | "review_status_changed"
   | "ranking_status_changed"
   | "rating_target_status_changed"
   | "aircraft_submission_status_changed"
@@ -35,6 +36,7 @@ export const NOTIFICATION_CATEGORY_BY_TYPE: Record<NotificationType, Notificatio
   post_commented: "comments_and_mentions",
   comment_replied: "comments_and_mentions",
   post_status_changed: "system",
+  review_status_changed: "system",
   ranking_status_changed: "system",
   rating_target_status_changed: "system",
   aircraft_submission_status_changed: "system",

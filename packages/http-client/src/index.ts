@@ -65,6 +65,9 @@ import {
   createRatingTargetCommentResponseSchema,
   currentUserProfileResponseSchema,
   adminAnalyticsOverviewResponseSchema,
+  adminMessageListQuerySchema,
+  adminMessageListResponseSchema,
+  adminModerationTodosResponseSchema,
   adminLogEntriesQuerySchema,
   adminLogEntriesResponseSchema,
   adminLogFilesQuerySchema,
@@ -230,6 +233,7 @@ type InitUploadInput = Parameters<typeof initUploadInputSchema.parse>[0];
 type SearchQueryInput = Parameters<typeof searchQuerySchema.parse>[0];
 type AdminLogFilesQueryInput = Parameters<typeof adminLogFilesQuerySchema.parse>[0];
 type AdminLogEntriesQueryInput = Parameters<typeof adminLogEntriesQuerySchema.parse>[0];
+type AdminMessageListQueryInput = Parameters<typeof adminMessageListQuerySchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -419,6 +423,23 @@ function buildAdminLogEntriesQueryString(input: AdminLogEntriesQueryInput): stri
     search.set("search", query.search);
   }
   return `?${search.toString()}`;
+}
+
+function buildAdminMessageListQueryString(input: AdminMessageListQueryInput = {}): string {
+  const query = adminMessageListQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  if (query.domain) {
+    search.set("domain", query.domain);
+  }
+  if (query.type) {
+    search.set("type", query.type);
+  }
+  if (query.readStatus !== "all") {
+    search.set("readStatus", query.readStatus);
+  }
+  search.set("limit", String(query.limit));
+  const queryString = search.toString();
+  return queryString.length > 0 ? `?${queryString}` : "";
 }
 
 // 这里是前后端共享契约的主入口：路径常量、schema 校验和 fetch 细节都在这一层收敛。
@@ -868,6 +889,41 @@ export function createApiClient(options: ApiClientOptions) {
     },
     async markNotificationRead(id: string) {
       const response = await fetch(`${baseUrl}${API_ROUTES.social.notificationRead(id)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async listAdminMessages(input: AdminMessageListQueryInput = {}) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.admin.messages}${buildAdminMessageListQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, adminMessageListResponseSchema);
+    },
+    async listAdminModerationTodos() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.messageTodos}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminModerationTodosResponseSchema);
+    },
+    async markAdminMessageRead(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.messageRead(id)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, actionSuccessResponseSchema);
+    },
+    async markAllAdminMessagesRead() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.messagesReadAll}`, {
         method: "POST",
         credentials: "include"
       });

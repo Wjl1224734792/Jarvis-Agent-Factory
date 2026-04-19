@@ -53,7 +53,12 @@ export const APP_ROUTES = {
   adminPostComments: "/admin/post-comments",
   adminContentCategories: "/admin/content-categories",
   adminAircraftSubmissions: "/admin/aircraft-submissions",
-  adminRankings: "/admin/rankings"
+  adminRankings: "/admin/rankings",
+  adminMessages: "/admin/messages",
+  adminReviewComments: "/admin/review-comments",
+  adminModelComments: "/admin/model-comments",
+  adminRankingComments: "/admin/ranking-comments",
+  adminRatingTargetComments: "/admin/rating-target-comments"
 } as const;
 
 export const API_ROUTES = {
@@ -73,7 +78,11 @@ export const API_ROUTES = {
     logsFiles: "/admin/logs/files",
     logsEntries: "/admin/logs/entries",
     reports: "/admin/reports",
-    reportDetail: (kind: string, id: string) => `/admin/reports/${kind}/${id}`
+    reportDetail: (kind: string, id: string) => `/admin/reports/${kind}/${id}`,
+    messages: "/admin/messages",
+    messagesReadAll: "/admin/messages/read-all",
+    messageRead: (id: string) => `/admin/messages/${id}/read`,
+    messageTodos: "/admin/messages/todos"
   },
   auth: {
     captchaChallenge: "/auth/captcha/challenge",

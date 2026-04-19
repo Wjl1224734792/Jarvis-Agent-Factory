@@ -2,12 +2,13 @@ import {
   contentCategoriesTable,
   db,
   dbPool,
+  notificationsTable,
   resetDatabaseState,
   runMigrations,
   seedDatabase
 } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
@@ -1760,6 +1761,195 @@ describe.sequential("posts and social flows", () => {
           item.target.id === createdBrandApplication.item.id
       )
     ).toBe(true);
+
+    const reviewAuthorCookie = await loginWebUser("13800138212");
+    const createReviewResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
+      method: "POST",
+      headers: {
+        cookie: reviewAuthorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "System notification review sample"
+      })
+    });
+    expect(createReviewResponse.status).toBe(200);
+    const createdReviewPayload = (await createReviewResponse.json()) as {
+      item: { id: string };
+    };
+
+    const hideReviewResponse = await app.request(
+      API_ROUTES.models.adminReviewDetail(createdReviewPayload.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "hidden"
+        })
+      }
+    );
+    expect(hideReviewResponse.status).toBe(200);
+
+    const reviewAuthorNotifications = await app.request(API_ROUTES.social.notifications, {
+      method: "GET",
+      headers: { cookie: reviewAuthorCookie }
+    });
+    expect(reviewAuthorNotifications.status).toBe(200);
+    const reviewAuthorPayload = (await reviewAuthorNotifications.json()) as {
+      items: Array<{ type: string; target: { id: string } }>;
+    };
+    expect(
+      reviewAuthorPayload.items.some(
+        (item) =>
+          item.type === "review_status_changed" &&
+          item.target.id === createdReviewPayload.item.id
+      )
+    ).toBe(true);
+  });
+
+  it("provides admin message center and keeps todo independent from read", async () => {
+    const adminCookie = await loginAdmin();
+    const adminMeResponse = await app.request(API_ROUTES.auth.adminCurrentUser, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminMeResponse.status).toBe(200);
+    const adminMePayload = (await adminMeResponse.json()) as {
+      user: { id: string } | null;
+    };
+    const adminUserId = adminMePayload.user?.id ?? "";
+    expect(adminUserId).toBeTruthy();
+
+    const postAuthorCookie = await loginWebUser("13800138213");
+    const createdMoment = await createPost(postAuthorCookie, {
+      type: "moment",
+      title: "Admin message center source moment",
+      content: "Trigger moderation message for admin center assertions."
+    });
+
+    const rejectMomentResponse = await app.request(
+      API_ROUTES.posts.adminDetail(createdMoment.item.id),
+      {
+        method: "PUT",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          status: "rejected",
+          rejectionReason: "触发 admin 消息中心测试"
+        })
+      }
+    );
+    expect(rejectMomentResponse.status).toBe(200);
+
+    const beforeMessagesResponse = await app.request(API_ROUTES.admin.messages, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(beforeMessagesResponse.status).toBe(200);
+    const beforeMessagesPayload = (await beforeMessagesResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ id: string; type: string; domain: string; isRead: boolean }>;
+    };
+    const unreadMessage = beforeMessagesPayload.items.find(
+      (item) =>
+        item.type === "post_status_changed" &&
+        item.domain === "posts" &&
+        item.isRead === false
+    );
+    expect(unreadMessage?.id).toBeTruthy();
+
+    const beforeTodoResponse = await app.request(API_ROUTES.admin.messageTodos, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(beforeTodoResponse.status).toBe(200);
+    const beforeTodoPayload = (await beforeTodoResponse.json()) as {
+      pendingCount: number;
+      items: Array<{ domain: string; pendingCount: number }>;
+    };
+    expect(beforeTodoPayload.pendingCount).toBeGreaterThan(0);
+    expect(beforeTodoPayload.items.some((item) => item.domain === "post_comments")).toBe(true);
+
+    await db.insert(notificationsTable).values({
+      id: "notice_admin_non_inbox",
+      userId: adminUserId,
+      actorId: null,
+      category: "system",
+      type: "post_status_changed",
+      targetType: "status",
+      targetId: "manual_notice",
+      targetTitle: "Manual notice",
+      targetStatus: "pending",
+      title: "非 admin inbox 通知",
+      summary: "这条通知不应被 admin read-all 误伤",
+      preview: null,
+      metadata: JSON.stringify({
+        adminInbox: false
+      }),
+      postId: null,
+      commentId: null,
+      isRead: false
+    });
+
+    const markReadResponse = await app.request(
+      API_ROUTES.admin.messageRead(expectDefined(unreadMessage?.id)),
+      {
+        method: "POST",
+        headers: { cookie: adminCookie }
+      }
+    );
+    expect(markReadResponse.status).toBe(200);
+
+    const afterMessagesResponse = await app.request(API_ROUTES.admin.messages, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(afterMessagesResponse.status).toBe(200);
+    const afterMessagesPayload = (await afterMessagesResponse.json()) as {
+      unreadCount: number;
+      items: Array<{ id: string; isRead: boolean }>;
+    };
+    expect(afterMessagesPayload.unreadCount).toBe(beforeMessagesPayload.unreadCount - 1);
+    const markedMessage = afterMessagesPayload.items.find(
+      (item) => item.id === unreadMessage?.id
+    );
+    expect(markedMessage?.isRead).toBe(true);
+
+    const markAllResponse = await app.request(API_ROUTES.admin.messagesReadAll, {
+      method: "POST",
+      headers: { cookie: adminCookie }
+    });
+    expect(markAllResponse.status).toBe(200);
+
+    const afterTodoResponse = await app.request(API_ROUTES.admin.messageTodos, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(afterTodoResponse.status).toBe(200);
+    const afterTodoPayload = (await afterTodoResponse.json()) as {
+      pendingCount: number;
+    };
+    expect(afterTodoPayload.pendingCount).toBe(beforeTodoPayload.pendingCount);
+
+    const untouchedNotification = await db
+      .select({
+        id: notificationsTable.id,
+        isRead: notificationsTable.isRead
+      })
+      .from(notificationsTable)
+      .where(
+        and(
+          eq(notificationsTable.userId, adminUserId),
+          eq(notificationsTable.id, "notice_admin_non_inbox")
+        )
+      )
+      .limit(1);
+    expect(untouchedNotification[0]?.isRead).toBe(false);
   });
 
   it("marks a single notification as read", async () => {

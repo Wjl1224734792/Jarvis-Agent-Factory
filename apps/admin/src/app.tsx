@@ -15,7 +15,13 @@ import {
 } from "@ant-design/icons";
 import { Button, Flex } from "antd";
 import { Suspense, lazy, type ReactNode } from "react";
-import { createBrowserRouter, Navigate, RouterProvider, useRouteError } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+  useLocation,
+  useRouteError
+} from "react-router-dom";
 import { AdminLoginPage } from "./features/auth/admin-login-page";
 import { AdminProtectedRoute } from "./features/auth/admin-protected-route";
 import { AdminShell } from "./features/auth/admin-shell";
@@ -51,11 +57,41 @@ function AdminRouteLoading() {
   );
 }
 
+function PreserveSearchNavigate(props: {
+  pathname: string;
+  defaultSearch?: Record<string, string>;
+}) {
+  const location = useLocation();
+  const searchParams = new URLSearchParams(location.search);
+
+  if (props.defaultSearch) {
+    for (const [key, value] of Object.entries(props.defaultSearch)) {
+      if (!searchParams.has(key)) {
+        searchParams.set(key, value);
+      }
+    }
+  }
+
+  const search = searchParams.toString();
+  return (
+    <Navigate
+      replace
+      to={{
+        pathname: props.pathname,
+        search: search.length > 0 ? `?${search}` : ""
+      }}
+    />
+  );
+}
+
 function withAdminRouteFallback(children: ReactNode) {
   return <Suspense fallback={<AdminRouteLoading />}>{children}</Suspense>;
 }
 
-// 后台页面体积较大，按模块懒加载，首次进入时只加载当前管理域所需代码。
+function stripAdminPrefix(path: string) {
+  return path.slice("/admin/".length);
+}
+
 const AdminOverviewPage = lazy(() =>
   import("./features/auth/admin-overview-page").then((module) => ({
     default: module.AdminOverviewPage
@@ -64,6 +100,16 @@ const AdminOverviewPage = lazy(() =>
 const AdminSectionHubPage = lazy(() =>
   import("./features/auth/admin-section-hub-page").then((module) => ({
     default: module.AdminSectionHubPage
+  }))
+);
+const AdminMessagesPage = lazy(() =>
+  import("./features/messages/admin-messages-page").then((module) => ({
+    default: module.AdminMessagesPage
+  }))
+);
+const AdminModerationTodosPage = lazy(() =>
+  import("./features/messages/admin-moderation-todos-page").then((module) => ({
+    default: module.AdminModerationTodosPage
   }))
 );
 const AdminPasswordPage = lazy(() =>
@@ -152,11 +198,9 @@ const AircraftSubmissionsPage = lazy(() =>
   }))
 );
 
-// 后台路由按“审核 / 运营 / 管理”三大分区组织，方便和侧边导航、权限心智保持一致。
 const router = createBrowserRouter([
   {
     path: "/",
-    // 根路径始终归一到后台首页，减少多入口带来的状态分叉。
     element: <Navigate replace to={APP_ROUTES.adminHome} />
   },
   {
@@ -178,23 +222,30 @@ const router = createBrowserRouter([
         element: <Navigate replace to={ADMIN_ROUTE_PATHS.overview} />
       },
       {
-        path: ADMIN_ROUTE_PATHS.overview.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.overview),
         element: withAdminRouteFallback(<AdminOverviewPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.logs.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.messages),
+        element: withAdminRouteFallback(<AdminMessagesPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.messageTodos),
+        element: withAdminRouteFallback(<AdminModerationTodosPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.logs),
         element: withAdminRouteFallback(<AdminLogsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.search.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.search),
         element: withAdminRouteFallback(<AdminSearchPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderation.slice("/admin/".length),
-        // Hub 页面只负责聚合入口，具体审核逻辑仍拆在各自独立模块里。
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderation),
         element: withAdminRouteFallback(
           <AdminSectionHubPage
-            description="把文章、动态、评论、品牌申请、机型投稿、榜单和榜单条目拆成独立审核入口。"
+            description="把文章、动态、评论、品牌申请、机型投稿、榜单和评分对象拆成独立审核入口。"
             items={[
               {
                 title: "文章审核",
@@ -250,7 +301,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: ADMIN_ROUTE_PATHS.operations.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operations),
         element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="把创建和发布动作集中在运营区，避免和审核队列混在一起。"
@@ -279,7 +330,7 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: ADMIN_ROUTE_PATHS.management.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.management),
         element: withAdminRouteFallback(
           <AdminSectionHubPage
             description="品牌库、机型库和分类配置放到同一层，便于资料维护。"
@@ -326,123 +377,141 @@ const router = createBrowserRouter([
         )
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationArticles.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationArticles),
         element: withAdminRouteFallback(<PostsPage contentType="article" />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationMoments.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationMoments),
         element: withAdminRouteFallback(<PostsPage contentType="moment" />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationComments.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationComments),
         element: withAdminRouteFallback(<PostCommentsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationReports.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationReports),
         element: withAdminRouteFallback(<ReportsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationBrandApplications.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationBrandApplications),
         element: withAdminRouteFallback(<BrandApplicationsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationAircraftSubmissions),
         element: withAdminRouteFallback(<AircraftSubmissionsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationRankings.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationRankings),
         element: withAdminRouteFallback(<RankingsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.moderationRatingTargets.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationRatingTargets),
         element: withAdminRouteFallback(<RatingTargetsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.operationsArticles.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsArticles),
         element: withAdminRouteFallback(<OfficialArticlesPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.operationsAircraft.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsAircraft),
         element: withAdminRouteFallback(<ModelsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.operationsRankings.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsRankings),
         element: withAdminRouteFallback(<RankingEditorPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.managementCategories.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementCategories),
         element: withAdminRouteFallback(<CategoriesPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.managementBrands.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementBrands),
         element: withAdminRouteFallback(<BrandsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.managementModels.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementModels),
         element: withAdminRouteFallback(<ModelsPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.managementContentCategories.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementContentCategories),
         element: withAdminRouteFallback(<ContentCategoriesPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.managementSecurity.slice("/admin/".length),
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementSecurity),
         element: withAdminRouteFallback(<AdminPasswordPage />)
       },
-
       {
-        path: APP_ROUTES.adminCategories.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementCategories} />
+        path: stripAdminPrefix(APP_ROUTES.adminCategories),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.managementCategories} />
       },
       {
-        path: APP_ROUTES.adminBrands.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementBrands} />
+        path: stripAdminPrefix(APP_ROUTES.adminBrands),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.managementBrands} />
       },
       {
-        path: APP_ROUTES.adminModels.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementModels} />
+        path: stripAdminPrefix(APP_ROUTES.adminBrandApplications),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationBrandApplications} />
       },
       {
-        path: APP_ROUTES.adminReviews.slice("/admin/".length),
+        path: stripAdminPrefix(APP_ROUTES.adminModels),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.managementModels} />
+      },
+      {
+        path: stripAdminPrefix(APP_ROUTES.adminReviews),
         element: withAdminRouteFallback(<ReviewsPage />)
       },
       {
-        path: APP_ROUTES.adminPosts.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationArticles} />
+        path: stripAdminPrefix(APP_ROUTES.adminPosts),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationArticles} />
       },
       {
-        path: APP_ROUTES.adminContentCategories.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.managementContentCategories} />
+        path: stripAdminPrefix(APP_ROUTES.adminContentCategories),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.managementContentCategories} />
       },
       {
-        path: APP_ROUTES.adminPostComments.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationComments} />
+        path: stripAdminPrefix(APP_ROUTES.adminPostComments),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationComments} defaultSearch={{ domain: "post" }} />
       },
       {
-        path: ADMIN_ROUTE_PATHS.officialArticles.slice("/admin/".length),
+        path: stripAdminPrefix(APP_ROUTES.adminReviewComments),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationComments} defaultSearch={{ domain: "review" }} />
+      },
+      {
+        path: stripAdminPrefix(APP_ROUTES.adminModelComments),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationComments} defaultSearch={{ domain: "model" }} />
+      },
+      {
+        path: stripAdminPrefix(APP_ROUTES.adminRankingComments),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationComments} defaultSearch={{ domain: "ranking" }} />
+      },
+      {
+        path: stripAdminPrefix(APP_ROUTES.adminRatingTargetComments),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationComments} defaultSearch={{ domain: "rating-target" }} />
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.officialArticles),
         element: withAdminRouteFallback(<OfficialArticlesPage />)
       },
       {
-        path: ADMIN_ROUTE_PATHS.aircraftSubmissions.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationAircraftSubmissions} />
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.aircraftSubmissions),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationAircraftSubmissions} />
       },
       {
-        path: APP_ROUTES.adminRankings.slice("/admin/".length),
-        element: <Navigate replace to={ADMIN_ROUTE_PATHS.moderationRankings} />
+        path: stripAdminPrefix(APP_ROUTES.adminRankings),
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.moderationRankings} />
       },
       {
-        path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/new`,
+        path: `${stripAdminPrefix(APP_ROUTES.adminRankings)}/new`,
         element: withAdminRouteFallback(<RankingEditorPage />)
       },
       {
-        path: `${APP_ROUTES.adminRankings.slice("/admin/".length)}/:id`,
+        path: `${stripAdminPrefix(APP_ROUTES.adminRankings)}/:id`,
         element: withAdminRouteFallback(<RankingEditorPage />)
       }
     ]
   },
   {
     path: "*",
-    // 任意未知后台路径都收敛到总览页，避免用户停留在无权限或无内容路由。
     element: <Navigate replace to={ADMIN_ROUTE_PATHS.overview} />
   }
 ]);

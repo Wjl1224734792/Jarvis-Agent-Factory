@@ -2,6 +2,7 @@ import { z } from "zod";
 import { userSummarySchema } from "./auth";
 import { chinaMainlandMobilePhoneSchema } from "./phone";
 import { powerTypeSchema } from "./models";
+import { APP_ROUTES } from "@feijia/shared";
 
 export const profileVisibilitySchema = z.enum(["community", "followers", "private"]);
 
@@ -20,6 +21,7 @@ export const messageTypeSchema = z.enum([
   "post_commented",
   "comment_replied",
   "post_status_changed",
+  "review_status_changed",
   "ranking_status_changed",
   "rating_target_status_changed",
   "aircraft_submission_status_changed",
@@ -78,6 +80,93 @@ export const notificationsResponseSchema = z.object({
   unreadByCategory: notificationsUnreadByCategorySchema,
   items: z.array(messageCardSchema)
 });
+
+export const adminMessageDomainSchema = z.enum([
+  "posts",
+  "post_comments",
+  "model_comments",
+  "reviews",
+  "review_comments",
+  "rankings",
+  "ranking_comments",
+  "rating_targets",
+  "rating_target_comments",
+  "aircraft_submissions",
+  "brand_applications"
+]);
+
+export const adminMessageReadStatusSchema = z.enum(["all", "read", "unread"]);
+
+export const adminMessageNavigationSchema = z.object({
+  href: z.string().trim().min(1),
+  filters: z.record(z.string(), z.string()).default({})
+});
+
+export const adminMessageListQuerySchema = z.object({
+  domain: adminMessageDomainSchema.optional(),
+  type: messageTypeSchema.optional(),
+  readStatus: adminMessageReadStatusSchema.default("all"),
+  limit: z.coerce.number().int().min(1).max(100).default(50)
+}).superRefine((input, context) => {
+  if (!input.domain || !input.type) {
+    return;
+  }
+
+  const validTypesByDomain: Partial<Record<z.infer<typeof adminMessageDomainSchema>, Array<z.infer<typeof messageTypeSchema>>>> = {
+    posts: ["post_status_changed"],
+    reviews: ["review_status_changed"],
+    rankings: ["ranking_status_changed"],
+    rating_targets: ["rating_target_status_changed"],
+    aircraft_submissions: ["aircraft_submission_status_changed"],
+    brand_applications: ["brand_application_status_changed"]
+  };
+
+  const validTypes = validTypesByDomain[input.domain] ?? [];
+  if (!validTypes.includes(input.type)) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "The selected message type is not compatible with the selected domain.",
+      path: ["type"]
+    });
+  }
+});
+
+export const adminMessageItemSchema = messageCardSchema.extend({
+  domain: adminMessageDomainSchema,
+  subjectUser: userSummarySchema.nullable().default(null),
+  navigation: adminMessageNavigationSchema
+});
+
+export const adminMessageListResponseSchema = z.object({
+  unreadCount: z.number().int().nonnegative(),
+  items: z.array(adminMessageItemSchema)
+});
+
+export const adminModerationTodoItemSchema = z.object({
+  domain: adminMessageDomainSchema,
+  title: z.string().trim().min(1),
+  pendingCount: z.number().int().nonnegative(),
+  navigation: adminMessageNavigationSchema
+});
+
+export const adminModerationTodosResponseSchema = z.object({
+  pendingCount: z.number().int().nonnegative(),
+  items: z.array(adminModerationTodoItemSchema)
+});
+
+export const adminModerationTodoDefaultNavigation = {
+  posts: APP_ROUTES.adminPosts,
+  post_comments: APP_ROUTES.adminPostComments,
+  model_comments: APP_ROUTES.adminModels,
+  reviews: APP_ROUTES.adminReviews,
+  review_comments: APP_ROUTES.adminReviewComments,
+  rankings: APP_ROUTES.adminRankings,
+  ranking_comments: APP_ROUTES.adminRankingComments,
+  rating_targets: APP_ROUTES.adminRankings,
+  rating_target_comments: APP_ROUTES.adminRatingTargetComments,
+  aircraft_submissions: APP_ROUTES.adminAircraftSubmissions,
+  brand_applications: APP_ROUTES.adminBrandApplications
+} as const;
 
 export const userProfileViewerSchema = z.object({
   isSelf: z.boolean(),
@@ -435,5 +524,6 @@ export const adminAnalyticsOverviewResponseSchema = z.object({
 export type NotificationCategory = z.infer<typeof messageCategorySchema>;
 export type NotificationType = z.infer<typeof messageTypeSchema>;
 export type MessageCard = z.infer<typeof messageCardSchema>;
+export type AdminMessageDomain = z.infer<typeof adminMessageDomainSchema>;
 export type ProfileVisibility = z.infer<typeof profileVisibilitySchema>;
 export type UserContentItem = z.infer<typeof userContentItemSchema>;

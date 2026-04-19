@@ -35,6 +35,7 @@ function postStatusLabel(status: PostRecord["status"]) {
 export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
+  const urlTargetId = searchParams.get("targetId");
   const [status, setStatus] = useState<PostStatusFilter>(
     urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
       ? urlStatus
@@ -53,6 +54,10 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         : "all"
     );
   }, [urlStatus]);
+
+  useEffect(() => {
+    setDetailId(urlTargetId);
+  }, [urlTargetId]);
 
   const postsQuery = useQuery({
     queryKey: ["admin-posts", status],

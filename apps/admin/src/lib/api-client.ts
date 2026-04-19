@@ -256,6 +256,20 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
 
 const rawApiClient = {
   ...sharedClient,
+  listAdminMessages(
+    input: Parameters<typeof sharedClient.listAdminMessages>[0] = {}
+  ) {
+    return sharedClient.listAdminMessages(input);
+  },
+  listAdminModerationTodos() {
+    return sharedClient.listAdminModerationTodos();
+  },
+  markAdminMessageRead(id: string) {
+    return sharedClient.markAdminMessageRead(id);
+  },
+  markAllAdminMessagesRead() {
+    return sharedClient.markAllAdminMessagesRead();
+  },
   getAdminAnalyticsOverview() {
     return sharedClient.getAdminAnalyticsOverview();
   },

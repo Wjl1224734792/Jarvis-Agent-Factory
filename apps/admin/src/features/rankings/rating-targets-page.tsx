@@ -37,6 +37,8 @@ function itemStatusLabel(status: RatingTargetRecord["status"] = "published") {
 export function RatingTargetsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
+  const urlTargetId = searchParams.get("targetId");
+  const urlRankingId = searchParams.get("rankingId");
   const [status, setStatus] = useState<ItemStatus | "all">(
     urlStatus === "pending" || urlStatus === "published" || urlStatus === "rejected" || urlStatus === "hidden"
       ? urlStatus
@@ -55,6 +57,10 @@ export function RatingTargetsPage() {
         : "all"
     );
   }, [urlStatus]);
+
+  useEffect(() => {
+    setDetailId(urlTargetId);
+  }, [urlTargetId]);
 
   const itemsQuery = useQuery({
     queryKey: ["admin-rating-targets", status],
@@ -77,7 +83,9 @@ export function RatingTargetsPage() {
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
-    const items = itemsQuery.data?.items ?? [];
+    const items = (itemsQuery.data?.items ?? []).filter((item) =>
+      urlRankingId ? item.rankingId === urlRankingId : true
+    );
     if (!keyword) {
       return items;
     }
@@ -87,7 +95,7 @@ export function RatingTargetsPage() {
         String(value).toLowerCase().includes(keyword)
       )
     );
-  }, [itemsQuery.data?.items, searchText]);
+  }, [itemsQuery.data?.items, searchText, urlRankingId]);
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);

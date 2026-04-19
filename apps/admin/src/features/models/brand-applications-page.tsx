@@ -38,6 +38,7 @@ function statusLabel(status: BrandApplicationRecord["status"]) {
 export function BrandApplicationsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
+  const urlTargetId = searchParams.get("targetId");
   const [status, setStatus] = useState<BrandApplicationStatusFilter>(
     urlStatus === "pending" || urlStatus === "approved" || urlStatus === "rejected" || urlStatus === "hidden"
       ? urlStatus
@@ -56,6 +57,10 @@ export function BrandApplicationsPage() {
         : "all"
     );
   }, [urlStatus]);
+
+  useEffect(() => {
+    setDetailId(urlTargetId);
+  }, [urlTargetId]);
 
   const applicationsQuery = useQuery({
     queryKey: ["admin-brand-applications"],

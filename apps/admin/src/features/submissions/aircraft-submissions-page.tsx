@@ -45,6 +45,7 @@ function formatPriceRange(priceMin: number | null, priceMax: number | null) {
 export function AircraftSubmissionsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
+  const urlTargetId = searchParams.get("targetId");
   const [status, setStatus] = useState<SubmissionStatusFilter>(
     urlStatus === "submitted" || urlStatus === "approved" || urlStatus === "rejected"
       ? urlStatus
@@ -63,6 +64,10 @@ export function AircraftSubmissionsPage() {
         : "all"
     );
   }, [urlStatus]);
+
+  useEffect(() => {
+    setDetailId(urlTargetId);
+  }, [urlTargetId]);
 
   const submissionsQuery = useQuery({
     queryKey: ["admin-aircraft-submissions"],

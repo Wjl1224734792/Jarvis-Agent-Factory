@@ -1,19 +1,29 @@
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
+  BellOutlined,
   LogoutOutlined,
   MenuFoldOutlined,
   MenuUnfoldOutlined,
+  ScheduleOutlined,
   SearchOutlined
 } from "@ant-design/icons";
-import { Button, Input, Layout, Space } from "antd";
+import { Badge, Button, Input, Layout, Menu, Space, type MenuProps } from "antd";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
-import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom";
+import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
 import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_AUTH_INVALID_EVENT } from "../../lib/auth-events";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
-import { ADMIN_NAV_GROUPS, ADMIN_NAV_ITEMS, isAdminNavItemActive } from "./admin-navigation";
+import {
+  adminMessagesQueryKey,
+  adminModerationTodosQueryKey
+} from "../messages/admin-message-navigation";
+import {
+  ADMIN_NAV_GROUPS,
+  getAdminNavGroupKey,
+  getAdminNavigationState
+} from "./admin-navigation";
 import { useAdminAuthStore } from "./auth-store";
 
 const { Header, Sider, Content } = Layout;
@@ -29,7 +39,6 @@ export function AdminShell() {
   const setError = useAdminAuthStore((state) => state.setError);
 
   useEffect(() => {
-    // 任意接口广播后台鉴权失效后，统一清缓存并回到匿名态，避免继续展示旧管理数据。
     function handleAuthInvalid() {
       queryClient.clear();
       setAnonymous();
@@ -42,7 +51,6 @@ export function AdminShell() {
   }, [queryClient, setAnonymous]);
 
   useEffect(() => {
-    // 搜索页把 URL 中的 q 参数同步回输入框，保证刷新后还能还原当前查询词。
     const currentQuery =
       location.pathname === ADMIN_ROUTE_PATHS.search
         ? new URLSearchParams(location.search).get("q") ?? ""
@@ -50,23 +58,60 @@ export function AdminShell() {
     setSearchValue(currentQuery);
   }, [location.pathname, location.search]);
 
-  const activeGroup = useMemo(
-    () =>
-      ADMIN_NAV_GROUPS.find((group) =>
-        group.items.some((item) => isAdminNavItemActive(location.pathname, item))
-      )?.group ?? "数据总览",
+  const messagesSummaryQuery = useQuery({
+    queryKey: adminMessagesQueryKey({
+      readStatus: "unread",
+      limit: 1
+    }),
+    queryFn: () =>
+      apiClient.listAdminMessages({
+        readStatus: "unread",
+        limit: 1
+      })
+  });
+  const todosSummaryQuery = useQuery({
+    queryKey: adminModerationTodosQueryKey(),
+    queryFn: () => apiClient.listAdminModerationTodos()
+  });
+
+  const navigationState = useMemo(
+    () => getAdminNavigationState(location.pathname),
     [location.pathname]
   );
-  const activeLabel = useMemo(
+  const activeGroup = navigationState.activeItem.group;
+  const activeLabel = navigationState.activeItem.label;
+  const allGroupKeys = useMemo(
+    () => ADMIN_NAV_GROUPS.map((group) => getAdminNavGroupKey(group.group)),
+    []
+  );
+  const menuItems = useMemo<MenuProps["items"]>(
     () =>
-      ADMIN_NAV_ITEMS.find((item) => isAdminNavItemActive(location.pathname, item))?.label ??
-      activeGroup,
-    [activeGroup, location.pathname]
+      ADMIN_NAV_GROUPS.map((group) => ({
+        key: getAdminNavGroupKey(group.group),
+        label: group.group,
+        children: group.items.map((item) => {
+          const Icon = item.icon;
+
+          return {
+            key: item.to,
+            icon: <Icon />,
+            title: item.label,
+            label: (
+              <div className="admin-shell__menu-item-copy">
+                <span className="admin-shell__menu-item-label">{item.label}</span>
+                {!collapsed ? (
+                  <span className="admin-shell__menu-item-hint">{item.hint}</span>
+                ) : null}
+              </div>
+            )
+          };
+        })
+      })),
+    [collapsed]
   );
 
   function submitSearch(value: string) {
     const trimmed = value.trim();
-    // 后台搜索状态以路由参数承载，便于刷新、分享和历史记录回退。
     const search = trimmed.length > 0 ? `?q=${encodeURIComponent(trimmed)}` : "";
     void navigate({
       pathname: ADMIN_ROUTE_PATHS.search,
@@ -77,20 +122,24 @@ export function AdminShell() {
   return (
     <Layout
       className="admin-shell"
+      hasSider
       style={
         {
-          ["--admin-header-height" as string]: "92px",
-          ["--admin-sider-width" as string]: collapsed ? "92px" : "312px"
+          ["--admin-header-height" as string]: "84px",
+          ["--admin-sider-width" as string]: collapsed ? "88px" : "288px"
         } as CSSProperties
       }
     >
       <Header className="admin-shell__header">
-        <div className="admin-shell__brand-row">
+        <div className="admin-shell__header-inner">
           <div className="admin-shell__brand">
-            <img alt={`${APP_NAME} 绠＄悊鍚庡彴`} className="admin-shell__brand-logo" src={adminLogoUrl} />
-            <div className="admin-shell__brand-copy">
-              <div className="admin-shell__brand-kicker">{activeGroup}</div>
-              <div className="admin-shell__brand-title">{activeLabel}</div>
+            <img alt={`${APP_NAME} 管理后台`} className="admin-shell__brand-logo" src={adminLogoUrl} />
+            <div className="admin-shell__brand-main">
+              <div className="admin-shell__brand-kicker">{APP_NAME}</div>
+              <div className="admin-shell__brand-title">传统管理后台</div>
+              <div className="admin-shell__brand-subtitle">
+                {activeGroup} / {activeLabel}
+              </div>
             </div>
           </div>
 
@@ -110,16 +159,43 @@ export function AdminShell() {
                 setSearchValue(event.target.value);
               }}
               onSearch={submitSearch}
-              placeholder="搜索页面、指标、发布入口或待审核内容..."
+              placeholder="搜索页面、审核入口或运营模块"
               prefix={<SearchOutlined />}
               value={searchValue}
             />
           </div>
 
+          <div className="admin-shell__future-slots" aria-label="reserved-entry-slots">
+            <Link className="admin-shell__future-slot admin-shell__future-slot--link" to={ADMIN_ROUTE_PATHS.messages}>
+              <Badge count={messagesSummaryQuery.data?.unreadCount ?? 0} overflowCount={99} size="small">
+                <BellOutlined />
+              </Badge>
+              <div className="admin-shell__future-slot-copy">
+                <span className="admin-shell__future-slot-label">消息中心</span>
+                <span className="admin-shell__future-slot-meta">
+                  {messagesSummaryQuery.data?.unreadCount ?? 0} 条未读
+                </span>
+              </div>
+            </Link>
+            <Link className="admin-shell__future-slot admin-shell__future-slot--link" to={ADMIN_ROUTE_PATHS.messageTodos}>
+              <Badge count={todosSummaryQuery.data?.pendingCount ?? 0} overflowCount={99} size="small">
+                <ScheduleOutlined />
+              </Badge>
+              <div className="admin-shell__future-slot-copy">
+                <span className="admin-shell__future-slot-label">待办</span>
+                <span className="admin-shell__future-slot-meta">
+                  {todosSummaryQuery.data?.pendingCount ?? 0} 项待处理
+                </span>
+              </div>
+            </Link>
+          </div>
+
           <Space className="admin-shell__header-actions" size="middle">
             <div className="admin-shell__session-meta">
               <div className="admin-shell__session-label">当前管理员</div>
-              <div className="admin-shell__session-value">{user?.displayName ?? "系统管理员"}</div>
+              <div className="admin-shell__session-value">
+                {user?.displayName ?? "系统管理员"}
+              </div>
             </div>
             <Button
               icon={<LogoutOutlined />}
@@ -142,48 +218,41 @@ export function AdminShell() {
         </div>
       </Header>
 
-      <Layout className="admin-shell__layout">
+      <Layout className="admin-shell__layout" hasSider>
         <Sider
+          breakpoint="lg"
           className="admin-shell__sider"
           collapsed={collapsed}
-          collapsedWidth={92}
+          collapsedWidth={88}
+          onBreakpoint={(broken) => {
+            setCollapsed(broken);
+          }}
           theme="light"
           trigger={null}
-          width={312}
+          width={288}
         >
-          <div className="admin-shell__nav">
-            {ADMIN_NAV_GROUPS.map((group) => (
-              <section className="admin-shell__nav-group" key={group.group}>
-                <div className="admin-shell__nav-group-title">
-                  {collapsed ? group.group.slice(0, 1) : group.group}
-                </div>
-                <div className="admin-shell__nav-list">
-                  {group.items.map((item) => {
-                    const Icon = item.icon;
-                    const isActive = isAdminNavItemActive(location.pathname, item);
-
-                    return (
-                      <NavLink
-                        className={`admin-shell__nav-item${isActive ? " is-active" : ""}`}
-                        end={item.end}
-                        key={item.to}
-                        to={item.to}
-                      >
-                        <div className="admin-shell__nav-item-icon">
-                          <Icon />
-                        </div>
-                        {collapsed ? null : (
-                          <div className="admin-shell__nav-item-copy">
-                            <div className="admin-shell__nav-item-label">{item.label}</div>
-                            <div className="admin-shell__nav-item-hint">{item.hint}</div>
-                          </div>
-                        )}
-                      </NavLink>
-                    );
-                  })}
-                </div>
-              </section>
-            ))}
+          <div className="admin-shell__sider-inner">
+            <div className="admin-shell__sider-top">
+              {collapsed ? null : (
+                <>
+                  <div className="admin-shell__sider-title">业务导航</div>
+                  <div className="admin-shell__sider-caption">
+                    消息、待办、审核、运营和管理入口统一在这一层收口，后续联动优先复用现有审核页路由和筛选协议。
+                  </div>
+                </>
+              )}
+            </div>
+            <Menu
+              className="admin-shell__menu"
+              inlineCollapsed={collapsed}
+              items={menuItems}
+              mode="inline"
+              onClick={({ key }) => {
+                void navigate(String(key));
+              }}
+              openKeys={collapsed ? [] : allGroupKeys}
+              selectedKeys={navigationState.selectedKeys}
+            />
           </div>
         </Sider>
 

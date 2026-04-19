@@ -3,7 +3,8 @@ import { API_ROUTES } from '@feijia/shared';
 import {
   jsonRequestBody,
   jsonResponse,
-  stringPathParameter
+  stringPathParameter,
+  stringQueryParameter
 } from '../builders';
 
 import {
@@ -170,6 +171,72 @@ export const socialPaths = {
           '400': jsonResponse('ErrorResponse', '缺少通知 ID。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
           '404': jsonResponse('ErrorResponse', '通知不存在。')
+        }
+      }
+    },
+    [API_ROUTES.admin.messages]: {
+      get: {
+        tags: ['social'],
+        summary: '查看管理端消息中心列表',
+        security: sessionOrBearerSecurity,
+        parameters: [
+          stringQueryParameter('domain', '按业务域筛选。'),
+          stringQueryParameter('type', '按消息类型筛选。'),
+          stringQueryParameter('readStatus', '已读筛选：all/read/unread。'),
+          stringQueryParameter('limit', '返回条数上限，默认 50。')
+        ],
+        responses: {
+          '200': jsonResponse(
+            'AdminMessageListResponse',
+            '返回管理端消息中心列表与未读统计。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无管理员权限。')
+        }
+      }
+    },
+    [API_ROUTES.admin.messagesReadAll]: {
+      post: {
+        tags: ['social'],
+        summary: '将管理端消息全部标记为已读',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'ActionSuccessResponse',
+            '管理端消息已全部标记为已读。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无管理员权限。')
+        }
+      }
+    },
+    [API_ROUTES.admin.messageRead('{id}')]: {
+      post: {
+        tags: ['social'],
+        summary: '将单条管理端消息标记为已读',
+        security: sessionOrBearerSecurity,
+        parameters: [stringPathParameter('id', '消息 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '消息已标记为已读。'),
+          '400': jsonResponse('ErrorResponse', '缺少消息 ID。'),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无管理员权限。'),
+          '404': jsonResponse('ErrorResponse', '消息不存在。')
+        }
+      }
+    },
+    [API_ROUTES.admin.messageTodos]: {
+      get: {
+        tags: ['social'],
+        summary: '查看管理端审核待办聚合',
+        security: sessionOrBearerSecurity,
+        responses: {
+          '200': jsonResponse(
+            'AdminModerationTodosResponse',
+            '返回管理端待办总数与各审核域待办数量。'
+          ),
+          '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前无管理员权限。')
         }
       }
     },

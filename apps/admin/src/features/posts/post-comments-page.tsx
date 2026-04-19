@@ -61,6 +61,7 @@ export function PostCommentsPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
   const urlDomain = searchParams.get("domain");
+  const urlTargetId = searchParams.get("targetId");
   const [status, setStatus] = useState<CommentStatusFilter>(
     urlStatus === "pending" || urlStatus === "visible" || urlStatus === "hidden" ? urlStatus : "all"
   );
@@ -225,7 +226,7 @@ export function PostCommentsPage() {
 
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
-    return records[domain]
+    const visibleItems = records[domain]
       .filter((item) => (status === "all" ? true : item.status === status))
       .filter((item) =>
         !keyword
@@ -234,7 +235,20 @@ export function PostCommentsPage() {
               String(value).toLowerCase().includes(keyword)
             )
       );
-  }, [domain, records, searchText, status]);
+    if (!urlTargetId) {
+      return visibleItems;
+    }
+
+    return [...visibleItems].sort((left, right) => {
+      if (left.key.endsWith(urlTargetId)) {
+        return -1;
+      }
+      if (right.key.endsWith(urlTargetId)) {
+        return 1;
+      }
+      return 0;
+    });
+  }, [domain, records, searchText, status, urlTargetId]);
 
   const pendingCount = countPendingAdminComments(records[domain]);
 
@@ -373,6 +387,9 @@ export function PostCommentsPage() {
           dataSource={filteredItems}
           locale={{ emptyText: <Empty description="当前筛选下没有评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
           loading={currentDomainQuery.isLoading || currentDomainQuery.isFetching}
+          rowClassName={(record) =>
+            urlTargetId && record.key.endsWith(urlTargetId) ? "admin-table-row--target" : ""
+          }
           rowKey={(record) => record.key}
           size="middle"
         />

@@ -1,6 +1,8 @@
 import {
   actionSuccessResponseSchema,
   adminAnalyticsOverviewResponseSchema,
+  adminMessageListResponseSchema,
+  adminModerationTodosResponseSchema,
   adminModelCommentResponseSchema,
   adminModelCommentsResponseSchema,
   adminModelInputSchema,
@@ -179,6 +181,8 @@ export const componentSchemas = {
     })
   ),
   NotificationsResponse: toOpenApiSchema(notificationsResponseSchema),
+  AdminMessageListResponse: toOpenApiSchema(adminMessageListResponseSchema),
+  AdminModerationTodosResponse: toOpenApiSchema(adminModerationTodosResponseSchema),
   UserProfileResponse: toOpenApiSchema(userProfileResponseSchema),
   UserContentResponse: toOpenApiSchema(userContentResponseSchema),
   AdminAnalyticsOverviewResponse: toOpenApiSchema(

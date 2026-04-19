@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminMessageListQuerySchema,
+  adminMessageListResponseSchema,
+  adminModerationTodosResponseSchema,
   adminAnalyticsOverviewResponseSchema,
   notificationsResponseSchema,
   userContentResponseSchema,
@@ -243,5 +246,83 @@ describe("social contract", () => {
     expect(payload.item.registration.daily).toHaveLength(30);
     expect(payload.item.activity.monthly).toHaveLength(12);
     expect(payload.item.activity.yearly).toHaveLength(5);
+  });
+
+  it("parses admin message center contracts", () => {
+    const query = adminMessageListQuerySchema.parse({
+      domain: "posts",
+      type: "post_status_changed",
+      readStatus: "unread",
+      limit: "20"
+    });
+    const messages = adminMessageListResponseSchema.parse({
+      unreadCount: 2,
+      items: [
+        {
+          id: "notice_1",
+          category: "system",
+          type: "post_status_changed",
+          domain: "posts",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          title: "内容审核未通过",
+          summary: "动态《测试动态》当前状态：未通过审核",
+          target: {
+            type: "post",
+            id: "post_1",
+            title: "测试动态",
+            status: "rejected",
+            href: "/posts/post_1"
+          },
+          actor: null,
+          preview: null,
+          metadata: {
+            fromStatus: "pending",
+            toStatus: "rejected"
+          },
+          subjectUser: {
+            id: "user_1",
+            displayName: "投稿用户",
+            role: "user"
+          },
+          navigation: {
+            href: "/admin/posts",
+            filters: {
+              status: "rejected",
+              targetId: "post_1"
+            }
+          }
+        }
+      ]
+    });
+    const todos = adminModerationTodosResponseSchema.parse({
+      pendingCount: 7,
+      items: [
+        {
+          domain: "post_comments",
+          title: "帖子评论待审核",
+          pendingCount: 3,
+          navigation: {
+            href: "/admin/post-comments",
+            filters: {
+              status: "pending"
+            }
+          }
+        }
+      ]
+    });
+
+    expect(query.limit).toBe(20);
+    expect(messages.items[0]?.domain).toBe("posts");
+    expect(todos.items[0]?.domain).toBe("post_comments");
+  });
+
+  it("rejects incompatible admin message query domain/type combinations", () => {
+    const result = adminMessageListQuerySchema.safeParse({
+      domain: "reviews",
+      type: "post_status_changed"
+    });
+
+    expect(result.success).toBe(false);
   });
 });

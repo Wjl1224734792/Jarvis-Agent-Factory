@@ -11,11 +11,13 @@ import {
   FlagOutlined,
   GatewayOutlined,
   InboxOutlined,
+  MailOutlined,
   NotificationOutlined,
   OrderedListOutlined,
   RadarChartOutlined,
   ReadOutlined,
   SafetyCertificateOutlined,
+  ScheduleOutlined,
   TrophyOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
@@ -30,13 +32,31 @@ export type AdminNavItem = {
   end: boolean;
 };
 
+export type AdminNavGroup = AdminNavItem["group"];
+
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
     group: "数据总览",
     to: ADMIN_ROUTE_PATHS.overview,
     label: "总览中心",
-    hint: "增长、活跃、待处理与近期开启的全局视图",
+    hint: "KPI、待办、最近通知和快捷入口",
     icon: RadarChartOutlined,
+    end: true
+  },
+  {
+    group: "数据总览",
+    to: ADMIN_ROUTE_PATHS.messages,
+    label: "消息中心",
+    hint: "系统消息、已读状态和消息筛选",
+    icon: MailOutlined,
+    end: true
+  },
+  {
+    group: "数据总览",
+    to: ADMIN_ROUTE_PATHS.messageTodos,
+    label: "审核待办",
+    hint: "聚合待处理数量，并复用现有审核页落点",
+    icon: ScheduleOutlined,
     end: true
   },
   {
@@ -83,7 +103,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     group: "审核",
     to: ADMIN_ROUTE_PATHS.moderationBrandApplications,
     label: "品牌申请",
-    hint: "品牌申请单独队列与审核入口",
+    hint: "品牌申请独立队列与审核入口",
     icon: InboxOutlined,
     end: false
   },
@@ -191,11 +211,15 @@ export const ADMIN_NAV_GROUPS = Array.from(
     items.push(item);
     map.set(item.group, items);
     return map;
-  }, new Map<AdminNavItem["group"], AdminNavItem[]>())
+  }, new Map<AdminNavGroup, AdminNavItem[]>())
 ).map(([group, items]) => ({
   group,
   items
 }));
+
+export function getAdminNavGroupKey(group: AdminNavGroup) {
+  return `group:${group}`;
+}
 
 export function isAdminNavItemActive(pathname: string, item: AdminNavItem) {
   return Boolean(
@@ -213,6 +237,11 @@ function normalizeAdminPath(pathname: string) {
   if (pathname === APP_ROUTES.adminHome) {
     return ADMIN_ROUTE_PATHS.overview;
   }
+  if (pathname.startsWith(ADMIN_ROUTE_PATHS.messages)) {
+    return pathname.startsWith(ADMIN_ROUTE_PATHS.messageTodos)
+      ? ADMIN_ROUTE_PATHS.messageTodos
+      : ADMIN_ROUTE_PATHS.messages;
+  }
   if (pathname.startsWith(ADMIN_ROUTE_PATHS.logs)) {
     return ADMIN_ROUTE_PATHS.logs;
   }
@@ -221,6 +250,17 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === APP_ROUTES.adminPostComments) {
     return ADMIN_ROUTE_PATHS.moderationComments;
+  }
+  if (
+    pathname === APP_ROUTES.adminReviewComments ||
+    pathname === APP_ROUTES.adminModelComments ||
+    pathname === APP_ROUTES.adminRankingComments ||
+    pathname === APP_ROUTES.adminRatingTargetComments
+  ) {
+    return ADMIN_ROUTE_PATHS.moderationComments;
+  }
+  if (pathname === APP_ROUTES.adminBrandApplications) {
+    return ADMIN_ROUTE_PATHS.moderationBrandApplications;
   }
   if (pathname === APP_ROUTES.adminAircraftSubmissions) {
     return ADMIN_ROUTE_PATHS.moderationAircraftSubmissions;
@@ -261,4 +301,18 @@ export function getActiveAdminNavItemPaths(pathname: string) {
   return ADMIN_NAV_ITEMS.filter((item) => isAdminNavItemActive(normalizedPathname, item)).map(
     (item) => item.to
   );
+}
+
+export function getAdminNavigationState(pathname: string) {
+  const normalizedPathname = normalizeAdminPath(pathname);
+  const activeItem =
+    ADMIN_NAV_ITEMS.find((item) => isAdminNavItemActive(normalizedPathname, item)) ??
+    ADMIN_NAV_ITEMS[0];
+
+  return {
+    normalizedPathname,
+    activeItem,
+    selectedKeys: [activeItem.to],
+    openKeys: [getAdminNavGroupKey(activeItem.group)]
+  };
 }
