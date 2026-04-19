@@ -391,10 +391,11 @@ export async function searchSiteContent(input: {
       })
     )
   ].sort((left, right) => right.score - left.score || left.type.localeCompare(right.type));
+  const limitedItems = items.slice(0, input.limit);
 
   return {
     query: input.query,
-    total: items.length,
-    items
+    total: limitedItems.length,
+    items: limitedItems
   };
 }

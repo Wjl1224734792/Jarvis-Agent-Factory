@@ -127,6 +127,28 @@ async function createArticle(
   return (await response.json()) as { item: { id: string } };
 }
 
+async function createMoment(
+  cookie: string,
+  input: { title: string; content: string }
+) {
+  const response = await app.request(API_ROUTES.posts.create, {
+    method: "POST",
+    headers: {
+      cookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      type: "moment",
+      title: input.title,
+      content: input.content,
+      imageIds: [],
+      videoIds: []
+    })
+  });
+  expect(response.status).toBe(200);
+  return (await response.json()) as { item: { id: string } };
+}
+
 async function publishPost(adminCookie: string, postId: string) {
   const response = await app.request(API_ROUTES.posts.adminDetail(postId), {
     method: "PUT",
@@ -366,5 +388,96 @@ describe("search routes", () => {
         (item) => item.type === "brand" && item.section === "management"
       )
     ).toBe(true);
+  });
+
+  it("caps public search results to the requested limit across groups", async () => {
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginWebUser("13800138196");
+    const categoryId = await readFirstContentCategoryId();
+
+    const article = await createArticle(authorCookie, {
+      title: "CrossLimitCase Alpha",
+      content: "Shared keyword for site search limit coverage.",
+      contentCategoryId: categoryId
+    });
+    const moment = await createMoment(authorCookie, {
+      title: "CrossLimitCase Moment",
+      content: "Shared keyword for site search limit coverage."
+    });
+    await publishPost(adminCookie, article.item.id);
+    await publishPost(adminCookie, moment.item.id);
+
+    const profileResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        displayName: "CrossLimitCase Pilot"
+      })
+    });
+    expect(profileResponse.status).toBe(200);
+
+    const response = await app.request(`${API_ROUTES.search.site}?q=CrossLimitCase&limit=2`, {
+      method: "GET",
+      headers: { cookie: authorCookie }
+    });
+    expect(response.status).toBe(200);
+
+    const payload = (await response.json()) as {
+      total: number;
+      items: Array<{ id: string; type: string }>;
+    };
+    expect(payload.items).toHaveLength(2);
+    expect(payload.total).toBe(2);
+  });
+
+  it("caps admin search results to the requested limit across groups", async () => {
+    const adminCookie = await loginAdmin();
+    const authorCookie = await loginWebUser("13800138197");
+    const categoryId = await readFirstContentCategoryId();
+
+    const article = await createArticle(authorCookie, {
+      title: "AdminCrossLimit Article",
+      content: "Shared keyword for admin search limit coverage.",
+      contentCategoryId: categoryId
+    });
+    const moment = await createMoment(authorCookie, {
+      title: "AdminCrossLimit Moment",
+      content: "Shared keyword for admin search limit coverage."
+    });
+    expect(article.item.id).toBeTruthy();
+    expect(moment.item.id).toBeTruthy();
+
+    const brandResponse = await app.request(API_ROUTES.models.brands, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: "admin-cross-limit",
+        name: "AdminCrossLimit Brand",
+        categoryId: null,
+        sortOrder: 0,
+        isEnabled: true,
+        logoUrl: null
+      })
+    });
+    expect(brandResponse.status).toBe(200);
+
+    const response = await app.request(`${API_ROUTES.search.admin}?q=AdminCrossLimit&limit=2`, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(response.status).toBe(200);
+
+    const payload = (await response.json()) as {
+      total: number;
+      items: Array<{ id: string; type: string }>;
+    };
+    expect(payload.items).toHaveLength(2);
+    expect(payload.total).toBe(2);
   });
 });

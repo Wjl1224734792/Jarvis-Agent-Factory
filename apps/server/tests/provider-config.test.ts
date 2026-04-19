@@ -5,7 +5,13 @@ import {
   resolveStorageProviderConfig,
   type StorageProvider
 } from "../src/modules/posts/storage-provider";
-import { createSmsSender, resolveSmsProviderConfig, type SmsProvider } from "../src/modules/auth/sms-provider";
+import {
+  createSmsSender,
+  isSmsRateLimitedError,
+  resolveSmsProviderConfig,
+  SmsError,
+  type SmsProvider
+} from "../src/modules/auth/sms-provider";
 
 function createEnv(input: Record<string, string | undefined>): NodeJS.ProcessEnv {
   return {
@@ -155,5 +161,20 @@ describe("provider config", () => {
         })
       )
     ).toThrowError(/SMS_PROVIDER/i);
+  });
+
+  it("recognizes sms provider throttling errors", () => {
+    expect(
+      isSmsRateLimitedError(new SmsError("rate limited", "aliyun", "Throttling.User"))
+    ).toBe(true);
+    expect(
+      isSmsRateLimitedError(
+        new SmsError("rate limited", "tencent", "FailedOperation.SendFrequencyLimit")
+      )
+    ).toBe(true);
+    expect(isSmsRateLimitedError(new Error("SMS_RATE_LIMITED"))).toBe(true);
+    expect(
+      isSmsRateLimitedError(new SmsError("template error", "aliyun", "isv.INVALID_PARAMETERS"))
+    ).toBe(false);
   });
 });

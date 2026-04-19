@@ -8,12 +8,20 @@ import { useAdminAuthStore } from "./auth-store";
 
 type AdminLoginResult = Awaited<ReturnType<typeof apiClient.loginAdmin>>;
 
+const DEMO_ADMIN_ACCOUNT = "admin";
+const DEMO_ADMIN_PASSWORD = "Admin#123";
+const shouldPrefillDemoCredentials = import.meta.env.DEV;
+
 export function AdminLoginPage() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const setAuthenticated = useAdminAuthStore((state) => state.setAuthenticated);
-  const [account, setAccount] = useState("admin");
-  const [password, setPassword] = useState("Admin#123");
+  const [account, setAccount] = useState(() =>
+    shouldPrefillDemoCredentials ? DEMO_ADMIN_ACCOUNT : ""
+  );
+  const [password, setPassword] = useState(() =>
+    shouldPrefillDemoCredentials ? DEMO_ADMIN_PASSWORD : ""
+  );
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notice = searchParams.get("notice");
@@ -65,11 +73,11 @@ export function AdminLoginPage() {
           >
             {notice === "password-updated" ? (
               <Alert
+                description="请使用新密码重新登录后台。"
                 message="密码已更新"
                 showIcon
                 style={{ marginBottom: 16 }}
                 type="success"
-                description="请使用新密码重新登录后台。"
               />
             ) : null}
 
@@ -99,7 +107,11 @@ export function AdminLoginPage() {
             {error ? <div className="admin-login__error">{error}</div> : null}
 
             <Flex justify="space-between" gap={12} wrap>
-              <div className="admin-muted">默认演示账号：admin / Admin#123</div>
+              <div className="admin-muted">
+                {shouldPrefillDemoCredentials
+                  ? "仅本地开发环境预填演示账号：admin / Admin#123"
+                  : "请输入管理员账号与密码"}
+              </div>
               <Button htmlType="submit" loading={isSubmitting} type="primary">
                 登录后台
               </Button>

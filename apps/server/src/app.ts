@@ -40,11 +40,17 @@ ensureServerEnvLoaded();
 export const app = new Hono();
 
 // 优先解析显式配置；未配置时退回开发期默认白名单，兼顾本地联调与生产收敛。
-function resolveCorsOrigin():
+export function resolveCorsOrigin():
   | string[]
   | ((origin: string) => string | undefined | null) {
   const raw = process.env.CORS_ORIGIN?.trim() ?? process.env.CORS_ORIGINS?.trim();
   if (raw === '*' || raw?.toLowerCase() === 'all') {
+    if (process.env.NODE_ENV === 'production') {
+      throw new Error(
+        "CORS_ORIGIN=all is forbidden in production when credentials are enabled."
+      );
+    }
+
     return (origin: string) => origin;
   }
 

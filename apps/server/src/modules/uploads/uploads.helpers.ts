@@ -32,6 +32,16 @@ function shouldPresignReadUrls(endpoint: string) {
   return nonProduction || isTruthyEnv(process.env.STORAGE_PRESIGN_READ_URLS);
 }
 
+function resolveReadStorageAccess() {
+  const config = resolveStorageProviderConfig();
+  const shouldPresign = shouldPresignReadUrls(config.endpoint);
+
+  return {
+    config,
+    provider: shouldPresign ? createStorageProvider(config) : null
+  };
+}
+
 export async function resolveUploadedFileUrl(fileId: string | null | undefined) {
   if (!fileId) {
     return null;
@@ -48,9 +58,8 @@ export async function resolveUploadedFileUrl(fileId: string | null | undefined) 
     return null;
   }
 
-  const config = resolveStorageProviderConfig();
-  if (shouldPresignReadUrls(config.endpoint)) {
-    const provider = createStorageProvider(config);
+  const { config, provider } = resolveReadStorageAccess();
+  if (provider) {
     // 不传 filename，避免 Response-Disposition: attachment 影响 <img src> 内联展示
     const url = await provider.getDownloadUrl({
       objectKey: file.objectKey,
@@ -94,24 +103,37 @@ export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | u
 
   const files = await uploadsRepo.listFilesByIds(unresolvedIds);
   const fileById = new Map(files.map((file) => [file.id, file]));
-  const config = resolveStorageProviderConfig();
-  const provider = shouldPresignReadUrls(config.endpoint) ? createStorageProvider(config) : null;
+  const { config, provider } = resolveReadStorageAccess();
+
+  if (provider) {
+    const resolvedEntries = await Promise.all(
+      unresolvedIds.map(async (fileId) => {
+        const file = fileById.get(fileId);
+        if (!file) {
+          return [fileId, null] as const;
+        }
+
+        const url = await provider.getDownloadUrl({
+          objectKey: file.objectKey,
+          expiresIn: 60 * 60
+        });
+        return [fileId, url] as const;
+      })
+    );
+
+    for (const [fileId, url] of resolvedEntries) {
+      urlMap.set(fileId, url);
+      setCachedFileUrl(fileId, url);
+    }
+
+    return urlMap;
+  }
 
   for (const fileId of unresolvedIds) {
     const file = fileById.get(fileId);
     if (!file) {
       urlMap.set(fileId, null);
       setCachedFileUrl(fileId, null);
-      continue;
-    }
-
-    if (provider) {
-      const url = await provider.getDownloadUrl({
-        objectKey: file.objectKey,
-        expiresIn: 60 * 60
-      });
-      urlMap.set(fileId, url);
-      setCachedFileUrl(fileId, url);
       continue;
     }
 

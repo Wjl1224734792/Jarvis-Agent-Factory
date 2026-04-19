@@ -1,7 +1,11 @@
 import { createSecretToken, hashToken } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
 import { authRepo, ADMIN_LOGIN_MAX_FAILURES } from "./auth.repo";
-import { createSmsSender, resolveSmsProviderConfig } from "./sms-provider";
+import {
+  createSmsSender,
+  isSmsRateLimitedError,
+  resolveSmsProviderConfig
+} from "./sms-provider";
 import type { UserRecord } from "../users/users.schema";
 
 type RequestSessionMetadata = {
@@ -169,7 +173,7 @@ export const authService = {
         mockCode: sendResult.mockCode
       };
     } catch (error) {
-      if (error instanceof Error && error.message === "SMS_RATE_LIMITED") {
+      if (isSmsRateLimitedError(error)) {
         throw new AuthError(
           "SMS_RATE_LIMITED",
           "发送过于频繁，请 60 秒后再试"

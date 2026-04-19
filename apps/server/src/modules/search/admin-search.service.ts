@@ -967,10 +967,11 @@ export async function searchAdminContent(input: { query: string; limit: number }
       })
     )
   ].sort((left, right) => right.score - left.score || left.section.localeCompare(right.section));
+  const limitedItems = items.slice(0, input.limit);
 
   return {
     query: input.query,
-    total: items.length,
-    items
+    total: limitedItems.length,
+    items: limitedItems
   };
 }

@@ -52,6 +52,13 @@ export class SmsError extends Error {
   }
 }
 
+const SMS_RATE_LIMIT_ERROR_CODES = new Set([
+  "SMS_RATE_LIMITED",
+  "FailedOperation.SendFrequencyLimit",
+  "Throttling.User",
+  "isv.BUSINESS_LIMIT_CONTROL"
+]);
+
 // ---------------------------------------------------------------------------
 // Config helpers
 // ---------------------------------------------------------------------------
@@ -312,4 +319,12 @@ export function createSmsSender(config: SmsProviderConfig) {
       return sendViaTencent(config, input);
     },
   };
+}
+
+export function isSmsRateLimitedError(error: unknown) {
+  if (error instanceof SmsError) {
+    return error.code !== undefined && SMS_RATE_LIMIT_ERROR_CODES.has(error.code);
+  }
+
+  return error instanceof Error && error.message === "SMS_RATE_LIMITED";
 }

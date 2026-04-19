@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { apiClient } from "../../lib/api-client";
 
 export type CaptchaChallenge = {
@@ -29,20 +29,18 @@ export function useSmsVerificationFlow() {
   const [captchaRemainingSeconds, setCaptchaRemainingSeconds] = useState(0);
   const [isCaptchaLoading, setIsCaptchaLoading] = useState(false);
 
-  // 短信发送倒计时
   useEffect(() => {
     if (cooldownSeconds <= 0) {
       return;
     }
 
     const timer = window.setTimeout(() => {
-      setCooldownSeconds(current => Math.max(current - 1, 0));
+      setCooldownSeconds((current) => Math.max(current - 1, 0));
     }, 1000);
 
     return () => window.clearTimeout(timer);
   }, [cooldownSeconds]);
 
-  // 图形验证码过期倒计时
   useEffect(() => {
     if (!challenge || challenge.expiresInSeconds <= 0) {
       setCaptchaRemainingSeconds(0);
@@ -52,7 +50,7 @@ export function useSmsVerificationFlow() {
     setCaptchaRemainingSeconds(challenge.expiresInSeconds);
 
     const timer = window.setInterval(() => {
-      setCaptchaRemainingSeconds(prev => {
+      setCaptchaRemainingSeconds((prev) => {
         if (prev <= 1) {
           window.clearInterval(timer);
           return 0;
@@ -66,18 +64,12 @@ export function useSmsVerificationFlow() {
 
   const isCaptchaExpired = captchaRemainingSeconds <= 0 && challenge !== null;
 
-  // 用 ref 持有 onError / errorFallback，避免 refreshCaptcha 引用变化
-  const errorRef = useRef<{ onError: (message: string) => void; errorFallback: string }>({
-    onError: () => {},
-    errorFallback: ""
-  });
-
-  const refreshCaptcha = useCallback(async (input: {
+  // 统一复用 challenge 拉取逻辑，避免打开弹窗和失败重试走两套状态分支。
+  const loadCaptchaChallenge = useCallback(async (input: {
     onError: (message: string) => void;
     errorFallback: string;
     clearCaptchaCode?: boolean;
   }) => {
-    errorRef.current = { onError: input.onError, errorFallback: input.errorFallback };
     setIsCaptchaLoading(true);
     try {
       const nextChallenge = await apiClient.requestCaptchaChallenge();
@@ -88,54 +80,59 @@ export function useSmsVerificationFlow() {
       return nextChallenge;
     } catch (error: unknown) {
       setChallenge(null);
-      const { onError, errorFallback } = errorRef.current;
-      onError(error instanceof Error ? error.message : errorFallback);
+      input.onError(error instanceof Error ? error.message : input.errorFallback);
       return null;
     } finally {
       setIsCaptchaLoading(false);
     }
   }, []);
 
-  const sendSmsCode = useCallback(async <TResponse,>(input: SendSmsCodeOptions<TResponse>) => {
-    if (!challenge) {
-      return null;
-    }
+  const refreshCaptcha = useCallback(
+    async (input: {
+      onError: (message: string) => void;
+      errorFallback: string;
+      clearCaptchaCode?: boolean;
+    }) => loadCaptchaChallenge(input),
+    [loadCaptchaChallenge]
+  );
 
-    setIsSendingSms(true);
-
-    try {
-      const response = await input.request({
-        challengeId: challenge.challengeId,
-        captchaCode: captchaCode.trim().toUpperCase()
-      });
-
-      setRequestHint(input.successHint(response));
-      setSmsCode("");
-      setCooldownSeconds(input.cooldownSeconds ?? 60);
-      input.onSuccess?.(response);
-      // 图形挑战为一次性消费，清空以便下次打开发送弹窗时重新拉取
-      setChallenge(null);
-      setCaptchaCode("");
-      return response;
-    } catch (error: unknown) {
-      input.onError(error instanceof Error ? error.message : input.errorFallback);
-      // 服务端校验图形码为一次性消费，失败后清空输入并自动拉取新挑战，避免界面长期停在假「加载中」
-      setCaptchaCode("");
-      setChallenge(null);
-      setIsCaptchaLoading(true);
-      try {
-        const nextChallenge = await apiClient.requestCaptchaChallenge();
-        setChallenge(nextChallenge);
-      } catch {
-        setChallenge(null);
-      } finally {
-        setIsCaptchaLoading(false);
+  const sendSmsCode = useCallback(
+    async <TResponse,>(input: SendSmsCodeOptions<TResponse>) => {
+      if (!challenge) {
+        return null;
       }
-      return null;
-    } finally {
-      setIsSendingSms(false);
-    }
-  }, [captchaCode, challenge]);
+
+      setIsSendingSms(true);
+
+      try {
+        const response = await input.request({
+          challengeId: challenge.challengeId,
+          captchaCode: captchaCode.trim().toUpperCase()
+        });
+
+        setRequestHint(input.successHint(response));
+        setSmsCode("");
+        setCooldownSeconds(input.cooldownSeconds ?? 60);
+        input.onSuccess?.(response);
+        setChallenge(null);
+        setCaptchaCode("");
+        return response;
+      } catch (error: unknown) {
+        input.onError(error instanceof Error ? error.message : input.errorFallback);
+        setCaptchaCode("");
+        setChallenge(null);
+        await loadCaptchaChallenge({
+          clearCaptchaCode: false,
+          onError: () => {},
+          errorFallback: input.errorFallback
+        });
+        return null;
+      } finally {
+        setIsSendingSms(false);
+      }
+    },
+    [captchaCode, challenge, loadCaptchaChallenge]
+  );
 
   const reset = useCallback(() => {
     setChallenge(null);
@@ -148,34 +145,37 @@ export function useSmsVerificationFlow() {
     setIsCaptchaLoading(false);
   }, []);
 
-  return useMemo(() => ({
-    challenge,
-    captchaCode,
-    cooldownSeconds,
-    captchaRemainingSeconds,
-    isCaptchaExpired,
-    isCaptchaLoading,
-    isSendingSms,
-    requestHint,
-    reset,
-    refreshCaptcha,
-    sendSmsCode,
-    setCaptchaCode,
-    setRequestHint,
-    setSmsCode,
-    smsCode
-  }), [
-    captchaCode,
-    challenge,
-    cooldownSeconds,
-    captchaRemainingSeconds,
-    isCaptchaExpired,
-    isCaptchaLoading,
-    isSendingSms,
-    requestHint,
-    refreshCaptcha,
-    reset,
-    sendSmsCode,
-    smsCode
-  ]);
+  return useMemo(
+    () => ({
+      challenge,
+      captchaCode,
+      cooldownSeconds,
+      captchaRemainingSeconds,
+      isCaptchaExpired,
+      isCaptchaLoading,
+      isSendingSms,
+      requestHint,
+      reset,
+      refreshCaptcha,
+      sendSmsCode,
+      setCaptchaCode,
+      setRequestHint,
+      setSmsCode,
+      smsCode
+    }),
+    [
+      captchaCode,
+      challenge,
+      cooldownSeconds,
+      captchaRemainingSeconds,
+      isCaptchaExpired,
+      isCaptchaLoading,
+      isSendingSms,
+      requestHint,
+      refreshCaptcha,
+      reset,
+      sendSmsCode,
+      smsCode
+    ]
+  );
 }

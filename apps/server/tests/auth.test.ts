@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
-import { app } from "../src/app";
+import { app, resolveCorsOrigin } from "../src/app";
 import {
   readCaptchaAnswerForTests
 } from "./captcha-test-helpers";
@@ -286,6 +286,24 @@ describe("auth flows", () => {
 
     expect(meResponse.headers.get("access-control-allow-origin")).toBe(adminOrigin);
     expect(meResponse.headers.get("access-control-allow-credentials")).toBe("true");
+  });
+
+  it("rejects wildcard cors origins in production", () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousCorsOrigin = process.env.CORS_ORIGIN;
+    const previousCorsOrigins = process.env.CORS_ORIGINS;
+
+    process.env.NODE_ENV = "production";
+    process.env.CORS_ORIGIN = "all";
+    delete process.env.CORS_ORIGINS;
+
+    try {
+      expect(() => resolveCorsOrigin()).toThrow(/CORS_ORIGIN=all/i);
+    } finally {
+      process.env.NODE_ENV = previousNodeEnv;
+      process.env.CORS_ORIGIN = previousCorsOrigin;
+      process.env.CORS_ORIGINS = previousCorsOrigins;
+    }
   });
 
   it("supports web captcha + sms + login + me + logout flow", async () => {

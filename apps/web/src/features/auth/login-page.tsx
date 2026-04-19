@@ -372,15 +372,23 @@ export function LoginPage() {
                         avatarFileId: null
                       })
                       .then(async response => {
+                        setAuthenticated(response.user);
+
                         if (selectedAvatarFile) {
-                          const uploaded = await apiClient.uploadAvatarImage(selectedAvatarFile);
-                          await apiClient.updateCurrentUserProfile({
-                            avatarFileId: uploaded.item.id
-                          });
-                          const refreshedUser = await apiClient.getCurrentUser();
-                          setAuthenticated(refreshedUser ?? response.user);
-                        } else {
-                          setAuthenticated(response.user);
+                          try {
+                            const uploaded = await apiClient.uploadAvatarImage(selectedAvatarFile);
+                            await apiClient.updateCurrentUserProfile({
+                              avatarFileId: uploaded.item.id
+                            });
+                            const refreshedUser = await apiClient.getCurrentUser();
+                            setAuthenticated(refreshedUser ?? response.user);
+                          } catch (avatarError) {
+                            setSubmitError(
+                              avatarError instanceof Error
+                                ? `${avatarError.message}，你已完成注册，可稍后在设置中补充头像。`
+                                : "你已完成注册，可稍后在设置中补充头像。"
+                            );
+                          }
                         }
 
                         void navigate(redirectTo ?? APP_ROUTES.feedHome, {

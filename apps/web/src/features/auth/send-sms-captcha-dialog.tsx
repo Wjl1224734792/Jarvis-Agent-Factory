@@ -25,18 +25,18 @@ type SendSmsCaptchaDialogProps = {
  */
 export function SendSmsCaptchaDialog(props: SendSmsCaptchaDialogProps) {
   const { flow } = props;
+  const { refreshCaptcha } = flow;
 
   useEffect(() => {
     if (!props.open) {
       return;
     }
 
-    void flow.refreshCaptcha({
+    void refreshCaptcha({
       onError: props.onRefreshError,
       errorFallback: props.refreshErrorFallback
     });
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- 仅打开时拉取；flow 为稳定 useMemo 对象
-  }, [props.open]);
+  }, [props.onRefreshError, props.open, props.refreshErrorFallback, refreshCaptcha]);
 
   if (!props.open) {
     return null;
@@ -87,7 +87,7 @@ export function SendSmsCaptchaDialog(props: SendSmsCaptchaDialogProps) {
                   className="w-full"
                   isLoading={flow.isCaptchaLoading}
                   onRefresh={() => {
-                    void flow.refreshCaptcha({
+                    void refreshCaptcha({
                       onError: props.onRefreshError,
                       errorFallback: props.refreshErrorFallback
                     });
