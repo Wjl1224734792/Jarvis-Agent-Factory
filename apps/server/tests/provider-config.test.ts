@@ -42,6 +42,22 @@ describe("provider config", () => {
     }
   });
 
+  it("accepts qiniu as an alias for kodo", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        STORAGE_PROVIDER: "qiniu",
+        STORAGE_BUCKET: "feijia-media",
+        STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
+        STORAGE_REGION: "cn-east-1",
+        STORAGE_ACCESS_KEY_ID: "id",
+        STORAGE_SECRET_ACCESS_KEY: "secret"
+      })
+    );
+
+    expect(config.provider).toBe("kodo");
+    expect(config.publicBaseUrl).toContain("feijia-media");
+  });
+
   it("throws on invalid storage provider", () => {
     expect(() =>
       resolveStorageProviderConfig(
@@ -66,6 +82,42 @@ describe("provider config", () => {
     );
 
     expect(config.publicBaseUrl).toBe("https://feijia-media.cos.example.com");
+  });
+
+  it("supports explicit public base urls for oss/cos/kodo style cdn domains", () => {
+    const providers: Array<{ provider: StorageProvider | "qiniu"; endpoint: string; publicBaseUrl: string }> = [
+      {
+        provider: "oss",
+        endpoint: "https://oss-cn-hangzhou.aliyuncs.com",
+        publicBaseUrl: "https://cdn.example-oss.com"
+      },
+      {
+        provider: "cos",
+        endpoint: "https://cos.ap-shanghai.myqcloud.com",
+        publicBaseUrl: "https://cdn.example-cos.com"
+      },
+      {
+        provider: "qiniu",
+        endpoint: "https://s3-cn-east-1.qiniucs.com",
+        publicBaseUrl: "https://cdn.example-kodo.com"
+      }
+    ];
+
+    for (const item of providers) {
+      const config = resolveStorageProviderConfig(
+        createEnv({
+          STORAGE_PROVIDER: item.provider,
+          STORAGE_BUCKET: "feijia-media",
+          STORAGE_ENDPOINT: item.endpoint,
+          STORAGE_REGION: "auto",
+          STORAGE_ACCESS_KEY_ID: "id",
+          STORAGE_SECRET_ACCESS_KEY: "secret",
+          STORAGE_PUBLIC_BASE_URL: item.publicBaseUrl
+        })
+      );
+
+      expect(config.publicBaseUrl).toBe(item.publicBaseUrl);
+    }
   });
 
   it("creates a minio storage provider with presigned upload support", async () => {
@@ -132,7 +184,7 @@ describe("provider config", () => {
     expect(sendResult.mockCode).toBe("123456");
   });
 
-  it("fails fast for non-mock sms providers until real dispatch is implemented", async () => {
+  it("fails fast for non-mock sms providers in test environment", async () => {
     const aliyunSender = createSmsSender(
       resolveSmsProviderConfig(
         createEnv({

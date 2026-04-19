@@ -213,6 +213,23 @@ Stop-Process -Id <PID> -Force
 
 当 `API_METRICS_ENABLED=true` 时，服务端会额外输出 `api.performance.baseline` 日志（当前覆盖 `GET /home/feed`、`GET /models`、`GET /rankings`），包含 `ms`、`responseBytes`、`fileLookupCount`，用于性能基线采样。
 
+## 云厂商接入提示
+
+短信服务：
+
+- `SMS_PROVIDER=aliyun` 对接阿里云短信，填写 `ALIYUN_SMS_ACCESS_KEY_ID`、`ALIYUN_SMS_ACCESS_KEY_SECRET`、`ALIYUN_SMS_SIGN_NAME`、`ALIYUN_SMS_TEMPLATE_CODE`。
+- `SMS_PROVIDER=tencent` 对接腾讯云短信，填写 `TENCENT_SMS_SECRET_ID`、`TENCENT_SMS_SECRET_KEY`、`TENCENT_SMS_SDK_APP_ID`、`TENCENT_SMS_SIGN_NAME`、`TENCENT_SMS_TEMPLATE_ID`。
+- 服务端默认把验证码作为单一模板变量发送：阿里云走 `{"code":"123456"}`，腾讯云走 `["123456"]`。
+
+对象存储：
+
+- `STORAGE_PROVIDER=oss` 对接阿里云 OSS。
+- `STORAGE_PROVIDER=cos` 对接腾讯云 COS。
+- `STORAGE_PROVIDER=kodo` 或 `STORAGE_PROVIDER=qiniu` 对接七牛云 Kodo。
+- 当前实现统一走 S3 兼容接口，核心配置是 `STORAGE_ENDPOINT`、`STORAGE_REGION`、`STORAGE_BUCKET`、`STORAGE_ACCESS_KEY_ID`、`STORAGE_SECRET_ACCESS_KEY`。
+- 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
+- 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。
+
 ## 测试账号与数据说明
 
 基础 / demo 数据导入后可使用：

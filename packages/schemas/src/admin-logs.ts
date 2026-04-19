@@ -6,7 +6,7 @@ export const adminLogLevelSchema = z.enum(["DEBUG", "INFO", "WARN", "ERROR"]);
 
 export const adminLogModeSchema = z.enum(["auto", "console", "file", "both"]);
 
-export const adminLogSourceKindSchema = z.enum(["local-files"]);
+export const adminLogSourceKindSchema = z.enum(["local-files", "journald"]);
 
 export const adminLogSourceSchema = z.object({
   key: z.string().min(1),

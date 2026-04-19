@@ -9,6 +9,7 @@ import {
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 
 export type StorageProvider = "minio" | "cos" | "oss" | "kodo";
+type StorageProviderEnvValue = StorageProvider | "qiniu";
 
 type EnvLike = Record<string, string | undefined>;
 
@@ -128,9 +129,10 @@ export function isStorageProviderExplicitlyConfigured(env: EnvLike = process.env
 }
 
 export function resolveStorageProviderConfig(env: EnvLike = process.env): StorageProviderConfig {
-  const providerRaw = (env.STORAGE_PROVIDER ?? "minio").toLowerCase().trim();
-  if (!["minio", "cos", "oss", "kodo"].includes(providerRaw)) {
-    throw new Error("Invalid STORAGE_PROVIDER. Expected minio|cos|oss|kodo.");
+  const providerRaw = (env.STORAGE_PROVIDER ?? "minio").toLowerCase().trim() as StorageProviderEnvValue;
+  const normalizedProvider = providerRaw === "qiniu" ? "kodo" : providerRaw;
+  if (!["minio", "cos", "oss", "kodo"].includes(normalizedProvider)) {
+    throw new Error("Invalid STORAGE_PROVIDER. Expected minio|cos|oss|kodo|qiniu.");
   }
 
   const endpoint = env.STORAGE_ENDPOINT?.trim();
@@ -144,7 +146,7 @@ export function resolveStorageProviderConfig(env: EnvLike = process.env): Storag
     );
   }
 
-  const provider = providerRaw as StorageProvider;
+  const provider: StorageProvider = normalizedProvider;
   const forcePathStyle = parseBoolean(env.STORAGE_FORCE_PATH_STYLE, provider === "minio");
 
   return {

@@ -20,6 +20,11 @@ describe("admin logs contract", () => {
             key: "local-files",
             label: "本地文件日志",
             kind: "local-files"
+          },
+          {
+            key: "journald",
+            label: "systemd journal",
+            kind: "journald"
           }
         ],
         categories: [
