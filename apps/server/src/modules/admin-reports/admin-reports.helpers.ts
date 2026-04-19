@@ -1,4 +1,7 @@
-import { adminReportRecordsResponseSchema } from "@feijia/schemas";
+import {
+  adminReportRecordsResponseSchema,
+  adminReportSummaryResponseSchema
+} from "@feijia/schemas";
 
 export function buildAdminReportEvidenceImages(
   reportId: string,
@@ -15,4 +18,8 @@ export function buildAdminReportEvidenceImages(
 
 export function parseAdminReportRecordsResponse(payload: unknown) {
   return adminReportRecordsResponseSchema.parse(payload);
+}
+
+export function parseAdminReportSummaryResponse(payload: unknown) {
+  return adminReportSummaryResponseSchema.parse(payload);
 }

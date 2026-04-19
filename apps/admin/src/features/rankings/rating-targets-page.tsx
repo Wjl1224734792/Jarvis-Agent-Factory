@@ -10,7 +10,7 @@ import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ItemStatus = "pending" | "published" | "rejected" | "hidden";
 type RatingTargetRecord = Awaited<
-  ReturnType<typeof apiClient.listRatingTargetsForModeration>
+  ReturnType<typeof apiClient.listAdminRatingTargets>
 >["items"][number];
 
 const itemStatusOptions: Array<{ label: string; value: ItemStatus | "all" }> = [
@@ -64,7 +64,7 @@ export function RatingTargetsPage() {
 
   const itemsQuery = useQuery({
     queryKey: ["admin-rating-targets", status],
-    queryFn: () => apiClient.listRatingTargetsForModeration(status === "all" ? undefined : status)
+    queryFn: () => apiClient.listAdminRatingTargets(status === "all" ? undefined : status)
   });
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-rating-targets", "site-settings"],

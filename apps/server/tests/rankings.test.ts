@@ -226,6 +226,31 @@ describe("rankings flows", () => {
     expect(payload.community[0]?.items.length).toBeGreaterThan(0);
   });
 
+  it("lists admin rating targets without fetching each ranking detail separately", async () => {
+    const adminCookie = await loginAdmin();
+
+    const response = await app.request(`${API_ROUTES.rankings.adminItems}?status=published`, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<{
+        id: string;
+        rankingId: string;
+        rankingTitle: string;
+        rankingAuthorName: string;
+        status: string;
+      }>;
+    };
+
+    expect(payload.items.length).toBeGreaterThan(0);
+    expect(payload.items.every((item) => item.status === "published")).toBe(true);
+    expect(payload.items[0]?.rankingTitle).toBeTruthy();
+    expect(payload.items[0]?.rankingAuthorName).toBeTruthy();
+  });
+
   it("enforces official ranking permissions and owner-only add policy", async () => {
     const ownerCookie = await loginUser("13800138000");
     const visitorCookie = await loginUser("13800138001");

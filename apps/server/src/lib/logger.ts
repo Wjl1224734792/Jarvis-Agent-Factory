@@ -1,4 +1,4 @@
-import { appendFileSync, mkdirSync } from "node:fs";
+import { appendFile, mkdir } from "node:fs/promises";
 import path from "node:path";
 
 export const LOG_CATEGORIES = ["app", "request", "error", "security"] as const;
@@ -68,6 +68,9 @@ export function getLogCategoryDir(category: LogCategory) {
   return path.join(getLoggerConfig().dir, category);
 }
 
+let fileWriteQueue: Promise<void> = Promise.resolve();
+const pendingWrites = new Set<Promise<void>>();
+
 function shouldEmit(level: LogLevel) {
   return levelRank[level] >= levelRank[getLoggerConfig().level];
 }
@@ -97,20 +100,32 @@ function logToConsole(level: LogLevel, line: string): void {
 
 function appendFileLine(category: LogCategory, line: string): void {
   const categoryDir = getLogCategoryDir(category);
-  try {
-    mkdirSync(categoryDir, { recursive: true });
-  } catch (error) {
-    console.error("[logger] failed to create log directory", categoryDir, error);
-    return;
-  }
-
   const day = new Date().toISOString().slice(0, 10);
   const filePath = path.join(categoryDir, `${category}-${day}.log`);
-  try {
-    appendFileSync(filePath, `${line}\n`, "utf8");
-  } catch (error) {
-    console.error("[logger] failed to write log file", filePath, error);
-  }
+  fileWriteQueue = fileWriteQueue
+    .then(async () => {
+      try {
+        await mkdir(categoryDir, { recursive: true });
+      } catch (error) {
+        console.error("[logger] failed to create log directory", categoryDir, error);
+        return;
+      }
+
+      try {
+        await appendFile(filePath, `${line}\n`, "utf8");
+      } catch (error) {
+        console.error("[logger] failed to write log file", filePath, error);
+      }
+    })
+    .catch((error) => {
+      console.error("[logger] unexpected write queue failure", error);
+    });
+
+  const queuedWrite = fileWriteQueue;
+  pendingWrites.add(queuedWrite);
+  void queuedWrite.finally(() => {
+    pendingWrites.delete(queuedWrite);
+  });
 }
 
 function emit(
@@ -199,3 +214,7 @@ export const logger = {
     emit("WARN", "security", message, meta);
   }
 };
+
+export async function flushLogger() {
+  await Promise.all(Array.from(pendingWrites));
+}

@@ -191,6 +191,7 @@ export const API_ROUTES = {
     report: (id: string) => `/rankings/${id}/report`,
     itemDetail: (id: string) => `/rating-targets/${id}`,
     adminItemStatus: (id: string) => `/admin/rating-targets/${id}/status`,
+    adminItems: "/admin/rating-targets",
     adminItemReports: (id: string) => `/admin/rating-targets/${id}/reports`,
     itemReport: (id: string) => `/rating-targets/${id}/report`,
     itemReview: (id: string) => `/rating-targets/${id}/review`,

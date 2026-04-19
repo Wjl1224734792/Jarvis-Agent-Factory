@@ -5,7 +5,10 @@ import {
   requireAdmin,
   type AuthVariables
 } from "../auth/auth.middleware";
-import { parseAdminReportRecordsResponse } from "./admin-reports.helpers";
+import {
+  parseAdminReportRecordsResponse,
+  parseAdminReportSummaryResponse
+} from "./admin-reports.helpers";
 import { adminReportsService } from "./admin-reports.service";
 
 export const adminReportsRoute = new Hono<{ Variables: AuthVariables }>();
@@ -30,6 +33,11 @@ function isReportKind(value: string): value is ReportKind {
 }
 
 adminReportsRoute.use("*", attachCurrentUser);
+
+adminReportsRoute.get(API_ROUTES.admin.reports, requireAdmin, async (context) => {
+  const payload = await adminReportsService.listReportSummary();
+  return context.json(parseAdminReportSummaryResponse(payload));
+});
 
 adminReportsRoute.get(API_ROUTES.admin.reportDetail(":kind", ":id"), requireAdmin, async (context) => {
   const kind = context.req.param("kind");

@@ -15,6 +15,7 @@ import {
   adminModelCommentResponseSchema,
   adminModelCommentsResponseSchema,
   adminModelResponseSchema,
+  adminReportSummaryResponseSchema,
   adminPostCommentResponseSchema,
   adminPostCommentsResponseSchema,
   adminPostCommentStatusUpdateInputSchema,
@@ -27,6 +28,7 @@ import {
   adminRankingCommentsResponseSchema,
   adminRatingTargetCommentResponseSchema,
   adminRatingTargetCommentsResponseSchema,
+  adminRatingTargetsModerationResponseSchema,
   adminReviewResponseSchema,
   adminReviewCommentResponseSchema,
   adminReviewCommentsResponseSchema,
@@ -1194,6 +1196,15 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminRatingTargetCommentsResponseSchema);
     },
+    async listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
+      const suffix = status ? `?status=${encodeURIComponent(status)}` : "";
+      const response = await fetch(`${baseUrl}${API_ROUTES.rankings.adminItems}${suffix}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminRatingTargetsModerationResponseSchema);
+    },
     async updateAdminRatingTargetCommentStatus(id: string, input: UpdateRatingTargetCommentStatusInput) {
       return putJson(
         API_ROUTES.rankings.adminRatingTargetCommentDetail(id),
@@ -1422,6 +1433,14 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminReportRecordsResponseSchema);
+    },
+    async listAdminReportsSummary() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.reports}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminReportSummaryResponseSchema);
     },
     async listModels(input: ModelsQueryInput = {}) {
       const response = await fetch(`${baseUrl}${API_ROUTES.models.list}${buildQueryString(input)}`, {

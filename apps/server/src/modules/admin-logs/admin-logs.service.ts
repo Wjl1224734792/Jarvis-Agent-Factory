@@ -1,10 +1,12 @@
+import { createReadStream } from "node:fs";
 import {
-  existsSync,
-  readdirSync,
-  readFileSync,
-  statSync
-} from "node:fs";
+  access,
+  readdir,
+  readFile,
+  stat
+} from "node:fs/promises";
 import path from "node:path";
+import readline from "node:readline";
 import type {
   AdminLogCategory,
   adminLogEntriesQuerySchema,
@@ -18,6 +20,15 @@ type LogEntriesQuery = z.infer<typeof adminLogEntriesQuerySchema>;
 
 function normalizeCategory(category: AdminLogCategory) {
   return category;
+}
+
+async function pathExists(absolutePath: string) {
+  try {
+    await access(absolutePath);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 function safeResolveLogFile(category: AdminLogCategory, fileName: string) {
@@ -35,27 +46,48 @@ function safeResolveLogFile(category: AdminLogCategory, fileName: string) {
   };
 }
 
-function listCategoryFiles(category: AdminLogCategory) {
+async function listCategoryFiles(category: AdminLogCategory) {
   const categoryDir = getLogCategoryDir(category);
-  if (!existsSync(categoryDir)) {
+  if (!(await pathExists(categoryDir))) {
     return [];
   }
 
-  return readdirSync(categoryDir, { withFileTypes: true })
-    .filter((entry) => entry.isFile() && entry.name.endsWith(".log"))
-    .map((entry) => {
-      const absolutePath = path.join(categoryDir, entry.name);
-      const stats = statSync(absolutePath);
+  const entries = await readdir(categoryDir, { withFileTypes: true });
+  const files = await Promise.all(
+    entries
+      .filter((entry) => entry.isFile() && entry.name.endsWith(".log"))
+      .map(async (entry) => {
+        const absolutePath = path.join(categoryDir, entry.name);
+        const stats = await stat(absolutePath);
 
-      return {
-        category,
-        fileName: entry.name,
-        absolutePath,
-        sizeBytes: stats.size,
-        modifiedAt: stats.mtime.toISOString()
-      };
-    })
-    .sort((left, right) => right.modifiedAt.localeCompare(left.modifiedAt));
+        return {
+          category,
+          fileName: entry.name,
+          absolutePath,
+          sizeBytes: stats.size,
+          modifiedAt: stats.mtime.toISOString()
+        };
+      })
+  );
+
+  return files.sort((left, right) => right.modifiedAt.localeCompare(left.modifiedAt));
+}
+
+async function readLogFileLines(absolutePath: string) {
+  const lines: string[] = [];
+  const stream = readline.createInterface({
+    input: createReadStream(absolutePath, { encoding: "utf8" }),
+    crlfDelay: Infinity
+  });
+
+  for await (const line of stream) {
+    const trimmed = line.trim();
+    if (trimmed) {
+      lines.push(trimmed);
+    }
+  }
+
+  return lines;
 }
 
 function filterEntries(
@@ -84,16 +116,11 @@ function filterEntries(
 }
 
 export const adminLogsService = {
-  getOverview() {
+  async getOverview() {
     const config = getLoggerConfig();
-
-    return {
-      mode: config.mode,
-      dir: config.dir,
-      level: config.level,
-      maxReadLines: config.maxReadLines,
-      categories: LOG_CATEGORIES.map((category) => {
-        const files = listCategoryFiles(category);
+    const categories = await Promise.all(
+      LOG_CATEGORIES.map(async (category) => {
+        const files = await listCategoryFiles(category);
         return {
           category,
           fileCount: files.length,
@@ -102,28 +129,34 @@ export const adminLogsService = {
           latestFileModifiedAt: files[0]?.modifiedAt ?? null
         };
       })
+    );
+
+    return {
+      mode: config.mode,
+      dir: config.dir,
+      level: config.level,
+      maxReadLines: config.maxReadLines,
+      categories
     };
   },
 
-  listFiles(input: LogFilesQuery) {
+  async listFiles(input: LogFilesQuery) {
     const category = normalizeCategory(input.category);
-    return listCategoryFiles(category).slice(0, input.limit ?? 50);
+    return (await listCategoryFiles(category)).slice(0, input.limit ?? 50);
   },
 
-  readEntries(input: LogEntriesQuery) {
+  async readEntries(input: LogEntriesQuery) {
     const category = normalizeCategory(input.category);
     const { absolutePath, fileName } = safeResolveLogFile(category, input.fileName);
 
-    if (!existsSync(absolutePath)) {
+    if (!(await pathExists(absolutePath))) {
       throw new Error(`Log file not found: ${fileName}`);
     }
 
-    const stats = statSync(absolutePath);
-    const content = readFileSync(absolutePath, "utf8");
-    const allLines = content
-      .split(/\r?\n/)
-      .map((line) => line.trim())
-      .filter(Boolean);
+    const [stats, allLines] = await Promise.all([
+      stat(absolutePath),
+      readLogFileLines(absolutePath)
+    ]);
     const filtered = filterEntries(allLines, {
       level: input.level,
       search: input.search
@@ -141,5 +174,11 @@ export const adminLogsService = {
       totalLines: filtered.length,
       items: filtered.slice(-limit).reverse()
     };
+  },
+
+  // Keep an async read helper available for future adapters (object storage, cloud log sinks).
+  async readRawFile(category: AdminLogCategory, fileName: string) {
+    const { absolutePath } = safeResolveLogFile(category, fileName);
+    return readFile(absolutePath, "utf8");
   }
 };

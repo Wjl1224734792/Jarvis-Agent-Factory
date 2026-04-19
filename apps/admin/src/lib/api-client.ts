@@ -524,6 +524,12 @@ const rawApiClient = {
   getSiteSettings() {
     return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);
   },
+  listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
+    return sharedClient.listAdminRatingTargets(status);
+  },
+  listAdminReportsSummary() {
+    return sharedClient.listAdminReportsSummary();
+  },
   getAdminModel(id: string) {
     return sharedClient.getAdminModel(id);
   },

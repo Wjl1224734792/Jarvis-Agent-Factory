@@ -277,6 +277,15 @@ export const adminRatingTargetCommentsResponseSchema = z.object({
   items: z.array(adminRatingTargetCommentListItemSchema)
 });
 
+export const adminRatingTargetModerationListItemSchema = ratingTargetSchema.extend({
+  rankingTitle: z.string().min(1),
+  rankingAuthorName: z.string().min(1)
+});
+
+export const adminRatingTargetsModerationResponseSchema = z.object({
+  items: z.array(adminRatingTargetModerationListItemSchema)
+});
+
 export const updateRatingTargetCommentStatusInputSchema = z.object({
   status: rankingCommentStatusSchema
 });

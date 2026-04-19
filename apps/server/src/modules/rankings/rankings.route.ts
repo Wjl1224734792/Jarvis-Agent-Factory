@@ -2,6 +2,7 @@ import {
   actionSuccessResponseSchema,
   adminRankingCommentResponseSchema,
   adminRankingCommentsResponseSchema,
+  adminRatingTargetsModerationResponseSchema,
   adminRatingTargetCommentResponseSchema,
   adminRatingTargetCommentsResponseSchema,
   adminRankingsResponseSchema,
@@ -83,6 +84,26 @@ rankingsRoute.get(API_ROUTES.rankings.adminList, requireAdmin, async (context) =
   }
 
   return context.json(adminRankingsResponseSchema.parse(result.payload));
+});
+
+rankingsRoute.get(API_ROUTES.rankings.adminItems, requireAdmin, async (context) => {
+  const currentUser = context.get("currentUser");
+  if (!currentUser) {
+    return context.json({ code: "UNAUTHORIZED", message: "Login required." }, 401);
+  }
+
+  const status = context.req.query("status");
+  const result = await rankingsService.listAdminRatingTargets(
+    currentUser,
+    status === "pending" || status === "published" || status === "rejected" || status === "hidden"
+      ? status
+      : undefined
+  );
+  if (result.kind === "forbidden") {
+    return context.json({ code: "FORBIDDEN", message: "Not allowed." }, 403);
+  }
+
+  return context.json(adminRatingTargetsModerationResponseSchema.parse(result.payload));
 });
 
 rankingsRoute.post(API_ROUTES.rankings.create, requireAuth, async (context) => {

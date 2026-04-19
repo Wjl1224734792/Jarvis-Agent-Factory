@@ -997,6 +997,64 @@ export const rankingsService = {
     };
   },
 
+  async listAdminRatingTargets(
+    currentUser: CurrentUser,
+    status?: "pending" | "published" | "rejected" | "hidden"
+  ) {
+    if (currentUser.role !== "admin") {
+      return { kind: "forbidden" as const };
+    }
+
+    const rankings = (await rankingsRepo.listRankings()).filter((ranking) => ranking.type === "community");
+    const rankingById = new Map(rankings.map((ranking) => [ranking.id, ranking]));
+    const sourceItems = (
+      await rankingsRepo.listRatingTargetsByRankingIds(rankings.map((ranking) => ranking.id))
+    ).filter((item) => (status ? item.status === status : true));
+    const aggregates = await rankingsRepo.listRatingTargetRatingAggregates(
+      sourceItems.map((item) => item.id)
+    );
+    const aggregateMap = new Map(
+      aggregates.map((entry) => [
+        entry.ratingTargetId,
+        {
+          totalRatings: Number(entry.totalRatings ?? 0),
+          averageRaw: Number(entry.averageRaw ?? 0)
+        }
+      ])
+    );
+    const imageUrlMap = await resolveUploadedFileUrlMap(
+      sourceItems.map((item) => item.imageFileId ?? null)
+    );
+
+    return {
+      kind: "ok" as const,
+      payload: {
+        items: await Promise.all(
+          sourceItems.map(async (item) => {
+            const ranking = rankingById.get(item.rankingId);
+            if (!ranking) {
+              return null;
+            }
+
+            const serialized = await serializeRatingTarget(item, aggregateMap, new Map(), {
+              currentUser,
+              rankingType: "community",
+              rankingAuthorId: ranking.author.id,
+              reportedItemIds: new Set(),
+              imageUrlMap
+            });
+
+            return {
+              ...serialized,
+              rankingTitle: ranking.title,
+              rankingAuthorName: ranking.author.displayName
+            };
+          })
+        ).then((items) => items.filter((item): item is NonNullable<typeof item> => item !== null))
+      }
+    };
+  },
+
   async updateRankingStatus(
     rankingId: string,
     currentUser: CurrentUser,

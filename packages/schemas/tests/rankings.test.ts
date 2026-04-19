@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminRatingTargetsModerationResponseSchema,
   adminRankingsResponseSchema,
   createRatingTargetCommentInputSchema,
   createRankingInputSchema,
@@ -228,6 +229,34 @@ describe("rankings contract", () => {
 
     expect(adminPayload.items[0]?.status).toBe("pending");
     expect(siteSettings.item.rankingModerationEnabled).toBe(true);
+  });
+
+  it("parses admin rating target moderation list", () => {
+    const payload = adminRatingTargetsModerationResponseSchema.parse({
+      items: [
+        {
+          id: "target_1",
+          rankingId: "ranking_1",
+          rank: 1,
+          title: "DJI Mini 4 Pro",
+          summary: "Compact target",
+          imageFileId: null,
+          imageUrl: null,
+          brandName: "DJI",
+          linkedModel: null,
+          averageScore: 8.4,
+          totalRatings: 3,
+          commentCount: 1,
+          myRating: null,
+          rankingTitle: "Harbor Ranking",
+          rankingAuthorName: "Admin",
+          status: "pending"
+        }
+      ]
+    });
+
+    expect(payload.items[0]?.rankingTitle).toBe("Harbor Ranking");
+    expect(payload.items[0]?.status).toBe("pending");
   });
 
   it("requires rating for top-level rating target comments and forbids rating on replies", () => {

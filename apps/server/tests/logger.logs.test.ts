@@ -2,7 +2,7 @@ import { existsSync, mkdtempSync, readFileSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { getLoggerRuntimeConfig, logger } from "../src/lib/logger";
+import { flushLogger, getLoggerRuntimeConfig, logger } from "../src/lib/logger";
 
 const ORIGINAL_NODE_ENV = process.env.NODE_ENV;
 const ORIGINAL_LOG_MODE = process.env.LOG_MODE;
@@ -65,7 +65,7 @@ describe("logger configuration and categorized files", () => {
     expect(config.configuredMode).toBe("auto");
   });
 
-  it("writes logs into category files when file mode is enabled", () => {
+  it("writes logs into category files when file mode is enabled", async () => {
     tempLogDir = mkdtempSync(path.join(os.tmpdir(), "feijia-logger-"));
     process.env.LOG_MODE = "file";
     process.env.LOG_DIR = tempLogDir;
@@ -76,6 +76,7 @@ describe("logger configuration and categorized files", () => {
     logger.request("request-log");
     logger.error("error-log");
     logger.security("security-log");
+    await flushLogger();
 
     const day = new Date().toISOString().slice(0, 10);
     const appLogFile = path.join(tempLogDir, "app", `app-${day}.log`);
