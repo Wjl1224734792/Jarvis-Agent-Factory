@@ -124,6 +124,7 @@ type AdminRankingItem = {
   rank: number;
   title: string;
   summary: string | null;
+  imageFileId?: string | null;
   imageUrl: string | null;
   brandName: string | null;
   averageScore: number;
@@ -150,6 +151,7 @@ type AdminRankingListItem = {
   status: "pending" | "published" | "rejected" | "hidden";
   rejectionReason?: string | null;
   title: string;
+  coverImageFileId?: string | null;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   averageScore: number;
@@ -175,7 +177,7 @@ type AdminRankingDetail = AdminRankingListItem & {
 type RankingDraftItemInput = {
   title: string;
   summary: string | null;
-  imageUrl: string | null;
+  imageFileId: string | null;
   brandName: string | null;
   linkedModelSlug: string | null;
 };
@@ -183,7 +185,7 @@ type RankingDraftItemInput = {
 type OfficialRankingUpsertInput = {
   type: "official";
   title: string;
-  coverImageUrl: string | null;
+  coverImageFileId: string | null;
   itemAddPolicy: "public" | "owner";
   items: RankingDraftItemInput[];
 };
@@ -274,6 +276,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
       id: definition.id,
       type: "official" as const,
       title: definition.title,
+      coverImageFileId: null,
       coverImageUrl: null,
       status: "published" as const,
       itemAddPolicy: "owner" as const,

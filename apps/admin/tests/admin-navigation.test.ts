@@ -21,6 +21,12 @@ describe("getActiveAdminNavItemPaths", () => {
     expect(getActiveAdminNavItemPaths(`${APP_ROUTES.adminRankings}/new`)).toEqual([
       ADMIN_ROUTE_PATHS.operationsRankings
     ]);
+    expect(getActiveAdminNavItemPaths(ADMIN_ROUTE_PATHS.operationsBrands)).toEqual([
+      ADMIN_ROUTE_PATHS.operationsBrands
+    ]);
+    expect(getActiveAdminNavItemPaths(ADMIN_ROUTE_PATHS.officialArticles)).toEqual([
+      ADMIN_ROUTE_PATHS.managementOfficialArticles
+    ]);
   });
 
   it("never returns more than one active nav item for known routes", () => {
@@ -38,10 +44,14 @@ describe("getActiveAdminNavItemPaths", () => {
     const operationsGroup = ADMIN_NAV_ITEMS.find(
       (item) => item.to === ADMIN_ROUTE_PATHS.operationsRankings
     )?.group;
+    const managementGroup = ADMIN_NAV_ITEMS.find(
+      (item) => item.to === ADMIN_ROUTE_PATHS.managementOfficialArticles
+    )?.group;
 
     expect(overviewGroup).toBeDefined();
     expect(moderationGroup).toBeDefined();
     expect(operationsGroup).toBeDefined();
+    expect(managementGroup).toBeDefined();
 
     expect(getAdminNavigationState(APP_ROUTES.adminHome)).toMatchObject({
       selectedKeys: [ADMIN_ROUTE_PATHS.overview],
@@ -59,6 +69,13 @@ describe("getActiveAdminNavItemPaths", () => {
       selectedKeys: [ADMIN_ROUTE_PATHS.operationsRankings],
       openKeys: [
         getAdminNavGroupKey(operationsGroup as (typeof ADMIN_NAV_ITEMS)[number]["group"])
+      ]
+    });
+
+    expect(getAdminNavigationState(ADMIN_ROUTE_PATHS.officialArticles)).toMatchObject({
+      selectedKeys: [ADMIN_ROUTE_PATHS.managementOfficialArticles],
+      openKeys: [
+        getAdminNavGroupKey(managementGroup as (typeof ADMIN_NAV_ITEMS)[number]["group"])
       ]
     });
   });

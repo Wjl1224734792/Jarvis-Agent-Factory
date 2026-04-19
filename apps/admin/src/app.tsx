@@ -132,9 +132,19 @@ const BrandApplicationsPage = lazy(() =>
     default: module.BrandApplicationsPage
   }))
 );
+const BrandCreatorPage = lazy(() =>
+  import("./features/models/brand-creator-page").then((module) => ({
+    default: module.BrandCreatorPage
+  }))
+);
 const BrandsPage = lazy(() =>
   import("./features/models/brands-page").then((module) => ({
     default: module.BrandsPage
+  }))
+);
+const AircraftCreatorPage = lazy(() =>
+  import("./features/models/aircraft-creator-page").then((module) => ({
+    default: module.AircraftCreatorPage
   }))
 );
 const CategoriesPage = lazy(() =>
@@ -155,6 +165,11 @@ const ContentCategoriesPage = lazy(() =>
 const OfficialArticlesPage = lazy(() =>
   import("./features/posts/official-articles-page").then((module) => ({
     default: module.OfficialArticlesPage
+  }))
+);
+const OfficialArticlesLibraryPage = lazy(() =>
+  import("./features/posts/official-articles-library-page").then((module) => ({
+    default: module.OfficialArticlesLibraryPage
   }))
 );
 const PostCommentsPage = lazy(() =>
@@ -319,6 +334,12 @@ const router = createBrowserRouter([
                 icon: <GatewayOutlined />
               },
               {
+                title: "创建品牌",
+                description: "品牌新建与 Logo 上传工作台。",
+                to: ADMIN_ROUTE_PATHS.operationsBrands,
+                icon: <TagsOutlined />
+              },
+              {
                 title: "创建榜单",
                 description: "榜单创建、条目编排和官方榜单运营。",
                 to: ADMIN_ROUTE_PATHS.operationsRankings,
@@ -340,6 +361,12 @@ const router = createBrowserRouter([
                 description: "查看日志分类、文件清单和最近日志行。",
                 to: ADMIN_ROUTE_PATHS.logs,
                 icon: <DatabaseOutlined />
+              },
+              {
+                title: "官方文章库",
+                description: "官方文章历史维护、编辑和删除入口。",
+                to: ADMIN_ROUTE_PATHS.managementOfficialArticles,
+                icon: <ReadOutlined />
               },
               {
                 title: "品牌库",
@@ -414,7 +441,11 @@ const router = createBrowserRouter([
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsAircraft),
-        element: withAdminRouteFallback(<ModelsPage />)
+        element: withAdminRouteFallback(<AircraftCreatorPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsBrands),
+        element: withAdminRouteFallback(<BrandCreatorPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsRankings),
@@ -435,6 +466,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementContentCategories),
         element: withAdminRouteFallback(<ContentCategoriesPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementOfficialArticles),
+        element: withAdminRouteFallback(<OfficialArticlesLibraryPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementSecurity),
@@ -490,7 +525,7 @@ const router = createBrowserRouter([
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.officialArticles),
-        element: withAdminRouteFallback(<OfficialArticlesPage />)
+        element: <PreserveSearchNavigate pathname={ADMIN_ROUTE_PATHS.managementOfficialArticles} />
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.aircraftSubmissions),

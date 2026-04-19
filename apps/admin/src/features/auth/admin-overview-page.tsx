@@ -448,6 +448,7 @@ export function AdminOverviewPage() {
     { title: "机型投稿", to: ADMIN_ROUTE_PATHS.moderationAircraftSubmissions, icon: <ClockCircleOutlined /> },
     { title: "评分对象", to: ADMIN_ROUTE_PATHS.moderationRatingTargets, icon: <SafetyCertificateOutlined /> },
     { title: "创建文章", to: ADMIN_ROUTE_PATHS.operationsArticles, icon: <FlagOutlined /> },
+    { title: "创建品牌", to: ADMIN_ROUTE_PATHS.operationsBrands, icon: <RocketOutlined /> },
     { title: "创建榜单", to: ADMIN_ROUTE_PATHS.operationsRankings, icon: <TrophyOutlined /> }
   ];
 

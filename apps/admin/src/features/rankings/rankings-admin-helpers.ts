@@ -5,6 +5,7 @@ export type AdminRankingRecord = {
   type: "official" | "community";
   status: AdminRankingStatus;
   title: string;
+  coverImageFileId?: string | null;
   coverImageUrl: string | null;
   itemAddPolicy: "public" | "owner";
   commentCount: number;
@@ -16,6 +17,7 @@ export type AdminRankingRecord = {
     rank: number;
     title: string;
     summary: string | null;
+    imageFileId?: string | null;
     imageUrl: string | null;
     brandName: string | null;
     averageScore: number;
@@ -38,6 +40,7 @@ export type RankingDraftItem = {
   id: string;
   title: string;
   summary: string;
+  imageFileId: string;
   imageUrl: string;
   brandName: string;
   linkedModelSlug: string | null;
@@ -49,6 +52,7 @@ export function createEmptyRankingDraftItem(): RankingDraftItem {
     id: crypto.randomUUID(),
     title: "",
     summary: "",
+    imageFileId: "",
     imageUrl: "",
     brandName: "",
     linkedModelSlug: null,
@@ -61,6 +65,7 @@ export function toRankingDraftItems(items: AdminRankingRecord["items"]): Ranking
     id: item.id,
     title: item.title,
     summary: item.summary ?? "",
+    imageFileId: item.imageFileId ?? "",
     imageUrl: item.imageUrl ?? "",
     brandName: item.brandName ?? item.linkedModel?.brand.name ?? "",
     linkedModelSlug: item.linkedModel?.slug ?? null,
@@ -71,7 +76,7 @@ export function toRankingDraftItems(items: AdminRankingRecord["items"]): Ranking
 export function buildRankingPayload(
   values: {
     title: string;
-    coverImageUrl?: string | null;
+    coverImageFileId?: string | null;
     itemAddPolicy: "public" | "owner";
   },
   draftItems: RankingDraftItem[]
@@ -79,12 +84,12 @@ export function buildRankingPayload(
   return {
     type: "official" as const,
     title: values.title.trim(),
-    coverImageUrl: values.coverImageUrl?.trim() ? values.coverImageUrl.trim() : null,
+    coverImageFileId: values.coverImageFileId?.trim() ? values.coverImageFileId.trim() : null,
     itemAddPolicy: values.itemAddPolicy,
     items: draftItems.map((item) => ({
       title: item.title.trim(),
       summary: item.summary.trim() ? item.summary.trim() : null,
-      imageUrl: item.imageUrl.trim() ? item.imageUrl.trim() : null,
+      imageFileId: item.imageFileId.trim() ? item.imageFileId.trim() : null,
       brandName: item.brandName.trim() ? item.brandName.trim() : null,
       linkedModelSlug: item.linkedModelSlug
     }))

@@ -25,7 +25,7 @@ import {
 
 type RankingFormValues = {
   title: string;
-  coverImageUrl?: string | null;
+  coverImageFileId?: string | null;
   itemAddPolicy: "public" | "owner";
 };
 
@@ -37,6 +37,7 @@ export function RankingEditorPage() {
   const itemImageInputRef = useRef<HTMLInputElement | null>(null);
   const [activeImageItemId, setActiveImageItemId] = useState<string | null>(null);
   const [form] = Form.useForm<RankingFormValues>();
+  const [coverImageUrl, setCoverImageUrl] = useState("");
   const [draftItems, setDraftItems] = useState<RankingDraftItem[]>([]);
   const [selectedModelSlug, setSelectedModelSlug] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -61,9 +62,10 @@ export function RankingEditorPage() {
     const ranking = detailQuery.data.item;
     form.setFieldsValue({
       title: ranking.title,
-      coverImageUrl: ranking.coverImageUrl ?? "",
+      coverImageFileId: ranking.coverImageFileId ?? "",
       itemAddPolicy: ranking.itemAddPolicy ?? "owner"
     });
+    setCoverImageUrl(ranking.coverImageUrl ?? "");
     setDraftItems(toRankingDraftItems(ranking.items));
   }, [detailQuery.data?.item, form]);
 
@@ -82,7 +84,7 @@ export function RankingEditorPage() {
     [modelsQuery.data?.items, selectedModelSlugs]
   );
   const watchedTitle = Form.useWatch("title", form);
-  const watchedCoverImageUrl = Form.useWatch("coverImageUrl", form);
+  const watchedCoverImageFileId = Form.useWatch("coverImageFileId", form);
   const watchedItemAddPolicy = Form.useWatch("itemAddPolicy", form) ?? "owner";
 
   function appendModel(slug: string) {
@@ -97,6 +99,7 @@ export function RankingEditorPage() {
         id: crypto.randomUUID(),
         title: model.name,
         summary: model.summary ?? "",
+        imageFileId: "",
         imageUrl: "",
         brandName: model.brand.name,
         linkedModelSlug: model.slug,
@@ -118,11 +121,18 @@ export function RankingEditorPage() {
     setIsUploading(true);
     setSubmitError(null);
     try {
-      const response = await apiClient.uploadImage(file);
+      const response =
+        target === "cover"
+          ? await apiClient.uploadRankingCoverImage(file)
+          : await apiClient.uploadRankingItemImage(file);
       if (target === "cover") {
-        form.setFieldValue("coverImageUrl", response.item.url);
+        form.setFieldValue("coverImageFileId", response.item.id);
+        setCoverImageUrl(response.item.url);
       } else if (activeImageItemId) {
-        updateItem(activeImageItemId, { imageUrl: response.item.url });
+        updateItem(activeImageItemId, {
+          imageFileId: response.item.id,
+          imageUrl: response.item.url
+        });
       }
     } catch (reason: unknown) {
       setSubmitError(reason instanceof Error ? reason.message : "图片上传失败");
@@ -139,6 +149,7 @@ export function RankingEditorPage() {
   }
 
   const isFormValid =
+    (watchedCoverImageFileId?.trim().length ?? 0) > 0 &&
     draftItems.length > 0 &&
     draftItems.every((item) => item.title.trim().length > 0) &&
     (watchedTitle?.trim()?.length ?? 0) > 1;
@@ -158,7 +169,7 @@ export function RankingEditorPage() {
               form={form}
               initialValues={{
                 title: "",
-                coverImageUrl: "",
+                coverImageFileId: "",
                 itemAddPolicy: "owner"
               }}
               layout="vertical"
@@ -185,7 +196,7 @@ export function RankingEditorPage() {
               <div className="admin-row-actions">
                 <div>
                   <div className="admin-panel__title">榜单封面</div>
-                  <div className="admin-panel__description">改为上传图片，不再直接输入 URL。</div>
+                  <div className="admin-panel__description">上传后将提交 `coverImageFileId`。</div>
                 </div>
                 <Space wrap>
                   <Button
@@ -196,9 +207,12 @@ export function RankingEditorPage() {
                   >
                     上传封面
                   </Button>
-                  {watchedCoverImageUrl ? (
+                  {coverImageUrl ? (
                     <Button
-                      onClick={() => form.setFieldValue("coverImageUrl", "")}
+                      onClick={() => {
+                        form.setFieldValue("coverImageFileId", "");
+                        setCoverImageUrl("");
+                      }}
                       size="small"
                       type="link"
                     >
@@ -208,9 +222,9 @@ export function RankingEditorPage() {
                 </Space>
               </div>
 
-              {watchedCoverImageUrl ? (
+              {coverImageUrl ? (
                 <div className="admin-ranking-cover__preview">
-                  <Image alt={watchedTitle || "榜单封面"} preview={false} src={watchedCoverImageUrl} />
+                  <Image alt={watchedTitle || "榜单封面"} preview={false} src={coverImageUrl} />
                 </div>
               ) : (
                 <div className="admin-ranking-cover__empty">尚未设置榜单封面</div>
@@ -343,8 +357,8 @@ export function RankingEditorPage() {
           <AdminPanel title="预览与保存">
             <div className="admin-ranking-sidebar">
               <div className="admin-ranking-sidebar__cover">
-                {watchedCoverImageUrl ? (
-                  <Image alt={watchedTitle || "榜单封面"} preview={false} src={watchedCoverImageUrl} />
+                {coverImageUrl ? (
+                  <Image alt={watchedTitle || "榜单封面"} preview={false} src={coverImageUrl} />
                 ) : (
                   <div className="admin-ranking-cover__empty">未设置封面</div>
                 )}
@@ -392,6 +406,10 @@ export function RankingEditorPage() {
                     void form
                       .validateFields()
                       .then((values) => {
+                        if (!values.coverImageFileId?.trim()) {
+                          throw new Error("请先上传榜单封面。");
+                        }
+
                         const payload = buildRankingPayload(values, draftItems);
                         return (editId
                           ? apiClient.updateRanking(editId, payload)
@@ -403,7 +421,9 @@ export function RankingEditorPage() {
                       .catch((reason: unknown) => {
                         if (reason instanceof Error) {
                           setSubmitError(reason.message);
+                          return;
                         }
+                        setSubmitError("保存榜单失败");
                       })
                       .finally(() => {
                         setIsSubmitting(false);

@@ -1,1 +1,1 @@
-export { OfficialArticlesPage } from "./official-articles-page-content";
+export { OfficialArticleEditorPage as OfficialArticlesPage } from "./official-article-editor-page";

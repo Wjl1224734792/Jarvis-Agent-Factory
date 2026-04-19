@@ -149,10 +149,26 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "运营",
+    to: ADMIN_ROUTE_PATHS.operationsBrands,
+    label: "创建品牌",
+    hint: "品牌新建与 Logo 上传工作台",
+    icon: AppstoreOutlined,
+    end: false
+  },
+  {
+    group: "运营",
     to: ADMIN_ROUTE_PATHS.operationsRankings,
     label: "创建榜单",
     hint: "榜单创建、条目编排与运营位管理",
     icon: TrophyOutlined,
+    end: false
+  },
+  {
+    group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementOfficialArticles,
+    label: "官方文章库",
+    hint: "官方文章历史维护、编辑入口与删除操作",
+    icon: ReadOutlined,
     end: false
   },
   {
@@ -279,6 +295,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === ADMIN_ROUTE_PATHS.managementSecurity) {
     return ADMIN_ROUTE_PATHS.managementSecurity;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.officialArticles) {
+    return ADMIN_ROUTE_PATHS.managementOfficialArticles;
   }
   if (pathname === APP_ROUTES.adminReviews) {
     return APP_ROUTES.adminReviews;

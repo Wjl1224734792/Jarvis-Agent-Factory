@@ -2,27 +2,33 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, InputNumber, Modal, Select, Table } from "antd";
 import { useMemo, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
+import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { apiClient } from "../../lib/api-client";
+import {
+  modelLifecycleStatusOptions,
+  modelPowerOptions,
+  type ModelLifecycleStatus,
+  type ModelPowerType
+} from "./model-editor-helpers";
 
 type ModelRecord = Awaited<ReturnType<typeof apiClient.listModels>>["items"][number];
 
-const powerOptions = [
-  { label: "电动", value: "electric" },
-  { label: "燃油", value: "fuel" },
-  { label: "混动", value: "hybrid" },
-  { label: "其他", value: "other" }
-];
-
-type ModelFormValues = {
+type ModelEditFormValues = {
   name: string;
   slug: string;
   categoryId: string;
   brandId: string;
-  powerType: "electric" | "fuel" | "hybrid" | "other";
+  powerType: ModelPowerType;
+  lifecycleStatus: ModelLifecycleStatus;
   summary: string;
   description: string;
   priceMin: number | null;
   priceMax: number | null;
+  maxFlightTimeMinutes: number | null;
+  maxRangeKilometers: number | null;
+  maxSpeedKph: number | null;
+  takeoffWeightGrams: number | null;
+  isPublished: boolean;
 };
 
 function formatPriceRange(priceMin: number | null, priceMax: number | null) {
@@ -59,14 +65,12 @@ export function ModelsPage() {
     () =>
       (brandsQuery.data ?? []).map((item) => ({
         label: `${item.name} · ${item.slug}`,
-        value: item.id,
-        brandName: item.name
+        value: item.id
       })),
     [brandsQuery.data]
   );
 
-  const [createForm] = Form.useForm<ModelFormValues>();
-  const [editForm] = Form.useForm<ModelFormValues>();
+  const [editForm] = Form.useForm<ModelEditFormValues>();
   const [editing, setEditing] = useState<ModelRecord | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,36 +88,7 @@ export function ModelsPage() {
     );
   }, [modelsQuery.data?.items, searchText]);
 
-  async function createModel(values: ModelFormValues) {
-    setIsSubmitting(true);
-    setError(null);
-    try {
-      await apiClient.createModel({
-        slug: values.slug,
-        name: values.name,
-        categoryId: values.categoryId,
-        brandId: values.brandId,
-        powerType: values.powerType,
-        summary: values.summary.trim() ? values.summary.trim() : null,
-        description: values.description.trim() ? values.description.trim() : null,
-        priceMin: values.priceMin ?? null,
-        priceMax: values.priceMax ?? null,
-        maxFlightTimeMinutes: null,
-        maxRangeKilometers: null,
-        maxSpeedKph: null,
-        takeoffWeightGrams: null,
-        isPublished: true
-      });
-      createForm.resetFields();
-      await modelsQuery.refetch();
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "创建机型失败");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function updateModel(values: ModelFormValues) {
+  async function updateModel(values: ModelEditFormValues) {
     if (!editing) {
       return;
     }
@@ -122,20 +97,24 @@ export function ModelsPage() {
     setError(null);
     try {
       await apiClient.updateModel(editing.id, {
-        slug: values.slug,
-        name: values.name,
+        slug: values.slug.trim(),
+        name: values.name.trim(),
         categoryId: values.categoryId,
         brandId: values.brandId,
         powerType: values.powerType,
+        lifecycleStatus: values.lifecycleStatus,
         summary: values.summary.trim() ? values.summary.trim() : null,
         description: values.description.trim() ? values.description.trim() : null,
         priceMin: values.priceMin ?? null,
         priceMax: values.priceMax ?? null,
-        maxFlightTimeMinutes: null,
-        maxRangeKilometers: null,
-        maxSpeedKph: null,
-        takeoffWeightGrams: null,
-        isPublished: true
+        maxFlightTimeMinutes: values.maxFlightTimeMinutes ?? null,
+        maxRangeKilometers: values.maxRangeKilometers ?? null,
+        maxSpeedKph: values.maxSpeedKph ?? null,
+        takeoffWeightGrams: values.takeoffWeightGrams ?? null,
+        coverImageFileId: null,
+        galleryImageFileIds: [],
+        videoFileId: null,
+        isPublished: values.isPublished
       });
       setEditing(null);
       await modelsQuery.refetch();
@@ -155,143 +134,115 @@ export function ModelsPage() {
             setSearchText(event.target.value);
           }}
           placeholder="搜索机型、品牌、分类或 slug"
-          style={{ width: 260 }}
+          style={{ width: 280 }}
           value={searchText}
         />
       }
-      description="机型发布时只选择已有品牌并支持搜索，品牌和分类在心智上彻底分离。"
+      description="管理机型列表与基础资料，创建入口已迁移到运营区。"
       title="机型库"
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
 
-      <div className="admin-split">
-        <AdminPanel description="机型建档时单独选择分类和已有品牌，品牌不再跟分类联动。" title="新增机型">
-          <Form
-            form={createForm}
-            layout="vertical"
-            onFinish={(values) => {
-              void createModel(values);
-            }}
-            variant="filled"
-          >
-            <Form.Item label="机型名称" name="name" rules={[{ required: true, message: "请输入机型名称" }]}>
-              <Input placeholder="例如：DJI Mini 4 Pro" />
-            </Form.Item>
-            <Form.Item label="Slug" name="slug" rules={[{ required: true, message: "请输入 slug" }]}>
-              <Input placeholder="例如：mini-4-pro" />
-            </Form.Item>
-            <Form.Item label="机型分类" name="categoryId" rules={[{ required: true, message: "请选择机型分类" }]}>
-              <Select options={categoryOptions} placeholder="选择机型分类" />
-            </Form.Item>
-            <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择已有品牌" }]}>
-              <Select
-                filterOption={(input, option) =>
-                  String(option?.label ?? "")
-                    .toLowerCase()
-                    .includes(input.toLowerCase())
-                }
-                options={brandOptions}
-                placeholder="搜索并选择已有品牌"
-                showSearch
-              />
-            </Form.Item>
-            <Form.Item label="动力类型" name="powerType" rules={[{ required: true, message: "请选择动力类型" }]}>
-              <Select options={powerOptions} placeholder="选择动力类型" />
-            </Form.Item>
-            <Form.Item label="摘要" name="summary">
-              <Input placeholder="简短摘要" />
-            </Form.Item>
-            <Form.Item label="详情描述" name="description">
-              <Input placeholder="详情描述" />
-            </Form.Item>
-            <Form.Item label="最低价（元）" name="priceMin">
-              <InputNumber className="w-full" min={0} precision={0} placeholder="例如 4999" />
-            </Form.Item>
-            <Form.Item label="最高价（元）" name="priceMax">
-              <InputNumber className="w-full" min={0} precision={0} placeholder="例如 6999" />
-            </Form.Item>
-            <div className="admin-form-actions">
-              <Button htmlType="submit" loading={isSubmitting} type="primary">
-                新增机型
-              </Button>
-            </div>
-          </Form>
-        </AdminPanel>
-
-        <AdminPanel description="机型列表保留分类字段，但品牌选择入口改成搜索已有品牌。" title="机型列表">
-          <Table
-            bordered
-            columns={[
-              {
-                key: "name",
-                render: (_, record: ModelRecord) => (
-                  <div className="admin-table-meta">
-                    <div className="admin-table-title">{record.name}</div>
-                    <div className="admin-table-subtitle">{record.slug}</div>
-                  </div>
-                ),
-                title: "机型"
+      <AdminPanel
+        actions={
+          <Button href={ADMIN_ROUTE_PATHS.operationsAircraft} type="primary">
+            创建飞行器
+          </Button>
+        }
+        description="机型维护与编辑，运营创建入口与列表维护彻底分离。"
+        title="机型列表"
+      >
+        <Table
+          bordered
+          columns={[
+            {
+              key: "name",
+              render: (_, record: ModelRecord) => (
+                <div className="admin-table-meta">
+                  <div className="admin-table-title">{record.name}</div>
+                  <div className="admin-table-subtitle">{record.slug}</div>
+                </div>
+              ),
+              title: "机型"
+            },
+            {
+              key: "brand",
+              render: (_, record: ModelRecord) => record.brand.name,
+              title: "品牌",
+              width: 160
+            },
+            {
+              key: "category",
+              render: (_, record: ModelRecord) => record.category.name,
+              title: "分类",
+              width: 140
+            },
+            {
+              key: "powerType",
+              render: (_, record: ModelRecord) => {
+                return modelPowerOptions.find((item) => item.value === record.powerType)?.label ?? record.powerType;
               },
-              {
-                key: "brand",
-                render: (_, record: ModelRecord) => record.brand.name,
-                title: "品牌",
-                width: 160
+              title: "动力",
+              width: 100
+            },
+            {
+              key: "lifecycleStatus",
+              render: (_, record: ModelRecord) => {
+                return (
+                  modelLifecycleStatusOptions.find((item) => item.value === record.lifecycleStatus)?.label ??
+                  record.lifecycleStatus
+                );
               },
-              {
-                key: "category",
-                render: (_, record: ModelRecord) => record.category.name,
-                title: "分类",
-                width: 140
-              },
-              {
-                dataIndex: "powerType",
-                key: "powerType",
-                title: "动力",
-                width: 100
-              },
-              {
-                key: "price",
-                render: (_, record: ModelRecord) =>
-                  formatPriceRange(record.priceMin ?? null, record.priceMax ?? null),
-                title: "价格",
-                width: 180
-              },
-              {
-                key: "action",
-                render: (_, record: ModelRecord) => (
-                  <Button
-                    onClick={() => {
-                      setEditing(record);
-                      editForm.setFieldsValue({
-                        name: record.name,
-                        slug: record.slug,
-                        categoryId: record.category.id,
-                        brandId: record.brand.id,
-                        powerType: record.powerType,
-                        summary: record.summary ?? "",
-                        description: "",
-                        priceMin: record.priceMin ?? null,
-                        priceMax: record.priceMax ?? null
-                      });
-                    }}
-                    size="small"
-                    type="link"
-                  >
-                    编辑
-                  </Button>
-                ),
-                title: "操作",
-                width: 100
-              }
-            ]}
-            dataSource={filteredModels}
-            loading={modelsQuery.isLoading || categoriesQuery.isLoading || brandsQuery.isLoading}
-            rowKey={(record) => record.id}
-            size="middle"
-          />
-        </AdminPanel>
-      </div>
+              title: "状态",
+              width: 120
+            },
+            {
+              key: "price",
+              render: (_, record: ModelRecord) =>
+                formatPriceRange(record.priceMin ?? null, record.priceMax ?? null),
+              title: "价格",
+              width: 180
+            },
+            {
+              key: "action",
+              render: (_, record: ModelRecord) => (
+                <Button
+                  onClick={() => {
+                    setEditing(record);
+                    editForm.setFieldsValue({
+                      name: record.name,
+                      slug: record.slug,
+                      categoryId: record.category.id,
+                      brandId: record.brand.id,
+                      powerType: record.powerType,
+                      lifecycleStatus: record.lifecycleStatus,
+                      summary: record.summary ?? "",
+                      description: "",
+                      priceMin: record.priceMin ?? null,
+                      priceMax: record.priceMax ?? null,
+                      maxFlightTimeMinutes: null,
+                      maxRangeKilometers: null,
+                      maxSpeedKph: null,
+                      takeoffWeightGrams: null,
+                      isPublished: true
+                    });
+                  }}
+                  size="small"
+                  type="link"
+                >
+                  编辑
+                </Button>
+              ),
+              title: "操作",
+              width: 100
+            }
+          ]}
+          dataSource={filteredModels}
+          loading={modelsQuery.isLoading || categoriesQuery.isLoading || brandsQuery.isLoading}
+          rowKey={(record) => record.id}
+          size="middle"
+        />
+      </AdminPanel>
 
       <Modal
         centered
@@ -313,7 +264,7 @@ export function ModelsPage() {
           <Form.Item label="机型分类" name="categoryId" rules={[{ required: true, message: "请选择机型分类" }]}>
             <Select options={categoryOptions} />
           </Form.Item>
-          <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择已有品牌" }]}>
+          <Form.Item label="品牌" name="brandId" rules={[{ required: true, message: "请选择品牌" }]}>
             <Select
               filterOption={(input, option) =>
                 String(option?.label ?? "")
@@ -325,19 +276,42 @@ export function ModelsPage() {
             />
           </Form.Item>
           <Form.Item label="动力类型" name="powerType">
-            <Select options={powerOptions} />
+            <Select options={modelPowerOptions} />
+          </Form.Item>
+          <Form.Item label="生命周期状态" name="lifecycleStatus">
+            <Select options={modelLifecycleStatusOptions} />
           </Form.Item>
           <Form.Item label="摘要" name="summary">
             <Input />
           </Form.Item>
           <Form.Item label="详情描述" name="description">
-            <Input />
+            <Input.TextArea autoSize={{ minRows: 3, maxRows: 6 }} />
           </Form.Item>
           <Form.Item label="最低价（元）" name="priceMin">
             <InputNumber className="w-full" min={0} precision={0} />
           </Form.Item>
           <Form.Item label="最高价（元）" name="priceMax">
             <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="最大续航（分钟）" name="maxFlightTimeMinutes">
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="最大航程（公里）" name="maxRangeKilometers">
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="最大速度（km/h）" name="maxSpeedKph">
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="起飞重量（g）" name="takeoffWeightGrams">
+            <InputNumber className="w-full" min={0} precision={0} />
+          </Form.Item>
+          <Form.Item label="发布状态" name="isPublished">
+            <Select
+              options={[
+                { label: "发布", value: true },
+                { label: "草稿", value: false }
+              ]}
+            />
           </Form.Item>
         </Form>
       </Modal>

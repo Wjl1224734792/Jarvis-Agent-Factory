@@ -19,6 +19,7 @@ describe("rankings admin helpers", () => {
         rank: 1,
         title: "DJI Mini 4 Pro",
         summary: "Official reviewed item.",
+        imageFileId: "img_1",
         imageUrl: "https://cdn.example.com/rankings/mini-4.jpg",
         brandName: null,
         averageScore: 8.6,
@@ -39,7 +40,7 @@ describe("rankings admin helpers", () => {
       buildRankingPayload(
         {
           title: " Official Ranking ",
-          coverImageUrl: " https://cdn.example.com/cover.jpg ",
+          coverImageFileId: " ranking_cover_1 ",
           itemAddPolicy: "public"
         },
         [
@@ -47,6 +48,7 @@ describe("rankings admin helpers", () => {
             id: "item_1",
             title: " DJI Mini 4 Pro ",
             summary: " Portable ",
+            imageFileId: " ranking_item_1 ",
             imageUrl: " https://cdn.example.com/item.jpg ",
             brandName: " DJI ",
             linkedModelSlug: "mini-4-pro",
@@ -57,13 +59,13 @@ describe("rankings admin helpers", () => {
     ).toEqual({
       type: "official",
       title: "Official Ranking",
-      coverImageUrl: "https://cdn.example.com/cover.jpg",
+      coverImageFileId: "ranking_cover_1",
       itemAddPolicy: "public",
       items: [
         {
           title: "DJI Mini 4 Pro",
           summary: "Portable",
-          imageUrl: "https://cdn.example.com/item.jpg",
+          imageFileId: "ranking_item_1",
           brandName: "DJI",
           linkedModelSlug: "mini-4-pro"
         }
@@ -76,6 +78,7 @@ describe("rankings admin helpers", () => {
         type: "official",
         status: "published",
         title: "Official",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "owner",
         commentCount: 0,
@@ -90,6 +93,7 @@ describe("rankings admin helpers", () => {
         type: "community",
         status: "pending",
         title: "Community",
+        coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         commentCount: 0,
