@@ -58,7 +58,7 @@ type AdminSearchItem = {
 };
 
 function resolveGroupLimit(limit: number) {
-  return Math.max(2, Math.min(limit, Math.ceil(limit / 6)));
+  return Math.max(6, Math.min(50, limit * 2));
 }
 
 function toIsoString(value: Date | string | null | undefined) {
@@ -966,12 +966,24 @@ export async function searchAdminContent(input: { query: string; limit: number }
         ]
       })
     )
-  ].sort((left, right) => right.score - left.score || left.section.localeCompare(right.section));
+  ].sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+
+    const leftUpdated = left.updatedAt ? new Date(left.updatedAt).getTime() : 0;
+    const rightUpdated = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
+    if (rightUpdated !== leftUpdated) {
+      return rightUpdated - leftUpdated;
+    }
+
+    return left.section.localeCompare(right.section);
+  });
   const limitedItems = items.slice(0, input.limit);
 
   return {
     query: input.query,
-    total: limitedItems.length,
+    total: items.length,
     items: limitedItems
   };
 }

@@ -429,7 +429,7 @@ describe("search routes", () => {
       items: Array<{ id: string; type: string }>;
     };
     expect(payload.items).toHaveLength(2);
-    expect(payload.total).toBe(2);
+    expect(payload.total).toBe(3);
   });
 
   it("caps admin search results to the requested limit across groups", async () => {
@@ -477,6 +477,6 @@ describe("search routes", () => {
       items: Array<{ id: string; type: string }>;
     };
     expect(payload.items).toHaveLength(2);
-    expect(payload.total).toBe(2);
+    expect(payload.total).toBe(3);
   });
 });

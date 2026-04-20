@@ -31,3 +31,6 @@ export const updateSiteSettingsInputSchema = z.object({
 }).refine((input) => Object.keys(input).length > 0, {
   message: "At least one site setting field is required."
 });
+
+export type SiteSettings = z.infer<typeof siteSettingsSchema>;
+export type UpdateSiteSettingsInput = z.infer<typeof updateSiteSettingsInputSchema>;

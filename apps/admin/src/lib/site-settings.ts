@@ -1,4 +1,4 @@
-import type { SiteSettings } from "./api-client";
+import type { SiteSettings } from "@feijia/schemas";
 
 export function buildSiteSettingsUpdate(
   current: SiteSettings,
@@ -17,7 +17,6 @@ export function buildSiteSettingsUpdate(
       current.ratingTargetModerationEnabled ?? current.rankingModerationEnabled ?? true,
     postModerationEnabled: current.postModerationEnabled,
     submissionModerationEnabled: current.submissionModerationEnabled ?? true,
-    updatedAt: current.updatedAt,
     ...patch
   };
 

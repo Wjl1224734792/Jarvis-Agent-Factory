@@ -16,15 +16,6 @@ import {
 } from "./rankings-admin-helpers";
 
 type RankingRecord = AdminRankingRecord;
-type RankingListResponse = { items: RankingRecord[] };
-type RankingDetailResponse = {
-  item: RankingRecord & {
-    viewer: {
-      canEdit: boolean;
-      canAddItems: boolean;
-    };
-  };
-};
 
 const communityStatusOptions: Array<{ label: string; value: AdminRankingStatus }> = [
   { label: "待审核", value: "pending" },
@@ -77,16 +68,15 @@ export function RankingsPage() {
   });
   const officialRankingsQuery = useQuery({
     queryKey: ["admin-rankings", "official"],
-    queryFn: () => apiClient.listOfficialRankings() as Promise<RankingListResponse>
+    queryFn: () => apiClient.listOfficialRankings()
   });
   const communityRankingsQuery = useQuery({
     queryKey: ["admin-rankings", "community", communityFilter],
-    queryFn: () =>
-      apiClient.listCommunityRankingsForModeration(communityFilter) as Promise<RankingListResponse>
+    queryFn: () => apiClient.listCommunityRankingsForModeration(communityFilter)
   });
   const detailQuery = useQuery({
     queryKey: ["admin-ranking-detail-modal", detailId],
-    queryFn: () => apiClient.getRankingDetail(detailId ?? "") as Promise<RankingDetailResponse>,
+    queryFn: () => apiClient.getRankingDetail(detailId ?? ""),
     enabled: Boolean(detailId)
   });
 

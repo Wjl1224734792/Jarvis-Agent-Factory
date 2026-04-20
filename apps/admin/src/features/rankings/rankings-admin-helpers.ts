@@ -1,40 +1,7 @@
-export type AdminRankingStatus = "pending" | "published" | "rejected" | "hidden";
+import type { RankingListItem, RankingStatus } from "@feijia/schemas";
 
-export type AdminRankingRecord = {
-  id: string;
-  type: "official" | "community";
-  status: AdminRankingStatus;
-  title: string;
-  coverImageFileId?: string | null;
-  coverImageUrl: string | null;
-  itemAddPolicy: "public" | "owner";
-  commentCount: number;
-  itemCount: number;
-  averageScore: number;
-  createdAt: string;
-  items: Array<{
-    id: string;
-    rank: number;
-    title: string;
-    summary: string | null;
-    imageFileId?: string | null;
-    imageUrl: string | null;
-    brandName: string | null;
-    averageScore: number;
-    linkedModel: {
-      slug: string;
-      name: string;
-      brand: {
-        name: string;
-      };
-    } | null;
-  }>;
-  author: {
-    id: string;
-    displayName: string;
-    role: "user" | "admin";
-  };
-};
+export type AdminRankingStatus = RankingStatus;
+export type AdminRankingRecord = RankingListItem;
 
 export type RankingDraftItem = {
   id: string;

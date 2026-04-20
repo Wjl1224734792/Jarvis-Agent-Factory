@@ -33,7 +33,7 @@ type SiteSearchItem = {
 };
 
 function resolveGroupLimit(limit: number) {
-  return Math.max(3, Math.min(limit, Math.ceil(limit / 3)));
+  return Math.max(6, Math.min(50, limit * 2));
 }
 
 function toIsoString(value: Date | string | null | undefined) {
@@ -390,12 +390,24 @@ export async function searchSiteContent(input: {
         fields: [{ field: "displayName", value: row.displayName }]
       })
     )
-  ].sort((left, right) => right.score - left.score || left.type.localeCompare(right.type));
+  ].sort((left, right) => {
+    if (right.score !== left.score) {
+      return right.score - left.score;
+    }
+
+    const leftUpdated = left.updatedAt ? new Date(left.updatedAt).getTime() : 0;
+    const rightUpdated = right.updatedAt ? new Date(right.updatedAt).getTime() : 0;
+    if (rightUpdated !== leftUpdated) {
+      return rightUpdated - leftUpdated;
+    }
+
+    return left.type.localeCompare(right.type);
+  });
   const limitedItems = items.slice(0, input.limit);
 
   return {
     query: input.query,
-    total: limitedItems.length,
+    total: items.length,
     items: limitedItems
   };
 }

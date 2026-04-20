@@ -16,6 +16,10 @@ describe("rankings admin helpers", () => {
     const draftItems = toRankingDraftItems([
       {
         id: "item_1",
+        rankingId: "ranking_1",
+        authorId: "author_1",
+        status: "published",
+        rejectionReason: null,
         rank: 1,
         title: "DJI Mini 4 Pro",
         summary: "Official reviewed item.",
@@ -23,10 +27,24 @@ describe("rankings admin helpers", () => {
         imageUrl: "https://cdn.example.com/rankings/mini-4.jpg",
         brandName: null,
         averageScore: 8.6,
+        totalRatings: 12,
+        commentCount: 3,
+        likeCount: 5,
+        reportCount: 0,
+        myRating: null,
         linkedModel: {
+          id: "model_1",
           slug: "mini-4-pro",
           name: "DJI Mini 4 Pro",
-          brand: { name: "DJI" }
+          summary: "Compact model",
+          powerType: "electric",
+          category: { id: "cat_1", slug: "drone", name: "Drone" },
+          brand: { id: "brand_1", slug: "dji", name: "DJI" }
+        },
+        viewer: {
+          canEdit: true,
+          canDelete: true,
+          hasReported: false
         }
       }
     ]);
@@ -77,31 +95,43 @@ describe("rankings admin helpers", () => {
         id: "official_1",
         type: "official",
         status: "published",
+        rejectionReason: null,
         title: "Official",
         coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "owner",
         commentCount: 0,
+        reportCount: 0,
         itemCount: 1,
         averageScore: 8.2,
         createdAt: "2026-03-29T00:00:00.000Z",
         items: [],
-        author: { id: "admin_1", displayName: "系统管理员", role: "admin" }
+        author: { id: "admin_1", displayName: "Admin", avatarUrl: null, role: "admin" },
+        viewer: {
+          canEdit: true,
+          canAddItems: true
+        }
       },
       {
         id: "community_1",
         type: "community",
         status: "pending",
+        rejectionReason: null,
         title: "Community",
         coverImageFileId: null,
         coverImageUrl: null,
         itemAddPolicy: "public",
         commentCount: 0,
+        reportCount: 0,
         itemCount: 1,
         averageScore: 6.5,
         createdAt: "2026-03-29T00:00:00.000Z",
         items: [],
-        author: { id: "user_1", displayName: "飞友A", role: "user" }
+        author: { id: "user_1", displayName: "Pilot A", avatarUrl: null, role: "user" },
+        viewer: {
+          canEdit: false,
+          canAddItems: false
+        }
       }
     ]);
 

@@ -1,5 +1,6 @@
 import { createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
+import type { RankingDetail, RankingListItem, SiteSettings } from "@feijia/schemas";
 import { dispatchAdminAuthInvalidEvent } from "./auth-events";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
@@ -117,62 +118,10 @@ async function getJson<T>(path: string): Promise<T> {
   return parseResponse<T>(response);
 }
 
-type AdminRankingItem = {
-  id: string;
-  authorId?: string | null;
-  status?: "pending" | "published" | "rejected" | "hidden";
-  rank: number;
-  title: string;
-  summary: string | null;
-  imageFileId?: string | null;
-  imageUrl: string | null;
-  brandName: string | null;
-  averageScore: number;
-  commentCount?: number;
-  likeCount?: number;
-  reportCount?: number;
-  linkedModel: {
-    slug: string;
-    name: string;
-    brand: {
-      name: string;
-    };
-  } | null;
-  viewer?: {
-    canEdit: boolean;
-    canDelete: boolean;
-    hasReported: boolean;
-  };
-};
-
-type AdminRankingListItem = {
-  id: string;
-  type: "official" | "community";
-  status: "pending" | "published" | "rejected" | "hidden";
-  rejectionReason?: string | null;
-  title: string;
-  coverImageFileId?: string | null;
-  coverImageUrl: string | null;
-  itemAddPolicy: "public" | "owner";
-  averageScore: number;
-  commentCount: number;
-  reportCount?: number;
-  itemCount: number;
-  createdAt: string;
-  author: {
-    id: string;
-    displayName: string;
-    role: "user" | "admin";
-  };
-  items: AdminRankingItem[];
-};
-
-type AdminRankingDetail = AdminRankingListItem & {
-  viewer: {
-    canEdit: boolean;
-    canAddItems: boolean;
-  };
-};
+type AdminRankingRecord = RankingListItem;
+type AdminRankingDetailRecord = RankingDetail;
+type AdminRankingItem = AdminRankingRecord["items"][number];
+type AdminRankingListItem = AdminRankingRecord;
 
 type RankingDraftItemInput = {
   title: string;
@@ -188,20 +137,6 @@ type OfficialRankingUpsertInput = {
   coverImageFileId: string | null;
   itemAddPolicy: "public" | "owner";
   items: RankingDraftItemInput[];
-};
-
-export type SiteSettings = {
-  postModerationEnabled: boolean;
-  commentModerationEnabled?: boolean;
-  reviewModerationEnabled?: boolean;
-  submissionModerationEnabled?: boolean;
-  rankingModerationEnabled?: boolean;
-  articleModerationEnabled?: boolean;
-  momentModerationEnabled?: boolean;
-  brandModerationEnabled?: boolean;
-  modelModerationEnabled?: boolean;
-  ratingTargetModerationEnabled?: boolean;
-  updatedAt?: string;
 };
 
 export type AdminAuthSessionItem = {
@@ -232,7 +167,7 @@ type OfficialArticleInput = {
   videoIds?: string[];
 };
 
-const legacyOfficialDefinitions = [
+const _legacyOfficialDefinitions = [
   {
     id: "official-endurance",
     title: "续航之王",
@@ -251,7 +186,7 @@ const legacyOfficialDefinitions = [
 ] as const;
 
 // 老榜单数据还存在一部分历史结构，这里统一兜底成后台页面可消费的列表形状。
-function averageScore(items: AdminRankingItem[]) {
+function _averageScore(items: AdminRankingItem[]) {
   if (items.length === 0) {
     return 0;
   }
@@ -259,7 +194,7 @@ function averageScore(items: AdminRankingItem[]) {
   return items.reduce((sum, item) => sum + item.averageScore, 0) / items.length;
 }
 
-function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
+function _normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClient.listRankings>>) {
   const official = payload.official as AdminRankingListItem[] | { items: AdminRankingItem[] };
   if (Array.isArray(official)) {
     return official.map((item) => ({
@@ -270,7 +205,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
   }
 
   const legacyOfficial = official;
-  return legacyOfficialDefinitions.map((definition, index) => {
+  return _legacyOfficialDefinitions.map((definition, index) => {
     const items = legacyOfficial.items.slice(index, index + 3);
     return {
       id: definition.id,
@@ -280,7 +215,7 @@ function normalizeOfficialRankings(payload: Awaited<ReturnType<typeof sharedClie
       coverImageUrl: null,
       status: "published" as const,
       itemAddPolicy: "owner" as const,
-      averageScore: averageScore(items),
+      averageScore: _averageScore(items),
       commentCount: 0,
       itemCount: items.length,
       createdAt: new Date().toISOString(),
@@ -433,19 +368,16 @@ const rawApiClient = {
     );
   },
   listOfficialRankings() {
-    return getJson<{ items: AdminRankingListItem[] }>("/admin/rankings?scope=official").catch(() =>
-      sharedClient.listRankings().then((payload) => ({
-        items: normalizeOfficialRankings(payload)
-      }))
-    );
+    return sharedClient.listAdminRankings().then((payload) => ({
+      items: payload.items.filter((item) => item.type === "official")
+    }));
   },
   listCommunityRankingsForModeration(status?: "pending" | "published" | "rejected" | "hidden") {
-    const search = new URLSearchParams({ scope: "community" });
-    if (status) {
-      search.set("status", status);
-    }
-
-    return getJson<{ items: AdminRankingListItem[] }>(`/admin/rankings?${search.toString()}`);
+    return sharedClient.listAdminRankings().then((payload) => ({
+      items: payload.items.filter((item) =>
+        item.type === "community" && (status ? item.status === status : true)
+      )
+    }));
   },
   listOfficialArticles() {
     return sharedClient.listAdminPosts().then((payload) => ({
@@ -469,22 +401,22 @@ const rawApiClient = {
     return sharedClient.deleteAdminOfficialArticle(id);
   },
   getRankingDetail(id: string) {
-    return getJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.detail(id));
+    return sharedClient.getRankingDetail(id);
   },
   createRanking(input: OfficialRankingUpsertInput) {
-    return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.create, input);
+    return sharedClient.createRanking(input);
   },
   updateRanking(id: string, input: OfficialRankingUpsertInput) {
-    return putJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.update(id), input);
+    return sharedClient.updateRanking(id, input);
   },
   addRankingItem(id: string, input: RankingDraftItemInput) {
-    return postJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.items(id), input);
+    return sharedClient.addRatingTarget(id, input);
   },
   updateRankingStatus(
     id: string,
     input: { status: "published" | "rejected" | "hidden"; rejectionReason?: string | null }
   ) {
-    return putJson<{ item: AdminRankingDetail }>(API_ROUTES.rankings.adminStatus(id), input);
+    return sharedClient.updateAdminRankingStatus(id, input);
   },
   updateRatingTargetStatus(
     id: string,
@@ -508,7 +440,7 @@ const rawApiClient = {
 
     return {
       items: details
-        .filter((item): item is AdminRankingDetail => item !== null)
+        .filter((item): item is AdminRankingDetailRecord => item !== null)
         .flatMap((ranking) =>
           ranking.items
             .filter((item) => (status ? item.status === status : true))
@@ -522,7 +454,7 @@ const rawApiClient = {
     };
   },
   getSiteSettings() {
-    return getJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings);
+    return sharedClient.getAdminSiteSettings();
   },
   listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
     return sharedClient.listAdminRatingTargets(status);
@@ -543,7 +475,7 @@ const rawApiClient = {
     return sharedClient.changeAdminPassword(input);
   },
   updateSiteSettings(input: SiteSettings) {
-    return putJson<{ item: SiteSettings }>(API_ROUTES.admin.siteSettings, input);
+    return sharedClient.updateAdminSiteSettings(input);
   },
   createOfficialArticle(input: OfficialArticleInput) {
     return sharedClient.createPost({
