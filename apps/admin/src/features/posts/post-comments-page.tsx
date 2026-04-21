@@ -5,6 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   buildAdminCommentQueryKey,
@@ -251,6 +255,28 @@ export function PostCommentsPage() {
   }, [domain, records, searchText, status, urlTargetId]);
 
   const pendingCount = countPendingAdminComments(records[domain]);
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: records[domain].filter((item) => item.status === "pending").length,
+          tone: "warning"
+        },
+        {
+          label: "当前可见",
+          count: records[domain].filter((item) => item.status === "visible").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已隐藏",
+          count: records[domain].filter((item) => item.status === "hidden").length,
+          hideWhenZero: true
+        }
+      ]),
+    [domain, records]
+  );
 
   return (
     <AdminPage
@@ -302,13 +328,16 @@ export function PostCommentsPage() {
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="开启人工审核后，所有评论域的新评论都会先进入待审核队列。" title="当前模式">
+      <AdminPanel
+        description="开启表示新评论先走 AI 审核；关闭表示所有评论域直接进入人工审核队列。"
+        title="当前模式"
+      >
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新的评论会直接显示。"
-          description="适合评论量大时快速放开展示；开启后统一进入评论审核。"
+          aiCopy="新评论会先进入 AI 审核；仍需人工处理的评论会继续留在统一审核队列。"
+          description="当前页合并了多个评论域，先展示统一状态和待办数量。"
           enabled={siteSettingsQuery.data?.item.commentModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的评论会先进入待审核队列。"
+          manualCopy="新评论会直接进入人工审核队列，不再按“自动显示”处理。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -316,6 +345,8 @@ export function PostCommentsPage() {
             void updateModeration(true);
           }}
           pendingCount={pendingCount}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           title="评论审核"
         />
       </AdminPanel>

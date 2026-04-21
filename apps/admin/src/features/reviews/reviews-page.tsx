@@ -5,6 +5,10 @@ import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ReviewRecord = Awaited<ReturnType<typeof apiClient.listAdminReviews>>["items"][number];
@@ -54,6 +58,17 @@ export function ReviewsPage() {
     queryKey: ["admin-reviews"],
     queryFn: () => apiClient.listAdminReviews()
   });
+  const focusReviewId = urlTargetId ?? reviewsQuery.data?.items?.[0]?.id ?? null;
+  const auditQuery = useQuery({
+    queryKey: ["admin-review-audits", focusReviewId],
+    queryFn: () =>
+      apiClient.listAdminAuditRecords({
+        domain: "review",
+        entityId: focusReviewId ?? undefined,
+        limit: 10
+      }),
+    enabled: Boolean(focusReviewId)
+  });
   const siteSettingsQuery = useQuery({
     queryKey: ["admin-reviews", "site-settings"],
     queryFn: () => apiClient.getSiteSettings()
@@ -85,6 +100,29 @@ export function ReviewsPage() {
       return 0;
     });
   }, [reviewsQuery.data?.items, searchText, status, urlTargetId]);
+
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: (reviewsQuery.data?.items ?? []).filter((item) => item.status === "pending").length,
+          tone: "warning"
+        },
+        {
+          label: "当前可见",
+          count: (reviewsQuery.data?.items ?? []).filter((item) => item.status === "visible").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已隐藏",
+          count: (reviewsQuery.data?.items ?? []).filter((item) => item.status === "hidden").length,
+          hideWhenZero: true
+        }
+      ]),
+    [reviewsQuery.data?.items]
+  );
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);
@@ -145,13 +183,16 @@ export function ReviewsPage() {
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="人工审核模式下，评测提交后会先进入待审核状态。" title="当前模式">
+      <AdminPanel
+        description="开启表示新评测先走 AI 审核；关闭表示新评测直接进入人工审核队列。"
+        title="当前模式"
+      >
         <AdminModerationCard
-          autoCopy="机型评测会直接公开。"
-          description="切换后会影响新的评测提交。"
+          aiCopy="新评测会先进入 AI 审核；仍需人工处理的对象会继续停留在当前待审队列。"
+          description="切换后只影响新的评测提交，现有列表继续展示最终状态。"
           enabled={siteSettingsQuery.data?.item.reviewModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="机型评测提交后会先进入待审核状态。"
+          manualCopy="新评测会直接进入人工审核队列，不再按“自动通过”语义处理。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -159,8 +200,62 @@ export function ReviewsPage() {
             void updateModeration(true);
           }}
           pendingCount={(reviewsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           title="评测审核"
         />
+      </AdminPanel>
+
+      <AdminPanel
+        description="展示当前聚焦评测对应的最新 AI 审核记录；如为空，说明该对象还没有落到审核记录链路。"
+        title="审核追踪"
+      >
+        {auditQuery.data?.items?.length ? (
+          <Table
+            bordered
+            columns={[
+              {
+                dataIndex: "status",
+                key: "status",
+                title: "状态",
+                width: 160
+              },
+              {
+                dataIndex: "suggestion",
+                key: "suggestion",
+                render: (value: string | null) => value ?? "—",
+                title: "建议",
+                width: 120
+              },
+              {
+                dataIndex: "scene",
+                key: "scene",
+                render: (value: string | null) => value ?? "—",
+                title: "场景",
+                width: 140
+              },
+              {
+                dataIndex: "errorMessage",
+                key: "errorMessage",
+                render: (value: string | null) => value ?? "—",
+                title: "错误信息"
+              },
+              {
+                dataIndex: "updatedAt",
+                key: "updatedAt",
+                title: "更新时间",
+                width: 180
+              }
+            ]}
+            dataSource={auditQuery.data.items.map((item) => ({ ...item, key: item.id }))}
+            loading={auditQuery.isFetching}
+            pagination={false}
+            rowKey="id"
+            size="small"
+          />
+        ) : (
+          <div className="admin-table-empty">{MODERATION_TRACE_PLACEHOLDER}</div>
+        )}
       </AdminPanel>
 
       <AdminPanel title="评测列表">

@@ -1,4 +1,5 @@
 import { reviewsRepo } from "./reviews.repo";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
@@ -225,9 +226,8 @@ export const reviewsService = {
       return null;
     }
 
-    const status = (await siteSettingsService.getResolvedSettings()).reviewModerationEnabled
-      ? "pending"
-      : "visible";
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForReview();
+    const status = "pending";
     await reviewsRepo.upsertReview({
       modelId: model.id,
       userId,
@@ -243,7 +243,25 @@ export const reviewsService = {
     if (!item || !summary) {
       return null;
     }
-    if (status === "visible" && model.ownerId && model.ownerId !== userId) {
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "review",
+        entityId: item.id,
+        text: input.content
+      });
+      if (audit?.status === "passed") {
+        await this.updateReviewStatus(item.id, "visible");
+      } else if (audit?.status === "rejected") {
+        await this.updateReviewStatus(item.id, "hidden");
+      }
+    }
+
+    const refreshed = await reviewsRepo.getUserReview(model.id, userId);
+    if (!refreshed) {
+      return null;
+    }
+
+    if (refreshed.status === "visible" && model.ownerId && model.ownerId !== userId) {
       await socialService.recordNotification({
         userId: model.ownerId,
         actorId: userId,
@@ -261,16 +279,16 @@ export const reviewsService = {
 
     return {
       item: {
-        ...serializeReview(item),
-        likeCount: item.likeCount ?? 0,
-        reportCount: item.reportCount ?? 0,
+        ...serializeReview(refreshed),
+        likeCount: refreshed.likeCount ?? 0,
+        reportCount: refreshed.reportCount ?? 0,
         author: {
-          ...item.author,
-          avatarUrl: await resolveAuthorAvatar(item.author)
+          ...refreshed.author,
+          avatarUrl: await resolveAuthorAvatar(refreshed.author)
         },
         viewer: {
-          canEdit: userId === item.author.id,
-          canDelete: userId === item.author.id,
+          canEdit: userId === refreshed.author.id,
+          canDelete: userId === refreshed.author.id,
           hasLiked: false,
           hasReported: false
         }

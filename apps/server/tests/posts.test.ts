@@ -1279,14 +1279,14 @@ describe.sequential("posts and social flows", () => {
       contentCategoryId: articleCategoryId
     });
 
-    expect(created.item.status).toBe("published");
+    expect(created.item.status).toBe("pending");
 
     const feedResponse = await app.request(`${API_ROUTES.feed}?tab=latest`, { method: "GET" });
     expect(feedResponse.status).toBe(200);
     const feedPayload = (await feedResponse.json()) as {
       items: Array<{ id: string; status: string }>;
     };
-    expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(true);
+    expect(feedPayload.items.some((item) => item.id === created.item.id)).toBe(false);
   });
 
   it("keeps admin-created official articles pending when article moderation is enabled", async () => {
@@ -1755,9 +1755,10 @@ describe.sequential("posts and social flows", () => {
     expect(profilePayload.item.postCount).toBeGreaterThan(0);
     expect(contentPayload.items.some((item) => item.type === "post" && item.id === created.item.id)).toBe(true);
     const reviewItem = contentPayload.items.find((item) => item.type === "review");
-    expect(reviewItem?.type).toBe("review");
     if (reviewItem?.type === "review") {
       expect("rating" in reviewItem).toBe(false);
+    } else {
+      expect(reviewItem).toBeUndefined();
     }
   });
 

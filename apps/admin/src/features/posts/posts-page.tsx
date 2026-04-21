@@ -6,6 +6,10 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 const statusOptions = [
@@ -77,6 +81,16 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
     },
     enabled: Boolean(detailId)
   });
+  const auditQuery = useQuery({
+    queryKey: ["admin-post-audits", detailId],
+    queryFn: () =>
+      apiClient.listAdminAuditRecords({
+        domain: "post",
+        entityId: detailId ?? undefined,
+        limit: 10
+      }),
+    enabled: Boolean(detailId)
+  });
 
   const items = useMemo(
     () =>
@@ -97,6 +111,34 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [items, searchText]);
+
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: items.filter((item) => item.status === "pending").length,
+          tone: "warning"
+        },
+        {
+          label: "已发布",
+          count: items.filter((item) => item.status === "published").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已驳回",
+          count: items.filter((item) => item.status === "rejected").length,
+          hideWhenZero: true
+        },
+        {
+          label: "已隐藏",
+          count: items.filter((item) => item.status === "hidden").length,
+          hideWhenZero: true
+        }
+      ]),
+    [items]
+  );
 
   const isArticleMode = props.contentType === "article";
   const pageTitle = isArticleMode
@@ -203,13 +245,16 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="这里直接绑定对应的独立审核开关，和总览中心保持同步。" title="当前模式">
+      <AdminPanel
+        description="这里直接绑定对应内容域的审核开关，和总览页保持同步。"
+        title="当前模式"
+      >
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新的内容会直接进入公开链路。"
-          description="开启人工审核后，新内容会先进入当前页面对应的待审核队列。"
+          aiCopy={`新${isArticleMode ? "文章" : "动态"}会先进入 AI 审核；仍需人工处理的对象会留在当前队列。`}
+          description="当前页只展示现有状态流转和队列数量，不额外伪造 AI 明细。"
           enabled={moderationEnabled}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的内容会先进入待审核队列。"
+          manualCopy={`新${isArticleMode ? "文章" : "动态"}会直接进入人工审核队列，不再按“自动通过”理解。`}
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -217,9 +262,65 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
             void updateModeration(true);
           }}
           pendingCount={items.filter((item) => item.status === "pending").length}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           title={pageTitle}
         />
       </AdminPanel>
+
+      {detailId ? (
+        <AdminPanel
+          description="展示当前内容对应的最新 AI 审核记录；如为空，说明该对象还没有落到审核记录链路。"
+          title="审核追踪"
+        >
+          {auditQuery.data?.items?.length ? (
+            <Table
+              bordered
+              columns={[
+                {
+                  dataIndex: "status",
+                  key: "status",
+                  title: "状态",
+                  width: 160
+                },
+                {
+                  dataIndex: "suggestion",
+                  key: "suggestion",
+                  render: (value: string | null) => value ?? "—",
+                  title: "建议",
+                  width: 120
+                },
+                {
+                  dataIndex: "scene",
+                  key: "scene",
+                  render: (value: string | null) => value ?? "—",
+                  title: "场景",
+                  width: 140
+                },
+                {
+                  dataIndex: "errorMessage",
+                  key: "errorMessage",
+                  render: (value: string | null) => value ?? "—",
+                  title: "错误信息"
+                },
+                {
+                  dataIndex: "updatedAt",
+                  key: "updatedAt",
+                  title: "更新时间",
+                  width: 180
+                }
+              ]}
+              dataSource={auditQuery.data.items.map((item) => ({ ...item, key: item.id }))}
+              loading={auditQuery.isFetching}
+              pagination={false}
+              rowKey="id"
+              size="small"
+            />
+          ) : (
+            <div className="admin-table-empty">{MODERATION_TRACE_PLACEHOLDER}</div>
+          )}
+        </AdminPanel>
+      ) : null}
 
       <AdminPanel title={isArticleMode ? "文章列表" : "动态列表"}>
         <Table

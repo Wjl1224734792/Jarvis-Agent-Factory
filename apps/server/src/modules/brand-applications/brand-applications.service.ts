@@ -1,4 +1,5 @@
 import { brandsService } from "../brands/brands.service";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { brandApplicationsRepo } from "./brand-applications.repo";
@@ -84,10 +85,10 @@ export const brandApplicationsService = {
     logoUrl: string | null;
     description: string | null;
   }) {
-    const shouldModerate = await siteSettingsService.shouldModerateBrandApplication();
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForBrandApplication();
     const item = await brandApplicationsRepo.create({
       applicantId: input.applicantId,
-      status: shouldModerate ? "pending" : "approved",
+      status: "pending",
       slug: input.slug,
       name: input.name,
       logoUrl: input.logoUrl,
@@ -96,18 +97,24 @@ export const brandApplicationsService = {
       approvedBrandId: null
     });
 
-    if (!shouldModerate && item) {
-      const approvedBrandId = await createBrandFromApplication({
-        slug: input.slug,
-        name: input.name,
-        logoUrl: input.logoUrl
+    if (aiReviewEnabled && item) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "brand_application",
+        entityId: item.id,
+        text: `${input.name}\n${input.description ?? ""}`
       });
-      const approved = await brandApplicationsRepo.updateStatus(item.id, {
-        status: "approved",
-        approvedBrandId,
-        rejectionReason: null
-      });
-      return { item: await serializeApplicationOrThrow(approved) };
+      if (audit?.status === "passed") {
+        const approved = await this.updateStatus(item.id, "approved");
+        if (approved) {
+          return approved;
+        }
+      }
+      if (audit?.status === "rejected") {
+        const rejected = await this.updateStatus(item.id, "rejected", "Rejected by qiniu text audit.");
+        if (rejected) {
+          return rejected;
+        }
+      }
     }
 
     return { item: await serializeApplicationOrThrow(item) };
@@ -139,9 +146,8 @@ export const brandApplicationsService = {
       return { kind: "forbidden" as const };
     }
 
-    const shouldModerate = await siteSettingsService.shouldModerateBrandApplication();
-    const nextStatus =
-      currentUser.role === "admin" ? current.status : shouldModerate ? "pending" : "approved";
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForBrandApplication();
+    const nextStatus = currentUser.role === "admin" ? current.status : "pending";
     const updated = await brandApplicationsRepo.update(id, {
       status: nextStatus,
       slug: input.slug,
@@ -155,21 +161,24 @@ export const brandApplicationsService = {
       return { kind: "not_found" as const };
     }
 
-    if (currentUser.role !== "admin" && nextStatus === "approved") {
-      let approvedBrandId = updated.approvedBrandId ?? null;
-      if (!approvedBrandId) {
-        approvedBrandId = await createBrandFromApplication({
-          slug: updated.slug,
-          name: updated.name,
-          logoUrl: updated.logoUrl ?? null
-        });
-      }
-      const approved = await brandApplicationsRepo.updateStatus(updated.id, {
-        status: "approved",
-        approvedBrandId,
-        rejectionReason: null
+    if (currentUser.role !== "admin" && aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "brand_application",
+        entityId: updated.id,
+        text: `${input.name}\n${input.description ?? ""}`
       });
-      return { kind: "ok" as const, payload: { item: await serializeApplicationOrThrow(approved) } };
+      if (audit?.status === "passed") {
+        const approved = await this.updateStatus(updated.id, "approved");
+        if (approved) {
+          return { kind: "ok" as const, payload: approved };
+        }
+      }
+      if (audit?.status === "rejected") {
+        const rejected = await this.updateStatus(updated.id, "rejected", "Rejected by qiniu text audit.");
+        if (rejected) {
+          return { kind: "ok" as const, payload: rejected };
+        }
+      }
     }
 
     return { kind: "ok" as const, payload: { item: await serializeApplicationOrThrow(updated) } };

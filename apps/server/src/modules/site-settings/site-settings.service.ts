@@ -85,17 +85,66 @@ export const siteSettingsService = {
       ratingTargetModerationEnabled: updated.ratingTargetModerationEnabled
     };
   },
-  async shouldModeratePost(type: "article" | "moment") {
+  async isAiReviewEnabledForPost(type: "article" | "moment") {
     const settings = await this.getResolvedSettings();
     return type === "article" ? settings.articleModerationEnabled : settings.momentModerationEnabled;
   },
-  async shouldModerateBrandApplication() {
+  async isAiReviewEnabledForBrandApplication() {
     return (await this.getResolvedSettings()).brandModerationEnabled;
   },
-  async shouldModerateModelSubmission() {
+  async isAiReviewEnabledForModelSubmission() {
     return (await this.getResolvedSettings()).modelModerationEnabled;
   },
-  async shouldModerateRatingTarget() {
+  async isAiReviewEnabledForRatingTarget() {
     return (await this.getResolvedSettings()).ratingTargetModerationEnabled;
+  },
+  async isAiReviewEnabledForComment() {
+    return (await this.getResolvedSettings()).commentModerationEnabled;
+  },
+  async isAiReviewEnabledForReview() {
+    return (await this.getResolvedSettings()).reviewModerationEnabled;
+  },
+  async isAiReviewEnabledForRanking() {
+    return (await this.getResolvedSettings()).rankingModerationEnabled;
+  },
+  async isAiReviewEnabledForFileBizType(
+    bizType:
+      | "avatar-image"
+      | "post-image"
+      | "post-video"
+      | "aircraft-cover-image"
+      | "aircraft-video"
+      | "ranking-cover-image"
+      | "ranking-item-image"
+      | "report-image"
+  ) {
+    const settings = await this.getResolvedSettings();
+    switch (bizType) {
+      case "post-image":
+      case "post-video":
+        return settings.postModerationEnabled;
+      case "aircraft-cover-image":
+      case "aircraft-video":
+        return settings.modelModerationEnabled;
+      case "ranking-cover-image":
+      case "ranking-item-image":
+        return settings.rankingModerationEnabled || settings.ratingTargetModerationEnabled;
+      case "avatar-image":
+        return true;
+      case "report-image":
+        return false;
+    }
+  },
+  async shouldModeratePost(type: "article" | "moment") {
+    return this.isAiReviewEnabledForPost(type);
+  },
+  async shouldModerateBrandApplication() {
+    return this.isAiReviewEnabledForBrandApplication();
+  },
+  async shouldModerateModelSubmission() {
+    return this.isAiReviewEnabledForModelSubmission();
+  },
+  async shouldModerateRatingTarget() {
+    return this.isAiReviewEnabledForRatingTarget();
   }
 };

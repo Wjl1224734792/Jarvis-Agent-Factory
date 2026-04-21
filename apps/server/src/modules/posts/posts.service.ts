@@ -7,6 +7,7 @@ import {
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { postsRepo } from "./posts.repo";
@@ -218,6 +219,20 @@ function parseFileIdArray(value: string) {
   } catch {
     return [];
   }
+}
+
+function mapAuditStatusToPostDecision(
+  status: string | null | undefined
+): { status: PostStatus; rejectionReason?: string | null } | null {
+  if (status === "passed") {
+    return { status: "published", rejectionReason: null };
+  }
+
+  if (status === "rejected") {
+    return { status: "rejected", rejectionReason: "Rejected by qiniu text audit." };
+  }
+
+  return null;
 }
 
 async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
@@ -439,24 +454,24 @@ export const postsService = {
       return { kind: "invalid_category" as const };
     }
 
-    const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost(input.type));
-    const status: PostStatus = shouldAutoPublish ? "published" : "pending";
+      const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForPost(input.type);
+      const status: PostStatus = "pending";
 
-    const item = await postsRepo.createPost({
+      const item = await postsRepo.createPost({
       authorId: input.authorId,
       type: input.type,
       title: input.title,
       content: input.content,
       contentHtml: input.contentHtml,
       contentPlainText: input.content,
-      contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
-      coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
-      status,
-      rejectionReason: null,
-      publishedAt: shouldAutoPublish ? new Date() : null,
-      imageIds: uniqueImageIds,
-      videoIds: uniqueVideoIds
-    });
+        contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+        coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
+        status,
+        rejectionReason: null,
+        publishedAt: null,
+        imageIds: uniqueImageIds,
+        videoIds: uniqueVideoIds
+      });
 
     if (!item) {
       return { kind: "not_found" as const };
@@ -484,10 +499,25 @@ export const postsService = {
       }
     });
 
-    return serialized
-      ? {
-          kind: "ok" as const,
-          item: {
+      if (aiReviewEnabled) {
+        const auditRecord = await qiniuAuditService.reviewText({
+          domain: "post",
+          entityId: item.id,
+          text: `${input.title}\n${input.content}`
+        });
+        const decision = mapAuditStatusToPostDecision(auditRecord?.status);
+        if (decision) {
+          const decided = await this.updatePostStatus(item.id, decision.status, decision.rejectionReason);
+          if (decided) {
+            return { kind: "ok" as const, item: { ...decided, content: item.content, comments: [] } };
+          }
+        }
+      }
+
+      return serialized
+        ? {
+            kind: "ok" as const,
+            item: {
             ...serialized,
             content: item.content,
             comments: []
@@ -1032,27 +1062,39 @@ export const postsService = {
       }
     }
 
-    const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost(input.type));
-    const updated = await postsRepo.updatePost({
-      id,
-      ownerId: existing.author.id,
+      const updated = await postsRepo.updatePost({
+        id,
+        ownerId: existing.author.id,
       title: input.title,
       content: input.content,
       contentHtml: input.contentHtml,
-      contentPlainText: input.content,
-      contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
-      coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
-      status: shouldAutoPublish ? "published" : "pending",
-      rejectionReason: null,
-      imageIds: input.imageIds,
-      videoIds: input.videoIds
+        contentPlainText: input.content,
+        contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+        coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
+        status: "pending",
+        rejectionReason: null,
+        imageIds: input.imageIds,
+        videoIds: input.videoIds
     });
 
     if (!updated) {
       return { kind: "not_found" as const };
     }
 
-    const payload = await this.getPostDetail(id, currentUser, { commentSort: "hot" });
+      const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForPost(input.type);
+      if (aiReviewEnabled) {
+        const auditRecord = await qiniuAuditService.reviewText({
+          domain: "post",
+          entityId: updated.id,
+          text: `${input.title}\n${input.content}`
+        });
+        const decision = mapAuditStatusToPostDecision(auditRecord?.status);
+        if (decision) {
+          await this.updatePostStatus(updated.id, decision.status, decision.rejectionReason);
+        }
+      }
+
+      const payload = await this.getPostDetail(id, currentUser, { commentSort: "hot" });
     if (!payload) {
       return { kind: "not_found" as const };
     }

@@ -82,7 +82,8 @@ export const API_ROUTES = {
     messages: "/admin/messages",
     messagesReadAll: "/admin/messages/read-all",
     messageRead: (id: string) => `/admin/messages/${id}/read`,
-    messageTodos: "/admin/messages/todos"
+    messageTodos: "/admin/messages/todos",
+    audits: "/admin/audits"
   },
   auth: {
     captchaChallenge: "/auth/captcha/challenge",
@@ -165,6 +166,9 @@ export const API_ROUTES = {
     notifications: "/notifications",
     notificationsReadAll: "/notifications/read-all",
     notificationRead: (id: string) => `/notifications/${id}/read`
+  },
+  audits: {
+    qiniuCallback: "/internal/audits/qiniu/callback"
   },
   rankings: {
     overview: "/rankings",

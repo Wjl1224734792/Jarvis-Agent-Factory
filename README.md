@@ -223,17 +223,23 @@ Stop-Process -Id <PID> -Force
 
 对象存储：
 
-- `STORAGE_PROVIDER=oss` 对接阿里云 OSS。
-- `STORAGE_PROVIDER=cos` 对接腾讯云 COS。
-- `STORAGE_PROVIDER=kodo` 或 `STORAGE_PROVIDER=qiniu` 对接七牛云 Kodo。
-- `minio / oss / cos` 继续走 S3 兼容接口，核心配置是 `STORAGE_ENDPOINT`、`STORAGE_REGION`、`STORAGE_BUCKET`、`STORAGE_ACCESS_KEY_ID`、`STORAGE_SECRET_ACCESS_KEY`。
-- `kodo / qiniu` 现已切换为七牛官方 `qiniu` SDK：服务端生成 upload token 与下载 URL，前端按表单上传直传对象存储。
-- `kodo / qiniu` 下的 `STORAGE_ENDPOINT` 应配置为上传域名，例如 `https://up-z0.qiniup.com`；如需固定区域，可额外配置 `KODO_REGION_ID`。
-- `kodo / qiniu` 强烈建议显式配置 `STORAGE_PUBLIC_BASE_URL` 为绑定的下载域名或 CDN 域名，避免依赖上传域名推导读地址。
+- `STORAGE_PROVIDER=minio`：仅用于本地开发 / 测试。
+- `STORAGE_PROVIDER=kodo`：用于开发 / 生产，对接七牛云 Kodo。
+- `minio` 继续走本地 S3 兼容链路；`kodo` 已切换为七牛官方 `qiniu` SDK：服务端生成 upload token 与下载 URL，前端按表单上传直传对象存储。
+- `kodo` 下的 `STORAGE_ENDPOINT` 应配置为上传域名，例如 `https://up-z0.qiniup.com`；如需固定区域，可额外配置 `KODO_REGION_ID`。
+- `kodo` 强烈建议显式配置 `STORAGE_PUBLIC_BASE_URL` 为绑定的下载域名或 CDN 域名，避免依赖上传域名推导读地址。
 - 云厂商环境请显式设置 `STORAGE_FORCE_PATH_STYLE=false`；`true` 只适合 MinIO 等本地 S3 兼容存储。
 - 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
 - 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。
-- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；切到 `kodo / qiniu` 后请改为手动上传示例资源，或继续用 MinIO 承担本地种子资源。
+- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；切到 `kodo` 后请改为手动上传示例资源，或继续用 MinIO 承担本地种子资源。
+
+审核：
+
+- 文本审核使用七牛文本审核 API。
+- 图片走七牛图片审核接口；视频走七牛视频审核接口与回调。
+- 视频审核回调依赖 `PUBLIC_SERVER_BASE_URL` 为公网可访问地址；本地联调通常需要 tunnel。
+- 当前项目默认将审核结果落库，并通过现有系统消息链路通知用户状态变化。
+- 后台开关语义已从“自动通过 / 人工审核”转向“AI审核 / 人工审核”：关闭 AI 审核时，内容进入后台人工审核队列，不再自动通过。
 
 日志源：
 

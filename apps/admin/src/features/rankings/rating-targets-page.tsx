@@ -6,6 +6,10 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type ItemStatus = "pending" | "published" | "rejected" | "hidden";
@@ -96,6 +100,33 @@ export function RatingTargetsPage() {
       )
     );
   }, [itemsQuery.data?.items, searchText, urlRankingId]);
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: (itemsQuery.data?.items ?? []).filter((item) => item.status === "pending").length,
+          tone: "warning"
+        },
+        {
+          label: "已发布",
+          count: (itemsQuery.data?.items ?? []).filter((item) => item.status === "published").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已驳回",
+          count: (itemsQuery.data?.items ?? []).filter((item) => item.status === "rejected").length,
+          hideWhenZero: true
+        },
+        {
+          label: "已隐藏",
+          count: (itemsQuery.data?.items ?? []).filter((item) => item.status === "hidden").length,
+          hideWhenZero: true
+        }
+      ]),
+    [itemsQuery.data?.items]
+  );
 
   async function updateModeration(enabled: boolean) {
     setIsSavingSettings(true);
@@ -173,13 +204,16 @@ export function RatingTargetsPage() {
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
       {actionError ? <div className="admin-login__error">{actionError}</div> : null}
 
-      <AdminPanel description="评分对象使用独立审核开关，和总览中心保持同步。" title="当前模式">
+      <AdminPanel
+        description="评分对象使用独立审核开关，和总览页保持同步。"
+        title="当前模式"
+      >
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新评分对象会直接进入已发布状态。"
-          description="开启人工审核后，新评分对象会先进入审核队列。"
+          aiCopy="新评分对象会先进入 AI 审核；仍需人工处理的对象会继续留在当前队列。"
+          description="当前页只展示现有状态流转、举报数量和队列规模。"
           enabled={siteSettingsQuery.data?.item.ratingTargetModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的评分对象会先进入待审核队列。"
+          manualCopy="新评分对象会直接进入人工审核队列，不再按“自动发布”理解。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -187,6 +221,8 @@ export function RatingTargetsPage() {
             void updateModeration(true);
           }}
           pendingCount={(itemsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           title="评分对象审核"
         />
       </AdminPanel>

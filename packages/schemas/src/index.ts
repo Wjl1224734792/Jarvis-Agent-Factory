@@ -1,4 +1,5 @@
 export * from "./health";
+export * from "./audits";
 export * from "./files";
 export * from "./auth";
 export * from "./phone";

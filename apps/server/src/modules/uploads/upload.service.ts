@@ -4,6 +4,7 @@ import {
   initUploadResponseSchema,
   type FileBizType
 } from "@feijia/schemas";
+import { API_ROUTES } from "@feijia/shared";
 import {
   buildStorageObjectUrl,
   createStorageProvider,
@@ -12,6 +13,8 @@ import {
 } from "../../lib/storage-provider";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { siteSettingsService } from "../site-settings/site-settings.service";
 import { getUploadPolicy, isAllowedUploadMime } from "./upload.policy";
 import { uploadsRepo, type StoredFileRecord } from "./upload.repo";
 import { resolveUploadedFileUrl } from "./uploads.helpers";
@@ -62,6 +65,42 @@ function serializeFileItem(file: NonNullable<StoredFileRecord>) {
 function formatLimitMb(maxSize: number) {
   const sizeInMb = maxSize / (1024 * 1024);
   return Number.isInteger(sizeInMb) ? `${sizeInMb}` : sizeInMb.toFixed(2);
+}
+
+async function triggerMediaAuditIfNeeded(file: NonNullable<StoredFileRecord>) {
+  const config = resolveStorageProviderConfig();
+  if (config.provider !== "kodo") {
+    return;
+  }
+
+  const aiEnabled = await siteSettingsService.isAiReviewEnabledForFileBizType(file.bizType as FileBizType);
+  if (!aiEnabled) {
+    return;
+  }
+
+  const objectUrl = buildStorageObjectUrl(config, file.objectKey);
+  if (file.mediaKind === "image") {
+    await qiniuAuditService.reviewImage({
+      domain: "file",
+      entityId: file.id,
+      imageUrl: objectUrl
+    });
+    return;
+  }
+
+  if (file.mediaKind === "video") {
+    const baseUrl = process.env.PUBLIC_SERVER_BASE_URL?.trim();
+    if (!baseUrl) {
+      return;
+    }
+
+    await qiniuAuditService.submitVideoReview({
+      domain: "file",
+      entityId: file.id,
+      videoUrl: objectUrl,
+      callbackUrl: `${baseUrl}${API_ROUTES.audits.qiniuCallback}`
+    });
+  }
 }
 
 export const uploadsService = {
@@ -157,6 +196,7 @@ export const uploadsService = {
 
     const baseItem = serializeFileItem(uploaded);
     const resolvedUrl = await resolveUploadedFileUrl(uploaded.id);
+    await triggerMediaAuditIfNeeded(uploaded);
 
     return {
       kind: "ok" as const,

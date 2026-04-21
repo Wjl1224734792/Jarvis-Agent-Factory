@@ -3,10 +3,15 @@ import { Button, Empty, Image, Input, Modal, Segmented, Space, Table, Tag } from
 import { APP_ROUTES } from "@feijia/shared";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { promptRejectionReason } from "../../lib/moderation-actions";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   formatCommunityRankingStatus,
@@ -107,6 +112,23 @@ export function RankingsPage() {
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [communityRankingsQuery.data?.items, searchText]);
+  const moderationTraceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "官方榜单",
+          count: filteredOfficialItems.length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: communityFilter === "pending" ? "当前待处理" : "当前筛选结果",
+          count: filteredCommunityItems.length,
+          tone: communityFilter === "pending" ? "warning" : "default"
+        }
+      ]),
+    [communityFilter, filteredCommunityItems.length, filteredOfficialItems.length]
+  );
 
   async function updateModerationSetting(enabled: boolean) {
     const current = siteSettingsQuery.data?.item;
@@ -247,34 +269,45 @@ export function RankingsPage() {
         </AdminPanel>
 
         <AdminPanel
+          description="开启表示社区榜单先走 AI 审核；关闭表示社区榜单直接进入人工审核队列。"
+          title="当前模式"
+        >
+          <AdminModerationCard
+            aiCopy="新社区榜单会先进入 AI 审核；仍需人工处理的对象会继续留在当前审核页。"
+            description="当前页的社区榜单状态按筛选逐次加载，先展示可核对的筛选结果和队列规模。"
+            enabled={siteSettingsQuery.data?.item.rankingModerationEnabled ?? true}
+            loading={isUpdatingSetting || siteSettingsQuery.isFetching}
+            manualCopy="新社区榜单会直接进入人工审核队列，不再按“自动通过”理解。"
+            onDisable={() => {
+              void updateModerationSetting(false);
+            }}
+            onEnable={() => {
+              void updateModerationSetting(true);
+            }}
+            pendingCount={filteredCommunityItems.length}
+            queueLabel={communityFilter === "pending" ? "当前待处理" : "当前筛选结果"}
+            traceHint={`${MODERATION_TRACE_PLACEHOLDER} 当前页的社区榜单状态分布会随筛选逐次加载。`}
+            traceItems={moderationTraceItems}
+            title="榜单审核"
+          />
+        </AdminPanel>
+
+        <AdminPanel
           actions={
-            <Space wrap>
-              <Segmented
-                disabled={isUpdatingSetting}
-                onChange={(value) => {
-                  void updateModerationSetting(Boolean(value));
-                }}
-                options={[
-                  { label: "人工审核", value: true },
-                  { label: "自动通过", value: false }
-                ]}
-                value={siteSettingsQuery.data?.item.rankingModerationEnabled ?? true}
-              />
-              <Segmented
-                onChange={(value) => {
-                  if (isAdminRankingStatus(value)) {
-                    setCommunityFilter(value);
-                    setSearchParams((current) => {
-                      const next = new URLSearchParams(current);
-                      next.set("status", value);
-                      return next;
-                    });
-                  }
-                }}
-                options={communityStatusOptions}
-                value={communityFilter}
-              />
-            </Space>
+            <Segmented
+              onChange={(value) => {
+                if (isAdminRankingStatus(value)) {
+                  setCommunityFilter(value);
+                  setSearchParams((current) => {
+                    const next = new URLSearchParams(current);
+                    next.set("status", value);
+                    return next;
+                  });
+                }
+              }}
+              options={communityStatusOptions}
+              value={communityFilter}
+            />
           }
           description="社区榜单进入待审核、发布、驳回、隐藏链路。"
           title="社区榜单审核"

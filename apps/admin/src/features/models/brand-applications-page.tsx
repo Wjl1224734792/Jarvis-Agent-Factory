@@ -6,6 +6,10 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type BrandApplicationRecord = Awaited<
@@ -91,6 +95,28 @@ export function BrandApplicationsPage() {
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [applicationsQuery.data?.items, searchText, status]);
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: (applicationsQuery.data?.items ?? []).filter((item) => item.status === "pending").length,
+          tone: "warning"
+        },
+        {
+          label: "已通过",
+          count: (applicationsQuery.data?.items ?? []).filter((item) => item.status === "approved").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已驳回",
+          count: (applicationsQuery.data?.items ?? []).filter((item) => item.status === "rejected").length,
+          hideWhenZero: true
+        }
+      ]),
+    [applicationsQuery.data?.items]
+  );
 
   async function updateStatus(
     id: string,
@@ -173,17 +199,19 @@ export function BrandApplicationsPage() {
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
       <AdminPanel
-        title="Moderation Mode"
-        description="Brand applications use their own moderation switch and remain aligned with the admin overview counters."
+        title="审核模式"
+        description="品牌申请使用独立审核开关，和总览页保持同步。"
       >
         <AdminModerationCard
-          title="Brand Application Moderation"
-          description="When manual moderation is enabled, new brand applications stay in the review queue."
-          manualCopy="New brand applications will enter the moderation queue first."
-          autoCopy="When manual moderation is disabled, new brand applications go straight into the brand library."
+          title="品牌申请审核"
+          description="当前页先展示已接入的状态流转与队列数量。"
+          aiCopy="新品牌申请会先进入 AI 审核；仍需人工处理的对象会继续停留在当前队列。"
+          manualCopy="新品牌申请会直接进入人工审核队列，不再按“自动通过”理解。"
           enabled={siteSettingsQuery.data?.item.brandModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
           pendingCount={(applicationsQuery.data?.items ?? []).filter((item) => item.status === "pending").length}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           onEnable={() => {
             void updateModeration(true);
           }}

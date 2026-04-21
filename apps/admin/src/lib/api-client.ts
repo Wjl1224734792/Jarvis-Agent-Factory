@@ -248,6 +248,9 @@ const rawApiClient = {
   getAdminAnalyticsOverview() {
     return sharedClient.getAdminAnalyticsOverview();
   },
+  listAdminAuditRecords(input?: Parameters<typeof sharedClient.listAdminAuditRecords>[0]) {
+    return sharedClient.listAdminAuditRecords(input);
+  },
   getAdminLogsOverview(input?: { source?: string }) {
     return sharedClient.getAdminLogsOverview(input);
   },

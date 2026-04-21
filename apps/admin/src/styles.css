@@ -537,6 +537,8 @@ body {
 .admin-trend-chart__column,
 .admin-moderation-card,
 .admin-moderation-card__status,
+.admin-moderation-card__body,
+.admin-moderation-card__trace,
 .admin-quick-grid {
   display: grid;
   gap: 12px;
@@ -618,6 +620,45 @@ body {
   display: flex;
   flex-wrap: wrap;
   gap: 10px;
+}
+
+.admin-moderation-card__trace-list {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-moderation-card__trace-item {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: space-between;
+  padding: 10px 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 16px;
+  background: var(--admin-surface-muted);
+}
+
+.admin-moderation-card__trace-label,
+.admin-moderation-card__hint {
+  color: var(--admin-muted);
+}
+
+.admin-moderation-card__trace-value {
+  color: var(--admin-text-strong);
+  font-weight: 600;
+}
+
+.admin-moderation-card__trace-value.is-success {
+  color: var(--admin-success-text);
+}
+
+.admin-moderation-card__trace-value.is-warning {
+  color: var(--admin-warning-text);
+}
+
+.admin-moderation-card__trace-value.is-muted {
+  color: var(--admin-muted);
+  font-weight: 500;
 }
 
 .admin-moderation-grid {

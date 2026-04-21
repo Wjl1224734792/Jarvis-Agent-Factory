@@ -1,5 +1,6 @@
 export { db, dbPool } from "./client.js";
 export {
+  auditRecordsTable,
   aircraftSubmissionsTable,
   aircraftCategoriesTable,
   aircraftModelsTable,

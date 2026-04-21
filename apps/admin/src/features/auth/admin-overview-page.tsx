@@ -25,6 +25,10 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
   adminMessagesQueryKey,
@@ -387,56 +391,167 @@ export function AdminOverviewPage() {
     {
       key: "article",
       title: "文章审核",
+      description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
+      aiCopy: "新文章会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
       enabled: siteSettings?.articleModerationEnabled ?? true,
       pendingCount: analytics?.moderation.posts.pending ?? 0,
+      queueLabel: "合并待处理",
+      traceItems: buildModerationTraceItems([
+        {
+          label: "文章/动态已通过",
+          count: analytics?.moderation.posts.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
+      manualCopy: "新文章会直接进入人工审核队列，不再按“自动通过”理解。",
       onEnable: async () => updateSiteSettings({ articleModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ articleModerationEnabled: false })
     },
     {
       key: "moment",
       title: "飞友圈动态",
+      description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
+      aiCopy: "新动态会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
       enabled: siteSettings?.momentModerationEnabled ?? true,
       pendingCount: analytics?.moderation.posts.pending ?? 0,
+      queueLabel: "合并待处理",
+      traceItems: buildModerationTraceItems([
+        {
+          label: "文章/动态已通过",
+          count: analytics?.moderation.posts.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
+      manualCopy: "新动态会直接进入人工审核队列，不再按“自动通过”理解。",
       onEnable: async () => updateSiteSettings({ momentModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ momentModerationEnabled: false })
     },
     {
       key: "comment",
       title: "评论审核",
+      description: "总览页先展示统一评论队列，细分评论域请进入评论审核页。",
+      aiCopy: "新评论会先进入 AI 审核；仍需人工处理的对象继续留在统一审核队列。",
       enabled: siteSettings?.commentModerationEnabled ?? true,
       pendingCount: analytics?.moderation.comments.pending ?? 0,
+      traceItems: buildModerationTraceItems([
+        {
+          label: "当前可见",
+          count: analytics?.moderation.comments.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "驳回/隐藏",
+          count: analytics?.funnel.comments.rejectedOrHidden ?? 0,
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: MODERATION_TRACE_PLACEHOLDER,
+      manualCopy: "新评论会直接进入人工审核队列，不再按“自动显示”处理。",
       onEnable: async () => updateSiteSettings({ commentModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ commentModerationEnabled: false })
     },
     {
       key: "brand",
       title: "品牌申请",
+      description: "这里先展示品牌申请的最终状态和待处理数量。",
+      aiCopy: "新品牌申请会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
       enabled: siteSettings?.brandModerationEnabled ?? true,
       pendingCount: analytics?.moderation.brandApplications.pending ?? 0,
+      traceItems: buildModerationTraceItems([
+        {
+          label: "已通过",
+          count: analytics?.moderation.brandApplications.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "驳回/隐藏",
+          count: analytics?.funnel.brandApplications.rejectedOrHidden ?? 0,
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: MODERATION_TRACE_PLACEHOLDER,
+      manualCopy: "新品牌申请会直接进入人工审核队列，不再按“自动通过”理解。",
       onEnable: async () => updateSiteSettings({ brandModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ brandModerationEnabled: false })
     },
     {
       key: "model",
       title: "机型投稿",
+      description: "这里先展示机型投稿的最终状态和待处理数量。",
+      aiCopy: "新投稿会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
       enabled: siteSettings?.modelModerationEnabled ?? true,
       pendingCount: analytics?.moderation.submissions.pending ?? 0,
+      traceItems: buildModerationTraceItems([
+        {
+          label: "已通过",
+          count: analytics?.moderation.submissions.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "驳回/隐藏",
+          count: analytics?.funnel.submissions.rejectedOrHidden ?? 0,
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: MODERATION_TRACE_PLACEHOLDER,
+      manualCopy: "新投稿会直接进入人工审核队列，不再按“自动通过”理解。",
       onEnable: async () => updateSiteSettings({ modelModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ modelModerationEnabled: false })
     },
     {
       key: "ranking",
       title: "榜单审核",
+      description: "这里先展示榜单本体的最终状态和待处理数量。",
+      aiCopy: "新社区榜单会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
       enabled: siteSettings?.rankingModerationEnabled ?? true,
       pendingCount: analytics?.moderation.rankings.pending ?? 0,
+      traceItems: buildModerationTraceItems([
+        {
+          label: "已发布",
+          count: analytics?.moderation.rankings.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "驳回/隐藏",
+          count: analytics?.funnel.rankings.rejectedOrHidden ?? 0,
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: MODERATION_TRACE_PLACEHOLDER,
+      manualCopy: "新社区榜单会直接进入人工审核队列，不再按“自动通过”理解。",
       onEnable: async () => updateSiteSettings({ rankingModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ rankingModerationEnabled: false })
     },
     {
       key: "ratingTarget",
       title: "评分对象",
+      description: "这里先展示评分对象的最终状态和待处理数量。",
+      aiCopy: "新评分对象会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
       enabled: siteSettings?.ratingTargetModerationEnabled ?? true,
       pendingCount: analytics?.moderation.ratingTargets.pending ?? 0,
+      traceItems: buildModerationTraceItems([
+        {
+          label: "已发布",
+          count: analytics?.moderation.ratingTargets.approved ?? 0,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "驳回/隐藏",
+          count: analytics?.funnel.ratingTargets.rejectedOrHidden ?? 0,
+          hideWhenZero: true
+        }
+      ]),
+      traceHint: MODERATION_TRACE_PLACEHOLDER,
+      manualCopy: "新评分对象会直接进入人工审核队列，不再按“自动发布”理解。",
       onEnable: async () => updateSiteSettings({ ratingTargetModerationEnabled: true }),
       onDisable: async () => updateSiteSettings({ ratingTargetModerationEnabled: false })
     }
@@ -460,7 +575,7 @@ export function AdminOverviewPage() {
 
   const topStats = [
     {
-      label: "待处理审核",
+      label: "审核待办",
       value: todosQuery.data?.pendingCount ?? 0,
       icon: <FileSearchOutlined />
     },
@@ -753,9 +868,12 @@ export function AdminOverviewPage() {
                   <div className="admin-moderation-grid admin-moderation-grid--wide">
                     {moderationCards.map((item) => (
                       <AdminModerationCard
+                        aiCopy={item.aiCopy}
+                        description={item.description}
                         enabled={item.enabled}
                         key={item.key}
                         loading={isSavingSettings}
+                        manualCopy={item.manualCopy}
                         onDisable={() => {
                           void item.onDisable();
                         }}
@@ -763,6 +881,9 @@ export function AdminOverviewPage() {
                           void item.onEnable();
                         }}
                         pendingCount={item.pendingCount}
+                        queueLabel={item.queueLabel}
+                        traceHint={item.traceHint}
+                        traceItems={item.traceItems}
                         title={item.title}
                       />
                     ))}

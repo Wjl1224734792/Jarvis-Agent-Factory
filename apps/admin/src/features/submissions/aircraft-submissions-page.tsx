@@ -6,6 +6,10 @@ import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
+import {
+  buildModerationTraceItems,
+  MODERATION_TRACE_PLACEHOLDER
+} from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 
 type SubmissionRecord = Awaited<ReturnType<typeof apiClient.listAdminAircraftSubmissions>>["items"][number];
@@ -107,6 +111,28 @@ export function AircraftSubmissionsPage() {
       ].some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [submissionsQuery.data?.items, searchText, status]);
+  const traceItems = useMemo(
+    () =>
+      buildModerationTraceItems([
+        {
+          label: "待处理队列",
+          count: (submissionsQuery.data?.items ?? []).filter((item) => item.status === "submitted").length,
+          tone: "warning"
+        },
+        {
+          label: "已通过",
+          count: (submissionsQuery.data?.items ?? []).filter((item) => item.status === "approved").length,
+          tone: "success",
+          hideWhenZero: true
+        },
+        {
+          label: "已驳回",
+          count: (submissionsQuery.data?.items ?? []).filter((item) => item.status === "rejected").length,
+          hideWhenZero: true
+        }
+      ]),
+    [submissionsQuery.data?.items]
+  );
 
   function updateStatus(id: string, status: "approved" | "rejected", rejectionReason?: string | null) {
     setError(null);
@@ -183,13 +209,16 @@ export function AircraftSubmissionsPage() {
       {error ? <div className="admin-login__error">{error}</div> : null}
       {settingsError ? <div className="admin-login__error">{settingsError}</div> : null}
 
-      <AdminPanel description="机型投稿使用独立审核开关，和总览中心保持同步。" title="当前模式">
+      <AdminPanel
+        description="机型投稿使用独立审核开关，和总览页保持同步。"
+        title="当前模式"
+      >
         <AdminModerationCard
-          autoCopy="关闭人工审核后，新的投稿会自动进入通过链路。"
-          description="开启人工审核后，新的投稿会先进入待审核队列。"
+          aiCopy="新投稿会先进入 AI 审核；仍需人工处理的对象会继续保留在当前队列。"
+          description="当前页先展示已接入的状态流转与队列数量。"
           enabled={siteSettingsQuery.data?.item.modelModerationEnabled ?? true}
           loading={isSavingSettings || siteSettingsQuery.isFetching}
-          manualCopy="新的机型投稿会保持 submitted 状态，等待人工审核。"
+          manualCopy="新投稿会直接保持 submitted 状态，等待人工审核。"
           onDisable={() => {
             void updateModeration(false);
           }}
@@ -197,6 +226,8 @@ export function AircraftSubmissionsPage() {
             void updateModeration(true);
           }}
           pendingCount={(submissionsQuery.data?.items ?? []).filter((item) => item.status === "submitted").length}
+          traceHint={MODERATION_TRACE_PLACEHOLDER}
+          traceItems={traceItems}
           title="机型投稿审核"
         />
       </AdminPanel>

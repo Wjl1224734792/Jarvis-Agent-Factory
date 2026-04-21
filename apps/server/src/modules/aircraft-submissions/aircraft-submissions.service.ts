@@ -1,5 +1,6 @@
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
@@ -222,7 +223,7 @@ export const aircraftSubmissionsService = {
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
-    const moderation = await siteSettingsService.getResolvedSettings();
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForModelSubmission();
     if (input.videoFileId) {
       const videoAsset = await aircraftSubmissionsRepo.getOwnedVideoAsset(
         input.authorId,
@@ -257,13 +258,35 @@ export const aircraftSubmissionsService = {
       approvedModelId: null
     });
 
-    if (!moderation.modelModerationEnabled && item) {
-      const approved = await this.updateSubmissionStatus(item.id, "approved");
-      if (!approved) {
-        return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
-      }
+    if (aiReviewEnabled && item) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "aircraft_submission",
+        entityId: item.id,
+        text: [
+          input.proposedBrandName ?? "",
+          input.modelName,
+          input.summary ?? "",
+          input.description ?? ""
+        ].filter(Boolean).join("\n")
+      });
+      if (audit?.status === "passed") {
+        const approved = await this.updateSubmissionStatus(item.id, "approved");
+        if (!approved) {
+          return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
+        }
 
-      return { kind: "ok" as const, item: approved.item };
+        return { kind: "ok" as const, item: approved.item };
+      }
+      if (audit?.status === "rejected") {
+        const rejected = await this.updateSubmissionStatus(
+          item.id,
+          "rejected",
+          "Rejected by qiniu text audit."
+        );
+        if (rejected) {
+          return { kind: "ok" as const, item: rejected.item };
+        }
+      }
     }
 
     return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };

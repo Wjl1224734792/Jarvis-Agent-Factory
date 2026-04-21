@@ -127,6 +127,54 @@ export const siteSettingsTable = pgTable("site_settings", {
     .notNull()
 });
 
+export const auditRecordsTable = pgTable("audit_records", {
+  id: text("id").primaryKey(),
+  domain: text("domain").notNull(),
+  entityId: text("entity_id").notNull(),
+  contentType: text("content_type").notNull(),
+  provider: text("provider").default("qiniu").notNull(),
+  mode: text("mode").notNull(),
+  status: text("status").notNull(),
+  suggestion: text("suggestion"),
+  scene: text("scene"),
+  requestId: text("request_id"),
+  taskId: text("task_id"),
+  detailLabels: text("detail_labels").default("[]").notNull(),
+  sceneSuggestions: text("scene_suggestions").default("{}").notNull(),
+  rawPayload: text("raw_payload").default("{}").notNull(),
+  errorMessage: text("error_message"),
+  callbackReceivedAt: timestamp("callback_received_at", { withTimezone: true }),
+  resolvedAt: timestamp("resolved_at", { withTimezone: true }),
+  reviewedBy: text("reviewed_by"),
+  reviewNote: text("review_note"),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .defaultNow()
+    .notNull(),
+  updatedAt: timestamp("updated_at", { withTimezone: true })
+    .defaultNow()
+    .notNull()
+}, (table) => ({
+  domainEntityIdx: index("audit_records_domain_entity_idx").on(table.domain, table.entityId),
+  statusIdx: index("audit_records_status_idx").on(table.status),
+  providerIdx: index("audit_records_provider_idx").on(table.provider),
+  contentTypeCheck: check(
+    "audit_records_content_type_check",
+    sql`${table.contentType} IN ('text', 'image', 'video', 'mixed')`
+  ),
+  providerCheck: check(
+    "audit_records_provider_check",
+    sql`${table.provider} IN ('qiniu')`
+  ),
+  modeCheck: check(
+    "audit_records_mode_check",
+    sql`${table.mode} IN ('ai', 'manual')`
+  ),
+  statusCheck: check(
+    "audit_records_status_check",
+    sql`${table.status} IN ('queued', 'running', 'passed', 'rejected', 'needs_manual_review', 'failed', 'manual_passed', 'manual_rejected')`
+  )
+}));
+
 export const aircraftCategoriesTable = pgTable(
   "aircraft_categories",
   {

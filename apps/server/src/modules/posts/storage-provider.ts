@@ -194,16 +194,27 @@ export function isStorageProviderExplicitlyConfigured(env: EnvLike = process.env
 }
 
 export function resolveStorageProviderConfig(env: EnvLike = process.env): StorageProviderConfig {
-  const providerRaw = (env.STORAGE_PROVIDER ?? "minio").toLowerCase().trim() as StorageProviderEnvValue;
+  const isTestEnv = env.NODE_ENV === "test";
+  const providerRaw = (isTestEnv ? "minio" : env.STORAGE_PROVIDER ?? "minio")
+    .toLowerCase()
+    .trim() as StorageProviderEnvValue;
   const normalizedProvider = providerRaw === "qiniu" ? "kodo" : providerRaw;
   if (!["minio", "cos", "oss", "kodo"].includes(normalizedProvider)) {
     throw new Error("Invalid STORAGE_PROVIDER. Expected minio|cos|oss|kodo|qiniu.");
   }
 
-  const endpoint = env.STORAGE_ENDPOINT?.trim();
-  const bucket = env.STORAGE_BUCKET?.trim();
-  const accessKeyId = env.STORAGE_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = env.STORAGE_SECRET_ACCESS_KEY?.trim();
+  const endpoint = isTestEnv
+    ? env.TEST_STORAGE_ENDPOINT?.trim() || "http://localhost:9000"
+    : env.STORAGE_ENDPOINT?.trim();
+  const bucket = isTestEnv
+    ? env.TEST_STORAGE_BUCKET?.trim() || "feijia-media"
+    : env.STORAGE_BUCKET?.trim();
+  const accessKeyId = isTestEnv
+    ? env.TEST_STORAGE_ACCESS_KEY_ID?.trim() || "minioadmin"
+    : env.STORAGE_ACCESS_KEY_ID?.trim();
+  const secretAccessKey = isTestEnv
+    ? env.TEST_STORAGE_SECRET_ACCESS_KEY?.trim() || "minioadmin123"
+    : env.STORAGE_SECRET_ACCESS_KEY?.trim();
 
   if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
@@ -212,14 +223,17 @@ export function resolveStorageProviderConfig(env: EnvLike = process.env): Storag
   }
 
   const provider: StorageProvider = normalizedProvider;
-  const forcePathStyle = parseBoolean(env.STORAGE_FORCE_PATH_STYLE, provider === "minio");
+  const forcePathStyle = parseBoolean(
+    isTestEnv ? env.TEST_STORAGE_FORCE_PATH_STYLE : env.STORAGE_FORCE_PATH_STYLE,
+    provider === "minio"
+  );
   const publicBaseUrlIsExplicit = Boolean(env.STORAGE_PUBLIC_BASE_URL?.trim());
 
   return {
     provider,
     endpoint,
     bucket,
-    region: env.STORAGE_REGION?.trim() || "us-east-1",
+    region: (isTestEnv ? env.TEST_STORAGE_REGION : env.STORAGE_REGION)?.trim() || "us-east-1",
     accessKeyId,
     secretAccessKey,
     keyPrefix: normalizePrefix(env.STORAGE_KEY_PREFIX),

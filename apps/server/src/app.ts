@@ -8,6 +8,7 @@ import { adminLogsRoute } from './modules/admin-logs/admin-logs.route';
 import { adminReportsRoute } from './modules/admin-reports/admin-reports.route';
 import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.route';
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
+import { auditsRoute } from './modules/audits/audits.route';
 import { authRoute } from './modules/auth/auth.route';
 import { brandApplicationsRoute } from './modules/brand-applications/brand-applications.route';
 import { brandsRoute } from './modules/brands/brands.route';
@@ -189,6 +190,7 @@ app.get('/', c =>
 
 app.route(APP_ROUTES.health, healthRoute);
 app.route('/', authRoute);
+app.route('/', auditsRoute);
 app.route('/', uploadsRoute);
 app.route('/', postsRoute);
 app.route('/', socialRoute);

@@ -1,5 +1,7 @@
 import {
   actionSuccessResponseSchema,
+  adminAuditRecordListQuerySchema,
+  adminAuditRecordListResponseSchema,
   adminRankingsResponseSchema,
   adminRecentSessionsResponseSchema,
   brandApplicationResponseSchema,
@@ -236,6 +238,7 @@ type SearchQueryInput = Parameters<typeof searchQuerySchema.parse>[0];
 type AdminLogFilesQueryInput = Parameters<typeof adminLogFilesQuerySchema.parse>[0];
 type AdminLogEntriesQueryInput = Parameters<typeof adminLogEntriesQuerySchema.parse>[0];
 type AdminMessageListQueryInput = Parameters<typeof adminMessageListQuerySchema.parse>[0];
+type AdminAuditRecordListQueryInput = Parameters<typeof adminAuditRecordListQuerySchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -444,6 +447,19 @@ function buildAdminMessageListQueryString(input: AdminMessageListQueryInput = {}
   search.set("limit", String(query.limit));
   const queryString = search.toString();
   return queryString.length > 0 ? `?${queryString}` : "";
+}
+
+function buildAdminAuditRecordListQueryString(input: AdminAuditRecordListQueryInput = {}): string {
+  const query = adminAuditRecordListQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  if (query.domain) {
+    search.set("domain", query.domain);
+  }
+  if (query.entityId) {
+    search.set("entityId", query.entityId);
+  }
+  search.set("limit", String(query.limit));
+  return `?${search.toString()}`;
 }
 
 // 这里是前后端共享契约的主入口：路径常量、schema 校验和 fetch 细节都在这一层收敛。
@@ -1396,6 +1412,17 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminAnalyticsOverviewResponseSchema);
+    },
+    async listAdminAuditRecords(input: AdminAuditRecordListQueryInput = {}) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.admin.audits}${buildAdminAuditRecordListQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, adminAuditRecordListResponseSchema);
     },
     async getAdminLogsOverview(input?: { source?: string }) {
       const search = new URLSearchParams();

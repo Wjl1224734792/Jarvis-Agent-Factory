@@ -63,6 +63,7 @@ describe("provider config", () => {
     for (const provider of providers) {
       const config = resolveStorageProviderConfig(
         createEnv({
+          NODE_ENV: "development",
           STORAGE_PROVIDER: provider,
           STORAGE_BUCKET: "feijia-media",
           STORAGE_ENDPOINT: "http://localhost:9000",
@@ -81,6 +82,7 @@ describe("provider config", () => {
   it("accepts qiniu as an alias for kodo", () => {
     const config = resolveStorageProviderConfig(
       createEnv({
+        NODE_ENV: "development",
         STORAGE_PROVIDER: "qiniu",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
@@ -97,6 +99,7 @@ describe("provider config", () => {
   it("falls back to signed reads for kodo when public base url is not explicitly configured", () => {
     const config = resolveStorageProviderConfig(
       createEnv({
+        NODE_ENV: "development",
         STORAGE_PROVIDER: "kodo",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
@@ -111,8 +114,9 @@ describe("provider config", () => {
 
   it("keeps direct public urls for kodo when an explicit public base url is configured", () => {
     const config = resolveStorageProviderConfig(
-      createEnv({
-        STORAGE_PROVIDER: "qiniu",
+        createEnv({
+          NODE_ENV: "development",
+          STORAGE_PROVIDER: "qiniu",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
         STORAGE_REGION: "cn-east-1",
@@ -129,15 +133,62 @@ describe("provider config", () => {
     expect(() =>
       resolveStorageProviderConfig(
         createEnv({
+          NODE_ENV: "development",
           STORAGE_PROVIDER: "invalid-provider"
         })
       )
     ).toThrowError(/STORAGE_PROVIDER/i);
   });
 
+  it("uses TEST_STORAGE_* env vars in test environment when available", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        NODE_ENV: "test",
+        STORAGE_PROVIDER: "qiniu",
+        STORAGE_ENDPOINT: "https://prod-storage.example.com",
+        STORAGE_BUCKET: "prod-media",
+        STORAGE_ACCESS_KEY_ID: "prod-id",
+        STORAGE_SECRET_ACCESS_KEY: "prod-secret",
+        STORAGE_REGION: "us-east-2",
+        TEST_STORAGE_ENDPOINT: "http://test-minio:9000",
+        TEST_STORAGE_BUCKET: "test-media",
+        TEST_STORAGE_ACCESS_KEY_ID: "test-id",
+        TEST_STORAGE_SECRET_ACCESS_KEY: "test-secret",
+        TEST_STORAGE_REGION: "ap-east-1"
+      })
+    );
+
+    expect(config.provider).toBe("minio");
+    expect(config.endpoint).toBe("http://test-minio:9000");
+    expect(config.bucket).toBe("test-media");
+    expect(config.accessKeyId).toBe("test-id");
+    expect(config.secretAccessKey).toBe("test-secret");
+    expect(config.region).toBe("ap-east-1");
+  });
+
+  it("falls back to TEST_* storage defaults in test mode", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        NODE_ENV: "test",
+        STORAGE_ENDPOINT: "https://prod-storage.example.com",
+        STORAGE_BUCKET: "prod-media",
+        STORAGE_ACCESS_KEY_ID: "prod-id",
+        STORAGE_SECRET_ACCESS_KEY: "prod-secret"
+      })
+    );
+
+    expect(config.provider).toBe("minio");
+    expect(config.endpoint).toBe("http://localhost:9000");
+    expect(config.bucket).toBe("feijia-media");
+    expect(config.accessKeyId).toBe("minioadmin");
+    expect(config.secretAccessKey).toBe("minioadmin123");
+    expect(config.region).toBe("us-east-1");
+  });
+
   it("builds bucket-aware public urls for virtual-host style storage", () => {
     const config = resolveStorageProviderConfig(
       createEnv({
+        NODE_ENV: "development",
         STORAGE_PROVIDER: "cos",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "https://cos.example.com",
@@ -173,6 +224,7 @@ describe("provider config", () => {
     for (const item of providers) {
       const config = resolveStorageProviderConfig(
         createEnv({
+          NODE_ENV: "development",
           STORAGE_PROVIDER: item.provider,
           STORAGE_BUCKET: "feijia-media",
           STORAGE_ENDPOINT: item.endpoint,
@@ -191,6 +243,7 @@ describe("provider config", () => {
     const provider = createStorageProvider(
       resolveStorageProviderConfig(
         createEnv({
+          NODE_ENV: "development",
           STORAGE_PROVIDER: "minio",
           STORAGE_BUCKET: "feijia-media",
           STORAGE_ENDPOINT: "http://localhost:9000",
@@ -218,6 +271,7 @@ describe("provider config", () => {
     const provider = createStorageProvider(
       resolveStorageProviderConfig(
         createEnv({
+          NODE_ENV: "development",
           STORAGE_PROVIDER: "kodo",
           STORAGE_BUCKET: "feijia-media",
           STORAGE_ENDPOINT: "https://up-z0.qiniup.com",
@@ -249,6 +303,7 @@ describe("provider config", () => {
   it("presigns localhost read urls outside production and can keep direct urls in production", () => {
     const config = resolveStorageProviderConfig(
       createEnv({
+        NODE_ENV: "development",
         STORAGE_PROVIDER: "minio",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "http://localhost:9000",
