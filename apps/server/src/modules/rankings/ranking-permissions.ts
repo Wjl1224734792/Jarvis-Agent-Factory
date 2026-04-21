@@ -68,7 +68,8 @@ export function toRankingViewer(input: {
     rankingType: input.type,
     rankingAuthorId: input.authorId
   });
-  const canOpenPublicAdd = input.type === "community" && input.status === "published";
+  const canOpenPublicAdd =
+    input.type === "community" && (input.status === "published" || input.status === "pending");
 
   return {
     canEdit,

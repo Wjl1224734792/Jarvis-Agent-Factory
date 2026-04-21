@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, or, sql } from "drizzle-orm";
 import { db } from "./client.js";
 import {
   aircraftCategoriesTable,
@@ -190,7 +190,13 @@ async function ensureAdminUser() {
   const existing = await db
     .select({ id: usersTable.id, displayName: usersTable.displayName })
     .from(usersTable)
-    .where(eq(usersTable.role, "admin"))
+    .where(
+      or(
+        eq(usersTable.role, "admin"),
+        eq(usersTable.account, "admin"),
+        eq(usersTable.displayName, "系统管理员")
+      )
+    )
     .limit(1);
 
   if (existing.length > 0) {
@@ -209,16 +215,33 @@ async function ensureAdminUser() {
 
   const id = createId("admin");
   const adminPasswordHash = await hashPassword("Admin#123");
-  await db.insert(usersTable).values({
-    id,
-    role: "admin",
-    displayName: "系统管理员",
-    phone: null,
-    account: "admin",
-    passwordHash: adminPasswordHash
-  });
+  await db
+    .insert(usersTable)
+    .values({
+      id,
+      role: "admin",
+      displayName: "系统管理员",
+      phone: null,
+      account: "admin",
+      passwordHash: adminPasswordHash
+    })
+    .onConflictDoUpdate({
+      target: usersTable.displayName,
+      set: {
+        role: "admin",
+        account: "admin",
+        passwordHash: adminPasswordHash,
+        phone: null
+      }
+    });
 
-  return id;
+  const refreshed = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(eq(usersTable.displayName, "系统管理员"))
+    .limit(1);
+
+  return refreshed[0]?.id ?? id;
 }
 
 async function seedContentCategories() {

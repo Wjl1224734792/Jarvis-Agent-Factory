@@ -11,12 +11,12 @@ export type NotificationType =
   | "post_shared"
   | "post_commented"
   | "comment_replied"
-  | "post_status_changed"
-  | "review_status_changed"
-  | "ranking_status_changed"
-  | "rating_target_status_changed"
-  | "aircraft_submission_status_changed"
-  | "brand_application_status_changed";
+  | "post_audit_result"
+  | "review_audit_result"
+  | "ranking_audit_result"
+  | "rating_target_audit_result"
+  | "aircraft_submission_audit_result"
+  | "brand_application_audit_result";
 
 export type NotificationTargetType =
   | "user"
@@ -35,12 +35,12 @@ export const NOTIFICATION_CATEGORY_BY_TYPE: Record<NotificationType, Notificatio
   post_shared: "likes_and_favorites",
   post_commented: "comments_and_mentions",
   comment_replied: "comments_and_mentions",
-  post_status_changed: "system",
-  review_status_changed: "system",
-  ranking_status_changed: "system",
-  rating_target_status_changed: "system",
-  aircraft_submission_status_changed: "system",
-  brand_application_status_changed: "system"
+  post_audit_result: "system",
+  review_audit_result: "system",
+  ranking_audit_result: "system",
+  rating_target_audit_result: "system",
+  aircraft_submission_audit_result: "system",
+  brand_application_audit_result: "system"
 };
 
 const NOTIFICATION_TYPES = Object.keys(

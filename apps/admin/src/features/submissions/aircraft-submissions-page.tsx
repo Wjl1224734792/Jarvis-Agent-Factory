@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-panel";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
 import { promptRejectionReason } from "../../lib/moderation-actions";
 import {
   buildModerationTraceItems,
@@ -90,6 +92,20 @@ export function AircraftSubmissionsPage() {
       return apiClient.getAircraftSubmission(detailId);
     },
     enabled: Boolean(detailId)
+  });
+  const auditTracePlan = useMemo(
+    () =>
+      buildAdminAuditTracePlan({
+        domain: "aircraft_submission",
+        subjectLabel: "机型投稿",
+        domainLabel: "机型投稿",
+        exactEntityId: detailId
+      }),
+    [detailId]
+  );
+  const auditQuery = useQuery({
+    queryKey: ["admin-aircraft-submission-audits", auditTracePlan.query.entityId ?? "recent"],
+    queryFn: () => apiClient.listAdminAuditRecords(auditTracePlan.query)
   });
   const filteredItems = useMemo(() => {
     const keyword = searchText.trim().toLowerCase();
@@ -231,6 +247,14 @@ export function AircraftSubmissionsPage() {
           title="机型投稿审核"
         />
       </AdminPanel>
+
+      <AdminAuditRecordsPanel
+        description={auditTracePlan.panelDescription}
+        emptyText={auditTracePlan.emptyText}
+        hint={auditTracePlan.hint}
+        loading={auditQuery.isFetching}
+        records={auditQuery.data?.items}
+      />
 
       <AdminPanel title="投稿列表">
         <Table

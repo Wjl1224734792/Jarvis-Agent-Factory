@@ -23,12 +23,12 @@ export const adminMessageDomainOptions: Array<{ label: string; value: AdminMessa
 ];
 
 export const adminMessageTypeOptions: Array<{ label: string; value: NotificationType }> = [
-  { label: "内容状态变更", value: "post_status_changed" },
-  { label: "评测状态变更", value: "review_status_changed" },
-  { label: "榜单状态变更", value: "ranking_status_changed" },
-  { label: "评分对象状态变更", value: "rating_target_status_changed" },
-  { label: "机型投稿状态变更", value: "aircraft_submission_status_changed" },
-  { label: "品牌申请状态变更", value: "brand_application_status_changed" }
+  { label: "内容审核结果", value: "post_audit_result" },
+  { label: "评测审核结果", value: "review_audit_result" },
+  { label: "榜单审核结果", value: "ranking_audit_result" },
+  { label: "评分对象审核结果", value: "rating_target_audit_result" },
+  { label: "机型投稿审核结果", value: "aircraft_submission_audit_result" },
+  { label: "品牌申请审核结果", value: "brand_application_audit_result" }
 ];
 
 export const adminMessageReadStatusOptions = [

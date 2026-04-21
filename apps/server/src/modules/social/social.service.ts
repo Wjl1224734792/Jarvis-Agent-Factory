@@ -159,12 +159,12 @@ type AdminMessageDomain =
 type AdminMessageReadStatus = "all" | "read" | "unread";
 
 const ADMIN_MESSAGE_DOMAIN_BY_TYPE: Partial<Record<NotificationType, AdminMessageDomain>> = {
-  post_status_changed: "posts",
-  review_status_changed: "reviews",
-  ranking_status_changed: "rankings",
-  rating_target_status_changed: "rating_targets",
-  aircraft_submission_status_changed: "aircraft_submissions",
-  brand_application_status_changed: "brand_applications"
+  post_audit_result: "posts",
+  review_audit_result: "reviews",
+  ranking_audit_result: "rankings",
+  rating_target_audit_result: "rating_targets",
+  aircraft_submission_audit_result: "aircraft_submissions",
+  brand_application_audit_result: "brand_applications"
 };
 
 const ADMIN_TODO_TITLES: Record<AdminMessageDomain, string> = {
@@ -217,12 +217,12 @@ function getAdminMessageDomain(type: NotificationType): AdminMessageDomain | nul
 }
 
 const ADMIN_MESSAGE_TYPES_BY_DOMAIN: Partial<Record<AdminMessageDomain, NotificationType[]>> = {
-  posts: ["post_status_changed"],
-  reviews: ["review_status_changed"],
-  rankings: ["ranking_status_changed"],
-  rating_targets: ["rating_target_status_changed"],
-  aircraft_submissions: ["aircraft_submission_status_changed"],
-  brand_applications: ["brand_application_status_changed"]
+  posts: ["post_audit_result"],
+  reviews: ["review_audit_result"],
+  rankings: ["ranking_audit_result"],
+  rating_targets: ["rating_target_audit_result"],
+  aircraft_submissions: ["aircraft_submission_audit_result"],
+  brand_applications: ["brand_application_audit_result"]
 };
 
 function toNavigationFilters(input: {
@@ -390,12 +390,12 @@ export const socialService = {
     userId: string;
     type: Extract<
       NotificationType,
-      | "post_status_changed"
-      | "review_status_changed"
-      | "ranking_status_changed"
-      | "rating_target_status_changed"
-      | "aircraft_submission_status_changed"
-      | "brand_application_status_changed"
+      | "post_audit_result"
+      | "review_audit_result"
+      | "ranking_audit_result"
+      | "rating_target_audit_result"
+      | "aircraft_submission_audit_result"
+      | "brand_application_audit_result"
     >;
     title: string;
     summary: string;

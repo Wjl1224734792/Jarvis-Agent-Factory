@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Empty, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-panel";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
 import { promptRejectionReason } from "../../lib/moderation-actions";
 import {
   buildModerationTraceItems,
@@ -78,6 +80,20 @@ export function BrandApplicationsPage() {
       return apiClient.getBrandApplication(detailId);
     },
     enabled: Boolean(detailId)
+  });
+  const auditTracePlan = useMemo(
+    () =>
+      buildAdminAuditTracePlan({
+        domain: "brand_application",
+        subjectLabel: "品牌申请",
+        domainLabel: "品牌申请",
+        exactEntityId: detailId
+      }),
+    [detailId]
+  );
+  const auditQuery = useQuery({
+    queryKey: ["admin-brand-application-audits", auditTracePlan.query.entityId ?? "recent"],
+    queryFn: () => apiClient.listAdminAuditRecords(auditTracePlan.query)
   });
 
   const filteredItems = useMemo(() => {
@@ -220,6 +236,14 @@ export function BrandApplicationsPage() {
           }}
         />
       </AdminPanel>
+
+      <AdminAuditRecordsPanel
+        description={auditTracePlan.panelDescription}
+        emptyText={auditTracePlan.emptyText}
+        hint={auditTracePlan.hint}
+        loading={auditQuery.isFetching}
+        records={auditQuery.data?.items}
+      />
 
       <AdminPanel title="Applications">
         <Table

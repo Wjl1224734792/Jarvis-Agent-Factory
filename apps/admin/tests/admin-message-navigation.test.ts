@@ -43,11 +43,11 @@ describe("admin message navigation helpers", () => {
     expect(
       adminMessagesQueryKey({
         domain: "posts",
-        type: "post_status_changed",
+        type: "post_audit_result",
         readStatus: "unread",
         limit: 20
       })
-    ).toEqual(["admin-messages", "posts", "post_status_changed", "unread", 20]);
+    ).toEqual(["admin-messages", "posts", "post_audit_result", "unread", 20]);
     expect(adminModerationTodosQueryKey()).toEqual(["admin-messages", "todos"]);
   });
 });

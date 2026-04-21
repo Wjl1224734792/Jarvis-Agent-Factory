@@ -146,6 +146,13 @@ async function updateSiteSettings(
   expect(response.status).toBe(200);
 }
 
+async function setCommentAiReviewEnabled(enabled: boolean) {
+  const { siteSettingsService } = await import("../src/modules/site-settings/site-settings.service");
+  await siteSettingsService.update({
+    commentModerationEnabled: enabled
+  });
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -798,52 +805,60 @@ describe("rankings flows", () => {
   });
 
   it("supports ranking item reply threads plus comment like/report/edit/delete flow", async () => {
+    await setCommentAiReviewEnabled(true);
+    const previousSuggestion = process.env.QINIU_AUDIT_TEST_SUGGESTION;
+    process.env.QINIU_AUDIT_TEST_SUGGESTION = "pass";
+
     const authorCookie = await loginUser("13800138084");
     const replierCookie = await loginUser("13800138085");
     const watcherCookie = await loginUser("13800138086");
 
-    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET",
-      headers: { cookie: authorCookie }
-    });
-    const overviewPayload = (await overviewResponse.json()) as {
-      community: Array<{ items: Array<{ id: string }> }>;
-    };
-    const itemId = overviewPayload.community[0]?.items[0]?.id;
-    expect(itemId).toBeTruthy();
+    try {
+      const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
+        method: "GET",
+        headers: { cookie: authorCookie }
+      });
+      const overviewPayload = (await overviewResponse.json()) as {
+        official: Array<{ id: string; items: Array<{ id: string }> }>;
+        community: Array<{ items: Array<{ id: string }> }>;
+      };
+      const itemId =
+        overviewPayload.community[0]?.items[0]?.id ??
+        overviewPayload.official[0]?.items[0]?.id;
+      expect(itemId).toBeTruthy();
 
-    const reviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId), {
-      method: "POST",
-      headers: {
-        cookie: authorCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        rating: 5,
-        content: "Root review for reply thread."
-      })
-    });
-    expect(reviewResponse.status).toBe(200);
-    const reviewPayload = (await reviewResponse.json()) as {
-      item: { myReview: { id: string } | null };
-    };
-    const rootCommentId = reviewPayload.item.myReview?.id;
-    expect(rootCommentId).toBeTruthy();
+      const reviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId), {
+        method: "POST",
+        headers: {
+          cookie: authorCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          rating: 5,
+          content: "Root review for reply thread."
+        })
+      });
+      expect(reviewResponse.status).toBe(200);
+      const reviewPayload = (await reviewResponse.json()) as {
+        item: { myReview: { id: string } | null };
+      };
+      const rootCommentId = reviewPayload.item.myReview?.id;
+      expect(rootCommentId).toBeTruthy();
 
-    const replyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
-      method: "POST",
-      headers: {
-        cookie: replierCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        content: "Reply from another pilot.",
-        parentCommentId: rootCommentId
-      })
-    });
-    expect(replyResponse.status).toBe(200);
-    const replyPayload = (await replyResponse.json()) as { item: { id: string } };
-    const replyCommentId = replyPayload.item.id;
+      const replyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
+        method: "POST",
+        headers: {
+          cookie: replierCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          content: "Reply from another pilot.",
+          parentCommentId: rootCommentId
+        })
+      });
+      expect(replyResponse.status).toBe(200);
+      const replyPayload = (await replyResponse.json()) as { item: { id: string } };
+      const replyCommentId = replyPayload.item.id;
 
     const likeResponse = await app.request(
       API_ROUTES.rankings.itemCommentLike(itemId, replyCommentId),
@@ -936,17 +951,24 @@ describe("rankings flows", () => {
     );
     expect(deleteReplyResponse.status).toBe(200);
 
-    const afterDeleteResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
-      method: "GET",
-      headers: { cookie: watcherCookie }
-    });
-    const afterDeletePayload = (await afterDeleteResponse.json()) as {
-      item: {
-        comments: Array<{ replyCount: number; replies: Array<{ id: string }> }>;
+      const afterDeleteResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
+        method: "GET",
+        headers: { cookie: watcherCookie }
+      });
+      const afterDeletePayload = (await afterDeleteResponse.json()) as {
+        item: {
+          comments: Array<{ replyCount: number; replies: Array<{ id: string }> }>;
+        };
       };
-    };
-    expect(afterDeletePayload.item.comments[0]?.replyCount).toBe(0);
-    expect(afterDeletePayload.item.comments[0]?.replies).toHaveLength(0);
+      expect(afterDeletePayload.item.comments[0]?.replyCount).toBe(0);
+      expect(afterDeletePayload.item.comments[0]?.replies).toHaveLength(0);
+    } finally {
+      if (previousSuggestion === undefined) {
+        delete process.env.QINIU_AUDIT_TEST_SUGGESTION;
+      } else {
+        process.env.QINIU_AUDIT_TEST_SUGGESTION = previousSuggestion;
+      }
+    }
   });
 
   it("allows admins to reject ranking items with a reason and authors to edit-resubmit them", async () => {
@@ -1115,17 +1137,25 @@ describe("rankings flows", () => {
   });
 
   it("requires rating for top-level ranking item comments and keeps multiple comments from the same user", async () => {
+    await setCommentAiReviewEnabled(true);
+    const previousSuggestion = process.env.QINIU_AUDIT_TEST_SUGGESTION;
+    process.env.QINIU_AUDIT_TEST_SUGGESTION = "pass";
+
     const cookie = await loginUser("13800138032");
 
-    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET",
-      headers: { cookie }
-    });
-    const overviewPayload = (await overviewResponse.json()) as {
-      community: Array<{ items: Array<{ id: string }> }>;
-    };
-    const itemId = overviewPayload.community[0]?.items[0]?.id;
-    expect(itemId).toBeTruthy();
+    try {
+      const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
+        method: "GET",
+        headers: { cookie }
+      });
+      const overviewPayload = (await overviewResponse.json()) as {
+        official: Array<{ items: Array<{ id: string }> }>;
+        community: Array<{ items: Array<{ id: string }> }>;
+      };
+      const itemId =
+        overviewPayload.community[0]?.items[0]?.id ??
+        overviewPayload.official[0]?.items[0]?.id;
+      expect(itemId).toBeTruthy();
 
     const missingRatingResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
@@ -1195,21 +1225,82 @@ describe("rankings flows", () => {
     });
     expect(validReplyResponse.status).toBe(200);
 
-    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
+      const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(itemId), {
+        method: "GET",
+        headers: { cookie }
+      });
+      expect(detailResponse.status).toBe(200);
+      const detailPayload = (await detailResponse.json()) as {
+        item: {
+          comments: Array<{ id: string; rating: number | null; replies: Array<{ rating: number | null }> }>;
+          ratingBreakdown: Array<{ score: number; count: number }>;
+        };
+      };
+
+      expect(detailPayload.item.comments.length).toBeGreaterThanOrEqual(2);
+      expect(detailPayload.item.comments.filter((comment) => comment.rating !== null).length).toBeGreaterThanOrEqual(2);
+      expect(detailPayload.item.comments[0]?.replies[0]?.rating ?? null).toBeNull();
+      expect(detailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)).toBeGreaterThanOrEqual(2);
+    } finally {
+      if (previousSuggestion === undefined) {
+        delete process.env.QINIU_AUDIT_TEST_SUGGESTION;
+      } else {
+        process.env.QINIU_AUDIT_TEST_SUGGESTION = previousSuggestion;
+      }
+    }
+  });
+
+  it("keeps ranking and rating-target comments pending when AI review is disabled", async () => {
+    await setCommentAiReviewEnabled(false);
+    const cookie = await loginUser("13800138037");
+
+    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
       method: "GET",
       headers: { cookie }
     });
-    expect(detailResponse.status).toBe(200);
-    const detailPayload = (await detailResponse.json()) as {
-      item: {
-        comments: Array<{ id: string; rating: number | null; replies: Array<{ rating: number | null }> }>;
-        ratingBreakdown: Array<{ score: number; count: number }>;
-      };
+    expect(overviewResponse.status).toBe(200);
+    const overviewPayload = (await overviewResponse.json()) as {
+      official: Array<{ id: string; items: Array<{ id: string }> }>;
+      community: Array<{ id: string; items: Array<{ id: string }> }>;
     };
+    const rankingId = overviewPayload.community[0]?.id ?? overviewPayload.official[0]?.id;
+    const itemId =
+      overviewPayload.community[0]?.items[0]?.id ??
+      overviewPayload.official[0]?.items[0]?.id;
+    expect(rankingId).toBeTruthy();
+    expect(itemId).toBeTruthy();
 
-    expect(detailPayload.item.comments.length).toBeGreaterThanOrEqual(2);
-    expect(detailPayload.item.comments.filter((comment) => comment.rating !== null).length).toBeGreaterThanOrEqual(2);
-    expect(detailPayload.item.comments[0]?.replies[0]?.rating ?? null).toBeNull();
-    expect(detailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)).toBeGreaterThanOrEqual(2);
+    const rankingCommentResponse = await app.request(API_ROUTES.rankings.comments(rankingId), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "manual review ranking comment"
+      })
+    });
+    expect(rankingCommentResponse.status).toBe(200);
+    const rankingCommentPayload = (await rankingCommentResponse.json()) as {
+      item: { status: "pending" | "visible" | "hidden" };
+    };
+    expect(rankingCommentPayload.item.status).toBe("pending");
+
+    const itemCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "manual review rating target comment",
+        rating: 5
+      })
+    });
+    expect(itemCommentResponse.status).toBe(200);
+    const itemCommentPayload = (await itemCommentResponse.json()) as {
+      item: { status: "pending" | "visible" | "hidden" };
+    };
+    expect(itemCommentPayload.item.status).toBe("pending");
   });
 });

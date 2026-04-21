@@ -789,7 +789,7 @@ export const postsService = {
 
       await socialService.recordSystemNotification({
         userId: item.author.id,
-        type: "post_status_changed",
+        type: "post_audit_result",
         title:
           item.status === "published"
             ? "内容审核通过"

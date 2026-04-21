@@ -490,7 +490,7 @@ export const aircraftSubmissionsService = {
       if (item && previousStatus !== "rejected") {
         await socialService.recordSystemNotification({
           userId: current.author.id,
-          type: "aircraft_submission_status_changed",
+          type: "aircraft_submission_audit_result",
           title: "机型投稿审核未通过",
           summary: `机型投稿《${current.modelName}》未通过审核`,
           target: {
@@ -548,7 +548,7 @@ export const aircraftSubmissionsService = {
       if (item && previousStatus !== "approved") {
         await socialService.recordSystemNotification({
           userId: current.author.id,
-          type: "aircraft_submission_status_changed",
+          type: "aircraft_submission_audit_result",
           title: "机型投稿审核通过",
           summary: `机型投稿《${current.modelName}》已通过审核`,
           target: {
@@ -599,7 +599,7 @@ export const aircraftSubmissionsService = {
     if (item && previousStatus !== "approved") {
       await socialService.recordSystemNotification({
         userId: current.author.id,
-        type: "aircraft_submission_status_changed",
+        type: "aircraft_submission_audit_result",
         title: "机型投稿审核通过",
         summary: `机型投稿《${current.modelName}》已通过审核`,
         target: {

@@ -1,6 +1,7 @@
 import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { resolveUploadedFileUrl, resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
@@ -61,6 +62,30 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
     rows.map((row) => [row.score, Number(row.count ?? 0)])
   );
   return buildRatingBreakdown(scoreCountMap);
+}
+
+function mapAuditStatusToRankingStatus(
+  status: string | null | undefined
+): "pending" | "published" | "rejected" {
+  if (status === "passed") {
+    return "published";
+  }
+  if (status === "rejected") {
+    return "rejected";
+  }
+  return "pending";
+}
+
+function mapAuditStatusToCommentStatus(
+  status: string | null | undefined
+): "pending" | "visible" | "hidden" {
+  if (status === "passed") {
+    return "visible";
+  }
+  if (status === "rejected") {
+    return "hidden";
+  }
+  return "pending";
 }
 
 async function resolveRankingImage(fileId: string | null | undefined) {
@@ -534,12 +559,8 @@ export const rankingsService = {
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
     const settings = await siteSettingsService.getResolvedSettings();
-    const rankingStatus =
-      input.type === "official"
-        ? "published"
-        : settings.rankingModerationEnabled
-          ? "pending"
-          : "published";
+    const aiReviewEnabled = input.type === "community" ? settings.rankingModerationEnabled : false;
+    const rankingStatus = input.type === "official" ? "published" : "pending";
     const ranking = await rankingsRepo.createRanking({
       authorId: currentUser.id,
       type: input.type,
@@ -554,10 +575,7 @@ export const rankingsService = {
       return { kind: "internal_error" as const };
     }
 
-    const itemStatus: RatingTargetStatus =
-      rankingStatus === "pending" || (input.type === "community" && settings.ratingTargetModerationEnabled)
-        ? "pending"
-        : "published";
+    const itemStatus: RatingTargetStatus = "pending";
     await rankingsRepo.createRatingTargets(
       ranking.id,
       input.items.map((item, index) => ({
@@ -572,9 +590,26 @@ export const rankingsService = {
       }))
     );
 
-    const payload = await this.getRankingDetail(ranking.id, currentUser);
+    let payload = await this.getRankingDetail(ranking.id, currentUser);
     if (!payload) {
       return { kind: "internal_error" as const };
+    }
+
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "ranking",
+        entityId: ranking.id,
+        text: input.title
+      });
+      const moderated = await this.applyRankingStatusInternal({
+        rankingId: ranking.id,
+        status: mapAuditStatusToRankingStatus(audit?.status),
+        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
+        viewer: currentUser
+      });
+      if (moderated.kind === "ok") {
+        payload = moderated.payload;
+      }
     }
 
     return { kind: "ok" as const, payload };
@@ -613,15 +648,11 @@ export const rankingsService = {
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
     const settings = await siteSettingsService.getResolvedSettings();
-    const nextItemStatus: RatingTargetStatus =
-      ranking.status === "pending" || (rankingType === "community" && settings.ratingTargetModerationEnabled)
-        ? "pending"
-        : "published";
+    const aiReviewEnabled = rankingType === "community" ? settings.rankingModerationEnabled : false;
+    const nextItemStatus: RatingTargetStatus = "pending";
     const nextRankingStatus =
       rankingType === "community" && ranking.status !== "hidden"
-        ? settings.rankingModerationEnabled
-          ? "pending"
-          : "published"
+        ? "pending"
         : isValidRankingStatus(ranking.status) ? ranking.status : ("published" as "pending" | "published" | "rejected" | "hidden");
 
     await rankingsRepo.updateRanking(rankingId, {
@@ -647,9 +678,26 @@ export const rankingsService = {
       }))
     );
 
-    const payload = await this.getRankingDetail(rankingId, currentUser);
+    let payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
+    }
+
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "ranking",
+        entityId: rankingId,
+        text: input.title
+      });
+      const moderated = await this.applyRankingStatusInternal({
+        rankingId,
+        status: mapAuditStatusToRankingStatus(audit?.status),
+        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
+        viewer: currentUser
+      });
+      if (moderated.kind === "ok") {
+        payload = moderated.payload;
+      }
     }
 
     return { kind: "ok" as const, payload };
@@ -689,10 +737,9 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
-    const status: RatingTargetStatus =
-      rankingType === "community" && (await siteSettingsService.shouldModerateRatingTarget())
-        ? "pending"
-        : "published";
+    const aiReviewEnabled =
+      rankingType === "community" && (await siteSettingsService.isAiReviewEnabledForRatingTarget());
+    const status: RatingTargetStatus = "pending";
     await rankingsRepo.addRatingTarget({
       rankingId,
       authorId: currentUser.id,
@@ -704,9 +751,32 @@ export const rankingsService = {
       linkedModelId: input.linkedModelSlug ? modelBySlug.get(input.linkedModelSlug)?.id ?? null : null
     });
 
-    const payload = await this.getRankingDetail(rankingId, currentUser);
+    let payload = await this.getRankingDetail(rankingId, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
+    }
+
+    if (aiReviewEnabled) {
+      const createdItem = payload.item.items.find(
+        (item) => item.authorId === currentUser.id && item.title === input.title
+      );
+      if (createdItem) {
+        const audit = await qiniuAuditService.reviewText({
+          domain: "rating_target",
+          entityId: createdItem.id,
+          text: `${input.title}\n${input.summary ?? ""}`
+        });
+        await this.applyRatingTargetStatusInternal({
+          id: createdItem.id,
+          status: mapAuditStatusToRankingStatus(audit?.status),
+          rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
+          viewer: currentUser
+        });
+        const refreshed = await this.getRankingDetail(rankingId, currentUser);
+        if (refreshed) {
+          payload = refreshed;
+        }
+      }
     }
 
     return { kind: "ok" as const, payload };
@@ -747,10 +817,9 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((entry) => [entry.slug, entry]));
-    const shouldModerateItem =
-      rankingType === "community" && (await siteSettingsService.shouldModerateRatingTarget());
-    const nextStatus: RatingTargetStatus =
-      item.status === "hidden" ? "hidden" : shouldModerateItem ? "pending" : "published";
+    const aiReviewEnabled =
+      rankingType === "community" && (await siteSettingsService.isAiReviewEnabledForRatingTarget());
+    const nextStatus: RatingTargetStatus = item.status === "hidden" ? "hidden" : "pending";
     await rankingsRepo.updateRatingTarget(id, {
       title: input.title,
       summary: input.summary,
@@ -761,9 +830,26 @@ export const rankingsService = {
       rejectionReason: null
     });
 
-    const payload = await this.getRatingTargetDetail(id, currentUser.id);
+    let payload = await this.getRatingTargetDetail(id, currentUser);
     if (!payload) {
       return { kind: "not_found" as const };
+    }
+
+    if (aiReviewEnabled && nextStatus !== "hidden") {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "rating_target",
+        entityId: id,
+        text: `${input.title}\n${input.summary ?? ""}`
+      });
+      const moderated = await this.applyRatingTargetStatusInternal({
+        id,
+        status: mapAuditStatusToRankingStatus(audit?.status),
+        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
+        viewer: currentUser
+      });
+      if (moderated.kind === "ok") {
+        payload = moderated.payload;
+      }
     }
 
     return { kind: "ok" as const, payload };
@@ -805,8 +891,10 @@ export const rankingsService = {
     }
 
     const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
-    const canInspectUnpublished =
-      currentUser?.role === "admin" || currentUser?.id === ranking.author.id;
+      const canInspectUnpublished =
+        currentUser?.role === "admin" ||
+        currentUser?.id === ranking.author.id ||
+        (Boolean(currentUser) && ranking.itemAddPolicy === "public");
     if (rankingType === "community" && ranking.status !== "published" && !canInspectUnpublished) {
       return null;
     }
@@ -1055,6 +1143,119 @@ export const rankingsService = {
     };
   },
 
+  async applyRankingStatusInternal(input: {
+    rankingId: string;
+    status: "pending" | "published" | "rejected" | "hidden";
+    rejectionReason?: string | null;
+    viewer?: CurrentUser;
+  }) {
+    const ranking = await rankingsRepo.getRankingById(input.rankingId);
+    if (!ranking) {
+      return { kind: "not_found" as const };
+    }
+
+    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
+    if (rankingType !== "community") {
+      return { kind: "forbidden" as const };
+    }
+    if (input.status === "pending") {
+      const payload = await this.getRankingDetail(input.rankingId, input.viewer);
+      return payload ? { kind: "ok" as const, payload } : { kind: "not_found" as const };
+    }
+
+    const previousStatus = ranking.status;
+    await rankingsRepo.updateRankingStatus(input.rankingId, input.status, input.rejectionReason ?? null);
+    const payload = await this.getRankingDetail(input.rankingId, input.viewer);
+    if (!payload) {
+      return { kind: "not_found" as const };
+    }
+
+    if (previousStatus !== input.status) {
+      const statusLabel =
+        input.status === "published"
+          ? "已发布"
+          : input.status === "rejected"
+            ? "未通过审核"
+            : "已下架";
+      await socialService.recordSystemNotification({
+        userId: ranking.author.id,
+        type: "ranking_audit_result",
+        title: input.status === "published" ? "榜单审核通过" : "榜单状态更新",
+        summary: `榜单《${ranking.title}》当前状态：${statusLabel}`,
+        target: {
+          type: "ranking",
+          id: ranking.id,
+          title: ranking.title,
+          status: input.status,
+          href: `/rankings/${ranking.id}`
+        },
+        metadata: {
+          fromStatus: previousStatus,
+          toStatus: input.status,
+          rejectionReason: input.status === "rejected" ? input.rejectionReason ?? null : null
+        }
+      });
+    }
+
+    return { kind: "ok" as const, payload };
+  },
+
+  async applyRatingTargetStatusInternal(input: {
+    id: string;
+    status: "pending" | "published" | "rejected" | "hidden";
+    rejectionReason?: string | null;
+    viewer?: CurrentUser | string;
+  }) {
+    const item = await rankingsRepo.getRatingTargetById(input.id);
+    if (!item) {
+      return { kind: "not_found" as const };
+    }
+    if (input.status === "pending") {
+      const payload = await this.getRatingTargetDetail(input.id, input.viewer);
+      return payload ? { kind: "ok" as const, payload } : { kind: "not_found" as const };
+    }
+
+    const previousStatus = item.status;
+    await rankingsRepo.updateRatingTargetStatus(input.id, {
+      status: input.status,
+      rejectionReason: input.status === "rejected" ? input.rejectionReason ?? null : null
+    });
+    const payload = await this.getRatingTargetDetail(input.id, input.viewer);
+    if (!payload) {
+      return { kind: "not_found" as const };
+    }
+
+    if (previousStatus !== input.status) {
+      const statusLabel =
+        input.status === "published"
+          ? "已发布"
+          : input.status === "rejected"
+            ? "未通过审核"
+            : "已下架";
+      await socialService.recordSystemNotification({
+        userId: item.authorId,
+        type: "rating_target_audit_result",
+        title: input.status === "published" ? "榜单条目审核通过" : "榜单条目状态更新",
+        summary: `条目《${item.title}》当前状态：${statusLabel}`,
+        target: {
+          type: "rating_target",
+          id: item.id,
+          title: item.title,
+          status: input.status,
+          href: `/rankings/items/${item.id}`
+        },
+        metadata: {
+          rankingId: item.rankingId,
+          fromStatus: previousStatus,
+          toStatus: input.status,
+          rejectionReason: input.status === "rejected" ? input.rejectionReason ?? null : null
+        }
+      });
+    }
+
+    return { kind: "ok" as const, payload };
+  },
+
   async updateRankingStatus(
     rankingId: string,
     currentUser: CurrentUser,
@@ -1065,47 +1266,12 @@ export const rankingsService = {
       return { kind: "forbidden" as const };
     }
 
-    const ranking = await rankingsRepo.getRankingById(rankingId);
-    if (!ranking) {
-      return { kind: "not_found" as const };
-    }
-
-    const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
-    if (rankingType !== "community") {
-      return { kind: "forbidden" as const };
-    }
-
-    const previousStatus = ranking.status;
-    await rankingsRepo.updateRankingStatus(rankingId, status, rejectionReason ?? null);
-    const payload = await this.getRankingDetail(rankingId, currentUser);
-    if (!payload) {
-      return { kind: "not_found" as const };
-    }
-
-    if (previousStatus !== status) {
-      const statusLabel =
-        status === "published" ? "已发布" : status === "rejected" ? "未通过审核" : "已下架";
-      await socialService.recordSystemNotification({
-        userId: ranking.author.id,
-        type: "ranking_status_changed",
-        title: status === "published" ? "榜单审核通过" : "榜单状态更新",
-        summary: `榜单《${ranking.title}》当前状态：${statusLabel}`,
-        target: {
-          type: "ranking",
-          id: ranking.id,
-          title: ranking.title,
-          status,
-          href: `/rankings/${ranking.id}`
-        },
-        metadata: {
-          fromStatus: previousStatus,
-          toStatus: status,
-          rejectionReason: status === "rejected" ? rejectionReason ?? null : null
-        }
-      });
-    }
-
-    return { kind: "ok" as const, payload };
+    return this.applyRankingStatusInternal({
+      rankingId,
+      status,
+      rejectionReason,
+      viewer: currentUser
+    });
   },
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {
@@ -1114,18 +1280,52 @@ export const rankingsService = {
       return null;
     }
 
-    const status = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
-      ? "pending"
-      : "visible";
-
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     const item = await rankingsRepo.createRankingComment({
       rankingId,
       authorId: currentUserId,
       content,
-      status
+      status: "pending"
     });
 
-    return item ? { item: await serializeRankingComment(item, { id: currentUserId, role: "user" }) } : null;
+    if (!item) {
+      return null;
+    }
+
+    let currentItem = item;
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "ranking_comment",
+        entityId: item.id,
+        text: content
+      });
+      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (nextStatus !== "pending") {
+        const moderated = await rankingsRepo.updateRankingCommentStatus(item.id, nextStatus);
+        if (moderated) {
+          currentItem = moderated;
+        }
+      }
+    }
+
+    if (currentItem.status === "visible" && ranking.author.id !== currentUserId) {
+      await socialService.recordNotification({
+        userId: ranking.author.id,
+        actorId: currentUserId,
+        type: "post_commented",
+        commentId: currentItem.id,
+        target: {
+          type: "ranking",
+          id: ranking.id,
+          title: ranking.title,
+          href: `/rankings/${ranking.id}`
+        },
+        title: "榜单收到新评论",
+        summary: `有人评论了你的榜单《${ranking.title}》`
+      });
+    }
+
+    return { item: await serializeRankingComment(currentItem, { id: currentUserId, role: "user" }) };
   },
 
   async reportRanking(
@@ -1336,15 +1536,49 @@ export const rankingsService = {
       return null;
     }
 
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     await rankingsRepo.upsertRatingTargetReview({
       ratingTargetId: id,
       authorId: currentUserId,
       rating: input.rating,
       content: input.content,
-      status: (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
-        ? "pending"
-        : "visible"
+      status: "pending"
     });
+
+    const reviewComments = await rankingsRepo.listRatingTargetComments(id);
+    const myRootComment = reviewComments.find(
+      (comment) => comment.author.id === currentUserId && comment.parentCommentId === null
+    );
+
+    let finalStatus: "pending" | "visible" | "hidden" = "pending";
+    if (aiReviewEnabled && myRootComment) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "rating_target_comment",
+        entityId: myRootComment.id,
+        text: input.content
+      });
+      finalStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (finalStatus !== "pending") {
+        await rankingsRepo.updateRatingTargetCommentStatus(myRootComment.id, finalStatus);
+      }
+    }
+
+    if (finalStatus === "visible" && existing.authorId !== currentUserId) {
+      await socialService.recordNotification({
+        userId: existing.authorId,
+        actorId: currentUserId,
+        type: "post_commented",
+        commentId: myRootComment?.id ?? null,
+        target: {
+          type: "rating_target",
+          id: existing.id,
+          title: existing.title,
+          href: `/rating-targets/${existing.id}`
+        },
+        title: "榜单条目收到新评论",
+        summary: `有人评论了你的榜单条目《${existing.title}》`
+      });
+    }
 
     return this.getRatingTargetDetail(id, currentUserId);
   },
@@ -1401,46 +1635,12 @@ export const rankingsService = {
       return { kind: "forbidden" as const };
     }
 
-    const item = await rankingsRepo.getRatingTargetById(id);
-    if (!item) {
-      return { kind: "not_found" as const };
-    }
-
-    const previousStatus = item.status;
-    await rankingsRepo.updateRatingTargetStatus(id, {
+    return this.applyRatingTargetStatusInternal({
+      id,
       status,
-      rejectionReason: status === "rejected" ? rejectionReason ?? null : null
+      rejectionReason,
+      viewer: currentUser
     });
-    const payload = await this.getRatingTargetDetail(id, currentUser);
-    if (!payload) {
-      return { kind: "not_found" as const };
-    }
-
-    if (previousStatus !== status) {
-      const statusLabel =
-        status === "published" ? "已发布" : status === "rejected" ? "未通过审核" : "已下架";
-      await socialService.recordSystemNotification({
-        userId: item.authorId,
-        type: "rating_target_status_changed",
-        title: status === "published" ? "榜单条目审核通过" : "榜单条目状态更新",
-        summary: `条目《${item.title}》当前状态：${statusLabel}`,
-        target: {
-          type: "rating_target",
-          id: item.id,
-          title: item.title,
-          status,
-          href: `/rankings/items/${item.id}`
-        },
-        metadata: {
-          rankingId: item.rankingId,
-          fromStatus: previousStatus,
-          toStatus: status,
-          rejectionReason: status === "rejected" ? rejectionReason ?? null : null
-        }
-      });
-    }
-
-    return { kind: "ok" as const, payload };
   },
 
   async createRatingTargetComment(
@@ -1460,7 +1660,11 @@ export const rankingsService = {
 
     if (input.parentCommentId) {
       parentComment = await rankingsRepo.getRatingTargetCommentById(input.parentCommentId);
-      if (!parentComment || parentComment.ratingTargetId !== id || parentComment.status !== "visible") {
+      if (
+        !parentComment ||
+        parentComment.ratingTargetId !== id ||
+        parentComment.status !== "visible"
+      ) {
         return null;
       }
 
@@ -1469,9 +1673,8 @@ export const rankingsService = {
       replyToUserId = parentComment.author.id;
     }
 
-    const status = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
-      ? "pending"
-      : "visible";
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
+    const status = "pending";
     const rating = input.parentCommentId ? null : (input.rating ?? null);
     if (rating !== null) {
       await rankingsRepo.upsertRatingTargetRating({
@@ -1495,7 +1698,24 @@ export const rankingsService = {
     if (!created) {
       return null;
     }
-    if (status === "visible") {
+
+    let currentCommentStatus = created.status;
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "rating_target_comment",
+        entityId: created.id,
+        text: input.content
+      });
+      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (nextStatus !== "pending") {
+        const moderated = await rankingsRepo.updateRatingTargetCommentStatus(created.id, nextStatus);
+        if (moderated) {
+          currentCommentStatus = moderated.status;
+        }
+      }
+    }
+
+    if (currentCommentStatus === "visible") {
       const targetUserId = parentComment ? parentComment.author.id : item.authorId;
       if (targetUserId !== currentUserId) {
         await socialService.recordNotification({
@@ -1526,8 +1746,8 @@ export const rankingsService = {
       ...payload.item.comments,
       ...payload.item.comments.flatMap((entry) => entry.replies)
     ];
-    const currentComment = allComments.find((entry) => entry.id === created.id) ?? null;
-    return currentComment ? { item: currentComment } : null;
+    const selectedComment = allComments.find((entry) => entry.id === created.id) ?? null;
+    return selectedComment ? { item: selectedComment } : null;
   },
 
   async updateRatingTargetComment(
@@ -1546,9 +1766,20 @@ export const rankingsService = {
     }
 
     await rankingsRepo.updateRatingTargetComment(commentId, input.content);
-    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
-    if (shouldModerate && comment.status === "visible") {
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
+    if (comment.status === "visible") {
       await rankingsRepo.updateRatingTargetCommentStatus(commentId, "pending");
+    }
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "rating_target_comment",
+        entityId: commentId,
+        text: input.content
+      });
+      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (nextStatus !== "pending") {
+        await rankingsRepo.updateRatingTargetCommentStatus(commentId, nextStatus);
+      }
     }
 
     const payload = await this.getRatingTargetDetail(itemId, currentUser);

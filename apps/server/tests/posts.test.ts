@@ -2000,7 +2000,7 @@ describe.sequential("posts and social flows", () => {
     expect(momentAuthorPayload.unreadByCategory.system).toBeGreaterThan(0);
     expect(
       momentAuthorPayload.items.some(
-        (item) => item.type === "post_status_changed" && item.target.id === createdMoment.item.id
+        (item) => item.type === "post_audit_result" && item.target.id === createdMoment.item.id
       )
     ).toBe(true);
 
@@ -2055,13 +2055,13 @@ describe.sequential("posts and social flows", () => {
     };
     expect(
       rankingOwnerPayload.items.some(
-        (item) => item.type === "ranking_status_changed" && item.target.id === rankingId
+        (item) => item.type === "ranking_audit_result" && item.target.id === rankingId
       )
     ).toBe(true);
     expect(
       rankingOwnerPayload.items.some(
         (item) =>
-          item.type === "rating_target_status_changed" && item.target.id === rankingItemId
+          item.type === "rating_target_audit_result" && item.target.id === rankingItemId
       )
     ).toBe(true);
 
@@ -2103,7 +2103,7 @@ describe.sequential("posts and social flows", () => {
     expect(
       submitterPayload.items.some(
         (item) =>
-          item.type === "aircraft_submission_status_changed" && item.target.id === submissionId
+          item.type === "aircraft_submission_audit_result" && item.target.id === submissionId
       )
     ).toBe(true);
 
@@ -2152,7 +2152,7 @@ describe.sequential("posts and social flows", () => {
     expect(
       applicantPayload.items.some(
         (item) =>
-          item.type === "brand_application_status_changed" &&
+          item.type === "brand_application_audit_result" &&
           item.target.id === createdBrandApplication.item.id
       )
     ).toBe(true);
@@ -2199,7 +2199,7 @@ describe.sequential("posts and social flows", () => {
     expect(
       reviewAuthorPayload.items.some(
         (item) =>
-          item.type === "review_status_changed" &&
+          item.type === "review_audit_result" &&
           item.target.id === createdReviewPayload.item.id
       )
     ).toBe(true);
@@ -2252,7 +2252,7 @@ describe.sequential("posts and social flows", () => {
     };
     const unreadMessage = beforeMessagesPayload.items.find(
       (item) =>
-        item.type === "post_status_changed" &&
+        item.type === "post_audit_result" &&
         item.domain === "posts" &&
         item.isRead === false
     );
@@ -2275,7 +2275,7 @@ describe.sequential("posts and social flows", () => {
       userId: adminUserId,
       actorId: null,
       category: "system",
-      type: "post_status_changed",
+      type: "post_audit_result",
       targetType: "status",
       targetId: "manual_notice",
       targetTitle: "Manual notice",

@@ -2,9 +2,11 @@ import { useQuery } from "@tanstack/react-query";
 import { Empty, Input, Segmented, Select, Space, Table, Tag, Button } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-panel";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
+import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
 import {
   buildModerationTraceItems,
   MODERATION_TRACE_PLACEHOLDER
@@ -140,6 +142,21 @@ export function PostCommentsPage() {
           : domain === "ranking"
             ? rankingCommentsQuery
             : ratingTargetCommentsQuery;
+  const currentDomainLabel = domainOptions.find((item) => item.value === domain)?.label ?? "评论";
+  const auditTracePlan = useMemo(
+    () =>
+      buildAdminAuditTracePlan({
+        domain: "comment",
+        subjectLabel: "评论",
+        domainLabel: "评论",
+        unavailableReason: `当前接口暂无法把${currentDomainLabel}列表稳定映射到审核记录 entityId，下面的记录可能包含其它评论来源。`
+      }),
+    [currentDomainLabel]
+  );
+  const auditQuery = useQuery({
+    queryKey: ["admin-comment-audits", "recent"],
+    queryFn: () => apiClient.listAdminAuditRecords(auditTracePlan.query)
+  });
 
   async function refreshCurrentDomain() {
     await currentDomainQuery.refetch();
@@ -350,6 +367,14 @@ export function PostCommentsPage() {
           title="评论审核"
         />
       </AdminPanel>
+
+      <AdminAuditRecordsPanel
+        description={auditTracePlan.panelDescription}
+        emptyText={auditTracePlan.emptyText}
+        hint={auditTracePlan.hint}
+        loading={auditQuery.isFetching}
+        records={auditQuery.data?.items}
+      />
 
       <AdminPanel title="评论列表">
         <Table

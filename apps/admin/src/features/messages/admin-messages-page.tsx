@@ -83,17 +83,17 @@ export function AdminMessagesPage() {
     return adminMessageTypeOptions.filter((item) => {
       switch (activeDomain) {
         case "posts":
-          return item.value === "post_status_changed";
+          return item.value === "post_audit_result";
         case "reviews":
-          return item.value === "review_status_changed";
+          return item.value === "review_audit_result";
         case "rankings":
-          return item.value === "ranking_status_changed";
+          return item.value === "ranking_audit_result";
         case "rating_targets":
-          return item.value === "rating_target_status_changed";
+          return item.value === "rating_target_audit_result";
         case "aircraft_submissions":
-          return item.value === "aircraft_submission_status_changed";
+          return item.value === "aircraft_submission_audit_result";
         case "brand_applications":
-          return item.value === "brand_application_status_changed";
+          return item.value === "brand_application_audit_result";
         default:
           return false;
       }

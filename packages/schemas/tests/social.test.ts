@@ -251,7 +251,7 @@ describe("social contract", () => {
   it("parses admin message center contracts", () => {
     const query = adminMessageListQuerySchema.parse({
       domain: "posts",
-      type: "post_status_changed",
+      type: "post_audit_result",
       readStatus: "unread",
       limit: "20"
     });
@@ -261,7 +261,7 @@ describe("social contract", () => {
         {
           id: "notice_1",
           category: "system",
-          type: "post_status_changed",
+          type: "post_audit_result",
           domain: "posts",
           isRead: false,
           createdAt: new Date().toISOString(),
@@ -320,7 +320,7 @@ describe("social contract", () => {
   it("rejects incompatible admin message query domain/type combinations", () => {
     const result = adminMessageListQuerySchema.safeParse({
       domain: "reviews",
-      type: "post_status_changed"
+      type: "post_audit_result"
     });
 
     expect(result.success).toBe(false);

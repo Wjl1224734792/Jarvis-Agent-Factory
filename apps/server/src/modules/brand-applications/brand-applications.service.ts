@@ -221,7 +221,7 @@ export const brandApplicationsService = {
       const statusLabel = status === "approved" ? "已通过" : "未通过审核";
       await socialService.recordSystemNotification({
         userId: current.applicant.id,
-        type: "brand_application_status_changed",
+        type: "brand_application_audit_result",
         title: status === "approved" ? "品牌申请审核通过" : "品牌申请状态更新",
         summary: `品牌申请《${current.name}》当前状态：${statusLabel}`,
         target: {

@@ -143,11 +143,12 @@ const NOTIFICATION_TYPE_VALUES: readonly NotificationType[] = [
   "post_shared",
   "post_commented",
   "comment_replied",
-  "post_status_changed",
-  "ranking_status_changed",
-  "rating_target_status_changed",
-  "aircraft_submission_status_changed",
-  "brand_application_status_changed"
+  "post_audit_result",
+  "review_audit_result",
+  "ranking_audit_result",
+  "rating_target_audit_result",
+  "aircraft_submission_audit_result",
+  "brand_application_audit_result"
 ];
 
 /** 验证值是否为合法的 NotificationType */

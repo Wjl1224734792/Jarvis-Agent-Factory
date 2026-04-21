@@ -15,7 +15,7 @@ describe("admin message api client", () => {
             {
               id: "notice_1",
               category: "system",
-              type: "post_status_changed",
+              type: "post_audit_result",
               domain: "posts",
               isRead: false,
               createdAt: "2026-04-19T00:00:00.000Z",
@@ -61,14 +61,14 @@ describe("admin message api client", () => {
 
     const payload = await client.listAdminMessages({
       domain: "posts",
-      type: "post_status_changed",
+      type: "post_audit_result",
       readStatus: "unread",
       limit: 20
     });
 
     expect(payload.items[0]?.domain).toBe("posts");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:17382/admin/messages?domain=posts&type=post_status_changed&readStatus=unread&limit=20",
+      "http://localhost:17382/admin/messages?domain=posts&type=post_audit_result&readStatus=unread&limit=20",
       expect.objectContaining({
         method: "GET",
         credentials: "include"

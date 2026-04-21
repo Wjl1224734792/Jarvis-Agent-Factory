@@ -28,7 +28,15 @@ const repo = {
 };
 
 const siteSettingsServiceMock = {
-  getResolvedSettings: vi.fn()
+  getResolvedSettings: vi.fn(),
+  isAiReviewEnabledForComment: vi.fn()
+};
+const qiniuAuditServiceMock = {
+  reviewText: vi.fn()
+};
+const socialServiceMock = {
+  recordNotification: vi.fn(),
+  recordSystemNotification: vi.fn()
 };
 const uploadsRepoMock = {
   listOwnedUploadedFiles: vi.fn()
@@ -40,6 +48,14 @@ vi.mock("../src/modules/reviews/reviews.repo", () => ({
 
 vi.mock("../src/modules/site-settings/site-settings.service", () => ({
   siteSettingsService: siteSettingsServiceMock
+}));
+
+vi.mock("../src/modules/audits/qiniu-audit.service", () => ({
+  qiniuAuditService: qiniuAuditServiceMock
+}));
+
+vi.mock("../src/modules/social/social.service", () => ({
+  socialService: socialServiceMock
 }));
 
 vi.mock("../src/modules/uploads/upload.repo", () => ({
@@ -56,6 +72,15 @@ describe("reviews service", () => {
     uploadsRepoMock.listOwnedUploadedFiles.mockResolvedValue([{ id: "file_report_1" }]);
     repo.toggleReviewLike.mockResolvedValue({ active: false });
     repo.toggleReviewCommentLike.mockResolvedValue({ active: false });
+    siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
+      commentModerationEnabled: false
+    });
+    siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(false);
+    qiniuAuditServiceMock.reviewText.mockResolvedValue({
+      status: "needs_manual_review"
+    });
+    socialServiceMock.recordNotification.mockResolvedValue(undefined);
+    socialServiceMock.recordSystemNotification.mockResolvedValue(undefined);
   });
 
   it("enriches top-level model reviews with like/report counts and viewer state", async () => {
@@ -264,6 +289,27 @@ describe("reviews service", () => {
     siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
       commentModerationEnabled: false
     });
+    siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(false);
+    repo.updateReviewCommentStatus.mockResolvedValue({
+      id: "comment_1",
+      reviewId: "review_1",
+      authorId: "author_1",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "After update",
+      status: "pending",
+      likeCount: 1,
+      reportCount: 1,
+      createdAt: new Date("2026-03-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:05:00.000Z"),
+      author: {
+        id: "author_1",
+        displayName: "Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
 
     const updateResult = await reviewsService.updateReviewComment(
       "review_1",
@@ -290,6 +336,8 @@ describe("reviews service", () => {
     }
     expect(likeResult.kind).toBe("ok");
     expect(reportResult.kind).toBe("ok");
+    expect(repo.updateReviewCommentStatus).toHaveBeenCalledWith("comment_1", "pending");
+    expect(qiniuAuditServiceMock.reviewText).not.toHaveBeenCalled();
     expect(repo.toggleReviewCommentLike).toHaveBeenCalledWith("comment_1", "viewer_1");
     expect(repo.reportReviewComment).toHaveBeenCalledWith({
       commentId: "comment_1",
@@ -299,12 +347,14 @@ describe("reviews service", () => {
     });
   });
 
-  it("filters hidden review comments for viewers and creates pending comments when moderation is enabled", async () => {
+  it("filters hidden review comments for viewers and keeps new comments pending when AI review is disabled", async () => {
     const { reviewsService } = await import("../src/modules/reviews/reviews.service");
 
     repo.getReviewById.mockResolvedValue({
       id: "review_1",
-      status: "visible"
+      status: "visible",
+      author: { id: "review_author", displayName: "Review Author" },
+      model: { id: "model_1", slug: "joby-s4", name: "Joby S4" }
     });
     repo.listReviewComments.mockResolvedValue([
       {
@@ -352,7 +402,7 @@ describe("reviews service", () => {
     repo.listViewerReviewCommentLikes.mockResolvedValue([]);
     repo.listViewerReviewCommentReports.mockResolvedValue([]);
     siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
-      commentModerationEnabled: true
+      commentModerationEnabled: false
     });
     repo.createReviewComment.mockResolvedValue({
       id: "comment_pending",
@@ -393,8 +443,85 @@ describe("reviews service", () => {
         status: "pending"
       })
     );
+    expect(qiniuAuditServiceMock.reviewText).not.toHaveBeenCalled();
     if (createResult.kind === "ok") {
       expect(createResult.item.status).toBe("pending");
+    }
+  });
+
+  it("publishes review comments when AI text audit passes", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+
+    repo.getReviewById.mockResolvedValue({
+      id: "review_1",
+      status: "visible",
+      author: { id: "review_author", displayName: "Review Author" },
+      model: { id: "model_1", slug: "joby-s4", name: "Joby S4" }
+    });
+    siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
+      commentModerationEnabled: true
+    });
+    siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(true);
+    repo.createReviewComment.mockResolvedValue({
+      id: "comment_ai",
+      reviewId: "review_1",
+      authorId: "author_3",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "AI approved comment",
+      status: "pending",
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:02:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:02:00.000Z"),
+      author: {
+        id: "author_3",
+        displayName: "Pending Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+    repo.updateReviewCommentStatus.mockResolvedValue({
+      id: "comment_ai",
+      reviewId: "review_1",
+      authorId: "author_3",
+      parentCommentId: null,
+      replyToCommentId: null,
+      replyToUserId: null,
+      content: "AI approved comment",
+      status: "visible",
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:02:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:02:00.000Z"),
+      author: {
+        id: "author_3",
+        displayName: "Pending Author",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+    repo.listUsersByIds.mockResolvedValue([]);
+    qiniuAuditServiceMock.reviewText.mockResolvedValue({
+      status: "passed"
+    });
+
+    const createResult = await reviewsService.createReviewComment(
+      "review_1",
+      { id: "author_3", role: "user" },
+      { content: "AI approved comment" }
+    );
+
+    expect(createResult.kind).toBe("ok");
+    expect(qiniuAuditServiceMock.reviewText).toHaveBeenCalledWith({
+      domain: "review_comment",
+      entityId: "comment_ai",
+      text: "AI approved comment"
+    });
+    expect(repo.updateReviewCommentStatus).toHaveBeenCalledWith("comment_ai", "visible");
+    if (createResult.kind === "ok") {
+      expect(createResult.item.status).toBe("visible");
     }
   });
 });

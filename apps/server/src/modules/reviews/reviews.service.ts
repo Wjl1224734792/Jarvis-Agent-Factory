@@ -136,6 +136,18 @@ function parseFileIdArray(value: string) {
   }
 }
 
+function mapAuditStatusToCommentStatus(
+  status: string | null | undefined
+): "pending" | "visible" | "hidden" {
+  if (status === "passed") {
+    return "visible";
+  }
+  if (status === "rejected") {
+    return "hidden";
+  }
+  return "pending";
+}
+
 export const reviewsService = {
   async listModelReviews(
     slug: string,
@@ -337,7 +349,7 @@ export const reviewsService = {
             : "待审核";
       await socialService.recordSystemNotification({
         userId: item.author.id,
-        type: "review_status_changed",
+        type: "review_audit_result",
         title:
           item.status === "visible"
             ? "评测审核通过"
@@ -431,8 +443,8 @@ export const reviewsService = {
       replyToUserId = parentComment.author.id;
     }
 
-    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
-    const status = shouldModerate ? "pending" : "visible";
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
+    const status = "pending";
 
     const item = await reviewsRepo.createReviewComment({
       reviewId,
@@ -451,7 +463,29 @@ export const reviewsService = {
     if (!serialized) {
       return { kind: "not_found" as const };
     }
-    if (status === "visible") {
+
+    let currentItem = serialized;
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "review_comment",
+        entityId: item.id,
+        text: input.content
+      });
+      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (nextStatus !== "pending") {
+        const refreshed = await reviewsRepo.updateReviewCommentStatus(item.id, nextStatus);
+        const nextSerialized = refreshed
+          ? await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
+              currentUserId: currentUser.id
+            })
+          : null;
+        if (nextSerialized) {
+          currentItem = nextSerialized;
+        }
+      }
+    }
+
+    if (currentItem.status === "visible") {
       const targetUserId = parentComment ? parentComment.author.id : review.author.id;
       if (targetUserId !== currentUser.id) {
         await socialService.recordNotification({
@@ -473,7 +507,7 @@ export const reviewsService = {
       }
     }
 
-    return { kind: "ok" as const, item: serialized };
+    return { kind: "ok" as const, item: currentItem };
   },
   async deleteReviewComment(
     reviewId: string,
@@ -564,18 +598,30 @@ export const reviewsService = {
       return { kind: "not_found" as const };
     }
 
-    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
-    const refreshed =
-      shouldModerate && item.status === "visible"
-        ? await reviewsRepo.updateReviewCommentStatus(commentId, "pending")
-        : item;
+    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
+    const refreshed = await reviewsRepo.updateReviewCommentStatus(commentId, "pending");
     if (!refreshed) {
       return { kind: "not_found" as const };
+    }
+    let finalComment = refreshed;
+    if (aiReviewEnabled) {
+      const audit = await qiniuAuditService.reviewText({
+        domain: "review_comment",
+        entityId: commentId,
+        text: input.content
+      });
+      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
+      if (nextStatus !== "pending") {
+        const updatedComment = await reviewsRepo.updateReviewCommentStatus(commentId, nextStatus);
+        if (updatedComment) {
+          finalComment = updatedComment;
+        }
+      }
     }
     const replyToUsers = refreshed?.replyToUserId
       ? await reviewsRepo.listUsersByIds([refreshed.replyToUserId])
       : [];
-    const serialized = await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
+    const serialized = await serializeComment(finalComment, await buildReplyToUserMap(replyToUsers), {
       currentUserId: currentUser.id
     });
     if (!serialized) {
