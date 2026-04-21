@@ -137,6 +137,7 @@ export function AdminOverviewPage() {
   const [registrationMode, setRegistrationMode] = useState<ChartMode>("day");
   const [activityMode, setActivityMode] = useState<ChartMode>("day");
   const [shouldLoadCharts, setShouldLoadCharts] = useState(false);
+  const [shouldLoadRecentSessions, setShouldLoadRecentSessions] = useState(false);
   const chartsViewportRef = useRef<HTMLDivElement | null>(null);
 
   const analyticsQuery = useQuery({
@@ -151,7 +152,9 @@ export function AdminOverviewPage() {
 
   const recentSessionsQuery = useQuery({
     queryKey: ["admin-overview", "auth-sessions"],
-    queryFn: () => apiClient.getAdminAuthSessions()
+    // The panel stays collapsed by default, so defer this heavier request until it is expanded.
+    queryFn: () => apiClient.getAdminAuthSessions(),
+    enabled: shouldLoadRecentSessions
   });
 
   const recentMessagesQuery = useQuery({
@@ -384,6 +387,13 @@ export function AdminOverviewPage() {
       setSettingsError(reason instanceof Error ? reason.message : "更新审核开关失败");
     } finally {
       setIsSavingSettings(false);
+    }
+  }
+
+  function handleOverviewCollapseChange(activeKey: string | string[]) {
+    const activeKeys = Array.isArray(activeKey) ? activeKey : [activeKey];
+    if (activeKeys.includes("sessions")) {
+      setShouldLoadRecentSessions(true);
     }
   }
 
@@ -841,6 +851,7 @@ export function AdminOverviewPage() {
       <Collapse
         className="admin-overview-collapse"
         ghost
+        onChange={handleOverviewCollapseChange}
         items={[
           {
             key: "ops",
@@ -897,15 +908,24 @@ export function AdminOverviewPage() {
             label: "最近登录设备 / IP",
             children: (
               <Card className="admin-overview-card" size="small" title="最近登录设备 / IP" variant="outlined">
+                {!shouldLoadRecentSessions ? (
+                  <div className="admin-empty">展开面板后加载最近登录记录。</div>
+                ) : null}
+                {shouldLoadRecentSessions && recentSessionsQuery.isPending ? (
+                  <div className="admin-empty">正在加载最近登录记录...</div>
+                ) : null}
                 {recentSessionsQuery.isError ? (
                   <div className="admin-login__error">
                     {resolveRecentSessionsPanelMessage(recentSessionsQuery.error)}
                   </div>
                 ) : null}
-                {!recentSessionsQuery.isError && (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
+                {shouldLoadRecentSessions &&
+                !recentSessionsQuery.isPending &&
+                !recentSessionsQuery.isError &&
+                (recentSessionsQuery.data?.items.length ?? 0) === 0 ? (
                   <Empty description="暂无最近登录记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
                 ) : null}
-                {(recentSessionsQuery.data?.items.length ?? 0) > 0 ? (
+                {shouldLoadRecentSessions && (recentSessionsQuery.data?.items.length ?? 0) > 0 ? (
                   <div className="admin-session-list">
                     {recentSessionsQuery.data?.items.slice(0, 8).map((item) => (
                       <div className="admin-session-card" key={item.id}>

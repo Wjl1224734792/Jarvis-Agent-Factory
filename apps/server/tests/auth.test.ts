@@ -977,7 +977,7 @@ describe("auth flows", () => {
     expect(adminLoginResponse.status).toBe(200);
     const adminCookie = extractCookies(adminLoginResponse);
 
-    const changePasswordResponse = await app.request("/auth/admin/password/change", {
+    const changePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
       method: "POST",
       headers: {
         cookie: adminCookie,
@@ -1044,7 +1044,7 @@ describe("auth flows", () => {
     });
     const adminCookie = extractCookies(adminLoginResponse);
 
-    const recentSessionsResponse = await app.request("/admin/auth/sessions", {
+    const recentSessionsResponse = await app.request(API_ROUTES.auth.adminSessions, {
       method: "GET",
       headers: { cookie: adminCookie }
     });
@@ -1091,7 +1091,7 @@ describe("auth flows", () => {
     };
     expect(registrationPayload.kind).toBe("registration_required");
 
-    const suggestResponse = await app.request("/auth/registration/display-name/suggest", {
+    const suggestResponse = await app.request(API_ROUTES.auth.registrationDisplayNameSuggest, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -1121,7 +1121,7 @@ describe("auth flows", () => {
 
   it("supports app login, registration completion, refresh, me and logout", async () => {
     const loginPayload = await requestCaptchaAndSms("13800138141");
-    const appLoginResponse = await app.request("/auth/app/login", {
+    const appLoginResponse = await app.request(API_ROUTES.auth.appLogin, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -1150,7 +1150,7 @@ describe("auth flows", () => {
         };
     expect(appLoginPayload.kind).toBe("registration_required");
 
-    const appRegisterResponse = await app.request("/auth/app/register/complete", {
+    const appRegisterResponse = await app.request(API_ROUTES.auth.appRegisterComplete, {
       method: "POST",
       headers: {
         "content-type": "application/json",
@@ -1175,7 +1175,7 @@ describe("auth flows", () => {
     expect(appRegisterPayload.refreshToken).toBeTruthy();
     expect(appRegisterPayload.user.role).toBe("user");
 
-    const meResponse = await app.request("/auth/app/me", {
+    const meResponse = await app.request(API_ROUTES.auth.appCurrentUser, {
       method: "GET",
       headers: {
         authorization: `Bearer ${appRegisterPayload.accessToken}`
@@ -1187,7 +1187,7 @@ describe("auth flows", () => {
     };
     expect(mePayload.user?.id).toBe(appRegisterPayload.user.id);
 
-    const refreshResponse = await app.request("/auth/app/refresh", {
+    const refreshResponse = await app.request(API_ROUTES.auth.appRefresh, {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
@@ -1205,7 +1205,7 @@ describe("auth flows", () => {
     // 滑动续期：access token (session ID) 保持不变，只是续期了过期时间
     expect(refreshPayload.accessToken).toBe(appRegisterPayload.accessToken);
 
-    const logoutResponse = await app.request("/auth/app/logout", {
+    const logoutResponse = await app.request(API_ROUTES.auth.appLogout, {
       method: "POST",
       headers: {
         authorization: `Bearer ${refreshPayload.accessToken}`
@@ -1213,7 +1213,7 @@ describe("auth flows", () => {
     });
     expect(logoutResponse.status).toBe(200);
 
-    const afterLogoutResponse = await app.request("/auth/app/me", {
+    const afterLogoutResponse = await app.request(API_ROUTES.auth.appCurrentUser, {
       method: "GET",
       headers: {
         authorization: `Bearer ${refreshPayload.accessToken}`

@@ -670,7 +670,7 @@ describe("models flows", () => {
     });
     const adminCookie = extractCookies(adminLoginResponse);
 
-    const createResponse = await app.request("/models/mini-4-pro/comments", {
+    const createResponse = await app.request(API_ROUTES.models.comments("mini-4-pro"), {
       method: "POST",
       headers: {
         cookie: authorCookie,
@@ -685,7 +685,7 @@ describe("models flows", () => {
       item: { id: string; content: string };
     };
 
-    const replyResponse = await app.request(`/models/mini-4-pro/comments`, {
+    const replyResponse = await app.request(API_ROUTES.models.comments("mini-4-pro"), {
       method: "POST",
       headers: {
         cookie: responderCookie,
@@ -701,14 +701,14 @@ describe("models flows", () => {
       item: { id: string };
     };
 
-    const likeResponse = await app.request(`/models/mini-4-pro/comments/${created.item.id}/like`, {
+    const likeResponse = await app.request(API_ROUTES.models.commentLike("mini-4-pro", created.item.id), {
       method: "POST",
       headers: { cookie: responderCookie }
     });
     expect(likeResponse.status).toBe(200);
 
     const reportImageId = await uploadReportImage(responderCookie);
-    const reportResponse = await app.request(`/models/mini-4-pro/comments/${reply.item.id}/report`, {
+    const reportResponse = await app.request(API_ROUTES.models.commentReport("mini-4-pro", reply.item.id), {
       method: "POST",
       headers: {
         cookie: responderCookie,
@@ -721,7 +721,7 @@ describe("models flows", () => {
     });
     expect(reportResponse.status).toBe(200);
 
-    const updateResponse = await app.request(`/models/mini-4-pro/comments/${created.item.id}`, {
+    const updateResponse = await app.request(API_ROUTES.models.commentDetail("mini-4-pro", created.item.id), {
       method: "PUT",
       headers: {
         cookie: authorCookie,
@@ -733,7 +733,7 @@ describe("models flows", () => {
     });
     expect(updateResponse.status).toBe(200);
 
-    const listResponse = await app.request("/models/mini-4-pro/comments", {
+    const listResponse = await app.request(API_ROUTES.models.comments("mini-4-pro"), {
       method: "GET",
       headers: { cookie: authorCookie }
     });
@@ -750,7 +750,7 @@ describe("models flows", () => {
     expect(listPayload.items[0]?.replies[0]?.id).toBe(reply.item.id);
     expect(listPayload.items[0]?.replies[0]?.reportCount).toBe(1);
 
-    const adminHideResponse = await app.request(`/admin/model-comments/${created.item.id}`, {
+    const adminHideResponse = await app.request(API_ROUTES.models.adminCommentDetail(created.item.id), {
       method: "PUT",
       headers: {
         cookie: adminCookie,
@@ -762,7 +762,7 @@ describe("models flows", () => {
     });
     expect(adminHideResponse.status).toBe(200);
 
-    const hiddenListResponse = await app.request("/models/mini-4-pro/comments", {
+    const hiddenListResponse = await app.request(API_ROUTES.models.comments("mini-4-pro"), {
       method: "GET",
       headers: { cookie: authorCookie }
     });
@@ -770,7 +770,7 @@ describe("models flows", () => {
     const hiddenListPayload = (await hiddenListResponse.json()) as { items: Array<{ id: string }> };
     expect(hiddenListPayload.items.some((item) => item.id === created.item.id)).toBe(false);
 
-    const deleteReplyResponse = await app.request(`/models/mini-4-pro/comments/${reply.item.id}`, {
+    const deleteReplyResponse = await app.request(API_ROUTES.models.commentDetail("mini-4-pro", reply.item.id), {
       method: "DELETE",
       headers: { cookie: responderCookie }
     });

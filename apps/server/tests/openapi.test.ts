@@ -1,9 +1,12 @@
 import { describe, expect, it } from 'vitest';
+import { withApiV1Prefix } from '@feijia/shared';
 import { app } from '../src/app';
 import {
   API_DOCS_PATH,
   OPENAPI_DOCUMENT_PATH
 } from '../src/openapi/document';
+
+const v1Path = withApiV1Prefix;
 
 describe('OpenAPI docs', () => {
   it('serves an OpenAPI JSON document for the documented core routes', async () => {
@@ -33,37 +36,37 @@ describe('OpenAPI docs', () => {
     expect(payload.openapi).toBe('3.0.3');
     expect(payload.info.title).toContain('API');
     expect(payload.paths['/health']).toBeDefined();
-    expect(payload.paths['/auth/web/login']).toBeDefined();
-    expect(payload.paths['/auth/web/refresh']).toBeDefined();
-    expect(payload.paths['/users/me/profile']).toBeDefined();
-    expect(payload.paths['/brand-applications']).toBeDefined();
-    expect(payload.paths['/aircraft-submissions']).toBeDefined();
-    expect(payload.paths['/aircraft-submissions/{id}']).toBeDefined();
-    expect(payload.paths['/admin/aircraft-submissions/{id}']).toBeDefined();
-    expect(payload.paths['/content-categories']).toBeDefined();
-    expect(payload.paths['/admin/categories']).toBeDefined();
-    expect(payload.paths['/admin/brands']).toBeDefined();
-    expect(payload.paths['/admin/site-settings']).toBeDefined();
-    expect(payload.paths['/admin/analytics/overview']).toBeDefined();
-    expect(payload.paths['/admin/reports/{kind}/{id}']).toBeDefined();
-    expect(payload.paths['/models']).toBeDefined();
-    expect(payload.paths['/models/{slug}/comments']).toBeDefined();
-    expect(payload.paths['/models/{slug}/comments/{commentId}']).toBeDefined();
-    expect(payload.paths['/admin/models']).toBeDefined();
-    expect(payload.paths['/admin/models/{id}']).toBeDefined();
-    expect(payload.paths['/home/feed']).toBeDefined();
-    expect(payload.paths['/circle/feed']).toBeDefined();
-    expect(payload.paths['/admin/posts/{id}']).toBeDefined();
-    expect(payload.paths['/admin/official-articles/{id}']).toBeDefined();
-    expect(payload.paths['/admin/rankings']).toBeDefined();
-    expect(payload.paths['/admin/rankings/{id}/status']).toBeDefined();
-    expect(payload.paths['/rating-targets/{id}']).toBeDefined();
-    expect(payload.paths['/rating-targets/{itemId}/comments/{commentId}']).toBeDefined();
-    expect(payload.paths['/reviews/{reviewId}/comments']).toBeDefined();
-    expect(payload.paths['/reviews/{reviewId}/comments/{commentId}']).toBeDefined();
-    expect(payload.paths['/auth/admin/logout']).toBeDefined();
-    expect(payload.paths['/auth/admin/password/change']).toBeDefined();
-    expect(payload.paths['/auth/protected/ping']).toBeDefined();
+    expect(payload.paths[v1Path('/auth/web/login')]).toBeDefined();
+    expect(payload.paths[v1Path('/auth/web/refresh')]).toBeDefined();
+    expect(payload.paths[v1Path('/users/me/profile')]).toBeDefined();
+    expect(payload.paths[v1Path('/brand-applications')]).toBeDefined();
+    expect(payload.paths[v1Path('/aircraft-submissions')]).toBeDefined();
+    expect(payload.paths[v1Path('/aircraft-submissions/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/aircraft-submissions/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/content-categories')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/categories')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/brands')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/site-settings')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/analytics/overview')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/reports/{kind}/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/models')]).toBeDefined();
+    expect(payload.paths[v1Path('/models/{slug}/comments')]).toBeDefined();
+    expect(payload.paths[v1Path('/models/{slug}/comments/{commentId}')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/models')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/models/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/home/feed')]).toBeDefined();
+    expect(payload.paths[v1Path('/circle/feed')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/posts/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/official-articles/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/rankings')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/rankings/{id}/status')]).toBeDefined();
+    expect(payload.paths[v1Path('/rating-targets/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/rating-targets/{itemId}/comments/{commentId}')]).toBeDefined();
+    expect(payload.paths[v1Path('/reviews/{reviewId}/comments')]).toBeDefined();
+    expect(payload.paths[v1Path('/reviews/{reviewId}/comments/{commentId}')]).toBeDefined();
+    expect(payload.paths[v1Path('/auth/admin/logout')]).toBeDefined();
+    expect(payload.paths[v1Path('/auth/admin/password/change')]).toBeDefined();
+    expect(payload.paths[v1Path('/auth/protected/ping')]).toBeDefined();
     expect(payload.components.securitySchemes.sessionCookieAuth).toBeDefined();
     expect(payload.components.securitySchemes.bearerAuth).toBeDefined();
     expect(payload.components.schemas.CurrentUserProfileResponse).toBeDefined();
@@ -72,24 +75,24 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.AdminAnalyticsOverviewResponse).toBeDefined();
     expect(payload.components.schemas.AdminReportRecordsResponse).toBeDefined();
     expect(payload.components.schemas.AdminPasswordChangeRequest).toBeDefined();
-    expect(payload.paths['/users/me/profile']?.put?.responses?.['409']).toBeDefined();
+    expect(payload.paths[v1Path('/users/me/profile')]?.put?.responses?.['409']).toBeDefined();
     expect(
-      payload.paths['/users/me/phone/change/request']?.post?.responses?.['409']
+      payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['409']
     ).toBeDefined();
     expect(
-      payload.paths['/users/me/phone/change/confirm']?.post?.responses?.['409']
+      payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['409']
     ).toBeDefined();
-    expect(payload.paths['/auth/web/refresh']?.post?.responses?.['401']).toBeDefined();
-    expect(payload.paths['/auth/protected/ping']?.get?.responses?.['401']).toBeDefined();
-    expect(payload.paths['/admin/rankings/{id}/status']?.put?.responses?.['403']).toBeDefined();
-    expect(payload.paths['/auth/device/register']?.post).toBeDefined();
-    expect(payload.paths['/auth/device/unregister']?.post).toBeDefined();
+    expect(payload.paths[v1Path('/auth/web/refresh')]?.post?.responses?.['401']).toBeDefined();
+    expect(payload.paths[v1Path('/auth/protected/ping')]?.get?.responses?.['401']).toBeDefined();
+    expect(payload.paths[v1Path('/admin/rankings/{id}/status')]?.put?.responses?.['403']).toBeDefined();
+    expect(payload.paths[v1Path('/auth/device/register')]?.post).toBeDefined();
+    expect(payload.paths[v1Path('/auth/device/unregister')]?.post).toBeDefined();
     expect(payload.components.schemas.DeviceRegisterRequest).toBeDefined();
     expect(payload.components.schemas.DeviceRegisterResponse).toBeDefined();
     expect(payload.components.schemas.DeviceUnregisterRequest).toBeDefined();
     expect(payload.components.schemas.PaginationQuery).toBeDefined();
     expect(payload.components.schemas.PaginationMeta).toBeDefined();
-    const appLoginOperation = payload.paths['/auth/app/login']?.post as
+    const appLoginOperation = payload.paths[v1Path('/auth/app/login')]?.post as
       | { requestBody?: { description?: string } }
       | undefined;
 

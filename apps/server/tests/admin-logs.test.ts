@@ -3,6 +3,7 @@ import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
 import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
+import { API_ROUTES } from "@feijia/shared";
 import { app } from "../src/app";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
@@ -10,7 +11,7 @@ import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 let tempLogDir = "";
 
 async function loginAdmin() {
-  const response = await app.request("/auth/admin/login", {
+  const response = await app.request(API_ROUTES.auth.adminLogin, {
     method: "POST",
     headers: {
       "content-type": "application/json"
@@ -76,7 +77,7 @@ afterAll(async () => {
 describe("admin logs route", () => {
   it("returns logs overview for admins", async () => {
     const cookie = await loginAdmin();
-    const response = await app.request("/admin/logs/overview", {
+    const response = await app.request(API_ROUTES.admin.logsOverview, {
       method: "GET",
       headers: {
         Cookie: cookie
@@ -101,7 +102,7 @@ describe("admin logs route", () => {
 
   it("lists files by category and reads filtered entries", async () => {
     const cookie = await loginAdmin();
-    const filesResponse = await app.request("/admin/logs/files?category=request&limit=10", {
+    const filesResponse = await app.request(`${API_ROUTES.admin.logsFiles}?category=request&limit=10`, {
       method: "GET",
       headers: {
         Cookie: cookie
@@ -117,7 +118,7 @@ describe("admin logs route", () => {
     expect(filesPayload.items[0]?.pathLabel).toContain("request");
 
     const entriesResponse = await app.request(
-      `/admin/logs/entries?category=request&fileName=${encodeURIComponent(filesPayload.items[0]?.fileName ?? "")}&level=WARN&limit=10`,
+      `${API_ROUTES.admin.logsEntries}?category=request&fileName=${encodeURIComponent(filesPayload.items[0]?.fileName ?? "")}&level=WARN&limit=10`,
       {
         method: "GET",
         headers: {
@@ -138,7 +139,7 @@ describe("admin logs route", () => {
 
   it("returns 400 when selecting an unconfigured future log source", async () => {
     const cookie = await loginAdmin();
-    const response = await app.request("/admin/logs/overview?source=managed-log-service", {
+    const response = await app.request(`${API_ROUTES.admin.logsOverview}?source=managed-log-service`, {
       method: "GET",
       headers: {
         Cookie: cookie

@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApiClient } from "../src";
+import { API_ROUTES } from "@feijia/shared";
 
 describe("posts api client", () => {
   afterEach(() => {
@@ -38,7 +39,7 @@ describe("posts api client", () => {
 
     expect(payload.tab).toBe("recommended");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:17382/home/feed?tab=recommended",
+      `http://localhost:17382${API_ROUTES.feed}?tab=recommended`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -85,7 +86,7 @@ describe("posts api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:17382/posts/post_1/comments",
+      `http://localhost:17382${API_ROUTES.posts.comments("post_1")}`,
       expect.objectContaining({
         method: "POST",
         credentials: "include",
@@ -160,7 +161,7 @@ describe("posts api client", () => {
     });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:17382/posts/post_1",
+      `http://localhost:17382${API_ROUTES.posts.detail("post_1")}`,
       expect.objectContaining({
         method: "PUT",
         credentials: "include"
@@ -258,7 +259,7 @@ describe("posts api client", () => {
     expect(payload.item.id).toBe("file_1");
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:17382/uploads/init",
+      `http://localhost:17382${API_ROUTES.uploads.init}`,
       expect.objectContaining({
         method: "POST",
         credentials: "include"
@@ -276,7 +277,7 @@ describe("posts api client", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      "http://localhost:17382/uploads/complete",
+      `http://localhost:17382${API_ROUTES.uploads.complete}`,
       expect.objectContaining({
         method: "POST",
         credentials: "include"

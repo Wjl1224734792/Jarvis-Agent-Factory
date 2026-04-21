@@ -656,7 +656,7 @@ describe("rankings flows", () => {
     };
     expect(publicOverviewPayload.community.some((item) => item.id === createPayload.item.id)).toBe(false);
 
-    const publishResponse = await app.request(`/admin/rankings/${createPayload.item.id}/status`, {
+    const publishResponse = await app.request(API_ROUTES.rankings.adminStatus(createPayload.item.id), {
       method: "PUT",
       headers: {
         cookie: adminCookie,

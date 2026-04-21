@@ -469,7 +469,7 @@ const rawApiClient = {
     return sharedClient.getAdminModel(id);
   },
   getAdminAuthSessions() {
-    return getJson<{ items: AdminAuthSessionItem[] }>("/admin/auth/sessions");
+    return getJson<{ items: AdminAuthSessionItem[] }>(API_ROUTES.auth.adminSessions);
   },
   changeAdminPassword(input: {
     currentPassword: string;

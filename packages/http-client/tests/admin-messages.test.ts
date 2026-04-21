@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createApiClient } from "../src";
+import { API_ROUTES } from "@feijia/shared";
 
 describe("admin message api client", () => {
   afterEach(() => {
@@ -68,7 +69,7 @@ describe("admin message api client", () => {
 
     expect(payload.items[0]?.domain).toBe("posts");
     expect(fetchMock).toHaveBeenCalledWith(
-      "http://localhost:17382/admin/messages?domain=posts&type=post_audit_result&readStatus=unread&limit=20",
+      `http://localhost:17382${API_ROUTES.admin.messages}?domain=posts&type=post_audit_result&readStatus=unread&limit=20`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -143,7 +144,7 @@ describe("admin message api client", () => {
     expect(todos.pendingCount).toBe(5);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
-      "http://localhost:17382/admin/messages/todos",
+      `http://localhost:17382${API_ROUTES.admin.messageTodos}`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -151,7 +152,7 @@ describe("admin message api client", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
-      "http://localhost:17382/admin/messages/notice_1/read",
+      `http://localhost:17382${API_ROUTES.admin.messageRead("notice_1")}`,
       expect.objectContaining({
         method: "POST",
         credentials: "include"
@@ -159,7 +160,7 @@ describe("admin message api client", () => {
     );
     expect(fetchMock).toHaveBeenNthCalledWith(
       3,
-      "http://localhost:17382/admin/messages/read-all",
+      `http://localhost:17382${API_ROUTES.admin.messagesReadAll}`,
       expect.objectContaining({
         method: "POST",
         credentials: "include"

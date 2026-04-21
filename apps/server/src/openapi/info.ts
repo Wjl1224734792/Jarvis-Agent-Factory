@@ -1,6 +1,4 @@
-import { APP_NAME } from "@feijia/shared";
-
-const API_VERSION = "0.1.0";
+import { API_V1_PREFIX, API_VERSION, APP_NAME } from "@feijia/shared";
 
 export const openApiInfo = {
   title: `${APP_NAME} API`,
@@ -24,7 +22,8 @@ Error responses expose a business \`code\` and a human-readable \`message\`.
 - File-size limits are controlled by the \`UPLOAD_MAX_*_SIZE_MB\` environment variables.
 
 ### Versioning
-The current API version is \`${API_VERSION}\`. Routes are unversioned for now and future breaking changes should move to a dedicated prefix such as \`/v2/\`.`
+The current stable route namespace is \`${API_V1_PREFIX}\`.
+Health checks and API docs stay on root-level stable endpoints, while business APIs are served under the versioned prefix for future iteration.`
 } as const;
 
 export const openApiServers = [

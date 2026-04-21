@@ -328,7 +328,7 @@ let refreshingPromise: Promise<boolean> | null = null;
 
 function refreshSession(): Promise<boolean> {
   if (!refreshingPromise) {
-    refreshingPromise = fetch(`${resolvedBaseUrl}/auth/web/refresh`, {
+    refreshingPromise = fetch(`${resolvedBaseUrl}${API_ROUTES.auth.webRefresh}`, {
       method: "POST",
       credentials: "include"
     })
