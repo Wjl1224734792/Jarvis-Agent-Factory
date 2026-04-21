@@ -1,5 +1,6 @@
 ﻿import {
   contentCategoriesTable,
+  postsTable,
   db,
   dbPool,
   notificationsTable,
@@ -115,6 +116,60 @@ async function loginAdmin() {
   });
 
   return extractCookies(response);
+}
+
+async function getCurrentUserId(cookie: string) {
+  const response = await app.request(API_ROUTES.auth.currentUser, {
+    method: "GET",
+    headers: { cookie }
+  });
+  expect(response.status).toBe(200);
+  const payload = (await response.json()) as {
+    user: { id: string } | null;
+  };
+  return expectDefined(payload.user?.id);
+}
+
+async function replaceMomentFeedWithSyntheticPosts(
+  authorId: string,
+  items: Array<{
+    id: string;
+    title: string;
+    content: string;
+    likeCount?: number;
+    favoriteCount?: number;
+    shareCount?: number;
+    commentCount?: number;
+    reportCount?: number;
+    viewCount?: number;
+    publishedAt: Date;
+  }>
+) {
+  await db.delete(postsTable).where(eq(postsTable.type, "moment"));
+  await db.insert(postsTable).values(
+    items.map((item) => ({
+      id: item.id,
+      authorId,
+      type: "moment" as const,
+      title: item.title,
+      content: item.content,
+      contentHtml: null,
+      contentPlainText: item.content,
+      contentCategoryId: null,
+      coverImageFileId: null,
+      status: "published" as const,
+      rejectionReason: null,
+      commentCount: item.commentCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      likeCount: item.likeCount ?? 0,
+      favoriteCount: item.favoriteCount ?? 0,
+      shareCount: item.shareCount ?? 0,
+      viewCount: item.viewCount ?? 0,
+      publishedAt: item.publishedAt,
+      createdAt: item.publishedAt,
+      updatedAt: item.publishedAt
+    }))
+  );
 }
 
 async function uploadFile(
@@ -511,6 +566,87 @@ describe.sequential("posts and social flows", () => {
     );
 
     expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
+  });
+
+  it("keeps high-share moments inside the recommended candidate pool", async () => {
+    const authorCookie = await loginWebUser("13800138174");
+    const authorId = await getCurrentUserId(authorCookie);
+    const baseTime = new Date("2026-04-08T08:00:00.000Z");
+
+    const fillerItems = Array.from({ length: 60 }, (_, index) => ({
+      id: `moment_fill_${index + 1}`,
+      title: `Filler moment ${index + 1}`,
+      content: "Consistent filler copy that keeps content quality neutral across the candidate pool.",
+      likeCount: 1,
+      publishedAt: new Date(baseTime.getTime() - (index + 1) * 60_000)
+    }));
+
+    await replaceMomentFeedWithSyntheticPosts(authorId, [
+      ...fillerItems,
+      {
+        id: "moment_share_heavy",
+        title: "Share-heavy discovery moment",
+        content: "A strong discovery candidate with enough detail to earn a healthy recommendation score.",
+        shareCount: 20,
+        publishedAt: new Date(baseTime.getTime() + 60_000)
+      }
+    ]);
+
+    const response = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
+      method: "GET"
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number };
+    };
+
+    expect(payload.items.some((item) => item.id === "moment_share_heavy")).toBe(true);
+    expect(payload.pagination.total).toBe(60);
+  });
+
+  it("aligns recommended pagination with the ranked candidate window", async () => {
+    const authorCookie = await loginWebUser("13800138175");
+    const authorId = await getCurrentUserId(authorCookie);
+    const baseTime = new Date("2026-04-08T10:00:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 70 }, (_, index) => ({
+        id: `moment_window_${index + 1}`,
+        title: `Window moment ${index + 1}`,
+        content: "A stable synthetic feed item used to verify recommended pagination semantics.",
+        likeCount: index % 3,
+        shareCount: index % 2,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageSixResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=6`, {
+      method: "GET"
+    });
+    expect(pageSixResponse.status).toBe(200);
+    const pageSixPayload = (await pageSixResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageSixPayload.items).toHaveLength(10);
+    expect(pageSixPayload.pagination.total).toBe(60);
+    expect(pageSixPayload.pagination.hasMore).toBe(false);
+
+    const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
+      method: "GET"
+    });
+    expect(pageSevenResponse.status).toBe(200);
+    const pageSevenPayload = (await pageSevenResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageSevenPayload.items).toHaveLength(0);
+    expect(pageSevenPayload.pagination.total).toBe(60);
+    expect(pageSevenPayload.pagination.hasMore).toBe(false);
   });
 
   it("returns edited published posts to pending when moderation stays on", async () => {

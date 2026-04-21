@@ -22,10 +22,19 @@ type PostInteractionType = "like" | "favorite" | "share";
 
 function buildFeedOrder(tab: FeedTab) {
   if (tab === "recommended") {
+    const recommendationCandidateScore = sql<number>`
+      (
+        (${postsTable.likeCount} * 8) +
+        (${postsTable.favoriteCount} * 10) +
+        (${postsTable.shareCount} * 12) +
+        (${postsTable.commentCount} * 6) -
+        (${postsTable.reportCount} * 18)
+      )
+    `;
     return [
-      desc(postsTable.likeCount),
-      desc(postsTable.commentCount),
-      desc(sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`)
+      desc(recommendationCandidateScore),
+      desc(sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`),
+      desc(postsTable.updatedAt)
     ] as const;
   }
 

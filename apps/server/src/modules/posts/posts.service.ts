@@ -40,6 +40,13 @@ const MAX_FEED_LIMIT = 50;
 const DEFAULT_RECOMMENDED_CANDIDATE_WINDOW = 60;
 const MAX_RECOMMENDED_CANDIDATE_WINDOW = 200;
 
+function resolveRecommendedCandidateWindow(limit: number) {
+  return Math.min(
+    MAX_RECOMMENDED_CANDIDATE_WINDOW,
+    Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 6)
+  );
+}
+
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
 }
@@ -285,12 +292,7 @@ export const postsService = {
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
     const offset = (page - 1) * limit;
     const candidateLimit =
-      tab === "recommended"
-        ? Math.min(
-            MAX_RECOMMENDED_CANDIDATE_WINDOW,
-            Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, page * limit * 4)
-          )
-        : limit;
+      tab === "recommended" ? resolveRecommendedCandidateWindow(limit) : limit;
     const feedResult = await postsRepo.listFeed({
       tab,
       type: input.type,
@@ -330,12 +332,21 @@ export const postsService = {
         })
       )
       .filter((item): item is NonNullable<typeof item> => item !== null);
-    const orderedItems =
+    const rankedRecommendedItems =
       tab === "recommended"
         ? rankFeedItemsByRecommendation(serializedItems, {
             type: input.type
-          }).slice(offset, offset + limit)
+          })
         : serializedItems;
+    const orderedItems =
+      tab === "recommended"
+        ? rankedRecommendedItems.slice(offset, offset + limit)
+        : serializedItems;
+    const total =
+      tab === "recommended"
+        ? rankedRecommendedItems.length
+        : feedResult.total;
+    const hasMore = page * limit < total;
 
     if (input.type === "article") {
       const categories = await contentCategoriesService.listEnabledCategories();
@@ -347,8 +358,8 @@ export const postsService = {
         pagination: {
           page,
           limit,
-          total: feedResult.total,
-          hasMore: page * limit < feedResult.total
+          total,
+          hasMore
         }
       };
     }
@@ -359,8 +370,8 @@ export const postsService = {
       pagination: {
         page,
         limit,
-        total: feedResult.total,
-        hasMore: page * limit < feedResult.total
+        total,
+        hasMore
       }
     };
   },
