@@ -520,18 +520,33 @@ export function createApiClient(options: ApiClientOptions) {
       size: file.size
     });
 
-    if (initPayload.upload.mode !== "presigned-put") {
+    if (initPayload.upload.mode === "presigned-put") {
+      const uploadResponse = await fetch(initPayload.upload.url, {
+        method: "PUT",
+        headers: initPayload.upload.headers,
+        body: file
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed.");
+      }
+    } else if (initPayload.upload.mode === "qiniu-form") {
+      const formData = new FormData();
+      for (const [key, value] of Object.entries(initPayload.upload.fields)) {
+        formData.set(key, value);
+      }
+      formData.set(initPayload.upload.fileFieldName, file);
+
+      const uploadResponse = await fetch(initPayload.upload.uploadUrl, {
+        method: "POST",
+        body: formData
+      });
+
+      if (!uploadResponse.ok) {
+        throw new Error("File upload failed.");
+      }
+    } else {
       throw new Error("Unsupported upload mode.");
-    }
-
-    const uploadResponse = await fetch(initPayload.upload.url, {
-      method: "PUT",
-      headers: initPayload.upload.headers,
-      body: file
-    });
-
-    if (!uploadResponse.ok) {
-      throw new Error("File upload failed.");
     }
 
     return completeUpload(initPayload.fileId);

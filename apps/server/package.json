@@ -25,6 +25,8 @@
     "dotenv": "^16.4.7",
     "drizzle-orm": "^0.45.1",
     "hono": "^4.12.9",
+    "proxy-agent": "^8.0.1",
+    "qiniu": "^7.15.1",
     "redis": "^5.8.2",
     "tencentcloud-sdk-nodejs": "^4.1.206",
     "zod": "^4.3.6"

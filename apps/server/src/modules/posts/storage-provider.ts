@@ -7,6 +7,7 @@ import {
   S3Client
 } from "@aws-sdk/client-s3";
 import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
+import * as qiniu from "qiniu";
 
 export type StorageProvider = "minio" | "cos" | "oss" | "kodo";
 type StorageProviderEnvValue = StorageProvider | "qiniu";
@@ -23,15 +24,25 @@ export type StorageProviderConfig = {
   keyPrefix: string;
   forcePathStyle: boolean;
   publicBaseUrl: string;
+  publicBaseUrlIsExplicit: boolean;
   autoCreateBucket: boolean;
+  kodoRegionId?: string;
 };
 
-export type StorageUploadDescriptor = {
-  mode: "presigned-put";
-  url: string;
-  headers?: Record<string, string>;
-  expiresIn: number;
-};
+export type StorageUploadDescriptor =
+  | {
+      mode: "presigned-put";
+      url: string;
+      headers?: Record<string, string>;
+      expiresIn: number;
+    }
+  | {
+      mode: "qiniu-form";
+      uploadUrl: string;
+      fileFieldName: string;
+      fields: Record<string, string>;
+      expiresIn: number;
+    };
 
 export type StorageObjectHead = {
   exists: boolean;
@@ -44,6 +55,7 @@ function parseBoolean(input: string | undefined, fallback: boolean) {
   if (input === undefined) {
     return fallback;
   }
+
   return ["1", "true", "yes", "on"].includes(input.toLowerCase());
 }
 
@@ -56,7 +68,7 @@ function normalizeBaseUrl(
   bucket: string,
   forcePathStyle: boolean,
   explicitPublicBaseUrl?: string
-): string {
+) {
   if (explicitPublicBaseUrl?.trim()) {
     return explicitPublicBaseUrl.trim().replace(/\/+$/g, "");
   }
@@ -77,9 +89,8 @@ function normalizeBaseUrl(
   return `${url.protocol}//${bucket}.${url.host}`;
 }
 
-export function buildStorageObjectUrl(config: StorageProviderConfig, objectKey: string) {
-  const resolvedKey = resolveObjectKey(config, objectKey);
-  return `${config.publicBaseUrl}/${resolvedKey}`;
+function resolveObjectKey(config: StorageProviderConfig, inputKey: string) {
+  return config.keyPrefix ? `${config.keyPrefix}/${inputKey}` : inputKey;
 }
 
 function createS3Client(config: StorageProviderConfig) {
@@ -94,8 +105,57 @@ function createS3Client(config: StorageProviderConfig) {
   });
 }
 
-function resolveObjectKey(config: StorageProviderConfig, inputKey: string) {
-  return config.keyPrefix ? `${config.keyPrefix}/${inputKey}` : inputKey;
+function createQiniuMac(config: StorageProviderConfig) {
+  return new qiniu.auth.digest.Mac(config.accessKeyId, config.secretAccessKey);
+}
+
+function createQiniuConfig(config: StorageProviderConfig) {
+  const qiniuConfig = new qiniu.conf.Config({
+    useHttpsDomain: config.endpoint.startsWith("https://"),
+    accelerateUploading: false
+  });
+
+  if (config.kodoRegionId) {
+    qiniuConfig.regionsProvider = qiniu.httpc.Region.fromRegionId(config.kodoRegionId);
+  }
+
+  return qiniuConfig;
+}
+
+function createQiniuBucketManager(config: StorageProviderConfig) {
+  return new qiniu.rs.BucketManager(createQiniuMac(config), createQiniuConfig(config));
+}
+
+function createKodoUploadToken(config: StorageProviderConfig, input: {
+  objectKey: string;
+  contentType: string;
+  size: number;
+}) {
+  const putPolicy = new qiniu.rs.PutPolicy({
+    scope: `${config.bucket}:${input.objectKey}`,
+    expires: 900,
+    fsizeLimit: input.size,
+    mimeLimit: input.contentType
+  });
+
+  return putPolicy.uploadToken(createQiniuMac(config));
+}
+
+function isLocalhostStorageEndpoint(endpoint: string) {
+  return endpoint.includes("localhost") || endpoint.includes("127.0.0.1");
+}
+
+export function shouldUseSignedReadUrl(config: StorageProviderConfig, env: EnvLike = process.env) {
+  if (config.provider === "kodo" && !config.publicBaseUrlIsExplicit) {
+    return true;
+  }
+
+  if (!isLocalhostStorageEndpoint(config.endpoint)) {
+    return false;
+  }
+
+  const nonProduction = env.NODE_ENV !== "production";
+  return nonProduction || parseBoolean(env.STORAGE_PRESIGN_READ_URLS, false);
 }
 
 async function ensureBucketExists(client: S3Client, config: StorageProviderConfig) {
@@ -116,6 +176,11 @@ async function ensureBucketExists(client: S3Client, config: StorageProviderConfi
       })
     );
   }
+}
+
+export function buildStorageObjectUrl(config: StorageProviderConfig, objectKey: string) {
+  const resolvedKey = resolveObjectKey(config, objectKey);
+  return `${config.publicBaseUrl}/${resolvedKey}`;
 }
 
 export function isStorageProviderExplicitlyConfigured(env: EnvLike = process.env) {
@@ -148,6 +213,7 @@ export function resolveStorageProviderConfig(env: EnvLike = process.env): Storag
 
   const provider: StorageProvider = normalizedProvider;
   const forcePathStyle = parseBoolean(env.STORAGE_FORCE_PATH_STYLE, provider === "minio");
+  const publicBaseUrlIsExplicit = Boolean(env.STORAGE_PUBLIC_BASE_URL?.trim());
 
   return {
     provider,
@@ -164,7 +230,9 @@ export function resolveStorageProviderConfig(env: EnvLike = process.env): Storag
       bucket,
       forcePathStyle,
       env.STORAGE_PUBLIC_BASE_URL
-    )
+    ),
+    publicBaseUrlIsExplicit,
+    kodoRegionId: env.KODO_REGION_ID?.trim() || undefined
   };
 }
 
@@ -180,6 +248,32 @@ export type StorageUploadResult = {
 };
 
 export function createStorageUploader(config: StorageProviderConfig) {
+  if (config.provider === "kodo") {
+    const uploader = new qiniu.form_up.FormUploader(createQiniuConfig(config));
+
+    return {
+      async upload(input: StorageUploadInput): Promise<StorageUploadResult> {
+        const resolvedKey = resolveObjectKey(config, input.key);
+        const uploadToken = createKodoUploadToken(config, {
+          objectKey: resolvedKey,
+          contentType: input.contentType,
+          size: input.body.byteLength
+        });
+
+        const putExtra = new qiniu.form_up.PutExtra(undefined, undefined, input.contentType);
+        const result = await uploader.put(uploadToken, resolvedKey, Buffer.from(input.body), putExtra);
+        if (!result.ok()) {
+          throw new Error(`Kodo upload failed with status ${result.resp.statusCode ?? "unknown"}.`);
+        }
+
+        return {
+          key: resolvedKey,
+          url: buildStorageObjectUrl(config, input.key)
+        };
+      }
+    };
+  }
+
   const client = createS3Client(config);
 
   return {
@@ -196,13 +290,77 @@ export function createStorageUploader(config: StorageProviderConfig) {
 
       return {
         key: resolvedKey,
-        url: `${config.publicBaseUrl}/${resolvedKey}`
+        url: buildStorageObjectUrl(config, input.key)
       };
     }
   };
 }
 
 export function createStorageProvider(config: StorageProviderConfig) {
+  if (config.provider === "kodo") {
+    const bucketManager = createQiniuBucketManager(config);
+
+    return {
+      async initUpload(input: {
+        objectKey: string;
+        contentType: string;
+        size: number;
+        visibility: "public" | "private";
+      }): Promise<StorageUploadDescriptor> {
+        const resolvedKey = resolveObjectKey(config, input.objectKey);
+        const uploadToken = createKodoUploadToken(config, {
+          objectKey: resolvedKey,
+          contentType: input.contentType,
+          size: input.size
+        });
+
+        return {
+          mode: "qiniu-form",
+          uploadUrl: config.endpoint,
+          fileFieldName: "file",
+          fields: {
+            token: uploadToken,
+            key: resolvedKey
+          },
+          expiresIn: 900
+        };
+      },
+      async headObject(input: { objectKey: string }): Promise<StorageObjectHead> {
+        const resolvedKey = resolveObjectKey(config, input.objectKey);
+
+        try {
+          const result = await bucketManager.stat(config.bucket, resolvedKey);
+          if (!result.ok()) {
+            const statusCode = result.resp.statusCode ?? 500;
+            if (statusCode === 404 || statusCode === 612) {
+              return { exists: false };
+            }
+
+            throw new Error(`Kodo stat failed with status ${statusCode}.`);
+          }
+
+          return {
+            exists: true,
+            size: result.data.fsize,
+            etag: result.data.md5 ?? result.data.hash,
+            contentType: result.data.mimeType
+          };
+        } catch {
+          return { exists: false };
+        }
+      },
+      async getDownloadUrl(input: {
+        objectKey: string;
+        expiresIn: number;
+        filename?: string;
+      }) {
+        const resolvedKey = resolveObjectKey(config, input.objectKey);
+        const deadline = Math.floor(Date.now() / 1000) + input.expiresIn;
+        return bucketManager.privateDownloadUrl(config.publicBaseUrl, resolvedKey, deadline);
+      }
+    };
+  }
+
   const client = createS3Client(config);
 
   return {

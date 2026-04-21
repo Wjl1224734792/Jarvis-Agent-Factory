@@ -1,12 +1,21 @@
-import { completeUploadResponseSchema, fileUrlResponseSchema, initUploadResponseSchema, type FileBizType } from "@feijia/schemas";
-import { createStorageProvider, resolveStorageProviderConfig, buildStorageObjectUrl } from "../../lib/storage-provider";
+import {
+  completeUploadResponseSchema,
+  fileUrlResponseSchema,
+  initUploadResponseSchema,
+  type FileBizType
+} from "@feijia/schemas";
+import {
+  buildStorageObjectUrl,
+  createStorageProvider,
+  resolveStorageProviderConfig,
+  shouldUseSignedReadUrl
+} from "../../lib/storage-provider";
+import { extname } from "node:path";
+import { randomUUID } from "node:crypto";
 import { getUploadPolicy, isAllowedUploadMime } from "./upload.policy";
 import { uploadsRepo, type StoredFileRecord } from "./upload.repo";
 import { resolveUploadedFileUrl } from "./uploads.helpers";
-import { extname } from "node:path";
-import { randomUUID } from "node:crypto";
 
-// 优先保留用户原始扩展名；缺失时按 MIME 推导，最后再兜底成 .bin。
 function normalizeExtension(fileName: string, contentType: string) {
   const fileExtension = extname(fileName).trim().toLowerCase();
   if (fileExtension) {
@@ -24,7 +33,6 @@ function normalizeExtension(fileName: string, contentType: string) {
   return ".bin";
 }
 
-// 对象键按业务类型、所属用户和 UTC 日期分层，便于排查、清理和控制命名冲突。
 function buildObjectKey(bizType: FileBizType, ownerId: string, fileName: string, contentType: string) {
   const now = new Date();
   const yyyy = String(now.getUTCFullYear());
@@ -64,7 +72,6 @@ export const uploadsService = {
     contentType: string;
     byteSize: number;
   }) {
-    // 初始化阶段只发放上传凭证并落 pending 记录，文件内容仍由客户端直传对象存储。
     const policy = getUploadPolicy(input.bizType);
     if (!isAllowedUploadMime(policy, input.contentType)) {
       return { kind: "invalid_mime" as const };
@@ -82,7 +89,6 @@ export const uploadsService = {
 
     const config = resolveStorageProviderConfig();
     const provider = createStorageProvider(config);
-    // objectKey 一旦下发就和数据库记录绑定，后续完成上传时会再次核对同一对象。
     const objectKey = buildObjectKey(input.bizType, input.ownerId, input.fileName, input.contentType);
     const pending = await uploadsRepo.createPendingFile({
       ownerId: input.ownerId,
@@ -129,7 +135,6 @@ export const uploadsService = {
 
     const config = resolveStorageProviderConfig();
     const provider = createStorageProvider(config);
-    // 完成上传时回查对象存储头信息，防止客户端上传了尺寸或类型不匹配的文件。
     const head = await provider.headObject({ objectKey: file.objectKey });
     if (!head.exists) {
       return { kind: "missing_object" as const };
@@ -169,14 +174,16 @@ export const uploadsService = {
       return null;
     }
 
-    if (file.visibility === "public") {
-      // 公开资源直接返回稳定地址，私有资源则改走短期签名下载链接。
+    const config = resolveStorageProviderConfig();
+    const provider = createStorageProvider(config);
+    const mustSignReadUrl = shouldUseSignedReadUrl(config);
+
+    if (file.visibility === "public" && !mustSignReadUrl) {
       return fileUrlResponseSchema.parse({
-        url: buildStorageObjectUrl(resolveStorageProviderConfig(), file.objectKey)
+        url: buildStorageObjectUrl(config, file.objectKey)
       });
     }
 
-    const provider = createStorageProvider(resolveStorageProviderConfig());
     return fileUrlResponseSchema.parse({
       url: await provider.getDownloadUrl({
         objectKey: file.objectKey,

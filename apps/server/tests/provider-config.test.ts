@@ -33,6 +33,7 @@ import {
   createStorageProvider,
   isStorageProviderExplicitlyConfigured,
   resolveStorageProviderConfig,
+  shouldUseSignedReadUrl,
   type StorageProvider
 } from "../src/modules/posts/storage-provider";
 import {
@@ -91,6 +92,37 @@ describe("provider config", () => {
 
     expect(config.provider).toBe("kodo");
     expect(config.publicBaseUrl).toContain("feijia-media");
+  });
+
+  it("falls back to signed reads for kodo when public base url is not explicitly configured", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        STORAGE_PROVIDER: "kodo",
+        STORAGE_BUCKET: "feijia-media",
+        STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
+        STORAGE_REGION: "cn-east-1",
+        STORAGE_ACCESS_KEY_ID: "id",
+        STORAGE_SECRET_ACCESS_KEY: "secret"
+      })
+    );
+
+    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(true);
+  });
+
+  it("keeps direct public urls for kodo when an explicit public base url is configured", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        STORAGE_PROVIDER: "qiniu",
+        STORAGE_BUCKET: "feijia-media",
+        STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
+        STORAGE_REGION: "cn-east-1",
+        STORAGE_ACCESS_KEY_ID: "id",
+        STORAGE_SECRET_ACCESS_KEY: "secret",
+        STORAGE_PUBLIC_BASE_URL: "https://cdn.example-kodo.com"
+      })
+    );
+
+    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(false);
   });
 
   it("throws on invalid storage provider", () => {
@@ -180,6 +212,64 @@ describe("provider config", () => {
     expect(descriptor.mode).toBe("presigned-put");
     expect(descriptor.expiresIn).toBeGreaterThan(0);
     expect(mockAws.getSignedUrlMock).toHaveBeenCalled();
+  });
+
+  it("creates a kodo storage provider with qiniu form upload support", async () => {
+    const provider = createStorageProvider(
+      resolveStorageProviderConfig(
+        createEnv({
+          STORAGE_PROVIDER: "kodo",
+          STORAGE_BUCKET: "feijia-media",
+          STORAGE_ENDPOINT: "https://up-z0.qiniup.com",
+          STORAGE_REGION: "cn-east-1",
+          STORAGE_ACCESS_KEY_ID: "id",
+          STORAGE_SECRET_ACCESS_KEY: "secret",
+          STORAGE_PUBLIC_BASE_URL: "https://cdn.example-kodo.com"
+        })
+      )
+    );
+
+    const descriptor = await provider.initUpload({
+      objectKey: "post-image/user_1/2026/04/21/file_1.png",
+      contentType: "image/png",
+      size: 256,
+      visibility: "public"
+    });
+
+    expect(descriptor.mode).toBe("qiniu-form");
+    if (descriptor.mode !== "qiniu-form") {
+      return;
+    }
+
+    expect(descriptor.uploadUrl).toBe("https://up-z0.qiniup.com");
+    expect(descriptor.fields.key).toBe("post-image/user_1/2026/04/21/file_1.png");
+    expect(descriptor.fields.token).toBeTruthy();
+  });
+
+  it("presigns localhost read urls outside production and can keep direct urls in production", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        STORAGE_PROVIDER: "minio",
+        STORAGE_BUCKET: "feijia-media",
+        STORAGE_ENDPOINT: "http://localhost:9000",
+        STORAGE_REGION: "us-east-1",
+        STORAGE_ACCESS_KEY_ID: "id",
+        STORAGE_SECRET_ACCESS_KEY: "secret",
+        STORAGE_FORCE_PATH_STYLE: "true"
+      })
+    );
+
+    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "development" }))).toBe(true);
+    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(false);
+    expect(
+      shouldUseSignedReadUrl(
+        config,
+        createEnv({
+          NODE_ENV: "production",
+          STORAGE_PRESIGN_READ_URLS: "true"
+        })
+      )
+    ).toBe(true);
   });
 
   it("detects explicit storage configuration", () => {

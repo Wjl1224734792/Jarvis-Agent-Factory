@@ -285,6 +285,26 @@ describe("posts contract", () => {
     expect(completeInput.fileId).toBe("file_1");
   });
 
+  it("parses kodo form upload descriptors", () => {
+    const initResponse = initUploadResponseSchema.parse({
+      fileId: "file_kodo_1",
+      objectKey: "post-image/user_1/2026/04/21/file_1.png",
+      upload: {
+        mode: "qiniu-form",
+        uploadUrl: "https://up-z0.qiniup.com",
+        fileFieldName: "file",
+        fields: {
+          token: "upload-token",
+          key: "uploads/post-image/user_1/2026/04/21/file_1.png"
+        },
+        expiresIn: 900
+      }
+    });
+
+    expect(initResponse.upload.mode).toBe("qiniu-form");
+    expect(initResponse.upload.fields.token).toBe("upload-token");
+  });
+
   it("parses unified file metadata", () => {
     const payload = fileItemSchema.parse({
       id: "file_1",

@@ -321,4 +321,85 @@ describe("posts api client", () => {
 
     await expect(client.uploadPostImage(file)).rejects.toThrow("当前最大允许 10 MB");
   });
+  it("uploads post images with qiniu form data when server returns kodo upload mode", async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, "fetch")
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            fileId: "file_kodo_1",
+            objectKey: "post-image/user_1/2026/04/21/file_1.png",
+            upload: {
+              mode: "qiniu-form",
+              uploadUrl: "https://up-z0.qiniup.com",
+              fileFieldName: "file",
+              fields: {
+                token: "upload-token",
+                key: "uploads/post-image/user_1/2026/04/21/file_1.png"
+              },
+              expiresIn: 900
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json"
+            }
+          }
+        )
+      )
+      .mockResolvedValueOnce(new Response(null, { status: 200 }))
+      .mockResolvedValueOnce(
+        new Response(
+          JSON.stringify({
+            item: {
+              id: "file_kodo_1",
+              bizType: "post-image",
+              mediaKind: "image",
+              status: "uploaded",
+              visibility: "public",
+              url: "https://cdn.example.com/post-image/user_1/2026/04/21/file_1.png",
+              fileName: "cover.png",
+              mimeType: "image/png",
+              byteSize: 128,
+              uploadedAt: "2026-04-21T00:00:00.000Z"
+            }
+          }),
+          {
+            status: 200,
+            headers: {
+              "content-type": "application/json"
+            }
+          }
+        )
+      );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    const file = new File([Uint8Array.from([1, 2, 3])], "cover.png", {
+      type: "image/png"
+    });
+
+    const payload = await client.uploadPostImage(file);
+
+    expect(payload.item.id).toBe("file_kodo_1");
+    expect(fetchMock).toHaveBeenNthCalledWith(
+      2,
+      "https://up-z0.qiniup.com",
+      expect.objectContaining({
+        method: "POST",
+        body: expect.any(FormData)
+      })
+    );
+
+    const secondCall = fetchMock.mock.calls[1];
+    const uploadRequest = secondCall?.[1] as RequestInit | undefined;
+    const formData = uploadRequest?.body as FormData;
+
+    expect(formData.get("token")).toBe("upload-token");
+    expect(formData.get("key")).toBe("uploads/post-image/user_1/2026/04/21/file_1.png");
+    expect(formData.get("file")).toBe(file);
+  });
 });

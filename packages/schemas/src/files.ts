@@ -21,6 +21,18 @@ export const uploadDescriptorSchema = z.discriminatedUnion("mode", [
     url: z.string().url(),
     headers: z.record(z.string(), z.string()).default({}),
     expiresIn: z.number().int().positive()
+  }),
+  z.object({
+    mode: z.literal("qiniu-form"),
+    uploadUrl: z.string().url(),
+    fileFieldName: z.string().trim().min(1).default("file"),
+    fields: z.record(z.string(), z.string()).refine(
+      (fields) => Boolean(fields.token?.trim()) && Boolean(fields.key?.trim()),
+      {
+        message: "Qiniu form upload requires token and key fields."
+      }
+    ),
+    expiresIn: z.number().int().positive()
   })
 ]);
 

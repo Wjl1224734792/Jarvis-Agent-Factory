@@ -172,6 +172,13 @@ async function seedStorageArtifacts(): Promise<RuntimeSeedSummary["storage"]> {
     return { skipped: "Unsupported STORAGE_PROVIDER. Expected minio|cos|oss|kodo." };
   }
 
+  if (provider === "kodo") {
+    return {
+      skipped:
+        "Kodo runtime seed upload is not automated. Use MinIO for local seed assets, or upload demo assets to Kodo manually."
+    };
+  }
+
   const bucket = process.env.STORAGE_BUCKET?.trim() || "feijia-media";
   const endpoint = process.env.STORAGE_ENDPOINT?.trim() || "http://localhost:9000";
   const region = process.env.STORAGE_REGION?.trim() || "us-east-1";

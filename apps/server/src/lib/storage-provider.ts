@@ -3,7 +3,8 @@ export {
   createStorageProvider,
   createStorageUploader,
   isStorageProviderExplicitlyConfigured,
-  resolveStorageProviderConfig
+  resolveStorageProviderConfig,
+  shouldUseSignedReadUrl
 } from "../modules/posts/storage-provider";
 
 export type {
