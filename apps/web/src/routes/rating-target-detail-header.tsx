@@ -1,7 +1,9 @@
 import { APP_ROUTES } from "@feijia/shared";
 import { AlertTriangleIcon } from "lucide-react";
 import { Link } from "react-router-dom";
+import { IpLocationText } from "@/components/ip-location-text";
 import { PageShareControl } from "@/components/page-share-control";
+import { ProfileLink } from "@/components/profile-link";
 import { RatingBreakdown } from "@/components/rating-breakdown";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -100,6 +102,14 @@ export function RatingTargetDetailHeader(props: RatingTargetDetailHeaderProps) {
             <div className="text-[1.9rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.2rem]">
               {props.item.title}
             </div>
+            {props.item.author ? (
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                <ProfileLink className="hover:text-foreground" userId={props.item.author.id}>
+                  {props.item.author.displayName}
+                </ProfileLink>
+                <IpLocationText label={props.item.author.ipLocationLabel} />
+              </div>
+            ) : null}
             {props.item.summary ? (
               <p className="text-sm leading-7 text-muted-foreground">{props.item.summary}</p>
             ) : null}

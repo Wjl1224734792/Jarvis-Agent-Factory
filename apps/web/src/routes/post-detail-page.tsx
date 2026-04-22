@@ -18,6 +18,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IpLocationText } from "@/components/ip-location-text";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -225,6 +226,7 @@ export function PostDetailPage() {
                   {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
                 </div>
+                <IpLocationText label={item.author.ipLocationLabel} />
               </div>
             </div>
 

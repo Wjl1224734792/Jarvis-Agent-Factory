@@ -3,6 +3,7 @@ import { Clock3Icon, FlameIcon } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { IpLocationText } from "@/components/ip-location-text";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -10,6 +11,7 @@ import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
+import { ProfileLink } from "@/components/profile-link";
 import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { partitionByShortestColumn } from "@/lib/masonry-partition";
@@ -56,6 +58,10 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
               {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+              <ProfileLink className="truncate hover:text-foreground" userId={ranking.author.id}>
+                {ranking.author.displayName}
+              </ProfileLink>
+              <IpLocationText label={ranking.author.ipLocationLabel} />
               <span>{ranking.commentCount} 条评论</span>
               <span>均分 {ranking.averageScore.toFixed(1)}</span>
             </div>

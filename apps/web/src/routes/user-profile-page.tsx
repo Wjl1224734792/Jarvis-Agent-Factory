@@ -9,6 +9,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { IpLocationText } from "@/components/ip-location-text";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -196,6 +197,10 @@ export function UserProfilePage() {
                 <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">
                   {profile.user.displayName}
                 </div>
+                <IpLocationText
+                  className="block text-white/88 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
+                  label={profile.user.ipLocationLabel}
+                />
               </div>
             </div>
           </div>

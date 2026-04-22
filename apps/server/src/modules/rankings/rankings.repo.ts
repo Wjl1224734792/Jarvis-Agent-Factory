@@ -335,6 +335,12 @@ export const rankingsRepo = {
         id: ratingTargetsTable.id,
         rankingId: ratingTargetsTable.rankingId,
         authorId: ratingTargetsTable.authorId,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        },
         status: ratingTargetsTable.status,
         rejectionReason: ratingTargetsTable.rejectionReason,
         rank: ratingTargetsTable.rank,
@@ -360,6 +366,7 @@ export const rankingsRepo = {
         linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
       .from(ratingTargetsTable)
+      .innerJoin(usersTable, eq(ratingTargetsTable.authorId, usersTable.id))
       .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
       .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
       .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
@@ -376,6 +383,12 @@ export const rankingsRepo = {
         id: ratingTargetsTable.id,
         rankingId: ratingTargetsTable.rankingId,
         authorId: ratingTargetsTable.authorId,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        },
         status: ratingTargetsTable.status,
         rejectionReason: ratingTargetsTable.rejectionReason,
         rank: ratingTargetsTable.rank,
@@ -401,6 +414,7 @@ export const rankingsRepo = {
         linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
       .from(ratingTargetsTable)
+      .innerJoin(usersTable, eq(ratingTargetsTable.authorId, usersTable.id))
       .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
       .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
       .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))
@@ -413,6 +427,12 @@ export const rankingsRepo = {
         id: ratingTargetsTable.id,
         rankingId: ratingTargetsTable.rankingId,
         authorId: ratingTargetsTable.authorId,
+        author: {
+          id: usersTable.id,
+          displayName: usersTable.displayName,
+          avatarFileId: usersTable.avatarFileId,
+          role: usersTable.role
+        },
         status: ratingTargetsTable.status,
         rejectionReason: ratingTargetsTable.rejectionReason,
         rank: ratingTargetsTable.rank,
@@ -438,6 +458,7 @@ export const rankingsRepo = {
         linkedModelBrandName: sql<string | null>`${brandsTable.name}`
       })
       .from(ratingTargetsTable)
+      .innerJoin(usersTable, eq(ratingTargetsTable.authorId, usersTable.id))
       .leftJoin(aircraftModelsTable, eq(ratingTargetsTable.linkedModelId, aircraftModelsTable.id))
       .leftJoin(aircraftCategoriesTable, eq(aircraftModelsTable.categoryId, aircraftCategoriesTable.id))
       .leftJoin(brandsTable, eq(aircraftModelsTable.brandId, brandsTable.id))

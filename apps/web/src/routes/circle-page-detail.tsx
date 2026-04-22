@@ -10,6 +10,7 @@ import { PostCommentThread } from "@/features/posts/post-comment-thread";
 import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
+import { IpLocationText } from "@/components/ip-location-text";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
 import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
@@ -217,6 +218,7 @@ export function CirclePageDetail({
                         selectedNote.publishedAt ?? selectedNote.createdAt
                       ).toLocaleDateString("zh-CN")}
                     </div>
+                    <IpLocationText className="block" label={selectedNote.author.ipLocationLabel} />
                   </div>
                 </div>
 

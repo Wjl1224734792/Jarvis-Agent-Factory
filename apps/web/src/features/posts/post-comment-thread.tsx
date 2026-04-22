@@ -13,6 +13,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
+import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
@@ -182,6 +183,7 @@ function RootCommentItem(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {editingCommentId === props.comment.id ? (
@@ -372,6 +374,7 @@ function RootCommentItem(props: {
                             </span>
                           ) : null}
                           <CommentPublishedTime createdAt={reply.createdAt} />
+                          <IpLocationText label={reply.author.ipLocationLabel} />
                         </div>
                         {editingCommentId === reply.id ? (
                           <InlineCommentComposer

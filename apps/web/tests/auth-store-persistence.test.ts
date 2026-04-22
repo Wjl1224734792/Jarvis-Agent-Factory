@@ -37,6 +37,7 @@ describe("auth store persistence", () => {
       id: "user_1",
       displayName: "飞友测试",
       avatarUrl: null,
+      ipLocationLabel: null,
       role: "user"
     });
 
@@ -46,13 +47,14 @@ describe("auth store persistence", () => {
         id: "user_1",
         displayName: "飞友测试",
         avatarUrl: null,
+        ipLocationLabel: null,
         role: "user"
       }
     });
   });
 
   it("clears persisted auth state", () => {
-    window.localStorage.setItem(WEB_AUTH_STORAGE_KEY, JSON.stringify({ v: 1, user: { id: "u", displayName: "test", avatarUrl: null, role: "user" } }));
+    window.localStorage.setItem(WEB_AUTH_STORAGE_KEY, JSON.stringify({ v: 1, user: { id: "u", displayName: "test", avatarUrl: null, ipLocationLabel: null, role: "user" } }));
     clearPersistedAuthState();
 
     expect(window.localStorage.getItem(WEB_AUTH_STORAGE_KEY)).toBeNull();

@@ -12,6 +12,7 @@ import { RatingStars } from "@/components/rating-stars";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { apiClient } from "@/lib/api-client";
 import { getAvatarImage } from "@/lib/aviation-media";
@@ -162,6 +163,7 @@ export function RatingTargetCommentCard(props: RatingTargetCommentCardProps) {
             ) : null}
             {props.comment.rating ? <RatingStars size="xs" tone="rating" value={props.comment.rating} /> : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {isEditing ? (

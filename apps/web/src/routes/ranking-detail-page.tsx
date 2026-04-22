@@ -3,7 +3,9 @@ import { APP_ROUTES } from "@feijia/shared";
 import { ArrowLeftIcon, PlusIcon } from "lucide-react";
 import { Link, useParams } from "react-router-dom";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
+import { IpLocationText } from "@/components/ip-location-text";
 import { PageShareControl } from "@/components/page-share-control";
+import { ProfileLink } from "@/components/profile-link";
 import { RankingDetailPageSkeleton } from "@/components/route-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -83,6 +85,12 @@ export function RankingDetailPage() {
                     {ranking.title}
                   </div>
                   {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
+                </div>
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+                  <ProfileLink className="hover:text-foreground" userId={ranking.author.id}>
+                    {ranking.author.displayName}
+                  </ProfileLink>
+                  <IpLocationText label={ranking.author.ipLocationLabel} />
                 </div>
               </div>
 

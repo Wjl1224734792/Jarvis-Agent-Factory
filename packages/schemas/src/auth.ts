@@ -26,6 +26,7 @@ export const userSummarySchema = z.object({
   id: z.string().min(1),
   displayName: z.string().min(1),
   avatarUrl: z.string().trim().min(1).nullable().default(null),
+  ipLocationLabel: z.string().trim().min(1).nullable().default(null),
   role: authRoleSchema
 });
 

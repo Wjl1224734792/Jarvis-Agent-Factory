@@ -19,6 +19,7 @@ import {
   isValidAircraftSubmissionStatus,
   isValidBrandApplicationStatus
 } from "../../lib/type-guards";
+import { usersService } from "../users/users.service";
 
 function parseMetadata(value: string | null | undefined): Record<string, unknown> {
   if (!value) {
@@ -775,7 +776,8 @@ export const socialService = {
       rankingCount,
       aircraftCount,
       reviewCount,
-      isFollowing
+      isFollowing,
+      ipLocationLabelMap
     ] = await Promise.all([
       socialRepo.getResolvedUserSettings(targetUserId),
       socialRepo.countFollowers(targetUserId),
@@ -786,7 +788,8 @@ export const socialService = {
       socialRepo.countUserRankings(targetUserId),
       socialRepo.countUserAircraftSubmissions(targetUserId),
       socialRepo.countVisibleReviews(targetUserId),
-      currentUserId ? socialRepo.isFollowing(currentUserId, targetUserId) : Promise.resolve(false)
+      currentUserId ? socialRepo.isFollowing(currentUserId, targetUserId) : Promise.resolve(false),
+      usersService.resolvePublicIpLocationLabelMap([targetUserId])
     ]);
     const isSelf = currentUserId === targetUserId;
     const canViewContent = canViewProfileContent({
@@ -801,6 +804,7 @@ export const socialService = {
           id: user.id,
           displayName: user.displayName,
           avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+          ipLocationLabel: ipLocationLabelMap.get(targetUserId) ?? null,
           role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
         },
         followerCount,
@@ -1009,9 +1013,10 @@ export const socialService = {
     return { kind: "ok" as const, items };
   },
   async getCurrentUserProfile(currentUserId: string) {
-    const [user, settings] = await Promise.all([
+    const [user, settings, ipLocationLabelMap] = await Promise.all([
       socialRepo.getCurrentUserProfile(currentUserId),
-      socialRepo.getResolvedUserSettings(currentUserId)
+      socialRepo.getResolvedUserSettings(currentUserId),
+      usersService.resolvePublicIpLocationLabelMap([currentUserId])
     ]);
     if (!user) {
       return null;
@@ -1025,6 +1030,7 @@ export const socialService = {
         coverImageFileId: user.coverImageFileId ?? null,
         bio: user.bio ?? null,
         avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+        ipLocationLabel: ipLocationLabelMap.get(currentUserId) ?? null,
         coverImageUrl: await resolveUploadedFileUrl(user.coverImageFileId ?? null),
         phone: user.phone ?? null,
         phoneMasked: toPhoneMasked(user.phone ?? null),

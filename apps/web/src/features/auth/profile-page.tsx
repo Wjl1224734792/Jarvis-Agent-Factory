@@ -10,6 +10,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { IpLocationText } from "@/components/ip-location-text";
 import { apiClient } from "../../lib/api-client";
 import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
@@ -273,6 +274,7 @@ export function ProfilePage() {
   const profile = profileQuery.data?.item;
   const settings = currentProfileQuery.data?.item;
   const displayName = settings?.displayName ?? user.displayName;
+  const ipLocationLabel = profile?.user.ipLocationLabel ?? settings?.ipLocationLabel ?? user.ipLocationLabel ?? null;
   const userId = user.id;
   const avatarSrc =
     settings?.avatarUrl?.trim() || user.avatarUrl?.trim() || getAvatarImage(userId);
@@ -391,6 +393,10 @@ export function ProfilePage() {
                 <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">
                   {displayName}
                 </div>
+                <IpLocationText
+                  className="block text-white/88 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
+                  label={ipLocationLabel}
+                />
                 {settings?.profileVisibility ? (
                   <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
                     {profileVisibilityLabel(settings.profileVisibility)}

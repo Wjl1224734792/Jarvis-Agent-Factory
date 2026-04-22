@@ -21,6 +21,7 @@ function createRanking(overrides: Partial<RankingListItem>): RankingListItem {
       id: "user_1",
       displayName: "Pilot",
       avatarUrl: null,
+      ipLocationLabel: null,
       role: "user"
     },
     viewer: {
@@ -32,6 +33,7 @@ function createRanking(overrides: Partial<RankingListItem>): RankingListItem {
         id: "item_1",
         rankingId: "ranking_1",
         authorId: "user_1",
+        author: null,
         status: "published",
         rejectionReason: null,
         rank: 1,

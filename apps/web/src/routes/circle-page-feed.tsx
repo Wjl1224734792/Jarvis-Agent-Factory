@@ -1,6 +1,7 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { IpLocationText } from "@/components/ip-location-text";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
@@ -34,6 +35,7 @@ export type CircleFeedItem = {
     id: string;
     displayName: string;
     avatarUrl: string | null;
+    ipLocationLabel?: string | null;
   };
   engagement: {
     likeCount: number;
@@ -115,9 +117,12 @@ function CircleFeedCard(props: {
               <AvatarImage alt={item.author.displayName} src={item.author.avatarUrl ?? getAvatarImage(item.author.id)} />
               <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
             </Avatar>
-            <ProfileLink className="truncate hover:text-foreground" userId={item.author.id}>
-              {item.author.displayName}
-            </ProfileLink>
+            <div className="min-w-0">
+              <ProfileLink className="block truncate hover:text-foreground" userId={item.author.id}>
+                {item.author.displayName}
+              </ProfileLink>
+              <IpLocationText className="block" label={item.author.ipLocationLabel} />
+            </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1">
             <HeartIcon className="size-3.5" />

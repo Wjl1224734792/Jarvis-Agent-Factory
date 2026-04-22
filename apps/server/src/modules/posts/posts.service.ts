@@ -16,6 +16,7 @@ import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-seri
 import { rankFeedItemsByRecommendation } from "./feed-recommendation";
 import { postsSensitiveFilterService } from "./posts-sensitive-filter";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
+import { usersService } from "../users/users.service";
 
 type CurrentUser = {
   id: string;
@@ -111,6 +112,18 @@ function toViewerState(input: {
   };
 }
 
+function buildPublicUserSummary(
+  user: { id: string; displayName: string; role: string },
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
+) {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    ipLocationLabel: ipLocationLabelMap?.get(user.id) ?? null,
+    role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
+  };
+}
+
 function serializePostListItem(
   item: PostListSerializableItem | null,
   options: {
@@ -118,6 +131,7 @@ function serializePostListItem(
     images: SerializedPostMedia[];
     videos: SerializedPostMedia[];
     viewer: ReturnType<typeof toViewerState>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ) {
   if (!item) {
@@ -137,11 +151,7 @@ function serializePostListItem(
     createdAt: item.createdAt.toISOString(),
     updatedAt: item.updatedAt.toISOString(),
     publishedAt: toIsoString(item.publishedAt),
-    author: {
-      id: item.author.id,
-      displayName: item.author.displayName,
-      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
-    },
+    author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
     cover: options.cover,
     images: options.images,
     videos: options.videos,
@@ -165,11 +175,12 @@ type PostComment = Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>[n
 
 function serializeCommentBase(
   comment: PostComment,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  replyToUserMap: Map<string, { id: string; displayName: string; ipLocationLabel?: string | null; role: "user" | "admin" }>,
   input: {
     currentUserId?: string | null;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ) {
   return {
@@ -183,11 +194,7 @@ function serializeCommentBase(
     updatedAt: comment.updatedAt.toISOString(),
     likeCount: comment.likeCount ?? 0,
     reportCount: comment.reportCount ?? 0,
-    author: {
-      id: comment.author.id,
-      displayName: comment.author.displayName,
-      role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
-    },
+    author: buildPublicUserSummary(comment.author, input.ipLocationLabelMap),
     replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
     viewer: {
       canEdit: input.currentUserId === comment.author.id,
@@ -200,12 +207,13 @@ function serializeCommentBase(
 
 function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof postsRepo.listCommentsForViewer>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
+  replyToUserMap: Map<string, { id: string; displayName: string; ipLocationLabel?: string | null; role: "user" | "admin" }>,
   input: {
     currentUserId?: string | null;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
     sort: CommentSort;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ) {
   const compare =
@@ -219,7 +227,8 @@ function serializeCommentThreads(
     serializeCommentBase(c, replyToUserMap, {
       currentUserId: input.currentUserId,
       likedCommentIds: input.likedCommentIds,
-      reportedCommentIds: input.reportedCommentIds
+      reportedCommentIds: input.reportedCommentIds,
+      ipLocationLabelMap: input.ipLocationLabelMap
     })
   );
 
@@ -264,8 +273,9 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
 
 function serializeSingleComment(
   item: Awaited<ReturnType<typeof postsRepo.getCommentById>>,
-  replyToUserMap: Map<string, { id: string; displayName: string; role: "user" | "admin" }>,
-  currentUserId?: string | null
+  replyToUserMap: Map<string, { id: string; displayName: string; ipLocationLabel?: string | null; role: "user" | "admin" }>,
+  currentUserId?: string | null,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
 ) {
   if (!item) {
     return null;
@@ -282,11 +292,7 @@ function serializeSingleComment(
     updatedAt: item.updatedAt.toISOString(),
     likeCount: item.likeCount ?? 0,
     reportCount: item.reportCount ?? 0,
-    author: {
-      id: item.author.id,
-      displayName: item.author.displayName,
-      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
-    },
+    author: buildPublicUserSummary(item.author, ipLocationLabelMap),
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
     viewer: {
       canEdit: currentUserId === item.author.id,
@@ -339,9 +345,10 @@ export const postsService = {
     const items = feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
-    const [interactions, followingAuthorIds] = await Promise.all([
+    const [interactions, followingAuthorIds, ipLocationLabelMap] = await Promise.all([
       currentUser ? postsRepo.listViewerInteractions(postIds, currentUser.id) : [],
-      currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
+      currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>(),
+      usersService.resolvePublicIpLocationLabelMap(authorIds)
     ]);
     const interactionMap = buildInteractionMap(interactions);
     const recommendedBaseScores =
@@ -365,7 +372,8 @@ export const postsService = {
             currentUser,
             followingAuthorIds,
             interactionTypes: interactionMap.get(item.id)
-          })
+          }),
+          ipLocationLabelMap
         })
       )
       .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -606,7 +614,17 @@ export const postsService = {
       currentUser ? postsRepo.listViewerCommentLikes(commentIds, currentUser.id) : [],
       currentUser ? postsRepo.listViewerCommentReports(commentIds, currentUser.id) : []
     ]);
-    const replyToUserMap = buildReplyToUserMap(replyToUsers);
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      item.author.id,
+      ...comments.map((comment) => comment.author.id),
+      ...replyToUserIds
+    ]);
+    const replyToUserMap = buildReplyToUserMap(
+      replyToUsers.map((replyUser) => ({
+        ...replyUser,
+        ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+      }))
+    );
     const interactionMap = buildInteractionMap(interactions);
     const likedCommentIds = buildCommentStateSet(likedComments);
     const reportedCommentIds = buildCommentStateSet(reportedComments);
@@ -630,11 +648,7 @@ export const postsService = {
         createdAt: item.createdAt.toISOString(),
         updatedAt: item.updatedAt.toISOString(),
         publishedAt: toIsoString(item.publishedAt),
-        author: {
-          id: item.author.id,
-          displayName: item.author.displayName,
-          role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
-        },
+        author: buildPublicUserSummary(item.author, ipLocationLabelMap),
         cover: coversByPostId.get(item.id) ?? null,
         images: imagesByPostId.get(item.id) ?? [],
         videos: videosByPostId.get(item.id) ?? [],
@@ -660,7 +674,8 @@ export const postsService = {
           currentUserId: currentUser?.id,
           likedCommentIds,
           reportedCommentIds,
-          sort: options?.commentSort ?? "hot"
+          sort: options?.commentSort ?? "hot",
+          ipLocationLabelMap
         })
       }
     };
@@ -926,10 +941,20 @@ export const postsService = {
       status
     });
     const replyUsers = replyToUserId ? await postsRepo.listUsersByIds([replyToUserId]) : [];
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      currentUser.id,
+      ...(replyToUserId ? [replyToUserId] : [])
+    ]);
     const serialized = serializeSingleComment(
       item,
-      buildReplyToUserMap(replyUsers),
-      currentUser.id
+      buildReplyToUserMap(
+        replyUsers.map((replyUser) => ({
+          ...replyUser,
+          ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+        }))
+      ),
+      currentUser.id,
+      ipLocationLabelMap
     );
 
     if (!serialized) {

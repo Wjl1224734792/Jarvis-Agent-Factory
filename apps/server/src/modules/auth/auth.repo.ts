@@ -11,7 +11,7 @@ import {
 } from "@feijia/db";
 import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
-import { and, desc, eq, isNull } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import svgCaptcha from "@zhennann/svg-captcha";
 import { createRequire } from "node:module";
 import { dirname, join } from "node:path";
@@ -90,6 +90,7 @@ async function toUserSummary(
     id: user.id,
     displayName: user.displayName,
     avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+    ipLocationLabel: null,
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole)
   };
@@ -711,6 +712,41 @@ export const authRepo = {
 
     const localizedUser = await localizeAdminUser(user[0]);
     return toUserSummary(localizedUser);
+  },
+  async listLatestClientIpsByUserIds(userIds: string[]) {
+    const uniqueUserIds = Array.from(
+      new Set(userIds.map((userId) => userId.trim()).filter(Boolean))
+    );
+    if (uniqueUserIds.length === 0) {
+      return [];
+    }
+
+    const rows = await db
+      .select({
+        userId: sessionsTable.userId,
+        clientIp: sessionsTable.clientIp
+      })
+      .from(sessionsTable)
+      .where(
+        and(
+          inArray(sessionsTable.userId, uniqueUserIds),
+          isNull(sessionsTable.revokedAt),
+          gt(sessionsTable.expiresAt, new Date())
+        )
+      )
+      .orderBy(asc(sessionsTable.userId), desc(sessionsTable.createdAt));
+
+    const latestClientIpByUserId = new Map<string, string | null>();
+    for (const row of rows) {
+      if (!latestClientIpByUserId.has(row.userId)) {
+        latestClientIpByUserId.set(row.userId, row.clientIp ?? null);
+      }
+    }
+
+    return uniqueUserIds.map((userId) => ({
+      userId,
+      clientIp: latestClientIpByUserId.get(userId) ?? null
+    }));
   },
   async listRecentSessions(limit = 20) {
     const rows = await db

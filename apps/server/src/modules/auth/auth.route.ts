@@ -34,6 +34,7 @@ import {
   type AuthVariables
 } from "./auth.middleware";
 import { AuthError, authService } from "./auth.service";
+import { normalizeClientIp } from "../../lib/ip-location";
 
 const authRoute = new Hono<{ Variables: AuthVariables }>();
 
@@ -81,7 +82,7 @@ function clearAuthCookies(context: Context) {
 function getClientIp(context: Context) {
   const forwarded = context.req.header("x-forwarded-for");
   if (forwarded) {
-    return (
+    return normalizeClientIp(
       forwarded
         .split(",")
         .map((value) => value.trim())
@@ -89,7 +90,7 @@ function getClientIp(context: Context) {
     );
   }
 
-  return (
+  return normalizeClientIp(
     context.req.header("x-real-ip") ??
     context.req.header("cf-connecting-ip") ??
     null

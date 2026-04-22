@@ -8,6 +8,7 @@ import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { buildCommentThreads } from "../../lib/comment-serializer";
 import { rankRatingTargetsByDynamicScore } from "./ranking-score";
+import { usersService } from "../users/users.service";
 import {
   canInspectRatingTarget,
   canManageRanking,
@@ -33,6 +34,22 @@ type RatingTargetStatus = "pending" | "published" | "rejected" | "hidden";
 const DEFAULT_RANKINGS_PAGE = 1;
 const DEFAULT_RANKINGS_LIMIT = 20;
 const MAX_RANKINGS_LIMIT = 50;
+
+function buildPublicUserSummary(
+  user: { id: string; displayName: string; avatarFileId?: string | null; role: string },
+  input?: {
+    avatarUrlMap?: Map<string, string | null>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
+  }
+) {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    avatarUrl: user.avatarFileId ? (input?.avatarUrlMap?.get(user.avatarFileId) ?? null) : null,
+    ipLocationLabel: input?.ipLocationLabelMap?.get(user.id) ?? null,
+    role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
+  };
+}
 
 function toTenPointScore(rawAverage: number): number {
   if (rawAverage <= 0) {
@@ -174,6 +191,8 @@ async function serializeRatingTarget(
     rankingAuthorId: string;
     reportedItemIds?: Set<string>;
     imageUrlMap?: Map<string, string | null>;
+    avatarUrlMap?: Map<string, string | null>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ): Promise<RatingTarget> {
   const aggregate = aggregateMap.get(item.id) ?? {
@@ -227,6 +246,10 @@ async function serializeRatingTarget(
     id: item.id,
     rankingId: item.rankingId,
     authorId: item.authorId,
+    author: buildPublicUserSummary(item.author, {
+      avatarUrlMap: input.avatarUrlMap,
+      ipLocationLabelMap: input.ipLocationLabelMap
+    }),
     status: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus),
     rejectionReason: item.rejectionReason ?? null,
     rank: item.rank,
@@ -264,7 +287,8 @@ async function serializeRatingTarget(
 
 async function serializeRankingComment(
   item: Awaited<ReturnType<typeof rankingsRepo.listRankingComments>>[number],
-  currentUser?: CurrentUser
+  currentUser?: CurrentUser,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
 ) {
   return {
     id: item.id,
@@ -279,6 +303,7 @@ async function serializeRankingComment(
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+      ipLocationLabel: ipLocationLabelMap?.get(item.author.id) ?? null,
       role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
     viewer: {
@@ -296,11 +321,12 @@ async function serializeRatingTargetCommentBase(
   comment: RatingTargetComment,
   replyToUsers: Map<
     string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel?: string | null; role: "user" | "admin" }
   >,
   currentUser?: CurrentUser,
   likedCommentIds?: Set<string>,
-  reportedCommentIds?: Set<string>
+  reportedCommentIds?: Set<string>,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
 ) {
   return {
     id: comment.id,
@@ -318,6 +344,7 @@ async function serializeRatingTargetCommentBase(
       id: comment.author.id,
       displayName: comment.author.displayName,
       avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+      ipLocationLabel: ipLocationLabelMap?.get(comment.author.id) ?? null,
       role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
     },
     replyToUser: comment.replyToUserId
@@ -343,10 +370,11 @@ async function buildRatingTargetCommentThreads(input: {
   currentUser?: CurrentUser;
   replyToUsers: Map<
     string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel?: string | null; role: "user" | "admin" }
   >;
   likedCommentIds: Set<string>;
   reportedCommentIds: Set<string>;
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>;
 }) {
   const compare = (
     left: { likeCount: number; updatedAt: string },
@@ -360,7 +388,8 @@ async function buildRatingTargetCommentThreads(input: {
         input.replyToUsers,
         input.currentUser,
         input.likedCommentIds,
-        input.reportedCommentIds
+        input.reportedCommentIds,
+        input.ipLocationLabelMap
       )
     )
   );
@@ -428,13 +457,20 @@ async function buildRankingListItems(
     reportedItemRows as Array<{ ratingTargetId: string }>,
     "ratingTargetId"
   );
+  const publicUserIds = [
+    ...rankings.map((ranking) => ranking.author.id),
+    ...Array.from(ratingTargetsByRanking.values())
+      .flat()
+      .map((item) => item.author.id)
+  ];
+  const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
   const rankingFileUrlMap = await resolveUploadedFileUrlMap(
     rankings.flatMap((ranking) => [ranking.coverImageFileId ?? null, ranking.author.avatarFileId ?? null])
   );
   const ratingTargetImageUrlMap = await resolveUploadedFileUrlMap(
     Array.from(ratingTargetsByRanking.values())
       .flat()
-      .map((item) => item.imageFileId ?? null)
+      .flatMap((item) => [item.imageFileId ?? null, item.author.avatarFileId ?? null])
   );
 
   const all = await Promise.all(
@@ -452,7 +488,9 @@ async function buildRankingListItems(
             rankingType,
             rankingAuthorId: ranking.author.id,
             reportedItemIds,
-            imageUrlMap: ratingTargetImageUrlMap
+            imageUrlMap: ratingTargetImageUrlMap,
+            avatarUrlMap: ratingTargetImageUrlMap,
+            ipLocationLabelMap
           })
         )
       );
@@ -476,12 +514,10 @@ async function buildRankingListItems(
         itemCount: rankedItems.length,
         createdAt: ranking.createdAt.toISOString(),
         author: {
-          id: ranking.author.id,
-          displayName: ranking.author.displayName,
-          avatarUrl: ranking.author.avatarFileId
-            ? rankingFileUrlMap.get(ranking.author.avatarFileId) ?? null
-            : null,
-          role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
+          ...buildPublicUserSummary(ranking.author, {
+            avatarUrlMap: rankingFileUrlMap,
+            ipLocationLabelMap
+          })
         },
         viewer: toRankingViewer({
           currentUser,
@@ -935,13 +971,27 @@ export const rankingsService = {
       reportedRows as Array<{ ratingTargetId: string }>,
       "ratingTargetId"
     );
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ranking.author.id,
+      ...items.map((entry) => entry.author.id),
+      ...comments.map((comment) => comment.author.id)
+    ]);
+    const assetUrlMap = await resolveUploadedFileUrlMap([
+      ranking.coverImageFileId ?? null,
+      ranking.author.avatarFileId ?? null,
+      ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
+      ...comments.map((comment) => comment.author.avatarFileId ?? null)
+    ]);
     const serializedItems = await Promise.all(
       items.map((entry) =>
         serializeRatingTarget(entry, aggregateMap, userRatingMap, {
           currentUser,
           rankingType,
           rankingAuthorId: ranking.author.id,
-          reportedItemIds
+          reportedItemIds,
+          imageUrlMap: assetUrlMap,
+          avatarUrlMap: assetUrlMap,
+          ipLocationLabelMap
         })
       )
     );
@@ -973,13 +1023,11 @@ export const rankingsService = {
         reportCount: ranking.reportCount ?? 0,
         itemCount: rankedItems.length,
         createdAt: ranking.createdAt.toISOString(),
-        author: {
-          id: ranking.author.id,
-          displayName: ranking.author.displayName,
-          avatarUrl: await resolveUploadedFileUrl(ranking.author.avatarFileId ?? null),
-          role: isValidAuthRole(ranking.author.role) ? ranking.author.role : ("user" as "user" | "admin")
-        },
-        comments: await Promise.all(comments.map((comment) => serializeRankingComment(comment, currentUser))),
+        author: buildPublicUserSummary(ranking.author, {
+          avatarUrlMap: assetUrlMap,
+          ipLocationLabelMap
+        }),
+        comments: await Promise.all(comments.map((comment) => serializeRankingComment(comment, currentUser, ipLocationLabelMap))),
         items: rankedItems
       }
     };
@@ -1467,11 +1515,26 @@ export const rankingsService = {
       reportedItemRows as Array<{ ratingTargetId: string }>,
       "ratingTargetId"
     );
+    const publicUserIds = [
+      item.author.id,
+      ...replyToUserIds,
+      ...comments.map((comment) => comment.author.id)
+    ];
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
+    const assetUrlMap = await resolveUploadedFileUrlMap([
+      item.author.avatarFileId ?? null,
+      item.imageFileId ?? null,
+      ...replyUsers.map((user) => user.avatarFileId ?? null),
+      ...comments.map((comment) => comment.author.avatarFileId ?? null)
+    ]);
     const serializedItem = await serializeRatingTarget(item, aggregateMap, userRatingMap, {
       currentUser,
       rankingType,
       rankingAuthorId: ranking.author.id,
-      reportedItemIds
+      reportedItemIds,
+      imageUrlMap: assetUrlMap,
+      avatarUrlMap: assetUrlMap,
+      ipLocationLabelMap
     });
     const dynamicRanks = rankRatingTargetsByDynamicScore(
       rankingItems.map((entry) => ({
@@ -1491,7 +1554,8 @@ export const rankingsService = {
           {
             id: user.id,
             displayName: user.displayName,
-            avatarUrl: null,
+            avatarUrl: user.avatarFileId ? assetUrlMap.get(user.avatarFileId) ?? null : null,
+            ipLocationLabel: ipLocationLabelMap.get(user.id) ?? null,
             role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
           }
         ])
@@ -1500,7 +1564,8 @@ export const rankingsService = {
       reportedCommentIds: buildSet(
         reportedCommentRows as Array<{ commentId: string }>,
         "commentId"
-      )
+      ),
+      ipLocationLabelMap
     });
     const ratingBreakdown = buildRatingBreakdownFromRows(ratingBreakdownRows);
 

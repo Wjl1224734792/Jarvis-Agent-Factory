@@ -11,6 +11,7 @@ import { socialService } from "../social/social.service";
 import { aircraftModelsRepo } from "./aircraft-models.repo";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
 import { sortModelsByHotScore } from "./model-hot-score";
+import { usersService } from "../users/users.service";
 
 type ListFilters = {
   categorySlugs?: string[];
@@ -28,6 +29,7 @@ type ModelCommentUserSummary = {
   id: string;
   displayName: string;
   avatarUrl: string | null;
+  ipLocationLabel: string | null;
   role: "user" | "admin";
 };
 
@@ -62,7 +64,8 @@ function buildStateSet<T extends Record<string, string>>(rows: T[], key: keyof T
 }
 
 async function buildReplyToUserMap(
-  users: Awaited<ReturnType<typeof aircraftModelsRepo.listUsersByIds>>
+  users: Awaited<ReturnType<typeof aircraftModelsRepo.listUsersByIds>>,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
 ) {
   const entries = await Promise.all(
     users.map(async (user) => [
@@ -71,6 +74,7 @@ async function buildReplyToUserMap(
         id: user.id,
         displayName: user.displayName,
         avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+        ipLocationLabel: ipLocationLabelMap?.get(user.id) ?? null,
         role: user.role as "user" | "admin"
       }
     ] as const)
@@ -83,12 +87,13 @@ async function serializeModelComment(
   item: Awaited<ReturnType<typeof aircraftModelsRepo.getModelCommentById>>,
   replyToUserMap: Map<
     string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel: string | null; role: "user" | "admin" }
   >,
   input?: {
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ): Promise<SerializedModelComment | null> {
   if (!item) {
@@ -110,6 +115,7 @@ async function serializeModelComment(
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+      ipLocationLabel: input?.ipLocationLabelMap?.get(item.author.id) ?? null,
       role: item.author.role as "user" | "admin"
     },
     replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
@@ -126,12 +132,13 @@ async function serializeModelCommentThreads(
   comments: Awaited<ReturnType<typeof aircraftModelsRepo.listModelComments>>,
   replyToUserMap: Map<
     string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel: string | null; role: "user" | "admin" }
   >,
   input?: {
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   }
 ) {
   const repliesByRootId = new Map<string, SerializedModelComment[]>();
@@ -153,6 +160,7 @@ async function serializeModelCommentThreads(
         id: comment.author.id,
         displayName: comment.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+        ipLocationLabel: input?.ipLocationLabelMap?.get(comment.author.id) ?? null,
         role: comment.author.role as "user" | "admin"
       },
       replyToUser: comment.replyToUserId ? replyToUserMap.get(comment.replyToUserId) ?? null : null,
@@ -513,12 +521,20 @@ export const aircraftModelsService = {
       currentUserId ? aircraftModelsRepo.listViewerModelCommentLikes(commentIds, currentUserId) : [],
       currentUserId ? aircraftModelsRepo.listViewerModelCommentReports(commentIds, currentUserId) : []
     ]);
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...comments.map((comment) => comment.author.id),
+      ...replyToUserIds
+    ]);
 
     return {
-      items: await serializeModelCommentThreads(comments, await buildReplyToUserMap(replyToUsers), {
+      items: await serializeModelCommentThreads(
+        comments,
+        await buildReplyToUserMap(replyToUsers, ipLocationLabelMap),
+        {
         currentUserId,
         likedCommentIds: buildStateSet(likedRows, "commentId"),
-        reportedCommentIds: buildStateSet(reportedRows, "commentId")
+        reportedCommentIds: buildStateSet(reportedRows, "commentId"),
+        ipLocationLabelMap
       })
     };
   },
@@ -562,9 +578,18 @@ export const aircraftModelsService = {
     });
 
     const replyToUsers = replyToUserId ? await aircraftModelsRepo.listUsersByIds([replyToUserId]) : [];
-    const serialized = await serializeModelComment(created, await buildReplyToUserMap(replyToUsers), {
-      currentUserId: currentUser.id
-    });
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      currentUser.id,
+      ...(replyToUserId ? [replyToUserId] : [])
+    ]);
+    const serialized = await serializeModelComment(
+      created,
+      await buildReplyToUserMap(replyToUsers, ipLocationLabelMap),
+      {
+        currentUserId: currentUser.id,
+        ipLocationLabelMap
+      }
+    );
     if (!serialized) {
       return { kind: "not_found" as const };
     }
@@ -629,9 +654,18 @@ export const aircraftModelsService = {
     const replyToUsers = refreshed?.replyToUserId
       ? await aircraftModelsRepo.listUsersByIds([refreshed.replyToUserId])
       : [];
-    const serialized = await serializeModelComment(refreshed, await buildReplyToUserMap(replyToUsers), {
-      currentUserId: currentUser.id
-    });
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      refreshed.author.id,
+      ...(refreshed.replyToUserId ? [refreshed.replyToUserId] : [])
+    ]);
+    const serialized = await serializeModelComment(
+      refreshed,
+      await buildReplyToUserMap(replyToUsers, ipLocationLabelMap),
+      {
+        currentUserId: currentUser.id,
+        ipLocationLabelMap
+      }
+    );
     if (!serialized) {
       return { kind: "not_found" as const };
     }

@@ -119,6 +119,7 @@ describe("profile settings state helpers", () => {
         id: "user_1",
         displayName: "Old name",
         avatarUrl: "https://cdn.example.com/old.png",
+        ipLocationLabel: null,
         role: "user"
       },
       {
@@ -132,6 +133,7 @@ describe("profile settings state helpers", () => {
       id: "user_1",
       displayName: "New name",
       avatarUrl: "https://cdn.example.com/new.png",
+      ipLocationLabel: null,
       role: "user"
     });
   });

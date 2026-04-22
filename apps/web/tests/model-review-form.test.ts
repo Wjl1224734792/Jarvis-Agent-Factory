@@ -19,6 +19,7 @@ const sampleReview = {
     id: "user_1",
     displayName: "Test User",
     avatarUrl: null,
+    ipLocationLabel: null,
     role: "user" as const
   },
   viewer: {

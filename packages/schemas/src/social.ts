@@ -198,6 +198,7 @@ export const currentUserProfileSchema = z.object({
   bio: z.string().trim().max(300).nullable(),
   avatarFileId: z.string().min(1).nullable(),
   avatarUrl: z.string().trim().min(1).nullable(),
+  ipLocationLabel: z.string().trim().min(1).nullable().default(null),
   coverImageFileId: z.string().min(1).nullable(),
   coverImageUrl: z.string().trim().min(1).nullable(),
   phone: z.string().trim().min(1).max(30).nullable(),

@@ -18,6 +18,7 @@ describe("rankings admin helpers", () => {
         id: "item_1",
         rankingId: "ranking_1",
         authorId: "author_1",
+        author: null,
         status: "published",
         rejectionReason: null,
         rank: 1,
@@ -106,7 +107,7 @@ describe("rankings admin helpers", () => {
         averageScore: 8.2,
         createdAt: "2026-03-29T00:00:00.000Z",
         items: [],
-        author: { id: "admin_1", displayName: "Admin", avatarUrl: null, role: "admin" },
+        author: { id: "admin_1", displayName: "Admin", avatarUrl: null, ipLocationLabel: null, role: "admin" },
         viewer: {
           canEdit: true,
           canAddItems: true
@@ -127,7 +128,7 @@ describe("rankings admin helpers", () => {
         averageScore: 6.5,
         createdAt: "2026-03-29T00:00:00.000Z",
         items: [],
-        author: { id: "user_1", displayName: "Pilot A", avatarUrl: null, role: "user" },
+        author: { id: "user_1", displayName: "Pilot A", avatarUrl: null, ipLocationLabel: null, role: "user" },
         viewer: {
           canEdit: false,
           canAddItems: false

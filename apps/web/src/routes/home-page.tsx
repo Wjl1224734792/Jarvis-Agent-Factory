@@ -5,8 +5,10 @@ import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { IpLocationText } from "@/components/ip-location-text";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
+import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -175,6 +177,13 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
               {item.title}
             </h2>
             {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+          </div>
+
+          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-muted-foreground">
+            <ProfileLink className="hover:text-foreground" userId={item.author.id}>
+              {item.author.displayName}
+            </ProfileLink>
+            <IpLocationText label={item.author.ipLocationLabel} />
           </div>
 
           <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">

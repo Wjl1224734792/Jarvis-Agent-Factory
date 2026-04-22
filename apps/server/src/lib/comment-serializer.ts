@@ -19,6 +19,7 @@ import { isValidAuthRole } from "./type-guards";
 export type ReplyToUser = {
   id: string;
   displayName: string;
+  ipLocationLabel?: string | null;
   role: "user" | "admin";
 };
 
@@ -52,7 +53,7 @@ export type CommentComparator<T> = (a: T, b: T) => number;
  * posts 模块使用：不包含 avatarUrl。
  */
 export function buildReplyToUserMap<
-  T extends { id: string; displayName: string; role: string }
+  T extends { id: string; displayName: string; role: string; ipLocationLabel?: string | null }
 >(users: T[]): Map<string, ReplyToUser> {
   return new Map(
     users.map((user) => [
@@ -60,6 +61,7 @@ export function buildReplyToUserMap<
       {
         id: user.id,
         displayName: user.displayName,
+        ipLocationLabel: user.ipLocationLabel ?? null,
         // Database text column constrained to valid AuthRole values at insert time
         role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin"),
       },

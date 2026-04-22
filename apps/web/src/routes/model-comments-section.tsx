@@ -17,6 +17,7 @@ import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getVisibleRootComments, shouldShowCommentCollapseToggle } from "@/features/posts/comment-collapse-helpers";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
@@ -165,6 +166,7 @@ function ModelCommentCard(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {isEditing ? (

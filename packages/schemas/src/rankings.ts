@@ -41,6 +41,7 @@ export const ratingTargetSchema = z.object({
   id: z.string().min(1),
   rankingId: z.string().min(1),
   authorId: z.string().min(1).nullable().optional(),
+  author: userSummarySchema.nullable().default(null),
   status: rankingStatusSchema.default("published"),
   rejectionReason: z.string().nullable().default(null),
   rank: z.number().int().positive(),
