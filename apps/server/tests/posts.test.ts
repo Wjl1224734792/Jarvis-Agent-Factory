@@ -33,6 +33,27 @@ function expectDefined<T>(value: T | null | undefined): T {
   return value;
 }
 
+type SocialNotificationItem = {
+  type: string;
+  target: {
+    id: string;
+    type?: string;
+  };
+};
+
+async function readSocialNotifications(cookie: string) {
+  const response = await app.request(API_ROUTES.social.notifications, {
+    method: "GET",
+    headers: { cookie }
+  });
+
+  expect(response.status).toBe(200);
+  return (await response.json()) as {
+    unreadByCategory: { system: number };
+    items: SocialNotificationItem[];
+  };
+}
+
 async function completeRegistrationIfNeeded(response: Response) {
   const payload = (await response.json()) as
     | { kind: "authenticated" }
@@ -2366,7 +2387,7 @@ describe.sequential("posts and social flows", () => {
     }
   });
 
-  it("enforces profile visibility for followers and private modes", async () => {
+  it("enforces profile visibility for followers", async () => {
     const ownerCookie = await loginWebUser("13800138051");
     const ownerPost = await createPost(ownerCookie, {
       type: "moment",
@@ -2376,14 +2397,7 @@ describe.sequential("posts and social flows", () => {
     const adminCookie = await loginAdmin();
     await publishPost(adminCookie, ownerPost.item.id);
 
-    const ownerMeResponse = await app.request(API_ROUTES.auth.currentUser, {
-      method: "GET",
-      headers: { cookie: ownerCookie }
-    });
-    const ownerMePayload = (await ownerMeResponse.json()) as { user: { id: string } | null };
-    const ownerId = ownerMePayload.user?.id ?? "";
-    expect(ownerId).toBeTruthy();
-
+    const ownerId = ownerPost.item.author.id;
     const strangerCookie = await loginWebUser("13800138052");
 
     const followersModeUpdateResponse = await app.request(API_ROUTES.users.meProfile, {
@@ -2431,6 +2445,20 @@ describe.sequential("posts and social flows", () => {
     expect(
       followerVisibleContentPayload.items.some((item) => item.id === ownerPost.item.id)
     ).toBe(true);
+  });
+
+  it("enforces profile visibility for private mode", async () => {
+    const ownerCookie = await loginWebUser("13800138053");
+    const ownerPost = await createPost(ownerCookie, {
+      type: "moment",
+      title: "Private visibility source",
+      content: "This content should be visible only to owner."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, ownerPost.item.id);
+
+    const ownerId = ownerPost.item.author.id;
+    const strangerCookie = await loginWebUser("13800138054");
 
     const privateModeUpdateResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "PUT",
@@ -2566,9 +2594,8 @@ describe.sequential("posts and social flows", () => {
     ).toBe(true);
   });
 
-  it("emits system notifications for moderation status changes across domains", async () => {
+  it("emits system notification when post moderation status changes", async () => {
     const adminCookie = await loginAdmin();
-
     const momentAuthorCookie = await loginWebUser("13800138210");
     const createdMoment = await createPost(momentAuthorCookie, {
       type: "moment",
@@ -2592,21 +2619,18 @@ describe.sequential("posts and social flows", () => {
     );
     expect(rejectMomentResponse.status).toBe(200);
 
-    const momentAuthorNotifications = await app.request(API_ROUTES.social.notifications, {
-      method: "GET",
-      headers: { cookie: momentAuthorCookie }
-    });
-    expect(momentAuthorNotifications.status).toBe(200);
-    const momentAuthorPayload = (await momentAuthorNotifications.json()) as {
-      unreadByCategory: { system: number };
-      items: Array<{ type: string; target: { id: string } }>;
-    };
+    const momentAuthorPayload = await readSocialNotifications(momentAuthorCookie);
     expect(momentAuthorPayload.unreadByCategory.system).toBeGreaterThan(0);
     expect(
       momentAuthorPayload.items.some(
         (item) => item.type === "post_audit_result" && item.target.id === createdMoment.item.id
       )
     ).toBe(true);
+  });
+
+  it("emits system notification when ranking moderation status changes", async () => {
+    const adminCookie = await loginAdmin();
+    const rankingOwnerCookie = await loginWebUser("13800138103");
 
     const adminRankingsResponse = await app.request(API_ROUTES.rankings.adminList, {
       method: "GET",
@@ -2614,7 +2638,7 @@ describe.sequential("posts and social flows", () => {
     });
     expect(adminRankingsResponse.status).toBe(200);
     const adminRankingsPayload = (await adminRankingsResponse.json()) as {
-      items: Array<{ id: string; type: "official" | "community"; status: string; items: Array<{ id: string }> }>;
+      items: Array<{ id: string; type: "official" | "community"; status: string }>;
     };
     const communityRanking = adminRankingsPayload.items.find((item) => item.type === "community");
     expect(communityRanking?.id).toBeTruthy();
@@ -2632,7 +2656,30 @@ describe.sequential("posts and social flows", () => {
     });
     expect(updateRankingStatusResponse.status).toBe(200);
 
-    const rankingItemId = expectDefined(communityRanking?.items[0]?.id);
+    const rankingOwnerPayload = await readSocialNotifications(rankingOwnerCookie);
+    expect(
+      rankingOwnerPayload.items.some(
+        (item) => item.type === "ranking_audit_result" && item.target.id === rankingId
+      )
+    ).toBe(true);
+  });
+
+  it("emits system notification when rating target moderation status changes", async () => {
+    const adminCookie = await loginAdmin();
+    const rankingOwnerCookie = await loginWebUser("13800138103");
+
+    const adminRankingsResponse = await app.request(API_ROUTES.rankings.adminList, {
+      method: "GET",
+      headers: { cookie: adminCookie }
+    });
+    expect(adminRankingsResponse.status).toBe(200);
+    const adminRankingsPayload = (await adminRankingsResponse.json()) as {
+      items: Array<{ id: string; type: "official" | "community"; items: Array<{ id: string }> }>;
+    };
+    const communityRanking = adminRankingsPayload.items.find((item) => item.type === "community");
+    expect(communityRanking?.items?.[0]?.id).toBeTruthy();
+    const rankingItemId = expectDefined(communityRanking?.items?.[0]?.id);
+
     const updateRatingTargetStatusResponse = await app.request(
       API_ROUTES.rankings.adminItemStatus(rankingItemId),
       {
@@ -2648,26 +2695,18 @@ describe.sequential("posts and social flows", () => {
     );
     expect(updateRatingTargetStatusResponse.status).toBe(200);
 
-    const rankingOwnerCookie = await loginWebUser("13800138103");
-    const rankingOwnerNotifications = await app.request(API_ROUTES.social.notifications, {
-      method: "GET",
-      headers: { cookie: rankingOwnerCookie }
-    });
-    expect(rankingOwnerNotifications.status).toBe(200);
-    const rankingOwnerPayload = (await rankingOwnerNotifications.json()) as {
-      items: Array<{ type: string; target: { id: string } }>;
-    };
-    expect(
-      rankingOwnerPayload.items.some(
-        (item) => item.type === "ranking_audit_result" && item.target.id === rankingId
-      )
-    ).toBe(true);
+    const rankingOwnerPayload = await readSocialNotifications(rankingOwnerCookie);
     expect(
       rankingOwnerPayload.items.some(
         (item) =>
           item.type === "rating_target_audit_result" && item.target.id === rankingItemId
       )
     ).toBe(true);
+  });
+
+  it("emits system notification when aircraft submission moderation status changes", async () => {
+    const adminCookie = await loginAdmin();
+    const submitterCookie = await loginWebUser("13800138109");
 
     const adminSubmissionsResponse = await app.request(API_ROUTES.submissions.adminList, {
       method: "GET",
@@ -2696,21 +2735,17 @@ describe.sequential("posts and social flows", () => {
     );
     expect(approveSubmissionResponse.status).toBe(200);
 
-    const submitterNotifications = await app.request(API_ROUTES.social.notifications, {
-      method: "GET",
-      headers: { cookie: await loginWebUser("13800138109") }
-    });
-    expect(submitterNotifications.status).toBe(200);
-    const submitterPayload = (await submitterNotifications.json()) as {
-      items: Array<{ type: string; target: { id: string } }>;
-    };
+    const submitterPayload = await readSocialNotifications(submitterCookie);
     expect(
       submitterPayload.items.some(
         (item) =>
           item.type === "aircraft_submission_audit_result" && item.target.id === submissionId
       )
     ).toBe(true);
+  });
 
+  it("emits system notification when brand application moderation status changes", async () => {
+    const adminCookie = await loginAdmin();
     const applicantCookie = await loginWebUser("13800138211");
     const createBrandApplicationResponse = await app.request(API_ROUTES.brandApplications.create, {
       method: "POST",
@@ -2745,14 +2780,7 @@ describe.sequential("posts and social flows", () => {
     );
     expect(approveBrandApplicationResponse.status).toBe(200);
 
-    const applicantNotifications = await app.request(API_ROUTES.social.notifications, {
-      method: "GET",
-      headers: { cookie: applicantCookie }
-    });
-    expect(applicantNotifications.status).toBe(200);
-    const applicantPayload = (await applicantNotifications.json()) as {
-      items: Array<{ type: string; target: { id: string } }>;
-    };
+    const applicantPayload = await readSocialNotifications(applicantCookie);
     expect(
       applicantPayload.items.some(
         (item) =>
@@ -2760,7 +2788,10 @@ describe.sequential("posts and social flows", () => {
           item.target.id === createdBrandApplication.item.id
       )
     ).toBe(true);
+  });
 
+  it("emits system notification when review moderation status changes", async () => {
+    const adminCookie = await loginAdmin();
     const reviewAuthorCookie = await loginWebUser("13800138212");
     const createReviewResponse = await app.request(API_ROUTES.models.reviews("joby-s4"), {
       method: "POST",
@@ -2792,14 +2823,7 @@ describe.sequential("posts and social flows", () => {
     );
     expect(hideReviewResponse.status).toBe(200);
 
-    const reviewAuthorNotifications = await app.request(API_ROUTES.social.notifications, {
-      method: "GET",
-      headers: { cookie: reviewAuthorCookie }
-    });
-    expect(reviewAuthorNotifications.status).toBe(200);
-    const reviewAuthorPayload = (await reviewAuthorNotifications.json()) as {
-      items: Array<{ type: string; target: { id: string } }>;
-    };
+    const reviewAuthorPayload = await readSocialNotifications(reviewAuthorCookie);
     expect(
       reviewAuthorPayload.items.some(
         (item) =>

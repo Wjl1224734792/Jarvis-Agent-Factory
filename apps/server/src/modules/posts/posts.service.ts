@@ -53,6 +53,19 @@ function resolveRecommendedCandidateWindow(limit: number, page: number) {
   );
 }
 
+function resolveRecommendedQueryWindow(limit: number, page: number) {
+  const offset = Math.max(0, page - 1) * limit;
+  const candidateLimit = resolveRecommendedCandidateWindow(limit, page);
+  const leadingBuffer = Math.min(offset, limit * 2);
+  const queryOffset = Math.max(0, offset - leadingBuffer);
+
+  return {
+    candidateLimit,
+    queryOffset,
+    queryLimit: Math.max(limit, candidateLimit - queryOffset)
+  };
+}
+
 function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
 }
@@ -311,15 +324,17 @@ export const postsService = {
     const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
     const offset = (page - 1) * limit;
-    const candidateLimit =
-      tab === "recommended" ? resolveRecommendedCandidateWindow(limit, page) : limit;
+    const recommendedQueryWindow =
+      tab === "recommended" ? resolveRecommendedQueryWindow(limit, page) : null;
     const feedResult = await postsRepo.listFeed({
       tab,
       type: input.type,
       currentUserId: currentUser?.id,
       contentCategorySlug: input.contentCategorySlug,
       page: tab === "recommended" ? 1 : page,
-      limit: candidateLimit
+      limit: recommendedQueryWindow?.candidateLimit ?? limit,
+      recommendedWindowOffset: recommendedQueryWindow?.queryOffset,
+      recommendedWindowLimit: recommendedQueryWindow?.queryLimit
     });
     const items = feedResult.items;
     const postIds = items.map((item) => item.id);
@@ -361,9 +376,13 @@ export const postsService = {
             precomputedBaseScores: recommendedBaseScores
           })
         : serializedCandidates;
+    const recommendedPageOffset =
+      tab === "recommended"
+        ? Math.max(0, offset - (recommendedQueryWindow?.queryOffset ?? 0))
+        : offset;
     const pagedItems =
       tab === "recommended"
-        ? rankedRecommendedItems.slice(offset, offset + limit)
+        ? rankedRecommendedItems.slice(recommendedPageOffset, recommendedPageOffset + limit)
         : serializedCandidates;
     const total =
       tab === "recommended"

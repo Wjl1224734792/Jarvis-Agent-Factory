@@ -632,6 +632,8 @@ export const postsRepo = {
     contentCategorySlug?: string;
     page: number;
     limit: number;
+    recommendedWindowOffset?: number;
+    recommendedWindowLimit?: number;
   }) {
     const conditions = [
       eq(postsTable.status, "published"),
@@ -647,6 +649,10 @@ export const postsRepo = {
     }
 
     const offset = (input.page - 1) * input.limit;
+    const queryOffset =
+      input.tab === "recommended" ? input.recommendedWindowOffset ?? offset : offset;
+    const queryLimit =
+      input.tab === "recommended" ? input.recommendedWindowLimit ?? input.limit : input.limit;
     const baseCountQuery = db
       .select({ count: sql<number>`count(*)` })
       .from(postsTable)
@@ -681,8 +687,8 @@ export const postsRepo = {
             )
           )
           .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
-          .limit(input.limit)
-          .offset(offset),
+          .limit(queryLimit)
+          .offset(queryOffset),
         baseCountQuery.innerJoin(
           userFollowsTable,
           and(
@@ -701,8 +707,8 @@ export const postsRepo = {
     const [rows, countRows] = await Promise.all([
       baseQuery
         .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
-        .limit(input.limit)
-        .offset(offset),
+        .limit(queryLimit)
+        .offset(queryOffset),
       baseCountQuery
     ]);
 
