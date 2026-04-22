@@ -17,6 +17,7 @@ type FeedRecommendationItem = {
     };
   };
   author: {
+    id?: string;
     role: "user" | "admin";
   };
   images: Array<unknown>;
@@ -29,6 +30,12 @@ type FeedRecommendationItem = {
     name: string;
     id: string;
   } | null;
+};
+
+type ScoredFeedRecommendationItem<T extends FeedRecommendationItem> = {
+  item: T;
+  baseScore: number;
+  publishedTime: number;
 };
 
 const MS_PER_HOUR = 1000 * 60 * 60;
@@ -155,6 +162,54 @@ function buildFeedRecommendationScore(
   );
 }
 
+function buildDiversityPenalty<T extends FeedRecommendationItem>(
+  candidate: T,
+  selected: Array<ScoredFeedRecommendationItem<T>>,
+  type: "article" | "moment"
+) {
+  if (selected.length === 0) {
+    return 0;
+  }
+
+  const authorId = candidate.author.id?.trim();
+  const categorySlug = candidate.contentCategory?.slug;
+  const recentItems = selected.slice(-2);
+  let penalty = 0;
+
+  if (authorId) {
+    const sameAuthorCount = selected.filter(entry => entry.item.author.id === authorId).length;
+    if (sameAuthorCount > 0) {
+      penalty += sameAuthorCount * (type === "article" ? 8 : 6);
+    }
+    if (recentItems.some(entry => entry.item.author.id === authorId)) {
+      penalty += type === "article" ? 12 : 10;
+    }
+  }
+
+  if (categorySlug) {
+    const sameCategoryCount = selected.filter(
+      entry => entry.item.contentCategory?.slug === categorySlug
+    ).length;
+    if (sameCategoryCount > 0) {
+      penalty += sameCategoryCount * (type === "article" ? 4 : 5);
+    }
+    if (selected[selected.length - 1]?.item.contentCategory?.slug === categorySlug) {
+      penalty += type === "article" ? 6 : 7;
+    }
+  }
+
+  if (
+    authorId &&
+    categorySlug &&
+    selected[selected.length - 1]?.item.author.id === authorId &&
+    selected[selected.length - 1]?.item.contentCategory?.slug === categorySlug
+  ) {
+    penalty += type === "article" ? 8 : 10;
+  }
+
+  return penalty;
+}
+
 export function rankFeedItemsByRecommendation<T extends FeedRecommendationItem>(
   items: T[],
   input: {
@@ -163,14 +218,36 @@ export function rankFeedItemsByRecommendation<T extends FeedRecommendationItem>(
   }
 ) {
   const now = input.now ?? new Date();
+  const remaining: Array<ScoredFeedRecommendationItem<T>> = items.map(item => ({
+    item,
+    baseScore: buildFeedRecommendationScore(item, { now, type: input.type }),
+    publishedTime: getPublishedTime(item)
+  }));
+  const ranked: Array<ScoredFeedRecommendationItem<T>> = [];
 
-  return [...items].sort((left, right) => {
-    const scoreDelta = buildFeedRecommendationScore(right, { now, type: input.type }) -
-      buildFeedRecommendationScore(left, { now, type: input.type });
-    if (scoreDelta !== 0) {
-      return scoreDelta;
+  while (remaining.length > 0) {
+    let bestIndex = 0;
+    let bestAdjustedScore =
+      remaining[0].baseScore - buildDiversityPenalty(remaining[0].item, ranked, input.type);
+
+    for (let index = 1; index < remaining.length; index += 1) {
+      const entry = remaining[index];
+      const adjustedScore = entry.baseScore - buildDiversityPenalty(entry.item, ranked, input.type);
+
+      if (
+        adjustedScore > bestAdjustedScore ||
+        (adjustedScore === bestAdjustedScore &&
+          (entry.baseScore > remaining[bestIndex].baseScore ||
+            (entry.baseScore === remaining[bestIndex].baseScore &&
+              entry.publishedTime > remaining[bestIndex].publishedTime)))
+      ) {
+        bestAdjustedScore = adjustedScore;
+        bestIndex = index;
+      }
     }
 
-    return getPublishedTime(right) - getPublishedTime(left);
-  });
+    ranked.push(remaining.splice(bestIndex, 1)[0]);
+  }
+
+  return ranked.map(entry => entry.item);
 }

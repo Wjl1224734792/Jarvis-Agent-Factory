@@ -568,6 +568,125 @@ describe.sequential("posts and social flows", () => {
     expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
   });
 
+  it("keeps recommended feed diverse before repeating the same author and category cluster", () => {
+    const ranked = rankFeedItemsByRecommendation(
+      [
+        {
+          id: "author_a_primary",
+          title: "Primary dispatch from author A",
+          contentPreview: "A detailed and timely article with strong engagement and solid quality signals.",
+          viewCount: 260,
+          reportCount: 0,
+          commentCount: 7,
+          engagement: {
+            likeCount: 22,
+            favoriteCount: 5,
+            shareCount: 4,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            id: "author_a",
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:55:00.000Z",
+          updatedAt: "2026-04-08T07:55:00.000Z",
+          publishedAt: "2026-04-08T07:55:00.000Z",
+          contentCategory: {
+            id: "cat_news",
+            slug: "news",
+            name: "资讯"
+          }
+        },
+        {
+          id: "author_a_repeat",
+          title: "Follow-up dispatch from author A",
+          contentPreview: "Another strong article from the same author and category that would otherwise stack immediately after the first item.",
+          viewCount: 255,
+          reportCount: 0,
+          commentCount: 7,
+          engagement: {
+            likeCount: 21,
+            favoriteCount: 5,
+            shareCount: 4,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            id: "author_a",
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:56:00.000Z",
+          updatedAt: "2026-04-08T07:56:00.000Z",
+          publishedAt: "2026-04-08T07:56:00.000Z",
+          contentCategory: {
+            id: "cat_news",
+            slug: "news",
+            name: "资讯"
+          }
+        },
+        {
+          id: "author_b_diverse",
+          title: "Diverse perspective from author B",
+          contentPreview: "A slightly less fresh but still high-quality article from another author and category should be surfaced before a cluster repeat.",
+          viewCount: 250,
+          reportCount: 0,
+          commentCount: 7,
+          engagement: {
+            likeCount: 21,
+            favoriteCount: 5,
+            shareCount: 4,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: false,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            id: "author_b",
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:54:00.000Z",
+          updatedAt: "2026-04-08T07:54:00.000Z",
+          publishedAt: "2026-04-08T07:54:00.000Z",
+          contentCategory: {
+            id: "cat_guide",
+            slug: "guide",
+            name: "指南"
+          }
+        }
+      ],
+      {
+        now: new Date("2026-04-08T08:00:00.000Z"),
+        type: "article"
+      }
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual([
+      "author_a_repeat",
+      "author_b_diverse",
+      "author_a_primary"
+    ]);
+  });
+
   it("keeps high-share moments inside the recommended candidate pool", async () => {
     const authorCookie = await loginWebUser("13800138174");
     const authorId = await getCurrentUserId(authorCookie);

@@ -1,5 +1,5 @@
 import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -12,7 +12,12 @@ import {
 import { apiClient } from "@/lib/api-client";
 import { shouldRecordSessionView } from "@/lib/view-session";
 import { CirclePageFeed, type CircleFeedItem, type FeedTab } from "./circle-page-feed";
-import { CirclePageDetail } from "./circle-page-detail";
+
+const CirclePageDetail = lazy(() =>
+  import("./circle-page-detail").then((module) => ({
+    default: module.CirclePageDetail
+  }))
+);
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -165,25 +170,29 @@ export function CirclePage() {
         formatCount={formatCount}
       />
 
-      <CirclePageDetail
-        selectedNoteId={selectedNoteId}
-        selectedNote={selectedNote}
-        displayNote={displayNote}
-        noteQuery={noteQuery}
-        authStatus={authStatus}
-        currentUser={currentUser}
-        promptLogin={promptLogin}
-        commentContent={commentContent}
-        onCommentContentChange={setCommentContent}
-        commentSort={commentSort}
-        onCommentSortChange={setCommentSort}
-        isSubmitting={isSubmitting}
-        actionError={actionError}
-        onCommentSubmit={handleCommentSubmit}
-        onClose={closeNote}
-        onToggleFollow={handleToggleFollow}
-        formatCount={formatCount}
-      />
+      {selectedNoteId ? (
+        <Suspense fallback={null}>
+          <CirclePageDetail
+            selectedNoteId={selectedNoteId}
+            selectedNote={selectedNote}
+            displayNote={displayNote}
+            noteQuery={noteQuery}
+            authStatus={authStatus}
+            currentUser={currentUser}
+            promptLogin={promptLogin}
+            commentContent={commentContent}
+            onCommentContentChange={setCommentContent}
+            commentSort={commentSort}
+            onCommentSortChange={setCommentSort}
+            isSubmitting={isSubmitting}
+            actionError={actionError}
+            onCommentSubmit={handleCommentSubmit}
+            onClose={closeNote}
+            onToggleFollow={handleToggleFollow}
+            formatCount={formatCount}
+          />
+        </Suspense>
+      ) : null}
     </SitePage>
   );
 }
