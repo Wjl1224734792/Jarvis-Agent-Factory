@@ -39,12 +39,23 @@
 - [apps/web/src/routes/circle-page.tsx](E:/CodeStore/feijia/apps/web/src/routes/circle-page.tsx)
   - 将 `CirclePageDetail` 改为 `lazy + Suspense`
   - 仅在存在 `selectedNoteId` 时才触发加载
+- [apps/web/src/components/virtual-feed.tsx](E:/CodeStore/feijia/apps/web/src/components/virtual-feed.tsx)
+  - 新增 `VirtualMasonryColumns`
+  - 通过“每列一个 Virtuoso 列表”的方式，把现有瀑布流推进到列级虚拟化
+- [apps/web/src/routes/circle-page-feed.tsx](E:/CodeStore/feijia/apps/web/src/routes/circle-page-feed.tsx)
+  - 由手写整页网格改为接入 `VirtualMasonryColumns`
+
+### 测试
+- [apps/web/tests/virtual-feed.test.ts](E:/CodeStore/feijia/apps/web/tests/virtual-feed.test.ts)
+  - 验证瀑布流虚拟列组件会为每一列创建独立的 `Virtuoso` 列表
+  - 验证默认使用 `window` 滚动模式
 
 ### 构建结果
 - `web` 构建中新增独立 chunk：
   - `circle-page-detail` 约 `8.93 kB`
   - `circle-page` 约 `7.98 kB`
 - 说明详情面板已成功从主页面逻辑中拆分为按需代码块
+- `circle` 列表本体已从“整页一次性渲染所有卡片”升级为“按列虚拟化渲染”
 
 ## 最终验证
 - 通过：`bun run lint`
@@ -54,4 +65,4 @@
 
 ## 剩余风险
 - 推荐流当前仍然是“候选集拉取后内存重排”，只是候选窗口和排序质量已经更合理；数据量继续增大时，下一阶段仍应考虑 repo 层/SQL 层进一步前移候选筛选。
-- 瀑布流本体仍然不是虚拟化瀑布流；当前因为数据量和页面模式可接受，但若后续单页条数显著上升，仍需要继续演进列表渲染策略。
+- 当前瀑布流已经是“列级虚拟化”，但还不是严格意义上的统一瀑布流布局引擎；如果后续要继续压榨性能，仍可进一步评估更深层的 masonry virtualization 方案。

@@ -321,25 +321,17 @@ export const postsService = {
     const items = feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
-    const [images, videos, interactions, followingAuthorIds] = await Promise.all([
-      postsRepo.listPostImages(postIds),
-      postsRepo.listPostVideos(postIds),
+    const [interactions, followingAuthorIds] = await Promise.all([
       currentUser ? postsRepo.listViewerInteractions(postIds, currentUser.id) : [],
       currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
     ]);
-
-    const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
-      buildImagesByPostId(images),
-      buildVideosByPostId(videos),
-      buildCoversByPostId(items)
-    ]);
     const interactionMap = buildInteractionMap(interactions);
-    const serializedItems = items
+    const serializedCandidates = items
       .map((item) =>
         serializePostListItem(item, {
-          cover: coversByPostId.get(item.id) ?? null,
-          images: imagesByPostId.get(item.id) ?? [],
-          videos: videosByPostId.get(item.id) ?? [],
+          cover: null,
+          images: [],
+          videos: [],
           viewer: toViewerState({
             authorId: item.author.id,
             currentUser,
@@ -351,19 +343,39 @@ export const postsService = {
       .filter((item): item is NonNullable<typeof item> => item !== null);
     const rankedRecommendedItems =
       tab === "recommended"
-        ? rankFeedItemsByRecommendation(serializedItems, {
+        ? rankFeedItemsByRecommendation(serializedCandidates, {
             type: input.type
           })
-        : serializedItems;
-    const orderedItems =
+        : serializedCandidates;
+    const pagedItems =
       tab === "recommended"
         ? rankedRecommendedItems.slice(offset, offset + limit)
-        : serializedItems;
+        : serializedCandidates;
     const total =
       tab === "recommended"
         ? rankedRecommendedItems.length
         : feedResult.total;
     const hasMore = page * limit < total;
+    const postRecordById = new Map(items.map((item) => [item.id, item]));
+    const pagePostIds = pagedItems.map((item) => item.id);
+    const pagePostRecords = pagedItems
+      .map((item) => postRecordById.get(item.id) ?? null)
+      .filter((item): item is NonNullable<typeof item> => item !== null);
+    const [images, videos] = await Promise.all([
+      postsRepo.listPostImages(pagePostIds),
+      postsRepo.listPostVideos(pagePostIds)
+    ]);
+    const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
+      buildImagesByPostId(images),
+      buildVideosByPostId(videos),
+      buildCoversByPostId(pagePostRecords)
+    ]);
+    const orderedItems = pagedItems.map((item) => ({
+      ...item,
+      cover: coversByPostId.get(item.id) ?? null,
+      images: imagesByPostId.get(item.id) ?? [],
+      videos: videosByPostId.get(item.id) ?? []
+    }));
 
     if (input.type === "article") {
       const categories = await contentCategoriesService.listEnabledCategories();

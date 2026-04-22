@@ -10,10 +10,11 @@
 } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { and, eq } from "drizzle-orm";
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
+import { postsRepo } from "../src/modules/posts/posts.repo";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
@@ -728,6 +729,8 @@ describe.sequential("posts and social flows", () => {
     const authorCookie = await loginWebUser("13800138175");
     const authorId = await getCurrentUserId(authorCookie);
     const baseTime = new Date("2026-04-08T10:00:00.000Z");
+    const listPostImagesSpy = vi.spyOn(postsRepo, "listPostImages");
+    const listPostVideosSpy = vi.spyOn(postsRepo, "listPostVideos");
 
     await replaceMomentFeedWithSyntheticPosts(
       authorId,
@@ -753,6 +756,12 @@ describe.sequential("posts and social flows", () => {
     expect(pageSixPayload.items).toHaveLength(10);
     expect(pageSixPayload.pagination.total).toBe(70);
     expect(pageSixPayload.pagination.hasMore).toBe(true);
+    expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
+    expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
+    expect(listPostImagesSpy.mock.calls[0]?.[0]).toHaveLength(10);
+    expect(listPostVideosSpy.mock.calls[0]?.[0]).toHaveLength(10);
+    listPostImagesSpy.mockClear();
+    listPostVideosSpy.mockClear();
 
     const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
       method: "GET"
@@ -766,6 +775,12 @@ describe.sequential("posts and social flows", () => {
     expect(pageSevenPayload.items).toHaveLength(10);
     expect(pageSevenPayload.pagination.total).toBe(70);
     expect(pageSevenPayload.pagination.hasMore).toBe(false);
+    expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
+    expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
+    expect(listPostImagesSpy.mock.calls[0]?.[0]).toHaveLength(10);
+    expect(listPostVideosSpy.mock.calls[0]?.[0]).toHaveLength(10);
+    listPostImagesSpy.mockRestore();
+    listPostVideosSpy.mockRestore();
   });
 
   it("returns edited published posts to pending when moderation stays on", async () => {

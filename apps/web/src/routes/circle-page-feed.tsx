@@ -2,6 +2,7 @@ import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -187,32 +188,21 @@ export function CirclePageFeed({
 
       {posts.length > 0 ? (
         <div className="site-tab-panel w-full space-y-0">
-          <div
-            className="grid w-full min-w-0"
-            style={{
-              gap: CIRCLE_CARD_COLUMN_GAP,
-              gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-            }}
-          >
-            {columns.map((column, colIndex) => (
-              <div
-                className="flex min-w-0 flex-col"
-                key={colIndex}
-                style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
-              >
-                {column.map(({ item, absoluteIndex }) => (
-                  <CircleFeedCard
-                    absoluteIndex={absoluteIndex}
-                    formatCount={formatCount}
-                    item={item}
-                    key={item.id}
-                    openNote={openNote}
-                    selectedNoteId={selectedNoteId}
-                  />
-                ))}
-              </div>
-            ))}
-          </div>
+          <VirtualMasonryColumns
+            className="w-full"
+            columns={columns}
+            gap={CIRCLE_CARD_COLUMN_GAP}
+            itemKey={({ item }) => item.id}
+            renderItem={({ item, absoluteIndex }) => (
+              <CircleFeedCard
+                absoluteIndex={absoluteIndex}
+                formatCount={formatCount}
+                item={item}
+                openNote={openNote}
+                selectedNoteId={selectedNoteId}
+              />
+            )}
+          />
           <FeedRefetchFooter show={isRefetching} />
         </div>
       ) : null}

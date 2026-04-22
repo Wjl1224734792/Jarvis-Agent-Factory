@@ -101,3 +101,55 @@ export function VirtualGrid<T>({
     />
   );
 }
+
+type VirtualMasonryColumnsProps<T> = {
+  columns: T[][];
+  itemKey: (item: T, index: number, columnIndex: number) => string;
+  renderItem: (item: T, index: number, columnIndex: number) => ReactNode;
+  className?: string;
+  columnClassName?: string;
+  gap?: string;
+  emptyState?: ReactNode;
+  useWindowScroll?: boolean;
+};
+
+export function VirtualMasonryColumns<T>({
+  columns,
+  itemKey,
+  renderItem,
+  className,
+  columnClassName,
+  gap = "8px",
+  emptyState,
+  useWindowScroll = true
+}: VirtualMasonryColumnsProps<T>) {
+  if (columns.every((column) => column.length === 0)) {
+    return emptyState ?? null;
+  }
+
+  return (
+    <div
+      className={cn("grid w-full min-w-0", className)}
+      style={{
+        gap,
+        gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`
+      }}
+    >
+      {columns.map((column, columnIndex) => (
+        <Virtuoso
+          className={cn("min-w-0", columnClassName)}
+          computeItemKey={(index, item) => itemKey(item, index, columnIndex)}
+          data={column}
+          increaseViewportBy={{ top: 320, bottom: 480 }}
+          itemContent={(index, item) => (
+            <div style={{ paddingBottom: index < column.length - 1 ? gap : undefined }}>
+              {renderItem(item, index, columnIndex)}
+            </div>
+          )}
+          key={`masonry-column-${columnIndex}`}
+          useWindowScroll={useWindowScroll}
+        />
+      ))}
+    </div>
+  );
+}
