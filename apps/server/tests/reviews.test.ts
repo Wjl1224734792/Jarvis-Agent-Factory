@@ -29,7 +29,9 @@ const repo = {
 
 const siteSettingsServiceMock = {
   getResolvedSettings: vi.fn(),
-  isAiReviewEnabledForComment: vi.fn()
+  isAiReviewEnabledForComment: vi.fn(),
+  getCommentModerationMode: vi.fn(),
+  getReviewModerationMode: vi.fn()
 };
 const qiniuAuditServiceMock = {
   reviewText: vi.fn()
@@ -76,6 +78,8 @@ describe("reviews service", () => {
       commentModerationEnabled: false
     });
     siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(false);
+    siteSettingsServiceMock.getCommentModerationMode.mockResolvedValue("manual");
+    siteSettingsServiceMock.getReviewModerationMode.mockResolvedValue("manual");
     qiniuAuditServiceMock.reviewText.mockResolvedValue({
       status: "needs_manual_review"
     });
@@ -289,7 +293,7 @@ describe("reviews service", () => {
     siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
       commentModerationEnabled: false
     });
-    siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(false);
+    siteSettingsServiceMock.getCommentModerationMode.mockResolvedValue("manual");
     repo.updateReviewCommentStatus.mockResolvedValue({
       id: "comment_1",
       reviewId: "review_1",
@@ -461,7 +465,7 @@ describe("reviews service", () => {
     siteSettingsServiceMock.getResolvedSettings.mockResolvedValue({
       commentModerationEnabled: true
     });
-    siteSettingsServiceMock.isAiReviewEnabledForComment.mockResolvedValue(true);
+    siteSettingsServiceMock.getCommentModerationMode.mockResolvedValue("ai");
     repo.createReviewComment.mockResolvedValue({
       id: "comment_ai",
       reviewId: "review_1",
@@ -515,9 +519,10 @@ describe("reviews service", () => {
 
     expect(createResult.kind).toBe("ok");
     expect(qiniuAuditServiceMock.reviewText).toHaveBeenCalledWith({
-      domain: "review_comment",
+      domain: "comment",
       entityId: "comment_ai",
-      text: "AI approved comment"
+      text: "AI approved comment",
+      mode: "ai"
     });
     expect(repo.updateReviewCommentStatus).toHaveBeenCalledWith("comment_ai", "visible");
     if (createResult.kind === "ok") {

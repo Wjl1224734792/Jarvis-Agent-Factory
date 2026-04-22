@@ -13,7 +13,7 @@ export const adminAuditRecordDomainSchema = z.enum([
 
 export const adminAuditRecordContentTypeSchema = z.enum(["text", "image", "video", "mixed"]);
 export const adminAuditRecordProviderSchema = z.enum(["qiniu"]);
-export const adminAuditRecordModeSchema = z.enum(["ai", "manual"]);
+export const adminAuditRecordModeSchema = z.enum(["ai", "manual", "automatic"]);
 export const adminAuditRecordStatusSchema = z.enum([
   "queued",
   "running",

@@ -111,15 +111,54 @@ async function uploadReportImage(cookie: string, name = "evidence.png") {
   return uploaded.id;
 }
 
+async function updateModerationModes(
+  adminCookie: string,
+  modes: {
+    article?: "manual" | "ai" | "automatic";
+    moment?: "manual" | "ai" | "automatic";
+    comment?: "manual" | "ai" | "automatic";
+    review?: "manual" | "ai" | "automatic";
+    brand?: "manual" | "ai" | "automatic";
+    model?: "manual" | "ai" | "automatic";
+    ranking?: "manual" | "ai" | "automatic";
+    ratingTarget?: "manual" | "ai" | "automatic";
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      moderationModes: modes
+    })
+  });
+
+  expect(response.status).toBe(200);
+}
+
+const originalQiniuAuditTestSuggestion = process.env.QINIU_AUDIT_TEST_SUGGESTION;
+
 beforeAll(async () => {
   await runMigrations();
 });
 
 beforeEach(async () => {
+  if (originalQiniuAuditTestSuggestion === undefined) {
+    delete process.env.QINIU_AUDIT_TEST_SUGGESTION;
+  } else {
+    process.env.QINIU_AUDIT_TEST_SUGGESTION = originalQiniuAuditTestSuggestion;
+  }
   await resetIntegrationState("catalog");
 });
 
 afterAll(async () => {
+  if (originalQiniuAuditTestSuggestion === undefined) {
+    delete process.env.QINIU_AUDIT_TEST_SUGGESTION;
+  } else {
+    process.env.QINIU_AUDIT_TEST_SUGGESTION = originalQiniuAuditTestSuggestion;
+  }
   // The server suite shares one cached dbPool across files; ending it here
   // breaks later integration files running in the same Vitest process.
 });
@@ -656,6 +695,7 @@ describe("models flows", () => {
   });
 
   it("supports model comments with reply, like, report, edit, delete and admin hide", async () => {
+    process.env.QINIU_AUDIT_TEST_SUGGESTION = "pass";
     const authorCookie = await loginUser("13800138041");
     const responderCookie = await loginUser("13800138042");
     const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
@@ -667,6 +707,9 @@ describe("models flows", () => {
       })
     });
     const adminCookie = extractCookies(adminLoginResponse);
+    await updateModerationModes(adminCookie, {
+      comment: "ai"
+    });
 
     const createResponse = await app.request(API_ROUTES.models.comments("mini-4-pro"), {
       method: "POST",

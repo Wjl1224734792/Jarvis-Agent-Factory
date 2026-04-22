@@ -31,7 +31,7 @@ function serializeAuditRecord(item: Awaited<ReturnType<typeof auditsRepo.getById
     entityId: item.entityId,
     contentType: item.contentType as "text" | "image" | "video" | "mixed",
     provider: item.provider as "qiniu",
-    mode: item.mode as "ai" | "manual",
+    mode: item.mode as "ai" | "manual" | "automatic",
     status: item.status as
       | "queued"
       | "running"

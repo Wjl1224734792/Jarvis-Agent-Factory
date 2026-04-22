@@ -8,6 +8,7 @@ import { categoriesService } from "../categories/categories.service";
 import { brandsService } from "../brands/brands.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { aircraftModelsRepo } from "./aircraft-models.repo";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
 import { sortModelsByHotScore } from "./model-hot-score";
@@ -563,9 +564,7 @@ export const aircraftModelsService = {
       replyToUserId = parentComment.author.id;
     }
 
-    const status = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled
-      ? "pending"
-      : "visible";
+    const status = "pending";
 
     const created = await aircraftModelsRepo.createModelComment({
       modelId: item.id,
@@ -593,7 +592,34 @@ export const aircraftModelsService = {
     if (!serialized) {
       return { kind: "not_found" as const };
     }
-    if (status === "visible") {
+    let currentItem = serialized;
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: created.id,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const nextStatus = moderation.action === "approve" ? "visible" : "hidden";
+      const refreshed = await aircraftModelsRepo.updateModelCommentStatus(created.id, nextStatus);
+      const refreshedComment = refreshed
+        ? await aircraftModelsRepo.getModelCommentById(created.id)
+        : null;
+      const nextSerialized = refreshedComment
+        ? await serializeModelComment(
+            refreshedComment,
+            await buildReplyToUserMap(replyToUsers, ipLocationLabelMap),
+            {
+              currentUserId: currentUser.id,
+              ipLocationLabelMap
+            }
+          )
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
+      }
+    }
+    if (currentItem.status === "visible") {
       const targetUserId = parentComment ? parentComment.author.id : item.ownerId;
       const notificationType = parentComment ? "comment_replied" : "post_commented";
       const notificationTitle = parentComment ? "机型评论收到回复" : "机型收到新评论";
@@ -618,7 +644,7 @@ export const aircraftModelsService = {
       }
     }
 
-    return { kind: "ok" as const, item: serialized };
+    return { kind: "ok" as const, item: currentItem };
   },
   async updateModelComment(
     slug: string,
@@ -642,24 +668,40 @@ export const aircraftModelsService = {
       return { kind: "not_found" as const };
     }
 
-    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
-    const refreshed =
-      shouldModerate && updated.status === "visible"
-        ? ((await aircraftModelsRepo.updateModelCommentStatus(commentId, "pending")),
-          await aircraftModelsRepo.getModelCommentById(commentId))
-        : updated;
-    if (!refreshed) {
+    const pendingUpdate = await aircraftModelsRepo.updateModelCommentStatus(commentId, "pending");
+    if (!pendingUpdate) {
       return { kind: "not_found" as const };
     }
-    const replyToUsers = refreshed?.replyToUserId
-      ? await aircraftModelsRepo.listUsersByIds([refreshed.replyToUserId])
+    const pending = await aircraftModelsRepo.getModelCommentById(commentId);
+    if (!pending) {
+      return { kind: "not_found" as const };
+    }
+    let finalComment = pending;
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: commentId,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const nextStatus = moderation.action === "approve" ? "visible" : "hidden";
+      const moderated = await aircraftModelsRepo.updateModelCommentStatus(commentId, nextStatus);
+      if (moderated) {
+        const reloaded = await aircraftModelsRepo.getModelCommentById(commentId);
+        if (reloaded) {
+          finalComment = reloaded;
+        }
+      }
+    }
+    const replyToUsers = finalComment.replyToUserId
+      ? await aircraftModelsRepo.listUsersByIds([finalComment.replyToUserId])
       : [];
     const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
-      refreshed.author.id,
-      ...(refreshed.replyToUserId ? [refreshed.replyToUserId] : [])
+      finalComment.author.id,
+      ...(finalComment.replyToUserId ? [finalComment.replyToUserId] : [])
     ]);
     const serialized = await serializeModelComment(
-      refreshed,
+      finalComment,
       await buildReplyToUserMap(replyToUsers, ipLocationLabelMap),
       {
         currentUserId: currentUser.id,

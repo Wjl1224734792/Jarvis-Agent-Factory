@@ -1,5 +1,5 @@
 import { brandsService } from "../brands/brands.service";
-import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { brandApplicationsRepo } from "./brand-applications.repo";
@@ -85,7 +85,6 @@ export const brandApplicationsService = {
     logoUrl: string | null;
     description: string | null;
   }) {
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForBrandApplication();
     const item = await brandApplicationsRepo.create({
       applicantId: input.applicantId,
       status: "pending",
@@ -97,20 +96,21 @@ export const brandApplicationsService = {
       approvedBrandId: null
     });
 
-    if (aiReviewEnabled && item) {
-      const audit = await qiniuAuditService.reviewText({
+    if (item) {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getBrandModerationMode(),
         domain: "brand_application",
         entityId: item.id,
         text: `${input.name}\n${input.description ?? ""}`
       });
-      if (audit?.status === "passed") {
+      if (moderation.action === "approve") {
         const approved = await this.updateStatus(item.id, "approved");
         if (approved) {
           return approved;
         }
       }
-      if (audit?.status === "rejected") {
-        const rejected = await this.updateStatus(item.id, "rejected", "Rejected by qiniu text audit.");
+      if (moderation.action === "reject") {
+        const rejected = await this.updateStatus(item.id, "rejected", moderation.rejectionReason);
         if (rejected) {
           return rejected;
         }
@@ -146,7 +146,6 @@ export const brandApplicationsService = {
       return { kind: "forbidden" as const };
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForBrandApplication();
     const nextStatus = currentUser.role === "admin" ? current.status : "pending";
     const updated = await brandApplicationsRepo.update(id, {
       status: nextStatus,
@@ -161,20 +160,21 @@ export const brandApplicationsService = {
       return { kind: "not_found" as const };
     }
 
-    if (currentUser.role !== "admin" && aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
+    if (currentUser.role !== "admin") {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getBrandModerationMode(),
         domain: "brand_application",
         entityId: updated.id,
         text: `${input.name}\n${input.description ?? ""}`
       });
-      if (audit?.status === "passed") {
+      if (moderation.action === "approve") {
         const approved = await this.updateStatus(updated.id, "approved");
         if (approved) {
           return { kind: "ok" as const, payload: approved };
         }
       }
-      if (audit?.status === "rejected") {
-        const rejected = await this.updateStatus(updated.id, "rejected", "Rejected by qiniu text audit.");
+      if (moderation.action === "reject") {
+        const rejected = await this.updateStatus(updated.id, "rejected", moderation.rejectionReason);
         if (rejected) {
           return { kind: "ok" as const, payload: rejected };
         }

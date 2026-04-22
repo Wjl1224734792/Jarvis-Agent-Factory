@@ -1,5 +1,5 @@
 import { reviewsRepo } from "./reviews.repo";
-import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
@@ -136,18 +136,6 @@ function parseFileIdArray(value: string) {
   }
 }
 
-function mapAuditStatusToCommentStatus(
-  status: string | null | undefined
-): "pending" | "visible" | "hidden" {
-  if (status === "passed") {
-    return "visible";
-  }
-  if (status === "rejected") {
-    return "hidden";
-  }
-  return "pending";
-}
-
 export const reviewsService = {
   async listModelReviews(
     slug: string,
@@ -238,7 +226,6 @@ export const reviewsService = {
       return null;
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForReview();
     const status = "pending";
     await reviewsRepo.upsertReview({
       modelId: model.id,
@@ -255,17 +242,16 @@ export const reviewsService = {
     if (!item || !summary) {
       return null;
     }
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "review",
-        entityId: item.id,
-        text: input.content
-      });
-      if (audit?.status === "passed") {
-        await this.updateReviewStatus(item.id, "visible");
-      } else if (audit?.status === "rejected") {
-        await this.updateReviewStatus(item.id, "hidden");
-      }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getReviewModerationMode(),
+      domain: "review",
+      entityId: item.id,
+      text: input.content
+    });
+    if (moderation.action === "approve") {
+      await this.updateReviewStatus(item.id, "visible");
+    } else if (moderation.action === "reject") {
+      await this.updateReviewStatus(item.id, "hidden");
     }
 
     const refreshed = await reviewsRepo.getUserReview(model.id, userId);
@@ -443,7 +429,6 @@ export const reviewsService = {
       replyToUserId = parentComment.author.id;
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     const status = "pending";
 
     const item = await reviewsRepo.createReviewComment({
@@ -465,23 +450,22 @@ export const reviewsService = {
     }
 
     let currentItem = serialized;
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "review_comment",
-        entityId: item.id,
-        text: input.content
-      });
-      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
-      if (nextStatus !== "pending") {
-        const refreshed = await reviewsRepo.updateReviewCommentStatus(item.id, nextStatus);
-        const nextSerialized = refreshed
-          ? await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
-              currentUserId: currentUser.id
-            })
-          : null;
-        if (nextSerialized) {
-          currentItem = nextSerialized;
-        }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: item.id,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const nextStatus = moderation.action === "approve" ? "visible" : "hidden";
+      const refreshed = await reviewsRepo.updateReviewCommentStatus(item.id, nextStatus);
+      const nextSerialized = refreshed
+        ? await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
+            currentUserId: currentUser.id
+          })
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
       }
     }
 
@@ -598,24 +582,22 @@ export const reviewsService = {
       return { kind: "not_found" as const };
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     const refreshed = await reviewsRepo.updateReviewCommentStatus(commentId, "pending");
     if (!refreshed) {
       return { kind: "not_found" as const };
     }
     let finalComment = refreshed;
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "review_comment",
-        entityId: commentId,
-        text: input.content
-      });
-      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
-      if (nextStatus !== "pending") {
-        const updatedComment = await reviewsRepo.updateReviewCommentStatus(commentId, nextStatus);
-        if (updatedComment) {
-          finalComment = updatedComment;
-        }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: commentId,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const nextStatus = moderation.action === "approve" ? "visible" : "hidden";
+      const updatedComment = await reviewsRepo.updateReviewCommentStatus(commentId, nextStatus);
+      if (updatedComment) {
+        finalComment = updatedComment;
       }
     }
     const replyToUsers = refreshed?.replyToUserId

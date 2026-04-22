@@ -57,7 +57,7 @@ function resolveTestSuggestion(): QiniuSuggestion {
     return value;
   }
 
-  return "review";
+  return "pass";
 }
 
 function extractSceneSuggestions(
@@ -115,13 +115,15 @@ export const qiniuAuditService = {
     entityId: string;
     text: string;
     scene?: TextAuditScene;
+    mode?: "ai" | "automatic";
   }) {
     const scene = input.scene ?? "antispam";
+    const mode = input.mode ?? "ai";
     const request = await auditsRepo.create({
       domain: input.domain,
       entityId: input.entityId,
       contentType: "text",
-      mode: "ai",
+      mode,
       status: "running",
       scene
     });

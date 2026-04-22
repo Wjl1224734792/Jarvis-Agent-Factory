@@ -7,7 +7,7 @@ import {
 import { contentCategoriesService } from "../content-categories/content-categories.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
-import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { postsRepo } from "./posts.repo";
@@ -246,20 +246,6 @@ function parseFileIdArray(value: string) {
   } catch {
     return [];
   }
-}
-
-function mapAuditStatusToPostDecision(
-  status: string | null | undefined
-): { status: PostStatus; rejectionReason?: string | null } | null {
-  if (status === "passed") {
-    return { status: "published", rejectionReason: null };
-  }
-
-  if (status === "rejected") {
-    return { status: "rejected", rejectionReason: "Rejected by qiniu text audit." };
-  }
-
-  return null;
 }
 
 async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
@@ -512,7 +498,7 @@ export const postsService = {
       return { kind: "invalid_category" as const };
     }
 
-      const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForPost(input.type);
+      const moderationMode = await siteSettingsService.getPostModerationMode(input.type);
       const status: PostStatus = "pending";
 
       const item = await postsRepo.createPost({
@@ -557,18 +543,22 @@ export const postsService = {
       }
     });
 
-      if (aiReviewEnabled) {
-        const auditRecord = await qiniuAuditService.reviewText({
-          domain: "post",
-          entityId: item.id,
-          text: `${input.title}\n${input.content}`
-        });
-        const decision = mapAuditStatusToPostDecision(auditRecord?.status);
-        if (decision) {
-          const decided = await this.updatePostStatus(item.id, decision.status, decision.rejectionReason);
-          if (decided) {
-            return { kind: "ok" as const, item: { ...decided, content: item.content, comments: [] } };
-          }
+      const moderation = await evaluateTextModeration({
+        mode: moderationMode,
+        domain: "post",
+        entityId: item.id,
+        text: `${input.title}\n${input.content}`
+      });
+      if (moderation.action === "approve") {
+        const decided = await this.updatePostStatus(item.id, "published", null);
+        if (decided) {
+          return { kind: "ok" as const, item: { ...decided, content: item.content, comments: [] } };
+        }
+      }
+      if (moderation.action === "reject") {
+        const decided = await this.updatePostStatus(item.id, "rejected", moderation.rejectionReason);
+        if (decided) {
+          return { kind: "ok" as const, item: { ...decided, content: item.content, comments: [] } };
         }
       }
 
@@ -912,8 +902,8 @@ export const postsService = {
     if (!post || post.status !== "published") {
       return { kind: "not_found" as const };
     }
-    const moderation = await siteSettingsService.getResolvedSettings();
-    const status: PostCommentStatus = moderation.commentModerationEnabled ? "pending" : "visible";
+    const moderationMode = await siteSettingsService.getCommentModerationMode();
+    const status: PostCommentStatus = "pending";
 
     let parentComment: Awaited<ReturnType<typeof postsRepo.getCommentById>> | null = null;
     let threadRootId: string | null = null;
@@ -961,7 +951,52 @@ export const postsService = {
       return { kind: "not_found" as const };
     }
 
-    if (status === "visible" && parentComment) {
+    let currentItem = serialized;
+    const moderation = await evaluateTextModeration({
+      mode: moderationMode,
+      domain: "comment",
+      entityId: item.id,
+      text: input.content
+    });
+    if (moderation.action === "approve") {
+      const next = await postsRepo.updateCommentStatus(item.id, "visible");
+      const nextSerialized = next
+        ? serializeSingleComment(
+            next,
+            buildReplyToUserMap(
+              replyUsers.map((replyUser) => ({
+                ...replyUser,
+                ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+              }))
+            ),
+            currentUser.id,
+            ipLocationLabelMap
+          )
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
+      }
+    } else if (moderation.action === "reject") {
+      const next = await postsRepo.updateCommentStatus(item.id, "hidden");
+      const nextSerialized = next
+        ? serializeSingleComment(
+            next,
+            buildReplyToUserMap(
+              replyUsers.map((replyUser) => ({
+                ...replyUser,
+                ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+              }))
+            ),
+            currentUser.id,
+            ipLocationLabelMap
+          )
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
+      }
+    }
+
+    if (currentItem.status === "visible" && parentComment) {
       await socialService.recordNotification({
         userId: parentComment.author.id,
         actorId: currentUser.id,
@@ -969,7 +1004,7 @@ export const postsService = {
         postId,
         commentId: item?.id ?? null
       });
-    } else if (status === "visible") {
+    } else if (currentItem.status === "visible") {
       await socialService.recordNotification({
         userId: post.author.id,
         actorId: currentUser.id,
@@ -981,7 +1016,7 @@ export const postsService = {
 
     return {
       kind: "ok" as const,
-      item: serialized
+      item: currentItem
     };
   },
   async updateComment(
@@ -1000,13 +1035,13 @@ export const postsService = {
       return { kind: "forbidden" as const };
     }
 
-    const shouldModerate = (await siteSettingsService.getResolvedSettings()).commentModerationEnabled;
+    const moderationMode = await siteSettingsService.getCommentModerationMode();
     const updated = await postsRepo.updateComment(commentId, input.content);
     if (!updated) {
       return { kind: "not_found" as const };
     }
 
-    if (shouldModerate && updated.status === "visible") {
+    if (updated.status === "visible") {
       await postsRepo.updateCommentStatus(commentId, "pending");
     }
 
@@ -1014,16 +1049,71 @@ export const postsService = {
     const replyUsers = refreshed?.replyToUserId
       ? await postsRepo.listUsersByIds([refreshed.replyToUserId])
       : [];
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      refreshed?.author.id ?? currentUser.id,
+      ...(refreshed?.replyToUserId ? [refreshed.replyToUserId] : [])
+    ]);
     const serialized = serializeSingleComment(
       refreshed,
-      buildReplyToUserMap(replyUsers),
-      currentUser.id
+      buildReplyToUserMap(
+        replyUsers.map((replyUser) => ({
+          ...replyUser,
+          ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+        }))
+      ),
+      currentUser.id,
+      ipLocationLabelMap
     );
     if (!serialized) {
       return { kind: "not_found" as const };
     }
 
-    return { kind: "ok" as const, item: serialized };
+    let currentItem = serialized;
+    const moderation = await evaluateTextModeration({
+      mode: moderationMode,
+      domain: "comment",
+      entityId: serialized.id,
+      text: input.content
+    });
+    if (moderation.action === "approve") {
+      const next = await postsRepo.updateCommentStatus(commentId, "visible");
+      const nextSerialized = next
+        ? serializeSingleComment(
+            next,
+            buildReplyToUserMap(
+              replyUsers.map((replyUser) => ({
+                ...replyUser,
+                ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+              }))
+            ),
+            currentUser.id,
+            ipLocationLabelMap
+          )
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
+      }
+    } else if (moderation.action === "reject") {
+      const next = await postsRepo.updateCommentStatus(commentId, "hidden");
+      const nextSerialized = next
+        ? serializeSingleComment(
+            next,
+            buildReplyToUserMap(
+              replyUsers.map((replyUser) => ({
+                ...replyUser,
+                ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+              }))
+            ),
+            currentUser.id,
+            ipLocationLabelMap
+          )
+        : null;
+      if (nextSerialized) {
+        currentItem = nextSerialized;
+      }
+    }
+
+    return { kind: "ok" as const, item: currentItem };
   },
   async deleteComment(postId: string, commentId: string, currentUser: CurrentUser) {
     const comment = await postsRepo.getCommentById(commentId);
@@ -1156,17 +1246,17 @@ export const postsService = {
       return { kind: "not_found" as const };
     }
 
-      const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForPost(input.type);
-      if (aiReviewEnabled) {
-        const auditRecord = await qiniuAuditService.reviewText({
-          domain: "post",
-          entityId: updated.id,
-          text: `${input.title}\n${input.content}`
-        });
-        const decision = mapAuditStatusToPostDecision(auditRecord?.status);
-        if (decision) {
-          await this.updatePostStatus(updated.id, decision.status, decision.rejectionReason);
-        }
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getPostModerationMode(input.type),
+        domain: "post",
+        entityId: updated.id,
+        text: `${input.title}\n${input.content}`
+      });
+      if (moderation.action === "approve") {
+        await this.updatePostStatus(updated.id, "published", null);
+      }
+      if (moderation.action === "reject") {
+        await this.updatePostStatus(updated.id, "rejected", moderation.rejectionReason);
       }
 
       const payload = await this.getPostDetail(id, currentUser, { commentSort: "hot" });

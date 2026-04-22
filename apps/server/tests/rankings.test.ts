@@ -131,6 +131,16 @@ async function updateSiteSettings(
     reviewModerationEnabled: boolean;
     submissionModerationEnabled: boolean;
     rankingModerationEnabled: boolean;
+    moderationModes?: {
+      article?: "manual" | "ai" | "automatic";
+      moment?: "manual" | "ai" | "automatic";
+      comment?: "manual" | "ai" | "automatic";
+      review?: "manual" | "ai" | "automatic";
+      brand?: "manual" | "ai" | "automatic";
+      model?: "manual" | "ai" | "automatic";
+      ranking?: "manual" | "ai" | "automatic";
+      ratingTarget?: "manual" | "ai" | "automatic";
+    };
   }
 ) {
   const response = await app.request(API_ROUTES.admin.siteSettings, {
@@ -607,7 +617,10 @@ describe("rankings flows", () => {
       commentModerationEnabled: false,
       reviewModerationEnabled: false,
       submissionModerationEnabled: true,
-      rankingModerationEnabled: true
+      rankingModerationEnabled: true,
+      moderationModes: {
+        ranking: "manual"
+      }
     });
 
     const createResponse = await app.request(API_ROUTES.rankings.create, {
@@ -681,6 +694,18 @@ describe("rankings flows", () => {
     const ownerCookie = await loginUser("13800138081");
     const contributorCookie = await loginUser("13800138082");
     const outsiderCookie = await loginUser("13800138083");
+    const adminCookie = await loginAdmin();
+    await updateSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: false,
+      reviewModerationEnabled: false,
+      submissionModerationEnabled: true,
+      rankingModerationEnabled: true,
+      moderationModes: {
+        ranking: "manual",
+        ratingTarget: "manual"
+      }
+    });
 
     const createResponse = await app.request(API_ROUTES.rankings.create, {
       method: "POST",
@@ -973,6 +998,17 @@ describe("rankings flows", () => {
     const contributorCookie = await loginUser("13800138022");
     const viewerCookie = await loginUser("13800138023");
     const adminCookie = await loginAdmin();
+    await updateSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: false,
+      reviewModerationEnabled: false,
+      submissionModerationEnabled: true,
+      rankingModerationEnabled: true,
+      moderationModes: {
+        ranking: "manual",
+        ratingTarget: "manual"
+      }
+    });
 
     const createRankingResponse = await app.request(API_ROUTES.rankings.create, {
       method: "POST",

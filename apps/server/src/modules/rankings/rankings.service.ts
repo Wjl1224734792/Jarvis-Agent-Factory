@@ -1,7 +1,7 @@
 import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schemas";
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
-import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { resolveUploadedFileUrl, resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
@@ -79,30 +79,6 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
     rows.map((row) => [row.score, Number(row.count ?? 0)])
   );
   return buildRatingBreakdown(scoreCountMap);
-}
-
-function mapAuditStatusToRankingStatus(
-  status: string | null | undefined
-): "pending" | "published" | "rejected" {
-  if (status === "passed") {
-    return "published";
-  }
-  if (status === "rejected") {
-    return "rejected";
-  }
-  return "pending";
-}
-
-function mapAuditStatusToCommentStatus(
-  status: string | null | undefined
-): "pending" | "visible" | "hidden" {
-  if (status === "passed") {
-    return "visible";
-  }
-  if (status === "rejected") {
-    return "hidden";
-  }
-  return "pending";
 }
 
 async function resolveRankingImage(fileId: string | null | undefined) {
@@ -594,8 +570,6 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
-    const settings = await siteSettingsService.getResolvedSettings();
-    const aiReviewEnabled = input.type === "community" ? settings.rankingModerationEnabled : false;
     const rankingStatus = input.type === "official" ? "published" : "pending";
     const ranking = await rankingsRepo.createRanking({
       authorId: currentUser.id,
@@ -631,20 +605,23 @@ export const rankingsService = {
       return { kind: "internal_error" as const };
     }
 
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
+    if (input.type === "community") {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getRankingModerationMode(),
         domain: "ranking",
         entityId: ranking.id,
         text: input.title
       });
-      const moderated = await this.applyRankingStatusInternal({
-        rankingId: ranking.id,
-        status: mapAuditStatusToRankingStatus(audit?.status),
-        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
-        viewer: currentUser
-      });
-      if (moderated.kind === "ok") {
-        payload = moderated.payload;
+      if (moderation.action === "approve" || moderation.action === "reject") {
+        const moderated = await this.applyRankingStatusInternal({
+          rankingId: ranking.id,
+          status: moderation.action === "approve" ? "published" : "rejected",
+          rejectionReason: moderation.rejectionReason,
+          viewer: currentUser
+        });
+        if (moderated.kind === "ok") {
+          payload = moderated.payload;
+        }
       }
     }
 
@@ -683,8 +660,6 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
-    const settings = await siteSettingsService.getResolvedSettings();
-    const aiReviewEnabled = rankingType === "community" ? settings.rankingModerationEnabled : false;
     const nextItemStatus: RatingTargetStatus = "pending";
     const nextRankingStatus =
       rankingType === "community" && ranking.status !== "hidden"
@@ -719,20 +694,23 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
+    if (rankingType === "community") {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getRankingModerationMode(),
         domain: "ranking",
         entityId: rankingId,
         text: input.title
       });
-      const moderated = await this.applyRankingStatusInternal({
-        rankingId,
-        status: mapAuditStatusToRankingStatus(audit?.status),
-        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
-        viewer: currentUser
-      });
-      if (moderated.kind === "ok") {
-        payload = moderated.payload;
+      if (moderation.action === "approve" || moderation.action === "reject") {
+        const moderated = await this.applyRankingStatusInternal({
+          rankingId,
+          status: moderation.action === "approve" ? "published" : "rejected",
+          rejectionReason: moderation.rejectionReason,
+          viewer: currentUser
+        });
+        if (moderated.kind === "ok") {
+          payload = moderated.payload;
+        }
       }
     }
 
@@ -773,8 +751,6 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((item) => [item.slug, item]));
-    const aiReviewEnabled =
-      rankingType === "community" && (await siteSettingsService.isAiReviewEnabledForRatingTarget());
     const status: RatingTargetStatus = "pending";
     await rankingsRepo.addRatingTarget({
       rankingId,
@@ -792,22 +768,25 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    if (aiReviewEnabled) {
+    if (rankingType === "community") {
       const createdItem = payload.item.items.find(
         (item) => item.authorId === currentUser.id && item.title === input.title
       );
       if (createdItem) {
-        const audit = await qiniuAuditService.reviewText({
+        const moderation = await evaluateTextModeration({
+          mode: await siteSettingsService.getRatingTargetModerationMode(),
           domain: "rating_target",
           entityId: createdItem.id,
           text: `${input.title}\n${input.summary ?? ""}`
         });
-        await this.applyRatingTargetStatusInternal({
-          id: createdItem.id,
-          status: mapAuditStatusToRankingStatus(audit?.status),
-          rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
-          viewer: currentUser
-        });
+        if (moderation.action === "approve" || moderation.action === "reject") {
+          await this.applyRatingTargetStatusInternal({
+            id: createdItem.id,
+            status: moderation.action === "approve" ? "published" : "rejected",
+            rejectionReason: moderation.rejectionReason,
+            viewer: currentUser
+          });
+        }
         const refreshed = await this.getRankingDetail(rankingId, currentUser);
         if (refreshed) {
           payload = refreshed;
@@ -853,8 +832,6 @@ export const rankingsService = {
 
     const models = await rankingsRepo.listPublishedModels();
     const modelBySlug = new Map(models.map((entry) => [entry.slug, entry]));
-    const aiReviewEnabled =
-      rankingType === "community" && (await siteSettingsService.isAiReviewEnabledForRatingTarget());
     const nextStatus: RatingTargetStatus = item.status === "hidden" ? "hidden" : "pending";
     await rankingsRepo.updateRatingTarget(id, {
       title: input.title,
@@ -871,20 +848,23 @@ export const rankingsService = {
       return { kind: "not_found" as const };
     }
 
-    if (aiReviewEnabled && nextStatus !== "hidden") {
-      const audit = await qiniuAuditService.reviewText({
+    if (rankingType === "community" && nextStatus !== "hidden") {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getRatingTargetModerationMode(),
         domain: "rating_target",
         entityId: id,
         text: `${input.title}\n${input.summary ?? ""}`
       });
-      const moderated = await this.applyRatingTargetStatusInternal({
-        id,
-        status: mapAuditStatusToRankingStatus(audit?.status),
-        rejectionReason: audit?.status === "rejected" ? "Rejected by qiniu text audit." : null,
-        viewer: currentUser
-      });
-      if (moderated.kind === "ok") {
-        payload = moderated.payload;
+      if (moderation.action === "approve" || moderation.action === "reject") {
+        const moderated = await this.applyRatingTargetStatusInternal({
+          id,
+          status: moderation.action === "approve" ? "published" : "rejected",
+          rejectionReason: moderation.rejectionReason,
+          viewer: currentUser
+        });
+        if (moderated.kind === "ok") {
+          payload = moderated.payload;
+        }
       }
     }
 
@@ -1328,7 +1308,6 @@ export const rankingsService = {
       return null;
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     const item = await rankingsRepo.createRankingComment({
       rankingId,
       authorId: currentUserId,
@@ -1341,18 +1320,19 @@ export const rankingsService = {
     }
 
     let currentItem = item;
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "ranking_comment",
-        entityId: item.id,
-        text: content
-      });
-      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
-      if (nextStatus !== "pending") {
-        const moderated = await rankingsRepo.updateRankingCommentStatus(item.id, nextStatus);
-        if (moderated) {
-          currentItem = moderated;
-        }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: item.id,
+      text: content
+    });
+    if (moderation.action !== "manual_review") {
+      const moderated = await rankingsRepo.updateRankingCommentStatus(
+        item.id,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
+      if (moderated) {
+        currentItem = moderated;
       }
     }
 
@@ -1601,7 +1581,6 @@ export const rankingsService = {
       return null;
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     await rankingsRepo.upsertRatingTargetReview({
       ratingTargetId: id,
       authorId: currentUserId,
@@ -1616,13 +1595,19 @@ export const rankingsService = {
     );
 
     let finalStatus: "pending" | "visible" | "hidden" = "pending";
-    if (aiReviewEnabled && myRootComment) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "rating_target_comment",
+    if (myRootComment) {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getCommentModerationMode(),
+        domain: "comment",
         entityId: myRootComment.id,
         text: input.content
       });
-      finalStatus = mapAuditStatusToCommentStatus(audit?.status);
+      finalStatus =
+        moderation.action === "approve"
+          ? "visible"
+          : moderation.action === "reject"
+            ? "hidden"
+            : "pending";
       if (finalStatus !== "pending") {
         await rankingsRepo.updateRatingTargetCommentStatus(myRootComment.id, finalStatus);
       }
@@ -1738,7 +1723,6 @@ export const rankingsService = {
       replyToUserId = parentComment.author.id;
     }
 
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     const status = "pending";
     const rating = input.parentCommentId ? null : (input.rating ?? null);
     if (rating !== null) {
@@ -1765,18 +1749,19 @@ export const rankingsService = {
     }
 
     let currentCommentStatus = created.status;
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "rating_target_comment",
-        entityId: created.id,
-        text: input.content
-      });
-      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
-      if (nextStatus !== "pending") {
-        const moderated = await rankingsRepo.updateRatingTargetCommentStatus(created.id, nextStatus);
-        if (moderated) {
-          currentCommentStatus = moderated.status;
-        }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: created.id,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const moderated = await rankingsRepo.updateRatingTargetCommentStatus(
+        created.id,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
+      if (moderated) {
+        currentCommentStatus = moderated.status;
       }
     }
 
@@ -1831,20 +1816,20 @@ export const rankingsService = {
     }
 
     await rankingsRepo.updateRatingTargetComment(commentId, input.content);
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForComment();
     if (comment.status === "visible") {
       await rankingsRepo.updateRatingTargetCommentStatus(commentId, "pending");
     }
-    if (aiReviewEnabled) {
-      const audit = await qiniuAuditService.reviewText({
-        domain: "rating_target_comment",
-        entityId: commentId,
-        text: input.content
-      });
-      const nextStatus = mapAuditStatusToCommentStatus(audit?.status);
-      if (nextStatus !== "pending") {
-        await rankingsRepo.updateRatingTargetCommentStatus(commentId, nextStatus);
-      }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: commentId,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      await rankingsRepo.updateRatingTargetCommentStatus(
+        commentId,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
     }
 
     const payload = await this.getRatingTargetDetail(itemId, currentUser);

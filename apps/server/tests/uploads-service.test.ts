@@ -1,4 +1,3 @@
-import { API_ROUTES } from "@feijia/shared";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const storageProviderMock = {
@@ -20,7 +19,7 @@ const storageConfigMock = {
   publicBaseUrlIsExplicit: true,
   autoCreateBucket: false,
   kodoRegionId: "z2"
-} as const;
+};
 
 const uploadsRepoMock = {
   getOwnedFileById: vi.fn(),
@@ -96,11 +95,11 @@ function mockFileRecord(overrides: {
 
 afterEach(() => {
   vi.clearAllMocks();
-  delete process.env.PUBLIC_SERVER_BASE_URL;
+  storageConfigMock.provider = "kodo";
 });
 
 describe("uploads service", () => {
-  it("triggers image AI audit for kodo when configured for post images", async () => {
+  it("does not trigger image AI audit for completed uploads", async () => {
     const file = mockFileRecord({
       id: "file_image_1",
       bizType: "post-image",
@@ -127,12 +126,9 @@ describe("uploads service", () => {
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
-    expect(qiniuAuditMock.reviewImage).toHaveBeenCalledWith({
-      domain: "file",
-      entityId: file.id,
-      imageUrl: `https://cdn.example-kodo.com/${file.objectKey}`
-    });
+    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
+    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 
   it("does not trigger AI audit for report images by default", async () => {
@@ -164,11 +160,10 @@ describe("uploads service", () => {
     expect(result.kind).toBe("ok");
     expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
+    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 
-  it("triggers video review submission for kodo videos when base callback url is configured", async () => {
-    process.env.PUBLIC_SERVER_BASE_URL = "http://server.local";
-
+  it("does not trigger video review submission for completed uploads", async () => {
     const file = mockFileRecord({
       id: "file_video_1",
       bizType: "post-video",
@@ -195,16 +190,14 @@ describe("uploads service", () => {
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
-    expect(qiniuAuditMock.submitVideoReview).toHaveBeenCalledWith({
-      domain: "file",
-      entityId: file.id,
-      videoUrl: `https://cdn.example-kodo.com/${file.objectKey}`,
-      callbackUrl: `http://server.local${API_ROUTES.audits.qiniuCallback}`
-    });
+    expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
     expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
+    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 
-  it("does not submit video review when callback base url is not configured", async () => {
+  it("does not trigger media audit when storage provider is not kodo", async () => {
+    storageConfigMock.provider = "minio";
+
     const file = mockFileRecord({
       id: "file_video_2",
       bizType: "post-video",
@@ -232,5 +225,7 @@ describe("uploads service", () => {
 
     expect(result.kind).toBe("ok");
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
+    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
+    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 });

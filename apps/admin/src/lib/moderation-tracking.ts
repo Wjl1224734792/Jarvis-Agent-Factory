@@ -1,3 +1,5 @@
+import type { ModerationMode } from "@feijia/schemas";
+
 export type ModerationTraceTone = "default" | "success" | "warning" | "muted";
 
 export type ModerationTraceItem = {
@@ -46,14 +48,25 @@ export function buildModerationTraceItems(
 }
 
 export function resolveModerationModeCopy(input: {
-  enabled: boolean;
+  mode?: ModerationMode;
+  enabled?: boolean;
   aiCopy?: string;
   manualCopy?: string;
   autoCopy?: string;
 }) {
-  if (input.enabled) {
+  const mode = input.mode ?? (input.enabled ? "ai" : "manual");
+
+  if (mode === "automatic") {
     return (
-      input.aiCopy ?? "新提交内容会先进入 AI 审核；仍需人工处理的对象会继续留在当前审核队列。"
+      input.autoCopy ??
+      "新提交内容会由系统直接给出最终审核结果：通过则直接生效，不通过则直接拦截，不再进入人工审核队列。"
+    );
+  }
+
+  if (mode === "ai") {
+    return (
+      input.aiCopy ??
+      "新提交内容会先进入 AI 审核；仍需人工处理的对象会继续留在当前审核队列。"
     );
   }
 
@@ -62,4 +75,15 @@ export function resolveModerationModeCopy(input: {
     input.autoCopy ??
     "新提交内容会直接进入人工审核队列，不再按“自动通过”语义处理。"
   );
+}
+
+export function resolveModerationModeLabel(mode: ModerationMode) {
+  switch (mode) {
+    case "manual":
+      return "人工审核";
+    case "ai":
+      return "AI审核";
+    case "automatic":
+      return "自动审核";
+  }
 }

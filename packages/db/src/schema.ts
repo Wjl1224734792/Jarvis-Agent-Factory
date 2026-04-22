@@ -119,6 +119,7 @@ export const siteSettingsTable = pgTable("site_settings", {
   ratingTargetModerationEnabled: boolean("rating_target_moderation_enabled")
     .default(true)
     .notNull(),
+  moderationModes: text("moderation_modes").default("{}").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -167,7 +168,7 @@ export const auditRecordsTable = pgTable("audit_records", {
   ),
   modeCheck: check(
     "audit_records_mode_check",
-    sql`${table.mode} IN ('ai', 'manual')`
+    sql`${table.mode} IN ('ai', 'manual', 'automatic')`
   ),
   statusCheck: check(
     "audit_records_status_check",

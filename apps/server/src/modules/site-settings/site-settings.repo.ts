@@ -24,6 +24,7 @@ export const siteSettingsRepo = {
     brandModerationEnabled: boolean;
     modelModerationEnabled: boolean;
     ratingTargetModerationEnabled: boolean;
+    moderationModes: string;
   }) {
     const existing = await this.get();
 
@@ -41,6 +42,7 @@ export const siteSettingsRepo = {
           brandModerationEnabled: input.brandModerationEnabled,
           modelModerationEnabled: input.modelModerationEnabled,
           ratingTargetModerationEnabled: input.ratingTargetModerationEnabled,
+          moderationModes: input.moderationModes,
           updatedAt: new Date()
         })
         .where(eq(siteSettingsTable.id, SITE_SETTINGS_ROW_ID));
@@ -59,7 +61,8 @@ export const siteSettingsRepo = {
       momentModerationEnabled: input.momentModerationEnabled,
       brandModerationEnabled: input.brandModerationEnabled,
       modelModerationEnabled: input.modelModerationEnabled,
-      ratingTargetModerationEnabled: input.ratingTargetModerationEnabled
+      ratingTargetModerationEnabled: input.ratingTargetModerationEnabled,
+      moderationModes: input.moderationModes
     });
 
     return this.get();

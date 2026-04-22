@@ -1,4 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
+import type { ModerationMode } from "@feijia/schemas";
 import {
   BarChartOutlined,
   ClockCircleOutlined,
@@ -29,7 +30,11 @@ import {
   buildModerationTraceItems,
   MODERATION_TRACE_PLACEHOLDER
 } from "../../lib/moderation-tracking";
-import { buildSiteSettingsUpdate } from "../../lib/site-settings";
+import {
+  buildSiteSettingsUpdate,
+  resolveSiteModerationMode,
+  type SiteModerationModeKey
+} from "../../lib/site-settings";
 import {
   adminMessagesQueryKey,
   adminModerationTodosQueryKey,
@@ -368,7 +373,9 @@ export function AdminOverviewPage() {
     ];
   }, [analytics, shouldLoadCharts]);
 
-  async function updateSiteSettings(partial: Record<string, boolean>) {
+  async function updateSiteSettings(
+    partial: Parameters<typeof buildSiteSettingsUpdate>[1]
+  ) {
     if (!siteSettings) {
       return;
     }
@@ -390,6 +397,14 @@ export function AdminOverviewPage() {
     }
   }
 
+  function updateModerationMode(key: SiteModerationModeKey, mode: ModerationMode) {
+    return updateSiteSettings({
+      moderationModes: {
+        [key]: mode
+      } as Partial<Record<SiteModerationModeKey, ModerationMode>>
+    });
+  }
+
   function handleOverviewCollapseChange(activeKey: string | string[]) {
     const activeKeys = Array.isArray(activeKey) ? activeKey : [activeKey];
     if (activeKeys.includes("sessions")) {
@@ -403,7 +418,8 @@ export function AdminOverviewPage() {
       title: "文章审核",
       description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
       aiCopy: "新文章会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
-      enabled: siteSettings?.articleModerationEnabled ?? true,
+      autoCopy: "新文章会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "article"),
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       queueLabel: "合并待处理",
       traceItems: buildModerationTraceItems([
@@ -416,15 +432,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
       manualCopy: "新文章会直接进入人工审核队列，不再按“自动通过”理解。",
-      onEnable: async () => updateSiteSettings({ articleModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ articleModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("article", mode)
     },
     {
       key: "moment",
       title: "飞友圈动态",
       description: "总览页当前按“文章/动态”合并统计，精确队列请进入对应审核页。",
       aiCopy: "新动态会先进入 AI 审核；仍需人工处理的对象继续在审核页追踪。",
-      enabled: siteSettings?.momentModerationEnabled ?? true,
+      autoCopy: "新动态会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "moment"),
       pendingCount: analytics?.moderation.posts.pending ?? 0,
       queueLabel: "合并待处理",
       traceItems: buildModerationTraceItems([
@@ -437,15 +453,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: `${MODERATION_TRACE_PLACEHOLDER} 总览接口当前仅返回文章/动态合并统计。`,
       manualCopy: "新动态会直接进入人工审核队列，不再按“自动通过”理解。",
-      onEnable: async () => updateSiteSettings({ momentModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ momentModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("moment", mode)
     },
     {
       key: "comment",
       title: "评论审核",
       description: "总览页先展示统一评论队列，细分评论域请进入评论审核页。",
       aiCopy: "新评论会先进入 AI 审核；仍需人工处理的对象继续留在统一审核队列。",
-      enabled: siteSettings?.commentModerationEnabled ?? true,
+      autoCopy: "新评论会由系统直接给出最终审核结果：通过则直接显示，不通过则直接拦截，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "comment"),
       pendingCount: analytics?.moderation.comments.pending ?? 0,
       traceItems: buildModerationTraceItems([
         {
@@ -462,15 +478,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
       manualCopy: "新评论会直接进入人工审核队列，不再按“自动显示”处理。",
-      onEnable: async () => updateSiteSettings({ commentModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ commentModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("comment", mode)
     },
     {
       key: "brand",
       title: "品牌申请",
       description: "这里先展示品牌申请的最终状态和待处理数量。",
       aiCopy: "新品牌申请会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      enabled: siteSettings?.brandModerationEnabled ?? true,
+      autoCopy: "新品牌申请会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "brand"),
       pendingCount: analytics?.moderation.brandApplications.pending ?? 0,
       traceItems: buildModerationTraceItems([
         {
@@ -487,15 +503,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
       manualCopy: "新品牌申请会直接进入人工审核队列，不再按“自动通过”理解。",
-      onEnable: async () => updateSiteSettings({ brandModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ brandModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("brand", mode)
     },
     {
       key: "model",
       title: "机型投稿",
       description: "这里先展示机型投稿的最终状态和待处理数量。",
       aiCopy: "新投稿会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      enabled: siteSettings?.modelModerationEnabled ?? true,
+      autoCopy: "新投稿会由系统直接给出最终审核结果：通过则直接入库，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "model"),
       pendingCount: analytics?.moderation.submissions.pending ?? 0,
       traceItems: buildModerationTraceItems([
         {
@@ -512,15 +528,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
       manualCopy: "新投稿会直接进入人工审核队列，不再按“自动通过”理解。",
-      onEnable: async () => updateSiteSettings({ modelModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ modelModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("model", mode)
     },
     {
       key: "ranking",
       title: "榜单审核",
       description: "这里先展示榜单本体的最终状态和待处理数量。",
       aiCopy: "新社区榜单会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      enabled: siteSettings?.rankingModerationEnabled ?? true,
+      autoCopy: "新社区榜单会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "ranking"),
       pendingCount: analytics?.moderation.rankings.pending ?? 0,
       traceItems: buildModerationTraceItems([
         {
@@ -537,15 +553,15 @@ export function AdminOverviewPage() {
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
       manualCopy: "新社区榜单会直接进入人工审核队列，不再按“自动通过”理解。",
-      onEnable: async () => updateSiteSettings({ rankingModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ rankingModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("ranking", mode)
     },
     {
       key: "ratingTarget",
       title: "评分对象",
       description: "这里先展示评分对象的最终状态和待处理数量。",
       aiCopy: "新评分对象会先进入 AI 审核；仍需人工处理的对象继续留在审核页。",
-      enabled: siteSettings?.ratingTargetModerationEnabled ?? true,
+      autoCopy: "新评分对象会由系统直接给出最终审核结果：通过则直接发布，不通过则直接驳回，不再进入人工复审。",
+      mode: resolveSiteModerationMode(siteSettings, "ratingTarget"),
       pendingCount: analytics?.moderation.ratingTargets.pending ?? 0,
       traceItems: buildModerationTraceItems([
         {
@@ -562,8 +578,7 @@ export function AdminOverviewPage() {
       ]),
       traceHint: MODERATION_TRACE_PLACEHOLDER,
       manualCopy: "新评分对象会直接进入人工审核队列，不再按“自动发布”理解。",
-      onEnable: async () => updateSiteSettings({ ratingTargetModerationEnabled: true }),
-      onDisable: async () => updateSiteSettings({ ratingTargetModerationEnabled: false })
+      onModeChange: async (mode: ModerationMode) => updateModerationMode("ratingTarget", mode)
     }
   ];
 
@@ -880,16 +895,14 @@ export function AdminOverviewPage() {
                     {moderationCards.map((item) => (
                       <AdminModerationCard
                         aiCopy={item.aiCopy}
+                        autoCopy={item.autoCopy}
                         description={item.description}
-                        enabled={item.enabled}
                         key={item.key}
                         loading={isSavingSettings}
                         manualCopy={item.manualCopy}
-                        onDisable={() => {
-                          void item.onDisable();
-                        }}
-                        onEnable={() => {
-                          void item.onEnable();
+                        mode={item.mode}
+                        onModeChange={(mode) => {
+                          void item.onModeChange(mode);
                         }}
                         pendingCount={item.pendingCount}
                         queueLabel={item.queueLabel}

@@ -1,6 +1,10 @@
 import { createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
-import type { RankingDetail, RankingListItem, SiteSettings } from "@feijia/schemas";
+import type {
+  RankingDetail,
+  RankingListItem,
+  UpdateSiteSettingsInput
+} from "@feijia/schemas";
 import { dispatchAdminAuthInvalidEvent } from "./auth-events";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
@@ -477,7 +481,7 @@ const rawApiClient = {
   }) {
     return sharedClient.changeAdminPassword(input);
   },
-  updateSiteSettings(input: SiteSettings) {
+  updateSiteSettings(input: UpdateSiteSettingsInput) {
     return sharedClient.updateAdminSiteSettings(input);
   },
   createOfficialArticle(input: OfficialArticleInput) {

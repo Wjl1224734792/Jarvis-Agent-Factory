@@ -15,6 +15,7 @@ function buildDetailPayload() {
     item: {
       id: "rating_target_1",
       rankingId: "ranking_1",
+      author: null,
       rank: 1,
       title: "DJI Mini 4 Pro",
       summary: "A compact model.",
@@ -42,6 +43,7 @@ function buildDetailPayload() {
             id: "user_1",
             displayName: "Pilot One",
             avatarUrl: null,
+            ipLocationLabel: null,
             role: "user"
           }
         }
@@ -78,6 +80,7 @@ describe("rankings contract", () => {
             id: "admin_1",
             displayName: "Admin",
             avatarUrl: null,
+            ipLocationLabel: null,
             role: "admin"
           },
           viewer: {
@@ -88,6 +91,7 @@ describe("rankings contract", () => {
             {
               id: "rating_target_1",
               rankingId: "ranking_official_1",
+              author: null,
               rank: 1,
               title: "DJI Mini 4 Pro",
               summary: null,
@@ -206,6 +210,7 @@ describe("rankings contract", () => {
             id: "user_1",
             displayName: "Pilot",
             avatarUrl: null,
+            ipLocationLabel: null,
             role: "user"
           },
           viewer: {
@@ -223,7 +228,22 @@ describe("rankings contract", () => {
         commentModerationEnabled: false,
         reviewModerationEnabled: false,
         submissionModerationEnabled: true,
-        rankingModerationEnabled: true
+        rankingModerationEnabled: true,
+        articleModerationEnabled: true,
+        momentModerationEnabled: true,
+        brandModerationEnabled: true,
+        modelModerationEnabled: true,
+        ratingTargetModerationEnabled: true,
+        moderationModes: {
+          article: "ai",
+          moment: "ai",
+          comment: "manual",
+          review: "manual",
+          brand: "ai",
+          model: "ai",
+          ranking: "ai",
+          ratingTarget: "ai"
+        }
       }
     });
 
@@ -237,6 +257,7 @@ describe("rankings contract", () => {
         {
           id: "target_1",
           rankingId: "ranking_1",
+          author: null,
           rank: 1,
           title: "DJI Mini 4 Pro",
           summary: "Compact target",

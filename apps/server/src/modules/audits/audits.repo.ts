@@ -7,7 +7,7 @@ export const auditsRepo = {
     entityId: string;
     contentType: "text" | "image" | "video" | "mixed";
     provider?: "qiniu";
-    mode: "ai" | "manual";
+    mode: "ai" | "manual" | "automatic";
     status:
       | "queued"
       | "running"

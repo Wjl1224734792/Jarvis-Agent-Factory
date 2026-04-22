@@ -343,6 +343,16 @@ async function updateAllSiteSettings(
     reviewModerationEnabled: boolean;
     submissionModerationEnabled: boolean;
     rankingModerationEnabled?: boolean;
+    moderationModes?: {
+      article?: "manual" | "ai" | "automatic";
+      moment?: "manual" | "ai" | "automatic";
+      comment?: "manual" | "ai" | "automatic";
+      review?: "manual" | "ai" | "automatic";
+      brand?: "manual" | "ai" | "automatic";
+      model?: "manual" | "ai" | "automatic";
+      ranking?: "manual" | "ai" | "automatic";
+      ratingTarget?: "manual" | "ai" | "automatic";
+    };
   }
 ) {
   const response = await app.request(API_ROUTES.admin.siteSettings, {
@@ -1283,6 +1293,15 @@ describe.sequential("posts and social flows", () => {
     expect(articleCategoryId).toBeTruthy();
 
     const adminCookie = await loginAdmin();
+    await updateAllSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true,
+      moderationModes: {
+        article: "manual"
+      }
+    });
     const authorCookie = await loginWebUser("13800138171");
     const created = await createPost(authorCookie, {
       type: "article",
@@ -1831,6 +1850,16 @@ describe.sequential("posts and social flows", () => {
   });
 
   it("requires login for publishing and keeps pending posts out of the home article feed", async () => {
+    const adminCookie = await loginAdmin();
+    await updateAllSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true,
+      moderationModes: {
+        article: "manual"
+      }
+    });
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
       items: Array<{ id: string }>;
@@ -1923,6 +1952,15 @@ describe.sequential("posts and social flows", () => {
     expect(articleCategoryId).toBeTruthy();
 
     const adminCookie = await loginAdmin();
+    await updateAllSiteSettings(adminCookie, {
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true,
+      moderationModes: {
+        article: "manual"
+      }
+    });
     const createResponse = await app.request(API_ROUTES.posts.create, {
       method: "POST",
       headers: {
@@ -2179,7 +2217,10 @@ describe.sequential("posts and social flows", () => {
       postModerationEnabled: true,
       commentModerationEnabled: true,
       reviewModerationEnabled: true,
-      submissionModerationEnabled: true
+      submissionModerationEnabled: true,
+      moderationModes: {
+        comment: "manual"
+      }
     });
 
     const commenterCookie = await loginWebUser("13800138091");

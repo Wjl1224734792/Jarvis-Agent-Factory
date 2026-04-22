@@ -19,19 +19,35 @@ describe("site settings and brand application contracts", () => {
         momentModerationEnabled: false,
         brandModerationEnabled: true,
         modelModerationEnabled: true,
-        ratingTargetModerationEnabled: false
+        ratingTargetModerationEnabled: false,
+        moderationModes: {
+          article: "ai",
+          moment: "manual",
+          comment: "manual",
+          review: "manual",
+          brand: "ai",
+          model: "ai",
+          ranking: "ai",
+          ratingTarget: "manual"
+        }
       }
     });
 
     const update = updateSiteSettingsInputSchema.parse({
       articleModerationEnabled: false,
       momentModerationEnabled: true,
-      brandModerationEnabled: false
+      brandModerationEnabled: false,
+      moderationModes: {
+        article: "manual",
+        brand: "automatic"
+      }
     });
 
     expect(payload.item.articleModerationEnabled).toBe(true);
     expect(payload.item.ratingTargetModerationEnabled).toBe(false);
+    expect(payload.item.moderationModes.ratingTarget).toBe("manual");
     expect(update.brandModerationEnabled).toBe(false);
+    expect(update.moderationModes?.brand).toBe("automatic");
   });
 
   it("parses brand application create and response payloads", () => {
@@ -55,6 +71,7 @@ describe("site settings and brand application contracts", () => {
           id: "user_1",
           displayName: "Pilot",
           avatarUrl: null,
+          ipLocationLabel: null,
           role: "user"
         },
         createdAt: "2026-03-29T00:00:00.000Z",

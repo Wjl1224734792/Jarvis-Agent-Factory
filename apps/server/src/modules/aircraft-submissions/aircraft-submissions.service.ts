@@ -1,6 +1,6 @@
 import { aircraftModelsService } from "../aircraft-models/aircraft-models.service";
 import { brandsService } from "../brands/brands.service";
-import { qiniuAuditService } from "../audits/qiniu-audit.service";
+import { evaluateTextModeration } from "../audits/text-moderation.service";
 import { socialService } from "../social/social.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
@@ -223,7 +223,6 @@ export const aircraftSubmissionsService = {
     maxSpeedKph: number | null;
     takeoffWeightGrams: number | null;
   }) {
-    const aiReviewEnabled = await siteSettingsService.isAiReviewEnabledForModelSubmission();
     if (input.videoFileId) {
       const videoAsset = await aircraftSubmissionsRepo.getOwnedVideoAsset(
         input.authorId,
@@ -258,8 +257,9 @@ export const aircraftSubmissionsService = {
       approvedModelId: null
     });
 
-    if (aiReviewEnabled && item) {
-      const audit = await qiniuAuditService.reviewText({
+    if (item) {
+      const moderation = await evaluateTextModeration({
+        mode: await siteSettingsService.getModelSubmissionModerationMode(),
         domain: "aircraft_submission",
         entityId: item.id,
         text: [
@@ -269,7 +269,7 @@ export const aircraftSubmissionsService = {
           input.description ?? ""
         ].filter(Boolean).join("\n")
       });
-      if (audit?.status === "passed") {
+      if (moderation.action === "approve") {
         const approved = await this.updateSubmissionStatus(item.id, "approved");
         if (!approved) {
           return { kind: "ok" as const, item: await serializeSubmissionOrThrow(item, null) };
@@ -277,11 +277,11 @@ export const aircraftSubmissionsService = {
 
         return { kind: "ok" as const, item: approved.item };
       }
-      if (audit?.status === "rejected") {
+      if (moderation.action === "reject") {
         const rejected = await this.updateSubmissionStatus(
           item.id,
           "rejected",
-          "Rejected by qiniu text audit."
+          moderation.rejectionReason
         );
         if (rejected) {
           return { kind: "ok" as const, item: rejected.item };
@@ -359,15 +359,11 @@ export const aircraftSubmissionsService = {
       return { kind: "forbidden" as const };
     }
 
-    const shouldModerate = await siteSettingsService.shouldModerateModelSubmission();
-    const nextStatus =
+    const moderationMode =
       currentUser.role === "admin"
-        ? current.status
-        : current.status === "hidden"
-          ? "hidden"
-          : shouldModerate
-            ? "submitted"
-            : "approved";
+        ? null
+        : await siteSettingsService.getModelSubmissionModerationMode();
+    const nextStatus = currentUser.role === "admin" ? current.status : "submitted";
 
     const updated = await aircraftSubmissionsRepo.updateContent(id, {
       status: nextStatus,
@@ -412,6 +408,32 @@ export const aircraftSubmissionsService = {
         videoFileId: input.videoFileId,
         isPublished: nextStatus === "approved"
       });
+    }
+
+    if (updated && currentUser.role !== "admin" && moderationMode) {
+      const moderation = await evaluateTextModeration({
+        mode: moderationMode,
+        domain: "aircraft_submission",
+        entityId: updated.id,
+        text: [
+          input.proposedBrandName ?? "",
+          input.modelName,
+          input.summary ?? "",
+          input.description ?? ""
+        ].filter(Boolean).join("\n")
+      });
+      if (moderation.action === "approve") {
+        const approved = await this.updateSubmissionStatus(updated.id, "approved");
+        if (approved) {
+          return { kind: "ok" as const, item: approved.item };
+        }
+      }
+      if (moderation.action === "reject") {
+        const rejected = await this.updateSubmissionStatus(updated.id, "rejected", moderation.rejectionReason);
+        if (rejected) {
+          return { kind: "ok" as const, item: rejected.item };
+        }
+      }
     }
 
     const approvedModel = updated?.approvedModelId

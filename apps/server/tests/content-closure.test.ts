@@ -89,6 +89,32 @@ async function loginAdmin() {
   return extractCookies(response);
 }
 
+async function updateModerationModes(
+  adminCookie: string,
+  modes: {
+    brand?: "manual" | "ai" | "automatic";
+    model?: "manual" | "ai" | "automatic";
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      postModerationEnabled: true,
+      commentModerationEnabled: true,
+      reviewModerationEnabled: true,
+      submissionModerationEnabled: true,
+      rankingModerationEnabled: true,
+      moderationModes: modes
+    })
+  });
+
+  expect(response.status).toBe(200);
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -108,6 +134,7 @@ afterAll(async () => {
 describe.sequential("content closure flows", () => {
   it("handles brand applications separately from aircraft submission approval flows", async () => {
     const adminCookie = await loginAdmin();
+    await updateModerationModes(adminCookie, { brand: "manual", model: "manual" });
     const brandApplicantCookie = await loginUser("13800138023");
 
     const brandApplicationResponse = await app.request(API_ROUTES.brandApplications.create, {
@@ -343,6 +370,7 @@ describe.sequential("content closure flows", () => {
 
   it("requires rejection reasons and allows brand application resubmission after editing", async () => {
     const adminCookie = await loginAdmin();
+    await updateModerationModes(adminCookie, { brand: "manual" });
     const applicantCookie = await loginUser("13800138025");
 
     const createResponse = await app.request(API_ROUTES.brandApplications.create, {
@@ -414,6 +442,7 @@ describe.sequential("content closure flows", () => {
 
   it("rejects hidden as an invalid brand application status", async () => {
     const adminCookie = await loginAdmin();
+    await updateModerationModes(adminCookie, { brand: "manual" });
     const applicantCookie = await loginUser("13800138024");
 
     const createResponse = await app.request(API_ROUTES.brandApplications.create, {
@@ -465,6 +494,7 @@ describe.sequential("content closure flows", () => {
 
   it("hides approved user models after rejection and keeps the same model on resubmission approval", async () => {
     const adminCookie = await loginAdmin();
+    await updateModerationModes(adminCookie, { model: "manual" });
     const authorCookie = await loginUser("13800138026");
 
     const modelsBeforeResponse = await app.request(API_ROUTES.models.list, { method: "GET" });

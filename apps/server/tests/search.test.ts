@@ -163,6 +163,33 @@ async function publishPost(adminCookie: string, postId: string) {
   expect(response.status).toBe(200);
 }
 
+async function updateModerationModes(
+  adminCookie: string,
+  modes: {
+    article?: "manual" | "ai" | "automatic";
+    moment?: "manual" | "ai" | "automatic";
+    comment?: "manual" | "ai" | "automatic";
+    review?: "manual" | "ai" | "automatic";
+    brand?: "manual" | "ai" | "automatic";
+    model?: "manual" | "ai" | "automatic";
+    ranking?: "manual" | "ai" | "automatic";
+    ratingTarget?: "manual" | "ai" | "automatic";
+  }
+) {
+  const response = await app.request(API_ROUTES.admin.siteSettings, {
+    method: "PUT",
+    headers: {
+      cookie: adminCookie,
+      "content-type": "application/json"
+    },
+    body: JSON.stringify({
+      moderationModes: modes
+    })
+  });
+
+  expect(response.status).toBe(200);
+}
+
 beforeAll(async () => {
   await runMigrations();
 });
@@ -181,6 +208,9 @@ describe("search routes", () => {
     const adminCookie = await loginAdmin();
     const authorCookie = await loginWebUser("13800138191");
     const categoryId = await readFirstContentCategoryId();
+    await updateModerationModes(adminCookie, {
+      article: "manual"
+    });
 
     const exactPost = await createArticle(authorCookie, {
       title: "OrionSearch",
@@ -331,6 +361,9 @@ describe("search routes", () => {
     const adminCookie = await loginAdmin();
     const authorCookie = await loginWebUser("13800138195");
     const categoryId = await readFirstContentCategoryId();
+    await updateModerationModes(adminCookie, {
+      article: "manual"
+    });
 
     await createArticle(authorCookie, {
       title: "AdminSearchPendingArticle",

@@ -606,14 +606,21 @@ body {
   text-transform: uppercase;
 }
 
-.admin-pill.is-on {
+.admin-pill.is-on,
+.admin-pill.is-ai {
   background: var(--admin-warning-soft);
   color: var(--admin-warning-text);
 }
 
-.admin-pill.is-off {
+.admin-pill.is-off,
+.admin-pill.is-manual {
   background: var(--admin-success-soft);
   color: var(--admin-success-text);
+}
+
+.admin-pill.is-automatic {
+  background: var(--admin-primary-soft);
+  color: var(--admin-primary-strong);
 }
 
 .admin-moderation-card__actions {
