@@ -546,6 +546,81 @@ describe.sequential("posts and social flows", () => {
     expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
   });
 
+  it("applies viewer affinity penalties on top of repo-precomputed recommendation base scores", () => {
+    const ranked = rankFeedItemsByRecommendation(
+      [
+        {
+          id: "already_liked",
+          title: "Already liked content",
+          contentPreview: "A familiar post the viewer already interacted with.",
+          viewCount: 220,
+          reportCount: 0,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: true,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:55:00.000Z",
+          updatedAt: "2026-04-08T07:55:00.000Z",
+          publishedAt: "2026-04-08T07:55:00.000Z",
+          contentCategory: null
+        },
+        {
+          id: "fresh_unseen",
+          title: "Fresh unseen content",
+          contentPreview: "A similar but still unseen post should rank ahead for discovery.",
+          viewCount: 180,
+          reportCount: 0,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:40:00.000Z",
+          updatedAt: "2026-04-08T07:40:00.000Z",
+          publishedAt: "2026-04-08T07:40:00.000Z",
+          contentCategory: null
+        }
+      ],
+      {
+        now: new Date("2026-04-08T08:00:00.000Z"),
+        type: "moment",
+        precomputedBaseScores: new Map([
+          ["already_liked", 120],
+          ["fresh_unseen", 120]
+        ])
+      }
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
+  });
+
   it("keeps recommended feed diverse before repeating the same author and category cluster", () => {
     const ranked = rankFeedItemsByRecommendation(
       [

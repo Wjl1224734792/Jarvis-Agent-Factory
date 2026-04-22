@@ -93,7 +93,15 @@ function buildFreshnessMultiplier(
   return Math.pow(0.5, ageHours / halfLife);
 }
 
-function buildFeedRecommendationScore(
+function buildAffinityPenalty(item: FeedRecommendationItem) {
+  return (
+    (item.engagement.viewer.hasLiked ? 6 : 0) +
+    (item.engagement.viewer.hasFavorited ? 7 : 0) +
+    (item.engagement.viewer.hasShared ? 5 : 0)
+  );
+}
+
+function buildStaticFeedRecommendationScore(
   item: FeedRecommendationItem,
   input: {
     now: Date;
@@ -117,10 +125,6 @@ function buildFeedRecommendationScore(
         : item.videos.length > 0
           ? 3
           : 0;
-  const affinityPenalty =
-    (item.engagement.viewer.hasLiked ? 6 : 0) +
-    (item.engagement.viewer.hasFavorited ? 7 : 0) +
-    (item.engagement.viewer.hasShared ? 5 : 0);
   const titleQuality = scoreLengthBalance(item.title, {
     min: 6,
     max: 60,
@@ -156,7 +160,6 @@ function buildFeedRecommendationScore(
     mediaBoost +
     titleQuality +
     previewQuality -
-    affinityPenalty -
     reportPenalty +
     staleLowValuePenalty
   );
@@ -215,12 +218,16 @@ export function rankFeedItemsByRecommendation<T extends FeedRecommendationItem>(
   input: {
     now?: Date;
     type: "article" | "moment";
+    precomputedBaseScores?: ReadonlyMap<string, number>;
   }
 ) {
   const now = input.now ?? new Date();
   const remaining: Array<ScoredFeedRecommendationItem<T>> = items.map(item => ({
     item,
-    baseScore: buildFeedRecommendationScore(item, { now, type: input.type }),
+    baseScore:
+      (input.precomputedBaseScores?.get(item.id) ??
+        buildStaticFeedRecommendationScore(item, { now, type: input.type })) -
+      buildAffinityPenalty(item),
     publishedTime: getPublishedTime(item)
   }));
   const ranked: Array<ScoredFeedRecommendationItem<T>> = [];

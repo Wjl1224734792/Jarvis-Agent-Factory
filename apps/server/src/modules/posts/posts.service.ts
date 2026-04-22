@@ -329,6 +329,16 @@ export const postsService = {
       currentUser ? socialService.listFollowingStateSet(currentUser.id, authorIds) : new Set<string>()
     ]);
     const interactionMap = buildInteractionMap(interactions);
+    const recommendedBaseScores =
+      tab === "recommended"
+        ? new Map(
+            items.flatMap((item) =>
+              typeof item.recommendationBaseScore === "number"
+                ? [[item.id, item.recommendationBaseScore] as const]
+                : []
+            )
+          )
+        : undefined;
     const serializedCandidates = items
       .map((item) =>
         serializePostListItem(item, {
@@ -347,7 +357,8 @@ export const postsService = {
     const rankedRecommendedItems =
       tab === "recommended"
         ? rankFeedItemsByRecommendation(serializedCandidates, {
-            type: input.type
+            type: input.type,
+            precomputedBaseScores: recommendedBaseScores
           })
         : serializedCandidates;
     const pagedItems =

@@ -11,7 +11,7 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql, type SQLWrapper } from "drizzle-orm";
 import { uploadsRepo } from "../uploads/upload.repo";
 
 type FeedTab = "recommended" | "latest" | "following";
@@ -35,6 +35,82 @@ function buildRecommendationEngagementVolumeExpression() {
   `;
 }
 
+function buildRecommendationAgeHoursExpression() {
+  return sql<number>`
+    greatest(
+      0,
+      extract(epoch from now() - ${buildFeedPublishedAtExpression()}) / 3600.0
+    )
+  `;
+}
+
+function buildRecommendationInteractionScoreExpression(type: PostType) {
+  const likeWeight = type === "article" ? 16 : 12;
+  const favoriteWeight = type === "article" ? 14 : 10;
+  const shareWeight = type === "article" ? 12 : 18;
+  const commentWeight = type === "article" ? 15 : 9;
+  const viewWeight = type === "article" ? 7 : 8;
+
+  return sql<number>`
+    (
+      (ln(1 + ${postsTable.likeCount}) * ${likeWeight}) +
+      (ln(1 + ${postsTable.favoriteCount}) * ${favoriteWeight}) +
+      (ln(1 + ${postsTable.shareCount}) * ${shareWeight}) +
+      (ln(1 + ${postsTable.commentCount}) * ${commentWeight}) +
+      (ln(1 + ${postsTable.viewCount}) * ${viewWeight})
+    )
+  `;
+}
+
+function buildRecommendationFreshnessMultiplierExpression(type: PostType) {
+  const halfLife = type === "article" ? 42 : 22;
+
+  return sql<number>`
+    power(0.5, ${buildRecommendationAgeHoursExpression()} / ${halfLife})
+  `;
+}
+
+function buildTrimmedTextLengthExpression(value: SQLWrapper) {
+  return sql<number>`char_length(btrim(coalesce(${value}, '')))`;
+}
+
+function buildFeedPreviewDisplayLengthExpression() {
+  const previewSource = buildFeedPreviewSource();
+
+  return sql<number>`
+    (
+      case
+        when char_length(coalesce(${previewSource}, '')) > 160
+          then char_length(btrim(substring(${previewSource} from 1 for 160) || '...'))
+        else char_length(btrim(coalesce(${previewSource}, '')))
+      end
+    )
+  `;
+}
+
+function buildRecommendationLengthBalanceExpression(
+  lengthExpression: SQLWrapper,
+  input: { min: number; max: number; bestAt: number; weight: number }
+) {
+  const spread = Math.max(1, input.max - input.min);
+
+  return sql<number>`
+    (
+      case
+        when ${lengthExpression} = 0 then ${-input.weight}
+        when ${lengthExpression} < ${input.min}
+          then (${input.weight} * (${lengthExpression}::numeric / ${input.min})) - ${input.weight}
+        when ${lengthExpression} > ${input.max}
+          then ${-input.weight}
+        else
+          ${input.weight} * (
+            1 - (abs(${lengthExpression} - ${input.bestAt})::numeric / ${spread})
+          )
+      end
+    )
+  `;
+}
+
 function buildRecommendedFollowBoostExpression(type: PostType, currentUserId?: string | null) {
   if (!currentUserId) {
     return sql<number>`0`;
@@ -52,6 +128,73 @@ function buildRecommendedFollowBoostExpression(type: PostType, currentUserId?: s
         ) then ${followBoost}
         else 0
       end
+    )
+  `;
+}
+
+function buildRecommendedStaticBaseScoreExpression(
+  type: PostType,
+  currentUserId?: string | null
+) {
+  const interactionScore = buildRecommendationInteractionScoreExpression(type);
+  const freshnessMultiplier = buildRecommendationFreshnessMultiplierExpression(type);
+  const freshnessBoostWeight = type === "article" ? 32 : 28;
+  const officialBoost =
+    type === "article"
+      ? sql<number>`(case when ${usersTable.role} = 'admin' then 5 else 0 end)`
+      : sql<number>`0`;
+  const titleQuality = buildRecommendationLengthBalanceExpression(
+    buildTrimmedTextLengthExpression(postsTable.title),
+    {
+      min: 6,
+      max: 60,
+      bestAt: 24,
+      weight: type === "article" ? 7 : 4
+    }
+  );
+  const previewQuality = buildRecommendationLengthBalanceExpression(
+    buildFeedPreviewDisplayLengthExpression(),
+    {
+      min: type === "article" ? 36 : 18,
+      max: type === "article" ? 260 : 120,
+      bestAt: type === "article" ? 120 : 48,
+      weight: type === "article" ? 9 : 5
+    }
+  );
+  const engagementVolume = buildRecommendationEngagementVolumeExpression();
+  const reportPenalty = sql<number>`
+    (
+      case
+        when ${postsTable.reportCount} >= 3
+          and (${postsTable.reportCount} * 2) >= greatest(1, ${engagementVolume})
+          then least(24, ${postsTable.reportCount} * 4)
+        when ${postsTable.reportCount} > 0
+          then least(10, ${postsTable.reportCount} * 1.8)
+        else 0
+      end
+    )
+  `;
+  const staleLowValuePenalty = sql<number>`
+    (
+      case
+        when ${buildRecommendationAgeHoursExpression()} > ${type === "article" ? 120 : 72}
+          and ${interactionScore} < 20
+          then -12
+        else 0
+      end
+    )
+  `;
+
+  return sql<number>`
+    (
+      (${interactionScore} * (0.58 + (${freshnessMultiplier} * 0.42))) +
+      (${freshnessMultiplier} * ${freshnessBoostWeight}) +
+      ${buildRecommendedFollowBoostExpression(type, currentUserId)} +
+      ${officialBoost} +
+      ${titleQuality} +
+      ${previewQuality} -
+      ${reportPenalty} +
+      ${staleLowValuePenalty}
     )
   `;
 }
@@ -82,40 +225,9 @@ function buildRecommendedCandidateConditions(type: PostType) {
 
 function buildFeedOrder(tab: FeedTab, type: PostType, currentUserId?: string | null) {
   if (tab === "recommended") {
-    const publishedAtExpression = buildFeedPublishedAtExpression();
-    const engagementVolumeExpression = buildRecommendationEngagementVolumeExpression();
-    const followBoostExpression = buildRecommendedFollowBoostExpression(type, currentUserId);
-    const shareWeight = type === "article" ? 12 : 14;
-    const freshBoost = type === "article" ? 20 : 18;
-    const recentBoost = type === "article" ? 10 : 8;
-    const recommendationCandidateScore = sql<number>`
-      (
-        (${postsTable.likeCount} * 8) +
-        (${postsTable.favoriteCount} * 10) +
-        (${postsTable.shareCount} * ${shareWeight}) +
-        (${postsTable.commentCount} * 6) -
-        (${postsTable.reportCount} * 18) +
-        (ln(1 + ${postsTable.viewCount}) * 4) +
-        ${followBoostExpression} +
-        (
-          case
-            when ${publishedAtExpression} >= now() - interval '12 hours' then ${freshBoost}
-            when ${publishedAtExpression} >= now() - interval '72 hours' then ${recentBoost}
-            else 0
-          end
-        ) +
-        (
-          case
-            when ${engagementVolumeExpression} >= 16 then 6
-            when ${engagementVolumeExpression} >= 8 then 3
-            else 0
-          end
-        )
-      )
-    `;
     return [
-      desc(recommendationCandidateScore),
-      desc(publishedAtExpression),
+      desc(buildRecommendedStaticBaseScoreExpression(type, currentUserId)),
+      desc(buildFeedPublishedAtExpression()),
       desc(postsTable.updatedAt)
     ] as const;
   }
@@ -167,8 +279,15 @@ function postSelection() {
   };
 }
 
-function postFeedSelection() {
+function postFeedSelection(input: {
+  type: PostType;
+  currentUserId?: string | null;
+  includeRecommendationBaseScore: boolean;
+}) {
   const previewSource = buildFeedPreviewSource();
+  const recommendationBaseScore = input.includeRecommendationBaseScore
+    ? buildRecommendedStaticBaseScoreExpression(input.type, input.currentUserId)
+    : sql<number | null>`null`;
 
   return {
     id: postsTable.id,
@@ -189,6 +308,7 @@ function postFeedSelection() {
     createdAt: postsTable.createdAt,
     updatedAt: postsTable.updatedAt,
     publishedAt: postsTable.publishedAt,
+    recommendationBaseScore,
     author: {
       id: usersTable.id,
       displayName: usersTable.displayName,
@@ -534,7 +654,13 @@ export const postsRepo = {
       .where(and(...conditions));
 
     const baseQuery = db
-      .select(postFeedSelection())
+      .select(
+        postFeedSelection({
+          type: input.type,
+          currentUserId: input.currentUserId,
+          includeRecommendationBaseScore: input.tab === "recommended"
+        })
+      )
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
       .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
