@@ -2,11 +2,10 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
+import { runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { app } from "../src/app";
-import { authRepo } from "../src/modules/auth/auth.repo";
-import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { resetIntegrationState } from "./test-state";
 
 let tempLogDir = "";
 
@@ -56,10 +55,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await resetRedisForTesting();
-  authRepo.resetEphemeralState();
-  await resetDatabaseState();
-  await seedAuthDatabase();
+  await resetIntegrationState("auth");
 });
 
 afterEach(() => {

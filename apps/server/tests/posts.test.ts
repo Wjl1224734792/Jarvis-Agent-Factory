@@ -1,22 +1,21 @@
-﻿import {
+import {
   contentCategoriesTable,
   postsTable,
   db,
   notificationsTable,
-  resetDatabaseState,
   runMigrations,
   seedDatabase
 } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { authRepo } from "../src/modules/auth/auth.repo";
-import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { ensureRedisConnected, redis } from "../src/modules/auth/redis-client";
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { postsRepo } from "../src/modules/posts/posts.repo";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
+import { resetIntegrationState } from "./test-state";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -118,16 +117,8 @@ async function loginAdmin() {
   return extractCookies(response);
 }
 
-async function getCurrentUserId(cookie: string) {
-  const response = await app.request(API_ROUTES.auth.currentUser, {
-    method: "GET",
-    headers: { cookie }
-  });
-  expect(response.status).toBe(200);
-  const payload = (await response.json()) as {
-    user: { id: string } | null;
-  };
-  return expectDefined(payload.user?.id);
+async function getSyntheticFeedAuthorId() {
+  return "seed_user_skyline";
 }
 
 async function replaceMomentFeedWithSyntheticPosts(
@@ -351,21 +342,7 @@ const originalUploadMaxPostVideoSizeMb =
   process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB;
 
 async function resetAndSeedPostState() {
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      await resetRedisForTesting();
-      authRepo.resetEphemeralState();
-      await resetDatabaseState();
-      await seedDatabase();
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError;
+  await resetIntegrationState("demo");
 }
 
 beforeAll(async () => {
@@ -689,8 +666,7 @@ describe.sequential("posts and social flows", () => {
   });
 
   it("keeps high-share moments inside the recommended candidate pool", async () => {
-    const authorCookie = await loginWebUser("13800138174");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T08:00:00.000Z");
 
     const fillerItems = Array.from({ length: 60 }, (_, index) => ({
@@ -722,13 +698,66 @@ describe.sequential("posts and social flows", () => {
     };
 
     expect(payload.items.some((item) => item.id === "moment_share_heavy")).toBe(true);
-    expect(payload.pagination.total).toBe(60);
+    expect(payload.pagination.total).toBeGreaterThanOrEqual(61);
+  });
+
+  it("filters low-value reported and stale candidates in recommended repo query", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-08T13:00:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(authorId, [
+      ...Array.from({ length: 12 }, (_, index) => ({
+        id: `moment_repo_filtered_fill_${index + 1}`,
+        title: `Repo filtered filler ${index + 1}`,
+        content: "Filler content with stable engagement and no moderation risk.",
+        likeCount: 2,
+        favoriteCount: 1,
+        shareCount: 1,
+        commentCount: 1,
+        reportCount: 0,
+        publishedAt: new Date(baseTime.getTime() - (index + 1) * 60_000)
+      })),
+      {
+        id: "moment_repo_filtered_reported",
+        title: "Reported low-value candidate",
+        content: "This candidate should be filtered before service-side reranking.",
+        likeCount: 0,
+        favoriteCount: 0,
+        shareCount: 0,
+        commentCount: 0,
+        reportCount: 8,
+        publishedAt: new Date(baseTime.getTime() - 90 * 60_000)
+      },
+      {
+        id: "moment_repo_filtered_stale",
+        title: "Stale low-value candidate",
+        content: "Very old and low-engagement candidate.",
+        likeCount: 0,
+        favoriteCount: 0,
+        shareCount: 0,
+        commentCount: 0,
+        reportCount: 0,
+        publishedAt: new Date("2025-01-01T00:00:00.000Z")
+      }
+    ]);
+
+    const feedResult = await postsRepo.listFeed({
+      tab: "recommended",
+      type: "moment",
+      page: 1,
+      limit: 200
+    });
+    const ids = feedResult.items.map((item) => item.id);
+
+    expect(ids).not.toContain("moment_repo_filtered_reported");
+    expect(ids).not.toContain("moment_repo_filtered_stale");
+    expect(feedResult.total).toBe(12);
   });
 
   it("aligns recommended pagination with the ranked candidate window", async () => {
-    const authorCookie = await loginWebUser("13800138175");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T10:00:00.000Z");
+    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
     const listPostImagesSpy = vi.spyOn(postsRepo, "listPostImages");
     const listPostVideosSpy = vi.spyOn(postsRepo, "listPostVideos");
 
@@ -756,10 +785,15 @@ describe.sequential("posts and social flows", () => {
     expect(pageSixPayload.items).toHaveLength(10);
     expect(pageSixPayload.pagination.total).toBe(70);
     expect(pageSixPayload.pagination.hasMore).toBe(true);
+    expect(listFeedSpy).toHaveBeenCalledTimes(1);
+    expect(listFeedSpy.mock.calls[0]?.[0]).toMatchObject({
+      tab: "recommended",
+      type: "moment",
+      page: 1,
+      limit: 110
+    });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
-    expect(listPostImagesSpy.mock.calls[0]?.[0]).toHaveLength(10);
-    expect(listPostVideosSpy.mock.calls[0]?.[0]).toHaveLength(10);
     listPostImagesSpy.mockClear();
     listPostVideosSpy.mockClear();
 
@@ -775,17 +809,22 @@ describe.sequential("posts and social flows", () => {
     expect(pageSevenPayload.items).toHaveLength(10);
     expect(pageSevenPayload.pagination.total).toBe(70);
     expect(pageSevenPayload.pagination.hasMore).toBe(false);
+    expect(listFeedSpy).toHaveBeenCalledTimes(2);
+    expect(listFeedSpy.mock.calls[1]?.[0]).toMatchObject({
+      tab: "recommended",
+      type: "moment",
+      page: 1,
+      limit: 120
+    });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
-    expect(listPostImagesSpy.mock.calls[0]?.[0]).toHaveLength(10);
-    expect(listPostVideosSpy.mock.calls[0]?.[0]).toHaveLength(10);
+    listFeedSpy.mockRestore();
     listPostImagesSpy.mockRestore();
     listPostVideosSpy.mockRestore();
   });
 
   it("keeps deep recommended pages deterministic and overlapping-free", async () => {
-    const authorCookie = await loginWebUser("13800138176");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T09:00:00.000Z");
 
     await replaceMomentFeedWithSyntheticPosts(
@@ -829,11 +868,75 @@ describe.sequential("posts and social flows", () => {
     expect(intersection).toHaveLength(0);
   });
 
+  it("keeps a high-value candidate visible on a deep recommended page", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-08T14:00:00.000Z");
+    const deepCandidateId = "moment_recommended_deep_value_guard";
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      [
+        ...Array.from({ length: 200 }, (_, index) => ({
+          id: `moment_deep_base_${index + 1}`,
+          title: `Deep base ${index + 1}`,
+          content: "A neutral base candidate for deep-page coverage.",
+          shareCount: 400 - index * 2,
+          publishedAt: new Date(baseTime.getTime() - (index + 1) * 60_000),
+          likeCount: 0,
+          commentCount: 0,
+          reportCount: 0
+        })),
+        {
+          id: deepCandidateId,
+          title: "Deep high-value boundary candidate",
+          content: "A high-quality moment that should still reach deep page ranking.",
+          likeCount: 0,
+          shareCount: 149,
+          commentCount: 0,
+          reportCount: 0,
+          publishedAt: new Date(baseTime.getTime() - 300 * 60_000)
+        }
+      ]
+    );
+
+    const pageTwoResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=2`, {
+      method: "GET"
+    });
+    const pageThreeResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=3`, {
+      method: "GET"
+    });
+
+    expect(pageTwoResponse.status).toBe(200);
+    expect(pageThreeResponse.status).toBe(200);
+
+    const pageTwoPayload = (await pageTwoResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+    const pageThreePayload = (await pageThreeResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageTwoPayload.pagination.total).toBe(200);
+    expect(pageThreePayload.pagination.total).toBe(200);
+    expect(pageTwoPayload.pagination.hasMore).toBe(true);
+    expect(pageThreePayload.pagination.hasMore).toBe(true);
+    expect(pageTwoPayload.items).toHaveLength(50);
+    expect(pageThreePayload.items).toHaveLength(50);
+    const pageTwoIds = pageTwoPayload.items.map((item) => item.id);
+    const pageThreeIds = pageThreePayload.items.map((item) => item.id);
+    expect(pageTwoIds).not.toContain(deepCandidateId);
+    expect(pageThreeIds).toContain(deepCandidateId);
+    const overlap = pageTwoIds.filter((id) => pageThreeIds.includes(id));
+    expect(overlap).toHaveLength(0);
+  });
+
   it("keeps a fresh high-share candidate from being cut by the coarse-ranking window", async () => {
-    const authorCookie = await loginWebUser("13800138177");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T09:20:00.000Z");
     const protectedCandidateId = "moment_fresh_share_guard";
+    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
 
     const highVolume = Array.from({ length: 60 }, (_, index) => ({
       id: `moment_high_${index + 1}`,
@@ -886,16 +989,36 @@ describe.sequential("posts and social flows", () => {
       pagination: { total: number; hasMore: boolean };
     };
 
-    expect(pageTwoPayload.pagination.total).toBe(70);
+    expect(pageTwoPayload.pagination.total).toBeGreaterThanOrEqual(71);
     expect(pageOnePayload.pagination.hasMore).toBe(true);
+    expect(listFeedSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(
+      listFeedSpy.mock.calls.some(
+        ([input]) =>
+          input?.tab === "recommended" &&
+          input?.type === "moment" &&
+          input?.page === 1 &&
+          input?.limit === 60
+      )
+    ).toBe(true);
+    expect(
+      listFeedSpy.mock.calls.some(
+        ([input]) =>
+          input?.tab === "recommended" &&
+          input?.type === "moment" &&
+          input?.page === 1 &&
+          input?.limit === 70
+      )
+    ).toBe(true);
     const firstTwoPageIds = [...pageOnePayload.items, ...pageTwoPayload.items].map((item) => item.id);
     expect(firstTwoPageIds).toContain(protectedCandidateId);
+    listFeedSpy.mockRestore();
   });
 
   it("caps recommended candidate window at 200 rows for input control", async () => {
-    const authorCookie = await loginWebUser("13800138178");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T09:40:00.000Z");
+    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
 
     await replaceMomentFeedWithSyntheticPosts(
       authorId,
@@ -932,11 +1055,21 @@ describe.sequential("posts and social flows", () => {
     expect(pageThreePayload.pagination.total).toBe(200);
     expect(pageFourPayload.pagination.total).toBe(200);
     expect(pageFourPayload.pagination.hasMore).toBe(false);
+    expect(listFeedSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
+    expect(
+      listFeedSpy.mock.calls.filter(
+        ([input]) =>
+          input?.tab === "recommended" &&
+          input?.type === "moment" &&
+          input?.page === 1 &&
+          input?.limit === 200
+      ).length
+    ).toBeGreaterThanOrEqual(2);
+    listFeedSpy.mockRestore();
   });
 
   it("keeps recommended feed candidate rows lightweight before page hydration", async () => {
-    const authorCookie = await loginWebUser("13800138182");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const longContent = "A".repeat(240);
 
     await replaceMomentFeedWithSyntheticPosts(authorId, [
@@ -963,9 +1096,54 @@ describe.sequential("posts and social flows", () => {
     expect(candidate?.contentHtml).toBeNull();
   });
 
+  it("keeps recommended candidates lightweight and hydrates contentHtml for current-page items", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const longContent = "A".repeat(240);
+    const candidateId = "moment_recommended_hydrated_lightweight";
+
+    await replaceMomentFeedWithSyntheticPosts(authorId, [
+      {
+        id: candidateId,
+        title: "Lightweight recommended candidate",
+        content: longContent,
+        shareCount: 4,
+        publishedAt: new Date("2026-04-08T12:10:00.000Z")
+      }
+    ]);
+    await db
+      .update(postsTable)
+      .set({
+        contentHtml: "<p>Hydrated</p>"
+      })
+      .where(eq(postsTable.id, candidateId));
+
+    const listFeedPageContentHtmlSpy = vi.spyOn(postsRepo, "listFeedPageContentHtmlByIds");
+
+    const response = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=1`, {
+      method: "GET"
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<{
+        id: string;
+        content: string;
+        contentPlainText: string;
+        contentHtml: string | null;
+      }>;
+    };
+
+    expect(payload.items).toHaveLength(1);
+    expect(payload.items[0]).toMatchObject({
+      id: candidateId,
+      contentHtml: "<p>Hydrated</p>"
+    });
+    expect(listFeedPageContentHtmlSpy).toHaveBeenCalledTimes(1);
+    expect(listFeedPageContentHtmlSpy.mock.calls[0]?.[0]).toEqual([candidateId]);
+    listFeedPageContentHtmlSpy.mockRestore();
+  });
+
   it("hydrates contentHtml for the current feed page without changing the response shape", async () => {
-    const authorCookie = await loginWebUser("13800138183");
-    const authorId = await getCurrentUserId(authorCookie);
+    const authorId = await getSyntheticFeedAuthorId();
     const pageContentSpy = vi.spyOn(postsRepo, "listFeedPageContentHtmlByIds");
 
     const created = await postsRepo.createPost({

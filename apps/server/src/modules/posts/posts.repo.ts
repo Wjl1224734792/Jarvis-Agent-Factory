@@ -20,25 +20,107 @@ type PostType = "article" | "moment";
 type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
 
-function buildFeedOrder(tab: FeedTab) {
+function buildFeedPublishedAtExpression() {
+  return sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`;
+}
+
+function buildRecommendationEngagementVolumeExpression() {
+  return sql<number>`
+    (
+      ${postsTable.likeCount} +
+      ${postsTable.favoriteCount} +
+      ${postsTable.shareCount} +
+      ${postsTable.commentCount}
+    )
+  `;
+}
+
+function buildRecommendedFollowBoostExpression(type: PostType, currentUserId?: string | null) {
+  if (!currentUserId) {
+    return sql<number>`0`;
+  }
+
+  const followBoost = type === "article" ? 10 : 8;
+  return sql<number>`
+    (
+      case
+        when exists (
+          select 1
+          from ${userFollowsTable}
+          where ${userFollowsTable.followeeId} = ${postsTable.authorId}
+            and ${userFollowsTable.followerId} = ${currentUserId}
+        ) then ${followBoost}
+        else 0
+      end
+    )
+  `;
+}
+
+function buildRecommendedCandidateConditions(type: PostType) {
+  const engagementVolumeExpression = buildRecommendationEngagementVolumeExpression();
+  const publishedAtExpression = buildFeedPublishedAtExpression();
+  const staleWindowDays = type === "article" ? 540 : 365;
+  const staleEngagementFloor = type === "article" ? 4 : 3;
+  const staleViewFloor = type === "article" ? 40 : 25;
+
+  return [
+    // Gate heavy-report, low-trust candidates before service-side reranking.
+    sql`(
+      ${postsTable.reportCount} < 3 or
+      (${postsTable.reportCount} * 2) < (${engagementVolumeExpression} + 2) or
+      (${postsTable.reportCount} * 3) < (${postsTable.viewCount} + 6)
+    )`,
+    // Trim very old, low-value rows while retaining proven historical content.
+    sql`(
+      ${publishedAtExpression} >= now() - make_interval(days => ${staleWindowDays}) or
+      ${engagementVolumeExpression} >= ${staleEngagementFloor} or
+      ${postsTable.shareCount} > 0 or
+      ${postsTable.viewCount} >= ${staleViewFloor}
+    )`
+  ];
+}
+
+function buildFeedOrder(tab: FeedTab, type: PostType, currentUserId?: string | null) {
   if (tab === "recommended") {
+    const publishedAtExpression = buildFeedPublishedAtExpression();
+    const engagementVolumeExpression = buildRecommendationEngagementVolumeExpression();
+    const followBoostExpression = buildRecommendedFollowBoostExpression(type, currentUserId);
+    const shareWeight = type === "article" ? 12 : 14;
+    const freshBoost = type === "article" ? 20 : 18;
+    const recentBoost = type === "article" ? 10 : 8;
     const recommendationCandidateScore = sql<number>`
       (
         (${postsTable.likeCount} * 8) +
         (${postsTable.favoriteCount} * 10) +
-        (${postsTable.shareCount} * 12) +
+        (${postsTable.shareCount} * ${shareWeight}) +
         (${postsTable.commentCount} * 6) -
-        (${postsTable.reportCount} * 18)
+        (${postsTable.reportCount} * 18) +
+        (ln(1 + ${postsTable.viewCount}) * 4) +
+        ${followBoostExpression} +
+        (
+          case
+            when ${publishedAtExpression} >= now() - interval '12 hours' then ${freshBoost}
+            when ${publishedAtExpression} >= now() - interval '72 hours' then ${recentBoost}
+            else 0
+          end
+        ) +
+        (
+          case
+            when ${engagementVolumeExpression} >= 16 then 6
+            when ${engagementVolumeExpression} >= 8 then 3
+            else 0
+          end
+        )
       )
     `;
     return [
       desc(recommendationCandidateScore),
-      desc(sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`),
+      desc(publishedAtExpression),
       desc(postsTable.updatedAt)
     ] as const;
   }
 
-  return [desc(sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`)] as const;
+  return [desc(buildFeedPublishedAtExpression())] as const;
 }
 
 const FEED_PREVIEW_SOURCE_LENGTH = 161;
@@ -436,6 +518,10 @@ export const postsRepo = {
       eq(postsTable.type, input.type)
     ];
 
+    if (input.tab === "recommended") {
+      conditions.push(...buildRecommendedCandidateConditions(input.type));
+    }
+
     if (input.type === "article" && input.contentCategorySlug) {
       conditions.push(eq(contentCategoriesTable.slug, input.contentCategorySlug));
     }
@@ -468,7 +554,7 @@ export const postsRepo = {
               eq(userFollowsTable.followerId, input.currentUserId)
             )
           )
-          .orderBy(...buildFeedOrder(input.tab))
+          .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
           .limit(input.limit)
           .offset(offset),
         baseCountQuery.innerJoin(
@@ -487,7 +573,10 @@ export const postsRepo = {
     }
 
     const [rows, countRows] = await Promise.all([
-      baseQuery.orderBy(...buildFeedOrder(input.tab)).limit(input.limit).offset(offset),
+      baseQuery
+        .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
+        .limit(input.limit)
+        .offset(offset),
       baseCountQuery
     ]);
 

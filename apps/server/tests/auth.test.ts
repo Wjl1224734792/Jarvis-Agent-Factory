@@ -1,13 +1,13 @@
-import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
+import { dbPool, runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
-import { authRepo } from "../src/modules/auth/auth.repo";
 import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app, resolveCorsOrigin } from "../src/app";
 import {
   readCaptchaAnswerForTests
 } from "./captcha-test-helpers";
+import { resetIntegrationState } from "./test-state";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -201,24 +201,6 @@ const originalUploadMaxImageSizeMb = process.env.UPLOAD_MAX_IMAGE_SIZE_MB;
 const originalUploadMaxAvatarImageSizeMb =
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB;
 
-async function resetAndSeedAuthState() {
-  let lastError: unknown;
-
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    try {
-      await resetRedisForTesting();
-      authRepo.resetEphemeralState();
-      await resetDatabaseState();
-      await seedAuthDatabase();
-      return;
-    } catch (error) {
-      lastError = error;
-    }
-  }
-
-  throw lastError;
-}
-
 beforeAll(async () => {
   await runMigrations();
 });
@@ -227,7 +209,7 @@ beforeEach(async () => {
   process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
     originalUploadMaxAvatarImageSizeMb;
-  await resetAndSeedAuthState();
+  await resetIntegrationState("auth");
 });
 
 afterAll(async () => {

@@ -46,7 +46,7 @@ const MAX_RECOMMENDED_CANDIDATE_WINDOW = 200;
 
 function resolveRecommendedCandidateWindow(limit: number, page: number) {
   const offset = Math.max(0, page - 1) * limit;
-  const baseWindow = Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 6);
+  const baseWindow = Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 5);
   return Math.min(
     MAX_RECOMMENDED_CANDIDATE_WINDOW,
     offset + baseWindow
@@ -356,7 +356,7 @@ export const postsService = {
         : serializedCandidates;
     const total =
       tab === "recommended"
-        ? rankedRecommendedItems.length
+        ? Math.min(feedResult.total, MAX_RECOMMENDED_CANDIDATE_WINDOW)
         : feedResult.total;
     const hasMore = page * limit < total;
     const postRecordById = new Map(items.map((item) => [item.id, item]));

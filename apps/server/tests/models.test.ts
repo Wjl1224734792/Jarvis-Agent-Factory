@@ -1,11 +1,10 @@
-import { dbPool, runMigrations, seedDatabase } from "@feijia/db";
+import { dbPool, runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
-import { authRepo } from "../src/modules/auth/auth.repo";
-import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
+import { resetIntegrationState } from "./test-state";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -117,9 +116,7 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  await resetRedisForTesting();
-  authRepo.resetEphemeralState();
-  await seedDatabase({ profile: "catalog" });
+  await resetIntegrationState("catalog");
 });
 
 afterAll(async () => {
