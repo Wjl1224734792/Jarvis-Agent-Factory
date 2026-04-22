@@ -9,6 +9,7 @@
 ### 现状审查
 - 推荐流原先只按单条内容的热度、新鲜度、关系、媒体和举报情况打分。
 - 问题在于：即便分数合理，也可能在前排连续出现同作者、同分类的内容，导致“算法看起来很热，但用户感知单一”。
+- 另外，推荐分页原先固定只取 60 条候选集，深页会被硬截断。
 
 ### 落地改动
 - [apps/server/src/modules/posts/feed-recommendation.ts](E:/CodeStore/feijia/apps/server/src/modules/posts/feed-recommendation.ts)
@@ -19,10 +20,14 @@
     - 作者在已选结果中是否重复出现
     - 最近一条/已选结果是否重复分类
     - 作者与分类是否形成连续簇
+- [apps/server/src/modules/posts/posts.service.ts](E:/CodeStore/feijia/apps/server/src/modules/posts/posts.service.ts)
+  - 推荐候选窗口从固定值改为随页码增长
+  - 深页推荐现在会拉取“偏移量 + 安全候选窗口”，避免第 7 页以后直接被 60 条候选集截断
 
 ### 测试
 - [apps/server/tests/posts.test.ts](E:/CodeStore/feijia/apps/server/tests/posts.test.ts)
   - 新增“推荐流在重复作者/分类簇前先给出多样内容”测试
+  - 更新推荐分页测试，验证第 7 页仍能返回内容
   - 既有推荐流 freshness / engagement 测试保持通过
 
 ## 瀑布流加载边界优化
@@ -48,5 +53,5 @@
 - 通过：`bun run build`
 
 ## 剩余风险
-- 推荐流当前仍然是“候选集拉取后内存重排”，数据量继续增大时，下一阶段仍应考虑 repo 层/SQL 层进一步前移候选筛选。
+- 推荐流当前仍然是“候选集拉取后内存重排”，只是候选窗口和排序质量已经更合理；数据量继续增大时，下一阶段仍应考虑 repo 层/SQL 层进一步前移候选筛选。
 - 瀑布流本体仍然不是虚拟化瀑布流；当前因为数据量和页面模式可接受，但若后续单页条数显著上升，仍需要继续演进列表渲染策略。

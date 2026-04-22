@@ -751,8 +751,8 @@ describe.sequential("posts and social flows", () => {
     };
 
     expect(pageSixPayload.items).toHaveLength(10);
-    expect(pageSixPayload.pagination.total).toBe(60);
-    expect(pageSixPayload.pagination.hasMore).toBe(false);
+    expect(pageSixPayload.pagination.total).toBe(70);
+    expect(pageSixPayload.pagination.hasMore).toBe(true);
 
     const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
       method: "GET"
@@ -763,8 +763,8 @@ describe.sequential("posts and social flows", () => {
       pagination: { total: number; hasMore: boolean };
     };
 
-    expect(pageSevenPayload.items).toHaveLength(0);
-    expect(pageSevenPayload.pagination.total).toBe(60);
+    expect(pageSevenPayload.items).toHaveLength(10);
+    expect(pageSevenPayload.pagination.total).toBe(70);
     expect(pageSevenPayload.pagination.hasMore).toBe(false);
   });
 

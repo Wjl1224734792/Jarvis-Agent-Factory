@@ -41,10 +41,12 @@ const MAX_FEED_LIMIT = 50;
 const DEFAULT_RECOMMENDED_CANDIDATE_WINDOW = 60;
 const MAX_RECOMMENDED_CANDIDATE_WINDOW = 200;
 
-function resolveRecommendedCandidateWindow(limit: number) {
+function resolveRecommendedCandidateWindow(limit: number, page: number) {
+  const offset = Math.max(0, page - 1) * limit;
+  const baseWindow = Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 6);
   return Math.min(
     MAX_RECOMMENDED_CANDIDATE_WINDOW,
-    Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 6)
+    offset + baseWindow
   );
 }
 
@@ -307,7 +309,7 @@ export const postsService = {
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
     const offset = (page - 1) * limit;
     const candidateLimit =
-      tab === "recommended" ? resolveRecommendedCandidateWindow(limit) : limit;
+      tab === "recommended" ? resolveRecommendedCandidateWindow(limit, page) : limit;
     const feedResult = await postsRepo.listFeed({
       tab,
       type: input.type,
