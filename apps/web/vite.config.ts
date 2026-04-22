@@ -24,45 +24,97 @@ function parseDevPort(value: string | undefined, fallback: number): number {
   return n;
 }
 
-function isNodeModule(id: string) {
-  return id.includes("/node_modules/") || id.includes("\\node_modules\\");
+function normalizeModuleId(id: string) {
+  return id.replaceAll("\\", "/");
+}
+
+function getNodeModuleInfo(id: string) {
+  const normalizedId = normalizeModuleId(id);
+  const marker = "/node_modules/";
+  const start = normalizedId.lastIndexOf(marker);
+
+  if (start < 0) {
+    return null;
+  }
+
+  const modulePath = normalizedId.slice(start + marker.length);
+  const segments = modulePath.split("/");
+  const packageName =
+    segments[0]?.startsWith("@") && segments[1]
+      ? `${segments[0]}/${segments[1]}`
+      : segments[0];
+
+  if (!packageName) {
+    return null;
+  }
+
+  return {
+    normalizedId,
+    packageName
+  };
 }
 
 function buildWebManualChunk(id: string) {
-  if (!isNodeModule(id)) {
+  const moduleInfo = getNodeModuleInfo(id);
+
+  if (!moduleInfo) {
     return undefined;
   }
 
-  if (id.includes("@wangeditor/")) {
-    return "editor-vendor";
+  const { normalizedId, packageName } = moduleInfo;
+
+  if (packageName === "@wangeditor/editor-for-react") {
+    return "wangeditor-react-vendor";
   }
-  if (id.includes("@tiptap/")) {
-    return "editor-vendor";
+  if (packageName === "@wangeditor/editor") {
+    return "wangeditor-core-vendor";
   }
-  if (id.includes("react-virtuoso")) {
+  if (packageName === "@tiptap/react") {
+    return "editor-react-vendor";
+  }
+  if (
+    packageName === "@tiptap/pm" ||
+    packageName.startsWith("prosemirror-") ||
+    packageName === "orderedmap"
+  ) {
+    return "editor-core-vendor";
+  }
+  if (
+    packageName === "@tiptap/core" ||
+    packageName === "@tiptap/starter-kit" ||
+    packageName.startsWith("@tiptap/extension-")
+  ) {
+    return "editor-kit-vendor";
+  }
+  if (packageName === "react-virtuoso") {
     return "feed-vendor";
   }
-  if (id.includes("qrcode")) {
+  if (packageName === "qrcode") {
     return "share-vendor";
   }
   if (
-    id.includes("react-router-dom") ||
-    id.includes("@tanstack/react-query") ||
-    id.includes("zustand")
+    packageName === "react-router-dom" ||
+    packageName === "@tanstack/react-query" ||
+    packageName === "@remix-run/router" ||
+    packageName === "zustand"
   ) {
     return "app-shell-vendor";
   }
   if (
-    id.includes("/react/") ||
-    id.includes("\\react\\") ||
-    id.includes("react-dom") ||
-    id.includes("scheduler")
+    normalizedId.includes("/react/") ||
+    normalizedId.includes("react-dom") ||
+    normalizedId.includes("scheduler")
   ) {
     return "react-vendor";
   }
   if (
-    id.includes("lucide-react") ||
-    id.includes("dompurify")
+    packageName === "lucide-react" ||
+    packageName === "dompurify" ||
+    packageName === "radix-ui" ||
+    packageName === "class-variance-authority" ||
+    packageName === "clsx" ||
+    packageName === "tailwind-merge" ||
+    packageName === "tw-animate-css"
   ) {
     return "utility-vendor";
   }

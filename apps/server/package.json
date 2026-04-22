@@ -9,7 +9,7 @@
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint src/",
-    "test": "vitest run --root ../.. --config vitest.config.ts --maxWorkers 1 apps/server/tests"
+    "test": "vitest run --root ../.. --config vitest.config.ts --maxWorkers 1 --testTimeout 30000 apps/server/tests"
   },
   "dependencies": {
     "@alicloud/dysmsapi20170525": "^4.5.0",

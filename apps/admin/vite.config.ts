@@ -52,6 +52,42 @@ function matchesSubpath(subpath: string, prefixes: string[]) {
   return prefixes.some((prefix) => subpath.startsWith(prefix));
 }
 
+function resolveG2Chunk(subpath: string) {
+  if (matchesSubpath(subpath, ["esm/runtime/", "esm/api/", "esm/data/", "esm/spec/", "lib/runtime/", "lib/api/", "lib/data/", "lib/spec/"])) {
+    return "charts-runtime-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/axis", "lib/component/axis"])) {
+    return "charts-axis-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/legend", "lib/component/legend"])) {
+    return "charts-legend-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/scrollbar", "esm/component/slider", "lib/component/scrollbar", "lib/component/slider"])) {
+    return "charts-control-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/", "esm/label-transform/", "lib/component/", "lib/label-transform/"])) {
+    return "charts-component-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/interaction/", "esm/animation/", "esm/composition/", "lib/interaction/", "lib/animation/", "lib/composition/"])) {
+    return "charts-interaction-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/coordinate/", "esm/encode/", "esm/scale/", "esm/transform/", "lib/coordinate/", "lib/encode/", "lib/scale/", "lib/transform/"])) {
+    return "charts-grammar-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/mark/", "esm/shape/", "esm/theme/", "esm/palette/", "lib/mark/", "lib/shape/", "lib/theme/", "lib/palette/"])) {
+    return "charts-render-vendor";
+  }
+
+  return "charts-core-vendor";
+}
+
 function resolveAntdChunk(subpath: string) {
   if (
     matchesSubpath(subpath, [
@@ -131,8 +167,12 @@ function buildAdminManualChunk(id: string) {
     return "plots-vendor";
   }
 
-  if (packageName === "@antv/g2" || packageName.startsWith("@antv/g2")) {
-    return "charts-grammar-vendor";
+  if (packageName === "@antv/g2") {
+    return resolveG2Chunk(subpath);
+  }
+
+  if (packageName === "@antv/g2-extension-plot") {
+    return "charts-plot-vendor";
   }
 
   if (packageName === "@antv/g" || packageName.startsWith("@antv/g-")) {
