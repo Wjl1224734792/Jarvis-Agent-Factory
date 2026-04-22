@@ -783,6 +783,157 @@ describe.sequential("posts and social flows", () => {
     listPostVideosSpy.mockRestore();
   });
 
+  it("keeps deep recommended pages deterministic and overlapping-free", async () => {
+    const authorCookie = await loginWebUser("13800138176");
+    const authorId = await getCurrentUserId(authorCookie);
+    const baseTime = new Date("2026-04-08T09:00:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 120 }, (_, index) => ({
+        id: `moment_overlap_${index + 1}`,
+        title: `Overlap moment ${index + 1}`,
+        content: "A stable overlap test post with neutral text.",
+        likeCount: 1,
+        shareCount: index % 4,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageSixResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=6`, {
+      method: "GET"
+    });
+    expect(pageSixResponse.status).toBe(200);
+    const pageSixPayload = (await pageSixResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
+      method: "GET"
+    });
+    expect(pageSevenResponse.status).toBe(200);
+    const pageSevenPayload = (await pageSevenResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageSixPayload.items).toHaveLength(10);
+    expect(pageSevenPayload.items).toHaveLength(10);
+    expect(pageSixPayload.pagination.total).toBe(120);
+    expect(pageSevenPayload.pagination.total).toBe(120);
+    expect(pageSevenPayload.pagination.hasMore).toBe(true);
+    const pageSixIds = new Set(pageSixPayload.items.map((item) => item.id));
+    const pageSevenIds = new Set(pageSevenPayload.items.map((item) => item.id));
+    const intersection = [...pageSixIds].filter((id) => pageSevenIds.has(id));
+    expect(intersection).toHaveLength(0);
+  });
+
+  it("keeps a fresh high-share candidate from being cut by the coarse-ranking window", async () => {
+    const authorCookie = await loginWebUser("13800138177");
+    const authorId = await getCurrentUserId(authorCookie);
+    const baseTime = new Date("2026-04-08T09:20:00.000Z");
+    const protectedCandidateId = "moment_fresh_share_guard";
+
+    const highVolume = Array.from({ length: 60 }, (_, index) => ({
+      id: `moment_high_${index + 1}`,
+      title: "A",
+      content: "A",
+      likeCount: 1,
+      shareCount: 10,
+      publishedAt: new Date(baseTime.getTime() - (index + 1) * 60_000),
+      commentCount: 0
+    }));
+
+    const lowVolume = Array.from({ length: 10 }, (_, index) => ({
+      id: `moment_low_${index + 1}`,
+      title: "A",
+      content: "A",
+      likeCount: 0,
+      shareCount: 0,
+      publishedAt: new Date(baseTime.getTime() - (index + 61) * 60_000)
+    }));
+
+    await replaceMomentFeedWithSyntheticPosts(authorId, [
+      ...highVolume,
+      {
+        id: protectedCandidateId,
+        title: "A fresh high-share insight post with strong discovery copy.",
+        content:
+          "A focused, high-quality update with enough context length to receive a good quality signal in recommendation scoring.",
+        likeCount: 7,
+        shareCount: 9,
+        publishedAt: new Date(baseTime.getTime() + 1_000)
+      },
+      ...lowVolume
+    ]);
+
+    const pageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=1`, {
+      method: "GET"
+    });
+    const pageTwoResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=2`, {
+      method: "GET"
+    });
+
+    expect(pageOneResponse.status).toBe(200);
+    expect(pageTwoResponse.status).toBe(200);
+    const pageOnePayload = (await pageOneResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+    const pageTwoPayload = (await pageTwoResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageTwoPayload.pagination.total).toBe(70);
+    expect(pageOnePayload.pagination.hasMore).toBe(true);
+    const firstTwoPageIds = [...pageOnePayload.items, ...pageTwoPayload.items].map((item) => item.id);
+    expect(firstTwoPageIds).toContain(protectedCandidateId);
+  });
+
+  it("caps recommended candidate window at 200 rows for input control", async () => {
+    const authorCookie = await loginWebUser("13800138178");
+    const authorId = await getCurrentUserId(authorCookie);
+    const baseTime = new Date("2026-04-08T09:40:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 260 }, (_, index) => ({
+        id: `moment_window_cap_${index + 1}`,
+        title: `Window cap ${index + 1}`,
+        content: "A stable synthetic post for recommendation window cap coverage.",
+        likeCount: index % 5,
+        shareCount: (index % 7) * 2,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageThreeResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=3`, {
+      method: "GET"
+    });
+    const pageFourResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=4`, {
+      method: "GET"
+    });
+
+    expect(pageThreeResponse.status).toBe(200);
+    expect(pageFourResponse.status).toBe(200);
+    const pageThreePayload = (await pageThreeResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+    const pageFourPayload = (await pageFourResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { total: number; hasMore: boolean };
+    };
+
+    expect(pageThreePayload.items).toHaveLength(50);
+    expect(pageFourPayload.items).toHaveLength(50);
+    expect(pageThreePayload.pagination.total).toBe(200);
+    expect(pageFourPayload.pagination.total).toBe(200);
+    expect(pageFourPayload.pagination.hasMore).toBe(false);
+  });
+
   it("keeps recommended feed candidate rows lightweight before page hydration", async () => {
     const authorCookie = await loginWebUser("13800138182");
     const authorId = await getCurrentUserId(authorCookie);
