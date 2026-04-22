@@ -2,7 +2,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import path from "node:path";
 import os from "node:os";
-import { dbPool, resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
+import { resetDatabaseState, runMigrations, seedAuthDatabase } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { app } from "../src/app";
 import { authRepo } from "../src/modules/auth/auth.repo";
@@ -71,7 +71,8 @@ afterEach(() => {
 });
 
 afterAll(async () => {
-  await dbPool.end();
+  // The server suite shares one cached dbPool across files; ending it here
+  // breaks later integration files running in the same Vitest process.
 });
 
 describe("admin logs route", () => {

@@ -41,6 +41,17 @@ function buildFeedOrder(tab: FeedTab) {
   return [desc(sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`)] as const;
 }
 
+const FEED_PREVIEW_SOURCE_LENGTH = 161;
+
+function buildFeedPreviewSource() {
+  return sql<string>`
+    substring(
+      coalesce(${postsTable.contentPlainText}, ${postsTable.content}, '')
+      from 1 for ${FEED_PREVIEW_SOURCE_LENGTH}
+    )
+  `;
+}
+
 function postSelection() {
   return {
     id: postsTable.id,
@@ -49,6 +60,41 @@ function postSelection() {
     content: postsTable.content,
     contentHtml: postsTable.contentHtml,
     contentPlainText: postsTable.contentPlainText,
+    status: postsTable.status,
+    rejectionReason: postsTable.rejectionReason,
+    coverImageFileId: postsTable.coverImageFileId,
+    commentCount: postsTable.commentCount,
+    reportCount: postsTable.reportCount,
+    likeCount: postsTable.likeCount,
+    favoriteCount: postsTable.favoriteCount,
+    shareCount: postsTable.shareCount,
+    viewCount: postsTable.viewCount,
+    createdAt: postsTable.createdAt,
+    updatedAt: postsTable.updatedAt,
+    publishedAt: postsTable.publishedAt,
+    author: {
+      id: usersTable.id,
+      displayName: usersTable.displayName,
+      role: usersTable.role
+    },
+    contentCategory: {
+      id: contentCategoriesTable.id,
+      slug: contentCategoriesTable.slug,
+      name: contentCategoriesTable.name
+    }
+  };
+}
+
+function postFeedSelection() {
+  const previewSource = buildFeedPreviewSource();
+
+  return {
+    id: postsTable.id,
+    type: postsTable.type,
+    title: postsTable.title,
+    content: previewSource,
+    contentHtml: sql<string | null>`null`,
+    contentPlainText: previewSource,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
     coverImageFileId: postsTable.coverImageFileId,
@@ -402,7 +448,7 @@ export const postsRepo = {
       .where(and(...conditions));
 
     const baseQuery = db
-      .select(postSelection())
+      .select(postFeedSelection())
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
       .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
@@ -449,6 +495,19 @@ export const postsRepo = {
       items: rows,
       total: Number(countRows[0]?.count ?? 0)
     };
+  },
+  async listFeedPageContentHtmlByIds(ids: string[]) {
+    if (ids.length === 0) {
+      return [];
+    }
+
+    return db
+      .select({
+        id: postsTable.id,
+        contentHtml: postsTable.contentHtml
+      })
+      .from(postsTable)
+      .where(inArray(postsTable.id, ids));
   },
   async listAdminPosts(status?: PostStatus) {
     const query = db

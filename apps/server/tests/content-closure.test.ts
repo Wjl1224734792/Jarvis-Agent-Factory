@@ -1,4 +1,4 @@
-import { dbPool, resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
+import { resetDatabaseState, runMigrations, seedDatabase } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
@@ -101,7 +101,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await dbPool.end();
+  // The server suite shares one cached dbPool across files; ending it here
+  // breaks later integration files running in the same Vitest process.
 });
 
 describe.sequential("content closure flows", () => {

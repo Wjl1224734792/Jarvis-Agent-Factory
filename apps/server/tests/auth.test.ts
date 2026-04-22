@@ -234,7 +234,8 @@ afterAll(async () => {
   process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
     originalUploadMaxAvatarImageSizeMb;
-  await dbPool.end();
+  // The server suite shares one cached dbPool across files; ending it here
+  // breaks later integration files running in the same Vitest process.
 });
 
 describe("auth flows", () => {

@@ -2,7 +2,6 @@
   contentCategoriesTable,
   postsTable,
   db,
-  dbPool,
   notificationsTable,
   resetDatabaseState,
   runMigrations,
@@ -386,7 +385,8 @@ afterAll(async () => {
     originalUploadMaxReportImageSizeMb;
   process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
     originalUploadMaxPostVideoSizeMb;
-  await dbPool.end();
+  // The server suite shares one cached dbPool across files; ending it here
+  // breaks later integration files running in the same Vitest process.
 });
 
 describe.sequential("posts and social flows", () => {
@@ -781,6 +781,72 @@ describe.sequential("posts and social flows", () => {
     expect(listPostVideosSpy.mock.calls[0]?.[0]).toHaveLength(10);
     listPostImagesSpy.mockRestore();
     listPostVideosSpy.mockRestore();
+  });
+
+  it("keeps recommended feed candidate rows lightweight before page hydration", async () => {
+    const authorCookie = await loginWebUser("13800138182");
+    const authorId = await getCurrentUserId(authorCookie);
+    const longContent = "A".repeat(240);
+
+    await replaceMomentFeedWithSyntheticPosts(authorId, [
+      {
+        id: "moment_lightweight_candidate",
+        title: "Lightweight candidate row",
+        content: longContent,
+        shareCount: 4,
+        publishedAt: new Date("2026-04-08T12:00:00.000Z")
+      }
+    ]);
+
+    const feedResult = await postsRepo.listFeed({
+      tab: "recommended",
+      type: "moment",
+      page: 1,
+      limit: 10
+    });
+
+    const candidate = feedResult.items.find((item) => item.id === "moment_lightweight_candidate");
+    expect(candidate).toBeTruthy();
+    expect(candidate?.content).toBe(longContent.slice(0, 161));
+    expect(candidate?.contentPlainText).toBe(longContent.slice(0, 161));
+    expect(candidate?.contentHtml).toBeNull();
+  });
+
+  it("hydrates contentHtml for the current feed page without changing the response shape", async () => {
+    const authorCookie = await loginWebUser("13800138183");
+    const authorId = await getCurrentUserId(authorCookie);
+    const pageContentSpy = vi.spyOn(postsRepo, "listFeedPageContentHtmlByIds");
+
+    const created = await postsRepo.createPost({
+      authorId,
+      type: "moment",
+      title: "Hydrated feed item",
+      content: "Hydrated plain text",
+      contentHtml: "<p><strong>Hydrated</strong> content</p>",
+      contentPlainText: "Hydrated plain text",
+      contentCategoryId: null,
+      status: "published",
+      publishedAt: new Date("2099-04-09T12:00:00.000Z"),
+      coverImageFileId: null,
+      imageIds: [],
+      videoIds: []
+    });
+
+    const response = await app.request(`${API_ROUTES.circleFeed}?tab=latest&limit=1`, {
+      method: "GET"
+    });
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<{ id: string; contentHtml: string | null }>;
+    };
+
+    expect(pageContentSpy).toHaveBeenCalledTimes(1);
+    expect(pageContentSpy.mock.calls[0]?.[0]).toHaveLength(1);
+    expect(payload.items[0]).toMatchObject({
+      id: created?.id,
+      contentHtml: "<p><strong>Hydrated</strong> content</p>"
+    });
+    pageContentSpy.mockRestore();
   });
 
   it("returns edited published posts to pending when moderation stays on", async () => {

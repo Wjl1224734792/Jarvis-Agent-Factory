@@ -3,7 +3,10 @@ import { resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import type { postsRepo } from "./posts.repo";
 
-type PostRecord = Awaited<ReturnType<typeof postsRepo.getPostById>>;
+type PostCoverRecord = {
+  id: string;
+  coverImageFileId: string | null;
+};
 
 function serializeImage(image: Awaited<ReturnType<typeof postsRepo.getImageUploadById>>) {
   if (!image) {
@@ -97,7 +100,7 @@ export async function buildVideosByPostId(videos: Awaited<ReturnType<typeof post
   return videosByPostId;
 }
 
-export async function buildCoversByPostId(items: PostRecord[]) {
+export async function buildCoversByPostId(items: PostCoverRecord[]) {
   type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
   const rows: Row[] = [];
   const uniqueCoverFileIds = Array.from(

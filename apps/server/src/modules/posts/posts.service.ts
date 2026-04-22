@@ -35,6 +35,9 @@ type SerializedPostMedia = {
   mimeType: string;
   byteSize: number;
 };
+type PostFeedListItem = Awaited<ReturnType<typeof postsRepo.listFeed>>["items"][number];
+type PostLookupItem = NonNullable<Awaited<ReturnType<typeof postsRepo.getPostById>>>;
+type PostListSerializableItem = PostFeedListItem | PostLookupItem;
 const DEFAULT_FEED_PAGE = 1;
 const DEFAULT_FEED_LIMIT = 20;
 const MAX_FEED_LIMIT = 50;
@@ -96,7 +99,7 @@ function toViewerState(input: {
 }
 
 function serializePostListItem(
-  item: Awaited<ReturnType<typeof postsRepo.getPostById>>,
+  item: PostListSerializableItem | null,
   options: {
     cover: SerializedPostMedia | null;
     images: SerializedPostMedia[];
@@ -112,8 +115,8 @@ function serializePostListItem(
     id: item.id,
     type: isValidPostType(item.type) ? item.type : ("article" satisfies PostType),
     title: item.title,
-    contentPreview: toPreview(item.contentPlainText ?? item.content),
-    contentHtml: item.contentHtml,
+    contentPreview: toPreview(item.contentPlainText ?? ""),
+    contentHtml: "contentHtml" in item ? item.contentHtml ?? null : null,
     status: isValidPostStatus(item.status) ? item.status : ("pending" satisfies PostStatus),
     commentCount: item.commentCount,
     viewCount: item.viewCount ?? 0,
@@ -361,17 +364,20 @@ export const postsService = {
     const pagePostRecords = pagedItems
       .map((item) => postRecordById.get(item.id) ?? null)
       .filter((item): item is NonNullable<typeof item> => item !== null);
-    const [images, videos] = await Promise.all([
+    const [images, videos, pageContentHtmlRows] = await Promise.all([
       postsRepo.listPostImages(pagePostIds),
-      postsRepo.listPostVideos(pagePostIds)
+      postsRepo.listPostVideos(pagePostIds),
+      postsRepo.listFeedPageContentHtmlByIds(pagePostIds)
     ]);
     const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
       buildImagesByPostId(images),
       buildVideosByPostId(videos),
       buildCoversByPostId(pagePostRecords)
     ]);
+    const contentHtmlByPostId = new Map(pageContentHtmlRows.map((row) => [row.id, row.contentHtml ?? null]));
     const orderedItems = pagedItems.map((item) => ({
       ...item,
+      contentHtml: contentHtmlByPostId.get(item.id) ?? null,
       cover: coversByPostId.get(item.id) ?? null,
       images: imagesByPostId.get(item.id) ?? [],
       videos: videosByPostId.get(item.id) ?? []

@@ -123,7 +123,8 @@ beforeEach(async () => {
 });
 
 afterAll(async () => {
-  await dbPool.end();
+  // The server suite shares one cached dbPool across files; ending it here
+  // breaks later integration files running in the same Vitest process.
 });
 
 describe("models flows", () => {
