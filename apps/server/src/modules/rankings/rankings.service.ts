@@ -35,6 +35,64 @@ const DEFAULT_RANKINGS_PAGE = 1;
 const DEFAULT_RANKINGS_LIMIT = 20;
 const MAX_RANKINGS_LIMIT = 50;
 
+function buildViewer(currentUserId: string): CurrentUser {
+  return {
+    id: currentUserId,
+    role: "user"
+  };
+}
+
+function canInteractWithRanking(input: {
+  ranking: {
+    type: string;
+    status: string;
+    author: { id: string };
+  };
+  currentUser: CurrentUser;
+}) {
+  if (input.ranking.status === "published") {
+    return true;
+  }
+
+  return canManageRanking({
+    currentUser: input.currentUser,
+    rankingType: isValidRankingType(input.ranking.type) ? input.ranking.type : "community",
+    rankingAuthorId: input.ranking.author.id
+  });
+}
+
+function canInteractWithRatingTarget(input: {
+  item: {
+    authorId: string;
+    status: string;
+  };
+  ranking: {
+    type: string;
+    status: string;
+    author: { id: string };
+  };
+  currentUser: CurrentUser;
+}) {
+  const rankingType = isValidRankingType(input.ranking.type) ? input.ranking.type : "community";
+  const itemStatus = isValidRankingStatus(input.item.status)
+    ? input.item.status
+    : ("published" satisfies RatingTargetStatus);
+
+  return (
+    canInteractWithRanking({
+      ranking: input.ranking,
+      currentUser: input.currentUser
+    }) &&
+    canInspectRatingTarget({
+      currentUser: input.currentUser,
+      rankingType,
+      rankingAuthorId: input.ranking.author.id,
+      itemAuthorId: input.item.authorId,
+      itemStatus
+    })
+  );
+}
+
 function buildPublicUserSummary(
   user: { id: string; displayName: string; avatarFileId?: string | null; role: string },
   input?: {
@@ -1304,7 +1362,13 @@ export const rankingsService = {
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {
     const ranking = await rankingsRepo.getRankingById(rankingId);
-    if (!ranking) {
+    if (
+      !ranking ||
+      !canInteractWithRanking({
+        ranking,
+        currentUser: buildViewer(currentUserId)
+      })
+    ) {
       return null;
     }
 
@@ -1577,39 +1641,51 @@ export const rankingsService = {
     }
   ) {
     const existing = await rankingsRepo.getRatingTargetById(id);
-    if (!existing) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = existing ? await rankingsRepo.getRankingById(existing.rankingId) : null;
+    if (
+      !existing ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item: existing,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
-    await rankingsRepo.upsertRatingTargetReview({
+    let reviewComment = await rankingsRepo.upsertRatingTargetReview({
       ratingTargetId: id,
       authorId: currentUserId,
       rating: input.rating,
       content: input.content,
       status: "pending"
     });
-
-    const reviewComments = await rankingsRepo.listRatingTargetComments(id);
-    const myRootComment = reviewComments.find(
-      (comment) => comment.author.id === currentUserId && comment.parentCommentId === null
-    );
+    if (!reviewComment) {
+      return null;
+    }
 
     let finalStatus: "pending" | "visible" | "hidden" = "pending";
-    if (myRootComment) {
-      const moderation = await evaluateTextModeration({
-        mode: await siteSettingsService.getCommentModerationMode(),
-        domain: "comment",
-        entityId: myRootComment.id,
-        text: input.content
-      });
-      finalStatus =
-        moderation.action === "approve"
-          ? "visible"
-          : moderation.action === "reject"
-            ? "hidden"
-            : "pending";
-      if (finalStatus !== "pending") {
-        await rankingsRepo.updateRatingTargetCommentStatus(myRootComment.id, finalStatus);
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: reviewComment.id,
+      text: input.content
+    });
+    finalStatus =
+      moderation.action === "approve"
+        ? "visible"
+        : moderation.action === "reject"
+          ? "hidden"
+          : "pending";
+    if (finalStatus !== "pending") {
+      const moderated = await rankingsRepo.updateRatingTargetCommentStatus(reviewComment.id, finalStatus);
+      if (moderated) {
+        reviewComment = {
+          ...reviewComment,
+          status: moderated.status
+        };
       }
     }
 
@@ -1618,7 +1694,7 @@ export const rankingsService = {
         userId: existing.authorId,
         actorId: currentUserId,
         type: "post_commented",
-        commentId: myRootComment?.id ?? null,
+        commentId: reviewComment.id,
         target: {
           type: "rating_target",
           id: existing.id,
@@ -1635,7 +1711,17 @@ export const rankingsService = {
 
   async submitRatingTargetRating(id: string, currentUserId: string, rating: number) {
     const existing = await rankingsRepo.getRatingTargetById(id);
-    if (!existing) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = existing ? await rankingsRepo.getRankingById(existing.rankingId) : null;
+    if (
+      !existing ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item: existing,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
@@ -1699,7 +1785,17 @@ export const rankingsService = {
     input: { content: string; parentCommentId?: string; rating?: number }
   ) {
     const item = await rankingsRepo.getRatingTargetById(id);
-    if (!item) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = item ? await rankingsRepo.getRankingById(item.rankingId) : null;
+    if (
+      !item ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
@@ -1985,7 +2081,7 @@ export const rankingsService = {
           replyToCommentId: item.replyToCommentId,
           content: item.content,
           status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
-          rating: 5,
+          rating: item.rating ?? null,
           likeCount: item.likeCount ?? 0,
           reportCount: item.reportCount ?? 0,
           createdAt: item.createdAt.toISOString(),
@@ -2029,7 +2125,7 @@ export const rankingsService = {
       replyToCommentId: item.replyToCommentId,
       content: item.content,
       status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
-      rating: 5,
+      rating: item.rating ?? null,
       likeCount: item.likeCount ?? 0,
       reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),

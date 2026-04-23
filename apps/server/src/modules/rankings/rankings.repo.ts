@@ -823,10 +823,10 @@ export const rankingsRepo = {
         })
         .where(eq(ratingTargetCommentsTable.id, existing[0].id));
       await this.syncRatingTargetCommentCount(input.ratingTargetId);
-      return;
+      return this.getRatingTargetCommentById(existing[0].id);
     }
 
-    await this.createRatingTargetComment({
+    return this.createRatingTargetComment({
       ratingTargetId: input.ratingTargetId,
       authorId: input.authorId,
       parentCommentId: null,

@@ -234,12 +234,8 @@ export const reviewsService = {
       status
     });
 
-    const [item, summary] = await Promise.all([
-      reviewsRepo.getUserReview(model.id, userId),
-      this.listModelReviews(slug, userId)
-    ]);
-
-    if (!item || !summary) {
+    const item = await reviewsRepo.getUserReview(model.id, userId);
+    if (!item) {
       return null;
     }
     const moderation = await evaluateTextModeration({
@@ -254,8 +250,11 @@ export const reviewsService = {
       await this.updateReviewStatus(item.id, "hidden");
     }
 
-    const refreshed = await reviewsRepo.getUserReview(model.id, userId);
-    if (!refreshed) {
+    const [refreshed, refreshedSummary] = await Promise.all([
+      reviewsRepo.getUserReview(model.id, userId),
+      this.listModelReviews(slug, userId)
+    ]);
+    if (!refreshed || !refreshedSummary) {
       return null;
     }
 
@@ -291,7 +290,7 @@ export const reviewsService = {
           hasReported: false
         }
       },
-      summary: summary.summary
+      summary: refreshedSummary.summary
     };
   },
   async listAdminReviews() {
