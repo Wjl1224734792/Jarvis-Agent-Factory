@@ -91,7 +91,7 @@
 ### 环境变量
 
 改 env → **必须**同步：[`.env.example`](./.env.example)、根 [`README.md`](./README.md)、已提到该变量的子目录文档。  
-`CORS_ORIGIN` / `WEB_DEV_PORT` / `ADMIN_DEV_PORT` / `WEB_DEV_HOST` / `ADMIN_DEV_HOST` → 同步 README「CORS 与局域网访问」。
+`CORS_ORIGIN` / `CORS_ORIGINS` / `WEB_DEV_PORT` / `ADMIN_DEV_PORT` / `WEB_DEV_HOST` / `ADMIN_DEV_HOST` → 同步 README「CORS 与局域网访问」。
 
 ### 基础设施
 
@@ -105,9 +105,16 @@
 
 **CORS**
 
-- 挂载：`apps/server/src/app.ts`；白名单端口：`WEB_DEV_PORT`、`ADMIN_DEV_PORT`、`apps/server/src/lib/cors-origins.ts`。
-- 局域网 IP 访问前端 → 根 `.env` 配 `CORS_ORIGIN`；**操作说明** → [`README.md`](./README.md) 对应节。
+- 挂载：`apps/server/src/app.ts`；默认开发来源逻辑：`apps/server/src/lib/cors-origins.ts`。
+- 未显式配置 `CORS_ORIGIN` / `CORS_ORIGINS` 时，开发环境仅允许 `localhost`、`127.0.0.1`、私网 IPv4 的 `WEB_DEV_PORT` / `ADMIN_DEV_PORT`。
+- 非默认来源或生产访问 → 根 `.env` 配 `CORS_ORIGIN`；**操作说明** → [`README.md`](./README.md) 对应节。
 - 生产 **禁止** `CORS_ORIGIN=all`。
+
+**用户头像**
+
+- 契约：未设置头像时 `avatarUrl` 保持 `null` / 空值；不得在后端写入默认头像 URL。
+- 前端：真实用户头像空值应交给 `UserAvatar` fallback icon，不得回退到 seed / 随机头像图。
+- 示例/预览图可以使用 seed 图片，但不得混入真实用户资料默认策略。
 
 **OpenAPI**
 

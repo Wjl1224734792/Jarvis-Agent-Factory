@@ -26,5 +26,5 @@
 - 改协议：**先** `schemas`，**再**核对 `http-client` 与受影响 `apps/*`。
 - 改共享路由常量：核对 `shared`、`server`、`web`、`admin`。
 - 改表结构：至少执行 `bun run db:generate` 与 `bun run db:migrate`（按任务需要）。
-- 改 seed、连接串、缓存、对象存储等 **env 行为**：同步 [`.env.example`](../.env.example) 与根 [`README.md`](../README.md)。
+- 改 seed、连接串、缓存、对象存储等 **env 行为**：同步 [`.env.example`](../.env.example) 与根 [`README.md`](../README.md)；若牵连本地容器端口、账号、卷或服务名，同步 [`docker/README.md`](../docker/README.md)。
 - **禁止** 把某一应用的私有业务逻辑塞进 `packages/*`。

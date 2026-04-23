@@ -190,9 +190,9 @@ Stop-Process -Id <PID> -Force
 
 服务端（`apps/server`）使用 Hono 的 `cors` 中间件，并允许携带 Cookie（`credentials: true`）。
 
-- 未设置 `CORS_ORIGIN` 时：默认允许 `localhost` / `127.0.0.1` 对应的前端端口。
-- 使用局域网 IP 打开前端时，必须在根目录 `.env` 中配置 `CORS_ORIGIN`。
-- 修改 `CORS_ORIGIN` 后需重启 `dev:server`。
+- 未设置 `CORS_ORIGIN` / `CORS_ORIGINS` 时：开发环境默认允许 `localhost`、`127.0.0.1`、私网 IPv4（如 `192.168.x.x`、`10.x.x.x`、`172.16-31.x.x`、`169.254.x.x`）访问 `WEB_DEV_PORT` / `ADMIN_DEV_PORT`。
+- 生产环境或非上述来源访问时：在根目录 `.env` 中显式配置 `CORS_ORIGIN`（多个 Origin 用英文逗号分隔；`CORS_ORIGINS` 仅作兼容别名）。
+- 生产环境禁止 `CORS_ORIGIN=all`；修改 CORS 配置后需重启 `dev:server`。
 
 ## OpenAPI 文档
 
@@ -206,6 +206,12 @@ Stop-Process -Id <PID> -Force
 - `OPENAPI_ENABLED=true`：显式开启
 - `OPENAPI_ENABLED=false`：显式关闭
 - 未配置时：非生产默认开启，生产默认关闭
+
+## 用户头像默认策略
+
+- 用户未设置头像时，服务端返回 `avatarUrl = null`（或空值）。
+- 前端统一使用头像组件的 icon / fallback 展示，不生成或回退到随机 seed 头像。
+- `getAvatarImage` 仅用于示例内容或预览场景，不作为真实用户头像默认值。
 
 ## 日志与监控
 
