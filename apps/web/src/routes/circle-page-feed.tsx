@@ -1,7 +1,6 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
-import { IpLocationText } from "@/components/ip-location-text";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
@@ -124,7 +123,6 @@ function CircleFeedCard(props: {
               <ProfileLink className="block truncate hover:text-foreground" userId={item.author.id}>
                 {item.author.displayName}
               </ProfileLink>
-              <IpLocationText className="block" label={item.author.ipLocationLabel} />
             </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1">

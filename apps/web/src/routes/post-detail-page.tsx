@@ -225,11 +225,11 @@ export function PostDetailPage() {
                   </ProfileLink>
                   {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
                 </div>
-                <div className="text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                   {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
                   {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
+                  <IpLocationText label={item.author.ipLocationLabel} variant="plain" />
                 </div>
-                <IpLocationText label={item.author.ipLocationLabel} />
               </div>
             </div>
 

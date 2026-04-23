@@ -163,7 +163,7 @@ export function RatingTargetCommentCard(props: RatingTargetCommentCardProps) {
             ) : null}
             {props.comment.rating ? <RatingStars size="xs" tone="rating" value={props.comment.rating} /> : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
           </div>
 
           {isEditing ? (

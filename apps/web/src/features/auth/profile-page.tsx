@@ -396,6 +396,7 @@ export function ProfilePage() {
                 <IpLocationText
                   className="block text-white/88 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
                   label={ipLocationLabel}
+                  variant="profile"
                 />
                 {settings?.profileVisibility ? (
                   <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">

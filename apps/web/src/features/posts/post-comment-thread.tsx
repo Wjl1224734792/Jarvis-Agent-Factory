@@ -183,7 +183,7 @@ function RootCommentItem(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
           </div>
 
           {editingCommentId === props.comment.id ? (
@@ -377,7 +377,7 @@ function RootCommentItem(props: {
                             </span>
                           ) : null}
                           <CommentPublishedTime createdAt={reply.createdAt} />
-                          <IpLocationText label={reply.author.ipLocationLabel} />
+                          <IpLocationText label={reply.author.ipLocationLabel} variant="plain" />
                         </div>
                         {editingCommentId === reply.id ? (
                           <InlineCommentComposer

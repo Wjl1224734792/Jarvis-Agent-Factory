@@ -38,6 +38,7 @@ function createRanking(overrides: Partial<RankingListItem>): RankingListItem {
         rejectionReason: null,
         rank: 1,
         title: "Item",
+        createdAt: "2026-04-08T08:15:00.000Z",
         summary: null,
         imageFileId: null,
         imageUrl: null,

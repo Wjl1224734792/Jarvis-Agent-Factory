@@ -90,7 +90,6 @@ export function RankingDetailPage() {
                   <ProfileLink className="hover:text-foreground" userId={ranking.author.id}>
                     {ranking.author.displayName}
                   </ProfileLink>
-                  <IpLocationText label={ranking.author.ipLocationLabel} />
                 </div>
               </div>
 
@@ -104,7 +103,12 @@ export function RankingDetailPage() {
                     <div className="text-[0.68rem] uppercase tracking-[0.18em] text-muted-foreground">
                       {item.label}
                     </div>
-                    <div className="mt-1.5 text-base font-semibold text-foreground">{item.value}</div>
+                    <div className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-base font-semibold text-foreground">
+                      <span>{item.value}</span>
+                      {item.value === new Date(ranking.createdAt).toLocaleDateString("zh-CN") ? (
+                        <IpLocationText label={ranking.author.ipLocationLabel} variant="plain" />
+                      ) : null}
+                    </div>
                   </div>
                 ))}
               </div>

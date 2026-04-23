@@ -5,7 +5,6 @@ import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
-import { IpLocationText } from "@/components/ip-location-text";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -183,7 +182,6 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
             <ProfileLink className="hover:text-foreground" userId={item.author.id}>
               {item.author.displayName}
             </ProfileLink>
-            <IpLocationText label={item.author.ipLocationLabel} />
           </div>
 
           <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">

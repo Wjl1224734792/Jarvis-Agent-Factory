@@ -166,7 +166,7 @@ function ModelCommentCard(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} />
+            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
           </div>
 
           {isEditing ? (

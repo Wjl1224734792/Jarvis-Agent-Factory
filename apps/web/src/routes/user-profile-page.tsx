@@ -201,6 +201,7 @@ export function UserProfilePage() {
                 <IpLocationText
                   className="block text-white/88 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
                   label={profile.user.ipLocationLabel}
+                  variant="profile"
                 />
               </div>
             </div>

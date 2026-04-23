@@ -214,12 +214,12 @@ export function CirclePageDetail({
                     >
                       {selectedNote.author.displayName}
                     </ProfileLink>
-                    <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-muted-foreground">
                       {new Date(
                         selectedNote.publishedAt ?? selectedNote.createdAt
                       ).toLocaleDateString("zh-CN")}
+                      <IpLocationText label={selectedNote.author.ipLocationLabel} variant="plain" />
                     </div>
-                    <IpLocationText className="block" label={selectedNote.author.ipLocationLabel} />
                   </div>
                 </div>
 

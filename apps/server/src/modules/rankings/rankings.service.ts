@@ -310,6 +310,7 @@ async function serializeRatingTarget(
     commentCount: item.commentCount,
     likeCount: item.likeCount ?? 0,
     reportCount: item.reportCount ?? 0,
+    createdAt: item.createdAt.toISOString(),
     myRating: userRatingMap.get(item.id) ?? null,
     viewer: {
       canEdit: canManageRatingTarget({
@@ -1794,6 +1795,7 @@ export const rankingsService = {
         commentCount: payload.item.commentCount,
         likeCount: payload.item.likeCount,
         reportCount: payload.item.reportCount,
+        createdAt: payload.item.createdAt,
         myRating: payload.item.myRating,
         viewer: payload.item.viewer
       }
