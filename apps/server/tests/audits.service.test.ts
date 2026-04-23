@@ -143,7 +143,8 @@ describe("audits service", () => {
     const existing = buildAudit({
       id: "audit_brand_apply_1",
       domain: "brand_application",
-      entityId: "brand_apply_1"
+      entityId: "brand_apply_1",
+      status: "queued"
     });
     auditsRepoMock.getById.mockResolvedValue(existing);
     auditsRepoMock.getLatestByEntity.mockResolvedValue(existing);
@@ -253,6 +254,28 @@ describe("audits service", () => {
     });
 
     expect(result.kind).toBe("forbidden");
+    expect(auditsRepoMock.update).not.toHaveBeenCalled();
+  });
+
+  it("rejects manual decisions when the audit is not in a pending manual-review status", async () => {
+    const existing = buildAudit({
+      id: "audit_brand_apply_done",
+      domain: "brand_application",
+      entityId: "brand_apply_1",
+      status: "passed"
+    });
+    auditsRepoMock.getById.mockResolvedValue(existing);
+    auditsRepoMock.getLatestByEntity.mockResolvedValue(existing);
+
+    const { auditsService } = await import("../src/modules/audits/audits.service");
+    const result = await auditsService.applyManualDecision({
+      auditId: existing.id,
+      reviewerId: "admin_1",
+      status: "manual_passed"
+    });
+
+    expect(result.kind).toBe("forbidden");
+    expect(brandApplicationsServiceMock.updateStatus).not.toHaveBeenCalled();
     expect(auditsRepoMock.update).not.toHaveBeenCalled();
   });
 

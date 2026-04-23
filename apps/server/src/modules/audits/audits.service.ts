@@ -156,11 +156,15 @@ export const auditsService = {
       "aircraft_submission",
       "comment"
     ]);
+    const manualReviewPendingStatuses = new Set(["queued", "needs_manual_review"]);
     const existing = await auditsRepo.getById(input.auditId);
     if (!existing) {
       return { kind: "not_found" as const };
     }
     if (!supportedDomains.has(existing.domain)) {
+      return { kind: "forbidden" as const };
+    }
+    if (!manualReviewPendingStatuses.has(existing.status)) {
       return { kind: "forbidden" as const };
     }
     const latest = await auditsRepo.getLatestByEntity(existing.domain, existing.entityId);

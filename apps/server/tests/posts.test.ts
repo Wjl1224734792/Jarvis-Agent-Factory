@@ -15,6 +15,7 @@ import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
 import { resetIntegrationState } from "./test-state";
 import { loginAdmin, loginWebUser } from "./auth-test-helpers";
+import { restoreEnvValue, restoreEnvValues } from "./env-test-helpers";
 
 function expectDefined<T>(value: T | null | undefined): T {
   expect(value).toBeTruthy();
@@ -288,18 +289,18 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB =
-    originalUploadMaxReportImageSizeMb;
-  process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
-    originalUploadMaxPostVideoSizeMb;
+  restoreEnvValues({
+    UPLOAD_MAX_REPORT_IMAGE_SIZE_MB: originalUploadMaxReportImageSizeMb,
+    UPLOAD_MAX_POST_VIDEO_SIZE_MB: originalUploadMaxPostVideoSizeMb
+  });
   await resetAndSeedPostState();
 });
 
 afterAll(async () => {
-  process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB =
-    originalUploadMaxReportImageSizeMb;
-  process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB =
-    originalUploadMaxPostVideoSizeMb;
+  restoreEnvValues({
+    UPLOAD_MAX_REPORT_IMAGE_SIZE_MB: originalUploadMaxReportImageSizeMb,
+    UPLOAD_MAX_POST_VIDEO_SIZE_MB: originalUploadMaxPostVideoSizeMb
+  });
   // The server suite shares one cached dbPool across files; ending it here
   // breaks later integration files running in the same Vitest process.
 });
@@ -2215,7 +2216,7 @@ describe.sequential("posts and social flows", () => {
         }
       });
     } finally {
-      process.env.UPLOAD_MAX_REPORT_IMAGE_SIZE_MB = previousValue;
+      restoreEnvValue("UPLOAD_MAX_REPORT_IMAGE_SIZE_MB", previousValue);
     }
   });
 
@@ -2255,7 +2256,7 @@ describe.sequential("posts and social flows", () => {
         }
       });
     } finally {
-      process.env.UPLOAD_MAX_POST_VIDEO_SIZE_MB = previousValue;
+      restoreEnvValue("UPLOAD_MAX_POST_VIDEO_SIZE_MB", previousValue);
     }
   });
 

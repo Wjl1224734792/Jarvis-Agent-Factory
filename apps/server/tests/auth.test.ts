@@ -14,6 +14,7 @@ import {
 } from "./auth-test-helpers";
 import { resetIntegrationState } from "./test-state";
 import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
+import { restoreEnvValue, restoreEnvValues } from "./env-test-helpers";
 
 function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string) {
   expect(actualUrl).toBeTruthy();
@@ -100,16 +101,18 @@ beforeAll(async () => {
 });
 
 beforeEach(async () => {
-  process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
-  process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
-    originalUploadMaxAvatarImageSizeMb;
+  restoreEnvValues({
+    UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,
+    UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB: originalUploadMaxAvatarImageSizeMb
+  });
   await resetIntegrationState("auth");
 });
 
 afterAll(async () => {
-  process.env.UPLOAD_MAX_IMAGE_SIZE_MB = originalUploadMaxImageSizeMb;
-  process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB =
-    originalUploadMaxAvatarImageSizeMb;
+  restoreEnvValues({
+    UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,
+    UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB: originalUploadMaxAvatarImageSizeMb
+  });
   // The server suite shares one cached dbPool across files; ending it here
   // breaks later integration files running in the same Vitest process.
 });
@@ -177,9 +180,11 @@ describe("auth flows", () => {
     try {
       expect(() => resolveCorsOrigin()).toThrow(/CORS_ORIGIN=all/i);
     } finally {
-      process.env.NODE_ENV = previousNodeEnv;
-      process.env.CORS_ORIGIN = previousCorsOrigin;
-      process.env.CORS_ORIGINS = previousCorsOrigins;
+      restoreEnvValues({
+        NODE_ENV: previousNodeEnv,
+        CORS_ORIGIN: previousCorsOrigin,
+        CORS_ORIGINS: previousCorsOrigins
+      });
     }
   });
 
@@ -623,7 +628,7 @@ describe("auth flows", () => {
         }
       });
     } finally {
-      process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB = previousValue;
+      restoreEnvValue("UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB", previousValue);
     }
   });
 
@@ -829,7 +834,7 @@ describe("auth flows", () => {
       expect(cookieHeaders.length).toBeGreaterThan(0);
       expect(cookieHeaders.every((cookie) => cookie.includes("Secure"))).toBe(true);
     } finally {
-      process.env.NODE_ENV = previousNodeEnv ?? "test";
+      restoreEnvValue("NODE_ENV", previousNodeEnv);
     }
   });
 
