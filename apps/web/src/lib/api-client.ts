@@ -9,10 +9,58 @@ type WebImportMetaEnv = {
 };
 const rawBaseUrl = (import.meta.env as WebImportMetaEnv).VITE_WEB_API_BASE_URL;
 
-const resolvedBaseUrl =
-  typeof rawBaseUrl === "string" && rawBaseUrl.trim().length > 0
-    ? rawBaseUrl.trim()
-    : fallbackBaseUrl;
+function isLoopbackHost(hostname: string) {
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+}
+
+function isPrivateIpv4(hostname: string) {
+  const parts = hostname.split(".").map((part) => Number.parseInt(part, 10));
+  if (parts.length !== 4 || parts.some((part) => !Number.isFinite(part) || part < 0 || part > 255)) {
+    return false;
+  }
+
+  if (parts[0] === 10) {
+    return true;
+  }
+  if (parts[0] === 192 && parts[1] === 168) {
+    return true;
+  }
+  return parts[0] === 172 && parts[1] >= 16 && parts[1] <= 31;
+}
+
+function isLocalDevHost(hostname: string) {
+  return isLoopbackHost(hostname) || isPrivateIpv4(hostname);
+}
+
+export function resolveWebApiBaseUrl(
+  configuredBaseUrl: string | undefined,
+  currentLocation?: Pick<Location, "hostname">
+) {
+  const baseUrl =
+    typeof configuredBaseUrl === "string" && configuredBaseUrl.trim().length > 0
+      ? configuredBaseUrl.trim()
+      : fallbackBaseUrl;
+
+  const pageHostname =
+    currentLocation?.hostname ?? (typeof window === "undefined" ? "" : window.location.hostname);
+  if (!pageHostname) {
+    return baseUrl;
+  }
+
+  try {
+    const parsed = new URL(baseUrl);
+    if (!isLoopbackHost(parsed.hostname) || !isLocalDevHost(pageHostname)) {
+      return baseUrl;
+    }
+
+    parsed.hostname = pageHostname;
+    return parsed.toString().replace(/\/$/, "");
+  } catch {
+    return baseUrl;
+  }
+}
+
+const resolvedBaseUrl = resolveWebApiBaseUrl(rawBaseUrl);
 
 const NON_RETRIABLE_STATUS_CODES = new Set([400, 401, 403, 404, 409, 422]);
 const NON_RETRIABLE_ERROR_CODES = new Set([

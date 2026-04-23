@@ -1,4 +1,4 @@
-﻿import { isChinaMainlandMobilePhone } from "@feijia/schemas";
+﻿import { isChinaMainlandMobilePhone, type UserSummary } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
 import { resolveSafeRedirectPath } from "@feijia/shared";
@@ -64,6 +64,15 @@ export function LoginPage() {
     fallbackPath: APP_ROUTES.feedHome,
     blockedPaths: [APP_ROUTES.webLogin]
   });
+
+  async function syncAuthenticatedUser(fallbackUser: UserSummary) {
+    const refreshedUser = await apiClient.getCurrentUser();
+    if (!refreshedUser) {
+      throw new Error("登录状态同步失败，请稍后重试。");
+    }
+
+    setAuthenticated(refreshedUser ?? fallbackUser);
+  }
 
   async function requestLoginSmsCode() {
     setSubmitError(null);
@@ -207,9 +216,9 @@ export function LoginPage() {
                         phone,
                         smsCode: smsFlow.smsCode
                       })
-                      .then(response => {
+                      .then(async response => {
                         if (response.kind === "authenticated") {
-                          setAuthenticated(response.user);
+                          await syncAuthenticatedUser(response.user);
                           void navigate(redirectTo ?? APP_ROUTES.feedHome, {
                             replace: true
                           });
@@ -372,7 +381,7 @@ export function LoginPage() {
                         avatarFileId: null
                       })
                       .then(async response => {
-                        setAuthenticated(response.user);
+                        await syncAuthenticatedUser(response.user);
 
                         if (selectedAvatarFile) {
                           try {
@@ -380,8 +389,7 @@ export function LoginPage() {
                             await apiClient.updateCurrentUserProfile({
                               avatarFileId: uploaded.item.id
                             });
-                            const refreshedUser = await apiClient.getCurrentUser();
-                            setAuthenticated(refreshedUser ?? response.user);
+                            await syncAuthenticatedUser(response.user);
                           } catch (avatarError) {
                             setSubmitError(
                               avatarError instanceof Error

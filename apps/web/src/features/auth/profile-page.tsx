@@ -12,7 +12,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IpLocationText } from "@/components/ip-location-text";
 import { apiClient } from "../../lib/api-client";
-import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
+import { resolveUserAvatarSrc } from "../../lib/avatar-url";
+import { getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 import { ContentFeedListRow, type ContentItem } from "./profile-content-card";
 import {
@@ -276,8 +277,7 @@ export function ProfilePage() {
   const displayName = settings?.displayName ?? user.displayName;
   const ipLocationLabel = profile?.user.ipLocationLabel ?? settings?.ipLocationLabel ?? user.ipLocationLabel ?? null;
   const userId = user.id;
-  const avatarSrc =
-    settings?.avatarUrl?.trim() || user.avatarUrl?.trim() || getAvatarImage(userId);
+  const avatarSrc = resolveUserAvatarSrc(settings?.avatarUrl) ?? resolveUserAvatarSrc(user.avatarUrl);
   const coverImageUrl = settings?.coverImageUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
   const overviewMetrics = buildSelfProfileOverviewMetrics({

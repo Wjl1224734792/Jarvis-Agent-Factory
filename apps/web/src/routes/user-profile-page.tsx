@@ -15,7 +15,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuthStore } from "../features/auth/auth-store";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
-import { getAvatarImage, getProfileBanner } from "../lib/aviation-media";
+import { resolveUserAvatarSrc } from "../lib/avatar-url";
+import { getProfileBanner } from "../lib/aviation-media";
 import { ContentFeedListRow } from "../features/auth/profile-content-card";
 import { isFavoriteItem } from "../features/auth/profile-content-filters";
 import { getVisitorProfileRelationshipSummary } from "../features/auth/profile-overview";
@@ -155,7 +156,7 @@ export function UserProfilePage() {
     }
   }
 
-  const avatarSrc = profile.user.avatarUrl ?? getAvatarImage(profile.user.id);
+  const avatarSrc = resolveUserAvatarSrc(profile.user.avatarUrl);
   const bioText = profile.viewer.canViewProfile
     ? "这里展示对方当前开放给你的资料和内容。"
     : "这位飞友将公开资料设为了受限状态，你当前只能看到基础身份信息。";

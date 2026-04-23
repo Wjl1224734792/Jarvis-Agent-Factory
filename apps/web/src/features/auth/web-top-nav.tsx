@@ -19,7 +19,7 @@ import {
   shouldShowCompactSearchBar
 } from "../../lib/search-navigation";
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "../../hooks/use-match-media";
-import { getAvatarImage } from "../../lib/aviation-media";
+import { resolveUserAvatarSrc } from "../../lib/avatar-url";
 import { cn } from "../../lib/utils";
 import { WEB_ROUTE_PATHS } from "../../lib/web-routes";
 import { useAuthStore } from "./auth-store";
@@ -456,7 +456,7 @@ export function WebTopNav({
                             className="!size-9 shrink-0 rounded-full"
                             displayName={authUser.displayName}
                             size="default"
-                            src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
+                            src={resolveUserAvatarSrc(authUser.avatarUrl)}
                           />
                           <span className="sr-only">个人主页</span>
                         </Link>
@@ -471,7 +471,7 @@ export function WebTopNav({
                           className="size-9 shrink-0"
                           displayName={authUser.displayName}
                           size="default"
-                          src={authUser.avatarUrl?.trim() ? authUser.avatarUrl : getAvatarImage(authUser.id)}
+                          src={resolveUserAvatarSrc(authUser.avatarUrl)}
                         />
                         <span className="min-w-0 flex-1 truncate">{authUser.displayName}</span>
                       </Link>

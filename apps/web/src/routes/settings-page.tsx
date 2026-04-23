@@ -27,7 +27,7 @@ import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import {
@@ -60,11 +60,6 @@ const visibilityOptions: ProfileVisibility[] = ["community", "followers", "priva
 const MAX_BIO_LENGTH = 50;
 
 type EditableProfileField = "displayName" | "bio" | "profileVisibility" | null;
-
-function trimUrl(value: string | null | undefined): string | undefined {
-  const next = value?.trim();
-  return next ? next : undefined;
-}
 
 function SettingsPageSkeleton() {
   return (
@@ -243,10 +238,9 @@ export function SettingsPage() {
     }
 
     return (
-      trimUrl(draft.avatarUrl) ??
-      trimUrl(profileItem?.avatarUrl) ??
-      trimUrl(user.avatarUrl ?? undefined) ??
-      getAvatarImage(user.id)
+      resolveUserAvatarSrc(draft.avatarUrl) ??
+      resolveUserAvatarSrc(profileItem?.avatarUrl) ??
+      resolveUserAvatarSrc(user.avatarUrl)
     );
   }, [draft.avatarUrl, profileItem?.avatarUrl, user]);
 

@@ -11,9 +11,10 @@ import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { IpLocationText } from "@/components/ip-location-text";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
-import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
+import { getEditorialImage } from "@/lib/aviation-media";
 import { buildCircleMediaItems, getLoopedNextIndex, getLoopedPrevIndex } from "./circle-page-helpers";
 
 type CirclePostDetailResponse = Awaited<ReturnType<typeof apiClient.getPostDetail>>;
@@ -201,7 +202,7 @@ export function CirclePageDetail({
                     <Avatar size="lg">
                       <AvatarImage
                         alt={selectedNote.author.displayName}
-                        src={selectedNote.author.avatarUrl ?? getAvatarImage(selectedNote.author.id)}
+                        src={resolveUserAvatarSrc(selectedNote.author.avatarUrl)}
                       />
                       <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
                     </Avatar>

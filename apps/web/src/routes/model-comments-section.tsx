@@ -21,7 +21,7 @@ import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getVisibleRootComments, shouldShowCommentCollapseToggle } from "@/features/posts/comment-collapse-helpers";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { apiClient } from "@/lib/api-client";
 
 type ModelComment = Awaited<ReturnType<typeof apiClient.listModelComments>>["items"][number];
@@ -143,7 +143,7 @@ function ModelCommentCard(props: {
           <Avatar className="mt-0.5" size="sm">
             <AvatarImage
               alt={props.comment.author.displayName}
-              src={props.comment.author.avatarUrl ?? getAvatarImage(props.comment.author.id)}
+              src={resolveUserAvatarSrc(props.comment.author.avatarUrl)}
             />
             <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>

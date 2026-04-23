@@ -8,7 +8,7 @@ import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
@@ -114,7 +114,10 @@ function CircleFeedCard(props: {
         <div className="flex items-center justify-between gap-2 text-[0.72rem] text-foreground/58">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="size-6" size="sm">
-              <AvatarImage alt={item.author.displayName} src={item.author.avatarUrl ?? getAvatarImage(item.author.id)} />
+              <AvatarImage
+                alt={item.author.displayName}
+                src={resolveUserAvatarSrc(item.author.avatarUrl)}
+              />
               <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">

@@ -15,7 +15,7 @@ import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 import {
@@ -163,7 +163,7 @@ function RootCommentItem(props: {
           <Avatar className="mt-0.5" size="sm">
             <AvatarImage
               alt={props.comment.author.displayName}
-              src={getAvatarImage(props.comment.author.id)}
+              src={resolveUserAvatarSrc(props.comment.author.avatarUrl)}
             />
             <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
@@ -349,7 +349,10 @@ function RootCommentItem(props: {
                     <div className="flex items-start gap-3">
                       <ProfileLink userId={reply.author.id}>
                         <Avatar className="mt-0.5" size="sm">
-                          <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
+                          <AvatarImage
+                            alt={reply.author.displayName}
+                            src={resolveUserAvatarSrc(reply.author.avatarUrl)}
+                          />
                           <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                       </ProfileLink>

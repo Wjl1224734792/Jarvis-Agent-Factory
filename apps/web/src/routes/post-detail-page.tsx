@@ -32,7 +32,7 @@ import {
   patchPostViewCount
 } from "../features/posts/post-query-cache";
 import { apiClient } from "../lib/api-client";
-import { getAvatarImage } from "../lib/aviation-media";
+import { resolveUserAvatarSrc } from "../lib/avatar-url";
 import { shouldRecordSessionView } from "../lib/view-session";
 
 function splitContent(content: string) {
@@ -211,7 +211,10 @@ export function PostDetailPage() {
             <div className="flex min-w-0 items-center gap-3">
               <ProfileLink userId={item.author.id}>
                 <Avatar className="size-11" size="lg">
-                  <AvatarImage alt={item.author.displayName} src={getAvatarImage(item.author.id)} />
+                  <AvatarImage
+                    alt={item.author.displayName}
+                    src={resolveUserAvatarSrc(item.author.avatarUrl)}
+                  />
                   <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
                 </Avatar>
               </ProfileLink>
