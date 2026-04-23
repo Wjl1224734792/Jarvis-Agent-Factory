@@ -4,7 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app } from "../src/app";
-import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
+import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-test-helpers";
 
 function extractCookies(response: Response): string {
   const setCookies = response.headers.getSetCookie();
@@ -62,14 +62,16 @@ async function loginUser(phone: string) {
       captchaCode: captchaAnswer
     })
   });
+  expect(smsResponse.status).toBe(200);
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsCode = await resolveSmsCodeForTests(phone, smsPayload);
 
   const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
     method: "POST",
     headers: { "content-type": "application/json" },
     body: JSON.stringify({
       phone,
-      smsCode: smsPayload.mockCode
+      smsCode
     })
   });
 

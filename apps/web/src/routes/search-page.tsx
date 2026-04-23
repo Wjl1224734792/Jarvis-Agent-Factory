@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
-import { Virtuoso } from "react-virtuoso";
+import { VirtualFeed } from "@/components/virtual-feed";
 import { apiClient } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 
@@ -258,16 +258,13 @@ export function SearchPage() {
             </div>
           ) : null}
 
-          <section className="overflow-hidden rounded-none bg-white">
+          <section className="overflow-hidden rounded-none">
             {activeItems.length > 0 ? (
-              <Virtuoso
-                className="virtual-feed"
-                computeItemKey={(_, item) => `${item.type}-${item.id}`}
+              <VirtualFeed
+                className="overflow-hidden rounded-none border-0 bg-white"
                 data={activeItems}
-                increaseViewportBy={{ top: 240, bottom: 360 }}
-                itemContent={(index, item) => (
-                  <SearchResultRow index={index} item={item} total={activeItems.length} />
-                )}
+                itemKey={(item) => `${item.type}-${item.id}`}
+                renderItem={(item, index) => <SearchResultRow index={index} item={item} total={activeItems.length} />}
                 useWindowScroll
               />
             ) : null}

@@ -992,6 +992,20 @@ describe("auth flows", () => {
       })
     });
     expect(newPasswordLoginResponse.status).toBe(200);
+    const newPasswordAdminCookie = extractCookies(newPasswordLoginResponse);
+
+    const restorePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
+      method: "POST",
+      headers: {
+        cookie: newPasswordAdminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        currentPassword: "Admin#456",
+        newPassword: "Admin#123"
+      })
+    });
+    expect(restorePasswordResponse.status).toBe(200);
   });
 
   it("records session ip/device metadata and exposes recent sessions to admin", async () => {

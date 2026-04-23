@@ -57,8 +57,12 @@ function resolveG2Chunk(subpath: string) {
     return "charts-runtime-vendor";
   }
 
-  if (matchesSubpath(subpath, ["esm/component/axis", "lib/component/axis"])) {
-    return "charts-axis-vendor";
+  if (matchesSubpath(subpath, ["esm/component/axisArc", "esm/component/axisRadar", "lib/component/axisArc", "lib/component/axisRadar"])) {
+    return "charts-axis-polar-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/axis", "esm/component/axisX", "esm/component/axisY", "lib/component/axis", "lib/component/axisX", "lib/component/axisY"])) {
+    return "charts-axis-cartesian-vendor";
   }
 
   if (matchesSubpath(subpath, ["esm/component/legend", "lib/component/legend"])) {
@@ -67,6 +71,10 @@ function resolveG2Chunk(subpath: string) {
 
   if (matchesSubpath(subpath, ["esm/component/scrollbar", "esm/component/slider", "lib/component/scrollbar", "lib/component/slider"])) {
     return "charts-control-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/component/constant", "esm/component/utils", "esm/component/title", "lib/component/constant", "lib/component/utils", "lib/component/title"])) {
+    return "charts-component-runtime-vendor";
   }
 
   if (matchesSubpath(subpath, ["esm/component/", "esm/label-transform/", "lib/component/", "lib/label-transform/"])) {
@@ -83,6 +91,14 @@ function resolveG2Chunk(subpath: string) {
 
   if (matchesSubpath(subpath, ["esm/mark/", "esm/shape/", "esm/theme/", "esm/palette/", "lib/mark/", "lib/shape/", "lib/theme/", "lib/palette/"])) {
     return "charts-render-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/utils/", "lib/utils/"])) {
+    return "charts-utils-vendor";
+  }
+
+  if (matchesSubpath(subpath, ["esm/lib/", "lib/"])) {
+    return "charts-lib-vendor";
   }
 
   return "charts-core-vendor";

@@ -3,7 +3,7 @@ import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../src/app";
 import { formatPublicIpLocationLabel } from "../src/lib/ip-location";
-import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
+import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-test-helpers";
 import { resetIntegrationState } from "./test-state";
 
 function extractCookies(response: Response): string {
@@ -80,6 +80,7 @@ async function loginWebUser(
   });
   expect(smsResponse.status).toBe(200);
   const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsCode = await resolveSmsCodeForTests(phone, smsPayload);
 
   const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
     method: "POST",
@@ -89,7 +90,7 @@ async function loginWebUser(
     },
     body: JSON.stringify({
       phone,
-      smsCode: smsPayload.mockCode
+      smsCode
     })
   });
 

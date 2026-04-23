@@ -11,3 +11,22 @@ export async function readCaptchaAnswerForTests(challengeId: string): Promise<st
   const record = JSON.parse(raw) as { code: string };
   return record.code;
 }
+
+/** Falls back to Redis when the SMS provider doesn't expose the mock code inline. */
+export async function resolveSmsCodeForTests(
+  phone: string,
+  payload: { mockCode?: string }
+): Promise<string> {
+  if (payload.mockCode) {
+    return payload.mockCode;
+  }
+
+  await ensureRedisConnected();
+  const raw = await redis.get(`sms:${phone}`);
+  if (!raw) {
+    throw new Error(`missing sms code for ${phone}`);
+  }
+
+  const record = JSON.parse(raw) as { code: string };
+  return record.code;
+}

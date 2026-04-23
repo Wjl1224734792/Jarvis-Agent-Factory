@@ -1,8 +1,16 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Select, Space } from "antd";
-import { useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  lazy,
+  startTransition,
+  useEffect,
+  useEffectEvent,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import { useSearchParams } from "react-router-dom";
-import { AdminRichTextEditor } from "../../components/admin-rich-text-editor";
 import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
@@ -15,6 +23,25 @@ import {
 
 type UploadedMediaAsset = { id: string; url: string; fileName?: string };
 
+type IdleDeadline = {
+  didTimeout: boolean;
+  timeRemaining: () => number;
+};
+
+type IdleCapableWindow = Window & {
+  requestIdleCallback?: (
+    callback: (deadline: IdleDeadline) => void,
+    options?: { timeout: number }
+  ) => number;
+  cancelIdleCallback?: (handle: number) => void;
+};
+
+const LazyAdminRichTextEditor = lazy(() =>
+  import("../../components/admin-rich-text-editor").then((module) => ({
+    default: module.AdminRichTextEditor
+  }))
+);
+
 function createMediaAssetList(
   items: Array<{ id: string; url: string; fileName: string }> | undefined,
   skipFirst = false
@@ -22,6 +49,19 @@ function createMediaAssetList(
   return (items ?? [])
     .slice(skipFirst ? 1 : 0)
     .map((item) => ({ id: item.id, url: item.url, fileName: item.fileName }));
+}
+
+function RichTextEditorFallback(props: { loading: boolean; onLoad?: () => void }) {
+  return (
+    <div aria-busy={props.loading} className="admin-empty">
+      <Space align="center" direction="vertical" size={8}>
+        <Button loading={props.loading} onClick={props.onLoad} type="default">
+          {props.loading ? "正在加载编辑器" : "加载富文本编辑器"}
+        </Button>
+        <span>页面主体已可操作，富文本工具会在需要时按需加载。</span>
+      </Space>
+    </div>
+  );
 }
 
 export function OfficialArticleEditorPage() {
@@ -50,10 +90,12 @@ export function OfficialArticleEditorPage() {
   const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
+  const [shouldLoadEditor, setShouldLoadEditor] = useState(false);
   const [editorHtml, setEditorHtml] = useState("");
   const [editorText, setEditorText] = useState("");
   const watchedTitle = Form.useWatch("title", form);
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
+  const editorViewportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (!editId) {
@@ -84,6 +126,57 @@ export function OfficialArticleEditorPage() {
     return categoryOptions.find((item) => item.value === watchedCategoryId)?.label ?? "未选择分类";
   }, [categoryOptions, watchedCategoryId]);
   const previewImageUrl = coverImage?.url ?? uploadedImages[0]?.url ?? null;
+
+  const requestEditorLoad = useEffectEvent(() => {
+    startTransition(() => {
+      setShouldLoadEditor(true);
+    });
+  });
+
+  useEffect(() => {
+    if (shouldLoadEditor) {
+      return undefined;
+    }
+
+    const idleWindow = window as IdleCapableWindow;
+    const editorViewport = editorViewportRef.current;
+    let observer: IntersectionObserver | undefined;
+    let idleHandle: number | undefined;
+    let timeoutHandle: number | undefined;
+
+    if (editorViewport && "IntersectionObserver" in window) {
+      observer = new IntersectionObserver(
+        (entries) => {
+          if (entries.some((entry) => entry.isIntersecting)) {
+            requestEditorLoad();
+            observer?.disconnect();
+          }
+        },
+        { rootMargin: "200px 0px" }
+      );
+      observer.observe(editorViewport);
+    }
+
+    if (idleWindow.requestIdleCallback) {
+      idleHandle = idleWindow.requestIdleCallback(() => {
+        requestEditorLoad();
+      }, { timeout: 1200 });
+    } else {
+      timeoutHandle = window.setTimeout(() => {
+        requestEditorLoad();
+      }, 1200);
+    }
+
+    return () => {
+      observer?.disconnect();
+      if (idleHandle !== undefined) {
+        idleWindow.cancelIdleCallback?.(idleHandle);
+      }
+      if (timeoutHandle !== undefined) {
+        window.clearTimeout(timeoutHandle);
+      }
+    };
+  }, [requestEditorLoad, shouldLoadEditor]);
 
   function removeMediaAsset(assetUrl: string, kind: "image" | "video") {
     const nextHtml = removeMediaFromHtml(editorHtml, assetUrl);
@@ -264,7 +357,10 @@ export function OfficialArticleEditorPage() {
               <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" />
             </Form.Item>
             <Form.Item label="正文" required>
-              <AdminRichTextEditor
+              <div ref={editorViewportRef}>
+                {shouldLoadEditor ? (
+                  <Suspense fallback={<RichTextEditorFallback loading />}>
+                    <LazyAdminRichTextEditor
                 onChange={(value) => {
                   setEditorHtml(value.html);
                   setEditorText(value.plainText);
@@ -273,7 +369,17 @@ export function OfficialArticleEditorPage() {
                 onUploadVideo={uploadVideos}
                 placeholder="请输入官方文章正文..."
                 value={editorHtml}
-              />
+                    />
+                  </Suspense>
+                ) : (
+                  <RichTextEditorFallback
+                    loading={false}
+                    onLoad={() => {
+                      requestEditorLoad();
+                    }}
+                  />
+                )}
+              </div>
             </Form.Item>
             <div className="admin-uploader">
               <div>

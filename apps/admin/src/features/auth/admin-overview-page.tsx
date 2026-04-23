@@ -65,46 +65,48 @@ type IdleCapableWindow = Window & {
   cancelIdleCallback?: (handle: number) => void;
 };
 
-const loadOverviewCharts = () => import("./admin-overview-charts");
+const loadTrendCharts = () => import("./admin-overview-trend-charts");
+const loadContentCharts = () => import("./admin-overview-content-charts");
+const loadModerationCharts = () => import("./admin-overview-moderation-charts");
 
 const RegistrationTrendChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadTrendCharts().then((module) => ({
     default: module.RegistrationTrendChart
   }))
 );
 
 const ContentMixChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadContentCharts().then((module) => ({
     default: module.ContentMixChart
   }))
 );
 
 const ContentMixRoseChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadContentCharts().then((module) => ({
     default: module.ContentMixRoseChart
   }))
 );
 
 const ActivityTrendChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadTrendCharts().then((module) => ({
     default: module.ActivityTrendChart
   }))
 );
 
 const ModerationFunnelChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadModerationCharts().then((module) => ({
     default: module.ModerationFunnelChart
   }))
 );
 
 const ModerationStatusChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadModerationCharts().then((module) => ({
     default: module.ModerationStatusChart
   }))
 );
 
 const ModerationDomainRadarChart = lazy(() =>
-  loadOverviewCharts().then((module) => ({
+  loadModerationCharts().then((module) => ({
     default: module.ModerationDomainRadarChart
   }))
 );

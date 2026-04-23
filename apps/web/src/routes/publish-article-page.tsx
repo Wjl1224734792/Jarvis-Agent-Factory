@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import { PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
 import { PublishShell } from "@/components/publish-shell";
@@ -10,6 +10,7 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import type { RichTextEditor as RichTextEditorExport } from "@/components/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import {
@@ -23,6 +24,10 @@ import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
+import {
+  resolveDeferredArticleEditorView,
+  shouldAutoActivateDeferredArticleEditor
+} from "./publish-article-page-helpers";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
 const ARTICLE_SUMMARY_MAX_LENGTH = 100;
@@ -53,11 +58,14 @@ type ArticleDraftData = {
   uploadedVideos: UploadedVideo[];
 };
 
-const RichTextEditor = lazy(() =>
-  import("@/components/rich-text-editor").then((module) => ({
-    default: module.RichTextEditor
-  }))
-);
+type RichTextEditorComponent = typeof RichTextEditorExport;
+
+let richTextEditorLoader: Promise<RichTextEditorComponent> | null = null;
+
+function loadRichTextEditor() {
+  richTextEditorLoader ??= import("@/components/rich-text-editor").then((module) => module.RichTextEditor);
+  return richTextEditorLoader;
+}
 
 function escapeHtml(input: string) {
   return input
@@ -90,10 +98,42 @@ function replaceLocalMediaUrls(html: string, mapping: Record<string, string>) {
   return Object.entries(mapping).reduce((current, [from, to]) => current.split(from).join(to), html);
 }
 
-function ArticleEditorFallback() {
+function ArticleEditorLoadingFallback() {
   return (
     <div className="rounded-[0.9rem] border border-border/70 bg-surface-1 px-4 py-6 text-sm text-muted-foreground">
       正在加载编辑器...
+    </div>
+  );
+}
+
+function DeferredArticleEditorFallback(props: {
+  canAutoLoad: boolean;
+  hasDraft: boolean;
+  isLoading: boolean;
+  onLoad: () => void;
+}) {
+  return (
+    <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <div className="text-sm font-medium text-foreground">
+            {props.hasDraft ? "继续编辑正文" : "加载富文本编辑器"}
+          </div>
+          <p className="text-sm text-muted-foreground">
+            {props.hasDraft
+              ? "已恢复草稿正文，点击后可以继续编辑。"
+              : "页面壳体先可用，开始写正文时再异步加载编辑器。"}
+          </p>
+          {props.canAutoLoad ? (
+            <p className="text-xs text-muted-foreground">
+              检测到你已经在编辑已有内容，编辑器会自动补齐加载。
+            </p>
+          ) : null}
+        </div>
+        <Button disabled={props.isLoading} onClick={props.onLoad} type="button" variant="outline">
+          {props.isLoading ? "正在加载编辑器..." : "点击加载编辑器"}
+        </Button>
+      </div>
     </div>
   );
 }
@@ -125,6 +165,12 @@ export function PublishArticlePage() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [isEditorActivated, setIsEditorActivated] = useState(false);
+  const [isEditorPreloadRequested, setIsEditorPreloadRequested] = useState(false);
+  const [isEditorLoading, setIsEditorLoading] = useState(false);
+  const [editorLoadError, setEditorLoadError] = useState<string | null>(null);
+  const [RichTextEditor, setRichTextEditor] = useState<RichTextEditorComponent | null>(null);
+  const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const isUploadingMedia = false;
   const previewAssetsRef = useRef<{
     coverImage: UploadedImage | null;
@@ -153,13 +199,20 @@ export function PublishArticlePage() {
 
   useEffect(() => {
     if (editId) {
+      setHasRestoredDraftSnapshot(false);
       return;
     }
+
+    setHasRestoredDraftSnapshot(false);
+
     void loadDraftSnapshot<ArticleDraftData>(ARTICLE_DRAFT_KEY)
       .then((snapshot) => {
         if (!snapshot) {
           return;
         }
+
+        setHasRestoredDraftSnapshot(true);
+
         const parsed = snapshot.data;
         const restoredCoverImage = restorePersistedPreviewAsset(parsed.coverImage ?? null);
         const restoredImageEntries = restorePersistedPreviewAssets(parsed.uploadedImages ?? []);
@@ -243,9 +296,75 @@ export function PublishArticlePage() {
     () => [summary.trim(), extractPlainText(editorHtml)].filter(Boolean).join("\n\n"),
     [editorHtml, summary]
   );
+  const hasEditorDraft = editorHtml.trim().length > 0;
+  const shouldAutoActivateEditor = shouldAutoActivateDeferredArticleEditor({
+    hasRestoredDraft: hasRestoredDraftSnapshot,
+    isEditingExistingArticle: Boolean(editId)
+  });
+  const hasDeferredEditorContext = hasRestoredDraftSnapshot || hasEditorDraft || Boolean(editId);
   const coverUrl = coverImage?.url ?? null;
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
+
+  const editorView = resolveDeferredArticleEditorView({
+    hasEditorComponent: Boolean(RichTextEditor),
+    isEditorActivated,
+    isEditorLoading
+  });
+
+  const requestEditorPreload = useEffectEvent(() => {
+    if (RichTextEditor || isEditorPreloadRequested) {
+      return;
+    }
+
+    setEditorLoadError(null);
+    setIsEditorPreloadRequested(true);
+  });
+
+  const activateEditor = useEffectEvent(() => {
+    setIsEditorActivated(true);
+    requestEditorPreload();
+  });
+
+  useEffect(() => {
+    if (!shouldAutoActivateEditor) {
+      return;
+    }
+
+    activateEditor();
+  }, [activateEditor, shouldAutoActivateEditor]);
+
+  useEffect(() => {
+    if (!isEditorPreloadRequested || RichTextEditor) {
+      return;
+    }
+
+    let cancelled = false;
+    setIsEditorLoading(true);
+
+    void loadRichTextEditor()
+      .then((component) => {
+        if (cancelled) {
+          return;
+        }
+
+        setRichTextEditor(() => component);
+        setIsEditorLoading(false);
+      })
+      .catch((reason: unknown) => {
+        if (cancelled) {
+          return;
+        }
+
+        setIsEditorPreloadRequested(false);
+        setIsEditorLoading(false);
+        setEditorLoadError(reason instanceof Error ? reason.message : "编辑器加载失败，请重试。");
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [RichTextEditor, isEditorPreloadRequested]);
 
   async function uploadImages(files: File[]) {
     if (files.length === 0) {
@@ -422,15 +541,34 @@ export function PublishArticlePage() {
                 </div>
               </div>
 
-              <Suspense fallback={<ArticleEditorFallback />}>
-                <RichTextEditor
-                onChange={setEditorHtml}
-                onUploadImage={uploadImages}
-                onUploadVideo={uploadVideos}
+              <div
+              >
+                {editorView === "editor" && RichTextEditor ? (
+                  <RichTextEditor
+                    onChange={setEditorHtml}
+                    onUploadImage={uploadImages}
+                    onUploadVideo={uploadVideos}
                 placeholder="从这里开始写正文，图片与视频先本地预览，提交后统一上传。"
-                value={editorHtml}
-                />
-              </Suspense>
+                    value={editorHtml}
+                  />
+                ) : (
+                  <div className="space-y-3">
+                    <DeferredArticleEditorFallback
+                      canAutoLoad={shouldAutoActivateEditor}
+                      hasDraft={hasDeferredEditorContext}
+                      isLoading={editorView === "loading"}
+                      onLoad={activateEditor}
+                    />
+                    {editorView === "loading" ? <ArticleEditorLoadingFallback /> : null}
+                    {editorLoadError ? (
+                      <Alert variant="destructive">
+                        <AlertTitle>编辑器加载失败</AlertTitle>
+                        <AlertDescription>{editorLoadError}</AlertDescription>
+                      </Alert>
+                    ) : null}
+                  </div>
+                )}
+              </div>
 
               {uploadedImages.length === 0 && uploadedVideos.length === 0 ? (
                 <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">

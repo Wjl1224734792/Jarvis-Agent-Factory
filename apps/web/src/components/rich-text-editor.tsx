@@ -1,7 +1,26 @@
-import { useEffect, useMemo, useState } from "react";
-import { Editor, Toolbar } from "@wangeditor/editor-for-react";
-import type { IDomEditor, IEditorConfig, IToolbarConfig } from "@wangeditor/editor";
-import "@wangeditor/editor/dist/css/style.css";
+import {
+  coreCreateEditor,
+  coreCreateToolbar,
+  registerElemToHtmlConf,
+  registerMenu,
+  registerParseElemHtmlConf,
+  registerParseStyleHtmlHandler,
+  registerPreParseHtmlConf,
+  registerRenderElemConf,
+  registerStyleHandler,
+  registerStyleToHtmlHandler,
+  type IEditorConfig,
+  type IDomEditor,
+  type IModuleConf,
+  type IToolbarConfig
+} from "@wangeditor/core";
+import "@wangeditor/core/dist/css/style.css";
+import basicModules from "@wangeditor/basic-modules";
+import listModule from "@wangeditor/list-module";
+import tableModule from "@wangeditor/table-module";
+import uploadImageModule from "@wangeditor/upload-image-module";
+import videoModule from "@wangeditor/video-module";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 type UploadedMediaAsset = {
   id: string;
@@ -19,6 +38,40 @@ type RichTextEditorProps = {
 
 type InsertImageFn = (url: string, alt: string, href: string) => void;
 type InsertVideoFn = (url: string, poster?: string) => void;
+type RegisteredModule = Partial<IModuleConf>;
+
+const ARTICLE_BASE_TOOLBAR_KEYS = [
+  "headerSelect",
+  "bold",
+  "italic",
+  "underline",
+  "through",
+  "color",
+  "bgColor",
+  "clearStyle",
+  "bulletedList",
+  "numberedList",
+  "insertLink",
+  "blockquote",
+  "codeBlock",
+  "divider",
+  "undo",
+  "redo"
+] as const;
+
+const ARTICLE_MODULES: RegisteredModule[] = [
+  ...basicModules,
+  listModule,
+  tableModule,
+  uploadImageModule,
+  videoModule
+];
+
+const ARTICLE_EDITOR_PLUGINS = ARTICLE_MODULES.flatMap((moduleConf) =>
+  moduleConf.editorPlugin ? [moduleConf.editorPlugin] : []
+);
+
+let articleModulesRegistered = false;
 
 function normalizeMediaUrl(input: string) {
   const value = input.trim();
@@ -58,33 +111,134 @@ function isHttpUrl(value: string) {
   }
 }
 
-function buildToolbarConfig(props: RichTextEditorProps): Partial<IToolbarConfig> {
-  const excludedKeys = ["fullScreen"];
-
-  if (!props.onUploadImage) {
-    excludedKeys.push("uploadImage");
+function ignoreDuplicateRegisterError(error: unknown) {
+  if (!(error instanceof Error)) {
+    throw error;
   }
-  if (!props.onUploadVideo) {
-    excludedKeys.push("uploadVideo");
+
+  const message = error.message.toLowerCase();
+  if (
+    message.includes("duplicate") ||
+    message.includes("duplicated") ||
+    message.includes("already")
+  ) {
+    return;
+  }
+
+  throw error;
+}
+
+function safelyRegister(fn: () => void) {
+  try {
+    fn();
+  } catch (error) {
+    ignoreDuplicateRegisterError(error);
+  }
+}
+
+function registerWangModule(moduleConf: RegisteredModule) {
+  moduleConf.menus?.forEach((menuConf) => {
+    safelyRegister(() => {
+      registerMenu(menuConf, menuConf.config);
+    });
+  });
+
+  if (moduleConf.renderStyle) {
+    const renderStyle = moduleConf.renderStyle;
+    safelyRegister(() => {
+      registerStyleHandler(renderStyle);
+    });
+  }
+
+  moduleConf.renderElems?.forEach((conf) => {
+    safelyRegister(() => {
+      registerRenderElemConf(conf);
+    });
+  });
+
+  if (moduleConf.styleToHtml) {
+    const styleToHtml = moduleConf.styleToHtml;
+    safelyRegister(() => {
+      registerStyleToHtmlHandler(styleToHtml);
+    });
+  }
+
+  moduleConf.elemsToHtml?.forEach((conf) => {
+    safelyRegister(() => {
+      registerElemToHtmlConf(conf);
+    });
+  });
+
+  moduleConf.preParseHtml?.forEach((conf) => {
+    safelyRegister(() => {
+      registerPreParseHtmlConf(conf);
+    });
+  });
+
+  if (moduleConf.parseStyleHtml) {
+    const parseStyleHtml = moduleConf.parseStyleHtml;
+    safelyRegister(() => {
+      registerParseStyleHtmlHandler(parseStyleHtml);
+    });
+  }
+
+  moduleConf.parseElemsHtml?.forEach((conf) => {
+    safelyRegister(() => {
+      registerParseElemHtmlConf(conf);
+    });
+  });
+}
+
+function ensureArticleModulesRegistered() {
+  if (articleModulesRegistered) {
+    return;
+  }
+
+  ARTICLE_MODULES.forEach(registerWangModule);
+  articleModulesRegistered = true;
+}
+
+function buildToolbarConfig(input: {
+  hasImageUpload: boolean;
+  hasVideoUpload: boolean;
+}): Partial<IToolbarConfig> {
+  const toolbarKeys = [
+    ...ARTICLE_BASE_TOOLBAR_KEYS,
+    "insertImage",
+    "insertVideo"
+  ] as string[];
+
+  if (input.hasImageUpload) {
+    toolbarKeys.push("uploadImage");
+  }
+  if (input.hasVideoUpload) {
+    toolbarKeys.push("uploadVideo");
   }
 
   return {
-    excludeKeys: excludedKeys
+    toolbarKeys
   };
 }
 
-function buildEditorConfig(props: RichTextEditorProps): Partial<IEditorConfig> {
+function buildEditorConfig(
+  propsRef: { current: RichTextEditorProps },
+  placeholder?: string
+): Partial<IEditorConfig> {
   return {
-    placeholder: props.placeholder ?? "从这里开始写正文...",
+    placeholder: placeholder ?? "浠庤繖閲屽紑濮嬪啓姝ｆ枃...",
     scroll: false,
+    onChange(currentEditor) {
+      propsRef.current?.onChange(currentEditor.getHtml());
+    },
     MENU_CONF: {
       uploadImage: {
         async customUpload(file: File, insertFn: InsertImageFn) {
-          if (!props.onUploadImage) {
+          const onUploadImage = propsRef.current?.onUploadImage;
+          if (!onUploadImage) {
             return;
           }
 
-          const assets = await props.onUploadImage([file]);
+          const assets = await onUploadImage([file]);
           for (const asset of assets) {
             insertFn(asset.url, asset.fileName ?? "", "");
           }
@@ -92,11 +246,12 @@ function buildEditorConfig(props: RichTextEditorProps): Partial<IEditorConfig> {
       },
       uploadVideo: {
         async customUpload(file: File, insertFn: InsertVideoFn) {
-          if (!props.onUploadVideo) {
+          const onUploadVideo = propsRef.current?.onUploadVideo;
+          if (!onUploadVideo) {
             return;
           }
 
-          const assets = await props.onUploadVideo([file]);
+          const assets = await onUploadVideo([file]);
           for (const asset of assets) {
             insertFn(asset.url, "");
           }
@@ -107,7 +262,7 @@ function buildEditorConfig(props: RichTextEditorProps): Partial<IEditorConfig> {
           return normalizeMediaUrl(src);
         },
         checkImage(src: string) {
-          return isHttpUrl(src) ? true : "图片链接需使用 http(s) 地址";
+          return isHttpUrl(src) ? true : "鍥剧墖閾炬帴闇€浣跨敤 http(s) 鍦板潃";
         }
       },
       insertVideo: {
@@ -115,7 +270,7 @@ function buildEditorConfig(props: RichTextEditorProps): Partial<IEditorConfig> {
           return normalizeMediaUrl(src);
         },
         checkVideo(src: string) {
-          return isHttpUrl(src) ? true : "视频链接需使用 http(s) 地址";
+          return isHttpUrl(src) ? true : "瑙嗛閾炬帴闇€浣跨敤 http(s) 鍦板潃";
         }
       }
     }
@@ -123,38 +278,97 @@ function buildEditorConfig(props: RichTextEditorProps): Partial<IEditorConfig> {
 }
 
 export function RichTextEditor(props: RichTextEditorProps) {
+  const editorContainerRef = useRef<HTMLDivElement | null>(null);
+  const toolbarContainerRef = useRef<HTMLDivElement | null>(null);
+  const editorRef = useRef<IDomEditor | null>(null);
+  const propsRef = useRef(props);
+  const toolbarCreatedRef = useRef(false);
   const [editor, setEditor] = useState<IDomEditor | null>(null);
-  const toolbarConfig = useMemo(() => buildToolbarConfig(props), [props]);
-  const editorConfig = useMemo(() => buildEditorConfig(props), [props]);
+
+  propsRef.current = props;
+
+  const toolbarConfig = useMemo(
+    () =>
+      buildToolbarConfig({
+        hasImageUpload: Boolean(props.onUploadImage),
+        hasVideoUpload: Boolean(props.onUploadVideo)
+      }),
+    [props.onUploadImage, props.onUploadVideo]
+  );
+  const editorConfig = useMemo(
+    () => buildEditorConfig(propsRef, props.placeholder),
+    [props.placeholder]
+  );
+
+  useEffect(() => {
+    ensureArticleModulesRegistered();
+
+    if (!editorContainerRef.current || editorRef.current) {
+      return;
+    }
+
+    const nextEditor = coreCreateEditor({
+      selector: editorContainerRef.current,
+      config: editorConfig,
+      html: props.value,
+      plugins: ARTICLE_EDITOR_PLUGINS
+    });
+
+    editorRef.current = nextEditor;
+    setEditor(nextEditor);
+  }, [editorConfig, props.value]);
 
   useEffect(() => {
     return () => {
-      if (editor) {
-        editor.destroy();
+      if (!editorRef.current) {
+        return;
       }
+
+      editorRef.current.destroy();
+      editorRef.current = null;
+      toolbarCreatedRef.current = false;
     };
-  }, [editor]);
+  }, []);
+
+  useEffect(() => {
+    if (!editor || !toolbarContainerRef.current || toolbarCreatedRef.current) {
+      return;
+    }
+
+    coreCreateToolbar(editor, {
+      selector: toolbarContainerRef.current,
+      config: toolbarConfig
+    });
+    toolbarCreatedRef.current = true;
+  }, [editor, toolbarConfig]);
+
+  useEffect(() => {
+    const currentEditor = editorRef.current;
+    if (!currentEditor) {
+      return;
+    }
+
+    if (currentEditor.getHtml() === props.value) {
+      return;
+    }
+
+    try {
+      currentEditor.setHtml(props.value);
+    } catch (error) {
+      console.error(error);
+    }
+  }, [props.value]);
 
   return (
     <div className="wang-editor-shell overflow-visible rounded-[0.9rem] border border-border/70 bg-white">
-      <Toolbar
-        defaultConfig={toolbarConfig}
-        editor={editor}
-        mode="default"
+      <div
+        ref={toolbarContainerRef}
         style={{
           borderBottom: "1px solid var(--border)",
           padding: "0.5rem 0.75rem"
         }}
       />
-      <Editor
-        defaultConfig={editorConfig}
-        mode="default"
-        onChange={(currentEditor) => {
-          props.onChange(currentEditor.getHtml());
-        }}
-        onCreated={setEditor}
-        value={props.value}
-      />
+      <div ref={editorContainerRef} />
     </div>
   );
 }

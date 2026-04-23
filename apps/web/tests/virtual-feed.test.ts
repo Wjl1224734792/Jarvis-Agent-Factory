@@ -1,46 +1,20 @@
-import { createElement, type ReactNode } from "react";
+import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it, vi } from "vitest";
 import type { CircleFeedColumnCell } from "../src/routes/circle-page-helpers";
 
-const { virtuosoCalls } = vi.hoisted(() => ({
-  virtuosoCalls: [] as Array<Record<string, unknown>>
-}));
-
-vi.mock("react-virtuoso", () => ({
-  Virtuoso: (props: Record<string, unknown>) => {
-    virtuosoCalls.push(props);
-
-    const data = (props.data as Array<CircleFeedColumnCell<{ id: string }>>) ?? [];
-    const itemContent = props.itemContent as (
-      index: number,
-      item: CircleFeedColumnCell<{ id: string }>
-    ) => ReactNode;
-
-    return createElement(
-      "div",
-      { "data-virtuoso-column": data.length },
-      data.map((item, index) =>
-        createElement("div", { key: item.item.id }, itemContent(index, item))
-      )
-    );
-  },
-  VirtuosoGrid: () => createElement("div", { "data-virtuoso-grid": "" })
-}));
-
 vi.mock("@/components/feed-refetch-footer", () => ({
-  FeedRefetchFooter: () => createElement("div", { "data-refetch-footer": "" })
+  FeedRefetchFooter: () => createElement("div", { "data-refetch-footer": "" }, "loading")
 }));
 
 vi.mock("@/lib/utils", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" ")
 }));
 
-import { VirtualMasonryColumns } from "../src/components/virtual-feed";
+import { VirtualFeed, VirtualGrid, VirtualMasonryColumns } from "../src/components/virtual-feed";
 
-describe("virtual masonry columns", () => {
-  it("renders one window-scrolled Virtuoso list per masonry column", () => {
-    virtuosoCalls.length = 0;
+describe("virtual feed lazy shells", () => {
+  it("renders a static masonry fallback while the virtuoso runtime is deferred", () => {
     const TestVirtualMasonryColumns = VirtualMasonryColumns<CircleFeedColumnCell<{ id: string }>>;
 
     const columns: CircleFeedColumnCell<{ id: string }>[][] = [
@@ -61,11 +35,31 @@ describe("virtual masonry columns", () => {
       })
     );
 
-    expect(virtuosoCalls).toHaveLength(2);
-    expect(virtuosoCalls.every((props) => props.useWindowScroll === true)).toBe(true);
-    expect(markup).toContain("data-virtuoso-column=\"1\"");
-    expect(markup).toContain("data-virtuoso-column=\"2\"");
+    expect(markup).toContain("data-virtual-feed-fallback=\"masonry\"");
     expect(markup).toContain("<article>a</article>");
     expect(markup).toContain("<article>c</article>");
+  });
+
+  it("keeps list and grid empty states synchronous", () => {
+    const listMarkup = renderToStaticMarkup(
+      createElement(VirtualFeed<string>, {
+        data: [],
+        emptyState: createElement("p", null, "empty-list"),
+        itemKey: (item) => item,
+        renderItem: (item) => item
+      })
+    );
+    const gridMarkup = renderToStaticMarkup(
+      createElement(VirtualGrid<string>, {
+        data: [],
+        emptyState: createElement("p", null, "empty-grid"),
+        itemKey: (item) => item,
+        listClassName: "grid",
+        renderItem: (item) => item
+      })
+    );
+
+    expect(listMarkup).toContain("empty-list");
+    expect(gridMarkup).toContain("empty-grid");
   });
 });

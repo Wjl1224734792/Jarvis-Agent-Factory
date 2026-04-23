@@ -1,7 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Space, Table } from "antd";
-import { useMemo, useRef, useState } from "react";
-import { AdminRichTextEditor } from "../../components/admin-rich-text-editor";
+import { Suspense, lazy, startTransition, useEffectEvent, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -13,6 +12,12 @@ import {
 
 type OfficialArticleRecord = Awaited<ReturnType<typeof apiClient.listOfficialArticles>>["items"][number];
 type UploadedMediaAsset = { id: string; url: string; fileName?: string };
+
+const LazyAdminRichTextEditor = lazy(() =>
+  import("../../components/admin-rich-text-editor").then((module) => ({
+    default: module.AdminRichTextEditor
+  }))
+);
 
 function officialArticleStatusLabel(status: OfficialArticleRecord["status"]) {
   switch (status) {
@@ -36,6 +41,19 @@ function createMediaAssetList(
     .map((item) => ({ id: item.id, url: item.url, fileName: item.fileName }));
 }
 
+function RichTextEditorFallback(props: { loading: boolean; onLoad?: () => void }) {
+  return (
+    <div aria-busy={props.loading} className="admin-empty">
+      <Space align="center" direction="vertical" size={8}>
+        <Button loading={props.loading} onClick={props.onLoad} type="default">
+          {props.loading ? "正在加载编辑器..." : "加载富文本编辑器"}
+        </Button>
+        <span>列表、预览和封面区域已可操作，正文编辑器会在需要时再加载。</span>
+      </Space>
+    </div>
+  );
+}
+
 export function OfficialArticlesPage() {
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -55,6 +73,7 @@ export function OfficialArticlesPage() {
   const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
+  const [shouldLoadEditor, setShouldLoadEditor] = useState(false);
   const [editorHtml, setEditorHtml] = useState("");
   const [editorText, setEditorText] = useState("");
   const [searchText, setSearchText] = useState("");
@@ -82,6 +101,11 @@ export function OfficialArticlesPage() {
   }, [articlesQuery.data?.items, searchText]);
 
   const previewImageUrl = coverImage?.url ?? uploadedImages[0]?.url ?? null;
+  const requestEditorLoad = useEffectEvent(() => {
+    startTransition(() => {
+      setShouldLoadEditor(true);
+    });
+  });
 
   function removeMediaAsset(assetUrl: string, kind: "image" | "video") {
     const nextHtml = removeMediaFromHtml(editorHtml, assetUrl);
@@ -183,6 +207,7 @@ export function OfficialArticlesPage() {
     setIsSubmitting(true);
     setError(null);
     setStatusMessage(null);
+    requestEditorLoad();
     try {
       const response = await apiClient.getAdminOfficialArticle(id);
       const item = response.item;
@@ -307,16 +332,36 @@ export function OfficialArticlesPage() {
               <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" />
             </Form.Item>
             <Form.Item label="正文" required>
-              <AdminRichTextEditor
-                onChange={(value) => {
-                  setEditorHtml(value.html);
-                  setEditorText(value.plainText);
+              <div
+                onFocusCapture={() => {
+                  requestEditorLoad();
                 }}
-                onUploadImage={uploadImages}
-                onUploadVideo={uploadVideos}
-                placeholder="请输入官方文章正文..."
-                value={editorHtml}
-              />
+                onPointerDownCapture={() => {
+                  requestEditorLoad();
+                }}
+              >
+                {shouldLoadEditor ? (
+                  <Suspense fallback={<RichTextEditorFallback loading />}>
+                    <LazyAdminRichTextEditor
+                      onChange={(value) => {
+                        setEditorHtml(value.html);
+                        setEditorText(value.plainText);
+                      }}
+                      onUploadImage={uploadImages}
+                      onUploadVideo={uploadVideos}
+                      placeholder="请输入官方文章正文..."
+                      value={editorHtml}
+                    />
+                  </Suspense>
+                ) : (
+                  <RichTextEditorFallback
+                    loading={false}
+                    onLoad={() => {
+                      requestEditorLoad();
+                    }}
+                  />
+                )}
+              </div>
             </Form.Item>
             <div className="admin-uploader">
               <div>

@@ -1,9 +1,8 @@
-import type { ReactNode } from "react";
-import { Virtuoso, VirtuosoGrid } from "react-virtuoso";
+import { Suspense, lazy, type ComponentType, type ReactNode } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { cn } from "@/lib/utils";
 
-type VirtualFeedProps<T> = {
+export type VirtualFeedProps<T> = {
   data: T[];
   itemKey: (item: T, index: number) => string;
   renderItem: (item: T, index: number) => ReactNode;
@@ -17,49 +16,7 @@ type VirtualFeedProps<T> = {
   refetchFooterLabel?: string;
 };
 
-export function VirtualFeed<T>({
-  data,
-  itemKey,
-  renderItem,
-  className,
-  height = 640,
-  useWindowScroll = false,
-  showItemDividers = true,
-  emptyState,
-  showRefetchFooter,
-  refetchFooterLabel
-}: VirtualFeedProps<T>) {
-  if (data.length === 0) {
-    return emptyState ?? null;
-  }
-
-  return (
-    <div className={cn("border border-border/70 bg-white", className)}>
-      <Virtuoso
-        className="virtual-feed"
-        {...(showRefetchFooter
-          ? {
-              components: {
-                Footer: () => <FeedRefetchFooter label={refetchFooterLabel} show />
-              }
-            }
-          : {})}
-        computeItemKey={(index, item) => itemKey(item, index)}
-        data={data}
-        increaseViewportBy={{ top: 280, bottom: 420 }}
-        itemContent={(index, item) => (
-          <div className={cn(showItemDividers && index < data.length - 1 && "border-b border-border/70")}>
-            {renderItem(item, index)}
-          </div>
-        )}
-        style={useWindowScroll ? undefined : { height }}
-        useWindowScroll={useWindowScroll}
-      />
-    </div>
-  );
-}
-
-type VirtualGridProps<T> = {
+export type VirtualGridProps<T> = {
   data: T[];
   itemKey: (item: T, index: number) => string;
   renderItem: (item: T, index: number) => ReactNode;
@@ -71,38 +28,7 @@ type VirtualGridProps<T> = {
   emptyState?: ReactNode;
 };
 
-export function VirtualGrid<T>({
-  data,
-  itemKey,
-  renderItem,
-  className,
-  listClassName,
-  itemClassName,
-  height = 720,
-  useWindowScroll = true,
-  emptyState
-}: VirtualGridProps<T>) {
-  if (data.length === 0) {
-    return emptyState ?? null;
-  }
-
-  return (
-    <VirtuosoGrid
-      className={className}
-      computeItemKey={(index, item) => itemKey(item, index)}
-      data={data}
-      increaseViewportBy={{ top: 360, bottom: 560 }}
-      itemClassName={itemClassName}
-      itemContent={(index, item) => renderItem(item, index)}
-      listClassName={listClassName}
-      overscan={{ main: 640, reverse: 320 }}
-      style={useWindowScroll ? undefined : { height }}
-      useWindowScroll={useWindowScroll}
-    />
-  );
-}
-
-type VirtualMasonryColumnsProps<T> = {
+export type VirtualMasonryColumnsProps<T> = {
   columns: T[][];
   itemKey: (item: T, index: number, columnIndex: number) => string;
   renderItem: (item: T, index: number, columnIndex: number) => ReactNode;
@@ -113,43 +39,140 @@ type VirtualMasonryColumnsProps<T> = {
   useWindowScroll?: boolean;
 };
 
-export function VirtualMasonryColumns<T>({
-  columns,
-  itemKey,
-  renderItem,
-  className,
-  columnClassName,
-  gap = "8px",
-  emptyState,
-  useWindowScroll = true
-}: VirtualMasonryColumnsProps<T>) {
-  if (columns.every((column) => column.length === 0)) {
-    return emptyState ?? null;
+const shouldDeferVirtualFeedRuntime = typeof window !== "undefined";
+
+const VirtualFeedRuntime = lazy(() =>
+  import("./virtual-feed-runtime").then((module) => ({
+    default: module.VirtualFeedRuntime as ComponentType<VirtualFeedProps<unknown>>
+  }))
+);
+const VirtualGridRuntime = lazy(() =>
+  import("./virtual-feed-runtime").then((module) => ({
+    default: module.VirtualGridRuntime as ComponentType<VirtualGridProps<unknown>>
+  }))
+);
+const VirtualMasonryColumnsRuntime = lazy(() =>
+  import("./virtual-feed-runtime").then((module) => ({
+    default: module.VirtualMasonryColumnsRuntime as ComponentType<VirtualMasonryColumnsProps<unknown>>
+  }))
+);
+
+/** 浏览器里延后加载 react-virtuoso，服务端与测试环境保持同步静态回退。 */
+function renderDeferredRuntime<P extends object>(
+  RuntimeComponent: ComponentType<P>,
+  props: P,
+  fallback: ReactNode
+) {
+  if (!shouldDeferVirtualFeedRuntime) {
+    return fallback;
   }
 
   return (
+    <Suspense fallback={fallback}>
+      <RuntimeComponent {...props} />
+    </Suspense>
+  );
+}
+
+function StaticVirtualFeedFallback<T>(props: VirtualFeedProps<T>) {
+  const previewItems = props.data.slice(0, 8);
+
+  return (
     <div
-      className={cn("grid w-full min-w-0", className)}
+      className={cn("border border-border/70 bg-white", props.className)}
+      data-virtual-feed-fallback="list"
+    >
+      {previewItems.map((item, index) => (
+        <div
+          className={cn(props.showItemDividers !== false && index < previewItems.length - 1 && "border-b border-border/70")}
+          key={props.itemKey(item, index)}
+        >
+          {props.renderItem(item, index)}
+        </div>
+      ))}
+      {props.showRefetchFooter ? <FeedRefetchFooter label={props.refetchFooterLabel} show /> : null}
+    </div>
+  );
+}
+
+function StaticVirtualGridFallback<T>(props: VirtualGridProps<T>) {
+  const previewItems = props.data.slice(0, 6);
+
+  return (
+    <div className={cn(props.className)} data-virtual-feed-fallback="grid">
+      <div className={props.listClassName}>
+        {previewItems.map((item, index) => (
+          <div className={props.itemClassName} key={props.itemKey(item, index)}>
+            {props.renderItem(item, index)}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function StaticVirtualMasonryColumnsFallback<T>(props: VirtualMasonryColumnsProps<T>) {
+  return (
+    <div
+      className={cn("grid w-full min-w-0", props.className)}
+      data-virtual-feed-fallback="masonry"
       style={{
-        gap,
-        gridTemplateColumns: `repeat(${columns.length}, minmax(0, 1fr))`
+        gap: props.gap ?? "8px",
+        gridTemplateColumns: `repeat(${props.columns.length}, minmax(0, 1fr))`
       }}
     >
-      {columns.map((column, columnIndex) => (
-        <Virtuoso
-          className={cn("min-w-0", columnClassName)}
-          computeItemKey={(index, item) => itemKey(item, index, columnIndex)}
-          data={column}
-          increaseViewportBy={{ top: 320, bottom: 480 }}
-          itemContent={(index, item) => (
-            <div style={{ paddingBottom: index < column.length - 1 ? gap : undefined }}>
-              {renderItem(item, index, columnIndex)}
-            </div>
-          )}
-          key={`masonry-column-${columnIndex}`}
-          useWindowScroll={useWindowScroll}
-        />
-      ))}
+      {props.columns.map((column, columnIndex) => {
+        const previewItems = column.slice(0, 4);
+
+        return (
+          <div className={cn("min-w-0", props.columnClassName)} key={`masonry-column-${columnIndex}`}>
+            {previewItems.map((item, index) => (
+              <div
+                key={props.itemKey(item, index, columnIndex)}
+                style={{ paddingBottom: index < previewItems.length - 1 ? props.gap ?? "8px" : undefined }}
+              >
+                {props.renderItem(item, index, columnIndex)}
+              </div>
+            ))}
+          </div>
+        );
+      })}
     </div>
+  );
+}
+
+export function VirtualFeed<T>(props: VirtualFeedProps<T>) {
+  if (props.data.length === 0) {
+    return props.emptyState ?? null;
+  }
+
+  return renderDeferredRuntime(
+    VirtualFeedRuntime as ComponentType<VirtualFeedProps<T>>,
+    props,
+    <StaticVirtualFeedFallback {...props} />
+  );
+}
+
+export function VirtualGrid<T>(props: VirtualGridProps<T>) {
+  if (props.data.length === 0) {
+    return props.emptyState ?? null;
+  }
+
+  return renderDeferredRuntime(
+    VirtualGridRuntime as ComponentType<VirtualGridProps<T>>,
+    props,
+    <StaticVirtualGridFallback {...props} />
+  );
+}
+
+export function VirtualMasonryColumns<T>(props: VirtualMasonryColumnsProps<T>) {
+  if (props.columns.every((column) => column.length === 0)) {
+    return props.emptyState ?? null;
+  }
+
+  return renderDeferredRuntime(
+    VirtualMasonryColumnsRuntime as ComponentType<VirtualMasonryColumnsProps<T>>,
+    props,
+    <StaticVirtualMasonryColumnsFallback {...props} />
   );
 }
