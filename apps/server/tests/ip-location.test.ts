@@ -3,17 +3,8 @@ import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../src/app";
 import { formatPublicIpLocationLabel } from "../src/lib/ip-location";
-import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-test-helpers";
 import { resetIntegrationState } from "./test-state";
-
-function extractCookies(response: Response): string {
-  const setCookies = response.headers.getSetCookie();
-  if (setCookies.length === 0) {
-    throw new Error("missing set-cookie headers");
-  }
-
-  return setCookies.map((cookie) => cookie.split(";")[0]).join("; ");
-}
+import { loginWebUser, loginAdmin } from "./auth-test-helpers";
 
 function expectDefined<T>(value: T | null | undefined): T {
   expect(value).toBeTruthy();
@@ -22,94 +13,6 @@ function expectDefined<T>(value: T | null | undefined): T {
   }
 
   return value;
-}
-
-async function completeRegistrationIfNeeded(
-  response: Response,
-  headers?: Record<string, string>
-) {
-  const payload = (await response.json()) as
-    | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
-
-  if (payload.kind === "authenticated") {
-    return extractCookies(response);
-  }
-
-  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(headers ?? {})
-    },
-    body: JSON.stringify({
-      registrationToken: payload.registrationToken,
-      displayName: payload.suggestedDisplayName,
-      avatarFileId: null
-    })
-  });
-
-  return extractCookies(completeResponse);
-}
-
-async function loginWebUser(
-  phone: string,
-  headers?: Record<string, string>
-) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(headers ?? {})
-    },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaAnswer
-    })
-  });
-  expect(smsResponse.status).toBe(200);
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-  const smsCode = await resolveSmsCodeForTests(phone, smsPayload);
-
-  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json",
-      ...(headers ?? {})
-    },
-    body: JSON.stringify({
-      phone,
-      smsCode
-    })
-  });
-
-  return completeRegistrationIfNeeded(loginResponse, headers);
-}
-
-async function loginAdmin() {
-  const response = await app.request(API_ROUTES.auth.adminLogin, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      account: "admin",
-      password: "Admin#123"
-    })
-  });
-
-  return extractCookies(response);
 }
 
 async function createPost(

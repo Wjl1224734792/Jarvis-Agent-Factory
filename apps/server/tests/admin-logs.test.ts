@@ -5,25 +5,10 @@ import os from "node:os";
 import { runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { app } from "../src/app";
+import { loginAdmin } from "./auth-test-helpers";
 import { resetIntegrationState } from "./test-state";
 
 let tempLogDir = "";
-
-async function loginAdmin() {
-  const response = await app.request(API_ROUTES.auth.adminLogin, {
-    method: "POST",
-    headers: {
-      "content-type": "application/json"
-    },
-    body: JSON.stringify({
-      account: "admin",
-      password: "Admin#123"
-    })
-  });
-
-  expect(response.status).toBe(200);
-  return response.headers.get("set-cookie") ?? "";
-}
 
 function writeLog(category: string, fileName: string, lines: string[]) {
   const dir = path.join(tempLogDir, category);

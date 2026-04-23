@@ -1,21 +1,19 @@
-import { dbPool, runMigrations } from "@feijia/db";
+import { dbPool, hashPassword, runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
-import { ensureRedisConnected, redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app, resolveCorsOrigin } from "../src/app";
 import {
-  readCaptchaAnswerForTests
-} from "./captcha-test-helpers";
+  completeRegistrationIfNeeded,
+  extractCookies,
+  loginAdmin,
+  loginWebUser,
+  requestCaptchaAndSms,
+  resolveSmsCode
+} from "./auth-test-helpers";
 import { resetIntegrationState } from "./test-state";
-
-function extractCookies(response: Response): string {
-  const setCookies = response.headers.getSetCookie();
-  if (setCookies.length === 0) {
-    throw new Error("missing set-cookie headers");
-  }
-  return setCookies.map((c) => c.split(";")[0]).join("; ");
-}
+import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
 
 function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string) {
   expect(actualUrl).toBeTruthy();
@@ -41,110 +39,6 @@ function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string
   ]) {
     expect(actual.searchParams.get(key)).toBeTruthy();
   }
-}
-
-async function completeRegistrationIfNeeded(response: Response) {
-  const payload = (await response.json()) as
-    | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
-
-  if (payload.kind === "authenticated") {
-    return extractCookies(response);
-  }
-
-  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      registrationToken: payload.registrationToken,
-      displayName: payload.suggestedDisplayName,
-      avatarFileId: null
-    })
-  });
-
-  return extractCookies(completeResponse);
-}
-
-async function resolveSmsCode(phone: string, payload: { mockCode?: string }) {
-  if (payload.mockCode) {
-    return payload.mockCode;
-  }
-
-  await ensureRedisConnected();
-  const raw = await redis.get(`sms:${phone}`);
-  if (!raw) {
-    throw new Error(`missing sms code for ${phone}`);
-  }
-
-  const record = JSON.parse(raw) as { code: string };
-  return record.code;
-}
-
-async function loginWebUser(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaAnswer
-    })
-  });
-  expect(smsResponse.status).toBe(200);
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-  const smsCode = await resolveSmsCode(phone, smsPayload);
-
-  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      smsCode
-    })
-  });
-
-  return completeRegistrationIfNeeded(loginResponse);
-}
-
-async function requestCaptchaAndSms(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaAnswer
-    })
-  });
-  expect(smsResponse.status).toBe(200);
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-  const smsCode = await resolveSmsCode(phone, smsPayload);
-
-  return {
-    challengeId: captchaPayload.challengeId,
-    captchaCode: captchaAnswer,
-    smsCode
-  };
 }
 
 async function uploadAvatar(cookie: string, name = "avatar.png") {
@@ -894,16 +788,7 @@ describe("auth flows", () => {
     });
     expect(forbiddenResponse.status).toBe(403);
 
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    expect(adminLoginResponse.status).toBe(200);
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
 
     const adminMe = await app.request(API_ROUTES.auth.adminCurrentUser, {
       method: "GET",
@@ -949,63 +834,62 @@ describe("auth flows", () => {
   });
 
   it("allows admins to change password and requires the new password on next login", async () => {
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    expect(adminLoginResponse.status).toBe(200);
-    const adminCookie = extractCookies(adminLoginResponse);
+    try {
+      const adminCookie = await loginAdmin();
 
-    const changePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
-      method: "POST",
-      headers: {
-        cookie: adminCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        currentPassword: "Admin#123",
-        newPassword: "Admin#456"
-      })
-    });
-    expect(changePasswordResponse.status).toBe(200);
+      const changePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
+        method: "POST",
+        headers: {
+          cookie: adminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          currentPassword: "Admin#123",
+          newPassword: "Admin#456"
+        })
+      });
+      expect(changePasswordResponse.status).toBe(200);
 
-    const oldPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    expect(oldPasswordLoginResponse.status).toBe(400);
+      const oldPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          account: "admin",
+          password: "Admin#123"
+        })
+      });
+      expect(oldPasswordLoginResponse.status).toBe(400);
 
-    const newPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#456"
-      })
-    });
-    expect(newPasswordLoginResponse.status).toBe(200);
-    const newPasswordAdminCookie = extractCookies(newPasswordLoginResponse);
+      const newPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          account: "admin",
+          password: "Admin#456"
+        })
+      });
+      expect(newPasswordLoginResponse.status).toBe(200);
+      const newPasswordAdminCookie = extractCookies(newPasswordLoginResponse);
 
-    const restorePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
-      method: "POST",
-      headers: {
-        cookie: newPasswordAdminCookie,
-        "content-type": "application/json"
-      },
-      body: JSON.stringify({
-        currentPassword: "Admin#456",
-        newPassword: "Admin#123"
-      })
-    });
-    expect(restorePasswordResponse.status).toBe(200);
+      const restorePasswordResponse = await app.request(API_ROUTES.auth.adminChangePassword, {
+        method: "POST",
+        headers: {
+          cookie: newPasswordAdminCookie,
+          "content-type": "application/json"
+        },
+        body: JSON.stringify({
+          currentPassword: "Admin#456",
+          newPassword: "Admin#123"
+        })
+      });
+      expect(restorePasswordResponse.status).toBe(200);
+    } finally {
+      const restoredHash = await hashPassword("Admin#123");
+      await dbPool.query(
+        `update users set password_hash = $1 where account = 'admin' and role = 'admin'`,
+        [restoredHash]
+      );
+    }
   });
 
   it("records session ip/device metadata and exposes recent sessions to admin", async () => {
@@ -1031,15 +915,7 @@ describe("auth flows", () => {
     });
     expect(logoutResponse.status).toBe(200);
 
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
 
     const recentSessionsResponse = await app.request(API_ROUTES.auth.adminSessions, {
       method: "GET",

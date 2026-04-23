@@ -3,16 +3,8 @@ import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
-import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-test-helpers";
 import { resetIntegrationState } from "./test-state";
-
-function extractCookies(response: Response): string {
-  const setCookies = response.headers.getSetCookie();
-  if (setCookies.length === 0) {
-    throw new Error("missing set-cookie headers");
-  }
-  return setCookies.map((c) => c.split(";")[0]).join("; ");
-}
+import { loginAdmin, loginUser } from "./auth-test-helpers";
 
 function expectDefined<T>(value: T | null | undefined): T {
   expect(value).toBeTruthy();
@@ -20,64 +12,6 @@ function expectDefined<T>(value: T | null | undefined): T {
     throw new Error("Expected value to be defined");
   }
   return value;
-}
-
-async function completeRegistrationIfNeeded(response: Response) {
-  const payload = (await response.json()) as
-    | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
-
-  if (payload.kind === "authenticated") {
-    return extractCookies(response);
-  }
-
-  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      registrationToken: payload.registrationToken,
-      displayName: payload.suggestedDisplayName,
-      avatarFileId: null
-    })
-  });
-
-  return extractCookies(completeResponse);
-}
-
-async function loginUser(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaAnswer
-    })
-  });
-  expect(smsResponse.status).toBe(200);
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-  const smsCode = await resolveSmsCodeForTests(phone, smsPayload);
-
-  const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      smsCode
-    })
-  });
-
-  return completeRegistrationIfNeeded(loginResponse);
 }
 
 async function uploadReportImage(cookie: string, name = "evidence.png") {
@@ -390,16 +324,7 @@ describe("models flows", () => {
   });
 
   it("allows admin to create category, brand and model", async () => {
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
 
     const categoryResponse = await app.request(API_ROUTES.models.categories, {
       method: "POST",
@@ -474,15 +399,7 @@ describe("models flows", () => {
   });
 
   it("stores brand logo and auto-increments brand sort order", async () => {
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
 
     const categoriesResponse = await app.request(API_ROUTES.models.categories, {
       method: "GET"
@@ -536,15 +453,7 @@ describe("models flows", () => {
   });
 
   it("returns admin model detail with editable media file ids and parameters", async () => {
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
 
     const adminUserResult = await dbPool.query<{ id: string }>(
       `select id from users where role = 'admin' limit 1`
@@ -700,15 +609,7 @@ describe("models flows", () => {
     process.env.QINIU_AUDIT_TEST_SUGGESTION = "pass";
     const authorCookie = await loginUser("13800138041");
     const responderCookie = await loginUser("13800138042");
-    const adminLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
-    const adminCookie = extractCookies(adminLoginResponse);
+    const adminCookie = await loginAdmin();
     await updateModerationModes(adminCookie, {
       comment: "ai"
     });

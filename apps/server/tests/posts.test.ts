@@ -9,21 +9,12 @@ import {
 import { API_ROUTES } from "@feijia/shared";
 import { and, eq } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
-import { ensureRedisConnected, redis } from "../src/modules/auth/redis-client";
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { postsRepo } from "../src/modules/posts/posts.repo";
 import { uploadsRepo } from "../src/modules/uploads/upload.repo";
 import { app } from "../src/app";
-import { readCaptchaAnswerForTests } from "./captcha-test-helpers";
 import { resetIntegrationState } from "./test-state";
-
-function extractCookies(response: Response): string {
-  const setCookies = response.headers.getSetCookie();
-  if (setCookies.length === 0) {
-    throw new Error("missing set-cookie headers");
-  }
-  return setCookies.map((c) => c.split(";")[0]).join("; ");
-}
+import { loginAdmin, loginWebUser } from "./auth-test-helpers";
 
 function expectDefined<T>(value: T | null | undefined): T {
   expect(value).toBeTruthy();
@@ -52,90 +43,6 @@ async function readSocialNotifications(cookie: string) {
     unreadByCategory: { system: number };
     items: SocialNotificationItem[];
   };
-}
-
-async function completeRegistrationIfNeeded(response: Response) {
-  const payload = (await response.json()) as
-    | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
-
-  if (payload.kind === "authenticated") {
-    return extractCookies(response);
-  }
-
-  const completeResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      registrationToken: payload.registrationToken,
-      displayName: payload.suggestedDisplayName,
-      avatarFileId: null
-    })
-  });
-
-  return extractCookies(completeResponse);
-}
-
-async function resolveSmsCode(phone: string, payload: { mockCode?: string }) {
-  if (payload.mockCode) {
-    return payload.mockCode;
-  }
-
-  await ensureRedisConnected();
-  const raw = await redis.get(`sms:${phone}`);
-  if (!raw) {
-    throw new Error(`missing sms code for ${phone}`);
-  }
-
-  const record = JSON.parse(raw) as { code: string };
-  return record.code;
-}
-
-async function loginWebUser(phone: string) {
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, { method: "POST" });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
-
-  const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      captchaChallengeId: captchaPayload.challengeId,
-      captchaCode: captchaAnswer
-    })
-  });
-  expect(smsResponse.status).toBe(200);
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
-  const smsCode = await resolveSmsCode(phone, smsPayload);
-
-  const authResponse = await app.request(API_ROUTES.auth.webLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      phone,
-      smsCode
-    })
-  });
-
-  return completeRegistrationIfNeeded(authResponse);
-}
-
-async function loginAdmin() {
-  const response = await app.request(API_ROUTES.auth.adminLogin, {
-    method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify({
-      account: "admin",
-      password: "Admin#123"
-    })
-  });
-
-  return extractCookies(response);
 }
 
 async function getSyntheticFeedAuthorId() {
