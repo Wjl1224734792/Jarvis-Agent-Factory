@@ -4,17 +4,19 @@ import {
   initUploadResponseSchema,
   type FileBizType
 } from "@feijia/schemas";
+import { API_ROUTES } from "@feijia/shared";
 import {
   buildStorageObjectUrl,
   createStorageProvider,
-  resolveStorageProviderConfig,
-  shouldUseSignedReadUrl
+  resolveStorageProviderConfig
 } from "../../lib/storage-provider";
 import { extname } from "node:path";
 import { randomUUID } from "node:crypto";
+import { auditsRepo } from "../audits/audits.repo";
+import { qiniuAuditService } from "../audits/qiniu-audit.service";
 import { getUploadPolicy, isAllowedUploadMime } from "./upload.policy";
 import { uploadsRepo, type StoredFileRecord } from "./upload.repo";
-import { resolveUploadedFileUrl } from "./uploads.helpers";
+import { resolvePublicUploadedFileUrl, resolveUploadedFileUrl } from "./uploads.helpers";
 
 function normalizeExtension(fileName: string, contentType: string) {
   const fileExtension = extname(fileName).trim().toLowerCase();
@@ -62,6 +64,87 @@ function serializeFileItem(file: NonNullable<StoredFileRecord>) {
 function formatLimitMb(maxSize: number) {
   const sizeInMb = maxSize / (1024 * 1024);
   return Number.isInteger(sizeInMb) ? `${sizeInMb}` : sizeInMb.toFixed(2);
+}
+
+const auditableFileBizTypes = new Set<FileBizType>([
+  "avatar-image",
+  "post-image",
+  "post-video",
+  "aircraft-cover-image",
+  "aircraft-video",
+  "ranking-cover-image",
+  "ranking-item-image",
+  "report-image"
+]);
+
+function buildQiniuAuditCallbackUrl() {
+  const publicServerBaseUrl = process.env.PUBLIC_SERVER_BASE_URL?.trim();
+  if (!publicServerBaseUrl) {
+    return null;
+  }
+
+  try {
+    return new URL(API_ROUTES.audits.qiniuCallback, publicServerBaseUrl).toString();
+  } catch {
+    return null;
+  }
+}
+
+async function triggerUploadedFileAudit(input: {
+  file: NonNullable<StoredFileRecord>;
+  fileUrl: string;
+  config: ReturnType<typeof resolveStorageProviderConfig>;
+}) {
+  if (input.config.provider !== "kodo") {
+    return;
+  }
+
+  if (!auditableFileBizTypes.has(input.file.bizType as FileBizType)) {
+    return;
+  }
+
+  if (input.file.mediaKind === "image") {
+    await qiniuAuditService.reviewImage({
+      domain: "file",
+      entityId: input.file.id,
+      imageUrl: input.fileUrl
+    });
+    return;
+  }
+
+  if (input.file.mediaKind === "video") {
+    if (!input.config.publicBaseUrlIsExplicit) {
+      await auditsRepo.create({
+        domain: "file",
+        entityId: input.file.id,
+        contentType: "video",
+        mode: "ai",
+        status: "failed",
+        errorMessage: "Missing explicit STORAGE_PUBLIC_BASE_URL for video audit."
+      });
+      return;
+    }
+
+    const callbackUrl = buildQiniuAuditCallbackUrl();
+    if (!callbackUrl) {
+      await auditsRepo.create({
+        domain: "file",
+        entityId: input.file.id,
+        contentType: "video",
+        mode: "ai",
+        status: "failed",
+        errorMessage: "Missing or invalid PUBLIC_SERVER_BASE_URL for video audit callback."
+      });
+      return;
+    }
+
+    await qiniuAuditService.submitVideoReview({
+      domain: "file",
+      entityId: input.file.id,
+      videoUrl: buildStorageObjectUrl(input.config, input.file.objectKey),
+      callbackUrl
+    });
+  }
 }
 
 export const uploadsService = {
@@ -157,40 +240,31 @@ export const uploadsService = {
 
     const baseItem = serializeFileItem(uploaded);
     const resolvedUrl = await resolveUploadedFileUrl(uploaded.id);
+    const fileUrl = resolvedUrl ?? baseItem.url;
+
+    await triggerUploadedFileAudit({
+      file: uploaded,
+      fileUrl,
+      config
+    });
 
     return {
       kind: "ok" as const,
       payload: completeUploadResponseSchema.parse({
         item: {
           ...baseItem,
-          url: resolvedUrl ?? baseItem.url
+          url: fileUrl
         }
       })
     };
   },
   async getFileUrl(fileId: string) {
-    const file = await uploadsRepo.getFileById(fileId);
-    if (!file) {
+    const url = await resolvePublicUploadedFileUrl(fileId);
+    if (!url) {
       return null;
     }
 
-    const config = resolveStorageProviderConfig();
-    const provider = createStorageProvider(config);
-    const mustSignReadUrl = shouldUseSignedReadUrl(config);
-
-    if (file.visibility === "public" && !mustSignReadUrl) {
-      return fileUrlResponseSchema.parse({
-        url: buildStorageObjectUrl(config, file.objectKey)
-      });
-    }
-
-    return fileUrlResponseSchema.parse({
-      url: await provider.getDownloadUrl({
-        objectKey: file.objectKey,
-        expiresIn: 900,
-        filename: file.fileName
-      })
-    });
+    return fileUrlResponseSchema.parse({ url });
   },
   serializeFileItem
 };

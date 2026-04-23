@@ -132,6 +132,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
     end: false
   },
   {
+    group: "审核",
+    to: ADMIN_ROUTE_PATHS.moderationFiles,
+    label: "文件审核",
+    hint: "图片和视频审核记录、人工通过与驳回入口",
+    icon: CloudUploadOutlined,
+    end: false
+  },
+  {
     group: "运营",
     to: ADMIN_ROUTE_PATHS.operationsArticles,
     label: "创建文章",

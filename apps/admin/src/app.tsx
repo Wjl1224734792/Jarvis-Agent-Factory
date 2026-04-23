@@ -127,6 +127,11 @@ const AdminLogsPage = lazy(() =>
     default: module.AdminLogsPage
   }))
 );
+const AdminFileAuditsPage = lazy(() =>
+  import("./features/system/admin-file-audits-page").then((module) => ({
+    default: module.AdminFileAuditsPage
+  }))
+);
 const BrandApplicationsPage = lazy(() =>
   import("./features/models/brand-applications-page").then((module) => ({
     default: module.BrandApplicationsPage
@@ -309,6 +314,12 @@ const router = createBrowserRouter([
                 description: "评分对象独立列表，和榜单本身分开查看。",
                 to: ADMIN_ROUTE_PATHS.moderationRatingTargets,
                 icon: <OrderedListOutlined />
+              },
+              {
+                title: "文件审核",
+                description: "图片/视频文件审核记录与人工通过、驳回入口。",
+                to: ADMIN_ROUTE_PATHS.moderationFiles,
+                icon: <CloudUploadOutlined />
               }
             ]}
             title="审核"
@@ -434,6 +445,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationRatingTargets),
         element: withAdminRouteFallback(<RatingTargetsPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.moderationFiles),
+        element: withAdminRouteFallback(<AdminFileAuditsPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.operationsArticles),

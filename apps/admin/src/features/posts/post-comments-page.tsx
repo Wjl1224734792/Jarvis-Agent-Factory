@@ -6,15 +6,21 @@ import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-pan
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
-import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
+import {
+  buildAdminAuditTracePlan,
+  syncLatestAdminAuditManualDecision
+} from "../../lib/admin-audit-tracking";
 import {
   buildModerationTraceItems,
   MODERATION_TRACE_PLACEHOLDER
 } from "../../lib/moderation-tracking";
 import { buildSiteSettingsUpdate } from "../../lib/site-settings";
 import {
+  buildCommentAuditManualDecision,
   buildAdminCommentQueryKey,
   countPendingAdminComments,
+  isAdminCommentTargetMatch,
+  sortAdminCommentsWithTargetFirst,
   shouldEnableAdminCommentQuery,
   type AdminCommentStatus,
   type CommentDomain
@@ -42,12 +48,14 @@ const domainSegmentedOptions: Array<{ label: string; value: string }> = domainOp
 type CommentStatusFilter = AdminCommentStatus;
 
 type UnifiedRecord = {
+  id: string;
   key: string;
   domain: CommentDomain;
   title: string;
   subtitle: string;
   content: string;
   status: "pending" | "visible" | "hidden";
+  nextStatus: "visible" | "hidden";
   reportCount: number;
   onToggle: () => Promise<unknown>;
 };
@@ -139,22 +147,21 @@ export function PostCommentsPage() {
         ? reviewCommentsQuery
         : domain === "model"
           ? modelCommentsQuery
-          : domain === "ranking"
-            ? rankingCommentsQuery
-            : ratingTargetCommentsQuery;
-  const currentDomainLabel = domainOptions.find((item) => item.value === domain)?.label ?? "评论";
+        : domain === "ranking"
+          ? rankingCommentsQuery
+          : ratingTargetCommentsQuery;
   const auditTracePlan = useMemo(
     () =>
       buildAdminAuditTracePlan({
         domain: "comment",
         subjectLabel: "评论",
         domainLabel: "评论",
-        unavailableReason: `当前接口暂无法把${currentDomainLabel}列表稳定映射到审核记录 entityId，下面的记录可能包含其它评论来源。`
+        exactEntityId: urlTargetId
       }),
-    [currentDomainLabel]
+    [urlTargetId]
   );
   const auditQuery = useQuery({
-    queryKey: ["admin-comment-audits", "recent"],
+    queryKey: ["admin-comment-audits", auditTracePlan.query.entityId ?? "recent"],
     queryFn: () => apiClient.listAdminAuditRecords(auditTracePlan.query)
   });
 
@@ -186,52 +193,62 @@ export function PostCommentsPage() {
   const records = useMemo<Record<CommentDomain, UnifiedRecord[]>>(
     () => ({
       post: (postCommentsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
         key: `post-${item.id}`,
         domain: "post",
         title: item.postTitle,
         subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
         content: item.content,
         status: item.status,
+        nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminPostCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       review: (reviewCommentsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
         key: `review-${item.id}`,
         domain: "review",
         title: item.reviewTitle,
         subtitle: `${item.author.displayName} · ${item.model.name}`,
         content: item.content,
         status: item.status,
+        nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminReviewCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       model: (modelCommentsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
         key: `model-${item.id}`,
         domain: "model",
         title: item.model.name,
         subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
         content: item.content,
         status: item.status,
+        nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminModelCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       ranking: (rankingCommentsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
         key: `ranking-${item.id}`,
         domain: "ranking",
         title: item.rankingTitle,
         subtitle: `${item.author.displayName} · 榜单评论`,
         content: item.content,
         status: item.status,
+        nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminRankingCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       "rating-target": (ratingTargetCommentsQuery.data?.items ?? []).map((item) => ({
+        id: item.id,
         key: `rating-target-${item.id}`,
         domain: "rating-target",
         title: `${item.rankingTitle} / ${item.ratingTargetTitle}`,
         subtitle: `${item.author.displayName} · ${item.parentCommentId ? "回复" : "主评论"}`,
         content: item.content,
         status: item.status,
+        nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
         onToggle: () => apiClient.updateAdminRatingTargetCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       }))
@@ -260,15 +277,7 @@ export function PostCommentsPage() {
       return visibleItems;
     }
 
-    return [...visibleItems].sort((left, right) => {
-      if (left.key.endsWith(urlTargetId)) {
-        return -1;
-      }
-      if (right.key.endsWith(urlTargetId)) {
-        return 1;
-      }
-      return 0;
-    });
+    return sortAdminCommentsWithTargetFirst(visibleItems, urlTargetId);
   }, [domain, records, searchText, status, urlTargetId]);
 
   const pendingCount = countPendingAdminComments(records[domain]);
@@ -423,12 +432,17 @@ export function PostCommentsPage() {
                 <Button
                   onClick={() => {
                     setError(null);
-                    void record
-                      .onToggle()
-                      .then(() => refreshCurrentDomain())
-                      .catch((reason: unknown) => {
+                    void (async () => {
+                      try {
+                        await record.onToggle();
+                        await syncLatestAdminAuditManualDecision(
+                          buildCommentAuditManualDecision(record.id, record.nextStatus)
+                        );
+                        await Promise.all([refreshCurrentDomain(), auditQuery.refetch()]);
+                      } catch (reason: unknown) {
                         setError(reason instanceof Error ? reason.message : "更新评论状态失败");
-                      });
+                      }
+                    })();
                   }}
                   size="small"
                   type={record.status === "visible" ? "default" : "primary"}
@@ -444,7 +458,7 @@ export function PostCommentsPage() {
           locale={{ emptyText: <Empty description="当前筛选下没有评论" image={Empty.PRESENTED_IMAGE_SIMPLE} /> }}
           loading={currentDomainQuery.isLoading || currentDomainQuery.isFetching}
           rowClassName={(record) =>
-            urlTargetId && record.key.endsWith(urlTargetId) ? "admin-table-row--target" : ""
+            isAdminCommentTargetMatch(record.id, urlTargetId) ? "admin-table-row--target" : ""
           }
           rowKey={(record) => record.key}
           size="middle"

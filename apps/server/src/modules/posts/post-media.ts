@@ -1,7 +1,12 @@
 import { uploadsRepo } from "../uploads/upload.repo";
-import { resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrlMap,
+  resolveUploadedFileUrlMap
+} from "../uploads/uploads.helpers";
 import { uploadsService } from "../uploads/upload.service";
 import type { postsRepo } from "./posts.repo";
+
+type FileAudience = "public" | "internal";
 
 type PostCoverRecord = {
   id: string;
@@ -38,7 +43,10 @@ function serializeVideo(video: Awaited<ReturnType<typeof postsRepo.getVideoUploa
   };
 }
 
-export async function buildImagesByPostId(images: Awaited<ReturnType<typeof postsRepo.listPostImages>>) {
+export async function buildImagesByPostId(
+  images: Awaited<ReturnType<typeof postsRepo.listPostImages>>,
+  audience: FileAudience = "public"
+) {
   type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
   const rows: Row[] = [];
 
@@ -55,7 +63,10 @@ export async function buildImagesByPostId(images: Awaited<ReturnType<typeof post
     rows.push({ postId: image.postId, serialized });
   }
 
-  const resolvedUrlMap = await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
+  const resolvedUrlMap =
+    audience === "public"
+      ? await resolvePublicUploadedFileUrlMap(rows.map((row) => row.serialized.id))
+      : await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
   const imagesByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>[]>();
   for (const row of rows) {
     const { postId, serialized } = row;
@@ -69,7 +80,10 @@ export async function buildImagesByPostId(images: Awaited<ReturnType<typeof post
   return imagesByPostId;
 }
 
-export async function buildVideosByPostId(videos: Awaited<ReturnType<typeof postsRepo.listPostVideos>>) {
+export async function buildVideosByPostId(
+  videos: Awaited<ReturnType<typeof postsRepo.listPostVideos>>,
+  audience: FileAudience = "public"
+) {
   type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeVideo>> };
   const rows: Row[] = [];
 
@@ -86,7 +100,10 @@ export async function buildVideosByPostId(videos: Awaited<ReturnType<typeof post
     rows.push({ postId: video.postId, serialized });
   }
 
-  const resolvedUrlMap = await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
+  const resolvedUrlMap =
+    audience === "public"
+      ? await resolvePublicUploadedFileUrlMap(rows.map((row) => row.serialized.id))
+      : await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
   const videosByPostId = new Map<string, NonNullable<ReturnType<typeof serializeVideo>>[]>();
   for (const row of rows) {
     const { postId, serialized } = row;
@@ -100,7 +117,10 @@ export async function buildVideosByPostId(videos: Awaited<ReturnType<typeof post
   return videosByPostId;
 }
 
-export async function buildCoversByPostId(items: PostCoverRecord[]) {
+export async function buildCoversByPostId(
+  items: PostCoverRecord[],
+  audience: FileAudience = "public"
+) {
   type Row = { postId: string; serialized: NonNullable<ReturnType<typeof serializeImage>> };
   const rows: Row[] = [];
   const uniqueCoverFileIds = Array.from(
@@ -129,7 +149,10 @@ export async function buildCoversByPostId(items: PostCoverRecord[]) {
     rows.push({ postId: item.id, serialized });
   }
 
-  const resolvedUrlMap = await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
+  const resolvedUrlMap =
+    audience === "public"
+      ? await resolvePublicUploadedFileUrlMap(rows.map((row) => row.serialized.id))
+      : await resolveUploadedFileUrlMap(rows.map((row) => row.serialized.id));
   const coversByPostId = new Map<string, NonNullable<ReturnType<typeof serializeImage>>>();
   for (const row of rows) {
     const { postId, serialized } = row;

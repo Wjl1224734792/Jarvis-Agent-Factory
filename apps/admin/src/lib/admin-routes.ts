@@ -14,6 +14,7 @@ export const ADMIN_ROUTE_PATHS = {
   moderationAircraftSubmissions: "/admin/moderation/aircraft-submissions",
   moderationRankings: "/admin/moderation/rankings",
   moderationRatingTargets: "/admin/moderation/rating-targets",
+  moderationFiles: "/admin/moderation/files",
   operations: "/admin/operations",
   operationsArticles: "/admin/operations/articles",
   operationsAircraft: "/admin/operations/aircraft",

@@ -7,6 +7,10 @@ import {
 import { getCachedFileUrl, setCachedFileUrl } from "../../lib/request-metrics";
 import { uploadsRepo } from "./upload.repo";
 
+type ResolveUploadedFileAudience = "internal" | "public";
+
+const publicAuditPassStatuses = new Set(["passed", "manual_passed"]);
+
 function resolveReadStorageAccess() {
   const config = resolveStorageProviderConfig();
   const shouldPresign = shouldUseSignedReadUrl(config);
@@ -17,53 +21,45 @@ function resolveReadStorageAccess() {
   };
 }
 
-export async function resolveUploadedFileUrl(fileId: string | null | undefined) {
-  if (!fileId) {
-    return null;
-  }
-
-  const cached = getCachedFileUrl(fileId);
-  if (cached.hit) {
-    return cached.value;
-  }
-
-  const file = await uploadsRepo.getFileById(fileId);
-  if (!file) {
-    setCachedFileUrl(fileId, null);
-    return null;
-  }
-
-  const { config, provider } = resolveReadStorageAccess();
-  if (provider) {
-    const url = await provider.getDownloadUrl({
-      objectKey: file.objectKey,
-      expiresIn: 60 * 60
-    });
-    setCachedFileUrl(fileId, url);
-    return url;
-  }
-
-  const url = buildStorageObjectUrl(config, file.objectKey);
-  setCachedFileUrl(fileId, url);
-  return url;
+function buildFileUrlCacheKey(fileId: string, audience: ResolveUploadedFileAudience) {
+  return `${audience}:${fileId}`;
 }
 
-export async function resolveUploadedFileUrls(fileIds: Array<string | null | undefined>) {
-  const fileUrlMap = await resolveUploadedFileUrlMap(fileIds);
-  return fileIds
-    .map((fileId) => (fileId ? fileUrlMap.get(fileId) ?? null : null))
-    .filter((value): value is string => Boolean(value));
+function canPubliclyServeFile(input: {
+  file: Awaited<ReturnType<typeof uploadsRepo.getFileById>>;
+}) {
+  if (!input.file || input.file.status !== "uploaded") {
+    return false;
+  }
+
+  if (input.file.provider !== "kodo") {
+    return true;
+  }
+
+  if (input.file.mediaKind !== "image" && input.file.mediaKind !== "video") {
+    return true;
+  }
+
+  return publicAuditPassStatuses.has(input.file.currentAuditStatus ?? "");
 }
 
-export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | undefined>) {
+async function resolveUploadedFileUrlMapByAudience(
+  fileIds: Array<string | null | undefined>,
+  audience: ResolveUploadedFileAudience
+) {
   const uniqueIds = Array.from(
-    new Set(fileIds.filter((fileId): fileId is string => typeof fileId === "string" && fileId.length > 0))
+    new Set(
+      fileIds.filter(
+        (fileId): fileId is string => typeof fileId === "string" && fileId.length > 0
+      )
+    )
   );
   const urlMap = new Map<string, string | null>();
   const unresolvedIds: string[] = [];
 
   for (const fileId of uniqueIds) {
-    const cached = getCachedFileUrl(fileId);
+    const cacheKey = buildFileUrlCacheKey(fileId, audience);
+    const cached = getCachedFileUrl(cacheKey);
     if (cached.hit) {
       urlMap.set(fileId, cached.value);
       continue;
@@ -87,6 +83,15 @@ export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | u
           return [fileId, null] as const;
         }
 
+        if (
+          audience === "public" &&
+          !canPubliclyServeFile({
+            file
+          })
+        ) {
+          return [fileId, null] as const;
+        }
+
         const url = await provider.getDownloadUrl({
           objectKey: file.objectKey,
           expiresIn: 60 * 60
@@ -97,7 +102,7 @@ export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | u
 
     for (const [fileId, url] of resolvedEntries) {
       urlMap.set(fileId, url);
-      setCachedFileUrl(fileId, url);
+      setCachedFileUrl(buildFileUrlCacheKey(fileId, audience), url);
     }
 
     return urlMap;
@@ -107,14 +112,73 @@ export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | u
     const file = fileById.get(fileId);
     if (!file) {
       urlMap.set(fileId, null);
-      setCachedFileUrl(fileId, null);
+      setCachedFileUrl(buildFileUrlCacheKey(fileId, audience), null);
+      continue;
+    }
+
+    if (
+      audience === "public" &&
+      !canPubliclyServeFile({
+        file
+      })
+    ) {
+      urlMap.set(fileId, null);
+      setCachedFileUrl(buildFileUrlCacheKey(fileId, audience), null);
       continue;
     }
 
     const url = buildStorageObjectUrl(config, file.objectKey);
     urlMap.set(fileId, url);
-    setCachedFileUrl(fileId, url);
+    setCachedFileUrl(buildFileUrlCacheKey(fileId, audience), url);
   }
 
   return urlMap;
+}
+
+export async function resolveUploadedFileUrl(
+  fileId: string | null | undefined
+) {
+  if (!fileId) {
+    return null;
+  }
+
+  const fileUrlMap = await resolveUploadedFileUrlMapByAudience([fileId], "internal");
+  return fileUrlMap.get(fileId) ?? null;
+}
+
+export async function resolvePublicUploadedFileUrl(
+  fileId: string | null | undefined
+) {
+  if (!fileId) {
+    return null;
+  }
+
+  const fileUrlMap = await resolveUploadedFileUrlMapByAudience([fileId], "public");
+  return fileUrlMap.get(fileId) ?? null;
+}
+
+export async function resolveUploadedFileUrls(fileIds: Array<string | null | undefined>) {
+  const fileUrlMap = await resolveUploadedFileUrlMapByAudience(fileIds, "internal");
+  return fileIds
+    .map((fileId) => (fileId ? fileUrlMap.get(fileId) ?? null : null))
+    .filter((value): value is string => Boolean(value));
+}
+
+export async function resolvePublicUploadedFileUrls(
+  fileIds: Array<string | null | undefined>
+) {
+  const fileUrlMap = await resolveUploadedFileUrlMapByAudience(fileIds, "public");
+  return fileIds
+    .map((fileId) => (fileId ? fileUrlMap.get(fileId) ?? null : null))
+    .filter((value): value is string => Boolean(value));
+}
+
+export async function resolveUploadedFileUrlMap(fileIds: Array<string | null | undefined>) {
+  return resolveUploadedFileUrlMapByAudience(fileIds, "internal");
+}
+
+export async function resolvePublicUploadedFileUrlMap(
+  fileIds: Array<string | null | undefined>
+) {
+  return resolveUploadedFileUrlMapByAudience(fileIds, "public");
 }

@@ -65,7 +65,8 @@ vi.mock("../src/modules/uploads/upload.repo", () => ({
 }));
 
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
-  resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
+  resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png"),
+  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
 }));
 
 describe("reviews service", () => {

@@ -1,7 +1,28 @@
-import { describe, expect, it } from "vitest";
-import { buildAdminAuditTracePlan } from "../src/lib/admin-audit-tracking";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+
+const { listAdminAuditRecords, updateAdminAuditManualReview } = vi.hoisted(() => ({
+  listAdminAuditRecords: vi.fn(),
+  updateAdminAuditManualReview: vi.fn()
+}));
+
+vi.mock("../src/lib/api-client", () => ({
+  apiClient: {
+    listAdminAuditRecords,
+    updateAdminAuditManualReview
+  }
+}));
+
+import {
+  buildAdminAuditTracePlan,
+  syncLatestAdminAuditManualDecision
+} from "../src/lib/admin-audit-tracking";
 
 describe("admin audit tracking helpers", () => {
+  beforeEach(() => {
+    listAdminAuditRecords.mockReset();
+    updateAdminAuditManualReview.mockReset();
+  });
+
   it("builds an entity-scoped trace plan when the exact entity id is known", () => {
     expect(
       buildAdminAuditTracePlan({
@@ -58,5 +79,51 @@ describe("admin audit tracking helpers", () => {
       emptyText: "评论域暂未返回审核记录。",
       hint: "当前接口暂无法把评论列表稳定映射到审核记录 entityId。"
     });
+  });
+
+  it("syncs the latest audit record to a manual decision when an audit exists", async () => {
+    listAdminAuditRecords.mockResolvedValue({
+      items: [{ id: "audit_1" }]
+    });
+    updateAdminAuditManualReview.mockResolvedValue({
+      item: { id: "audit_1", status: "manual_passed" }
+    });
+
+    await expect(
+      syncLatestAdminAuditManualDecision({
+        domain: "comment",
+        entityId: "comment_1",
+        status: "manual_passed"
+      })
+    ).resolves.toEqual({
+      item: { id: "audit_1", status: "manual_passed" }
+    });
+
+    expect(listAdminAuditRecords).toHaveBeenCalledWith({
+      domain: "comment",
+      entityId: "comment_1",
+      limit: 1
+    });
+    expect(updateAdminAuditManualReview).toHaveBeenCalledWith("audit_1", {
+      status: "manual_passed",
+      reviewNote: null
+    });
+  });
+
+  it("returns null when there is no audit record to sync", async () => {
+    listAdminAuditRecords.mockResolvedValue({
+      items: []
+    });
+
+    await expect(
+      syncLatestAdminAuditManualDecision({
+        domain: "brand_application",
+        entityId: "brand_1",
+        status: "manual_rejected",
+        reviewNote: "资料不完整"
+      })
+    ).resolves.toBeNull();
+
+    expect(updateAdminAuditManualReview).not.toHaveBeenCalled();
   });
 });

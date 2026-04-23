@@ -2,7 +2,10 @@ import { socialRepo } from "./social.repo";
 import { rankingsRepo } from "../rankings/rankings.repo";
 import { AuthError, authService } from "../auth/auth.service";
 import { postsRepo } from "../posts/posts.repo";
-import { resolveUploadedFileUrl } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrl,
+  resolveUploadedFileUrl
+} from "../uploads/uploads.helpers";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   isNotificationType,
@@ -48,7 +51,7 @@ async function resolveFileUrlMap(fileIds: Iterable<string | null | undefined>) {
     )
   ];
   const entries = await Promise.all(
-    unique.map(async (id) => [id, await resolveUploadedFileUrl(id)] as const)
+    unique.map(async (id) => [id, await resolvePublicUploadedFileUrl(id)] as const)
   );
   return new Map(entries);
 }
@@ -803,7 +806,7 @@ export const socialService = {
         user: {
           id: user.id,
           displayName: user.displayName,
-          avatarUrl: await resolveUploadedFileUrl(user.avatarFileId ?? null),
+          avatarUrl: await resolvePublicUploadedFileUrl(user.avatarFileId ?? null),
           ipLocationLabel: ipLocationLabelMap.get(targetUserId) ?? null,
           role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
         },

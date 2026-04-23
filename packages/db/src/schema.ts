@@ -1050,6 +1050,9 @@ export const filesTable = pgTable("files", {
   size: integer("size").notNull(),
   etag: text("etag"),
   status: text("status").notNull(),
+  currentAuditRecordId: text("current_audit_record_id"),
+  currentAuditStatus: text("current_audit_status"),
+  currentAuditUpdatedAt: timestamp("current_audit_updated_at", { withTimezone: true }),
   visibility: text("visibility").notNull(),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
@@ -1059,5 +1062,9 @@ export const filesTable = pgTable("files", {
 }, (table) => ({
   statusCheck: check("files_status_check", sql`${table.status} IN ('pending', 'uploaded', 'failed', 'deleted')`),
   visibilityCheck: check("files_visibility_check", sql`${table.visibility} IN ('public', 'private')`),
-  mediaKindCheck: check("files_media_kind_check", sql`${table.mediaKind} IN ('image', 'video', 'document')`)
+  mediaKindCheck: check("files_media_kind_check", sql`${table.mediaKind} IN ('image', 'video', 'document')`),
+  currentAuditStatusCheck: check(
+    "files_current_audit_status_check",
+    sql`${table.currentAuditStatus} IS NULL OR ${table.currentAuditStatus} IN ('queued', 'running', 'passed', 'rejected', 'needs_manual_review', 'failed', 'manual_passed', 'manual_rejected')`
+  )
 }));

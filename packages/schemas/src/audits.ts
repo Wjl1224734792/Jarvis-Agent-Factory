@@ -59,4 +59,26 @@ export const adminAuditRecordListResponseSchema = z.object({
   items: z.array(adminAuditRecordSchema)
 });
 
+export const adminAuditManualDecisionStatusSchema = z.enum([
+  "manual_passed",
+  "manual_rejected"
+]);
+
+export const adminAuditManualDecisionInputSchema = z.object({
+  status: adminAuditManualDecisionStatusSchema,
+  reviewNote: z.string().trim().min(2).max(500).nullable().optional().default(null)
+}).superRefine((input, context) => {
+  if (input.status === "manual_rejected" && !input.reviewNote?.trim()) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Review note is required when manually rejecting an audit.",
+      path: ["reviewNote"]
+    });
+  }
+});
+
+export const adminAuditRecordResponseSchema = z.object({
+  item: adminAuditRecordSchema
+});
+
 export type AdminAuditRecord = z.infer<typeof adminAuditRecordSchema>;

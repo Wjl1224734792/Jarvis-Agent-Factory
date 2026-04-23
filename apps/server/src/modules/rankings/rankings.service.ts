@@ -2,7 +2,12 @@ import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schem
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
 import { evaluateTextModeration } from "../audits/text-moderation.service";
-import { resolveUploadedFileUrl, resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrl,
+  resolvePublicUploadedFileUrlMap,
+  resolveUploadedFileUrl,
+  resolveUploadedFileUrlMap
+} from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
@@ -139,8 +144,13 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
   return buildRatingBreakdown(scoreCountMap);
 }
 
-async function resolveRankingImage(fileId: string | null | undefined) {
-  return resolveUploadedFileUrl(fileId ?? null);
+async function resolveRankingImage(
+  fileId: string | null | undefined,
+  audience: "internal" | "public" = "internal"
+) {
+  return audience === "public"
+    ? resolvePublicUploadedFileUrl(fileId ?? null)
+    : resolveUploadedFileUrl(fileId ?? null);
 }
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
@@ -336,7 +346,7 @@ async function serializeRankingComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+      avatarUrl: await resolvePublicUploadedFileUrl(item.author.avatarFileId ?? null),
       ipLocationLabel: ipLocationLabelMap?.get(item.author.id) ?? null,
       role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
@@ -377,7 +387,7 @@ async function serializeRatingTargetCommentBase(
     author: {
       id: comment.author.id,
       displayName: comment.author.displayName,
-      avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+      avatarUrl: await resolvePublicUploadedFileUrl(comment.author.avatarFileId ?? null),
       ipLocationLabel: ipLocationLabelMap?.get(comment.author.id) ?? null,
       role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
     },
@@ -498,10 +508,10 @@ async function buildRankingListItems(
       .map((item) => item.author.id)
   ];
   const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
-  const rankingFileUrlMap = await resolveUploadedFileUrlMap(
+  const rankingFileUrlMap = await resolvePublicUploadedFileUrlMap(
     rankings.flatMap((ranking) => [ranking.coverImageFileId ?? null, ranking.author.avatarFileId ?? null])
   );
-  const ratingTargetImageUrlMap = await resolveUploadedFileUrlMap(
+  const ratingTargetImageUrlMap = await resolvePublicUploadedFileUrlMap(
     Array.from(ratingTargetsByRanking.values())
       .flat()
       .flatMap((item) => [item.imageFileId ?? null, item.author.avatarFileId ?? null])
@@ -965,13 +975,17 @@ export const rankingsService = {
     }
 
     const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
-      const canInspectUnpublished =
-        currentUser?.role === "admin" ||
-        currentUser?.id === ranking.author.id ||
-        (Boolean(currentUser) && ranking.itemAddPolicy === "public");
+    const canInspectUnpublished =
+      currentUser?.role === "admin" ||
+      currentUser?.id === ranking.author.id ||
+      (Boolean(currentUser) && ranking.itemAddPolicy === "public");
     if (rankingType === "community" && ranking.status !== "published" && !canInspectUnpublished) {
       return null;
     }
+    const mediaAudience: "internal" | "public" =
+      rankingType === "community" && ranking.status !== "published" && canInspectUnpublished
+        ? "internal"
+        : "public";
 
     const items = (await rankingsRepo.listRatingTargets(id)).filter((entry) =>
       canInspectRatingTarget({
@@ -1014,12 +1028,20 @@ export const rankingsService = {
       ...items.map((entry) => entry.author.id),
       ...comments.map((comment) => comment.author.id)
     ]);
-    const assetUrlMap = await resolveUploadedFileUrlMap([
-      ranking.coverImageFileId ?? null,
-      ranking.author.avatarFileId ?? null,
-      ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
-      ...comments.map((comment) => comment.author.avatarFileId ?? null)
-    ]);
+    const assetUrlMap =
+      mediaAudience === "public"
+        ? await resolvePublicUploadedFileUrlMap([
+            ranking.coverImageFileId ?? null,
+            ranking.author.avatarFileId ?? null,
+            ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ])
+        : await resolveUploadedFileUrlMap([
+            ranking.coverImageFileId ?? null,
+            ranking.author.avatarFileId ?? null,
+            ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ]);
     const serializedItems = await Promise.all(
       items.map((entry) =>
         serializeRatingTarget(entry, aggregateMap, userRatingMap, {
@@ -1047,7 +1069,7 @@ export const rankingsService = {
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         coverImageFileId: ranking.coverImageFileId ?? null,
-        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
+        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId, mediaAudience),
         itemAddPolicy,
         viewer: toRankingViewer({
           currentUser,
@@ -1497,6 +1519,15 @@ export const rankingsService = {
       return null;
     }
 
+    const mediaAudience: "internal" | "public" = canInspectRatingTarget({
+      currentUser: undefined,
+      rankingType,
+      rankingAuthorId: ranking.author.id,
+      itemAuthorId: item.authorId,
+      itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
+    })
+      ? "public"
+      : "internal";
     const rankingItems = (await rankingsRepo.listRatingTargets(item.rankingId)).filter((entry) =>
       canInspectRatingTarget({
         currentUser,
@@ -1565,12 +1596,20 @@ export const rankingsService = {
       ...comments.map((comment) => comment.author.id)
     ];
     const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
-    const assetUrlMap = await resolveUploadedFileUrlMap([
-      item.author.avatarFileId ?? null,
-      item.imageFileId ?? null,
-      ...replyUsers.map((user) => user.avatarFileId ?? null),
-      ...comments.map((comment) => comment.author.avatarFileId ?? null)
-    ]);
+    const assetUrlMap =
+      mediaAudience === "public"
+        ? await resolvePublicUploadedFileUrlMap([
+            item.author.avatarFileId ?? null,
+            item.imageFileId ?? null,
+            ...replyUsers.map((user) => user.avatarFileId ?? null),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ])
+        : await resolveUploadedFileUrlMap([
+            item.author.avatarFileId ?? null,
+            item.imageFileId ?? null,
+            ...replyUsers.map((user) => user.avatarFileId ?? null),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ]);
     const serializedItem = await serializeRatingTarget(item, aggregateMap, userRatingMap, {
       currentUser,
       rankingType,
