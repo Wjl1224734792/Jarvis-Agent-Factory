@@ -96,7 +96,8 @@ export const API_ROUTES = {
     messagesReadAll: withApiV1Prefix("/admin/messages/read-all"),
     messageRead: (id: string) => withApiV1Prefix(`/admin/messages/${id}/read`),
     messageTodos: withApiV1Prefix("/admin/messages/todos"),
-    audits: withApiV1Prefix("/admin/audits")
+    audits: withApiV1Prefix("/admin/audits"),
+    auditManualReview: (id: string) => withApiV1Prefix(`/admin/audits/${id}/manual-review`)
   },
   auth: {
     captchaChallenge: withApiV1Prefix("/auth/captcha/challenge"),

@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import { type QueryClient } from "@tanstack/react-query";
 import type { AdminMessageDomain, NotificationType } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
@@ -31,11 +31,54 @@ export const adminMessageTypeOptions: Array<{ label: string; value: Notification
   { label: "品牌申请审核结果", value: "brand_application_audit_result" }
 ];
 
+const adminMessageTypesByDomain: Partial<Record<AdminMessageDomain, NotificationType[]>> = {
+  posts: ["post_audit_result"],
+  reviews: ["review_audit_result"],
+  rankings: ["ranking_audit_result"],
+  rating_targets: ["rating_target_audit_result"],
+  aircraft_submissions: ["aircraft_submission_audit_result"],
+  brand_applications: ["brand_application_audit_result"]
+};
+
 export const adminMessageReadStatusOptions = [
   { label: "全部", value: "all" },
   { label: "未读", value: "unread" },
   { label: "已读", value: "read" }
 ] as const;
+
+export function getAdminMessageTypeOptions(domain?: AdminMessageDomain) {
+  if (!domain) {
+    return adminMessageTypeOptions;
+  }
+
+  const allowedTypes = adminMessageTypesByDomain[domain] ?? [];
+  return adminMessageTypeOptions.filter((item) => allowedTypes.includes(item.value));
+}
+
+export function sanitizeAdminMessageFilters(input: {
+  domain: string | null;
+  type: string | null;
+  readStatus: string | null;
+}) {
+  const activeDomain = adminMessageDomainOptions.some((item) => item.value === input.domain)
+    ? (input.domain as (typeof adminMessageDomainOptions)[number]["value"])
+    : undefined;
+  const requestedType = adminMessageTypeOptions.some((item) => item.value === input.type)
+    ? (input.type as (typeof adminMessageTypeOptions)[number]["value"])
+    : undefined;
+  const allowedTypes = getAdminMessageTypeOptions(activeDomain).map((item) => item.value);
+  const activeType = requestedType && allowedTypes.includes(requestedType) ? requestedType : undefined;
+  const activeReadStatus = adminMessageReadStatusOptions.some((item) => item.value === input.readStatus)
+    ? (input.readStatus as (typeof adminMessageReadStatusOptions)[number]["value"])
+    : "all";
+
+  return {
+    activeDomain,
+    activeType,
+    activeReadStatus,
+    ignoredType: Boolean(requestedType) && requestedType !== activeType
+  };
+}
 
 export function getAdminMessageDomainLabel(domain: AdminMessageDomain) {
   return adminMessageDomainOptions.find((item) => item.value === domain)?.label ?? domain;

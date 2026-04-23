@@ -1,6 +1,7 @@
 import {
+  resolvePublicUploadedFileUrl,
+  resolvePublicUploadedFileUrlMap,
   resolveUploadedFileUrl,
-  resolveUploadedFileUrlMap,
   resolveUploadedFileUrls
 } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
@@ -115,7 +116,7 @@ async function serializeModelComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+      avatarUrl: await resolvePublicUploadedFileUrl(item.author.avatarFileId ?? null),
       ipLocationLabel: input?.ipLocationLabelMap?.get(item.author.id) ?? null,
       role: item.author.role as "user" | "admin"
     },
@@ -160,7 +161,7 @@ async function serializeModelCommentThreads(
       author: {
         id: comment.author.id,
         displayName: comment.author.displayName,
-        avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+        avatarUrl: await resolvePublicUploadedFileUrl(comment.author.avatarFileId ?? null),
         ipLocationLabel: input?.ipLocationLabelMap?.get(comment.author.id) ?? null,
         role: comment.author.role as "user" | "admin"
       },
@@ -236,7 +237,7 @@ export const aircraftModelsService = {
     const offset = (page - 1) * limit;
     const pagedRows = orderedRows.slice(offset, offset + limit);
 
-    const fileUrlMap = await resolveUploadedFileUrlMap(
+    const fileUrlMap = await resolvePublicUploadedFileUrlMap(
       pagedRows.flatMap((row) => [row.coverImageFileId ?? null, row.videoFileId ?? null])
     );
     const items = pagedRows.map((row) => {
@@ -279,10 +280,15 @@ export const aircraftModelsService = {
     ]);
 
     const { coverImageFileId, galleryImageFileIds, videoFileId, ...rest } = item;
+    const internalAudience = Boolean(item.ownerId && currentUserId && item.ownerId === currentUserId);
     const [coverImageUrl, coverVideoUrl, galleryImageUrls] = await Promise.all([
-      resolveUploadedFileUrl(coverImageFileId ?? null),
-      resolveUploadedFileUrl(videoFileId ?? null),
-      Promise.all(parseFileIdArray(galleryImageFileIds).map((id) => resolveUploadedFileUrl(id))).then((urls) =>
+      (internalAudience ? resolveUploadedFileUrl : resolvePublicUploadedFileUrl)(coverImageFileId ?? null),
+      (internalAudience ? resolveUploadedFileUrl : resolvePublicUploadedFileUrl)(videoFileId ?? null),
+      Promise.all(
+        parseFileIdArray(galleryImageFileIds).map((id) =>
+          (internalAudience ? resolveUploadedFileUrl : resolvePublicUploadedFileUrl)(id)
+        )
+      ).then((urls) =>
         urls.filter((url): url is string => Boolean(url))
       )
     ]);

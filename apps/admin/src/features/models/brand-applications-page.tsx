@@ -6,7 +6,10 @@ import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-pan
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
-import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
+import {
+  buildAdminAuditTracePlan,
+  syncLatestAdminAuditManualDecision
+} from "../../lib/admin-audit-tracking";
 import { promptRejectionReason } from "../../lib/moderation-actions";
 import {
   buildModerationTraceItems,
@@ -145,7 +148,14 @@ export function BrandApplicationsPage() {
         status: nextStatus,
         rejectionReason: nextStatus === "rejected" ? rejectionReason ?? null : null
       });
+      await syncLatestAdminAuditManualDecision({
+        domain: "brand_application",
+        entityId: id,
+        status: nextStatus === "approved" ? "manual_passed" : "manual_rejected",
+        reviewNote: nextStatus === "rejected" ? rejectionReason ?? null : null
+      });
       await applicationsQuery.refetch();
+      await auditQuery.refetch();
       if (detailId === id) {
         await detailQuery.refetch();
       }

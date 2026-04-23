@@ -1,14 +1,23 @@
 import { reviewsRepo } from "./reviews.repo";
 import { evaluateTextModeration } from "../audits/text-moderation.service";
-import { resolveUploadedFileUrl, resolveUploadedFileUrls } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrl,
+  resolveUploadedFileUrl,
+  resolveUploadedFileUrls
+} from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
 import { isValidAuthRole, isValidReviewCommentStatus } from "../../lib/type-guards";
 
-async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(author: T) {
-  return resolveUploadedFileUrl(author.avatarFileId ?? null);
+async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(
+  author: T,
+  audience: "internal" | "public" = "internal"
+) {
+  return audience === "public"
+    ? resolvePublicUploadedFileUrl(author.avatarFileId ?? null)
+    : resolveUploadedFileUrl(author.avatarFileId ?? null);
 }
 
 function serializeReview<T extends { createdAt: Date; updatedAt: Date }>(review: T) {
@@ -27,12 +36,13 @@ function buildStateSet<T extends { [key: string]: string }>(
 }
 
 async function buildReplyToUserMap(
-  users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>
+  users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>,
+  audience: "internal" | "public" = "internal"
 ) {
   return buildReplyToUserMapAsync(users, async (user) => ({
     id: user.id,
     displayName: user.displayName,
-    avatarUrl: await resolveAuthorAvatar(user),
+    avatarUrl: await resolveAuthorAvatar(user, audience),
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
   }));
@@ -50,7 +60,8 @@ async function serializeCommentBase(
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
-  }
+  },
+  audience: "internal" | "public" = "internal"
 ) {
   return {
     id: item.id,
@@ -66,7 +77,7 @@ async function serializeCommentBase(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: await resolveAuthorAvatar(item.author),
+      avatarUrl: await resolveAuthorAvatar(item.author, audience),
       // Database text column constrained to valid AuthRole values at insert time
       role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
@@ -90,13 +101,14 @@ async function serializeComment(
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
-  }
+  },
+  audience: "internal" | "public" = "internal"
 ) {
   if (!item) {
     return null;
   }
 
-  return serializeCommentBase(item, replyToUserMap, input);
+  return serializeCommentBase(item, replyToUserMap, input, audience);
 }
 
 async function serializeCommentThreads(
@@ -109,10 +121,11 @@ async function serializeCommentThreads(
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
-  }
+  },
+  audience: "internal" | "public" = "internal"
 ) {
   const serialized = await Promise.all(
-    comments.map((c) => serializeCommentBase(c, replyToUserMap, input))
+    comments.map((c) => serializeCommentBase(c, replyToUserMap, input, audience))
   );
 
   return buildCommentThreads(serialized);
@@ -176,7 +189,7 @@ export const reviewsService = {
         reportCount: item.reportCount ?? 0,
         author: {
           ...item.author,
-          avatarUrl: await resolveAuthorAvatar(item.author)
+          avatarUrl: await resolveAuthorAvatar(item.author, "public")
         },
         viewer: {
           canEdit: currentUserId === item.author.id,
@@ -234,12 +247,8 @@ export const reviewsService = {
       status
     });
 
-    const [item, summary] = await Promise.all([
-      reviewsRepo.getUserReview(model.id, userId),
-      this.listModelReviews(slug, userId)
-    ]);
-
-    if (!item || !summary) {
+    const item = await reviewsRepo.getUserReview(model.id, userId);
+    if (!item) {
       return null;
     }
     const moderation = await evaluateTextModeration({
@@ -254,8 +263,11 @@ export const reviewsService = {
       await this.updateReviewStatus(item.id, "hidden");
     }
 
-    const refreshed = await reviewsRepo.getUserReview(model.id, userId);
-    if (!refreshed) {
+    const [refreshed, refreshedSummary] = await Promise.all([
+      reviewsRepo.getUserReview(model.id, userId),
+      this.listModelReviews(slug, userId)
+    ]);
+    if (!refreshed || !refreshedSummary) {
       return null;
     }
 
@@ -291,7 +303,7 @@ export const reviewsService = {
           hasReported: false
         }
       },
-      summary: summary.summary
+      summary: refreshedSummary.summary
     };
   },
   async listAdminReviews() {
@@ -396,11 +408,11 @@ export const reviewsService = {
     const reportedCommentIds = buildStateSet(reportedComments, "commentId");
 
     return {
-      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers), {
+      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers, "public"), {
         currentUserId,
         likedCommentIds,
         reportedCommentIds
-      })
+      }, "public")
     };
   },
   async createReviewComment(

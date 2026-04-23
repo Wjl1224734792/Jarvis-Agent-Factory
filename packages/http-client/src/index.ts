@@ -1,5 +1,7 @@
 import {
   actionSuccessResponseSchema,
+  adminAuditManualDecisionInputSchema,
+  adminAuditRecordResponseSchema,
   adminAuditRecordListQuerySchema,
   adminAuditRecordListResponseSchema,
   adminRankingsResponseSchema,
@@ -239,6 +241,8 @@ type AdminLogFilesQueryInput = Parameters<typeof adminLogFilesQuerySchema.parse>
 type AdminLogEntriesQueryInput = Parameters<typeof adminLogEntriesQuerySchema.parse>[0];
 type AdminMessageListQueryInput = Parameters<typeof adminMessageListQuerySchema.parse>[0];
 type AdminAuditRecordListQueryInput = Parameters<typeof adminAuditRecordListQuerySchema.parse>[0];
+type AdminAuditManualDecisionInput =
+  Parameters<typeof adminAuditManualDecisionInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -1423,6 +1427,13 @@ export function createApiClient(options: ApiClientOptions) {
       );
 
       return readJson(response, adminAuditRecordListResponseSchema);
+    },
+    async updateAdminAuditManualReview(id: string, input: AdminAuditManualDecisionInput) {
+      return putJson(
+        API_ROUTES.admin.auditManualReview(id),
+        adminAuditRecordResponseSchema,
+        adminAuditManualDecisionInputSchema.parse(input)
+      );
     },
     async getAdminLogsOverview(input?: { source?: string }) {
       const search = new URLSearchParams();

@@ -301,3 +301,17 @@ export function adaptMessageCenterPayload(payload: {
 export function hasMessageCenterContractMismatch(payload: MessageCenterAdaptedPayload) {
   return payload.contract.invalidItemCount > 0 || payload.contract.missingCategoryCount > 0;
 }
+
+export function formatMessageCenterContractWarning(
+  contract: MessageCenterAdaptedPayload["contract"]
+) {
+  const parts: string[] = [];
+  if (contract.missingCategoryCount > 0) {
+    parts.push(`${contract.missingCategoryCount} 条消息缺少 category`);
+  }
+  if (contract.invalidItemCount > 0) {
+    parts.push(`${contract.invalidItemCount} 条消息字段不完整`);
+  }
+
+  return parts.length > 0 ? `${parts.join("，")}，暂不展示。` : null;
+}

@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
+  Alert,
   Badge,
   Breadcrumb,
   Button,
@@ -20,12 +21,13 @@ import {
   adminMessagesQueryKey,
   adminMessageDomainOptions,
   adminMessageReadStatusOptions,
-  adminMessageTypeOptions,
   adminModerationTodosQueryKey,
   getAdminMessageDomainLabel,
+  getAdminMessageTypeOptions,
   getAdminMessageTypeLabel,
   invalidateAdminMessageQueries,
-  resolveAdminMessageDestination
+  resolveAdminMessageDestination,
+  sanitizeAdminMessageFilters
 } from "./admin-message-navigation";
 
 type AdminMessageRecord = Awaited<ReturnType<typeof apiClient.listAdminMessages>>["items"][number];
@@ -41,19 +43,11 @@ export function AdminMessagesPage() {
   const queryClient = useQueryClient();
   const [searchParams, setSearchParams] = useSearchParams();
   const [actionError, setActionError] = useState<string | null>(null);
-  const domain = searchParams.get("domain");
-  const type = searchParams.get("type");
-  const readStatus = searchParams.get("readStatus");
-
-  const activeDomain = adminMessageDomainOptions.some((item) => item.value === domain)
-    ? (domain as (typeof adminMessageDomainOptions)[number]["value"])
-    : undefined;
-  const activeType = adminMessageTypeOptions.some((item) => item.value === type)
-    ? (type as (typeof adminMessageTypeOptions)[number]["value"])
-    : undefined;
-  const activeReadStatus = adminMessageReadStatusOptions.some((item) => item.value === readStatus)
-    ? (readStatus as (typeof adminMessageReadStatusOptions)[number]["value"])
-    : "all";
+  const { activeDomain, activeType, activeReadStatus, ignoredType } = sanitizeAdminMessageFilters({
+    domain: searchParams.get("domain"),
+    type: searchParams.get("type"),
+    readStatus: searchParams.get("readStatus")
+  });
 
   const messagesQuery = useQuery({
     queryKey: adminMessagesQueryKey({
@@ -75,30 +69,20 @@ export function AdminMessagesPage() {
     queryFn: () => apiClient.listAdminModerationTodos()
   });
 
-  const filteredMessageTypes = useMemo(() => {
-    if (!activeDomain) {
-      return adminMessageTypeOptions;
-    }
-
-    return adminMessageTypeOptions.filter((item) => {
-      switch (activeDomain) {
-        case "posts":
-          return item.value === "post_audit_result";
-        case "reviews":
-          return item.value === "review_audit_result";
-        case "rankings":
-          return item.value === "ranking_audit_result";
-        case "rating_targets":
-          return item.value === "rating_target_audit_result";
-        case "aircraft_submissions":
-          return item.value === "aircraft_submission_audit_result";
-        case "brand_applications":
-          return item.value === "brand_application_audit_result";
-        default:
-          return false;
-      }
-    });
-  }, [activeDomain]);
+  const filteredMessageTypes = useMemo(
+    () => getAdminMessageTypeOptions(activeDomain),
+    [activeDomain]
+  );
+  const messagesError = messagesQuery.isError
+    ? messagesQuery.error instanceof Error
+      ? messagesQuery.error.message
+      : "消息加载失败"
+    : null;
+  const todosError = todosQuery.isError
+    ? todosQuery.error instanceof Error
+      ? todosQuery.error.message
+      : "待办统计加载失败"
+    : null;
 
   async function markMessageRead(id: string) {
     setActionError(null);
@@ -147,6 +131,15 @@ export function AdminMessagesPage() {
       />
 
       {actionError ? <div className="admin-login__error">{actionError}</div> : null}
+      {ignoredType ? (
+        <Alert
+          message="已忽略不兼容的筛选条件"
+          showIcon
+          type="warning"
+        />
+      ) : null}
+      {messagesError ? <Alert message="消息加载失败" description={messagesError} showIcon type="error" /> : null}
+      {todosError ? <Alert message="待办统计加载失败" description={todosError} showIcon type="error" /> : null}
 
       <div className="admin-message-stat-grid">
         <Card className="admin-overview-card" size="small" variant="outlined">

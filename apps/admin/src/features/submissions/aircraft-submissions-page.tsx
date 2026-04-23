@@ -6,7 +6,10 @@ import { AdminAuditRecordsPanel } from "../../components/admin-audit-records-pan
 import { AdminModerationCard } from "../../components/admin-moderation-card";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
-import { buildAdminAuditTracePlan } from "../../lib/admin-audit-tracking";
+import {
+  buildAdminAuditTracePlan,
+  syncLatestAdminAuditManualDecision
+} from "../../lib/admin-audit-tracking";
 import { promptRejectionReason } from "../../lib/moderation-actions";
 import {
   buildModerationTraceItems,
@@ -150,19 +153,27 @@ export function AircraftSubmissionsPage() {
     [submissionsQuery.data?.items]
   );
 
-  function updateStatus(id: string, status: "approved" | "rejected", rejectionReason?: string | null) {
+  async function updateStatus(id: string, status: "approved" | "rejected", rejectionReason?: string | null) {
     setError(null);
-    void apiClient
-      .updateAircraftSubmissionStatus(id, {
+    try {
+      await apiClient.updateAircraftSubmissionStatus(id, {
         status,
         rejectionReason: status === "rejected" ? rejectionReason ?? null : null
-      })
-      .then(() => {
-        void Promise.all([submissionsQuery.refetch(), detailQuery.refetch()]);
-      })
-      .catch((reason: unknown) => {
-        setError(reason instanceof Error ? reason.message : "更新投稿状态失败");
       });
+      await syncLatestAdminAuditManualDecision({
+        domain: "aircraft_submission",
+        entityId: id,
+        status: status === "approved" ? "manual_passed" : "manual_rejected",
+        reviewNote: status === "rejected" ? rejectionReason ?? null : null
+      });
+      await Promise.all([
+        submissionsQuery.refetch(),
+        auditQuery.refetch(),
+        detailId === id ? detailQuery.refetch() : Promise.resolve(null)
+      ]);
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "更新投稿状态失败");
+    }
   }
 
   async function updateModeration(enabled: boolean) {
@@ -333,7 +344,7 @@ export function AircraftSubmissionsPage() {
                           if (!reason) {
                             return;
                           }
-                          updateStatus(record.id, "rejected", reason);
+                          void updateStatus(record.id, "rejected", reason);
                         }}
                         size="small"
                       >
@@ -348,7 +359,7 @@ export function AircraftSubmissionsPage() {
                         if (!reason) {
                           return;
                         }
-                        updateStatus(record.id, "rejected", reason);
+                        void updateStatus(record.id, "rejected", reason);
                       }}
                       size="small"
                     >

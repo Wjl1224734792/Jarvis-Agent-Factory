@@ -31,10 +31,12 @@ import { getNotificationsQueryKey } from "../features/auth/notification-state";
 import { useNotifications } from "../features/auth/use-notifications";
 import {
   adaptMessageCenterPayload,
+  formatMessageCenterContractWarning,
   hasMessageCenterContractMismatch,
   type MessageCenterAdaptedPayload,
   type MessageCenterCategory
 } from "../features/notifications/message-center";
+import { openMessageCenterItem } from "../features/notifications/message-actions";
 import { apiClient } from "../lib/api-client";
 import { getAvatarImage } from "../lib/aviation-media";
 import { cn } from "../lib/utils";
@@ -206,6 +208,7 @@ export function NotificationsPage() {
     [notificationsQuery.data]
   );
   const contractMismatch = hasMessageCenterContractMismatch(messageCenter);
+  const contractWarning = formatMessageCenterContractWarning(messageCenter.contract);
   const activeItems = messageCenter.items.filter((item) => item.category === activeCategory);
   const activeCategoryMeta = messageCenterCategories.find((item) => item.value === activeCategory);
   const ActiveCategoryIcon = activeCategoryMeta?.icon;
@@ -214,27 +217,27 @@ export function NotificationsPage() {
     await queryClient.invalidateQueries({ queryKey: getNotificationsQueryKey(authUserId) });
   }
 
-  async function handleOpenMessage(item: MessageCenterAdaptedPayload["items"][number]) {
-    setActionError(null);
-    setPendingItemId(item.id);
+  function handleOpenMessage(item: MessageCenterAdaptedPayload["items"][number]) {
+    void openMessageCenterItem({
+      item,
 
-    try {
-      if (!item.isRead) {
-        await apiClient.markNotificationRead(item.id);
-        await refreshNotifications();
-      }
+      openTarget: (target) => {
+        if (target.openInNewTab) {
+          openDetailPageInNewTab(target.href);
+          return;
+        }
 
-      if (item.target.openInNewTab) {
-        openDetailPageInNewTab(item.target.href);
-        return;
-      }
 
-      void navigate(item.target.href);
-    } catch (error: unknown) {
+
+        void navigate(target.href);
+      },
+      markAsRead: (id) => apiClient.markNotificationRead(id),
+      refresh: refreshNotifications,
+      onError: setActionError, /*
       setActionError(error instanceof Error ? error.message : "消息跳转失败");
-    } finally {
-      setPendingItemId(null);
-    }
+      */
+      onPendingChange: setPendingItemId
+    });
   }
 
   return (
@@ -344,9 +347,9 @@ export function NotificationsPage() {
       {contractMismatch ? (
         <Alert>
           <AlertTitle>消息契约待同步</AlertTitle>
-          <AlertDescription>
+          <AlertDescription>{contractWarning}{/*
             有 {messageCenter.contract.missingCategoryCount} 条消息缺少 <code>category</code>，暂不展示。
-          </AlertDescription>
+          */}</AlertDescription>
         </Alert>
       ) : null}
 

@@ -2,6 +2,7 @@ import { APP_ROUTES } from "@feijia/shared";
 import { describe, expect, it } from "vitest";
 import {
   adaptMessageCenterPayload,
+  formatMessageCenterContractWarning,
   hasMessageCenterContractMismatch,
   normalizeMessageCenterCategory
 } from "../src/features/notifications/message-center";
@@ -105,6 +106,23 @@ describe("message-center", () => {
     expect(payload.items).toEqual([]);
     expect(payload.contract.missingCategoryCount).toBe(1);
     expect(hasMessageCenterContractMismatch(payload)).toBe(true);
+  });
+
+  it("describes both missing-category and invalid-item contract drift", () => {
+    expect(
+      formatMessageCenterContractWarning({
+        invalidItemCount: 2,
+        missingCategoryCount: 1,
+        totalReceived: 5
+      })
+    ).toContain("1");
+    expect(
+      formatMessageCenterContractWarning({
+        invalidItemCount: 2,
+        missingCategoryCount: 1,
+        totalReceived: 5
+      })
+    ).toContain("2");
   });
 
   it("keeps explicit system-message targets", () => {

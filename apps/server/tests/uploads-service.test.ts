@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { API_ROUTES } from "@feijia/shared";
 
 const storageProviderMock = {
   headObject: vi.fn(),
@@ -25,17 +26,17 @@ const uploadsRepoMock = {
   getOwnedFileById: vi.fn(),
   markFileUploaded: vi.fn()
 };
+const auditsRepoMock = {
+  create: vi.fn()
+};
 
 const qiniuAuditMock = {
   reviewImage: vi.fn(),
   submitVideoReview: vi.fn()
 };
 
-const siteSettingsServiceMock = {
-  isAiReviewEnabledForFileBizType: vi.fn()
-};
-
 const uploadedUrlMock = vi.fn(async () => "https://cdn.example-kodo.com/resolved/file.png");
+const originalPublicServerBaseUrl = process.env.PUBLIC_SERVER_BASE_URL;
 
 const buildStorageObjectUrlMock = vi.fn((config: { publicBaseUrl: string }, objectKey: string) =>
   `${config.publicBaseUrl}/${objectKey}`
@@ -52,16 +53,17 @@ vi.mock("../src/modules/uploads/upload.repo", () => ({
   uploadsRepo: uploadsRepoMock
 }));
 
+vi.mock("../src/modules/audits/audits.repo", () => ({
+  auditsRepo: auditsRepoMock
+}));
+
 vi.mock("../src/modules/audits/qiniu-audit.service", () => ({
   qiniuAuditService: qiniuAuditMock
 }));
 
-vi.mock("../src/modules/site-settings/site-settings.service", () => ({
-  siteSettingsService: siteSettingsServiceMock
-}));
-
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
-  resolveUploadedFileUrl: uploadedUrlMock
+  resolveUploadedFileUrl: uploadedUrlMock,
+  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example-kodo.com/public/file.png")
 }));
 
 function mockFileRecord(overrides: {
@@ -96,10 +98,17 @@ function mockFileRecord(overrides: {
 afterEach(() => {
   vi.clearAllMocks();
   storageConfigMock.provider = "kodo";
+  storageConfigMock.publicBaseUrl = "https://cdn.example-kodo.com";
+  storageConfigMock.publicBaseUrlIsExplicit = true;
+  if (originalPublicServerBaseUrl === undefined) {
+    delete process.env.PUBLIC_SERVER_BASE_URL;
+  } else {
+    process.env.PUBLIC_SERVER_BASE_URL = originalPublicServerBaseUrl;
+  }
 });
 
 describe("uploads service", () => {
-  it("does not trigger image AI audit for completed uploads", async () => {
+  it("triggers image AI audit for completed kodo image uploads", async () => {
     const file = mockFileRecord({
       id: "file_image_1",
       bizType: "post-image",
@@ -120,18 +129,19 @@ describe("uploads service", () => {
       size: file.byteSize,
       contentType: file.mimeType
     });
-    siteSettingsServiceMock.isAiReviewEnabledForFileBizType.mockResolvedValue(true);
-
     const { uploadsService } = await import("../src/modules/uploads/upload.service");
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
-    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
+    expect(qiniuAuditMock.reviewImage).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      imageUrl: "https://cdn.example-kodo.com/resolved/file.png"
+    });
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
-    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 
-  it("does not trigger AI audit for report images by default", async () => {
+  it("triggers image AI audit for report images too", async () => {
     const file = mockFileRecord({
       id: "file_report_image",
       bizType: "report-image",
@@ -152,18 +162,20 @@ describe("uploads service", () => {
       size: file.byteSize,
       contentType: file.mimeType
     });
-    siteSettingsServiceMock.isAiReviewEnabledForFileBizType.mockResolvedValue(false);
-
     const { uploadsService } = await import("../src/modules/uploads/upload.service");
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
-    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
+    expect(qiniuAuditMock.reviewImage).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      imageUrl: "https://cdn.example-kodo.com/resolved/file.png"
+    });
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
-    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
   });
 
-  it("does not trigger video review submission for completed uploads", async () => {
+  it("submits video AI review with callback url for completed kodo video uploads", async () => {
+    process.env.PUBLIC_SERVER_BASE_URL = "https://server.example.com";
     const file = mockFileRecord({
       id: "file_video_1",
       bizType: "post-video",
@@ -184,15 +196,135 @@ describe("uploads service", () => {
       size: file.byteSize,
       contentType: file.mimeType
     });
-    siteSettingsServiceMock.isAiReviewEnabledForFileBizType.mockResolvedValue(true);
+    const { uploadsService } = await import("../src/modules/uploads/upload.service");
+    const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
+
+    expect(result.kind).toBe("ok");
+    expect(qiniuAuditMock.submitVideoReview).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      videoUrl: "https://cdn.example-kodo.com/post-video/owner_1/2026/04/21/video.mp4",
+      callbackUrl: `https://server.example.com${API_ROUTES.audits.qiniuCallback}`
+    });
+    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
+  });
+
+  it("records a failed audit when video audit cannot build a callback url", async () => {
+    delete process.env.PUBLIC_SERVER_BASE_URL;
+
+    const file = mockFileRecord({
+      id: "file_video_missing_callback",
+      bizType: "post-video",
+      mediaKind: "video",
+      mimeType: "video/mp4",
+      objectKey: "post-video/owner_1/2026/04/21/video.mp4",
+      byteSize: 2048
+    });
+
+    uploadsRepoMock.getOwnedFileById.mockResolvedValue(file);
+    uploadsRepoMock.markFileUploaded.mockResolvedValue({
+      ...file,
+      status: "uploaded",
+      uploadedAt: new Date("2026-04-21T00:00:00.000Z")
+    });
+    storageProviderMock.headObject.mockResolvedValue({
+      exists: true,
+      size: file.byteSize,
+      contentType: file.mimeType
+    });
+    const { uploadsService } = await import("../src/modules/uploads/upload.service");
+    const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
+
+    expect(result.kind).toBe("ok");
+    expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
+    expect(auditsRepoMock.create).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      contentType: "video",
+      mode: "ai",
+      status: "failed",
+      errorMessage: "Missing or invalid PUBLIC_SERVER_BASE_URL for video audit callback."
+    });
+  });
+
+  it("records a failed audit when video review lacks an explicit public download base url", async () => {
+    process.env.PUBLIC_SERVER_BASE_URL = "https://server.example.com";
+    storageConfigMock.publicBaseUrl = "https://up-z2.qiniup.com";
+    storageConfigMock.publicBaseUrlIsExplicit = false;
+
+    const file = mockFileRecord({
+      id: "file_video_signed_url_risk",
+      bizType: "post-video",
+      mediaKind: "video",
+      mimeType: "video/mp4",
+      objectKey: "post-video/owner_1/2026/04/21/video.mp4",
+      byteSize: 2048
+    });
+
+    uploadsRepoMock.getOwnedFileById.mockResolvedValue(file);
+    uploadsRepoMock.markFileUploaded.mockResolvedValue({
+      ...file,
+      status: "uploaded",
+      uploadedAt: new Date("2026-04-21T00:00:00.000Z")
+    });
+    storageProviderMock.headObject.mockResolvedValue({
+      exists: true,
+      size: file.byteSize,
+      contentType: file.mimeType
+    });
 
     const { uploadsService } = await import("../src/modules/uploads/upload.service");
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
-    expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
-    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
+    expect(auditsRepoMock.create).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      contentType: "video",
+      mode: "ai",
+      status: "failed",
+      errorMessage: "Missing explicit STORAGE_PUBLIC_BASE_URL for video audit."
+    });
+  });
+
+  it("records a failed audit when the callback base url is invalid", async () => {
+    process.env.PUBLIC_SERVER_BASE_URL = "not-a-valid-url";
+
+    const file = mockFileRecord({
+      id: "file_video_invalid_callback",
+      bizType: "post-video",
+      mediaKind: "video",
+      mimeType: "video/mp4",
+      objectKey: "post-video/owner_1/2026/04/21/video.mp4",
+      byteSize: 2048
+    });
+
+    uploadsRepoMock.getOwnedFileById.mockResolvedValue(file);
+    uploadsRepoMock.markFileUploaded.mockResolvedValue({
+      ...file,
+      status: "uploaded",
+      uploadedAt: new Date("2026-04-21T00:00:00.000Z")
+    });
+    storageProviderMock.headObject.mockResolvedValue({
+      exists: true,
+      size: file.byteSize,
+      contentType: file.mimeType
+    });
+
+    const { uploadsService } = await import("../src/modules/uploads/upload.service");
+    const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
+
+    expect(result.kind).toBe("ok");
+    expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
+    expect(auditsRepoMock.create).toHaveBeenCalledWith({
+      domain: "file",
+      entityId: file.id,
+      contentType: "video",
+      mode: "ai",
+      status: "failed",
+      errorMessage: "Missing or invalid PUBLIC_SERVER_BASE_URL for video audit callback."
+    });
   });
 
   it("does not trigger media audit when storage provider is not kodo", async () => {
@@ -218,14 +350,12 @@ describe("uploads service", () => {
       size: file.byteSize,
       contentType: file.mimeType
     });
-    siteSettingsServiceMock.isAiReviewEnabledForFileBizType.mockResolvedValue(true);
-
     const { uploadsService } = await import("../src/modules/uploads/upload.service");
     const result = await uploadsService.completeUpload({ ownerId: "owner_1", fileId: file.id });
 
     expect(result.kind).toBe("ok");
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
     expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
-    expect(siteSettingsServiceMock.isAiReviewEnabledForFileBizType).not.toHaveBeenCalled();
+    expect(auditsRepoMock.create).not.toHaveBeenCalled();
   });
 });

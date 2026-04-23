@@ -2,7 +2,12 @@ import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schem
 import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
 import { evaluateTextModeration } from "../audits/text-moderation.service";
-import { resolveUploadedFileUrl, resolveUploadedFileUrlMap } from "../uploads/uploads.helpers";
+import {
+  resolvePublicUploadedFileUrl,
+  resolvePublicUploadedFileUrlMap,
+  resolveUploadedFileUrl,
+  resolveUploadedFileUrlMap
+} from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
@@ -34,6 +39,64 @@ type RatingTargetStatus = "pending" | "published" | "rejected" | "hidden";
 const DEFAULT_RANKINGS_PAGE = 1;
 const DEFAULT_RANKINGS_LIMIT = 20;
 const MAX_RANKINGS_LIMIT = 50;
+
+function buildViewer(currentUserId: string): CurrentUser {
+  return {
+    id: currentUserId,
+    role: "user"
+  };
+}
+
+function canInteractWithRanking(input: {
+  ranking: {
+    type: string;
+    status: string;
+    author: { id: string };
+  };
+  currentUser: CurrentUser;
+}) {
+  if (input.ranking.status === "published") {
+    return true;
+  }
+
+  return canManageRanking({
+    currentUser: input.currentUser,
+    rankingType: isValidRankingType(input.ranking.type) ? input.ranking.type : "community",
+    rankingAuthorId: input.ranking.author.id
+  });
+}
+
+function canInteractWithRatingTarget(input: {
+  item: {
+    authorId: string;
+    status: string;
+  };
+  ranking: {
+    type: string;
+    status: string;
+    author: { id: string };
+  };
+  currentUser: CurrentUser;
+}) {
+  const rankingType = isValidRankingType(input.ranking.type) ? input.ranking.type : "community";
+  const itemStatus = isValidRankingStatus(input.item.status)
+    ? input.item.status
+    : ("published" satisfies RatingTargetStatus);
+
+  return (
+    canInteractWithRanking({
+      ranking: input.ranking,
+      currentUser: input.currentUser
+    }) &&
+    canInspectRatingTarget({
+      currentUser: input.currentUser,
+      rankingType,
+      rankingAuthorId: input.ranking.author.id,
+      itemAuthorId: input.item.authorId,
+      itemStatus
+    })
+  );
+}
 
 function buildPublicUserSummary(
   user: { id: string; displayName: string; avatarFileId?: string | null; role: string },
@@ -81,8 +144,13 @@ function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number
   return buildRatingBreakdown(scoreCountMap);
 }
 
-async function resolveRankingImage(fileId: string | null | undefined) {
-  return resolveUploadedFileUrl(fileId ?? null);
+async function resolveRankingImage(
+  fileId: string | null | undefined,
+  audience: "internal" | "public" = "internal"
+) {
+  return audience === "public"
+    ? resolvePublicUploadedFileUrl(fileId ?? null)
+    : resolveUploadedFileUrl(fileId ?? null);
 }
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
@@ -278,7 +346,7 @@ async function serializeRankingComment(
     author: {
       id: item.author.id,
       displayName: item.author.displayName,
-      avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+      avatarUrl: await resolvePublicUploadedFileUrl(item.author.avatarFileId ?? null),
       ipLocationLabel: ipLocationLabelMap?.get(item.author.id) ?? null,
       role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
@@ -319,7 +387,7 @@ async function serializeRatingTargetCommentBase(
     author: {
       id: comment.author.id,
       displayName: comment.author.displayName,
-      avatarUrl: await resolveUploadedFileUrl(comment.author.avatarFileId ?? null),
+      avatarUrl: await resolvePublicUploadedFileUrl(comment.author.avatarFileId ?? null),
       ipLocationLabel: ipLocationLabelMap?.get(comment.author.id) ?? null,
       role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
     },
@@ -440,10 +508,10 @@ async function buildRankingListItems(
       .map((item) => item.author.id)
   ];
   const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
-  const rankingFileUrlMap = await resolveUploadedFileUrlMap(
+  const rankingFileUrlMap = await resolvePublicUploadedFileUrlMap(
     rankings.flatMap((ranking) => [ranking.coverImageFileId ?? null, ranking.author.avatarFileId ?? null])
   );
-  const ratingTargetImageUrlMap = await resolveUploadedFileUrlMap(
+  const ratingTargetImageUrlMap = await resolvePublicUploadedFileUrlMap(
     Array.from(ratingTargetsByRanking.values())
       .flat()
       .flatMap((item) => [item.imageFileId ?? null, item.author.avatarFileId ?? null])
@@ -907,13 +975,17 @@ export const rankingsService = {
     }
 
     const rankingType = isValidRankingType(ranking.type) ? ranking.type : "community";
-      const canInspectUnpublished =
-        currentUser?.role === "admin" ||
-        currentUser?.id === ranking.author.id ||
-        (Boolean(currentUser) && ranking.itemAddPolicy === "public");
+    const canInspectUnpublished =
+      currentUser?.role === "admin" ||
+      currentUser?.id === ranking.author.id ||
+      (Boolean(currentUser) && ranking.itemAddPolicy === "public");
     if (rankingType === "community" && ranking.status !== "published" && !canInspectUnpublished) {
       return null;
     }
+    const mediaAudience: "internal" | "public" =
+      rankingType === "community" && ranking.status !== "published" && canInspectUnpublished
+        ? "internal"
+        : "public";
 
     const items = (await rankingsRepo.listRatingTargets(id)).filter((entry) =>
       canInspectRatingTarget({
@@ -956,12 +1028,20 @@ export const rankingsService = {
       ...items.map((entry) => entry.author.id),
       ...comments.map((comment) => comment.author.id)
     ]);
-    const assetUrlMap = await resolveUploadedFileUrlMap([
-      ranking.coverImageFileId ?? null,
-      ranking.author.avatarFileId ?? null,
-      ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
-      ...comments.map((comment) => comment.author.avatarFileId ?? null)
-    ]);
+    const assetUrlMap =
+      mediaAudience === "public"
+        ? await resolvePublicUploadedFileUrlMap([
+            ranking.coverImageFileId ?? null,
+            ranking.author.avatarFileId ?? null,
+            ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ])
+        : await resolveUploadedFileUrlMap([
+            ranking.coverImageFileId ?? null,
+            ranking.author.avatarFileId ?? null,
+            ...items.flatMap((entry) => [entry.imageFileId ?? null, entry.author.avatarFileId ?? null]),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ]);
     const serializedItems = await Promise.all(
       items.map((entry) =>
         serializeRatingTarget(entry, aggregateMap, userRatingMap, {
@@ -989,7 +1069,7 @@ export const rankingsService = {
         rejectionReason: ranking.rejectionReason ?? null,
         title: ranking.title,
         coverImageFileId: ranking.coverImageFileId ?? null,
-        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId),
+        coverImageUrl: await resolveRankingImage(ranking.coverImageFileId, mediaAudience),
         itemAddPolicy,
         viewer: toRankingViewer({
           currentUser,
@@ -1304,7 +1384,13 @@ export const rankingsService = {
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {
     const ranking = await rankingsRepo.getRankingById(rankingId);
-    if (!ranking) {
+    if (
+      !ranking ||
+      !canInteractWithRanking({
+        ranking,
+        currentUser: buildViewer(currentUserId)
+      })
+    ) {
       return null;
     }
 
@@ -1433,6 +1519,15 @@ export const rankingsService = {
       return null;
     }
 
+    const mediaAudience: "internal" | "public" = canInspectRatingTarget({
+      currentUser: undefined,
+      rankingType,
+      rankingAuthorId: ranking.author.id,
+      itemAuthorId: item.authorId,
+      itemStatus: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus)
+    })
+      ? "public"
+      : "internal";
     const rankingItems = (await rankingsRepo.listRatingTargets(item.rankingId)).filter((entry) =>
       canInspectRatingTarget({
         currentUser,
@@ -1501,12 +1596,20 @@ export const rankingsService = {
       ...comments.map((comment) => comment.author.id)
     ];
     const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(publicUserIds);
-    const assetUrlMap = await resolveUploadedFileUrlMap([
-      item.author.avatarFileId ?? null,
-      item.imageFileId ?? null,
-      ...replyUsers.map((user) => user.avatarFileId ?? null),
-      ...comments.map((comment) => comment.author.avatarFileId ?? null)
-    ]);
+    const assetUrlMap =
+      mediaAudience === "public"
+        ? await resolvePublicUploadedFileUrlMap([
+            item.author.avatarFileId ?? null,
+            item.imageFileId ?? null,
+            ...replyUsers.map((user) => user.avatarFileId ?? null),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ])
+        : await resolveUploadedFileUrlMap([
+            item.author.avatarFileId ?? null,
+            item.imageFileId ?? null,
+            ...replyUsers.map((user) => user.avatarFileId ?? null),
+            ...comments.map((comment) => comment.author.avatarFileId ?? null)
+          ]);
     const serializedItem = await serializeRatingTarget(item, aggregateMap, userRatingMap, {
       currentUser,
       rankingType,
@@ -1577,39 +1680,51 @@ export const rankingsService = {
     }
   ) {
     const existing = await rankingsRepo.getRatingTargetById(id);
-    if (!existing) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = existing ? await rankingsRepo.getRankingById(existing.rankingId) : null;
+    if (
+      !existing ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item: existing,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
-    await rankingsRepo.upsertRatingTargetReview({
+    let reviewComment = await rankingsRepo.upsertRatingTargetReview({
       ratingTargetId: id,
       authorId: currentUserId,
       rating: input.rating,
       content: input.content,
       status: "pending"
     });
-
-    const reviewComments = await rankingsRepo.listRatingTargetComments(id);
-    const myRootComment = reviewComments.find(
-      (comment) => comment.author.id === currentUserId && comment.parentCommentId === null
-    );
+    if (!reviewComment) {
+      return null;
+    }
 
     let finalStatus: "pending" | "visible" | "hidden" = "pending";
-    if (myRootComment) {
-      const moderation = await evaluateTextModeration({
-        mode: await siteSettingsService.getCommentModerationMode(),
-        domain: "comment",
-        entityId: myRootComment.id,
-        text: input.content
-      });
-      finalStatus =
-        moderation.action === "approve"
-          ? "visible"
-          : moderation.action === "reject"
-            ? "hidden"
-            : "pending";
-      if (finalStatus !== "pending") {
-        await rankingsRepo.updateRatingTargetCommentStatus(myRootComment.id, finalStatus);
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: reviewComment.id,
+      text: input.content
+    });
+    finalStatus =
+      moderation.action === "approve"
+        ? "visible"
+        : moderation.action === "reject"
+          ? "hidden"
+          : "pending";
+    if (finalStatus !== "pending") {
+      const moderated = await rankingsRepo.updateRatingTargetCommentStatus(reviewComment.id, finalStatus);
+      if (moderated) {
+        reviewComment = {
+          ...reviewComment,
+          status: moderated.status
+        };
       }
     }
 
@@ -1618,7 +1733,7 @@ export const rankingsService = {
         userId: existing.authorId,
         actorId: currentUserId,
         type: "post_commented",
-        commentId: myRootComment?.id ?? null,
+        commentId: reviewComment.id,
         target: {
           type: "rating_target",
           id: existing.id,
@@ -1635,7 +1750,17 @@ export const rankingsService = {
 
   async submitRatingTargetRating(id: string, currentUserId: string, rating: number) {
     const existing = await rankingsRepo.getRatingTargetById(id);
-    if (!existing) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = existing ? await rankingsRepo.getRankingById(existing.rankingId) : null;
+    if (
+      !existing ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item: existing,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
@@ -1699,7 +1824,17 @@ export const rankingsService = {
     input: { content: string; parentCommentId?: string; rating?: number }
   ) {
     const item = await rankingsRepo.getRatingTargetById(id);
-    if (!item) {
+    const currentUser = buildViewer(currentUserId);
+    const ranking = item ? await rankingsRepo.getRankingById(item.rankingId) : null;
+    if (
+      !item ||
+      !ranking ||
+      !canInteractWithRatingTarget({
+        item,
+        ranking,
+        currentUser
+      })
+    ) {
       return null;
     }
 
@@ -1985,7 +2120,7 @@ export const rankingsService = {
           replyToCommentId: item.replyToCommentId,
           content: item.content,
           status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
-          rating: 5,
+          rating: item.rating ?? null,
           likeCount: item.likeCount ?? 0,
           reportCount: item.reportCount ?? 0,
           createdAt: item.createdAt.toISOString(),
@@ -2029,7 +2164,7 @@ export const rankingsService = {
       replyToCommentId: item.replyToCommentId,
       content: item.content,
       status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
-      rating: 5,
+      rating: item.rating ?? null,
       likeCount: item.likeCount ?? 0,
       reportCount: item.reportCount ?? 0,
       createdAt: item.createdAt.toISOString(),

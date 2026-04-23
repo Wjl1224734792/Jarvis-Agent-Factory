@@ -1100,6 +1100,7 @@ describe("rankings flows", () => {
     process.env.QINIU_AUDIT_TEST_SUGGESTION = "pass";
 
     const cookie = await loginUser("13800138032");
+    const adminCookie = await loginAdmin();
 
     try {
       const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
@@ -1155,6 +1156,9 @@ describe("rankings flows", () => {
       })
     });
     expect(secondCommentResponse.status).toBe(200);
+    const secondComment = (await secondCommentResponse.json()) as {
+      item: { id: string };
+    };
 
     const invalidReplyResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
       method: "POST",
@@ -1199,6 +1203,17 @@ describe("rankings flows", () => {
       expect(detailPayload.item.comments.filter((comment) => comment.rating !== null).length).toBeGreaterThanOrEqual(2);
       expect(detailPayload.item.comments[0]?.replies[0]?.rating ?? null).toBeNull();
       expect(detailPayload.item.ratingBreakdown.reduce((sum, entry) => sum + entry.count, 0)).toBeGreaterThanOrEqual(2);
+
+      const adminCommentsResponse = await app.request(API_ROUTES.rankings.adminRatingTargetComments, {
+        method: "GET",
+        headers: { cookie: adminCookie }
+      });
+      expect(adminCommentsResponse.status).toBe(200);
+      const adminCommentsPayload = (await adminCommentsResponse.json()) as {
+        items: Array<{ id: string; rating: number | null }>;
+      };
+      expect(adminCommentsPayload.items.find((item) => item.id === firstComment.item.id)?.rating).toBe(5);
+      expect(adminCommentsPayload.items.find((item) => item.id === secondComment.item.id)?.rating).toBe(4);
     } finally {
       if (previousSuggestion === undefined) {
         delete process.env.QINIU_AUDIT_TEST_SUGGESTION;
@@ -1260,5 +1275,115 @@ describe("rankings flows", () => {
       item: { status: "pending" | "visible" | "hidden" };
     };
     expect(itemCommentPayload.item.status).toBe("pending");
+  });
+
+  it("rejects comments, ratings and reviews against unpublished rankings and rating targets for non-managers", async () => {
+    await setCommentAiReviewEnabled(true);
+    const ownerCookie = await loginUser("13800138038");
+    const viewerCookie = await loginUser("13800138039");
+    const adminCookie = await loginAdmin();
+
+    const createRankingResponse = await app.request(API_ROUTES.rankings.create, {
+      method: "POST",
+      headers: {
+        cookie: ownerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "community",
+        title: "Private ranking for visibility checks",
+        coverImageFileId: null,
+        itemAddPolicy: "owner",
+        items: [
+          {
+            title: "Protected target",
+            summary: "should reject viewer writes",
+            imageFileId: null,
+            brandName: "DJI",
+            linkedModelSlug: "mini-4-pro"
+          }
+        ]
+      })
+    });
+    expect(createRankingResponse.status).toBe(200);
+    const createdRanking = (await createRankingResponse.json()) as {
+      item: { id: string; items: Array<{ id: string }> };
+    };
+    const rankingId = createdRanking.item.id;
+    const itemId = expectDefined(createdRanking.item.items[0]?.id);
+
+    const hideRankingResponse = await app.request(API_ROUTES.rankings.adminStatus(rankingId), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "hidden"
+      })
+    });
+    expect(hideRankingResponse.status).toBe(200);
+
+    const hideItemResponse = await app.request(API_ROUTES.rankings.adminItemStatus(itemId), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        status: "hidden"
+      })
+    });
+    expect(hideItemResponse.status).toBe(200);
+
+    const rankingCommentResponse = await app.request(API_ROUTES.rankings.comments(rankingId), {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "viewer should not reach hidden ranking"
+      })
+    });
+    expect(rankingCommentResponse.status).toBe(404);
+
+    const itemRatingResponse = await app.request(API_ROUTES.rankings.itemRatings(itemId), {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 4
+      })
+    });
+    expect(itemRatingResponse.status).toBe(404);
+
+    const itemReviewResponse = await app.request(API_ROUTES.rankings.itemReview(itemId), {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 4,
+        content: "viewer should not review hidden item"
+      })
+    });
+    expect(itemReviewResponse.status).toBe(404);
+
+    const itemCommentResponse = await app.request(API_ROUTES.rankings.itemComments(itemId), {
+      method: "POST",
+      headers: {
+        cookie: viewerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        rating: 4,
+        content: "viewer should not comment hidden item"
+      })
+    });
+    expect(itemCommentResponse.status).toBe(404);
   });
 });

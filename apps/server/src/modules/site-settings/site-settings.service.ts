@@ -231,9 +231,6 @@ export const siteSettingsService = {
   async isAiReviewEnabledForRanking() {
     return (await this.getRankingModerationMode()) === "ai";
   },
-  async isAiReviewEnabledForFileBizType() {
-    return false;
-  },
   async shouldModeratePost(type: "article" | "moment") {
     return (await this.getPostModerationMode(type)) !== "automatic";
   },

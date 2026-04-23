@@ -526,9 +526,9 @@ export const postsService = {
       postsRepo.listPostVideos([item.id])
     ]);
     const [imagesForPost, videosForPost, coversForPost] = await Promise.all([
-      buildImagesByPostId(attachedImages),
-      buildVideosByPostId(attachedVideos),
-      buildCoversByPostId([item])
+      buildImagesByPostId(attachedImages, "internal"),
+      buildVideosByPostId(attachedVideos, "internal"),
+      buildCoversByPostId([item], "internal")
     ]);
     const serialized = serializePostListItem(item, {
       cover: coversForPost.get(item.id) ?? null,
@@ -619,9 +619,9 @@ export const postsService = {
     const likedCommentIds = buildCommentStateSet(likedComments);
     const reportedCommentIds = buildCommentStateSet(reportedComments);
     const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
-      buildImagesByPostId(images),
-      buildVideosByPostId(videos),
-      buildCoversByPostId([item])
+      buildImagesByPostId(images, canInspectUnpublished ? "internal" : "public"),
+      buildVideosByPostId(videos, canInspectUnpublished ? "internal" : "public"),
+      buildCoversByPostId([item], canInspectUnpublished ? "internal" : "public")
     ]);
 
     return {
@@ -677,9 +677,9 @@ export const postsService = {
       postsRepo.listPostVideos(items.map((item) => item.id))
     ]);
     const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
-      buildImagesByPostId(images),
-      buildVideosByPostId(videos),
-      buildCoversByPostId(items)
+      buildImagesByPostId(images, "internal"),
+      buildVideosByPostId(videos, "internal"),
+      buildCoversByPostId(items, "internal")
     ]);
 
     return {
@@ -712,9 +712,9 @@ export const postsService = {
       postsRepo.listPostVideos([item.id])
     ]);
     const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
-      buildImagesByPostId(images),
-      buildVideosByPostId(videos),
-      buildCoversByPostId([item])
+      buildImagesByPostId(images, "internal"),
+      buildVideosByPostId(videos, "internal"),
+      buildCoversByPostId([item], "internal")
     ]);
     const serialized = serializePostListItem(item, {
       cover: coversByPostId.get(item.id) ?? null,
@@ -873,9 +873,9 @@ export const postsService = {
       postsRepo.listPostVideos([item.id])
     ]);
     const [imagesByPostId, videosByPostId, coversByPostId] = await Promise.all([
-      buildImagesByPostId(images),
-      buildVideosByPostId(videos),
-      buildCoversByPostId([item])
+      buildImagesByPostId(images, "internal"),
+      buildVideosByPostId(videos, "internal"),
+      buildCoversByPostId([item], "internal")
     ]);
     return serializePostListItem(item, {
       cover: coversByPostId.get(item.id) ?? null,

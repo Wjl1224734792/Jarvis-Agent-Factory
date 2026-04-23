@@ -65,7 +65,8 @@ vi.mock("../src/modules/uploads/upload.repo", () => ({
 }));
 
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
-  resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
+  resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png"),
+  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
 }));
 
 describe("reviews service", () => {
@@ -173,6 +174,61 @@ describe("reviews service", () => {
       reason: "Need moderation",
       imageFileIds: JSON.stringify(["file_report_1"])
     });
+  });
+
+  it("returns refreshed review summary after automatic moderation updates the review status", async () => {
+    const { reviewsService } = await import("../src/modules/reviews/reviews.service");
+    let reviewStatus: "pending" | "visible" = "pending";
+    const buildReview = (status: "pending" | "visible") => ({
+      id: "review_1",
+      content: "Fresh review",
+      status,
+      likeCount: 0,
+      reportCount: 0,
+      createdAt: new Date("2026-03-29T00:00:00.000Z"),
+      updatedAt: new Date("2026-03-29T00:05:00.000Z"),
+      author: {
+        id: "viewer_1",
+        displayName: "Viewer",
+        avatarFileId: null,
+        role: "user"
+      }
+    });
+
+    repo.findModelBySlug.mockResolvedValue({
+      id: "model_1",
+      slug: "joby-s4",
+      name: "Joby S4",
+      ownerId: "owner_1"
+    });
+    repo.upsertReview.mockResolvedValue(undefined);
+    repo.getUserReview.mockImplementation(async () => buildReview(reviewStatus));
+    repo.listReviewsForViewer.mockImplementation(async () => ({
+      items: reviewStatus === "visible" ? [buildReview("visible")] : [],
+      total: reviewStatus === "visible" ? 1 : 0
+    }));
+    repo.getReviewAggregate.mockImplementation(async () => ({
+      totalReviews: reviewStatus === "visible" ? 1 : 0
+    }));
+    repo.listViewerReviewLikes.mockResolvedValue([]);
+    repo.listViewerReviewReports.mockResolvedValue([]);
+    repo.updateReviewStatus.mockImplementation(async () => {
+      reviewStatus = "visible";
+      return buildReview("visible");
+    });
+    siteSettingsServiceMock.getReviewModerationMode.mockResolvedValue("automatic");
+    qiniuAuditServiceMock.reviewText.mockResolvedValue({
+      status: "passed"
+    });
+
+    const result = await reviewsService.submitReview("joby-s4", "viewer_1", {
+      content: "Fresh review"
+    });
+
+    expect(result?.item.status).toBe("visible");
+    expect(result?.summary.totalReviews).toBe(1);
+    expect(result?.summary.myReview?.status).toBe("visible");
+    expect(repo.updateReviewStatus).toHaveBeenCalledWith("review_1", "visible");
   });
 
   it("enriches review comment threads with like/report counts and viewer state", async () => {

@@ -1,4 +1,9 @@
 import { createClient, type RedisClientType } from "redis";
+import { ensureServerEnvLoaded } from "../../lib/load-env";
+
+// Test helpers may import this module before app.ts evaluates, so load env
+// here before resolving REDIS_URL.
+ensureServerEnvLoaded();
 
 /**
  * Redis 连接 URL。

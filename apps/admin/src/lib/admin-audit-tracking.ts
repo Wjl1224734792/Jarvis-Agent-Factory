@@ -1,3 +1,5 @@
+import { apiClient } from "./api-client";
+
 export type AdminAuditDomain =
   | "post"
   | "review"
@@ -18,6 +20,34 @@ export type AdminAuditTracePlan = {
   emptyText: string;
   hint: string | null;
 };
+
+export type AdminManualAuditDomain =
+  | "file"
+  | "brand_application"
+  | "aircraft_submission"
+  | "comment";
+
+export async function syncLatestAdminAuditManualDecision(input: {
+  domain: AdminManualAuditDomain;
+  entityId: string;
+  status: "manual_passed" | "manual_rejected";
+  reviewNote?: string | null;
+}) {
+  const latest = await apiClient.listAdminAuditRecords({
+    domain: input.domain,
+    entityId: input.entityId,
+    limit: 1
+  });
+  const audit = latest.items[0];
+  if (!audit) {
+    return null;
+  }
+
+  return apiClient.updateAdminAuditManualReview(audit.id, {
+    status: input.status,
+    reviewNote: input.reviewNote ?? null
+  });
+}
 
 /**
  * 为后台审核页生成统一的审核追踪查询与降级文案。

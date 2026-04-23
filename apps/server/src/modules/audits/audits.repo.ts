@@ -1,5 +1,34 @@
-import { auditRecordsTable, createId, db } from "@feijia/db";
-import { and, desc, eq } from "drizzle-orm";
+import { auditRecordsTable, createId, db, filesTable } from "@feijia/db";
+import { and, desc, eq, inArray } from "drizzle-orm";
+
+async function syncFileAuditSnapshot(input: {
+  auditId: string;
+  domain: string;
+  entityId: string;
+  status:
+    | "queued"
+    | "running"
+    | "passed"
+    | "rejected"
+    | "needs_manual_review"
+    | "failed"
+    | "manual_passed"
+    | "manual_rejected";
+  updatedAt?: Date;
+}) {
+  if (input.domain !== "file") {
+    return;
+  }
+
+  await db
+    .update(filesTable)
+    .set({
+      currentAuditRecordId: input.auditId,
+      currentAuditStatus: input.status,
+      currentAuditUpdatedAt: input.updatedAt ?? new Date()
+    })
+    .where(eq(filesTable.id, input.entityId));
+}
 
 export const auditsRepo = {
   async create(input: {
@@ -52,6 +81,12 @@ export const auditsRepo = {
       reviewedBy: input.reviewedBy ?? null,
       reviewNote: input.reviewNote ?? null
     });
+    await syncFileAuditSnapshot({
+      auditId: id,
+      domain: input.domain,
+      entityId: input.entityId,
+      status: input.status
+    });
 
     return this.getById(id);
   },
@@ -83,6 +118,33 @@ export const auditsRepo = {
       .limit(1);
 
     return rows[0] ?? null;
+  },
+  async listLatestByEntities(domain: string, entityIds: string[]) {
+    if (entityIds.length === 0) {
+      return [];
+    }
+
+    const rows = await db
+      .select()
+      .from(auditRecordsTable)
+      .where(
+        and(
+          eq(auditRecordsTable.domain, domain),
+          inArray(auditRecordsTable.entityId, entityIds)
+        )
+      )
+      .orderBy(desc(auditRecordsTable.createdAt));
+
+    const latestByEntityId = new Map<string, (typeof rows)[number]>();
+    for (const row of rows) {
+      if (!latestByEntityId.has(row.entityId)) {
+        latestByEntityId.set(row.entityId, row);
+      }
+    }
+
+    return entityIds
+      .map((entityId) => latestByEntityId.get(entityId) ?? null)
+      .filter((item): item is NonNullable<typeof item> => item !== null);
   },
   async list(input?: {
     domain?: string;
@@ -124,6 +186,11 @@ export const auditsRepo = {
     reviewedBy: string | null;
     reviewNote: string | null;
   }>) {
+    const existing = await this.getById(id);
+    if (!existing) {
+      return null;
+    }
+
     await db
       .update(auditRecordsTable)
       .set({
@@ -143,6 +210,16 @@ export const auditsRepo = {
         updatedAt: new Date()
       })
       .where(eq(auditRecordsTable.id, id));
+
+    if (input.status) {
+      await syncFileAuditSnapshot({
+        auditId: id,
+        domain: existing.domain,
+        entityId: existing.entityId,
+        status: input.status,
+        updatedAt: input.resolvedAt ?? input.callbackReceivedAt ?? new Date()
+      });
+    }
 
     return this.getById(id);
   }

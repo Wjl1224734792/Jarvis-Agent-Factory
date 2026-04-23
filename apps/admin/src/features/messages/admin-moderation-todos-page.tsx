@@ -1,10 +1,10 @@
 import { useQuery } from "@tanstack/react-query";
 import {
+  Alert,
   Badge,
   Breadcrumb,
   Button,
   Card,
-  Empty,
   List,
   Space,
   Statistic
@@ -37,6 +37,11 @@ export function AdminModerationTodosPage() {
         limit: 1
       })
   });
+  const todosError = todosQuery.isError
+    ? todosQuery.error instanceof Error
+      ? todosQuery.error.message
+      : "待办加载失败"
+    : null;
 
   return (
     <AdminPage
@@ -58,6 +63,7 @@ export function AdminModerationTodosPage() {
           { title: "审核待办" }
         ]}
       />
+      {todosError ? <Alert message="待办加载失败" description={todosError} showIcon type="error" /> : null}
 
       <div className="admin-message-stat-grid">
         <Card className="admin-overview-card" size="small" variant="outlined">
@@ -115,9 +121,6 @@ export function AdminModerationTodosPage() {
           rowKey={(item) => `${item.domain}-${item.title}`}
           size="small"
         />
-        {!todosQuery.isLoading && (todosQuery.data?.items.length ?? 0) === 0 ? (
-          <Empty description="当前没有待处理项" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-        ) : null}
       </Card>
     </AdminPage>
   );

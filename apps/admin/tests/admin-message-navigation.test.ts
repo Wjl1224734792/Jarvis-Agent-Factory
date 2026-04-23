@@ -2,7 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   adminMessagesQueryKey,
   adminModerationTodosQueryKey,
-  resolveAdminMessageDestination
+  resolveAdminMessageDestination,
+  sanitizeAdminMessageFilters
 } from "../src/features/messages/admin-message-navigation";
 import { ADMIN_ROUTE_PATHS } from "../src/lib/admin-routes";
 
@@ -49,5 +50,20 @@ describe("admin message navigation helpers", () => {
       })
     ).toEqual(["admin-messages", "posts", "post_audit_result", "unread", 20]);
     expect(adminModerationTodosQueryKey()).toEqual(["admin-messages", "todos"]);
+  });
+
+  it("drops incompatible type filters when the selected domain cannot emit them", () => {
+    expect(
+      sanitizeAdminMessageFilters({
+        domain: "posts",
+        type: "review_audit_result",
+        readStatus: "unread"
+      })
+    ).toEqual({
+      activeDomain: "posts",
+      activeType: undefined,
+      activeReadStatus: "unread",
+      ignoredType: true
+    });
   });
 });
