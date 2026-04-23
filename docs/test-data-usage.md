@@ -33,9 +33,15 @@ bun run setup:test-data
 - 大量帖子、评论、互动
 - 飞行器、榜单、排行对象、投稿
 - Redis 测试缓存
-- MinIO 测试资源
+- 当前 `STORAGE_PROVIDER` 指向的对象存储测试资源
 
 它的目标是制造稳定、可重复、体量更大的测试环境，而不是给开发日常联调用。
+
+## 环境绑定
+
+- `db:seed:mock` / `db:reset:mock` 会直接使用当前 `.env` 或 shell 中的 `DATABASE_URL`、`REDIS_URL`、`STORAGE_PROVIDER` 与 `STORAGE_*`
+- 当这些变量指向远程数据库、Redis 或对象存储时，mock 数据会直接导入远程环境，不再强制回退到 localhost / MinIO
+- `setup:test` 仍会先执行 `infra:up`，但真正导入到哪里，仍以当前环境变量为准
 
 ## 环境区分
 

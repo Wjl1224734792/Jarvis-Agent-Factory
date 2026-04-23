@@ -94,7 +94,7 @@ bun run dev:admin
 |------|------|----------|
 | `base` | 最小可运行（管理员、站点设置、分类等） | `setup:deploy`、`db:seed:base` |
 | `demo` | 在 base 上增加演示内容（机型、帖子、榜单等） | 本地开发、`db:seed` / `db:seed:demo` |
-| `mock` | 大规模测试数据（PostgreSQL + Redis + MinIO） | E2E、`db:seed:mock`、`setup:test` |
+| `mock` | 大规模测试数据（PostgreSQL + Redis + 当前 `STORAGE_PROVIDER` 指向的对象存储） | E2E、`db:seed:mock`、`setup:test` |
 
 ## 常用脚本
 
@@ -237,7 +237,8 @@ Stop-Process -Id <PID> -Force
 - 云厂商环境请显式设置 `STORAGE_FORCE_PATH_STYLE=false`；`true` 只适合 MinIO 等本地 S3 兼容存储。
 - 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
 - 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。
-- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；切到 `kodo` 后请改为手动上传示例资源，或继续用 MinIO 承担本地种子资源。
+- `db:seed:mock` / `db:reset:mock` 会按当前 `.env` 的 `DATABASE_URL`、`REDIS_URL`、`STORAGE_PROVIDER` 与 `STORAGE_*` 导入 mock 数据；若指向远程环境，将直接写入该远程环境。
+- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；mock/test-data seed 已支持按当前 `STORAGE_PROVIDER` 上传测试资源。
 
 审核：
 

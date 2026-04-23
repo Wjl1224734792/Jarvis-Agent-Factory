@@ -33,12 +33,6 @@
 /* eslint-disable no-console */
 
 import { createClient } from "redis";
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  PutObjectCommand,
-  S3Client
-} from "@aws-sdk/client-s3";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import bcrypt from "bcrypt";
 import { db } from "./client.js";
@@ -74,6 +68,12 @@ import {
   usersTable
 } from "./schema.js";
 import { sql } from "drizzle-orm";
+import {
+  buildSeedStorageRecord,
+  resolveSeedStorageConfig,
+  uploadSeedStorageObjects,
+  type SeedStorageObject
+} from "./seed.storage.js";
 
 // ==================== 工具函数 ====================
 
@@ -405,30 +405,13 @@ const BIO_TEXTS = [
 
 const FILE_KEYS: string[] = [];
 
-// ==================== MinIO ====================
+// ==================== Object Storage ====================
 
-async function seedMinIO() {
-  console.log("\n📦 开始推送 MinIO 测试数据...");
+async function seedObjectStorage() {
+  console.log("\n📦 开始推送对象存储测试数据...");
 
-  const client = new S3Client({
-    region: process.env.STORAGE_REGION?.trim() || "us-east-1",
-    endpoint: process.env.STORAGE_ENDPOINT?.trim() || "http://localhost:9000",
-    credentials: {
-      accessKeyId: process.env.STORAGE_ACCESS_KEY_ID?.trim() || "minioadmin",
-      secretAccessKey: process.env.STORAGE_SECRET_ACCESS_KEY?.trim() || "minioadmin123",
-    },
-    forcePathStyle: true,
-  });
-
-  const bucket = process.env.STORAGE_BUCKET?.trim() || "feijia-media";
-  try {
-    await client.send(new HeadBucketCommand({ Bucket: bucket }));
-    console.log(`  ✓ Bucket "${bucket}" 已存在`);
-  } catch {
-    await client.send(new CreateBucketCommand({ Bucket: bucket }));
-    console.log(`  ✓ 创建 Bucket "${bucket}"`);
-  }
-
+  const config = resolveSeedStorageConfig();
+  FILE_KEYS.length = 0;
   const ONE_PIXEL_PNG = Buffer.from(
     "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO1f4f8AAAAASUVORK5CYII=",
     "base64"
@@ -447,26 +430,23 @@ async function seedMinIO() {
     { prefix: "reports/evidence", count: 10, type: "image/png" as const, data: ONE_PIXEL_PNG },
   ];
 
-  let total = 0;
+  const objects: SeedStorageObject[] = [];
   for (const cat of categories) {
     for (let i = 0; i < cat.count; i++) {
       const key = `test/${cat.prefix}/${cat.prefix.split("/").pop()}-${String(i + 1).padStart(3, "0")}.${cat.type === "video/mp4" ? "mp4" : "png"}`;
-      await client.send(
-        new PutObjectCommand({
-          Bucket: bucket,
-          Key: key,
-          Body: cat.data,
-          ContentType: cat.type,
-          CacheControl: "public, max-age=86400",
-          Metadata: { seed: "test-data" },
-        })
-      );
+      objects.push({
+        key,
+        body: cat.data,
+        contentType: cat.type
+      });
       FILE_KEYS.push(key);
-      total++;
     }
   }
 
-  console.log(`  ✅ MinIO 推送完成，共 ${total} 个文件`);
+  const total = objects.length;
+  await uploadSeedStorageObjects(config, objects);
+
+  console.log(`  ✅ ${config.provider} 推送完成，共 ${total} 个文件`);
 }
 
 // ==================== Redis ====================
@@ -643,6 +623,7 @@ async function seedPostgreSQL() {
   console.log("  📁 创建文件记录...");
   const fileIds: string[] = [];
   const fileEntries = [];
+  const storage = resolveSeedStorageConfig();
   for (let i = 0; i < FILE_KEYS.length; i++) {
     const fileId = uid("file");
     fileIds.push(fileId);
@@ -661,10 +642,7 @@ async function seedPostgreSQL() {
       postId: null,
       bizType,
       mediaKind: isVideo ? "video" : "image",
-      provider: "minio",
-      bucket: process.env.STORAGE_BUCKET?.trim() || "feijia-media",
-      region: process.env.STORAGE_REGION?.trim() || "us-east-1",
-      objectKey: key,
+      ...buildSeedStorageRecord(storage, key),
       filename: key.split("/").pop() || "file",
       contentType: isVideo ? "video/mp4" : "image/png",
       size: isVideo ? randInt(1000000, 50000000) : randInt(50000, 5000000),
@@ -1353,10 +1331,11 @@ async function seedPostgreSQL() {
 // ==================== 主函数 ====================
 
 export async function seedMockTestDataDatabase() {
+  const storage = resolveSeedStorageConfig();
   console.log("🚀 飞加项目海量测试数据生成脚本");
   console.log("================================");
 
-  await seedMinIO();
+  await seedObjectStorage();
   await seedRedis();
   await seedPostgreSQL();
 
@@ -1369,7 +1348,7 @@ export async function seedMockTestDataDatabase() {
   console.log("  图形验证码: test_captcha_001 (code: TEST01)");
   console.log("  短信验证码: 13800138000 (code: 888888)");
   console.log("  注册令牌: test_reg_001");
-  console.log("\n📦 MinIO: feijia-media bucket, test/ 前缀");
+  console.log(`\n📦 Storage: ${storage.provider} / ${storage.bucket} bucket, test/ 前缀`);
 }
 
 if (import.meta.main) {
