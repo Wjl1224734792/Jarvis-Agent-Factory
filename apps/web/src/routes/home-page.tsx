@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+﻿import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import type { RankingListItem } from "@feijia/schemas";
 import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
@@ -11,6 +11,7 @@ import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
@@ -34,6 +35,8 @@ const fixedTabs = [
 ] as const;
 
 type HomeFeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
+
+type RecommendedHomeFeedPage = Awaited<ReturnType<typeof apiClient.listHomeFeed>>;
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -221,19 +224,41 @@ export function HomePage() {
   const isAuthenticated = authStatus === "authenticated";
   const activeTab = useHomeTabStore((state) => state.activeTab);
   const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
+  const isRecommendedFeed =
+    activeTab.kind === "category" || (activeTab.kind === "fixed" && activeTab.id === "recommended");
+  const fixedFeedTab = activeTab.kind === "fixed" ? activeTab.id : "latest";
 
-  const feedQuery = useQuery({
+  const recommendedFeedQuery = useInfiniteQuery({
     queryKey: [
       "home-shell-feed",
-      activeTab.kind === "fixed" ? activeTab.id : "recommended",
+      "recommended",
       activeTab.kind === "category" ? activeTab.slug : null
     ],
+    enabled: isRecommendedFeed,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
+      apiClient.listHomeFeed(
+        {
+          tab: "recommended",
+          categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined,
+          cursor: pageParam,
+          limit: 20
+        },
+        { signal: combineHomeFeedRequestSignal(signal) }
+      ),
+    getNextPageParam: (lastPage: RecommendedHomeFeedPage) => lastPage.nextCursor ?? undefined
+  });
+
+  const feedQuery = useQuery({
+    queryKey: ["home-shell-feed", fixedFeedTab, null],
+    enabled: activeTab.kind === "fixed" && activeTab.id !== "recommended",
     placeholderData: keepPreviousData,
     queryFn: ({ signal }) =>
       apiClient.listHomeFeed(
         {
-          tab: activeTab.kind === "fixed" ? activeTab.id : "recommended",
-          categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined
+          tab: fixedFeedTab,
+          page: 1,
+          limit: 20
         },
         { signal: combineHomeFeedRequestSignal(signal) }
       )
@@ -255,8 +280,16 @@ export function HomePage() {
     queryFn: () => apiClient.listRankings()
   });
 
-  const feedItems = feedQuery.data?.items ?? [];
-  const contentCategories = useMemo(() => feedQuery.data?.categories ?? [], [feedQuery.data?.categories]);
+  const feedItems = isRecommendedFeed
+    ? recommendedFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? []
+    : feedQuery.data?.items ?? [];
+  const contentCategories = useMemo(
+    () =>
+      isRecommendedFeed
+        ? recommendedFeedQuery.data?.pages[0]?.categories ?? []
+        : feedQuery.data?.categories ?? [],
+    [feedQuery.data?.categories, isRecommendedFeed, recommendedFeedQuery.data?.pages]
+  );
   const hotModels = modelsQuery.data?.items ?? [];
   const rankingCards = useMemo(
     () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data).hot.slice(0, 2) : []),
@@ -291,7 +324,14 @@ export function HomePage() {
     return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
-  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedLoading = isRecommendedFeed
+    ? recommendedFeedQuery.isLoading && !recommendedFeedQuery.data
+    : feedQuery.isLoading && !feedQuery.data;
+  const isFeedError = isRecommendedFeed ? recommendedFeedQuery.isError : feedQuery.isError;
+  const feedError = isRecommendedFeed ? recommendedFeedQuery.error : feedQuery.error;
+  const isFeedRefetching = isRecommendedFeed ? recommendedFeedQuery.isRefetching : feedQuery.isRefetching;
+  const hasMoreRecommendedItems = isRecommendedFeed ? recommendedFeedQuery.hasNextPage : false;
+  const isFetchingNextRecommendedPage = isRecommendedFeed ? recommendedFeedQuery.isFetchingNextPage : false;
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
@@ -321,11 +361,11 @@ export function HomePage() {
           </div>
 
           <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
-              {feedQuery.isError ? (
-                <Alert variant="destructive">
+            {isFeedError ? (
+              <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
                 <AlertDescription>
-                  {getHomeFeedErrorDescription(feedQuery.error, HOME_FEED_FETCH_TIMEOUT_MS)}
+                  {getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)}
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -335,27 +375,41 @@ export function HomePage() {
                 <FeedStreamSkeleton rows={4} />
               </div>
             ) : (
-              <VirtualFeed
-                className="!border-0 bg-transparent"
-                data={feedItems}
-                emptyState={
-                  !feedQuery.isError ? (
-                    <Alert className="rounded-none border-0 shadow-none">
-                      <AlertTitle>首页还没有公开内容</AlertTitle>
-                      <AlertDescription>
-                        {isAuthenticated
-                          ? "你可以先发布一篇内容。"
-                          : "登录后可发布动态和文章。"}
-                      </AlertDescription>
-                    </Alert>
-                  ) : null
-                }
-                itemKey={(item) => item.id}
-                refetchFooterLabel="加载中…"
-                renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
-                showRefetchFooter={feedQuery.isRefetching}
-                useWindowScroll
-              />
+              <>
+                <VirtualFeed
+                  className="!border-0 bg-transparent"
+                  data={feedItems}
+                  emptyState={
+                    !isFeedError ? (
+                      <Alert className="rounded-none border-0 shadow-none">
+                        <AlertTitle>首页还没有公开内容</AlertTitle>
+                        <AlertDescription>
+                          {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null
+                  }
+                  itemKey={(item) => item.id}
+                  refetchFooterLabel="加载中..."
+                  renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                  showRefetchFooter={isFeedRefetching && !isFetchingNextRecommendedPage}
+                  useWindowScroll
+                />
+                {isRecommendedFeed && hasMoreRecommendedItems ? (
+                  <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
+                    <Button
+                      disabled={isFetchingNextRecommendedPage}
+                      onClick={() => {
+                        void recommendedFeedQuery.fetchNextPage();
+                      }}
+                      type="button"
+                      variant="outline"
+                    >
+                      {isFetchingNextRecommendedPage ? "加载中..." : "加载更多推荐"}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
             )}
           </section>
         </div>

@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { keepPreviousData, useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
@@ -42,12 +42,25 @@ export function CirclePage() {
   const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const isRecommendedFeed = activeTab === "recommended";
 
   const selectedNoteId = searchParams.get("note");
+  const recommendedFeedQuery = useInfiniteQuery({
+    queryKey: ["circle-feed", "recommended"],
+    enabled: isRecommendedFeed,
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      apiClient.listCircleFeed("recommended", {
+        cursor: pageParam,
+        limit: 20
+      }),
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined
+  });
   const feedQuery = useQuery({
     queryKey: ["circle-feed", activeTab],
+    enabled: !isRecommendedFeed,
     placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listCircleFeed(activeTab)
+    queryFn: () => apiClient.listCircleFeed(activeTab, { page: 1, limit: 20 })
   });
   const noteQuery = useQuery({
     queryKey: ["post-detail", selectedNoteId],
@@ -60,7 +73,13 @@ export function CirclePage() {
     enabled: Boolean(selectedNoteId)
   });
 
-  const posts = useMemo<CircleFeedItem[]>(() => feedQuery.data?.items ?? [], [feedQuery.data?.items]);
+  const posts = useMemo<CircleFeedItem[]>(
+    () =>
+      isRecommendedFeed
+        ? recommendedFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? []
+        : feedQuery.data?.items ?? [],
+    [feedQuery.data?.items, isRecommendedFeed, recommendedFeedQuery.data?.pages]
+  );
   const selectedPreview = useMemo(
     () => posts.find((item) => item.id === selectedNoteId) ?? null,
     [posts, selectedNoteId]
@@ -97,7 +116,18 @@ export function CirclePage() {
     setActionError(null);
   }
 
-  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedLoading = isRecommendedFeed
+    ? recommendedFeedQuery.isLoading && !recommendedFeedQuery.data
+    : feedQuery.isLoading && !feedQuery.data;
+  const isFeedRefetching = isRecommendedFeed ? recommendedFeedQuery.isRefetching : feedQuery.isRefetching;
+  const isFeedError = isRecommendedFeed ? recommendedFeedQuery.isError : feedQuery.isError;
+  const feedErrorMessage = isRecommendedFeed
+    ? recommendedFeedQuery.error instanceof Error
+      ? recommendedFeedQuery.error.message
+      : undefined
+    : feedQuery.error?.message;
+  const hasMoreRecommendedItems = isRecommendedFeed ? recommendedFeedQuery.hasNextPage : false;
+  const isFetchingNextRecommendedPage = isRecommendedFeed ? recommendedFeedQuery.isFetchingNextPage : false;
 
   function handleToggleFollow() {
     if (!selectedNote) {
@@ -164,9 +194,17 @@ export function CirclePage() {
         openNote={openNote}
         selectedNoteId={selectedNoteId}
         isLoading={isFeedLoading}
-        isRefetching={feedQuery.isRefetching}
-        isError={feedQuery.isError}
-        errorMessage={feedQuery.error?.message}
+        isRefetching={isFeedRefetching}
+        isFetchingNextPage={isFetchingNextRecommendedPage}
+        isError={isFeedError}
+        errorMessage={feedErrorMessage}
+        hasMore={hasMoreRecommendedItems}
+        onLoadMore={() => {
+          if (!isRecommendedFeed) {
+            return;
+          }
+          void recommendedFeedQuery.fetchNextPage();
+        }}
         formatCount={formatCount}
       />
 

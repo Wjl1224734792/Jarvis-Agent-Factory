@@ -1,4 +1,4 @@
-import type { QueryClient } from "@tanstack/react-query";
+import type { InfiniteData, QueryClient } from "@tanstack/react-query";
 type PostViewerState = {
   isFollowingAuthor: boolean;
   hasLiked: boolean;
@@ -17,10 +17,6 @@ type PostFeedItem = {
   };
   commentCount: number;
   viewCount: number;
-};
-
-type HomeFeedData = {
-  items: PostFeedItem[];
 };
 
 type CircleFeedData = {
@@ -68,36 +64,68 @@ function clampCount(value: number) {
   return Math.max(0, value);
 }
 
-function updateHomeShellFeeds(
-  queryClient: QueryClient,
-  updater: (item: PostFeedItem) => PostFeedItem
-) {
-  queryClient.setQueriesData<HomeFeedData>({ queryKey: ["home-shell-feed"] }, (current) => {
-    if (!current) {
-      return current;
-    }
+function isPagedFeedData<T>(value: unknown): value is { items: T[] } {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "items" in value &&
+      Array.isArray((value as { items?: unknown }).items)
+  );
+}
 
+function isInfiniteFeedData<T>(value: unknown): value is InfiniteData<{ items: T[] }> {
+  return Boolean(
+    value &&
+      typeof value === "object" &&
+      "pages" in value &&
+      Array.isArray((value as { pages?: unknown }).pages)
+  );
+}
+
+function patchFeedCollection<T>(
+  current: unknown,
+  updater: (item: T) => T
+) {
+  if (isInfiniteFeedData<T>(current)) {
+    return {
+      ...current,
+      pages: current.pages.map((page) =>
+        isPagedFeedData<T>(page)
+          ? {
+              ...page,
+              items: page.items.map(updater)
+            }
+          : page
+      )
+    };
+  }
+
+  if (isPagedFeedData<T>(current)) {
     return {
       ...current,
       items: current.items.map(updater)
     };
-  });
+  }
+
+  return current;
+}
+
+function updateHomeShellFeeds(
+  queryClient: QueryClient,
+  updater: (item: PostFeedItem) => PostFeedItem
+) {
+  queryClient.setQueriesData({ queryKey: ["home-shell-feed"] }, (current) =>
+    patchFeedCollection<PostFeedItem>(current, updater)
+  );
 }
 
 function updateCircleFeeds(
   queryClient: QueryClient,
   updater: (item: CircleFeedData["items"][number]) => CircleFeedData["items"][number]
 ) {
-  queryClient.setQueriesData<CircleFeedData>({ queryKey: ["circle-feed"] }, (current) => {
-    if (!current) {
-      return current;
-    }
-
-    return {
-      ...current,
-      items: current.items.map(updater)
-    };
-  });
+  queryClient.setQueriesData({ queryKey: ["circle-feed"] }, (current) =>
+    patchFeedCollection<CircleFeedData["items"][number]>(current, updater)
+  );
 }
 
 export function updatePostFeedItemById(

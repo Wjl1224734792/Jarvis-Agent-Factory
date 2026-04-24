@@ -7,6 +7,7 @@ import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import {
@@ -49,8 +50,11 @@ type CirclePageFeedProps = {
   selectedNoteId: string | null;
   isLoading: boolean;
   isRefetching: boolean;
+  isFetchingNextPage: boolean;
   isError: boolean;
   errorMessage?: string;
+  hasMore?: boolean;
+  onLoadMore?: () => void;
   formatCount: (value: number) => string;
 };
 
@@ -143,8 +147,11 @@ export function CirclePageFeed({
   selectedNoteId,
   isLoading,
   isRefetching,
+  isFetchingNextPage,
   isError,
   errorMessage,
+  hasMore = false,
+  onLoadMore,
   formatCount
 }: CirclePageFeedProps) {
   const feedMeasureRef = useRef<HTMLDivElement>(null);
@@ -210,6 +217,18 @@ export function CirclePageFeed({
             )}
           />
           <FeedRefetchFooter show={isRefetching} />
+          {hasMore ? (
+            <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
+              <Button
+                disabled={isFetchingNextPage}
+                onClick={onLoadMore}
+                type="button"
+                variant="outline"
+              >
+                {isFetchingNextPage ? "鍔犺浇涓?.." : "鍔犺浇鏇村鎺ㄨ崘"}
+              </Button>
+            </div>
+          ) : null}
         </div>
       ) : null}
     </div>
