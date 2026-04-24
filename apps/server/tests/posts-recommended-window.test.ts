@@ -51,6 +51,20 @@ async function replaceMomentFeedWithSyntheticPosts(
   );
 }
 
+function decodeRecommendedCursor(cursor: string) {
+  expect(cursor.startsWith("seek:")).toBe(true);
+  const payload = JSON.parse(Buffer.from(cursor.slice("seek:".length), "base64url").toString("utf8")) as {
+    v?: unknown;
+    t?: unknown;
+    s?: unknown;
+    n?: unknown;
+    p?: unknown;
+    i?: unknown;
+  };
+  expect(payload.t).toBe("recommended");
+  return payload;
+}
+
 describe.sequential("recommended cursor pagination", () => {
   beforeAll(async () => {
     await runMigrations();
@@ -110,6 +124,86 @@ describe.sequential("recommended cursor pagination", () => {
 
     const ids = pagePayloads.flatMap((payload) => payload.items.map((item) => item.id));
     expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("keeps recommended cursor contract fields and malformed cursor compatibility", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-20T11:40:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 40 }, (_, index) => ({
+        id: `moment_cursor_contract_${index + 1}`,
+        title: `Cursor contract ${index + 1}`,
+        content: "Stable synthetic content for recommended cursor contract coverage.",
+        reportCount: 0,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const firstPageResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
+      method: "GET"
+    });
+    expect(firstPageResponse.status).toBe(200);
+    const firstPage = (await firstPageResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(firstPage.nextCursor).toBeTruthy();
+    expect(firstPage.pagination.limit).toBe(10);
+
+    const cursor = firstPage.nextCursor ?? "";
+    const payload = decodeRecommendedCursor(cursor);
+    expect(payload).toMatchObject({
+      v: 1,
+      t: "recommended",
+      s: expect.any(Number),
+      n: expect.any(String),
+      p: expect.any(String),
+      i: expect.any(String)
+    });
+    expect(Number.isNaN(new Date(String(payload.n)).getTime())).toBe(false);
+    expect(Number.isNaN(new Date(String(payload.p)).getTime())).toBe(false);
+
+    const malformedResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent("not-a-seek-cursor")}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(malformedResponse.status).toBe(200);
+    const malformedPage = (await malformedResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(malformedPage.pagination.limit).toBe(10);
+    expect(malformedPage.items.map((item) => item.id)).toEqual(firstPage.items.map((item) => item.id));
+
+    const legacyFeedCursor = `seek:${Buffer.from(
+      JSON.stringify({
+        v: 1,
+        t: "feed",
+        p: payload.p,
+        i: payload.i
+      }),
+      "utf8"
+    ).toString("base64url")}`;
+    const legacyResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent(legacyFeedCursor)}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(legacyResponse.status).toBe(200);
+    const legacyPage = (await legacyResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(legacyPage.pagination.limit).toBe(10);
+    expect(legacyPage.items.map((item) => item.id)).toEqual(firstPage.items.map((item) => item.id));
   });
 
   it("keeps recommended pagination stable when a new top candidate appears between pages", async () => {

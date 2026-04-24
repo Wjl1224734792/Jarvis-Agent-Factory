@@ -2,6 +2,7 @@ import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { CircleFeedColumnCell } from "../src/routes/circle-page-helpers";
+import type { VirtualFeedProps } from "../src/components/virtual-feed";
 import { VirtualMasonryColumnsRuntime, VirtualFeedRuntime } from "../src/components/virtual-feed-runtime";
 
 vi.mock("@/components/feed-refetch-footer", () => ({
@@ -28,6 +29,32 @@ vi.mock("react-virtuoso", () => ({
 }));
 
 import { VirtualFeed, VirtualGrid, VirtualMasonryColumns } from "../src/components/virtual-feed";
+
+function renderVirtualFeedRuntime(
+  props: Partial<VirtualFeedProps<string>> = {}
+) {
+  const TestVirtualFeedRuntime = VirtualFeedRuntime<string>;
+
+  renderToStaticMarkup(
+    createElement(TestVirtualFeedRuntime, {
+      data: ["a", "b", "c"],
+      itemKey: (item: unknown) => String(item),
+      renderItem: (item: unknown) => String(item),
+      hasMore: true,
+      isFetchingNextPage: false,
+      ...props
+    })
+  );
+
+  expect(virtuosoInstances).toHaveLength(1);
+
+  return virtuosoInstances[0]?.endReached;
+}
+
+async function flushMicrotasks() {
+  await Promise.resolve();
+  await Promise.resolve();
+}
 
 describe("virtual feed lazy shells", () => {
   beforeEach(() => {
@@ -83,22 +110,10 @@ describe("virtual feed lazy shells", () => {
     expect(gridMarkup).toContain("empty-grid");
   });
 
-  it("triggers auto load when the virtual list reports end reached", () => {
-    const onLoadMore = vi.fn();
+  it("locks repeated auto load requests after the first end reached signal", () => {
+    const onLoadMore = vi.fn(() => new Promise<void>(() => {}));
+    const endReached = renderVirtualFeedRuntime({ onLoadMore });
 
-    renderToStaticMarkup(
-      createElement(VirtualFeedRuntime, {
-        data: ["a", "b", "c"],
-        itemKey: (item: unknown) => String(item),
-        renderItem: (item: unknown) => String(item),
-        hasMore: true,
-        isFetchingNextPage: false,
-        onLoadMore
-      })
-    );
-
-    expect(virtuosoInstances).toHaveLength(1);
-    const endReached = virtuosoInstances[0]?.endReached;
     expect(typeof endReached).toBe("function");
 
     endReached?.();
@@ -109,21 +124,55 @@ describe("virtual feed lazy shells", () => {
 
   it("skips auto loading when already fetching next page", () => {
     const onLoadMore = vi.fn();
+    const endReached = renderVirtualFeedRuntime({
+      isFetchingNextPage: true,
+      onLoadMore
+    });
 
-    renderToStaticMarkup(
-      createElement(VirtualFeedRuntime, {
-        data: ["a", "b", "c"],
-        itemKey: (item: unknown) => String(item),
-        renderItem: (item: unknown) => String(item),
-        hasMore: true,
-        isFetchingNextPage: true,
-        onLoadMore
-      })
-    );
-
-    virtuosoInstances[0]?.endReached?.();
+    endReached?.();
 
     expect(onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it("skips auto loading when there is no next page", () => {
+    const onLoadMore = vi.fn();
+    const endReached = renderVirtualFeedRuntime({
+      hasMore: false,
+      onLoadMore
+    });
+
+    endReached?.();
+
+    expect(onLoadMore).not.toHaveBeenCalled();
+  });
+
+  it("releases the load lock after a completed request so loading can retry", async () => {
+    const onLoadMore = vi
+      .fn<() => Promise<void>>()
+      .mockResolvedValueOnce(undefined)
+      .mockResolvedValueOnce(undefined);
+    const endReached = renderVirtualFeedRuntime({ onLoadMore });
+
+    endReached?.();
+    await flushMicrotasks();
+    endReached?.();
+
+    expect(onLoadMore).toHaveBeenCalledTimes(2);
+  });
+
+  it("releases the load lock after an error so loading can retry", () => {
+    const onLoadMore = vi
+      .fn<() => void>()
+      .mockImplementationOnce(() => {
+        throw new Error("load failed");
+      })
+      .mockImplementationOnce(() => undefined);
+    const endReached = renderVirtualFeedRuntime({ onLoadMore });
+
+    expect(() => endReached?.()).not.toThrow();
+    endReached?.();
+
+    expect(onLoadMore).toHaveBeenCalledTimes(2);
   });
 
   it("only triggers masonry auto load from the first column", () => {

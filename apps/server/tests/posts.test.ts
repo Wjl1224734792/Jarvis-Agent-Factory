@@ -1,13 +1,15 @@
 import {
+  createId,
   contentCategoriesTable,
   postsTable,
+  userFollowsTable,
   db,
   notificationsTable,
   runMigrations,
   seedDatabase
 } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 import { rankFeedItemsByRecommendation } from "../src/modules/posts/feed-recommendation";
 import { postsRepo } from "../src/modules/posts/posts.repo";
@@ -92,6 +94,49 @@ async function replaceMomentFeedWithSyntheticPosts(
   );
 }
 
+async function replaceArticleFeedWithSyntheticPosts(
+  items: Array<{
+    id: string;
+    authorId: string;
+    title: string;
+    content: string;
+    contentCategoryId: string | null;
+    likeCount?: number;
+    favoriteCount?: number;
+    shareCount?: number;
+    commentCount?: number;
+    reportCount?: number;
+    viewCount?: number;
+    publishedAt: Date;
+  }>
+) {
+  await db.delete(postsTable).where(eq(postsTable.type, "article"));
+  await db.insert(postsTable).values(
+    items.map((item) => ({
+      id: item.id,
+      authorId: item.authorId,
+      type: "article" as const,
+      title: item.title,
+      content: item.content,
+      contentHtml: null,
+      contentPlainText: item.content,
+      contentCategoryId: item.contentCategoryId,
+      coverImageFileId: null,
+      status: "published" as const,
+      rejectionReason: null,
+      commentCount: item.commentCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      likeCount: item.likeCount ?? 0,
+      favoriteCount: item.favoriteCount ?? 0,
+      shareCount: item.shareCount ?? 0,
+      viewCount: item.viewCount ?? 0,
+      publishedAt: item.publishedAt,
+      createdAt: item.publishedAt,
+      updatedAt: item.publishedAt
+    }))
+  );
+}
+
 async function readRecommendedCircleFeedPage(input: {
   limit: number;
   cursor?: string;
@@ -113,6 +158,42 @@ async function readRecommendedCircleFeedPage(input: {
     items: Array<{ id: string }>;
     nextCursor: string | null;
     pagination: { limit: number; hasMore: boolean };
+  };
+}
+
+async function readRecommendedArticleFeedPage(input: {
+  limit: number;
+  cursor?: string;
+}) {
+  const search = new URLSearchParams({
+    tab: "recommended",
+    limit: String(input.limit)
+  });
+  if (input.cursor) {
+    search.set("cursor", input.cursor);
+  }
+
+  const response = await app.request(`${API_ROUTES.feed}?${search.toString()}`, {
+    method: "GET"
+  });
+  expect(response.status).toBe(200);
+
+  return (await response.json()) as {
+    items: Array<{ id: string; type: string }>;
+    nextCursor: string | null;
+    pagination: { limit: number; hasMore: boolean };
+  };
+}
+
+function decodeRecommendedCursorPayload(cursor: string) {
+  expect(cursor.startsWith("seek:")).toBe(true);
+  return JSON.parse(Buffer.from(cursor.slice("seek:".length), "base64url").toString("utf8")) as {
+    v?: unknown;
+    t?: unknown;
+    s?: unknown;
+    n?: unknown;
+    p?: unknown;
+    i?: unknown;
   };
 }
 
@@ -509,6 +590,77 @@ describe.sequential("posts and social flows", () => {
     expect(ranked.map((item) => item.id)).toEqual(["fresh_unseen", "already_liked"]);
   });
 
+  it("demotes reported candidates in recommended ranking when quality is otherwise similar", () => {
+    const ranked = rankFeedItemsByRecommendation(
+      [
+        {
+          id: "reported_candidate",
+          title: "Fresh but repeatedly reported content",
+          contentPreview: "A post that looks active but has repeated report signals.",
+          viewCount: 180,
+          reportCount: 6,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:42:00.000Z",
+          updatedAt: "2026-04-08T07:42:00.000Z",
+          publishedAt: "2026-04-08T07:42:00.000Z",
+          contentCategory: null
+        },
+        {
+          id: "clean_candidate",
+          title: "Fresh clean content",
+          contentPreview: "A similar post with stable engagement and no moderation risk.",
+          viewCount: 180,
+          reportCount: 0,
+          commentCount: 6,
+          engagement: {
+            likeCount: 18,
+            favoriteCount: 5,
+            shareCount: 2,
+            viewer: {
+              isAuthor: false,
+              isFollowingAuthor: true,
+              hasLiked: false,
+              hasFavorited: false,
+              hasShared: false
+            }
+          },
+          author: {
+            role: "user"
+          },
+          images: [],
+          videos: [],
+          createdAt: "2026-04-08T07:41:00.000Z",
+          updatedAt: "2026-04-08T07:41:00.000Z",
+          publishedAt: "2026-04-08T07:41:00.000Z",
+          contentCategory: null
+        }
+      ],
+      {
+        now: new Date("2026-04-08T08:00:00.000Z"),
+        type: "moment"
+      }
+    );
+
+    expect(ranked.map((item) => item.id)).toEqual(["clean_candidate", "reported_candidate"]);
+  });
+
   it("applies viewer affinity penalties on top of repo-precomputed recommendation base scores", () => {
     const ranked = rankFeedItemsByRecommendation(
       [
@@ -703,6 +855,218 @@ describe.sequential("posts and social flows", () => {
     ]);
   });
 
+  it("keeps SQL follow boost aligned with TS relationship boost profile for recommended base scores", async () => {
+    const followerId = "seed_user_follower_a";
+    const followedAuthorId = "seed_user_skyline";
+    const baselineAuthorId = "seed_user_night";
+    const recommendationNow = new Date("2026-04-08T12:00:00.000Z");
+
+    const scenarios = [
+      { type: "moment" as const, expectedBoost: 11 },
+      { type: "article" as const, expectedBoost: 14 }
+    ] as const;
+
+    for (const scenario of scenarios) {
+      await db.delete(postsTable).where(eq(postsTable.type, scenario.type));
+      await db.delete(userFollowsTable).where(
+        and(
+          eq(userFollowsTable.followerId, followerId),
+          inArray(userFollowsTable.followeeId, [followedAuthorId, baselineAuthorId])
+        )
+      );
+      await db.insert(userFollowsTable).values({
+        id: createId("follow"),
+        followerId,
+        followeeId: followedAuthorId
+      });
+
+      const publishedAt = new Date("2026-04-08T11:30:00.000Z");
+      await db.insert(postsTable).values([
+        {
+          id: `${scenario.type}_follow_boost_followed`,
+          authorId: followedAuthorId,
+          type: scenario.type,
+          title: `${scenario.type} follow boost followed`,
+          content: "Follow boost control content with consistent quality signals.",
+          contentHtml: null,
+          contentPlainText: "Follow boost control content with consistent quality signals.",
+          contentCategoryId: null,
+          coverImageFileId: null,
+          status: "published",
+          rejectionReason: null,
+          commentCount: 3,
+          reportCount: 0,
+          likeCount: 5,
+          favoriteCount: 2,
+          shareCount: 2,
+          viewCount: 20,
+          publishedAt,
+          createdAt: publishedAt,
+          updatedAt: publishedAt
+        },
+        {
+          id: `${scenario.type}_follow_boost_baseline`,
+          authorId: baselineAuthorId,
+          type: scenario.type,
+          title: `${scenario.type} follow boost baseline`,
+          content: "Follow boost control content with consistent quality signals.",
+          contentHtml: null,
+          contentPlainText: "Follow boost control content with consistent quality signals.",
+          contentCategoryId: null,
+          coverImageFileId: null,
+          status: "published",
+          rejectionReason: null,
+          commentCount: 3,
+          reportCount: 0,
+          likeCount: 5,
+          favoriteCount: 2,
+          shareCount: 2,
+          viewCount: 20,
+          publishedAt,
+          createdAt: publishedAt,
+          updatedAt: publishedAt
+        }
+      ]);
+
+      const feedResult = await postsRepo.listFeed({
+        tab: "recommended",
+        type: scenario.type,
+        currentUserId: followerId,
+        recommendationNow,
+        includeTotal: false,
+        limit: 10
+      });
+      const followed = feedResult.items.find((item) => item.id === `${scenario.type}_follow_boost_followed`);
+      const baseline = feedResult.items.find((item) => item.id === `${scenario.type}_follow_boost_baseline`);
+      expect(followed?.recommendationBaseScore).toBeTypeOf("number");
+      expect(baseline?.recommendationBaseScore).toBeTypeOf("number");
+
+      const scoreDelta =
+        (followed?.recommendationBaseScore ?? 0) - (baseline?.recommendationBaseScore ?? 0);
+      expect(scoreDelta).toBeCloseTo(scenario.expectedBoost, 5);
+    }
+  });
+
+  it("keeps runtime recommended order bound to SQL pagination keys instead of TS diversity reordering", async () => {
+    const authorPrimaryId = "seed_user_skyline";
+    const authorDiverseId = "seed_user_night";
+    const recommendationNow = new Date("2026-04-08T10:00:00.000Z");
+    const baseTime = new Date("2026-04-08T09:30:00.000Z");
+
+    await db.delete(postsTable).where(eq(postsTable.type, "moment"));
+    await db.insert(postsTable).values([
+      {
+        id: "moment_sql_anchor_1",
+        authorId: authorPrimaryId,
+        type: "moment",
+        title: "SQL ordering control post",
+        content: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentHtml: null,
+        contentPlainText: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentCategoryId: null,
+        coverImageFileId: null,
+        status: "published",
+        rejectionReason: null,
+        commentCount: 1,
+        reportCount: 0,
+        likeCount: 2,
+        favoriteCount: 1,
+        shareCount: 2,
+        viewCount: 8,
+        publishedAt: baseTime,
+        createdAt: baseTime,
+        updatedAt: baseTime
+      },
+      {
+        id: "moment_sql_anchor_2",
+        authorId: authorPrimaryId,
+        type: "moment",
+        title: "SQL ordering control post",
+        content: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentHtml: null,
+        contentPlainText: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentCategoryId: null,
+        coverImageFileId: null,
+        status: "published",
+        rejectionReason: null,
+        commentCount: 1,
+        reportCount: 0,
+        likeCount: 2,
+        favoriteCount: 1,
+        shareCount: 2,
+        viewCount: 8,
+        publishedAt: new Date(baseTime.getTime() - 30_000),
+        createdAt: new Date(baseTime.getTime() - 30_000),
+        updatedAt: new Date(baseTime.getTime() - 30_000)
+      },
+      {
+        id: "moment_sql_diverse_candidate",
+        authorId: authorDiverseId,
+        type: "moment",
+        title: "SQL ordering control post",
+        content: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentHtml: null,
+        contentPlainText: "Same-quality content used to verify cursor-safe ordering boundaries.",
+        contentCategoryId: null,
+        coverImageFileId: null,
+        status: "published",
+        rejectionReason: null,
+        commentCount: 1,
+        reportCount: 0,
+        likeCount: 2,
+        favoriteCount: 1,
+        shareCount: 2,
+        viewCount: 8,
+        publishedAt: new Date(baseTime.getTime() - 35_000),
+        createdAt: new Date(baseTime.getTime() - 35_000),
+        updatedAt: new Date(baseTime.getTime() - 35_000)
+      }
+    ]);
+
+    const repoPage = await postsRepo.listFeed({
+      tab: "recommended",
+      type: "moment",
+      recommendationNow,
+      includeTotal: false,
+      limit: 4
+    });
+    const repoTopThreeIds = repoPage.items.slice(0, 3).map((item) => item.id);
+
+    const response = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=3`,
+      { method: "GET" }
+    );
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      items: Array<Parameters<typeof rankFeedItemsByRecommendation>[0][number]>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    const apiIds = payload.items.map((item) => item.id);
+    expect(apiIds).toEqual(repoTopThreeIds);
+    expect(apiIds).toEqual([
+      "moment_sql_anchor_1",
+      "moment_sql_anchor_2",
+      "moment_sql_diverse_candidate"
+    ]);
+
+    const precomputedBaseScores = new Map<string, number>([
+      ["moment_sql_anchor_1", 300],
+      ["moment_sql_anchor_2", 299],
+      ["moment_sql_diverse_candidate", 298]
+    ]);
+    const helperRankedIds = rankFeedItemsByRecommendation(payload.items, {
+      type: "moment",
+      now: recommendationNow,
+      precomputedBaseScores
+    }).map((item) => item.id);
+    expect(helperRankedIds).toEqual([
+      "moment_sql_anchor_1",
+      "moment_sql_diverse_candidate",
+      "moment_sql_anchor_2"
+    ]);
+  });
+
   it("keeps high-share moments inside the recommended candidate pool", async () => {
     const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T08:00:00.000Z");
@@ -827,7 +1191,9 @@ describe.sequential("posts and social flows", () => {
     expect(listFeedSpy.mock.calls[0]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      limit: 11
+      limit: 11,
+      includeTotal: false,
+      recommendationNow: expect.any(Date)
     });
     expect(listFeedSpy.mock.calls[0]?.[0]?.recommendedCursor).toMatchObject({
       id: expect.any(String),
@@ -852,7 +1218,9 @@ describe.sequential("posts and social flows", () => {
     expect(listFeedSpy.mock.calls[1]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      limit: 11
+      limit: 11,
+      includeTotal: false,
+      recommendationNow: expect.any(Date)
     });
     expect(listFeedSpy.mock.calls[1]?.[0]?.recommendedCursor).toMatchObject({
       id: expect.any(String),
@@ -1035,6 +1403,142 @@ describe.sequential("posts and social flows", () => {
     const firstTwoPageIds = [...pageOnePayload.items, ...pageTwoPayload.items].map((item) => item.id);
     expect(firstTwoPageIds).toContain(protectedCandidateId);
     listFeedSpy.mockRestore();
+  });
+
+  it("keeps article recommended pagination stable and deep when new head content is inserted", async () => {
+    const categories = await db
+      .select({ id: contentCategoriesTable.id })
+      .from(contentCategoriesTable)
+      .orderBy(asc(contentCategoriesTable.sortOrder), asc(contentCategoriesTable.slug))
+      .limit(2);
+    expect(categories.length).toBeGreaterThan(0);
+    const primaryCategoryId = expectDefined(categories[0]?.id);
+    const secondaryCategoryId = categories[1]?.id ?? primaryCategoryId;
+    const baseTime = new Date("2026-04-09T09:30:00.000Z");
+
+    await replaceArticleFeedWithSyntheticPosts(
+      Array.from({ length: 90 }, (_, index) => ({
+        id: `article_reco_${index + 1}`,
+        authorId: index % 4 === 0 ? "seed_user_skyline" : "seed_user_night",
+        title: `Article recommendation ${index + 1}`,
+        content:
+          "Stable article recommendation content for pagination and deep-scroll regression coverage.",
+        contentCategoryId: index % 3 === 0 ? secondaryCategoryId : primaryCategoryId,
+        likeCount: 4 + (index % 3),
+        favoriteCount: 2 + (index % 2),
+        shareCount: 2 + (index % 4),
+        commentCount: 1 + (index % 2),
+        reportCount: 0,
+        viewCount: 20 + (index % 5),
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageOne = await readRecommendedArticleFeedPage({ limit: 10 });
+    expect(pageOne.items.every((item) => item.type === "article")).toBe(true);
+    expect(pageOne.nextCursor).toBeTruthy();
+
+    await db.insert(postsTable).values({
+      id: "article_reco_inserted_head",
+      authorId: "seed_user_skyline",
+      type: "article",
+      title: "Inserted recommended head article",
+      content: "Inserted after first page to verify stable article recommendation cursor behavior.",
+      contentHtml: null,
+      contentPlainText:
+        "Inserted after first page to verify stable article recommendation cursor behavior.",
+      contentCategoryId: primaryCategoryId,
+      coverImageFileId: null,
+      status: "published",
+      rejectionReason: null,
+      commentCount: 2,
+      reportCount: 0,
+      likeCount: 6,
+      favoriteCount: 3,
+      shareCount: 4,
+      viewCount: 40,
+      publishedAt: new Date(baseTime.getTime() + 120_000),
+      createdAt: new Date(baseTime.getTime() + 120_000),
+      updatedAt: new Date(baseTime.getTime() + 120_000)
+    });
+
+    const pageTwo = await readRecommendedArticleFeedPage({
+      limit: 10,
+      cursor: expectDefined(pageOne.nextCursor)
+    });
+
+    const pageOneIds = new Set(pageOne.items.map((item) => item.id));
+    const pageTwoIds = pageTwo.items.map((item) => item.id);
+    const overlap = pageTwoIds.filter((id) => pageOneIds.has(id));
+    expect(overlap).toHaveLength(0);
+    expect(pageTwoIds).not.toContain("article_reco_inserted_head");
+
+    const collectedIds = [...pageOne.items, ...pageTwo.items].map((item) => item.id);
+    let deepCursor = pageTwo.nextCursor ?? undefined;
+    for (let index = 0; index < 5; index += 1) {
+      expect(deepCursor).toBeTruthy();
+      const payload = await readRecommendedArticleFeedPage({
+        limit: 10,
+        cursor: expectDefined(deepCursor)
+      });
+      collectedIds.push(...payload.items.map((item) => item.id));
+      deepCursor = payload.nextCursor ?? undefined;
+    }
+    expect(new Set(collectedIds).size).toBe(collectedIds.length);
+  });
+
+  it("keeps article recommended cursor contract compatible with malformed cursor fallback", async () => {
+    const categories = await db
+      .select({ id: contentCategoriesTable.id })
+      .from(contentCategoriesTable)
+      .orderBy(asc(contentCategoriesTable.sortOrder), asc(contentCategoriesTable.slug))
+      .limit(1);
+    const categoryId = expectDefined(categories[0]?.id);
+    const baseTime = new Date("2026-04-09T11:30:00.000Z");
+
+    await replaceArticleFeedWithSyntheticPosts(
+      Array.from({ length: 30 }, (_, index) => ({
+        id: `article_cursor_contract_${index + 1}`,
+        authorId: "seed_user_skyline",
+        title: `Article cursor contract ${index + 1}`,
+        content:
+          "Stable article recommendation content for cursor contract and compatibility regression coverage.",
+        contentCategoryId: categoryId,
+        reportCount: 0,
+        likeCount: 3,
+        favoriteCount: 1,
+        shareCount: 2,
+        commentCount: 1,
+        viewCount: 18,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const firstPage = await readRecommendedArticleFeedPage({ limit: 10 });
+    expect(firstPage.nextCursor).toBeTruthy();
+    const payload = decodeRecommendedCursorPayload(expectDefined(firstPage.nextCursor));
+    expect(payload).toMatchObject({
+      v: 1,
+      t: "recommended",
+      s: expect.any(Number),
+      n: expect.any(String),
+      p: expect.any(String),
+      i: expect.any(String)
+    });
+
+    const malformedResponse = await app.request(
+      `${API_ROUTES.feed}?tab=recommended&limit=10&cursor=${encodeURIComponent("not-a-seek-cursor")}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(malformedResponse.status).toBe(200);
+    const malformedPage = (await malformedResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(malformedPage.items.map((item) => item.id)).toEqual(firstPage.items.map((item) => item.id));
   });
 
   it("does not clip recommended candidates at 200 rows", async () => {

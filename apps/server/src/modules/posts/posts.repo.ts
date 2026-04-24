@@ -11,7 +11,7 @@ import {
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, inArray, or, sql, type SQLWrapper } from "drizzle-orm";
+import { and, asc, desc, eq, inArray, or, sql, type SQL, type SQLWrapper } from "drizzle-orm";
 import { uploadsRepo } from "../uploads/upload.repo";
 
 type FeedTab = "recommended" | "latest" | "following";
@@ -137,7 +137,7 @@ function buildRecommendedFollowBoostExpression(type: PostType, currentUserId?: s
     return sql<number>`0`;
   }
 
-  const followBoost = type === "article" ? 10 : 8;
+  const followBoost = type === "article" ? 14 : 11;
   return sql<number>`
     (
       case
@@ -285,24 +285,6 @@ function buildRecommendedCursorConditionFrom(input: {
   )`;
 }
 
-function buildRecommendedCursorCondition(
-  type: PostType,
-  currentUserId: string | null | undefined,
-  cursor: RecommendedFeedCursorInput,
-  recommendationNow?: Date
-) {
-  return buildRecommendedCursorConditionFrom({
-    recommendationBaseScore: buildRecommendedStaticBaseScoreExpression(
-      type,
-      currentUserId,
-      recommendationNow
-    ),
-    publishedAt: buildFeedPublishedAtExpression(),
-    id: postsTable.id,
-    cursor
-  });
-}
-
 function buildFeedCursorConditionFrom(input: {
   publishedAt: SQLWrapper;
   id: SQLWrapper;
@@ -369,9 +351,7 @@ function postSelection() {
   };
 }
 
-function postFeedSelection(input?: {
-  recommendationBaseScore?: any;
-}) {
+function postFeedSelection(input?: { recommendationBaseScore?: SQL<number> | SQL.Aliased<number> }) {
   const previewSource = buildFeedPreviewSource();
   const recommendationBaseScore = input?.recommendationBaseScore ?? sql<number | null>`null`;
 
@@ -768,6 +748,7 @@ export const postsRepo = {
             recommendationBaseScore
           })
           .from(postsTable)
+          .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
           .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
           .where(and(...conditions))
       );

@@ -1,8 +1,31 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import { Virtuoso, VirtuosoGrid } from "react-virtuoso";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { cn } from "@/lib/utils";
 import type { VirtualFeedProps, VirtualGridProps, VirtualMasonryColumnsProps } from "./virtual-feed";
+
+function isPromiseLike(value: unknown): value is PromiseLike<unknown> {
+  return (
+    value !== null &&
+    (typeof value === "object" || typeof value === "function") &&
+    typeof (value as PromiseLike<unknown>).then === "function"
+  );
+}
+
+function releaseLoadLockAfterSettled(
+  loadResult: unknown,
+  isLoadRequestedRef: MutableRefObject<boolean>
+) {
+  if (!isPromiseLike(loadResult)) {
+    return;
+  }
+
+  void Promise.resolve(loadResult)
+    .catch(() => undefined)
+    .finally(() => {
+      isLoadRequestedRef.current = false;
+    });
+}
 
 export function VirtualFeedRuntime<T>({
   data,
@@ -34,7 +57,13 @@ export function VirtualFeedRuntime<T>({
     }
 
     isLoadRequestedRef.current = true;
-    onLoadMore();
+
+    try {
+      const loadResult = onLoadMore();
+      releaseLoadLockAfterSettled(loadResult, isLoadRequestedRef);
+    } catch {
+      isLoadRequestedRef.current = false;
+    }
   };
 
   return (
@@ -129,7 +158,13 @@ export function VirtualMasonryColumnsRuntime<T>({
     }
 
     isLoadRequestedRef.current = true;
-    onLoadMore();
+
+    try {
+      const loadResult = onLoadMore();
+      releaseLoadLockAfterSettled(loadResult, isLoadRequestedRef);
+    } catch {
+      isLoadRequestedRef.current = false;
+    }
   };
 
   return (

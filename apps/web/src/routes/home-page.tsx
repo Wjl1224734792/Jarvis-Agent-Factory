@@ -19,8 +19,13 @@ import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { getEditorialImage } from "../lib/aviation-media";
 import {
   combineHomeFeedRequestSignal,
+  getHomeFeedQueryKey,
   getHomeFeedErrorDescription,
-  HOME_FEED_FETCH_TIMEOUT_MS
+  HOME_FEED_FETCH_TIMEOUT_MS,
+  HOME_FEED_QUERY_GC_TIME_MS,
+  HOME_FEED_QUERY_STALE_TIME_MS,
+  normalizeHomeFeedCategorySlug,
+  resolveHomeFeedPlaceholderData
 } from "../lib/home-feed-query";
 import { apiClient } from "../lib/api-client";
 import { resolveFeedNextCursor } from "../lib/feed-pagination";
@@ -227,18 +232,20 @@ export function HomePage() {
   const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
   const feedTab = activeTab.kind === "category" ? "recommended" : activeTab.id;
   const categorySlug = activeTab.kind === "category" ? activeTab.slug : undefined;
+  const normalizedCategorySlug = normalizeHomeFeedCategorySlug(categorySlug);
+  const homeFeedQueryKey = getHomeFeedQueryKey(feedTab, normalizedCategorySlug);
   const homeFeedQuery = useInfiniteQuery({
-    queryKey: [
-      "home-shell-feed",
-      feedTab,
-      categorySlug ?? null
-    ],
+    queryKey: homeFeedQueryKey,
+    staleTime: HOME_FEED_QUERY_STALE_TIME_MS,
+    gcTime: HOME_FEED_QUERY_GC_TIME_MS,
+    placeholderData: (previousData, previousQuery) =>
+      resolveHomeFeedPlaceholderData(previousData, previousQuery, homeFeedQueryKey),
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       apiClient.listHomeFeed(
         {
           tab: feedTab,
-          categorySlug,
+          categorySlug: normalizedCategorySlug ?? undefined,
           cursor: pageParam,
           limit: 20
         },

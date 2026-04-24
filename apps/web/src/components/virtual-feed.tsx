@@ -11,7 +11,7 @@ export type VirtualFeedProps<T> = {
   useWindowScroll?: boolean;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
-  onLoadMore?: () => void;
+  onLoadMore?: () => void | PromiseLike<unknown>;
   showItemDividers?: boolean;
   emptyState?: ReactNode;
   /** 后台刷新时在列表末尾显示轻量加载，避免全屏遮罩抖动 */
@@ -44,7 +44,7 @@ export type VirtualMasonryColumnsProps<T> = {
   useWindowScroll?: boolean;
   hasMore?: boolean;
   isFetchingNextPage?: boolean;
-  onLoadMore?: () => void;
+  onLoadMore?: () => void | PromiseLike<unknown>;
 };
 
 const shouldDeferVirtualFeedRuntime = typeof window !== "undefined";
