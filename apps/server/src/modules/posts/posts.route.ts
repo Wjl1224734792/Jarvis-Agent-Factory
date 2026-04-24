@@ -69,14 +69,12 @@ postsRoute.use('*', attachCurrentUser);
 postsRoute.get(API_ROUTES.feed, async (context) => {
   const tabQuery = context.req.query("tab");
   const categorySlug = context.req.query("categorySlug") || undefined;
-  const page = parsePositiveInt(context.req.query("page"));
   const limit = parsePositiveInt(context.req.query("limit"));
   const cursor = parseCursor(context.req.query("cursor"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
     type: "article",
     contentCategorySlug: categorySlug,
-    page,
     limit,
     cursor
   });
@@ -86,13 +84,11 @@ postsRoute.get(API_ROUTES.feed, async (context) => {
 
 postsRoute.get(API_ROUTES.circleFeed, async (context) => {
   const tabQuery = context.req.query("tab");
-  const page = parsePositiveInt(context.req.query("page"));
   const limit = parsePositiveInt(context.req.query("limit"));
   const cursor = parseCursor(context.req.query("cursor"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
     type: "moment",
-    page,
     limit,
     cursor
   });

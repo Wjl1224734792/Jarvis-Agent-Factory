@@ -39,14 +39,13 @@ type SerializedPostMedia = {
 type PostFeedListItem = Awaited<ReturnType<typeof postsRepo.listFeed>>["items"][number];
 type PostLookupItem = NonNullable<Awaited<ReturnType<typeof postsRepo.getPostById>>>;
 type PostListSerializableItem = PostFeedListItem | PostLookupItem;
-const DEFAULT_FEED_PAGE = 1;
 const DEFAULT_FEED_LIMIT = 20;
 const MAX_FEED_LIMIT = 50;
 const DEFAULT_RECOMMENDED_FETCH_BATCH = 200;
 const MAX_RECOMMENDED_FETCH_BATCH = 400;
-const RECOMMENDED_CURSOR_PREFIX = "offset:";
+const FEED_CURSOR_PREFIX = "offset:";
 
-function decodeRecommendedCursor(cursor: string | undefined) {
+function decodeFeedCursor(cursor: string | undefined) {
   if (!cursor) {
     return null;
   }
@@ -56,8 +55,8 @@ function decodeRecommendedCursor(cursor: string | undefined) {
     return null;
   }
 
-  const payload = normalized.startsWith(RECOMMENDED_CURSOR_PREFIX)
-    ? normalized.slice(RECOMMENDED_CURSOR_PREFIX.length)
+  const payload = normalized.startsWith(FEED_CURSOR_PREFIX)
+    ? normalized.slice(FEED_CURSOR_PREFIX.length)
     : normalized;
   const parsed = Number(payload);
   if (!Number.isInteger(parsed) || parsed < 0) {
@@ -67,18 +66,13 @@ function decodeRecommendedCursor(cursor: string | undefined) {
   return parsed;
 }
 
-function encodeRecommendedCursor(offset: number) {
-  return `${RECOMMENDED_CURSOR_PREFIX}${Math.max(0, offset)}`;
+function encodeFeedCursor(offset: number) {
+  return `${FEED_CURSOR_PREFIX}${Math.max(0, offset)}`;
 }
 
-function resolveRecommendedOffset(input: { cursor?: string; page?: number; limit: number }) {
-  const cursorOffset = decodeRecommendedCursor(input.cursor);
-  if (cursorOffset !== null) {
-    return cursorOffset;
-  }
-
-  const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
-  return (page - 1) * input.limit;
+function resolveFeedOffset(cursor: string | undefined) {
+  const cursorOffset = decodeFeedCursor(cursor);
+  return cursorOffset ?? 0;
 }
 
 function toIsoString(value: Date | null) {
@@ -325,12 +319,10 @@ export const postsService = {
   async listFeed(
     tab: FeedTab,
     currentUser: CurrentUser | null | undefined,
-    input: { type: PostType; contentCategorySlug?: string; page?: number; limit?: number; cursor?: string }
+    input: { type: PostType; contentCategorySlug?: string; limit?: number; cursor?: string }
   ) {
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
-    const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
-    const recommendedOffset =
-      tab === "recommended" ? resolveRecommendedOffset({ cursor: input.cursor, page: input.page, limit }) : 0;
+    const cursorOffset = resolveFeedOffset(input.cursor);
     const feedResult =
       tab === "recommended"
         ? await (async () => {
@@ -339,7 +331,7 @@ export const postsService = {
               MAX_RECOMMENDED_FETCH_BATCH,
               Math.max(DEFAULT_RECOMMENDED_FETCH_BATCH, limit * 4)
             );
-            let fetchPage = 1;
+            let fetchOffset = 0;
             let total = 0;
 
             while (true) {
@@ -348,11 +340,11 @@ export const postsService = {
                 type: input.type,
                 currentUserId: currentUser?.id,
                 contentCategorySlug: input.contentCategorySlug,
-                page: fetchPage,
+                offset: fetchOffset,
                 limit: recommendedBatchLimit
               });
 
-              if (fetchPage === 1) {
+              if (fetchOffset === 0) {
                 total = Number(result.total ?? 0);
               }
 
@@ -366,7 +358,7 @@ export const postsService = {
                 break;
               }
 
-              fetchPage += 1;
+              fetchOffset += result.items.length;
             }
 
             return {
@@ -379,7 +371,7 @@ export const postsService = {
             type: input.type,
             currentUserId: currentUser?.id,
             contentCategorySlug: input.contentCategorySlug,
-            page,
+            offset: cursorOffset,
             limit
           });
     const items = feedResult.items;
@@ -426,23 +418,11 @@ export const postsService = {
         : serializedCandidates;
     const pagedItems =
       tab === "recommended"
-        ? rankedRecommendedItems.slice(recommendedOffset, recommendedOffset + limit)
+        ? rankedRecommendedItems.slice(cursorOffset, cursorOffset + limit)
         : serializedCandidates;
     const total = tab === "recommended" ? rankedRecommendedItems.length : Number(feedResult.total ?? 0);
-    const hasMore =
-      tab === "recommended"
-        ? recommendedOffset + pagedItems.length < total
-        : page * limit < total;
-    const paginationPage =
-      tab === "recommended"
-        ? Math.floor(Math.max(0, recommendedOffset) / limit) + 1
-        : page;
-    const nextCursor =
-      tab === "recommended" && hasMore
-        ? encodeRecommendedCursor(recommendedOffset + pagedItems.length)
-        : tab === "recommended"
-          ? null
-          : undefined;
+    const hasMore = cursorOffset + pagedItems.length < total;
+    const nextCursor = hasMore ? encodeFeedCursor(cursorOffset + pagedItems.length) : null;
     const postRecordById = new Map(items.map((item) => [item.id, item]));
     const pagePostIds = pagedItems.map((item) => item.id);
     const pagePostRecords = pagedItems
@@ -475,12 +455,10 @@ export const postsService = {
         categories,
         items: orderedItems,
         pagination: {
-          page: paginationPage,
           limit,
-          total,
           hasMore
         },
-        ...(tab === "recommended" ? { nextCursor } : {})
+        nextCursor
       };
     }
 
@@ -488,12 +466,10 @@ export const postsService = {
       tab,
       items: orderedItems,
       pagination: {
-        page: paginationPage,
         limit,
-        total,
         hasMore
       },
-      ...(tab === "recommended" ? { nextCursor } : {})
+      nextCursor
     };
   },
   async createPost(input: {

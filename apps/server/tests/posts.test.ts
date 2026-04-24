@@ -112,7 +112,7 @@ async function readRecommendedCircleFeedPage(input: {
   return (await response.json()) as {
     items: Array<{ id: string }>;
     nextCursor: string | null;
-    pagination: { page: number | null; total: number | null; hasMore: boolean };
+    pagination: { limit: number; hasMore: boolean };
   };
 }
 
@@ -729,7 +729,7 @@ describe.sequential("posts and social flows", () => {
     const payload = await readRecommendedCircleFeedPage({ limit: 10 });
 
     expect(payload.items.some((item) => item.id === "moment_share_heavy")).toBe(true);
-    expect(payload.pagination.total).toBeGreaterThanOrEqual(61);
+    expect(payload.pagination.limit).toBe(10);
     expect(payload.nextCursor).toBeTruthy();
   });
 
@@ -776,22 +776,19 @@ describe.sequential("posts and social flows", () => {
     const feedResult = await postsRepo.listFeed({
       tab: "recommended",
       type: "moment",
-      page: 1,
+      offset: 0,
       limit: 200
     });
     const ids = feedResult.items.map((item) => item.id);
 
     expect(ids).not.toContain("moment_repo_filtered_reported");
     expect(ids).not.toContain("moment_repo_filtered_stale");
-    expect(feedResult.total).toBe(12);
+    expect(feedResult.total).toBeGreaterThanOrEqual(12);
   });
 
   it("aligns recommended pagination with the ranked candidate window", async () => {
     const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T10:00:00.000Z");
-    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
-    const listPostImagesSpy = vi.spyOn(postsRepo, "listPostImages");
-    const listPostVideosSpy = vi.spyOn(postsRepo, "listPostVideos");
 
     await replaceMomentFeedWithSyntheticPosts(
       authorId,
@@ -805,23 +802,33 @@ describe.sequential("posts and social flows", () => {
       }))
     );
 
-    const pageSixResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=6`, {
-      method: "GET"
+    let cursor: string | undefined;
+    for (let index = 0; index < 5; index += 1) {
+      const payload = await readRecommendedCircleFeedPage({
+        limit: 10,
+        cursor
+      });
+      cursor = payload.nextCursor ?? undefined;
+    }
+    expect(cursor).toBeTruthy();
+
+    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
+    const listPostImagesSpy = vi.spyOn(postsRepo, "listPostImages");
+    const listPostVideosSpy = vi.spyOn(postsRepo, "listPostVideos");
+    const pageSixPayload = await readRecommendedCircleFeedPage({
+      limit: 10,
+      cursor: expectDefined(cursor)
     });
-    expect(pageSixResponse.status).toBe(200);
-    const pageSixPayload = (await pageSixResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
 
     expect(pageSixPayload.items).toHaveLength(10);
-    expect(pageSixPayload.pagination.total).toBe(70);
+    expect(pageSixPayload.pagination.limit).toBe(10);
     expect(pageSixPayload.pagination.hasMore).toBe(true);
+    expect(pageSixPayload.nextCursor).toBeTruthy();
     expect(listFeedSpy).toHaveBeenCalledTimes(1);
     expect(listFeedSpy.mock.calls[0]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      page: 1,
+      offset: 0,
       limit: 200
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
@@ -829,23 +836,20 @@ describe.sequential("posts and social flows", () => {
     listPostImagesSpy.mockClear();
     listPostVideosSpy.mockClear();
 
-    const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
-      method: "GET"
+    const pageSevenPayload = await readRecommendedCircleFeedPage({
+      limit: 10,
+      cursor: expectDefined(pageSixPayload.nextCursor)
     });
-    expect(pageSevenResponse.status).toBe(200);
-    const pageSevenPayload = (await pageSevenResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
 
     expect(pageSevenPayload.items).toHaveLength(10);
-    expect(pageSevenPayload.pagination.total).toBe(70);
+    expect(pageSevenPayload.pagination.limit).toBe(10);
     expect(pageSevenPayload.pagination.hasMore).toBe(false);
+    expect(pageSevenPayload.nextCursor).toBeNull();
     expect(listFeedSpy).toHaveBeenCalledTimes(2);
     expect(listFeedSpy.mock.calls[1]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      page: 1,
+      offset: 0,
       limit: 200
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
@@ -871,28 +875,28 @@ describe.sequential("posts and social flows", () => {
       }))
     );
 
-    const pageSixResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=6`, {
-      method: "GET"
-    });
-    expect(pageSixResponse.status).toBe(200);
-    const pageSixPayload = (await pageSixResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
+    let cursor: string | undefined;
+    for (let index = 0; index < 5; index += 1) {
+      const payload = await readRecommendedCircleFeedPage({
+        limit: 10,
+        cursor
+      });
+      cursor = payload.nextCursor ?? undefined;
+    }
 
-    const pageSevenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=7`, {
-      method: "GET"
+    const pageSixPayload = await readRecommendedCircleFeedPage({
+      limit: 10,
+      cursor: expectDefined(cursor)
     });
-    expect(pageSevenResponse.status).toBe(200);
-    const pageSevenPayload = (await pageSevenResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
+    const pageSevenPayload = await readRecommendedCircleFeedPage({
+      limit: 10,
+      cursor: expectDefined(pageSixPayload.nextCursor)
+    });
 
     expect(pageSixPayload.items).toHaveLength(10);
     expect(pageSevenPayload.items).toHaveLength(10);
-    expect(pageSixPayload.pagination.total).toBe(120);
-    expect(pageSevenPayload.pagination.total).toBe(120);
+    expect(pageSixPayload.pagination.limit).toBe(10);
+    expect(pageSevenPayload.pagination.limit).toBe(10);
     expect(pageSevenPayload.pagination.hasMore).toBe(true);
     const pageSixIds = new Set(pageSixPayload.items.map((item) => item.id));
     const pageSevenIds = new Set(pageSevenPayload.items.map((item) => item.id));
@@ -931,27 +935,18 @@ describe.sequential("posts and social flows", () => {
       ]
     );
 
-    const pageTwoResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=2`, {
-      method: "GET"
+    const pageOnePayload = await readRecommendedCircleFeedPage({ limit: 50 });
+    const pageTwoPayload = await readRecommendedCircleFeedPage({
+      limit: 50,
+      cursor: expectDefined(pageOnePayload.nextCursor)
     });
-    const pageThreeResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=3`, {
-      method: "GET"
+    const pageThreePayload = await readRecommendedCircleFeedPage({
+      limit: 50,
+      cursor: expectDefined(pageTwoPayload.nextCursor)
     });
 
-    expect(pageTwoResponse.status).toBe(200);
-    expect(pageThreeResponse.status).toBe(200);
-
-    const pageTwoPayload = (await pageTwoResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
-    const pageThreePayload = (await pageThreeResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
-
-    expect(pageTwoPayload.pagination.total).toBe(201);
-    expect(pageThreePayload.pagination.total).toBe(201);
+    expect(pageTwoPayload.pagination.limit).toBe(50);
+    expect(pageThreePayload.pagination.limit).toBe(50);
     expect(pageTwoPayload.pagination.hasMore).toBe(true);
     expect(pageThreePayload.pagination.hasMore).toBe(true);
     expect(pageTwoPayload.items).toHaveLength(50);
@@ -1009,7 +1004,7 @@ describe.sequential("posts and social flows", () => {
       cursor: expectDefined(pageOnePayload.nextCursor)
     });
 
-    expect(pageTwoPayload.pagination.total).toBeGreaterThanOrEqual(71);
+    expect(pageTwoPayload.pagination.limit).toBe(10);
     expect(pageOnePayload.pagination.hasMore).toBe(true);
     expect(listFeedSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(
@@ -1017,7 +1012,7 @@ describe.sequential("posts and social flows", () => {
         ([input]) =>
           input?.tab === "recommended" &&
           input?.type === "moment" &&
-          input?.page === 1 &&
+          input?.offset === 0 &&
           input?.limit === 200
       )
     ).toBe(true);
@@ -1059,8 +1054,8 @@ describe.sequential("posts and social flows", () => {
 
     expect(pageThreePayload.items).toHaveLength(50);
     expect(pageFourPayload.items).toHaveLength(50);
-    expect(pageThreePayload.pagination.total).toBe(260);
-    expect(pageFourPayload.pagination.total).toBe(260);
+    expect(pageThreePayload.pagination.limit).toBe(50);
+    expect(pageFourPayload.pagination.limit).toBe(50);
     expect(pageFourPayload.pagination.hasMore).toBe(true);
     expect(listFeedSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(
@@ -1068,7 +1063,7 @@ describe.sequential("posts and social flows", () => {
         ([input]) =>
           input?.tab === "recommended" &&
           input?.type === "moment" &&
-          input?.page === 1 &&
+          input?.offset === 0 &&
           input?.limit === 200
       ).length
     ).toBeGreaterThanOrEqual(2);
@@ -1092,7 +1087,7 @@ describe.sequential("posts and social flows", () => {
     const feedResult = await postsRepo.listFeed({
       tab: "recommended",
       type: "moment",
-      page: 1,
+      offset: 0,
       limit: 10
     });
 

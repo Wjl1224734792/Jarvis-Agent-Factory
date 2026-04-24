@@ -29,9 +29,7 @@ describe("posts contract", () => {
 
   it("requires nextCursor for recommended feed responses", () => {
     const pagination = {
-      page: 1,
       limit: 20,
-      total: 40,
       hasMore: true
     };
 
@@ -66,11 +64,9 @@ describe("posts contract", () => {
     ).toBe(true);
   });
 
-  it("keeps latest/following feed responses compatible without nextCursor", () => {
+  it("requires nextCursor for latest/following feed responses", () => {
     const pagination = {
-      page: 1,
       limit: 20,
-      total: 20,
       hasMore: false
     };
 
@@ -80,7 +76,8 @@ describe("posts contract", () => {
         activeCategorySlug: null,
         categories: [],
         items: [],
-        pagination
+        pagination,
+        nextCursor: null
       }).success
     ).toBe(true);
 
@@ -88,7 +85,8 @@ describe("posts contract", () => {
       circleFeedResponseSchema.safeParse({
         tab: "following",
         items: [],
-        pagination
+        pagination,
+        nextCursor: null
       }).success
     ).toBe(true);
   });

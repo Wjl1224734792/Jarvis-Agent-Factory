@@ -23,6 +23,12 @@ type CircleFeedData = {
   items: PostFeedItem[];
 };
 
+type CursorFeedPage<T> = {
+  items: T[];
+  nextCursor?: string | null;
+  hasMore?: boolean;
+};
+
 type PostCommentViewerState = {
   canEdit?: boolean;
   canDelete?: boolean;
@@ -64,7 +70,7 @@ function clampCount(value: number) {
   return Math.max(0, value);
 }
 
-function isPagedFeedData<T>(value: unknown): value is { items: T[] } {
+function isFeedPageData<T>(value: unknown): value is CursorFeedPage<T> | { items: T[] } {
   return Boolean(
     value &&
       typeof value === "object" &&
@@ -73,7 +79,7 @@ function isPagedFeedData<T>(value: unknown): value is { items: T[] } {
   );
 }
 
-function isInfiniteFeedData<T>(value: unknown): value is InfiniteData<{ items: T[] }> {
+function isInfiniteFeedData<T>(value: unknown): value is InfiniteData<CursorFeedPage<T>> {
   return Boolean(
     value &&
       typeof value === "object" &&
@@ -90,7 +96,7 @@ function patchFeedCollection<T>(
     return {
       ...current,
       pages: current.pages.map((page) =>
-        isPagedFeedData<T>(page)
+        isFeedPageData<T>(page)
           ? {
               ...page,
               items: page.items.map(updater)
@@ -100,7 +106,7 @@ function patchFeedCollection<T>(
     };
   }
 
-  if (isPagedFeedData<T>(current)) {
+  if (isFeedPageData<T>(current)) {
     return {
       ...current,
       items: current.items.map(updater)

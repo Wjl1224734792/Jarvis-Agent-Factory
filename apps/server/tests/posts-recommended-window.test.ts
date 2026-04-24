@@ -82,7 +82,7 @@ describe.sequential("recommended cursor pagination", () => {
     const pagePayloads: Array<{
       items: Array<{ id: string }>;
       nextCursor: string | null;
-      pagination: { page: number; total: number; hasMore: boolean };
+      pagination: { limit: number; hasMore: boolean };
     }> = [];
     let cursor: string | undefined;
 
@@ -96,7 +96,7 @@ describe.sequential("recommended cursor pagination", () => {
       const payload = (await response.json()) as {
         items: Array<{ id: string }>;
         nextCursor: string | null;
-        pagination: { page: number; total: number; hasMore: boolean };
+        pagination: { limit: number; hasMore: boolean };
       };
       pagePayloads.push(payload);
       cursor = payload.nextCursor ?? undefined;
@@ -105,8 +105,7 @@ describe.sequential("recommended cursor pagination", () => {
     expect(pagePayloads[0]?.nextCursor).toBeTruthy();
     expect(pagePayloads[19]?.nextCursor).toBeTruthy();
     expect(pagePayloads[20]?.items).toHaveLength(10);
-    expect(pagePayloads[20]?.pagination.total).toBeGreaterThanOrEqual(210);
-    expect(pagePayloads[20]?.pagination.page).toBe(21);
+    expect(pagePayloads[20]?.pagination.limit).toBe(10);
     expect(pagePayloads[20]?.pagination.hasMore).toBe(true);
 
     const ids = pagePayloads.flatMap((payload) => payload.items.map((item) => item.id));

@@ -224,13 +224,11 @@ export const postDetailSchema = z.object({
 });
 
 const feedPaginationSchema = z.object({
-  page: z.number().int().positive().nullable().default(null),
   limit: z.number().int().positive(),
-  total: z.number().int().nonnegative().nullable().default(null),
   hasMore: z.boolean()
 });
 
-const recommendedFeedCursorSchema = z.string().min(1).nullable();
+const feedCursorSchema = z.string().min(1).nullable();
 
 export const homeFeedResponseSchema = z.object({
   tab: feedTabSchema,
@@ -238,30 +236,14 @@ export const homeFeedResponseSchema = z.object({
   categories: z.array(contentCategorySchema),
   items: z.array(postFeedItemSchema),
   pagination: feedPaginationSchema,
-  nextCursor: recommendedFeedCursorSchema.optional()
-}).superRefine((payload, context) => {
-  if (payload.tab === "recommended" && payload.nextCursor === undefined) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Recommended feed responses must include nextCursor.",
-      path: ["nextCursor"]
-    });
-  }
+  nextCursor: feedCursorSchema
 });
 
 export const circleFeedResponseSchema = z.object({
   tab: feedTabSchema,
   items: z.array(postFeedItemSchema),
   pagination: feedPaginationSchema,
-  nextCursor: recommendedFeedCursorSchema.optional()
-}).superRefine((payload, context) => {
-  if (payload.tab === "recommended" && payload.nextCursor === undefined) {
-    context.addIssue({
-      code: z.ZodIssueCode.custom,
-      message: "Recommended feed responses must include nextCursor.",
-      path: ["nextCursor"]
-    });
-  }
+  nextCursor: feedCursorSchema
 });
 
 export const createPostResponseSchema = z.object({

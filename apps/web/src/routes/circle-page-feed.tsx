@@ -2,12 +2,12 @@ import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
-import { VirtualMasonryColumns } from "@/components/virtual-feed";
-import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import {
@@ -18,12 +18,18 @@ import {
 } from "./circle-page-helpers";
 
 const feedTabs = [
-  { id: "recommended", label: "推荐" },
-  { id: "latest", label: "最新" },
-  { id: "following", label: "关注" }
+  { id: "recommended", label: "\u63a8\u8350" },
+  { id: "latest", label: "\u6700\u65b0" },
+  { id: "following", label: "\u5173\u6ce8" }
 ] as const;
 
 export type FeedTab = (typeof feedTabs)[number]["id"];
+
+const loadMoreLabels: Record<FeedTab, string> = {
+  recommended: "\u52a0\u8f7d\u66f4\u591a\u63a8\u8350",
+  latest: "\u52a0\u8f7d\u66f4\u591a\u6700\u65b0",
+  following: "\u52a0\u8f7d\u66f4\u591a\u5173\u6ce8"
+};
 
 export type CircleFeedItem = {
   id: string;
@@ -101,7 +107,7 @@ function CircleFeedCard(props: {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center rounded-[1rem] bg-slate-100 text-xs text-muted-foreground">
-            未设置封面
+            {"\u672a\u8bbe\u7f6e\u5c01\u9762"}
           </div>
         )}
         {item.videos.length > 0 ? (
@@ -117,10 +123,7 @@ function CircleFeedCard(props: {
         <div className="flex items-center justify-between gap-2 text-[0.72rem] text-foreground/58">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="size-6" size="sm">
-              <AvatarImage
-                alt={item.author.displayName}
-                src={resolveUserAvatarSrc(item.author.avatarUrl)}
-              />
+              <AvatarImage alt={item.author.displayName} src={resolveUserAvatarSrc(item.author.avatarUrl)} />
               <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
@@ -185,15 +188,15 @@ export function CirclePageFeed({
 
       {isError ? (
         <Alert className="rounded-none border-0" variant="destructive">
-          <AlertTitle>飞友圈加载失败</AlertTitle>
-          <AlertDescription>{errorMessage ?? "网络开小差了"}</AlertDescription>
+          <AlertTitle>{"\u98de\u53cb\u5708\u52a0\u8f7d\u5931\u8d25"}</AlertTitle>
+          <AlertDescription>{errorMessage ?? "\u7f51\u7edc\u5f00\u5c0f\u5dee\u4e86\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002"}</AlertDescription>
         </Alert>
       ) : null}
 
       {!isLoading && !isError && posts.length === 0 ? (
         <Alert className="rounded-none border-0">
-          <AlertTitle>飞友圈还没有新动态</AlertTitle>
-          <AlertDescription>先发一条动态试试。</AlertDescription>
+          <AlertTitle>{"\u98de\u53cb\u5708\u8fd8\u6ca1\u6709\u65b0\u52a8\u6001"}</AlertTitle>
+          <AlertDescription>{"\u5148\u53d1\u4e00\u6761\u52a8\u6001\u8bd5\u8bd5\u3002"}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -216,16 +219,11 @@ export function CirclePageFeed({
               />
             )}
           />
-          <FeedRefetchFooter show={isRefetching} />
+          <FeedRefetchFooter show={isRefetching && !isFetchingNextPage} />
           {hasMore ? (
             <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
-              <Button
-                disabled={isFetchingNextPage}
-                onClick={onLoadMore}
-                type="button"
-                variant="outline"
-              >
-                {isFetchingNextPage ? "鍔犺浇涓?.." : "鍔犺浇鏇村鎺ㄨ崘"}
+              <Button disabled={isFetchingNextPage} onClick={onLoadMore} type="button" variant="outline">
+                {isFetchingNextPage ? "\u52a0\u8f7d\u4e2d..." : loadMoreLabels[activeTab]}
               </Button>
             </div>
           ) : null}

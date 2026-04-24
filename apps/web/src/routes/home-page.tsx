@@ -23,6 +23,7 @@ import {
   HOME_FEED_FETCH_TIMEOUT_MS
 } from "../lib/home-feed-query";
 import { apiClient } from "../lib/api-client";
+import { resolveFeedNextCursor } from "../lib/feed-pagination";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -36,7 +37,7 @@ const fixedTabs = [
 
 type HomeFeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
 
-type RecommendedHomeFeedPage = Awaited<ReturnType<typeof apiClient.listHomeFeed>>;
+type HomeFeedPage = Awaited<ReturnType<typeof apiClient.listHomeFeed>>;
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -224,44 +225,26 @@ export function HomePage() {
   const isAuthenticated = authStatus === "authenticated";
   const activeTab = useHomeTabStore((state) => state.activeTab);
   const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
-  const isRecommendedFeed =
-    activeTab.kind === "category" || (activeTab.kind === "fixed" && activeTab.id === "recommended");
-  const fixedFeedTab = activeTab.kind === "fixed" ? activeTab.id : "latest";
-
-  const recommendedFeedQuery = useInfiniteQuery({
+  const feedTab = activeTab.kind === "category" ? "recommended" : activeTab.id;
+  const categorySlug = activeTab.kind === "category" ? activeTab.slug : undefined;
+  const homeFeedQuery = useInfiniteQuery({
     queryKey: [
       "home-shell-feed",
-      "recommended",
-      activeTab.kind === "category" ? activeTab.slug : null
+      feedTab,
+      categorySlug ?? null
     ],
-    enabled: isRecommendedFeed,
     initialPageParam: undefined as string | undefined,
     queryFn: ({ pageParam, signal }) =>
       apiClient.listHomeFeed(
         {
-          tab: "recommended",
-          categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined,
+          tab: feedTab,
+          categorySlug,
           cursor: pageParam,
           limit: 20
         },
         { signal: combineHomeFeedRequestSignal(signal) }
       ),
-    getNextPageParam: (lastPage: RecommendedHomeFeedPage) => lastPage.nextCursor ?? undefined
-  });
-
-  const feedQuery = useQuery({
-    queryKey: ["home-shell-feed", fixedFeedTab, null],
-    enabled: activeTab.kind === "fixed" && activeTab.id !== "recommended",
-    placeholderData: keepPreviousData,
-    queryFn: ({ signal }) =>
-      apiClient.listHomeFeed(
-        {
-          tab: fixedFeedTab,
-          page: 1,
-          limit: 20
-        },
-        { signal: combineHomeFeedRequestSignal(signal) }
-      )
+    getNextPageParam: (lastPage: HomeFeedPage) => resolveFeedNextCursor(lastPage)
   });
 
   const modelsQuery = useQuery({
@@ -280,15 +263,10 @@ export function HomePage() {
     queryFn: () => apiClient.listRankings()
   });
 
-  const feedItems = isRecommendedFeed
-    ? recommendedFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? []
-    : feedQuery.data?.items ?? [];
+  const feedItems = homeFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [];
   const contentCategories = useMemo(
-    () =>
-      isRecommendedFeed
-        ? recommendedFeedQuery.data?.pages[0]?.categories ?? []
-        : feedQuery.data?.categories ?? [],
-    [feedQuery.data?.categories, isRecommendedFeed, recommendedFeedQuery.data?.pages]
+    () => homeFeedQuery.data?.pages[0]?.categories ?? [],
+    [homeFeedQuery.data?.pages]
   );
   const hotModels = modelsQuery.data?.items ?? [];
   const rankingCards = useMemo(
@@ -324,17 +302,23 @@ export function HomePage() {
     return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
-  const isFeedLoading = isRecommendedFeed
-    ? recommendedFeedQuery.isLoading && !recommendedFeedQuery.data
-    : feedQuery.isLoading && !feedQuery.data;
-  const isFeedError = isRecommendedFeed ? recommendedFeedQuery.isError : feedQuery.isError;
-  const feedError = isRecommendedFeed ? recommendedFeedQuery.error : feedQuery.error;
-  const isFeedRefetching = isRecommendedFeed ? recommendedFeedQuery.isRefetching : feedQuery.isRefetching;
-  const hasMoreRecommendedItems = isRecommendedFeed ? recommendedFeedQuery.hasNextPage : false;
-  const isFetchingNextRecommendedPage = isRecommendedFeed ? recommendedFeedQuery.isFetchingNextPage : false;
+  const isFeedLoading = homeFeedQuery.isLoading && !homeFeedQuery.data;
+  const isFeedError = homeFeedQuery.isError;
+  const feedError = homeFeedQuery.error;
+  const isFeedRefetching = homeFeedQuery.isRefetching;
+  const hasMoreFeedItems = homeFeedQuery.hasNextPage;
+  const isFetchingNextFeedPage = homeFeedQuery.isFetchingNextPage;
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
+  const loadMoreLabel =
+    activeTab.kind === "category"
+      ? "加载更多内容"
+      : activeTab.id === "recommended"
+        ? "加载更多推荐"
+        : activeTab.id === "latest"
+          ? "加载更多最新"
+          : "加载更多关注";
 
   return (
     <SitePage>
@@ -392,20 +376,20 @@ export function HomePage() {
                   itemKey={(item) => item.id}
                   refetchFooterLabel="加载中..."
                   renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
-                  showRefetchFooter={isFeedRefetching && !isFetchingNextRecommendedPage}
+                  showRefetchFooter={isFeedRefetching && !isFetchingNextFeedPage}
                   useWindowScroll
                 />
-                {isRecommendedFeed && hasMoreRecommendedItems ? (
+                {hasMoreFeedItems ? (
                   <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
                     <Button
-                      disabled={isFetchingNextRecommendedPage}
+                      disabled={isFetchingNextFeedPage}
                       onClick={() => {
-                        void recommendedFeedQuery.fetchNextPage();
+                        void homeFeedQuery.fetchNextPage();
                       }}
                       type="button"
                       variant="outline"
                     >
-                      {isFetchingNextRecommendedPage ? "加载中..." : "加载更多推荐"}
+                      {isFetchingNextFeedPage ? "加载中..." : loadMoreLabel}
                     </Button>
                   </div>
                 ) : null}

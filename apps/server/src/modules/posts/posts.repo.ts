@@ -660,7 +660,7 @@ export const postsRepo = {
     type: PostType;
     currentUserId?: string | null;
     contentCategorySlug?: string;
-    page: number;
+    offset?: number;
     limit: number;
     includeTotal?: boolean;
     recommendedCursor?: RecommendedFeedCursorInput;
@@ -684,7 +684,7 @@ export const postsRepo = {
       );
     }
 
-    const offset = (input.page - 1) * input.limit;
+    const offset = Math.max(0, input.offset ?? 0);
     const shouldIncludeTotal = input.includeTotal ?? true;
     const baseCountQuery = shouldIncludeTotal
       ? db

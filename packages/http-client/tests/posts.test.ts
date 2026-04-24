@@ -17,9 +17,7 @@ describe("posts api client", () => {
           items: [],
           nextCursor: null,
           pagination: {
-            page: 1,
             limit: 20,
-            total: 0,
             hasMore: false
           }
         }),
@@ -58,9 +56,7 @@ describe("posts api client", () => {
           items: [],
           nextCursor: "cursor_40",
           pagination: {
-            page: 2,
             limit: 20,
-            total: 100,
             hasMore: true
           }
         }),
@@ -93,17 +89,16 @@ describe("posts api client", () => {
     );
   });
 
-  it("keeps latest/following circle feed page query unchanged", async () => {
+  it("requests latest/following circle feed with cursor pagination", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(
         JSON.stringify({
           tab: "following",
           items: [],
+          nextCursor: "cursor_30",
           pagination: {
-            page: 3,
             limit: 10,
-            total: 28,
-            hasMore: false
+            hasMore: true
           }
         }),
         {
@@ -119,10 +114,10 @@ describe("posts api client", () => {
       baseUrl: "http://localhost:17382"
     });
 
-    await client.listCircleFeed("following", { page: 3, limit: 10 });
+    await client.listCircleFeed("following", { cursor: "cursor_20", limit: 10 });
 
     expect(fetchMock).toHaveBeenCalledWith(
-      `http://localhost:17382${API_ROUTES.circleFeed}?tab=following&limit=10&page=3`,
+      `http://localhost:17382${API_ROUTES.circleFeed}?tab=following&limit=10&cursor=cursor_20`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -138,9 +133,7 @@ describe("posts api client", () => {
           items: [],
           nextCursor: null,
           pagination: {
-            page: 1,
             limit: 10,
-            total: 10,
             hasMore: false
           }
         }),
