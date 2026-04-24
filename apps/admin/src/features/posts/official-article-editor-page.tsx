@@ -11,17 +11,19 @@ import {
   useState
 } from "react";
 import { useSearchParams } from "react-router-dom";
-import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
+import {
+  buildOfficialArticleDocument,
+  parseOfficialArticleDocument,
+  removeAdminRichTextMediaReferenceFromHtml,
+  type UploadedMediaAsset
+} from "../../components/admin-rich-text-editor-helpers";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { apiClient } from "../../lib/api-client";
 import {
   buildOfficialArticlePayload,
-  removeMediaFromHtml,
   type OfficialArticleFormValues
 } from "./official-articles-helpers";
-
-type UploadedMediaAsset = { id: string; url: string; fileName?: string };
 
 type IdleDeadline = {
   didTimeout: boolean;
@@ -35,6 +37,14 @@ type IdleCapableWindow = Window & {
   ) => number;
   cancelIdleCallback?: (handle: number) => void;
 };
+
+type OfficialArticleEditorFormValues = {
+  title: string;
+  summary: string;
+  contentCategoryId: string;
+};
+
+const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
 
 const LazyAdminRichTextEditor = lazy(() =>
   import("../../components/admin-rich-text-editor").then((module) => ({
@@ -53,12 +63,12 @@ function createMediaAssetList(
 
 function RichTextEditorFallback(props: { loading: boolean; onLoad?: () => void }) {
   return (
-    <div aria-busy={props.loading} className="admin-empty">
+    <div aria-busy={props.loading} className="admin-empty admin-official-article-editor__editor-fallback">
       <Space align="center" direction="vertical" size={8}>
         <Button loading={props.loading} onClick={props.onLoad} type="default">
-          {props.loading ? "正在加载编辑器" : "加载富文本编辑器"}
+          {props.loading ? "加载编辑器" : "打开编辑器"}
         </Button>
-        <span>页面主体已可操作，富文本工具会在需要时按需加载。</span>
+        <span>富文本区域按需加载。</span>
       </Space>
     </div>
   );
@@ -67,6 +77,23 @@ function RichTextEditorFallback(props: { loading: boolean; onLoad?: () => void }
 export function OfficialArticleEditorPage() {
   const [searchParams, setSearchParams] = useSearchParams();
   const editId = searchParams.get("edit");
+  const [form] = Form.useForm<OfficialArticleEditorFormValues>();
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const editorViewportRef = useRef<HTMLDivElement | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
+  const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
+  const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
+  const [shouldLoadEditor, setShouldLoadEditor] = useState(false);
+  const [editorHtml, setEditorHtml] = useState("");
+  const [editorText, setEditorText] = useState("");
+  const watchedTitle = Form.useWatch("title", form) ?? "";
+  const watchedSummary = Form.useWatch("summary", form) ?? "";
+  const watchedCategoryId = Form.useWatch("contentCategoryId", form);
+
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
     queryFn: () => apiClient.listAdminContentCategories()
@@ -81,42 +108,42 @@ export function OfficialArticleEditorPage() {
     },
     enabled: Boolean(editId)
   });
-  const [form] = Form.useForm<OfficialArticleFormValues>();
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [error, setError] = useState<string | null>(null);
-  const [statusMessage, setStatusMessage] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
-  const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
-  const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
-  const [shouldLoadEditor, setShouldLoadEditor] = useState(false);
-  const [editorHtml, setEditorHtml] = useState("");
-  const [editorText, setEditorText] = useState("");
-  const watchedTitle = Form.useWatch("title", form);
-  const watchedCategoryId = Form.useWatch("contentCategoryId", form);
-  const editorViewportRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (!editId) {
-      return;
-    }
-    if (!detailQuery.data?.item) {
+    if (!editId || !detailQuery.data?.item) {
       return;
     }
 
     const item = detailQuery.data.item;
-    const [firstImage, ...restImages] = item.images;
+    const [firstImage] = item.images;
+    const parsedDocument = parseOfficialArticleDocument(item.contentHtml);
+
     form.setFieldsValue({
       title: item.title,
+      summary: parsedDocument.summary,
       contentCategoryId: item.contentCategory?.id ?? undefined
     });
     setCoverImage(firstImage ? { id: firstImage.id, url: firstImage.url, fileName: firstImage.fileName } : null);
-    setUploadedImages(restImages.map((image) => ({ id: image.id, url: image.url, fileName: image.fileName })));
+    setUploadedImages(createMediaAssetList(item.images, Boolean(firstImage)));
     setUploadedVideos(createMediaAssetList(item.videos));
-    setEditorHtml(item.contentHtml ?? "");
-    setEditorText(item.content);
+    setEditorHtml(parsedDocument.contentHtml);
+    setEditorText(parsedDocument.plainText || item.content);
   }, [detailQuery.data?.item, editId, form]);
+
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+
+    if (form.getFieldValue("contentCategoryId")) {
+      return;
+    }
+
+    const firstCategoryId = categoriesQuery.data?.items[0]?.id;
+    if (firstCategoryId) {
+      form.setFieldValue("contentCategoryId", firstCategoryId);
+    }
+  }, [categoriesQuery.data?.items, editId, form]);
 
   const categoryOptions = (categoriesQuery.data?.items ?? []).map((item) => ({
     label: item.name,
@@ -126,6 +153,10 @@ export function OfficialArticleEditorPage() {
     return categoryOptions.find((item) => item.value === watchedCategoryId)?.label ?? "未选择分类";
   }, [categoryOptions, watchedCategoryId]);
   const previewImageUrl = coverImage?.url ?? uploadedImages[0]?.url ?? null;
+  const summaryLength = watchedSummary.length;
+  const previewCharacterCount = useMemo(() => {
+    return [watchedSummary.trim(), editorText.trim()].filter(Boolean).join("\n\n").replace(/\s+/g, "").length;
+  }, [editorText, watchedSummary]);
 
   const requestEditorLoad = useEffectEvent(() => {
     startTransition(() => {
@@ -179,9 +210,11 @@ export function OfficialArticleEditorPage() {
   }, [requestEditorLoad, shouldLoadEditor]);
 
   function removeMediaAsset(assetUrl: string, kind: "image" | "video") {
-    const nextHtml = removeMediaFromHtml(editorHtml, assetUrl);
-    setEditorHtml(nextHtml);
-    setEditorText(extractPlainTextFromHtml(nextHtml));
+    const nextHtml = removeAdminRichTextMediaReferenceFromHtml(editorHtml, assetUrl);
+    const parsedDocument = parseOfficialArticleDocument(nextHtml);
+
+    setEditorHtml(parsedDocument.contentHtml);
+    setEditorText(parsedDocument.plainText);
 
     if (kind === "image") {
       setUploadedImages((current) => current.filter((item) => item.url !== assetUrl));
@@ -200,6 +233,7 @@ export function OfficialArticleEditorPage() {
     setUploadedVideos([]);
     setEditorHtml("");
     setEditorText("");
+
     if (clearEdit) {
       setSearchParams((current) => {
         const next = new URLSearchParams(current);
@@ -269,9 +303,9 @@ export function OfficialArticleEditorPage() {
         url: response.item.url,
         fileName: response.item.fileName
       });
-      setStatusMessage("封面图上传成功。");
+      setStatusMessage("封面已更新。");
     } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面图上传失败");
+      setError(reason instanceof Error ? reason.message : "封面上传失败");
     } finally {
       setIsUploading(false);
       if (fileInputRef.current) {
@@ -280,17 +314,19 @@ export function OfficialArticleEditorPage() {
     }
   }
 
-  async function handleSubmit(values: OfficialArticleFormValues) {
+  async function handleSubmit(values: OfficialArticleEditorFormValues) {
     setIsSubmitting(true);
     setError(null);
     setStatusMessage(null);
 
+    const document = buildOfficialArticleDocument(values.summary, editorHtml);
     const payload = buildOfficialArticlePayload(
       {
-        ...values,
-        content: editorText,
-        contentHtml: editorHtml
-      },
+        title: values.title,
+        contentCategoryId: values.contentCategoryId,
+        content: document.plainText,
+        contentHtml: document.contentHtml
+      } satisfies OfficialArticleFormValues,
       Array.from(new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))) as string[],
       uploadedVideos.map((item) => item.id)
     );
@@ -315,7 +351,7 @@ export function OfficialArticleEditorPage() {
     <AdminPage
       actions={
         <Space wrap>
-          <Button href={ADMIN_ROUTE_PATHS.managementOfficialArticles}>官方文章库</Button>
+          <Button href={ADMIN_ROUTE_PATHS.managementOfficialArticles}>返回文章库</Button>
           {editId ? (
             <Button
               onClick={() => {
@@ -327,19 +363,32 @@ export function OfficialArticleEditorPage() {
           ) : null}
         </Space>
       }
-      description="运营区仅保留官方文章创建与编辑工作台。"
-      title={editId ? "编辑文章" : "创建文章"}
+      description="用于创建、修订和预览官方文章。"
+      title={editId ? "编辑官方文章" : "创建官方文章"}
     >
       {error ? <div className="admin-login__error">{error}</div> : null}
       {statusMessage ? <div className="admin-shell__banner">{statusMessage}</div> : null}
 
-      <div className="admin-split admin-split--wide">
-        <AdminPanel
-          description="填写标题、选择分类、管理封面与正文内容，并保持右侧预览实时同步。"
-          title={editId ? "编辑官方文章" : "新建官方文章"}
-        >
+      <div className="admin-split admin-split--wide admin-official-article-editor">
+        <AdminPanel description="标题、摘要、封面和正文在同一工作区完成。" title={editId ? "编辑内容" : "新建内容"}>
+          <div className="admin-official-article-editor__stats">
+            <div className="admin-official-article-editor__stat">
+              <span className="admin-official-article-editor__stat-label">模式</span>
+              <strong>{editId ? "编辑" : "创建"}</strong>
+            </div>
+            <div className="admin-official-article-editor__stat">
+              <span className="admin-official-article-editor__stat-label">媒体</span>
+              <strong>{uploadedImages.length} 图 / {uploadedVideos.length} 视频</strong>
+            </div>
+            <div className="admin-official-article-editor__stat">
+              <span className="admin-official-article-editor__stat-label">正文</span>
+              <strong>{previewCharacterCount} 字</strong>
+            </div>
+          </div>
+
           <Form
             form={form}
+            initialValues={{ summary: "" }}
             layout="vertical"
             onFinish={(values) => {
               void handleSubmit(values);
@@ -347,28 +396,87 @@ export function OfficialArticleEditorPage() {
             variant="filled"
           >
             <Form.Item label="标题" name="title" rules={[{ required: true, message: "请输入文章标题" }]}>
-              <Input placeholder="例如：低空空域周报" />
+              <Input placeholder="输入正式标题" size="large" />
             </Form.Item>
+
             <Form.Item
-              label="内容分类"
+              label="分类"
               name="contentCategoryId"
               rules={[{ required: true, message: "请选择内容分类" }]}
             >
-              <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" />
+              <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" size="large" />
             </Form.Item>
+
+            <Form.Item
+              label={
+                <div className="admin-official-article-editor__field-label">
+                  <span>摘要</span>
+                  <span>{summaryLength}/{OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH}</span>
+                </div>
+              }
+              name="summary"
+              rules={[{ max: OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH, message: `摘要不超过 ${OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH} 字` }]}
+            >
+              <Input.TextArea
+                autoSize={{ minRows: 3, maxRows: 5 }}
+                maxLength={OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH}
+                placeholder="输入导语或内容摘要"
+              />
+            </Form.Item>
+
+            <div className="admin-official-article-editor__cover">
+              <div className="admin-official-article-editor__cover-preview">
+                {previewImageUrl ? (
+                  <img alt="官方文章封面预览" src={previewImageUrl} />
+                ) : (
+                  <div className="admin-official-article-editor__cover-empty">未设置封面</div>
+                )}
+              </div>
+              <div className="admin-official-article-editor__cover-actions">
+                <div className="admin-panel__title">封面</div>
+                <div className="admin-muted">
+                  {coverImage?.fileName ?? "封面会优先用于列表卡片和文章头图。"}
+                </div>
+                <Space wrap>
+                  <Button loading={isUploading} onClick={() => fileInputRef.current?.click()} type="default">
+                    {isUploading ? "上传中" : coverImage ? "更换封面" : "上传封面"}
+                  </Button>
+                  {coverImage ? (
+                    <Button
+                      onClick={() => {
+                        setCoverImage(null);
+                      }}
+                      type="link"
+                    >
+                      清除封面
+                    </Button>
+                  ) : null}
+                </Space>
+              </div>
+              <input
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  void uploadCover(event.target.files?.[0] ?? null);
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
+            </div>
+
             <Form.Item label="正文" required>
               <div ref={editorViewportRef}>
                 {shouldLoadEditor ? (
                   <Suspense fallback={<RichTextEditorFallback loading />}>
                     <LazyAdminRichTextEditor
-                onChange={(value) => {
-                  setEditorHtml(value.html);
-                  setEditorText(value.plainText);
-                }}
-                onUploadImage={uploadImages}
-                onUploadVideo={uploadVideos}
-                placeholder="请输入官方文章正文..."
-                value={editorHtml}
+                      onChange={(value) => {
+                        setEditorHtml(value.html);
+                        setEditorText(value.plainText);
+                      }}
+                      onUploadImage={uploadImages}
+                      onUploadVideo={uploadVideos}
+                      placeholder="输入正文"
+                      value={editorHtml}
                     />
                   </Suspense>
                 ) : (
@@ -381,40 +489,14 @@ export function OfficialArticleEditorPage() {
                 )}
               </div>
             </Form.Item>
-            <div className="admin-uploader">
-              <div>
-                <div className="admin-panel__title">封面图</div>
-                <div className="admin-panel__description">可选。封面图会优先展示在列表卡片与详情页头图位置。</div>
-              </div>
-              <Space align="center" size="middle" wrap>
-                <Button loading={isUploading} onClick={() => fileInputRef.current?.click()} type="default">
-                  {isUploading ? "上传中..." : "上传封面"}
-                </Button>
-                {coverImage ? <span className="admin-muted">当前封面：{coverImage.fileName ?? coverImage.id}</span> : null}
-                {coverImage ? (
-                  <Button
-                    onClick={() => {
-                      setCoverImage(null);
-                    }}
-                    size="small"
-                    type="link"
-                  >
-                    清除封面
-                  </Button>
-                ) : null}
-              </Space>
-              <input
-                accept="image/*"
-                hidden
-                onChange={(event) => {
-                  void uploadCover(event.target.files?.[0] ?? null);
-                }}
-                ref={fileInputRef}
-                type="file"
-              />
-            </div>
+
             <div className="admin-form-actions">
-              <Button disabled={!editorText.trim()} htmlType="submit" loading={isSubmitting} type="primary">
+              <Button
+                disabled={!editorText.trim() || isUploading}
+                htmlType="submit"
+                loading={isSubmitting}
+                type="primary"
+              >
                 {editId ? "保存文章" : "发布文章"}
               </Button>
             </div>
@@ -422,69 +504,74 @@ export function OfficialArticleEditorPage() {
         </AdminPanel>
 
         <div className="admin-field-stack">
-          <AdminPanel description="发布前确认封面、分类、标题和正文效果。" title="实时预览">
-            <div className="admin-article-preview">
+          <AdminPanel description="提交前核对标题、摘要、封面和正文呈现。" title="实时预览">
+            <div className="admin-article-preview admin-official-article-editor__preview">
               {previewImageUrl ? (
                 <div className="admin-image-preview">
                   <img alt="官方文章封面" src={previewImageUrl} />
                 </div>
               ) : (
-                <div className="admin-article-preview__placeholder">未设置封面图</div>
+                <div className="admin-article-preview__placeholder">未设置封面</div>
               )}
               <div className="admin-article-preview__meta">{selectedCategoryLabel}</div>
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>
+              {watchedSummary.trim() ? (
+                <p className="admin-official-article-editor__summary-preview">{watchedSummary.trim()}</p>
+              ) : null}
               <div
                 className="admin-article-preview__body"
                 dangerouslySetInnerHTML={{
-                  __html: editorHtml || "<p>正文预览会显示在这里。</p>"
+                  __html: editorHtml || "<p>正文预览</p>"
                 }}
               />
             </div>
           </AdminPanel>
 
           {(uploadedImages.length > 0 || uploadedVideos.length > 0) ? (
-            <AdminPanel description="保存前可移除已上传的正文媒体，移除后会同步从正文中删除。" title="已上传媒体">
-              {uploadedImages.length > 0 ? (
-                <div className="admin-preview-list">
-                  {uploadedImages.map((image) => (
-                    <div className="admin-preview-item" key={image.id}>
-                      <div className="admin-row-actions">
-                        <span className="admin-muted">{image.fileName ?? image.id}</span>
-                        <Button
-                          onClick={() => {
-                            removeMediaAsset(image.url, "image");
-                          }}
-                          size="small"
-                          type="link"
-                        >
-                          移除图片
-                        </Button>
-                      </div>
+            <AdminPanel description="移除媒体时会同步从正文中删除对应节点。" title="正文媒体">
+              <div className="admin-official-article-editor__media-list">
+                {uploadedImages.map((image) => (
+                  <div className="admin-official-article-editor__media-item" key={image.id}>
+                    <div className="admin-official-article-editor__media-thumb">
+                      <img alt={image.fileName ?? image.id} src={image.url} />
                     </div>
-                  ))}
-                </div>
-              ) : null}
+                    <div className="admin-official-article-editor__media-copy">
+                      <div className="admin-table-title">{image.fileName ?? image.id}</div>
+                      <div className="admin-table-subtitle">图片</div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        removeMediaAsset(image.url, "image");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      移除
+                    </Button>
+                  </div>
+                ))}
 
-              {uploadedVideos.length > 0 ? (
-                <div className="admin-preview-list">
-                  {uploadedVideos.map((video) => (
-                    <div className="admin-preview-item" key={video.id}>
-                      <div className="admin-row-actions">
-                        <span className="admin-muted">{video.fileName ?? video.id}</span>
-                        <Button
-                          onClick={() => {
-                            removeMediaAsset(video.url, "video");
-                          }}
-                          size="small"
-                          type="link"
-                        >
-                          移除视频
-                        </Button>
-                      </div>
+                {uploadedVideos.map((video) => (
+                  <div className="admin-official-article-editor__media-item" key={video.id}>
+                    <div className="admin-official-article-editor__media-thumb admin-official-article-editor__media-thumb--video">
+                      <span>VIDEO</span>
                     </div>
-                  ))}
-                </div>
-              ) : null}
+                    <div className="admin-official-article-editor__media-copy">
+                      <div className="admin-table-title">{video.fileName ?? video.id}</div>
+                      <div className="admin-table-subtitle">视频</div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        removeMediaAsset(video.url, "video");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      移除
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </AdminPanel>
           ) : null}
         </div>

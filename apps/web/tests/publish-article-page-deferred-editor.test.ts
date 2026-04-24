@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatArticleMediaSummary,
   resolveDeferredArticleEditorView,
   shouldAutoActivateDeferredArticleEditor
 } from "../src/routes/publish-article-page-helpers";
@@ -56,5 +57,23 @@ describe("publish article deferred editor view", () => {
         isEditorLoading: false
       })
     ).toBe("editor");
+  });
+});
+
+describe("formatArticleMediaSummary", () => {
+  it("summarizes inserted article media without implying a fixed cap", () => {
+    expect(
+      formatArticleMediaSummary({
+        imageCount: 0,
+        videoCount: 0
+      })
+    ).toBe("未插入媒体");
+
+    expect(
+      formatArticleMediaSummary({
+        imageCount: 8,
+        videoCount: 3
+      })
+    ).toBe("8 张图片 · 3 个视频");
   });
 });

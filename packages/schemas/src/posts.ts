@@ -57,7 +57,7 @@ export const createPostInputSchema = z
     contentCategoryId: z.string().min(1).nullable().optional(),
     coverImageId: z.string().min(1).nullable().optional().default(null),
     imageIds: z.array(z.string().min(1)).default([]),
-    videoIds: z.array(z.string().min(1)).max(2).default([])
+    videoIds: z.array(z.string().min(1)).default([])
   })
   .superRefine((input, context) => {
     if (input.type === "article" && input.content.trim().length < 1) {
@@ -288,8 +288,8 @@ export const adminOfficialArticleUpdateInputSchema = z.object({
   content: z.string().trim().min(1).max(8000),
   contentHtml: z.string().trim().max(32000).nullable().optional(),
   contentCategoryId: z.string().min(1),
-  imageIds: z.array(z.string().min(1)).max(6).default([]),
-  videoIds: z.array(z.string().min(1)).max(2).default([])
+  imageIds: z.array(z.string().min(1)).default([]),
+  videoIds: z.array(z.string().min(1)).default([])
 });
 
 export const adminPostResponseSchema = z.object({

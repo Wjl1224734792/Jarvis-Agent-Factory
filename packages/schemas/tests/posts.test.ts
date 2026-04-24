@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  adminOfficialArticleUpdateInputSchema,
   adminPostStatusUpdateInputSchema,
   createPostCommentInputSchema,
   createPostInputSchema,
@@ -104,6 +105,33 @@ describe("posts contract", () => {
     expect(payload.content).toContain("gusty");
     expect(payload.imageIds).toEqual(["file_1", "file_2"]);
     expect(payload.videoIds).toEqual(["file_3"]);
+  });
+
+  it("allows article payloads with more than the legacy media caps", () => {
+    const payload = createPostInputSchema.parse({
+      type: "article",
+      title: "Long-form dispatch",
+      content: "Detailed long-form article content.",
+      imageIds: Array.from({ length: 7 }, (_, index) => `img_${index + 1}`),
+      videoIds: Array.from({ length: 3 }, (_, index) => `vid_${index + 1}`)
+    });
+
+    expect(payload.imageIds).toHaveLength(7);
+    expect(payload.videoIds).toHaveLength(3);
+  });
+
+  it("allows admin official article updates with more than the legacy media caps", () => {
+    const payload = adminOfficialArticleUpdateInputSchema.parse({
+      title: "Official bulletin",
+      content: "Official article update content.",
+      contentHtml: "<p>Official article update content.</p>",
+      contentCategoryId: "cat_1",
+      imageIds: Array.from({ length: 8 }, (_, index) => `img_${index + 1}`),
+      videoIds: Array.from({ length: 4 }, (_, index) => `vid_${index + 1}`)
+    });
+
+    expect(payload.imageIds).toHaveLength(8);
+    expect(payload.videoIds).toHaveLength(4);
   });
 
   it("allows moment posts with empty content and rejects empty content for articles", () => {
@@ -272,6 +300,13 @@ describe("posts contract", () => {
       reportPostInputSchema.parse({
         reason: "Looks like spam promotion.",
         imageIds: []
+      })
+    ).toThrow();
+
+    expect(() =>
+      reportPostInputSchema.parse({
+        reason: "Looks like spam promotion.",
+        imageIds: ["file_report_1", "file_report_2", "file_report_3", "file_report_4"]
       })
     ).toThrow();
   });

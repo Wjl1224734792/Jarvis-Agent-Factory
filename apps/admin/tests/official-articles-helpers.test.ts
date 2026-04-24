@@ -41,5 +41,12 @@ describe("buildOfficialArticlePayload", () => {
         "https://cdn.example.com/a.mp4"
       )
     ).toBe("<p>Intro</p><p>Body</p>");
+
+    expect(
+      removeMediaFromHtml(
+        '<p>Intro</p><figure data-video-block="true"><video controls><source src="https://cdn.example.com/a.mp4" type="video/mp4" /></video></figure><p>Body</p>',
+        "https://cdn.example.com/a.mp4"
+      )
+    ).toBe("<p>Intro</p><p>Body</p>");
   });
 });

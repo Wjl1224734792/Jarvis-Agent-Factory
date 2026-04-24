@@ -30,3 +30,24 @@ export function shouldAutoActivateDeferredArticleEditor(options: {
 }) {
   return options.hasRestoredDraft || options.isEditingExistingArticle;
 }
+
+/**
+ * Presents article media as a neutral inventory summary without implying a
+ * fixed cap so the publish UI stays aligned with backend validation.
+ */
+export function formatArticleMediaSummary(options: {
+  imageCount: number;
+  videoCount: number;
+}) {
+  const segments: string[] = [];
+
+  if (options.imageCount > 0) {
+    segments.push(`${options.imageCount} 张图片`);
+  }
+
+  if (options.videoCount > 0) {
+    segments.push(`${options.videoCount} 个视频`);
+  }
+
+  return segments.length > 0 ? segments.join(" · ") : "未插入媒体";
+}

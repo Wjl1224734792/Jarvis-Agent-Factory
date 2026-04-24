@@ -25,11 +25,10 @@ import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
+import { formatArticleMediaSummary } from "./publish-article-page-helpers";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
 const ARTICLE_SUMMARY_MAX_LENGTH = 120;
-const ARTICLE_IMAGE_LIMIT = 6;
-const ARTICLE_VIDEO_LIMIT = 2;
 const AUTO_SAVE_DELAY_MS = 500;
 
 type UploadedImage = {
@@ -301,6 +300,15 @@ export function PublishArticlePage() {
     Boolean(coverImage) &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
+  const mediaSummaryText = useMemo(
+    () =>
+      formatArticleMediaSummary({
+        imageCount: uploadedImages.length,
+        videoCount: uploadedVideos.length
+      }),
+    [uploadedImages.length, uploadedVideos.length]
+  );
+  const hasInsertedMedia = uploadedImages.length > 0 || uploadedVideos.length > 0;
 
   const persistDraft = useCallback(async () => {
     const savedAt = Date.now();
@@ -343,11 +351,6 @@ export function PublishArticlePage() {
       return [];
     }
 
-    if (uploadedImages.length + files.length > ARTICLE_IMAGE_LIMIT) {
-      setError(`最多插入 ${ARTICLE_IMAGE_LIMIT} 张图片。`);
-      return [];
-    }
-
     setError(null);
     const nextImages: UploadedImage[] = files.map((file) => ({
       id: `local-image-${crypto.randomUUID()}`,
@@ -363,11 +366,6 @@ export function PublishArticlePage() {
 
   async function uploadVideos(files: File[]) {
     if (files.length === 0) {
-      return [];
-    }
-
-    if (uploadedVideos.length + files.length > ARTICLE_VIDEO_LIMIT) {
-      setError(`文章最多插入 ${ARTICLE_VIDEO_LIMIT} 个视频。`);
       return [];
     }
 
@@ -535,8 +533,8 @@ export function PublishArticlePage() {
 
   return (
     <PublishShell
-      description="把标题、导语、封面和正文放进同一个写作工作区，边写边预览，草稿保存在当前浏览器。"
       eyebrow="文章"
+      gridClassName="gap-5 xl:grid-cols-[minmax(0,1fr)_18.5rem]"
       main={
         <>
           {error ? (
@@ -554,18 +552,7 @@ export function PublishArticlePage() {
           ) : null}
 
           <SitePanel>
-            <SitePanelBody className="space-y-6">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div className="space-y-1">
-                  <div className="text-sm font-medium text-foreground">写作工作区</div>
-                  <div className="text-sm text-muted-foreground">标题、栏目、摘要和正文现在是连续输入流，不用再额外点一次加载编辑器。</div>
-                </div>
-                <div className="inline-flex items-center gap-2 rounded-full bg-surface-1 px-3 py-1.5 text-xs text-muted-foreground">
-                  <Clock3Icon className="size-3.5" />
-                  {draftStatusText}
-                </div>
-              </div>
-
+            <SitePanelBody className="space-y-6 md:space-y-7">
               <input
                 accept="image/*"
                 aria-label="选择文章封面图片"
@@ -577,58 +564,71 @@ export function PublishArticlePage() {
                 type="file"
               />
 
-              <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_17rem]">
-                <div className="space-y-5">
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">标题</div>
-                    <Input
-                      className="h-14 rounded-[0.9rem] px-4 text-[1.2rem] font-semibold"
-                      onChange={(event) => setTitle(event.target.value)}
-                      placeholder="先写一个让人愿意点开的标题"
-                      value={title}
-                    />
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border/60 pb-4">
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                  <span className="inline-flex items-center gap-2 rounded-full bg-surface-1 px-3 py-1.5">
+                    <Clock3Icon className="size-3.5" />
+                    {draftStatusText}
+                  </span>
+                  {hasRestoredDraftSnapshot ? (
+                    <span className="rounded-full bg-primary/10 px-3 py-1.5 text-primary">已恢复草稿</span>
+                  ) : null}
+                  <span className="rounded-full bg-surface-1 px-3 py-1.5">{articleCharacterCount} 字</span>
+                </div>
+                {selectedCategory?.name ? (
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-primary">
+                    {selectedCategory.name}
                   </div>
+                ) : null}
+              </div>
 
-                  <div className="space-y-2">
-                    <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">栏目</div>
-                    <div className="flex flex-wrap gap-2">
-                      {categoriesQuery.data?.items.map((item) => (
-                        <button
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
-                            categoryId === item.id
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
-                          )}
-                          key={item.id}
-                          onClick={() => setCategoryId(item.id)}
-                          type="button"
-                        >
-                          {item.name}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+              <div className="space-y-5">
+                <Input
+                  className="h-auto border-0 px-0 py-0 text-[2.2rem] leading-[1.05] font-semibold tracking-[-0.06em] shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[3rem]"
+                  onChange={(event) => setTitle(event.target.value)}
+                  placeholder="标题"
+                  value={title}
+                />
 
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="text-xs font-medium uppercase tracking-[0.16em] text-muted-foreground">导语</div>
-                      <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
-                    </div>
-                    <Textarea
-                      className="min-h-28 resize-none rounded-[0.9rem]"
-                      maxLength={ARTICLE_SUMMARY_MAX_LENGTH}
-                      onChange={(event) => setSummary(event.target.value.slice(0, ARTICLE_SUMMARY_MAX_LENGTH))}
-                      placeholder="用 1-2 句话把文章主旨说清楚，这段会作为导语显示在正文最前。"
-                      value={summary}
-                    />
+                <div className="space-y-2">
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">栏目</div>
+                  <div className="flex flex-wrap gap-2">
+                    {categoriesQuery.data?.items.map((item) => (
+                      <button
+                        className={cn(
+                          "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
+                          categoryId === item.id
+                            ? "border-primary bg-primary text-primary-foreground"
+                            : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
+                        )}
+                        key={item.id}
+                        onClick={() => setCategoryId(item.id)}
+                        type="button"
+                      >
+                        {item.name}
+                      </button>
+                    ))}
                   </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
+                    <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
+                  </div>
+                  <Textarea
+                    className="min-h-24 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
+                    maxLength={ARTICLE_SUMMARY_MAX_LENGTH}
+                    onChange={(event) => setSummary(event.target.value.slice(0, ARTICLE_SUMMARY_MAX_LENGTH))}
+                    placeholder="摘要（可选）"
+                    value={summary}
+                  />
                 </div>
 
                 <button
                   aria-label={coverUrl ? "更换文章封面" : "上传文章封面"}
                   className={cn(
-                    "group flex min-h-56 w-full flex-col overflow-hidden rounded-[0.9rem] border border-border/70 bg-surface-1 text-left transition",
+                    "group flex min-h-60 w-full flex-col overflow-hidden rounded-[1rem] border border-border/70 bg-surface-1 text-left transition",
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
                   )}
                   onClick={() => coverInputRef.current?.click()}
@@ -636,144 +636,99 @@ export function PublishArticlePage() {
                 >
                   {coverUrl ? (
                     <>
-                      <img alt="cover preview" className="h-40 w-full object-cover" src={coverUrl} />
+                      <img alt="cover preview" className="h-48 w-full object-cover md:h-56" src={coverUrl} />
                       <div className="flex flex-1 items-center justify-between gap-3 px-4 py-3">
-                        <div>
-                          <div className="text-sm font-medium text-foreground">封面已就绪</div>
-                          <div className="text-xs text-muted-foreground">点击可重新选择一张更合适的主图。</div>
+                        <div className="space-y-1">
+                          <div className="text-sm font-medium text-foreground">封面</div>
+                          <div className="text-xs text-muted-foreground">点击更换</div>
                         </div>
                         <PencilLineIcon className="size-4 text-muted-foreground" />
                       </div>
                     </>
                   ) : (
-                    <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 px-4 py-5 text-center">
+                    <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center">
                       <div className="inline-flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
                         <ImagePlusIcon className="size-5" />
                       </div>
-                      <div>
+                      <div className="space-y-1">
                         <div className="text-sm font-medium text-foreground">上传封面</div>
-                        <div className="text-xs text-muted-foreground">封面会同时用于列表卡片和详情页首屏。</div>
+                        <div className="text-xs text-muted-foreground">封面</div>
                       </div>
                     </div>
                   )}
                 </button>
-              </div>
-
-              <div className="space-y-3">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-foreground">正文</div>
-                    <div className="text-sm text-muted-foreground">常用格式、表格、任务列表、图片和视频都在同一套工具栏里。</div>
-                  </div>
-                  <div className="inline-flex items-center gap-2 rounded-full bg-surface-1 px-3 py-1.5 text-xs text-muted-foreground">
-                    <span>{articleCharacterCount} 字</span>
-                    {hasRestoredDraftSnapshot ? <span>已恢复草稿</span> : null}
-                  </div>
-                </div>
 
                 <RichTextEditor
                   onChange={setEditorHtml}
                   onUploadImage={uploadImages}
                   onUploadVideo={uploadVideos}
-                  placeholder="从这里开始写正文。建议先写结构，再补图片、视频和表格。"
+                  placeholder="开始写作"
                   value={editorHtml}
                 />
               </div>
 
-              <div className="space-y-4">
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className="space-y-1">
-                    <div className="text-sm font-medium text-foreground">媒体清单</div>
-                    <div className="text-sm text-muted-foreground">这里会显示正文里插入过的本地图片和视频，删除时也会同步从正文移除。</div>
+              {hasInsertedMedia ? (
+                <div className="space-y-4 border-t border-border/60 pt-5">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="text-sm font-medium text-foreground">媒体</div>
+                    <div className="text-xs text-muted-foreground">{mediaSummaryText}</div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    图片 {uploadedImages.length}/{ARTICLE_IMAGE_LIMIT}，视频 {uploadedVideos.length}/{ARTICLE_VIDEO_LIMIT}
+
+                  <div className="grid gap-4 lg:grid-cols-2">
+                    {uploadedImages.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-foreground/72">图片</div>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          {uploadedImages.map((image) => (
+                            <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70" key={image.id}>
+                              <img alt={image.fileName ?? "article"} className="h-32 w-full object-cover" src={image.url} />
+                              <button
+                                className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                                onClick={() => handleRemoveImage(image)}
+                                type="button"
+                              >
+                                <XIcon className="size-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {uploadedVideos.length > 0 ? (
+                      <div className="space-y-3">
+                        <div className="text-sm font-medium text-foreground/72">视频</div>
+                        <div className="grid gap-3">
+                          {uploadedVideos.map((video) => (
+                            <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950" key={video.id}>
+                              <video className="h-40 w-full object-cover" controls preload="metadata" src={video.url} />
+                              <button
+                                className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
+                                onClick={() => handleRemoveVideo(video)}
+                                type="button"
+                              >
+                                <XIcon className="size-3.5" />
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    ) : null}
                   </div>
                 </div>
-
-                {uploadedImages.length === 0 && uploadedVideos.length === 0 ? (
-                  <div className="rounded-[0.9rem] border border-dashed border-border/70 bg-surface-1 px-4 py-4 text-sm text-muted-foreground">
-                    还没有插入媒体。正文工具栏里的图片和视频按钮会先做本地预览，再在提交时统一上传。
-                  </div>
-                ) : (
-                  <div className="grid gap-4 lg:grid-cols-2">
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium text-foreground/72">已插入图片</div>
-                      <div className="grid gap-3 sm:grid-cols-2">
-                        {uploadedImages.map((image) => (
-                          <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70" key={image.id}>
-                            <img alt={image.fileName ?? "article"} className="h-32 w-full object-cover" src={image.url} />
-                            <button
-                              className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                              onClick={() => handleRemoveImage(image)}
-                              type="button"
-                            >
-                              <XIcon className="size-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-
-                    <div className="space-y-3">
-                      <div className="text-sm font-medium text-foreground/72">已插入视频</div>
-                      <div className="grid gap-3">
-                        {uploadedVideos.map((video) => (
-                          <div className="relative overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950" key={video.id}>
-                            <video className="h-40 w-full object-cover" controls preload="metadata" src={video.url} />
-                            <button
-                              className="absolute right-2 top-2 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white"
-                              onClick={() => handleRemoveVideo(video)}
-                              type="button"
-                            >
-                              <XIcon className="size-3.5" />
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                )}
-              </div>
-            </SitePanelBody>
-          </SitePanel>
-
-          <SitePanel>
-            <SitePanelBody className="flex flex-wrap items-center justify-between gap-3">
-              <div className="text-sm text-muted-foreground">
-                {selectedCategory?.name ? `当前栏目：${selectedCategory.name}` : "请选择一个栏目再继续。"}
-              </div>
-              <div className="flex flex-wrap justify-end gap-3">
-                <Button
-                  onClick={() => {
-                    void persistDraft().catch(() => {
-                      setError("草稿保存失败，请稍后重试。");
-                    });
-                  }}
-                  type="button"
-                  variant="outline"
-                >
-                  <SaveIcon data-icon="inline-start" />
-                  保存草稿
-                </Button>
-                <Button asChild type="button" variant="outline">
-                  <Link to={APP_ROUTES.feedHome}>取消</Link>
-                </Button>
-                <Button disabled={!canSubmit} onClick={() => void handleSubmit()} type="button" variant="hero">
-                  <SendHorizonalIcon data-icon="inline-start" />
-                  {isPublishing ? "提交中..." : "提交文章"}
-                </Button>
-              </div>
+              ) : null}
             </SitePanelBody>
           </SitePanel>
         </>
       }
       aside={
         <SitePanel variant="muted">
-          <SitePanelBody className="space-y-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">预览</div>
-              <div className="text-xs text-muted-foreground">{articleCharacterCount} 字</div>
+          <SitePanelBody className="space-y-5 xl:sticky xl:top-[5.25rem]">
+            <div className="space-y-1">
+              <div className="text-sm uppercase tracking-[0.18em] text-muted-foreground">发布</div>
+              <div className="text-sm text-muted-foreground">
+                {selectedCategory?.name ? selectedCategory.name : "请选择栏目"}
+              </div>
             </div>
 
             {coverUrl ? (
@@ -802,11 +757,19 @@ export function PublishArticlePage() {
               </button>
             )}
 
-            <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
-              {selectedCategory?.name ?? "未选择栏目"}
+            <div className="space-y-2">
+              {selectedCategory?.name ? (
+                <div className="text-[0.76rem] font-medium uppercase tracking-[0.16em] text-primary">
+                  {selectedCategory.name}
+                </div>
+              ) : null}
+              <div className="text-[1.2rem] font-semibold text-foreground">{title || "未命名文章"}</div>
+              {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                <span>{mediaSummaryText}</span>
+                <span>{articleCharacterCount} 字</span>
+              </div>
             </div>
-            <div className="text-[1.2rem] font-semibold text-foreground">{title || "文章标题"}</div>
-            {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
 
             {uploadedVideos[0] ? (
               <div className="overflow-hidden rounded-[0.9rem] border border-border/70 bg-slate-950">
@@ -814,16 +777,41 @@ export function PublishArticlePage() {
               </div>
             ) : null}
 
-            <div
-              className="max-h-[320px] overflow-y-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-dashed [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-3 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-5"
-              dangerouslySetInnerHTML={{
-                __html: articleHtml ? sanitizeHtml(articleHtml) : "<p>正文预览会显示在这里。</p>"
-              }}
-            />
+            {articleHtml ? (
+              <div
+                className="max-h-[320px] overflow-y-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-dashed [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-3 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-5"
+                dangerouslySetInnerHTML={{
+                  __html: sanitizeHtml(articleHtml)
+                }}
+              />
+            ) : null}
+
+            <div className="space-y-2 border-t border-border/60 pt-4">
+              <Button
+                className="w-full"
+                onClick={() => {
+                  void persistDraft().catch(() => {
+                    setError("草稿保存失败，请稍后重试。");
+                  });
+                }}
+                type="button"
+                variant="outline"
+              >
+                <SaveIcon data-icon="inline-start" />
+                保存草稿
+              </Button>
+              <Button asChild className="w-full" type="button" variant="outline">
+                <Link to={APP_ROUTES.feedHome}>取消</Link>
+              </Button>
+              <Button className="w-full" disabled={!canSubmit} onClick={() => void handleSubmit()} type="button" variant="hero">
+                <SendHorizonalIcon data-icon="inline-start" />
+                {isPublishing ? "提交中..." : "提交文章"}
+              </Button>
+            </div>
           </SitePanelBody>
         </SitePanel>
       }
-      title="发布文章"
+      title={editId ? "编辑文章" : "发布文章"}
     />
   );
 }

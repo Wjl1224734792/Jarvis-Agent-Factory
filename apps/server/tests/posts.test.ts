@@ -2246,6 +2246,153 @@ describe.sequential("posts and social flows", () => {
     expect(multipleVideosResponse.status).toBe(400);
   });
 
+  it("accepts article creation with media counts above the legacy caps", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const authorCookie = await loginWebUser("13800138221");
+    const uploadedImages = await Promise.all(
+      Array.from({ length: 7 }, (_, index) =>
+        uploadImage(authorCookie, `article-many-image-${index + 1}.png`)
+      )
+    );
+    const uploadedVideos = await Promise.all(
+      Array.from({ length: 3 }, (_, index) =>
+        uploadVideo(authorCookie, `article-many-video-${index + 1}.mp4`)
+      )
+    );
+
+    const response = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie: authorCookie
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Article with many media attachments",
+        content: "Article content with more media than the legacy cap.",
+        contentCategoryId: articleCategoryId,
+        imageIds: uploadedImages.map((item) => item.item.id),
+        videoIds: uploadedVideos.map((item) => item.item.id)
+      })
+    });
+
+    expect(response.status).toBe(200);
+    const payload = (await response.json()) as {
+      item: {
+        images: Array<{ id: string }>;
+        videos: Array<{ id: string }>;
+      };
+    };
+    expect(payload.item.images).toHaveLength(7);
+    expect(payload.item.videos).toHaveLength(3);
+  });
+
+  it("accepts admin official article updates with media counts above the legacy caps", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const createResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Official article for many media update",
+        content: "Initial official article content.",
+        contentHtml: "<p>Initial official article content.</p>",
+        imageIds: [],
+        videoIds: [],
+        contentCategoryId: articleCategoryId
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const uploadedImages = await Promise.all(
+      Array.from({ length: 7 }, (_, index) =>
+        uploadImage(adminCookie, `official-many-image-${index + 1}.png`)
+      )
+    );
+    const uploadedVideos = await Promise.all(
+      Array.from({ length: 3 }, (_, index) =>
+        uploadVideo(adminCookie, `official-many-video-${index + 1}.mp4`)
+      )
+    );
+
+    const updateResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Official article with many media",
+        content: "Updated official article content with many media.",
+        contentHtml: "<p>Updated official article content with many media.</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: uploadedImages.map((item) => item.item.id),
+        videoIds: uploadedVideos.map((item) => item.item.id)
+      })
+    });
+
+    expect(updateResponse.status).toBe(200);
+    const updated = (await updateResponse.json()) as {
+      item: {
+        images: Array<{ id: string }>;
+        videos: Array<{ id: string }>;
+      };
+    };
+    expect(updated.item.images).toHaveLength(7);
+    expect(updated.item.videos).toHaveLength(3);
+  });
+
+  it("keeps rejecting post reports with more than three evidence images", async () => {
+    const authorCookie = await loginWebUser("13800138222");
+    const created = await createPost(authorCookie, {
+      type: "moment",
+      title: "Report cap source post",
+      content: "Post used to verify report evidence cap."
+    });
+    const adminCookie = await loginAdmin();
+    await publishPost(adminCookie, created.item.id);
+
+    const reporterCookie = await loginWebUser("13800138223");
+    const reportImages = await Promise.all(
+      Array.from({ length: 4 }, (_, index) =>
+        uploadReportImage(reporterCookie, `report-cap-${index + 1}.png`)
+      )
+    );
+
+    const response = await app.request(API_ROUTES.posts.report(created.item.id), {
+      method: "POST",
+      headers: {
+        cookie: reporterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        reason: "Too many evidence images should be rejected.",
+        imageIds: reportImages.map((item) => item.item.id)
+      })
+    });
+
+    expect(response.status).toBe(400);
+  });
+
   it("returns 404 for dedicated official article endpoints when article author is not admin", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {

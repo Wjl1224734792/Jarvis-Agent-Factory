@@ -230,7 +230,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
         openOnClick: false
       }),
       Placeholder.configure({
-        placeholder: props.placeholder ?? "从这里开始写正文，支持标题层级、列表、表格、图片和视频。"
+        placeholder: props.placeholder ?? "开始写作"
       }),
       TextAlign.configure({
         types: ["heading", "paragraph"]
@@ -544,6 +544,9 @@ export function RichTextEditor(props: RichTextEditorProps) {
             ) : null}
           </div>
         ))}
+        <div className="ml-auto inline-flex items-center rounded-full bg-surface-1 px-2.5 py-1 text-xs text-muted-foreground">
+          {characterCount} 字
+        </div>
       </div>
 
       <div
@@ -565,15 +568,6 @@ export function RichTextEditor(props: RichTextEditorProps) {
       >
         <EditorContent editor={editor} />
       </div>
-
-      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border/70 px-4 py-3 text-xs text-muted-foreground">
-        <div className="flex items-center gap-2">
-          <span className="rounded-full bg-surface-1 px-2.5 py-1">{characterCount} 字</span>
-          <span>支持图片、视频、本地预览后统一上传。</span>
-        </div>
-        <span>工具栏以高频写作操作为主，表格和媒体插入已保留。</span>
-      </div>
-
       <input
         accept="image/*"
         hidden

@@ -1,9 +1,10 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   AlertTriangleIcon,
   ArrowLeftIcon,
   MessageSquareTextIcon,
+  PencilLineIcon,
   Trash2Icon,
   UserCheckIcon,
   UserPlusIcon
@@ -268,6 +269,109 @@ export function PostDetailPage() {
               </Button>
             ) : null}
           </div>
+
+          <div className="space-y-3 rounded-[1rem] border border-border/70 bg-surface-1/70 p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+              <PostInteractionBar
+                compact
+                hideFollow
+                iconOnly
+                plain
+                authorId={item.author.id}
+                favoriteCount={item.engagement.favoriteCount}
+                isPublished={item.status === "published"}
+                likeCount={item.engagement.likeCount}
+                postId={item.id}
+                shareCount={item.engagement.shareCount}
+                sharePath={APP_ROUTES.postDetail.replace(":id", item.id)}
+                viewCount={item.viewCount}
+                viewer={item.engagement.viewer}
+              />
+
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  onClick={() => {
+                    document.getElementById("post-comment-area")?.scrollIntoView({
+                      behavior: "smooth",
+                      block: "start"
+                    });
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <MessageSquareTextIcon className="size-4" />
+                  评论
+                </Button>
+
+                {isAuthor ? (
+                  <Button
+                    onClick={() => {
+                      void navigate(`${APP_ROUTES.publishArticle}?edit=${item.id}`);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <PencilLineIcon className="size-4" />
+                    编辑
+                  </Button>
+                ) : null}
+
+                {authStatus === "authenticated" && !isAuthor ? (
+                  <ReportActionSheet
+                    description="请填写举报理由，并至少上传 1 张证据图。"
+                    onSubmit={(input) =>
+                      apiClient.reportPost(item.id, input).then(() => {
+                        void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
+                      })
+                    }
+                    title="举报内容"
+                    trigger={
+                      <Button aria-label="举报内容" size="sm" type="button" variant="outline">
+                        <AlertTriangleIcon className="size-4" />
+                        举报
+                      </Button>
+                    }
+                  />
+                ) : null}
+
+                {isAuthor ? (
+                  <Button
+                    onClick={() => {
+                      if (!window.confirm("删除后无法恢复，确定要删除这篇文章吗？")) {
+                        return;
+                      }
+
+                      setActionError(null);
+                      void apiClient
+                        .deletePost(item.id)
+                        .then(() => {
+                          void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
+                          void navigate(APP_ROUTES.feedHome, { replace: true });
+                        })
+                        .catch((value: unknown) => {
+                          setActionError(value instanceof Error ? value.message : "删除帖子失败");
+                        });
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <Trash2Icon className="size-4" />
+                    删除
+                  </Button>
+                ) : null}
+              </div>
+            </div>
+
+            {actionError ? (
+              <Alert className="rounded-[0.9rem] border-border/80 bg-transparent text-foreground" variant="destructive">
+                <AlertTitle>帖子操作失败</AlertTitle>
+                <AlertDescription>{actionError}</AlertDescription>
+              </Alert>
+            ) : null}
+          </div>
         </header>
 
         <div className="overflow-hidden border border-border/70 rounded-none">
@@ -309,90 +413,6 @@ export function PostDetailPage() {
           </div>
         ) : null}
       </article>
-
-      <section className="space-y-5 border-t border-border/60 pt-6">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <PostInteractionBar
-            compact
-            hideFollow
-            iconOnly
-            plain
-            authorId={item.author.id}
-            favoriteCount={item.engagement.favoriteCount}
-            isPublished={item.status === "published"}
-            likeCount={item.engagement.likeCount}
-            postId={item.id}
-            shareCount={item.engagement.shareCount}
-            sharePath={APP_ROUTES.postDetail.replace(":id", item.id)}
-            viewCount={item.viewCount}
-            viewer={item.engagement.viewer}
-          />
-
-          <div className="flex items-center gap-2">
-            {authStatus === "authenticated" && !isAuthor ? (
-              <ReportActionSheet
-                description="请填写举报理由，并至少上传 1 张证据图。"
-                onSubmit={(input) =>
-                  apiClient.reportPost(item.id, input).then(() => {
-                    void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                  })
-                }
-                title="举报内容"
-                trigger={
-                  <Button
-                    aria-label="举报内容"
-                    className={cn(
-                      "group inline-flex size-9 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 shadow-none",
-                      "hover:!bg-transparent active:translate-y-0",
-                      "focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2"
-                    )}
-                    size="sm"
-                    type="button"
-                    variant="ghost"
-                  >
-                    <AlertTriangleIcon
-                      className={cn(
-                        "size-4 transition-transform duration-150 ease-out",
-                        "text-muted-foreground group-hover:text-orange-600 group-active:scale-[0.92]",
-                        "dark:group-hover:text-orange-400"
-                      )}
-                    />
-                  </Button>
-                }
-              />
-            ) : null}
-
-            {isAuthor ? (
-              <Button
-                onClick={() => {
-                  setActionError(null);
-                  void apiClient
-                    .deletePost(item.id)
-                    .then(() => {
-                      void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
-                      void navigate(APP_ROUTES.feedHome, { replace: true });
-                    })
-                    .catch((value: unknown) => {
-                      setActionError(value instanceof Error ? value.message : "删除帖子失败");
-                    });
-                }}
-                size="sm"
-                type="button"
-                variant="ghost"
-              >
-                <Trash2Icon className="size-4" />
-              </Button>
-            ) : null}
-          </div>
-        </div>
-
-        {actionError ? (
-          <Alert className="rounded-none border-border/80 bg-transparent text-foreground" variant="destructive">
-            <AlertTitle>帖子操作失败</AlertTitle>
-            <AlertDescription>{actionError}</AlertDescription>
-          </Alert>
-        ) : null}
-      </section>
 
       <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
         <div className="space-y-1">
