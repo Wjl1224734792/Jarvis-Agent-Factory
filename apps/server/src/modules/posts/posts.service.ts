@@ -13,7 +13,6 @@ import { resolveUploadedFileUrls } from "../uploads/uploads.helpers";
 import { postsRepo } from "./posts.repo";
 import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from "./post-media";
 import { buildReplyToUserMap, buildCommentThreads } from "../../lib/comment-serializer";
-import { rankFeedItemsByRecommendation } from "./feed-recommendation";
 import { postsSensitiveFilterService } from "./posts-sensitive-filter";
 import { shouldCountUniqueView } from "../../lib/view-tracking";
 import { usersService } from "../users/users.service";
@@ -41,38 +40,118 @@ type PostLookupItem = NonNullable<Awaited<ReturnType<typeof postsRepo.getPostByI
 type PostListSerializableItem = PostFeedListItem | PostLookupItem;
 const DEFAULT_FEED_LIMIT = 20;
 const MAX_FEED_LIMIT = 50;
-const DEFAULT_RECOMMENDED_FETCH_BATCH = 200;
-const MAX_RECOMMENDED_FETCH_BATCH = 400;
-const FEED_CURSOR_PREFIX = "offset:";
+const FEED_CURSOR_PREFIX = "seek:";
+const FEED_CURSOR_VERSION = 1;
 
-function decodeFeedCursor(cursor: string | undefined) {
+type FeedCursorPayload =
+  | {
+      v: typeof FEED_CURSOR_VERSION;
+      t: "feed";
+      p: string;
+      i: string;
+    }
+  | {
+      v: typeof FEED_CURSOR_VERSION;
+      t: "recommended";
+      s: number;
+      n: string;
+      p: string;
+      i: string;
+    };
+
+type FeedCursorState =
+  | {
+      kind: "feed";
+      publishedAt: Date;
+      id: string;
+    }
+  | {
+      kind: "recommended";
+      score: number;
+      recommendationNow: Date;
+      publishedAt: Date;
+      id: string;
+    };
+
+function parseCursorDate(value: unknown) {
+  if (typeof value !== "string") {
+    return null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? null : parsed;
+}
+
+function decodeFeedCursor(cursor: string | undefined): FeedCursorState | null {
   if (!cursor) {
     return null;
   }
 
   const normalized = cursor.trim();
-  if (normalized.length === 0) {
+  if (!normalized.startsWith(FEED_CURSOR_PREFIX)) {
     return null;
   }
 
-  const payload = normalized.startsWith(FEED_CURSOR_PREFIX)
-    ? normalized.slice(FEED_CURSOR_PREFIX.length)
-    : normalized;
-  const parsed = Number(payload);
-  if (!Number.isInteger(parsed) || parsed < 0) {
+  const encodedPayload = normalized.slice(FEED_CURSOR_PREFIX.length);
+  if (!encodedPayload) {
     return null;
   }
 
-  return parsed;
+  try {
+    const payload = JSON.parse(Buffer.from(encodedPayload, "base64url").toString("utf8")) as {
+      v?: unknown;
+      t?: unknown;
+      s?: unknown;
+      n?: unknown;
+      p?: unknown;
+      i?: unknown;
+    };
+
+    if (payload.v !== FEED_CURSOR_VERSION || typeof payload.t !== "string") {
+      return null;
+    }
+
+    const publishedAt = parseCursorDate(payload.p);
+    if (!publishedAt || typeof payload.i !== "string" || payload.i.length === 0) {
+      return null;
+    }
+
+    if (payload.t === "feed") {
+      return {
+        kind: "feed",
+        publishedAt,
+        id: payload.i
+      };
+    }
+
+    if (payload.t === "recommended" && typeof payload.s === "number" && Number.isFinite(payload.s)) {
+      const recommendationNow = parseCursorDate(payload.n);
+      if (!recommendationNow) {
+        return null;
+      }
+
+      return {
+        kind: "recommended",
+        score: payload.s,
+        recommendationNow,
+        publishedAt,
+        id: payload.i
+      };
+    }
+
+    return null;
+  } catch {
+    return null;
+  }
 }
 
-function encodeFeedCursor(offset: number) {
-  return `${FEED_CURSOR_PREFIX}${Math.max(0, offset)}`;
+function encodeFeedCursor(payload: FeedCursorPayload) {
+  const encodedPayload = Buffer.from(JSON.stringify(payload), "utf8").toString("base64url");
+  return `${FEED_CURSOR_PREFIX}${encodedPayload}`;
 }
 
-function resolveFeedOffset(cursor: string | undefined) {
-  const cursorOffset = decodeFeedCursor(cursor);
-  return cursorOffset ?? 0;
+function resolveFeedCursorTime(item: { publishedAt: Date | null; createdAt: Date }) {
+  return item.publishedAt ?? item.createdAt;
 }
 
 function toIsoString(value: Date | null) {
@@ -322,59 +401,39 @@ export const postsService = {
     input: { type: PostType; contentCategorySlug?: string; limit?: number; cursor?: string }
   ) {
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
-    const cursorOffset = resolveFeedOffset(input.cursor);
-    const feedResult =
+    const decodedCursor = decodeFeedCursor(input.cursor);
+    const recommendationNow =
       tab === "recommended"
-        ? await (async () => {
-            const items: PostFeedListItem[] = [];
-            const recommendedBatchLimit = Math.min(
-              MAX_RECOMMENDED_FETCH_BATCH,
-              Math.max(DEFAULT_RECOMMENDED_FETCH_BATCH, limit * 4)
-            );
-            let fetchOffset = 0;
-            let total = 0;
-
-            while (true) {
-              const result = await postsRepo.listFeed({
-                tab: "recommended",
-                type: input.type,
-                currentUserId: currentUser?.id,
-                contentCategorySlug: input.contentCategorySlug,
-                offset: fetchOffset,
-                limit: recommendedBatchLimit
-              });
-
-              if (fetchOffset === 0) {
-                total = Number(result.total ?? 0);
-              }
-
-              if (result.items.length === 0) {
-                break;
-              }
-
-              items.push(...result.items);
-
-              if (items.length >= total || result.items.length < recommendedBatchLimit) {
-                break;
-              }
-
-              fetchOffset += result.items.length;
+        ? decodedCursor?.kind === "recommended"
+          ? decodedCursor.recommendationNow
+          : new Date()
+        : undefined;
+    const feedResult = await postsRepo.listFeed({
+      tab,
+      type: input.type,
+      currentUserId: currentUser?.id,
+      contentCategorySlug: input.contentCategorySlug,
+      feedCursor:
+        tab !== "recommended" && decodedCursor?.kind === "feed"
+          ? {
+              publishedAt: decodedCursor.publishedAt,
+              id: decodedCursor.id
             }
-
-            return {
-              items,
-              total: Math.max(total, items.length)
-            };
-          })()
-        : await postsRepo.listFeed({
-            tab,
-            type: input.type,
-            currentUserId: currentUser?.id,
-            contentCategorySlug: input.contentCategorySlug,
-            offset: cursorOffset,
-            limit
-          });
-    const items = feedResult.items;
+          : undefined,
+      recommendedCursor:
+        tab === "recommended" && decodedCursor?.kind === "recommended"
+          ? {
+              score: decodedCursor.score,
+              publishedAt: decodedCursor.publishedAt,
+              id: decodedCursor.id
+            }
+          : undefined,
+      recommendationNow,
+      includeTotal: false,
+      limit: limit + 1
+    });
+    const hasMore = feedResult.items.length > limit;
+    const items = hasMore ? feedResult.items.slice(0, limit) : feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
     const [interactions, followingAuthorIds, ipLocationLabelMap] = await Promise.all([
@@ -383,17 +442,7 @@ export const postsService = {
       usersService.resolvePublicIpLocationLabelMap(authorIds)
     ]);
     const interactionMap = buildInteractionMap(interactions);
-    const recommendedBaseScores =
-      tab === "recommended"
-        ? new Map(
-            items.flatMap((item) =>
-              typeof item.recommendationBaseScore === "number"
-                ? [[item.id, item.recommendationBaseScore] as const]
-                : []
-            )
-          )
-        : undefined;
-    const serializedCandidates = items
+    const orderedItems = items
       .map((item) =>
         serializePostListItem(item, {
           cover: null,
@@ -409,25 +458,27 @@ export const postsService = {
         })
       )
       .filter((item): item is NonNullable<typeof item> => item !== null);
-    const rankedRecommendedItems =
-      tab === "recommended"
-        ? rankFeedItemsByRecommendation(serializedCandidates, {
-            type: input.type,
-            precomputedBaseScores: recommendedBaseScores
-          })
-        : serializedCandidates;
-    const pagedItems =
-      tab === "recommended"
-        ? rankedRecommendedItems.slice(cursorOffset, cursorOffset + limit)
-        : serializedCandidates;
-    const total = tab === "recommended" ? rankedRecommendedItems.length : Number(feedResult.total ?? 0);
-    const hasMore = cursorOffset + pagedItems.length < total;
-    const nextCursor = hasMore ? encodeFeedCursor(cursorOffset + pagedItems.length) : null;
-    const postRecordById = new Map(items.map((item) => [item.id, item]));
-    const pagePostIds = pagedItems.map((item) => item.id);
-    const pagePostRecords = pagedItems
-      .map((item) => postRecordById.get(item.id) ?? null)
-      .filter((item): item is NonNullable<typeof item> => item !== null);
+    const lastItem = items.at(-1) ?? null;
+    const nextCursor =
+      hasMore && lastItem
+        ? tab === "recommended"
+          ? encodeFeedCursor({
+              v: FEED_CURSOR_VERSION,
+              t: "recommended",
+              s: typeof lastItem.recommendationBaseScore === "number" ? lastItem.recommendationBaseScore : 0,
+              n: recommendationNow?.toISOString() ?? new Date().toISOString(),
+              p: resolveFeedCursorTime(lastItem).toISOString(),
+              i: lastItem.id
+            })
+          : encodeFeedCursor({
+              v: FEED_CURSOR_VERSION,
+              t: "feed",
+              p: resolveFeedCursorTime(lastItem).toISOString(),
+              i: lastItem.id
+            })
+        : null;
+    const pagePostIds = orderedItems.map((item) => item.id);
+    const pagePostRecords = items;
     const [images, videos, pageContentHtmlRows] = await Promise.all([
       postsRepo.listPostImages(pagePostIds),
       postsRepo.listPostVideos(pagePostIds),
@@ -439,7 +490,7 @@ export const postsService = {
       buildCoversByPostId(pagePostRecords)
     ]);
     const contentHtmlByPostId = new Map(pageContentHtmlRows.map((row) => [row.id, row.contentHtml ?? null]));
-    const orderedItems = pagedItems.map((item) => ({
+    const hydratedItems = orderedItems.map((item) => ({
       ...item,
       contentHtml: contentHtmlByPostId.get(item.id) ?? null,
       cover: coversByPostId.get(item.id) ?? null,
@@ -453,7 +504,7 @@ export const postsService = {
         tab,
         activeCategorySlug: input.contentCategorySlug ?? categories[0]?.slug ?? null,
         categories,
-        items: orderedItems,
+        items: hydratedItems,
         pagination: {
           limit,
           hasMore
@@ -464,7 +515,7 @@ export const postsService = {
 
     return {
       tab,
-      items: orderedItems,
+      items: hydratedItems,
       pagination: {
         limit,
         hasMore

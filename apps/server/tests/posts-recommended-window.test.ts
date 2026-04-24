@@ -111,4 +111,77 @@ describe.sequential("recommended cursor pagination", () => {
     const ids = pagePayloads.flatMap((payload) => payload.items.map((item) => item.id));
     expect(new Set(ids).size).toBe(ids.length);
   });
+
+  it("keeps recommended pagination stable when a new top candidate appears between pages", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-20T10:40:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 40 }, (_, index) => ({
+        id: `moment_seek_stable_${index + 1}`,
+        title: `Seek stable ${index + 1}`,
+        content: "Stable synthetic content for seek pagination stability.",
+        likeCount: index % 4,
+        favoriteCount: index % 3,
+        shareCount: index % 6,
+        commentCount: index % 2,
+        reportCount: 0,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
+      method: "GET"
+    });
+    expect(pageOneResponse.status).toBe(200);
+    const pageOne = (await pageOneResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(pageOne.nextCursor).toBeTruthy();
+
+    await db.insert(postsTable).values({
+      id: "moment_seek_stable_inserted",
+      authorId,
+      type: "moment",
+      title: "Inserted after page one",
+      content: "Inserted candidate between recommended page fetches.",
+      contentHtml: null,
+      contentPlainText: "Inserted candidate between recommended page fetches.",
+      contentCategoryId: null,
+      coverImageFileId: null,
+      status: "published",
+      rejectionReason: null,
+      commentCount: 0,
+      reportCount: 0,
+      likeCount: 0,
+      favoriteCount: 0,
+      shareCount: 0,
+      viewCount: 0,
+      publishedAt: new Date(baseTime.getTime() + 120_000),
+      createdAt: new Date(baseTime.getTime() + 120_000),
+      updatedAt: new Date(baseTime.getTime() + 120_000)
+    });
+
+    const pageTwoResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent(pageOne.nextCursor ?? "")}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(pageTwoResponse.status).toBe(200);
+    const pageTwo = (await pageTwoResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { limit: number; hasMore: boolean };
+    };
+
+    const pageOneIds = new Set(pageOne.items.map((item) => item.id));
+    const pageTwoIds = pageTwo.items.map((item) => item.id);
+    const overlap = pageTwoIds.filter((id) => pageOneIds.has(id));
+    expect(pageTwo.pagination.limit).toBe(10);
+    expect(overlap).toHaveLength(0);
+    expect(pageTwoIds).not.toContain("moment_seek_stable_inserted");
+  });
 });

@@ -19,6 +19,10 @@ type PostStatus = "pending" | "published" | "rejected" | "hidden";
 type PostType = "article" | "moment";
 type PostCommentStatus = "pending" | "visible" | "hidden";
 type PostInteractionType = "like" | "favorite" | "share";
+type FeedCursorInput = {
+  publishedAt: Date;
+  id: string;
+};
 type RecommendedFeedCursorInput = {
   score: number;
   publishedAt: Date;
@@ -40,11 +44,13 @@ function buildRecommendationEngagementVolumeExpression() {
   `;
 }
 
-function buildRecommendationAgeHoursExpression() {
+function buildRecommendationAgeHoursExpression(recommendationNow?: Date) {
+  const referenceNow = recommendationNow ? sql`${recommendationNow}` : sql`now()`;
+
   return sql<number>`
     greatest(
       0,
-      extract(epoch from now() - ${buildFeedPublishedAtExpression()}) / 3600.0
+      extract(epoch from ${referenceNow} - ${buildFeedPublishedAtExpression()}) / 3600.0
     )
   `;
 }
@@ -67,11 +73,11 @@ function buildRecommendationInteractionScoreExpression(type: PostType) {
   `;
 }
 
-function buildRecommendationFreshnessMultiplierExpression(type: PostType) {
+function buildRecommendationFreshnessMultiplierExpression(type: PostType, recommendationNow?: Date) {
   const halfLife = type === "article" ? 42 : 22;
 
   return sql<number>`
-    power(0.5, ${buildRecommendationAgeHoursExpression()} / ${halfLife})
+    power(0.5, ${buildRecommendationAgeHoursExpression(recommendationNow)} / ${halfLife})
   `;
 }
 
@@ -139,10 +145,11 @@ function buildRecommendedFollowBoostExpression(type: PostType, currentUserId?: s
 
 function buildRecommendedStaticBaseScoreExpression(
   type: PostType,
-  currentUserId?: string | null
+  currentUserId?: string | null,
+  recommendationNow?: Date
 ) {
   const interactionScore = buildRecommendationInteractionScoreExpression(type);
-  const freshnessMultiplier = buildRecommendationFreshnessMultiplierExpression(type);
+  const freshnessMultiplier = buildRecommendationFreshnessMultiplierExpression(type, recommendationNow);
   const freshnessBoostWeight = type === "article" ? 32 : 28;
   const officialBoost =
     type === "article"
@@ -182,7 +189,7 @@ function buildRecommendedStaticBaseScoreExpression(
   const staleLowValuePenalty = sql<number>`
     (
       case
-        when ${buildRecommendationAgeHoursExpression()} > ${type === "article" ? 120 : 72}
+        when ${buildRecommendationAgeHoursExpression(recommendationNow)} > ${type === "article" ? 120 : 72}
           and ${interactionScore} < 20
           then -12
         else 0
@@ -231,10 +238,15 @@ function buildRecommendedCandidateConditions(type: PostType) {
   ];
 }
 
-function buildFeedOrder(tab: FeedTab, type: PostType, currentUserId?: string | null) {
+function buildFeedOrder(
+  tab: FeedTab,
+  type: PostType,
+  currentUserId?: string | null,
+  recommendationNow?: Date
+) {
   if (tab === "recommended") {
     return [
-      desc(buildRecommendedStaticBaseScoreExpression(type, currentUserId)),
+      desc(buildRecommendedStaticBaseScoreExpression(type, currentUserId, recommendationNow)),
       desc(buildFeedPublishedAtExpression()),
       desc(postsTable.id)
     ] as const;
@@ -246,9 +258,14 @@ function buildFeedOrder(tab: FeedTab, type: PostType, currentUserId?: string | n
 function buildRecommendedCursorCondition(
   type: PostType,
   currentUserId: string | null | undefined,
-  cursor: RecommendedFeedCursorInput
+  cursor: RecommendedFeedCursorInput,
+  recommendationNow?: Date
 ) {
-  const recommendationBaseScore = buildRecommendedStaticBaseScoreExpression(type, currentUserId);
+  const recommendationBaseScore = buildRecommendedStaticBaseScoreExpression(
+    type,
+    currentUserId,
+    recommendationNow
+  );
   const publishedAtExpression = buildFeedPublishedAtExpression();
 
   return sql`(
@@ -260,6 +277,18 @@ function buildRecommendedCursorCondition(
     or (
       ${recommendationBaseScore} = ${cursor.score}
       and ${publishedAtExpression} = ${cursor.publishedAt}
+      and ${postsTable.id} < ${cursor.id}
+    )
+  )`;
+}
+
+function buildFeedCursorCondition(cursor: FeedCursorInput) {
+  const publishedAtExpression = buildFeedPublishedAtExpression();
+
+  return sql`(
+    ${publishedAtExpression} < ${cursor.publishedAt}
+    or (
+      ${publishedAtExpression} = ${cursor.publishedAt}
       and ${postsTable.id} < ${cursor.id}
     )
   )`;
@@ -313,10 +342,15 @@ function postFeedSelection(input: {
   type: PostType;
   currentUserId?: string | null;
   includeRecommendationBaseScore: boolean;
+  recommendationNow?: Date;
 }) {
   const previewSource = buildFeedPreviewSource();
   const recommendationBaseScore = input.includeRecommendationBaseScore
-    ? buildRecommendedStaticBaseScoreExpression(input.type, input.currentUserId)
+    ? buildRecommendedStaticBaseScoreExpression(
+        input.type,
+        input.currentUserId,
+        input.recommendationNow
+      )
     : sql<number | null>`null`;
 
   return {
@@ -661,8 +695,10 @@ export const postsRepo = {
     currentUserId?: string | null;
     contentCategorySlug?: string;
     offset?: number;
+    feedCursor?: FeedCursorInput;
     limit: number;
     includeTotal?: boolean;
+    recommendationNow?: Date;
     recommendedCursor?: RecommendedFeedCursorInput;
   }) {
     const conditions = [
@@ -680,8 +716,17 @@ export const postsRepo = {
 
     if (input.tab === "recommended" && input.recommendedCursor) {
       conditions.push(
-        buildRecommendedCursorCondition(input.type, input.currentUserId, input.recommendedCursor)
+        buildRecommendedCursorCondition(
+          input.type,
+          input.currentUserId,
+          input.recommendedCursor,
+          input.recommendationNow
+        )
       );
+    }
+
+    if (input.tab !== "recommended" && input.feedCursor) {
+      conditions.push(buildFeedCursorCondition(input.feedCursor));
     }
 
     const offset = Math.max(0, input.offset ?? 0);
@@ -699,7 +744,8 @@ export const postsRepo = {
         postFeedSelection({
           type: input.type,
           currentUserId: input.currentUserId,
-          includeRecommendationBaseScore: input.tab === "recommended"
+          includeRecommendationBaseScore: input.tab === "recommended",
+          recommendationNow: input.recommendationNow
         })
       )
       .from(postsTable)
@@ -712,18 +758,19 @@ export const postsRepo = {
         return { items: [], total: 0 };
       }
 
-      const [rows, countRows] = await Promise.all([
-        baseQuery
-          .innerJoin(
-            userFollowsTable,
-            and(
-              eq(userFollowsTable.followeeId, postsTable.authorId),
-              eq(userFollowsTable.followerId, input.currentUserId)
-            )
+      const followingQuery = baseQuery
+        .innerJoin(
+          userFollowsTable,
+          and(
+            eq(userFollowsTable.followeeId, postsTable.authorId),
+            eq(userFollowsTable.followerId, input.currentUserId)
           )
-          .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
-          .limit(input.limit)
-          .offset(offset),
+        )
+        .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId, input.recommendationNow))
+        .limit(input.limit);
+
+      const [rows, countRows] = await Promise.all([
+        offset > 0 ? followingQuery.offset(offset) : followingQuery,
         baseCountQuery?.innerJoin(
           userFollowsTable,
           and(
@@ -739,11 +786,12 @@ export const postsRepo = {
       };
     }
 
+    const listQuery = baseQuery
+      .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId, input.recommendationNow))
+      .limit(input.limit);
+
     const [rows, countRows] = await Promise.all([
-      baseQuery
-        .orderBy(...buildFeedOrder(input.tab, input.type, input.currentUserId))
-        .limit(input.limit)
-        .offset(offset),
+      offset > 0 ? listQuery.offset(offset) : listQuery,
       baseCountQuery ?? Promise.resolve([])
     ]);
 

@@ -776,7 +776,6 @@ describe.sequential("posts and social flows", () => {
     const feedResult = await postsRepo.listFeed({
       tab: "recommended",
       type: "moment",
-      offset: 0,
       limit: 200
     });
     const ids = feedResult.items.map((item) => item.id);
@@ -828,8 +827,12 @@ describe.sequential("posts and social flows", () => {
     expect(listFeedSpy.mock.calls[0]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      offset: 0,
-      limit: 200
+      limit: 11
+    });
+    expect(listFeedSpy.mock.calls[0]?.[0]?.recommendedCursor).toMatchObject({
+      id: expect.any(String),
+      score: expect.any(Number),
+      publishedAt: expect.any(Date)
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
@@ -849,8 +852,12 @@ describe.sequential("posts and social flows", () => {
     expect(listFeedSpy.mock.calls[1]?.[0]).toMatchObject({
       tab: "recommended",
       type: "moment",
-      offset: 0,
-      limit: 200
+      limit: 11
+    });
+    expect(listFeedSpy.mock.calls[1]?.[0]?.recommendedCursor).toMatchObject({
+      id: expect.any(String),
+      score: expect.any(Number),
+      publishedAt: expect.any(Date)
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
@@ -1012,8 +1019,17 @@ describe.sequential("posts and social flows", () => {
         ([input]) =>
           input?.tab === "recommended" &&
           input?.type === "moment" &&
-          input?.offset === 0 &&
-          input?.limit === 200
+          input?.limit === 11 &&
+          !input?.recommendedCursor
+      )
+    ).toBe(true);
+    expect(
+      listFeedSpy.mock.calls.some(
+        ([input]) =>
+          input?.tab === "recommended" &&
+          input?.type === "moment" &&
+          input?.limit === 11 &&
+          Boolean(input?.recommendedCursor)
       )
     ).toBe(true);
     const firstTwoPageIds = [...pageOnePayload.items, ...pageTwoPayload.items].map((item) => item.id);
@@ -1063,10 +1079,18 @@ describe.sequential("posts and social flows", () => {
         ([input]) =>
           input?.tab === "recommended" &&
           input?.type === "moment" &&
-          input?.offset === 0 &&
-          input?.limit === 200
+          input?.limit === 51
       ).length
     ).toBeGreaterThanOrEqual(2);
+    expect(
+      listFeedSpy.mock.calls.some(
+        ([input]) =>
+          input?.tab === "recommended" &&
+          input?.type === "moment" &&
+          input?.limit === 51 &&
+          Boolean(input?.recommendedCursor)
+      )
+    ).toBe(true);
     listFeedSpy.mockRestore();
   });
 
@@ -1087,7 +1111,6 @@ describe.sequential("posts and social flows", () => {
     const feedResult = await postsRepo.listFeed({
       tab: "recommended",
       type: "moment",
-      offset: 0,
       limit: 10
     });
 
@@ -1958,6 +1981,141 @@ describe.sequential("posts and social flows", () => {
       new Date(item.publishedAt ?? item.createdAt).getTime()
     );
     expect(followingTimes).toEqual([...followingTimes].sort((left, right) => right - left));
+  });
+
+  it("keeps latest and following pagination stable when new head items are inserted", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-22T12:00:00.000Z");
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 30 }, (_, index) => ({
+        id: `moment_seek_guard_${index + 1}`,
+        title: `Seek guard ${index + 1}`,
+        content: "Stable seek pagination guard content.",
+        likeCount: index % 3,
+        shareCount: index % 2,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const followerCookie = await loginWebUser("13800138184");
+    const followResponse = await app.request(API_ROUTES.social.follow(authorId), {
+      method: "POST",
+      headers: {
+        cookie: followerCookie
+      }
+    });
+    expect(followResponse.status).toBe(200);
+
+    const latestPageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=latest&limit=10`, {
+      method: "GET"
+    });
+    expect(latestPageOneResponse.status).toBe(200);
+    const latestPageOne = (await latestPageOneResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(latestPageOne.nextCursor).toBeTruthy();
+
+    await db.insert(postsTable).values({
+      id: "moment_seek_guard_latest_inserted",
+      authorId,
+      type: "moment",
+      title: "Latest inserted after page one",
+      content: "Inserted between latest page fetches.",
+      contentHtml: null,
+      contentPlainText: "Inserted between latest page fetches.",
+      contentCategoryId: null,
+      coverImageFileId: null,
+      status: "published",
+      rejectionReason: null,
+      commentCount: 0,
+      reportCount: 0,
+      likeCount: 0,
+      favoriteCount: 0,
+      shareCount: 0,
+      viewCount: 0,
+      publishedAt: new Date(baseTime.getTime() + 120_000),
+      createdAt: new Date(baseTime.getTime() + 120_000),
+      updatedAt: new Date(baseTime.getTime() + 120_000)
+    });
+
+    const latestPageTwoResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=latest&limit=10&cursor=${encodeURIComponent(expectDefined(latestPageOne.nextCursor))}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(latestPageTwoResponse.status).toBe(200);
+    const latestPageTwo = (await latestPageTwoResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    const latestPageOneIds = latestPageOne.items.map((item) => item.id);
+    const latestPageTwoIds = latestPageTwo.items.map((item) => item.id);
+    const latestOverlap = latestPageOneIds.filter((id) => latestPageTwoIds.includes(id));
+    expect(latestPageTwo.pagination.limit).toBe(10);
+    expect(latestOverlap).toHaveLength(0);
+    expect(latestPageTwoIds).not.toContain("moment_seek_guard_latest_inserted");
+
+    const followingPageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=following&limit=10`, {
+      method: "GET",
+      headers: {
+        cookie: followerCookie
+      }
+    });
+    expect(followingPageOneResponse.status).toBe(200);
+    const followingPageOne = (await followingPageOneResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(followingPageOne.nextCursor).toBeTruthy();
+
+    await db.insert(postsTable).values({
+      id: "moment_seek_guard_following_inserted",
+      authorId,
+      type: "moment",
+      title: "Following inserted after page one",
+      content: "Inserted between following page fetches.",
+      contentHtml: null,
+      contentPlainText: "Inserted between following page fetches.",
+      contentCategoryId: null,
+      coverImageFileId: null,
+      status: "published",
+      rejectionReason: null,
+      commentCount: 0,
+      reportCount: 0,
+      likeCount: 0,
+      favoriteCount: 0,
+      shareCount: 0,
+      viewCount: 0,
+      publishedAt: new Date(baseTime.getTime() + 180_000),
+      createdAt: new Date(baseTime.getTime() + 180_000),
+      updatedAt: new Date(baseTime.getTime() + 180_000)
+    });
+
+    const followingPageTwoResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=following&limit=10&cursor=${encodeURIComponent(expectDefined(followingPageOne.nextCursor))}`,
+      {
+        method: "GET",
+        headers: {
+          cookie: followerCookie
+        }
+      }
+    );
+    expect(followingPageTwoResponse.status).toBe(200);
+    const followingPageTwo = (await followingPageTwoResponse.json()) as {
+      items: Array<{ id: string }>;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    const followingPageOneIds = followingPageOne.items.map((item) => item.id);
+    const followingPageTwoIds = followingPageTwo.items.map((item) => item.id);
+    const followingOverlap = followingPageOneIds.filter((id) => followingPageTwoIds.includes(id));
+    expect(followingPageTwo.pagination.limit).toBe(10);
+    expect(followingOverlap).toHaveLength(0);
+    expect(followingPageTwoIds).not.toContain("moment_seek_guard_following_inserted");
   });
 
   it("splits article and moment feeds correctly", async () => {
