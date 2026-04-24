@@ -1,7 +1,7 @@
 name = "planner"
 description = "在**主会话**已对齐需求且需求文档与 task_design 任务文档已就绪后使用；选择当前轮次任务包，生成执行计划，并明确 frontend_implementer / backend_implementer 的分工与共享改动归属。必须为每个任务产出 Execution Packet。"
 nickname_candidates = ["Plan", "Dispatch", "Coordinator"]
-model = "gpt-5.4"
+model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 

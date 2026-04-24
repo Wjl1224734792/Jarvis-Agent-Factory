@@ -17,37 +17,37 @@ multi_agent = true
 
 ### 规划与评审
 
-| 代理 | 职责 | 当前模型 |
-|------|------|----------|
-| `task_design` | 需求拆解、DDD/TDD 分类 | `gpt-5.4` |
-| `planner` | 执行计划、分工与 Execution Packet | `gpt-5.4` |
-| `review_qa` | 需求一致性、实现质量与回归审查 | `gpt-5.4` |
+| 代理 | 职责 | 当前模型 | 思考等级 |
+|------|------|------|----------|
+| `task_design` | 需求拆解、DDD/TDD 分类 | `gpt-5.5` | `high` |
+| `planner` | 执行计划、分工与 Execution Packet | `gpt-5.5` | `high` |
+| `review_qa` | 需求一致性、实现质量与回归审查 | `gpt-5.5` | `high` |
 
 ### 探索与资料
 
-| 代理 | 职责 | 当前模型 |
-|------|------|----------|
-| `repo_explorer` | 只读探索代码库与风险边界 | `gpt-5.3-codex` |
-| `docs_researcher` | 外部文档与示例检索 | `gpt-5.4` |
+| 代理 | 职责 | 当前模型 | 思考等级 |
+|------|------|------|----------|
+| `repo_explorer` | 只读探索代码库与风险边界 | `gpt-5.3-codex-spark` | `low` |
+| `docs_researcher` | 外部文档与示例检索 | `gpt-5.4-mini` | `low` |
 
 ### 前端实现
 
-| 代理 | 职责 | 当前模型 |
-|------|------|----------|
-| `frontend_implementer` | 前端多维度完整实现 | `gpt-5.4` |
-| `frontend_ui_worker` | UI、样式、布局、响应式、a11y | `gpt-5.2-codex` |
-| `frontend_state_worker` | 状态、数据获取、缓存、路由 | `gpt-5.3-codex` |
-| `frontend_test_worker` | 前端测试、TDD 流程 | `gpt-5.1-codex-mini` |
+| 代理 | 职责 | 当前模型 | 思考等级 |
+|------|------|------|----------|
+| `frontend_implementer` | 前端多维度完整实现 | `gpt-5.4` | `high` |
+| `frontend_ui_worker` | UI、样式、布局、响应式、a11y | `gpt-5.4` | `high` |
+| `frontend_state_worker` | 状态、数据获取、缓存、路由 | `gpt-5.3-codex` | `high` |
+| `frontend_test_worker` | 前端测试、TDD 流程 | `gpt-5.3-codex-spark` | `medium` |
 
 ### 后端实现
 
-| 代理 | 职责 | 当前模型 |
-|------|------|----------|
-| `backend_implementer` | 后端多维度完整实现 | `gpt-5.3-codex` |
-| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | `gpt-5.2-codex` |
-| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限 | `gpt-5.3-codex` |
-| `backend_data_worker` | Schema、ORM、Repository、迁移 | `gpt-5.2-codex` |
-| `backend_test_worker` | 后端测试、TDD 流程 | `gpt-5.1-codex-mini` |
+| 代理 | 职责 | 当前模型 | 思考等级 |
+|------|------|------|----------|
+| `backend_implementer` | 后端多维度完整实现 | `gpt-5.3-codex` | `high` |
+| `backend_api_worker` | 路由、控制器、验证、中间件、错误处理 | `gpt-5.3-codex` | `medium` |
+| `backend_service_worker` | 业务规则、领域逻辑、状态机、权限 | `gpt-5.5` | `high` |
+| `backend_data_worker` | Schema、ORM、Repository、迁移 | `gpt-5.3-codex` | `high` |
+| `backend_test_worker` | 后端测试、TDD 流程 | `gpt-5.3-codex-spark` | `medium` |
 
 更完整的职责说明、技能标签和 spawn 策略见 [reference/agents-overview.md](reference/agents-overview.md)。
 
