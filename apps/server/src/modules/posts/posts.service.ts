@@ -42,29 +42,43 @@ type PostListSerializableItem = PostFeedListItem | PostLookupItem;
 const DEFAULT_FEED_PAGE = 1;
 const DEFAULT_FEED_LIMIT = 20;
 const MAX_FEED_LIMIT = 50;
-const DEFAULT_RECOMMENDED_CANDIDATE_WINDOW = 60;
-const MAX_RECOMMENDED_CANDIDATE_WINDOW = 200;
+const DEFAULT_RECOMMENDED_FETCH_BATCH = 200;
+const MAX_RECOMMENDED_FETCH_BATCH = 400;
+const RECOMMENDED_CURSOR_PREFIX = "offset:";
 
-function resolveRecommendedCandidateWindow(limit: number, page: number) {
-  const offset = Math.max(0, page - 1) * limit;
-  const baseWindow = Math.max(DEFAULT_RECOMMENDED_CANDIDATE_WINDOW, limit * 5);
-  return Math.min(
-    MAX_RECOMMENDED_CANDIDATE_WINDOW,
-    offset + baseWindow
-  );
+function decodeRecommendedCursor(cursor: string | undefined) {
+  if (!cursor) {
+    return null;
+  }
+
+  const normalized = cursor.trim();
+  if (normalized.length === 0) {
+    return null;
+  }
+
+  const payload = normalized.startsWith(RECOMMENDED_CURSOR_PREFIX)
+    ? normalized.slice(RECOMMENDED_CURSOR_PREFIX.length)
+    : normalized;
+  const parsed = Number(payload);
+  if (!Number.isInteger(parsed) || parsed < 0) {
+    return null;
+  }
+
+  return parsed;
 }
 
-function resolveRecommendedQueryWindow(limit: number, page: number) {
-  const offset = Math.max(0, page - 1) * limit;
-  const candidateLimit = resolveRecommendedCandidateWindow(limit, page);
-  const leadingBuffer = Math.min(offset, limit * 2);
-  const queryOffset = Math.max(0, offset - leadingBuffer);
+function encodeRecommendedCursor(offset: number) {
+  return `${RECOMMENDED_CURSOR_PREFIX}${Math.max(0, offset)}`;
+}
 
-  return {
-    candidateLimit,
-    queryOffset,
-    queryLimit: Math.max(limit, candidateLimit - queryOffset)
-  };
+function resolveRecommendedOffset(input: { cursor?: string; page?: number; limit: number }) {
+  const cursorOffset = decodeRecommendedCursor(input.cursor);
+  if (cursorOffset !== null) {
+    return cursorOffset;
+  }
+
+  const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
+  return (page - 1) * input.limit;
 }
 
 function toIsoString(value: Date | null) {
@@ -311,23 +325,63 @@ export const postsService = {
   async listFeed(
     tab: FeedTab,
     currentUser: CurrentUser | null | undefined,
-    input: { type: PostType; contentCategorySlug?: string; page?: number; limit?: number }
+    input: { type: PostType; contentCategorySlug?: string; page?: number; limit?: number; cursor?: string }
   ) {
-    const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
     const limit = Math.min(MAX_FEED_LIMIT, Math.max(1, input.limit ?? DEFAULT_FEED_LIMIT));
-    const offset = (page - 1) * limit;
-    const recommendedQueryWindow =
-      tab === "recommended" ? resolveRecommendedQueryWindow(limit, page) : null;
-    const feedResult = await postsRepo.listFeed({
-      tab,
-      type: input.type,
-      currentUserId: currentUser?.id,
-      contentCategorySlug: input.contentCategorySlug,
-      page: tab === "recommended" ? 1 : page,
-      limit: recommendedQueryWindow?.candidateLimit ?? limit,
-      recommendedWindowOffset: recommendedQueryWindow?.queryOffset,
-      recommendedWindowLimit: recommendedQueryWindow?.queryLimit
-    });
+    const page = Math.max(DEFAULT_FEED_PAGE, input.page ?? DEFAULT_FEED_PAGE);
+    const recommendedOffset =
+      tab === "recommended" ? resolveRecommendedOffset({ cursor: input.cursor, page: input.page, limit }) : 0;
+    const feedResult =
+      tab === "recommended"
+        ? await (async () => {
+            const items: PostFeedListItem[] = [];
+            const recommendedBatchLimit = Math.min(
+              MAX_RECOMMENDED_FETCH_BATCH,
+              Math.max(DEFAULT_RECOMMENDED_FETCH_BATCH, limit * 4)
+            );
+            let fetchPage = 1;
+            let total = 0;
+
+            while (true) {
+              const result = await postsRepo.listFeed({
+                tab: "recommended",
+                type: input.type,
+                currentUserId: currentUser?.id,
+                contentCategorySlug: input.contentCategorySlug,
+                page: fetchPage,
+                limit: recommendedBatchLimit
+              });
+
+              if (fetchPage === 1) {
+                total = Number(result.total ?? 0);
+              }
+
+              if (result.items.length === 0) {
+                break;
+              }
+
+              items.push(...result.items);
+
+              if (items.length >= total || result.items.length < recommendedBatchLimit) {
+                break;
+              }
+
+              fetchPage += 1;
+            }
+
+            return {
+              items,
+              total: Math.max(total, items.length)
+            };
+          })()
+        : await postsRepo.listFeed({
+            tab,
+            type: input.type,
+            currentUserId: currentUser?.id,
+            contentCategorySlug: input.contentCategorySlug,
+            page,
+            limit
+          });
     const items = feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
@@ -370,19 +424,25 @@ export const postsService = {
             precomputedBaseScores: recommendedBaseScores
           })
         : serializedCandidates;
-    const recommendedPageOffset =
-      tab === "recommended"
-        ? Math.max(0, offset - (recommendedQueryWindow?.queryOffset ?? 0))
-        : offset;
     const pagedItems =
       tab === "recommended"
-        ? rankedRecommendedItems.slice(recommendedPageOffset, recommendedPageOffset + limit)
+        ? rankedRecommendedItems.slice(recommendedOffset, recommendedOffset + limit)
         : serializedCandidates;
-    const total =
+    const total = tab === "recommended" ? rankedRecommendedItems.length : Number(feedResult.total ?? 0);
+    const hasMore =
       tab === "recommended"
-        ? Math.min(feedResult.total, MAX_RECOMMENDED_CANDIDATE_WINDOW)
-        : feedResult.total;
-    const hasMore = page * limit < total;
+        ? recommendedOffset + pagedItems.length < total
+        : page * limit < total;
+    const paginationPage =
+      tab === "recommended"
+        ? Math.floor(Math.max(0, recommendedOffset) / limit) + 1
+        : page;
+    const nextCursor =
+      tab === "recommended" && hasMore
+        ? encodeRecommendedCursor(recommendedOffset + pagedItems.length)
+        : tab === "recommended"
+          ? null
+          : undefined;
     const postRecordById = new Map(items.map((item) => [item.id, item]));
     const pagePostIds = pagedItems.map((item) => item.id);
     const pagePostRecords = pagedItems
@@ -415,11 +475,12 @@ export const postsService = {
         categories,
         items: orderedItems,
         pagination: {
-          page,
+          page: paginationPage,
           limit,
           total,
           hasMore
-        }
+        },
+        ...(tab === "recommended" ? { nextCursor } : {})
       };
     }
 
@@ -427,11 +488,12 @@ export const postsService = {
       tab,
       items: orderedItems,
       pagination: {
-        page,
+        page: paginationPage,
         limit,
         total,
         hasMore
-      }
+      },
+      ...(tab === "recommended" ? { nextCursor } : {})
     };
   },
   async createPost(input: {

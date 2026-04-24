@@ -4,6 +4,8 @@ import {
   createPostCommentInputSchema,
   createPostInputSchema,
   feedTabSchema,
+  homeFeedResponseSchema,
+  circleFeedResponseSchema,
   postCommentStatusSchema,
   postStatusSchema,
   reportPostInputSchema,
@@ -23,6 +25,72 @@ describe("posts contract", () => {
     expect(feedTabSchema.parse("recommended")).toBe("recommended");
     expect(feedTabSchema.parse("latest")).toBe("latest");
     expect(feedTabSchema.parse("following")).toBe("following");
+  });
+
+  it("requires nextCursor for recommended feed responses", () => {
+    const pagination = {
+      page: 1,
+      limit: 20,
+      total: 40,
+      hasMore: true
+    };
+
+    expect(
+      homeFeedResponseSchema.safeParse({
+        tab: "recommended",
+        activeCategorySlug: null,
+        categories: [],
+        items: [],
+        pagination
+      }).success
+    ).toBe(false);
+
+    expect(
+      homeFeedResponseSchema.safeParse({
+        tab: "recommended",
+        activeCategorySlug: null,
+        categories: [],
+        items: [],
+        pagination,
+        nextCursor: "cursor_20"
+      }).success
+    ).toBe(true);
+
+    expect(
+      circleFeedResponseSchema.safeParse({
+        tab: "recommended",
+        items: [],
+        pagination,
+        nextCursor: null
+      }).success
+    ).toBe(true);
+  });
+
+  it("keeps latest/following feed responses compatible without nextCursor", () => {
+    const pagination = {
+      page: 1,
+      limit: 20,
+      total: 20,
+      hasMore: false
+    };
+
+    expect(
+      homeFeedResponseSchema.safeParse({
+        tab: "latest",
+        activeCategorySlug: null,
+        categories: [],
+        items: [],
+        pagination
+      }).success
+    ).toBe(true);
+
+    expect(
+      circleFeedResponseSchema.safeParse({
+        tab: "following",
+        items: [],
+        pagination
+      }).success
+    ).toBe(true);
   });
 
   it("parses the create post payload with uploaded images", () => {

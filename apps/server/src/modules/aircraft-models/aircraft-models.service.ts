@@ -35,6 +35,8 @@ type ModelCommentUserSummary = {
   role: "user" | "admin";
 };
 
+type ModelOwnerSummary = ModelCommentUserSummary;
+
 type SerializedModelComment = {
   id: string;
   modelId: string;
@@ -83,6 +85,29 @@ async function buildReplyToUserMap(
   );
 
   return new Map(entries);
+}
+
+async function buildModelOwnerSummary(
+  ownerId: string | null | undefined
+): Promise<ModelOwnerSummary | null> {
+  if (!ownerId) {
+    return null;
+  }
+
+  const [owner] = await aircraftModelsRepo.listUsersByIds([ownerId]);
+  if (!owner) {
+    return null;
+  }
+
+  const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([owner.id]);
+
+  return {
+    id: owner.id,
+    displayName: owner.displayName,
+    avatarUrl: await resolvePublicUploadedFileUrl(owner.avatarFileId ?? null),
+    ipLocationLabel: ipLocationLabelMap.get(owner.id) ?? null,
+    role: owner.role as "user" | "admin"
+  };
 }
 
 async function serializeModelComment(
@@ -273,10 +298,11 @@ export const aircraftModelsService = {
       return null;
     }
 
-    const [interactionSummary, viewer, reportedRows] = await Promise.all([
+    const [interactionSummary, viewer, reportedRows, owner] = await Promise.all([
       aircraftModelsRepo.getInteractionSummary(item.id),
       aircraftModelsRepo.getViewerInteractionState(item.id, currentUserId ?? null),
-      currentUserId ? aircraftModelsRepo.listViewerModelReports([item.id], currentUserId) : Promise.resolve([])
+      currentUserId ? aircraftModelsRepo.listViewerModelReports([item.id], currentUserId) : Promise.resolve([]),
+      buildModelOwnerSummary(item.ownerId)
     ]);
 
     const { coverImageFileId, galleryImageFileIds, videoFileId, ...rest } = item;
@@ -301,6 +327,7 @@ export const aircraftModelsService = {
       coverImageUrl,
       coverVideoUrl,
       galleryImageUrls,
+      owner,
       interactionSummary,
       viewer: {
         ...viewer,

@@ -223,28 +223,45 @@ export const postDetailSchema = z.object({
   comments: z.array(postCommentThreadSchema)
 });
 
+const feedPaginationSchema = z.object({
+  page: z.number().int().positive().nullable().default(null),
+  limit: z.number().int().positive(),
+  total: z.number().int().nonnegative().nullable().default(null),
+  hasMore: z.boolean()
+});
+
+const recommendedFeedCursorSchema = z.string().min(1).nullable();
+
 export const homeFeedResponseSchema = z.object({
   tab: feedTabSchema,
   activeCategorySlug: z.string().nullable(),
   categories: z.array(contentCategorySchema),
   items: z.array(postFeedItemSchema),
-  pagination: z.object({
-    page: z.number().int().positive(),
-    limit: z.number().int().positive(),
-    total: z.number().int().nonnegative(),
-    hasMore: z.boolean()
-  })
+  pagination: feedPaginationSchema,
+  nextCursor: recommendedFeedCursorSchema.optional()
+}).superRefine((payload, context) => {
+  if (payload.tab === "recommended" && payload.nextCursor === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Recommended feed responses must include nextCursor.",
+      path: ["nextCursor"]
+    });
+  }
 });
 
 export const circleFeedResponseSchema = z.object({
   tab: feedTabSchema,
   items: z.array(postFeedItemSchema),
-  pagination: z.object({
-    page: z.number().int().positive(),
-    limit: z.number().int().positive(),
-    total: z.number().int().nonnegative(),
-    hasMore: z.boolean()
-  })
+  pagination: feedPaginationSchema,
+  nextCursor: recommendedFeedCursorSchema.optional()
+}).superRefine((payload, context) => {
+  if (payload.tab === "recommended" && payload.nextCursor === undefined) {
+    context.addIssue({
+      code: z.ZodIssueCode.custom,
+      message: "Recommended feed responses must include nextCursor.",
+      path: ["nextCursor"]
+    });
+  }
 });
 
 export const createPostResponseSchema = z.object({

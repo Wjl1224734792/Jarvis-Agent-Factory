@@ -188,6 +188,76 @@ describe.sequential("ip location visibility", () => {
     };
     expect(modelCommentsPayload.items.some((item) => item.author.ipLocationLabel === "广东省")).toBe(true);
 
+    const modelOwnerProfileResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie: modelCommenterCookie }
+    });
+    expect(modelOwnerProfileResponse.status).toBe(200);
+    const modelOwnerProfilePayload = (await modelOwnerProfileResponse.json()) as {
+      user: { id: string } | null;
+    };
+    const modelOwnerId = expectDefined(modelOwnerProfilePayload.user?.id);
+
+    const adminCookie = await loginAdmin();
+    const categoriesResponse = await app.request(API_ROUTES.models.categories, {
+      method: "GET"
+    });
+    expect(categoriesResponse.status).toBe(200);
+    const categoriesPayload = (await categoriesResponse.json()) as Array<{ id: string; slug: string }>;
+    const droneCategoryId = expectDefined(
+      categoriesPayload.find((item) => item.slug === "drone")?.id
+    );
+
+    const brandsResponse = await app.request(API_ROUTES.models.brands, {
+      method: "GET"
+    });
+    expect(brandsResponse.status).toBe(200);
+    const brandsPayload = (await brandsResponse.json()) as Array<{ id: string; slug: string }>;
+    const djiBrandId = expectDefined(brandsPayload.find((item) => item.slug === "dji")?.id);
+
+    const createdModelSlug = "ip-location-owner-model";
+    const createModelResponse = await app.request(API_ROUTES.models.adminList, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        slug: createdModelSlug,
+        name: "IP Location Owner Model",
+        categoryId: droneCategoryId,
+        brandId: djiBrandId,
+        ownerId: modelOwnerId,
+        powerType: "electric",
+        lifecycleStatus: "released",
+        summary: "Model for owner ip location assertions.",
+        description: "Model detail should expose owner summary location.",
+        priceMin: 1000,
+        priceMax: 2000,
+        maxFlightTimeMinutes: 12,
+        maxRangeKilometers: 5,
+        maxSpeedKph: 40,
+        takeoffWeightGrams: 300,
+        isPublished: true
+      })
+    });
+    expect(createModelResponse.status).toBe(200);
+
+    const modelDetailResponse = await app.request(API_ROUTES.models.detail(createdModelSlug), {
+      method: "GET"
+    });
+    expect(modelDetailResponse.status).toBe(200);
+    const modelDetailPayload = (await modelDetailResponse.json()) as {
+      item: {
+        owner: {
+          id: string;
+          ipLocationLabel: string | null;
+        } | null;
+      };
+    };
+    expect(modelDetailPayload.item.owner?.id).toBe(modelOwnerId);
+    expect(modelDetailPayload.item.owner?.ipLocationLabel).toBe("广东省");
+
     const rankingOwnerCookie = await loginWebUser("13800138332", {
       "x-forwarded-for": "113.118.113.77"
     });
@@ -223,7 +293,6 @@ describe.sequential("ip location visibility", () => {
     };
     expect(rankingCreatePayload.item.author.ipLocationLabel).toBe("广东省");
     expect(rankingCreatePayload.item.items[0]?.author?.ipLocationLabel).toBe("广东省");
-    const adminCookie = await loginAdmin();
     const rankingId = rankingCreatePayload.item.id;
     const ratingTargetId = expectDefined(rankingCreatePayload.item.items[0]?.id);
 

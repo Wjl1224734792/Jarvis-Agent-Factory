@@ -189,6 +189,9 @@ type FeedPaginationInput = {
   page?: number;
   limit?: number;
 };
+type CircleFeedInput = FeedPaginationInput & {
+  cursor?: string;
+};
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
 type UpdatePostInput = Parameters<typeof updatePostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
@@ -210,7 +213,21 @@ type UpdateModelCommentStatusInput =
 type UpdateReviewCommentStatusInput =
   Parameters<typeof updateReviewCommentStatusInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
-type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string; page?: number; limit?: number } | FeedTabInput;
+type HomeFeedInput =
+  | {
+      tab: "recommended";
+      categorySlug?: string;
+      cursor?: string;
+      limit?: number;
+      page?: number;
+    }
+  | {
+      tab: Exclude<FeedTabInput, "recommended">;
+      categorySlug?: string;
+      page?: number;
+      limit?: number;
+    }
+  | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
 type UpdateRankingInput = Parameters<typeof updateRankingInputSchema.parse>[0];
 type AddRatingTargetInput = Parameters<typeof addRatingTargetInputSchema.parse>[0];
@@ -726,18 +743,30 @@ export function createApiClient(options: ApiClientOptions) {
     async listHomeFeed(input: HomeFeedInput, options?: { signal?: AbortSignal }) {
       const normalized =
         typeof input === "string"
-          ? { tab: input, categorySlug: undefined, page: undefined, limit: undefined }
-          : { tab: input.tab, categorySlug: input.categorySlug, page: input.page, limit: input.limit };
+          ? { tab: input, categorySlug: undefined, page: undefined, limit: undefined, cursor: undefined }
+          : {
+              tab: input.tab,
+              categorySlug: input.categorySlug,
+              page: "page" in input ? input.page : undefined,
+              limit: input.limit,
+              cursor: "cursor" in input ? input.cursor : undefined
+            };
       const parsedTab = feedTabSchema.parse(normalized.tab);
       const search = new URLSearchParams({ tab: parsedTab });
       if (normalized.categorySlug) {
         search.set("categorySlug", normalized.categorySlug);
       }
-      if (normalized.page) {
-        search.set("page", String(normalized.page));
-      }
       if (normalized.limit) {
         search.set("limit", String(normalized.limit));
+      }
+      if (parsedTab === "recommended") {
+        if (normalized.cursor) {
+          search.set("cursor", normalized.cursor);
+        } else if (normalized.page) {
+          search.set("page", String(normalized.page));
+        }
+      } else if (normalized.page) {
+        search.set("page", String(normalized.page));
       }
 
       const response = await fetch(`${baseUrl}${API_ROUTES.feed}?${search.toString()}`, {
@@ -748,14 +777,20 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, homeFeedResponseSchema);
     },
-    async listCircleFeed(tab: FeedTabInput, pagination?: FeedPaginationInput) {
+    async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
       const parsedTab = feedTabSchema.parse(tab);
       const search = new URLSearchParams({ tab: parsedTab });
-      if (pagination?.page) {
-        search.set("page", String(pagination.page));
-      }
       if (pagination?.limit) {
         search.set("limit", String(pagination.limit));
+      }
+      if (parsedTab === "recommended") {
+        if (pagination?.cursor) {
+          search.set("cursor", pagination.cursor);
+        } else if (pagination?.page) {
+          search.set("page", String(pagination.page));
+        }
+      } else if (pagination?.page) {
+        search.set("page", String(pagination.page));
       }
       const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?${search.toString()}`, {
         method: "GET",

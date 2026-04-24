@@ -13,6 +13,7 @@ import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
+import { IpLocationText } from "@/components/ip-location-text";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { ModelDetailPageSkeleton } from "@/components/route-skeletons";
 import { PageShareControl } from "@/components/page-share-control";
@@ -442,6 +443,12 @@ export function ModelDetailPage() {
                       <Badge variant="outline">{item.category.name}</Badge>
                       <Badge variant="outline">{powerTypeLabels[item.powerType]}</Badge>
                     </div>
+                    {item.owner ? (
+                      <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.78rem] text-muted-foreground">
+                        <span>创建者 {item.owner.displayName}</span>
+                        <IpLocationText label={item.owner.ipLocationLabel} variant="plain" />
+                      </div>
+                    ) : null}
                   </div>
 
                   <div className="flex min-h-0 flex-1 flex-col lg:min-h-0">

@@ -15,6 +15,7 @@ describe("posts api client", () => {
           activeCategorySlug: null,
           categories: [],
           items: [],
+          nextCursor: null,
           pagination: {
             page: 1,
             limit: 20,
@@ -40,6 +41,126 @@ describe("posts api client", () => {
     expect(payload.tab).toBe("recommended");
     expect(fetchMock).toHaveBeenCalledWith(
       `http://localhost:17382${API_ROUTES.feed}?tab=recommended`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("requests recommended home feed with cursor", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "recommended",
+          activeCategorySlug: null,
+          categories: [],
+          items: [],
+          nextCursor: "cursor_40",
+          pagination: {
+            page: 2,
+            limit: 20,
+            total: 100,
+            hasMore: true
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    const payload = await client.listHomeFeed({
+      tab: "recommended",
+      cursor: "cursor_20",
+      limit: 20
+    });
+
+    expect(payload.nextCursor).toBe("cursor_40");
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.feed}?tab=recommended&limit=20&cursor=cursor_20`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("keeps latest/following circle feed page query unchanged", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "following",
+          items: [],
+          pagination: {
+            page: 3,
+            limit: 10,
+            total: 28,
+            hasMore: false
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    await client.listCircleFeed("following", { page: 3, limit: 10 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.circleFeed}?tab=following&limit=10&page=3`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("requests recommended circle feed with cursor", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "recommended",
+          items: [],
+          nextCursor: null,
+          pagination: {
+            page: 1,
+            limit: 10,
+            total: 10,
+            hasMore: false
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    await client.listCircleFeed("recommended", { cursor: "cursor_10", limit: 10 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=cursor_10`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"

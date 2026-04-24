@@ -92,6 +92,30 @@ async function replaceMomentFeedWithSyntheticPosts(
   );
 }
 
+async function readRecommendedCircleFeedPage(input: {
+  limit: number;
+  cursor?: string;
+}) {
+  const search = new URLSearchParams({
+    tab: "recommended",
+    limit: String(input.limit)
+  });
+  if (input.cursor) {
+    search.set("cursor", input.cursor);
+  }
+
+  const response = await app.request(`${API_ROUTES.circleFeed}?${search.toString()}`, {
+    method: "GET"
+  });
+  expect(response.status).toBe(200);
+
+  return (await response.json()) as {
+    items: Array<{ id: string }>;
+    nextCursor: string | null;
+    pagination: { page: number | null; total: number | null; hasMore: boolean };
+  };
+}
+
 async function uploadFile(
   cookie: string,
   input: {
@@ -702,17 +726,11 @@ describe.sequential("posts and social flows", () => {
       }
     ]);
 
-    const response = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
-      method: "GET"
-    });
-    expect(response.status).toBe(200);
-    const payload = (await response.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number };
-    };
+    const payload = await readRecommendedCircleFeedPage({ limit: 10 });
 
     expect(payload.items.some((item) => item.id === "moment_share_heavy")).toBe(true);
     expect(payload.pagination.total).toBeGreaterThanOrEqual(61);
+    expect(payload.nextCursor).toBeTruthy();
   });
 
   it("filters low-value reported and stale candidates in recommended repo query", async () => {
@@ -804,7 +822,7 @@ describe.sequential("posts and social flows", () => {
       tab: "recommended",
       type: "moment",
       page: 1,
-      limit: 110
+      limit: 200
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
@@ -828,7 +846,7 @@ describe.sequential("posts and social flows", () => {
       tab: "recommended",
       type: "moment",
       page: 1,
-      limit: 120
+      limit: 200
     });
     expect(listPostImagesSpy).toHaveBeenCalledTimes(1);
     expect(listPostVideosSpy).toHaveBeenCalledTimes(1);
@@ -932,8 +950,8 @@ describe.sequential("posts and social flows", () => {
       pagination: { total: number; hasMore: boolean };
     };
 
-    expect(pageTwoPayload.pagination.total).toBe(200);
-    expect(pageThreePayload.pagination.total).toBe(200);
+    expect(pageTwoPayload.pagination.total).toBe(201);
+    expect(pageThreePayload.pagination.total).toBe(201);
     expect(pageTwoPayload.pagination.hasMore).toBe(true);
     expect(pageThreePayload.pagination.hasMore).toBe(true);
     expect(pageTwoPayload.items).toHaveLength(50);
@@ -946,7 +964,7 @@ describe.sequential("posts and social flows", () => {
     expect(overlap).toHaveLength(0);
   });
 
-  it("keeps a fresh high-share candidate from being cut by the coarse-ranking window", async () => {
+  it("keeps a fresh high-share candidate from being cut by cursor pagination batches", async () => {
     const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T09:20:00.000Z");
     const protectedCandidateId = "moment_fresh_share_guard";
@@ -985,23 +1003,11 @@ describe.sequential("posts and social flows", () => {
       ...lowVolume
     ]);
 
-    const pageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=1`, {
-      method: "GET"
+    const pageOnePayload = await readRecommendedCircleFeedPage({ limit: 10 });
+    const pageTwoPayload = await readRecommendedCircleFeedPage({
+      limit: 10,
+      cursor: expectDefined(pageOnePayload.nextCursor)
     });
-    const pageTwoResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=2`, {
-      method: "GET"
-    });
-
-    expect(pageOneResponse.status).toBe(200);
-    expect(pageTwoResponse.status).toBe(200);
-    const pageOnePayload = (await pageOneResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
-    const pageTwoPayload = (await pageTwoResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
 
     expect(pageTwoPayload.pagination.total).toBeGreaterThanOrEqual(71);
     expect(pageOnePayload.pagination.hasMore).toBe(true);
@@ -1012,16 +1018,7 @@ describe.sequential("posts and social flows", () => {
           input?.tab === "recommended" &&
           input?.type === "moment" &&
           input?.page === 1 &&
-          input?.limit === 60
-      )
-    ).toBe(true);
-    expect(
-      listFeedSpy.mock.calls.some(
-        ([input]) =>
-          input?.tab === "recommended" &&
-          input?.type === "moment" &&
-          input?.page === 1 &&
-          input?.limit === 70
+          input?.limit === 200
       )
     ).toBe(true);
     const firstTwoPageIds = [...pageOnePayload.items, ...pageTwoPayload.items].map((item) => item.id);
@@ -1029,7 +1026,7 @@ describe.sequential("posts and social flows", () => {
     listFeedSpy.mockRestore();
   });
 
-  it("caps recommended candidate window at 200 rows for input control", async () => {
+  it("does not clip recommended candidates at 200 rows", async () => {
     const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-08T09:40:00.000Z");
     const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
@@ -1046,29 +1043,25 @@ describe.sequential("posts and social flows", () => {
       }))
     );
 
-    const pageThreeResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=3`, {
-      method: "GET"
+    const pageOnePayload = await readRecommendedCircleFeedPage({ limit: 50 });
+    const pageTwoPayload = await readRecommendedCircleFeedPage({
+      limit: 50,
+      cursor: expectDefined(pageOnePayload.nextCursor)
     });
-    const pageFourResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=50&page=4`, {
-      method: "GET"
+    const pageThreePayload = await readRecommendedCircleFeedPage({
+      limit: 50,
+      cursor: expectDefined(pageTwoPayload.nextCursor)
     });
-
-    expect(pageThreeResponse.status).toBe(200);
-    expect(pageFourResponse.status).toBe(200);
-    const pageThreePayload = (await pageThreeResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
-    const pageFourPayload = (await pageFourResponse.json()) as {
-      items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
-    };
+    const pageFourPayload = await readRecommendedCircleFeedPage({
+      limit: 50,
+      cursor: expectDefined(pageThreePayload.nextCursor)
+    });
 
     expect(pageThreePayload.items).toHaveLength(50);
     expect(pageFourPayload.items).toHaveLength(50);
-    expect(pageThreePayload.pagination.total).toBe(200);
-    expect(pageFourPayload.pagination.total).toBe(200);
-    expect(pageFourPayload.pagination.hasMore).toBe(false);
+    expect(pageThreePayload.pagination.total).toBe(260);
+    expect(pageFourPayload.pagination.total).toBe(260);
+    expect(pageFourPayload.pagination.hasMore).toBe(true);
     expect(listFeedSpy.mock.calls.length).toBeGreaterThanOrEqual(2);
     expect(
       listFeedSpy.mock.calls.filter(
