@@ -1,8 +1,30 @@
 import type { RichTextToolbarKey } from "./rich-text-editor-helpers";
 
 export type RichTextToolbarControl = {
-  key: RichTextToolbarKey | "insertTable" | "addRow" | "deleteRow" | "addColumn" | "deleteColumn" | "toggleHeader" | "textColor" | "clearColor" | "image" | "video";
+  key:
+    | RichTextToolbarKey
+    | "insertTable"
+    | "addRow"
+    | "deleteRow"
+    | "addColumn"
+    | "deleteColumn"
+    | "toggleHeader"
+    | "textColor"
+    | "clearColor"
+    | "image"
+    | "video";
   label: string;
+};
+
+export type RichTextToolbarGroup = {
+  key: "inline" | "structure" | "insert" | "history";
+  label: string;
+  controls: RichTextToolbarControl["key"][];
+};
+
+export type RichTextColorSwatch = {
+  label: string;
+  value: string;
 };
 
 export const RICH_TEXT_TOOLBAR_CONTROLS: RichTextToolbarControl[] = [
@@ -37,6 +59,51 @@ export const RICH_TEXT_TOOLBAR_CONTROLS: RichTextToolbarControl[] = [
   { key: "toggleHeader", label: "表头" },
   { key: "image", label: "图片" },
   { key: "video", label: "视频" }
+];
+
+export const RICH_TEXT_TOOLBAR_GROUPS: RichTextToolbarGroup[] = [
+  {
+    key: "inline",
+    label: "文本",
+    controls: ["bold", "italic", "underline", "strike", "highlight", "code", "textColor", "clearColor"]
+  },
+  {
+    key: "structure",
+    label: "结构",
+    controls: [
+      "heading2",
+      "heading3",
+      "bulletList",
+      "orderedList",
+      "taskList",
+      "blockquote",
+      "horizontalRule",
+      "alignLeft",
+      "alignCenter",
+      "alignRight",
+      "link",
+      "unlink"
+    ]
+  },
+  {
+    key: "insert",
+    label: "插入",
+    controls: ["insertTable", "addRow", "deleteRow", "addColumn", "deleteColumn", "toggleHeader", "image", "video"]
+  },
+  {
+    key: "history",
+    label: "操作",
+    controls: ["undo", "redo"]
+  }
+];
+
+export const RICH_TEXT_COLOR_SWATCHES: RichTextColorSwatch[] = [
+  { label: "石墨黑", value: "#111827" },
+  { label: "青灰", value: "#334155" },
+  { label: "品红", value: "#be123c" },
+  { label: "琉璃紫", value: "#7c3aed" },
+  { label: "景蓝", value: "#2563eb" },
+  { label: "翡翠绿", value: "#059669" }
 ];
 
 export function getToolbarControlLabel(key: RichTextToolbarControl["key"]) {

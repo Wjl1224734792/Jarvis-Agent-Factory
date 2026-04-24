@@ -132,3 +132,41 @@ export function getRichTextMediaInsertions(kind: "image" | "video" | "table", as
 export function shouldSyncRichTextValue(currentHtml: string, nextValue: string) {
   return currentHtml !== nextValue;
 }
+
+export function extractPlainTextFromHtml(html: string) {
+  if (!html.trim()) {
+    return "";
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(html, "text/html");
+    return documentNode.body.textContent?.replace(/\s+\n/g, "\n").trim() ?? "";
+  }
+
+  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
+}
+
+export function normalizeRichTextLinkHref(input: string) {
+  const value = input.trim();
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  if (/^[a-z][a-z\d+.-]*:/i.test(value)) {
+    return value;
+  }
+
+  if (/\s/.test(value)) {
+    return "";
+  }
+
+  if (value.startsWith("www.") || /^[^/]+\.[^/]+/.test(value)) {
+    return `https://${value}`;
+  }
+
+  return value;
+}

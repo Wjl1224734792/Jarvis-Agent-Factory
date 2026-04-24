@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildRichTextToolbarState,
+  extractPlainTextFromHtml,
   getRichTextMediaInsertions,
+  normalizeRichTextLinkHref,
   shouldSyncRichTextValue
 } from "../src/components/rich-text-editor-helpers";
 
@@ -129,5 +131,33 @@ describe("shouldSyncRichTextValue", () => {
   it("only syncs when the next html differs from the editor html", () => {
     expect(shouldSyncRichTextValue("<p>same</p>", "<p>same</p>")).toBe(false);
     expect(shouldSyncRichTextValue("<p>old</p>", "<p>new</p>")).toBe(true);
+  });
+});
+
+describe("extractPlainTextFromHtml", () => {
+  it("strips markup and keeps readable text blocks", () => {
+    expect(
+      extractPlainTextFromHtml(
+        "<h2>段落标题</h2><p>第一段 <strong>加粗</strong> 文本。</p><figure data-video-block=\"true\"><video src=\"https://cdn.example.com/demo.mp4\"></video></figure><p>结尾。</p>"
+      )
+    ).toBe("段落标题 第一段 加粗 文本。 结尾。");
+  });
+
+  it("returns an empty string for blank rich text html", () => {
+    expect(extractPlainTextFromHtml("   ")).toBe("");
+    expect(extractPlainTextFromHtml("<p></p>")).toBe("");
+  });
+});
+
+describe("normalizeRichTextLinkHref", () => {
+  it("normalizes bare domains into https urls", () => {
+    expect(normalizeRichTextLinkHref("example.com/article")).toBe("https://example.com/article");
+    expect(normalizeRichTextLinkHref("www.example.com")).toBe("https://www.example.com");
+  });
+
+  it("preserves explicit schemes and clears blank input", () => {
+    expect(normalizeRichTextLinkHref("https://example.com")).toBe("https://example.com");
+    expect(normalizeRichTextLinkHref("mailto:hello@example.com")).toBe("mailto:hello@example.com");
+    expect(normalizeRichTextLinkHref("   ")).toBe("");
   });
 });

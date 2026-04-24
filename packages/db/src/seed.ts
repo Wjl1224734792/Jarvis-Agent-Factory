@@ -24,7 +24,7 @@ import {
   usersTable
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
-import { RUNTIME_SEED_ASSETS } from "./runtime-seed.js";
+import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl } from "./runtime-seed.js";
 
 const USER_IDS = {
   skyline: "seed_user_skyline",
@@ -114,6 +114,8 @@ const FILE_IDS = {
 const COMMENT_IDS = {
   skylineRoot: "seed_comment_skyline_root",
   skylineReply: "seed_comment_skyline_reply",
+  reviewRoot: "seed_comment_review_root",
+  reviewReply: "seed_comment_review_reply",
   officialRoot: "seed_comment_official_root",
   valleyRoot: "seed_comment_valley_root"
 } as const;
@@ -146,6 +148,131 @@ const BRAND_APPLICATION_IDS = {
 function seededDate(day: number, hour: number, minute = 0) {
   return new Date(Date.UTC(2026, 2, day, hour, minute, 0));
 }
+
+const SKYLINE_ARTICLE_TITLE = "Urban eVTOL corridor rehearsal: three-leg test notes";
+const REVIEW_ARTICLE_TITLE = "Mountain wind checklist for compact drones: preflight to landing";
+
+const SKYLINE_ARTICLE_SUMMARY =
+  "Three linked corridor tests covering route shifts, gust limits, and recovery actions for urban eVTOL drills.";
+const REVIEW_ARTICLE_SUMMARY =
+  "Field-ready checklist for mountain wind operations, from terrain scan to final descent fallback handling.";
+
+const SKYLINE_ARTICLE_PLAIN_TEXT =
+  "Three-leg urban eVTOL rehearsal notes with route updates, KPI table, task list, and media references for regression checks.";
+const REVIEW_ARTICLE_PLAIN_TEXT =
+  "Mountain wind checklist with phased actions, quote guidance, comparison table, task list, and media references.";
+
+const SEED_MEDIA_URLS = {
+  skylineImage: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.cityRoute.key),
+  skylineVideo: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.videos.hangarWalkthrough.key),
+  reviewImage: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.images.droneChecklist.key),
+  reviewVideo: resolveRuntimeSeedAssetUrl(RUNTIME_SEED_ASSETS.videos.officialBriefing.key)
+} as const;
+
+const SKYLINE_ARTICLE_CONTENT_HTML = `
+<h2>Route baseline</h2>
+<p>We tested three linked corridors for morning commuter operations and logged battery, crosswind, and descent safety margins.</p>
+<h3>What changed from the previous run</h3>
+<ul>
+  <li>Shifted the approach gate 120m east to avoid thermal turbulence near tower B.</li>
+  <li>Raised reserve battery threshold from 22% to 28% for segment C.</li>
+  <li>Added a mandatory hover-check before final descent in mixed traffic windows.</li>
+</ul>
+<blockquote>
+  <p>Keep the final descent under 2.5 m/s when gust spread exceeds 6 kt.</p>
+</blockquote>
+<table>
+  <tbody>
+    <tr>
+      <th><p>Segment</p></th>
+      <th><p>Avg Ground Speed</p></th>
+      <th><p>Battery Delta</p></th>
+      <th><p>Fallback Trigger</p></th>
+    </tr>
+    <tr>
+      <td><p>A (harbor)</p></td>
+      <td><p>41 km/h</p></td>
+      <td><p>-12%</p></td>
+      <td><p>GNSS drift &gt; 1.8m</p></td>
+    </tr>
+    <tr>
+      <td><p>B (midtown)</p></td>
+      <td><p>36 km/h</p></td>
+      <td><p>-15%</p></td>
+      <td><p>Crosswind peak &gt; 11 m/s</p></td>
+    </tr>
+    <tr>
+      <td><p>C (river turn)</p></td>
+      <td><p>33 km/h</p></td>
+      <td><p>-18%</p></td>
+      <td><p>Reserve battery &lt; 28%</p></td>
+    </tr>
+  </tbody>
+</table>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true"><p>Verified alternate landing point lighting.</p></li>
+  <li data-type="taskItem" data-checked="true"><p>Replayed RC link interruption drill once.</p></li>
+  <li data-type="taskItem" data-checked="false"><p>Schedule one more dusk run with heavier payload.</p></li>
+</ul>
+<figure>
+  <img src="${SEED_MEDIA_URLS.skylineImage}" alt="Urban route reference frame" />
+</figure>
+<figure data-video-block="true">
+  <video controls="true" preload="metadata" src="${SEED_MEDIA_URLS.skylineVideo}"></video>
+</figure>
+<p>Replay package is attached for article-detail and editor regression checks.</p>
+`.trim();
+
+const REVIEW_ARTICLE_CONTENT_HTML = `
+<h2>Mission profile</h2>
+<p>This checklist is for compact drones operating in mountain valleys with unstable shear layers and narrow recovery windows.</p>
+<h3>Execution order</h3>
+<ol>
+  <li>Scan terrain and identify at least two emergency climb corridors.</li>
+  <li>Run a 30-second hover stability test before committing to the route.</li>
+  <li>Lock return-to-home altitude above the highest ridge line on the planned loop.</li>
+  <li>Confirm manual descent fallback before entering the final valley turn.</li>
+</ol>
+<blockquote>
+  <p>If ridge gusts stack with rotor wash, prioritize altitude over framing.</p>
+</blockquote>
+<table>
+  <tbody>
+    <tr>
+      <th><p>Check Item</p></th>
+      <th><p>Target</p></th>
+      <th><p>Abort Rule</p></th>
+    </tr>
+    <tr>
+      <td><p>Hover drift</p></td>
+      <td><p>&lt; 1.2m / 30s</p></td>
+      <td><p>Abort if drift exceeds 2m</p></td>
+    </tr>
+    <tr>
+      <td><p>Battery reserve</p></td>
+      <td><p>&ge; 35%</p></td>
+      <td><p>Abort below 30%</p></td>
+    </tr>
+    <tr>
+      <td><p>Crosswind spread</p></td>
+      <td><p>&le; 6 kt</p></td>
+      <td><p>Hold position above 8 kt</p></td>
+    </tr>
+  </tbody>
+</table>
+<ul data-type="taskList">
+  <li data-type="taskItem" data-checked="true"><p>Preloaded emergency landing coordinates.</p></li>
+  <li data-type="taskItem" data-checked="false"><p>Repeat descent test with payload bracket mounted.</p></li>
+  <li data-type="taskItem" data-checked="false"><p>Capture one low-light reference run for comparison.</p></li>
+</ul>
+<figure>
+  <img src="${SEED_MEDIA_URLS.reviewImage}" alt="Mountain operation checklist map" />
+</figure>
+<figure data-video-block="true">
+  <video controls="true" preload="metadata" src="${SEED_MEDIA_URLS.reviewVideo}"></video>
+</figure>
+<p>Use this sample to validate table editing, task toggles, and media block persistence.</p>
+`.trim();
 
 function buildSeedFile(input: {
   id: string;
@@ -340,8 +467,8 @@ async function seedPosts(adminUserId: string) {
     .values([
       { id: POST_IDS.officialLaunch, authorId: adminUserId, type: "article", title: "Official Low-Altitude Weekly", content: "The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.", contentHtml: "<p>The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.</p>", contentPlainText: "The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.", contentCategoryId: CONTENT_CATEGORY_IDS.news, status: "published", commentCount: 1, reportCount: 0, likeCount: 2, favoriteCount: 2, shareCount: 1, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9), publishedAt: seededDate(24, 8) },
       { id: POST_IDS.officialGuide, authorId: adminUserId, type: "article", title: "Official Preflight Checklist", content: "This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.", contentHtml: "<p>This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.</p>", contentPlainText: "This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.", contentCategoryId: CONTENT_CATEGORY_IDS.guide, status: "published", commentCount: 0, reportCount: 0, likeCount: 1, favoriteCount: 1, shareCount: 1, createdAt: seededDate(24, 12), updatedAt: seededDate(24, 13), publishedAt: seededDate(24, 12) },
-      { id: POST_IDS.skylineArticle, authorId: USER_IDS.skyline, type: "article", title: "2026 eVTOL aerodynamic snapshot", content: "A concise summary of current eVTOL aerodynamic updates.", contentHtml: "<p>A concise summary of current eVTOL aerodynamic updates.</p>", contentPlainText: "A concise summary of current eVTOL aerodynamic updates.", contentCategoryId: CONTENT_CATEGORY_IDS.news, status: "published", commentCount: 2, reportCount: 0, likeCount: 3, favoriteCount: 2, shareCount: 1, createdAt: seededDate(23, 10), updatedAt: seededDate(23, 11), publishedAt: seededDate(23, 10) },
-      { id: POST_IDS.reviewArticle, authorId: USER_IDS.review, type: "article", title: "High-altitude drone checklist", content: "Five practical checks before high-altitude flights.", contentHtml: "<p>Five practical checks before high-altitude flights.</p>", contentPlainText: "Five practical checks before high-altitude flights.", contentCategoryId: CONTENT_CATEGORY_IDS.review, status: "published", commentCount: 0, reportCount: 0, likeCount: 2, favoriteCount: 1, shareCount: 1, createdAt: seededDate(22, 9), updatedAt: seededDate(22, 10), publishedAt: seededDate(22, 9) },
+      { id: POST_IDS.skylineArticle, authorId: USER_IDS.skyline, type: "article", title: SKYLINE_ARTICLE_TITLE, content: SKYLINE_ARTICLE_SUMMARY, contentHtml: SKYLINE_ARTICLE_CONTENT_HTML, contentPlainText: SKYLINE_ARTICLE_PLAIN_TEXT, contentCategoryId: CONTENT_CATEGORY_IDS.news, status: "published", commentCount: 2, reportCount: 0, likeCount: 4, favoriteCount: 3, shareCount: 2, createdAt: seededDate(23, 10), updatedAt: seededDate(23, 11), publishedAt: seededDate(23, 10) },
+      { id: POST_IDS.reviewArticle, authorId: USER_IDS.review, type: "article", title: REVIEW_ARTICLE_TITLE, content: REVIEW_ARTICLE_SUMMARY, contentHtml: REVIEW_ARTICLE_CONTENT_HTML, contentPlainText: REVIEW_ARTICLE_PLAIN_TEXT, contentCategoryId: CONTENT_CATEGORY_IDS.review, status: "published", commentCount: 2, reportCount: 0, likeCount: 3, favoriteCount: 2, shareCount: 2, createdAt: seededDate(22, 9), updatedAt: seededDate(22, 10), publishedAt: seededDate(22, 9) },
       { id: POST_IDS.pendingArticle, authorId: USER_IDS.canyon, type: "article", title: "Pending canyon observation", content: "This article stays pending so admin can verify the queue.", contentHtml: "<p>This article stays pending so admin can verify the queue.</p>", contentPlainText: "This article stays pending so admin can verify the queue.", contentCategoryId: CONTENT_CATEGORY_IDS.tech, status: "pending", commentCount: 0, reportCount: 0, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(25, 8), updatedAt: seededDate(25, 8), publishedAt: null },
       { id: POST_IDS.rejectedArticle, authorId: USER_IDS.night, type: "article", title: "Rejected sample article", content: "Rejected sample article for admin review history.", contentHtml: "<p>Rejected sample article for admin review history.</p>", contentPlainText: "Rejected sample article for admin review history.", contentCategoryId: CONTENT_CATEGORY_IDS.tech, status: "rejected", commentCount: 0, reportCount: 1, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(25, 9), updatedAt: seededDate(25, 9), publishedAt: null },
       { id: POST_IDS.coastMoment, authorId: USER_IDS.canyon, type: "moment", title: "Coastline test log", content: "Wind was stronger than expected but return-to-home stayed stable.", contentHtml: null, contentPlainText: "Wind was stronger than expected but return-to-home stayed stable.", contentCategoryId: null, status: "published", commentCount: 0, reportCount: 0, likeCount: 2, favoriteCount: 1, shareCount: 0, createdAt: seededDate(25, 6), updatedAt: seededDate(25, 6), publishedAt: seededDate(25, 6) },
@@ -390,6 +517,8 @@ async function seedPostCommentsAndInteractions() {
     .values([
       { id: COMMENT_IDS.skylineRoot, postId: POST_IDS.skylineArticle, authorId: USER_IDS.aero, parentCommentId: null, replyToCommentId: null, replyToUserId: null, content: "Useful overview and clear structure.", status: "visible", createdAt: seededDate(23, 12), updatedAt: seededDate(23, 12) },
       { id: COMMENT_IDS.skylineReply, postId: POST_IDS.skylineArticle, authorId: USER_IDS.skyline, parentCommentId: COMMENT_IDS.skylineRoot, replyToCommentId: COMMENT_IDS.skylineRoot, replyToUserId: USER_IDS.aero, content: "Thanks, I will add more low-speed test data.", status: "visible", createdAt: seededDate(23, 13), updatedAt: seededDate(23, 13) },
+      { id: COMMENT_IDS.reviewRoot, postId: POST_IDS.reviewArticle, authorId: USER_IDS.followerA, parentCommentId: null, replyToCommentId: null, replyToUserId: null, content: "The abort thresholds are clear and easy to reuse on field checks.", status: "visible", createdAt: seededDate(22, 11), updatedAt: seededDate(22, 11) },
+      { id: COMMENT_IDS.reviewReply, postId: POST_IDS.reviewArticle, authorId: USER_IDS.review, parentCommentId: COMMENT_IDS.reviewRoot, replyToCommentId: COMMENT_IDS.reviewRoot, replyToUserId: USER_IDS.followerA, content: "Great callout. I will append one winter-condition variant in the next update.", status: "visible", createdAt: seededDate(22, 11, 30), updatedAt: seededDate(22, 11, 30) },
       { id: COMMENT_IDS.officialRoot, postId: POST_IDS.officialLaunch, authorId: USER_IDS.followerA, parentCommentId: null, replyToCommentId: null, replyToUserId: null, content: "Please keep the official ranking summary updated next week as well.", status: "visible", createdAt: seededDate(24, 9, 30), updatedAt: seededDate(24, 9, 30) },
       { id: COMMENT_IDS.valleyRoot, postId: POST_IDS.valleyMoment, authorId: USER_IDS.followerB, parentCommentId: null, replyToCommentId: null, replyToUserId: null, content: "This return-height reminder is very useful.", status: "visible", createdAt: seededDate(24, 15), updatedAt: seededDate(24, 15) }
     ])
@@ -409,13 +538,19 @@ async function seedPostCommentsAndInteractions() {
       { id: "seed_like_skyline_a", postId: POST_IDS.skylineArticle, userId: USER_IDS.followerA, type: "like", createdAt: seededDate(23, 11) },
       { id: "seed_like_skyline_b", postId: POST_IDS.skylineArticle, userId: USER_IDS.followerB, type: "like", createdAt: seededDate(23, 11, 5) },
       { id: "seed_like_skyline_c", postId: POST_IDS.skylineArticle, userId: USER_IDS.review, type: "like", createdAt: seededDate(23, 11, 10) },
+      { id: "seed_like_skyline_d", postId: POST_IDS.skylineArticle, userId: USER_IDS.canyon, type: "like", createdAt: seededDate(23, 11, 12) },
       { id: "seed_favorite_skyline_a", postId: POST_IDS.skylineArticle, userId: USER_IDS.aero, type: "favorite", createdAt: seededDate(23, 11, 15) },
       { id: "seed_favorite_skyline_b", postId: POST_IDS.skylineArticle, userId: USER_IDS.night, type: "favorite", createdAt: seededDate(23, 11, 20) },
+      { id: "seed_favorite_skyline_c", postId: POST_IDS.skylineArticle, userId: USER_IDS.submitterB, type: "favorite", createdAt: seededDate(23, 11, 22) },
       { id: "seed_share_skyline", postId: POST_IDS.skylineArticle, userId: USER_IDS.ranking, type: "share", createdAt: seededDate(23, 11, 25) },
+      { id: "seed_share_skyline_b", postId: POST_IDS.skylineArticle, userId: USER_IDS.submitterA, type: "share", createdAt: seededDate(23, 11, 30) },
       { id: "seed_like_review_a", postId: POST_IDS.reviewArticle, userId: USER_IDS.skyline, type: "like", createdAt: seededDate(22, 10) },
       { id: "seed_like_review_b", postId: POST_IDS.reviewArticle, userId: USER_IDS.followerA, type: "like", createdAt: seededDate(22, 10, 5) },
+      { id: "seed_like_review_c", postId: POST_IDS.reviewArticle, userId: USER_IDS.canyon, type: "like", createdAt: seededDate(22, 10, 8) },
       { id: "seed_favorite_review", postId: POST_IDS.reviewArticle, userId: USER_IDS.followerB, type: "favorite", createdAt: seededDate(22, 10, 10) },
+      { id: "seed_favorite_review_b", postId: POST_IDS.reviewArticle, userId: USER_IDS.night, type: "favorite", createdAt: seededDate(22, 10, 12) },
       { id: "seed_share_review", postId: POST_IDS.reviewArticle, userId: USER_IDS.aero, type: "share", createdAt: seededDate(22, 10, 15) },
+      { id: "seed_share_review_b", postId: POST_IDS.reviewArticle, userId: USER_IDS.submitterA, type: "share", createdAt: seededDate(22, 10, 18) },
       { id: "seed_like_coast_a", postId: POST_IDS.coastMoment, userId: USER_IDS.followerA, type: "like", createdAt: seededDate(25, 6, 30) },
       { id: "seed_like_coast_b", postId: POST_IDS.coastMoment, userId: USER_IDS.skyline, type: "like", createdAt: seededDate(25, 6, 40) },
       { id: "seed_favorite_coast", postId: POST_IDS.coastMoment, userId: USER_IDS.review, type: "favorite", createdAt: seededDate(25, 6, 50) },
@@ -515,9 +650,9 @@ async function seedNotifications() {
         type: "post_liked",
         targetType: "post",
         targetId: POST_IDS.skylineArticle,
-        targetTitle: "2026 eVTOL aerodynamic snapshot",
+        targetTitle: SKYLINE_ARTICLE_TITLE,
         title: "收到新的点赞",
-        summary: "Aero 点赞了你的《2026 eVTOL aerodynamic snapshot》",
+        summary: `Aero liked your post "${SKYLINE_ARTICLE_TITLE}".`,
         preview: null,
         metadata: JSON.stringify({
           href: `/posts/${POST_IDS.skylineArticle}`
@@ -537,7 +672,7 @@ async function seedNotifications() {
         targetId: COMMENT_IDS.skylineReply,
         targetTitle: "Skyline comment reply",
         title: "收到新的回复",
-        summary: "Skyline 回复了你在《2026 eVTOL aerodynamic snapshot》下的评论",
+        summary: `Skyline replied to your comment on "${SKYLINE_ARTICLE_TITLE}".`,
         preview: "感谢反馈，我们下一次再试高海拔航线。",
         metadata: JSON.stringify({
           href: `/posts/${POST_IDS.skylineArticle}`
