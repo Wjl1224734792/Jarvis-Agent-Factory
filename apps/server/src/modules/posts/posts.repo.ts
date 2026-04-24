@@ -29,8 +29,18 @@ type RecommendedFeedCursorInput = {
   id: string;
 };
 
+function buildFeedPublishedAtExpressionFrom(input: {
+  publishedAt: SQLWrapper;
+  createdAt: SQLWrapper;
+}) {
+  return sql`coalesce(${input.publishedAt}, ${input.createdAt})`;
+}
+
 function buildFeedPublishedAtExpression() {
-  return sql`coalesce(${postsTable.publishedAt}, ${postsTable.createdAt})`;
+  return buildFeedPublishedAtExpressionFrom({
+    publishedAt: postsTable.publishedAt,
+    createdAt: postsTable.createdAt
+  });
 }
 
 function buildRecommendationEngagementVolumeExpression() {
@@ -255,43 +265,64 @@ function buildFeedOrder(
   return [desc(buildFeedPublishedAtExpression()), desc(postsTable.id)] as const;
 }
 
+function buildRecommendedCursorConditionFrom(input: {
+  recommendationBaseScore: SQLWrapper;
+  publishedAt: SQLWrapper;
+  id: SQLWrapper;
+  cursor: RecommendedFeedCursorInput;
+}) {
+  return sql`(
+    ${input.recommendationBaseScore} < ${input.cursor.score}
+    or (
+      ${input.recommendationBaseScore} = ${input.cursor.score}
+      and ${input.publishedAt} < ${input.cursor.publishedAt}
+    )
+    or (
+      ${input.recommendationBaseScore} = ${input.cursor.score}
+      and ${input.publishedAt} = ${input.cursor.publishedAt}
+      and ${input.id} < ${input.cursor.id}
+    )
+  )`;
+}
+
 function buildRecommendedCursorCondition(
   type: PostType,
   currentUserId: string | null | undefined,
   cursor: RecommendedFeedCursorInput,
   recommendationNow?: Date
 ) {
-  const recommendationBaseScore = buildRecommendedStaticBaseScoreExpression(
-    type,
-    currentUserId,
-    recommendationNow
-  );
-  const publishedAtExpression = buildFeedPublishedAtExpression();
+  return buildRecommendedCursorConditionFrom({
+    recommendationBaseScore: buildRecommendedStaticBaseScoreExpression(
+      type,
+      currentUserId,
+      recommendationNow
+    ),
+    publishedAt: buildFeedPublishedAtExpression(),
+    id: postsTable.id,
+    cursor
+  });
+}
 
+function buildFeedCursorConditionFrom(input: {
+  publishedAt: SQLWrapper;
+  id: SQLWrapper;
+  cursor: FeedCursorInput;
+}) {
   return sql`(
-    ${recommendationBaseScore} < ${cursor.score}
+    ${input.publishedAt} < ${input.cursor.publishedAt}
     or (
-      ${recommendationBaseScore} = ${cursor.score}
-      and ${publishedAtExpression} < ${cursor.publishedAt}
-    )
-    or (
-      ${recommendationBaseScore} = ${cursor.score}
-      and ${publishedAtExpression} = ${cursor.publishedAt}
-      and ${postsTable.id} < ${cursor.id}
+      ${input.publishedAt} = ${input.cursor.publishedAt}
+      and ${input.id} < ${input.cursor.id}
     )
   )`;
 }
 
 function buildFeedCursorCondition(cursor: FeedCursorInput) {
-  const publishedAtExpression = buildFeedPublishedAtExpression();
-
-  return sql`(
-    ${publishedAtExpression} < ${cursor.publishedAt}
-    or (
-      ${publishedAtExpression} = ${cursor.publishedAt}
-      and ${postsTable.id} < ${cursor.id}
-    )
-  )`;
+  return buildFeedCursorConditionFrom({
+    publishedAt: buildFeedPublishedAtExpression(),
+    id: postsTable.id,
+    cursor
+  });
 }
 
 const FEED_PREVIEW_SOURCE_LENGTH = 161;
@@ -338,20 +369,11 @@ function postSelection() {
   };
 }
 
-function postFeedSelection(input: {
-  type: PostType;
-  currentUserId?: string | null;
-  includeRecommendationBaseScore: boolean;
-  recommendationNow?: Date;
+function postFeedSelection(input?: {
+  recommendationBaseScore?: any;
 }) {
   const previewSource = buildFeedPreviewSource();
-  const recommendationBaseScore = input.includeRecommendationBaseScore
-    ? buildRecommendedStaticBaseScoreExpression(
-        input.type,
-        input.currentUserId,
-        input.recommendationNow
-      )
-    : sql<number | null>`null`;
+  const recommendationBaseScore = input?.recommendationBaseScore ?? sql<number | null>`null`;
 
   return {
     id: postsTable.id,
@@ -714,40 +736,136 @@ export const postsRepo = {
       conditions.push(eq(contentCategoriesTable.slug, input.contentCategorySlug));
     }
 
-    if (input.tab === "recommended" && input.recommendedCursor) {
-      conditions.push(
-        buildRecommendedCursorCondition(
-          input.type,
-          input.currentUserId,
-          input.recommendedCursor,
-          input.recommendationNow
-        )
-      );
-    }
-
     if (input.tab !== "recommended" && input.feedCursor) {
       conditions.push(buildFeedCursorCondition(input.feedCursor));
     }
 
     const offset = Math.max(0, input.offset ?? 0);
     const shouldIncludeTotal = input.includeTotal ?? true;
-    const baseCountQuery = shouldIncludeTotal
-      ? db
-          .select({ count: sql<number>`count(*)` })
+    const baseCountQuery =
+      shouldIncludeTotal && input.tab !== "recommended"
+        ? db
+            .select({ count: sql<number>`count(*)` })
+            .from(postsTable)
+            .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
+            .where(and(...conditions))
+        : null;
+
+    if (input.tab === "recommended") {
+      const recommendationBaseScore = buildRecommendedStaticBaseScoreExpression(
+        input.type,
+        input.currentUserId,
+        input.recommendationNow
+      ).as("recommendation_base_score");
+      const scoredFeed = db.$with("scored_feed").as(
+        db
+          .select({
+            id: postsTable.id,
+            authorId: postsTable.authorId,
+            contentCategoryId: postsTable.contentCategoryId,
+            publishedAt: postsTable.publishedAt,
+            createdAt: postsTable.createdAt,
+            recommendationBaseScore
+          })
           .from(postsTable)
           .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
           .where(and(...conditions))
-      : null;
+      );
+      const scoredFeedPublishedAt = buildFeedPublishedAtExpressionFrom({
+        publishedAt: scoredFeed.publishedAt,
+        createdAt: scoredFeed.createdAt
+      });
+      const scoredFeedConditions = input.recommendedCursor
+        ? [
+            buildRecommendedCursorConditionFrom({
+              recommendationBaseScore: scoredFeed.recommendationBaseScore,
+              publishedAt: scoredFeedPublishedAt,
+              id: scoredFeed.id,
+              cursor: input.recommendedCursor
+            })
+          ]
+        : [];
+      const recommendedCandidatesBaseQuery =
+        scoredFeedConditions.length > 0
+          ? db
+              .with(scoredFeed)
+              .select({
+                id: scoredFeed.id,
+                recommendationBaseScore: scoredFeed.recommendationBaseScore,
+                publishedAt: scoredFeed.publishedAt,
+                createdAt: scoredFeed.createdAt
+              })
+              .from(scoredFeed)
+              .where(and(...scoredFeedConditions))
+          : db
+              .with(scoredFeed)
+              .select({
+                id: scoredFeed.id,
+                recommendationBaseScore: scoredFeed.recommendationBaseScore,
+                publishedAt: scoredFeed.publishedAt,
+                createdAt: scoredFeed.createdAt
+              })
+              .from(scoredFeed);
+      const recommendedCandidatesOrderedQuery = recommendedCandidatesBaseQuery.orderBy(
+        desc(scoredFeed.recommendationBaseScore),
+        desc(scoredFeedPublishedAt),
+        desc(scoredFeed.id)
+      );
+      const recommendedCandidatesQuery =
+        offset > 0
+          ? recommendedCandidatesOrderedQuery.offset(offset).limit(input.limit)
+          : recommendedCandidatesOrderedQuery.limit(input.limit);
+
+      const recommendedCandidates = db.$with("recommended_candidates").as(recommendedCandidatesQuery);
+      const recommendedCandidatesPublishedAt = buildFeedPublishedAtExpressionFrom({
+        publishedAt: recommendedCandidates.publishedAt,
+        createdAt: recommendedCandidates.createdAt
+      });
+      const recommendedCountQuery =
+        shouldIncludeTotal
+          ? (() => {
+              const countSelection = { count: sql<number>`count(*)`.as("count") };
+              return scoredFeedConditions.length > 0
+                ? db
+                    .with(scoredFeed)
+                    .select(countSelection)
+                    .from(scoredFeed)
+                    .where(and(...scoredFeedConditions))
+                : db
+                    .with(scoredFeed)
+                    .select(countSelection)
+                    .from(scoredFeed);
+            })()
+          : null;
+      const recommendedRowsQuery = db
+        .with(scoredFeed, recommendedCandidates)
+        .select(
+          postFeedSelection({
+            recommendationBaseScore: recommendedCandidates.recommendationBaseScore
+          })
+        )
+        .from(recommendedCandidates)
+        .innerJoin(postsTable, eq(recommendedCandidates.id, postsTable.id))
+        .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
+        .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))
+        .orderBy(
+          desc(recommendedCandidates.recommendationBaseScore),
+          desc(recommendedCandidatesPublishedAt),
+          desc(recommendedCandidates.id)
+        );
+      const [rows, countRows] = await Promise.all([
+        recommendedRowsQuery,
+        recommendedCountQuery ?? Promise.resolve([])
+      ]);
+
+      return {
+        items: rows,
+        total: shouldIncludeTotal ? Number(countRows[0]?.count ?? 0) : null
+      };
+    }
 
     const baseQuery = db
-      .select(
-        postFeedSelection({
-          type: input.type,
-          currentUserId: input.currentUserId,
-          includeRecommendationBaseScore: input.tab === "recommended",
-          recommendationNow: input.recommendationNow
-        })
-      )
+      .select(postFeedSelection())
       .from(postsTable)
       .innerJoin(usersTable, eq(postsTable.authorId, usersTable.id))
       .leftJoin(contentCategoriesTable, eq(postsTable.contentCategoryId, contentCategoriesTable.id))

@@ -5,13 +5,13 @@ import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
@@ -303,23 +303,17 @@ export function HomePage() {
   }
 
   const isFeedLoading = homeFeedQuery.isLoading && !homeFeedQuery.data;
-  const isFeedError = homeFeedQuery.isError;
+  const isFeedError = homeFeedQuery.isError && !homeFeedQuery.data;
+  const isFeedNextPageError = homeFeedQuery.isFetchNextPageError && feedItems.length > 0;
   const feedError = homeFeedQuery.error;
   const isFeedRefetching = homeFeedQuery.isRefetching;
-  const hasMoreFeedItems = homeFeedQuery.hasNextPage;
+  const hasMoreFeedItems = Boolean(homeFeedQuery.hasNextPage);
   const isFetchingNextFeedPage = homeFeedQuery.isFetchingNextPage;
+  const showFeedFooter =
+    isFeedNextPageError || isFetchingNextFeedPage || (isFeedRefetching && !isFetchingNextFeedPage);
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
-  const loadMoreLabel =
-    activeTab.kind === "category"
-      ? "加载更多内容"
-      : activeTab.id === "recommended"
-        ? "加载更多推荐"
-        : activeTab.id === "latest"
-          ? "加载更多最新"
-          : "加载更多关注";
-
   return (
     <SitePage>
       <SiteGrid className="items-start gap-4" variant="sidebar">
@@ -363,6 +357,11 @@ export function HomePage() {
                 <VirtualFeed
                   className="!border-0 bg-transparent"
                   data={feedItems}
+                  hasMore={hasMoreFeedItems}
+                  isFetchingNextPage={isFetchingNextFeedPage}
+                  onLoadMore={() => {
+                    void homeFeedQuery.fetchNextPage();
+                  }}
                   emptyState={
                     !isFeedError ? (
                       <Alert className="rounded-none border-0 shadow-none">
@@ -374,25 +373,19 @@ export function HomePage() {
                     ) : null
                   }
                   itemKey={(item) => item.id}
-                  refetchFooterLabel="加载中..."
                   renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
-                  showRefetchFooter={isFeedRefetching && !isFetchingNextFeedPage}
                   useWindowScroll
                 />
-                {hasMoreFeedItems ? (
-                  <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
-                    <Button
-                      disabled={isFetchingNextFeedPage}
-                      onClick={() => {
-                        void homeFeedQuery.fetchNextPage();
-                      }}
-                      type="button"
-                      variant="outline"
-                    >
-                      {isFetchingNextFeedPage ? "加载中..." : loadMoreLabel}
-                    </Button>
-                  </div>
-                ) : null}
+                <FeedRefetchFooter
+                  errorMessage={
+                    isFeedNextPageError
+                      ? `${getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)} 继续上滑将自动重试。`
+                      : undefined
+                  }
+                  label={isFetchingNextFeedPage ? "正在加载更多..." : "加载中..."}
+                  show={showFeedFooter}
+                  state={isFeedNextPageError ? "error" : "loading"}
+                />
               </>
             )}
           </section>

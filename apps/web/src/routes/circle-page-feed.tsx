@@ -5,7 +5,6 @@ import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
@@ -18,18 +17,12 @@ import {
 } from "./circle-page-helpers";
 
 const feedTabs = [
-  { id: "recommended", label: "\u63a8\u8350" },
-  { id: "latest", label: "\u6700\u65b0" },
-  { id: "following", label: "\u5173\u6ce8" }
+  { id: "recommended", label: "推荐" },
+  { id: "latest", label: "最新" },
+  { id: "following", label: "关注" }
 ] as const;
 
 export type FeedTab = (typeof feedTabs)[number]["id"];
-
-const loadMoreLabels: Record<FeedTab, string> = {
-  recommended: "\u52a0\u8f7d\u66f4\u591a\u63a8\u8350",
-  latest: "\u52a0\u8f7d\u66f4\u591a\u6700\u65b0",
-  following: "\u52a0\u8f7d\u66f4\u591a\u5173\u6ce8"
-};
 
 export type CircleFeedItem = {
   id: string;
@@ -59,6 +52,8 @@ type CirclePageFeedProps = {
   isFetchingNextPage: boolean;
   isError: boolean;
   errorMessage?: string;
+  isLoadMoreError?: boolean;
+  loadMoreErrorMessage?: string;
   hasMore?: boolean;
   onLoadMore?: () => void;
   formatCount: (value: number) => string;
@@ -107,7 +102,7 @@ function CircleFeedCard(props: {
           />
         ) : (
           <div className="flex h-full w-full items-center justify-center rounded-[1rem] bg-slate-100 text-xs text-muted-foreground">
-            {"\u672a\u8bbe\u7f6e\u5c01\u9762"}
+            未设置封面
           </div>
         )}
         {item.videos.length > 0 ? (
@@ -153,17 +148,19 @@ export function CirclePageFeed({
   isFetchingNextPage,
   isError,
   errorMessage,
+  isLoadMoreError = false,
+  loadMoreErrorMessage,
   hasMore = false,
   onLoadMore,
   formatCount
 }: CirclePageFeedProps) {
   const feedMeasureRef = useRef<HTMLDivElement>(null);
   const columnCount = useCircleColumnCount(undefined, { widthElementRef: feedMeasureRef });
-
   const columns = useMemo(
     () => partitionCircleFeedShortestColumn(posts, columnCount),
     [posts, columnCount]
   );
+  const showFooter = isLoadMoreError || isFetchingNextPage || (isRefetching && !isFetchingNextPage);
 
   return (
     <div ref={feedMeasureRef} className="w-full min-w-0">
@@ -188,15 +185,15 @@ export function CirclePageFeed({
 
       {isError ? (
         <Alert className="rounded-none border-0" variant="destructive">
-          <AlertTitle>{"\u98de\u53cb\u5708\u52a0\u8f7d\u5931\u8d25"}</AlertTitle>
-          <AlertDescription>{errorMessage ?? "\u7f51\u7edc\u5f00\u5c0f\u5dee\u4e86\uff0c\u8bf7\u7a0d\u540e\u91cd\u8bd5\u3002"}</AlertDescription>
+          <AlertTitle>飞友圈加载失败</AlertTitle>
+          <AlertDescription>{errorMessage ?? "网络开小差了，请稍后重试。"}</AlertDescription>
         </Alert>
       ) : null}
 
       {!isLoading && !isError && posts.length === 0 ? (
         <Alert className="rounded-none border-0">
-          <AlertTitle>{"\u98de\u53cb\u5708\u8fd8\u6ca1\u6709\u65b0\u52a8\u6001"}</AlertTitle>
-          <AlertDescription>{"\u5148\u53d1\u4e00\u6761\u52a8\u6001\u8bd5\u8bd5\u3002"}</AlertDescription>
+          <AlertTitle>飞友圈还没有新动态</AlertTitle>
+          <AlertDescription>先发一条动态试试。</AlertDescription>
         </Alert>
       ) : null}
 
@@ -207,6 +204,9 @@ export function CirclePageFeed({
           <VirtualMasonryColumns
             className="w-full"
             columns={columns}
+            hasMore={hasMore}
+            isFetchingNextPage={isFetchingNextPage}
+            onLoadMore={onLoadMore}
             gap={CIRCLE_CARD_COLUMN_GAP}
             itemKey={({ item }) => item.id}
             renderItem={({ item, absoluteIndex }) => (
@@ -219,14 +219,16 @@ export function CirclePageFeed({
               />
             )}
           />
-          <FeedRefetchFooter show={isRefetching && !isFetchingNextPage} />
-          {hasMore ? (
-            <div className="flex justify-center border-t border-border/70 bg-white px-3 py-4">
-              <Button disabled={isFetchingNextPage} onClick={onLoadMore} type="button" variant="outline">
-                {isFetchingNextPage ? "\u52a0\u8f7d\u4e2d..." : loadMoreLabels[activeTab]}
-              </Button>
-            </div>
-          ) : null}
+          <FeedRefetchFooter
+            errorMessage={
+              isLoadMoreError
+                ? `${loadMoreErrorMessage ?? "飞友圈加载失败，请稍后重试。"} 继续上滑将自动重试。`
+                : undefined
+            }
+            label={isFetchingNextPage ? "正在加载更多..." : "加载中..."}
+            show={showFooter}
+            state={isLoadMoreError ? "error" : "loading"}
+          />
         </div>
       ) : null}
     </div>

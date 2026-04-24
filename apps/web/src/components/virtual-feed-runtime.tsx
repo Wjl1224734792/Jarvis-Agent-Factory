@@ -1,3 +1,4 @@
+import { useEffect, useRef } from "react";
 import { Virtuoso, VirtuosoGrid } from "react-virtuoso";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { cn } from "@/lib/utils";
@@ -10,18 +11,50 @@ export function VirtualFeedRuntime<T>({
   className,
   height = 640,
   useWindowScroll = false,
+  hasMore,
+  isFetchingNextPage,
+  onLoadMore,
   showItemDividers = true,
   showRefetchFooter,
-  refetchFooterLabel
+  refetchFooterLabel,
+  refetchFooterState,
+  refetchFooterErrorMessage
 }: VirtualFeedProps<T>) {
+  const isLoadRequestedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFetchingNextPage) {
+      isLoadRequestedRef.current = false;
+    }
+  }, [isFetchingNextPage]);
+
+  const requestLoadMore = () => {
+    if (!onLoadMore || !hasMore || isFetchingNextPage || isLoadRequestedRef.current) {
+      return;
+    }
+
+    isLoadRequestedRef.current = true;
+    onLoadMore();
+  };
+
   return (
     <div className={cn("border border-border/70 bg-white", className)}>
       <Virtuoso
         className="virtual-feed"
+        endReached={() => {
+          requestLoadMore();
+        }}
         {...(showRefetchFooter
           ? {
               components: {
-                Footer: () => <FeedRefetchFooter label={refetchFooterLabel} show />
+                Footer: () => (
+                  <FeedRefetchFooter
+                    errorMessage={refetchFooterErrorMessage}
+                    label={refetchFooterLabel}
+                    show
+                    state={refetchFooterState}
+                  />
+                )
               }
             }
           : {})}
@@ -73,8 +106,32 @@ export function VirtualMasonryColumnsRuntime<T>({
   className,
   columnClassName,
   gap = "8px",
-  useWindowScroll = true
+  useWindowScroll = true,
+  hasMore,
+  isFetchingNextPage,
+  onLoadMore
 }: VirtualMasonryColumnsProps<T>) {
+  const isLoadRequestedRef = useRef(false);
+
+  useEffect(() => {
+    if (!isFetchingNextPage) {
+      isLoadRequestedRef.current = false;
+    }
+  }, [isFetchingNextPage]);
+
+  const requestLoadMore = (columnIndex: number) => {
+    if (columnIndex !== 0) {
+      return;
+    }
+
+    if (!onLoadMore || !hasMore || isFetchingNextPage || isLoadRequestedRef.current) {
+      return;
+    }
+
+    isLoadRequestedRef.current = true;
+    onLoadMore();
+  };
+
   return (
     <div
       className={cn("grid w-full min-w-0", className)}
@@ -86,6 +143,9 @@ export function VirtualMasonryColumnsRuntime<T>({
       {columns.map((column, columnIndex) => (
         <Virtuoso
           className={cn("min-w-0", columnClassName)}
+          endReached={() => {
+            requestLoadMore(columnIndex);
+          }}
           computeItemKey={(index, item) => itemKey(item, index, columnIndex)}
           data={column}
           increaseViewportBy={{ top: 320, bottom: 480 }}

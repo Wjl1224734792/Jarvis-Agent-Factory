@@ -108,9 +108,10 @@ export function CirclePage() {
 
   const isFeedLoading = circleFeedQuery.isLoading && !circleFeedQuery.data;
   const isFeedRefetching = circleFeedQuery.isRefetching;
-  const isFeedError = circleFeedQuery.isError;
+  const isFeedError = circleFeedQuery.isError && !circleFeedQuery.data;
+  const isFeedNextPageError = circleFeedQuery.isFetchNextPageError && posts.length > 0;
   const feedErrorMessage = circleFeedQuery.error instanceof Error ? circleFeedQuery.error.message : undefined;
-  const hasMoreFeedItems = circleFeedQuery.hasNextPage;
+  const hasMoreFeedItems = Boolean(circleFeedQuery.hasNextPage);
   const isFetchingNextFeedPage = circleFeedQuery.isFetchingNextPage;
 
   function handleToggleFollow() {
@@ -182,6 +183,8 @@ export function CirclePage() {
         isFetchingNextPage={isFetchingNextFeedPage}
         isError={isFeedError}
         errorMessage={feedErrorMessage}
+        isLoadMoreError={isFeedNextPageError}
+        loadMoreErrorMessage={isFeedNextPageError ? feedErrorMessage : undefined}
         hasMore={hasMoreFeedItems}
         onLoadMore={() => {
           void circleFeedQuery.fetchNextPage();

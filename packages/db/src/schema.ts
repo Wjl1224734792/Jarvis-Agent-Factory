@@ -503,25 +503,17 @@ export const postsTable = pgTable("posts", {
 }, (table) => ({
   typeCheck: check("posts_type_check", sql`${table.type} IN ('article', 'moment')`),
   statusCheck: check("posts_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`),
-  feedStatusTypePublishedIdx: index("posts_feed_status_type_published_idx").on(
-    table.status,
+  feedStatusTypeSeekIdx: index("posts_feed_status_type_seek_idx").on(
     table.type,
-    table.publishedAt,
-    table.createdAt
-  ),
-  feedCategoryStatusTypeIdx: index("posts_feed_category_status_type_idx").on(
+    sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
+    table.id.desc()
+  ).where(sql`${table.status} = 'published'`),
+  feedCategoryStatusTypeSeekIdx: index("posts_feed_category_status_type_seek_idx").on(
     table.contentCategoryId,
-    table.status,
     table.type,
-    table.publishedAt
-  ),
-  feedRecommendedScoreIdx: index("posts_feed_recommended_score_idx").on(
-    table.status,
-    table.type,
-    table.likeCount,
-    table.commentCount,
-    table.publishedAt
-  )
+    sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
+    table.id.desc()
+  ).where(sql`${table.status} = 'published'`)
 }));
 
 export const postCommentsTable = pgTable(
