@@ -70,7 +70,7 @@ const ALLOWED_ATTR: Config["ALLOWED_ATTR"] = [
 ];
 
 const ALLOWED_URI_REGEXP =
-  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
+  /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
 const TRUSTED_IFRAME_HOSTS = ["youtube.com", "youtu.be", "bilibili.com", "player.bilibili.com"];
 
@@ -170,6 +170,12 @@ function sanitizeAnchors(dirty: string) {
         anchorNode.removeAttribute("rel");
         continue;
       }
+      if (/^blob:/i.test(href)) {
+        anchorNode.removeAttribute("href");
+        anchorNode.removeAttribute("target");
+        anchorNode.removeAttribute("rel");
+        continue;
+      }
       const isHttpLink = /^https?:\/\//i.test(href) || href.startsWith("//");
       if (isHttpLink) {
         anchorNode.setAttribute("target", "_blank");
@@ -180,6 +186,17 @@ function sanitizeAnchors(dirty: string) {
   }
 
   return dirty.replace(/<a\b([^>]*)>/gi, (full, attrs: string) => {
+    const quotedHref = attrs.match(/\bhref\s*=\s*(['"])(.*?)\1/i);
+    const unquotedHref = attrs.match(/\bhref\s*=\s*([^\s>]+)/i);
+    const href = quotedHref?.[2] ?? unquotedHref?.[1] ?? "";
+    if (/^blob:/i.test(href.trim())) {
+      const nextAttrs = attrs
+        .replace(/\shref\s*=\s*(['"]).*?\1/gi, "")
+        .replace(/\shref\s*=\s*[^\s>]+/gi, "")
+        .replace(/\starget\s*=\s*(['"]).*?\1/gi, "")
+        .replace(/\srel\s*=\s*(['"]).*?\1/gi, "");
+      return `<a${nextAttrs}>`;
+    }
     if (!/\bhref\s*=\s*(['"])(https?:\/\/|\/\/)/i.test(attrs)) {
       return `<a${attrs}>`;
     }

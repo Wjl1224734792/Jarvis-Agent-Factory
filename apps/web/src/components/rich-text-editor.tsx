@@ -6,7 +6,7 @@ import {
 } from "@feijia/shared";
 import { i18nChangeLanguage, type IDomEditor, type IEditorConfig, type IToolbarConfig } from "@wangeditor/editor";
 import { Editor, Toolbar } from "@wangeditor/editor-for-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml, type UploadedMediaAsset } from "./rich-text-editor-helpers";
 
 type RichTextEditorProps = {
@@ -50,6 +50,20 @@ export function RichTextEditor(props: RichTextEditorProps) {
     [value]
   );
   const isUploading = uploadingCount > 0;
+  const emitEditorChange = useCallback(
+    (currentEditor: IDomEditor) => {
+      onChange(currentEditor.getHtml());
+    },
+    [onChange]
+  );
+  const syncCurrentEditorChange = useCallback(() => {
+    const currentEditor = editorRef.current;
+    if (!currentEditor || currentEditor.isDestroyed) {
+      return;
+    }
+
+    emitEditorChange(currentEditor);
+  }, [emitEditorChange]);
 
   const editorConfig = useMemo<Partial<IEditorConfig>>(
     () => ({
@@ -94,8 +108,13 @@ export function RichTextEditor(props: RichTextEditorProps) {
             try {
               const assets = await onUploadImage([file]);
               for (const asset of assets) {
-                insertFn(asset.url, asset.fileName ?? file.name, "");
+                const src = normalizeRichTextMediaUrl(asset.url);
+                if (!src) {
+                  throw new Error("Uploaded image URL is invalid.");
+                }
+                insertFn(src, asset.fileName ?? file.name, "");
               }
+              queueMicrotask(syncCurrentEditorChange);
             } catch (reason) {
               const message = getErrorMessage(reason, "图片上传失败");
               setUploadError(message);
@@ -118,8 +137,13 @@ export function RichTextEditor(props: RichTextEditorProps) {
             try {
               const assets = await onUploadVideo([file]);
               for (const asset of assets) {
-                insertFn(asset.url, "");
+                const src = normalizeRichTextVideoSource(asset.url);
+                if (!src) {
+                  throw new Error("Uploaded video URL is invalid.");
+                }
+                insertFn(src, "");
               }
+              queueMicrotask(syncCurrentEditorChange);
             } catch (reason) {
               const message = getErrorMessage(reason, "视频上传失败");
               setUploadError(message);
@@ -131,7 +155,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
         }
       }
     }),
-    [onUploadImage, onUploadVideo, placeholder]
+    [onUploadImage, onUploadVideo, placeholder, syncCurrentEditorChange]
   );
 
   const toolbarConfig = useMemo<Partial<IToolbarConfig>>(
@@ -163,9 +187,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
         className="wang-editor-shell__editor"
         defaultConfig={editorConfig}
         mode="default"
-        onChange={(currentEditor) => {
-          onChange(currentEditor.getHtml());
-        }}
+        onChange={emitEditorChange}
         onCreated={(currentEditor) => {
           editorRef.current = currentEditor;
           setEditor(currentEditor);

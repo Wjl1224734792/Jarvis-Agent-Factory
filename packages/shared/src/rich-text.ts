@@ -1,7 +1,7 @@
 const URL_SCHEME_PATTERN = /^[a-z][a-z\d+.-]*:/i;
 const BARE_DOMAIN_PATTERN = /^[^/\s]+\.[^/\s]+(?:[/?#].*)?$/i;
 const LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
-const MEDIA_PROTOCOLS = new Set(["http:", "https:"]);
+const MEDIA_PROTOCOLS = new Set(["http:", "https:", "blob:"]);
 
 function hasWhitespace(value: string) {
   return /\s/.test(value);
@@ -67,7 +67,8 @@ export function normalizeRichTextLinkHref(input: string) {
 }
 
 /**
- * Normalize image/video URLs entered through the editor URL dialogs.
+ * Normalize image/video URLs entered through the editor URL dialogs or
+ * generated as local blob previews before the final upload URL is available.
  */
 export function normalizeRichTextMediaUrl(input: string) {
   const value = normalizeExternalUrl(input);

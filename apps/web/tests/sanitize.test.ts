@@ -21,6 +21,20 @@ describe("sanitizeHtml", () => {
     expect(sanitized).toContain('src="https://cdn.example.com/video.mp4"');
   });
 
+  it("keeps local blob media previews while stripping blob links", () => {
+    const sanitized = sanitizeHtml(
+      [
+        '<img src="blob:http://localhost:17380/image-preview" />',
+        '<video controls src="blob:http://localhost:17380/video-preview"></video>',
+        '<a href="blob:http://localhost:17380/link-preview">bad</a>'
+      ].join("")
+    );
+
+    expect(sanitized).toContain('src="blob:http://localhost:17380/image-preview"');
+    expect(sanitized).toContain('src="blob:http://localhost:17380/video-preview"');
+    expect(sanitized).not.toContain('href="blob:');
+  });
+
   it("keeps trusted iframes and removes untrusted ones", () => {
     const sanitized = sanitizeHtml(
       '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx411x7xx"></iframe><iframe src="https://evil.example/embed"></iframe>'
