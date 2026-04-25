@@ -823,10 +823,16 @@ export const aircraftModelsService = {
   },
   async listAdminModelComments(status?: "pending" | "visible" | "hidden") {
     const items = await aircraftModelsRepo.listAdminModelComments(status);
+    const replyToUserIds = Array.from(
+      new Set(items.map((item) => item.replyToUserId).filter((value): value is string => Boolean(value)))
+    );
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...items.map((item) => item.author.id),
+      ...replyToUserIds
+    ]);
     const replyToUserMap = await buildReplyToUserMap(
-      await aircraftModelsRepo.listUsersByIds(
-        Array.from(new Set(items.map((item) => item.replyToUserId).filter((value): value is string => Boolean(value))))
-      )
+      await aircraftModelsRepo.listUsersByIds(replyToUserIds),
+      ipLocationLabelMap
     );
 
     return {
@@ -847,6 +853,7 @@ export const aircraftModelsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+            ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
             role: item.author.role as "user" | "admin"
           },
           replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,
@@ -866,8 +873,13 @@ export const aircraftModelsService = {
       return null;
     }
 
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      item.author.id,
+      ...(item.replyToUserId ? [item.replyToUserId] : [])
+    ]);
     const replyToUserMap = await buildReplyToUserMap(
-      await aircraftModelsRepo.listUsersByIds(item.replyToUserId ? [item.replyToUserId] : [])
+      await aircraftModelsRepo.listUsersByIds(item.replyToUserId ? [item.replyToUserId] : []),
+      ipLocationLabelMap
     );
 
     return {
@@ -886,6 +898,7 @@ export const aircraftModelsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+        ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
         role: item.author.role as "user" | "admin"
       },
       replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null,

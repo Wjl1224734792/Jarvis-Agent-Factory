@@ -1485,7 +1485,16 @@ export const postsService = {
     const replyToUserIds = Array.from(
       new Set(items.map((item) => item.replyToUserId).filter((value): value is string => Boolean(value)))
     );
-    const replyToUserMap = buildReplyToUserMap(await postsRepo.listUsersByIds(replyToUserIds));
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...items.map((item) => item.author.id),
+      ...replyToUserIds
+    ]);
+    const replyToUserMap = buildReplyToUserMap(
+      (await postsRepo.listUsersByIds(replyToUserIds)).map((replyUser) => ({
+        ...replyUser,
+        ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+      }))
+    );
 
     return {
       items: items.map((item) => ({
@@ -1502,6 +1511,7 @@ export const postsService = {
         author: {
           id: item.author.id,
           displayName: item.author.displayName,
+          ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
           role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
         },
         replyToUser: item.replyToUserId ? replyToUserMap.get(item.replyToUserId) ?? null : null
@@ -1516,6 +1526,10 @@ export const postsService = {
 
     const post = await postsRepo.getPostById(item.postId);
     const replyToUsers = item.replyToUserId ? await postsRepo.listUsersByIds([item.replyToUserId]) : [];
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      item.author.id,
+      ...(item.replyToUserId ? [item.replyToUserId] : [])
+    ]);
     return {
       id: item.id,
       postId: item.postId,
@@ -1530,9 +1544,17 @@ export const postsService = {
       author: {
         id: item.author.id,
         displayName: item.author.displayName,
+        ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
         role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
-      replyToUser: item.replyToUserId ? buildReplyToUserMap(replyToUsers).get(item.replyToUserId) ?? null : null
+      replyToUser: item.replyToUserId
+        ? buildReplyToUserMap(
+            replyToUsers.map((replyUser) => ({
+              ...replyUser,
+              ipLocationLabel: ipLocationLabelMap.get(replyUser.id) ?? null
+            }))
+          ).get(item.replyToUserId) ?? null
+        : null
     };
   }
 };

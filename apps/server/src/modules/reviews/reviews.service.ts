@@ -10,6 +10,7 @@ import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
 import { buildReplyToUserMapAsync, buildCommentThreads } from "../../lib/comment-serializer";
 import { isValidAuthRole, isValidReviewCommentStatus } from "../../lib/type-guards";
+import { usersService } from "../users/users.service";
 
 async function resolveAuthorAvatar<T extends { avatarFileId?: string | null }>(
   author: T,
@@ -37,29 +38,36 @@ function buildStateSet<T extends { [key: string]: string }>(
 
 async function buildReplyToUserMap(
   users: Awaited<ReturnType<typeof reviewsRepo.listUsersByIds>>,
-  audience: "internal" | "public" = "internal"
+  audience: "internal" | "public" = "internal",
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
 ) {
   return buildReplyToUserMapAsync(users, async (user) => ({
     id: user.id,
     displayName: user.displayName,
     avatarUrl: await resolveAuthorAvatar(user, audience),
+    ipLocationLabel: ipLocationLabelMap?.get(user.id) ?? null,
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
   }));
 }
 
 type ReviewComment = Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>;
+type ReviewReplyToUser = {
+  id: string;
+  displayName: string;
+  avatarUrl: string | null;
+  ipLocationLabel?: string | null;
+  role: "user" | "admin";
+};
 
 async function serializeCommentBase(
   item: NonNullable<ReviewComment>,
-  replyToUserMap: Map<
-    string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
-  >,
+  replyToUserMap: Map<string, ReviewReplyToUser>,
   input?: {
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   },
   audience: "internal" | "public" = "internal"
 ) {
@@ -78,6 +86,7 @@ async function serializeCommentBase(
       id: item.author.id,
       displayName: item.author.displayName,
       avatarUrl: await resolveAuthorAvatar(item.author, audience),
+      ipLocationLabel: input?.ipLocationLabelMap?.get(item.author.id) ?? null,
       // Database text column constrained to valid AuthRole values at insert time
       role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
     },
@@ -93,14 +102,12 @@ async function serializeCommentBase(
 
 async function serializeComment(
   item: Awaited<ReturnType<typeof reviewsRepo.getReviewCommentById>>,
-  replyToUserMap: Map<
-    string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
-  >,
+  replyToUserMap: Map<string, ReviewReplyToUser>,
   input?: {
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   },
   audience: "internal" | "public" = "internal"
 ) {
@@ -113,14 +120,12 @@ async function serializeComment(
 
 async function serializeCommentThreads(
   comments: Awaited<ReturnType<typeof reviewsRepo.listReviewComments>>,
-  replyToUserMap: Map<
-    string,
-    { id: string; displayName: string; avatarUrl: string | null; role: "user" | "admin" }
-  >,
+  replyToUserMap: Map<string, ReviewReplyToUser>,
   input?: {
     currentUserId?: string;
     likedCommentIds?: Set<string>;
     reportedCommentIds?: Set<string>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
   },
   audience: "internal" | "public" = "internal"
 ) {
@@ -404,14 +409,19 @@ export const reviewsService = {
       currentUserId ? reviewsRepo.listViewerReviewCommentLikes(commentIds, currentUserId) : [],
       currentUserId ? reviewsRepo.listViewerReviewCommentReports(commentIds, currentUserId) : []
     ]);
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...comments.map((comment) => comment.author.id),
+      ...replyToUserIds
+    ]);
     const likedCommentIds = buildStateSet(likedComments, "commentId");
     const reportedCommentIds = buildStateSet(reportedComments, "commentId");
 
     return {
-      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers, "public"), {
+      items: await serializeCommentThreads(comments, await buildReplyToUserMap(replyToUsers, "public", ipLocationLabelMap), {
         currentUserId,
         likedCommentIds,
-        reportedCommentIds
+        reportedCommentIds,
+        ipLocationLabelMap
       }, "public")
     };
   },
@@ -453,8 +463,13 @@ export const reviewsService = {
       status
     });
     const replyToUsers = replyToUserId ? await reviewsRepo.listUsersByIds([replyToUserId]) : [];
-    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers), {
-      currentUserId: currentUser.id
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      currentUser.id,
+      ...(replyToUserId ? [replyToUserId] : [])
+    ]);
+    const serialized = await serializeComment(item, await buildReplyToUserMap(replyToUsers, "internal", ipLocationLabelMap), {
+      currentUserId: currentUser.id,
+      ipLocationLabelMap
     });
 
     if (!serialized) {
@@ -472,8 +487,9 @@ export const reviewsService = {
       const nextStatus = moderation.action === "approve" ? "visible" : "hidden";
       const refreshed = await reviewsRepo.updateReviewCommentStatus(item.id, nextStatus);
       const nextSerialized = refreshed
-        ? await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers), {
-            currentUserId: currentUser.id
+        ? await serializeComment(refreshed, await buildReplyToUserMap(replyToUsers, "internal", ipLocationLabelMap), {
+            currentUserId: currentUser.id,
+            ipLocationLabelMap
           })
         : null;
       if (nextSerialized) {
@@ -615,8 +631,13 @@ export const reviewsService = {
     const replyToUsers = refreshed?.replyToUserId
       ? await reviewsRepo.listUsersByIds([refreshed.replyToUserId])
       : [];
-    const serialized = await serializeComment(finalComment, await buildReplyToUserMap(replyToUsers), {
-      currentUserId: currentUser.id
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      finalComment.author.id,
+      ...(finalComment.replyToUserId ? [finalComment.replyToUserId] : [])
+    ]);
+    const serialized = await serializeComment(finalComment, await buildReplyToUserMap(replyToUsers, "internal", ipLocationLabelMap), {
+      currentUserId: currentUser.id,
+      ipLocationLabelMap
     });
     if (!serialized) {
       return { kind: "not_found" as const };
@@ -685,7 +706,15 @@ export const reviewsService = {
     const replyToUserIds = Array.from(
       new Set(items.map((item) => item.replyToUserId).filter((value): value is string => Boolean(value)))
     );
-    const replyToUserMap = await buildReplyToUserMap(await reviewsRepo.listUsersByIds(replyToUserIds));
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...items.map((item) => item.author.id),
+      ...replyToUserIds
+    ]);
+    const replyToUserMap = await buildReplyToUserMap(
+      await reviewsRepo.listUsersByIds(replyToUserIds),
+      "internal",
+      ipLocationLabelMap
+    );
 
     return {
       items: await Promise.all(
@@ -706,6 +735,7 @@ export const reviewsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveAuthorAvatar(item.author),
+            ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
             // Database text column constrained to valid AuthRole values at insert time
             role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
@@ -778,8 +808,14 @@ export const reviewsService = {
       return null;
     }
 
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      item.author.id,
+      ...(item.replyToUserId ? [item.replyToUserId] : [])
+    ]);
     const replyToUserMap = await buildReplyToUserMap(
-      await reviewsRepo.listUsersByIds(item.replyToUserId ? [item.replyToUserId] : [])
+      await reviewsRepo.listUsersByIds(item.replyToUserId ? [item.replyToUserId] : []),
+      "internal",
+      ipLocationLabelMap
     );
     return {
       id: item.id,
@@ -798,6 +834,7 @@ export const reviewsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveAuthorAvatar(item.author),
+        ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
         // Database text column constrained to valid AuthRole values at insert time
         role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },

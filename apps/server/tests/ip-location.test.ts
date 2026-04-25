@@ -323,6 +323,22 @@ describe.sequential("ip location visibility", () => {
     const ratingCommenterCookie = await loginWebUser("13800138333", {
       "x-forwarded-for": "1.2.3.4"
     });
+    const rankingCommentResponse = await app.request(API_ROUTES.rankings.comments(rankingId), {
+      method: "POST",
+      headers: {
+        cookie: ratingCommenterCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        content: "Checking ranking comment ip location."
+      })
+    });
+    expect(rankingCommentResponse.status).toBe(200);
+    const rankingCommentPayload = (await rankingCommentResponse.json()) as {
+      item: { author: { ipLocationLabel: string | null } };
+    };
+    expect(rankingCommentPayload.item.author.ipLocationLabel).toBe("澳大利亚");
+
     const ratingCommentResponse = await app.request(API_ROUTES.rankings.itemComments(ratingTargetId), {
       method: "POST",
       headers: {

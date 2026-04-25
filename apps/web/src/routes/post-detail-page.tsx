@@ -2,7 +2,7 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
   ArrowLeftIcon,
-  MessageSquareTextIcon,
+  MessageCircleIcon,
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
@@ -260,7 +260,7 @@ export function PostDetailPage() {
               }}
               type="button"
             >
-              <MessageSquareTextIcon className="size-5 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
+              <MessageCircleIcon className="size-5 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
               <span className="sr-only">跳转到评论区</span>
               <span className="text-xs tabular-nums">{item.commentCount}</span>
             </button>
@@ -414,7 +414,7 @@ export function PostDetailPage() {
                 }}
                 type="button"
               >
-                <MessageSquareTextIcon className="size-4 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
+                <MessageCircleIcon className="size-4 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
                 <span className="sr-only">跳转到评论区</span>
                 <span className="text-xs tabular-nums">{item.commentCount}</span>
               </button>
@@ -441,7 +441,7 @@ export function PostDetailPage() {
             <div className="space-y-1">
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-                  <MessageSquareTextIcon className="size-4.5 text-primary" />
+                  <MessageCircleIcon className="size-4.5 text-primary" />
                   评论区
                 </div>
                 <div className="flex items-center gap-2">

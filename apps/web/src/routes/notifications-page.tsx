@@ -5,7 +5,7 @@ import {
   BellRingIcon,
   ExternalLinkIcon,
   HeartIcon,
-  MessageSquareTextIcon,
+  MessageCircleIcon,
   RefreshCcwIcon,
   Settings2Icon,
   ShieldCheckIcon,
@@ -63,7 +63,7 @@ const messageCenterCategories: Array<{
   {
     value: "comment",
     label: "评论和@",
-    icon: MessageSquareTextIcon
+    icon: MessageCircleIcon
   },
   {
     value: "system",

@@ -5,7 +5,7 @@ import {
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
-  MessageSquareTextIcon,
+  MessageCircleIcon,
   PlayIcon
 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
@@ -519,7 +519,7 @@ export function ModelDetailPage() {
               }}
               type="button"
             >
-              <MessageSquareTextIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
+              <MessageCircleIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
               <span className="sr-only">前往评论区</span>
             </button>
 
@@ -737,7 +737,7 @@ export function ModelDetailPage() {
                       }}
                       type="button"
                     >
-                      <MessageSquareTextIcon className="size-[1.125rem] shrink-0" />
+                      <MessageCircleIcon className="size-[1.125rem] shrink-0" />
                     </button>
                     <DetailMoreActions
                       canDelete={canManageModel}

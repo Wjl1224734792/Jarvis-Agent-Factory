@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CornerDownRightIcon,
-  MessageSquareTextIcon,
+  MessageCircleIcon,
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
@@ -374,7 +374,7 @@ export function ModelCommentsSection(props: {
       <div className="space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <MessageSquareTextIcon className="size-4.5 text-primary" />
+            <MessageCircleIcon className="size-4.5 text-primary" />
             评论区
           </div>
           <div className="flex items-center gap-2">

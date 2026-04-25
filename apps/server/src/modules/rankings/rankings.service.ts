@@ -1440,7 +1440,15 @@ export const rankingsService = {
       });
     }
 
-    return { item: await serializeRankingComment(currentItem, { id: currentUserId, role: "user" }) };
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([currentItem.author.id]);
+
+    return {
+      item: await serializeRankingComment(
+        currentItem,
+        { id: currentUserId, role: "user" },
+        ipLocationLabelMap
+      )
+    };
   },
 
   async reportRanking(
@@ -2051,6 +2059,9 @@ export const rankingsService = {
   },
   async listAdminRankingComments(status?: "pending" | "visible" | "hidden") {
     const items = await rankingsRepo.listAdminRankingComments(status);
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap(
+      items.map((item) => item.author.id)
+    );
     return {
       items: await Promise.all(
         items.map(async (item) => ({
@@ -2067,6 +2078,7 @@ export const rankingsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+            ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
             role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
           viewer: {
@@ -2085,6 +2097,7 @@ export const rankingsService = {
       return null;
     }
 
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([item.author.id]);
     return {
       id: item.id,
       rankingId: item.rankingId,
@@ -2099,6 +2112,7 @@ export const rankingsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+        ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
         role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       viewer: {
@@ -2111,6 +2125,10 @@ export const rankingsService = {
   },
   async listAdminRatingTargetComments(status?: "pending" | "visible" | "hidden") {
     const items = await rankingsRepo.listAdminRatingTargetComments(status);
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      ...items.map((item) => item.author.id),
+      ...items.map((item) => item.replyToUser?.id).filter((value): value is string => Boolean(value))
+    ]);
     return {
       items: await Promise.all(
         items.map(async (item) => ({
@@ -2131,6 +2149,7 @@ export const rankingsService = {
             id: item.author.id,
             displayName: item.author.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+            ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
             role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
           },
           replyToUser: item.replyToUser?.id
@@ -2138,6 +2157,7 @@ export const rankingsService = {
                 id: item.replyToUser.id,
                 displayName: item.replyToUser.displayName,
                 avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
+                ipLocationLabel: ipLocationLabelMap.get(item.replyToUser.id) ?? null,
                 role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
               }
             : null,
@@ -2157,6 +2177,10 @@ export const rankingsService = {
       return null;
     }
 
+    const ipLocationLabelMap = await usersService.resolvePublicIpLocationLabelMap([
+      item.author.id,
+      ...(item.replyToUser?.id ? [item.replyToUser.id] : [])
+    ]);
     return {
       id: item.id,
       ratingTargetId: item.ratingTargetId,
@@ -2175,6 +2199,7 @@ export const rankingsService = {
         id: item.author.id,
         displayName: item.author.displayName,
         avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+        ipLocationLabel: ipLocationLabelMap.get(item.author.id) ?? null,
         role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
       },
       replyToUser: item.replyToUser?.id
@@ -2182,6 +2207,7 @@ export const rankingsService = {
             id: item.replyToUser.id,
             displayName: item.replyToUser.displayName,
             avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
+            ipLocationLabel: ipLocationLabelMap.get(item.replyToUser.id) ?? null,
             role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
           }
         : null,
