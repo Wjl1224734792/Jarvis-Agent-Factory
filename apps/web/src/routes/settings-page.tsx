@@ -117,16 +117,6 @@ function SettingsPanelHeader({ children }: { children: ReactNode }) {
   );
 }
 
-function SettingsSubsectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <div className="border-y border-border/60 bg-muted/15 px-4 py-2.5">
-      <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function SettingsRow({
   label,
   description,

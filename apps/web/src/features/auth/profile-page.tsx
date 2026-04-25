@@ -31,6 +31,7 @@ import { ProfileLayoutShell } from "./profile-layout-shell";
 import { ProfileMetaBar } from "./profile-meta-bar";
 import { ProfileStatusHint } from "./profile-status-hint";
 import { ProfileFilterBar } from "./profile-filter-bar";
+import { ProfilePagination } from "./profile-surface";
 
 type ProfileTab = "activity" | "favorites";
 
@@ -59,38 +60,6 @@ const profileLifecycleFilters: Array<{ value: ProfileLifecycle; label: string }>
 ];
 
 const PROFILE_CONTENT_PAGE_SIZE = 9;
-
-function ProfileGridPagination(props: {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-      <Button
-        disabled={props.page <= 1}
-        onClick={() => props.onPageChange(props.page - 1)}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        上一页
-      </Button>
-      <span className="text-sm tabular-nums text-muted-foreground">
-        {props.page} / {props.totalPages}
-      </span>
-      <Button
-        disabled={props.page >= props.totalPages}
-        onClick={() => props.onPageChange(props.page + 1)}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        下一页
-      </Button>
-    </div>
-  );
-}
 
 function ProfilePageSkeleton() {
   return (
@@ -518,7 +487,7 @@ export function ProfilePage() {
             />
           ))}
         </div>
-        <ProfileGridPagination
+        <ProfilePagination
           onPageChange={setActivityPage}
           page={activityPage}
           totalPages={activityTotalPages}
@@ -540,11 +509,11 @@ export function ProfilePage() {
           />
         ))}
       </div>
-      <ProfileGridPagination
-        onPageChange={setFavoritePage}
-        page={favoritePage}
-        totalPages={favoriteTotalPages}
-      />
+        <ProfilePagination
+          onPageChange={setFavoritePage}
+          page={favoritePage}
+          totalPages={favoriteTotalPages}
+        />
     </>
   );
 

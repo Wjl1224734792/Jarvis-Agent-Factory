@@ -21,40 +21,9 @@ import { getVisitorProfileRelationshipSummary } from "../features/auth/profile-o
 import { ProfileLayoutShell } from "../features/auth/profile-layout-shell";
 import { ProfileMetaBar } from "../features/auth/profile-meta-bar";
 import { ProfileStatusHint } from "../features/auth/profile-status-hint";
+import { ProfilePagination } from "../features/auth/profile-surface";
 
 const VISITOR_PROFILE_PAGE_SIZE = 9;
-
-function ProfileGridPagination(props: {
-  page: number;
-  totalPages: number;
-  onPageChange: (page: number) => void;
-}) {
-  return (
-    <div className="flex flex-wrap items-center justify-center gap-3 pt-4">
-      <Button
-        disabled={props.page <= 1}
-        onClick={() => props.onPageChange(props.page - 1)}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        上一页
-      </Button>
-      <span className="text-sm tabular-nums text-muted-foreground">
-        {props.page} / {props.totalPages}
-      </span>
-      <Button
-        disabled={props.page >= props.totalPages}
-        onClick={() => props.onPageChange(props.page + 1)}
-        size="sm"
-        type="button"
-        variant="ghost"
-      >
-        下一页
-      </Button>
-    </div>
-  );
-}
 
 export function UserProfilePage() {
   const params = useParams<{ id: string }>();
@@ -293,7 +262,7 @@ export function UserProfilePage() {
             />
           ))}
         </div>
-        <ProfileGridPagination
+        <ProfilePagination
           onPageChange={setVisitorPage}
           page={visitorPage}
           totalPages={visitorTotalPages}
