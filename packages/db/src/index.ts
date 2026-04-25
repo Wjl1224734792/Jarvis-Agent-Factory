@@ -47,6 +47,7 @@ export {
 export { createId, createSecretToken, hashPassword, verifyPassword, hashToken } from "./helpers.js";
 export { runMigrations } from "./migrate.js";
 export {
+  getResetTableNames,
   resetDatabaseState,
   seedAuthDatabase,
   seedBaseDatabase,

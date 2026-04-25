@@ -1,5 +1,6 @@
-import { eq, or, sql } from "drizzle-orm";
+import { eq, getTableName, isTable, or, sql } from "drizzle-orm";
 import { db } from "./client.js";
+import * as schema from "./schema.js";
 import {
   aircraftCategoriesTable,
   aircraftModelInteractionsTable,
@@ -25,6 +26,19 @@ import {
 } from "./schema.js";
 import { createId, hashPassword } from "./helpers.js";
 import { RUNTIME_SEED_ASSETS, resolveRuntimeSeedAssetUrl } from "./runtime-seed.js";
+
+const resetTableNames = Object.values(schema)
+  .filter(isTable)
+  .map((table) => getTableName(table))
+  .sort();
+
+function quoteIdentifier(identifier: string) {
+  return `"${identifier.replaceAll('"', '""')}"`;
+}
+
+export function getResetTableNames() {
+  return [...resetTableNames];
+}
 
 const USER_IDS = {
   skyline: "seed_user_skyline",
@@ -830,7 +844,7 @@ async function seedSiteSettings() {
 export async function resetDatabaseState() {
   await db.execute(
     sql.raw(
-      'TRUNCATE TABLE "site_settings", "notifications", "post_interactions", "post_comment_likes", "post_comment_reports", "user_follows", "files", "post_reports", "post_comments", "posts", "review_comment_likes", "review_comment_reports", "review_comments", "aircraft_review_likes", "aircraft_review_reports", "aircraft_model_comment_likes", "aircraft_model_comment_reports", "aircraft_model_comments", "rating_target_comment_likes", "rating_target_comment_reports", "rating_target_comments", "rating_target_ratings", "rating_target_reports", "ranking_comment_likes", "ranking_comment_reports", "ranking_comments", "rating_targets", "ranking_reports", "rankings", "aircraft_submissions", "aircraft_model_interactions", "aircraft_model_reports", "aircraft_reviews", "aircraft_models", "brand_applications", "brands", "content_categories", "aircraft_categories", "sessions", "users" RESTART IDENTITY CASCADE;'
+      `TRUNCATE TABLE ${resetTableNames.map(quoteIdentifier).join(", ")} RESTART IDENTITY CASCADE;`
     )
   );
 }

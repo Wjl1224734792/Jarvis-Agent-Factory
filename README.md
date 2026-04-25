@@ -157,13 +157,15 @@ bun run lint
 bun run typecheck
 bun run test:unit
 bun run test:server
+bun run test:integration
 bun run test
 bun run test:e2e
 bun run build
 bun run check
 ```
 
-- `test` = `test:unit` + `test:server`。
+- `test` = 快速测试入口（当前同 `test:unit`），不再默认跑会反复清库 / seed 的 server 集成测试。
+- `test:server` / `test:integration`：服务端集成测试，会按用例重置数据库与 Redis，耗时较长；改 API、DB、认证、上传、通知等服务端行为时单独运行。
 - `test:e2e`：先 `infra:up` 与 `db:reset:mock`，再 Playwright；结束后库为 `mock`，需 demo 可 `bun run db:reset:demo`。
 - `check` = lint + test + typecheck + build。
 

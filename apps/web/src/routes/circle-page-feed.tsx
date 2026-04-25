@@ -197,10 +197,10 @@ export function CirclePageFeed({
         </Alert>
       ) : null}
 
-      {isLoading ? <MasonryFeedSkeleton columnCount={columnCount} count={10} /> : null}
+      {isLoading ? <MasonryFeedSkeleton className="mt-4" columnCount={columnCount} count={10} /> : null}
 
       {posts.length > 0 ? (
-        <div className="site-tab-panel w-full space-y-0">
+        <div className="site-tab-panel mt-4 w-full space-y-0">
           <VirtualMasonryColumns
             className="w-full"
             columns={columns}

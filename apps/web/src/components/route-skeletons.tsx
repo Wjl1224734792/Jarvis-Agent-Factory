@@ -44,7 +44,7 @@ export function CirclePageRouteSkeleton() {
           <Skeleton className="h-9 w-16 shrink-0 rounded-none" />
         </div>
       </div>
-      <MasonryFeedSkeleton count={10} />
+      <MasonryFeedSkeleton className="mt-4" count={10} />
     </SitePage>
   );
 }
