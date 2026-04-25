@@ -532,6 +532,22 @@ export function createApiClient(options: ApiClientOptions) {
     );
   }
 
+  function buildFileContentUrl(fileId: string) {
+    return `${baseUrl}${API_ROUTES.files.content(fileId)}`;
+  }
+
+  function withStableFileContentUrl<TPayload extends { item: { id: string; url: string } }>(
+    payload: TPayload
+  ): TPayload {
+    return {
+      ...payload,
+      item: {
+        ...payload.item,
+        url: buildFileContentUrl(payload.item.id)
+      }
+    };
+  }
+
   async function performDirectUpload(
     file: File,
     bizType:
@@ -807,11 +823,11 @@ export function createApiClient(options: ApiClientOptions) {
     },
     async uploadPostImage(file: File) {
       const payload = await performDirectUpload(file, "post-image");
-      return uploadPostImageResponseSchema.parse(payload);
+      return withStableFileContentUrl(uploadPostImageResponseSchema.parse(payload));
     },
     async uploadPostVideo(file: File) {
       const payload = await performDirectUpload(file, "post-video");
-      return uploadPostVideoResponseSchema.parse(payload);
+      return withStableFileContentUrl(uploadPostVideoResponseSchema.parse(payload));
     },
     async uploadAvatarImage(file: File) {
       const payload = await performDirectUpload(file, "avatar-image");

@@ -112,11 +112,11 @@ describe("provider config", () => {
     expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(true);
   });
 
-  it("keeps direct public urls for kodo when an explicit public base url is configured", () => {
+  it("uses signed reads for kodo even when an explicit public base url is configured", () => {
     const config = resolveStorageProviderConfig(
-        createEnv({
-          NODE_ENV: "development",
-          STORAGE_PROVIDER: "qiniu",
+      createEnv({
+        NODE_ENV: "development",
+        STORAGE_PROVIDER: "qiniu",
         STORAGE_BUCKET: "feijia-media",
         STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
         STORAGE_REGION: "cn-east-1",
@@ -126,7 +126,32 @@ describe("provider config", () => {
       })
     );
 
-    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(false);
+    expect(shouldUseSignedReadUrl(config, createEnv({ NODE_ENV: "production" }))).toBe(true);
+  });
+
+  it("can opt out of signed kodo reads when the download domain is public", () => {
+    const config = resolveStorageProviderConfig(
+      createEnv({
+        NODE_ENV: "development",
+        STORAGE_PROVIDER: "kodo",
+        STORAGE_BUCKET: "feijia-media",
+        STORAGE_ENDPOINT: "https://s3-cn-east-1.qiniucs.com",
+        STORAGE_REGION: "cn-east-1",
+        STORAGE_ACCESS_KEY_ID: "id",
+        STORAGE_SECRET_ACCESS_KEY: "secret",
+        STORAGE_PUBLIC_BASE_URL: "https://cdn.example-kodo.com"
+      })
+    );
+
+    expect(
+      shouldUseSignedReadUrl(
+        config,
+        createEnv({
+          NODE_ENV: "production",
+          STORAGE_PRESIGN_READ_URLS: "false"
+        })
+      )
+    ).toBe(false);
   });
 
   it("throws on invalid storage provider", () => {

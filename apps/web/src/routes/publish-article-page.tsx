@@ -25,7 +25,10 @@ import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
 import { apiClient } from "../lib/api-client";
 import { buildPublishStatusPath } from "../lib/web-routes";
-import { formatArticleMediaSummary } from "./publish-article-page-helpers";
+import {
+  formatArticleMediaSummary,
+  replaceArticleLocalMediaUrls
+} from "./publish-article-page-helpers";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
 const ARTICLE_SUMMARY_MAX_LENGTH = 120;
@@ -69,10 +72,6 @@ function escapeHtml(input: string) {
 function buildArticleHtml(summary: string, editorHtml: string) {
   const summaryBlock = summary.trim() ? `<p><strong>${escapeHtml(summary.trim())}</strong></p>` : "";
   return [summaryBlock, editorHtml.trim()].filter(Boolean).join("");
-}
-
-function replaceLocalMediaUrls(html: string, mapping: Record<string, string>) {
-  return Object.entries(mapping).reduce((current, [from, to]) => current.split(from).join(to), html);
 }
 
 function removeMediaReferenceFromHtml(html: string, mediaUrl: string) {
@@ -213,7 +212,9 @@ export function PublishArticlePage() {
 
         setTitle(parsed.title ?? "");
         setSummary(parsed.summary ?? "");
-        setEditorHtml(replaceLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap));
+        setEditorHtml(
+          replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
+        );
         setCategoryId(parsed.categoryId ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
@@ -489,11 +490,16 @@ export function PublishArticlePage() {
         })
       );
 
+      const replacedArticleHtml = replaceArticleLocalMediaUrls(articleHtml, mediaUrlMapping);
+      if (replacedArticleHtml.unresolvedMediaUrls.length > 0) {
+        throw new Error("仍有媒体停留在本地预览状态，请重新上传后再提交。");
+      }
+
       const payload = {
         type: "article" as const,
         title,
         content: articleText,
-        contentHtml: replaceLocalMediaUrls(articleHtml, mediaUrlMapping),
+        contentHtml: replacedArticleHtml.html,
         contentCategoryId: categoryId,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
@@ -573,7 +579,6 @@ export function PublishArticlePage() {
                   {hasRestoredDraftSnapshot ? (
                     <span className="rounded-full bg-primary/10 px-3 py-1.5 text-primary">已恢复草稿</span>
                   ) : null}
-                  <span className="rounded-full bg-surface-1 px-3 py-1.5">{articleCharacterCount} 字</span>
                 </div>
                 {selectedCategory?.name ? (
                   <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-primary">

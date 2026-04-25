@@ -371,6 +371,7 @@ describe("posts api client", () => {
     const payload = await client.uploadPostImage(file);
 
     expect(payload.item.id).toBe("file_1");
+    expect(payload.item.url).toBe(`http://localhost:17382${API_ROUTES.files.content("file_1")}`);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       `http://localhost:17382${API_ROUTES.uploads.init}`,
@@ -500,6 +501,9 @@ describe("posts api client", () => {
     const payload = await client.uploadPostImage(file);
 
     expect(payload.item.id).toBe("file_kodo_1");
+    expect(payload.item.url).toBe(
+      `http://localhost:17382${API_ROUTES.files.content("file_kodo_1")}`
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "https://up-z0.qiniup.com",

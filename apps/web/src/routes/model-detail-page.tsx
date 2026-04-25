@@ -365,7 +365,7 @@ export function ModelDetailPage() {
   }
 
   return (
-    <ImmersivePageShell className="max-w-[1180px] gap-6">
+    <ImmersivePageShell className="max-w-[1240px] gap-6">
       <Button asChild className="w-fit border-0" variant="ghost">
         <Link to={APP_ROUTES.models}>
           <ArrowLeftIcon data-icon="inline-start" />
@@ -373,8 +373,110 @@ export function ModelDetailPage() {
         </Link>
       </Button>
 
-      <section className="grid items-start gap-5 xl:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="flex min-w-0 flex-col gap-4">
+      <div className="flex gap-6 md:gap-8">
+        {/* 桌面端左侧悬浮互动栏 */}
+        <aside className="hidden md:flex w-12 shrink-0 flex-col items-center">
+          <div className="sticky top-1/2 flex -translate-y-1/2 flex-col items-center gap-4 py-4">
+            <button
+              aria-label={`想买，${item.interactionSummary.interestCount} 人`}
+              aria-pressed={item.viewer.isInterested ? "true" : "false"}
+              className={cn(
+                "group flex flex-col items-center gap-0.5 rounded-full px-1.5 py-2.5 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
+                "focus-visible:ring-2 focus-visible:ring-rose-400/45 focus-visible:ring-offset-2",
+                "disabled:cursor-not-allowed disabled:opacity-45",
+                item.viewer.isInterested
+                  ? "text-rose-600 dark:text-rose-400"
+                  : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
+              )}
+              disabled={interactionBusy !== null}
+              onClick={() => {
+                void handleInteraction("interested");
+              }}
+              type="button"
+            >
+              <HeartIcon
+                className={cn(
+                  "size-5 shrink-0 transition-transform duration-150 ease-out",
+                  item.viewer.isInterested
+                    ? "scale-105 fill-rose-500 text-rose-600 dark:fill-rose-400 dark:text-rose-300"
+                    : "text-current group-active:scale-[0.92]"
+                )}
+              />
+              <span className="text-xs">{item.interactionSummary.interestCount}</span>
+            </button>
+
+            <button
+              aria-label={`收藏，${item.interactionSummary.favoriteCount} 人`}
+              aria-pressed={item.viewer.isFavorited ? "true" : "false"}
+              className={cn(
+                "group flex flex-col items-center gap-0.5 rounded-full px-1.5 py-2.5 text-sm font-medium tabular-nums shadow-none outline-none transition-colors",
+                "focus-visible:ring-2 focus-visible:ring-amber-400/45 focus-visible:ring-offset-2",
+                "disabled:cursor-not-allowed disabled:opacity-45",
+                item.viewer.isFavorited
+                  ? "text-amber-700 dark:text-amber-400"
+                  : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
+              )}
+              disabled={interactionBusy !== null}
+              onClick={() => {
+                void handleInteraction("favorite");
+              }}
+              type="button"
+            >
+              <BookmarkIcon
+                className={cn(
+                  "size-5 shrink-0 transition-transform duration-150 ease-out",
+                  item.viewer.isFavorited
+                    ? "scale-105 fill-amber-500 text-amber-700 dark:fill-amber-400 dark:text-amber-300"
+                    : "text-current group-active:scale-[0.92]"
+                )}
+              />
+              <span className="text-xs">{item.interactionSummary.favoriteCount}</span>
+            </button>
+
+            <div className="flex flex-col items-center gap-0.5">
+              <PageShareControl
+                active={item.viewer.hasShared}
+                aria-label={`分享，${item.interactionSummary.shareCount} 次`}
+                className="[&_button]:px-1.5 [&_button]:py-2.5 [&_button]:rounded-full"
+                disabled={interactionBusy !== null}
+                iconClassName="size-5"
+                onCopySuccess={() => {
+                  void recordModelShareAfterCopy();
+                }}
+                sharePath={APP_ROUTES.modelDetail.replace(":slug", modelSlug)}
+                tone="sky"
+              />
+              <span
+                className={cn(
+                  "text-xs tabular-nums",
+                  item.viewer.hasShared ? "text-sky-700 dark:text-sky-300" : "text-muted-foreground"
+                )}
+              >
+                {item.interactionSummary.shareCount}
+              </span>
+            </div>
+
+            <button
+              aria-label="前往评论区"
+              className={cn(
+                "group flex flex-col items-center gap-0.5 rounded-full px-1.5 py-2.5 text-muted-foreground shadow-none outline-none transition",
+                "hover:text-foreground focus-visible:ring-2 focus-visible:ring-primary/35 focus-visible:ring-offset-2"
+              )}
+              onClick={() => {
+                document.getElementById("model-comment-area")?.scrollIntoView({
+                  behavior: "smooth",
+                  block: "start"
+                });
+              }}
+              type="button"
+            >
+              <MessageSquareTextIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
+              <span className="sr-only">前往评论区</span>
+            </button>
+          </div>
+        </aside>
+
+        <div className="min-w-0 flex-1 space-y-6">
           <div className="space-y-6 border border-border/75 bg-white p-4">
             <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr] lg:items-stretch">
               <div className="min-w-0 space-y-3 lg:min-h-0">
@@ -433,8 +535,36 @@ export function ModelDetailPage() {
               <div className="flex min-h-0 min-w-0 flex-col lg:h-full">
                 <div className="flex min-h-0 flex-col overflow-hidden lg:h-[340px] lg:max-h-[340px] lg:shrink-0">
                   <div className="shrink-0 space-y-3">
-                    <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
-                      {item.name}
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
+                        {item.name}
+                      </div>
+                      <ReportActionSheet
+                        description="请说明机型存在的问题，并至少上传 1 张证据图。"
+                        onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
+                        title="举报机型"
+                        trigger={
+                          <button
+                            aria-label="举报机型"
+                            className={cn(
+                              "mt-1 inline-flex shrink-0 items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none transition",
+                              "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2",
+                              item.viewer.hasReported
+                                ? "text-orange-700 dark:text-orange-400"
+                                : "text-orange-600/90 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400"
+                            )}
+                            type="button"
+                          >
+                            <AlertTriangleIcon
+                              className={cn(
+                                "size-[1.125rem] shrink-0 transition",
+                                item.viewer.hasReported &&
+                                  "scale-105 fill-orange-500 text-orange-700 dark:fill-orange-400 dark:text-orange-300"
+                              )}
+                            />
+                          </button>
+                        }
+                      />
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">
@@ -467,7 +597,8 @@ export function ModelDetailPage() {
                   </div>
                 </div>
 
-                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3">
+                {/* 移动端互动栏 */}
+                <div className="flex shrink-0 flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3 md:hidden">
                   <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
                     <button
                       aria-label={`想买，${item.interactionSummary.interestCount} 人`}
@@ -562,34 +693,6 @@ export function ModelDetailPage() {
                       <MessageSquareTextIcon className="size-[1.125rem] shrink-0" />
                     </button>
                   </div>
-                  <div className="ml-auto flex shrink-0 items-center max-sm:ml-0 max-sm:w-full max-sm:flex-[1_1_100%] max-sm:justify-end">
-                    <ReportActionSheet
-                      description="请说明机型存在的问题，并至少上传 1 张证据图。"
-                      onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
-                      title="举报机型"
-                      trigger={
-                        <button
-                          aria-label="举报机型"
-                          className={cn(
-                            "inline-flex items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none transition",
-                            "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2",
-                            item.viewer.hasReported
-                              ? "text-orange-700 dark:text-orange-400"
-                              : "text-orange-600/90 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400"
-                          )}
-                          type="button"
-                        >
-                          <AlertTriangleIcon
-                            className={cn(
-                              "size-[1.125rem] shrink-0 transition",
-                              item.viewer.hasReported &&
-                                "scale-105 fill-orange-500 text-orange-700 dark:fill-orange-400 dark:text-orange-300"
-                            )}
-                          />
-                        </button>
-                      }
-                    />
-                  </div>
                 </div>
               </div>
             </div>
@@ -645,7 +748,7 @@ export function ModelDetailPage() {
           <ModelCommentsSection currentUserId={currentUserId} isAuthenticated={isAuthenticated} slug={slug} />
         </div>
 
-        <aside className="space-y-5">
+        <aside className="hidden xl:block w-72 shrink-0 space-y-5">
           <SitePanel variant="muted">
             <SitePanelBody className="space-y-2.5">
               <div className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-primary">热门机型</div>
@@ -679,7 +782,7 @@ export function ModelDetailPage() {
             </SitePanelBody>
           </SitePanel>
         </aside>
-      </section>
+      </div>
     </ImmersivePageShell>
   );
 }

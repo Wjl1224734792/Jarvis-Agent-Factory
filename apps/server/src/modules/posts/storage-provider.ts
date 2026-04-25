@@ -59,6 +59,22 @@ function parseBoolean(input: string | undefined, fallback: boolean) {
   return ["1", "true", "yes", "on"].includes(input.toLowerCase());
 }
 
+function parseOptionalBoolean(input: string | undefined) {
+  if (input === undefined) {
+    return undefined;
+  }
+
+  const normalized = input.toLowerCase();
+  if (["1", "true", "yes", "on"].includes(normalized)) {
+    return true;
+  }
+  if (["0", "false", "no", "off"].includes(normalized)) {
+    return false;
+  }
+
+  return undefined;
+}
+
 function normalizePrefix(input: string | undefined): string {
   return (input ?? "").trim().replace(/^\/+|\/+$/g, "");
 }
@@ -146,7 +162,12 @@ function isLocalhostStorageEndpoint(endpoint: string) {
 }
 
 export function shouldUseSignedReadUrl(config: StorageProviderConfig, env: EnvLike = process.env) {
-  if (config.provider === "kodo" && !config.publicBaseUrlIsExplicit) {
+  const explicitPresignReadUrls = parseOptionalBoolean(env.STORAGE_PRESIGN_READ_URLS);
+  if (explicitPresignReadUrls !== undefined) {
+    return explicitPresignReadUrls;
+  }
+
+  if (config.provider === "kodo") {
     return true;
   }
 

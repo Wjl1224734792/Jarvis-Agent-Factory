@@ -172,7 +172,8 @@ export const API_ROUTES = {
     complete: withApiV1Prefix("/uploads/complete")
   },
   files: {
-    url: (id: string) => withApiV1Prefix(`/files/${id}/url`)
+    url: (id: string) => withApiV1Prefix(`/files/${id}/url`),
+    content: (id: string) => withApiV1Prefix(`/files/${id}/content`)
   },
   users: {
     meProfile: withApiV1Prefix("/users/me/profile"),

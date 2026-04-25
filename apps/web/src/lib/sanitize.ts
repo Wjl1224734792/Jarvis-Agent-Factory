@@ -87,6 +87,10 @@ const SANITIZE_CONFIG: Config = {
   RETURN_TRUSTED_TYPE: false
 };
 
+type SanitizeHtmlOptions = {
+  allowBlobMedia?: boolean;
+};
+
 function normalizeUrl(input: string) {
   if (input.startsWith("//")) {
     return `https:${input}`;
@@ -247,7 +251,57 @@ function getDomPurifySanitizer() {
   return null;
 }
 
-export function sanitizeHtml(dirty: string): string {
+function isBlobUrl(input: string | null | undefined) {
+  return Boolean(input?.trim().match(/^blob:/i));
+}
+
+function stripBlobMedia(dirty: string) {
+  if (!dirty.includes("blob:")) {
+    return dirty;
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(dirty, "text/html");
+
+    documentNode.querySelectorAll("img").forEach((node) => {
+      if (isBlobUrl(node.getAttribute("src"))) {
+        node.remove();
+      }
+    });
+
+    documentNode.querySelectorAll("video").forEach((node) => {
+      if (isBlobUrl(node.getAttribute("src"))) {
+        node.remove();
+        return;
+      }
+
+      if (isBlobUrl(node.getAttribute("poster"))) {
+        node.removeAttribute("poster");
+      }
+    });
+
+    documentNode.querySelectorAll("source").forEach((node) => {
+      if (isBlobUrl(node.getAttribute("src"))) {
+        node.remove();
+      }
+    });
+
+    documentNode.querySelectorAll("video").forEach((node) => {
+      if (!node.getAttribute("src") && node.querySelectorAll("source").length === 0) {
+        node.remove();
+      }
+    });
+
+    return documentNode.body.innerHTML;
+  }
+
+  return dirty
+    .replace(/<img\b[^>]*\ssrc\s*=\s*(["'])blob:[\s\S]*?\1[^>]*>/gi, "")
+    .replace(/\s(?:src|poster)\s*=\s*(["'])blob:[\s\S]*?\1/gi, "")
+    .replace(/\s(?:src|poster)\s*=\s*blob:[^\s>]+/gi, "");
+}
+
+export function sanitizeHtml(dirty: string, options: SanitizeHtmlOptions = {}): string {
   if (!dirty || typeof dirty !== "string") {
     return "";
   }
@@ -255,10 +309,12 @@ export function sanitizeHtml(dirty: string): string {
   const sanitize = getDomPurifySanitizer();
 
   if (typeof window === "undefined" || !sanitize) {
-    return ssrSanitize(dirty);
+    const sanitized = ssrSanitize(dirty);
+    return options.allowBlobMedia === false ? stripBlobMedia(sanitized) : sanitized;
   }
 
-  return sanitizeAnchors(sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG))));
+  const sanitized = sanitizeAnchors(sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG))));
+  return options.allowBlobMedia === false ? stripBlobMedia(sanitized) : sanitized;
 }
 
 export function escapeHtml(text: string): string {

@@ -24,6 +24,7 @@ const storageConfigMock = {
 
 const uploadsRepoMock = {
   getOwnedFileById: vi.fn(),
+  getFileById: vi.fn(),
   markFileUploaded: vi.fn()
 };
 const auditsRepoMock = {
@@ -36,6 +37,7 @@ const qiniuAuditMock = {
 };
 
 const uploadedUrlMock = vi.fn(async () => "https://cdn.example-kodo.com/resolved/file.png");
+const publicUploadedUrlMock = vi.fn(async () => "https://cdn.example-kodo.com/public/file.png");
 const originalPublicServerBaseUrl = process.env.PUBLIC_SERVER_BASE_URL;
 
 const buildStorageObjectUrlMock = vi.fn((config: { publicBaseUrl: string }, objectKey: string) =>
@@ -63,7 +65,7 @@ vi.mock("../src/modules/audits/qiniu-audit.service", () => ({
 
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
   resolveUploadedFileUrl: uploadedUrlMock,
-  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example-kodo.com/public/file.png")
+  resolvePublicUploadedFileUrl: publicUploadedUrlMock
 }));
 
 function mockFileRecord(overrides: {
@@ -357,5 +359,44 @@ describe("uploads service", () => {
     expect(qiniuAuditMock.submitVideoReview).not.toHaveBeenCalled();
     expect(qiniuAuditMock.reviewImage).not.toHaveBeenCalled();
     expect(auditsRepoMock.create).not.toHaveBeenCalled();
+  });
+
+  it("resolves owner content downloads through the internal read url", async () => {
+    uploadsRepoMock.getFileById.mockResolvedValue({
+      id: "file_owner_image",
+      ownerId: "owner_1",
+      status: "uploaded"
+    });
+    uploadedUrlMock.mockResolvedValueOnce("https://signed.example.com/file_owner_image");
+
+    const { uploadsService } = await import("../src/modules/uploads/upload.service");
+    const url = await uploadsService.getFileContentUrl({
+      fileId: "file_owner_image",
+      viewer: {
+        id: "owner_1",
+        role: "user"
+      }
+    });
+
+    expect(url).toBe("https://signed.example.com/file_owner_image");
+    expect(publicUploadedUrlMock).not.toHaveBeenCalledWith("file_owner_image");
+  });
+
+  it("resolves anonymous content downloads through the public read gate", async () => {
+    uploadsRepoMock.getFileById.mockResolvedValue({
+      id: "file_public_image",
+      ownerId: "owner_1",
+      status: "uploaded"
+    });
+    publicUploadedUrlMock.mockResolvedValueOnce("https://cdn.example.com/file_public_image");
+
+    const { uploadsService } = await import("../src/modules/uploads/upload.service");
+    const url = await uploadsService.getFileContentUrl({
+      fileId: "file_public_image",
+      viewer: null
+    });
+
+    expect(url).toBe("https://cdn.example.com/file_public_image");
+    expect(uploadedUrlMock).not.toHaveBeenCalledWith("file_public_image");
   });
 });

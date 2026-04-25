@@ -33,6 +33,7 @@ type Props = {
   plain?: boolean;
   // Enables copy-link and QR-based share flows when provided.
   sharePath?: string;
+  layout?: "horizontal" | "vertical";
 };
 
 type ActionButtonProps = {
@@ -43,6 +44,7 @@ type ActionButtonProps = {
   compact?: boolean;
   iconOnly?: boolean;
   plain?: boolean;
+  layout?: "horizontal" | "vertical";
   onClick: () => void;
   icon: ComponentType<SVGProps<SVGSVGElement>>;
   tone: "follow" | "like" | "favorite" | "share";
@@ -56,6 +58,7 @@ function ActionButton({
   compact,
   iconOnly,
   plain,
+  layout = "horizontal",
   onClick,
   icon: Icon,
   tone
@@ -95,8 +98,10 @@ function ActionButton({
     <Button
       className={cn(
         "rounded-full",
+        layout === "vertical" && "flex-col gap-0.5",
         plain &&
           "group h-auto border-0 bg-transparent px-2 py-1 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+        layout === "vertical" && plain && "px-1.5 py-2.5",
         plain &&
           active &&
           "rounded-full bg-white/82 shadow-[0_10px_24px_-20px_rgba(15,23,42,0.35)]",
@@ -108,23 +113,24 @@ function ActionButton({
         event.stopPropagation();
         onClick();
       }}
-      size={plain ? undefined : compact ? "sm" : "default"}
+      size={layout === "vertical" || plain ? undefined : compact ? "sm" : "default"}
       type="button"
       variant={plain ? "ghost" : active ? "secondary" : "outline"}
     >
       <Icon
         className={cn(
-          "size-4 transition-transform duration-150 ease-out group-active:scale-[0.92]",
+          "transition-transform duration-150 ease-out group-active:scale-[0.92]",
+          layout === "vertical" ? "size-5" : "size-4",
           plainActiveIconTone,
           active && "motion-safe:animate-[reaction-pop_220ms_cubic-bezier(0.2,0.9,0.2,1)]",
-          !iconOnly && "mr-0"
+          !iconOnly && layout !== "vertical" && "mr-0"
         )}
         fill={active && supportsFill ? "currentColor" : "none"}
         strokeWidth={active && supportsFill ? 1.7 : 2}
       />
       <span className="sr-only">{label}</span>
       {typeof count === "number" ? (
-        <span className={cn("text-xs tabular-nums transition-colors", !plain && "ml-1", plainActiveIconTone)}>
+        <span className={cn("text-xs tabular-nums transition-colors", layout === "vertical" ? "mt-0.5" : !plain && "ml-1", plainActiveIconTone)}>
           {count}
         </span>
       ) : null}
@@ -204,10 +210,12 @@ export function PostInteractionBar(props: Props) {
     }
   }
 
+  const layout = props.layout ?? "horizontal";
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap items-center gap-2">
-        {typeof props.viewCount === "number" ? (
+    <div className={cn("relative flex", layout === "vertical" ? "flex-col items-center gap-3" : "flex-col gap-4")}>
+      <div className={cn("flex flex-wrap items-center gap-2", layout === "vertical" && "flex-col gap-4")}>
+        {typeof props.viewCount === "number" && layout !== "vertical" ? (
           <span
             aria-label={`\u6d4f\u89c8\u91cf ${props.viewCount}`}
             className="mr-1 inline-flex items-center gap-1.5 text-xs text-muted-foreground tabular-nums"
@@ -229,6 +237,7 @@ export function PostInteractionBar(props: Props) {
                 ? "\u5df2\u5173\u6ce8\u4f5c\u8005"
                 : "\u5173\u6ce8\u4f5c\u8005"
             }
+            layout={layout}
             onClick={() => {
               void ensureAuthenticated().then((ready) => {
                 if (!ready) {
@@ -261,6 +270,7 @@ export function PostInteractionBar(props: Props) {
           icon={Heart}
           iconOnly
           label="\u70b9\u8d5e"
+          layout={layout}
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
               if (!ready) {
@@ -300,6 +310,7 @@ export function PostInteractionBar(props: Props) {
           icon={Bookmark}
           iconOnly
           label="\u6536\u85cf"
+          layout={layout}
           onClick={() => {
             void ensureAuthenticated().then((ready) => {
               if (!ready) {
@@ -333,13 +344,13 @@ export function PostInteractionBar(props: Props) {
 
         {!props.hideShare ? (
           props.sharePath ? (
-            <div className="inline-flex items-center gap-1">
+            <div className={cn(layout === "vertical" ? "flex flex-col items-center gap-0.5" : "inline-flex items-center gap-1")}>
               <PageShareControl
                 active={props.viewer.hasShared}
                 aria-label={`\u5206\u4eab\uff08${props.shareCount} \u6b21\uff09`}
                 className={cn(props.plain && "[&_button]:rounded-full")}
                 disabled={!props.isPublished || pendingActions.share}
-                iconClassName="size-4"
+                iconClassName={layout === "vertical" ? "size-5" : "size-4"}
                 onCopySuccess={() => {
                   if (useAuthStore.getState().status !== "authenticated") {
                     return;
@@ -389,6 +400,7 @@ export function PostInteractionBar(props: Props) {
               icon={Share2}
               iconOnly
               label="\u5206\u4eab"
+              layout={layout}
               onClick={() => {
                 setError("\u5206\u4eab\u529f\u80fd\u6682\u672a\u5f00\u653e");
               }}
@@ -400,7 +412,13 @@ export function PostInteractionBar(props: Props) {
       </div>
 
       {error ? (
-        <Alert className="border-rose-200 bg-rose-50 text-rose-900" variant="destructive">
+        <Alert
+          className={cn(
+            "border-rose-200 bg-rose-50 text-rose-900",
+            layout === "vertical" && "absolute left-full top-0 z-50 ml-3 w-72"
+          )}
+          variant="destructive"
+        >
           <AlertTitle>\u4e92\u52a8\u5931\u8d25</AlertTitle>
           <AlertDescription>{error}</AlertDescription>
         </Alert>

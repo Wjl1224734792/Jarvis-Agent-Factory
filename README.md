@@ -236,6 +236,7 @@ Stop-Process -Id <PID> -Force
 - `minio` 继续走本地 S3 兼容链路；`kodo` 已切换为七牛官方 `qiniu` SDK：服务端生成 upload token 与下载 URL，前端按表单上传直传对象存储。
 - `kodo` 下的 `STORAGE_ENDPOINT` 应配置为上传域名，例如 `https://up-z0.qiniup.com`；如需固定区域，可额外配置 `KODO_REGION_ID`。
 - `kodo` 强烈建议显式配置 `STORAGE_PUBLIC_BASE_URL` 为绑定的下载域名或 CDN 域名，避免依赖上传域名推导读地址。
+- `kodo` 默认对读取 URL 使用七牛私有下载签名，避免下载域名未公开时浏览器 401；确认下载域名已开放匿名读时，可设置 `STORAGE_PRESIGN_READ_URLS=false` 改用直链。
 - 云厂商环境请显式设置 `STORAGE_FORCE_PATH_STYLE=false`；`true` 只适合 MinIO 等本地 S3 兼容存储。
 - 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
 - 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。

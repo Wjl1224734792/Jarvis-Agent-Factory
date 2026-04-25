@@ -126,3 +126,20 @@ uploadsRoute.get(API_ROUTES.files.url(":id"), async context => {
 
   return context.json(fileUrlResponseSchema.parse(payload));
 });
+
+uploadsRoute.get(API_ROUTES.files.content(":id"), async context => {
+  const fileId = context.req.param("id");
+  if (!fileId) {
+    return context.json({ code: "BAD_REQUEST", message: "Missing file id." }, 400);
+  }
+
+  const url = await uploadsService.getFileContentUrl({
+    fileId,
+    viewer: context.get("currentUser")
+  });
+  if (!url) {
+    return context.json({ code: "NOT_FOUND", message: "File not found." }, 404);
+  }
+
+  return context.redirect(url, 302);
+});
