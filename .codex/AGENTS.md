@@ -8,12 +8,6 @@
 - 本地终端默认是 Windows PowerShell。
 - 生产环境按 Linux 习惯考虑路径、权限和大小写问题。
 
-## 忽略目录
-
-- 默认忽略 `.claude/`、`.trae/`、`.cursor/`；这些目录属于其它工具，不参与 Codex 文档同步、技能扫描或代理配置校对。
-- 除非用户明确点名，不读取、不总结、不修改这些目录里的 README、AGENTS、skills、rules 或配置。
-- 忽略策略同步写入 [`.codex/config.toml`](./config.toml)，以配置和根 [`AGENTS.md`](../AGENTS.md) 为准。
-
 ## 编码要求
 
 - TypeScript 开启 `strict=true`。

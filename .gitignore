@@ -122,7 +122,3 @@ playwright-report/
 test-results/
 *.py
 
-# Non-Codex agent workspaces
-.claude/
-.trae/
-.cursor/
