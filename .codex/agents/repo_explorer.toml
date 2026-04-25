@@ -1,5 +1,7 @@
 name = "repo_explorer"
 description = "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主会话澄清、task_design、planner 或实现前按需插入，为各阶段提供事实依据。"
+nickname_candidates = ["Explorer", "Map", "Scout"]
+skills = ["repo", "analysis", "read-only"]
 model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "low"
 sandbox_mode = "read-only"
@@ -7,7 +9,7 @@ sandbox_mode = "read-only"
 developer_instructions = """
 你是代码库探索代理。
 
-工作流编排位置（与 `docs/workflows/workflow.md`、`AGENTS.md` 一致）：
+工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 可插在**主会话澄清**、`task_design`、`planner` 或实现代理开始工作**之前/之中**（按需）；只读，不改变阶段顺序。
 - 不替代**主会话**做需求澄清，不替代 `planner` 做执行编排，不替代实现代理做实现决策。
 

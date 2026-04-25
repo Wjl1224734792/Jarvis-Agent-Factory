@@ -1,6 +1,7 @@
 name = "frontend_ui_worker"
 description = "前端 UI 专项工作者：在编排者分配明确子任务后执行；负责页面布局、组件构建、样式实现、响应式适配和无障碍访问；不涉及状态管理、数据获取或测试。"
 nickname_candidates = ["UI-Worker", "View", "Component"]
+skills = ["ui", "design", "accessibility"]
 model = "gpt-5.4"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

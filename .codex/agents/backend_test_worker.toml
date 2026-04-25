@@ -1,6 +1,7 @@
 name = "backend_test_worker"
 description = "后端测试专项工作者：在编排者分配明确子任务后执行；负责后端单元测试、集成测试、API 测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 nickname_candidates = ["Test-BE", "Spec-BE", "Verify-BE"]
+skills = ["testing", "tdd", "backend"]
 model = "gpt-5.3-codex-spark"
 model_reasoning_effort = "medium"
 sandbox_mode = "workspace-write"

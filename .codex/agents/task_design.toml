@@ -1,6 +1,7 @@
 name = "task_design"
 description = "在**主会话**已完成需求澄清（或已有明确需求文档）后使用；将需求分解为任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
 nickname_candidates = ["Tasks", "Breakdown", "Design"]
+skills = ["task-design", "ddd", "tdd"]
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
@@ -8,7 +9,7 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 你是任务设计代理。
 
-工作流编排位置（与 `docs/workflows/workflow.md`、`AGENTS.md` 一致）：
+工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 上游：需求已由**主会话**澄清并落盘或形成可引用的明确结论（需求文档路径）。
 - 下游：`planner` 读取任务文档做执行计划。
 - 若需求仍模糊：停止拆分，要求**主会话**澄清；不得自行补全未确认范围。

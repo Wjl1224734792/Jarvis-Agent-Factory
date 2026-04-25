@@ -1,6 +1,7 @@
 name = "frontend_state_worker"
 description = "前端状态与数据专项工作者：在编排者分配明确子任务后执行；负责全局/局部状态管理、数据获取、缓存策略、请求客户端对接和前端路由逻辑；不涉及 UI 样式或测试。"
 nickname_candidates = ["State-Worker", "Data", "Hook"]
+skills = ["state", "data-fetching", "routing"]
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

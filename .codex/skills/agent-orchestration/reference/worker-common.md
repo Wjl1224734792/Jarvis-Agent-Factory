@@ -9,7 +9,7 @@
 ## 工作流编排位置
 
 ```
-工作流编排位置（与 docs/workflows/workflow.md、AGENTS.md 一致）：
+工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 上游：编排者（主会话加载 agent-orchestration 技能后）已将明确的子任务分配给你；须能引用需求文档、任务文档与计划文档。
 - 下游：有意义变更时由 review_qa 评审。
 - 你**不是编排者**——你不调度其他 agent，不 spawn 子代理。你只负责完成分配给你的具体子任务。
