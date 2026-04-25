@@ -21,6 +21,42 @@ function normalizeModuleId(id: string) {
   return id.replaceAll("\\", "/");
 }
 
+const WANGEDITOR_CORE_PACKAGES = new Set([
+  "@wangeditor/core",
+  "dom7",
+  "event-emitter",
+  "html-void-elements",
+  "i18next",
+  "is-hotkey",
+  "lodash.camelcase",
+  "lodash.clonedeep",
+  "lodash.debounce",
+  "lodash.foreach",
+  "lodash.isequal",
+  "lodash.throttle",
+  "lodash.toarray",
+  "nanoid",
+  "scroll-into-view-if-needed",
+  "slate",
+  "slate-history",
+  "snabbdom"
+]);
+
+const WANGEDITOR_MODULE_PACKAGES = new Set([
+  "@wangeditor/basic-modules",
+  "@wangeditor/code-highlight",
+  "@wangeditor/list-module",
+  "@wangeditor/table-module",
+  "prismjs"
+]);
+
+const WANGEDITOR_UPLOAD_PACKAGES = new Set([
+  "@uppy/core",
+  "@uppy/xhr-upload",
+  "@wangeditor/upload-image-module",
+  "@wangeditor/video-module"
+]);
+
 function getNodeModuleInfo(id: string) {
   const normalizedId = normalizeModuleId(id);
   const marker = "/node_modules/";
@@ -146,6 +182,26 @@ function resolveAntdChunk(subpath: string) {
   return "antd-vendor";
 }
 
+function getWangeditorManualChunk(packageName: string) {
+  if (packageName === "@wangeditor/editor-for-react") {
+    return "wangeditor-react-vendor";
+  }
+  if (packageName === "@wangeditor/editor") {
+    return "wangeditor-core-vendor";
+  }
+  if (WANGEDITOR_UPLOAD_PACKAGES.has(packageName)) {
+    return "wangeditor-upload-vendor";
+  }
+  if (WANGEDITOR_MODULE_PACKAGES.has(packageName)) {
+    return "wangeditor-modules-vendor";
+  }
+  if (WANGEDITOR_CORE_PACKAGES.has(packageName)) {
+    return "wangeditor-core-vendor";
+  }
+
+  return undefined;
+}
+
 function buildAdminManualChunk(id: string) {
   const moduleInfo = getNodeModuleInfo(id);
 
@@ -157,6 +213,11 @@ function buildAdminManualChunk(id: string) {
 
   if (packageName === "lucide-react") {
     return "lucide-vendor";
+  }
+
+  const wangeditorChunk = getWangeditorManualChunk(packageName);
+  if (wangeditorChunk) {
+    return wangeditorChunk;
   }
 
   if (packageName === "@tiptap/react") {

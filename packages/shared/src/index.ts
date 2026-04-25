@@ -4,6 +4,11 @@ export {
   buildRedirectTarget,
   resolveSafeRedirectPath
 } from "./redirects";
+export {
+  normalizeRichTextLinkHref,
+  normalizeRichTextMediaUrl,
+  normalizeRichTextVideoSource
+} from "./rich-text";
 
 /** 本地开发默认端口（避开 3000/3001/3002 等常见占用） */
 export const APP_PORTS = {

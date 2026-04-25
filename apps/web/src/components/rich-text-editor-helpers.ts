@@ -5,6 +5,8 @@ export type UploadedMediaAsset = {
   mimeType?: string;
 };
 
+export { normalizeRichTextLinkHref } from "@feijia/shared";
+
 export type RichTextToolbarKey =
   | "bold"
   | "italic"
@@ -131,29 +133,4 @@ export function extractPlainTextFromHtml(html: string) {
   }
 
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
-}
-
-export function normalizeRichTextLinkHref(input: string) {
-  const value = input.trim();
-  if (!value) {
-    return "";
-  }
-
-  if (value.startsWith("//")) {
-    return `https:${value}`;
-  }
-
-  if (/^[a-z][a-z\d+.-]*:/i.test(value)) {
-    return value;
-  }
-
-  if (/\s/.test(value)) {
-    return "";
-  }
-
-  if (value.startsWith("www.") || /^[^/]+\.[^/]+/.test(value)) {
-    return `https://${value}`;
-  }
-
-  return value;
 }

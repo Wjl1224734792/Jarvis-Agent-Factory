@@ -243,15 +243,16 @@ export function OfficialArticleEditorPage() {
     }
   }
 
-  async function uploadImages(files: FileList | null) {
-    if (!files?.length) {
+  async function uploadImages(files: FileList | File[] | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) {
       return [];
     }
 
     setIsUploading(true);
     try {
       const uploads: UploadedMediaAsset[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of selectedFiles) {
         const response = await apiClient.uploadPostImage(file);
         uploads.push({
           id: response.item.id,
@@ -266,15 +267,16 @@ export function OfficialArticleEditorPage() {
     }
   }
 
-  async function uploadVideos(files: FileList | null) {
-    if (!files?.length) {
+  async function uploadVideos(files: FileList | File[] | null) {
+    const selectedFiles = Array.from(files ?? []);
+    if (selectedFiles.length === 0) {
       return [];
     }
 
     setIsUploading(true);
     try {
       const uploads: UploadedMediaAsset[] = [];
-      for (const file of Array.from(files)) {
+      for (const file of selectedFiles) {
         const response = await apiClient.uploadPostVideo(file);
         uploads.push({
           id: response.item.id,
@@ -370,7 +372,7 @@ export function OfficialArticleEditorPage() {
       {statusMessage ? <div className="admin-shell__banner">{statusMessage}</div> : null}
 
       <div className="admin-split admin-split--wide admin-official-article-editor">
-        <AdminPanel description="标题、摘要、封面和正文在同一工作区完成。" title={editId ? "编辑内容" : "新建内容"}>
+        <AdminPanel description="标题、摘要和正文在同一工作区完成。" title={editId ? "编辑内容" : "新建内容"}>
           <div className="admin-official-article-editor__stats">
             <div className="admin-official-article-editor__stat">
               <span className="admin-official-article-editor__stat-label">模式</span>
@@ -424,46 +426,6 @@ export function OfficialArticleEditorPage() {
               />
             </Form.Item>
 
-            <div className="admin-official-article-editor__cover">
-              <div className="admin-official-article-editor__cover-preview">
-                {previewImageUrl ? (
-                  <img alt="官方文章封面预览" src={previewImageUrl} />
-                ) : (
-                  <div className="admin-official-article-editor__cover-empty">未设置封面</div>
-                )}
-              </div>
-              <div className="admin-official-article-editor__cover-actions">
-                <div className="admin-panel__title">封面</div>
-                <div className="admin-muted">
-                  {coverImage?.fileName ?? "封面会优先用于列表卡片和文章头图。"}
-                </div>
-                <Space wrap>
-                  <Button loading={isUploading} onClick={() => fileInputRef.current?.click()} type="default">
-                    {isUploading ? "上传中" : coverImage ? "更换封面" : "上传封面"}
-                  </Button>
-                  {coverImage ? (
-                    <Button
-                      onClick={() => {
-                        setCoverImage(null);
-                      }}
-                      type="link"
-                    >
-                      清除封面
-                    </Button>
-                  ) : null}
-                </Space>
-              </div>
-              <input
-                accept="image/*"
-                hidden
-                onChange={(event) => {
-                  void uploadCover(event.target.files?.[0] ?? null);
-                }}
-                ref={fileInputRef}
-                type="file"
-              />
-            </div>
-
             <Form.Item label="正文" required>
               <div ref={editorViewportRef}>
                 {shouldLoadEditor ? (
@@ -506,13 +468,46 @@ export function OfficialArticleEditorPage() {
         <div className="admin-field-stack">
           <AdminPanel description="提交前核对标题、摘要、封面和正文呈现。" title="实时预览">
             <div className="admin-article-preview admin-official-article-editor__preview">
-              {previewImageUrl ? (
-                <div className="admin-image-preview">
-                  <img alt="官方文章封面" src={previewImageUrl} />
-                </div>
-              ) : (
-                <div className="admin-article-preview__placeholder">未设置封面</div>
-              )}
+              <div className="admin-article-preview__cover">
+                <button
+                  aria-label={coverImage ? "更换封面" : "设置封面"}
+                  className="admin-article-preview__cover-trigger"
+                  disabled={isUploading}
+                  onClick={() => fileInputRef.current?.click()}
+                  title={coverImage ? "更换封面" : "设置封面"}
+                  type="button"
+                >
+                  {previewImageUrl ? (
+                    <span className="admin-image-preview">
+                      <img alt="官方文章封面" src={previewImageUrl} />
+                    </span>
+                  ) : (
+                    <span className="admin-article-preview__placeholder">未设置封面</span>
+                  )}
+                </button>
+                {coverImage ? (
+                  <button
+                    aria-label="清除封面"
+                    className="admin-article-preview__cover-clear"
+                    onClick={() => {
+                      setCoverImage(null);
+                    }}
+                    title="清除封面"
+                    type="button"
+                  >
+                    ×
+                  </button>
+                ) : null}
+                <input
+                  accept="image/*"
+                  hidden
+                  onChange={(event) => {
+                    void uploadCover(event.target.files?.[0] ?? null);
+                  }}
+                  ref={fileInputRef}
+                  type="file"
+                />
+              </div>
               <div className="admin-article-preview__meta">{selectedCategoryLabel}</div>
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>
               {watchedSummary.trim() ? (
