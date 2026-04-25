@@ -19,6 +19,8 @@
 | 给 AI 定规矩、查审查标准、收尾要跑什么命令 | [`AGENTS.md`](./AGENTS.md) |
 | Codex 相关 | [`.codex/AGENTS.md`](./.codex/AGENTS.md) |
 
+本仓库当前以 Codex 配置为准；`.claude/`、`.trae/`、`.cursor/` 属于其它工具目录，日常文档同步和仓库扫描默认忽略。
+
 各子目录的 **`AGENTS.md` 只写该目录范围内**的约束，细则见根 [`AGENTS.md`](./AGENTS.md) 文首「分层写作规则」。
 
 ---
@@ -41,7 +43,7 @@ feijia/
 ├─ docs/
 ├─ AGENTS.md          ← 代理指令（L0–L5）
 ├─ EXAMPLES.md        ← 编码准则正反例示意
-└─ .codex/AGENTS.md
+└─ .codex/            ← Codex 配置、代理与技能
 ```
 
 ## 环境要求

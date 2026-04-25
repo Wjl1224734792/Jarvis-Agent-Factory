@@ -66,6 +66,8 @@
 
 **不在仓**：`apps/mobiles`（勿恢复）；小程序/App（Taro/Flutter 另库）。
 
+**忽略**：`.claude/`、`.trae/`、`.cursor/` 为非 Codex 工具目录；除非用户明确点名，代理不得读取、总结或修改其中的 README / AGENTS / skills / rules / 配置。
+
 **栈**：Bun · Vitest · Drizzle · Hono。依赖：`apps` → `packages` → 外部；**禁止** `packages` → `apps`。
 
 ---

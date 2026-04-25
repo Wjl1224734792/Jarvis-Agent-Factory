@@ -1,0 +1,23 @@
+developer_instructions = """
+在本仓库中，除非用户明确点名，忽略 `.claude/`、`.trae/`、`.cursor/`。
+不要读取、总结、修改这些目录里的 README、AGENTS、skills、rules 或配置。
+仓库级 README/AGENTS 同步只覆盖根目录、`.codex/`、`apps/`、`packages/`、`docker/` 与 `docs/`。
+"""
+
+default_permissions = "feijia"
+
+[features]
+multi_agent = true
+
+[agents]
+max_threads = 6
+max_depth = 1
+
+[install]
+exact = false
+
+[permissions.feijia.filesystem.":project_roots"]
+"." = "write"
+".claude/**" = "none"
+".trae/**" = "none"
+".cursor/**" = "none"
