@@ -743,8 +743,24 @@ body {
   color: var(--admin-primary-strong);
 }
 
+.admin-editor__link-panel {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--admin-border);
+  border-radius: 18px;
+  background: var(--admin-surface-muted);
+}
+
+.admin-editor__link-input {
+  min-width: 240px;
+  flex: 1 1 280px;
+}
+
 .admin-editor__surface {
-  overflow: hidden;
+  overflow: auto;
   border: 1px solid var(--admin-border);
   border-radius: 22px;
   background: rgba(255, 255, 255, 0.82);
@@ -815,17 +831,50 @@ body {
 .admin-editor__content table,
 .admin-article-preview__body table {
   width: 100%;
+  min-width: 640px;
   border-collapse: collapse;
+  table-layout: fixed;
   margin: 18px 0;
+}
+
+.admin-editor__content .tableWrapper,
+.admin-article-preview__body .tableWrapper {
+  overflow-x: auto;
+  padding-bottom: 8px;
 }
 
 .admin-editor__content th,
 .admin-editor__content td,
 .admin-article-preview__body th,
 .admin-article-preview__body td {
+  position: relative;
   border: 1px solid var(--admin-border);
   padding: 10px 12px;
   text-align: left;
+  vertical-align: top;
+}
+
+.admin-editor__content .column-resize-handle {
+  position: absolute;
+  top: 0;
+  right: -2px;
+  bottom: -2px;
+  width: 4px;
+  background: rgba(20, 122, 132, 0.48);
+  pointer-events: none;
+}
+
+.admin-editor__content.resize-cursor,
+.admin-editor__content .resize-cursor {
+  cursor: col-resize;
+}
+
+.admin-editor__content .selectedCell::after {
+  position: absolute;
+  inset: 0;
+  background: rgba(20, 122, 132, 0.1);
+  content: "";
+  pointer-events: none;
 }
 
 .admin-editor__content th,
@@ -2461,6 +2510,7 @@ body {
 
 .admin-official-article-editor {
   align-items: start;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
 }
 
 .admin-official-article-editor__stats {
@@ -2602,6 +2652,7 @@ body {
 }
 
 @media (max-width: 1199px) {
+  .admin-official-article-editor,
   .admin-official-article-editor__stats,
   .admin-official-article-editor__cover {
     grid-template-columns: minmax(0, 1fr);

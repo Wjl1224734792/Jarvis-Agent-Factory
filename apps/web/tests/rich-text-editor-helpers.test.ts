@@ -113,18 +113,6 @@ describe("getRichTextMediaInsertions", () => {
     ).toEqual([{ type: "videoBlock", attrs: { src: "https://cdn.example.com/clip.mp4", poster: null } }]);
   });
 
-  it("returns table insertion payloads", () => {
-    expect(getRichTextMediaInsertions("table", [])).toEqual([
-      {
-        type: "table",
-        attrs: {
-          rows: 3,
-          cols: 3,
-          withHeaderRow: true
-        }
-      }
-    ]);
-  });
 });
 
 describe("shouldSyncRichTextValue", () => {

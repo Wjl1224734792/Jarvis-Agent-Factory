@@ -12,6 +12,7 @@ import TaskItem from "@tiptap/extension-task-item";
 import TaskList from "@tiptap/extension-task-list";
 import TextAlign from "@tiptap/extension-text-align";
 import { TextStyle } from "@tiptap/extension-text-style";
+import UnderlineExtension from "@tiptap/extension-underline";
 import StarterKit from "@tiptap/starter-kit";
 import { EditorContent, useEditor } from "@tiptap/react";
 import {
@@ -48,7 +49,7 @@ import {
   UnderlineIcon
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { Button, Tooltip } from "antd";
+import { Button, Input, Tooltip } from "antd";
 import { adminRichTextToolbarConfig } from "./admin-rich-text-toolbar";
 import {
   buildAdminRichTextToolbarState,
@@ -106,25 +107,52 @@ const VideoBlock = Node.create({
   }
 });
 
-function insertLink(editor: ReturnType<typeof useEditor> | null) {
+function normalizeAdminRichTextLinkHref(input: string) {
+  const value = input.trim();
+  if (!value) {
+    return "";
+  }
+
+  if (value.startsWith("//")) {
+    return `https:${value}`;
+  }
+
+  if (/^[a-z][a-z\d+.-]*:/i.test(value)) {
+    return value;
+  }
+
+  if (/\s/.test(value)) {
+    return "";
+  }
+
+  if (value.startsWith("www.") || /^[^/]+\.[^/]+/.test(value)) {
+    return `https://${value}`;
+  }
+
+  return value;
+}
+
+function getEditorLinkHref(editor: ReturnType<typeof useEditor> | null) {
+  if (!editor) {
+    return "";
+  }
+
+  const linkAttributes = editor.getAttributes("link") as Record<string, unknown>;
+  return typeof linkAttributes.href === "string" ? linkAttributes.href : "";
+}
+
+function applyLink(editor: ReturnType<typeof useEditor> | null, nextHref: string) {
   if (!editor) {
     return;
   }
 
-  const linkAttributes = editor.getAttributes("link") as Record<string, unknown>;
-  const previousUrl =
-    typeof linkAttributes.href === "string" ? linkAttributes.href : undefined;
-  const next = window.prompt("请输入链接地址", previousUrl ?? "https://");
-  if (next === null) {
-    return;
-  }
-
-  if (next.trim().length === 0) {
+  const normalizedHref = normalizeAdminRichTextLinkHref(nextHref);
+  if (!normalizedHref) {
     editor.chain().focus().unsetLink().run();
     return;
   }
 
-  editor.chain().focus().extendMarkRange("link").setLink({ href: next.trim() }).run();
+  editor.chain().focus().extendMarkRange("link").setLink({ href: normalizedHref }).run();
 }
 
 function renderToolbarIcon(icon: string, spinning = false) {
@@ -209,16 +237,22 @@ export function AdminRichTextEditor(props: {
   const colorInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [, setToolbarVersion] = useState(0);
+  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
+  const [linkInputValue, setLinkInputValue] = useState("");
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [2, 3]
-        }
+        },
+        link: false,
+        underline: false
       }),
       TextStyle,
       Color,
+      UnderlineExtension,
       Highlight.configure({ multicolor: true }),
       TaskList,
       TaskItem.configure({ nested: true }),
@@ -269,6 +303,25 @@ export function AdminRichTextEditor(props: {
     }
   }, [editor, props.value]);
 
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const refreshToolbarState = () => setToolbarVersion((version) => version + 1);
+
+    editor.on("selectionUpdate", refreshToolbarState);
+    editor.on("transaction", refreshToolbarState);
+    editor.on("update", refreshToolbarState);
+    refreshToolbarState();
+
+    return () => {
+      editor.off("selectionUpdate", refreshToolbarState);
+      editor.off("transaction", refreshToolbarState);
+      editor.off("update", refreshToolbarState);
+    };
+  }, [editor]);
+
   async function handleImageUpload(files: FileList | null) {
     if (!editor || !props.onUploadImage || !files?.length) {
       return;
@@ -307,7 +360,27 @@ export function AdminRichTextEditor(props: {
     }
   }
 
+  function openLinkEditor() {
+    if (!editor) {
+      return;
+    }
+
+    setLinkInputValue(getEditorLinkHref(editor) || "https://");
+    setIsLinkEditorOpen(true);
+  }
+
+  function submitLinkEditor() {
+    applyLink(editor, linkInputValue);
+    setIsLinkEditorOpen(false);
+  }
+
+  function removeLink() {
+    editor?.chain().focus().unsetLink().run();
+    setIsLinkEditorOpen(false);
+  }
+
   const toolbarState = buildAdminRichTextToolbarState(editor as RichTextToolbarEditor | null);
+  const isTableActive = editor?.isActive("table") ?? false;
   const toolbar = [
     { key: "bold", label: "加粗", icon: "bold", disabled: !editor, active: toolbarState.find((item) => item.key === "bold")?.active ?? false, onClick: () => editor?.chain().focus().toggleBold().run() },
     { key: "italic", label: "斜体", icon: "italic", disabled: !editor, active: toolbarState.find((item) => item.key === "italic")?.active ?? false, onClick: () => editor?.chain().focus().toggleItalic().run() },
@@ -326,19 +399,19 @@ export function AdminRichTextEditor(props: {
     { key: "alignLeft", label: "左对齐", icon: "alignLeft", disabled: !editor, active: toolbarState.find((item) => item.key === "alignLeft")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("left").run() },
     { key: "alignCenter", label: "居中", icon: "alignCenter", disabled: !editor, active: toolbarState.find((item) => item.key === "alignCenter")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("center").run() },
     { key: "alignRight", label: "右对齐", icon: "alignRight", disabled: !editor, active: toolbarState.find((item) => item.key === "alignRight")?.active ?? false, onClick: () => editor?.chain().focus().setTextAlign("right").run() },
-    { key: "link", label: "插入链接", icon: "link", disabled: !editor, active: toolbarState.find((item) => item.key === "link")?.active ?? false, onClick: () => insertLink(editor) },
-    { key: "unlink", label: "取消链接", icon: "unlink", disabled: toolbarState.find((item) => item.key === "unlink")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().unsetLink().run() },
+    { key: "link", label: "插入链接", icon: "link", disabled: !editor, active: toolbarState.find((item) => item.key === "link")?.active ?? false, onClick: openLinkEditor },
+    { key: "unlink", label: "取消链接", icon: "unlink", disabled: toolbarState.find((item) => item.key === "unlink")?.disabled ?? true, active: false, onClick: removeLink },
     { key: "undo", label: "撤销", icon: "undo", disabled: toolbarState.find((item) => item.key === "undo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().undo().run() },
     { key: "redo", label: "重做", icon: "redo", disabled: toolbarState.find((item) => item.key === "redo")?.disabled ?? true, active: false, onClick: () => editor?.chain().focus().redo().run() }
   ];
 
   const tableActions = [
-    { key: "insertTable", label: "插入表格", icon: "table", onClick: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
-    { key: "addRow", label: "加行", icon: "rowAdd", onClick: () => editor?.chain().focus().addRowAfter().run() },
-    { key: "deleteRow", label: "删行", icon: "rowDelete", onClick: () => editor?.chain().focus().deleteRow().run() },
-    { key: "addColumn", label: "加列", icon: "columnAdd", onClick: () => editor?.chain().focus().addColumnAfter().run() },
-    { key: "deleteColumn", label: "删列", icon: "columnDelete", onClick: () => editor?.chain().focus().deleteColumn().run() },
-    { key: "toggleHeader", label: "表头", icon: "headerRow", onClick: () => editor?.chain().focus().toggleHeaderRow().run() }
+    { key: "insertTable", label: "插入表格", icon: "table", disabled: !editor, onClick: () => editor?.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run() },
+    { key: "addRow", label: "加行", icon: "rowAdd", disabled: !editor || !isTableActive, onClick: () => editor?.chain().focus().addRowAfter().run() },
+    { key: "deleteRow", label: "删行", icon: "rowDelete", disabled: !editor || !isTableActive, onClick: () => editor?.chain().focus().deleteRow().run() },
+    { key: "addColumn", label: "加列", icon: "columnAdd", disabled: !editor || !isTableActive, onClick: () => editor?.chain().focus().addColumnAfter().run() },
+    { key: "deleteColumn", label: "删列", icon: "columnDelete", disabled: !editor || !isTableActive, onClick: () => editor?.chain().focus().deleteColumn().run() },
+    { key: "toggleHeader", label: "表头", icon: "headerRow", disabled: !editor || !isTableActive, onClick: () => editor?.chain().focus().toggleHeaderRow().run() }
   ];
 
   return (
@@ -361,6 +434,7 @@ export function AdminRichTextEditor(props: {
             <Button
               aria-label="文字颜色"
               className="admin-editor__tool"
+              disabled={!editor}
               icon={renderToolbarIcon("palette")}
               onClick={() => colorInputRef.current?.click()}
               type="default"
@@ -370,6 +444,7 @@ export function AdminRichTextEditor(props: {
             <Button
               aria-label="清除颜色"
               className="admin-editor__tool"
+              disabled={!editor}
               icon={renderToolbarIcon("paletteOff")}
               onClick={() => editor?.chain().focus().unsetColor().run()}
               type="default"
@@ -382,6 +457,7 @@ export function AdminRichTextEditor(props: {
               <Button
                 aria-label={item.label}
                 className="admin-editor__tool"
+                disabled={item.disabled}
                 icon={renderToolbarIcon(item.icon)}
                 onClick={item.onClick}
                 type="default"
@@ -392,6 +468,7 @@ export function AdminRichTextEditor(props: {
             <Button
               aria-label="图片"
               className="admin-editor__tool"
+              disabled={!editor || !props.onUploadImage || isUploadingImage}
               icon={renderToolbarIcon("image", isUploadingImage)}
               loading={isUploadingImage}
               onClick={() => imageInputRef.current?.click()}
@@ -402,6 +479,7 @@ export function AdminRichTextEditor(props: {
             <Button
               aria-label="视频"
               className="admin-editor__tool"
+              disabled={!editor || !props.onUploadVideo || isUploadingVideo}
               icon={renderToolbarIcon("video", isUploadingVideo)}
               loading={isUploadingVideo}
               onClick={() => videoInputRef.current?.click()}
@@ -410,6 +488,33 @@ export function AdminRichTextEditor(props: {
           </Tooltip>
         </div>
       </div>
+      {isLinkEditorOpen ? (
+        <form
+          className="admin-editor__link-panel"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitLinkEditor();
+          }}
+        >
+          <Input
+            aria-label="链接地址"
+            autoFocus
+            className="admin-editor__link-input"
+            onChange={(event) => setLinkInputValue(event.target.value)}
+            placeholder="https://example.com"
+            value={linkInputValue}
+          />
+          <Button disabled={!editor} htmlType="submit" type="primary">
+            应用
+          </Button>
+          <Button disabled={!editor} onClick={removeLink} type="default">
+            移除
+          </Button>
+          <Button onClick={() => setIsLinkEditorOpen(false)} type="text">
+            关闭
+          </Button>
+        </form>
+      ) : null}
       <div className="admin-editor__surface">
         <EditorContent editor={editor} />
       </div>

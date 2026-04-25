@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Clock3Icon, ImagePlusIcon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichTextEditor } from "@/components/rich-text-editor";
@@ -534,7 +534,7 @@ export function PublishArticlePage() {
   return (
     <PublishShell
       eyebrow="文章"
-      gridClassName="gap-5 xl:grid-cols-[minmax(0,1fr)_18.5rem]"
+      gridClassName="gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]"
       main={
         <>
           {error ? (
@@ -584,7 +584,7 @@ export function PublishArticlePage() {
 
               <div className="space-y-5">
                 <Input
-                  className="h-auto border-0 px-0 py-0 text-[2.2rem] leading-[1.05] font-semibold tracking-[-0.06em] shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[3rem]"
+                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="标题"
                   value={title}
@@ -617,46 +617,13 @@ export function PublishArticlePage() {
                     <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
                   </div>
                   <Textarea
-                    className="min-h-24 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
+                    className="min-h-28 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
                     maxLength={ARTICLE_SUMMARY_MAX_LENGTH}
                     onChange={(event) => setSummary(event.target.value.slice(0, ARTICLE_SUMMARY_MAX_LENGTH))}
                     placeholder="摘要（可选）"
                     value={summary}
                   />
                 </div>
-
-                <button
-                  aria-label={coverUrl ? "更换文章封面" : "上传文章封面"}
-                  className={cn(
-                    "group flex min-h-60 w-full flex-col overflow-hidden rounded-[1rem] border border-border/70 bg-surface-1 text-left transition",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
-                  )}
-                  onClick={() => coverInputRef.current?.click()}
-                  type="button"
-                >
-                  {coverUrl ? (
-                    <>
-                      <img alt="cover preview" className="h-48 w-full object-cover md:h-56" src={coverUrl} />
-                      <div className="flex flex-1 items-center justify-between gap-3 px-4 py-3">
-                        <div className="space-y-1">
-                          <div className="text-sm font-medium text-foreground">封面</div>
-                          <div className="text-xs text-muted-foreground">点击更换</div>
-                        </div>
-                        <PencilLineIcon className="size-4 text-muted-foreground" />
-                      </div>
-                    </>
-                  ) : (
-                    <div className="flex h-full flex-1 flex-col items-center justify-center gap-3 px-4 py-6 text-center">
-                      <div className="inline-flex size-11 items-center justify-center rounded-full bg-primary/10 text-primary">
-                        <ImagePlusIcon className="size-5" />
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-sm font-medium text-foreground">上传封面</div>
-                        <div className="text-xs text-muted-foreground">封面</div>
-                      </div>
-                    </div>
-                  )}
-                </button>
 
                 <RichTextEditor
                   onChange={setEditorHtml}
@@ -779,7 +746,7 @@ export function PublishArticlePage() {
 
             {articleHtml ? (
               <div
-                className="max-h-[320px] overflow-y-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-dashed [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-3 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:text-slate-100 [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-5"
+                className="max-h-[min(54vh,34rem)] overflow-auto border-t border-border/60 pt-4 text-sm leading-6 text-foreground/78 [&_blockquote]:border-l-4 [&_blockquote]:border-primary/35 [&_blockquote]:pl-4 [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1 [&_code]:py-0.5 [&_figure]:my-4 [&_h2]:mt-5 [&_h2]:mb-2 [&_h2]:text-lg [&_h2]:font-semibold [&_h3]:mt-4 [&_h3]:mb-2 [&_h3]:text-base [&_h3]:font-semibold [&_hr]:my-4 [&_hr]:border-dashed [&_img]:w-full [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_pre]:overflow-x-auto [&_pre]:rounded-xl [&_pre]:bg-slate-950 [&_pre]:p-3 [&_pre]:text-slate-100 [&_pre_code]:bg-transparent [&_pre_code]:px-0 [&_pre_code]:py-0 [&_pre_code]:text-slate-100 [&_table]:min-w-[24rem] [&_table]:w-full [&_table]:border-collapse [&_td]:border [&_td]:border-border [&_td]:px-2 [&_td]:py-1.5 [&_th]:border [&_th]:border-border [&_th]:bg-slate-100 [&_th]:px-2 [&_th]:py-1.5 [&_ul[data-type='taskList']]:list-none [&_ul]:list-disc [&_ul]:pl-5"
                 dangerouslySetInnerHTML={{
                   __html: sanitizeHtml(articleHtml)
                 }}

@@ -96,20 +96,7 @@ export function buildRichTextToolbarState(editor: RichTextToolbarEditor | null):
   ];
 }
 
-export function getRichTextMediaInsertions(kind: "image" | "video" | "table", assets: UploadedMediaAsset[]) {
-  if (kind === "table") {
-    return [
-      {
-        type: "table" as const,
-        attrs: {
-          rows: 3,
-          cols: 3,
-          withHeaderRow: true
-        }
-      }
-    ];
-  }
-
+export function getRichTextMediaInsertions(kind: "image" | "video", assets: UploadedMediaAsset[]) {
   if (kind === "image") {
     return assets.map((asset) => ({
       type: "image" as const,

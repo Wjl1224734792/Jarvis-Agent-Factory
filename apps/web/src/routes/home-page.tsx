@@ -254,6 +254,14 @@ export function HomePage() {
     getNextPageParam: (lastPage: HomeFeedPage) => resolveFeedNextCursor(lastPage)
   });
 
+  const contentCategoriesQuery = useQuery({
+    queryKey: ["home-content-categories"],
+    staleTime: HOME_FEED_QUERY_STALE_TIME_MS,
+    gcTime: HOME_FEED_QUERY_GC_TIME_MS,
+    placeholderData: keepPreviousData,
+    queryFn: () => apiClient.listContentCategories()
+  });
+
   const modelsQuery = useQuery({
     queryKey: ["home-shell-models"],
     placeholderData: keepPreviousData,
@@ -271,10 +279,8 @@ export function HomePage() {
   });
 
   const feedItems = homeFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [];
-  const contentCategories = useMemo(
-    () => homeFeedQuery.data?.pages[0]?.categories ?? [],
-    [homeFeedQuery.data?.pages]
-  );
+  const feedContentCategories = homeFeedQuery.data?.pages[0]?.categories ?? [];
+  const contentCategories = contentCategoriesQuery.data?.items ?? feedContentCategories;
   const hotModels = modelsQuery.data?.items ?? [];
   const rankingCards = useMemo(
     () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data).hot.slice(0, 2) : []),

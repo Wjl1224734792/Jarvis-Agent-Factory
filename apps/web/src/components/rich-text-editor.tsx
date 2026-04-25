@@ -43,7 +43,8 @@ import {
   Underline,
   Undo2,
   Unlink2,
-  Video
+  Video,
+  X
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { cn } from "@/lib/utils";
@@ -142,15 +143,17 @@ const VideoBlock = Node.create({
   }
 });
 
-function insertLink(editor: TiptapEditor | null) {
+function getEditorLinkHref(editor: TiptapEditor | null) {
   if (!editor) {
-    return;
+    return "";
   }
 
   const linkAttributes = editor.getAttributes("link") as Record<string, unknown>;
-  const previousHref = typeof linkAttributes.href === "string" ? linkAttributes.href : "";
-  const nextHref = window.prompt("请输入链接地址", previousHref || "https://");
-  if (nextHref === null) {
+  return typeof linkAttributes.href === "string" ? linkAttributes.href : "";
+}
+
+function applyLink(editor: TiptapEditor | null, nextHref: string) {
+  if (!editor) {
     return;
   }
 
@@ -198,13 +201,18 @@ export function RichTextEditor(props: RichTextEditorProps) {
   const colorInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploadingImage, setIsUploadingImage] = useState(false);
   const [isUploadingVideo, setIsUploadingVideo] = useState(false);
+  const [, setToolbarVersion] = useState(0);
+  const [isLinkEditorOpen, setIsLinkEditorOpen] = useState(false);
+  const [linkInputValue, setLinkInputValue] = useState("");
 
   const editor = useEditor({
     extensions: [
       StarterKit.configure({
         heading: {
           levels: [2, 3]
-        }
+        },
+        link: false,
+        underline: false
       }),
       TextStyle,
       Color,
@@ -261,11 +269,28 @@ export function RichTextEditor(props: RichTextEditorProps) {
     }
   }, [editor, props.value]);
 
-  const toolbarStateMap = useMemo(() => {
-    return new Map(
-      buildRichTextToolbarState(editor as RichTextToolbarEditor | null).map((item) => [item.key, item] as const)
-    );
+  useEffect(() => {
+    if (!editor) {
+      return;
+    }
+
+    const refreshToolbarState = () => setToolbarVersion((version) => version + 1);
+
+    editor.on("selectionUpdate", refreshToolbarState);
+    editor.on("transaction", refreshToolbarState);
+    editor.on("update", refreshToolbarState);
+    refreshToolbarState();
+
+    return () => {
+      editor.off("selectionUpdate", refreshToolbarState);
+      editor.off("transaction", refreshToolbarState);
+      editor.off("update", refreshToolbarState);
+    };
   }, [editor]);
+
+  const toolbarStateMap = new Map(
+    buildRichTextToolbarState(editor as RichTextToolbarEditor | null).map((item) => [item.key, item] as const)
+  );
   const isTableActive = editor?.isActive("table") ?? false;
   const plainText = useMemo(() => extractPlainTextFromHtml(props.value), [props.value]);
   const characterCount = plainText.replace(/\s+/g, "").length;
@@ -306,6 +331,25 @@ export function RichTextEditor(props: RichTextEditorProps) {
         videoInputRef.current.value = "";
       }
     }
+  }
+
+  function openLinkEditor() {
+    if (!editor) {
+      return;
+    }
+
+    setLinkInputValue(getEditorLinkHref(editor) || "https://");
+    setIsLinkEditorOpen(true);
+  }
+
+  function submitLinkEditor() {
+    applyLink(editor, linkInputValue);
+    setIsLinkEditorOpen(false);
+  }
+
+  function removeLink() {
+    editor?.chain().focus().unsetLink().run();
+    setIsLinkEditorOpen(false);
   }
 
   const actions: Partial<Record<RichTextToolbarControl["key"], ToolbarAction>> = {
@@ -414,12 +458,12 @@ export function RichTextEditor(props: RichTextEditorProps) {
       active: toolbarStateMap.get("link")?.active,
       disabled: toolbarStateMap.get("link")?.disabled,
       icon: <Link2 className="size-3.5" />,
-      onClick: () => insertLink(editor)
+      onClick: openLinkEditor
     },
     unlink: {
       disabled: toolbarStateMap.get("unlink")?.disabled,
       icon: <Unlink2 className="size-3.5" />,
-      onClick: () => editor?.chain().focus().unsetLink().run()
+      onClick: removeLink
     },
     undo: {
       disabled: toolbarStateMap.get("undo")?.disabled,
@@ -440,9 +484,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
           return;
         }
 
-        for (const insertion of getRichTextMediaInsertions("table", [])) {
-          editor.chain().focus().insertContent(insertion).run();
-        }
+        editor.chain().focus().insertTable({ rows: 3, cols: 3, withHeaderRow: true }).run();
       }
     },
     addRow: {
@@ -493,7 +535,7 @@ export function RichTextEditor(props: RichTextEditorProps) {
   };
 
   return (
-    <div className="overflow-hidden rounded-[0.9rem] border border-border/70 bg-white">
+    <div className="article-editor overflow-hidden rounded-[0.9rem] border border-border/70 bg-white">
       <style>{`
         .article-editor__content p.is-editor-empty:first-child::before {
           color: color-mix(in srgb, var(--muted-foreground) 92%, transparent);
@@ -501,6 +543,42 @@ export function RichTextEditor(props: RichTextEditorProps) {
           float: left;
           height: 0;
           pointer-events: none;
+        }
+        .article-editor__content {
+          min-height: 420px;
+        }
+        .article-editor .tableWrapper {
+          overflow-x: auto;
+          padding-bottom: 0.5rem;
+        }
+        .article-editor__content table {
+          min-width: 36rem;
+          table-layout: fixed;
+        }
+        .article-editor__content th,
+        .article-editor__content td {
+          position: relative;
+          vertical-align: top;
+        }
+        .article-editor__content .column-resize-handle {
+          background-color: color-mix(in srgb, var(--primary) 55%, transparent);
+          bottom: -2px;
+          pointer-events: none;
+          position: absolute;
+          right: -2px;
+          top: 0;
+          width: 4px;
+        }
+        .article-editor__content.resize-cursor,
+        .article-editor__content .resize-cursor {
+          cursor: col-resize;
+        }
+        .article-editor__content .selectedCell::after {
+          background: color-mix(in srgb, var(--primary) 10%, transparent);
+          content: "";
+          inset: 0;
+          pointer-events: none;
+          position: absolute;
         }
       `}</style>
       <div className="flex flex-wrap items-start gap-3 border-b border-border/70 px-3 py-3">
@@ -549,10 +627,45 @@ export function RichTextEditor(props: RichTextEditorProps) {
         </div>
       </div>
 
+      {isLinkEditorOpen ? (
+        <form
+          className="flex flex-wrap items-center gap-2 border-b border-border/70 bg-surface-1/70 px-3 py-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitLinkEditor();
+          }}
+        >
+          <Link2 className="size-4 text-muted-foreground" />
+          <input
+            aria-label="链接地址"
+            autoFocus
+            className="min-h-9 min-w-0 flex-1 rounded-[0.65rem] border border-border/70 bg-white px-3 text-sm outline-none transition focus:border-primary/40 focus:ring-2 focus:ring-primary/15"
+            onChange={(event) => setLinkInputValue(event.target.value)}
+            placeholder="https://example.com"
+            value={linkInputValue}
+          />
+          <Button size="sm" type="submit">
+            应用
+          </Button>
+          <Button onClick={removeLink} size="sm" type="button" variant="outline">
+            移除
+          </Button>
+          <Button
+            aria-label="关闭链接编辑"
+            onClick={() => setIsLinkEditorOpen(false)}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            <X className="size-3.5" />
+          </Button>
+        </form>
+      ) : null}
+
       <div
         className={cn(
-          "px-4 py-4",
-          "[&_.article-editor__content]:min-h-[320px] [&_.article-editor__content]:text-[0.95rem] [&_.article-editor__content]:leading-7 [&_.article-editor__content]:text-foreground",
+          "overflow-x-auto px-4 py-4",
+          "[&_.article-editor__content]:text-[0.95rem] [&_.article-editor__content]:leading-7 [&_.article-editor__content]:text-foreground",
           "[&_.article-editor__content]:outline-none [&_.article-editor__content_h2]:mt-7 [&_.article-editor__content_h2]:mb-3 [&_.article-editor__content_h2]:text-[1.38rem] [&_.article-editor__content_h2]:font-semibold",
           "[&_.article-editor__content_h3]:mt-5 [&_.article-editor__content_h3]:mb-2 [&_.article-editor__content_h3]:text-[1.08rem] [&_.article-editor__content_h3]:font-semibold",
           "[&_.article-editor__content_p]:mb-3 [&_.article-editor__content_blockquote]:my-5 [&_.article-editor__content_blockquote]:border-l-4 [&_.article-editor__content_blockquote]:border-primary/30 [&_.article-editor__content_blockquote]:pl-4 [&_.article-editor__content_blockquote]:text-foreground/78",
