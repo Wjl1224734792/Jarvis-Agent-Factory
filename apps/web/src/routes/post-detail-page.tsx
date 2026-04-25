@@ -1,11 +1,8 @@
-﻿import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_NAME, APP_ROUTES } from "@feijia/shared";
 import {
-  AlertTriangleIcon,
   ArrowLeftIcon,
   MessageSquareTextIcon,
-  PencilLineIcon,
-  Trash2Icon,
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
@@ -13,7 +10,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
 import { ProfileLink } from "@/components/profile-link";
-import { ReportActionSheet } from "@/components/report-action-sheet";
+import { DetailMoreActions } from "@/components/detail-more-actions";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -169,10 +166,45 @@ export function PostDetailPage() {
     );
   }
 
+  const postId = item.id;
   const isAuthor = currentUser?.id === item.author.id;
   const canComment = authStatus === "authenticated" && item.status === "published";
   const isFollowingAuthor = item.engagement.viewer.isFollowingAuthor;
   const isCommentRefreshing = postQuery.isFetching && !postQuery.isLoading && !isSubmitting;
+
+  function requireLoginForReport() {
+    promptLogin({
+      title: "登录后才能举报",
+      description: "提交举报前请先登录。"
+    });
+  }
+
+  function navigateToPostEditor() {
+    void navigate(`${APP_ROUTES.publishArticle}?edit=${postId}`);
+  }
+
+  function deleteOwnedPost() {
+    if (!window.confirm("删除后无法恢复，确定要删除这篇文章吗？")) {
+      return;
+    }
+
+    setActionError(null);
+    void apiClient
+      .deletePost(postId)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
+        void navigate(APP_ROUTES.feedHome, { replace: true });
+      })
+      .catch((value: unknown) => {
+        setActionError(value instanceof Error ? value.message : "删除帖子失败");
+      });
+  }
+
+  function reportPost(input: { reason: string; imageIds: string[] }) {
+    return apiClient.reportPost(postId, input).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
+    });
+  }
 
   return (
     <ImmersivePageShell
@@ -232,6 +264,22 @@ export function PostDetailPage() {
               <span className="sr-only">跳转到评论区</span>
               <span className="text-xs tabular-nums">{item.commentCount}</span>
             </button>
+            <DetailMoreActions
+              canDelete={isAuthor}
+              canEdit={isAuthor}
+              canReport={item.status === "published" && !isAuthor}
+              contentSide="right"
+              isAuthenticated={authStatus === "authenticated"}
+              isOwner={isAuthor}
+              onDelete={deleteOwnedPost}
+              onEdit={navigateToPostEditor}
+              onRequireLogin={requireLoginForReport}
+              report={{
+                title: "举报内容",
+                description: "请填写举报理由，并至少上传 1 张证据图。",
+                onSubmit: reportPost
+              }}
+            />
           </div>
         </aside>
 
@@ -304,64 +352,6 @@ export function PostDetailPage() {
                     </Button>
                   ) : null}
 
-                  {isAuthor ? (
-                    <Button
-                      onClick={() => {
-                        void navigate(`${APP_ROUTES.publishArticle}?edit=${item.id}`);
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <PencilLineIcon className="size-4" />
-                      编辑
-                    </Button>
-                  ) : null}
-
-                  {authStatus === "authenticated" && !isAuthor ? (
-                    <ReportActionSheet
-                      description="请填写举报理由，并至少上传 1 张证据图。"
-                      onSubmit={(input) =>
-                        apiClient.reportPost(item.id, input).then(() => {
-                          void queryClient.invalidateQueries({ queryKey: ["post-detail", id] });
-                        })
-                      }
-                      title="举报内容"
-                      trigger={
-                        <Button aria-label="举报内容" size="sm" type="button" variant="outline">
-                          <AlertTriangleIcon className="size-4" />
-                          举报
-                        </Button>
-                      }
-                    />
-                  ) : null}
-
-                  {isAuthor ? (
-                    <Button
-                      onClick={() => {
-                        if (!window.confirm("删除后无法恢复，确定要删除这篇文章吗？")) {
-                          return;
-                        }
-
-                        setActionError(null);
-                        void apiClient
-                          .deletePost(item.id)
-                          .then(() => {
-                            void queryClient.invalidateQueries({ queryKey: ["home-shell-feed"] });
-                            void navigate(APP_ROUTES.feedHome, { replace: true });
-                          })
-                          .catch((value: unknown) => {
-                            setActionError(value instanceof Error ? value.message : "删除帖子失败");
-                          });
-                      }}
-                      size="sm"
-                      type="button"
-                      variant="outline"
-                    >
-                      <Trash2Icon className="size-4" />
-                      删除
-                    </Button>
-                  ) : null}
                 </div>
               </div>
 
@@ -399,7 +389,7 @@ export function PostDetailPage() {
             ) : null}
 
             {/* 移动端互动栏 */}
-            <div className="flex items-center gap-4 border-t border-border/40 pt-4 md:hidden">
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-4 md:hidden">
               <PostInteractionBar
                 compact
                 hideFollow
@@ -428,6 +418,22 @@ export function PostDetailPage() {
                 <span className="sr-only">跳转到评论区</span>
                 <span className="text-xs tabular-nums">{item.commentCount}</span>
               </button>
+              <DetailMoreActions
+                canDelete={isAuthor}
+                canEdit={isAuthor}
+                canReport={item.status === "published" && !isAuthor}
+                isAuthenticated={authStatus === "authenticated"}
+                isOwner={isAuthor}
+                mode="inline"
+                onDelete={deleteOwnedPost}
+                onEdit={navigateToPostEditor}
+                onRequireLogin={requireLoginForReport}
+                report={{
+                  title: "举报内容",
+                  description: "请填写举报理由，并至少上传 1 张证据图。",
+                  onSubmit: reportPost
+                }}
+              />
             </div>
           </article>
 

@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { isChinaMainlandMobilePhone } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
-  BellIcon,
   CameraIcon,
   LogOutIcon,
   PencilLineIcon,
@@ -738,15 +737,6 @@ export function SettingsPage() {
       </div>
 
       <div className="flex flex-wrap items-center gap-3 pt-2">
-        <Button asChild size="sm" type="button" variant="ghost">
-          <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
-        </Button>
-        <Button asChild size="sm" type="button" variant="ghost">
-          <Link to={APP_ROUTES.notifications}>
-            <BellIcon data-icon="inline-start" />
-            查看消息
-          </Link>
-        </Button>
         <Button
           className="rounded-full"
           onClick={() => {

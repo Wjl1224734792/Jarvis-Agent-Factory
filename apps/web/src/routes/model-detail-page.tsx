@@ -2,7 +2,6 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ModelDetail } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
-  AlertTriangleIcon,
   ArrowLeftIcon,
   BookmarkIcon,
   HeartIcon,
@@ -10,14 +9,14 @@ import {
   PlayIcon
 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
+import { DetailMoreActions } from "@/components/detail-more-actions";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import { IpLocationText } from "@/components/ip-location-text";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { ModelDetailPageSkeleton } from "@/components/route-skeletons";
 import { PageShareControl } from "@/components/page-share-control";
-import { ReportActionSheet } from "@/components/report-action-sheet";
 import { SitePanel, SitePanelBody } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -96,6 +95,7 @@ function buildModelDetailGallery(item: {
 export function ModelDetailPage() {
   const params = useParams<{ slug: string }>();
   const slug = params.slug ?? "";
+  const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
   const currentUserId = useAuthStore((state) => state.user?.id);
@@ -122,6 +122,7 @@ export function ModelDetailPage() {
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
   const [interactionBusy, setInteractionBusy] = useState<"interested" | "favorite" | "share" | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
   const mainVideoRef = useRef<HTMLVideoElement | null>(null);
 
   const gallery = useMemo(() => {
@@ -197,6 +198,9 @@ export function ModelDetailPage() {
   const hotModels = hotModelsQuery.data?.items.filter((model) => model.slug !== item.slug).slice(0, 3) ?? [];
   const modelSlug = item.slug;
   const priceLabel = formatModelPriceRange(item.priceMin ?? null, item.priceMax ?? null);
+  const isModelOwner = Boolean(item.viewer.canEdit || (currentUserId && item.ownerId === currentUserId));
+  const sourceSubmissionId = item.sourceSubmissionId ?? null;
+  const canManageModel = isModelOwner && Boolean(sourceSubmissionId);
   const metrics = [
     formatMetric("续航", item.parameters.maxFlightTimeMinutes, (value) => `${value} 分钟`),
     formatMetric("极速", item.parameters.maxSpeedKph, (value) => `${value} km/h`),
@@ -364,6 +368,51 @@ export function ModelDetailPage() {
     }
   }
 
+  function requireLoginForReport() {
+    promptLogin({
+      title: "登录后才能举报",
+      description: "提交举报前请先登录。"
+    });
+  }
+
+  function navigateToModelEditor() {
+    if (!sourceSubmissionId) {
+      return;
+    }
+
+    void navigate(`${APP_ROUTES.publishAircraft}?edit=${sourceSubmissionId}`);
+  }
+
+  function deleteOwnedModel() {
+    if (!sourceSubmissionId) {
+      return;
+    }
+
+    if (!window.confirm("删除后无法恢复，确定要删除这款机型吗？")) {
+      return;
+    }
+
+    setActionError(null);
+    void apiClient
+      .deleteAircraftSubmission(sourceSubmissionId)
+      .then(() => {
+        void queryClient.invalidateQueries({ queryKey: ["models"] });
+        void queryClient.invalidateQueries({ queryKey: ["home-shell-models"] });
+        void queryClient.invalidateQueries({ queryKey: ["self-profile", currentUserId] });
+        void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
+        void navigate(APP_ROUTES.models, { replace: true });
+      })
+      .catch((value: unknown) => {
+        setActionError(value instanceof Error ? value.message : "删除机型失败");
+      });
+  }
+
+  function reportModel(input: { reason: string; imageIds: string[] }) {
+    return apiClient.reportModel(modelSlug, input).then(() => {
+      void queryClient.invalidateQueries({ queryKey: ["model-detail", slug] });
+    });
+  }
+
   return (
     <ImmersivePageShell className="max-w-[1240px] gap-6">
       <Button asChild className="w-fit border-0" variant="ghost">
@@ -473,6 +522,24 @@ export function ModelDetailPage() {
               <MessageSquareTextIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
               <span className="sr-only">前往评论区</span>
             </button>
+
+            <DetailMoreActions
+              canDelete={canManageModel}
+              canEdit={canManageModel}
+              canReport={item.isPublished && !isModelOwner}
+              contentSide="right"
+              isAuthenticated={isAuthenticated}
+              isOwner={isModelOwner}
+              onDelete={deleteOwnedModel}
+              onEdit={navigateToModelEditor}
+              onRequireLogin={requireLoginForReport}
+              report={{
+                title: "举报机型",
+                description: "请说明机型存在的问题，并至少上传 1 张证据图。",
+                hasReported: item.viewer.hasReported,
+                onSubmit: reportModel
+              }}
+            />
           </div>
         </aside>
 
@@ -539,32 +606,6 @@ export function ModelDetailPage() {
                       <div className="text-[2rem] font-semibold tracking-[-0.04em] text-foreground md:text-[2.5rem]">
                         {item.name}
                       </div>
-                      <ReportActionSheet
-                        description="请说明机型存在的问题，并至少上传 1 张证据图。"
-                        onSubmit={(input) => apiClient.reportModel(modelSlug, input).then(() => {})}
-                        title="举报机型"
-                        trigger={
-                          <button
-                            aria-label="举报机型"
-                            className={cn(
-                              "mt-1 inline-flex shrink-0 items-center justify-center border-0 bg-transparent p-0 shadow-none outline-none transition",
-                              "focus-visible:rounded-sm focus-visible:ring-2 focus-visible:ring-orange-400/45 focus-visible:ring-offset-2",
-                              item.viewer.hasReported
-                                ? "text-orange-700 dark:text-orange-400"
-                                : "text-orange-600/90 hover:text-orange-700 dark:text-orange-500 dark:hover:text-orange-400"
-                            )}
-                            type="button"
-                          >
-                            <AlertTriangleIcon
-                              className={cn(
-                                "size-[1.125rem] shrink-0 transition",
-                                item.viewer.hasReported &&
-                                  "scale-105 fill-orange-500 text-orange-700 dark:fill-orange-400 dark:text-orange-300"
-                              )}
-                            />
-                          </button>
-                        }
-                      />
                     </div>
                     <div className="flex flex-wrap items-center gap-2">
                       <Badge variant="outline">
@@ -578,6 +619,12 @@ export function ModelDetailPage() {
                         <span>创建者 {item.owner.displayName}</span>
                         <IpLocationText label={item.owner.ipLocationLabel} variant="plain" />
                       </div>
+                    ) : null}
+                    {actionError ? (
+                      <Alert className="rounded-none" variant="destructive">
+                        <AlertTitle>机型操作失败</AlertTitle>
+                        <AlertDescription>{actionError}</AlertDescription>
+                      </Alert>
                     ) : null}
                   </div>
 
@@ -692,6 +739,23 @@ export function ModelDetailPage() {
                     >
                       <MessageSquareTextIcon className="size-[1.125rem] shrink-0" />
                     </button>
+                    <DetailMoreActions
+                      canDelete={canManageModel}
+                      canEdit={canManageModel}
+                      canReport={item.isPublished && !isModelOwner}
+                      isAuthenticated={isAuthenticated}
+                      isOwner={isModelOwner}
+                      mode="inline"
+                      onDelete={deleteOwnedModel}
+                      onEdit={navigateToModelEditor}
+                      onRequireLogin={requireLoginForReport}
+                      report={{
+                        title: "举报机型",
+                        description: "请说明机型存在的问题，并至少上传 1 张证据图。",
+                        hasReported: item.viewer.hasReported,
+                        onSubmit: reportModel
+                      }}
+                    />
                   </div>
                 </div>
               </div>

@@ -172,10 +172,10 @@ export function PostDetailPageSkeleton() {
         {/* 左侧栏骨架屏 */}
         <aside className="hidden md:flex w-12 shrink-0 flex-col items-center">
           <div className="sticky top-1/2 flex -translate-y-1/2 flex-col items-center gap-5 py-4">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {Array.from({ length: 5 }).map((_, index) => (
               <div className="flex flex-col items-center gap-1.5" key={index}>
                 <Skeleton className="size-9 shrink-0 rounded-full" />
-                <Skeleton className="h-3 w-6 rounded-none" />
+                {index < 3 ? <Skeleton className="h-3 w-6 rounded-none" /> : null}
               </div>
             ))}
           </div>
@@ -184,7 +184,10 @@ export function PostDetailPageSkeleton() {
         <div className="min-w-0 flex-1 space-y-8">
           <article className="space-y-6">
             <header className="space-y-5">
-              <Skeleton className="h-10 w-full rounded-none md:h-12" />
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full rounded-none md:h-12" />
+                <Skeleton className="h-8 w-2/3 rounded-none md:h-9" />
+              </div>
 
               <div className="flex items-center justify-between gap-4 border-b border-border/60 pb-5">
                 <div className="flex min-w-0 items-center gap-3">
@@ -198,24 +201,24 @@ export function PostDetailPageSkeleton() {
               </div>
             </header>
 
-            <div className="space-y-4">
-              <Skeleton className="h-4 w-full rounded-none" />
-              <Skeleton className="h-4 w-full rounded-none" />
-              <Skeleton className="h-4 w-11/12 rounded-none" />
-              <Skeleton className="h-4 w-4/5 rounded-none" />
+            <div className="space-y-5">
+              <Skeleton className="h-[180px] w-full rounded-none sm:h-[220px]" />
+              <div className="space-y-3">
+                <Skeleton className="h-4 w-full rounded-none" />
+                <Skeleton className="h-4 w-full rounded-none" />
+                <Skeleton className="h-4 w-11/12 rounded-none" />
+                <Skeleton className="h-4 w-4/5 rounded-none" />
+                <Skeleton className="h-4 w-full rounded-none" />
+                <Skeleton className="h-4 w-2/3 rounded-none" />
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3 border-t border-border/40 pt-4 md:hidden">
+              {Array.from({ length: 5 }).map((_, index) => (
+                <Skeleton className={index < 3 ? "h-5 w-12 rounded-none" : "size-8 shrink-0 rounded-full"} key={index} />
+              ))}
             </div>
           </article>
-
-          <section className="space-y-5 border-t border-border/60 pt-6">
-            <div className="flex flex-wrap items-center justify-between gap-4 md:hidden">
-              <div className="flex flex-wrap items-center gap-3">
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <Skeleton className="size-9 shrink-0 rounded-md" key={index} />
-                ))}
-              </div>
-              <Skeleton className="size-9 shrink-0 rounded-md" />
-            </div>
-          </section>
 
           <section className="space-y-4 border-t border-border/60 pt-6" id="post-comment-area">
             <div className="space-y-1">
@@ -234,6 +237,19 @@ export function PostDetailPageSkeleton() {
 
             <div className="border border-border/70 bg-white px-5 py-5">
               <Skeleton className="h-24 w-full rounded-none" />
+            </div>
+
+            <div className="border border-border/70 bg-white px-5 py-4">
+              {Array.from({ length: 2 }).map((_, index) => (
+                <div className="flex gap-3 border-b border-border/50 py-4 first:pt-0 last:border-b-0 last:pb-0" key={index}>
+                  <Skeleton className="size-9 shrink-0 rounded-full" />
+                  <div className="min-w-0 flex-1 space-y-2">
+                    <Skeleton className="h-4 w-28 rounded-none" />
+                    <Skeleton className="h-3.5 w-full rounded-none" />
+                    <Skeleton className="h-3.5 w-10/12 rounded-none" />
+                  </div>
+                </div>
+              ))}
             </div>
           </section>
         </div>
@@ -312,10 +328,10 @@ export function ModelDetailPageSkeleton() {
         {/* 左侧栏骨架屏 */}
         <aside className="hidden md:flex w-12 shrink-0 flex-col items-center">
           <div className="sticky top-1/2 flex -translate-y-1/2 flex-col items-center gap-5 py-4">
-            {Array.from({ length: 4 }).map((_, index) => (
+            {Array.from({ length: 5 }).map((_, index) => (
               <div className="flex flex-col items-center gap-1.5" key={index}>
                 <Skeleton className="size-9 shrink-0 rounded-full" />
-                <Skeleton className="h-3 w-6 rounded-none" />
+                {index < 3 ? <Skeleton className="h-3 w-6 rounded-none" /> : null}
               </div>
             ))}
           </div>
@@ -335,19 +351,22 @@ export function ModelDetailPageSkeleton() {
               <div className="space-y-3">
                 <div className="flex items-start justify-between gap-3">
                   <Skeleton className="h-10 w-4/5 rounded-none md:h-14" />
-                  <Skeleton className="mt-1 h-5 w-5 shrink-0 rounded-none" />
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <Skeleton className="h-6 w-24 rounded-none" />
                   <Skeleton className="h-6 w-20 rounded-none" />
                   <Skeleton className="h-6 w-16 rounded-none" />
                 </div>
+                <Skeleton className="h-3.5 w-48 rounded-none" />
                 <Skeleton className="h-3.5 w-full rounded-none" />
                 <Skeleton className="h-3.5 w-full rounded-none" />
                 <Skeleton className="h-3.5 w-4/5 rounded-none" />
+                <div className="border-t border-border/25 pt-3">
+                  <Skeleton className="h-8 w-36 rounded-none" />
+                </div>
                 {/* 移动端互动行骨架 */}
                 <div className="flex flex-wrap items-center gap-x-5 gap-y-2 border-t border-border/25 pt-3 md:hidden">
-                  {Array.from({ length: 4 }).map((_, index) => (
+                  {Array.from({ length: 5 }).map((_, index) => (
                     <Skeleton className="h-5 w-16 rounded-none" key={index} />
                   ))}
                 </div>
