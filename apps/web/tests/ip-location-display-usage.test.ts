@@ -105,13 +105,17 @@ describe("IP location rendering policy", () => {
     const postCommentSource = readSource("apps/web/src/features/posts/post-comment-thread.tsx");
     expect(postCommentSource.includes("variant=\"plain\"")).toBe(true);
     expect(postCommentSource.includes("variant=\"profile\"")).toBe(false);
+    expect(postCommentSource).toContain("label={props.comment.author.ipLocationLabel}");
+    expect(postCommentSource).toContain("label={reply.author.ipLocationLabel}");
 
     const modelCommentSource = readSource("apps/web/src/routes/model-comments-section.tsx");
     expect(modelCommentSource.includes("variant=\"plain\"")).toBe(true);
     expect(modelCommentSource.includes("variant=\"profile\"")).toBe(false);
+    expect(modelCommentSource).toContain("label={props.comment.author.ipLocationLabel}");
 
     const ratingTargetCommentSource = readSource("apps/web/src/routes/rating-target-detail-comment-card.tsx");
     expect(ratingTargetCommentSource.includes("variant=\"plain\"")).toBe(true);
     expect(ratingTargetCommentSource.includes("variant=\"profile\"")).toBe(false);
+    expect(ratingTargetCommentSource).toContain("label={props.comment.author.ipLocationLabel}");
   });
 });

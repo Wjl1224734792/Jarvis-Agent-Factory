@@ -34,9 +34,11 @@ describe("IpLocationText", () => {
     expect(markup).toContain("上海市");
   });
 
-  it("renders nothing when label is empty", () => {
-    expect(renderToStaticMarkup(createElement(IpLocationText, { label: "", variant: "plain" }))).toBe("");
-    expect(renderToStaticMarkup(createElement(IpLocationText, { label: "   ", variant: "plain" }))).toBe("");
-    expect(renderToStaticMarkup(createElement(IpLocationText, { label: null, variant: "plain" }))).toBe("");
+  it("renders unknown fallback when label is empty", () => {
+    expect(renderToStaticMarkup(createElement(IpLocationText, { label: "", variant: "plain" }))).toContain("未知");
+    expect(renderToStaticMarkup(createElement(IpLocationText, { label: "   ", variant: "plain" }))).toContain("未知");
+    expect(renderToStaticMarkup(createElement(IpLocationText, { label: null, variant: "profile" }))).toContain(
+      "IP属地:未知"
+    );
   });
 });

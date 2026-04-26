@@ -7,11 +7,7 @@ export function IpLocationText(props: {
   className?: string;
   variant: IpLocationTextVariant;
 }) {
-  const label = props.label?.trim();
-
-  if (!label) {
-    return null;
-  }
+  const label = props.label?.trim() || "未知";
 
   return (
     <span className={cn("text-[0.72rem] text-muted-foreground", props.className)}>
