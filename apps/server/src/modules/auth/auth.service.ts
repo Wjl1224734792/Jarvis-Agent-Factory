@@ -466,7 +466,9 @@ export const authService = {
     }
 
     // Web 端 refresh 依赖 HttpOnly cookie，查不到会话时直接要求重新登录。
-    const session = await authRepo.findSessionByRefreshToken(refreshToken);
+    const session = await authRepo.findSessionByRefreshToken(refreshToken, {
+      scopes: ["web", "admin"]
+    });
     if (!session) {
       throw new AuthError(
         "SESSION_EXPIRED",
@@ -480,8 +482,12 @@ export const authService = {
     }
     ensureUserCanAuthenticate(user);
 
-    // 续期 access + 滑动续期 refresh
-    await authRepo.renewSession(session.id);
+    const nextRefreshToken = createSecretToken(32);
+    await authRepo.renewSession(session.id, {
+      refreshTokenHash: hashToken(nextRefreshToken),
+      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+      replacedRefreshTokenHash: session.refreshTokenHash
+    });
 
     const summary = await authRepo.getUserSummaryBySession(session.id);
     if (!summary) {
@@ -490,11 +496,14 @@ export const authService = {
 
     return {
       sessionId: session.id,
+      refreshToken: nextRefreshToken,
       user: summary satisfies UserSummary
     };
   },
   async refreshAppSession(refreshToken: string) {
-    const session = await authRepo.findSessionByRefreshToken(refreshToken);
+    const session = await authRepo.findSessionByRefreshToken(refreshToken, {
+      scopes: ["app"]
+    });
     if (!session) {
       throw new AuthError(
         "INVALID_REFRESH_TOKEN",
@@ -508,8 +517,12 @@ export const authService = {
     }
     ensureUserCanAuthenticate(user);
 
-    // 续期 access + 滑动续期 refresh
-    await authRepo.renewSession(session.id);
+    const nextRefreshToken = createSecretToken(32);
+    await authRepo.renewSession(session.id, {
+      refreshTokenHash: hashToken(nextRefreshToken),
+      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS),
+      replacedRefreshTokenHash: session.refreshTokenHash
+    });
 
     const summary = await authRepo.getUserSummaryBySession(session.id);
     if (!summary) {
@@ -518,7 +531,7 @@ export const authService = {
 
     return {
       accessToken: session.id,
-      refreshToken,
+      refreshToken: nextRefreshToken,
       user: summary satisfies UserSummary
     };
   },

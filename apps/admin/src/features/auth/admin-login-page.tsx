@@ -1,7 +1,7 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { Alert, Button, Flex, Form, Input, Space } from "antd";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { useAdminAuthStore } from "./auth-store";
@@ -30,6 +30,28 @@ export function AdminLoginPage() {
     fallbackPath: APP_ROUTES.adminHome,
     blockedPaths: [APP_ROUTES.adminLogin]
   });
+
+  useEffect(() => {
+    let isActive = true;
+
+    void apiClient
+      .getCurrentAdmin()
+      .then((user) => {
+        if (!isActive || !user) {
+          return;
+        }
+
+        setAuthenticated(user);
+        void navigate(redirectTo, { replace: true });
+      })
+      .catch(() => {
+        // 登录页自举失败时保留表单，由用户重新输入账号密码。
+      });
+
+    return () => {
+      isActive = false;
+    };
+  }, [navigate, redirectTo, setAuthenticated]);
 
   return (
     <main className="admin-login">

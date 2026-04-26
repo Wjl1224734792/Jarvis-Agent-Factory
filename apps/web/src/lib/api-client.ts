@@ -341,6 +341,10 @@ function isMappedWebApiError(error: unknown) {
   );
 }
 
+function shouldAttemptSessionRefresh(error: unknown) {
+  return error instanceof ApiClientError && error.code === "TOKEN_EXPIRED";
+}
+
 function isAuthErrorMessage(message: string) {
   const normalized = message.trim().toLowerCase();
   return normalized.includes("请先登录") || normalized.includes("login") || normalized.includes("unauthorized");
@@ -687,6 +691,9 @@ function createWrappedApiClient<T extends Record<string, unknown>>(client: T): T
           try {
             return await (value as (...args: unknown[]) => Promise<unknown>)(...args);
           } catch (error) {
+            if (shouldAttemptSessionRefresh(error) && await refreshSession()) {
+              return await (value as (...args: unknown[]) => Promise<unknown>)(...args);
+            }
             throw isMappedWebApiError(error) ? error : mapWebApiError(error);
           }
         };

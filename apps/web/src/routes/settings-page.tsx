@@ -742,12 +742,12 @@ export function SettingsPage() {
           onClick={() => {
             void apiClient
               .logout()
-              .then(() => {
-                setAnonymous();
-                void navigate(APP_ROUTES.feedHome);
-              })
               .catch((reason: unknown) => {
                 setError(reason instanceof Error ? reason.message : "退出登录失败");
+              })
+              .finally(() => {
+                setAnonymous();
+                void navigate(APP_ROUTES.feedHome);
               });
           }}
           size="sm"

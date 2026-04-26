@@ -108,6 +108,31 @@ function getRequestMetadata(
   };
 }
 
+function currentAuthErrorResponse(context: Context<{ Variables: AuthVariables }>) {
+  const errorCode = context.get("authErrorCode");
+  if (errorCode === "TOKEN_EXPIRED") {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "TOKEN_EXPIRED",
+        message: "Access token expired."
+      }),
+      401
+    );
+  }
+
+  if (errorCode === "USER_BANNED") {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "USER_BANNED",
+        message: "账号已被封禁，请联系管理员"
+      }),
+      403
+    );
+  }
+
+  return null;
+}
+
 // 先处理登录、注册、验证码等匿名可访问接口，随后再挂载当前用户解析中间件。
 authRoute.post(API_ROUTES.auth.captchaChallenge, async (context) => {
   const payload = captchaChallengeResponseSchema.parse(
@@ -314,7 +339,7 @@ authRoute.post(API_ROUTES.auth.webRefresh, async (context) => {
   try {
     const refreshToken = getCookie(context, REFRESH_COOKIE_NAME);
     const result = await authService.refreshWebSession(refreshToken);
-    setAuthCookies(context, result.sessionId, refreshToken);
+    setAuthCookies(context, result.sessionId, result.refreshToken);
     return context.json(
       authSuccessResponseSchema.parse({ user: result.user })
     );
@@ -405,6 +430,11 @@ authRoute.post(API_ROUTES.auth.deviceUnregister, requireAuth, async (context) =>
 });
 
 authRoute.get(API_ROUTES.auth.currentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   return context.json(
     currentUserResponseSchema.parse({
       user: context.get("currentUser")
@@ -413,18 +443,33 @@ authRoute.get(API_ROUTES.auth.currentUser, (context) => {
 });
 
 authRoute.get(API_ROUTES.auth.appCurrentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   return context.json(
     currentUserResponseSchema.parse({
-      user: context.get("currentUser")
+      user: context.get("currentSessionScope") === "app"
+        ? context.get("currentUser")
+        : null
     })
   );
 });
 
 authRoute.get(API_ROUTES.auth.adminCurrentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   const user = context.get("currentUser");
   return context.json(
     currentUserResponseSchema.parse({
-      user: user?.role === "admin" ? user : null
+      user:
+        user?.role === "admin" && context.get("currentSessionScope") === "admin"
+          ? user
+          : null
     })
   );
 });

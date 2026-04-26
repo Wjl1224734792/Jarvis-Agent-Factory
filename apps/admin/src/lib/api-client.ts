@@ -1,4 +1,4 @@
-import { createApiClient, parseApiError } from "@feijia/http-client";
+import { ApiClientError, createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import type {
   RankingDetail,
@@ -63,7 +63,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401) {
+    if (response.status === 401 || response.status === 403) {
       dispatchAdminAuthInvalidEvent();
     }
 
@@ -80,11 +80,44 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
+let refreshingPromise: Promise<boolean> | null = null;
+
+function refreshSession(): Promise<boolean> {
+  if (!refreshingPromise) {
+    refreshingPromise = fetch(`${baseUrl}${API_ROUTES.auth.webRefresh}`, {
+      method: "POST",
+      credentials: "include"
+    })
+      .then((response) => response.ok)
+      .catch(() => false)
+      .finally(() => {
+        refreshingPromise = null;
+      });
+  }
+
+  return refreshingPromise;
+}
+
 async function fetchWithAutoRefresh(
   input: RequestInfo,
-  init: RequestInit
+  init: RequestInit,
+  retryCount = 0
 ): Promise<Response> {
-  return fetch(input, init);
+  const response = await fetch(input, init);
+  if (response.status !== 401 || retryCount > 0) {
+    return response;
+  }
+
+  const payload = (await response.clone().json().catch(() => null)) as {
+    code?: string;
+  } | null;
+  if (payload?.code !== "TOKEN_EXPIRED") {
+    return response;
+  }
+
+  return await refreshSession()
+    ? fetchWithAutoRefresh(input, init, retryCount + 1)
+    : response;
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -524,10 +557,10 @@ function wrapAdminApiClient<T extends Record<string, unknown>>(client: T): T {
         try {
           return await (value as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
         } catch (error) {
-          if (
-            error instanceof Error &&
-            /登录|unauthorized|Authorization required/i.test(error.message)
-          ) {
+          if (error instanceof ApiClientError && error.code === "TOKEN_EXPIRED" && await refreshSession()) {
+            return await (value as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
+          }
+          if (isAdminAuthInvalidError(error)) {
             dispatchAdminAuthInvalidEvent();
           }
           throw error;
@@ -535,6 +568,19 @@ function wrapAdminApiClient<T extends Record<string, unknown>>(client: T): T {
       };
     }
   });
+}
+
+function isAdminAuthInvalidError(error: unknown) {
+  if (error instanceof ApiClientError) {
+    return ["FORBIDDEN", "INVALID_REFRESH_TOKEN", "SESSION_EXPIRED", "TOKEN_EXPIRED", "UNAUTHORIZED"].includes(
+      error.code ?? ""
+    );
+  }
+
+  return (
+    error instanceof Error &&
+    /登录|unauthorized|Authorization required|forbidden|权限不足/i.test(error.message)
+  );
 }
 
 export const apiClient = wrapAdminApiClient(rawApiClient);

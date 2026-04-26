@@ -92,6 +92,19 @@ async function uploadAvatar(cookie: string, name = "avatar.png") {
   };
 }
 
+function readCookieValue(cookieHeader: string, name: string) {
+  const matched = cookieHeader
+    .split(";")
+    .map((part) => part.trim())
+    .find((part) => part.startsWith(`${name}=`));
+
+  if (!matched) {
+    throw new Error(`Missing cookie ${name}`);
+  }
+
+  return matched.slice(name.length + 1);
+}
+
 const originalUploadMaxImageSizeMb = process.env.UPLOAD_MAX_IMAGE_SIZE_MB;
 const originalUploadMaxAvatarImageSizeMb =
   process.env.UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB;
@@ -810,6 +823,126 @@ describe("auth flows", () => {
       headers: { cookie: adminCookie }
     });
     expect(adminProtected.status).toBe(200);
+  });
+
+  it("rejects admin-role web sessions from admin-only routes", async () => {
+    await dbPool.query(
+      `update users set phone = $1 where account = 'admin' and role = 'admin'`,
+      ["13800138666"]
+    );
+
+    const adminWebCookie = await loginWebUser("13800138666");
+
+    const adminProtected = await app.request(API_ROUTES.auth.adminProtectedPing, {
+      method: "GET",
+      headers: { cookie: adminWebCookie }
+    });
+    expect(adminProtected.status).toBe(403);
+
+    const adminMe = await app.request(API_ROUTES.auth.adminCurrentUser, {
+      method: "GET",
+      headers: { cookie: adminWebCookie }
+    });
+    expect(adminMe.status).toBe(200);
+    await expect(adminMe.json()).resolves.toMatchObject({
+      user: null
+    });
+  });
+
+  it("rotates web refresh tokens and revokes the session on replay", async () => {
+    const cookie = await loginWebUser("13800138676");
+    const originalRefreshToken = readCookieValue(cookie, "feijia_refresh");
+
+    const refreshResponse = await app.request(API_ROUTES.auth.webRefresh, {
+      method: "POST",
+      headers: { cookie }
+    });
+    expect(refreshResponse.status).toBe(200);
+    const refreshedCookie = extractCookies(refreshResponse);
+    const rotatedRefreshToken = readCookieValue(refreshedCookie, "feijia_refresh");
+    expect(rotatedRefreshToken).not.toBe(originalRefreshToken);
+
+    const replayResponse = await app.request(API_ROUTES.auth.webRefresh, {
+      method: "POST",
+      headers: {
+        cookie: `feijia_refresh=${originalRefreshToken}`
+      }
+    });
+    expect(replayResponse.status).toBe(401);
+
+    const afterReplayResponse = await app.request(API_ROUTES.auth.webRefresh, {
+      method: "POST",
+      headers: { cookie: refreshedCookie }
+    });
+    expect(afterReplayResponse.status).toBe(401);
+  });
+
+  it("returns TOKEN_EXPIRED when the access cookie is expired but refresh may still recover", async () => {
+    const cookie = await loginWebUser("13800138678");
+    const accessToken = readCookieValue(cookie, "feijia_access");
+    await dbPool.query(
+      `update sessions set access_expires_at = now() - interval '1 second' where id = $1`,
+      [accessToken]
+    );
+
+    const meResponse = await app.request(API_ROUTES.auth.currentUser, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(meResponse.status).toBe(401);
+    await expect(meResponse.json()).resolves.toMatchObject({
+      code: "TOKEN_EXPIRED"
+    });
+  });
+
+  it("keeps web and app refresh tokens scoped to their own clients", async () => {
+    const webCookie = await loginWebUser("13800138686");
+    const webRefreshToken = readCookieValue(webCookie, "feijia_refresh");
+
+    const appLoginPayload = await requestCaptchaAndSms("13800138696");
+    const appLoginResponse = await app.request(API_ROUTES.auth.appLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone: "13800138696",
+        smsCode: appLoginPayload.smsCode,
+        deviceLabel: "iPhone 16 Pro"
+      })
+    });
+    const appLoginResult = (await appLoginResponse.json()) as {
+      kind: "registration_required";
+      registrationToken: string;
+    };
+    const appRegisterResponse = await app.request(API_ROUTES.auth.appRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: appLoginResult.registrationToken,
+        displayName: "移动端隔离测试",
+        avatarFileId: null,
+        deviceLabel: "iPhone 16 Pro"
+      })
+    });
+    const appRegisterPayload = (await appRegisterResponse.json()) as {
+      refreshToken: string;
+    };
+
+    const appTokenOnWebRefresh = await app.request(API_ROUTES.auth.webRefresh, {
+      method: "POST",
+      headers: {
+        cookie: `feijia_refresh=${appRegisterPayload.refreshToken}`
+      }
+    });
+    expect(appTokenOnWebRefresh.status).toBe(401);
+
+    const webTokenOnAppRefresh = await app.request(API_ROUTES.auth.appRefresh, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        refreshToken: webRefreshToken
+      })
+    });
+    expect(webTokenOnAppRefresh.status).toBe(400);
   });
 
   it("scopes admin login lockout to the account and source ip", async () => {

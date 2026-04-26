@@ -647,7 +647,14 @@ export const authRepo = {
 
     return "valid";
   },
-  async renewSession(sessionId: string) {
+  async renewSession(
+    sessionId: string,
+    input?: {
+      refreshTokenHash?: string | null;
+      refreshExpiresAt?: Date | null;
+      replacedRefreshTokenHash?: string | null;
+    }
+  ) {
     const current = await db
       .select()
       .from(sessionsTable)
@@ -664,14 +671,25 @@ export const authRepo = {
     const remaining = refreshExpiry - nowMs;
     const halfTtl = SESSION_TTL_MS / 2;
 
-    const updateData: Record<string, Date> = {
+    const updateData: {
+      accessExpiresAt: Date;
+      lastSeenAt: Date;
+      refreshTokenHash?: string | null;
+      refreshExpiresAt?: Date;
+      expiresAt?: Date;
+    } = {
       accessExpiresAt: new Date(nowMs + ACCESS_TTL_MS),
       lastSeenAt: new Date()
     };
 
+    if (input && "refreshTokenHash" in input) {
+      updateData.refreshTokenHash = input.refreshTokenHash ?? null;
+    }
+
     // 滑动续期 refresh token
-    if (remaining < halfTtl) {
-      const newExpiry = new Date(nowMs + SESSION_TTL_MS);
+    const newExpiry =
+      input?.refreshExpiresAt ?? (remaining < halfTtl ? new Date(nowMs + SESSION_TTL_MS) : null);
+    if (newExpiry) {
       updateData.expiresAt = newExpiry;
       updateData.refreshExpiresAt = newExpiry;
     }
@@ -680,8 +698,22 @@ export const authRepo = {
       .update(sessionsTable)
       .set(updateData)
       .where(eq(sessionsTable.id, sessionId));
+
+    if (input?.replacedRefreshTokenHash) {
+      await ensureRedisConnected();
+      const replayTtlSeconds = Math.max(
+        1,
+        Math.ceil(((newExpiry ?? row.refreshExpiresAt ?? row.expiresAt).getTime() - nowMs) / 1000)
+      );
+      await redis.set(`used_refresh:${input.replacedRefreshTokenHash}`, sessionId, {
+        EX: replayTtlSeconds
+      });
+    }
   },
-  async findSessionByRefreshToken(refreshToken: string) {
+  async findSessionByRefreshToken(
+    refreshToken: string,
+    options?: { scopes?: SessionScope[] }
+  ) {
     const refreshTokenHash = hashToken(refreshToken);
     const rows = await db
       .select()
@@ -691,6 +723,11 @@ export const authRepo = {
 
     const current = rows[0];
     if (!current) {
+      await ensureRedisConnected();
+      const replayedSessionId = await redis.get(`used_refresh:${refreshTokenHash}`);
+      if (replayedSessionId) {
+        await this.revokeSession(replayedSessionId);
+      }
       return null;
     }
 
@@ -706,7 +743,48 @@ export const authRepo = {
       return null;
     }
 
-    return this.getSession(current.id, { touch: false });
+    const scope = isValidSessionScope(current.scope)
+      ? current.scope
+      : ("web" satisfies SessionScope);
+    if (options?.scopes && !options.scopes.includes(scope)) {
+      return null;
+    }
+
+    const users = await db
+      .select({
+        id: usersTable.id,
+        role: usersTable.role,
+        status: usersTable.status
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, current.userId))
+      .limit(1);
+
+    if (users.length === 0) {
+      await this.revokeSession(current.id);
+      return null;
+    }
+
+    if (toUserStatus(users[0].status) === "banned") {
+      await this.revokeSession(current.id);
+      return null;
+    }
+
+    return {
+      id: current.id,
+      userId: current.userId,
+      role: isValidAuthRole(users[0].role) ? users[0].role : ("user" satisfies AuthRole),
+      scope,
+      clientIp: current.clientIp,
+      userAgent: current.userAgent,
+      deviceLabel: current.deviceLabel,
+      lastSeenAt: current.lastSeenAt.getTime(),
+      revokedAt: null,
+      refreshTokenHash: current.refreshTokenHash,
+      refreshExpiresAt: current.refreshExpiresAt?.getTime() ?? null,
+      expiresAt: current.expiresAt.getTime(),
+      accessExpiresAt: current.accessExpiresAt?.getTime() ?? now()
+    } satisfies SessionRecord;
   },
   async revokeSession(sessionId: string) {
     await db
