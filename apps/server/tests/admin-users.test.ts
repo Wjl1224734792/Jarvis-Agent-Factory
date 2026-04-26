@@ -63,6 +63,18 @@ describe("admin user management", () => {
       headers: { cookie: adminCookie }
     });
     expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: {
+        id: string;
+        phoneMasked: string | null;
+        activeSessionCount: number;
+        recentSessions: Array<{ id: string; scope: string }>;
+      };
+    };
+    expect(detailPayload.item.id).toBe(userId);
+    expect(detailPayload.item.phoneMasked).toBe("138****8902");
+    expect(detailPayload.item.activeSessionCount).toBeGreaterThan(0);
+    expect(detailPayload.item.recentSessions.some((session) => session.scope === "web")).toBe(true);
 
     const banResponse = await app.request(API_ROUTES.admin.userBan(userId), {
       method: "POST",
@@ -131,5 +143,15 @@ describe("admin user management", () => {
     });
 
     expect(response.status).toBe(400);
+  });
+
+  it("returns 404 for missing admin user detail", async () => {
+    const adminCookie = await loginAdmin();
+
+    const response = await app.request(API_ROUTES.admin.userDetail("user_missing"), {
+      headers: { cookie: adminCookie }
+    });
+
+    expect(response.status).toBe(404);
   });
 });

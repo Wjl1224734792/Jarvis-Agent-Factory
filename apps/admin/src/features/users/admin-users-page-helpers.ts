@@ -29,6 +29,12 @@ export function buildAdminUsersQueryKey(input: AdminUserListQuery) {
   ] as const;
 }
 
+export const adminUserDetailQueryRootKey = ["admin-user-detail"] as const;
+
+export function buildAdminUserDetailQueryKey(userId: string | null | undefined) {
+  return [...adminUserDetailQueryRootKey, userId ?? ""] as const;
+}
+
 export function getAdminUserStatusMeta(status: UserStatus) {
   if (status === "banned") {
     return {
@@ -53,6 +59,27 @@ export function formatAdminUserPhone(phone: string | null | undefined) {
   }
 
   return `${phone.slice(0, 3)}****${phone.slice(-4)}`;
+}
+
+export function buildAdminUserContentCountItems(
+  contentCounts: AdminUserListItem["contentCounts"]
+) {
+  return [
+    { key: "posts", label: "动态", value: contentCounts.posts },
+    { key: "comments", label: "评论", value: contentCounts.comments },
+    { key: "reviews", label: "评测", value: contentCounts.reviews },
+    { key: "rankings", label: "榜单", value: contentCounts.rankings },
+    {
+      key: "aircraftSubmissions",
+      label: "机型投稿",
+      value: contentCounts.aircraftSubmissions
+    },
+    {
+      key: "brandApplications",
+      label: "品牌申请",
+      value: contentCounts.brandApplications
+    }
+  ];
 }
 
 export function canUpdateAdminUserStatus(

@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
   buildAdminUsersQueryKey,
+  buildAdminUserContentCountItems,
+  buildAdminUserDetailQueryKey,
+  adminUserDetailQueryRootKey,
   canUpdateAdminUserStatus,
   formatAdminUserPhone,
   getAdminUserStatusMeta,
@@ -30,6 +33,8 @@ describe("admin users page helpers", () => {
         pageSize: 20
       })
     ).toEqual(["admin-users", "Pilot", "active", "user", 1, 20]);
+    expect(adminUserDetailQueryRootKey).toEqual(["admin-user-detail"]);
+    expect(buildAdminUserDetailQueryKey("user_1")).toEqual(["admin-user-detail", "user_1"]);
   });
 
   it("formats phone and exposes status labels", () => {
@@ -55,5 +60,25 @@ describe("admin users page helpers", () => {
     );
 
     expect(sorted.map((item) => item.id)).toEqual(["user_2", "user_1"]);
+  });
+
+  it("builds readable content count items for user detail", () => {
+    expect(
+      buildAdminUserContentCountItems({
+        posts: 1,
+        comments: 2,
+        reviews: 3,
+        rankings: 4,
+        aircraftSubmissions: 5,
+        brandApplications: 6
+      })
+    ).toEqual([
+      { key: "posts", label: "动态", value: 1 },
+      { key: "comments", label: "评论", value: 2 },
+      { key: "reviews", label: "评测", value: 3 },
+      { key: "rankings", label: "榜单", value: 4 },
+      { key: "aircraftSubmissions", label: "机型投稿", value: 5 },
+      { key: "brandApplications", label: "品牌申请", value: 6 }
+    ]);
   });
 });

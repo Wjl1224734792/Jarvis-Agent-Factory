@@ -18,6 +18,9 @@ import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { useAdminAuthStore } from "../auth/auth-store";
 import {
+  adminUserDetailQueryRootKey,
+  buildAdminUserContentCountItems,
+  buildAdminUserDetailQueryKey,
   buildAdminUsersQueryKey,
   canUpdateAdminUserStatus,
   formatAdminUserPhone,
@@ -90,7 +93,7 @@ export function AdminUsersPage() {
     queryFn: () => apiClient.listAdminUsers(query)
   });
   const detailQuery = useQuery({
-    queryKey: ["admin-user-detail", detailUserId],
+    queryKey: buildAdminUserDetailQueryKey(detailUserId),
     queryFn: () => apiClient.getAdminUser(detailUserId ?? ""),
     enabled: Boolean(detailUserId)
   });
@@ -107,9 +110,7 @@ export function AdminUsersPage() {
     }
     await Promise.all([
       queryClient.invalidateQueries({ queryKey: ["admin-users"] }),
-      detailUserId
-        ? queryClient.invalidateQueries({ queryKey: ["admin-user-detail", detailUserId] })
-        : Promise.resolve()
+      queryClient.invalidateQueries({ queryKey: adminUserDetailQueryRootKey })
     ]);
   }
 
@@ -193,9 +194,13 @@ export function AdminUsersPage() {
       key: "content",
       render: (_, record) => (
         <Space size={4} wrap>
-          <Tag>动态 {record.contentCounts.posts}</Tag>
-          <Tag>评论 {record.contentCounts.comments}</Tag>
-          <Tag>评测 {record.contentCounts.reviews}</Tag>
+          {buildAdminUserContentCountItems(record.contentCounts)
+            .slice(0, 3)
+            .map((item) => (
+              <Tag key={item.key}>
+                {item.label} {item.value}
+              </Tag>
+            ))}
         </Space>
       ),
       title: "内容",
@@ -432,6 +437,7 @@ export function AdminUsersPage() {
 
 function AdminUserDetailView(props: { user: AdminUserDetail }) {
   const { user } = props;
+  const contentCountItems = buildAdminUserContentCountItems(user.contentCounts);
 
   return (
     <Space direction="vertical" size="middle" style={{ width: "100%" }}>
@@ -449,6 +455,17 @@ function AdminUserDetailView(props: { user: AdminUserDetail }) {
           { key: "banReason", label: "封禁原因", children: user.banReason ?? "暂无" }
         ]}
         size="small"
+      />
+      <Descriptions
+        bordered
+        column={3}
+        items={contentCountItems.map((item) => ({
+          key: item.key,
+          label: item.label,
+          children: item.value
+        }))}
+        size="small"
+        title="内容统计"
       />
       <Table
         bordered
@@ -470,6 +487,7 @@ function AdminUserDetailView(props: { user: AdminUserDetail }) {
         pagination={false}
         rowKey={(record) => record.id}
         size="small"
+        title={() => "近期会话"}
       />
     </Space>
   );

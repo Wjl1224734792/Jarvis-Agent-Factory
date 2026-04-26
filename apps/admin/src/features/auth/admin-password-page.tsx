@@ -1,4 +1,5 @@
 import { LockOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
+import { useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Form, Input } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -14,6 +15,7 @@ type PasswordDraft = {
 };
 
 export function AdminPasswordPage() {
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
@@ -29,6 +31,7 @@ export function AdminPasswordPage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword
       });
+      queryClient.clear();
       setAnonymous();
       void navigate(`${APP_ROUTES.adminLogin}?notice=password-updated`, {
         replace: true
