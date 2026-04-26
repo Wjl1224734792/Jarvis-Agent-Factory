@@ -16,6 +16,7 @@ import {
   adminPostResponseSchema,
   adminPostStatusUpdateInputSchema,
   adminRecentSessionsResponseSchema,
+  adminBanUserInputSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
   adminCategoryInputSchema,
@@ -33,6 +34,8 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
+  adminUserResponseSchema,
+  adminUsersResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
   appLoginResponseSchema,
@@ -193,6 +196,9 @@ export const componentSchemas = {
   AdminRecentSessionsResponse: toOpenApiSchema(
     adminRecentSessionsResponseSchema
   ),
+  AdminUsersResponse: toOpenApiSchema(adminUsersResponseSchema),
+  AdminUserResponse: toOpenApiSchema(adminUserResponseSchema),
+  AdminBanUserRequest: toOpenApiSchema(adminBanUserInputSchema),
   InitUploadRequest: toOpenApiSchema(initUploadInputSchema),
   InitUploadResponse: toOpenApiSchema(initUploadResponseSchema),
   CompleteUploadRequest: toOpenApiSchema(completeUploadInputSchema),

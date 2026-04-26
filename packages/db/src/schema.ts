@@ -24,7 +24,15 @@ export const usersTable = pgTable(
     wechatUnionId: text("wechat_union_id"),
     account: text("account"),
     passwordHash: text("password_hash"),
+    status: text("status").default("active").notNull(),
+    bannedAt: timestamp("banned_at", { withTimezone: true }),
+    bannedUntil: timestamp("banned_until", { withTimezone: true }),
+    banReason: text("ban_reason"),
+    bannedBy: text("banned_by"),
     createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull()
   },
@@ -38,7 +46,9 @@ export const usersTable = pgTable(
       table.wechatUnionId
     ),
     accountUnique: uniqueIndex("users_account_unique").on(table.account),
-    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`)
+    statusIdx: index("users_status_idx").on(table.status),
+    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`),
+    statusCheck: check("users_status_check", sql`${table.status} IN ('active', 'banned')`)
   })
 );
 

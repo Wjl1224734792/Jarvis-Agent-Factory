@@ -18,7 +18,8 @@ import {
   ReadOutlined,
   SafetyCertificateOutlined,
   ScheduleOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  UserOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
@@ -213,6 +214,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementUsers,
+    label: "用户管理",
+    hint: "搜索用户资料，查看详情，并处理封禁或解封操作",
+    icon: UserOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: ADMIN_ROUTE_PATHS.managementSecurity,
     label: "安全设置",
     hint: "修改管理员密码与后台账号安全配置",
@@ -303,6 +312,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === ADMIN_ROUTE_PATHS.managementSecurity) {
     return ADMIN_ROUTE_PATHS.managementSecurity;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.managementUsers) {
+    return ADMIN_ROUTE_PATHS.managementUsers;
   }
   if (pathname === ADMIN_ROUTE_PATHS.officialArticles) {
     return ADMIN_ROUTE_PATHS.managementOfficialArticles;

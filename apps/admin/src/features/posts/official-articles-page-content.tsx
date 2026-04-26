@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Space, Table } from "antd";
 import { Suspense, lazy, startTransition, useEffectEvent, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
+import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import {
@@ -418,11 +419,10 @@ export function OfficialArticlesPage() {
               </div>
               <div className="admin-article-preview__meta">{selectedCategoryLabel}</div>
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>
-              <div
+              <AdminRichTextHtml
                 className="admin-article-preview__body"
-                dangerouslySetInnerHTML={{
-                  __html: editorHtml || "<p>正文预览会显示在这里。</p>"
-                }}
+                fallbackHtml="<p>正文预览会显示在这里。</p>"
+                html={editorHtml}
               />
             </div>
           </AdminPanel>

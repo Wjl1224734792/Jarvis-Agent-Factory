@@ -812,6 +812,49 @@ describe("auth flows", () => {
     expect(adminProtected.status).toBe(200);
   });
 
+  it("scopes admin login lockout to the account and source ip", async () => {
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const failedResponse = await app.request(API_ROUTES.auth.adminLogin, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.41"
+        },
+        body: JSON.stringify({
+          account: "admin",
+          password: "wrong-password"
+        })
+      });
+      expect(failedResponse.status).toBe(400);
+    }
+
+    const lockedResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.41"
+      },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    expect(lockedResponse.status).toBe(429);
+
+    const otherIpResponse = await app.request(API_ROUTES.auth.adminLogin, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.42"
+      },
+      body: JSON.stringify({
+        account: "admin",
+        password: "Admin#123"
+      })
+    });
+    expect(otherIpResponse.status).toBe(200);
+  });
+
   it("marks auth cookies as secure in production mode", async () => {
     const previousNodeEnv = process.env.NODE_ENV;
     process.env.NODE_ENV = "production";

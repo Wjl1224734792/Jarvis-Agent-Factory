@@ -157,7 +157,8 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
     return context.json(webLoginResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
+      const status =
+        error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
@@ -182,12 +183,13 @@ authRoute.post(API_ROUTES.auth.appLogin, async (context) => {
     return context.json(appLoginResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 
@@ -294,12 +296,13 @@ authRoute.post(API_ROUTES.auth.appRefresh, async (context) => {
     return context.json(appAuthSessionResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 
@@ -318,12 +321,13 @@ authRoute.post(API_ROUTES.auth.webRefresh, async (context) => {
   } catch (error) {
     if (error instanceof AuthError) {
       clearAuthCookies(context);
+      const status = error.code === "USER_BANNED" ? 403 : 401;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        401
+        status
       );
     }
 
@@ -345,7 +349,8 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
     );
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
+      const status =
+        error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,

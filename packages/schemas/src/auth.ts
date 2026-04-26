@@ -19,7 +19,8 @@ export const authErrorCodeSchema = z.enum([
   "REGISTRATION_REQUIRED",
   "INVALID_REGISTRATION_TOKEN",
   "TOKEN_EXPIRED",
-  "ADMIN_ACCOUNT_LOCKED"
+  "ADMIN_ACCOUNT_LOCKED",
+  "USER_BANNED"
 ]);
 
 export const userSummarySchema = z.object({

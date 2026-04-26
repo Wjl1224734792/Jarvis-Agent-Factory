@@ -17,6 +17,7 @@ import {
   removeAdminRichTextMediaReferenceFromHtml,
   type UploadedMediaAsset
 } from "../../components/admin-rich-text-editor-helpers";
+import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { apiClient } from "../../lib/api-client";
@@ -513,11 +514,10 @@ export function OfficialArticleEditorPage() {
               {watchedSummary.trim() ? (
                 <p className="admin-official-article-editor__summary-preview">{watchedSummary.trim()}</p>
               ) : null}
-              <div
+              <AdminRichTextHtml
                 className="admin-article-preview__body"
-                dangerouslySetInnerHTML={{
-                  __html: editorHtml || "<p>正文预览</p>"
-                }}
+                fallbackHtml="<p>正文预览</p>"
+                html={editorHtml}
               />
             </div>
           </AdminPanel>

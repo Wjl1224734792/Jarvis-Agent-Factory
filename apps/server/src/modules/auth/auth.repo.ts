@@ -9,7 +9,7 @@ import {
   usersTable,
   devicesTable
 } from "@feijia/db";
-import type { AuthRole, UserSummary } from "@feijia/schemas";
+import type { AuthRole, UserStatus, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
 import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import svgCaptcha from "@zhennann/svg-captcha";
@@ -69,17 +69,30 @@ function now() {
   return Date.now();
 }
 
+function toUserStatus(value: string): UserStatus {
+  return value === "banned" ? "banned" : "active";
+}
+
+function buildAdminLoginFailureKey(account: string, clientIp?: string | null) {
+  return `admin_login_fail:${account}:${clientIp?.trim() || "unknown"}`;
+}
+
 function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
   return {
     id: user.id,
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole),
+    status: toUserStatus(user.status),
     displayName: user.displayName,
     phone: user.phone,
     wechatOpenId: user.wechatOpenId,
     wechatUnionId: user.wechatUnionId,
     account: user.account,
-    password: user.passwordHash
+    password: user.passwordHash,
+    bannedAt: user.bannedAt,
+    bannedUntil: user.bannedUntil,
+    banReason: user.banReason,
+    bannedBy: user.bannedBy
   };
 }
 
@@ -380,12 +393,17 @@ export const authRepo = {
     return {
       id,
       role: "user",
+      status: "active",
       displayName: input.displayName,
       phone: input.phone,
       wechatOpenId: null,
       wechatUnionId: null,
       account: null,
-      password: null
+      password: null,
+      bannedAt: null,
+      bannedUntil: null,
+      banReason: null,
+      bannedBy: null
     };
   },
   async findAdminByCredentials(account: string, password: string): Promise<UserRecord | null> {
@@ -444,24 +462,24 @@ export const authRepo = {
       })
       .where(and(eq(usersTable.id, userId), eq(usersTable.role, "admin")));
   },
-  async recordAdminLoginFailure(account: string) {
+  async recordAdminLoginFailure(account: string, clientIp?: string | null) {
     await ensureRedisConnected();
-    const key = `admin_login_fail:${account}`;
+    const key = buildAdminLoginFailureKey(account, clientIp);
     const count = await redis.incr(key);
     if (count === 1) {
       await redis.expire(key, ADMIN_LOGIN_FAIL_TTL_S);
     }
     return count;
   },
-  async getAdminLoginFailures(account: string): Promise<number> {
+  async getAdminLoginFailures(account: string, clientIp?: string | null): Promise<number> {
     await ensureRedisConnected();
-    const key = `admin_login_fail:${account}`;
+    const key = buildAdminLoginFailureKey(account, clientIp);
     const count = await redis.get(key);
     return count ? parseInt(count, 10) : 0;
   },
-  async clearAdminLoginFailures(account: string) {
+  async clearAdminLoginFailures(account: string, clientIp?: string | null) {
     await ensureRedisConnected();
-    await redis.del(`admin_login_fail:${account}`);
+    await redis.del(buildAdminLoginFailureKey(account, clientIp));
   },
   async createSession(
     user: UserRecord,
@@ -584,7 +602,7 @@ export const authRepo = {
   },
   async getSessionForMiddleware(
     sessionId: string
-  ): Promise<"valid" | "access_expired" | "not_found"> {
+  ): Promise<"valid" | "access_expired" | "not_found" | "user_banned"> {
     const rows = await db
       .select()
       .from(sessionsTable)
@@ -606,6 +624,25 @@ export const authRepo = {
     // 只有 access token 过期
     if (!current.accessExpiresAt || current.accessExpiresAt.getTime() < now()) {
       return "access_expired";
+    }
+
+    const users = await db
+      .select({
+        id: usersTable.id,
+        status: usersTable.status
+      })
+      .from(usersTable)
+      .where(eq(usersTable.id, current.userId))
+      .limit(1);
+
+    if (users.length === 0) {
+      await this.revokeSession(sessionId);
+      return "not_found";
+    }
+
+    if (toUserStatus(users[0].status) === "banned") {
+      await this.revokeSession(sessionId);
+      return "user_banned";
     }
 
     return "valid";
@@ -706,6 +743,11 @@ export const authRepo = {
       .limit(1);
 
     if (user.length === 0) {
+      await this.revokeSession(sessionId);
+      return null;
+    }
+
+    if (toUserStatus(user[0].status) === "banned") {
       await this.revokeSession(sessionId);
       return null;
     }

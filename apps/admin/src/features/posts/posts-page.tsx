@@ -3,6 +3,7 @@ import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
+import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
@@ -463,7 +464,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
             <div className="admin-detail-sheet__body">
               {detailQuery.data.item.contentHtml ? (
-                <div dangerouslySetInnerHTML={{ __html: detailQuery.data.item.contentHtml }} />
+                <AdminRichTextHtml html={detailQuery.data.item.contentHtml} />
               ) : (
                 <p>{detailQuery.data.item.content}</p>
               )}

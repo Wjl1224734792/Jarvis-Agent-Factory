@@ -102,7 +102,11 @@ export const API_ROUTES = {
     messageRead: (id: string) => withApiV1Prefix(`/admin/messages/${id}/read`),
     messageTodos: withApiV1Prefix("/admin/messages/todos"),
     audits: withApiV1Prefix("/admin/audits"),
-    auditManualReview: (id: string) => withApiV1Prefix(`/admin/audits/${id}/manual-review`)
+    auditManualReview: (id: string) => withApiV1Prefix(`/admin/audits/${id}/manual-review`),
+    users: withApiV1Prefix("/admin/users"),
+    userDetail: (id: string) => withApiV1Prefix(`/admin/users/${id}`),
+    userBan: (id: string) => withApiV1Prefix(`/admin/users/${id}/ban`),
+    userUnban: (id: string) => withApiV1Prefix(`/admin/users/${id}/unban`)
   },
   auth: {
     captchaChallenge: withApiV1Prefix("/auth/captcha/challenge"),

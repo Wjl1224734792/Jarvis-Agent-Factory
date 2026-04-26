@@ -38,6 +38,10 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewsResponseSchema,
   adminSearchResponseSchema,
+  adminBanUserInputSchema,
+  adminUserListQuerySchema,
+  adminUserResponseSchema,
+  adminUsersResponseSchema,
   adminLoginRequestSchema,
   adminPasswordChangeRequestSchema,
   aircraftSubmissionResponseSchema,
@@ -255,6 +259,8 @@ type AdminMessageListQueryInput = Parameters<typeof adminMessageListQuerySchema.
 type AdminAuditRecordListQueryInput = Parameters<typeof adminAuditRecordListQuerySchema.parse>[0];
 type AdminAuditManualDecisionInput =
   Parameters<typeof adminAuditManualDecisionInputSchema.parse>[0];
+type AdminUserListQueryInput = Parameters<typeof adminUserListQuerySchema.parse>[0];
+type AdminBanUserInput = Parameters<typeof adminBanUserInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -304,6 +310,8 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "请先完成注册。";
       case "SMS_PROVIDER_UNAVAILABLE":
         return "短信服务暂时不可用，请稍后重试。";
+      case "USER_BANNED":
+        return "账号已被封禁，请联系管理员。";
       default:
         return "操作失败，请稍后重试。";
     }
@@ -475,6 +483,23 @@ function buildAdminAuditRecordListQueryString(input: AdminAuditRecordListQueryIn
     search.set("entityId", query.entityId);
   }
   search.set("limit", String(query.limit));
+  return `?${search.toString()}`;
+}
+
+function buildAdminUsersQueryString(input: AdminUserListQueryInput = {}): string {
+  const query = adminUserListQuerySchema.parse(input);
+  const search = new URLSearchParams();
+  if (query.keyword) {
+    search.set("keyword", query.keyword);
+  }
+  if (query.status !== "all") {
+    search.set("status", query.status);
+  }
+  if (query.role !== "all") {
+    search.set("role", query.role);
+  }
+  search.set("page", String(query.page));
+  search.set("pageSize", String(query.pageSize));
   return `?${search.toString()}`;
 }
 
@@ -750,6 +775,40 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, adminRecentSessionsResponseSchema);
+    },
+    async listAdminUsers(input: AdminUserListQueryInput = {}) {
+      const response = await fetch(
+        `${baseUrl}${API_ROUTES.admin.users}${buildAdminUsersQueryString(input)}`,
+        {
+          method: "GET",
+          credentials: "include"
+        }
+      );
+
+      return readJson(response, adminUsersResponseSchema);
+    },
+    async getAdminUser(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.userDetail(id)}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, adminUserResponseSchema);
+    },
+    async banAdminUser(id: string, input: AdminBanUserInput) {
+      return postJson(
+        API_ROUTES.admin.userBan(id),
+        adminUserResponseSchema,
+        adminBanUserInputSchema.parse(input)
+      );
+    },
+    async unbanAdminUser(id: string) {
+      const response = await fetch(`${baseUrl}${API_ROUTES.admin.userUnban(id)}`, {
+        method: "POST",
+        credentials: "include"
+      });
+
+      return readJson(response, adminUserResponseSchema);
     },
     async listHomeFeed(input: HomeFeedInput, options?: { signal?: AbortSignal }) {
       const normalized =

@@ -258,6 +258,18 @@ const rawApiClient = {
   getAdminLogsOverview(input?: { source?: string }) {
     return sharedClient.getAdminLogsOverview(input);
   },
+  listAdminUsers(input?: Parameters<typeof sharedClient.listAdminUsers>[0]) {
+    return sharedClient.listAdminUsers(input);
+  },
+  getAdminUser(id: string) {
+    return sharedClient.getAdminUser(id);
+  },
+  banAdminUser(id: string, input: Parameters<typeof sharedClient.banAdminUser>[1]) {
+    return sharedClient.banAdminUser(id, input);
+  },
+  unbanAdminUser(id: string) {
+    return sharedClient.unbanAdminUser(id);
+  },
   listAdminLogFiles(input: Parameters<typeof sharedClient.listAdminLogFiles>[0]) {
     return sharedClient.listAdminLogFiles(input);
   },

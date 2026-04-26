@@ -57,4 +57,17 @@ describe("sanitizeHtml", () => {
     expect(sanitized).toContain("player.bilibili.com");
     expect(sanitized).not.toContain("evil.example");
   });
+
+  it("strips dangerous layout styles while keeping safe rich-text styles", () => {
+    const sanitized = sanitizeHtml(
+      '<p style="position:fixed; inset:0; z-index:9999; color: red; text-align: center; background-color: #fff">copy</p>'
+    );
+
+    expect(sanitized).not.toContain("position");
+    expect(sanitized).not.toContain("z-index");
+    expect(sanitized).not.toContain("inset");
+    expect(sanitized).toContain("color: red");
+    expect(sanitized).toContain("text-align: center");
+    expect(sanitized).toContain("background-color: #fff");
+  });
 });

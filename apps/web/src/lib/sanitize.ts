@@ -73,6 +73,21 @@ const ALLOWED_URI_REGEXP =
   /^(?:(?:(?:f|ht)tps?|mailto|tel|callto|cid|xmpp|blob):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i;
 
 const TRUSTED_IFRAME_HOSTS = ["youtube.com", "youtu.be", "bilibili.com", "player.bilibili.com"];
+const ALLOWED_STYLE_PROPERTIES = new Set([
+  "background-color",
+  "color",
+  "text-align"
+]);
+const SAFE_COLOR_VALUE_PATTERN =
+  /^(?:#[0-9a-f]{3,8}|rgba?\([\d\s,.%]+\)|hsla?\([\d\s,.%]+\)|[a-z]+)$/i;
+const SAFE_TEXT_ALIGN_VALUES = new Set([
+  "center",
+  "end",
+  "justify",
+  "left",
+  "right",
+  "start"
+]);
 
 const SANITIZE_CONFIG: Config = {
   ALLOWED_TAGS,
@@ -124,6 +139,83 @@ function extractIframeSrc(iframeHtml: string) {
   }
   const unquoted = iframeHtml.match(/\ssrc\s*=\s*([^\s>]+)/i);
   return unquoted?.[1]?.trim() ?? "";
+}
+
+function sanitizeStyleDeclaration(property: string, value: string) {
+  const normalizedProperty = property.trim().toLowerCase();
+  const normalizedValue = value.trim().replace(/\s+/g, " ");
+
+  if (!ALLOWED_STYLE_PROPERTIES.has(normalizedProperty) || !normalizedValue) {
+    return null;
+  }
+
+  if (/url\s*\(|expression\s*\(|javascript\s*:|data\s*:/i.test(normalizedValue)) {
+    return null;
+  }
+
+  if (
+    (normalizedProperty === "color" || normalizedProperty === "background-color") &&
+    !SAFE_COLOR_VALUE_PATTERN.test(normalizedValue)
+  ) {
+    return null;
+  }
+
+  if (
+    normalizedProperty === "text-align" &&
+    !SAFE_TEXT_ALIGN_VALUES.has(normalizedValue.toLowerCase())
+  ) {
+    return null;
+  }
+
+  return `${normalizedProperty}: ${normalizedValue}`;
+}
+
+function sanitizeStyleAttribute(style: string) {
+  return style
+    .split(";")
+    .map((declaration) => {
+      const separatorIndex = declaration.indexOf(":");
+      if (separatorIndex === -1) {
+        return null;
+      }
+
+      return sanitizeStyleDeclaration(
+        declaration.slice(0, separatorIndex),
+        declaration.slice(separatorIndex + 1)
+      );
+    })
+    .filter((declaration): declaration is string => Boolean(declaration))
+    .join("; ");
+}
+
+function sanitizeStyles(dirty: string) {
+  if (!dirty.includes("style")) {
+    return dirty;
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(dirty, "text/html");
+    const styledNodes = Array.from(documentNode.querySelectorAll("[style]"));
+    for (const styledNode of styledNodes) {
+      const nextStyle = sanitizeStyleAttribute(styledNode.getAttribute("style") ?? "");
+      if (nextStyle) {
+        styledNode.setAttribute("style", nextStyle);
+      } else {
+        styledNode.removeAttribute("style");
+      }
+    }
+    return documentNode.body.innerHTML;
+  }
+
+  return dirty
+    .replace(/\sstyle\s*=\s*(["'])(.*?)\1/gi, (_full, quote: string, value: string) => {
+      const nextStyle = sanitizeStyleAttribute(value);
+      return nextStyle ? ` style=${quote}${nextStyle}${quote}` : "";
+    })
+    .replace(/\sstyle\s*=\s*([^"'\s>][^\s>]*)/gi, (_full, value: string) => {
+      const nextStyle = sanitizeStyleAttribute(value);
+      return nextStyle ? ` style="${nextStyle}"` : "";
+    });
 }
 
 function sanitizeIframes(dirty: string) {
@@ -309,11 +401,11 @@ export function sanitizeHtml(dirty: string, options: SanitizeHtmlOptions = {}): 
   const sanitize = getDomPurifySanitizer();
 
   if (typeof window === "undefined" || !sanitize) {
-    const sanitized = ssrSanitize(dirty);
+    const sanitized = sanitizeStyles(ssrSanitize(dirty));
     return options.allowBlobMedia === false ? stripBlobMedia(sanitized) : sanitized;
   }
 
-  const sanitized = sanitizeAnchors(sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG))));
+  const sanitized = sanitizeStyles(sanitizeAnchors(sanitizeIframes(String(sanitize(dirty, SANITIZE_CONFIG)))));
   return options.allowBlobMedia === false ? stripBlobMedia(sanitized) : sanitized;
 }
 

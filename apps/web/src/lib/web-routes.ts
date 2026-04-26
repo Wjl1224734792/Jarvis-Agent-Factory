@@ -46,6 +46,43 @@ export function buildSafeRedirectPath(target: string, fromPath?: string) {
   return `${WEB_ROUTE_PATHS.safeRedirect}?${query.toString()}`;
 }
 
+export function normalizeSafeRedirectFromPath(value: string | null | undefined) {
+  const fallback = "/";
+  const path = value?.trim();
+  if (!path) {
+    return fallback;
+  }
+
+  if (
+    !path.startsWith("/") ||
+    path.startsWith("//") ||
+    path.startsWith("\\") ||
+    path.includes("\\")
+  ) {
+    return fallback;
+  }
+
+  if (
+    path === WEB_ROUTE_PATHS.safeRedirect ||
+    path.startsWith(`${WEB_ROUTE_PATHS.safeRedirect}?`) ||
+    path.startsWith(`${WEB_ROUTE_PATHS.safeRedirect}#`)
+  ) {
+    return fallback;
+  }
+
+  try {
+    const baseOrigin = "https://feijia.local";
+    const url = new URL(path, baseOrigin);
+    if (url.origin !== baseOrigin || `${url.pathname}${url.search}${url.hash}` !== path) {
+      return fallback;
+    }
+  } catch {
+    return fallback;
+  }
+
+  return path;
+}
+
 export function isExternalHttpUrl(value: string, currentOrigin: string) {
   try {
     const url = new URL(value, currentOrigin);

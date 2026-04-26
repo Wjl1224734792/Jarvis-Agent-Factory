@@ -129,10 +129,17 @@ export class AuthError extends Error {
       | "REGISTRATION_REQUIRED"
       | "INVALID_REGISTRATION_TOKEN"
       | "TOKEN_EXPIRED"
-      | "ADMIN_ACCOUNT_LOCKED",
+      | "ADMIN_ACCOUNT_LOCKED"
+      | "USER_BANNED",
     message: string
   ) {
     super(message);
+  }
+}
+
+function ensureUserCanAuthenticate(user: UserRecord) {
+  if (user.status === "banned") {
+    throw new AuthError("USER_BANNED", "账号已被封禁，请联系管理员。");
   }
 }
 
@@ -221,6 +228,7 @@ export const authService = {
         suggestedDisplayName: pendingRegistration.suggestedDisplayName
       };
     }
+    ensureUserCanAuthenticate(user);
 
     const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(user, "web", {
@@ -279,6 +287,7 @@ export const authService = {
         suggestedDisplayName: pendingRegistration.suggestedDisplayName
       };
     }
+    ensureUserCanAuthenticate(user);
 
     const session = await createAppSession(user, {
       ...metadata,
@@ -469,6 +478,7 @@ export const authService = {
     if (!user) {
       throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
     }
+    ensureUserCanAuthenticate(user);
 
     // 续期 access + 滑动续期 refresh
     await authRepo.renewSession(session.id);
@@ -496,6 +506,7 @@ export const authService = {
     if (!user) {
       throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
     }
+    ensureUserCanAuthenticate(user);
 
     // 续期 access + 滑动续期 refresh
     await authRepo.renewSession(session.id);
@@ -530,8 +541,9 @@ export const authService = {
     input: { account: string; password: string },
     metadata?: RequestSessionMetadata
   ) {
+    const clientIp = metadata?.clientIp ?? null;
     // 后台登录带失败次数限制，优先在认证前拦截暴力尝试。
-    const failures = await authRepo.getAdminLoginFailures(input.account);
+    const failures = await authRepo.getAdminLoginFailures(input.account, clientIp);
     if (failures >= ADMIN_LOGIN_MAX_FAILURES) {
       throw new AuthError("ADMIN_ACCOUNT_LOCKED", "账号已被锁定，请 5 分钟后再试");
     }
@@ -542,16 +554,17 @@ export const authService = {
     );
 
     if (!admin) {
-      await authRepo.recordAdminLoginFailure(input.account);
+      await authRepo.recordAdminLoginFailure(input.account, clientIp);
       throw new AuthError("INVALID_CREDENTIALS", "管理员账号或密码错误");
     }
+    ensureUserCanAuthenticate(admin);
 
     // 登录成功后立即清理失败计数，避免后续正常登录被历史失败影响。
-    await authRepo.clearAdminLoginFailures(input.account);
+    await authRepo.clearAdminLoginFailures(input.account, clientIp);
 
     const refreshToken = createSecretToken(32);
     const session = await authRepo.createSession(admin, "admin", {
-      clientIp: metadata?.clientIp ?? null,
+      clientIp,
       userAgent: metadata?.userAgent ?? null,
       deviceLabel: buildDeviceLabel({
         explicitDeviceLabel: metadata?.deviceLabel,

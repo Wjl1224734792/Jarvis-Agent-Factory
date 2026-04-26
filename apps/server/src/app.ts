@@ -21,6 +21,7 @@ import { searchRoute } from './modules/search/search.route';
 import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
+import { usersRoute } from './modules/users/users.route';
 import { buildDefaultCorsOrigins, isAllowedDevCorsOrigin } from './lib/cors-origins';
 import { ensureServerEnvLoaded } from './lib/load-env';
 import { logger } from './lib/logger';
@@ -131,6 +132,13 @@ function parseResponseContentLength(value: string | null) {
   return parsed;
 }
 
+function isJsonRequestParseError(error: unknown) {
+  return (
+    error instanceof SyntaxError &&
+    /JSON|Unexpected|Expected property name/i.test(error.message)
+  );
+}
+
 if (shouldLogHttp) {
   app.use('*', async (c, next) => {
     const started = performance.now();
@@ -192,6 +200,7 @@ app.route(APP_ROUTES.health, healthRoute);
 app.route('/', authRoute);
 app.route('/', auditsRoute);
 app.route('/', uploadsRoute);
+app.route('/', usersRoute);
 app.route('/', postsRoute);
 app.route('/', socialRoute);
 app.route('/', searchRoute);
@@ -220,6 +229,16 @@ app.notFound(context =>
 );
 
 app.onError((error, context) => {
+  if (isJsonRequestParseError(error)) {
+    return context.json(
+      {
+        code: 'BAD_REQUEST',
+        message: 'Malformed JSON request body.'
+      },
+      400
+    );
+  }
+
   const maybeValidationError = error as { issues?: Array<{ message?: string }> };
   if (Array.isArray(maybeValidationError.issues)) {
     // Zod/Hono 校验错误统一下沉成 400，避免把输入问题误报成服务器异常。

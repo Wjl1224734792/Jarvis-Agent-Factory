@@ -47,6 +47,16 @@ function forbidden(context: AuthContext) {
   );
 }
 
+function banned(context: AuthContext) {
+  return context.json(
+    {
+      code: "USER_BANNED",
+      message: "账号已被封禁，请联系管理员"
+    },
+    403
+  );
+}
+
 export async function attachCurrentUser(context: AuthContext, next: Next) {
   const sessionId = readSessionToken(context);
 
@@ -55,6 +65,12 @@ export async function attachCurrentUser(context: AuthContext, next: Next) {
     if (status === "access_expired") {
       context.set("currentUser", null);
       context.set("authErrorCode", "TOKEN_EXPIRED");
+      await next();
+      return;
+    }
+    if (status === "user_banned") {
+      context.set("currentUser", null);
+      context.set("authErrorCode", "USER_BANNED");
       await next();
       return;
     }
@@ -69,6 +85,9 @@ export async function requireAuth(context: AuthContext, next: Next) {
   const user = context.var.currentUser;
   if (!user) {
     const errorCode = context.var.authErrorCode;
+    if (errorCode === "USER_BANNED") {
+      return banned(context);
+    }
     if (errorCode === "TOKEN_EXPIRED") {
       return context.json(
         {
@@ -87,6 +106,9 @@ export async function requireAdmin(context: AuthContext, next: Next) {
   const user = context.var.currentUser;
   if (!user) {
     const errorCode = context.var.authErrorCode;
+    if (errorCode === "USER_BANNED") {
+      return banned(context);
+    }
     if (errorCode === "TOKEN_EXPIRED") {
       return context.json(
         {

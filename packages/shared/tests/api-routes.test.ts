@@ -9,6 +9,10 @@ describe("API route versioning", () => {
     expect(API_ROUTES.rankings.adminStatus("ranking_1")).toBe(
       `${API_V1_PREFIX}/admin/rankings/ranking_1/status`
     );
+    expect(API_ROUTES.admin.users).toBe(`${API_V1_PREFIX}/admin/users`);
+    expect(API_ROUTES.admin.userDetail("user_1")).toBe(`${API_V1_PREFIX}/admin/users/user_1`);
+    expect(API_ROUTES.admin.userBan("user_1")).toBe(`${API_V1_PREFIX}/admin/users/user_1/ban`);
+    expect(API_ROUTES.admin.userUnban("user_1")).toBe(`${API_V1_PREFIX}/admin/users/user_1/unban`);
   });
 
   it("keeps health checks stable at the root while helper-normalizing prefixed paths", () => {
