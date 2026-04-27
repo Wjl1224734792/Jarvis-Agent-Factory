@@ -37,48 +37,48 @@ permission:
 
 ### 规划与评审
 
-| 代理 | 职责 | 模型 | 温度 |
-|------|------|------|------|
-| `task-design` | 需求→任务分解、DDD/TDD 分类 | pro | 0 |
-| `planner` | 任务→执行计划、分工与 Execution Packet | pro | 0 |
-| `review-qa` | 需求一致性、实现质量与回归审查、追踪矩阵 | pro | 0 |
+| 代理 | 职责 |
+|------|------|
+| `task-design` | 需求→任务分解、DDD/TDD 分类 |
+| `planner` | 任务→执行计划、分工与 Execution Packet |
+| `review-qa` | 需求一致性、实现质量与回归审查、追踪矩阵 |
 
 ### 探索与资料（只读）
 
-| 代理 | 职责 | 模型 | 温度 |
-|------|------|------|------|
-| `repo-explorer` | 只读探索代码库结构与风险边界 | flash | 0 |
-| `docs-researcher` | 外部文档与示例检索 | flash | 0 |
+| 代理 | 职责 |
+|------|------|
+| `repo-explorer` | 只读探索代码库结构与风险边界 |
+| `docs-researcher` | 外部文档与示例检索 |
 
 ### 审查与修复链路
 
-| 代理 | 职责 | 模型 | 温度 | 写权限 |
-|------|------|------|------|--------|
-| `project-audit-reviewer` | 项目结构、模块边界、配置、脚本、文档漂移审查 | pro | 0 | 否 |
-| `diff-code-reviewer` | git diff / PR / 指定文件的代码审查 | pro | 0 | 否 |
-| `performance-audit-reviewer` | 性能风险、基线缺口、可测指标审查 | pro | 0 | 否 |
-| `remediation-planner` | findings → 修复/优化计划与所有权 | pro | 0 | 仅档 |
-| `remediation-worker` | 无合适领域 worker 时的小范围修复、配置、文档、脚本 | flash | 0.3 | 是 |
-| `post-change-reviewer` | 修复/优化后复核 findings、diff、验证证据与关闭矩阵 | pro | 0 | 仅档 |
+| 代理 | 职责 | 写权限 |
+|------|------|--------|
+| `project-audit-reviewer` | 项目结构、模块边界、配置、脚本、文档漂移审查 | 否 |
+| `diff-code-reviewer` | git diff / PR / 指定文件的代码审查 | 否 |
+| `performance-audit-reviewer` | 性能风险、基线缺口、可测指标审查 | 否 |
+| `remediation-planner` | findings → 修复/优化计划与所有权 | 仅档 |
+| `remediation-worker` | 无合适领域 worker 时的小范围修复、配置、文档、脚本 | 是 |
+| `post-change-reviewer` | 修复/优化后复核 findings、diff、验证证据与关闭矩阵 | 仅档 |
 
 ### 前端实现
 
-| 代理 | 职责 | 模型 | 温度 |
-|------|------|------|------|
-| `frontend-implementer` | 前端多维度完整实现（页面+状态+测试） | pro | 0.3 |
-| `frontend-ui-worker` | 页面布局、组件、样式、响应式、a11y | flash | 0.4 |
-| `frontend-state-worker` | 状态管理、数据获取、缓存、路由 | flash | 0.2 |
-| `frontend-test-worker` | 前端测试、TDD 流程 | flash | 0 |
+| 代理 | 职责 |
+|------|------|
+| `frontend-implementer` | 前端多维度完整实现（页面+状态+测试） |
+| `frontend-ui-worker` | 页面布局、组件、样式、响应式、a11y |
+| `frontend-state-worker` | 状态管理、数据获取、缓存、路由 |
+| `frontend-test-worker` | 前端测试、TDD 流程 |
 
 ### 后端实现
 
-| 代理 | 职责 | 模型 | 温度 |
-|------|------|------|------|
-| `backend-implementer` | 后端多维度完整实现（API+业务+数据+测试） | pro | 0.3 |
-| `backend-api-worker` | 路由、控制器、验证、中间件、错误处理 | flash | 0.3 |
-| `backend-service-worker` | 业务规则、领域逻辑、状态机、权限 | pro | 0.2 |
-| `backend-data-worker` | Schema、ORM、Repository、迁移 | flash | 0.2 |
-| `backend-test-worker` | 后端测试、TDD 流程 | flash | 0 |
+| 代理 | 职责 |
+|------|------|
+| `backend-implementer` | 后端多维度完整实现（API+业务+数据+测试） |
+| `backend-api-worker` | 路由、控制器、验证、中间件、错误处理 |
+| `backend-service-worker` | 业务规则、领域逻辑、状态机、权限 |
+| `backend-data-worker` | Schema、ORM、Repository、迁移 |
+| `backend-test-worker` | 后端测试、TDD 流程 |
 
 ---
 
