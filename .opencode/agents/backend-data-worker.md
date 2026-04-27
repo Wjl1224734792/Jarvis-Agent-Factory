@@ -1,7 +1,7 @@
 ---
 description: "后端数据层专项工作者：在主 Build Agent 分配明确子任务后执行；负责数据库 Schema、ORM 模型、数据访问层（Repository）、迁移脚本和查询优化；不涉及业务逻辑或 API 路由。"
 mode: subagent
-model: deepseek/deepseek-v4-flash
+model: alibaba-cn/glm-5.1
 reasoningEffort: max
 temperature: 0
 permission:

@@ -1,9 +1,9 @@
 ---
 description: "后端全栈实现者：在主 Build Agent 分配明确子任务后执行；负责后端服务、接口、应用逻辑、数据访问和后端测试的完整实现。自身不调度其他 agent。"
 mode: subagent
-model: deepseek/deepseek-v4-pro
+model: alibaba-cn/glm-5.1
 reasoningEffort: max
-temperature: 0.3
+temperature: 0.2
 permission:
   edit: allow
   bash: allow

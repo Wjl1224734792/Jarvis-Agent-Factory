@@ -1,7 +1,7 @@
 ---
 description: "前端状态与数据专项工作者：在主 Build Agent 分配明确子任务后执行；负责全局/局部状态管理、数据获取、缓存策略、请求客户端对接和前端路由逻辑；不涉及 UI 样式或测试。"
 mode: subagent
-model: deepseek/deepseek-v4-flash
+model: alibaba-cn/glm-5.1
 reasoningEffort: max
 temperature: 0
 permission:

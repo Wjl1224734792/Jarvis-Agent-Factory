@@ -3,7 +3,7 @@ description: "通用修复与优化执行代理：在没有更合适领域 worke
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: max
-temperature: 0.3
+temperature: 0
 permission:
   edit: allow
   bash: allow
