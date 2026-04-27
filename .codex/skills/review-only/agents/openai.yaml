@@ -1,0 +1,7 @@
+interface:
+  display_name: "只审查"
+  short_description: "只读审查项目、代码、风险与性能问题"
+  default_prompt: "Use $review-only to review this repository without making changes."
+
+policy:
+  allow_implicit_invocation: false

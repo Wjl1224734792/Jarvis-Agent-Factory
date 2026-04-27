@@ -30,6 +30,17 @@ multi_agent = true
 | `repo_explorer` | 只读探索代码库与风险边界 | `gpt-5.3-codex-spark` | `low` |
 | `docs_researcher` | 外部文档与示例检索 | `gpt-5.4-mini` | `low` |
 
+### 审查与修复链路
+
+| 代理 | 职责 | 当前模型 | 思考等级 |
+|------|------|----------|----------|
+| `project_audit_reviewer` | 项目结构、配置、边界与文档漂移审查 | `gpt-5.3-codex` | `high` |
+| `diff_code_reviewer` | diff / PR / 指定文件代码审查 | `gpt-5.5` | `high` |
+| `performance_audit_reviewer` | 性能风险、基线缺口与指标审查 | `gpt-5.5` | `high` |
+| `remediation_planner` | findings → 修复/优化计划与所有权 | `gpt-5.5` | `high` |
+| `remediation_worker` | 通用小范围修复、配置、文档、脚本、胶水改动 | `gpt-5.3-codex` | `high` |
+| `post_change_reviewer` | 修复/优化后的复审与关闭矩阵 | `gpt-5.5` | `high` |
+
 ### 前端实现
 
 | 代理 | 职责 | 当前模型 | 思考等级 |

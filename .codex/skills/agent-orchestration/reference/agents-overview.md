@@ -16,6 +16,17 @@
 | `repo_explorer` | 代码库结构、入口、边界映射 | `gpt-5.3-codex-spark` | `low` |
 | `docs_researcher` | find-docs/ctx7 文档搜索 | `gpt-5.4-mini` | `low` |
 
+## 审查与修复链路
+
+| 代理 | 职责 | 模型 | 思考等级 | 写权限 |
+|------|------|------|----------|--------|
+| `project_audit_reviewer` | 项目结构、模块边界、配置、脚本、文档漂移只读审查 | `gpt-5.3-codex` | `high` | 否 |
+| `diff_code_reviewer` | git diff / PR / 指定文件的代码只读审查 | `gpt-5.5` | `high` | 否 |
+| `performance_audit_reviewer` | 性能风险、基线缺口、可测指标只读审查 | `gpt-5.5` | `high` | 否 |
+| `remediation_planner` | 将 findings 转成修复/优化计划、所有权和验证命令 | `gpt-5.5` | `high` | 仅计划/文档 |
+| `remediation_worker` | 无合适领域 worker 时的小范围修复、配置、文档、脚本或胶水改动 | `gpt-5.3-codex` | `high` | 是 |
+| `post_change_reviewer` | 修复/优化后复核 findings、diff、验证证据和残余风险 | `gpt-5.5` | `high` | 仅验证/文档 |
+
 ## 实现
 
 | 代理 | 职责 | 模型 | 思考等级 | 路由标签（元数据） |
@@ -51,3 +62,9 @@
 | 后端仅业务逻辑 | `backend_service_worker` |
 | 后端仅数据层 | `backend_data_worker` |
 | 后端仅测试 | `backend_test_worker` |
+| 只做项目审查 | `project_audit_reviewer` |
+| 只做代码差异审查 | `diff_code_reviewer` |
+| 只做性能风险审查 | `performance_audit_reviewer` |
+| 审查后需要规划修复/优化 | `remediation_planner` |
+| 没有合适领域 worker 的小范围修复 | `remediation_worker` |
+| 修复/优化完成后复审 | `post_change_reviewer` |

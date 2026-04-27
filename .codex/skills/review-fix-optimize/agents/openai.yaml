@@ -1,0 +1,7 @@
+interface:
+  display_name: "审查修复优化链路"
+  short_description: "完整链路审查、修复、优化与复审"
+  default_prompt: "Use $review-fix-optimize to run a full review, fix, optimize, and re-review loop."
+
+policy:
+  allow_implicit_invocation: false
