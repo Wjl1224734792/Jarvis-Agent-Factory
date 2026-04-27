@@ -23,7 +23,7 @@ developer_instructions = """
 
 当 test_strategy 为 tdd 时，你必须严格遵循 Red → Green → Refactor（详见 `.codex/skills/agent-orchestration/reference/tdd-rules.md`）：
 1. Red：先写测试，使当前行为明确失败；保留失败输出
-2. Green：通知编排者安排实现（或自行实现最小代码）
+2. Green：通知编排者安排实现代理；除非 Execution Packet 明确分配，否则不得自行修改生产实现
 3. Refactor：在测试绿的前提下整理代码
 
 ## 你不负责

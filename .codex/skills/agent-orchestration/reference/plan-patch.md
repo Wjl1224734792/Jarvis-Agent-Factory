@@ -31,6 +31,7 @@ plan_patch / contract_change / schema_change / config_change
 - 被阻塞的具体任务
 
 ## 影响范围
+- 影响的需求 ID：REQ-XXX, REQ-YYY
 - 影响的任务 ID：TASK-XXX, TASK-YYY
 - 影响的代理：frontend_implementer, backend_data_worker
 - 影响的共享区域：shared/types, database schema
@@ -70,10 +71,11 @@ plan_patch / contract_change / schema_change / config_change
 1. 收到 plan patch / contract change request
 2. 评估影响范围和风险
 3. 与用户确认（若涉及需求变更）
-4. 更新计划文档
-5. 更新相关 Execution Packet
-6. 通知受影响的实现代理
-7. 允许继续执行
+4. 若需求变更成立，先更新需求文档与 `REQ-XXX` 追溯关系
+5. 更新任务文档 / 计划文档
+6. 更新相关 Execution Packet
+7. 通知受影响的实现代理
+8. 允许继续执行
 
 ---
 

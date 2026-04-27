@@ -15,6 +15,9 @@ TASK-XXX
 ### task_name
 <任务名称>
 
+### requirement_ids
+REQ-XXX, REQ-YYY
+
 ### owner
 frontend_implementer / backend_implementer / frontend_ui_worker / frontend_state_worker / frontend_test_worker / backend_api_worker / backend_service_worker / backend_data_worker / backend_test_worker
 
@@ -80,6 +83,7 @@ tdd / test_after / manual_only
 
 ## 质量要求
 
+- **可追溯：** requirement_ids 必须来自需求文档中的 `REQ-XXX`，不得临时编造
 - **边界明确：** in_scope / out_of_scope 必须具体，不允许"相关功能"等模糊表述
 - **路径明确：** allowed_paths / forbidden_paths 必须是具体路径，不允许"合理修改"等模糊表述
 - **可验收：** acceptance_criteria 必须可验证，不允许"代码质量好"等主观表述

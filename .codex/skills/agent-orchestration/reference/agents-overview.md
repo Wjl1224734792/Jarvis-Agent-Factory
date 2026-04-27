@@ -6,8 +6,8 @@
 
 | 代理 | 职责 | 模型 | 思考等级 |
 |------|------|------|----------|
-| `task_design` | 需求 → 任务分解，DDD/TDD 分类 | `gpt-5.5` | `high` |
-| `planner` | 任务 → 执行计划，分工与 test_strategy | `gpt-5.5` | `high` |
+| `task_design` | 已确认需求文档 → 任务分解，维护 `REQ-XXX` 到 `TASK-XXX` 映射，DDD/TDD 分类 | `gpt-5.5` | `high` |
+| `planner` | 任务 → 执行计划，分工、test_strategy 与 Execution Packet | `gpt-5.5` | `high` |
 
 ## 探索（只读）
 
