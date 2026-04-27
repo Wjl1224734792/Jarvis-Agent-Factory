@@ -1,7 +1,6 @@
 name = "backend_data_worker"
 description = "后端数据层专项工作者：在编排者分配明确子任务后执行；负责数据库 Schema、ORM 模型、数据访问层（Repository）、迁移脚本和查询优化；不涉及业务逻辑或 API 路由。"
 nickname_candidates = ["Data-Worker", "DB", "Repository"]
-skills = ["data", "database", "migration"]
 model = "gpt-5.3-codex"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

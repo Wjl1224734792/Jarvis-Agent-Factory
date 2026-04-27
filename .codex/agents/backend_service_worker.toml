@@ -1,7 +1,6 @@
 name = "backend_service_worker"
 description = "后端业务逻辑专项工作者：在编排者分配明确子任务后执行；负责核心业务规则、领域逻辑、状态机、权限验证、幂等性和工作流编排；不涉及 API 路由或数据访问层。"
 nickname_candidates = ["Service-Worker", "Logic", "Domain"]
-skills = ["business-logic", "domain", "auth"]
 model = "gpt-5.5"
 model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"

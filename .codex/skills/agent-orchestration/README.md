@@ -49,7 +49,7 @@ multi_agent = true
 | `backend_data_worker` | Schema、ORM、Repository、迁移 | `gpt-5.3-codex` | `high` |
 | `backend_test_worker` | 后端测试、TDD 流程 | `gpt-5.3-codex-spark` | `medium` |
 
-更完整的职责说明、技能标签和 spawn 策略见 [reference/agents-overview.md](reference/agents-overview.md)。
+更完整的职责说明、路由标签和 spawn 策略见 [reference/agents-overview.md](reference/agents-overview.md)。
 
 ## 6 阶段流程
 

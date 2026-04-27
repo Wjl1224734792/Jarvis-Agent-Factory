@@ -2,7 +2,7 @@
 
 本文件包含所有实现类 worker（`frontend_ui_worker`、`frontend_state_worker`、`frontend_test_worker`、`backend_api_worker`、`backend_service_worker`、`backend_data_worker`、`backend_test_worker`）的通用指令。
 
-各 worker TOML 的 `developer_instructions` 应引用本文件，仅保留差异化内容（职责、skills、完成标准）。
+各 worker TOML 的 `developer_instructions` 应引用本文件，仅保留差异化内容（职责、路由标签、完成标准）。
 
 ---
 
