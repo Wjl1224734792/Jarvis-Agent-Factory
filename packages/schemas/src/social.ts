@@ -234,13 +234,13 @@ export const phoneChangeRequestInputSchema = z.object({
 export const phoneChangeRequestResponseSchema = z.object({
   requestId: z.string().min(1),
   expiresInSeconds: z.number().int().positive(),
-  mockCode: z.string().length(6).optional()
+  mockCode: z.string().regex(/^\d{6,8}$/).optional()
 });
 
 export const phoneChangeConfirmInputSchema = z.object({
   phone: chinaMainlandMobilePhoneSchema,
   requestId: z.string().min(1),
-  smsCode: z.string().length(6)
+  smsCode: z.string().regex(/^\d{6,8}$/)
 });
 
 export const updateCurrentUserProfileInputSchema = z

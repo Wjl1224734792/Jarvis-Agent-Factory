@@ -390,6 +390,41 @@ describe("provider config", () => {
     expect(sendResult.mockCode).toBe("123456");
   });
 
+  it("rejects mock sms provider in production and hides mock code outside development", () => {
+    expect(() =>
+      resolveSmsProviderConfig(
+        createEnv({
+          NODE_ENV: "production",
+          SMS_PROVIDER: undefined
+        })
+      )
+    ).toThrow(/SMS_PROVIDER/i);
+
+    expect(() =>
+      resolveSmsProviderConfig(
+        createEnv({
+          NODE_ENV: "production",
+          SMS_PROVIDER: "mock"
+        })
+      )
+    ).toThrow(/mock/i);
+
+    const productionConfig = resolveSmsProviderConfig(
+      createEnv({
+        NODE_ENV: "production",
+        SMS_PROVIDER: "aliyun",
+        SMS_EXPOSE_MOCK_CODE: "true",
+        ALIYUN_SMS_ACCESS_KEY_ID: "id",
+        ALIYUN_SMS_ACCESS_KEY_SECRET: "secret",
+        ALIYUN_SMS_SIGN_NAME: "sign",
+        ALIYUN_SMS_TEMPLATE_CODE: "SMS_123"
+      })
+    );
+
+    expect(productionConfig.provider).toBe("aliyun");
+    expect(productionConfig.exposeMockCode).toBe(false);
+  });
+
   it("fails fast for non-mock sms providers in test environment", async () => {
     const aliyunSender = createSmsSender(
       resolveSmsProviderConfig(

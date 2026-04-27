@@ -135,10 +135,24 @@ function currentAuthErrorResponse(context: Context<{ Variables: AuthVariables }>
 
 // 先处理登录、注册、验证码等匿名可访问接口，随后再挂载当前用户解析中间件。
 authRoute.post(API_ROUTES.auth.captchaChallenge, async (context) => {
-  const payload = captchaChallengeResponseSchema.parse(
-    await authService.requestCaptchaChallenge()
-  );
-  return context.json(payload);
+  try {
+    const payload = captchaChallengeResponseSchema.parse(
+      await authService.requestCaptchaChallenge({ clientIp: getClientIp(context) })
+    );
+    return context.json(payload);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        error.code === "RATE_LIMITED" ? 429 : 400
+      );
+    }
+
+    throw error;
+  }
 });
 
 authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
@@ -146,7 +160,7 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
 
   try {
     const payload = smsCodeResponseSchema.parse(
-      await authService.requestSmsCode(input)
+      await authService.requestSmsCode(input, { clientIp: getClientIp(context) })
     );
     return context.json(payload);
   } catch (error) {

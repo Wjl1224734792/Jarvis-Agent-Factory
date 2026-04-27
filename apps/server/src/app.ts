@@ -10,6 +10,8 @@ import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.r
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
 import { auditsRoute } from './modules/audits/audits.route';
 import { authRoute } from './modules/auth/auth.route';
+import { resolveAuthCodeConfig } from './modules/auth/auth.repo';
+import { resolveSmsProviderConfig } from './modules/auth/sms-provider';
 import { brandApplicationsRoute } from './modules/brand-applications/brand-applications.route';
 import { brandsRoute } from './modules/brands/brands.route';
 import { categoriesRoute } from './modules/categories/categories.route';
@@ -38,6 +40,8 @@ import {
 import { healthRoute } from './routes/health';
 
 ensureServerEnvLoaded();
+resolveAuthCodeConfig();
+resolveSmsProviderConfig();
 
 export const app = new Hono();
 

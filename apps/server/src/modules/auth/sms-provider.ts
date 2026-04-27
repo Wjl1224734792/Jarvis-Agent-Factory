@@ -267,14 +267,23 @@ async function sendViaTencent(config: SmsProviderConfig, input: SendSmsInput): P
 // ---------------------------------------------------------------------------
 
 export function resolveSmsProviderConfig(env: EnvLike = process.env): SmsProviderConfig {
-  const providerRaw = (env.SMS_PROVIDER ?? "mock").toLowerCase().trim();
-  if (!["mock", "aliyun", "tencent"].includes(providerRaw)) {
+  const isProduction = env.NODE_ENV === "production";
+  const providerRaw = env.SMS_PROVIDER?.toLowerCase().trim() || "";
+  if (!providerRaw && isProduction) {
+    throw new Error("SMS_PROVIDER must be configured in production.");
+  }
+
+  const provider = providerRaw || "mock";
+  if (!["mock", "aliyun", "tencent"].includes(provider)) {
     throw new Error("Invalid SMS_PROVIDER. Expected mock|aliyun|tencent.");
+  }
+  if (isProduction && provider === "mock") {
+    throw new Error("SMS_PROVIDER=mock is forbidden in production.");
   }
 
   return {
-    provider: providerRaw as SmsProvider,
-    exposeMockCode: parseBoolean(env.SMS_EXPOSE_MOCK_CODE, true),
+    provider: provider as SmsProvider,
+    exposeMockCode: !isProduction && parseBoolean(env.SMS_EXPOSE_MOCK_CODE, true),
     aliyun: {
       accessKeyId: env.ALIYUN_SMS_ACCESS_KEY_ID?.trim(),
       accessKeySecret: env.ALIYUN_SMS_ACCESS_KEY_SECRET?.trim(),
@@ -295,6 +304,10 @@ export function createSmsSender(config: SmsProviderConfig) {
   return {
     async sendCode(input: SendSmsInput): Promise<SendSmsResult> {
       if (config.provider === "mock") {
+        if (process.env.NODE_ENV === "production") {
+          throw new Error("Mock SMS provider is forbidden in production.");
+        }
+
         return {
           requestId: createRequestId("sms_mock"),
           mockCode: config.exposeMockCode ? input.code : undefined,

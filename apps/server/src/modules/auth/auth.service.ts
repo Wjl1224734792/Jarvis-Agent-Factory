@@ -121,6 +121,7 @@ export class AuthError extends Error {
       | "INVALID_REFRESH_TOKEN"
       | "SMS_PROVIDER_UNAVAILABLE"
       | "SMS_RATE_LIMITED"
+      | "RATE_LIMITED"
       | "SESSION_EXPIRED"
       | "UNAUTHORIZED"
       | "FORBIDDEN"
@@ -144,19 +145,33 @@ function ensureUserCanAuthenticate(user: UserRecord) {
 }
 
 export const authService = {
-  async requestCaptchaChallenge() {
-    const captcha = await authRepo.createCaptchaChallenge();
-    return {
-      challengeId: captcha.challengeId,
-      imageOrText: captcha.svg,
-      expiresInSeconds: 300
-    };
+  async requestCaptchaChallenge(options?: { clientIp?: string | null }) {
+    try {
+      const captcha = await authRepo.createCaptchaChallenge(options);
+      return {
+        challengeId: captcha.challengeId,
+        imageOrText: captcha.svg,
+        expiresInSeconds: Math.max(
+          1,
+          Math.ceil((captcha.expiresAt - Date.now()) / 1000)
+        )
+      };
+    } catch (error) {
+      if (error instanceof Error && error.message === "CAPTCHA_RATE_LIMITED") {
+        throw new AuthError("RATE_LIMITED", "请求过于频繁，请稍后再试");
+      }
+
+      throw error;
+    }
   },
-  async requestSmsCode(input: {
-    phone: string;
-    captchaChallengeId: string;
-    captchaCode: string;
-  }) {
+  async requestSmsCode(
+    input: {
+      phone: string;
+      captchaChallengeId: string;
+      captchaCode: string;
+    },
+    metadata?: { clientIp?: string | null }
+  ) {
     const captchaPassed = await authRepo.validateCaptcha(
       input.captchaChallengeId,
       input.captchaCode
@@ -167,7 +182,9 @@ export const authService = {
     }
 
     try {
-      const sms = await authRepo.createSmsCode(input.phone);
+      const sms = await authRepo.createSmsCode(input.phone, {
+        clientIp: metadata?.clientIp ?? null
+      });
       const smsSender = createSmsSender(resolveSmsProviderConfig());
       const sendResult = await smsSender.sendCode({
         phone: input.phone,
@@ -176,7 +193,10 @@ export const authService = {
 
       return {
         requestId: sms.requestId,
-        expiresInSeconds: 300,
+        expiresInSeconds: Math.max(
+          1,
+          Math.ceil((sms.expiresAt - Date.now()) / 1000)
+        ),
         mockCode: sendResult.mockCode
       };
     } catch (error) {

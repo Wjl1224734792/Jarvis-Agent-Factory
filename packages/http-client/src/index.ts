@@ -310,6 +310,9 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "请先完成注册。";
       case "SMS_PROVIDER_UNAVAILABLE":
         return "短信服务暂时不可用，请稍后重试。";
+      case "RATE_LIMITED":
+      case "SMS_RATE_LIMITED":
+        return "请求过于频繁，请稍后重试。";
       case "USER_BANNED":
         return "账号已被封禁，请联系管理员。";
       default:

@@ -2,7 +2,7 @@ import { dbPool, hashPassword, runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { buildDefaultCorsOrigins } from "../src/lib/cors-origins";
-import { resetRedisForTesting } from "../src/modules/auth/redis-client";
+import { redis, resetRedisForTesting } from "../src/modules/auth/redis-client";
 import { app, resolveCorsOrigin } from "../src/app";
 import {
   completeRegistrationIfNeeded,
@@ -375,6 +375,108 @@ describe("auth flows", () => {
 
     expect(secondResponse.status).toBe(429);
     await expect(secondResponse.json()).resolves.toMatchObject({
+      code: "SMS_RATE_LIMITED"
+    });
+  });
+
+  it("stores verification answers as hashes and keeps sms usable after one wrong attempt", async () => {
+    const phone = "13800138221";
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    expect(captchaResponse.status).toBe(200);
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+      imageOrText: string;
+    };
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+    const rawCaptcha = await redis.get(`captcha:${captchaPayload.challengeId}`);
+    expect(rawCaptcha).toBeTruthy();
+    expect(rawCaptcha).not.toContain(captchaAnswer);
+    expect(JSON.parse(rawCaptcha ?? "{}")).toMatchObject({
+      codeHash: expect.any(String)
+    });
+
+    const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaAnswer
+      })
+    });
+    expect(smsResponse.status).toBe(200);
+    const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+    const smsCode = await resolveSmsCode(phone, smsPayload);
+    const rawSms = await redis.get(`sms:${phone}`);
+    expect(rawSms).toBeTruthy();
+    expect(rawSms).not.toContain(smsCode);
+    expect(JSON.parse(rawSms ?? "{}")).toMatchObject({
+      codeHash: expect.any(String),
+      requestId: expect.any(String)
+    });
+
+    const wrongLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        smsCode: "000000"
+      })
+    });
+    expect(wrongLoginResponse.status).toBe(400);
+
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        smsCode
+      })
+    });
+    expect(loginResponse.status).toBe(200);
+    await expect(loginResponse.json()).resolves.toMatchObject({
+      kind: "registration_required",
+      phone
+    });
+  });
+
+  it("limits sms requests by client ip across different phones", async () => {
+    const clientIp = "203.0.113.7";
+
+    async function requestSmsFor(phone: string) {
+      const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+        method: "POST",
+        headers: { "x-forwarded-for": clientIp }
+      });
+      const captchaPayload = (await captchaResponse.json()) as {
+        challengeId: string;
+      };
+      const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
+      return app.request(API_ROUTES.auth.smsRequest, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": clientIp
+        },
+        body: JSON.stringify({
+          phone,
+          captchaChallengeId: captchaPayload.challengeId,
+          captchaCode: captchaAnswer
+        })
+      });
+    }
+
+    for (let offset = 0; offset < 10; offset += 1) {
+      const response = await requestSmsFor(`138001382${String(30 + offset).padStart(2, "0")}`);
+      expect(response.status).toBe(200);
+    }
+
+    const limitedResponse = await requestSmsFor("13800138240");
+    expect(limitedResponse.status).toBe(429);
+    await expect(limitedResponse.json()).resolves.toMatchObject({
       code: "SMS_RATE_LIMITED"
     });
   });

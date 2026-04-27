@@ -1081,7 +1081,8 @@ export const socialService = {
       phone: string;
       captchaChallengeId: string;
       captchaCode: string;
-    }
+    },
+    metadata?: { clientIp?: string | null }
   ) {
     const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
     if (!currentProfile) {
@@ -1093,7 +1094,7 @@ export const socialService = {
       return { kind: "conflict" as const };
     }
 
-    const payload = await authService.requestSmsCode(input);
+    const payload = await authService.requestSmsCode(input, metadata);
     return { kind: "ok" as const, payload };
   },
   async confirmPhoneChange(

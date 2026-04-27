@@ -230,6 +230,8 @@ Stop-Process -Id <PID> -Force
 - `SMS_PROVIDER=aliyun` 对接阿里云短信，填写 `ALIYUN_SMS_ACCESS_KEY_ID`、`ALIYUN_SMS_ACCESS_KEY_SECRET`、`ALIYUN_SMS_SIGN_NAME`、`ALIYUN_SMS_TEMPLATE_CODE`。
 - `SMS_PROVIDER=tencent` 对接腾讯云短信，填写 `TENCENT_SMS_SECRET_ID`、`TENCENT_SMS_SECRET_KEY`、`TENCENT_SMS_SDK_APP_ID`、`TENCENT_SMS_SIGN_NAME`、`TENCENT_SMS_TEMPLATE_ID`。
 - 服务端默认把验证码作为单一模板变量发送：阿里云走 `{"code":"123456"}`，腾讯云走 `["123456"]`。
+- 本地可用 `SMS_PROVIDER=mock` 与 `SMS_EXPOSE_MOCK_CODE=true` 联调；生产环境禁止 mock provider，且必须配置 `AUTH_CODE_HASH_SECRET`（建议 32 字节以上随机值）用于 Redis 验证码哈希。
+- 验证码策略可通过 `AUTH_CAPTCHA_TTL_SECONDS`、`AUTH_SMS_CODE_TTL_SECONDS`、`AUTH_SMS_CODE_LENGTH` 调整；当前 TTL 允许 60–600 秒，短信验证码位数允许 6–8 位。
 
 对象存储：
 

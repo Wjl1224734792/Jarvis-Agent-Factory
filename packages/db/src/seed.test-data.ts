@@ -74,6 +74,7 @@ import {
   uploadSeedStorageObjects,
   type SeedStorageObject
 } from "./seed.storage.js";
+import { hashVerificationCode } from "./helpers.js";
 
 // ==================== 工具函数 ====================
 
@@ -91,6 +92,10 @@ function hashToken(token: string): string {
 
 function createSecretToken(bytes = 32): string {
   return randomBytes(bytes).toString("base64url");
+}
+
+function resolveSeedAuthCodeHashSecret() {
+  return process.env.AUTH_CODE_HASH_SECRET?.trim() || "feijia-dev-auth-code-hash-secret";
 }
 
 function seededDate(day: number, hour: number, minute = 0) {
@@ -460,14 +465,54 @@ async function seedRedis() {
   await client.connect();
 
   try {
+    const codeHashSecret = resolveSeedAuthCodeHashSecret();
+
     // 验证码
-    await client.set("captcha:test_captcha_001", JSON.stringify({ challengeId: "test_captcha_001", code: "TEST01" }), { EX: 300 });
-    await client.set("captcha:test_captcha_002", JSON.stringify({ challengeId: "test_captcha_002", code: "ABCD" }), { EX: 300 });
+    await client.set("captcha:test_captcha_001", JSON.stringify({
+      challengeId: "test_captcha_001",
+      codeHash: hashVerificationCode({
+        code: "TEST01",
+        purpose: "captcha",
+        subject: "test_captcha_001",
+        secret: codeHashSecret
+      }),
+      attempts: 0
+    }), { EX: 300 });
+    await client.set("captcha:test_captcha_002", JSON.stringify({
+      challengeId: "test_captcha_002",
+      codeHash: hashVerificationCode({
+        code: "ABCD",
+        purpose: "captcha",
+        subject: "test_captcha_002",
+        secret: codeHashSecret
+      }),
+      attempts: 0
+    }), { EX: 300 });
     console.log("  ✓ 图形验证码: 2 组");
 
     // 短信验证码
-    await client.set("sms:13800138000", JSON.stringify({ requestId: "test_sms_001", phone: "13800138000", code: "888888" }), { EX: 300 });
-    await client.set("sms:13800138001", JSON.stringify({ requestId: "test_sms_002", phone: "13800138001", code: "666666" }), { EX: 300 });
+    await client.set("sms:13800138000", JSON.stringify({
+      requestId: "test_sms_001",
+      phone: "13800138000",
+      codeHash: hashVerificationCode({
+        code: "888888",
+        purpose: "sms",
+        subject: "13800138000",
+        secret: codeHashSecret
+      }),
+      attempts: 0
+    }), { EX: 300 });
+    await client.set("sms:13800138001", JSON.stringify({
+      requestId: "test_sms_002",
+      phone: "13800138001",
+      codeHash: hashVerificationCode({
+        code: "666666",
+        purpose: "sms",
+        subject: "13800138001",
+        secret: codeHashSecret
+      }),
+      attempts: 0
+    }), { EX: 300 });
     console.log("  ✓ 短信验证码: 2 组");
 
     // 待注册

@@ -44,7 +44,15 @@ export {
   userFollowsTable,
   usersTable
 } from "./schema.js";
-export { createId, createSecretToken, hashPassword, verifyPassword, hashToken } from "./helpers.js";
+export {
+  createId,
+  createSecretToken,
+  hashPassword,
+  hashToken,
+  hashVerificationCode,
+  verifyPassword,
+  verifyVerificationCodeHash
+} from "./helpers.js";
 export { runMigrations } from "./migrate.js";
 export {
   getResetTableNames,

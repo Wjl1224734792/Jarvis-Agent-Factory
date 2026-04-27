@@ -21,6 +21,7 @@ import {
   requireAuth,
   type AuthVariables
 } from "../auth/auth.middleware";
+import { normalizeClientIp } from "../../lib/ip-location";
 import { socialService } from "./social.service";
 
 export const socialRoute = new Hono<{ Variables: AuthVariables }>();
@@ -41,6 +42,24 @@ function getRequiredParam(context: AuthContext, key: string, missingMessage: str
   }
 
   return value;
+}
+
+function getClientIp(context: AuthContext) {
+  const forwarded = context.req.header("x-forwarded-for");
+  if (forwarded) {
+    return normalizeClientIp(
+      forwarded
+        .split(",")
+        .map((value) => value.trim())
+        .find(Boolean) ?? null
+    );
+  }
+
+  return normalizeClientIp(
+    context.req.header("x-real-ip") ??
+    context.req.header("cf-connecting-ip") ??
+    null
+  );
 }
 
 // 社交域路由：统一处理关注关系、通知、个人资料和公开主页内容。
@@ -198,7 +217,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (cont
   }
 
   const input = phoneChangeRequestInputSchema.parse(await context.req.json());
-  const payload = await socialService.requestPhoneChange(currentUser.id, input);
+  const payload = await socialService.requestPhoneChange(currentUser.id, input, {
+    clientIp: getClientIp(context)
+  });
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }

@@ -2,8 +2,10 @@ import {
   createId,
   createSecretToken,
   db,
+  hashVerificationCode,
   hashPassword,
   hashToken,
+  verifyVerificationCodeHash,
   verifyPassword,
   sessionsTable,
   usersTable,
@@ -44,8 +46,13 @@ export type SessionRecord = {
   accessExpiresAt: number;
 };
 
-const CAPTCHA_TTL_S = 300;
-const SMS_TTL_S = 300;
+const DEFAULT_CAPTCHA_TTL_S = 300;
+const DEFAULT_SMS_TTL_S = 300;
+const DEFAULT_SMS_CODE_LENGTH = 6;
+const MIN_CODE_TTL_S = 60;
+const MAX_CODE_TTL_S = 600;
+const MIN_SMS_CODE_LENGTH = 6;
+const MAX_SMS_CODE_LENGTH = 8;
 const REGISTRATION_TTL_S = 600;
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -57,6 +64,13 @@ export const ADMIN_LOGIN_MAX_FAILURES = 5;
 
 /** 短信发送频率限制：同一手机号 60 秒内最多发送 1 次 */
 const SMS_RATE_LIMIT_WINDOW_S = 60;
+const SMS_PHONE_RATE_LIMIT_MAX = 1;
+const SMS_CLIENT_IP_RATE_LIMIT_MAX = 10;
+const SMS_PHONE_IP_RATE_LIMIT_MAX = 2;
+const CAPTCHA_RATE_LIMIT_WINDOW_S = 60;
+const CAPTCHA_CLIENT_IP_RATE_LIMIT_MAX = 30;
+const CODE_VERIFY_MAX_ATTEMPTS = 5;
+const DEV_AUTH_CODE_HASH_SECRET = "feijia-dev-auth-code-hash-secret";
 
 /** 生成可用用户名时随机尝试的最大次数 */
 const DISPLAY_NAME_RANDOMIZE_MAX_ATTEMPTS = 40;
@@ -67,6 +81,85 @@ const DISPLAY_NAME_RANDOM_SUFFIX_RANGE = 900;
 
 function now() {
   return Date.now();
+}
+
+function parseBoundedIntEnv(
+  env: NodeJS.ProcessEnv,
+  name: string,
+  fallback: number,
+  options: { min: number; max: number }
+) {
+  const raw = env[name]?.trim();
+  if (!raw) {
+    return fallback;
+  }
+
+  const parsed = Number(raw);
+  if (!Number.isInteger(parsed) || parsed < options.min || parsed > options.max) {
+    throw new Error(
+      `${name} must be an integer between ${options.min} and ${options.max}.`
+    );
+  }
+
+  return parsed;
+}
+
+export function resolveAuthCodeConfig(env: NodeJS.ProcessEnv = process.env) {
+  const hashSecret = env.AUTH_CODE_HASH_SECRET?.trim();
+  if (!hashSecret && env.NODE_ENV === "production") {
+    throw new Error("AUTH_CODE_HASH_SECRET is required in production.");
+  }
+
+  if (hashSecret && hashSecret.length < 16) {
+    throw new Error("AUTH_CODE_HASH_SECRET must be at least 16 characters.");
+  }
+
+  return {
+    captchaTtlSeconds: parseBoundedIntEnv(env, "AUTH_CAPTCHA_TTL_SECONDS", DEFAULT_CAPTCHA_TTL_S, {
+      min: MIN_CODE_TTL_S,
+      max: MAX_CODE_TTL_S
+    }),
+    smsTtlSeconds: parseBoundedIntEnv(env, "AUTH_SMS_CODE_TTL_SECONDS", DEFAULT_SMS_TTL_S, {
+      min: MIN_CODE_TTL_S,
+      max: MAX_CODE_TTL_S
+    }),
+    smsCodeLength: parseBoundedIntEnv(env, "AUTH_SMS_CODE_LENGTH", DEFAULT_SMS_CODE_LENGTH, {
+      min: MIN_SMS_CODE_LENGTH,
+      max: MAX_SMS_CODE_LENGTH
+    }),
+    hashSecret: hashSecret || DEV_AUTH_CODE_HASH_SECRET
+  };
+}
+
+async function consumeRateLimit(input: {
+  key: string;
+  limit: number;
+  windowSeconds: number;
+  errorCode: string;
+}) {
+  const attempts = await redis.incr(input.key);
+  if (attempts === 1) {
+    await redis.expire(input.key, input.windowSeconds);
+  }
+  if (attempts > input.limit) {
+    throw new Error(input.errorCode);
+  }
+}
+
+async function updateCodeRecordWithTtl(key: string, value: unknown) {
+  const ttl = await redis.ttl(key);
+  if (ttl <= 0) {
+    await redis.del(key);
+    return;
+  }
+
+  await redis.set(key, JSON.stringify(value), { EX: ttl });
+}
+
+function generateNumericCode(length: number) {
+  const min = 10 ** (length - 1);
+  const max = 10 ** length;
+  return randomInt(min, max).toString();
 }
 
 function toUserStatus(value: string): UserStatus {
@@ -146,8 +239,18 @@ export const authRepo = {
   resetEphemeralState() {
     // 验证码/短信/待注册已迁移到 Redis，测试时通过 redis.flushDb() 清理
   },
-  async createCaptchaChallenge() {
+  async createCaptchaChallenge(options?: { clientIp?: string | null }) {
     await ensureRedisConnected();
+    const config = resolveAuthCodeConfig();
+    if (options?.clientIp) {
+      await consumeRateLimit({
+        key: `captcha_rate:ip:${options.clientIp}`,
+        limit: CAPTCHA_CLIENT_IP_RATE_LIMIT_MAX,
+        windowSeconds: CAPTCHA_RATE_LIMIT_WINDOW_S,
+        errorCode: "CAPTCHA_RATE_LIMITED"
+      });
+    }
+
     const { data: svg, text } = svgCaptcha.create({
       size: 4,
       ignoreChars: "0oO1iIl",
@@ -158,68 +261,196 @@ export const authRepo = {
     });
     const code = text;
     const challengeId = createId("captcha");
-    const record = { challengeId, code };
+    const record = {
+      challengeId,
+      codeHash: hashVerificationCode({
+        code: code.toUpperCase(),
+        purpose: "captcha",
+        subject: challengeId,
+        secret: config.hashSecret
+      }),
+      attempts: 0
+    };
     await redis.set(`captcha:${challengeId}`, JSON.stringify(record), {
-      EX: CAPTCHA_TTL_S
+      EX: config.captchaTtlSeconds
     });
+    if (process.env.NODE_ENV === "test") {
+      await redis.set(`captcha_test:${challengeId}`, code.toUpperCase(), {
+        EX: config.captchaTtlSeconds
+      });
+    }
     return {
       challengeId,
       code,
       svg,
-      expiresAt: now() + CAPTCHA_TTL_S * 1000
+      expiresAt: now() + config.captchaTtlSeconds * 1000
     };
   },
   async validateCaptcha(challengeId: string, code: string) {
     await ensureRedisConnected();
-    const raw = await redis.getDel(`captcha:${challengeId}`);
+    const config = resolveAuthCodeConfig();
+    const key = `captcha:${challengeId}`;
+    const raw = await redis.get(key);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { code: string };
-    return record.code.toUpperCase() === code.toUpperCase();
+    const record = JSON.parse(raw) as { codeHash?: string; attempts?: number };
+    if (!record.codeHash) {
+      await redis.del(key);
+      await redis.del(`captcha_test:${challengeId}`);
+      return false;
+    }
+
+    const passed = verifyVerificationCodeHash(record.codeHash, {
+      code: code.toUpperCase(),
+      purpose: "captcha",
+      subject: challengeId,
+      secret: config.hashSecret
+    });
+    if (passed) {
+      await redis.del(key);
+      await redis.del(`captcha_test:${challengeId}`);
+      return true;
+    }
+
+    const attempts = (record.attempts ?? 0) + 1;
+    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
+      await redis.del(key);
+      await redis.del(`captcha_test:${challengeId}`);
+    } else {
+      await updateCodeRecordWithTtl(key, { ...record, attempts });
+    }
+
+    return false;
   },
-  async createSmsCode(phone: string) {
+  async createSmsCode(phone: string, options?: { clientIp?: string | null }) {
     await ensureRedisConnected();
+    const config = resolveAuthCodeConfig();
 
     // 频率限制：同一手机号 60 秒内最多发送 1 次
-    const rateLimitKey = `sms_rate:${phone}`;
-    const attempts = await redis.incr(rateLimitKey);
-    if (attempts === 1) {
-      await redis.expire(rateLimitKey, SMS_RATE_LIMIT_WINDOW_S);
-    }
-    if (attempts > 1) {
-      throw new Error("SMS_RATE_LIMITED");
-    }
+    const rateLimitClientIp = options?.clientIp?.trim() || "unknown";
 
-    // 使用密码学安全的随机数生成 6 位验证码
-    const code = randomInt(100000, 1000000).toString();
-    const requestId = createId("sms");
-    const record = { requestId, phone, code };
-    await redis.set(`sms:${phone}`, JSON.stringify(record), {
-      EX: SMS_TTL_S
+    await consumeRateLimit({
+      key: `sms_rate:phone:${phone}`,
+      limit: SMS_PHONE_RATE_LIMIT_MAX,
+      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
+      errorCode: "SMS_RATE_LIMITED"
     });
-    return { ...record, expiresAt: now() + SMS_TTL_S * 1000 };
+    await consumeRateLimit({
+      key: `sms_rate:ip:${rateLimitClientIp}`,
+      limit: SMS_CLIENT_IP_RATE_LIMIT_MAX,
+      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
+      errorCode: "SMS_RATE_LIMITED"
+    });
+    await consumeRateLimit({
+      key: `sms_rate:phone_ip:${phone}:${rateLimitClientIp}`,
+      limit: SMS_PHONE_IP_RATE_LIMIT_MAX,
+      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
+      errorCode: "SMS_RATE_LIMITED"
+    });
+
+    // 使用密码学安全的随机数生成指定长度验证码。
+    const code = generateNumericCode(config.smsCodeLength);
+    const requestId = createId("sms");
+    const record = {
+      requestId,
+      phone,
+      codeHash: hashVerificationCode({
+        code,
+        purpose: "sms",
+        subject: phone,
+        secret: config.hashSecret
+      }),
+      attempts: 0
+    };
+    await redis.set(`sms:${phone}`, JSON.stringify(record), {
+      EX: config.smsTtlSeconds
+    });
+    if (process.env.NODE_ENV === "test") {
+      await redis.set(`sms_test:${phone}`, code, {
+        EX: config.smsTtlSeconds
+      });
+    }
+    return { requestId, phone, code, expiresAt: now() + config.smsTtlSeconds * 1000 };
   },
   async validateSmsCode(phone: string, code: string) {
     await ensureRedisConnected();
-    const raw = await redis.getDel(`sms:${phone}`);
+    const config = resolveAuthCodeConfig();
+    const key = `sms:${phone}`;
+    const raw = await redis.get(key);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { code: string; requestId: string };
-    return record.code === code;
+    const record = JSON.parse(raw) as { codeHash?: string; requestId: string; attempts?: number };
+    if (!record.codeHash) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+      return false;
+    }
+
+    const passed = verifyVerificationCodeHash(record.codeHash, {
+      code,
+      purpose: "sms",
+      subject: phone,
+      secret: config.hashSecret
+    });
+    if (passed) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+      return true;
+    }
+
+    const attempts = (record.attempts ?? 0) + 1;
+    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+    } else {
+      await updateCodeRecordWithTtl(key, { ...record, attempts });
+    }
+
+    return false;
   },
   async validateSmsCodeByRequest(phone: string, requestId: string, code: string) {
     await ensureRedisConnected();
-    const raw = await redis.getDel(`sms:${phone}`);
+    const config = resolveAuthCodeConfig();
+    const key = `sms:${phone}`;
+    const raw = await redis.get(key);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { code: string; requestId: string };
-    return record.requestId === requestId && record.code === code;
+    const record = JSON.parse(raw) as { codeHash?: string; requestId: string; attempts?: number };
+    if (!record.codeHash) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+      return false;
+    }
+
+    const passed =
+      record.requestId === requestId &&
+      verifyVerificationCodeHash(record.codeHash, {
+        code,
+        purpose: "sms",
+        subject: phone,
+        secret: config.hashSecret
+      });
+    if (passed) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+      return true;
+    }
+
+    const attempts = (record.attempts ?? 0) + 1;
+    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
+      await redis.del(key);
+      await redis.del(`sms_test:${phone}`);
+    } else {
+      await updateCodeRecordWithTtl(key, { ...record, attempts });
+    }
+
+    return false;
   },
   async findUserByPhone(phone: string) {
     const rows = await db

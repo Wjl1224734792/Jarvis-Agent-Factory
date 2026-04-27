@@ -11,6 +11,7 @@ export const authErrorCodeSchema = z.enum([
   "INVALID_REFRESH_TOKEN",
   "SMS_PROVIDER_UNAVAILABLE",
   "SMS_RATE_LIMITED",
+  "RATE_LIMITED",
   "SESSION_EXPIRED",
   "UNAUTHORIZED",
   "FORBIDDEN",
@@ -51,12 +52,12 @@ export const smsCodeRequestSchema = z.object({
 export const smsCodeResponseSchema = z.object({
   requestId: z.string().min(1),
   expiresInSeconds: z.number().int().positive(),
-  mockCode: z.string().length(6).optional()
+  mockCode: z.string().regex(/^\d{6,8}$/).optional()
 });
 
 export const webLoginRequestSchema = z.object({
   phone: chinaMainlandMobilePhoneSchema,
-  smsCode: z.string().length(6)
+  smsCode: z.string().regex(/^\d{6,8}$/)
 });
 
 const deviceLabelSchema = z.string().trim().min(1).max(120);
