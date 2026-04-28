@@ -8,7 +8,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState, type ReactElement } from "react";
 import { Link, matchPath, NavLink, useLocation, useNavigate } from "react-router-dom";
-import logoUrl from "../../../../../packages/shared/assets/logo/logo.jpg";
+import { logoUrl } from "../../lib/logo-url";
 import { HoverCard, HoverCardContent, HoverCardTrigger } from "../../components/ui/hover-card";
 import { SitePanel, SitePanelBody } from "../../components/site-shell";
 import { UserAvatar } from "../../components/ui/user-avatar";
