@@ -55,6 +55,8 @@ type ArticleDraftData = {
   summary: string;
   editorHtml: string;
   categoryId: string;
+  sourceLabel: string;
+  sourceUrl: string;
   coverImage: UploadedImage | null;
   uploadedImages: UploadedImage[];
   uploadedVideos: UploadedVideo[];
@@ -160,6 +162,8 @@ export function PublishArticlePage() {
   const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
   const [categoryId, setCategoryId] = useState("");
+  const [sourceLabel, setSourceLabel] = useState("");
+  const [sourceUrl, setSourceUrl] = useState("");
   const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
@@ -216,6 +220,8 @@ export function PublishArticlePage() {
           replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
         );
         setCategoryId(parsed.categoryId ?? "");
+        setSourceLabel(parsed.sourceLabel ?? "");
+        setSourceUrl(parsed.sourceUrl ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
@@ -251,6 +257,8 @@ export function PublishArticlePage() {
     setSummary("");
     setEditorHtml(item.contentHtml ?? "");
     setCategoryId(item.contentCategory?.id ?? "");
+    setSourceLabel(item.source?.label ?? "");
+    setSourceUrl(item.source?.url ?? "");
     setCoverImage(
       item.images[0]
         ? {
@@ -294,6 +302,8 @@ export function PublishArticlePage() {
   const coverUrl = coverImage?.url ?? null;
   const selectedCategory =
     categoriesQuery.data?.items.find((item) => item.id === categoryId) ?? null;
+  const sourceLabelValue = sourceLabel.trim();
+  const sourceUrlValue = sourceUrl.trim();
   const canSubmit =
     Boolean(title.trim()) &&
     Boolean(articleText.trim()) &&
@@ -322,6 +332,8 @@ export function PublishArticlePage() {
         summary,
         editorHtml,
         categoryId,
+        sourceLabel,
+        sourceUrl,
         coverImage,
         uploadedImages,
         uploadedVideos
@@ -329,7 +341,17 @@ export function PublishArticlePage() {
       filesBySlot: {}
     });
     setLastDraftSavedAt(savedAt);
-  }, [categoryId, coverImage, editorHtml, summary, title, uploadedImages, uploadedVideos]);
+  }, [
+    categoryId,
+    coverImage,
+    editorHtml,
+    sourceLabel,
+    sourceUrl,
+    summary,
+    title,
+    uploadedImages,
+    uploadedVideos
+  ]);
 
   useEffect(() => {
     if (editId) {
@@ -501,6 +523,8 @@ export function PublishArticlePage() {
         content: articleText,
         contentHtml: replacedArticleHtml.html,
         contentCategoryId: categoryId,
+        sourceLabel,
+        sourceUrl,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
         ),
@@ -630,6 +654,45 @@ export function PublishArticlePage() {
                   />
                 </div>
 
+                <div className="grid gap-4 md:grid-cols-2">
+                  <div className="space-y-2">
+                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
+                    <Input
+                      onChange={(event) => setSourceLabel(event.target.value)}
+                      placeholder="例如：飞加官方、转载媒体或作者"
+                      value={sourceLabel}
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
+                    <Input
+                      inputMode="url"
+                      onChange={(event) => setSourceUrl(event.target.value)}
+                      placeholder="https://example.com/source"
+                      value={sourceUrl}
+                    />
+                  </div>
+                </div>
+
+                {sourceLabelValue ? (
+                  <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
+                    <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
+                    {sourceUrlValue ? (
+                      <a
+                        className="text-primary underline-offset-4 hover:underline"
+                        href={sourceUrlValue}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        {sourceLabelValue}
+                      </a>
+                    ) : (
+                      <span className="text-foreground/82">{sourceLabelValue}</span>
+                    )}
+                  </div>
+                ) : null}
+
                 <RichTextEditor
                   onChange={setEditorHtml}
                   onUploadImage={uploadImages}
@@ -736,6 +799,23 @@ export function PublishArticlePage() {
                 </div>
               ) : null}
               <div className="text-[1.2rem] font-semibold text-foreground">{title || "未命名文章"}</div>
+              {sourceLabelValue ? (
+                <div className="text-[0.8rem] text-muted-foreground">
+                  来源：
+                  {sourceUrlValue ? (
+                    <a
+                      className="text-primary underline-offset-4 hover:underline"
+                      href={sourceUrlValue}
+                      rel="noreferrer"
+                      target="_blank"
+                    >
+                      {sourceLabelValue}
+                    </a>
+                  ) : (
+                    <span className="text-foreground/78">{sourceLabelValue}</span>
+                  )}
+                </div>
+              ) : null}
               {summary ? <p className="text-sm leading-6 text-muted-foreground">{summary}</p> : null}
               <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                 <span>{mediaSummaryText}</span>

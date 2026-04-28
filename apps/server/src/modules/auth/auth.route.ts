@@ -20,6 +20,7 @@ import {
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
+  userPasswordChangeRequestSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
 } from "@feijia/schemas";
@@ -197,7 +198,9 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
   } catch (error) {
     if (error instanceof AuthError) {
       const status =
-        error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : error.code === "USER_BANNED" ? 403 : 400;
+        error.code === "ADMIN_ACCOUNT_LOCKED" || error.code === "RATE_LIMITED"
+          ? 429
+          : error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
@@ -405,6 +408,43 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
+
+authRoute.post(
+  API_ROUTES.auth.webChangePassword,
+  requireAuth,
+  async (context) => {
+    const input = userPasswordChangeRequestSchema.parse(await context.req.json());
+    const currentUser = context.get("currentUser");
+
+    if (!currentUser || context.get("currentSessionScope") !== "web") {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: "FORBIDDEN",
+          message: "仅 Web 登录用户可修改密码。"
+        }),
+        403
+      );
+    }
+
+    try {
+      const result = await authService.changeWebPassword(currentUser.id, input);
+      clearAuthCookies(context);
+      return context.json(actionSuccessResponseSchema.parse(result));
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return context.json(
+          authErrorResponseSchema.parse({
+            code: error.code,
+            message: error.message
+          }),
+          error.code === "FORBIDDEN" ? 403 : 400
+        );
+      }
+
+      throw error;
+    }
+  }
+);
 
 // 设备注册/注销（需登录）
 authRoute.post(API_ROUTES.auth.deviceRegister, requireAuth, async (context) => {

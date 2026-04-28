@@ -127,6 +127,8 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
@@ -222,6 +224,8 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
@@ -411,6 +415,8 @@ postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async 
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     imageIds: input.imageIds,
     videoIds: input.videoIds
   });

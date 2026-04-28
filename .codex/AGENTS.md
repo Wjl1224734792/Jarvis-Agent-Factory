@@ -31,10 +31,10 @@
 
 ## 代理与文档同步要求
 
-- `.codex/agents/*.toml` 是子代理配置的真源，`model`、`model_reasoning_effort` 以 TOML 为准。
-- [`agent-orchestration/reference/agents-overview.md`](./skills/agent-orchestration/reference/agents-overview.md) 是面向人的摘要，调整 agent 配置后必须同步更新。
-- [`agent-orchestration/README.md`](./skills/agent-orchestration/README.md) 负责说明编排入口、流程和当前代理分工，不替代 TOML 配置。
-- 如果需要在其他文档里引用 agent 模型或职责，优先链接到上述文件，避免复制出第二份会漂移的清单。
+- `.codex/agents/*.toml` 是子代理职责、权限和执行约束的真源。
+- [`agent-orchestration/reference/agents-overview.md`](./skills/agent-orchestration/reference/agents-overview.md) 是面向人的职责、路由和并发策略摘要；调整 agent 职责后必须同步更新。
+- [`agent-orchestration/README.md`](./skills/agent-orchestration/README.md) 负责说明编排入口、流程和当前代理分工，不记录底层运行参数。
+- 其它文档只引用职责、路由、并发边界和交接规则；不要复制底层运行参数清单。
 
 ## 交付要求
 

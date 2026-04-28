@@ -38,6 +38,7 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/health']).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/login')]).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/refresh')]).toBeDefined();
+    expect(payload.paths[v1Path('/auth/web/password/change')]).toBeDefined();
     expect(payload.paths[v1Path('/users/me/profile')]).toBeDefined();
     expect(payload.paths[v1Path('/brand-applications')]).toBeDefined();
     expect(payload.paths[v1Path('/aircraft-submissions')]).toBeDefined();
@@ -82,6 +83,7 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.AdminUserResponse).toBeDefined();
     expect(payload.components.schemas.AdminBanUserRequest).toBeDefined();
     expect(payload.components.schemas.AdminPasswordChangeRequest).toBeDefined();
+    expect(payload.components.schemas.UserPasswordChangeRequest).toBeDefined();
     expect(payload.paths[v1Path('/users/me/profile')]?.put?.responses?.['409']).toBeDefined();
     expect(
       payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['409']
@@ -90,6 +92,12 @@ describe('OpenAPI docs', () => {
       payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['409']
     ).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/refresh')]?.post?.responses?.['401']).toBeDefined();
+    expect(
+      payload.paths[v1Path('/auth/web/password/change')]?.post?.responses?.['401']
+    ).toBeDefined();
+    expect(
+      payload.paths[v1Path('/auth/web/password/change')]?.post?.responses?.['403']
+    ).toBeDefined();
     expect(payload.paths[v1Path('/auth/protected/ping')]?.get?.responses?.['401']).toBeDefined();
     expect(payload.paths[v1Path('/admin/users/{id}/ban')]?.post?.responses?.['400']).toBeDefined();
     expect(payload.paths[v1Path('/admin/rankings/{id}/status')]?.put?.responses?.['403']).toBeDefined();

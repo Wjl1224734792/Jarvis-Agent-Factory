@@ -18,15 +18,17 @@
 
 ## 编排者 spawn 顺序（tdd 任务）
 
+同一任务内部必须串行；不同任务只要测试文件、生产文件和共享区域不重叠，就按同一子阶段并发。
+
 ```
 # Red
-spawn agent: test_worker（子任务: 写失败测试）
+spawn agent: test_worker（子任务: 写失败测试；同批 Red 可并发）
 
 # Green（Red 通过后）
-spawn agent: 实现 worker（子任务: 最小实现令测试通过）
+spawn agent: 实现 worker（子任务: 最小实现令测试通过；同批 Green 可并发）
 
 # Refactor（Green 通过后）
-spawn agent: test_worker（子任务: 整理代码，测试仍绿）
+spawn agent: test_worker（子任务: 整理代码，测试仍绿；同批 Refactor 可并发）
 ```
 
 前端 test_worker = `frontend_test_worker`，实现 worker = `frontend_ui_worker` / `frontend_state_worker` / `frontend_implementer`
@@ -35,6 +37,9 @@ spawn agent: test_worker（子任务: 整理代码，测试仍绿）
 ## 约束
 
 - 共享合约、路由前缀、DB schema 等高风险变更若标为 `tdd`，与其实现相关的测试步骤**不要**与另一代理并行抢改同一文件。
+- planner 必须把 tdd 任务拆入 `parallel_batches`：Red 批次先于 Green，Green 先于 Refactor；跨任务并发只允许在同一子阶段内发生。
+- 同一 TDD 子阶段内，多个任务只有在测试文件、生产文件、共享契约和数据结构都不重叠时才可同批并发。
+- 每个 TDD Execution Packet 都必须写明当前子阶段、同批任务和下一阶段依赖，避免编排者临场猜测。
 - 无法自动化测试的边界（如纯 UI 动效）可标 `test_after` 或 `manual_only`，并在 `planner` 产出中写清验收方式。
 - **完成声明前**须有一次「测试失败 → 同一套测试通过」的可核对记录。
 

@@ -24,6 +24,29 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 
 当当前环境允许 spawn，且用户显式调用本技能即表示允许完整链路分工时，可以使用子代理。子代理不得再 spawn。
 
+默认并发：初审阶段的项目审查、diff 审查、性能审查、代码事实探索和外部文档查询可并发；修复/优化阶段按 `remediation_planner` 的 `parallel_batches` 同批 spawn；复审必须等待对应修复、验证和证据齐备。
+
+主会话只按职责、路径边界、共享区域和证据需求分派；本技能不记录或选择底层运行参数。
+
+### 链路并发批次
+
+| 阶段 | 默认并发 | 必须等待 / 串行 |
+|---|---|---|
+| 初审 | 项目审查、diff 审查、性能审查、repo 探索、文档查询可同批并发 | 汇总 findings 前等待影响结论的审查结果 |
+| 修复规划 | `remediation_planner` 消费初审 findings 并产出 `parallel_batches` | findings 未分类、共享区域责任方未定时不得执行修复 |
+| 修复/优化 | 无依赖、不同文件域、无共享写入冲突的任务同批 spawn | 同一共享区域、同一文件、同一 finding 链路、TDD 步骤依赖必须串行 |
+| 验证 | 独立 lint/typecheck/test/build/手工验证/benchmark 可并发收集证据 | 依赖某项修复结果的验证必须排在对应修复批次之后 |
+| 复审 | `post_change_reviewer` 可消费并发验证证据 | 最终复审必须等待关键修复、验证和 residual risk 齐备 |
+
+### 批次执行规则
+
+- 初审批次：先一次性 spawn 所有独立只读审查代理，再等待整批 findings；不要边等边临时扩大范围。
+- 修复计划：必须要求 `remediation_planner` 写清 task_id、责任方、allowed_paths、forbidden_paths、batch_peers、depends_on、serial_reason 和验证命令。
+- 执行批次：同批 worker 必须知道自己不是独占工作区，只能改分配路径；发现共享区域冲突时停止并回编排者。
+- 验证批次：只报告实际运行过的命令或手工步骤；并发验证结果必须归档到同一个证据汇总里。
+- 复审批次：`post_change_reviewer` 或最终主会话复审要逐项关闭初审 findings；未关闭项进入 residual risk。
+- 任何串行安排都必须写明真实阻塞原因，不能只写“按顺序执行”。
+
 优先匹配已有代理：
 
 | 任务 | 优先代理 |
@@ -71,6 +94,7 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 
 ```md
 ## 初审发现
+## 并发批次
 ## 已修复/已优化
 ## 验证证据
 ## 复审结论
@@ -79,12 +103,19 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 
 如果没有运行某项验证，明确写“未运行”及原因。不要用“应该、看起来、理论上”替代证据。
 
+`并发批次` 至少写明：
+- initial_review_batches：初审代理、范围、证据状态
+- remediation_batches：task_id、责任方、同批任务、串行原因
+- verification_batches：命令/手工步骤、依赖的修复任务、结果
+- review_waits_for：最终复审等待了哪些关键证据
+
 ## 常见错误
 
 | 错误 | 正确做法 |
 |---|---|
 | 直接修复，跳过初审 | 先形成 findings 和任务边界 |
 | 性能优化无指标 | 先采集或定义可复现指标 |
-| 子代理共享写同一区域 | 指定唯一责任方，串行处理 |
+| 子代理共享写同一区域 | 指定唯一责任方，串行处理；无共享冲突的任务同批并发 |
 | 只相信子代理报告 | 主会话检查 diff 和验证输出 |
 | 修完不复审 | 对照初审 findings 逐项关闭 |
+| 能并发的审查/验证被无理由串行 | 同批启动，只有真实依赖才等待 |

@@ -33,6 +33,56 @@ export const postVideoSchema = z.object({
 
 export const postCoverSchema = postImageSchema;
 
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+const sourceUrlSchema = z
+  .string()
+  .trim()
+  .url()
+  .refine(isHttpUrl, "Source URL must use http or https.");
+
+export const postSourceSchema = z.object({
+  label: z.string().trim().min(1).max(80),
+  url: sourceUrlSchema.nullable().default(null)
+});
+
+const postSourceInputFields = {
+  sourceLabel: z.string().min(1).max(80).nullable().default(null),
+  sourceUrl: sourceUrlSchema.max(500).nullable().default(null)
+};
+
+function normalizeSourceInputValue(value: unknown) {
+  if (value == null || typeof value !== "string") {
+    return null;
+  }
+
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
+}
+
+function normalizePostSourceInput(value: unknown) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return value;
+  }
+
+  const input = value as Record<string, unknown>;
+  const sourceLabel = normalizeSourceInputValue(input.sourceLabel);
+  const sourceUrl = normalizeSourceInputValue(input.sourceUrl);
+
+  return {
+    ...input,
+    sourceLabel,
+    sourceUrl: sourceLabel ? sourceUrl : null
+  };
+}
+
 export const postViewerStateSchema = z.object({
   isAuthor: z.boolean(),
   isFollowingAuthor: z.boolean(),
@@ -48,14 +98,16 @@ export const postEngagementSchema = z.object({
   viewer: postViewerStateSchema
 });
 
-export const createPostInputSchema = z
-  .object({
+export const createPostInputSchema = z.preprocess(
+  normalizePostSourceInput,
+  z.object({
     type: postTypeSchema,
     title: z.string().trim().min(1).max(100),
     content: z.preprocess((value) => (value == null ? "" : value), z.string().trim().max(8000)),
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1).nullable().optional(),
     coverImageId: z.string().min(1).nullable().optional().default(null),
+    ...postSourceInputFields,
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).default([])
   })
@@ -95,7 +147,8 @@ export const createPostInputSchema = z
         path: ["coverImageId"]
       });
     }
-  });
+  })
+);
 
 export const createPostCommentInputSchema = z.object({
   content: z.string().trim().min(1).max(1000),
@@ -160,6 +213,7 @@ export const postFeedItemSchema = z.object({
   updatedAt: z.string().datetime(),
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
+  source: postSourceSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -215,6 +269,7 @@ export const postDetailSchema = z.object({
   updatedAt: z.string().datetime(),
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
+  source: postSourceSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -283,14 +338,18 @@ export const adminPostStatusUpdateInputSchema = z.object({
   }
 });
 
-export const adminOfficialArticleUpdateInputSchema = z.object({
-  title: z.string().trim().min(1).max(100),
-  content: z.string().trim().min(1).max(8000),
-  contentHtml: z.string().trim().max(32000).nullable().optional(),
-  contentCategoryId: z.string().min(1),
-  imageIds: z.array(z.string().min(1)).default([]),
-  videoIds: z.array(z.string().min(1)).default([])
-});
+export const adminOfficialArticleUpdateInputSchema = z.preprocess(
+  normalizePostSourceInput,
+  z.object({
+    title: z.string().trim().min(1).max(100),
+    content: z.string().trim().min(1).max(8000),
+    contentHtml: z.string().trim().max(32000).nullable().optional(),
+    contentCategoryId: z.string().min(1),
+    ...postSourceInputFields,
+    imageIds: z.array(z.string().min(1)).default([]),
+    videoIds: z.array(z.string().min(1)).default([])
+  })
+);
 
 export const adminPostResponseSchema = z.object({
   item: adminPostListItemSchema

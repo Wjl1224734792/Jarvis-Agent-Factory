@@ -147,6 +147,7 @@ import {
   uploadPostVideoResponseSchema,
   webLoginRequestSchema,
   webLoginResponseSchema,
+  userPasswordChangeRequestSchema,
   siteSettingsResponseSchema,
   siteSearchResponseSchema,
   searchQuerySchema,
@@ -180,6 +181,8 @@ type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
 type AdminPasswordChangeInput =
   Parameters<typeof adminPasswordChangeRequestSchema.parse>[0];
+type UserPasswordChangeInput =
+  Parameters<typeof userPasswordChangeRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
@@ -671,6 +674,13 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.auth.webRegisterComplete,
         authSuccessResponseSchema,
         completeWebRegistrationRequestSchema.parse(input)
+      );
+    },
+    async changeWebPassword(input: UserPasswordChangeInput) {
+      return postJson(
+        API_ROUTES.auth.webChangePassword,
+        actionSuccessResponseSchema,
+        userPasswordChangeRequestSchema.parse(input)
       );
     },
     async suggestRegistrationDisplayName(input: RegistrationDisplayNameSuggestInput) {

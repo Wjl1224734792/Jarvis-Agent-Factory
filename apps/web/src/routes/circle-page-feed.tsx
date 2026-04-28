@@ -27,6 +27,10 @@ export type FeedTab = (typeof feedTabs)[number]["id"];
 export type CircleFeedItem = {
   id: string;
   title: string;
+  source?: {
+    label: string;
+    url?: string | null;
+  } | null;
   cover?: { url?: string | null } | null;
   images: Array<{ url?: string | null }>;
   videos: Array<{ url?: string | null }>;
@@ -132,6 +136,33 @@ function CircleFeedCard(props: {
             {formatCount(item.engagement.likeCount)}
           </span>
         </div>
+        {item.source ? (
+          <div className="text-[0.72rem] text-muted-foreground">
+            来源：
+            {item.source.url ? (
+              <span
+                className="text-primary underline-offset-4 hover:underline"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === "Enter" || event.key === " ") {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                  }
+                }}
+                role="link"
+                tabIndex={0}
+              >
+                {item.source.label}
+              </span>
+            ) : (
+              <span className="text-foreground/78">{item.source.label}</span>
+            )}
+          </div>
+        ) : null}
       </div>
     </button>
   );

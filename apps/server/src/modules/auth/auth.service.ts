@@ -1,6 +1,10 @@
 import { createSecretToken, hashToken } from "@feijia/db";
 import type { UserSummary } from "@feijia/schemas";
-import { authRepo, ADMIN_LOGIN_MAX_FAILURES } from "./auth.repo";
+import {
+  authRepo,
+  ADMIN_LOGIN_MAX_FAILURES,
+  WEB_PASSWORD_LOGIN_MAX_FAILURES
+} from "./auth.repo";
 import {
   createSmsSender,
   isSmsRateLimitedError,
@@ -112,6 +116,34 @@ async function createAppSession(
   };
 }
 
+async function createCookieSession(
+  user: UserRecord,
+  scope: "web" | "admin",
+  metadata?: RequestSessionMetadata
+) {
+  const refreshToken = createSecretToken(32);
+  const session = await authRepo.createSession(user, scope, {
+    clientIp: metadata?.clientIp ?? null,
+    userAgent: metadata?.userAgent ?? null,
+    deviceLabel: buildDeviceLabel({
+      explicitDeviceLabel: metadata?.deviceLabel,
+      userAgent: metadata?.userAgent ?? null
+    }),
+    refreshTokenHash: hashToken(refreshToken),
+    refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
+  });
+  const summary = await authRepo.getUserSummaryBySession(session.id);
+  if (!summary) {
+    throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+  }
+
+  return {
+    sessionId: session.id,
+    refreshToken,
+    user: summary satisfies UserSummary
+  };
+}
+
 export class AuthError extends Error {
   constructor(
     public readonly code:
@@ -213,12 +245,53 @@ export const authService = {
     }
   },
   async loginWeb(
-    input: {
-      phone: string;
-      smsCode: string;
-    },
+    input:
+      | {
+          method: "sms";
+          phone: string;
+          smsCode: string;
+        }
+      | {
+          method: "password";
+          phone: string;
+          password: string;
+          captchaChallengeId: string;
+          captchaCode: string;
+        },
     metadata?: RequestSessionMetadata
   ) {
+    if (input.method === "password") {
+      const captchaPassed = await authRepo.validateCaptcha(
+        input.captchaChallengeId,
+        input.captchaCode
+      );
+      if (!captchaPassed) {
+        throw new AuthError("INVALID_CAPTCHA", "图形验证码无效或已过期");
+      }
+
+      const clientIp = metadata?.clientIp ?? null;
+      const failures = await authRepo.getWebPasswordLoginFailures(input.phone, clientIp);
+      if (failures >= WEB_PASSWORD_LOGIN_MAX_FAILURES) {
+        throw new AuthError("RATE_LIMITED", "密码错误次数过多，请稍后再试");
+      }
+
+      const user = await authRepo.findUserByPhoneAndPassword(
+        input.phone,
+        input.password
+      );
+      if (!user) {
+        await authRepo.recordWebPasswordLoginFailure(input.phone, clientIp);
+        throw new AuthError("INVALID_CREDENTIALS", "手机号或密码错误");
+      }
+      ensureUserCanAuthenticate(user);
+      await authRepo.clearWebPasswordLoginFailures(input.phone, clientIp);
+
+      return {
+        kind: "authenticated" as const,
+        ...(await createCookieSession(user, "web", metadata))
+      };
+    }
+
     // SMS request already owns the captcha challenge. Login only needs the
     // verified phone number plus the issued SMS code.
     const smsPassed = await authRepo.validateSmsCode(input.phone, input.smsCode);
@@ -250,27 +323,9 @@ export const authService = {
     }
     ensureUserCanAuthenticate(user);
 
-    const refreshToken = createSecretToken(32);
-    const session = await authRepo.createSession(user, "web", {
-      clientIp: metadata?.clientIp ?? null,
-      userAgent: metadata?.userAgent ?? null,
-      deviceLabel: buildDeviceLabel({
-        explicitDeviceLabel: metadata?.deviceLabel,
-        userAgent: metadata?.userAgent ?? null
-      }),
-      refreshTokenHash: hashToken(refreshToken),
-      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
-    });
-    const summary = await authRepo.getUserSummaryBySession(session.id);
-    if (!summary) {
-      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
-    }
-
     return {
       kind: "authenticated" as const,
-      sessionId: session.id,
-      refreshToken,
-      user: summary satisfies UserSummary
+      ...(await createCookieSession(user, "web", metadata))
     };
   },
   async loginApp(
@@ -323,6 +378,7 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
+      password: string;
       avatarFileId?: string | null;
     },
     metadata?: RequestSessionMetadata
@@ -364,30 +420,15 @@ export const authService = {
       const user = await authRepo.createUserByPhoneProfile({
         phone: pending.phone,
         displayName: normalizedDisplayName,
+        password: input.password,
         avatarFileId: input.avatarFileId ?? null
       });
 
-      const refreshToken = createSecretToken(32);
-      const session = await authRepo.createSession(user, "web", {
+      return await createCookieSession(user, "web", {
         clientIp: metadata?.clientIp ?? pending.clientIp ?? null,
         userAgent: metadata?.userAgent ?? pending.userAgent ?? null,
-        deviceLabel: buildDeviceLabel({
-          explicitDeviceLabel: metadata?.deviceLabel ?? pending.deviceLabel,
-          userAgent: metadata?.userAgent ?? pending.userAgent ?? null
-        }),
-        refreshTokenHash: hashToken(refreshToken),
-        refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
+        deviceLabel: metadata?.deviceLabel ?? pending.deviceLabel
       });
-      const summary = await authRepo.getUserSummaryBySession(session.id);
-      if (!summary) {
-        throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
-      }
-
-      return {
-        sessionId: session.id,
-        refreshToken,
-        user: summary satisfies UserSummary
-      };
     } catch (error) {
       const mappedError = mapRegistrationPersistenceError(error);
       if (mappedError) {
@@ -403,6 +444,7 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
+      password: string;
       avatarFileId?: string | null;
       deviceLabel?: string | null;
     },
@@ -443,6 +485,7 @@ export const authService = {
       const user = await authRepo.createUserByPhoneProfile({
         phone: pending.phone,
         displayName: normalizedDisplayName,
+        password: input.password,
         avatarFileId: input.avatarFileId ?? null
       });
 
@@ -571,9 +614,22 @@ export const authService = {
     }
   },
   async loginAdmin(
-    input: { account: string; password: string },
+    input: {
+      account: string;
+      password: string;
+      captchaChallengeId: string;
+      captchaCode: string;
+    },
     metadata?: RequestSessionMetadata
   ) {
+    const captchaPassed = await authRepo.validateCaptcha(
+      input.captchaChallengeId,
+      input.captchaCode
+    );
+    if (!captchaPassed) {
+      throw new AuthError("INVALID_CAPTCHA", "图形验证码无效或已过期");
+    }
+
     const clientIp = metadata?.clientIp ?? null;
     // 后台登录带失败次数限制，优先在认证前拦截暴力尝试。
     const failures = await authRepo.getAdminLoginFailures(input.account, clientIp);
@@ -595,26 +651,30 @@ export const authService = {
     // 登录成功后立即清理失败计数，避免后续正常登录被历史失败影响。
     await authRepo.clearAdminLoginFailures(input.account, clientIp);
 
-    const refreshToken = createSecretToken(32);
-    const session = await authRepo.createSession(admin, "admin", {
-      clientIp,
-      userAgent: metadata?.userAgent ?? null,
-      deviceLabel: buildDeviceLabel({
-        explicitDeviceLabel: metadata?.deviceLabel,
-        userAgent: metadata?.userAgent ?? null
-      }),
-      refreshTokenHash: hashToken(refreshToken),
-      refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
-    });
-    const summary = await authRepo.getUserSummaryBySession(session.id);
-    if (!summary) {
-      throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
+    return createCookieSession(admin, "admin", metadata);
+  },
+  async changeWebPassword(
+    userId: string,
+    input: { currentPassword: string; newPassword: string }
+  ) {
+    const user = await authRepo.findUserById(userId);
+    if (!user || user.role !== "user") {
+      throw new AuthError("FORBIDDEN", "仅普通用户可修改 Web 密码");
     }
 
+    const currentPasswordPassed = await authRepo.verifyUserPassword(
+      userId,
+      input.currentPassword
+    );
+    if (!currentPasswordPassed) {
+      throw new AuthError("INVALID_CREDENTIALS", "当前密码错误");
+    }
+
+    await authRepo.updateUserPassword(userId, input.newPassword);
+    await authRepo.revokeUserSessions(userId);
+
     return {
-      sessionId: session.id,
-      refreshToken,
-      user: summary satisfies UserSummary
+      success: true as const
     };
   },
   async changeAdminPassword(

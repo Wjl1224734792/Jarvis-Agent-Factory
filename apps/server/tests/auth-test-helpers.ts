@@ -4,6 +4,12 @@ import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-tes
 
 type LoginHeaders = Record<string, string>;
 
+const DEFAULT_TEST_PASSWORD = "StrongPass#2026";
+
+type RegistrationOptions = {
+  password?: string;
+};
+
 async function describeUnexpectedAuthResponse(response: Response) {
   const raw = await response.text();
   return raw.length > 0 ? raw : `<empty body, status=${response.status}>`;
@@ -25,7 +31,8 @@ export function extractCookies(response: Response): string {
  */
 export async function completeRegistrationIfNeeded(
   response: Response,
-  headers?: LoginHeaders
+  headers?: LoginHeaders,
+  options?: RegistrationOptions
 ): Promise<string> {
   if (response.status !== 200) {
     throw new Error(
@@ -50,6 +57,7 @@ export async function completeRegistrationIfNeeded(
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
+      password: options?.password ?? DEFAULT_TEST_PASSWORD,
       avatarFileId: null
     })
   });
@@ -68,6 +76,32 @@ export async function resolveSmsCode(phone: string, payload: { mockCode?: string
   return resolveSmsCodeForTests(phone, payload);
 }
 
+/** Requests a fresh captcha challenge and returns challenge id + answer. */
+export async function requestCaptcha(
+  options?: LoginHeaders
+): Promise<{ challengeId: string; captchaCode: string; imageOrText: string }> {
+  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+    method: "POST",
+    headers: options
+  });
+  if (captchaResponse.status !== 200) {
+    throw new Error(
+      `captcha challenge failed: ${captchaResponse.status}`
+    );
+  }
+
+  const captchaPayload = (await captchaResponse.json()) as {
+    challengeId: string;
+    imageOrText: string;
+  };
+
+  return {
+    challengeId: captchaPayload.challengeId,
+    captchaCode: await readCaptchaAnswerForTests(captchaPayload.challengeId),
+    imageOrText: captchaPayload.imageOrText
+  };
+}
+
 /** Requests captcha + sms in one flow and returns the resolved sms code for testing. */
 export async function requestCaptchaAndSms(
   phone: string,
@@ -75,15 +109,7 @@ export async function requestCaptchaAndSms(
 ): Promise<{ challengeId: string; captchaCode: string; smsCode: string }> {
   const headers = options;
 
-  const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
-    method: "POST"
-  });
-  const captchaPayload = (await captchaResponse.json()) as {
-    challengeId: string;
-    imageOrText: string;
-  };
-
-  const captchaCode = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+  const { challengeId, captchaCode } = await requestCaptcha(options);
 
   const smsResponse = await app.request(API_ROUTES.auth.smsRequest, {
     method: "POST",
@@ -93,7 +119,7 @@ export async function requestCaptchaAndSms(
     },
     body: JSON.stringify({
       phone,
-      captchaChallengeId: captchaPayload.challengeId,
+      captchaChallengeId: challengeId,
       captchaCode
     })
   });
@@ -104,7 +130,7 @@ export async function requestCaptchaAndSms(
   const smsCode = await resolveSmsCode(phone, smsPayload);
 
   return {
-    challengeId: captchaPayload.challengeId,
+    challengeId,
     captchaCode,
     smsCode
   };
@@ -140,12 +166,21 @@ export async function loginUser(phone: string, options?: LoginHeaders): Promise<
 
 /** Logs in as admin and returns admin session cookie. */
 export async function loginAdmin(
-  credentials: { account: string; password: string } = { account: "admin", password: "Admin#123" }
+  credentials: { account: string; password: string } = { account: "admin", password: "Admin#123" },
+  headers?: LoginHeaders
 ): Promise<string> {
+  const { challengeId, captchaCode } = await requestCaptcha(headers);
   const response = await app.request(API_ROUTES.auth.adminLogin, {
     method: "POST",
-    headers: { "content-type": "application/json" },
-    body: JSON.stringify(credentials)
+    headers: {
+      "content-type": "application/json",
+      ...(headers ?? {})
+    },
+    body: JSON.stringify({
+      ...credentials,
+      captchaChallengeId: challengeId,
+      captchaCode
+    })
   });
 
   if (response.status !== 200) {

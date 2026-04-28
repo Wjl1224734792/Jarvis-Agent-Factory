@@ -61,6 +61,10 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_LOGIN_FAIL_TTL_S = 300;
 /** 管理员登录最大失败次数：5 分钟内最多 5 次 */
 export const ADMIN_LOGIN_MAX_FAILURES = 5;
+/** Web 密码登录失败计数 TTL（秒）：5 分钟 */
+const WEB_PASSWORD_LOGIN_FAIL_TTL_S = 300;
+/** Web 密码登录最大失败次数：同一手机号 + IP 5 分钟内最多 5 次 */
+export const WEB_PASSWORD_LOGIN_MAX_FAILURES = 5;
 
 /** 短信发送频率限制：同一手机号 60 秒内最多发送 1 次 */
 const SMS_RATE_LIMIT_WINDOW_S = 60;
@@ -168,6 +172,10 @@ function toUserStatus(value: string): UserStatus {
 
 function buildAdminLoginFailureKey(account: string, clientIp?: string | null) {
   return `admin_login_fail:${account}:${clientIp?.trim() || "unknown"}`;
+}
+
+function buildWebPasswordLoginFailureKey(phone: string, clientIp?: string | null) {
+  return `web_password_login_fail:${phone.trim()}:${clientIp?.trim() || "unknown"}`;
 }
 
 function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
@@ -607,9 +615,11 @@ export const authRepo = {
   async createUserByPhoneProfile(input: {
     phone: string;
     displayName: string;
+    password: string;
     avatarFileId?: string | null;
   }): Promise<UserRecord> {
     const id = createId("user");
+    const passwordHash = await hashPassword(input.password);
 
     await db.insert(usersTable).values({
       id,
@@ -618,7 +628,7 @@ export const authRepo = {
       phone: input.phone,
       avatarFileId: input.avatarFileId ?? null,
       account: null,
-      passwordHash: null
+      passwordHash
     });
 
     return {
@@ -630,7 +640,7 @@ export const authRepo = {
       wechatOpenId: null,
       wechatUnionId: null,
       account: null,
-      password: null,
+      password: passwordHash,
       bannedAt: null,
       bannedUntil: null,
       banReason: null,
@@ -661,6 +671,31 @@ export const authRepo = {
     }
 
     return user;
+  },
+  async findUserByPhoneAndPassword(phone: string, password: string): Promise<UserRecord | null> {
+    const user = await this.findUserByPhone(phone);
+    if (!user?.password) {
+      return null;
+    }
+
+    return (await verifyPassword(password, user.password)) ? user : null;
+  },
+  async verifyUserPassword(userId: string, password: string) {
+    const user = await this.findUserById(userId);
+    if (!user?.password) {
+      return false;
+    }
+
+    return verifyPassword(password, user.password);
+  },
+  async updateUserPassword(userId: string, password: string) {
+    const passwordHash = await hashPassword(password);
+    await db
+      .update(usersTable)
+      .set({
+        passwordHash
+      })
+      .where(eq(usersTable.id, userId));
   },
   async findAdminById(userId: string): Promise<UserRecord | null> {
     const admin = await db
@@ -711,6 +746,25 @@ export const authRepo = {
   async clearAdminLoginFailures(account: string, clientIp?: string | null) {
     await ensureRedisConnected();
     await redis.del(buildAdminLoginFailureKey(account, clientIp));
+  },
+  async recordWebPasswordLoginFailure(phone: string, clientIp?: string | null) {
+    await ensureRedisConnected();
+    const key = buildWebPasswordLoginFailureKey(phone, clientIp);
+    const count = await redis.incr(key);
+    if (count === 1) {
+      await redis.expire(key, WEB_PASSWORD_LOGIN_FAIL_TTL_S);
+    }
+    return count;
+  },
+  async getWebPasswordLoginFailures(phone: string, clientIp?: string | null): Promise<number> {
+    await ensureRedisConnected();
+    const key = buildWebPasswordLoginFailureKey(phone, clientIp);
+    const count = await redis.get(key);
+    return count ? parseInt(count, 10) : 0;
+  },
+  async clearWebPasswordLoginFailures(phone: string, clientIp?: string | null) {
+    await ensureRedisConnected();
+    await redis.del(buildWebPasswordLoginFailureKey(phone, clientIp));
   },
   async createSession(
     user: UserRecord,

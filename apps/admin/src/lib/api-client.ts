@@ -200,6 +200,8 @@ type OfficialArticleInput = {
   content: string;
   contentHtml?: string | null;
   contentCategoryId: string;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
   imageIds?: string[];
   videoIds?: string[];
 };
@@ -445,6 +447,8 @@ const rawApiClient = {
       content: input.content,
       contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
+      sourceLabel: input.sourceLabel ?? null,
+      sourceUrl: input.sourceUrl ?? null,
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });
@@ -536,6 +540,8 @@ const rawApiClient = {
       content: input.content,
       contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
+      sourceLabel: input.sourceLabel ?? null,
+      sourceUrl: input.sourceUrl ?? null,
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });

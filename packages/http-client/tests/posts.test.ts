@@ -270,6 +270,8 @@ describe("posts api client", () => {
       content: "Updated article body",
       contentHtml: "<p>Updated article body</p>",
       contentCategoryId: null,
+      sourceLabel: "External bulletin",
+      sourceUrl: "https://example.com/bulletin",
       imageIds: [],
       videoIds: []
     });
@@ -278,7 +280,19 @@ describe("posts api client", () => {
       `http://localhost:17382${API_ROUTES.posts.detail("post_1")}`,
       expect.objectContaining({
         method: "PUT",
-        credentials: "include"
+        credentials: "include",
+        body: JSON.stringify({
+          type: "article",
+          title: "Updated article",
+          content: "Updated article body",
+          contentHtml: "<p>Updated article body</p>",
+          contentCategoryId: null,
+          coverImageId: null,
+          sourceLabel: "External bulletin",
+          sourceUrl: "https://example.com/bulletin",
+          imageIds: [],
+          videoIds: []
+        })
       })
     );
   });

@@ -130,6 +130,7 @@ import {
   updateReviewStatusInputSchema,
   updateSiteSettingsInputSchema,
   userContentResponseSchema,
+  userPasswordChangeRequestSchema,
   userProfileResponseSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
@@ -166,6 +167,7 @@ export const componentSchemas = {
   ),
   AdminLoginRequest: toOpenApiSchema(adminLoginRequestSchema),
   AdminPasswordChangeRequest: toOpenApiSchema(adminPasswordChangeRequestSchema),
+  UserPasswordChangeRequest: toOpenApiSchema(userPasswordChangeRequestSchema),
   AuthSuccessResponse: toOpenApiSchema(authSuccessResponseSchema),
   CurrentUserResponse: toOpenApiSchema(currentUserResponseSchema),
   CurrentUserProfileResponse: toOpenApiSchema(currentUserProfileResponseSchema),

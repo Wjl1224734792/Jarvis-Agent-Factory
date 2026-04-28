@@ -1,12 +1,13 @@
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
-import { LockOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
+import { LockOutlined, ReloadOutlined, SafetyCertificateOutlined, UserOutlined } from "@ant-design/icons";
 import { Alert, Button, Flex, Form, Input, Space } from "antd";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { apiClient } from "../../lib/api-client";
 import { useAdminAuthStore } from "./auth-store";
 
 type AdminLoginResult = Awaited<ReturnType<typeof apiClient.loginAdmin>>;
+type CaptchaChallenge = Awaited<ReturnType<typeof apiClient.requestCaptchaChallenge>>;
 
 const DEMO_ADMIN_ACCOUNT = "admin";
 const DEMO_ADMIN_PASSWORD = "Admin#123";
@@ -22,6 +23,9 @@ export function AdminLoginPage() {
   const [password, setPassword] = useState(() =>
     shouldPrefillDemoCredentials ? DEMO_ADMIN_PASSWORD : ""
   );
+  const [captchaChallenge, setCaptchaChallenge] = useState<CaptchaChallenge | null>(null);
+  const [captchaCode, setCaptchaCode] = useState("");
+  const [isCaptchaLoading, setIsCaptchaLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const notice = searchParams.get("notice");
@@ -30,6 +34,21 @@ export function AdminLoginPage() {
     fallbackPath: APP_ROUTES.adminHome,
     blockedPaths: [APP_ROUTES.adminLogin]
   });
+
+  const refreshLoginCaptcha = useCallback(async (clearCode = true) => {
+    setIsCaptchaLoading(true);
+    try {
+      const challenge = await apiClient.requestCaptchaChallenge();
+      setCaptchaChallenge(challenge);
+      if (clearCode) {
+        setCaptchaCode("");
+      }
+    } catch (reason: unknown) {
+      setError(reason instanceof Error ? reason.message : "图形验证码加载失败");
+    } finally {
+      setIsCaptchaLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
     let isActive = true;
@@ -53,6 +72,10 @@ export function AdminLoginPage() {
     };
   }, [navigate, redirectTo, setAuthenticated]);
 
+  useEffect(() => {
+    void refreshLoginCaptcha();
+  }, [refreshLoginCaptcha]);
+
   return (
     <main className="admin-login">
       <div className="admin-login__grid">
@@ -72,13 +95,20 @@ export function AdminLoginPage() {
           <Form
             layout="vertical"
             onFinish={() => {
+              if (!captchaChallenge) {
+                setError("请先获取图形验证码");
+                return;
+              }
+
               setIsSubmitting(true);
               setError(null);
 
               void apiClient
                 .loginAdmin({
                   account,
-                  password
+                  password,
+                  captchaChallengeId: captchaChallenge.challengeId,
+                  captchaCode: captchaCode.trim().toUpperCase()
                 })
                 .then((response: AdminLoginResult) => {
                   setAuthenticated(response.user);
@@ -86,6 +116,7 @@ export function AdminLoginPage() {
                 })
                 .catch((reason: unknown) => {
                   setError(reason instanceof Error ? reason.message : "管理员登录失败");
+                  void refreshLoginCaptcha(false);
                 })
                 .finally(() => {
                   setIsSubmitting(false);
@@ -126,6 +157,52 @@ export function AdminLoginPage() {
               />
             </Form.Item>
 
+            <Form.Item label="图形验证码" required>
+              <Flex gap={8} align="center">
+                <Input
+                  autoComplete="off"
+                  maxLength={8}
+                  onChange={(event) => {
+                    setCaptchaCode(event.target.value.toUpperCase());
+                  }}
+                  placeholder="请输入图中字符"
+                  prefix={<SafetyCertificateOutlined />}
+                  value={captchaCode}
+                />
+                <button
+                  aria-label="刷新图形验证码"
+                  disabled={isCaptchaLoading}
+                  onClick={() => {
+                    void refreshLoginCaptcha();
+                  }}
+                  style={{
+                    alignItems: "center",
+                    background: "#fff",
+                    border: "1px solid rgba(15, 23, 42, 0.14)",
+                    borderRadius: 8,
+                    cursor: isCaptchaLoading ? "wait" : "pointer",
+                    display: "flex",
+                    height: 42,
+                    justifyContent: "center",
+                    overflow: "hidden",
+                    padding: 0,
+                    width: 128
+                  }}
+                  title="点击刷新"
+                  type="button"
+                >
+                  {captchaChallenge ? (
+                    <span
+                      dangerouslySetInnerHTML={{ __html: captchaChallenge.imageOrText }}
+                      style={{ display: "block", lineHeight: 0, width: "100%" }}
+                    />
+                  ) : (
+                    <ReloadOutlined spin={isCaptchaLoading} />
+                  )}
+                </button>
+              </Flex>
+            </Form.Item>
+
             {error ? <div className="admin-login__error">{error}</div> : null}
 
             <Flex justify="space-between" gap={12} wrap>
@@ -134,7 +211,12 @@ export function AdminLoginPage() {
                   ? "仅本地开发环境预填演示账号：admin / Admin#123"
                   : "请输入管理员账号与密码"}
               </div>
-              <Button htmlType="submit" loading={isSubmitting} type="primary">
+              <Button
+                disabled={!captchaChallenge || captchaCode.trim().length < 4}
+                htmlType="submit"
+                loading={isSubmitting}
+                type="primary"
+              >
                 登录后台
               </Button>
             </Flex>

@@ -43,6 +43,8 @@ type OfficialArticleEditorFormValues = {
   title: string;
   summary: string;
   contentCategoryId: string;
+  sourceLabel?: string | null;
+  sourceUrl?: string | null;
 };
 
 const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
@@ -94,6 +96,8 @@ export function OfficialArticleEditorPage() {
   const watchedTitle = Form.useWatch("title", form) ?? "";
   const watchedSummary = Form.useWatch("summary", form) ?? "";
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
+  const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
+  const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -122,7 +126,9 @@ export function OfficialArticleEditorPage() {
     form.setFieldsValue({
       title: item.title,
       summary: parsedDocument.summary,
-      contentCategoryId: item.contentCategory?.id ?? undefined
+      contentCategoryId: item.contentCategory?.id ?? undefined,
+      sourceLabel: item.source?.label ?? null,
+      sourceUrl: item.source?.url ?? null
     });
     setCoverImage(firstImage ? { id: firstImage.id, url: firstImage.url, fileName: firstImage.fileName } : null);
     setUploadedImages(createMediaAssetList(item.images, Boolean(firstImage)));
@@ -327,6 +333,8 @@ export function OfficialArticleEditorPage() {
       {
         title: values.title,
         contentCategoryId: values.contentCategoryId,
+        sourceLabel: values.sourceLabel,
+        sourceUrl: values.sourceUrl,
         content: document.plainText,
         contentHtml: document.contentHtml
       } satisfies OfficialArticleFormValues,
@@ -408,6 +416,18 @@ export function OfficialArticleEditorPage() {
               rules={[{ required: true, message: "请选择内容分类" }]}
             >
               <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" size="large" />
+            </Form.Item>
+
+            <Form.Item label="声明来源" name="sourceLabel">
+              <Input placeholder="例如：飞加官方、转载媒体名称或作者" size="large" />
+            </Form.Item>
+
+            <Form.Item
+              label="来源链接"
+              name="sourceUrl"
+              rules={[{ type: "url", message: "请输入合法 URL" }]}
+            >
+              <Input placeholder="https://example.com/source" size="large" />
             </Form.Item>
 
             <Form.Item
@@ -510,6 +530,18 @@ export function OfficialArticleEditorPage() {
                 />
               </div>
               <div className="admin-article-preview__meta">{selectedCategoryLabel}</div>
+              {watchedSourceLabel.trim() ? (
+                <div className="admin-article-preview__meta">
+                  来源：
+                  {watchedSourceUrl.trim() ? (
+                    <a href={watchedSourceUrl.trim()} rel="noreferrer" target="_blank">
+                      {watchedSourceLabel.trim()}
+                    </a>
+                  ) : (
+                    watchedSourceLabel.trim()
+                  )}
+                </div>
+              ) : null}
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>
               {watchedSummary.trim() ? (
                 <p className="admin-official-article-editor__summary-preview">{watchedSummary.trim()}</p>

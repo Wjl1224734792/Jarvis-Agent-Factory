@@ -4,6 +4,17 @@ import { chinaMainlandMobilePhoneSchema } from "./phone";
 
 export const authRoleSchema = z.enum(["user", "admin"]);
 
+export const passwordPolicyDescription =
+  "Password must be 8-100 characters and include uppercase, lowercase and special characters.";
+
+export const strongPasswordSchema = z
+  .string()
+  .min(8, passwordPolicyDescription)
+  .max(100, "Password must be at most 100 characters.")
+  .refine((value) => /[a-z]/.test(value), passwordPolicyDescription)
+  .refine((value) => /[A-Z]/.test(value), passwordPolicyDescription)
+  .refine((value) => /[^A-Za-z0-9]/.test(value), passwordPolicyDescription);
+
 export const authErrorCodeSchema = z.enum([
   "INVALID_CAPTCHA",
   "INVALID_SMS_CODE",
@@ -55,10 +66,36 @@ export const smsCodeResponseSchema = z.object({
   mockCode: z.string().regex(/^\d{6,8}$/).optional()
 });
 
-export const webLoginRequestSchema = z.object({
+const smsLoginCredentialsSchema = z.object({
   phone: chinaMainlandMobilePhoneSchema,
   smsCode: z.string().regex(/^\d{6,8}$/)
 });
+
+export const webSmsLoginRequestSchema = smsLoginCredentialsSchema.extend({
+  method: z.literal("sms")
+});
+
+export const webPasswordLoginRequestSchema = z.object({
+  method: z.literal("password"),
+  phone: chinaMainlandMobilePhoneSchema,
+  password: z.string().min(1).max(100),
+  captchaChallengeId: z.string().min(1),
+  captchaCode: z.string().min(4).max(8)
+});
+
+export const webLoginRequestSchema = z.preprocess(
+  (value) =>
+    value &&
+    typeof value === "object" &&
+    !Array.isArray(value) &&
+    !("method" in value)
+      ? { ...value, method: "sms" }
+      : value,
+  z.discriminatedUnion("method", [
+    webSmsLoginRequestSchema,
+    webPasswordLoginRequestSchema
+  ])
+);
 
 const deviceLabelSchema = z.string().trim().min(1).max(120);
 const deviceTypeSchema = z.enum([
@@ -86,7 +123,7 @@ export const webLoginResponseSchema = z.discriminatedUnion("kind", [
   webLoginRegistrationRequiredResponseSchema
 ]);
 
-export const appLoginRequestSchema = webLoginRequestSchema.extend({
+export const appLoginRequestSchema = smsLoginCredentialsSchema.extend({
   deviceLabel: deviceLabelSchema.optional().nullable(),
   deviceType: deviceTypeSchema.optional(),
   pushToken: z.string().trim().min(1).max(255).optional().nullable()
@@ -110,6 +147,7 @@ export const appLoginResponseSchema = z.discriminatedUnion("kind", [
 export const completeWebRegistrationRequestSchema = z.object({
   registrationToken: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
+  password: strongPasswordSchema,
   avatarFileId: z.string().trim().min(1).nullable().optional()
 });
 
@@ -137,18 +175,23 @@ export const appRefreshRequestSchema = z.object({
 
 export const adminLoginRequestSchema = z.object({
   account: z.string().min(3),
-  password: z.string().min(8)
+  password: z.string().min(1).max(100),
+  captchaChallengeId: z.string().min(1),
+  captchaCode: z.string().min(4).max(8)
 });
 
-export const adminPasswordChangeRequestSchema = z
+const passwordChangeRequestSchema = z
   .object({
-    currentPassword: z.string().min(8),
-    newPassword: z.string().min(8).max(100)
+    currentPassword: z.string().min(1).max(100),
+    newPassword: strongPasswordSchema
   })
   .refine((input) => input.currentPassword !== input.newPassword, {
     message: "新密码不能与当前密码相同",
     path: ["newPassword"]
   });
+
+export const adminPasswordChangeRequestSchema = passwordChangeRequestSchema;
+export const userPasswordChangeRequestSchema = passwordChangeRequestSchema;
 
 export const authSuccessResponseSchema = z.object({
   user: userSummarySchema

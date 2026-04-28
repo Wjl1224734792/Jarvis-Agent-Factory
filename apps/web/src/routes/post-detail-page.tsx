@@ -313,6 +313,23 @@ export function PostDetailPage() {
                       {Math.max(3, Math.ceil(item.content.length / 220))} 分钟阅读
                       <IpLocationText label={item.author.ipLocationLabel} variant="plain" />
                     </div>
+                    {item.source ? (
+                      <div className="mt-1 text-xs text-muted-foreground">
+                        来源：
+                        {item.source.url ? (
+                          <a
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={item.source.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {item.source.label}
+                          </a>
+                        ) : (
+                          <span className="text-foreground/78">{item.source.label}</span>
+                        )}
+                      </div>
+                    ) : null}
                   </div>
                 </div>
 

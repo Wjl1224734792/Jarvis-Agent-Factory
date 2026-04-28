@@ -1,8 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { isChinaMainlandMobilePhone } from "@feijia/schemas";
+import { isChinaMainlandMobilePhone, strongPasswordSchema } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
   CameraIcon,
+  KeyRoundIcon,
   LogOutIcon,
   PencilLineIcon,
   ShieldCheckIcon,
@@ -58,6 +59,7 @@ import { settingsNotificationOptions } from "../features/auth/settings-notificat
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
 const MAX_BIO_LENGTH = 50;
+const passwordPolicyHint = "至少 8 位，并同时包含大写字母、小写字母和特殊符号。";
 
 type EditableProfileField = "displayName" | "bio" | "profileVisibility" | null;
 
@@ -182,6 +184,12 @@ export function SettingsPage() {
   const [phoneRequestId, setPhoneRequestId] = useState<string | null>(null);
   const [phoneActionError, setPhoneActionError] = useState<string | null>(null);
   const [isConfirmingPhone, setIsConfirmingPhone] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const phoneSmsFlow = useSmsVerificationFlow();
 
   const profileQuery = useQuery({
@@ -407,6 +415,50 @@ export function SettingsPage() {
       setPhoneActionError(reason instanceof Error ? reason.message : "手机号换绑失败");
     } finally {
       setIsConfirmingPhone(false);
+    }
+  }
+
+  function updatePasswordForm(field: keyof typeof passwordForm, value: string) {
+    setPasswordForm((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  async function changePassword() {
+    if (!passwordForm.currentPassword) {
+      setStatusMessage("请输入当前密码");
+      return;
+    }
+
+    if (!strongPasswordSchema.safeParse(passwordForm.newPassword).success) {
+      setStatusMessage(passwordPolicyHint);
+      return;
+    }
+
+    if (passwordForm.currentPassword === passwordForm.newPassword) {
+      setStatusMessage("新密码不能与当前密码相同");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setStatusMessage("两次输入的新密码不一致");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await apiClient.changeWebPassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      queryClient.clear();
+      setAnonymous();
+      void navigate(APP_ROUTES.webLogin, { replace: true });
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "密码修改失败");
+    } finally {
+      setIsChangingPassword(false);
     }
   }
 
@@ -708,6 +760,49 @@ export function SettingsPage() {
                 <div className="text-muted-foreground">
                   仅展示脱敏手机号，修改时会通过短信验证码完成校验。
                 </div>
+              </div>
+            </SettingsRow>
+            <SettingsRow alignTop label="登录密码">
+              <div className="grid gap-3 md:grid-cols-3">
+                <Input
+                  autoComplete="current-password"
+                  onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
+                  placeholder="当前密码"
+                  type="password"
+                  value={passwordForm.currentPassword}
+                />
+                <Input
+                  autoComplete="new-password"
+                  onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
+                  placeholder="新密码"
+                  type="password"
+                  value={passwordForm.newPassword}
+                />
+                <Input
+                  autoComplete="new-password"
+                  onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
+                  placeholder="确认新密码"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                  <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
+                  {passwordPolicyHint}
+                </div>
+                <Button
+                  className="rounded-full"
+                  disabled={isChangingPassword}
+                  onClick={() => {
+                    void changePassword();
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="default"
+                >
+                  {isChangingPassword ? "保存中..." : "修改密码"}
+                </Button>
               </div>
             </SettingsRow>
           </div>

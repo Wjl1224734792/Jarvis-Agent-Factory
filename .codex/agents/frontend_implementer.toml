@@ -1,8 +1,6 @@
 name = "frontend_implementer"
 description = "前端全栈实现者：在编排者分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。自身不调度其他 agent。"
 nickname_candidates = ["UI", "Frontend", "Web", "Mobile"]
-model = "gpt-5.4"
-model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

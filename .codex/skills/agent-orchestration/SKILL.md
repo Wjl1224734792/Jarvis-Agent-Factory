@@ -38,6 +38,9 @@ description: "主编排技能。仅在用户显式要求「启动编排」「走
 7. **阶段推进受文档对齐闸门约束** — 每个阶段不仅要有文档产物，还要满足最小对齐条件；未通过闸门时必须回退，不得硬推进
 8. **共享区域唯一责任方** — 共享契约、共享类型、数据库结构、路由入口、根配置、全局请求客户端等高风险区域，必须在计划中指定唯一责任方；未指定前，不允许多个代理同时修改
 9. **变更必须留痕** — 若实现阶段发现必须调整计划、契约、Schema、共享边界，必须先提交 plan patch 或 contract change request，编排者确认后方可继续推进
+10. **默认并发** — 每个阶段先识别无依赖、无共享写入冲突的工作批次；能并发就并发，只有阶段闸门、用户确认、同文件/同共享区域写入、TDD 步骤依赖时才串行
+11. **先批量 spawn，后批量等待** — 同一并发批次必须先一次性启动全部子代理，再等待整批结果；不得对无依赖任务逐个 spawn / wait
+12. **只读 sidecar 优先并发** — 代码探索、文档研究、只读专项审查可在不改变阶段闸门的前提下，与主线阶段并发收集事实证据
 
 ---
 
@@ -47,13 +50,27 @@ description: "主编排技能。仅在用户显式要求「启动编排」「走
 |------|----------|------|
 | 1A 需求澄清 | 编排者直接与用户对话 | 已确认的目标、范围、约束、成功标准 |
 | 1B 需求文档 | 编排者直接撰写并确认 | `docs/requirements/` + `REQ-XXX` |
-| 2 任务分解 | spawn `task_design` | `docs/tasks/` |
-| 3 执行规划 | spawn `planner` | `docs/plans/` + Execution Packets |
-| 4 探索（按需） | spawn `repo_explorer` / `docs_researcher` | `docs/analysis/` 或 `docs/research/` |
-| 5 实现 | 按计划 spawn 对应 agent | `docs/implementation/` |
-| 6 评审 | spawn `review_qa` | `docs/review/` |
+| 2 任务分解 | spawn `task_design`；独立事实问题可并发 spawn 只读 sidecar | `docs/tasks/` |
+| 3 执行规划 | spawn `planner`；缺失的独立事实输入可并发探索 | `docs/plans/` + Execution Packets |
+| 4 探索（按需） | 并发 spawn `repo_explorer` / `docs_researcher` | `docs/analysis/` 或 `docs/research/` |
+| 5 实现 | 按 `parallel_batches` 批量 spawn 对应 agent | `docs/implementation/` |
+| 6 评审 | 必要时先并发 spawn 只读专项审查，再 spawn `review_qa` 汇总结论 | `docs/review/` |
 
 详见 `reference/workflow.md`。
+
+---
+
+## 并发策略
+
+- `repo_explorer` 与 `docs_researcher` 是只读 sidecar：有多个独立事实问题时可同时 spawn，并与主线阶段并行收集证据。
+- `planner` 必须把实现任务写成 `parallel_batches`：同批任务由编排者一次性全部 spawn，等待整批完成后再推进下一批。
+- 前后端、UI/状态/API/数据/测试等不同文件域的 Execution Packet 默认可并发；同一共享区域或同一文件只能有一个责任方，必要时串行。
+- `test_strategy: tdd` 的同一任务内部 Red → Green → Refactor 串行；不同任务的 Red 阶段若文件不重叠，可并发。
+- 只读专项审查与独立验证可并发收集证据；最终 `review_qa` 必须等待实现文档和关键验证结果齐备。
+- 修复/优化阶段同样按 `parallel_batches` 执行；多个 finding 互不依赖、修改路径不重叠时默认并发。
+- 每个无法并发的任务都必须写明具体阻塞原因，不能只写“串行执行”。
+
+详见 `reference/agents-overview.md` 的并发策略与批次规则。
 
 ---
 

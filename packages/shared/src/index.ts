@@ -114,6 +114,7 @@ export const API_ROUTES = {
     webLogin: withApiV1Prefix("/auth/web/login"),
     webRegisterComplete: withApiV1Prefix("/auth/web/register/complete"),
     webRefresh: withApiV1Prefix("/auth/web/refresh"),
+    webChangePassword: withApiV1Prefix("/auth/web/password/change"),
     registrationDisplayNameSuggest: withApiV1Prefix("/auth/registration/display-name/suggest"),
     logout: withApiV1Prefix("/auth/logout"),
     currentUser: withApiV1Prefix("/auth/me"),

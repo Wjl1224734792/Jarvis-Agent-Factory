@@ -32,6 +32,26 @@ description: Use only when the user explicitly invokes $review-only, review-only
 
 仅当用户同时允许多代理审查，或当前请求明确包含“用多代理/并行审查/分派子智能体”时，才 spawn 子代理。子代理必须只读，不得再 spawn。
 
+当审查维度彼此独立时，同批并发：项目结构、代码 diff、性能风险、repo 事实探索、外部文档查询可同时进行。等待整批完成后再汇总 findings，不要对无依赖的只读审查逐个等待。
+
+主会话只按职责、证据来源和审查维度分派；不在本技能中记录或选择底层运行参数。
+
+### 只读并发批次
+
+| 批次 | 可并发任务 | 等待条件 |
+|---|---|---|
+| audit-batch | `project_audit_reviewer`、`diff_code_reviewer`、`performance_audit_reviewer` | 所有已启动审查代理都返回 findings 或明确无发现 |
+| fact-batch | `repo_explorer`、`docs_researcher` | 输出可被审查引用的事实、路径或文档依据 |
+| aggregate | 主会话汇总 | 必须等待 audit-batch / fact-batch 中影响结论的结果齐备 |
+
+### 调度规则
+
+- 启动同一批次前，先列清审查对象、审查维度、必须读取的约束文档和输出格式。
+- 同一批次内先一次性 spawn 全部只读代理，再等待整批结果；不要对无依赖审查逐个 spawn / wait。
+- 如果某审查依赖另一个审查的发现（例如先定位风险路径，再做性能专项），必须拆到下一批并写明依赖原因。
+- 子代理输出必须包含范围、证据、文件路径 / 行号、严重度和未覆盖范围；不得只给泛泛建议。
+- 汇总时要合并重复 findings，保留最高严重度，并标注哪些证据来自哪个只读代理。
+
 优先使用审查专用代理：
 - `project_audit_reviewer`：项目结构、模块边界、配置、脚本、文档漂移。
 - `diff_code_reviewer`：git diff / PR / 指定文件变更中的 bug、回归、安全与测试缺口。
@@ -70,6 +90,17 @@ description: Use only when the user explicitly invokes $review-only, review-only
 
 没有发现问题时，明确写“未发现阻塞问题”，并列出未覆盖的验证范围。不要把“未运行测试”描述成“测试通过”。
 
+使用多代理时，最终报告还必须包含：
+
+```md
+## Review Batches
+- batch:
+- agents:
+- scope:
+- evidence:
+- missing coverage:
+```
+
 ## 常见错误
 
 | 错误 | 正确做法 |
@@ -78,3 +109,4 @@ description: Use only when the user explicitly invokes $review-only, review-only
 | 只看最终文件不看 diff | 同时看 diff、调用链、约束文档 |
 | 把风格偏好当缺陷 | 只报告可导致错误、风险或维护成本的问题 |
 | 没证据就下结论 | 给文件/行号/命令/文档依据 |
+| 有并发审查能力却逐个等待 | 同批只读审查一次性启动，整批返回后汇总 |

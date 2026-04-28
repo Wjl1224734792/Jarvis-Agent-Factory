@@ -1,8 +1,6 @@
 name = "post_change_reviewer"
 description = "变更后复审代理：用于 review-fix-optimize 流程；在修复或优化完成后复核初审 findings、实际 diff、验证证据和残余风险，不直接修复代码。"
 nickname_candidates = ["Post-Review", "Closure", "Recheck"]
-model = "gpt-5.5"
-model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

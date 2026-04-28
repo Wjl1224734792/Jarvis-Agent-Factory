@@ -1,5 +1,17 @@
 # 编排工作流程（带对齐闸门版）
 
+## 全局并发原则
+
+每个阶段都先划分可并发批次：只要任务之间没有真实依赖、没有同文件/同共享区域写入冲突、没有用户确认或 Gate 闸门阻塞，就应并发执行。
+
+- 只读 sidecar（`repo_explorer` / `docs_researcher` / 只读审查代理）可与主线阶段并行，但只能提供事实输入，不改变阶段顺序。
+- 写入类任务必须按 planner 的 `parallel_batches` 执行；同一批内先全部 spawn，再等待整批结果。
+- 共享契约、共享类型、DB schema、路由入口、根配置、全局请求客户端等只能有一个责任方；依赖它们的任务排到后续批次。
+- TDD 同一任务内部 Red → Green → Refactor 串行；不同任务若文件域不重叠，可在同一 TDD 子阶段并发。
+- 并发不是跳过闸门：Gate A/B/C/D 仍是进入下一阶段的最低条件。
+- 每次准备进入新阶段时，编排者先列出：可并发事项、必须串行事项、阻塞原因、等待哪个批次完成。
+- 若无法说明真实阻塞原因，则默认把任务放入同一并发批次。
+
 ## 阶段 1：需求澄清与需求文档（编排者直接执行）
 
 阶段 1 分为两个连续子阶段：
@@ -38,8 +50,10 @@
 - 需求已覆盖 Gate A 必要项，且关键假设已获用户确认
 
 可选只读探索：
-- `repo_explorer`：了解代码结构（只读）
-- `docs_researcher`：查询第三方库能力（只读）
+- `repo_explorer`：了解代码结构（只读）。多个独立代码事实问题可并发拆给多个探索任务。
+- `docs_researcher`：查询第三方库能力（只读）。与代码探索互不依赖时并发执行。
+
+只读探索不得阻塞必要的用户澄清；若探索结果只影响实现细节，可先完成需求文档并把该事实问题移交给阶段 2/3。
 
 ### 1B 需求文档
 
@@ -85,6 +99,21 @@ spawn agent: task_design
 input: 已通过 Gate A 的需求文档路径 + 全文
 ```
 
+若阶段 2 同时缺少代码边界或外部文档事实，可并发 spawn 只读 sidecar：
+
+```text
+spawn agent: task_design
+spawn agent: repo_explorer（具体事实问题）
+spawn agent: docs_researcher（具体文档问题）
+```
+
+编排者汇总 sidecar 结果后，必要时将补充事实交给 `task_design` 修订任务文档；不得让 sidecar 代替 `task_design` 做任务拆分。
+
+阶段 2 的默认调度方式：
+- `task_design` 是任务分解唯一责任方。
+- 代码边界、第三方文档、历史约定等独立事实问题可在 `task_design` 运行时并发探索。
+- 若 sidecar 结果影响任务边界，编排者把事实补充给 `task_design` 修订；若只影响实现细节，则移交阶段 3。
+
 **产出：** `docs/tasks/YYYY-MM-DD-<topic>-tasks.md`
 
 **任务文档必须包含：**
@@ -114,16 +143,20 @@ spawn agent: planner
 input: 已通过 Gate A 的需求文档 + 已通过 Gate B 的任务文档（路径 + 全文）
 ```
 
+若规划前仍有多个互不依赖的事实缺口，先并发 spawn 对应只读 sidecar；事实齐备后交给 `planner`，或在 `planner` 运行时把后续补充作为追加输入。
+
 **产出：** `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 
 **planner 必须额外产出：**
 - 每个任务的 Execution Packet（详见 `execution-packet.md`）
 - 每个 Execution Packet 对应的 `requirement_ids`
 - 共享区域唯一责任方
-- 并行 / 串行顺序
+- `parallel_batches`：每批可同时 spawn 的任务、阻塞下一批的依赖和串行理由
 - `test_strategy`（tdd / test_after / manual_only）
 - 实现者交接信息
 - `plan patch / contract change request` 触发条件
+
+`parallel_batches` 是计划的硬性产物。planner 必须把能并发的任务归到同一批，把不能并发的任务写明真实阻塞原因；编排者后续按批次执行，不再临场猜测。
 
 **回退规则：** 若 planner 发现需求或任务不足，回退阶段 2 或 1。
 
@@ -145,7 +178,9 @@ spawn agent: docs_researcher
 input: 具体文档查询问题
 ```
 
-结果纳入阶段 5 输入，但不得替代计划文档。
+阶段 4 不是独立闸门，而是可插入阶段 1/2/3/5 的只读 sidecar。多个互不依赖的探索问题应并发执行；结果纳入后续输入，但不得替代需求、任务或计划文档。
+
+只读 sidecar 的输出必须标明可被哪个阶段消费：需求澄清、任务分解、执行规划、实现、评审。若同一发现影响共享区域归属，交给 planner 更新 `parallel_batches`。
 
 ---
 
@@ -174,10 +209,13 @@ input: 具体文档查询问题
 
 ### 并行规则
 
-- 前端 agent 与后端 agent：天然可并行（文件域不同）
-- 同域内多个 worker：文件不重叠时可并行
-- TDD Red 阶段：不得与其他实现步骤改同一文件
-- 共享区域（共享类型、Schema、路由入口）：必须指定唯一责任方
+- 前端 agent 与后端 agent：文件域不同且无共享契约依赖时，同批并发
+- 同域内多个 worker：`allowed_paths` 不重叠且无顺序依赖时，同批并发
+- 测试 worker 与实现 worker：若测试文件和生产文件归属明确、且不是同一 TDD 任务的 Red/Green 依赖，可并发
+- TDD Red 阶段：同一任务不得与 Green/Refactor 并发；不同任务的 Red 若文件不重叠，可并发
+- 共享区域（共享类型、Schema、路由入口）：必须指定唯一责任方，依赖方排到后续批次
+- 编排者对同一批次应先 spawn 全部代理，再等待整批完成；不要对无依赖任务逐个 spawn/等待
+- 同批实现代理都必须知道自己不是独占工作区，并严格遵守 `allowed_paths` / `forbidden_paths`
 
 ### TDD 执行
 
@@ -225,6 +263,13 @@ input: 需求文档 + 任务文档 + 计划文档 + 实现文档 + 代码变更 
 ```
 
 **产出：** `docs/review/YYYY-MM-DD-<topic>-review.md`
+
+若需要额外只读专项证据（项目结构、diff 风险、性能风险），可在进入最终 `review_qa` 前并发 spawn 对应只读审查代理；`review_qa` 汇总这些证据形成最终结论。缺少实现文档或关键验证结果时不得提前下结论。
+
+阶段 6 的默认调度方式：
+- 可先并发启动 `project_audit_reviewer`、`diff_code_reviewer`、`performance_audit_reviewer` 等只读专项审查。
+- 可并发收集独立验证命令或手工验证证据。
+- `review_qa` 只在关键证据齐备后输出最终结论；不得与缺失关键输入的实现收尾并发。
 
 **review_qa 必须输出：**
 1. 审查结论（通过 / 有条件通过 / 不通过）

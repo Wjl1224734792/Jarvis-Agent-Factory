@@ -14,30 +14,55 @@ import {
   deviceRegisterInputSchema,
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
+  strongPasswordSchema,
   userSummarySchema,
+  userPasswordChangeRequestSchema,
   webLoginRequestSchema
 } from "../src/auth";
 
 describe("auth contract", () => {
-  it("parses the web login request payload", () => {
-    const payload = webLoginRequestSchema.parse({
+  it("parses sms and password web login payloads", () => {
+    const smsPayload = webLoginRequestSchema.parse({
+      method: "sms",
       phone: "13800138000",
-      captchaChallengeId: "challenge-1",
-      captchaCode: "AB12",
       smsCode: "123456"
     });
+    const legacySmsPayload = webLoginRequestSchema.parse({
+      phone: "13800138000",
+      smsCode: "123456"
+    });
+    const passwordPayload = webLoginRequestSchema.parse({
+      method: "password",
+      phone: "13800138000",
+      password: "Flight#123",
+      captchaChallengeId: "challenge-1",
+      captchaCode: "AB12"
+    });
 
-    expect(payload.phone).toBe("13800138000");
-    expect(payload.smsCode).toBe("123456");
+    expect(smsPayload.method).toBe("sms");
+    expect(smsPayload.smsCode).toBe("123456");
+    expect(legacySmsPayload.method).toBe("sms");
+    expect(passwordPayload.method).toBe("password");
+    expect(passwordPayload.captchaChallengeId).toBe("challenge-1");
   });
 
-  it("parses the admin login request payload", () => {
+  it("parses the admin login request payload with captcha", () => {
     const payload = adminLoginRequestSchema.parse({
       account: "admin",
-      password: "Admin#123"
+      password: "Admin#123",
+      captchaChallengeId: "captcha_1",
+      captchaCode: "ABCD"
     });
 
     expect(payload.account).toBe("admin");
+  });
+
+  it("enforces the shared password policy", () => {
+    expect(strongPasswordSchema.parse("Flight#123")).toBe("Flight#123");
+    expect(strongPasswordSchema.safeParse("flight#123").success).toBe(false);
+    expect(strongPasswordSchema.safeParse("FLIGHT#123").success).toBe(false);
+    expect(strongPasswordSchema.safeParse("Flight123").success).toBe(false);
+    expect(strongPasswordSchema.safeParse("Fli#12").success).toBe(false);
   });
 
   it("parses the admin password change payload", () => {
@@ -54,6 +79,16 @@ describe("auth contract", () => {
         newPassword: "Admin#123"
       }).success
     ).toBe(false);
+  });
+
+  it("parses the user password change payload", () => {
+    const payload = userPasswordChangeRequestSchema.parse({
+      currentPassword: "Flight#123",
+      newPassword: "Flight#456"
+    });
+
+    expect(payload.currentPassword).toBe("Flight#123");
+    expect(payload.newPassword).toBe("Flight#456");
   });
 
   it("parses the current user response", () => {
@@ -73,16 +108,19 @@ describe("auth contract", () => {
     const webPayload = completeWebRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
+      password: "Flight#123",
       avatarFileId: "file_avatar_1"
     });
     const appPayload = completeAppRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
+      password: "Flight#123",
       avatarFileId: "file_avatar_1",
       deviceLabel: "iPhone 16 Pro"
     });
 
     expect(webPayload.avatarFileId).toBe("file_avatar_1");
+    expect(webPayload.password).toBe("Flight#123");
     expect(appPayload.avatarFileId).toBe("file_avatar_1");
   });
 
@@ -111,8 +149,6 @@ describe("auth contract", () => {
   it("parses app auth payloads", () => {
     const loginPayload = appLoginRequestSchema.parse({
       phone: "13800138000",
-      captchaChallengeId: "challenge-1",
-      captchaCode: "AB12",
       smsCode: "123456",
       deviceLabel: "iPhone 16 Pro",
       deviceType: "web"
@@ -151,6 +187,7 @@ describe("auth contract", () => {
     const appRegistrationPayload = completeAppRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
+      password: "Flight#123",
       deviceType: "miniapp-wechat",
       pushToken: "push-token-1"
     });

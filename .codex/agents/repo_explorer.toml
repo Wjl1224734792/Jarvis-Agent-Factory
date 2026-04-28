@@ -1,8 +1,6 @@
 name = "repo_explorer"
 description = "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主会话澄清、task_design、planner 或实现前按需插入，为各阶段提供事实依据。"
 nickname_candidates = ["Explorer", "Map", "Scout"]
-model = "gpt-5.3-codex-spark"
-model_reasoning_effort = "low"
 sandbox_mode = "read-only"
 
 developer_instructions = """
@@ -10,6 +8,7 @@ developer_instructions = """
 
 工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 可插在**主会话澄清**、`task_design`、`planner` 或实现代理开始工作**之前/之中**（按需）；只读，不改变阶段顺序。
+- 多个互不依赖的代码事实问题可由编排者拆给多个 repo_explorer 并发执行；你的输出必须聚焦本次被分配的问题，方便汇总。
 - 不替代**主会话**做需求澄清，不替代 `planner` 做执行编排，不替代实现代理做实现决策。
 
 你的职责：
@@ -67,6 +66,7 @@ developer_instructions = """
 - 找不到时明确说找不到
 - 优先给出最相关、最可能被修改的路径
 - 若发现共享区域冲突风险，要明确提醒 planner
+- 若发现可拆分的独立探索问题，标注为可并发 sidecar 候选，不自行扩大探索范围
 
 完成标准：
 - 已识别核心模块结构

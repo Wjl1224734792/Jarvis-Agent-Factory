@@ -7,6 +7,7 @@ import { app, resolveCorsOrigin } from "../src/app";
 import {
   completeRegistrationIfNeeded,
   extractCookies,
+  requestCaptcha,
   loginAdmin,
   loginWebUser,
   requestCaptchaAndSms,
@@ -42,6 +43,10 @@ function expectPresignedUrlToMatch(actualUrl: string | null, expectedUrl: string
   }
 }
 
+const TEST_REGISTRATION_PASSWORD = "StrongPass#2026";
+const TEST_AUTH_CODE_HASH_SECRET = "feijia-dev-auth-code-hash-secret";
+
+type LoginHeaders = Record<string, string>;
 async function uploadAvatar(cookie: string, name = "avatar.png") {
   const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const initResponse = await app.request(API_ROUTES.uploads.init, {
@@ -103,6 +108,26 @@ function readCookieValue(cookieHeader: string, name: string) {
   }
 
   return matched.slice(name.length + 1);
+}
+
+async function requestAdminLoginWithCaptcha(
+  credentials: { account: string; password: string },
+  headers: LoginHeaders = {},
+  captcha?: { challengeId: string; captchaCode: string }
+) {
+  const { challengeId, captchaCode } = captcha ?? (await requestCaptcha(headers));
+  return app.request(API_ROUTES.auth.adminLogin, {
+    method: "POST",
+    headers: {
+      "content-type": "application/json",
+      ...headers
+    },
+    body: JSON.stringify({
+      ...credentials,
+      captchaChallengeId: challengeId,
+      captchaCode
+    })
+  });
 }
 
 const originalUploadMaxImageSizeMb = process.env.UPLOAD_MAX_IMAGE_SIZE_MB;
@@ -252,10 +277,17 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: loginPayload.registrationToken,
         displayName: loginPayload.suggestedDisplayName,
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
     expect(completeResponse.status).toBe(200);
+    const userLookup = await dbPool.query<{ password_hash: string | null }>(
+      `select password_hash from users where phone = $1`,
+      ["13800138000"]
+    );
+    expect(userLookup.rows).toHaveLength(1);
+    expect(userLookup.rows[0]?.password_hash).toBeTruthy();
     const userCookie = extractCookies(completeResponse);
 
     const meResponse = await app.request(API_ROUTES.auth.currentUser, {
@@ -281,6 +313,131 @@ describe("auth flows", () => {
     });
     const meAfterPayload = (await meAfterLogout.json()) as { user: unknown };
     expect(meAfterPayload.user).toBeNull();
+  });
+
+  it("supports web password login with captcha and rejects invalid captcha", async () => {
+    const phone = "13800138700";
+    const smsPayload = await requestCaptchaAndSms(phone);
+    const loginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        phone,
+        smsCode: smsPayload.smsCode
+      })
+    });
+    expect(loginResponse.status).toBe(200);
+    const registrationPayload = (await loginResponse.json()) as {
+      kind: "registration_required";
+      registrationToken: string;
+    };
+    expect(registrationPayload.kind).toBe("registration_required");
+
+    const registerResponse = await app.request(API_ROUTES.auth.webRegisterComplete, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        registrationToken: registrationPayload.registrationToken,
+        displayName: "Password Pilot",
+        password: TEST_REGISTRATION_PASSWORD,
+        avatarFileId: null
+      })
+    });
+    expect(registerResponse.status).toBe(200);
+
+    const invalidCaptcha = await requestCaptcha();
+    const invalidLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        method: "password",
+        phone,
+        password: TEST_REGISTRATION_PASSWORD,
+        captchaChallengeId: invalidCaptcha.challengeId,
+        captchaCode: "0000"
+      })
+    });
+    expect(invalidLoginResponse.status).toBe(400);
+    expect(await invalidLoginResponse.json()).toMatchObject({ code: "INVALID_CAPTCHA" });
+
+    const validCaptcha = await requestCaptcha();
+    const passwordLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        method: "password",
+        phone,
+        password: TEST_REGISTRATION_PASSWORD,
+        captchaChallengeId: validCaptcha.challengeId,
+        captchaCode: validCaptcha.captchaCode
+      })
+    });
+    expect(passwordLoginResponse.status).toBe(200);
+    const passwordLoginPayload = (await passwordLoginResponse.json()) as {
+      kind: "authenticated";
+      user: { id: string };
+    };
+    expect(passwordLoginPayload.kind).toBe("authenticated");
+    expect(passwordLoginPayload.user.id).toBeTruthy();
+  });
+
+  it("rate limits web password login failures by phone and source ip", async () => {
+    const phone = "13800138701";
+    await loginWebUser(phone, { "x-forwarded-for": "203.0.113.51" });
+
+    for (let attempt = 0; attempt < 5; attempt += 1) {
+      const captcha = await requestCaptcha({ "x-forwarded-for": "203.0.113.51" });
+      const failedResponse = await app.request(API_ROUTES.auth.webLogin, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "x-forwarded-for": "203.0.113.51"
+        },
+        body: JSON.stringify({
+          method: "password",
+          phone,
+          password: "WrongPass#2026",
+          captchaChallengeId: captcha.challengeId,
+          captchaCode: captcha.captchaCode
+        })
+      });
+      expect(failedResponse.status).toBe(400);
+    }
+
+    const lockedCaptcha = await requestCaptcha({ "x-forwarded-for": "203.0.113.51" });
+    const lockedResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.51"
+      },
+      body: JSON.stringify({
+        method: "password",
+        phone,
+        password: TEST_REGISTRATION_PASSWORD,
+        captchaChallengeId: lockedCaptcha.challengeId,
+        captchaCode: lockedCaptcha.captchaCode
+      })
+    });
+    expect(lockedResponse.status).toBe(429);
+    expect(await lockedResponse.json()).toMatchObject({ code: "RATE_LIMITED" });
+
+    const otherIpCaptcha = await requestCaptcha({ "x-forwarded-for": "203.0.113.52" });
+    const otherIpResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-forwarded-for": "203.0.113.52"
+      },
+      body: JSON.stringify({
+        method: "password",
+        phone,
+        password: TEST_REGISTRATION_PASSWORD,
+        captchaChallengeId: otherIpCaptcha.challengeId,
+        captchaCode: otherIpCaptcha.captchaCode
+      })
+    });
+    expect(otherIpResponse.status).toBe(200);
   });
 
   it("returns 429 instead of 500 when sms requests hit the rate limit", async () => {
@@ -568,6 +725,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: secondLoginPayload.registrationToken,
         displayName: existingDisplayName,
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -579,6 +737,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: secondLoginPayload.registrationToken,
         displayName: "Retry Pilot",
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -705,6 +864,67 @@ describe("auth flows", () => {
     expect(afterPayload.item.notifyMentions).toBe(false);
     expect(afterPayload.item.sessionAlerts).toBe(false);
     expect(afterPayload.item.emailDigest).toBe(true);
+  });
+
+  it("revokes user web sessions after changing password", async () => {
+    const cookie = await loginWebUser("13800138997");
+    const changeResponse = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        currentPassword: TEST_REGISTRATION_PASSWORD,
+        newPassword: "AnotherPass#2026"
+      })
+    });
+    expect(changeResponse.status).toBe(200);
+
+    const afterChangeProtected = await app.request(API_ROUTES.auth.protectedPing, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(afterChangeProtected.status).toBe(401);
+
+    const validCaptcha = await requestCaptcha();
+    const loginWithNewPassword = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        method: "password",
+        phone: "13800138997",
+        password: "AnotherPass#2026",
+        captchaChallengeId: validCaptcha.challengeId,
+        captchaCode: validCaptcha.captchaCode
+      })
+    });
+    expect(loginWithNewPassword.status).toBe(200);
+    const loginPayload = (await loginWithNewPassword.json()) as {
+      kind: "authenticated";
+      user: { id: string };
+    };
+    expect(loginPayload.kind).toBe("authenticated");
+
+    const newCookie = extractCookies(loginWithNewPassword);
+    const revertChange = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie: newCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        currentPassword: "AnotherPass#2026",
+        newPassword: TEST_REGISTRATION_PASSWORD
+      })
+    });
+    expect(revertChange.status).toBe(200);
+
+    const verifyUserResponse = await app.request(API_ROUTES.auth.protectedPing, {
+      method: "GET",
+      headers: { cookie: newCookie }
+    });
+    expect(verifyUserResponse.status).toBe(401);
   });
 
   it("rejects avatar upload when image size exceeds configured env limit", async () => {
@@ -1021,6 +1241,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: appLoginResult.registrationToken,
         displayName: "移动端隔离测试",
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null,
         deviceLabel: "iPhone 16 Pro"
       })
@@ -1049,60 +1270,61 @@ describe("auth flows", () => {
 
   it("scopes admin login lockout to the account and source ip", async () => {
     for (let attempt = 0; attempt < 5; attempt += 1) {
-      const failedResponse = await app.request(API_ROUTES.auth.adminLogin, {
-        method: "POST",
-        headers: {
-          "content-type": "application/json",
-          "x-forwarded-for": "203.0.113.41"
-        },
-        body: JSON.stringify({
+      const failedResponse = await requestAdminLoginWithCaptcha(
+        {
           account: "admin",
           password: "wrong-password"
-        })
-      });
+        },
+        { "x-forwarded-for": "203.0.113.41" }
+      );
       expect(failedResponse.status).toBe(400);
     }
 
-    const lockedResponse = await app.request(API_ROUTES.auth.adminLogin, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": "203.0.113.41"
-      },
-      body: JSON.stringify({
-        account: "admin",
-        password: "Admin#123"
-      })
-    });
+    const lockedResponse = await requestAdminLoginWithCaptcha(
+      { account: "admin", password: "Admin#123" },
+      { "x-forwarded-for": "203.0.113.41" }
+    );
     expect(lockedResponse.status).toBe(429);
 
-    const otherIpResponse = await app.request(API_ROUTES.auth.adminLogin, {
+    const otherIpResponse = await requestAdminLoginWithCaptcha(
+      { account: "admin", password: "Admin#123" },
+      { "x-forwarded-for": "203.0.113.42" }
+    );
+    expect(otherIpResponse.status).toBe(200);
+  });
+
+  it("rejects admin login with invalid captcha code", async () => {
+    const captcha = await requestCaptcha();
+    const response = await app.request(API_ROUTES.auth.adminLogin, {
       method: "POST",
-      headers: {
-        "content-type": "application/json",
-        "x-forwarded-for": "203.0.113.42"
-      },
+      headers: { "content-type": "application/json" },
       body: JSON.stringify({
         account: "admin",
-        password: "Admin#123"
+        password: "Admin#123",
+        captchaChallengeId: captcha.challengeId,
+        captchaCode: "0000"
       })
     });
-    expect(otherIpResponse.status).toBe(200);
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({ code: "INVALID_CAPTCHA" });
   });
 
   it("marks auth cookies as secure in production mode", async () => {
     const previousNodeEnv = process.env.NODE_ENV;
+    const previousAuthCodeHashSecret = process.env.AUTH_CODE_HASH_SECRET;
+    process.env.AUTH_CODE_HASH_SECRET = TEST_AUTH_CODE_HASH_SECRET;
+    const captcha = await requestCaptcha();
     process.env.NODE_ENV = "production";
 
     try {
-      const loginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
+      const loginResponse = await requestAdminLoginWithCaptcha(
+        {
           account: "admin",
           password: "Admin#123"
-        })
-      });
+        },
+        {},
+        captcha
+      );
 
       expect(loginResponse.status).toBe(200);
       const setCookies = loginResponse.headers.getSetCookie();
@@ -1112,7 +1334,10 @@ describe("auth flows", () => {
       expect(cookieHeaders.length).toBeGreaterThan(0);
       expect(cookieHeaders.every((cookie) => cookie.includes("Secure"))).toBe(true);
     } finally {
-      restoreEnvValue("NODE_ENV", previousNodeEnv);
+      restoreEnvValues({
+        NODE_ENV: previousNodeEnv,
+        AUTH_CODE_HASH_SECRET: previousAuthCodeHashSecret
+      });
     }
   });
 
@@ -1133,23 +1358,15 @@ describe("auth flows", () => {
       });
       expect(changePasswordResponse.status).toBe(200);
 
-      const oldPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          account: "admin",
-          password: "Admin#123"
-        })
+      const oldPasswordLoginResponse = await requestAdminLoginWithCaptcha({
+        account: "admin",
+        password: "Admin#123"
       });
       expect(oldPasswordLoginResponse.status).toBe(400);
 
-      const newPasswordLoginResponse = await app.request(API_ROUTES.auth.adminLogin, {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({
-          account: "admin",
-          password: "Admin#456"
-        })
+      const newPasswordLoginResponse = await requestAdminLoginWithCaptcha({
+        account: "admin",
+        password: "Admin#456"
       });
       expect(newPasswordLoginResponse.status).toBe(200);
       const newPasswordAdminCookie = extractCookies(newPasswordLoginResponse);
@@ -1268,6 +1485,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: registrationPayload.registrationToken,
         displayName: suggestPayload.displayName,
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -1316,6 +1534,7 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: (appLoginPayload as { registrationToken: string }).registrationToken,
         displayName: "移动端飞友",
+        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null,
         deviceLabel: "iPhone 16 Pro"
       })

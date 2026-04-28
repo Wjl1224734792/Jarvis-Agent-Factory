@@ -493,6 +493,8 @@ export const postsTable = pgTable("posts", {
   content: text("content").notNull(),
   contentHtml: text("content_html"),
   contentPlainText: text("content_plain_text"),
+  sourceLabel: text("source_label"),
+  sourceUrl: text("source_url"),
   contentCategoryId: text("content_category_id"),
   coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),

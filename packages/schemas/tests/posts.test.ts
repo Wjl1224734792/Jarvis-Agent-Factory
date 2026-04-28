@@ -7,6 +7,7 @@ import {
   feedTabSchema,
   homeFeedResponseSchema,
   circleFeedResponseSchema,
+  postSourceSchema,
   postCommentStatusSchema,
   postStatusSchema,
   reportPostInputSchema,
@@ -97,14 +98,72 @@ describe("posts contract", () => {
       type: "article",
       title: "Crosswind notes",
       content: "This airframe held trim better than expected in gusty conditions.",
+      sourceLabel: "Flight Test Weekly",
+      sourceUrl: "https://example.com/reports/crosswind",
       imageIds: ["file_1", "file_2"],
       videoIds: ["file_3"]
     });
 
     expect(payload.title).toBe("Crosswind notes");
     expect(payload.content).toContain("gusty");
+    expect(payload.sourceLabel).toBe("Flight Test Weekly");
+    expect(payload.sourceUrl).toBe("https://example.com/reports/crosswind");
     expect(payload.imageIds).toEqual(["file_1", "file_2"]);
     expect(payload.videoIds).toEqual(["file_3"]);
+  });
+
+  it("normalizes post source declaration fields", () => {
+    const withoutSource = createPostInputSchema.parse({
+      type: "moment",
+      title: "Ramp note",
+      content: "",
+      sourceLabel: "   ",
+      sourceUrl: "https://example.com/ignored",
+      imageIds: [],
+      videoIds: []
+    });
+    const withSource = createPostInputSchema.parse({
+      type: "article",
+      title: "Factory bulletin",
+      content: "Factory bulletin body.",
+      sourceLabel: "  Manufacturer update  ",
+      sourceUrl: "  https://example.com/bulletin  ",
+      imageIds: [],
+      videoIds: []
+    });
+
+    expect(withoutSource.sourceLabel).toBeNull();
+    expect(withoutSource.sourceUrl).toBeNull();
+    expect(withSource.sourceLabel).toBe("Manufacturer update");
+    expect(withSource.sourceUrl).toBe("https://example.com/bulletin");
+    expect(
+      createPostInputSchema.safeParse({
+        type: "article",
+        title: "Broken source",
+        content: "Body.",
+        sourceLabel: "External",
+        sourceUrl: "not-a-url",
+        imageIds: [],
+        videoIds: []
+      }).success
+    ).toBe(false);
+    expect(
+      createPostInputSchema.safeParse({
+        type: "article",
+        title: "Script source",
+        content: "Body.",
+        sourceLabel: "External",
+        sourceUrl: "javascript:alert(1)",
+        imageIds: [],
+        videoIds: []
+      }).success
+    ).toBe(false);
+    expect(
+      postSourceSchema.safeParse({
+        label: "External",
+        url: "data:text/html,<script>alert(1)</script>"
+      }).success
+    ).toBe(false);
   });
 
   it("allows article payloads with more than the legacy media caps", () => {
@@ -126,10 +185,14 @@ describe("posts contract", () => {
       content: "Official article update content.",
       contentHtml: "<p>Official article update content.</p>",
       contentCategoryId: "cat_1",
+      sourceLabel: "Official newsroom",
+      sourceUrl: "https://example.com/newsroom",
       imageIds: Array.from({ length: 8 }, (_, index) => `img_${index + 1}`),
       videoIds: Array.from({ length: 4 }, (_, index) => `vid_${index + 1}`)
     });
 
+    expect(payload.sourceLabel).toBe("Official newsroom");
+    expect(payload.sourceUrl).toBe("https://example.com/newsroom");
     expect(payload.imageIds).toHaveLength(8);
     expect(payload.videoIds).toHaveLength(4);
   });

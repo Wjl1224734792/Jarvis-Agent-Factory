@@ -193,6 +193,35 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
             </ProfileLink>
           </div>
 
+          {item.source ? (
+            <div className="mt-1 text-[0.72rem] text-muted-foreground">
+              来源：
+              {item.source.url ? (
+                <span
+                  className="text-primary underline-offset-4 hover:underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                  role="link"
+                  tabIndex={0}
+                >
+                  {item.source.label}
+                </span>
+              ) : (
+                <span className="text-foreground/78">{item.source.label}</span>
+              )}
+            </div>
+          ) : null}
+
           <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
             {item.contentPreview}
           </p>

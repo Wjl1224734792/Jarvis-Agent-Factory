@@ -326,6 +326,8 @@ function postSelection() {
     content: postsTable.content,
     contentHtml: postsTable.contentHtml,
     contentPlainText: postsTable.contentPlainText,
+    sourceLabel: postsTable.sourceLabel,
+    sourceUrl: postsTable.sourceUrl,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
     coverImageFileId: postsTable.coverImageFileId,
@@ -362,6 +364,8 @@ function postFeedSelection(input?: { recommendationBaseScore?: SQL<number> | SQL
     content: previewSource,
     contentHtml: sql<string | null>`null`,
     contentPlainText: previewSource,
+    sourceLabel: postsTable.sourceLabel,
+    sourceUrl: postsTable.sourceUrl,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
     coverImageFileId: postsTable.coverImageFileId,
@@ -558,6 +562,8 @@ export const postsRepo = {
     contentHtml: string | null;
     contentPlainText: string;
     contentCategoryId: string | null;
+    sourceLabel: string | null;
+    sourceUrl: string | null;
     status: PostStatus;
     rejectionReason?: string | null;
     publishedAt: Date | null;
@@ -575,6 +581,8 @@ export const postsRepo = {
       content: input.content,
       contentHtml: input.contentHtml,
       contentPlainText: input.contentPlainText,
+      sourceLabel: input.sourceLabel,
+      sourceUrl: input.sourceUrl,
       contentCategoryId: input.contentCategoryId,
       coverImageFileId: input.coverImageFileId,
       status: input.status,
@@ -614,6 +622,8 @@ export const postsRepo = {
     content: string;
     contentHtml: string | null;
     contentCategoryId: string;
+    sourceLabel: string | null;
+    sourceUrl: string | null;
     imageIds: string[];
     videoIds: string[];
   }) {
@@ -624,6 +634,8 @@ export const postsRepo = {
         content: input.content,
         contentHtml: input.contentHtml,
         contentPlainText: input.content,
+        sourceLabel: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
         contentCategoryId: input.contentCategoryId,
         updatedAt: new Date()
       })
@@ -641,6 +653,8 @@ export const postsRepo = {
     contentHtml: string | null;
     contentPlainText: string;
     contentCategoryId: string | null;
+    sourceLabel: string | null;
+    sourceUrl: string | null;
     status: PostStatus;
     rejectionReason?: string | null;
     ownerId: string;
@@ -655,6 +669,8 @@ export const postsRepo = {
         content: input.content,
         contentHtml: input.contentHtml,
         contentPlainText: input.contentPlainText,
+        sourceLabel: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
         contentCategoryId: input.contentCategoryId,
         coverImageFileId: input.coverImageFileId,
         status: input.status,

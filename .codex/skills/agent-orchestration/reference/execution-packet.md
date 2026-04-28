@@ -21,6 +21,19 @@ REQ-XXX, REQ-YYY
 ### owner
 frontend_implementer / backend_implementer / frontend_ui_worker / frontend_state_worker / frontend_test_worker / backend_api_worker / backend_service_worker / backend_data_worker / backend_test_worker
 
+### parallel_batch
+batch-1 / batch-2 / ...
+
+### batch_peers
+- 同批次内其它 task_id / owner；无则写“无”
+
+### depends_on
+- 无，或列出必须先完成的 task_id / batch_id
+
+### serial_reason
+- 可并发则写“无”
+- 必须串行时写明真实原因：gate / user_confirm / shared_owner / same_file / contract_dependency / tdd_step / other
+
 ### objective
 本次子任务的唯一目标（一句话）
 
@@ -53,6 +66,7 @@ frontend_implementer / backend_implementer / frontend_ui_worker / frontend_state
 - 依赖的 API / 契约 / schema
 - 依赖的共享类型
 - 依赖的上游任务结果
+- 依赖的并发批次或串行原因
 
 ### acceptance_criteria
 - 可验证的验收条件 1
@@ -88,3 +102,5 @@ tdd / test_after / manual_only
 - **路径明确：** allowed_paths / forbidden_paths 必须是具体路径，不允许"合理修改"等模糊表述
 - **可验收：** acceptance_criteria 必须可验证，不允许"代码质量好"等主观表述
 - **可交接：** handoff_notes 必须包含对下游的具体说明
+- **可调度：** parallel_batch / depends_on 必须让编排者知道哪些任务能同批 spawn，哪些任务必须等待
+- **并发安全：** batch_peers / forbidden_paths 必须让实现代理知道同批还有谁在工作，以及哪些路径不能碰

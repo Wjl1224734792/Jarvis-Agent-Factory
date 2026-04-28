@@ -107,7 +107,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
     }
 
     return items.filter((item) =>
-      [item.title, item.contentPreview, item.author.displayName]
+      [item.title, item.contentPreview, item.author.displayName, item.source?.label ?? ""]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
@@ -352,6 +352,18 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                   <div className="admin-table-subtitle">
                     {record.author.displayName} 路 {record.type === "article" ? "文章" : "动态"} 路 评论 {record.commentCount}
                   </div>
+                  {record.source ? (
+                    <div className="admin-table-subtitle">
+                      来源：
+                      {record.source.url ? (
+                        <a href={record.source.url} rel="noreferrer" target="_blank">
+                          {record.source.label}
+                        </a>
+                      ) : (
+                        record.source.label
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               ),
               title: "内容"
@@ -461,6 +473,18 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
               <Tag>{postStatusLabel(detailQuery.data.item.status)}</Tag>
               <span>{detailQuery.data.item.author.displayName}</span>
             </div>
+            {detailQuery.data.item.source ? (
+              <div className="admin-detail-sheet__meta">
+                <span>来源：</span>
+                {detailQuery.data.item.source.url ? (
+                  <a href={detailQuery.data.item.source.url} rel="noreferrer" target="_blank">
+                    {detailQuery.data.item.source.label}
+                  </a>
+                ) : (
+                  <span>{detailQuery.data.item.source.label}</span>
+                )}
+              </div>
+            ) : null}
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
             <div className="admin-detail-sheet__body">
               {detailQuery.data.item.contentHtml ? (

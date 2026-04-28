@@ -1,8 +1,6 @@
 name = "remediation_worker"
 description = "通用修复与优化执行代理：用于 review-fix-optimize 流程；在没有更合适领域 worker 时执行小范围修复、配置同步、文档同步、脚本修正或跨层胶水改动。"
 nickname_candidates = ["Fix-Worker", "Repair", "Optimize"]
-model = "gpt-5.3-codex"
-model_reasoning_effort = "high"
 sandbox_mode = "workspace-write"
 
 developer_instructions = """

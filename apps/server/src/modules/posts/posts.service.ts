@@ -211,6 +211,28 @@ function buildPublicUserSummary(
   };
 }
 
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "http:" || url.protocol === "https:";
+  } catch {
+    return false;
+  }
+}
+
+function serializePostSource(item: { sourceLabel?: string | null; sourceUrl?: string | null }) {
+  const label = item.sourceLabel?.trim();
+  if (!label) {
+    return null;
+  }
+
+  const url = item.sourceUrl?.trim();
+  return {
+    label,
+    url: url && isHttpUrl(url) ? url : null
+  };
+}
+
 function serializePostListItem(
   item: PostListSerializableItem | null,
   options: {
@@ -239,6 +261,7 @@ function serializePostListItem(
     updatedAt: item.updatedAt.toISOString(),
     publishedAt: toIsoString(item.publishedAt),
     author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
+    source: serializePostSource(item),
     cover: options.cover,
     images: options.images,
     videos: options.videos,
@@ -534,6 +557,8 @@ export const postsService = {
     imageIds: string[];
     videoIds: string[];
     contentCategoryId: string | null;
+    sourceLabel: string | null;
+    sourceUrl: string | null;
   }) {
     const sensitiveCheck = postsSensitiveFilterService.inspect({
       title: input.title,
@@ -597,8 +622,10 @@ export const postsService = {
       content: input.content,
       contentHtml: input.contentHtml,
       contentPlainText: input.content,
-        contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
-        coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
+      contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+      sourceLabel: input.sourceLabel,
+      sourceUrl: input.sourceUrl,
+      coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
         status,
         rejectionReason: null,
         publishedAt: null,
@@ -728,6 +755,7 @@ export const postsService = {
         updatedAt: item.updatedAt.toISOString(),
         publishedAt: toIsoString(item.publishedAt),
         author: buildPublicUserSummary(item.author, ipLocationLabelMap),
+        source: serializePostSource(item),
         cover: coversByPostId.get(item.id) ?? null,
         images: imagesByPostId.get(item.id) ?? [],
         videos: videosByPostId.get(item.id) ?? [],
@@ -837,6 +865,8 @@ export const postsService = {
       content: string;
       contentHtml: string | null;
       contentCategoryId: string;
+      sourceLabel: string | null;
+      sourceUrl: string | null;
       imageIds: string[];
       videoIds: string[];
     }
@@ -880,6 +910,8 @@ export const postsService = {
       contentHtml: input.contentHtml,
       contentPlainText: input.content,
       contentCategoryId: input.contentCategoryId,
+      sourceLabel: input.sourceLabel,
+      sourceUrl: input.sourceUrl,
       coverImageFileId: null,
       status: shouldAutoPublish ? "published" : "pending",
       rejectionReason: null,
@@ -1275,6 +1307,8 @@ export const postsService = {
       contentHtml: string | null;
       contentCategoryId: string | null;
       coverImageId: string | null;
+      sourceLabel: string | null;
+      sourceUrl: string | null;
       imageIds: string[];
       videoIds: string[];
     }
@@ -1316,19 +1350,21 @@ export const postsService = {
       }
     }
 
-      const updated = await postsRepo.updatePost({
-        id,
-        ownerId: existing.author.id,
+    const updated = await postsRepo.updatePost({
+      id,
+      ownerId: existing.author.id,
       title: input.title,
       content: input.content,
       contentHtml: input.contentHtml,
-        contentPlainText: input.content,
-        contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
-        coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
-        status: "pending",
-        rejectionReason: null,
-        imageIds: input.imageIds,
-        videoIds: input.videoIds
+      contentPlainText: input.content,
+      contentCategoryId: input.type === "article" ? input.contentCategoryId : null,
+      sourceLabel: input.sourceLabel,
+      sourceUrl: input.sourceUrl,
+      coverImageFileId: input.type === "moment" ? resolvedCoverImageId : null,
+      status: "pending",
+      rejectionReason: null,
+      imageIds: input.imageIds,
+      videoIds: input.videoIds
     });
 
     if (!updated) {

@@ -283,6 +283,8 @@ async function createPost(
     imageIds?: string[];
     videoIds?: string[];
     contentCategoryId?: string | null;
+    sourceLabel?: string | null;
+    sourceUrl?: string | null;
   }
 ) {
   const response = await app.request(API_ROUTES.posts.create, {
@@ -297,7 +299,9 @@ async function createPost(
       content: input.content,
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? [],
-      contentCategoryId: input.contentCategoryId ?? null
+      contentCategoryId: input.contentCategoryId ?? null,
+      sourceLabel: input.sourceLabel ?? null,
+      sourceUrl: input.sourceUrl ?? null
     })
   });
 
@@ -310,6 +314,7 @@ async function createPost(
       author: { id: string };
       images: Array<{ id: string }>;
       videos: Array<{ id: string }>;
+      source: { label: string; url: string | null } | null;
     };
   };
 }
@@ -1683,6 +1688,8 @@ describe.sequential("posts and social flows", () => {
       contentHtml: "<p><strong>Hydrated</strong> content</p>",
       contentPlainText: "Hydrated plain text",
       contentCategoryId: null,
+      sourceLabel: null,
+      sourceUrl: null,
       status: "published",
       publishedAt: new Date("2099-04-09T12:00:00.000Z"),
       coverImageFileId: null,
@@ -1730,7 +1737,13 @@ describe.sequential("posts and social flows", () => {
       type: "article",
       title: "Editable article",
       content: "Initial content",
-      contentCategoryId: articleCategoryId
+      contentCategoryId: articleCategoryId,
+      sourceLabel: "测试来源",
+      sourceUrl: "https://example.com/editable-source"
+    });
+    expect(created.item.source).toMatchObject({
+      label: "测试来源",
+      url: "https://example.com/editable-source"
     });
 
     await app.request(API_ROUTES.posts.adminDetail(created.item.id), {
@@ -1756,6 +1769,8 @@ describe.sequential("posts and social flows", () => {
         content: "Updated content should return to review.",
         contentHtml: "<p>Updated content should return to review.</p>",
         contentCategoryId: articleCategoryId,
+        sourceLabel: "更新来源",
+        sourceUrl: "https://example.com/editable-source-updated",
         imageIds: [],
         videoIds: []
       })
@@ -1763,10 +1778,18 @@ describe.sequential("posts and social flows", () => {
 
     expect(updateResponse.status).toBe(200);
     const updated = (await updateResponse.json()) as {
-      item: { status: string; title: string };
+      item: {
+        status: string;
+        title: string;
+        source: { label: string; url: string | null } | null;
+      };
     };
     expect(updated.item.title).toBe("Editable article updated");
     expect(updated.item.status).toBe("pending");
+    expect(updated.item.source).toMatchObject({
+      label: "更新来源",
+      url: "https://example.com/editable-source-updated"
+    });
 
     const publicDetail = await app.request(API_ROUTES.posts.detail(created.item.id), {
       method: "GET"
@@ -2034,12 +2057,14 @@ describe.sequential("posts and social flows", () => {
         contentHtml: "<p>Initial official article content</p>",
         imageIds: [],
         videoIds: [],
-        contentCategoryId: articleCategoryId
+        contentCategoryId: articleCategoryId,
+        sourceLabel: "飞控日报",
+        sourceUrl: "https://example.com/official/before"
       })
     });
     expect(createResponse.status).toBe(200);
     const created = (await createResponse.json()) as {
-      item: { id: string };
+      item: { id: string; source: { label: string; url: string | null } };
     };
 
     const detailResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
@@ -2049,6 +2074,13 @@ describe.sequential("posts and social flows", () => {
       }
     });
     expect(detailResponse.status).toBe(200);
+    const detailPayload = (await detailResponse.json()) as {
+      item: { source: { label: string; url: string | null } };
+    };
+    expect(detailPayload.item.source).toMatchObject({
+      label: "飞控日报",
+      url: "https://example.com/official/before"
+    });
 
     const updateResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
       method: "PUT",
@@ -2062,16 +2094,22 @@ describe.sequential("posts and social flows", () => {
         contentHtml: "<p>Updated official article content</p>",
         contentCategoryId: articleCategoryId,
         imageIds: [],
-        videoIds: []
+        videoIds: [],
+        sourceLabel: "风景速递",
+        sourceUrl: "https://example.com/official/after"
       })
     });
     expect(updateResponse.status).toBe(200);
     const updated = (await updateResponse.json()) as {
-      item: { id: string; title: string; content: string };
+      item: { id: string; title: string; content: string; source: { label: string; url: string | null } };
     };
     expect(updated.item.id).toBe(created.item.id);
     expect(updated.item.title).toBe("Official article after update");
     expect(updated.item.content).toContain("Updated official article content");
+    expect(updated.item.source).toMatchObject({
+      label: "风景速递",
+      url: "https://example.com/official/after"
+    });
 
     const deleteResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
       method: "DELETE",
