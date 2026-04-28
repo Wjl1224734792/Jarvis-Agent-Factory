@@ -4,7 +4,7 @@
 
 ## 适用场景
 
-当用户明确要求“启动编排”“走完整流程”“用多代理做”时，加载本技能。使用前需确保 Codex 配置中开启：
+只有用户直接调用 `$agent-orchestration`、`agent-orchestration`，或明确说“调用 / 使用 agent-orchestration 技能”时，才加载本技能。仅表达“启动编排”“走完整流程”“用多代理做”等普通意图时，不自动加载本技能。使用前需确保 Codex 配置中开启：
 
 ```toml
 [features]
