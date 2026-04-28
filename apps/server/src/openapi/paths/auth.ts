@@ -89,11 +89,11 @@ export const authPaths = {
       security: sessionCookieSecurity,
       requestBody: jsonRequestBody(
         "UserPasswordChangeRequest",
-        "Submits the current password and a new strong password for the current web user."
+        "Submits the new strong password plus the SMS verification requestId/code for the current bound phone. Existing-password users must also submit the current password."
       ),
       responses: {
         "200": jsonResponse("ActionSuccessResponse", "Password changed successfully."),
-        "400": jsonResponse("AuthErrorResponse", "Current password is invalid or the new password is not allowed."),
+        "400": jsonResponse("AuthErrorResponse", "Current password, SMS code, or new password is invalid."),
         "401": jsonResponse("AuthErrorResponse", "Web session is missing or expired."),
         "403": jsonResponse("AuthErrorResponse", "Only web user sessions can perform this action.")
       }

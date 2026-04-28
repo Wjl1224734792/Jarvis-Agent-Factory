@@ -378,7 +378,6 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
-      password: string;
       avatarFileId?: string | null;
     },
     metadata?: RequestSessionMetadata
@@ -420,7 +419,6 @@ export const authService = {
       const user = await authRepo.createUserByPhoneProfile({
         phone: pending.phone,
         displayName: normalizedDisplayName,
-        password: input.password,
         avatarFileId: input.avatarFileId ?? null
       });
 
@@ -444,7 +442,6 @@ export const authService = {
     input: {
       registrationToken: string;
       displayName: string;
-      password: string;
       avatarFileId?: string | null;
       deviceLabel?: string | null;
     },
@@ -485,7 +482,6 @@ export const authService = {
       const user = await authRepo.createUserByPhoneProfile({
         phone: pending.phone,
         displayName: normalizedDisplayName,
-        password: input.password,
         avatarFileId: input.avatarFileId ?? null
       });
 
@@ -655,26 +651,51 @@ export const authService = {
   },
   async changeWebPassword(
     userId: string,
-    input: { currentPassword: string; newPassword: string }
+    input: {
+      currentPassword?: string;
+      newPassword: string;
+      smsRequestId: string;
+      smsCode: string;
+    }
   ) {
     const user = await authRepo.findUserById(userId);
     if (!user || user.role !== "user") {
       throw new AuthError("FORBIDDEN", "仅普通用户可修改 Web 密码");
     }
 
-    const currentPasswordPassed = await authRepo.verifyUserPassword(
-      userId,
-      input.currentPassword
-    );
-    if (!currentPasswordPassed) {
-      throw new AuthError("INVALID_CREDENTIALS", "当前密码错误");
+    if (!user.phone) {
+      throw new AuthError("FORBIDDEN", "当前账号未绑定手机号，无法修改密码");
+    }
+
+    await this.verifySmsCodeForRequest({
+      phone: user.phone,
+      requestId: input.smsRequestId,
+      smsCode: input.smsCode
+    });
+
+    const hasPassword = Boolean(user.password);
+    if (hasPassword) {
+      if (!input.currentPassword) {
+        throw new AuthError("INVALID_CREDENTIALS", "请输入当前密码");
+      }
+
+      const currentPasswordPassed = await authRepo.verifyUserPassword(
+        userId,
+        input.currentPassword
+      );
+      if (!currentPasswordPassed) {
+        throw new AuthError("INVALID_CREDENTIALS", "当前密码错误");
+      }
     }
 
     await authRepo.updateUserPassword(userId, input.newPassword);
-    await authRepo.revokeUserSessions(userId);
+    if (hasPassword) {
+      await authRepo.revokeUserSessions(userId);
+    }
 
     return {
-      success: true as const
+      success: true as const,
+      sessionRevoked: hasPassword
     };
   },
   async changeAdminPassword(

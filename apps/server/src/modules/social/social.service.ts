@@ -1067,6 +1067,7 @@ export const socialService = {
         coverImageUrl: await resolveUploadedFileUrl(user.coverImageFileId ?? null),
         phone: user.phone ?? null,
         phoneMasked: toPhoneMasked(user.phone ?? null),
+        hasPassword: Boolean(user.passwordHash),
         profileVisibility: settings.profileVisibility,
         notifyComments: settings.notifyComments,
         notifyMentions: settings.notifyMentions,
@@ -1089,6 +1090,10 @@ export const socialService = {
       return null;
     }
 
+    if (!currentProfile.passwordHash) {
+      return { kind: "password_required" as const };
+    }
+
     const existingPhoneOwner = await socialRepo.findUserByPhone(input.phone);
     if (existingPhoneOwner && existingPhoneOwner.id !== currentUserId) {
       return { kind: "conflict" as const };
@@ -1108,6 +1113,10 @@ export const socialService = {
     const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
     if (!currentProfile) {
       return { kind: "not_found" as const };
+    }
+
+    if (!currentProfile.passwordHash) {
+      return { kind: "password_required" as const };
     }
 
     try {
@@ -1142,7 +1151,6 @@ export const socialService = {
       bio?: string | null;
       avatarFileId?: string | null;
       coverImageFileId?: string | null;
-      phone?: string | null;
       profileVisibility?: "community" | "followers" | "private";
       notifyComments?: boolean;
       notifyMentions?: boolean;
@@ -1168,11 +1176,9 @@ export const socialService = {
       bio?: string | null;
       avatarFileId?: string | null;
       coverImageFileId?: string | null;
-      phone?: string | null;
     } = {
       displayName: input.displayName,
-      bio: input.bio,
-      phone: input.phone
+      bio: input.bio
     };
 
     if (Object.prototype.hasOwnProperty.call(input, "avatarFileId")) {

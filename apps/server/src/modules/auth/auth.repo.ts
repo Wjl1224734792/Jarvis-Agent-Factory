@@ -615,11 +615,11 @@ export const authRepo = {
   async createUserByPhoneProfile(input: {
     phone: string;
     displayName: string;
-    password: string;
+    password?: string | null;
     avatarFileId?: string | null;
   }): Promise<UserRecord> {
     const id = createId("user");
-    const passwordHash = await hashPassword(input.password);
+    const passwordHash = input.password ? await hashPassword(input.password) : null;
 
     await db.insert(usersTable).values({
       id,

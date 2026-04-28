@@ -720,7 +720,8 @@ export const socialRepo = {
         bio: usersTable.bio,
         avatarFileId: usersTable.avatarFileId,
         coverImageFileId: usersTable.coverImageFileId,
-        phone: usersTable.phone
+        phone: usersTable.phone,
+        passwordHash: usersTable.passwordHash
       })
       .from(usersTable)
       .where(eq(usersTable.id, userId))

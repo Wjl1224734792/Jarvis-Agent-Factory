@@ -1,10 +1,9 @@
+import { dbPool, hashPassword } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { app } from "../src/app";
 import { readCaptchaAnswerForTests, resolveSmsCodeForTests } from "./captcha-test-helpers";
 
 type LoginHeaders = Record<string, string>;
-
-const DEFAULT_TEST_PASSWORD = "StrongPass#2026";
 
 type RegistrationOptions = {
   password?: string;
@@ -13,6 +12,20 @@ type RegistrationOptions = {
 async function describeUnexpectedAuthResponse(response: Response) {
   const raw = await response.text();
   return raw.length > 0 ? raw : `<empty body, status=${response.status}>`;
+}
+
+async function setupWebPasswordIfRequested(
+  phone: string,
+  password: string | undefined,
+) {
+  if (!password) {
+    return;
+  }
+
+  await dbPool.query(
+    `update users set password_hash = $1 where phone = $2 and role = 'user'`,
+    [await hashPassword(password), phone]
+  );
 }
 
 /** Extracts only name/value cookie pairs from set-cookie headers. */
@@ -42,7 +55,12 @@ export async function completeRegistrationIfNeeded(
 
   const payload = (await response.json()) as
     | { kind: "authenticated" }
-    | { kind: "registration_required"; registrationToken: string; suggestedDisplayName: string };
+    | {
+        kind: "registration_required";
+        registrationToken: string;
+        phone: string;
+        suggestedDisplayName: string;
+      };
 
   if (payload.kind === "authenticated") {
     return extractCookies(response);
@@ -57,7 +75,6 @@ export async function completeRegistrationIfNeeded(
     body: JSON.stringify({
       registrationToken: payload.registrationToken,
       displayName: payload.suggestedDisplayName,
-      password: options?.password ?? DEFAULT_TEST_PASSWORD,
       avatarFileId: null
     })
   });
@@ -68,7 +85,9 @@ export async function completeRegistrationIfNeeded(
     );
   }
 
-  return extractCookies(completeResponse);
+  const cookie = extractCookies(completeResponse);
+  await setupWebPasswordIfRequested(payload.phone, options?.password);
+  return cookie;
 }
 
 /** Resolves sms code from mock payload or redis fallback. */
@@ -106,7 +125,7 @@ export async function requestCaptcha(
 export async function requestCaptchaAndSms(
   phone: string,
   options?: LoginHeaders
-): Promise<{ challengeId: string; captchaCode: string; smsCode: string }> {
+): Promise<{ challengeId: string; captchaCode: string; requestId: string; smsCode: string }> {
   const headers = options;
 
   const { challengeId, captchaCode } = await requestCaptcha(options);
@@ -126,12 +145,13 @@ export async function requestCaptchaAndSms(
   if (smsResponse.status !== 200) {
     throw new Error(`sms request failed: ${smsResponse.status}`);
   }
-  const smsPayload = (await smsResponse.json()) as { mockCode?: string };
+  const smsPayload = (await smsResponse.json()) as { requestId: string; mockCode?: string };
   const smsCode = await resolveSmsCode(phone, smsPayload);
 
   return {
     challengeId,
     captchaCode,
+    requestId: smsPayload.requestId,
     smsCode
   };
 }
@@ -139,7 +159,8 @@ export async function requestCaptchaAndSms(
 /** Performs full web login flow and returns session cookie, completing registration if needed. */
 export async function loginWebUser(
   phone: string,
-  options?: LoginHeaders
+  options?: LoginHeaders,
+  registrationOptions?: RegistrationOptions
 ): Promise<string> {
   const loginPayload = await requestCaptchaAndSms(phone, options);
   const headers = options;
@@ -156,7 +177,7 @@ export async function loginWebUser(
     })
   });
 
-  return completeRegistrationIfNeeded(loginResponse, headers);
+  return completeRegistrationIfNeeded(loginResponse, headers, registrationOptions);
 }
 
 /** Alias to maintain both legacy helper naming styles across tests. */

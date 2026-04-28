@@ -331,6 +331,8 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "请先登录后再试。";
       case "FORBIDDEN":
         return "当前没有权限执行此操作。";
+      case "PASSWORD_REQUIRED":
+        return "请先设置登录密码";
       case "NOT_FOUND":
         return "内容不存在或已被删除。";
       case "BAD_REQUEST":

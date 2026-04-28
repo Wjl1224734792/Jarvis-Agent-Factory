@@ -168,6 +168,7 @@ export function SettingsPage() {
       coverImageUrl: null,
       phone: null,
       phoneMasked: null,
+      hasPassword: false,
       profileVisibility: "community",
       notifyComments: true,
       notifyMentions: true,
@@ -189,8 +190,12 @@ export function SettingsPage() {
     newPassword: "",
     confirmPassword: ""
   });
+  const [isPasswordSmsCaptchaOpen, setIsPasswordSmsCaptchaOpen] = useState(false);
+  const [passwordRequestId, setPasswordRequestId] = useState<string | null>(null);
+  const [passwordActionError, setPasswordActionError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const phoneSmsFlow = useSmsVerificationFlow();
+  const passwordSmsFlow = useSmsVerificationFlow();
 
   const profileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -241,6 +246,8 @@ export function SettingsPage() {
   const nextPhoneDigits = normalizeChinaMobilePhoneInput(nextPhone);
   const showNextPhoneInvalid =
     nextPhoneDigits.length === 11 && !isChinaMainlandMobilePhone(nextPhoneDigits);
+  const hasPassword = profileItem?.hasPassword ?? draft.hasPassword;
+  const boundPhoneDigits = normalizeChinaMobilePhoneInput(profileItem?.phone ?? draft.phone);
 
   function beginEdit(field: Exclude<EditableProfileField, null>) {
     setStatusMessage(null);
@@ -357,6 +364,11 @@ export function SettingsPage() {
   }
 
   async function requestPhoneCode() {
+    if (!hasPassword) {
+      setPhoneActionError("请先设置登录密码，再更换绑定手机");
+      return;
+    }
+
     if (!canRequestPhoneRebind({ nextPhone }) || !phoneSmsFlow.challenge) {
       return;
     }
@@ -425,8 +437,32 @@ export function SettingsPage() {
     }));
   }
 
+  async function requestPasswordCode() {
+    if (!isChinaMainlandMobilePhone(boundPhoneDigits)) {
+      setPasswordActionError("当前账号缺少可验证的绑定手机号");
+      return;
+    }
+
+    setPasswordActionError(null);
+    await passwordSmsFlow.sendSmsCode({
+      request: ({ challengeId, captchaCode }) =>
+        apiClient.requestSmsCode({
+          phone: boundPhoneDigits,
+          captchaChallengeId: challengeId,
+          captchaCode
+        }),
+      successHint: () => " ",
+      onError: setPasswordActionError,
+      errorFallback: "获取短信验证码失败",
+      onSuccess: (response) => {
+        setPasswordRequestId(response.requestId);
+        setIsPasswordSmsCaptchaOpen(false);
+      }
+    });
+  }
+
   async function changePassword() {
-    if (!passwordForm.currentPassword) {
+    if (hasPassword && !passwordForm.currentPassword) {
       setStatusMessage("请输入当前密码");
       return;
     }
@@ -436,7 +472,7 @@ export function SettingsPage() {
       return;
     }
 
-    if (passwordForm.currentPassword === passwordForm.newPassword) {
+    if (hasPassword && passwordForm.currentPassword === passwordForm.newPassword) {
       setStatusMessage("新密码不能与当前密码相同");
       return;
     }
@@ -446,13 +482,49 @@ export function SettingsPage() {
       return;
     }
 
+    if (!passwordRequestId || !passwordSmsFlow.smsCode.trim()) {
+      setStatusMessage("请输入手机短信验证码");
+      return;
+    }
+
     setIsChangingPassword(true);
     try {
       await apiClient.changeWebPassword({
-        currentPassword: passwordForm.currentPassword,
-        newPassword: passwordForm.newPassword
+        currentPassword: hasPassword ? passwordForm.currentPassword : undefined,
+        newPassword: passwordForm.newPassword,
+        smsRequestId: passwordRequestId,
+        smsCode: passwordSmsFlow.smsCode.trim()
       });
+      if (!hasPassword) {
+        setPasswordForm({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        setPasswordRequestId(null);
+        passwordSmsFlow.reset();
+        setDraft((current) => ({
+          ...current,
+          hasPassword: true
+        }));
+        if (profileItem) {
+          queryClient.setQueryData(["current-user-profile", currentUser.id], {
+            item: {
+              ...profileItem,
+              hasPassword: true
+            }
+          });
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: ["current-user-profile", currentUser.id]
+          });
+        }
+        setStatusMessage("登录密码已设置");
+        return;
+      }
       queryClient.clear();
+      setPasswordRequestId(null);
+      passwordSmsFlow.reset();
       setAnonymous();
       void navigate(APP_ROUTES.webLogin, { replace: true });
     } catch (reason: unknown) {
@@ -740,6 +812,10 @@ export function SettingsPage() {
                 <Button
                   className="rounded-full"
                   onClick={() => {
+                    if (!hasPassword) {
+                      setStatusMessage("请先设置登录密码，再更换绑定手机");
+                      return;
+                    }
                     setPhoneActionError(null);
                     setIsPhoneDialogOpen(true);
                   }}
@@ -758,23 +834,35 @@ export function SettingsPage() {
                   {resolveMaskedPhone(draft.phone || null, draft.phoneMasked)}
                 </div>
                 <div className="text-muted-foreground">
-                  仅展示脱敏手机号，修改时会通过短信验证码完成校验。
+                  {hasPassword
+                    ? "仅展示脱敏手机号，修改时会通过短信验证码完成校验。"
+                    : "设置登录密码后才可以更换绑定手机号。"}
                 </div>
               </div>
             </SettingsRow>
             <SettingsRow alignTop label="登录密码">
-              <div className="grid gap-3 md:grid-cols-3">
-                <Input
-                  autoComplete="current-password"
-                  onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
-                  placeholder="当前密码"
-                  type="password"
-                  value={passwordForm.currentPassword}
-                />
+              {!hasPassword ? (
+                <Alert className="mb-3">
+                  <AlertTitle>请设置登录密码</AlertTitle>
+                  <AlertDescription>
+                    设置后可使用手机号密码登录，并可继续更换绑定手机号。
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              <div className={cn("grid gap-3", hasPassword ? "md:grid-cols-3" : "md:grid-cols-2")}>
+                {hasPassword ? (
+                  <Input
+                    autoComplete="current-password"
+                    onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
+                    placeholder="当前密码"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                  />
+                ) : null}
                 <Input
                   autoComplete="new-password"
                   onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
-                  placeholder="新密码"
+                  placeholder={hasPassword ? "新密码" : "设置登录密码"}
                   type="password"
                   value={passwordForm.newPassword}
                 />
@@ -786,6 +874,42 @@ export function SettingsPage() {
                   value={passwordForm.confirmPassword}
                 />
               </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                <Input
+                  inputMode="numeric"
+                  onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
+                  placeholder="手机短信验证码"
+                  value={passwordSmsFlow.smsCode}
+                />
+                <Button
+                  className="h-10 w-full rounded-full"
+                  disabled={
+                    passwordSmsFlow.isSendingSms ||
+                    passwordSmsFlow.cooldownSeconds > 0 ||
+                    !isChinaMainlandMobilePhone(boundPhoneDigits)
+                  }
+                  onClick={() => {
+                    setPasswordActionError(null);
+                    setIsPasswordSmsCaptchaOpen(true);
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  {passwordSmsFlow.isSendingSms
+                    ? "发送中..."
+                    : passwordSmsFlow.cooldownSeconds > 0
+                      ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
+                      : passwordSmsFlow.requestHint
+                        ? "重新获取验证码"
+                        : "获取验证码"}
+                </Button>
+              </div>
+              {passwordSmsFlow.requestHint ? (
+                <div className="mt-2 text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
+              ) : null}
+              {passwordActionError ? (
+                <div className="mt-2 text-sm text-destructive">{passwordActionError}</div>
+              ) : null}
               <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
                 <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
                   <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
@@ -801,7 +925,7 @@ export function SettingsPage() {
                   type="button"
                   variant="default"
                 >
-                  {isChangingPassword ? "保存中..." : "修改密码"}
+                  {isChangingPassword ? "保存中..." : hasPassword ? "修改密码" : "设置密码"}
                 </Button>
               </div>
             </SettingsRow>
@@ -893,6 +1017,7 @@ export function SettingsPage() {
                 disabled={
                   phoneSmsFlow.isSendingSms ||
                   phoneSmsFlow.cooldownSeconds > 0 ||
+                  !hasPassword ||
                   !canRequestPhoneRebind({ nextPhone })
                 }
                 onClick={() => {
@@ -975,6 +1100,16 @@ export function SettingsPage() {
           title="安全验证"
         />
       ) : null}
+      <SendSmsCaptchaDialog
+        description="验证通过后将向当前绑定手机号发送短信验证码。"
+        flow={passwordSmsFlow}
+        onConfirmSend={requestPasswordCode}
+        onOpenChange={setIsPasswordSmsCaptchaOpen}
+        onRefreshError={setPasswordActionError}
+        open={isPasswordSmsCaptchaOpen}
+        refreshErrorFallback="图形验证码加载失败"
+        title="修改密码验证"
+      />
     </SitePage>
   );
 }

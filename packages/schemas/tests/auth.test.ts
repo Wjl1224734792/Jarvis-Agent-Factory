@@ -82,13 +82,28 @@ describe("auth contract", () => {
   });
 
   it("parses the user password change payload", () => {
-    const payload = userPasswordChangeRequestSchema.parse({
+    const setupPayload = userPasswordChangeRequestSchema.parse({
+      newPassword: "Flight#123",
+      smsRequestId: "sms_1",
+      smsCode: "123456"
+    });
+    const changePayload = userPasswordChangeRequestSchema.parse({
       currentPassword: "Flight#123",
-      newPassword: "Flight#456"
+      newPassword: "Flight#456",
+      smsRequestId: "sms_2",
+      smsCode: "234567"
     });
 
-    expect(payload.currentPassword).toBe("Flight#123");
-    expect(payload.newPassword).toBe("Flight#456");
+    expect(setupPayload.currentPassword).toBeUndefined();
+    expect(setupPayload.newPassword).toBe("Flight#123");
+    expect(setupPayload.smsRequestId).toBe("sms_1");
+    expect(changePayload.currentPassword).toBe("Flight#123");
+    expect(changePayload.newPassword).toBe("Flight#456");
+    expect(
+      userPasswordChangeRequestSchema.safeParse({
+        newPassword: "Flight#123"
+      }).success
+    ).toBe(false);
   });
 
   it("parses the current user response", () => {
@@ -108,19 +123,16 @@ describe("auth contract", () => {
     const webPayload = completeWebRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
-      password: "Flight#123",
       avatarFileId: "file_avatar_1"
     });
     const appPayload = completeAppRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
-      password: "Flight#123",
       avatarFileId: "file_avatar_1",
       deviceLabel: "iPhone 16 Pro"
     });
 
     expect(webPayload.avatarFileId).toBe("file_avatar_1");
-    expect(webPayload.password).toBe("Flight#123");
     expect(appPayload.avatarFileId).toBe("file_avatar_1");
   });
 
@@ -187,7 +199,6 @@ describe("auth contract", () => {
     const appRegistrationPayload = completeAppRegistrationRequestSchema.parse({
       registrationToken: "token_1",
       displayName: "Pilot 3800",
-      password: "Flight#123",
       deviceType: "miniapp-wechat",
       pushToken: "push-token-1"
     });

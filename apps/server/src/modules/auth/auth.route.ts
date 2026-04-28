@@ -428,7 +428,9 @@ authRoute.post(
 
     try {
       const result = await authService.changeWebPassword(currentUser.id, input);
-      clearAuthCookies(context);
+      if (result.sessionRevoked) {
+        clearAuthCookies(context);
+      }
       return context.json(actionSuccessResponseSchema.parse(result));
     } catch (error) {
       if (error instanceof AuthError) {

@@ -89,7 +89,13 @@ describe('OpenAPI docs', () => {
       payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['409']
     ).toBeDefined();
     expect(
+      payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['403']
+    ).toBeDefined();
+    expect(
       payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['409']
+    ).toBeDefined();
+    expect(
+      payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['403']
     ).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/refresh')]?.post?.responses?.['401']).toBeDefined();
     expect(

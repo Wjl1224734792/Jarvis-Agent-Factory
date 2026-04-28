@@ -58,7 +58,7 @@ export const socialPaths = {
         security: sessionOrBearerSecurity,
         requestBody: jsonRequestBody(
           'UpdateCurrentUserProfileRequest',
-          '按需增量更新个人资料，至少提交一个字段。支持头像、封面图、简介、昵称、手机号与可见范围等资料字段。'
+          '按需增量更新个人资料，至少提交一个字段。支持头像、封面图、简介、昵称与可见范围等资料字段；手机号请走专用换绑流程。'
         ),
         responses: {
           '200': jsonResponse(
@@ -86,6 +86,7 @@ export const socialPaths = {
             '返回短信验证请求信息。'
           ),
           '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前账号尚未设置登录密码。'),
           '404': jsonResponse('ErrorResponse', '用户不存在。'),
           '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
         }
@@ -107,6 +108,7 @@ export const socialPaths = {
           ),
           '400': jsonResponse('ErrorResponse', '短信验证码无效或已过期。'),
           '401': jsonResponse('ErrorResponse', '未登录。'),
+          '403': jsonResponse('ErrorResponse', '当前账号尚未设置登录密码。'),
           '404': jsonResponse('ErrorResponse', '用户不存在。'),
           '409': jsonResponse('ErrorResponse', '手机号已被其他账号占用。')
         }

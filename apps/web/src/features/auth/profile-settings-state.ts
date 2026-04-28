@@ -12,6 +12,7 @@ export type UserSettingsSnapshot = {
   coverImageUrl?: string | null;
   phone: string | null;
   phoneMasked?: string | null;
+  hasPassword: boolean;
   profileVisibility: ProfileVisibility;
   notifyComments: boolean;
   notifyMentions: boolean;
@@ -28,6 +29,7 @@ export type SettingsDraft = {
   coverImageUrl: string;
   phone: string;
   phoneMasked: string;
+  hasPassword: boolean;
   profileVisibility: ProfileVisibility;
   notifyComments: boolean;
   notifyMentions: boolean;
@@ -42,8 +44,7 @@ export type SettingsTextField =
   | "avatarFileId"
   | "avatarUrl"
   | "coverImageFileId"
-  | "coverImageUrl"
-  | "phone";
+  | "coverImageUrl";
 export type SettingsBooleanField =
   | "notifyComments"
   | "notifyMentions"
@@ -60,6 +61,7 @@ export function createSettingsDraft(snapshot: UserSettingsSnapshot): SettingsDra
     coverImageUrl: snapshot.coverImageUrl ?? "",
     phone: snapshot.phone ?? "",
     phoneMasked: resolveMaskedPhone(snapshot.phone, snapshot.phoneMasked),
+    hasPassword: snapshot.hasPassword,
     profileVisibility: snapshot.profileVisibility,
     notifyComments: snapshot.notifyComments,
     notifyMentions: snapshot.notifyMentions,
@@ -149,7 +151,6 @@ export function buildUpdateCurrentUserProfileInput(draft: SettingsDraft) {
     bio: draft.bio.trim() || null,
     avatarFileId: draft.avatarFileId.trim() || null,
     coverImageFileId: draft.coverImageFileId.trim() || null,
-    phone: draft.phone.trim() || null,
     profileVisibility: draft.profileVisibility,
     notifyComments: draft.notifyComments,
     notifyMentions: draft.notifyMentions,

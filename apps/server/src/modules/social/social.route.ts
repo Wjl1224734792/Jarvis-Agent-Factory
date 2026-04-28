@@ -226,6 +226,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (cont
   if ("kind" in payload && payload.kind === "conflict") {
     return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);
   }
+  if ("kind" in payload && payload.kind === "password_required") {
+    return context.json({ code: "PASSWORD_REQUIRED", message: "请先设置登录密码" }, 403);
+  }
 
   return context.json(phoneChangeRequestResponseSchema.parse(payload.payload));
 });
@@ -243,6 +246,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (cont
   }
   if (result.kind === "invalid_sms") {
     return context.json({ code: "BAD_REQUEST", message: "短信验证码无效或已过期" }, 400);
+  }
+  if (result.kind === "password_required") {
+    return context.json({ code: "PASSWORD_REQUIRED", message: "请先设置登录密码" }, 403);
   }
   if (result.kind === "conflict") {
     return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);

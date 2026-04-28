@@ -1,7 +1,7 @@
-﻿import { isChinaMainlandMobilePhone, passwordPolicyDescription, strongPasswordSchema, type UserSummary } from "@feijia/schemas";
+﻿import { isChinaMainlandMobilePhone, type UserSummary } from "@feijia/schemas";
 import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
-import { ImagePlusIcon, KeyRoundIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
+import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SendSmsCaptchaDialog } from "./send-sms-captcha-dialog";
@@ -24,11 +24,6 @@ import { useSmsVerificationFlow } from "./use-sms-verification-flow";
 
 type LoginStep = "verify" | "profile";
 type LoginMode = "sms" | "password";
-
-const passwordPolicyHint =
-  passwordPolicyDescription.length > 0
-    ? "至少 8 位，并同时包含大写字母、小写字母和特殊符号。"
-    : "请设置符合要求的密码。";
 
 async function readAvatarPreview(file: File) {
   return await new Promise<string>((resolve, reject) => {
@@ -60,8 +55,6 @@ export function LoginPage() {
   const [step, setStep] = useState<LoginStep>("verify");
   const [registrationToken, setRegistrationToken] = useState<string | null>(null);
   const [displayName, setDisplayName] = useState("");
-  const [registrationPassword, setRegistrationPassword] = useState("");
-  const [registrationPasswordConfirm, setRegistrationPasswordConfirm] = useState("");
   const [displayNameError, setDisplayNameError] = useState<string | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
@@ -348,8 +341,6 @@ export function LoginPage() {
                         setRegistrationToken(response.registrationToken);
                         setDisplayName(response.suggestedDisplayName);
                         setDisplayNameError(null);
-                        setRegistrationPassword("");
-                        setRegistrationPasswordConfirm("");
                         setAvatarPreview(null);
                         setSelectedAvatarFile(null);
                         setStep("profile");
@@ -465,40 +456,6 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <label className="text-sm font-medium text-muted-foreground" htmlFor="register-password">
-                  登录密码
-                </label>
-                <div className="grid gap-3">
-                  <Input
-                    autoComplete="new-password"
-                    className="h-12"
-                    id="register-password"
-                    onChange={event => {
-                      setRegistrationPassword(event.target.value);
-                    }}
-                    placeholder="设置登录密码"
-                    type="password"
-                    value={registrationPassword}
-                  />
-                  <Input
-                    autoComplete="new-password"
-                    className="h-12"
-                    id="register-password-confirm"
-                    onChange={event => {
-                      setRegistrationPasswordConfirm(event.target.value);
-                    }}
-                    placeholder="再次输入密码"
-                    type="password"
-                    value={registrationPasswordConfirm}
-                  />
-                  <div className="inline-flex items-start gap-2 rounded-[var(--radius-control)] border border-border/70 bg-background px-3 py-3 text-xs leading-5 text-muted-foreground">
-                    <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
-                    {passwordPolicyHint}
-                  </div>
-                </div>
-              </div>
-
               {displayNameError ? (
                 <div className="text-sm text-destructive">{displayNameError}</div>
               ) : null}
@@ -529,22 +486,10 @@ export function LoginPage() {
                   disabled={
                     !registrationToken ||
                     !displayName.trim() ||
-                    !registrationPassword ||
-                    !registrationPasswordConfirm ||
                     isCompletingProfile
                   }
                   onClick={() => {
                     if (!registrationToken) {
-                      return;
-                    }
-
-                    if (!strongPasswordSchema.safeParse(registrationPassword).success) {
-                      setSubmitError(passwordPolicyHint);
-                      return;
-                    }
-
-                    if (registrationPassword !== registrationPasswordConfirm) {
-                      setSubmitError("两次输入的密码不一致。");
                       return;
                     }
 
@@ -556,7 +501,6 @@ export function LoginPage() {
                       .completeWebRegistration({
                         registrationToken,
                         displayName: displayName.trim(),
-                        password: registrationPassword,
                         avatarFileId: null
                       })
                       .then(async response => {

@@ -47,6 +47,15 @@ const TEST_REGISTRATION_PASSWORD = "StrongPass#2026";
 const TEST_AUTH_CODE_HASH_SECRET = "feijia-dev-auth-code-hash-secret";
 
 type LoginHeaders = Record<string, string>;
+
+async function clearSmsRateLimitForPhone(phone: string, clientIp = "unknown") {
+  await redis.del([
+    `sms_rate:phone:${phone}`,
+    `sms_rate:ip:${clientIp}`,
+    `sms_rate:phone_ip:${phone}:${clientIp}`
+  ]);
+}
+
 async function uploadAvatar(cookie: string, name = "avatar.png") {
   const bytes = Uint8Array.from([137, 80, 78, 71, 13, 10, 26, 10]);
   const initResponse = await app.request(API_ROUTES.uploads.init, {
@@ -277,7 +286,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: loginPayload.registrationToken,
         displayName: loginPayload.suggestedDisplayName,
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -287,7 +295,7 @@ describe("auth flows", () => {
       ["13800138000"]
     );
     expect(userLookup.rows).toHaveLength(1);
-    expect(userLookup.rows[0]?.password_hash).toBeTruthy();
+    expect(userLookup.rows[0]?.password_hash).toBeNull();
     const userCookie = extractCookies(completeResponse);
 
     const meResponse = await app.request(API_ROUTES.auth.currentUser, {
@@ -339,11 +347,43 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: registrationPayload.registrationToken,
         displayName: "Password Pilot",
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
     expect(registerResponse.status).toBe(200);
+    const registerCookie = extractCookies(registerResponse);
+    await clearSmsRateLimitForPhone(phone);
+    const unsetPasswordCaptcha = await requestCaptcha();
+    const unsetPasswordLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        method: "password",
+        phone,
+        password: TEST_REGISTRATION_PASSWORD,
+        captchaChallengeId: unsetPasswordCaptcha.challengeId,
+        captchaCode: unsetPasswordCaptcha.captchaCode
+      })
+    });
+    expect(unsetPasswordLoginResponse.status).toBe(400);
+    expect(await unsetPasswordLoginResponse.json()).toMatchObject({
+      code: "INVALID_CREDENTIALS"
+    });
+    await clearSmsRateLimitForPhone(phone);
+    const passwordSetupSms = await requestCaptchaAndSms(phone);
+    const setupPasswordResponse = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie: registerCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        newPassword: TEST_REGISTRATION_PASSWORD,
+        smsRequestId: passwordSetupSms.requestId,
+        smsCode: passwordSetupSms.smsCode
+      })
+    });
+    expect(setupPasswordResponse.status).toBe(200);
 
     const invalidCaptcha = await requestCaptcha();
     const invalidLoginResponse = await app.request(API_ROUTES.auth.webLogin, {
@@ -383,7 +423,11 @@ describe("auth flows", () => {
 
   it("rate limits web password login failures by phone and source ip", async () => {
     const phone = "13800138701";
-    await loginWebUser(phone, { "x-forwarded-for": "203.0.113.51" });
+    await loginWebUser(
+      phone,
+      { "x-forwarded-for": "203.0.113.51" },
+      { password: TEST_REGISTRATION_PASSWORD }
+    );
 
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const captcha = await requestCaptcha({ "x-forwarded-for": "203.0.113.51" });
@@ -725,7 +769,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: secondLoginPayload.registrationToken,
         displayName: existingDisplayName,
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -737,7 +780,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: secondLoginPayload.registrationToken,
         displayName: "Retry Pilot",
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -816,8 +858,8 @@ describe("auth flows", () => {
     expect(updatedPayload.item.displayName).toBe("Profile Pilot");
     expect(updatedPayload.item.bio).toBe("Low altitude test profile.");
     expectPresignedUrlToMatch(updatedPayload.item.avatarUrl, uploadedAvatar.item.url);
-    expect(updatedPayload.item.phone).toBe("13800139009");
-    expect(updatedPayload.item.phoneMasked).toMatch(/9009$/);
+    expect(updatedPayload.item.phone).toBe("13800138009");
+    expect(updatedPayload.item.phoneMasked).toMatch(/8009$/);
     expect(updatedPayload.item.profileVisibility).toBe("followers");
     expect(updatedPayload.item.notifyComments).toBe(false);
     expect(updatedPayload.item.notifyMentions).toBe(false);
@@ -857,8 +899,8 @@ describe("auth flows", () => {
     expect(afterPayload.item.displayName).toBe("Profile Pilot");
     expect(afterPayload.item.bio).toBe("Low altitude test profile.");
     expectPresignedUrlToMatch(afterPayload.item.avatarUrl, uploadedAvatar.item.url);
-    expect(afterPayload.item.phone).toBe("13800139009");
-    expect(afterPayload.item.phoneMasked).toMatch(/9009$/);
+    expect(afterPayload.item.phone).toBe("13800138009");
+    expect(afterPayload.item.phoneMasked).toMatch(/8009$/);
     expect(afterPayload.item.profileVisibility).toBe("followers");
     expect(afterPayload.item.notifyComments).toBe(true);
     expect(afterPayload.item.notifyMentions).toBe(false);
@@ -866,8 +908,84 @@ describe("auth flows", () => {
     expect(afterPayload.item.emailDigest).toBe(true);
   });
 
+  it("sets the first web password without revoking the current session", async () => {
+    const phone = "13800138996";
+    const cookie = await loginWebUser(phone);
+
+    await clearSmsRateLimitForPhone(phone);
+    const passwordSetupSms = await requestCaptchaAndSms(phone);
+    const invalidSmsResponse = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        newPassword: TEST_REGISTRATION_PASSWORD,
+        smsRequestId: passwordSetupSms.requestId,
+        smsCode: "000000"
+      })
+    });
+    expect(invalidSmsResponse.status).toBe(400);
+    expect(await invalidSmsResponse.json()).toMatchObject({
+      code: "INVALID_SMS_CODE"
+    });
+
+    const otherPhoneSms = await requestCaptchaAndSms("13800138994");
+    const otherPhoneSmsResponse = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        newPassword: TEST_REGISTRATION_PASSWORD,
+        smsRequestId: otherPhoneSms.requestId,
+        smsCode: otherPhoneSms.smsCode
+      })
+    });
+    expect(otherPhoneSmsResponse.status).toBe(400);
+    expect(await otherPhoneSmsResponse.json()).toMatchObject({
+      code: "INVALID_SMS_CODE"
+    });
+
+    const changeResponse = await app.request(API_ROUTES.auth.webChangePassword, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        newPassword: TEST_REGISTRATION_PASSWORD,
+        smsRequestId: passwordSetupSms.requestId,
+        smsCode: passwordSetupSms.smsCode
+      })
+    });
+    expect(changeResponse.status).toBe(200);
+
+    const protectedResponse = await app.request(API_ROUTES.auth.protectedPing, {
+      method: "GET",
+      headers: { cookie }
+    });
+    expect(protectedResponse.status).toBe(200);
+
+    const profileResponse = await app.request(API_ROUTES.users.meProfile, {
+      method: "GET",
+      headers: { cookie }
+    });
+    const profilePayload = (await profileResponse.json()) as {
+      item: { hasPassword: boolean };
+    };
+    expect(profilePayload.item.hasPassword).toBe(true);
+  });
+
   it("revokes user web sessions after changing password", async () => {
-    const cookie = await loginWebUser("13800138997");
+    const phone = "13800138997";
+    const cookie = await loginWebUser(phone, undefined, {
+      password: TEST_REGISTRATION_PASSWORD
+    });
+    await clearSmsRateLimitForPhone(phone);
+    const passwordChangeSms = await requestCaptchaAndSms(phone);
     const changeResponse = await app.request(API_ROUTES.auth.webChangePassword, {
       method: "POST",
       headers: {
@@ -876,7 +994,9 @@ describe("auth flows", () => {
       },
       body: JSON.stringify({
         currentPassword: TEST_REGISTRATION_PASSWORD,
-        newPassword: "AnotherPass#2026"
+        newPassword: "AnotherPass#2026",
+        smsRequestId: passwordChangeSms.requestId,
+        smsCode: passwordChangeSms.smsCode
       })
     });
     expect(changeResponse.status).toBe(200);
@@ -893,7 +1013,7 @@ describe("auth flows", () => {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         method: "password",
-        phone: "13800138997",
+        phone,
         password: "AnotherPass#2026",
         captchaChallengeId: validCaptcha.challengeId,
         captchaCode: validCaptcha.captchaCode
@@ -905,26 +1025,32 @@ describe("auth flows", () => {
       user: { id: string };
     };
     expect(loginPayload.kind).toBe("authenticated");
+  });
 
-    const newCookie = extractCookies(loginWithNewPassword);
-    const revertChange = await app.request(API_ROUTES.auth.webChangePassword, {
+  it("checks bound-phone sms before validating the current web password", async () => {
+    const phone = "13800138995";
+    const cookie = await loginWebUser(phone, undefined, {
+      password: TEST_REGISTRATION_PASSWORD
+    });
+
+    const changeResponse = await app.request(API_ROUTES.auth.webChangePassword, {
       method: "POST",
       headers: {
-        cookie: newCookie,
+        cookie,
         "content-type": "application/json"
       },
       body: JSON.stringify({
-        currentPassword: "AnotherPass#2026",
-        newPassword: TEST_REGISTRATION_PASSWORD
+        currentPassword: "WrongPass#2026",
+        newPassword: "AnotherPass#2026",
+        smsRequestId: "sms_req_invalid",
+        smsCode: "000000"
       })
     });
-    expect(revertChange.status).toBe(200);
 
-    const verifyUserResponse = await app.request(API_ROUTES.auth.protectedPing, {
-      method: "GET",
-      headers: { cookie: newCookie }
+    expect(changeResponse.status).toBe(400);
+    expect(await changeResponse.json()).toMatchObject({
+      code: "INVALID_SMS_CODE"
     });
-    expect(verifyUserResponse.status).toBe(401);
   });
 
   it("rejects avatar upload when image size exceeds configured env limit", async () => {
@@ -968,7 +1094,9 @@ describe("auth flows", () => {
   });
 
   it("supports requesting and confirming a phone rebind with masked profile output", async () => {
-    const cookie = await loginWebUser("13800138019");
+    const cookie = await loginWebUser("13800138019", undefined, {
+      password: TEST_REGISTRATION_PASSWORD
+    });
 
     const beforeResponse = await app.request(API_ROUTES.users.meProfile, {
       method: "GET",
@@ -1050,8 +1178,61 @@ describe("auth flows", () => {
     expect(afterPayload.item.phoneMasked).toMatch(/8119$/);
   });
 
+  it("requires an existing password before phone rebind", async () => {
+    const cookie = await loginWebUser("13800138018");
+    const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
+      method: "POST"
+    });
+    const captchaPayload = (await captchaResponse.json()) as {
+      challengeId: string;
+    };
+    const captchaAnswer = await readCaptchaAnswerForTests(captchaPayload.challengeId);
+
+    const requestResponse = await app.request(API_ROUTES.users.mePhoneChangeRequest, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138118",
+        captchaChallengeId: captchaPayload.challengeId,
+        captchaCode: captchaAnswer
+      })
+    });
+
+    expect(requestResponse.status).toBe(403);
+    expect(await requestResponse.json()).toMatchObject({
+      code: "PASSWORD_REQUIRED"
+    });
+  });
+
+  it("requires an existing password before confirming a phone rebind", async () => {
+    const cookie = await loginWebUser("13800138017");
+
+    const confirmResponse = await app.request(API_ROUTES.users.mePhoneChangeConfirm, {
+      method: "POST",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        phone: "13800138117",
+        requestId: "sms_req_missing_password",
+        smsCode: "123456"
+      })
+    });
+
+    expect(confirmResponse.status).toBe(403);
+    expect(await confirmResponse.json()).toMatchObject({
+      code: "PASSWORD_REQUIRED"
+    });
+  });
+
   it("rejects phone rebind confirmation when the target phone is already taken", async () => {
-    const cookie = await loginWebUser("13800138029");
+    const cookie = await loginWebUser("13800138029", undefined, {
+      password: TEST_REGISTRATION_PASSWORD
+    });
     await loginWebUser("13800138039");
 
     const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
@@ -1241,7 +1422,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: appLoginResult.registrationToken,
         displayName: "移动端隔离测试",
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null,
         deviceLabel: "iPhone 16 Pro"
       })
@@ -1485,7 +1665,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: registrationPayload.registrationToken,
         displayName: suggestPayload.displayName,
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null
       })
     });
@@ -1534,7 +1713,6 @@ describe("auth flows", () => {
       body: JSON.stringify({
         registrationToken: (appLoginPayload as { registrationToken: string }).registrationToken,
         displayName: "移动端飞友",
-        password: TEST_REGISTRATION_PASSWORD,
         avatarFileId: null,
         deviceLabel: "iPhone 16 Pro"
       })

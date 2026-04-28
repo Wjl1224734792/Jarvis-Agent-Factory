@@ -83,7 +83,7 @@ describe("admin auth api client", () => {
     );
   });
 
-  it("requests web password changes with credentials", async () => {
+  it("requests web password setup without current credentials", async () => {
     const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
       new Response(JSON.stringify({ success: true }), {
         status: 200,
@@ -95,8 +95,9 @@ describe("admin auth api client", () => {
 
     const client = createApiClient({ baseUrl: "http://localhost:17382" });
     const payload = await client.changeWebPassword({
-      currentPassword: "Flight#123",
-      newPassword: "Flight#456"
+      newPassword: "Flight#456",
+      smsRequestId: "sms_1",
+      smsCode: "123456"
     });
 
     expect(payload.success).toBe(true);
@@ -106,10 +107,41 @@ describe("admin auth api client", () => {
         method: "POST",
         credentials: "include",
         body: JSON.stringify({
-          currentPassword: "Flight#123",
-          newPassword: "Flight#456"
+          newPassword: "Flight#456",
+          smsRequestId: "sms_1",
+          smsCode: "123456"
         })
       })
     );
+  });
+
+  it("maps password-required phone rebind errors to an actionable message", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          code: "PASSWORD_REQUIRED",
+          message: "请先设置登录密码"
+        }),
+        {
+          status: 403,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({ baseUrl: "http://localhost:17382" });
+
+    await expect(
+      client.requestPhoneChange({
+        phone: "13800138000",
+        captchaChallengeId: "captcha_1",
+        captchaCode: "ABCD"
+      })
+    ).rejects.toMatchObject({
+      code: "PASSWORD_REQUIRED",
+      message: "请先设置登录密码"
+    });
   });
 });

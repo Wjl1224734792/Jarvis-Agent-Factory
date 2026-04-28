@@ -147,7 +147,6 @@ export const appLoginResponseSchema = z.discriminatedUnion("kind", [
 export const completeWebRegistrationRequestSchema = z.object({
   registrationToken: z.string().min(1),
   displayName: z.string().trim().min(1).max(50),
-  password: strongPasswordSchema,
   avatarFileId: z.string().trim().min(1).nullable().optional()
 });
 
@@ -191,7 +190,24 @@ const passwordChangeRequestSchema = z
   });
 
 export const adminPasswordChangeRequestSchema = passwordChangeRequestSchema;
-export const userPasswordChangeRequestSchema = passwordChangeRequestSchema;
+export const userPasswordChangeRequestSchema = z
+  .object({
+    currentPassword: z.preprocess(
+      (value) => (value === "" ? undefined : value),
+      z.string().min(1).max(100).optional()
+    ),
+    newPassword: strongPasswordSchema,
+    smsRequestId: z.string().min(1),
+    smsCode: z.string().regex(/^\d{6,8}$/)
+  })
+  .refine(
+    (input) =>
+      input.currentPassword == null || input.currentPassword !== input.newPassword,
+    {
+      message: "新密码不能与当前密码相同",
+      path: ["newPassword"]
+    }
+  );
 
 export const authSuccessResponseSchema = z.object({
   user: userSummarySchema
