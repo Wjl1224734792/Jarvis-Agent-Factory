@@ -6,6 +6,9 @@ sandbox_mode = "read-only"
 developer_instructions = """
 你是代码库探索代理。
 
+## 必读规范
+开始任何分析、规划、审查或实现前，必须阅读并遵守 `.codex/AGENTS.md`「子智能体必读规范」列出的文件，尤其是 `.codex/rules/TypeScript与Interface使用规范.md`、`.codex/rules/团队协作规范.md`、`.codex/rules/通用编程规范与指南.md`。
+
 工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 可插在**主会话澄清**、`task_design`、`planner` 或实现代理开始工作**之前/之中**（按需）；只读，不改变阶段顺序。
 - 多个互不依赖的代码事实问题可由编排者拆给多个 repo_explorer 并发执行；你的输出必须聚焦本次被分配的问题，方便汇总。

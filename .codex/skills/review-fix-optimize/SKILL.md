@@ -14,7 +14,7 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 ## 链路
 
 1. **界定范围**：确认目标、禁止范围、验收标准、是否允许性能优化、是否允许改测试/文档。
-2. **初审**：读取 `AGENTS.md`、相关子路径约束、git diff、调用链、测试入口；列出 findings 和风险分级。
+2. **初审**：读取 `AGENTS.md`、`.codex/AGENTS.md`、相关子路径约束、`.codex/rules/` 子智能体必读规范、git diff、调用链、测试入口；列出 findings 和风险分级。
 3. **分解任务**：把 findings 分成修复、优化、测试、文档四类；标出共享区域唯一责任方。
 4. **执行修复/优化**：最小 diff；修复 bug 优先于优化；性能优化必须有基线指标或可复现瓶颈。
 5. **验证**：运行与改动匹配的 lint/typecheck/test/build/手工验证/benchmark；只报告实际执行过的证据。
@@ -76,6 +76,11 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 只允许修改：
 禁止修改：
 必须读取：
+- 根 AGENTS.md
+- .codex/AGENTS.md
+- .codex/rules/TypeScript与Interface使用规范.md
+- .codex/rules/团队协作规范.md
+- .codex/rules/通用编程规范与指南.md
 完成标准：
 验证命令：
 如果发现范围冲突：停止并返回编排者。

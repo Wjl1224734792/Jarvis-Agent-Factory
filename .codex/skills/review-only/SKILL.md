@@ -14,10 +14,11 @@ description: Use only when the user explicitly invokes $review-only, review-only
 ## 启动检查
 
 1. 明确审查对象：全仓、某个目录、某个分支差异、某个 PR、某类风险。
-2. 读取根 `AGENTS.md`，进入子目录时读取对应 `AGENTS.md`。
-3. 收集只读证据：`git status`、`git diff`、相关文件、调用链、测试入口、文档约束。
-4. 需要外部库/API 事实时，按需使用 `find-docs` 或官方文档；不要凭记忆判断易变 API。
-5. 不因发现问题而顺手修复；把修复建议写进报告。
+2. 读取根 `AGENTS.md`、`.codex/AGENTS.md`、进入子目录时读取对应 `AGENTS.md`。
+3. 读取并遵守子智能体必读规范：`.codex/rules/TypeScript与Interface使用规范.md`、`.codex/rules/团队协作规范.md`、`.codex/rules/通用编程规范与指南.md`。
+4. 收集只读证据：`git status`、`git diff`、相关文件、调用链、测试入口、文档约束。
+5. 需要外部库/API 事实时，按需使用 `find-docs` 或官方文档；不要凭记忆判断易变 API。
+6. 不因发现问题而顺手修复；把修复建议写进报告。
 
 ## 审查模式
 
@@ -68,6 +69,11 @@ description: Use only when the user explicitly invokes $review-only, review-only
 审查范围：
 重点风险：
 必须读取的约束文档：
+- 根 AGENTS.md
+- .codex/AGENTS.md
+- .codex/rules/TypeScript与Interface使用规范.md
+- .codex/rules/团队协作规范.md
+- .codex/rules/通用编程规范与指南.md
 输出：按严重程度列出 findings，包含文件、行号、证据、影响、建议。
 ```
 

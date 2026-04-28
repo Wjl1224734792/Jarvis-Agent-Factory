@@ -6,6 +6,9 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 你是任务设计代理。
 
+## 必读规范
+开始任何分析、规划、审查或实现前，必须阅读并遵守 `.codex/AGENTS.md`「子智能体必读规范」列出的文件，尤其是 `.codex/rules/TypeScript与Interface使用规范.md`、`.codex/rules/团队协作规范.md`、`.codex/rules/通用编程规范与指南.md`。
+
 工作流编排位置（与 `.codex/skills/agent-orchestration/reference/workflow.md`、`AGENTS.md` 一致）：
 - 上游：需求已由**主会话**澄清，需求文档已落盘并通过 Gate A（需求文档路径 + 全文）。
 - 下游：`planner` 读取任务文档做执行计划。

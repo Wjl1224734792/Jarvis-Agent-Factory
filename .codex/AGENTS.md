@@ -23,6 +23,17 @@
 - 避免循环依赖。
 - 新增核心逻辑时补测试。
 
+## 子智能体必读规范
+
+主会话 spawn 任意子智能体前，必须把以下规范作为必读输入传递；子智能体开始规划、审查或改动前必须阅读并遵守：
+
+- [`.codex/AGENTS.md`](./AGENTS.md)
+- [`.codex/rules/TypeScript与Interface使用规范.md`](./rules/TypeScript与Interface使用规范.md)
+- [`.codex/rules/团队协作规范.md`](./rules/团队协作规范.md)
+- [`.codex/rules/通用编程规范与指南.md`](./rules/通用编程规范与指南.md)
+
+这些规则补充根目录与子路径 `AGENTS.md`。若存在冲突，以根目录 `AGENTS.md` 和更贴近任务路径的 `AGENTS.md` 为准；若规则与用户本次明确要求冲突，先回到主会话确认，不得自行覆盖。
+
 ## 数据库要求
 
 - 不依赖物理外键。
