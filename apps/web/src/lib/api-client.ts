@@ -4,13 +4,15 @@ import { dispatchWebAuthInvalidEvent } from "./auth-events";
 import { getViewSessionId } from "./view-session";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
-type WebImportMetaEnv = {
+const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
+
+interface WebImportMetaEnv {
   VITE_WEB_API_BASE_URL?: string;
-};
+}
 const rawBaseUrl = (import.meta.env as WebImportMetaEnv).VITE_WEB_API_BASE_URL;
 
 function isLoopbackHost(hostname: string) {
-  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
+  return LOOPBACK_HOSTS.has(hostname);
 }
 
 function isPrivateIpv4(hostname: string) {
@@ -32,6 +34,14 @@ function isLocalDevHost(hostname: string) {
   return isLoopbackHost(hostname) || isPrivateIpv4(hostname);
 }
 
+/**
+ * 解析 Web 端实际使用的 API 基地址，并在局域网联调时自动对齐主机名。
+ *
+ * @param configuredBaseUrl Vite 中显式配置的 API 基地址。
+ * @param currentLocation 当前页面位置，测试场景可显式传入。
+ * @returns 最终生效的 API 基地址。
+ * @throws {never} 当输入 URL 非法时会直接回退原始配置，不会主动抛出异常。
+ */
 export function resolveWebApiBaseUrl(
   configuredBaseUrl: string | undefined,
   currentLocation?: Pick<Location, "hostname">
@@ -85,17 +95,17 @@ const AUTH_INVALID_ERROR_CODES = new Set([
   "UNAUTHORIZED"
 ]);
 
-type WebApiErrorOptions = {
+interface WebApiErrorOptions {
   code?: string;
   status?: number;
-};
+}
 
-type WebApiErrorMeta = {
+interface WebApiErrorMeta {
   authInvalid?: boolean;
   retryable?: boolean;
   status?: number;
   webMapped?: boolean;
-};
+}
 
 // 共享 client 负责大部分“服务端 schema 已覆盖”的接口，web 侧只扩展额外页面专属能力。
 const sharedClient = createApiClient({
@@ -136,6 +146,13 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
+/**
+ * 将服务端或网络错误翻译为适合 Web 端展示的统一文案。
+ *
+ * @param message 原始错误消息。
+ * @returns 面向终端用户的简化提示语。
+ * @throws {never} 该函数只做字符串匹配与映射，不会主动抛出异常。
+ */
 export function sanitizeWebApiErrorMessage(message: string) {
   if (
     message.includes("当前最大允许") ||
@@ -290,6 +307,13 @@ function attachWebApiErrorMeta<T extends Error>(
   return error as T & WebApiErrorMeta;
 }
 
+/**
+ * 判断当前错误是否适合提示用户重试。
+ *
+ * @param error 待判断的错误对象。
+ * @returns `true/false` 表示可否重试，无法判断时返回 `undefined`。
+ * @throws {never} 该函数只做错误元数据解析，不会主动抛出异常。
+ */
 export function getWebErrorRetryable(error: unknown) {
   if (!(error instanceof Error)) {
     return undefined;
@@ -311,6 +335,13 @@ export function getWebErrorRetryable(error: unknown) {
   return undefined;
 }
 
+/**
+ * 判断错误是否意味着 Web 登录态已经失效。
+ *
+ * @param error 待判断的错误对象。
+ * @returns 命中鉴权失效状态码、错误码或文案时返回 `true`。
+ * @throws {never} 该函数只做错误元数据解析，不会主动抛出异常。
+ */
 export function isWebAuthInvalidError(error: unknown) {
   if (!(error instanceof Error)) {
     return false;
@@ -350,6 +381,14 @@ function isAuthErrorMessage(message: string) {
   return normalized.includes("请先登录") || normalized.includes("login") || normalized.includes("unauthorized");
 }
 
+/**
+ * 为 Web 端统一映射 API 错误对象，并注入可重试/登录失效元数据。
+ *
+ * @param error 原始错误对象。
+ * @param options 错误码或状态码覆盖项。
+ * @returns 已完成用户文案翻译和元数据注入的错误对象。
+ * @throws {never} 该函数始终返回错误对象本身，不会主动抛出异常。
+ */
 export function mapWebApiError(error: unknown, options?: WebApiErrorOptions) {
   if (error instanceof ApiClientError) {
     const message = sanitizeWebApiErrorMessage(error.message);
@@ -461,7 +500,7 @@ async function deleteJson<T>(path: string): Promise<T> {
   return parseResponse<T>(response);
 }
 
-type WebBrand = {
+interface WebBrand {
   id: string;
   slug: string;
   name: string;
@@ -469,17 +508,17 @@ type WebBrand = {
   sortOrder: number;
   isEnabled: boolean;
   logoUrl?: string | null;
-};
+}
 
-type WebCategory = {
+interface WebCategory {
   id: string;
   slug: string;
   name: string;
   sortOrder: number;
   isEnabled: boolean;
-};
+}
 
-type WebModelListResponse = {
+interface WebModelListResponse {
   items: Array<{
     id: string;
     slug: string;
@@ -512,9 +551,9 @@ type WebModelListResponse = {
     brands: WebBrand[];
     powerTypes: Array<"electric" | "fuel" | "hybrid" | "other">;
   };
-};
+}
 
-type WebModelDetailResponse = {
+interface WebModelDetailResponse {
   item: WebModelListResponse["items"][number] & {
     description: string | null;
     isPublished: boolean;
@@ -537,7 +576,7 @@ type WebModelDetailResponse = {
       hasShared: boolean;
     };
   };
-};
+}
 
 function buildModelListSearch(input?: {
   categorySlugs?: string[];

@@ -102,9 +102,9 @@ const SANITIZE_CONFIG: Config = {
   RETURN_TRUSTED_TYPE: false
 };
 
-type SanitizeHtmlOptions = {
+interface SanitizeHtmlOptions {
   allowBlobMedia?: boolean;
-};
+}
 
 function normalizeUrl(input: string) {
   if (input.startsWith("//")) {
@@ -393,6 +393,14 @@ function stripBlobMedia(dirty: string) {
     .replace(/\s(?:src|poster)\s*=\s*blob:[^\s>]+/gi, "");
 }
 
+/**
+ * 对富文本 HTML 做前端展示前的安全清洗。
+ *
+ * @param dirty 待清洗的原始 HTML。
+ * @param options 可选的清洗策略，当前支持控制是否保留本地 blob 媒体。
+ * @returns 已过滤危险标签、属性和不安全链接的 HTML 字符串。
+ * @throws {never} DOMPurify 或 DOMParser 不可用时会自动回退到降级清洗路径。
+ */
 export function sanitizeHtml(dirty: string, options: SanitizeHtmlOptions = {}): string {
   if (!dirty || typeof dirty !== "string") {
     return "";
@@ -409,6 +417,13 @@ export function sanitizeHtml(dirty: string, options: SanitizeHtmlOptions = {}): 
   return options.allowBlobMedia === false ? stripBlobMedia(sanitized) : sanitized;
 }
 
+/**
+ * 将纯文本编码为可安全插入 HTML 的实体字符串。
+ *
+ * @param text 待编码的纯文本。
+ * @returns HTML 实体转义后的字符串。
+ * @throws {never} 该函数只做字符映射，不会主动抛出异常。
+ */
 export function escapeHtml(text: string): string {
   if (!text || typeof text !== "string") {
     return "";

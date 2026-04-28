@@ -1797,6 +1797,160 @@ describe.sequential("posts and social flows", () => {
     expect(publicDetail.status).toBe(404);
   });
 
+  it("rejects post updates when image attachments are not attachable by the author", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const authorCookie = await loginWebUser("13800138172");
+    const created = await createPost(authorCookie, {
+      type: "article",
+      title: "Article with invalid update media",
+      content: "Initial content",
+      contentCategoryId: articleCategoryId
+    });
+
+    const updateResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Article with invalid update media",
+        content: "Updated content",
+        contentHtml: "<p>Updated content</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: ["file_not_attachable"],
+        videoIds: []
+      })
+    });
+
+    expect(updateResponse.status).toBe(400);
+    expect(await updateResponse.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Invalid uploaded images."
+    });
+  });
+
+  it("rejects post updates when video attachments are not attachable by the author", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const authorCookie = await loginWebUser("13800138173");
+    const created = await createPost(authorCookie, {
+      type: "article",
+      title: "Article with invalid update video",
+      content: "Initial content",
+      contentCategoryId: articleCategoryId
+    });
+
+    const updateResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Article with invalid update video",
+        content: "Updated content",
+        contentHtml: "<p>Updated content</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: [],
+        videoIds: ["file_not_attachable_video"]
+      })
+    });
+
+    expect(updateResponse.status).toBe(400);
+    expect(await updateResponse.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Invalid uploaded videos."
+    });
+  });
+
+  it("rejects article post updates when content category is missing", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const authorCookie = await loginWebUser("13800138174");
+    const created = await createPost(authorCookie, {
+      type: "article",
+      title: "Article missing category on update",
+      content: "Initial content",
+      contentCategoryId: articleCategoryId
+    });
+
+    const updateResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: authorCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Article missing category on update",
+        content: "Updated content",
+        contentHtml: "<p>Updated content</p>",
+        contentCategoryId: null,
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(updateResponse.status).toBe(400);
+    expect(await updateResponse.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Article category is required."
+    });
+  });
+
+  it("rejects post updates when detached cover image is not attachable by the author", async () => {
+    const cookie = await loginWebUser("13800138175");
+    const created = await createPost(cookie, {
+      type: "moment",
+      title: "Moment with invalid detached update cover",
+      content: "Initial content",
+      imageIds: [],
+      videoIds: []
+    });
+
+    const updateResponse = await app.request(API_ROUTES.posts.detail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "moment",
+        title: "Moment with invalid detached update cover",
+        content: "Updated content",
+        contentHtml: "<p>Updated content</p>",
+        coverImageId: "file_not_attachable_cover",
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(updateResponse.status).toBe(400);
+    expect(await updateResponse.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Invalid cover image."
+    });
+  });
+
   it("supports comment edit, like and report flows", async () => {
     const authorCookie = await loginWebUser("13800138172");
     const created = await createPost(authorCookie, {
@@ -2284,6 +2438,32 @@ describe.sequential("posts and social flows", () => {
     expect(multipleVideosResponse.status).toBe(400);
   });
 
+  it("rejects moment creation when detached cover image is not owned and unattached", async () => {
+    const cookie = await loginWebUser("13800138152");
+
+    const response = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        cookie
+      },
+      body: JSON.stringify({
+        type: "moment",
+        title: "Moment with invalid detached cover",
+        content: "No images are attached yet.",
+        coverImageId: "file_not_attachable_cover",
+        imageIds: [],
+        videoIds: []
+      })
+    });
+
+    expect(response.status).toBe(400);
+    expect(await response.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Invalid cover image."
+    });
+  });
+
   it("accepts article creation with media counts above the legacy caps", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
@@ -2397,6 +2577,59 @@ describe.sequential("posts and social flows", () => {
     };
     expect(updated.item.images).toHaveLength(7);
     expect(updated.item.videos).toHaveLength(3);
+  });
+
+  it("rejects admin official article updates when image attachments are not attachable", async () => {
+    const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
+    const categoriesPayload = (await categoriesResponse.json()) as {
+      items: Array<{ id: string }>;
+    };
+    const articleCategoryId = categoriesPayload.items[0]?.id;
+    expect(articleCategoryId).toBeTruthy();
+
+    const adminCookie = await loginAdmin();
+    const createResponse = await app.request(API_ROUTES.posts.create, {
+      method: "POST",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        type: "article",
+        title: "Official article invalid media update",
+        content: "Initial official article content",
+        contentHtml: "<p>Initial official article content</p>",
+        imageIds: [],
+        videoIds: [],
+        contentCategoryId: articleCategoryId
+      })
+    });
+    expect(createResponse.status).toBe(200);
+    const created = (await createResponse.json()) as {
+      item: { id: string };
+    };
+
+    const updateResponse = await app.request(API_ROUTES.posts.adminOfficialDetail(created.item.id), {
+      method: "PUT",
+      headers: {
+        cookie: adminCookie,
+        "content-type": "application/json"
+      },
+      body: JSON.stringify({
+        title: "Official article invalid media update",
+        content: "Updated official article content",
+        contentHtml: "<p>Updated official article content</p>",
+        contentCategoryId: articleCategoryId,
+        imageIds: ["file_not_attachable"],
+        videoIds: []
+      })
+    });
+
+    expect(updateResponse.status).toBe(400);
+    expect(await updateResponse.json()).toMatchObject({
+      code: "BAD_REQUEST",
+      message: "Invalid uploaded images."
+    });
   });
 
   it("keeps rejecting post reports with more than three evidence images", async () => {

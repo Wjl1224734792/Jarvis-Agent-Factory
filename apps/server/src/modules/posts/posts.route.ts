@@ -239,6 +239,15 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
   if (result.kind === "invalid_cover") {
     return context.json({ code: "BAD_REQUEST", message: "Invalid cover image." }, 400);
   }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded images." }, 400);
+  }
+  if (result.kind === "invalid_videos") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded videos." }, 400);
+  }
+  if (result.kind === "invalid_category") {
+    return context.json({ code: "BAD_REQUEST", message: "Article category is required." }, 400);
+  }
   if (result.kind === "sensitive_content") {
     return context.json({ code: "BAD_REQUEST", message: "Post content contains blocked words." }, 400);
   }

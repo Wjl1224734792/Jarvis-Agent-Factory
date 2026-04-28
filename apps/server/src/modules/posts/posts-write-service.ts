@@ -1,0 +1,601 @@
+import { isValidPostType } from '../../lib/type-guards';
+import { shouldCountUniqueView } from '../../lib/view-tracking';
+import { socialService } from '../social/social.service';
+import { siteSettingsService } from '../site-settings/site-settings.service';
+import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from './post-media';
+import {
+  serializeAdminOfficialArticleDetail
+} from './posts-admin-presenters';
+import { isOfficialArticlePost, serializePostListItem } from './posts-presenters';
+import { postsRepo } from './posts.repo';
+import {
+  hasInvalidMomentMediaSelection,
+  isArticleCategoryMissing,
+  resolveMomentCoverImageId,
+  validatePostMediaOwnership
+} from './posts-write-guards';
+import {
+  evaluatePostWriteModeration,
+  inspectPostWriteContent
+} from './posts-write-moderation';
+
+type PostStatus = 'pending' | 'published' | 'rejected' | 'hidden';
+type PostType = 'article' | 'moment';
+type PostInteractionType = 'like' | 'favorite' | 'share';
+type CommentSort = 'hot' | 'latest';
+
+interface CurrentUser {
+  id: string;
+  role: 'user' | 'admin';
+}
+
+interface CreatePostInput {
+  authorId: string;
+  authorRole: 'user' | 'admin';
+  type: PostType;
+  title: string;
+  content: string;
+  contentHtml: string | null;
+  coverImageId: string | null;
+  imageIds: string[];
+  videoIds: string[];
+  contentCategoryId: string | null;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+}
+
+interface UpdatePostInput {
+  type: PostType;
+  title: string;
+  content: string;
+  contentHtml: string | null;
+  contentCategoryId: string | null;
+  coverImageId: string | null;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  imageIds: string[];
+  videoIds: string[];
+}
+
+interface UpdateAdminOfficialArticleInput {
+  title: string;
+  content: string;
+  contentHtml: string | null;
+  contentCategoryId: string;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  imageIds: string[];
+  videoIds: string[];
+}
+
+interface RecordPostViewInput {
+  currentUserId?: string | null;
+  sessionId?: string | null;
+  viewerFingerprint?: string | null;
+}
+
+interface ReportPostInput {
+  reason: string;
+  imageIds: string[];
+}
+
+export interface PostStatusUpdateItem {
+  [key: string]: unknown;
+}
+
+interface PostDetailPayload {
+  item: {
+    [key: string]: unknown;
+  };
+}
+
+interface PostsWriteServiceDependencies {
+  getPostDetail: (
+    id: string,
+    currentUser: CurrentUser,
+    options: { commentSort?: CommentSort }
+  ) => Promise<PostDetailPayload | null>;
+  validateOwnedReportImages: (
+    ownerId: string,
+    imageIds: string[]
+  ) => Promise<unknown[]>;
+}
+
+/**
+ * 聚合 posts 域写入链的首轮拆分，保持原有 repo、守卫、审核与详情组装职责不变。
+ *
+ * @param dependencies 仍由 `posts.service.ts` 持有的状态更新与详情读取组合依赖。
+ * @returns 供 `posts.service.ts` 复用的写入方法集合。
+ * @throws {Error} 透传 repo、审核与详情依赖抛出的异常。
+ */
+export function createPostsWriteService(dependencies: PostsWriteServiceDependencies) {
+  async function updatePostStatus(
+    id: string,
+    status: PostStatus,
+    rejectionReason?: string | null
+  ): Promise<PostStatusUpdateItem | null> {
+    const previous = await postsRepo.getPostById(id);
+    if (!previous) {
+      return null;
+    }
+
+    const item = await postsRepo.updatePostStatus(id, status, rejectionReason);
+    if (!item) {
+      return null;
+    }
+
+    if (previous.status !== item.status) {
+      const postType = isValidPostType(item.type) ? item.type : ('article' as const);
+      const statusLabel =
+        item.status === 'published'
+          ? '已发布'
+          : item.status === 'rejected'
+            ? '未通过审核'
+            : item.status === 'hidden'
+              ? '已下架'
+              : '待审核';
+
+      await socialService.recordSystemNotification({
+        userId: item.author.id,
+        type: 'post_audit_result',
+        title:
+          item.status === 'published'
+            ? '内容审核通过'
+            : item.status === 'rejected'
+              ? '内容审核未通过'
+              : '内容状态更新',
+        summary: `${postType === 'article' ? '文章' : '动态'}《${item.title}》当前状态：${statusLabel}`,
+        target: {
+          type: 'post',
+          id: item.id,
+          title: item.title,
+          status: item.status,
+          href: `/posts/${item.id}`
+        },
+        metadata: {
+          fromStatus: previous.status,
+          toStatus: item.status,
+          rejectionReason: item.rejectionReason ?? null,
+          postType
+        }
+      });
+    }
+
+    const [images, videos] = await Promise.all([
+      postsRepo.listPostImages([item.id]),
+      postsRepo.listPostVideos([item.id])
+    ]);
+    const [imagesByPostId, videosByPostId, coversByPostId] =
+      await Promise.all([
+        buildImagesByPostId(images, 'internal'),
+        buildVideosByPostId(videos, 'internal'),
+        buildCoversByPostId([item], 'internal')
+      ]);
+
+    return serializePostListItem(item, {
+      cover: coversByPostId.get(item.id) ?? null,
+      images: imagesByPostId.get(item.id) ?? [],
+      videos: videosByPostId.get(item.id) ?? [],
+      viewer: {
+        isAuthor: false,
+        isFollowingAuthor: false,
+        hasLiked: false,
+        hasFavorited: false,
+        hasShared: false
+      }
+    });
+  }
+
+  return {
+    async createPost(input: CreatePostInput) {
+      const sensitiveCheck = inspectPostWriteContent({
+        title: input.title,
+        content: input.content
+      });
+      if (sensitiveCheck.kind === 'sensitive_content') {
+        return sensitiveCheck;
+      }
+
+      const mediaValidation = await validatePostMediaOwnership({
+        imageIds: input.imageIds,
+        videoIds: input.videoIds,
+        listImageRecords: imageIds =>
+          postsRepo.listOwnedUnattachedImages(input.authorId, imageIds),
+        listVideoRecords: videoIds =>
+          postsRepo.listOwnedUnattachedVideos(input.authorId, videoIds)
+      });
+
+      if (mediaValidation.kind === 'invalid_images') {
+        return { kind: 'invalid_images' as const };
+      }
+
+      if (mediaValidation.kind === 'invalid_videos') {
+        return { kind: 'invalid_videos' as const };
+      }
+
+      const { imageIds: uniqueImageIds, videoIds: uniqueVideoIds } = mediaValidation;
+
+      if (hasInvalidMomentMediaSelection(input.type, uniqueImageIds, uniqueVideoIds)) {
+        return { kind: 'invalid_moment_media' as const };
+      }
+
+      const coverResolution = await resolveMomentCoverImageId({
+        postType: input.type,
+        imageIds: uniqueImageIds,
+        coverImageId: input.coverImageId,
+        validateDetachedCoverImageId: async coverImageId => {
+          const cover = await postsRepo.listOwnedUnattachedImages(input.authorId, [
+            coverImageId
+          ]);
+          return cover.length === 1;
+        }
+      });
+      if (coverResolution.kind === 'invalid_cover') {
+        return { kind: 'invalid_cover' as const };
+      }
+
+      if (isArticleCategoryMissing(input.type, input.contentCategoryId)) {
+        return { kind: 'invalid_category' as const };
+      }
+
+      const status: PostStatus = 'pending';
+      const item = await postsRepo.createPost({
+        authorId: input.authorId,
+        type: input.type,
+        title: input.title,
+        content: input.content,
+        contentHtml: input.contentHtml,
+        contentPlainText: input.content,
+        contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
+        sourceLabel: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
+        coverImageFileId: coverResolution.coverImageId,
+        status,
+        rejectionReason: null,
+        publishedAt: null,
+        imageIds: uniqueImageIds,
+        videoIds: uniqueVideoIds
+      });
+
+      if (!item) {
+        return { kind: 'not_found' as const };
+      }
+
+      const [attachedImages, attachedVideos] = await Promise.all([
+        postsRepo.listPostImages([item.id]),
+        postsRepo.listPostVideos([item.id])
+      ]);
+      const [imagesForPost, videosForPost, coversForPost] = await Promise.all([
+        buildImagesByPostId(attachedImages, 'internal'),
+        buildVideosByPostId(attachedVideos, 'internal'),
+        buildCoversByPostId([item], 'internal')
+      ]);
+      const serialized = serializePostListItem(item, {
+        cover: coversForPost.get(item.id) ?? null,
+        images: imagesForPost.get(item.id) ?? [],
+        videos: videosForPost.get(item.id) ?? [],
+        viewer: {
+          isAuthor: true,
+          isFollowingAuthor: false,
+          hasLiked: false,
+          hasFavorited: false,
+          hasShared: false
+        }
+      });
+
+      const moderation = await evaluatePostWriteModeration({
+        postType: input.type,
+        entityId: item.id,
+        title: input.title,
+        content: input.content
+      });
+      if (moderation.action === 'approve') {
+        const decided = await updatePostStatus(item.id, 'published', null);
+        if (decided) {
+          return {
+            kind: 'ok' as const,
+            item: { ...decided, content: item.content, comments: [] }
+          };
+        }
+      }
+      if (moderation.action === 'reject') {
+        const decided = await updatePostStatus(
+          item.id,
+          'rejected',
+          moderation.rejectionReason
+        );
+        if (decided) {
+          return {
+            kind: 'ok' as const,
+            item: { ...decided, content: item.content, comments: [] }
+          };
+        }
+      }
+
+      return serialized
+        ? {
+            kind: 'ok' as const,
+            item: {
+              ...serialized,
+              content: item.content,
+              comments: []
+            }
+          }
+        : { kind: 'not_found' as const };
+    },
+    async updateAdminOfficialArticle(id: string, input: UpdateAdminOfficialArticleInput) {
+      const existing = await postsRepo.getPostById(id);
+      if (!isOfficialArticlePost(existing)) {
+        return { kind: 'not_found' as const };
+      }
+
+      const sensitiveCheck = inspectPostWriteContent({
+        title: input.title,
+        content: input.content
+      });
+      if (sensitiveCheck.kind === 'sensitive_content') {
+        return sensitiveCheck;
+      }
+
+      const mediaValidation = await validatePostMediaOwnership({
+        imageIds: input.imageIds,
+        videoIds: input.videoIds,
+        listImageRecords: imageIds =>
+          postsRepo.listOwnedAttachableImages(existing.author.id, imageIds, id),
+        listVideoRecords: videoIds =>
+          postsRepo.listOwnedAttachableVideos(existing.author.id, videoIds, id)
+      });
+
+      if (mediaValidation.kind === 'invalid_images') {
+        return { kind: 'invalid_images' as const };
+      }
+
+      if (mediaValidation.kind === 'invalid_videos') {
+        return { kind: 'invalid_videos' as const };
+      }
+
+      const { imageIds: uniqueImageIds, videoIds: uniqueVideoIds } = mediaValidation;
+
+      const shouldAutoPublish = !(await siteSettingsService.shouldModeratePost('article'));
+      const updated = await postsRepo.updatePost({
+        id,
+        ownerId: existing.author.id,
+        title: input.title,
+        content: input.content,
+        contentHtml: input.contentHtml,
+        contentPlainText: input.content,
+        contentCategoryId: input.contentCategoryId,
+        sourceLabel: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
+        coverImageFileId: null,
+        status: shouldAutoPublish ? 'published' : 'pending',
+        rejectionReason: null,
+        imageIds: uniqueImageIds,
+        videoIds: uniqueVideoIds
+      });
+      if (!isOfficialArticlePost(updated)) {
+        return { kind: 'not_found' as const };
+      }
+
+      const payload = await serializeAdminOfficialArticleDetail(updated);
+      if (!payload) {
+        return { kind: 'not_found' as const };
+      }
+
+      return {
+        kind: 'ok' as const,
+        item: payload.item
+      };
+    },
+    async updatePost(id: string, currentUser: CurrentUser, input: UpdatePostInput) {
+      const existing = await postsRepo.getPostById(id);
+      if (!existing) {
+        return { kind: 'not_found' as const };
+      }
+
+      const canEdit = currentUser.role === 'admin' || currentUser.id === existing.author.id;
+      if (!canEdit) {
+        return { kind: 'forbidden' as const };
+      }
+
+      const sensitiveCheck = inspectPostWriteContent({
+        title: input.title,
+        content: input.content
+      });
+      if (sensitiveCheck.kind === 'sensitive_content') {
+        return sensitiveCheck;
+      }
+
+      const mediaValidation = await validatePostMediaOwnership({
+        imageIds: input.imageIds,
+        videoIds: input.videoIds,
+        listImageRecords: imageIds =>
+          postsRepo.listOwnedAttachableImages(existing.author.id, imageIds, id),
+        listVideoRecords: videoIds =>
+          postsRepo.listOwnedAttachableVideos(existing.author.id, videoIds, id)
+      });
+
+      if (mediaValidation.kind === 'invalid_images') {
+        return { kind: 'invalid_images' as const };
+      }
+
+      if (mediaValidation.kind === 'invalid_videos') {
+        return { kind: 'invalid_videos' as const };
+      }
+
+      const { imageIds: uniqueImageIds, videoIds: uniqueVideoIds } = mediaValidation;
+
+      const coverResolution = await resolveMomentCoverImageId({
+        postType: input.type,
+        imageIds: uniqueImageIds,
+        coverImageId: input.coverImageId,
+        validateDetachedCoverImageId: async coverImageId => {
+          const cover = await postsRepo.listOwnedAttachableImages(
+            existing.author.id,
+            [coverImageId],
+            id
+          );
+          return cover.length === 1;
+        }
+      });
+      if (coverResolution.kind === 'invalid_cover') {
+        return { kind: 'invalid_cover' as const };
+      }
+
+      if (isArticleCategoryMissing(input.type, input.contentCategoryId)) {
+        return { kind: 'invalid_category' as const };
+      }
+
+      const updated = await postsRepo.updatePost({
+        id,
+        ownerId: existing.author.id,
+        title: input.title,
+        content: input.content,
+        contentHtml: input.contentHtml,
+        contentPlainText: input.content,
+        contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
+        sourceLabel: input.sourceLabel,
+        sourceUrl: input.sourceUrl,
+        coverImageFileId: coverResolution.coverImageId,
+        status: 'pending',
+        rejectionReason: null,
+        imageIds: uniqueImageIds,
+        videoIds: uniqueVideoIds
+      });
+
+      if (!updated) {
+        return { kind: 'not_found' as const };
+      }
+
+      const moderation = await evaluatePostWriteModeration({
+        postType: input.type,
+        entityId: updated.id,
+        title: input.title,
+        content: input.content
+      });
+      if (moderation.action === 'approve') {
+        await updatePostStatus(updated.id, 'published', null);
+      }
+      if (moderation.action === 'reject') {
+        await updatePostStatus(
+          updated.id,
+          'rejected',
+          moderation.rejectionReason
+        );
+      }
+
+      const payload = await dependencies.getPostDetail(id, currentUser, {
+        commentSort: 'hot'
+      });
+      if (!payload) {
+        return { kind: 'not_found' as const };
+      }
+
+      return { kind: 'ok' as const, item: payload.item };
+    },
+    async deletePost(id: string, currentUser: CurrentUser) {
+      const post = await postsRepo.getPostById(id);
+      if (!post) {
+        return { kind: 'not_found' as const };
+      }
+
+      const canDelete =
+        currentUser.role === 'admin' || currentUser.id === post.author.id;
+      if (!canDelete) {
+        return { kind: 'forbidden' as const };
+      }
+
+      await postsRepo.deletePost(id);
+      return { kind: 'ok' as const };
+    },
+    async deleteAdminOfficialArticle(id: string) {
+      const existing = await postsRepo.getPostById(id);
+      if (!isOfficialArticlePost(existing)) {
+        return { kind: 'not_found' as const };
+      }
+
+      await postsRepo.deletePost(id);
+      return { kind: 'ok' as const };
+    },
+    async toggleInteraction(
+      postId: string,
+      currentUser: CurrentUser,
+      type: PostInteractionType
+    ) {
+      const post = await postsRepo.getPostById(postId);
+      if (!post || post.status !== 'published') {
+        return { kind: 'not_found' as const };
+      }
+
+      const result = await postsRepo.toggleInteraction({
+        postId,
+        userId: currentUser.id,
+        type
+      });
+
+      if (result.active) {
+        const notificationType = {
+          like: 'post_liked',
+          favorite: 'post_favorited',
+          share: 'post_shared'
+        } satisfies Record<
+          PostInteractionType,
+          'post_liked' | 'post_favorited' | 'post_shared'
+        >;
+
+        await socialService.recordNotification({
+          userId: post.author.id,
+          actorId: currentUser.id,
+          type: notificationType[type],
+          postId
+        });
+      }
+
+      return { kind: 'ok' as const };
+    },
+    async recordView(postId: string, input?: RecordPostViewInput) {
+      const post = await postsRepo.getPostViewStateById(postId);
+      if (!post || post.status !== 'published') {
+        return { kind: 'not_found' as const };
+      }
+
+      const shouldIncrement = await shouldCountUniqueView({
+        contentType: 'post',
+        contentId: postId,
+        sessionId: input?.sessionId ?? null,
+        viewerId: input?.currentUserId ?? null,
+        viewerFingerprint: input?.viewerFingerprint ?? null
+      });
+
+      if (shouldIncrement) {
+        await postsRepo.incrementPostViewCount(postId);
+      }
+
+      return { kind: 'ok' as const };
+    },
+    async reportPost(postId: string, reporterId: string, input: ReportPostInput) {
+      const post = await postsRepo.getPostById(postId);
+      if (!post || post.status !== 'published') {
+        return { kind: 'not_found' as const };
+      }
+
+      const evidenceImages = await dependencies.validateOwnedReportImages(
+        reporterId,
+        input.imageIds
+      );
+      if (evidenceImages.length !== input.imageIds.length) {
+        return { kind: 'invalid_images' as const };
+      }
+
+      await postsRepo.createReport({
+        postId,
+        reporterId,
+        reason: input.reason,
+        imageFileIds: JSON.stringify(input.imageIds)
+      });
+
+      return { kind: 'ok' as const };
+    },
+    updatePostStatus
+  };
+}

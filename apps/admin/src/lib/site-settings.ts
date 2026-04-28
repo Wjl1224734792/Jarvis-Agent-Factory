@@ -43,6 +43,31 @@ function resolveLegacyModerationEnabled(
   }
 }
 
+function resolveBooleanModerationMode(
+  enabled: boolean | undefined
+): ModerationMode | undefined {
+  if (enabled === undefined) {
+    return undefined;
+  }
+
+  return enabled ? "ai" : "manual";
+}
+
+function resolvePatchedModerationMode(
+  current: ModerationMode,
+  explicitMode: ModerationMode | undefined,
+  legacyEnabled: boolean | undefined
+): ModerationMode {
+  return explicitMode ?? resolveBooleanModerationMode(legacyEnabled) ?? current;
+}
+
+/**
+ * 解析单个审核域的最终审核模式。
+ * @param settings 当前站点设置或兼容旧字段的部分设置。
+ * @param key 需要解析的审核域键名。
+ * @returns 当前审核域对应的审核模式。
+ * @throws 本函数不主动抛出异常。
+ */
 export function resolveSiteModerationMode(
   settings: SiteSettingsLike,
   key: SiteModerationModeKey
@@ -55,6 +80,12 @@ export function resolveSiteModerationMode(
   return resolveLegacyModerationEnabled(settings, key) ? "ai" : "manual";
 }
 
+/**
+ * 解析全部审核域的最终审核模式集合。
+ * @param settings 当前站点设置或兼容旧字段的部分设置。
+ * @returns 完整的审核模式映射。
+ * @throws 本函数不主动抛出异常。
+ */
 export function resolveSiteModerationModes(settings: SiteSettingsLike) {
   return {
     article: resolveSiteModerationMode(settings, "article"),
@@ -97,44 +128,57 @@ function mergeModerationModes(
   } satisfies Partial<Record<SiteModerationModeKey, boolean | undefined>>;
 
   return {
-    article:
-      patch.moderationModes?.article ??
-      (fromLegacy.article !== undefined ? (fromLegacy.article ? "ai" : "manual") : undefined) ??
+    article: resolvePatchedModerationMode(
       current.article,
-    moment:
-      patch.moderationModes?.moment ??
-      (fromLegacy.moment !== undefined ? (fromLegacy.moment ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.article,
+      fromLegacy.article
+    ),
+    moment: resolvePatchedModerationMode(
       current.moment,
-    comment:
-      patch.moderationModes?.comment ??
-      (fromLegacy.comment !== undefined ? (fromLegacy.comment ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.moment,
+      fromLegacy.moment
+    ),
+    comment: resolvePatchedModerationMode(
       current.comment,
-    review:
-      patch.moderationModes?.review ??
-      (fromLegacy.review !== undefined ? (fromLegacy.review ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.comment,
+      fromLegacy.comment
+    ),
+    review: resolvePatchedModerationMode(
       current.review,
-    brand:
-      patch.moderationModes?.brand ??
-      (fromLegacy.brand !== undefined ? (fromLegacy.brand ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.review,
+      fromLegacy.review
+    ),
+    brand: resolvePatchedModerationMode(
       current.brand,
-    model:
-      patch.moderationModes?.model ??
-      (fromLegacy.model !== undefined ? (fromLegacy.model ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.brand,
+      fromLegacy.brand
+    ),
+    model: resolvePatchedModerationMode(
       current.model,
-    ranking:
-      patch.moderationModes?.ranking ??
-      (fromLegacy.ranking !== undefined ? (fromLegacy.ranking ? "ai" : "manual") : undefined) ??
+      patch.moderationModes?.model,
+      fromLegacy.model
+    ),
+    ranking: resolvePatchedModerationMode(
       current.ranking,
-    ratingTarget:
-      patch.moderationModes?.ratingTarget ??
-      (fromLegacy.ratingTarget !== undefined
-        ? (fromLegacy.ratingTarget ? "ai" : "manual")
-        : undefined) ??
-      current.ratingTarget
+      patch.moderationModes?.ranking,
+      fromLegacy.ranking
+    ),
+    ratingTarget: resolvePatchedModerationMode(
+      current.ratingTarget,
+      patch.moderationModes?.ratingTarget,
+      fromLegacy.ratingTarget
+    )
   } satisfies SiteSettings["moderationModes"];
 }
 
 // Keep admin-side writes aligned with the server's tri-state merge semantics.
+/**
+ * 基于当前站点设置和局部补丁生成后台提交载荷。
+ * @param current 当前完整站点设置。
+ * @param patch 后台表单提交的局部修改。
+ * @returns 同时包含新旧审核字段的更新输入。
+ * @throws 本函数不主动抛出异常。
+ */
 export function buildSiteSettingsUpdate(
   current: SiteSettings,
   patch: UpdateSiteSettingsInput

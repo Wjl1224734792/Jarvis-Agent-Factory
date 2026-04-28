@@ -35,7 +35,7 @@ import {
   resolveStorageProviderConfig,
   shouldUseSignedReadUrl,
   type StorageProvider
-} from "../src/modules/posts/storage-provider";
+} from "../src/lib/storage-provider";
 import {
   createSmsSender,
   isSmsRateLimitedError,

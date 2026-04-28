@@ -1,12 +1,12 @@
-export type UploadedMediaAsset = {
+export interface UploadedMediaAsset {
   id: string;
   url: string;
   fileName?: string;
-};
+}
 
 type RunnableBoolean = boolean | { run: () => boolean };
 
-export type RichTextToolbarEditor = {
+export interface RichTextToolbarEditor {
   isActive: (nameOrAttributes: string | Record<string, unknown>, attributes?: Record<string, unknown>) => boolean;
   can: () => {
     chain: () => {
@@ -16,19 +16,19 @@ export type RichTextToolbarEditor = {
       };
     };
   };
-};
+}
 
-export type RichTextToolbarStateItem = {
+export interface RichTextToolbarStateItem {
   key: string;
   active: boolean;
   disabled: boolean;
-};
+}
 
-type OfficialArticleDocument = {
+interface OfficialArticleDocument {
   summary: string;
   contentHtml: string;
   plainText: string;
-};
+}
 
 const OFFICIAL_ARTICLE_SUMMARY_ATTRIBUTE = "data-official-article-summary";
 
@@ -107,6 +107,12 @@ function removeMatchingMediaNodes(documentNode: Document, assetUrl: string) {
   }
 }
 
+/**
+ * 生成后台富文本工具栏按钮状态。
+ * @param editor 当前富文本编辑器实例；为空时返回禁用态按钮集合。
+ * @returns 按钮 key、激活态和禁用态组成的状态列表。
+ * @throws 本函数不主动抛出异常。
+ */
 export function buildAdminRichTextToolbarState(editor: RichTextToolbarEditor | null): RichTextToolbarStateItem[] {
   const focusChain = editor?.can().chain().focus();
   const canUndo = focusChain ? resolveRunnableBoolean(focusChain.undo()) : false;
@@ -138,6 +144,13 @@ export function buildAdminRichTextToolbarState(editor: RichTextToolbarEditor | n
   ];
 }
 
+/**
+ * 将后台媒体资源转换为富文本编辑器可插入节点。
+ * @param kind 待插入媒体类型。
+ * @param assets 已上传完成的媒体资源列表。
+ * @returns 可直接传给编辑器的插入节点描述。
+ * @throws 本函数不主动抛出异常。
+ */
 export function getAdminRichTextMediaInsertions(kind: "image" | "video", assets: UploadedMediaAsset[]) {
   if (kind === "image") {
     return assets.map((asset) => ({
@@ -158,10 +171,23 @@ export function getAdminRichTextMediaInsertions(kind: "image" | "video", assets:
   }));
 }
 
+/**
+ * 判断外部 HTML 值是否需要同步回编辑器。
+ * @param currentHtml 当前编辑器内的 HTML。
+ * @param nextValue 外部最新 HTML 值。
+ * @returns 两者不一致时返回 `true`。
+ * @throws 本函数不主动抛出异常。
+ */
 export function shouldSyncAdminRichTextValue(currentHtml: string, nextValue: string) {
   return currentHtml !== nextValue;
 }
 
+/**
+ * 从 HTML 中提取纯文本内容。
+ * @param html 待提取的 HTML 字符串。
+ * @returns 清理标签和多余空白后的纯文本。
+ * @throws 本函数不主动抛出异常；无 DOM 环境时会回退到字符串处理。
+ */
 export function extractPlainTextFromHtml(html: string) {
   if (!html.trim()) {
     return "";
@@ -175,6 +201,13 @@ export function extractPlainTextFromHtml(html: string) {
   return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+/**
+ * 构造带摘要前缀的官方文章文档内容。
+ * @param summary 官方文章摘要文本。
+ * @param contentHtml 正文 HTML 内容。
+ * @returns 包含最终 `contentHtml` 和 `plainText` 的文档结果。
+ * @throws 本函数不主动抛出异常。
+ */
 export function buildOfficialArticleDocument(summary: string, contentHtml: string): Pick<OfficialArticleDocument, "contentHtml" | "plainText"> {
   const trimmedSummary = summary.trim();
   const trimmedContentHtml = contentHtml.trim();
@@ -188,6 +221,12 @@ export function buildOfficialArticleDocument(summary: string, contentHtml: strin
   };
 }
 
+/**
+ * 解析官方文章文档，拆分摘要、正文和纯文本。
+ * @param contentHtml 待解析的文章 HTML，可为空。
+ * @returns 统一的官方文章文档结构。
+ * @throws 本函数不主动抛出异常；无 DOM 环境时会回退到正则处理。
+ */
 export function parseOfficialArticleDocument(contentHtml: string | null | undefined): OfficialArticleDocument {
   const trimmedContentHtml = contentHtml?.trim() ?? "";
 
@@ -228,6 +267,13 @@ export function parseOfficialArticleDocument(contentHtml: string | null | undefi
   };
 }
 
+/**
+ * 从文章 HTML 中移除指定媒体资源引用。
+ * @param html 原始文章 HTML。
+ * @param assetUrl 需要移除的媒体地址。
+ * @returns 删除匹配媒体节点后的 HTML。
+ * @throws 本函数不主动抛出异常；无 DOM 环境时会回退到字符串替换。
+ */
 export function removeAdminRichTextMediaReferenceFromHtml(html: string, assetUrl: string) {
   if (!html.trim() || !assetUrl) {
     return html;

@@ -1,6 +1,6 @@
 import type { AuthRole } from "@feijia/schemas";
 
-export type UserRecord = {
+export interface UserRecord {
   id: string;
   role: AuthRole;
   status: "active" | "banned";
@@ -14,4 +14,4 @@ export type UserRecord = {
   bannedUntil: Date | null;
   banReason: string | null;
   bannedBy: string | null;
-};
+}
