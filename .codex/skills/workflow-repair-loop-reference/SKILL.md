@@ -1,13 +1,15 @@
----
-name: review-fix-optimize
-description: Use only when the user explicitly invokes $review-fix-optimize, review-fix-optimize, “完整链路审查”, “审查修复优化复审”, or “审查/修复/优化/复审”; do not trigger for ordinary review, bugfix, or optimization requests unless this skill is named.
+﻿---
+name: workflow-repair-loop-reference
+description: Reference-only review-fix-optimize workflow for the default Codex config. Do not require users to invoke this skill; use it as supporting process documentation when the config routes to the full review/fix/optimize loop.
 ---
 
-# 审查修复优化链路
+# 审查修复优化参考链路
+
+本目录是项目级 `.codex/config.toml` 的审查修复优化闭环参考资料。闭环模式由项目配置按用户意图路由，**不要求用户通过 skill 名称触发**。
 
 ## 核心原则
 
-先审查，再修复或优化，最后复审。此技能用于用户明确要求完整链路时，把项目审查、代码审查、问题修复、性能优化和最终复审串成一个闭环。
+先审查，再修复或优化，最后复审。此参考流程用于用户明确要求完整链路时，把项目审查、代码审查、问题修复、性能优化和最终复审串成一个闭环。
 
 **红线：** 不跳过初审；不凭感觉优化；不在缺少验证证据时宣称完成；不让多个子代理同时修改同一共享区域。
 
@@ -124,3 +126,4 @@ description: Use only when the user explicitly invokes $review-fix-optimize, rev
 | 只相信子代理报告 | 主会话检查 diff 和验证输出 |
 | 修完不复审 | 对照初审 findings 逐项关闭 |
 | 能并发的审查/验证被无理由串行 | 同批启动，只有真实依赖才等待 |
+

@@ -30,14 +30,6 @@ permission:
 - 在没有基线时宣称性能提升
 - 代替领域 worker 实现优化
 
-## 必须遵守的仓库通用规范
-
-在开始审查前，必须读取以下仓库规范文件作为审查依据：
-
-1. `.opencode/rules/通用编程规范与指南.md` — 注释JSDoc/TSDoc、嵌套≤4层、禁止push/pop/splice/sort/reverse、优先命名导出与路径别名、禁止循环依赖、SOLID/DRY/KISS、3+分支用Map映射、强制===、箭头函数禁用于对象/类方法、Promise.all、DDD仅复杂业务、TDD核心逻辑测试先行、禁止物理外键、Tailwind禁止@apply仅用内联类名
-2. `.opencode/rules/团队协作规范.md` — Prettier(semi=true/singleQuote=true/printWidth=80/tabWidth=2/endOfLine=lf)、ESLint+TS strict=true、禁止隐式any用unknown/泛型优先、未使用变量/导入error、分支命名规范、Commit格式<type>(scope): subject、CI/CD lint→type-check→test→build
-3. `.opencode/rules/TypeScript与Interface使用规范.md` — 对象优先interface、联合|元组|映射条件类型|原始类型别名用type、Zod环境下凡外部数据定义的结构只用Zod schema不手写类型、声明合并和类契约仍用interface
-
 ## 审查规则
 
 1. 先确认关心的指标；未提供时列出建议指标

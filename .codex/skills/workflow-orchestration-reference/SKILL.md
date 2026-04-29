@@ -1,12 +1,11 @@
 ---
-name: agent-orchestration
-description: "Use only when the user directly invokes $agent-orchestration, agent-orchestration, or 明确要求调用 agent-orchestration 技能；不要因「启动编排」「走编排流程」「用多代理做」等普通意图自动触发。"
+name: workflow-orchestration-reference
+description: "Reference-only project workflow for the default Codex config. Do not require users to invoke this skill; read it only as supporting process documentation when the project config or an agent references it."
 ---
 
-# 多代理主编排（需求文档先行版）
+# 多代理主编排参考（需求文档先行版）
 
-本技能将加载了它的主会话变为**唯一的编排者**，通过 spawn 统一调度所有子代理。
-**本技能只能由用户直接调用时激活**——用户必须写出 `$agent-orchestration`、`agent-orchestration`，或明确说“调用 / 使用 agent-orchestration 技能”。仅表达「启动编排」「走完整流程」「用多代理处理」「帮我编排这个需求」等意图时，不得自动加载本技能。
+本目录是项目级 `.codex/config.toml` 的流程参考资料。主流程由项目配置默认生效，**不要求用户通过 skill 名称触发**。
 
 ---
 
@@ -30,7 +29,7 @@ description: "Use only when the user directly invokes $agent-orchestration, agen
 
 ## 核心约束
 
-1. **直接调用才可用** — 未见用户直接调用 `$agent-orchestration` / `agent-orchestration` / “agent-orchestration 技能”时，不得启动本流程
+1. **项目配置默认生效** — 本流程由项目级 `.codex/config.toml` 作为默认主控流程引用；不要求用户通过 skill 名称触发。
 2. **单一编排者** — 只有主会话有权 spawn，子代理禁止再 spawn 其他子代理
 3. **阶段 1 澄清不得外包** — 需求澄清必须由编排者直接与用户对话完成；只读探索可按需插入作为事实输入，但不得替代用户对话或生成需求结论
 4. **阶段 1 必须先问后写** — 收到用户需求后，编排者**必须先输出澄清问题**，不得直接撰写任务或计划。即使用户描述看似完整，也必须至少确认 1 个关键假设后再收敛。详见 `reference/workflow.md` 阶段 1 的提问框架。

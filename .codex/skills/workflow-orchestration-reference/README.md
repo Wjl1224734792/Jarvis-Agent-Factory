@@ -1,10 +1,10 @@
-# Agent Orchestration
+# Workflow Orchestration Reference
 
 单一编排者通过 `spawn` 统一调度子代理，完成“澄清需求 → 需求文档 → 任务拆解 → 执行规划 → 分配实现 → 评审交付”的流程。
 
 ## 适用场景
 
-只有用户直接调用 `$agent-orchestration`、`agent-orchestration`，或明确说“调用 / 使用 agent-orchestration 技能”时，才加载本技能。仅表达“启动编排”“走完整流程”“用多代理做”等普通意图时，不自动加载本技能。使用前需确保 Codex 配置中开启：
+本目录是项目级 `.codex/config.toml` 的默认编排流程参考资料，不要求用户通过 skill 名称触发。使用前需确保 Codex 配置中开启：
 
 ```toml
 [features]

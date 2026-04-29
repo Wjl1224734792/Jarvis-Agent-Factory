@@ -1,13 +1,15 @@
----
-name: review-only
-description: Use only when the user explicitly invokes $review-only, review-only, “只审查”, “只读审查”, or “只做审查不改代码”; do not trigger for ordinary review requests unless this skill is named.
+﻿---
+name: workflow-readonly-audit-reference
+description: Reference-only read-only review workflow for the default Codex config. Do not require users to invoke this skill; use it as supporting process documentation when the config routes to read-only review mode.
 ---
 
-# 只审查
+# 只读审查参考流程
+
+本目录是项目级 `.codex/config.toml` 的只读审查模式参考资料。只读审查由项目配置按用户意图路由，**不要求用户通过 skill 名称触发**。
 
 ## 核心原则
 
-只审查，不修改。此技能用于项目审查、代码审查、PR / diff 审查、架构风险审查、性能风险审查的只读场景。
+只审查，不修改。此参考流程用于项目审查、代码审查、PR / diff 审查、架构风险审查、性能风险审查的只读场景。
 
 **红线：** 不编辑文件，不格式化，不修复，不 stage，不 commit，不创建迁移，不改配置。除非用户结束只审查模式并明确要求修复。
 
@@ -116,3 +118,4 @@ description: Use only when the user explicitly invokes $review-only, review-only
 | 把风格偏好当缺陷 | 只报告可导致错误、风险或维护成本的问题 |
 | 没证据就下结论 | 给文件/行号/命令/文档依据 |
 | 有并发审查能力却逐个等待 | 同批只读审查一次性启动，整批返回后汇总 |
+
