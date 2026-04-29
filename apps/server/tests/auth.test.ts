@@ -147,14 +147,6 @@ beforeAll(async () => {
   await runMigrations();
 });
 
-beforeEach(async () => {
-  restoreEnvValues({
-    UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,
-    UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB: originalUploadMaxAvatarImageSizeMb
-  });
-  await resetIntegrationState("auth");
-});
-
 afterAll(async () => {
   restoreEnvValues({
     UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,
@@ -234,6 +226,15 @@ describe("auth flows", () => {
       });
     }
   });
+
+  describe.sequential("auth integration flows", () => {
+    beforeEach(async () => {
+      restoreEnvValues({
+        UPLOAD_MAX_IMAGE_SIZE_MB: originalUploadMaxImageSizeMb,
+        UPLOAD_MAX_AVATAR_IMAGE_SIZE_MB: originalUploadMaxAvatarImageSizeMb
+      });
+      await resetIntegrationState("auth");
+    });
 
   it("supports web captcha + sms + login + me + logout flow", async () => {
     const captchaResponse = await app.request(API_ROUTES.auth.captchaChallenge, {
@@ -1777,5 +1778,6 @@ describe("auth flows", () => {
       user: unknown;
     };
     expect(afterLogoutPayload.user).toBeNull();
+  });
   });
 });

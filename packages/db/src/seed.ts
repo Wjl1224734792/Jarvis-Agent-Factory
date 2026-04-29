@@ -2,11 +2,13 @@ import { eq, getTableName, isTable, or, sql } from "drizzle-orm";
 import { db } from "./client.js";
 import * as schema from "./schema.js";
 import {
+  auditRecordsTable,
   aircraftCategoriesTable,
   aircraftModelInteractionsTable,
   aircraftModelsTable,
   aircraftReviewsTable,
   aircraftSubmissionsTable,
+  devicesTable,
   brandApplicationsTable,
   brandsTable,
   contentCategoriesTable,
@@ -15,12 +17,20 @@ import {
   postCommentsTable,
   postInteractionsTable,
   postsTable,
+  rankingCommentLikesTable,
+  rankingCommentReportsTable,
   rankingCommentsTable,
+  rankingReportsTable,
+  sessionsTable,
   ratingTargetCommentsTable,
+  ratingTargetCommentLikesTable,
+  ratingTargetCommentReportsTable,
   ratingTargetRatingsTable,
+  ratingTargetReportsTable,
   ratingTargetsTable,
   rankingsTable,
   siteSettingsTable,
+  userSettingsTable,
   userFollowsTable,
   usersTable
 } from "./schema.js";
@@ -38,6 +48,64 @@ function quoteIdentifier(identifier: string) {
 
 export function getResetTableNames() {
   return [...resetTableNames];
+}
+
+function buildResetTableNames(
+  tables: Array<(typeof schema)[keyof typeof schema]>
+) {
+  return tables
+    .filter(isTable)
+    .map((table) => getTableName(table))
+    .sort();
+}
+
+const authResetTableNames = buildResetTableNames([
+  devicesTable,
+  filesTable,
+  sessionsTable,
+  userSettingsTable,
+  usersTable
+]);
+
+const rankingsResetTableNames = buildResetTableNames([
+  auditRecordsTable,
+  aircraftCategoriesTable,
+  aircraftModelsTable,
+  brandsTable,
+  devicesTable,
+  filesTable,
+  notificationsTable,
+  rankingCommentLikesTable,
+  rankingCommentReportsTable,
+  rankingCommentsTable,
+  rankingReportsTable,
+  rankingsTable,
+  ratingTargetCommentLikesTable,
+  ratingTargetCommentReportsTable,
+  ratingTargetCommentsTable,
+  ratingTargetRatingsTable,
+  ratingTargetReportsTable,
+  ratingTargetsTable,
+  sessionsTable,
+  siteSettingsTable,
+  userSettingsTable,
+  usersTable
+]);
+
+export type DatabaseResetProfile = "full" | "auth" | "rankings";
+
+export function getResetTableNamesForProfile(
+  profile: DatabaseResetProfile = "full"
+) {
+  if (profile === "auth") {
+    return [...authResetTableNames];
+  }
+
+  if (profile === "rankings") {
+    return [...rankingsResetTableNames];
+  }
+
+  return getResetTableNames();
 }
 
 const USER_IDS = {
@@ -525,6 +593,91 @@ async function seedPostMedia(adminUserId: string) {
     .onConflictDoNothing();
 }
 
+async function seedRankingMedia(adminUserId: string) {
+  await db
+    .insert(filesTable)
+    .values([
+      buildSeedFile({
+        id: FILE_IDS.rankingCommunityCover,
+        ownerId: USER_IDS.ranking,
+        bizType: "ranking-cover-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingCommunity.key,
+        fileName: "community-ranking-cover.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(23, 8)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingOfficialCover,
+        ownerId: adminUserId,
+        bizType: "ranking-cover-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingOfficial.key,
+        fileName: "official-ranking-cover.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(24, 8)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingCommunityMini,
+        ownerId: USER_IDS.ranking,
+        bizType: "ranking-item-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingMini.key,
+        fileName: "dji-mini-4-pro.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(23, 8, 10)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingCommunityMavic,
+        ownerId: USER_IDS.ranking,
+        bizType: "ranking-item-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingMavic.key,
+        fileName: "dji-mavic-3-pro.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(23, 8, 11)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingCommunityAutel,
+        ownerId: USER_IDS.ranking,
+        bizType: "ranking-item-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingAutel.key,
+        fileName: "autel-evo-lite-plus.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(23, 8, 12)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingOfficialMini,
+        ownerId: adminUserId,
+        bizType: "ranking-item-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingMini.key,
+        fileName: "official-dji-mini-4-pro.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(24, 8, 10)
+      }),
+      buildSeedFile({
+        id: FILE_IDS.rankingOfficialMavic,
+        ownerId: adminUserId,
+        bizType: "ranking-item-image",
+        mediaKind: "image",
+        objectKey: RUNTIME_SEED_ASSETS.images.rankingMavic.key,
+        fileName: "official-dji-mavic-3-pro.png",
+        mimeType: "image/png",
+        byteSize: 68,
+        createdAt: seededDate(24, 8, 11)
+      })
+    ])
+    .onConflictDoNothing();
+}
+
 async function seedPostCommentsAndInteractions() {
   await db
     .insert(postCommentsTable)
@@ -841,10 +994,13 @@ async function seedSiteSettings() {
     .onConflictDoNothing();
 }
 
-export async function resetDatabaseState() {
+export async function resetDatabaseState(options?: {
+  profile?: DatabaseResetProfile;
+}) {
+  const tableNames = getResetTableNamesForProfile(options?.profile ?? "full");
   await db.execute(
     sql.raw(
-      `TRUNCATE TABLE ${resetTableNames.map(quoteIdentifier).join(", ")} RESTART IDENTITY CASCADE;`
+      `TRUNCATE TABLE ${tableNames.map(quoteIdentifier).join(", ")} RESTART IDENTITY CASCADE;`
     )
   );
 }
@@ -879,12 +1035,26 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedNotifications();
 }
 
-type SeedDatabaseProfile = "demo" | "catalog";
+export async function seedRankingsDatabase(options?: { reset?: boolean }) {
+  await seedBaseDatabase(options);
+  const adminUserId = await ensureAdminUser();
+  await seedDemoAircraftCatalog();
+  await seedUsers();
+  await seedRankingMedia(adminUserId);
+  await seedRankings(adminUserId);
+}
+
+type SeedDatabaseProfile = "demo" | "catalog" | "rankings";
 
 export async function seedDatabase(options?: { reset?: boolean; profile?: SeedDatabaseProfile }) {
   if (options?.profile === "catalog") {
     await seedBaseDatabase(options);
     await seedDemoAircraftCatalog();
+    return;
+  }
+
+  if (options?.profile === "rankings") {
+    await seedRankingsDatabase(options);
     return;
   }
 

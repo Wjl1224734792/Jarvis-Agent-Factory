@@ -210,6 +210,33 @@ async function toUserSummary(
   };
 }
 
+/**
+ * 按用户 ID 直接读取展示摘要，避免调用方为了返回登录结果而额外依赖 session 读链路。
+ *
+ * @param userId 目标用户 ID。
+ * @returns 用户存在时返回摘要，否则返回 `null`。
+ * @throws {Error} 当头像 URL 解析失败时继续向上透传异常。
+ */
+async function findUserSummaryById(userId: string) {
+  const rows = await db
+    .select({
+      id: usersTable.id,
+      displayName: usersTable.displayName,
+      avatarFileId: usersTable.avatarFileId,
+      role: usersTable.role
+    })
+    .from(usersTable)
+    .where(eq(usersTable.id, userId))
+    .limit(1);
+
+  const user = rows[0];
+  if (!user) {
+    return null;
+  }
+
+  return toUserSummary(user);
+}
+
 async function localizeAdminUser(user: typeof usersTable.$inferSelect) {
   if (user.role === "admin" && user.displayName === "System Admin") {
     await db
@@ -477,6 +504,9 @@ export const authRepo = {
       .limit(1);
 
     return rows[0] ? toUserRecord(rows[0]) : null;
+  },
+  async findUserSummaryById(id: string) {
+    return findUserSummaryById(id);
   },
   async findUserByDisplayName(displayName: string) {
     const rows = await db

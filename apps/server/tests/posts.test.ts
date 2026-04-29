@@ -398,14 +398,6 @@ beforeAll(async () => {
   await runMigrations();
 });
 
-beforeEach(async () => {
-  restoreEnvValues({
-    UPLOAD_MAX_REPORT_IMAGE_SIZE_MB: originalUploadMaxReportImageSizeMb,
-    UPLOAD_MAX_POST_VIDEO_SIZE_MB: originalUploadMaxPostVideoSizeMb
-  });
-  await resetAndSeedPostState();
-});
-
 afterAll(async () => {
   restoreEnvValues({
     UPLOAD_MAX_REPORT_IMAGE_SIZE_MB: originalUploadMaxReportImageSizeMb,
@@ -859,6 +851,15 @@ describe.sequential("posts and social flows", () => {
       "author_a_primary"
     ]);
   });
+
+  describe.sequential("posts integration flows", () => {
+    beforeEach(async () => {
+      restoreEnvValues({
+        UPLOAD_MAX_REPORT_IMAGE_SIZE_MB: originalUploadMaxReportImageSizeMb,
+        UPLOAD_MAX_POST_VIDEO_SIZE_MB: originalUploadMaxPostVideoSizeMb
+      });
+      await resetAndSeedPostState();
+    });
 
   it("keeps SQL follow boost aligned with TS relationship boost profile for recommended base scores", async () => {
     const followerId = "seed_user_follower_a";
@@ -3638,7 +3639,7 @@ describe.sequential("posts and social flows", () => {
 
     const momentAuthorPayload = await readSocialNotifications(momentAuthorCookie);
     expect(momentAuthorPayload.unreadByCategory.system).toBeGreaterThan(0);
-    expect(
+  expect(
       momentAuthorPayload.items.some(
         (item) => item.type === "post_audit_result" && item.target.id === createdMoment.item.id
       )
@@ -4136,6 +4137,7 @@ describe.sequential("posts and social flows", () => {
     expect(bySlug.get("aerial")).toBe("航拍");
     expect(bySlug.get("tech")).toBe("技术");
     expect(bySlug.get("guide")).toBe("指南");
+  });
   });
 });
 

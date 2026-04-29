@@ -91,10 +91,6 @@ beforeAll(async () => {
   await runMigrations();
 });
 
-beforeEach(async () => {
-  await resetIntegrationState("demo");
-});
-
 afterAll(async () => {
   // The server suite shares one cached dbPool across files; ending it here
   // breaks later integration files running in the same Vitest process.
@@ -142,6 +138,11 @@ describe("rankings flows", () => {
       { id: "seed_2", rank: 2 }
     ]);
   });
+
+  describe.sequential("rankings integration flows", () => {
+    beforeEach(async () => {
+      await resetIntegrationState("rankings");
+    });
 
   it("returns persisted official rankings and community rankings", async () => {
     const response = await app.request(API_ROUTES.rankings.overview, { method: "GET" });
@@ -1419,5 +1420,6 @@ describe("rankings flows", () => {
       })
     });
     expect(itemCommentResponse.status).toBe(404);
+  });
   });
 });

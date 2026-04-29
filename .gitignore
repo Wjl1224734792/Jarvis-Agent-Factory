@@ -117,6 +117,7 @@ dist
 .pnp.*
 
 tmp/*
+.tmp/
 .cursor/plans/
 playwright-report/
 test-results/

@@ -56,10 +56,12 @@ export {
 export { runMigrations } from "./migrate.js";
 export {
   getResetTableNames,
+  getResetTableNamesForProfile,
   resetDatabaseState,
   seedAuthDatabase,
   seedBaseDatabase,
   seedDemoDatabase,
+  seedRankingsDatabase,
   seedDatabase
 } from "./seed.js";
 export { seedMockTestDataDatabase } from "./seed.test-data.js";

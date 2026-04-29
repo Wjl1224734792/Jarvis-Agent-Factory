@@ -6,7 +6,7 @@ import {
 import { authRepo } from "../src/modules/auth/auth.repo";
 import { resetRedisForTesting } from "../src/modules/auth/redis-client";
 
-type IntegrationSeedProfile = "auth" | "demo" | "catalog";
+type IntegrationSeedProfile = "auth" | "demo" | "catalog" | "rankings";
 
 async function seedByProfile(profile: IntegrationSeedProfile) {
   if (profile === "auth") {
@@ -22,7 +22,27 @@ async function seedByProfile(profile: IntegrationSeedProfile) {
     return;
   }
 
+  if (profile === "rankings") {
+    await seedDatabase({
+      profile: "rankings",
+      reset: false
+    });
+    return;
+  }
+
   await seedDatabase({ reset: false });
+}
+
+function resolveResetProfile(profile: IntegrationSeedProfile) {
+  if (profile === "auth") {
+    return "auth" as const;
+  }
+
+  if (profile === "rankings") {
+    return "rankings" as const;
+  }
+
+  return "full" as const;
 }
 
 export async function resetIntegrationState(
@@ -36,7 +56,9 @@ export async function resetIntegrationState(
     try {
       await resetRedisForTesting();
       authRepo.resetEphemeralState();
-      await resetDatabaseState();
+      await resetDatabaseState({
+        profile: resolveResetProfile(profile)
+      });
       await seedByProfile(profile);
       return;
     } catch (error) {

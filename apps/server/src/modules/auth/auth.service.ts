@@ -132,7 +132,7 @@ async function createCookieSession(
     refreshTokenHash: hashToken(refreshToken),
     refreshExpiresAt: new Date(Date.now() + REFRESH_TTL_MS)
   });
-  const summary = await authRepo.getUserSummaryBySession(session.id);
+  const summary = await authRepo.findUserSummaryById(user.id);
   if (!summary) {
     throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
   }
@@ -548,7 +548,7 @@ export const authService = {
       replacedRefreshTokenHash: session.refreshTokenHash
     });
 
-    const summary = await authRepo.getUserSummaryBySession(session.id);
+  const summary = await authRepo.findUserSummaryById(user.id);
     if (!summary) {
       throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
     }
@@ -583,7 +583,7 @@ export const authService = {
       replacedRefreshTokenHash: session.refreshTokenHash
     });
 
-    const summary = await authRepo.getUserSummaryBySession(session.id);
+    const summary = await authRepo.findUserSummaryById(user.id);
     if (!summary) {
       throw new AuthError("SESSION_EXPIRED", "Login session is unavailable.");
     }
