@@ -42,6 +42,10 @@ function resolveResetProfile(profile: IntegrationSeedProfile) {
     return "rankings" as const;
   }
 
+  if (profile === "catalog") {
+    return "catalog" as const;
+  }
+
   return "full" as const;
 }
 

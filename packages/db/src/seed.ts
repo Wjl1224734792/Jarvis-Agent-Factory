@@ -4,8 +4,14 @@ import * as schema from "./schema.js";
 import {
   auditRecordsTable,
   aircraftCategoriesTable,
+  aircraftModelCommentLikesTable,
+  aircraftModelCommentReportsTable,
+  aircraftModelCommentsTable,
   aircraftModelInteractionsTable,
+  aircraftModelReportsTable,
   aircraftModelsTable,
+  aircraftReviewLikesTable,
+  aircraftReviewReportsTable,
   aircraftReviewsTable,
   aircraftSubmissionsTable,
   devicesTable,
@@ -21,6 +27,9 @@ import {
   rankingCommentReportsTable,
   rankingCommentsTable,
   rankingReportsTable,
+  reviewCommentLikesTable,
+  reviewCommentReportsTable,
+  reviewCommentsTable,
   sessionsTable,
   ratingTargetCommentsTable,
   ratingTargetCommentLikesTable,
@@ -92,7 +101,35 @@ const rankingsResetTableNames = buildResetTableNames([
   usersTable
 ]);
 
-export type DatabaseResetProfile = "full" | "auth" | "rankings";
+const catalogResetTableNames = buildResetTableNames([
+  auditRecordsTable,
+  aircraftCategoriesTable,
+  aircraftModelCommentLikesTable,
+  aircraftModelCommentReportsTable,
+  aircraftModelCommentsTable,
+  aircraftModelInteractionsTable,
+  aircraftModelReportsTable,
+  aircraftModelsTable,
+  aircraftReviewLikesTable,
+  aircraftReviewReportsTable,
+  aircraftReviewsTable,
+  brandsTable,
+  contentCategoriesTable,
+  devicesTable,
+  filesTable,
+  notificationsTable,
+  postsTable,
+  reviewCommentLikesTable,
+  reviewCommentReportsTable,
+  reviewCommentsTable,
+  sessionsTable,
+  siteSettingsTable,
+  userFollowsTable,
+  userSettingsTable,
+  usersTable
+]);
+
+export type DatabaseResetProfile = "full" | "auth" | "rankings" | "catalog";
 
 export function getResetTableNamesForProfile(
   profile: DatabaseResetProfile = "full"
@@ -103,6 +140,10 @@ export function getResetTableNamesForProfile(
 
   if (profile === "rankings") {
     return [...rankingsResetTableNames];
+  }
+
+  if (profile === "catalog") {
+    return [...catalogResetTableNames];
   }
 
   return getResetTableNames();
