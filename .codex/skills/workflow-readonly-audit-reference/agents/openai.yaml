@@ -1,8 +1,0 @@
-﻿interface:
-  display_name: "只审查"
-  short_description: "只读审查项目、代码、风险与性能问题"
-  default_prompt: "Review this repository in read-only mode without making changes."
-
-policy:
-  allow_implicit_invocation: false
-
