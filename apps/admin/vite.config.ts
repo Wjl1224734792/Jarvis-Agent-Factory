@@ -349,6 +349,13 @@ export default defineConfig(({ mode }) => {
       "import.meta.env.VITE_ADMIN_API_BASE_URL": JSON.stringify(adminApiBaseUrl)
     },
     plugins: [react(), tailwindcss()],
+    resolve: {
+      alias: {
+        "@feijia/shared": path.resolve(__dirname, "../../packages/shared/src"),
+        "@feijia/schemas": path.resolve(__dirname, "../../packages/schemas/src"),
+        "@feijia/http-client": path.resolve(__dirname, "../../packages/http-client/src"),
+      }
+    },
     server: {
       port: devPort,
       host: devHost
