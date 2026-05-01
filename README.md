@@ -124,27 +124,16 @@ bun run infra:down
 bun run db:generate
 bun run db:migrate
 bun run db:push
-
-# 只灌数据（不删表）
-bun run db:seed              # 同 packages/db seed，当前 = demo
-bun run db:seed:base | demo | mock
-bun run db:seed:dev          # 同 db:seed
-bun run db:seed:prod         # 同 db:seed:base
-bun run db:seed:test-data    # 同 packages/db seed:test-data（= mock）
-
-# 清数据或重建 schema
-bun run db:clear             # 截断业务表 + 清 Redis，保留表结构
-bun run db:wipe-schema       # 删并重建 public / drizzle schema + 清 Redis（破坏性）
-
-# 全量重建：wipe-schema → migrate → seed
-bun run db:reset             # 默认 = db:reset:demo
-bun run db:reset:base | demo | mock
-bun run db:reset:dev | test-data   # 别名见下
-
-bun run setup:deploy         # migrate + seed:base，不启 Docker
-bun run setup:dev            # infra:up + db:reset:demo
-bun run setup:test           # infra:up + db:reset:mock（setup:test-data 同义）
 ```
+
+迁移记录（`packages/db/drizzle/`）：
+
+| 编号 | 文件 | 内容 |
+|------|------|------|
+| 0000 | `0000_flat_human_robot.sql` | 初始 schema |
+| 0001 | `0001_admin_user_status.sql` | 用户状态、封禁字段 |
+| 0002 | `0002_melted_maelstrom.sql` | 帖子来源 `source_label`、`source_url` |
+| 0003 | `0003_content_declaration.sql` | 内容声明：`content_source_type`、`source_usage_flags`、`source_description`、`ai_use_level`、`ai_generated_modalities` |
 
 要点：
 

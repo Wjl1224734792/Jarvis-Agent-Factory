@@ -68,6 +68,16 @@ export function toIsoString(value: Date | null) {
   return value ? value.toISOString() : null;
 }
 
+function parseStringArray(raw: string | null | undefined): string[] {
+  if (!raw) return [];
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
 function toPreview(content: string) {
   return content.length > 160 ? `${content.slice(0, 160)}...` : content;
 }
@@ -198,6 +208,7 @@ export function serializePostListItem(
     publishedAt: toIsoString(item.publishedAt),
     author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
     source: serializePostSource(item),
+    contentDeclaration: serializeContentDeclaration(item),
     cover: options.cover,
     images: options.images,
     videos: options.videos,
@@ -307,6 +318,26 @@ export function parseFileIdArray(value: string) {
   } catch {
     return [];
   }
+}
+
+export function serializeContentDeclaration(item: {
+  contentSourceType?: string | null;
+  sourceUsageFlags?: string | null;
+  sourceDescription?: string | null;
+  aiUseLevel?: string | null;
+  aiGeneratedModalities?: string | null;
+}) {
+  const sourceType = item.contentSourceType ?? 'original';
+  const aiUseLevel = item.aiUseLevel ?? 'none';
+  return {
+    sourceType,
+    sourceUsageFlags: parseStringArray(item.sourceUsageFlags ?? null),
+    sourceDescription: item.sourceDescription?.trim() || null,
+    aiUseLevel,
+    aiGeneratedModalities: aiUseLevel === 'generated'
+      ? parseStringArray(item.aiGeneratedModalities ?? null)
+      : [],
+  };
 }
 
 /**

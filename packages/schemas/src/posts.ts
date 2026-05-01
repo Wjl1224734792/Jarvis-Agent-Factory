@@ -15,6 +15,32 @@ export const postInteractionTypeSchema = z.enum(["like", "favorite", "share"]);
 export const commentSortSchema = z.enum(["hot", "latest"]);
 export const uploadBizTypeSchema = fileBizTypeSchema;
 
+export const contentSourceTypeSchema = z.enum([
+  "original",
+  "repost",
+  "translation",
+  "adaptation",
+  "compilation"
+]);
+
+export const sourceUsageFlagSchema = z.enum([
+  "quote",
+  "external_media",
+  "self_captured_media",
+  "old_event",
+  "data_reference"
+]);
+
+export const aiUseLevelSchema = z.enum(["none", "assisted", "generated"]);
+
+export const aiGeneratedModalitySchema = z.enum([
+  "text",
+  "image",
+  "audio",
+  "video",
+  "virtual_scene"
+]);
+
 export const postImageSchema = z.object({
   id: z.string().min(1),
   url: z.string().min(1),
@@ -53,9 +79,25 @@ export const postSourceSchema = z.object({
   url: sourceUrlSchema.nullable().default(null)
 });
 
+export const contentDeclarationSchema = z.object({
+  sourceType: contentSourceTypeSchema,
+  sourceUsageFlags: z.array(sourceUsageFlagSchema),
+  sourceDescription: z.string().nullable(),
+  aiUseLevel: aiUseLevelSchema,
+  aiGeneratedModalities: z.array(aiGeneratedModalitySchema)
+});
+
 const postSourceInputFields = {
   sourceLabel: z.string().min(1).max(80).nullable().default(null),
   sourceUrl: sourceUrlSchema.max(500).nullable().default(null)
+};
+
+const postDeclarationInputFields = {
+  contentSourceType: contentSourceTypeSchema,
+  sourceUsageFlags: z.array(sourceUsageFlagSchema).default([]),
+  sourceDescription: z.string().trim().max(500).nullable().default(null),
+  aiUseLevel: aiUseLevelSchema,
+  aiGeneratedModalities: z.array(aiGeneratedModalitySchema).default([])
 };
 
 function normalizeSourceInputValue(value: unknown) {
@@ -108,6 +150,7 @@ export const createPostInputSchema = z.preprocess(
     contentCategoryId: z.string().min(1).nullable().optional(),
     coverImageId: z.string().min(1).nullable().optional().default(null),
     ...postSourceInputFields,
+    ...postDeclarationInputFields,
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).default([])
   })
@@ -117,6 +160,22 @@ export const createPostInputSchema = z.preprocess(
         code: z.ZodIssueCode.custom,
         message: "Article content is required.",
         path: ["content"]
+      });
+    }
+
+    if (input.contentSourceType !== "original" && !input.sourceDescription?.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "Non-original content requires a source description.",
+        path: ["sourceDescription"]
+      });
+    }
+
+    if (input.aiUseLevel === "generated" && input.aiGeneratedModalities.length === 0) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: "AI-generated content must specify at least one generated modality.",
+        path: ["aiGeneratedModalities"]
       });
     }
 
@@ -214,6 +273,7 @@ export const postFeedItemSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   source: postSourceSchema.nullable().default(null),
+  contentDeclaration: contentDeclarationSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -270,6 +330,7 @@ export const postDetailSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   source: postSourceSchema.nullable().default(null),
+  contentDeclaration: contentDeclarationSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -346,6 +407,7 @@ export const adminOfficialArticleUpdateInputSchema = z.preprocess(
     contentHtml: z.string().trim().max(32000).nullable().optional(),
     contentCategoryId: z.string().min(1),
     ...postSourceInputFields,
+    ...postDeclarationInputFields,
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).default([])
   })
@@ -388,3 +450,7 @@ export type PostStatus = z.infer<typeof postStatusSchema>;
 export type PostCommentStatus = z.infer<typeof postCommentStatusSchema>;
 export type PostInteractionType = z.infer<typeof postInteractionTypeSchema>;
 export type UploadBizType = z.infer<typeof uploadBizTypeSchema>;
+export type ContentSourceType = z.infer<typeof contentSourceTypeSchema>;
+export type SourceUsageFlag = z.infer<typeof sourceUsageFlagSchema>;
+export type AiUseLevel = z.infer<typeof aiUseLevelSchema>;
+export type AiGeneratedModality = z.infer<typeof aiGeneratedModalitySchema>;

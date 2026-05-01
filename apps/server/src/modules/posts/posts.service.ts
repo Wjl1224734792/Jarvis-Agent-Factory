@@ -33,6 +33,7 @@ import {
   serializeCommentThreads,
   serializePostListItem,
   serializePostSource,
+  serializeContentDeclaration,
   toIsoString,
   toViewerState
 } from "./posts-presenters";
@@ -225,6 +226,11 @@ export const postsService = {
     contentCategoryId: string | null;
     sourceLabel: string | null;
     sourceUrl: string | null;
+    contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
+    sourceUsageFlags: string[];
+    sourceDescription: string | null;
+    aiUseLevel: 'none' | 'assisted' | 'generated';
+    aiGeneratedModalities: string[];
   }) {
     return postsWriteService.createPost(input);
   },
@@ -295,6 +301,7 @@ export const postsService = {
         publishedAt: toIsoString(item.publishedAt),
         author: buildPublicUserSummary(item.author, ipLocationLabelMap),
         source: serializePostSource(item),
+        contentDeclaration: serializeContentDeclaration(item),
         cover: coversByPostId.get(item.id) ?? null,
         images: imagesByPostId.get(item.id) ?? [],
         videos: videosByPostId.get(item.id) ?? [],
@@ -343,6 +350,11 @@ export const postsService = {
       contentCategoryId: string;
       sourceLabel: string | null;
       sourceUrl: string | null;
+      contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
+      sourceUsageFlags: string[];
+      sourceDescription: string | null;
+      aiUseLevel: 'none' | 'assisted' | 'generated';
+      aiGeneratedModalities: string[];
       imageIds: string[];
       videoIds: string[];
     }
@@ -420,6 +432,11 @@ export const postsService = {
       coverImageId: string | null;
       sourceLabel: string | null;
       sourceUrl: string | null;
+      contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
+      sourceUsageFlags: string[];
+      sourceDescription: string | null;
+      aiUseLevel: 'none' | 'assisted' | 'generated';
+      aiGeneratedModalities: string[];
       imageIds: string[];
       videoIds: string[];
     }
