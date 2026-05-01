@@ -14,7 +14,7 @@ description: "Reference-only project workflow for the default Codex config. Do n
 - `[features] multi_agent = true`
 - `.codex/agents/` 目录下所有子代理配置文件存在
 - 编排者可访问并传递上游文档全文
-- 编排者可访问并传递 `.codex/AGENTS.md` 与 `.codex/rules/` 下的子智能体必读规范
+- 编排者可访问并传递 `.codex/skills/behavioral-guidelines/SKILL.md` 与 `.codex/AGENTS.md`
 - 所有实现代理均遵守：**不得 spawn，不得越权重定义需求或任务**
 
 ---
@@ -42,7 +42,7 @@ description: "Reference-only project workflow for the default Codex config. Do n
 11. **默认并发** — 每个阶段先识别无依赖、无共享写入冲突的工作批次；能并发就并发，只有阶段闸门、用户确认、同文件/同共享区域写入、TDD 步骤依赖时才串行
 12. **先批量 spawn，后批量等待** — 同一并发批次必须先一次性启动全部子代理，再等待整批结果；不得对无依赖任务逐个 spawn / wait
 13. **只读 sidecar 优先并发** — 代码探索、文档研究、只读专项审查可在不改变阶段闸门的前提下，与主线阶段并发收集事实证据
-14. **子智能体必读规范** — 每次 spawn 必须要求子代理阅读并遵守 `.codex/AGENTS.md`、`.codex/rules/TypeScript与Interface使用规范.md`、`.codex/rules/团队协作规范.md`、`.codex/rules/通用编程规范与指南.md`
+14. **子智能体必读规范** — 每次 spawn 必须要求子代理阅读并遵守 `.codex/skills/behavioral-guidelines/SKILL.md` 与 `.codex/AGENTS.md`
 
 ---
 

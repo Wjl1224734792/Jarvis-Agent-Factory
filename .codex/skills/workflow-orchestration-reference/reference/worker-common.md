@@ -21,10 +21,8 @@
 
 - 根目录 `AGENTS.md`
 - 当前任务涉及子路径的 `AGENTS.md`
+- `.codex/skills/behavioral-guidelines/SKILL.md`
 - `.codex/AGENTS.md`
-- `.codex/rules/TypeScript与Interface使用规范.md`
-- `.codex/rules/团队协作规范.md`
-- `.codex/rules/通用编程规范与指南.md`
 
 若上述规范与 Execution Packet 或代码现状冲突，先回到编排者确认，不得自行覆盖。
 

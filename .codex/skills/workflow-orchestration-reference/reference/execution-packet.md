@@ -53,11 +53,8 @@ batch-1 / batch-2 / ...
 - plan: <路径>
 - analysis/research: <路径，可选>
 - codex_rules:
+  - .codex/skills/behavioral-guidelines/SKILL.md
   - .codex/AGENTS.md
-  - .codex/rules/TypeScript与Interface使用规范.md
-  - .codex/rules/团队协作规范.md
-  - .codex/rules/通用编程规范与指南.md
-
 ### allowed_paths
 - 允许修改的目录 / 文件
 - 允许新增的目录 / 文件
@@ -105,7 +102,7 @@ tdd / test_after / manual_only
 - **可追溯：** requirement_ids 必须来自需求文档中的 `REQ-XXX`，不得临时编造
 - **边界明确：** in_scope / out_of_scope 必须具体，不允许"相关功能"等模糊表述
 - **路径明确：** allowed_paths / forbidden_paths 必须是具体路径，不允许"合理修改"等模糊表述
-- **规范完整：** input_documents 必须包含 `.codex/AGENTS.md` 与 `.codex/rules/` 的子智能体必读规范
+- **规范完整：** input_documents 必须包含 `.codex/skills/behavioral-guidelines/SKILL.md` 与 `.codex/AGENTS.md`
 - **可验收：** acceptance_criteria 必须可验证，不允许"代码质量好"等主观表述
 - **可交接：** handoff_notes 必须包含对下游的具体说明
 - **可调度：** parallel_batch / depends_on 必须让编排者知道哪些任务能同批 spawn，哪些任务必须等待
