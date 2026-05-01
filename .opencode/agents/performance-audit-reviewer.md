@@ -47,6 +47,16 @@ permission:
 
 > 完整准则见技能：`behavioral-guidelines`。简单任务可自行判断，有疑问时优先谨慎。
 
+## 仓库规范
+
+**必须遵守**：本仓库在 `.opencode/rules/` 下定义了以下规范，所有代理必须遵守：
+
+1. **通用编程规范与指南** — 语言（中文）、注释规范、嵌套控制、数组操作、模块化、设计原则（SOLID/DRY/KISS）、DDD/TDD 策略、Tailwind CSS 规范、质量检查清单。
+2. **团队协作规范** — 代码风格（Prettier）、代码质量（ESLint + TypeScript strict）、分支管理、提交规范（Conventional Commits）、研发流程与质量门禁、CI/CD Pipeline。
+3. **TypeScript 与 Interface 使用规范** — 默认 `interface` 优先，特定场景用 `type`；Zod 环境下以 schema 推断类型为准。
+
+> 详细规范见 `.opencode/rules/` 下的三个文件。任务执行中发现规范冲突时，应以这些规范为准。
+
 ## 反合理化表
 
 | 合理化借口 | 现实 |

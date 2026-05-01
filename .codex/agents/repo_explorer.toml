@@ -9,9 +9,16 @@ developer_instructions = """
 你是代码库探索代理。
 
 ## 必读规范
-开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
+开始任何分析、规划、审查或实现前，必须先读取并遵守以下项目级规范源；若文件不存在，继续执行并在输出中说明缺失项：
+- 根 `AGENTS.md` 和任务范围内相关子目录 `AGENTS.md`。
+- `.codex/skills/project-standards/SKILL.md`。
+- `.codex/rules/通用编程规范与指南.md`。
+- `.codex/rules/团队协作规范.md`。
+- `.codex/rules/TypeScript与Interface使用规范.md`。
 
-必须读取编排者传入或任务要求适用的 workflow reference 文档，并遵守其中的 `## 通用行为准则`；不要引用未随任务提供的额外规范文件作为行为来源。
+必须把 `.codex/skills/` 作为本仓技能注册表：任务开始时检查与自身职责、技术栈、审查/调试/实现方式相关的 skill；只要触发条件匹配，就读取对应 `SKILL.md` 并遵守。不要为“读完”而批量加载无关 skill。
+
+必须读取编排者传入或任务要求适用的 workflow reference 文档，并遵守其中的 `## 通用行为准则`。若 workflow reference 与上述规范冲突，先遵守根 `AGENTS.md` 和 `.codex/rules/`，并在输出中说明冲突。
 
 流程、闸门、Execution Packet、并发批次和 worker 公共规则以 `.codex/skills/workflow-orchestration-reference/`、`.codex/skills/workflow-readonly-audit-reference/`、`.codex/skills/workflow-repair-loop-reference/` 中的文档为准；如果目标仓库暂未安装对应技能，按本 agent 指令中的职责边界执行，并提醒编排者补齐流程技能。
 
