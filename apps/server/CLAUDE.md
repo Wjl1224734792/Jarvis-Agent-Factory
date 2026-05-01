@@ -1,9 +1,0 @@
-# @feijia/server — CLAUDE.md
-
-本文件为 Claude Code 入口。server 应用规则以 [AGENTS.md](./AGENTS.md) 为准，本文件仅做路由。
-
-## 规则源
-
-- **server 规则**：[`AGENTS.md`](./AGENTS.md)
-- **apps 级规则**：[`apps/AGENTS.md`](../AGENTS.md)
-- **项目级规则**：[`AGENTS.md`](../../AGENTS.md) — L0–L5 全部约束
