@@ -18,21 +18,29 @@ import {
   ReadOutlined,
   SafetyCertificateOutlined,
   ScheduleOutlined,
-  TrophyOutlined
+  TrophyOutlined,
+  UserOutlined
 } from "@ant-design/icons";
 import { matchPath } from "react-router-dom";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 
-export type AdminNavItem = {
+export interface AdminNavItem {
   group: "数据总览" | "审核" | "运营" | "管理";
   to: string;
   label: string;
   hint: string;
   icon: typeof RadarChartOutlined;
   end: boolean;
-};
+}
 
 export type AdminNavGroup = AdminNavItem["group"];
+
+const ADMIN_COMMENT_ROUTE_PATHS = new Set<string>([
+  APP_ROUTES.adminReviewComments,
+  APP_ROUTES.adminModelComments,
+  APP_ROUTES.adminRankingComments,
+  APP_ROUTES.adminRatingTargetComments
+]);
 
 export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   {
@@ -213,6 +221,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementUsers,
+    label: "用户管理",
+    hint: "搜索用户资料，查看详情，并处理封禁或解封操作",
+    icon: UserOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: ADMIN_ROUTE_PATHS.managementSecurity,
     label: "安全设置",
     hint: "修改管理员密码与后台账号安全配置",
@@ -231,9 +247,7 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
 
 export const ADMIN_NAV_GROUPS = Array.from(
   ADMIN_NAV_ITEMS.reduce((map, item) => {
-    const items = map.get(item.group) ?? [];
-    items.push(item);
-    map.set(item.group, items);
+    map.set(item.group, [...(map.get(item.group) ?? []), item]);
     return map;
   }, new Map<AdminNavGroup, AdminNavItem[]>())
 ).map(([group, items]) => ({
@@ -241,10 +255,23 @@ export const ADMIN_NAV_GROUPS = Array.from(
   items
 }));
 
+/**
+ * 生成后台导航分组的稳定 key。
+ * @param group 导航分组名称。
+ * @returns 可用于菜单组件的分组 key。
+ * @throws 本函数不主动抛出异常。
+ */
 export function getAdminNavGroupKey(group: AdminNavGroup) {
   return `group:${group}`;
 }
 
+/**
+ * 判断导航项是否与当前路径匹配。
+ * @param pathname 当前路由路径。
+ * @param item 待判断的导航项。
+ * @returns 命中路由匹配时返回 `true`。
+ * @throws 本函数不主动抛出异常。
+ */
 export function isAdminNavItemActive(pathname: string, item: AdminNavItem) {
   return Boolean(
     matchPath(
@@ -275,12 +302,7 @@ function normalizeAdminPath(pathname: string) {
   if (pathname === APP_ROUTES.adminPostComments) {
     return ADMIN_ROUTE_PATHS.moderationComments;
   }
-  if (
-    pathname === APP_ROUTES.adminReviewComments ||
-    pathname === APP_ROUTES.adminModelComments ||
-    pathname === APP_ROUTES.adminRankingComments ||
-    pathname === APP_ROUTES.adminRatingTargetComments
-  ) {
+  if (ADMIN_COMMENT_ROUTE_PATHS.has(pathname)) {
     return ADMIN_ROUTE_PATHS.moderationComments;
   }
   if (pathname === APP_ROUTES.adminBrandApplications) {
@@ -304,6 +326,9 @@ function normalizeAdminPath(pathname: string) {
   if (pathname === ADMIN_ROUTE_PATHS.managementSecurity) {
     return ADMIN_ROUTE_PATHS.managementSecurity;
   }
+  if (pathname === ADMIN_ROUTE_PATHS.managementUsers) {
+    return ADMIN_ROUTE_PATHS.managementUsers;
+  }
   if (pathname === ADMIN_ROUTE_PATHS.officialArticles) {
     return ADMIN_ROUTE_PATHS.managementOfficialArticles;
   }
@@ -323,6 +348,12 @@ function normalizeAdminPath(pathname: string) {
   return pathname;
 }
 
+/**
+ * 计算当前路径对应的激活导航项路径集合。
+ * @param pathname 当前路由路径。
+ * @returns 命中的导航项 `to` 路径列表。
+ * @throws 本函数不主动抛出异常。
+ */
 export function getActiveAdminNavItemPaths(pathname: string) {
   const normalizedPathname = normalizeAdminPath(pathname);
   return ADMIN_NAV_ITEMS.filter((item) => isAdminNavItemActive(normalizedPathname, item)).map(
@@ -330,6 +361,12 @@ export function getActiveAdminNavItemPaths(pathname: string) {
   );
 }
 
+/**
+ * 生成后台导航选中态和展开态。
+ * @param pathname 当前路由路径。
+ * @returns 标准化路径、当前激活项以及菜单选中状态。
+ * @throws 本函数不主动抛出异常。
+ */
 export function getAdminNavigationState(pathname: string) {
   const normalizedPathname = normalizeAdminPath(pathname);
   const activeItem =

@@ -20,6 +20,7 @@ import {
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
   smsCodeResponseSchema,
+  userPasswordChangeRequestSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
 } from "@feijia/schemas";
@@ -108,12 +109,51 @@ function getRequestMetadata(
   };
 }
 
+function currentAuthErrorResponse(context: Context<{ Variables: AuthVariables }>) {
+  const errorCode = context.get("authErrorCode");
+  if (errorCode === "TOKEN_EXPIRED") {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "TOKEN_EXPIRED",
+        message: "Access token expired."
+      }),
+      401
+    );
+  }
+
+  if (errorCode === "USER_BANNED") {
+    return context.json(
+      authErrorResponseSchema.parse({
+        code: "USER_BANNED",
+        message: "账号已被封禁，请联系管理员"
+      }),
+      403
+    );
+  }
+
+  return null;
+}
+
 // 先处理登录、注册、验证码等匿名可访问接口，随后再挂载当前用户解析中间件。
 authRoute.post(API_ROUTES.auth.captchaChallenge, async (context) => {
-  const payload = captchaChallengeResponseSchema.parse(
-    await authService.requestCaptchaChallenge()
-  );
-  return context.json(payload);
+  try {
+    const payload = captchaChallengeResponseSchema.parse(
+      await authService.requestCaptchaChallenge({ clientIp: getClientIp(context) })
+    );
+    return context.json(payload);
+  } catch (error) {
+    if (error instanceof AuthError) {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: error.code,
+          message: error.message
+        }),
+        error.code === "RATE_LIMITED" ? 429 : 400
+      );
+    }
+
+    throw error;
+  }
 });
 
 authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
@@ -121,7 +161,7 @@ authRoute.post(API_ROUTES.auth.smsRequest, async (context) => {
 
   try {
     const payload = smsCodeResponseSchema.parse(
-      await authService.requestSmsCode(input)
+      await authService.requestSmsCode(input, { clientIp: getClientIp(context) })
     );
     return context.json(payload);
   } catch (error) {
@@ -157,7 +197,10 @@ authRoute.post(API_ROUTES.auth.webLogin, async (context) => {
     return context.json(webLoginResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
+      const status =
+        error.code === "ADMIN_ACCOUNT_LOCKED" || error.code === "RATE_LIMITED"
+          ? 429
+          : error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
@@ -182,12 +225,13 @@ authRoute.post(API_ROUTES.auth.appLogin, async (context) => {
     return context.json(appLoginResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 
@@ -294,12 +338,13 @@ authRoute.post(API_ROUTES.auth.appRefresh, async (context) => {
     return context.json(appAuthSessionResponseSchema.parse(result));
   } catch (error) {
     if (error instanceof AuthError) {
+      const status = error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        400
+        status
       );
     }
 
@@ -311,19 +356,20 @@ authRoute.post(API_ROUTES.auth.webRefresh, async (context) => {
   try {
     const refreshToken = getCookie(context, REFRESH_COOKIE_NAME);
     const result = await authService.refreshWebSession(refreshToken);
-    setAuthCookies(context, result.sessionId, refreshToken);
+    setAuthCookies(context, result.sessionId, result.refreshToken);
     return context.json(
       authSuccessResponseSchema.parse({ user: result.user })
     );
   } catch (error) {
     if (error instanceof AuthError) {
       clearAuthCookies(context);
+      const status = error.code === "USER_BANNED" ? 403 : 401;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
           message: error.message
         }),
-        401
+        status
       );
     }
 
@@ -345,7 +391,8 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
     );
   } catch (error) {
     if (error instanceof AuthError) {
-      const status = error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : 400;
+      const status =
+        error.code === "ADMIN_ACCOUNT_LOCKED" ? 429 : error.code === "USER_BANNED" ? 403 : 400;
       return context.json(
         authErrorResponseSchema.parse({
           code: error.code,
@@ -361,6 +408,45 @@ authRoute.post(API_ROUTES.auth.adminLogin, async (context) => {
 
 // 从这里开始，路由都会拿到 currentUser；更严格的权限控制再交给 requireAuth / requireAdmin。
 authRoute.use("*", attachCurrentUser);
+
+authRoute.post(
+  API_ROUTES.auth.webChangePassword,
+  requireAuth,
+  async (context) => {
+    const input = userPasswordChangeRequestSchema.parse(await context.req.json());
+    const currentUser = context.get("currentUser");
+
+    if (!currentUser || context.get("currentSessionScope") !== "web") {
+      return context.json(
+        authErrorResponseSchema.parse({
+          code: "FORBIDDEN",
+          message: "仅 Web 登录用户可修改密码。"
+        }),
+        403
+      );
+    }
+
+    try {
+      const result = await authService.changeWebPassword(currentUser.id, input);
+      if (result.sessionRevoked) {
+        clearAuthCookies(context);
+      }
+      return context.json(actionSuccessResponseSchema.parse(result));
+    } catch (error) {
+      if (error instanceof AuthError) {
+        return context.json(
+          authErrorResponseSchema.parse({
+            code: error.code,
+            message: error.message
+          }),
+          error.code === "FORBIDDEN" ? 403 : 400
+        );
+      }
+
+      throw error;
+    }
+  }
+);
 
 // 设备注册/注销（需登录）
 authRoute.post(API_ROUTES.auth.deviceRegister, requireAuth, async (context) => {
@@ -400,6 +486,11 @@ authRoute.post(API_ROUTES.auth.deviceUnregister, requireAuth, async (context) =>
 });
 
 authRoute.get(API_ROUTES.auth.currentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   return context.json(
     currentUserResponseSchema.parse({
       user: context.get("currentUser")
@@ -408,18 +499,33 @@ authRoute.get(API_ROUTES.auth.currentUser, (context) => {
 });
 
 authRoute.get(API_ROUTES.auth.appCurrentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   return context.json(
     currentUserResponseSchema.parse({
-      user: context.get("currentUser")
+      user: context.get("currentSessionScope") === "app"
+        ? context.get("currentUser")
+        : null
     })
   );
 });
 
 authRoute.get(API_ROUTES.auth.adminCurrentUser, (context) => {
+  const authError = currentAuthErrorResponse(context);
+  if (authError) {
+    return authError;
+  }
+
   const user = context.get("currentUser");
   return context.json(
     currentUserResponseSchema.parse({
-      user: user?.role === "admin" ? user : null
+      user:
+        user?.role === "admin" && context.get("currentSessionScope") === "admin"
+          ? user
+          : null
     })
   );
 });

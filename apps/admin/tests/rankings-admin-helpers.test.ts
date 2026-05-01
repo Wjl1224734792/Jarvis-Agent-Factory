@@ -23,6 +23,7 @@ describe("rankings admin helpers", () => {
         rejectionReason: null,
         rank: 1,
         title: "DJI Mini 4 Pro",
+        createdAt: "2026-03-29T00:00:00.000Z",
         summary: "Official reviewed item.",
         imageFileId: "img_1",
         imageUrl: "https://cdn.example.com/rankings/mini-4.jpg",

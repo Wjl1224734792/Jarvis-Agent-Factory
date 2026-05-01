@@ -71,6 +71,9 @@ export async function buildImagesByPostId(
   for (const row of rows) {
     const { postId, serialized } = row;
     const resolved = resolvedUrlMap.get(serialized.id) ?? null;
+    if (audience === "public" && !resolved) {
+      continue;
+    }
     const item = { ...serialized, url: resolved ?? serialized.url };
     const bucket = imagesByPostId.get(postId) ?? [];
     bucket.push(item);
@@ -108,6 +111,9 @@ export async function buildVideosByPostId(
   for (const row of rows) {
     const { postId, serialized } = row;
     const resolved = resolvedUrlMap.get(serialized.id) ?? null;
+    if (audience === "public" && !resolved) {
+      continue;
+    }
     const item = { ...serialized, url: resolved ?? serialized.url };
     const bucket = videosByPostId.get(postId) ?? [];
     bucket.push(item);
@@ -157,6 +163,9 @@ export async function buildCoversByPostId(
   for (const row of rows) {
     const { postId, serialized } = row;
     const resolved = resolvedUrlMap.get(serialized.id) ?? null;
+    if (audience === "public" && !resolved) {
+      continue;
+    }
     coversByPostId.set(postId, { ...serialized, url: resolved ?? serialized.url });
   }
 

@@ -24,7 +24,15 @@ export const usersTable = pgTable(
     wechatUnionId: text("wechat_union_id"),
     account: text("account"),
     passwordHash: text("password_hash"),
+    status: text("status").default("active").notNull(),
+    bannedAt: timestamp("banned_at", { withTimezone: true }),
+    bannedUntil: timestamp("banned_until", { withTimezone: true }),
+    banReason: text("ban_reason"),
+    bannedBy: text("banned_by"),
     createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
       .defaultNow()
       .notNull()
   },
@@ -38,7 +46,9 @@ export const usersTable = pgTable(
       table.wechatUnionId
     ),
     accountUnique: uniqueIndex("users_account_unique").on(table.account),
-    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`)
+    statusIdx: index("users_status_idx").on(table.status),
+    roleCheck: check("users_role_check", sql`${table.role} IN ('user', 'admin')`),
+    statusCheck: check("users_status_check", sql`${table.status} IN ('active', 'banned')`)
   })
 );
 
@@ -483,6 +493,8 @@ export const postsTable = pgTable("posts", {
   content: text("content").notNull(),
   contentHtml: text("content_html"),
   contentPlainText: text("content_plain_text"),
+  sourceLabel: text("source_label"),
+  sourceUrl: text("source_url"),
   contentCategoryId: text("content_category_id"),
   coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),
@@ -503,25 +515,17 @@ export const postsTable = pgTable("posts", {
 }, (table) => ({
   typeCheck: check("posts_type_check", sql`${table.type} IN ('article', 'moment')`),
   statusCheck: check("posts_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`),
-  feedStatusTypePublishedIdx: index("posts_feed_status_type_published_idx").on(
-    table.status,
+  feedStatusTypeSeekIdx: index("posts_feed_status_type_seek_idx").on(
     table.type,
-    table.publishedAt,
-    table.createdAt
-  ),
-  feedCategoryStatusTypeIdx: index("posts_feed_category_status_type_idx").on(
+    sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
+    table.id.desc()
+  ).where(sql`${table.status} = 'published'`),
+  feedCategoryStatusTypeSeekIdx: index("posts_feed_category_status_type_seek_idx").on(
     table.contentCategoryId,
-    table.status,
     table.type,
-    table.publishedAt
-  ),
-  feedRecommendedScoreIdx: index("posts_feed_recommended_score_idx").on(
-    table.status,
-    table.type,
-    table.likeCount,
-    table.commentCount,
-    table.publishedAt
-  )
+    sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
+    table.id.desc()
+  ).where(sql`${table.status} = 'published'`)
 }));
 
 export const postCommentsTable = pgTable(

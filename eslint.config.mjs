@@ -21,6 +21,7 @@ export default tseslint.config(
       ".opencode/**",
       ".claude/**",
       ".codex/**",
+      ".trae/**",
       ".cursor/**",
       "tmp/**"
     ]

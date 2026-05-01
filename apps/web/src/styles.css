@@ -357,6 +357,8 @@
 }
 
 .wang-editor-shell .w-e-text-container {
+  min-height: 420px;
+  border: 0;
   background: #ffffff;
 }
 
@@ -365,7 +367,7 @@
 }
 
 .wang-editor-shell .w-e-text-container [data-slate-editor] {
-  min-height: 22rem;
+  min-height: 420px;
   padding: 1rem;
   color: var(--foreground);
   font-size: 1rem;
@@ -408,6 +410,35 @@
 .wang-editor-shell .w-e-text-container [data-slate-editor] video {
   width: 100%;
   border-radius: 0.95rem;
+}
+
+.wang-editor-shell .w-e-text-container [data-slate-editor] table {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+}
+
+.wang-editor-shell .w-e-text-container [data-slate-editor] th,
+.wang-editor-shell .w-e-text-container [data-slate-editor] td {
+  border: 1px solid var(--border);
+  padding: 0.55rem 0.75rem;
+  vertical-align: top;
+}
+
+.wang-editor-shell .w-e-text-container [data-slate-editor] th {
+  background: #f1f5f9;
+}
+
+.wang-editor-shell__footer {
+  display: flex;
+  min-height: 2.5rem;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid var(--border);
+  padding: 0.55rem 0.9rem;
+  color: var(--muted-foreground);
+  font-size: 0.78rem;
 }
 
 @keyframes site-tab-panel-in {

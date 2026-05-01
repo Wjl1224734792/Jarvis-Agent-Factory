@@ -1,11 +1,11 @@
-import { keepPreviousData, useQuery } from "@tanstack/react-query";
+﻿import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
 import type { RankingListItem } from "@feijia/schemas";
 import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
-import { IpLocationText } from "@/components/ip-location-text";
+import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -19,10 +19,16 @@ import { useHomeTabStore, type HomeTabState } from "@/store/home-tab-store";
 import { getEditorialImage } from "../lib/aviation-media";
 import {
   combineHomeFeedRequestSignal,
+  getHomeFeedQueryKey,
   getHomeFeedErrorDescription,
-  HOME_FEED_FETCH_TIMEOUT_MS
+  HOME_FEED_FETCH_TIMEOUT_MS,
+  HOME_FEED_QUERY_GC_TIME_MS,
+  HOME_FEED_QUERY_STALE_TIME_MS,
+  normalizeHomeFeedCategorySlug,
+  resolveHomeFeedPlaceholderData
 } from "../lib/home-feed-query";
 import { apiClient } from "../lib/api-client";
+import { resolveFeedNextCursor } from "../lib/feed-pagination";
 import { DETAIL_PAGE_LINK_PROPS } from "../lib/web-routes";
 import { cn } from "../lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
@@ -35,6 +41,8 @@ const fixedTabs = [
 ] as const;
 
 type HomeFeedItem = Awaited<ReturnType<typeof apiClient.listHomeFeed>>["items"][number];
+
+type HomeFeedPage = Awaited<ReturnType<typeof apiClient.listHomeFeed>>;
 
 function formatCount(value: number) {
   if (value >= 10000) {
@@ -183,8 +191,36 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
             <ProfileLink className="hover:text-foreground" userId={item.author.id}>
               {item.author.displayName}
             </ProfileLink>
-            <IpLocationText label={item.author.ipLocationLabel} />
           </div>
+
+          {item.source ? (
+            <div className="mt-1 text-[0.72rem] text-muted-foreground">
+              来源：
+              {item.source.url ? (
+                <span
+                  className="text-primary underline-offset-4 hover:underline"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    event.stopPropagation();
+                    window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === "Enter" || event.key === " ") {
+                      event.preventDefault();
+                      event.stopPropagation();
+                      window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
+                    }
+                  }}
+                  role="link"
+                  tabIndex={0}
+                >
+                  {item.source.label}
+                </span>
+              ) : (
+                <span className="text-foreground/78">{item.source.label}</span>
+              )}
+            </div>
+          ) : null}
 
           <p className="mt-1 line-clamp-2 max-w-[34rem] text-[0.82rem] leading-[1.35rem] text-foreground/72">
             {item.contentPreview}
@@ -223,22 +259,36 @@ export function HomePage() {
   const isAuthenticated = authStatus === "authenticated";
   const activeTab = useHomeTabStore((state) => state.activeTab);
   const setActiveTab = useHomeTabStore((state) => state.setActiveTab);
-
-  const feedQuery = useQuery({
-    queryKey: [
-      "home-shell-feed",
-      activeTab.kind === "fixed" ? activeTab.id : "recommended",
-      activeTab.kind === "category" ? activeTab.slug : null
-    ],
-    placeholderData: keepPreviousData,
-    queryFn: ({ signal }) =>
+  const feedTab = activeTab.kind === "category" ? "recommended" : activeTab.id;
+  const categorySlug = activeTab.kind === "category" ? activeTab.slug : undefined;
+  const normalizedCategorySlug = normalizeHomeFeedCategorySlug(categorySlug);
+  const homeFeedQueryKey = getHomeFeedQueryKey(feedTab, normalizedCategorySlug);
+  const homeFeedQuery = useInfiniteQuery({
+    queryKey: homeFeedQueryKey,
+    staleTime: HOME_FEED_QUERY_STALE_TIME_MS,
+    gcTime: HOME_FEED_QUERY_GC_TIME_MS,
+    placeholderData: (previousData, previousQuery) =>
+      resolveHomeFeedPlaceholderData(previousData, previousQuery, homeFeedQueryKey),
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam, signal }) =>
       apiClient.listHomeFeed(
         {
-          tab: activeTab.kind === "fixed" ? activeTab.id : "recommended",
-          categorySlug: activeTab.kind === "category" ? activeTab.slug : undefined
+          tab: feedTab,
+          categorySlug: normalizedCategorySlug ?? undefined,
+          cursor: pageParam,
+          limit: 20
         },
         { signal: combineHomeFeedRequestSignal(signal) }
-      )
+      ),
+    getNextPageParam: (lastPage: HomeFeedPage) => resolveFeedNextCursor(lastPage)
+  });
+
+  const contentCategoriesQuery = useQuery({
+    queryKey: ["home-content-categories"],
+    staleTime: HOME_FEED_QUERY_STALE_TIME_MS,
+    gcTime: HOME_FEED_QUERY_GC_TIME_MS,
+    placeholderData: keepPreviousData,
+    queryFn: () => apiClient.listContentCategories()
   });
 
   const modelsQuery = useQuery({
@@ -257,8 +307,9 @@ export function HomePage() {
     queryFn: () => apiClient.listRankings()
   });
 
-  const feedItems = feedQuery.data?.items ?? [];
-  const contentCategories = useMemo(() => feedQuery.data?.categories ?? [], [feedQuery.data?.categories]);
+  const feedItems = homeFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [];
+  const feedContentCategories = homeFeedQuery.data?.pages[0]?.categories ?? [];
+  const contentCategories = contentCategoriesQuery.data?.items ?? feedContentCategories;
   const hotModels = modelsQuery.data?.items ?? [];
   const rankingCards = useMemo(
     () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data).hot.slice(0, 2) : []),
@@ -293,11 +344,18 @@ export function HomePage() {
     return activeTab.kind === "category" && tab.slug === activeTab.slug;
   }
 
-  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedLoading = homeFeedQuery.isLoading && !homeFeedQuery.data;
+  const isFeedError = homeFeedQuery.isError && !homeFeedQuery.data;
+  const isFeedNextPageError = homeFeedQuery.isFetchNextPageError && feedItems.length > 0;
+  const feedError = homeFeedQuery.error;
+  const isFeedRefetching = homeFeedQuery.isRefetching;
+  const hasMoreFeedItems = Boolean(homeFeedQuery.hasNextPage);
+  const isFetchingNextFeedPage = homeFeedQuery.isFetchingNextPage;
+  const showFeedFooter =
+    isFeedNextPageError || isFetchingNextFeedPage || (isFeedRefetching && !isFetchingNextFeedPage);
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
-
   return (
     <SitePage>
       <SiteGrid className="items-start gap-4" variant="sidebar">
@@ -323,11 +381,11 @@ export function HomePage() {
           </div>
 
           <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
-              {feedQuery.isError ? (
-                <Alert variant="destructive">
+            {isFeedError ? (
+              <Alert variant="destructive">
                 <AlertTitle>首页内容加载失败</AlertTitle>
                 <AlertDescription>
-                  {getHomeFeedErrorDescription(feedQuery.error, HOME_FEED_FETCH_TIMEOUT_MS)}
+                  {getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)}
                 </AlertDescription>
               </Alert>
             ) : null}
@@ -337,27 +395,40 @@ export function HomePage() {
                 <FeedStreamSkeleton rows={4} />
               </div>
             ) : (
-              <VirtualFeed
-                className="!border-0 bg-transparent"
-                data={feedItems}
-                emptyState={
-                  !feedQuery.isError ? (
-                    <Alert className="rounded-none border-0 shadow-none">
-                      <AlertTitle>首页还没有公开内容</AlertTitle>
-                      <AlertDescription>
-                        {isAuthenticated
-                          ? "你可以先发布一篇内容。"
-                          : "登录后可发布动态和文章。"}
-                      </AlertDescription>
-                    </Alert>
-                  ) : null
-                }
-                itemKey={(item) => item.id}
-                refetchFooterLabel="加载中…"
-                renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
-                showRefetchFooter={feedQuery.isRefetching}
-                useWindowScroll
-              />
+              <>
+                <VirtualFeed
+                  className="!border-0 bg-transparent"
+                  data={feedItems}
+                  hasMore={hasMoreFeedItems}
+                  isFetchingNextPage={isFetchingNextFeedPage}
+                  onLoadMore={() => {
+                    void homeFeedQuery.fetchNextPage();
+                  }}
+                  emptyState={
+                    !isFeedError ? (
+                      <Alert className="rounded-none border-0 shadow-none">
+                        <AlertTitle>首页还没有公开内容</AlertTitle>
+                        <AlertDescription>
+                          {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
+                        </AlertDescription>
+                      </Alert>
+                    ) : null
+                  }
+                  itemKey={(item) => item.id}
+                  renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                  useWindowScroll
+                />
+                <FeedRefetchFooter
+                  errorMessage={
+                    isFeedNextPageError
+                      ? `${getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)} 继续上滑将自动重试。`
+                      : undefined
+                  }
+                  label={isFetchingNextFeedPage ? "正在加载更多..." : "加载中..."}
+                  show={showFeedFooter}
+                  state={isFeedNextPageError ? "error" : "loading"}
+                />
+              </>
             )}
           </section>
         </div>

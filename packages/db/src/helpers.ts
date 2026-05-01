@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID } from "node:crypto";
+import { createHash, createHmac, randomBytes, randomUUID, timingSafeEqual } from "node:crypto";
 import bcrypt from "bcrypt";
 
 /** 密码哈希的 bcrypt 成本因子（盐轮数）。12 是安全性与性能的平衡点。 */
@@ -48,6 +48,36 @@ export async function verifyPassword(password: string, hash: string): Promise<bo
  */
 export function hashToken(token: string): string {
   return createHash("sha256").update(token).digest("hex");
+}
+
+/**
+ * 使用服务端 pepper 对低熵验证码做 HMAC，避免 Redis 泄露时直接暴露可用验证码。
+ */
+export function hashVerificationCode(input: {
+  code: string;
+  purpose: "captcha" | "sms";
+  subject: string;
+  secret: string;
+}): string {
+  return createHmac("sha256", input.secret)
+    .update(input.purpose)
+    .update(":")
+    .update(input.subject)
+    .update(":")
+    .update(input.code)
+    .digest("hex");
+}
+
+/**
+ * 常量时间比较验证码哈希，减少计时侧信道暴露。
+ */
+export function verifyVerificationCodeHash(
+  hash: string,
+  input: Parameters<typeof hashVerificationCode>[0]
+): boolean {
+  const expected = Buffer.from(hashVerificationCode(input), "hex");
+  const actual = Buffer.from(hash, "hex");
+  return expected.length === actual.length && timingSafeEqual(expected, actual);
 }
 
 /**

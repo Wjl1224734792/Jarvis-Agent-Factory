@@ -1,0 +1,4 @@
+interface:
+  display_name: "行为准则"
+  short_description: "减少过度设计、无关 diff 与未验证交付"
+  default_prompt: "Use $behavioral-guidelines to keep this coding task scoped, simple, and verified."

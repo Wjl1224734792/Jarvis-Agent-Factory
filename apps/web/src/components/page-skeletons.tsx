@@ -95,6 +95,7 @@ export function MasonryFeedSkeleton(props: {
   count?: number;
   columnCount?: number;
   columnGap?: number | string;
+  className?: string;
 }) {
   const count = props.count ?? 9;
   const columnGap = props.columnGap ?? CIRCLE_CARD_COLUMN_GAP;
@@ -107,7 +108,7 @@ export function MasonryFeedSkeleton(props: {
 
   return (
     <div
-      className="grid w-full min-w-0"
+      className={cn("grid w-full min-w-0", props.className)}
       style={{
         gap: columnGap,
         gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`

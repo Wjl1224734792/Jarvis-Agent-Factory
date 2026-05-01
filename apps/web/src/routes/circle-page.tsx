@@ -1,4 +1,4 @@
-import { keepPreviousData, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SitePage } from "@/components/site-shell";
@@ -10,6 +10,7 @@ import {
   patchPostViewCount
 } from "@/features/posts/post-query-cache";
 import { apiClient } from "@/lib/api-client";
+import { resolveFeedNextCursor } from "@/lib/feed-pagination";
 import { shouldRecordSessionView } from "@/lib/view-session";
 import { CirclePageFeed, type CircleFeedItem, type FeedTab } from "./circle-page-feed";
 
@@ -44,10 +45,15 @@ export function CirclePage() {
   const [actionError, setActionError] = useState<string | null>(null);
 
   const selectedNoteId = searchParams.get("note");
-  const feedQuery = useQuery({
+  const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", activeTab],
-    placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listCircleFeed(activeTab)
+    initialPageParam: undefined as string | undefined,
+    queryFn: ({ pageParam }) =>
+      apiClient.listCircleFeed(activeTab, {
+        cursor: pageParam,
+        limit: 20
+      }),
+    getNextPageParam: (lastPage) => resolveFeedNextCursor(lastPage)
   });
   const noteQuery = useQuery({
     queryKey: ["post-detail", selectedNoteId],
@@ -60,7 +66,10 @@ export function CirclePage() {
     enabled: Boolean(selectedNoteId)
   });
 
-  const posts = useMemo<CircleFeedItem[]>(() => feedQuery.data?.items ?? [], [feedQuery.data?.items]);
+  const posts = useMemo<CircleFeedItem[]>(
+    () => circleFeedQuery.data?.pages.flatMap((feedPage) => feedPage.items) ?? [],
+    [circleFeedQuery.data?.pages]
+  );
   const selectedPreview = useMemo(
     () => posts.find((item) => item.id === selectedNoteId) ?? null,
     [posts, selectedNoteId]
@@ -97,7 +106,13 @@ export function CirclePage() {
     setActionError(null);
   }
 
-  const isFeedLoading = feedQuery.isLoading && !feedQuery.data;
+  const isFeedLoading = circleFeedQuery.isLoading && !circleFeedQuery.data;
+  const isFeedRefetching = circleFeedQuery.isRefetching;
+  const isFeedError = circleFeedQuery.isError && !circleFeedQuery.data;
+  const isFeedNextPageError = circleFeedQuery.isFetchNextPageError && posts.length > 0;
+  const feedErrorMessage = circleFeedQuery.error instanceof Error ? circleFeedQuery.error.message : undefined;
+  const hasMoreFeedItems = Boolean(circleFeedQuery.hasNextPage);
+  const isFetchingNextFeedPage = circleFeedQuery.isFetchingNextPage;
 
   function handleToggleFollow() {
     if (!selectedNote) {
@@ -164,9 +179,16 @@ export function CirclePage() {
         openNote={openNote}
         selectedNoteId={selectedNoteId}
         isLoading={isFeedLoading}
-        isRefetching={feedQuery.isRefetching}
-        isError={feedQuery.isError}
-        errorMessage={feedQuery.error?.message}
+        isRefetching={isFeedRefetching}
+        isFetchingNextPage={isFetchingNextFeedPage}
+        isError={isFeedError}
+        errorMessage={feedErrorMessage}
+        isLoadMoreError={isFeedNextPageError}
+        loadMoreErrorMessage={isFeedNextPageError ? feedErrorMessage : undefined}
+        hasMore={hasMoreFeedItems}
+        onLoadMore={() => {
+          void circleFeedQuery.fetchNextPage();
+        }}
         formatCount={formatCount}
       />
 

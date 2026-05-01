@@ -1,11 +1,11 @@
-﻿import { isChinaMainlandMobilePhone } from "@feijia/schemas";
-import { APP_ROUTES } from "@feijia/shared";
+﻿import { isChinaMainlandMobilePhone, type UserSummary } from "@feijia/schemas";
+import { APP_ROUTES, resolveSafeRedirectPath } from "@feijia/shared";
 import { ApiClientError } from "@feijia/http-client";
-import { resolveSafeRedirectPath } from "@feijia/shared";
 import { ImagePlusIcon, SmartphoneIcon, UserRoundIcon, XIcon } from "lucide-react";
 import { useRef, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { SendSmsCaptchaDialog } from "./send-sms-captcha-dialog";
+import { AuthCaptchaSvg } from "@/components/auth-captcha-challenge";
 import {
   SitePageDescription,
   SitePageHead,
@@ -23,6 +23,7 @@ import { useAuthStore } from "./auth-store";
 import { useSmsVerificationFlow } from "./use-sms-verification-flow";
 
 type LoginStep = "verify" | "profile";
+type LoginMode = "sms" | "password";
 
 async function readAvatarPreview(file: File) {
   return await new Promise<string>((resolve, reject) => {
@@ -47,6 +48,8 @@ export function LoginPage() {
   const avatarInputRef = useRef<HTMLInputElement | null>(null);
 
   const [phone, setPhone] = useState("");
+  const [loginMode, setLoginMode] = useState<LoginMode>("sms");
+  const [password, setPassword] = useState("");
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [step, setStep] = useState<LoginStep>("verify");
@@ -57,6 +60,7 @@ export function LoginPage() {
   const [selectedAvatarFile, setSelectedAvatarFile] = useState<File | null>(null);
   const [isCompletingProfile, setIsCompletingProfile] = useState(false);
   const smsFlow = useSmsVerificationFlow();
+  const passwordCaptchaFlow = useSmsVerificationFlow();
   const [isSmsCaptchaOpen, setIsSmsCaptchaOpen] = useState(false);
 
   const redirectTo = resolveSafeRedirectPath({
@@ -64,6 +68,15 @@ export function LoginPage() {
     fallbackPath: APP_ROUTES.feedHome,
     blockedPaths: [APP_ROUTES.webLogin]
   });
+
+  async function syncAuthenticatedUser(fallbackUser: UserSummary) {
+    const refreshedUser = await apiClient.getCurrentUser();
+    if (!refreshedUser) {
+      throw new Error("登录状态同步失败，请稍后重试。");
+    }
+
+    setAuthenticated(refreshedUser ?? fallbackUser);
+  }
 
   async function requestLoginSmsCode() {
     setSubmitError(null);
@@ -116,6 +129,32 @@ export function LoginPage() {
 
           {step === "verify" ? (
             <div className="space-y-4">
+              <div className="grid grid-cols-2 rounded-[var(--radius-control)] bg-surface-2 p-1 text-sm font-medium">
+                {(["sms", "password"] as const).map((mode) => (
+                  <button
+                    className={
+                      loginMode === mode
+                        ? "rounded-[calc(var(--radius-control)-0.25rem)] bg-background px-3 py-2 text-foreground shadow-sm"
+                        : "rounded-[calc(var(--radius-control)-0.25rem)] px-3 py-2 text-muted-foreground transition hover:text-foreground"
+                    }
+                    key={mode}
+                    onClick={() => {
+                      setLoginMode(mode);
+                      setSubmitError(null);
+                      if (mode === "password" && !passwordCaptchaFlow.challenge) {
+                        void passwordCaptchaFlow.refreshCaptcha({
+                          onError: setSubmitError,
+                          errorFallback: "图形验证码加载失败"
+                        });
+                      }
+                    }}
+                    type="button"
+                  >
+                    {mode === "sms" ? "短信登录" : "密码登录"}
+                  </button>
+                ))}
+              </div>
+
               <div className="space-y-2">
                 <label className="text-sm font-medium text-muted-foreground" htmlFor="login-phone">
                   手机号
@@ -138,49 +177,101 @@ export function LoginPage() {
                 </div>
               </div>
 
-              <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium text-muted-foreground" htmlFor="login-sms">
-                    短信验证码
-                  </label>
-                  <Input
-                    className="h-12"
-                    id="login-sms"
-                    onChange={event => {
-                      smsFlow.setSmsCode(event.target.value);
-                    }}
-                    placeholder="请输入 6 位验证码"
-                    value={smsFlow.smsCode}
-                  />
-                </div>
+              {loginMode === "sms" ? (
+                <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end sm:gap-3">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground" htmlFor="login-sms">
+                      短信验证码
+                    </label>
+                    <Input
+                      className="h-12"
+                      id="login-sms"
+                      onChange={event => {
+                        smsFlow.setSmsCode(event.target.value);
+                      }}
+                      placeholder="请输入 6 位验证码"
+                      value={smsFlow.smsCode}
+                    />
+                  </div>
 
-                <div className="space-y-2 sm:min-w-[7.25rem]">
-                  <div className="hidden text-sm font-medium sm:block sm:text-transparent">操作</div>
-                  <Button
-                    className="h-12 w-full whitespace-nowrap sm:w-auto sm:min-w-[7.25rem]"
-                    disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
-                    onClick={() => {
-                      setSubmitError(null);
-                      if (!isChinaMainlandMobilePhone(phone)) {
-                        setSubmitError("请输入有效的手机号");
-                        return;
-                      }
-                      setIsSmsCaptchaOpen(true);
-                    }}
-                    type="button"
-                    variant="panel"
-                  >
-                    <SmartphoneIcon data-icon="inline-start" />
-                    {smsFlow.isSendingSms
-                      ? "发送中..."
-                      : smsFlow.cooldownSeconds > 0
-                        ? `${smsFlow.cooldownSeconds}s`
-                        : smsFlow.requestHint
-                          ? "重新获取验证码"
-                          : "获取验证码"}
-                  </Button>
+                  <div className="space-y-2 sm:min-w-[7.25rem]">
+                    <div className="hidden text-sm font-medium sm:block sm:text-transparent">操作</div>
+                    <Button
+                      className="h-12 w-full whitespace-nowrap sm:w-auto sm:min-w-[7.25rem]"
+                      disabled={smsFlow.isSendingSms || smsFlow.cooldownSeconds > 0}
+                      onClick={() => {
+                        setSubmitError(null);
+                        if (!isChinaMainlandMobilePhone(phone)) {
+                          setSubmitError("请输入有效的手机号");
+                          return;
+                        }
+                        setIsSmsCaptchaOpen(true);
+                      }}
+                      type="button"
+                      variant="panel"
+                    >
+                      <SmartphoneIcon data-icon="inline-start" />
+                      {smsFlow.isSendingSms
+                        ? "发送中..."
+                        : smsFlow.cooldownSeconds > 0
+                          ? `${smsFlow.cooldownSeconds}s`
+                          : smsFlow.requestHint
+                            ? "重新获取验证码"
+                            : "获取验证码"}
+                    </Button>
+                  </div>
                 </div>
-              </div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-muted-foreground" htmlFor="login-password">
+                      密码
+                    </label>
+                    <Input
+                      className="h-12"
+                      id="login-password"
+                      onChange={event => {
+                        setPassword(event.target.value);
+                      }}
+                      placeholder="请输入密码"
+                      type="password"
+                      value={password}
+                    />
+                  </div>
+
+                  <div className="grid gap-2.5 sm:grid-cols-[minmax(0,1fr)_132px] sm:items-start">
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium text-muted-foreground" htmlFor="login-password-captcha">
+                        图形验证码
+                      </label>
+                      <Input
+                        autoComplete="off"
+                        className="h-12"
+                        id="login-password-captcha"
+                        onChange={event => passwordCaptchaFlow.setCaptchaCode(event.target.value.toUpperCase())}
+                        placeholder="请输入图中字符"
+                        value={passwordCaptchaFlow.captchaCode}
+                      />
+                    </div>
+                    <div className="pt-7">
+                      <AuthCaptchaSvg
+                        isLoading={passwordCaptchaFlow.isCaptchaLoading}
+                        onRefresh={() => {
+                          void passwordCaptchaFlow.refreshCaptcha({
+                            onError: setSubmitError,
+                            errorFallback: "图形验证码加载失败"
+                          });
+                        }}
+                        showHint={false}
+                        svgMarkup={passwordCaptchaFlow.challenge?.imageOrText ?? ""}
+                      />
+                    </div>
+                  </div>
+                  {passwordCaptchaFlow.isCaptchaExpired ? (
+                    <div className="text-xs text-destructive">图形验证码已过期，请点击刷新。</div>
+                  ) : null}
+                </div>
+              )}
 
               {submitError ? (
                 <Alert variant="destructive">
@@ -200,19 +291,50 @@ export function LoginPage() {
                       return;
                     }
 
+                    if (loginMode === "password") {
+                      if (!password) {
+                        setSubmitError("请输入密码");
+                        return;
+                      }
+                      if (
+                        !passwordCaptchaFlow.challenge ||
+                        passwordCaptchaFlow.isCaptchaExpired ||
+                        !passwordCaptchaFlow.captchaCode.trim()
+                      ) {
+                        setSubmitError("请先完成图形验证码。");
+                        return;
+                      }
+                    }
+
                     setIsSubmitting(true);
 
                     void apiClient
-                      .loginWeb({
-                        phone,
-                        smsCode: smsFlow.smsCode
-                      })
-                      .then(response => {
+                      .loginWeb(
+                        loginMode === "sms"
+                          ? {
+                              method: "sms",
+                              phone,
+                              smsCode: smsFlow.smsCode
+                            }
+                          : {
+                              method: "password",
+                              phone,
+                              password,
+                              captchaChallengeId: passwordCaptchaFlow.challenge?.challengeId ?? "",
+                              captchaCode: passwordCaptchaFlow.captchaCode
+                            }
+                      )
+                      .then(async response => {
                         if (response.kind === "authenticated") {
-                          setAuthenticated(response.user);
+                          await syncAuthenticatedUser(response.user);
                           void navigate(redirectTo ?? APP_ROUTES.feedHome, {
                             replace: true
                           });
+                          return;
+                        }
+
+                        if (loginMode === "password") {
+                          setSubmitError("该手机号还未完成注册，请先使用短信登录。");
                           return;
                         }
 
@@ -225,6 +347,12 @@ export function LoginPage() {
                       })
                       .catch((error: unknown) => {
                         setSubmitError(error instanceof Error ? error.message : "登录失败");
+                        if (loginMode === "password") {
+                          void passwordCaptchaFlow.refreshCaptcha({
+                            onError: setSubmitError,
+                            errorFallback: "图形验证码加载失败"
+                          });
+                        }
                       })
                       .finally(() => {
                         setIsSubmitting(false);
@@ -234,7 +362,7 @@ export function LoginPage() {
                   type="button"
                   variant="hero"
                 >
-                  {isSubmitting ? "处理中..." : "登录 / 注册"}
+                  {isSubmitting ? "处理中..." : loginMode === "sms" ? "登录 / 注册" : "密码登录"}
                 </Button>
 
                 <Button
@@ -355,7 +483,11 @@ export function LoginPage() {
                   返回上一步
                 </Button>
                 <Button
-                  disabled={!registrationToken || !displayName.trim() || isCompletingProfile}
+                  disabled={
+                    !registrationToken ||
+                    !displayName.trim() ||
+                    isCompletingProfile
+                  }
                   onClick={() => {
                     if (!registrationToken) {
                       return;
@@ -372,7 +504,7 @@ export function LoginPage() {
                         avatarFileId: null
                       })
                       .then(async response => {
-                        setAuthenticated(response.user);
+                        await syncAuthenticatedUser(response.user);
 
                         if (selectedAvatarFile) {
                           try {
@@ -380,8 +512,7 @@ export function LoginPage() {
                             await apiClient.updateCurrentUserProfile({
                               avatarFileId: uploaded.item.id
                             });
-                            const refreshedUser = await apiClient.getCurrentUser();
-                            setAuthenticated(refreshedUser ?? response.user);
+                            await syncAuthenticatedUser(response.user);
                           } catch (avatarError) {
                             setSubmitError(
                               avatarError instanceof Error

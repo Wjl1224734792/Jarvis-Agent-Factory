@@ -11,9 +11,10 @@ import { PostInteractionBar } from "@/features/posts/post-interaction-bar";
 import { ProfileLink } from "@/components/profile-link";
 import { ReportActionSheet } from "@/components/report-action-sheet";
 import { IpLocationText } from "@/components/ip-location-text";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import { apiClient } from "@/lib/api-client";
-import { getAvatarImage, getEditorialImage } from "@/lib/aviation-media";
+import { getEditorialImage } from "@/lib/aviation-media";
 import { buildCircleMediaItems, getLoopedNextIndex, getLoopedPrevIndex } from "./circle-page-helpers";
 
 type CirclePostDetailResponse = Awaited<ReturnType<typeof apiClient.getPostDetail>>;
@@ -201,7 +202,7 @@ export function CirclePageDetail({
                     <Avatar size="lg">
                       <AvatarImage
                         alt={selectedNote.author.displayName}
-                        src={selectedNote.author.avatarUrl ?? getAvatarImage(selectedNote.author.id)}
+                        src={resolveUserAvatarSrc(selectedNote.author.avatarUrl)}
                       />
                       <AvatarFallback>{selectedNote.author.displayName.slice(0, 1)}</AvatarFallback>
                     </Avatar>
@@ -213,12 +214,12 @@ export function CirclePageDetail({
                     >
                       {selectedNote.author.displayName}
                     </ProfileLink>
-                    <div className="mt-0.5 text-[0.72rem] text-muted-foreground">
+                    <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-muted-foreground">
                       {new Date(
                         selectedNote.publishedAt ?? selectedNote.createdAt
                       ).toLocaleDateString("zh-CN")}
+                      <IpLocationText label={selectedNote.author.ipLocationLabel} variant="plain" />
                     </div>
-                    <IpLocationText className="block" label={selectedNote.author.ipLocationLabel} />
                   </div>
                 </div>
 
@@ -265,6 +266,23 @@ export function CirclePageDetail({
                     <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                       {selectedNote.title}
                     </h1>
+                    {selectedNote.source ? (
+                      <div className="text-[0.8rem] text-muted-foreground">
+                        来源：
+                        {selectedNote.source.url ? (
+                          <a
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={selectedNote.source.url}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {selectedNote.source.label}
+                          </a>
+                        ) : (
+                          <span className="text-foreground/78">{selectedNote.source.label}</span>
+                        )}
+                      </div>
+                    ) : null}
                     <p className="text-[0.88rem] leading-6 text-foreground/72">
                       {selectedNote.content}
                     </p>

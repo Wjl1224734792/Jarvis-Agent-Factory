@@ -3,12 +3,17 @@ import Dysmsapi20170525, * as $Dysmsapi20170525 from "@alicloud/dysmsapi20170525
 import * as $OpenApi from "@alicloud/openapi-client";
 import { sms } from "tencentcloud-sdk-nodejs";
 import type { ClientConfig } from "tencentcloud-sdk-nodejs/tencentcloud/common/interface";
+import { parseBooleanEnv } from "../../lib/env-flags";
 
 export type SmsProvider = "mock" | "aliyun" | "tencent";
 
-type EnvLike = Record<string, string | undefined>;
+type RemoteSmsProvider = Exclude<SmsProvider, "mock">;
 
-export type SmsProviderConfig = {
+interface EnvLike {
+  [key: string]: string | undefined;
+}
+
+export interface SmsProviderConfig {
   provider: SmsProvider;
   exposeMockCode: boolean;
   aliyun: {
@@ -24,17 +29,17 @@ export type SmsProviderConfig = {
     signName?: string;
     templateId?: string;
   };
-};
+}
 
-export type SendSmsInput = {
+export interface SendSmsInput {
   phone: string;
   code: string;
-};
+}
 
-export type SendSmsResult = {
+export interface SendSmsResult {
   requestId: string;
   mockCode?: string;
-};
+}
 
 // ---------------------------------------------------------------------------
 // Error taxonomy
@@ -58,35 +63,37 @@ const SMS_RATE_LIMIT_ERROR_CODES = new Set([
   "Throttling.User",
   "isv.BUSINESS_LIMIT_CONTROL"
 ]);
+const SMS_PROVIDER_SET = new Set<SmsProvider>(["mock", "aliyun", "tencent"]);
 
 // ---------------------------------------------------------------------------
 // Config helpers
 // ---------------------------------------------------------------------------
 
 function hasAliyunSmsConfig(config: SmsProviderConfig) {
-  return Boolean(
-    config.aliyun.accessKeyId &&
-      config.aliyun.accessKeySecret &&
-      config.aliyun.signName &&
-      config.aliyun.templateCode
-  );
+  return [
+    config.aliyun.accessKeyId,
+    config.aliyun.accessKeySecret,
+    config.aliyun.signName,
+    config.aliyun.templateCode
+  ].every(Boolean);
 }
 
 function hasTencentSmsConfig(config: SmsProviderConfig) {
-  return Boolean(
-    config.tencent.secretId &&
-      config.tencent.secretKey &&
-      config.tencent.sdkAppId &&
-      config.tencent.signName &&
-      config.tencent.templateId
-  );
+  return [
+    config.tencent.secretId,
+    config.tencent.secretKey,
+    config.tencent.sdkAppId,
+    config.tencent.signName,
+    config.tencent.templateId
+  ].every(Boolean);
 }
 
-function parseBoolean(input: string | undefined, fallback: boolean) {
-  if (input === undefined) {
-    return fallback;
-  }
-  return ["1", "true", "yes", "on"].includes(input.toLowerCase());
+function isSmsProvider(value: string): value is SmsProvider {
+  return SMS_PROVIDER_SET.has(value as SmsProvider);
+}
+
+function isRemoteSmsProvider(provider: SmsProvider): provider is RemoteSmsProvider {
+  return provider !== "mock";
 }
 
 function createRequestId(prefix: string) {
@@ -266,15 +273,31 @@ async function sendViaTencent(config: SmsProviderConfig, input: SendSmsInput): P
 // Public API
 // ---------------------------------------------------------------------------
 
+/**
+ * 解析短信 provider 配置，并校验生产环境约束。
+ *
+ * @param env 需要解析的环境变量集合，默认读取 `process.env`。
+ * @returns 标准化后的短信 provider 配置。
+ * @throws {Error} 当生产环境缺少 `SMS_PROVIDER`、配置非法或误用 `mock` 时抛出异常。
+ */
 export function resolveSmsProviderConfig(env: EnvLike = process.env): SmsProviderConfig {
-  const providerRaw = (env.SMS_PROVIDER ?? "mock").toLowerCase().trim();
-  if (!["mock", "aliyun", "tencent"].includes(providerRaw)) {
+  const isProduction = env.NODE_ENV === "production";
+  const providerRaw = env.SMS_PROVIDER?.toLowerCase().trim() || "";
+  if (!providerRaw && isProduction) {
+    throw new Error("SMS_PROVIDER must be configured in production.");
+  }
+
+  const provider = providerRaw || "mock";
+  if (!isSmsProvider(provider)) {
     throw new Error("Invalid SMS_PROVIDER. Expected mock|aliyun|tencent.");
+  }
+  if (isProduction && provider === "mock") {
+    throw new Error("SMS_PROVIDER=mock is forbidden in production.");
   }
 
   return {
-    provider: providerRaw as SmsProvider,
-    exposeMockCode: parseBoolean(env.SMS_EXPOSE_MOCK_CODE, true),
+    provider,
+    exposeMockCode: !isProduction && parseBooleanEnv(env.SMS_EXPOSE_MOCK_CODE, true),
     aliyun: {
       accessKeyId: env.ALIYUN_SMS_ACCESS_KEY_ID?.trim(),
       accessKeySecret: env.ALIYUN_SMS_ACCESS_KEY_SECRET?.trim(),
@@ -291,10 +314,30 @@ export function resolveSmsProviderConfig(env: EnvLike = process.env): SmsProvide
   };
 }
 
+/**
+ * 基于当前配置创建短信发送器。
+ *
+ * @param config 已解析好的短信 provider 配置。
+ * @returns 统一的短信发送入口。
+ * @throws {Error} 当 provider 配置缺失、测试环境误发真实短信或生产环境误用 mock 时抛出异常。
+ */
 export function createSmsSender(config: SmsProviderConfig) {
+  const remoteSmsConfigValidators = {
+    aliyun: () => hasAliyunSmsConfig(config),
+    tencent: () => hasTencentSmsConfig(config)
+  } satisfies Record<RemoteSmsProvider, () => boolean>;
+  const remoteSmsMissingConfigMessages = {
+    aliyun: "Aliyun SMS provider is missing required configuration.",
+    tencent: "Tencent SMS provider is missing required configuration."
+  } satisfies Record<RemoteSmsProvider, string>;
+
   return {
     async sendCode(input: SendSmsInput): Promise<SendSmsResult> {
-      if (config.provider === "mock") {
+      if (!isRemoteSmsProvider(config.provider)) {
+        if (process.env.NODE_ENV === "production") {
+          throw new Error("Mock SMS provider is forbidden in production.");
+        }
+
         return {
           requestId: createRequestId("sms_mock"),
           mockCode: config.exposeMockCode ? input.code : undefined,
@@ -305,22 +348,26 @@ export function createSmsSender(config: SmsProviderConfig) {
         throw new Error(`${config.provider} sms dispatch is not implemented in test environment.`);
       }
 
+      if (!remoteSmsConfigValidators[config.provider]()) {
+        throw new Error(remoteSmsMissingConfigMessages[config.provider]);
+      }
+
       if (config.provider === "aliyun") {
-        if (!hasAliyunSmsConfig(config)) {
-          throw new Error("Aliyun SMS provider is missing required configuration.");
-        }
         return sendViaAliyun(config, input);
       }
 
-      // tencent
-      if (!hasTencentSmsConfig(config)) {
-        throw new Error("Tencent SMS provider is missing required configuration.");
-      }
       return sendViaTencent(config, input);
     },
   };
 }
 
+/**
+ * 判断异常是否属于短信发送频控场景。
+ *
+ * @param error 待识别的异常对象。
+ * @returns 命中已知频控错误码或统一频控消息时返回 `true`。
+ * @throws {never} 该函数只做类型判断与错误码匹配，不会主动抛出异常。
+ */
 export function isSmsRateLimitedError(error: unknown) {
   if (error instanceof SmsError) {
     return error.code !== undefined && SMS_RATE_LIMIT_ERROR_CODES.has(error.code);

@@ -14,6 +14,12 @@
 | [`http-client/`](./http-client/) | 基于上述 schema 的 API 调用封装 |
 | [`db/`](./db/) | Drizzle、迁移、`seed`、与数据库相关的脚本入口 |
 
+脚本口径：
+
+- 根 `typecheck` 会覆盖 `packages/db`。
+- 根 `build` 当前只构建 `shared`、`schemas`、`http-client` 与各 `apps`；`packages/db` 不产出独立构建物。
+- `packages/config` 主要承载共享配置，避免把业务逻辑放入其中。
+
 如果你在给 **AI 助手** 派活（例如「只改 schema，别动页面」），请让它遵守 [`AGENTS.md`](./AGENTS.md) 里的边界；那是给代理看的指令，和本 README 分工不同。
 
 **和别处的关系**：数据库脚本的名字、`db:clear` 和 `db:reset` 差在哪——写在根目录 [`README.md`](../README.md) 的「数据库与数据初始化」；本地 Postgres/Redis/MinIO 怎么起——见 [`docker/README.md`](../docker/README.md)。

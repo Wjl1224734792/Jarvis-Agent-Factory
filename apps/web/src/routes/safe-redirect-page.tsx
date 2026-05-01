@@ -2,7 +2,7 @@ import { AlertTriangleIcon, ExternalLinkIcon } from "lucide-react";
 import { useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { Button } from "@/components/ui/button";
-import { WEB_ROUTE_PATHS, isExternalHttpUrl } from "@/lib/web-routes";
+import { isExternalHttpUrl, normalizeSafeRedirectFromPath } from "@/lib/web-routes";
 
 function getExternalTarget(rawTarget: string | null) {
   if (!rawTarget || typeof window === "undefined") {
@@ -19,18 +19,7 @@ export function SafeRedirectPage() {
   const target = searchParams.get("target");
   const from = searchParams.get("from");
   const targetUrl = useMemo(() => getExternalTarget(target), [target]);
-  const backToPath = useMemo(() => {
-    if (!from) {
-      return "/";
-    }
-    if (!from.startsWith("/")) {
-      return "/";
-    }
-    if (from.startsWith(WEB_ROUTE_PATHS.safeRedirect)) {
-      return "/";
-    }
-    return from;
-  }, [from]);
+  const backToPath = useMemo(() => normalizeSafeRedirectFromPath(from), [from]);
 
   return (
     <div className="mx-auto flex min-h-[calc(100vh-8rem)] w-full max-w-2xl items-center px-4 py-10 md:px-6">

@@ -1,9 +1,9 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { isChinaMainlandMobilePhone } from "@feijia/schemas";
+import { isChinaMainlandMobilePhone, strongPasswordSchema } from "@feijia/schemas";
 import { APP_ROUTES } from "@feijia/shared";
 import {
-  BellIcon,
   CameraIcon,
+  KeyRoundIcon,
   LogOutIcon,
   PencilLineIcon,
   ShieldCheckIcon,
@@ -25,9 +25,10 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { apiClient } from "@/lib/api-client";
-import { getAvatarImage } from "@/lib/aviation-media";
+import { resolveUserAvatarSrc } from "@/lib/avatar-url";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "../features/auth/auth-store";
 import {
@@ -58,60 +59,39 @@ import { settingsNotificationOptions } from "../features/auth/settings-notificat
 
 const visibilityOptions: ProfileVisibility[] = ["community", "followers", "private"];
 const MAX_BIO_LENGTH = 50;
+const passwordPolicyHint = "至少 8 位，并同时包含大写字母、小写字母和特殊符号。";
 
 type EditableProfileField = "displayName" | "bio" | "profileVisibility" | null;
 
-function trimUrl(value: string | null | undefined): string | undefined {
-  const next = value?.trim();
-  return next ? next : undefined;
-}
-
 function SettingsPageSkeleton() {
   return (
-    <SitePage className="mx-auto w-full max-w-[76rem] gap-6">
+    <SitePage className="mx-auto w-full max-w-[48rem] gap-6">
       <div className="space-y-2">
         <Skeleton className="h-6 w-32 rounded-md" />
         <Skeleton className="h-4 w-64 max-w-full rounded-md" />
       </div>
-      <div className="grid gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] xl:items-start">
+      <div className="space-y-4">
         <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border/60 bg-surface-2/80">
-          <Skeleton className="h-11 w-full rounded-none" />
-          <div className="divide-y divide-border/60 p-0">
-            <div className="px-4 py-4">
-              <Skeleton className="h-4 w-16" />
-              <Skeleton className="mt-3 h-28 w-28 rounded-full" />
+          <div className="flex items-center gap-4 px-4 py-4">
+            <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
+            <div className="min-w-0 flex-1 space-y-2">
+              <Skeleton className="h-4 w-32" />
+              <Skeleton className="h-3 w-full" />
             </div>
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div className="flex gap-4 px-4 py-4" key={i}>
-                <Skeleton className="h-4 w-20 shrink-0" />
-                <Skeleton className="h-4 flex-1 rounded-md" />
-                <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
-              </div>
-            ))}
           </div>
         </div>
         <div className="overflow-hidden rounded-[var(--radius-panel)] border border-border/60 bg-surface-2/80">
           <Skeleton className="h-11 w-full rounded-none" />
-          <div className="divide-y divide-border/60">
-            <div className="flex gap-4 px-4 py-4">
-              <Skeleton className="h-4 w-24 shrink-0" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
-            </div>
-            <div className="px-4 py-2">
-              <Skeleton className="h-3 w-12" />
-            </div>
-            <div className="flex gap-4 px-4 py-4">
-              <Skeleton className="h-4 w-28 shrink-0" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-8 w-14 shrink-0 rounded-full" />
-            </div>
-            <div className="flex gap-4 px-4 py-4">
-              <Skeleton className="h-4 w-20 shrink-0" />
-              <Skeleton className="h-4 flex-1" />
-              <Skeleton className="h-8 w-14 shrink-0 rounded-full" />
-            </div>
-            <Skeleton className="h-14 w-full rounded-none" />
+          <div className="divide-y divide-border/60 p-0">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <div className="flex items-start justify-between gap-4 px-4 py-4" key={i}>
+                <div className="min-w-0 flex-1 space-y-1">
+                  <Skeleton className="h-4 w-20" />
+                  <Skeleton className="h-3 w-3/4" />
+                </div>
+                <Skeleton className="h-8 w-16 shrink-0 rounded-full" />
+              </div>
+            ))}
           </div>
         </div>
       </div>
@@ -138,57 +118,34 @@ function SettingsPanelHeader({ children }: { children: ReactNode }) {
   );
 }
 
-function SettingsSubsectionTitle({ children }: { children: ReactNode }) {
-  return (
-    <div className="border-y border-border/60 bg-muted/15 px-4 py-2.5">
-      <div className="text-[0.68rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
-        {children}
-      </div>
-    </div>
-  );
-}
-
 function SettingsRow({
   label,
+  description,
   children,
   action,
   alignTop
 }: {
   label: string;
-  children: ReactNode;
+  description?: string;
+  children?: ReactNode;
   action?: ReactNode;
   alignTop?: boolean;
 }) {
   return (
     <div
       className={cn(
-        "grid gap-2 px-4 py-3.5 sm:grid-cols-[minmax(0,6.5rem)_minmax(0,1fr)_auto] sm:gap-x-4",
-        alignTop ? "sm:items-start" : "sm:items-center"
+        "flex items-start justify-between gap-4 px-4 py-3.5",
+        alignTop ? "items-start" : "items-center"
       )}
     >
-      <div className="text-sm font-medium text-foreground">{label}</div>
-      <div className="min-w-0 text-sm leading-relaxed sm:col-span-1">{children}</div>
-      {action ? <div className="flex shrink-0 items-center gap-2 sm:justify-end">{action}</div> : null}
-    </div>
-  );
-}
-
-function SettingsAvatarSection({
-  title,
-  action,
-  children
-}: {
-  title: string;
-  action?: ReactNode;
-  children: ReactNode;
-}) {
-  return (
-    <div className="px-4 py-3.5">
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-sm font-medium text-foreground">{title}</div>
-        {action ? <div className="shrink-0">{action}</div> : null}
+      <div className="min-w-0 flex-1">
+        <div className="text-sm font-medium text-foreground">{label}</div>
+        {description ? (
+          <div className="mt-0.5 text-sm text-muted-foreground">{description}</div>
+        ) : null}
+        {children ? <div className="mt-2">{children}</div> : null}
       </div>
-      <div className="mt-3">{children}</div>
+      {action ? <div className="flex shrink-0 items-center gap-2">{action}</div> : null}
     </div>
   );
 }
@@ -211,6 +168,7 @@ export function SettingsPage() {
       coverImageUrl: null,
       phone: null,
       phoneMasked: null,
+      hasPassword: false,
       profileVisibility: "community",
       notifyComments: true,
       notifyMentions: true,
@@ -227,7 +185,17 @@ export function SettingsPage() {
   const [phoneRequestId, setPhoneRequestId] = useState<string | null>(null);
   const [phoneActionError, setPhoneActionError] = useState<string | null>(null);
   const [isConfirmingPhone, setIsConfirmingPhone] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [isPasswordSmsCaptchaOpen, setIsPasswordSmsCaptchaOpen] = useState(false);
+  const [passwordRequestId, setPasswordRequestId] = useState<string | null>(null);
+  const [passwordActionError, setPasswordActionError] = useState<string | null>(null);
+  const [isChangingPassword, setIsChangingPassword] = useState(false);
   const phoneSmsFlow = useSmsVerificationFlow();
+  const passwordSmsFlow = useSmsVerificationFlow();
 
   const profileQuery = useQuery({
     queryKey: ["current-user-profile", user?.id],
@@ -243,10 +211,9 @@ export function SettingsPage() {
     }
 
     return (
-      trimUrl(draft.avatarUrl) ??
-      trimUrl(profileItem?.avatarUrl) ??
-      trimUrl(user.avatarUrl ?? undefined) ??
-      getAvatarImage(user.id)
+      resolveUserAvatarSrc(draft.avatarUrl) ??
+      resolveUserAvatarSrc(profileItem?.avatarUrl) ??
+      resolveUserAvatarSrc(user.avatarUrl)
     );
   }, [draft.avatarUrl, profileItem?.avatarUrl, user]);
 
@@ -279,6 +246,8 @@ export function SettingsPage() {
   const nextPhoneDigits = normalizeChinaMobilePhoneInput(nextPhone);
   const showNextPhoneInvalid =
     nextPhoneDigits.length === 11 && !isChinaMainlandMobilePhone(nextPhoneDigits);
+  const hasPassword = profileItem?.hasPassword ?? draft.hasPassword;
+  const boundPhoneDigits = normalizeChinaMobilePhoneInput(profileItem?.phone ?? draft.phone);
 
   function beginEdit(field: Exclude<EditableProfileField, null>) {
     setStatusMessage(null);
@@ -395,6 +364,11 @@ export function SettingsPage() {
   }
 
   async function requestPhoneCode() {
+    if (!hasPassword) {
+      setPhoneActionError("请先设置登录密码，再更换绑定手机");
+      return;
+    }
+
     if (!canRequestPhoneRebind({ nextPhone }) || !phoneSmsFlow.challenge) {
       return;
     }
@@ -456,8 +430,112 @@ export function SettingsPage() {
     }
   }
 
+  function updatePasswordForm(field: keyof typeof passwordForm, value: string) {
+    setPasswordForm((current) => ({
+      ...current,
+      [field]: value
+    }));
+  }
+
+  async function requestPasswordCode() {
+    if (!isChinaMainlandMobilePhone(boundPhoneDigits)) {
+      setPasswordActionError("当前账号缺少可验证的绑定手机号");
+      return;
+    }
+
+    setPasswordActionError(null);
+    await passwordSmsFlow.sendSmsCode({
+      request: ({ challengeId, captchaCode }) =>
+        apiClient.requestSmsCode({
+          phone: boundPhoneDigits,
+          captchaChallengeId: challengeId,
+          captchaCode
+        }),
+      successHint: () => " ",
+      onError: setPasswordActionError,
+      errorFallback: "获取短信验证码失败",
+      onSuccess: (response) => {
+        setPasswordRequestId(response.requestId);
+        setIsPasswordSmsCaptchaOpen(false);
+      }
+    });
+  }
+
+  async function changePassword() {
+    if (hasPassword && !passwordForm.currentPassword) {
+      setStatusMessage("请输入当前密码");
+      return;
+    }
+
+    if (!strongPasswordSchema.safeParse(passwordForm.newPassword).success) {
+      setStatusMessage(passwordPolicyHint);
+      return;
+    }
+
+    if (hasPassword && passwordForm.currentPassword === passwordForm.newPassword) {
+      setStatusMessage("新密码不能与当前密码相同");
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setStatusMessage("两次输入的新密码不一致");
+      return;
+    }
+
+    if (!passwordRequestId || !passwordSmsFlow.smsCode.trim()) {
+      setStatusMessage("请输入手机短信验证码");
+      return;
+    }
+
+    setIsChangingPassword(true);
+    try {
+      await apiClient.changeWebPassword({
+        currentPassword: hasPassword ? passwordForm.currentPassword : undefined,
+        newPassword: passwordForm.newPassword,
+        smsRequestId: passwordRequestId,
+        smsCode: passwordSmsFlow.smsCode.trim()
+      });
+      if (!hasPassword) {
+        setPasswordForm({
+          currentPassword: "",
+          newPassword: "",
+          confirmPassword: ""
+        });
+        setPasswordRequestId(null);
+        passwordSmsFlow.reset();
+        setDraft((current) => ({
+          ...current,
+          hasPassword: true
+        }));
+        if (profileItem) {
+          queryClient.setQueryData(["current-user-profile", currentUser.id], {
+            item: {
+              ...profileItem,
+              hasPassword: true
+            }
+          });
+        } else {
+          await queryClient.invalidateQueries({
+            queryKey: ["current-user-profile", currentUser.id]
+          });
+        }
+        setStatusMessage("登录密码已设置");
+        return;
+      }
+      queryClient.clear();
+      setPasswordRequestId(null);
+      passwordSmsFlow.reset();
+      setAnonymous();
+      void navigate(APP_ROUTES.webLogin, { replace: true });
+    } catch (reason: unknown) {
+      setStatusMessage(reason instanceof Error ? reason.message : "密码修改失败");
+    } finally {
+      setIsChangingPassword(false);
+    }
+  }
+
   return (
-    <SitePage className="mx-auto w-full max-w-[76rem] gap-6">
+    <SitePage className="mx-auto w-full max-w-[48rem] gap-6">
       <SitePageHead>
         <SitePageTitle>设置</SitePageTitle>
         <SitePageDescription>管理公开资料、账号安全与通知偏好。</SitePageDescription>
@@ -477,11 +555,37 @@ export function SettingsPage() {
         </Alert>
       ) : null}
 
-      <div className="grid w-full gap-6 xl:grid-cols-[minmax(0,1.2fr)_minmax(0,0.85fr)] xl:items-start">
+      {/* Profile Summary Card */}
+      <SitePanel className="overflow-hidden border border-border/60" variant="floating">
+        <div className="flex items-center gap-4 px-5 py-4">
+          {profileLoading ? (
+            <Skeleton className="h-16 w-16 shrink-0 rounded-full" />
+          ) : (
+            <UserAvatar
+              className="!h-16 !w-16 shrink-0"
+              displayName={displayName}
+              size="lg"
+              src={resolvedAvatarSrc}
+            />
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="text-base font-semibold text-foreground">{displayName}</div>
+            <div className="mt-0.5 line-clamp-1 text-sm text-muted-foreground">
+              {draft.bio.trim() || "还没有填写个人简介。"}
+            </div>
+          </div>
+          <Button asChild className="shrink-0" size="sm" variant="ghost">
+            <Link to={APP_ROUTES.webProfile}>查看主页</Link>
+          </Button>
+        </div>
+      </SitePanel>
+
+      <div className="space-y-4">
         <SettingsPanel>
           <SettingsPanelHeader>公开资料</SettingsPanelHeader>
           <div className="divide-y divide-border/60">
-            <SettingsAvatarSection
+            {/* Avatar */}
+            <SettingsRow
               action={
                 <Button
                   className="rounded-full"
@@ -495,7 +599,7 @@ export function SettingsPage() {
                   {savingField === "avatar" ? "保存中..." : "编辑"}
                 </Button>
               }
-              title="头像"
+              label="头像"
             >
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
                 {profileLoading ? (
@@ -525,7 +629,7 @@ export function SettingsPage() {
                   type="file"
                 />
               </div>
-            </SettingsAvatarSection>
+            </SettingsRow>
 
             <SettingsRow
               action={
@@ -542,7 +646,7 @@ export function SettingsPage() {
                       }}
                       size="sm"
                       type="button"
-                      variant="hero"
+                      variant="default"
                     >
                       {savingField === "displayName" ? "保存中..." : "保存"}
                     </Button>
@@ -591,7 +695,7 @@ export function SettingsPage() {
                       }}
                       size="sm"
                       type="button"
-                      variant="hero"
+                      variant="default"
                     >
                       {savingField === "bio" ? "保存中..." : "保存"}
                     </Button>
@@ -645,7 +749,7 @@ export function SettingsPage() {
                       }}
                       size="sm"
                       type="button"
-                      variant="hero"
+                      variant="default"
                     >
                       {savingField === "profileVisibility" ? "保存中..." : "保存"}
                     </Button>
@@ -700,7 +804,7 @@ export function SettingsPage() {
           </div>
         </SettingsPanel>
 
-        <SettingsPanel className="xl:pt-[0.15rem]">
+        <SettingsPanel>
           <SettingsPanelHeader>账号与安全</SettingsPanelHeader>
           <div className="divide-y divide-border/60">
             <SettingsRow
@@ -708,6 +812,10 @@ export function SettingsPage() {
                 <Button
                   className="rounded-full"
                   onClick={() => {
+                    if (!hasPassword) {
+                      setStatusMessage("请先设置登录密码，再更换绑定手机");
+                      return;
+                    }
                     setPhoneActionError(null);
                     setIsPhoneDialogOpen(true);
                   }}
@@ -726,112 +834,148 @@ export function SettingsPage() {
                   {resolveMaskedPhone(draft.phone || null, draft.phoneMasked)}
                 </div>
                 <div className="text-muted-foreground">
-                  仅展示脱敏手机号，修改时会通过短信验证码完成校验。
+                  {hasPassword
+                    ? "仅展示脱敏手机号，修改时会通过短信验证码完成校验。"
+                    : "设置登录密码后才可以更换绑定手机号。"}
                 </div>
               </div>
             </SettingsRow>
-          </div>
-
-          <SettingsSubsectionTitle>通知</SettingsSubsectionTitle>
-          <div className="divide-y divide-border/60">
-            <SettingsRow
-              action={
+            <SettingsRow alignTop label="登录密码">
+              {!hasPassword ? (
+                <Alert className="mb-3">
+                  <AlertTitle>请设置登录密码</AlertTitle>
+                  <AlertDescription>
+                    设置后可使用手机号密码登录，并可继续更换绑定手机号。
+                  </AlertDescription>
+                </Alert>
+              ) : null}
+              <div className={cn("grid gap-3", hasPassword ? "md:grid-cols-3" : "md:grid-cols-2")}>
+                {hasPassword ? (
+                  <Input
+                    autoComplete="current-password"
+                    onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
+                    placeholder="当前密码"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                  />
+                ) : null}
+                <Input
+                  autoComplete="new-password"
+                  onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
+                  placeholder={hasPassword ? "新密码" : "设置登录密码"}
+                  type="password"
+                  value={passwordForm.newPassword}
+                />
+                <Input
+                  autoComplete="new-password"
+                  onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
+                  placeholder="确认新密码"
+                  type="password"
+                  value={passwordForm.confirmPassword}
+                />
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                <Input
+                  inputMode="numeric"
+                  onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
+                  placeholder="手机短信验证码"
+                  value={passwordSmsFlow.smsCode}
+                />
+                <Button
+                  className="h-10 w-full rounded-full"
+                  disabled={
+                    passwordSmsFlow.isSendingSms ||
+                    passwordSmsFlow.cooldownSeconds > 0 ||
+                    !isChinaMainlandMobilePhone(boundPhoneDigits)
+                  }
+                  onClick={() => {
+                    setPasswordActionError(null);
+                    setIsPasswordSmsCaptchaOpen(true);
+                  }}
+                  type="button"
+                  variant="outline"
+                >
+                  {passwordSmsFlow.isSendingSms
+                    ? "发送中..."
+                    : passwordSmsFlow.cooldownSeconds > 0
+                      ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
+                      : passwordSmsFlow.requestHint
+                        ? "重新获取验证码"
+                        : "获取验证码"}
+                </Button>
+              </div>
+              {passwordSmsFlow.requestHint ? (
+                <div className="mt-2 text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
+              ) : null}
+              {passwordActionError ? (
+                <div className="mt-2 text-sm text-destructive">{passwordActionError}</div>
+              ) : null}
+              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                  <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
+                  {passwordPolicyHint}
+                </div>
                 <Button
                   className="rounded-full"
-                  disabled={savingField === "notifyComments"}
+                  disabled={isChangingPassword}
                   onClick={() => {
-                    void toggleNotificationField("notifyComments", "评论与回复提醒已更新");
+                    void changePassword();
                   }}
                   size="sm"
                   type="button"
-                  variant={draft.notifyComments ? "default" : "outline"}
+                  variant="default"
                 >
-                  {savingField === "notifyComments" ? "保存中..." : draft.notifyComments ? "开启" : "关闭"}
+                  {isChangingPassword ? "保存中..." : hasPassword ? "修改密码" : "设置密码"}
                 </Button>
-              }
-              label="评论与回复提醒"
-            >
-              <div className="text-muted-foreground">当有人评论或回复你时，消息中心优先显示。</div>
+              </div>
             </SettingsRow>
-
-            <SettingsRow
-              action={
-                <Button
-                  className="rounded-full"
-                  disabled={savingField === "notifyMentions"}
-                  onClick={() => {
-                    void toggleNotificationField("notifyMentions", "提及提醒已更新");
-                  }}
-                  size="sm"
-                  type="button"
-                  variant={draft.notifyMentions ? "default" : "outline"}
-                >
-                  {savingField === "notifyMentions" ? "保存中..." : draft.notifyMentions ? "开启" : "关闭"}
-                </Button>
-              }
-              label="提及提醒"
-            >
-              <div className="text-muted-foreground">当有人在帖子、榜单或评论中提及你时提醒。</div>
-            </SettingsRow>
-            {settingsNotificationOptions.slice(2).map((option) => (
-              <SettingsRow
-                action={
-                  <Button
-                    className="rounded-full"
-                    disabled={savingField === option.field}
-                    onClick={() => {
-                      void toggleNotificationField(option.field, option.successMessage);
-                    }}
-                    size="sm"
-                    type="button"
-                    variant={draft[option.field] ? "default" : "outline"}
-                  >
-                    {savingField === option.field
-                      ? "\u4fdd\u5b58\u4e2d..."
-                      : draft[option.field]
-                        ? "\u5f00\u542f"
-                        : "\u5173\u95ed"}
-                  </Button>
-                }
-                key={option.field}
-                label={option.label}
-              >
-                <div className="text-muted-foreground">{option.description}</div>
-              </SettingsRow>
-            ))}
-          </div>
-          <div className="flex flex-wrap gap-2 border-t border-border/60 bg-muted/10 px-4 py-3">
-            <Button asChild size="sm" type="button" variant="ghost">
-              <Link to={APP_ROUTES.webProfile}>查看个人主页</Link>
-            </Button>
-            <Button asChild size="sm" type="button" variant="ghost">
-              <Link to={APP_ROUTES.notifications}>
-                <BellIcon data-icon="inline-start" />
-                查看消息
-              </Link>
-            </Button>
-            <Button
-              className="rounded-full"
-              onClick={() => {
-                void apiClient
-                  .logout()
-                  .then(() => {
-                    setAnonymous();
-                    void navigate(APP_ROUTES.feedHome);
-                  })
-                  .catch((reason: unknown) => {
-                    setError(reason instanceof Error ? reason.message : "退出登录失败");
-                  });
-              }}
-              size="sm"
-              type="button"
-              variant="destructive"
-            >
-              <LogOutIcon data-icon="inline-start" />
-              退出登录
-            </Button>
           </div>
         </SettingsPanel>
+
+        <SettingsPanel>
+          <SettingsPanelHeader>通知偏好</SettingsPanelHeader>
+          <div className="divide-y divide-border/60">
+            {settingsNotificationOptions.map((option) => (
+              <SettingsRow
+                action={
+                  <Switch
+                    checked={draft[option.field]}
+                    disabled={savingField === option.field}
+                    onCheckedChange={() => {
+                      void toggleNotificationField(option.field, option.successMessage);
+                    }}
+                  />
+                }
+                description={option.description}
+                key={option.field}
+                label={option.label}
+              />
+            ))}
+          </div>
+        </SettingsPanel>
+      </div>
+
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        <Button
+          className="rounded-full"
+          onClick={() => {
+            void apiClient
+              .logout()
+              .catch((reason: unknown) => {
+                setError(reason instanceof Error ? reason.message : "退出登录失败");
+              })
+              .finally(() => {
+                setAnonymous();
+                void navigate(APP_ROUTES.feedHome);
+              });
+          }}
+          size="sm"
+          type="button"
+          variant="destructive"
+        >
+          <LogOutIcon data-icon="inline-start" />
+          退出登录
+        </Button>
       </div>
 
       {isPhoneDialogOpen ? (
@@ -873,6 +1017,7 @@ export function SettingsPage() {
                 disabled={
                   phoneSmsFlow.isSendingSms ||
                   phoneSmsFlow.cooldownSeconds > 0 ||
+                  !hasPassword ||
                   !canRequestPhoneRebind({ nextPhone })
                 }
                 onClick={() => {
@@ -955,6 +1100,16 @@ export function SettingsPage() {
           title="安全验证"
         />
       ) : null}
+      <SendSmsCaptchaDialog
+        description="验证通过后将向当前绑定手机号发送短信验证码。"
+        flow={passwordSmsFlow}
+        onConfirmSend={requestPasswordCode}
+        onOpenChange={setIsPasswordSmsCaptchaOpen}
+        onRefreshError={setPasswordActionError}
+        open={isPasswordSmsCaptchaOpen}
+        refreshErrorFallback="图形验证码加载失败"
+        title="修改密码验证"
+      />
     </SitePage>
   );
 }

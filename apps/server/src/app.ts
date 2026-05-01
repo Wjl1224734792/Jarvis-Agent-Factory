@@ -10,6 +10,8 @@ import { aircraftModelsRoute } from './modules/aircraft-models/aircraft-models.r
 import { aircraftSubmissionsRoute } from './modules/aircraft-submissions/aircraft-submissions.route';
 import { auditsRoute } from './modules/audits/audits.route';
 import { authRoute } from './modules/auth/auth.route';
+import { resolveAuthCodeConfig } from './modules/auth/auth.repo';
+import { resolveSmsProviderConfig } from './modules/auth/sms-provider';
 import { brandApplicationsRoute } from './modules/brand-applications/brand-applications.route';
 import { brandsRoute } from './modules/brands/brands.route';
 import { categoriesRoute } from './modules/categories/categories.route';
@@ -21,7 +23,9 @@ import { searchRoute } from './modules/search/search.route';
 import { siteSettingsRoute } from './modules/site-settings/site-settings.route';
 import { socialRoute } from './modules/social/social.route';
 import { uploadsRoute } from './modules/uploads/upload.route';
+import { usersRoute } from './modules/users/users.route';
 import { buildDefaultCorsOrigins, isAllowedDevCorsOrigin } from './lib/cors-origins';
+import { parseOptionalBooleanEnv } from './lib/env-flags';
 import { ensureServerEnvLoaded } from './lib/load-env';
 import { logger } from './lib/logger';
 import {
@@ -37,10 +41,28 @@ import {
 import { healthRoute } from './routes/health';
 
 ensureServerEnvLoaded();
+resolveAuthCodeConfig();
+resolveSmsProviderConfig();
 
 export const app = new Hono();
 
-// 优先解析显式配置；未配置时退回开发期默认白名单，兼顾本地联调与生产收敛。
+function parseConfiguredCorsOrigins(raw: string | undefined) {
+  if (!raw) {
+    return [];
+  }
+
+  return raw
+    .split(',')
+    .map(part => part.trim())
+    .filter(part => part.length > 0);
+}
+
+/**
+ * 解析服务端实际使用的 CORS 来源配置。
+ *
+ * @returns 显式白名单数组，或用于动态放行开发来源的回调函数。
+ * @throws {Error} 当生产环境显式配置 `CORS_ORIGIN=all` 时抛出异常。
+ */
 export function resolveCorsOrigin():
   | string[]
   | ((origin: string) => string | undefined | null) {
@@ -48,7 +70,7 @@ export function resolveCorsOrigin():
   if (raw === '*' || raw?.toLowerCase() === 'all') {
     if (process.env.NODE_ENV === 'production') {
       throw new Error(
-        "CORS_ORIGIN=all is forbidden in production when credentials are enabled."
+        'CORS_ORIGIN=all is forbidden in production when credentials are enabled.'
       );
     }
 
@@ -56,42 +78,28 @@ export function resolveCorsOrigin():
   }
 
   if (raw) {
-    const list = raw
-      .split(',')
-      .map(part => part.trim())
-      .filter(part => part.length > 0);
+    const list = parseConfiguredCorsOrigins(raw);
     if (list.length > 0) {
       return list;
     }
   }
 
   if (process.env.NODE_ENV !== 'production') {
-    return (origin: string) => (isAllowedDevCorsOrigin(origin) ? origin : undefined);
+    return (origin: string) =>
+      isAllowedDevCorsOrigin(origin) ? origin : undefined;
   }
 
   return [...buildDefaultCorsOrigins()];
 }
 
-// 环境变量允许多种“真/假”写法，避免部署平台布尔值格式差异导致行为偏差。
-function parseBooleanEnv(value: string | undefined): boolean | undefined {
-  if (value === undefined) {
-    return undefined;
-  }
-
-  const normalized = value.trim().toLowerCase();
-  if (['1', 'true', 'yes', 'on'].includes(normalized)) {
-    return true;
-  }
-  if (['0', 'false', 'no', 'off'].includes(normalized)) {
-    return false;
-  }
-
-  return undefined;
-}
-
-// OpenAPI 文档默认只在非生产暴露，生产环境必须显式开启。
+/**
+ * 解析 OpenAPI 文档暴露开关。
+ *
+ * @returns 显式配置优先；未配置时非生产默认开启、生产默认关闭。
+ * @throws {never} 该函数只读取环境变量，不会主动抛出异常。
+ */
 function resolveOpenApiEnabled() {
-  const configured = parseBooleanEnv(process.env.OPENAPI_ENABLED);
+  const configured = parseOptionalBooleanEnv(process.env.OPENAPI_ENABLED);
   if (configured !== undefined) {
     return configured;
   }
@@ -102,7 +110,7 @@ function resolveOpenApiEnabled() {
 app.use(
   '*',
   cors({
-    // CORS 在全局统一处理，后续业务路由不再单独维护跨域头。
+    // CORS 在应用层统一处理，业务路由不再分别维护跨域规则。
     origin: resolveCorsOrigin(),
     credentials: true
   })
@@ -110,8 +118,9 @@ app.use(
 
 const shouldLogHttp =
   process.env.NODE_ENV !== 'test' &&
-  parseBooleanEnv(process.env.LOG_HTTP_ENABLED) !== false;
-const shouldLogApiMetrics = process.env.NODE_ENV !== 'test' && isApiMetricsEnabled();
+  parseOptionalBooleanEnv(process.env.LOG_HTTP_ENABLED) !== false;
+const shouldLogApiMetrics =
+  process.env.NODE_ENV !== 'test' && isApiMetricsEnabled();
 const monitoredMetricsPaths = new Set<string>([
   API_ROUTES.feed,
   API_ROUTES.models.list,
@@ -131,24 +140,37 @@ function parseResponseContentLength(value: string | null) {
   return parsed;
 }
 
+function isJsonRequestParseError(error: unknown) {
+  return (
+    error instanceof SyntaxError &&
+    /JSON|Unexpected|Expected property name/i.test(error.message)
+  );
+}
+
 if (shouldLogHttp) {
   app.use('*', async (c, next) => {
     const started = performance.now();
     await runWithRequestMetrics(async () => {
       await next();
     });
-    // 仅在非生产输出简洁请求日志，方便本地排查接口耗时与状态码。
+
     const ms = Math.round(performance.now() - started);
     logger.request(`${c.req.method} ${c.req.path}`, {
       status: c.res.status,
       ms
     });
 
-    if (!shouldLogApiMetrics || c.req.method !== 'GET' || !monitoredMetricsPaths.has(c.req.path)) {
+    if (
+      !shouldLogApiMetrics ||
+      c.req.method !== 'GET' ||
+      !monitoredMetricsPaths.has(c.req.path)
+    ) {
       return;
     }
 
-    let responseBytes = parseResponseContentLength(c.res.headers.get('content-length'));
+    let responseBytes = parseResponseContentLength(
+      c.res.headers.get('content-length')
+    );
     if (responseBytes === null) {
       try {
         const text = await c.res.clone().text();
@@ -170,7 +192,7 @@ if (shouldLogHttp) {
 }
 
 if (resolveOpenApiEnabled()) {
-  // OpenAPI JSON 与 Swagger UI 成对暴露，文档端始终基于同一份生成结果。
+  // OpenAPI JSON 与 Swagger UI 复用同一份文档生成结果。
   app.get(OPENAPI_DOCUMENT_PATH, context => context.json(openApiDocument));
   app.get(
     API_DOCS_PATH,
@@ -192,6 +214,7 @@ app.route(APP_ROUTES.health, healthRoute);
 app.route('/', authRoute);
 app.route('/', auditsRoute);
 app.route('/', uploadsRoute);
+app.route('/', usersRoute);
 app.route('/', postsRoute);
 app.route('/', socialRoute);
 app.route('/', searchRoute);
@@ -208,7 +231,6 @@ app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
 app.route('/', contentCategoriesRoute);
 
-// 404 与 500 统一走 JSON，保证前后台和移动端都能稳定消费错误结构。
 app.notFound(context =>
   context.json(
     {
@@ -220,9 +242,18 @@ app.notFound(context =>
 );
 
 app.onError((error, context) => {
+  if (isJsonRequestParseError(error)) {
+    return context.json(
+      {
+        code: 'BAD_REQUEST',
+        message: 'Malformed JSON request body.'
+      },
+      400
+    );
+  }
+
   const maybeValidationError = error as { issues?: Array<{ message?: string }> };
   if (Array.isArray(maybeValidationError.issues)) {
-    // Zod/Hono 校验错误统一下沉成 400，避免把输入问题误报成服务器异常。
     logger.error(error.message, {
       stack: error.stack,
       path: context.req.path,

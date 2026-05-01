@@ -1,4 +1,6 @@
-.codex
+.claude/
+.trae/
+.cursor/
 .opencode
 .opencode.json
 config.toml

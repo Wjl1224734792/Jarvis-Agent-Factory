@@ -11,8 +11,8 @@ import {
 import { Badge, Button, Input, Layout, Menu, Space, type MenuProps } from "antd";
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import { Link, Outlet, useLocation, useNavigate } from "react-router-dom";
-import adminLogoUrl from "../../assets/logo.jpg";
 import { apiClient } from "../../lib/api-client";
+import { logoUrl } from "../../lib/logo-url";
 import { ADMIN_AUTH_INVALID_EVENT } from "../../lib/auth-events";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import {
@@ -133,7 +133,7 @@ export function AdminShell() {
       <Header className="admin-shell__header">
         <div className="admin-shell__header-inner">
           <div className="admin-shell__brand">
-            <img alt={`${APP_NAME} 管理后台`} className="admin-shell__brand-logo" src={adminLogoUrl} />
+            <img alt={`${APP_NAME} 管理后台`} className="admin-shell__brand-logo" src={logoUrl} />
             <div className="admin-shell__brand-main">
               <div className="admin-shell__brand-kicker">{APP_NAME}</div>
               <div className="admin-shell__brand-title">传统管理后台</div>

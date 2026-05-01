@@ -15,10 +15,9 @@ describe("posts api client", () => {
           activeCategorySlug: null,
           categories: [],
           items: [],
+          nextCursor: null,
           pagination: {
-            page: 1,
             limit: 20,
-            total: 0,
             hasMore: false
           }
         }),
@@ -40,6 +39,121 @@ describe("posts api client", () => {
     expect(payload.tab).toBe("recommended");
     expect(fetchMock).toHaveBeenCalledWith(
       `http://localhost:17382${API_ROUTES.feed}?tab=recommended`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("requests recommended home feed with cursor", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "recommended",
+          activeCategorySlug: null,
+          categories: [],
+          items: [],
+          nextCursor: "cursor_40",
+          pagination: {
+            limit: 20,
+            hasMore: true
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    const payload = await client.listHomeFeed({
+      tab: "recommended",
+      cursor: "cursor_20",
+      limit: 20
+    });
+
+    expect(payload.nextCursor).toBe("cursor_40");
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.feed}?tab=recommended&limit=20&cursor=cursor_20`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("requests latest/following circle feed with cursor pagination", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "following",
+          items: [],
+          nextCursor: "cursor_30",
+          pagination: {
+            limit: 10,
+            hasMore: true
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    await client.listCircleFeed("following", { cursor: "cursor_20", limit: 10 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.circleFeed}?tab=following&limit=10&cursor=cursor_20`,
+      expect.objectContaining({
+        method: "GET",
+        credentials: "include"
+      })
+    );
+  });
+
+  it("requests recommended circle feed with cursor", async () => {
+    const fetchMock = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          tab: "recommended",
+          items: [],
+          nextCursor: null,
+          pagination: {
+            limit: 10,
+            hasMore: false
+          }
+        }),
+        {
+          status: 200,
+          headers: {
+            "content-type": "application/json"
+          }
+        }
+      )
+    );
+
+    const client = createApiClient({
+      baseUrl: "http://localhost:17382"
+    });
+
+    await client.listCircleFeed("recommended", { cursor: "cursor_10", limit: 10 });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      `http://localhost:17382${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=cursor_10`,
       expect.objectContaining({
         method: "GET",
         credentials: "include"
@@ -156,6 +270,8 @@ describe("posts api client", () => {
       content: "Updated article body",
       contentHtml: "<p>Updated article body</p>",
       contentCategoryId: null,
+      sourceLabel: "External bulletin",
+      sourceUrl: "https://example.com/bulletin",
       imageIds: [],
       videoIds: []
     });
@@ -164,7 +280,19 @@ describe("posts api client", () => {
       `http://localhost:17382${API_ROUTES.posts.detail("post_1")}`,
       expect.objectContaining({
         method: "PUT",
-        credentials: "include"
+        credentials: "include",
+        body: JSON.stringify({
+          type: "article",
+          title: "Updated article",
+          content: "Updated article body",
+          contentHtml: "<p>Updated article body</p>",
+          contentCategoryId: null,
+          coverImageId: null,
+          sourceLabel: "External bulletin",
+          sourceUrl: "https://example.com/bulletin",
+          imageIds: [],
+          videoIds: []
+        })
       })
     );
   });
@@ -257,6 +385,7 @@ describe("posts api client", () => {
     const payload = await client.uploadPostImage(file);
 
     expect(payload.item.id).toBe("file_1");
+    expect(payload.item.url).toBe(`http://localhost:17382${API_ROUTES.files.content("file_1")}`);
     expect(fetchMock).toHaveBeenNthCalledWith(
       1,
       `http://localhost:17382${API_ROUTES.uploads.init}`,
@@ -386,6 +515,9 @@ describe("posts api client", () => {
     const payload = await client.uploadPostImage(file);
 
     expect(payload.item.id).toBe("file_kodo_1");
+    expect(payload.item.url).toBe(
+      `http://localhost:17382${API_ROUTES.files.content("file_kodo_1")}`
+    );
     expect(fetchMock).toHaveBeenNthCalledWith(
       2,
       "https://up-z0.qiniup.com",

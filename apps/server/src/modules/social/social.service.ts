@@ -14,6 +14,7 @@ import {
   type NotificationTargetType,
   type NotificationType
 } from "./notification-types";
+import { resolveSystemNotificationHref } from "./system-notification-targets";
 import {
   isValidAuthRole,
   isValidPostType,
@@ -163,6 +164,11 @@ type AdminMessageDomain =
 type AdminMessageReadStatus = "all" | "read" | "unread";
 
 const ADMIN_MESSAGE_DOMAIN_BY_TYPE: Partial<Record<NotificationType, AdminMessageDomain>> = {
+  post_status_changed: "posts",
+  ranking_status_changed: "rankings",
+  rating_target_status_changed: "rating_targets",
+  aircraft_submission_status_changed: "aircraft_submissions",
+  brand_application_status_changed: "brand_applications",
   post_audit_result: "posts",
   review_audit_result: "reviews",
   ranking_audit_result: "rankings",
@@ -221,12 +227,18 @@ function getAdminMessageDomain(type: NotificationType): AdminMessageDomain | nul
 }
 
 const ADMIN_MESSAGE_TYPES_BY_DOMAIN: Partial<Record<AdminMessageDomain, NotificationType[]>> = {
-  posts: ["post_audit_result"],
+  posts: ["post_audit_result", "post_status_changed"],
   reviews: ["review_audit_result"],
-  rankings: ["ranking_audit_result"],
-  rating_targets: ["rating_target_audit_result"],
-  aircraft_submissions: ["aircraft_submission_audit_result"],
-  brand_applications: ["brand_application_audit_result"]
+  rankings: ["ranking_audit_result", "ranking_status_changed"],
+  rating_targets: ["rating_target_audit_result", "rating_target_status_changed"],
+  aircraft_submissions: [
+    "aircraft_submission_audit_result",
+    "aircraft_submission_status_changed"
+  ],
+  brand_applications: [
+    "brand_application_audit_result",
+    "brand_application_status_changed"
+  ]
 };
 
 function toNavigationFilters(input: {
@@ -419,7 +431,7 @@ export const socialService = {
     const owner = await socialRepo.getUserById(input.userId);
     const metadata = {
       ...(input.metadata ?? {}),
-      href: input.target.href ?? null
+      href: resolveSystemNotificationHref({ target: input.target })
     };
 
     // 原作者保留终端侧系统消息，管理员则收到 admin inbox 副本。
@@ -532,7 +544,7 @@ export const socialService = {
           }
 
           const metadata = parseMetadata(item.metadata);
-          const href = typeof metadata.href === "string" ? metadata.href : null;
+          const rawHref = typeof metadata.href === "string" ? metadata.href : null;
           const subjectUserId =
             typeof metadata.subjectUserId === "string" ? metadata.subjectUserId : null;
           const subjectUserRecord = subjectUserId ? subjectUserById.get(subjectUserId) ?? null : null;
@@ -557,6 +569,15 @@ export const socialService = {
             item.targetType === "status"
               ? item.targetType
               : "status";
+          const href = resolveSystemNotificationHref({
+            target: {
+              type: targetType,
+              id: item.targetId,
+              title: item.targetTitle,
+              status: item.targetStatus ?? null,
+              href: rawHref
+            }
+          });
 
           return {
             id: item.id,
@@ -695,7 +716,7 @@ export const socialService = {
                 }
               : null;
           const metadata = parseMetadata(item.metadata);
-          const href = typeof metadata.href === "string" ? metadata.href : null;
+          const rawHref = typeof metadata.href === "string" ? metadata.href : null;
 
           const targetType: NotificationTargetType =
             item.targetType === "user" ||
@@ -708,6 +729,15 @@ export const socialService = {
             item.targetType === "status"
               ? item.targetType
               : "status";
+          const href = resolveSystemNotificationHref({
+            target: {
+              type: targetType,
+              id: item.targetId,
+              title: item.targetTitle,
+              status: item.targetStatus ?? null,
+              href: rawHref
+            }
+          });
 
           return {
             id: item.id,
@@ -1037,6 +1067,7 @@ export const socialService = {
         coverImageUrl: await resolveUploadedFileUrl(user.coverImageFileId ?? null),
         phone: user.phone ?? null,
         phoneMasked: toPhoneMasked(user.phone ?? null),
+        hasPassword: Boolean(user.passwordHash),
         profileVisibility: settings.profileVisibility,
         notifyComments: settings.notifyComments,
         notifyMentions: settings.notifyMentions,
@@ -1051,11 +1082,16 @@ export const socialService = {
       phone: string;
       captchaChallengeId: string;
       captchaCode: string;
-    }
+    },
+    metadata?: { clientIp?: string | null }
   ) {
     const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
     if (!currentProfile) {
       return null;
+    }
+
+    if (!currentProfile.passwordHash) {
+      return { kind: "password_required" as const };
     }
 
     const existingPhoneOwner = await socialRepo.findUserByPhone(input.phone);
@@ -1063,7 +1099,7 @@ export const socialService = {
       return { kind: "conflict" as const };
     }
 
-    const payload = await authService.requestSmsCode(input);
+    const payload = await authService.requestSmsCode(input, metadata);
     return { kind: "ok" as const, payload };
   },
   async confirmPhoneChange(
@@ -1077,6 +1113,10 @@ export const socialService = {
     const currentProfile = await socialRepo.getCurrentUserProfile(currentUserId);
     if (!currentProfile) {
       return { kind: "not_found" as const };
+    }
+
+    if (!currentProfile.passwordHash) {
+      return { kind: "password_required" as const };
     }
 
     try {
@@ -1111,7 +1151,6 @@ export const socialService = {
       bio?: string | null;
       avatarFileId?: string | null;
       coverImageFileId?: string | null;
-      phone?: string | null;
       profileVisibility?: "community" | "followers" | "private";
       notifyComments?: boolean;
       notifyMentions?: boolean;
@@ -1137,11 +1176,9 @@ export const socialService = {
       bio?: string | null;
       avatarFileId?: string | null;
       coverImageFileId?: string | null;
-      phone?: string | null;
     } = {
       displayName: input.displayName,
-      bio: input.bio,
-      phone: input.phone
+      bio: input.bio
     };
 
     if (Object.prototype.hasOwnProperty.call(input, "avatarFileId")) {

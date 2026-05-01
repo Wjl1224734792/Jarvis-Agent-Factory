@@ -10,7 +10,7 @@ export type AdminAuditDomain =
   | "rating_target"
   | "comment";
 
-export type AdminAuditTracePlan = {
+export interface AdminAuditTracePlan {
   query: {
     domain: AdminAuditDomain;
     entityId?: string;
@@ -19,7 +19,7 @@ export type AdminAuditTracePlan = {
   panelDescription: string;
   emptyText: string;
   hint: string | null;
-};
+}
 
 export type AdminManualAuditDomain =
   | "file"
@@ -27,6 +27,12 @@ export type AdminManualAuditDomain =
   | "aircraft_submission"
   | "comment";
 
+/**
+ * 将最新一条人工审核记录同步为指定审核结论。
+ * @param input 审核域、实体 ID、目标状态和可选审核备注。
+ * @returns 找到最近审核记录时返回更新结果；未找到时返回 `null`。
+ * @throws 当审核记录查询或更新请求失败时透传客户端异常。
+ */
 export async function syncLatestAdminAuditManualDecision(input: {
   domain: AdminManualAuditDomain;
   entityId: string;
@@ -51,7 +57,9 @@ export async function syncLatestAdminAuditManualDecision(input: {
 
 /**
  * 为后台审核页生成统一的审核追踪查询与降级文案。
- * 有精确 entityId 时走对象级追踪；否则退回到域级最近记录，并明确提示边界。
+ * @param input 审核域、展示文案和精确对象定位信息。
+ * @returns 可直接驱动审核追踪面板的查询计划和提示文案。
+ * @throws 本函数不主动抛出异常。
  */
 export function buildAdminAuditTracePlan(input: {
   domain: AdminAuditDomain;
