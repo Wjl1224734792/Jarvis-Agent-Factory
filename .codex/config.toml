@@ -74,4 +74,8 @@ multi_agent = true
 max_threads = 6
 max_depth = 1
 
-
+[permissions.feijia.filesystem.":project_roots"]
+"." = "write"
+".claude/**" = "none"
+".trae/**" = "none"
+".cursor/**" = "none"
