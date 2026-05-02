@@ -11,6 +11,7 @@
     "lint": "eslint src/"
   },
   "dependencies": {
+    "@feijia/shared": "workspace:*",
     "zod": "^4.3.6"
   }
 }

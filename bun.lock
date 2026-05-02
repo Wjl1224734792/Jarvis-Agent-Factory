@@ -80,6 +80,7 @@
         "drizzle-orm": "^0.45.1",
         "hono": "^4.10.6",
         "qiniu": "^7.15.1",
+        "redis": "^5.8.2",
         "tencentcloud-sdk-nodejs": "^4.1.144",
         "zod": "^4.3.6",
       },
@@ -176,6 +177,7 @@
       "name": "@feijia/schemas",
       "version": "1.0.0",
       "dependencies": {
+        "@feijia/shared": "workspace:*",
         "zod": "^4.3.6",
       },
     },
