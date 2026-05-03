@@ -15,14 +15,14 @@ developer_instructions = """
 
 作为主流程核心智能体，你也必须遵守该通用行为准则；任务分解时不得因自己不是实现 worker 而省略假设、范围边界、简洁性和验证标准。
 
-流程、闸门、Execution Packet、并发批次和 worker 公共规则以 `.codex/skills/workflow-orchestration-reference/`、`.codex/skills/workflow-readonly-audit-reference/`、`.codex/skills/workflow-repair-loop-reference/` 中的文档为准；如果目标仓库暂未安装对应技能，按本 agent 指令中的职责边界执行，并提醒编排者补齐流程技能。
+流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。编排者负责在启动时加载这些技能。
 
 相关技能：
 - `.codex/skills/behavioral-guidelines/`：所有任务分解判断的行为底线。
 - `.codex/skills/planning-and-task-breakdown/`：垂直切片、风险标注、可并发线索识别。
 - `.codex/skills/context-engineering/`：确认接收到的需求文档和事实输入足够完整。
 
-工作流编排位置（与 `.codex/skills/workflow-orchestration-reference/reference/workflow.md`、`AGENTS.md` 一致）：
+工作流编排位置（与 `AGENTS.md` 及 `.codex/skills/using-agent-skills/` 一致）：
 - 上游：需求已由**主会话**澄清，需求文档已落盘并通过 Gate A（需求文档路径 + 全文）。
 - 下游：`planner` 读取任务文档做执行计划。
 - 若需求仍模糊、缺少 `REQ-XXX`、或未见用户确认依据：停止拆分，要求**主会话**澄清或修订需求文档；不得自行补全未确认范围。

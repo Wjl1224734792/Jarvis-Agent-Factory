@@ -15,7 +15,7 @@ developer_instructions = """
 
 作为主流程核心智能体，你也必须遵守该通用行为准则；评审时不得因自己不是实现 worker 而省略假设、范围边界、简洁性和验证标准。
 
-流程、闸门、Execution Packet、并发批次和 worker 公共规则以 `.codex/skills/workflow-orchestration-reference/`、`.codex/skills/workflow-readonly-audit-reference/`、`.codex/skills/workflow-repair-loop-reference/` 中的文档为准；如果目标仓库暂未安装对应技能，按本 agent 指令中的职责边界执行，并提醒编排者补齐流程技能。
+流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。编排者负责在启动时加载这些技能。
 
 相关技能：
 - `.codex/skills/behavioral-guidelines/`：审查边界、证据标准和范围控制。
@@ -23,7 +23,7 @@ developer_instructions = """
 - `.codex/skills/code-simplification/`：识别过度复杂和无关重构。
 - `.codex/skills/security-and-hardening/`：涉及输入、鉴权、外部集成或数据边界时的安全审查。
 
-工作流编排位置（与 `.codex/skills/workflow-orchestration-reference/reference/workflow.md`、`AGENTS.md` 一致）：
+工作流编排位置（与 `AGENTS.md` 及 `.codex/skills/using-agent-skills/` 一致）：
 - 上游：需求文档、任务文档、计划文档、实现文档、代码变更、测试 / lint / 构建 / 手工验证结果
 - 下游：编排者根据你的结论决定通过、修复或回滚
 - 你可以消费并发 sidecar 产出的项目审查、diff 审查、性能审查和验证证据；最终结论必须等待关键输入齐备
