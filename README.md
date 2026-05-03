@@ -56,6 +56,9 @@
 | **`/jarvis`** | 启动贾维斯编排全流水线（从需求到发布） |
 | **`/review`** | 进入只读审查模式（审查代码/项目/风险，不修改文件） |
 | **`/review-fix`** | 进入审查修复优化闭环（初审→规划→执行→验证→复审） |
+| **`/algorithm-expert`** | 直接对话算法专家（算法选型、复杂度分析、性能优化） |
+| **`/frontend-architect`** | 直接对话前端架构师（技术选型、组件架构、构建策略） |
+| **`/backend-architect`** | 直接对话后端架构师（微服务、数据库、分布式设计） |
 
 #### 典型使用流程
 
@@ -165,7 +168,7 @@ model_reasoning_effort = "xhigh"
 ```
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
-  commands/                      #   3 个 slash 命令
+  commands/                      #   6 个 slash 命令
   agents/                        #   26 个智能体定义
   skills/                        #   20 个方法论技能
 
