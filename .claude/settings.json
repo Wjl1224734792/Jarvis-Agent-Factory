@@ -7,6 +7,7 @@
       "Bash(npm:*)",
       "Bash(npx:*)",
       "Bash(node:*)",
+      "Bash(bun:*)",
       "Bash(python:*)",
       "Bash(pip:*)",
       "Bash(go:*)",
