@@ -7,7 +7,7 @@ export interface OfficialArticleFormValues {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
-  declarations?: string[];
+  declaration?: string;
 }
 
 function normalizeSourceLabel(value: string | null | undefined) {
@@ -38,7 +38,7 @@ export function buildOfficialArticlePayload(
     contentCategoryId: values.contentCategoryId,
     sourceLabel,
     sourceUrl,
-    declarations: values.declarations ?? [],
+    declaration: values.declaration ?? '',
     imageIds,
     videoIds
   };

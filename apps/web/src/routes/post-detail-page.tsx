@@ -307,6 +307,9 @@ export function PostDetailPage() {
                         {item.author.displayName}
                       </ProfileLink>
                       {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+                      {item.declaration ? (
+                        <span className="text-[0.72rem] text-muted-foreground">{item.declaration.label}</span>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
@@ -402,6 +405,19 @@ export function PostDetailPage() {
                     <video className="h-auto w-full" controls preload="metadata" src={video.url} />
                   </div>
                 ))}
+              </div>
+            ) : null}
+
+            {item.source?.url ? (
+              <div className="border-t border-border/40 pt-4">
+                <a
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                  href={item.source.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  原文链接
+                </a>
               </div>
             ) : null}
 

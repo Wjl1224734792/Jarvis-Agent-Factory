@@ -42,7 +42,7 @@ interface CreatePostInput {
   contentCategoryId: string | null;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  declarations: string[];
+  declaration: string;
 }
 
 interface UpdatePostInput {
@@ -54,7 +54,7 @@ interface UpdatePostInput {
   coverImageId: string | null;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  declarations: string[];
+  declaration: string;
   imageIds: string[];
   videoIds: string[];
 }
@@ -66,7 +66,7 @@ interface UpdateAdminOfficialArticleInput {
   contentCategoryId: string;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  declarations: string[];
+  declaration: string;
   imageIds: string[];
   videoIds: string[];
 }
@@ -252,7 +252,7 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        declarations: input.declarations,
+        declaration: input.declaration,
         coverImageFileId: coverResolution.coverImageId,
         status,
         rejectionReason: null,
@@ -371,7 +371,7 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.contentCategoryId,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        declarations: input.declarations,
+        declaration: input.declaration,
         coverImageFileId: null,
         status: shouldAutoPublish ? 'published' : 'pending',
         rejectionReason: null,
@@ -461,7 +461,7 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        declarations: input.declarations,
+        declaration: input.declaration,
         coverImageFileId: coverResolution.coverImageId,
         status: 'pending',
         rejectionReason: null,

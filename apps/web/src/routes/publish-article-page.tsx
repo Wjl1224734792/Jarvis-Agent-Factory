@@ -57,7 +57,7 @@ type ArticleDraftData = {
   categoryId: string;
   sourceLabel: string;
   sourceUrl: string;
-  declarations: string[];
+  declaration: string;
   coverImage: UploadedImage | null;
   uploadedImages: UploadedImage[];
   uploadedVideos: UploadedVideo[];
@@ -173,7 +173,7 @@ export function PublishArticlePage() {
   const [categoryId, setCategoryId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [declarations, setDeclarations] = useState<string[]>([]);
+  const [declaration, setDeclaration] = useState("");
   const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
@@ -232,7 +232,7 @@ export function PublishArticlePage() {
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
         setSourceUrl(parsed.sourceUrl ?? "");
-        setDeclarations(parsed.declarations ?? []);
+        setDeclaration(parsed.declaration ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
@@ -270,7 +270,7 @@ export function PublishArticlePage() {
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
-    setDeclarations(item.declarations?.values ?? []);
+    setDeclaration(item.declaration?.value ?? "");
     setCoverImage(
       item.images[0]
         ? {
@@ -321,7 +321,7 @@ export function PublishArticlePage() {
     Boolean(articleText.trim()) &&
     Boolean(categoryId) &&
     Boolean(coverImage) &&
-    declarations.length > 0 &&
+    Boolean(declaration) &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
   const mediaSummaryText = useMemo(
@@ -347,7 +347,7 @@ export function PublishArticlePage() {
         categoryId,
         sourceLabel,
         sourceUrl,
-        declarations,
+        declaration,
         coverImage,
         uploadedImages,
         uploadedVideos
@@ -358,7 +358,7 @@ export function PublishArticlePage() {
   }, [
     categoryId,
     coverImage,
-    declarations,
+    declaration,
     editorHtml,
     sourceLabel,
     sourceUrl,
@@ -540,7 +540,7 @@ export function PublishArticlePage() {
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
-        declarations,
+        declaration,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
         ),
@@ -670,45 +670,6 @@ export function PublishArticlePage() {
                   />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
-                    <Input
-                      onChange={(event) => setSourceLabel(event.target.value)}
-                      placeholder="例如：飞加官方、转载媒体或作者"
-                      value={sourceLabel}
-                    />
-                  </div>
-
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                    <Input
-                      inputMode="url"
-                      onChange={(event) => setSourceUrl(event.target.value)}
-                      placeholder="https://example.com/source"
-                      value={sourceUrl}
-                    />
-                  </div>
-                </div>
-
-                {sourceLabelValue ? (
-                  <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
-                    <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                    {sourceUrlValue ? (
-                      <a
-                        className="text-primary underline-offset-4 hover:underline"
-                        href={sourceUrlValue}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        {sourceLabelValue}
-                      </a>
-                    ) : (
-                      <span className="text-foreground/82">{sourceLabelValue}</span>
-                    )}
-                  </div>
-                ) : null}
-
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -720,28 +681,67 @@ export function PublishArticlePage() {
                       <button
                         className={cn(
                           'rounded-full border px-3 py-1.5 text-[0.82rem] transition',
-                          declarations.includes(option.value)
+                          declaration === option.value
                             ? 'border-primary bg-primary text-primary-foreground'
                             : 'border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground'
                         )}
                         key={option.value}
-                        onClick={() => {
-                          setDeclarations((current) =>
-                            current.includes(option.value)
-                              ? current.filter((v) => v !== option.value)
-                              : [...current, option.value]
-                          );
-                        }}
+                        onClick={() => setDeclaration(option.value)}
                         type="button"
                       >
                         {option.label}
                       </button>
                     ))}
                   </div>
-                  {declarations.length === 0 ? (
-                    <p className="text-xs text-destructive">请至少选择一项内容声明</p>
+                  {!declaration ? (
+                    <p className="text-xs text-destructive">请选择内容声明</p>
                   ) : null}
                 </div>
+
+                {declaration !== 'original' ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
+                        </div>
+                        <Input
+                          onChange={(event) => setSourceLabel(event.target.value)}
+                          placeholder="例如：飞加官方、转载媒体或作者"
+                          value={sourceLabel}
+                        />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
+                        <Input
+                          inputMode="url"
+                          onChange={(event) => setSourceUrl(event.target.value)}
+                          placeholder="https://example.com/source"
+                          value={sourceUrl}
+                        />
+                      </div>
+                    </div>
+
+                    {sourceLabelValue ? (
+                      <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
+                        <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
+                        {sourceUrlValue ? (
+                          <a
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={sourceUrlValue}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {sourceLabelValue}
+                          </a>
+                        ) : (
+                          <span className="text-foreground/82">{sourceLabelValue}</span>
+                        )}
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
 
                 <RichTextEditor
                   onChange={setEditorHtml}
@@ -849,14 +849,9 @@ export function PublishArticlePage() {
                 </div>
               ) : null}
               <div className="text-[1.2rem] font-semibold text-foreground">{title || "未命名文章"}</div>
-              {declarations.length > 0 ? (
+              {declaration ? (
                 <div className="text-[0.72rem] text-muted-foreground">
-                  {declarations
-                    .map(
-                      (value) =>
-                        DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
-                    )
-                    .join(' / ')}
+                  {DECLARATION_OPTIONS.find((o) => o.value === declaration)?.label ?? declaration}
                 </div>
               ) : null}
               {sourceLabelValue ? (

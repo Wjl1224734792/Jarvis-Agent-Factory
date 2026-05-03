@@ -173,15 +173,13 @@ const DECLARATION_LABEL_MAP: Record<string, string> = {
   deep_synthesis: '深度合成'
 };
 
-export function serializePostDeclarations(declarations: string[] | null | undefined) {
-  if (!declarations || declarations.length === 0) {
+export function serializePostDeclarations(declaration: string | null | undefined) {
+  if (!declaration) {
     return null;
   }
   return {
-    values: declarations,
-    labels: declarations
-      .map((d) => DECLARATION_LABEL_MAP[d] ?? d)
-      .filter(Boolean)
+    value: declaration,
+    label: DECLARATION_LABEL_MAP[declaration] ?? declaration
   };
 }
 
@@ -218,7 +216,7 @@ export function serializePostListItem(
     publishedAt: toIsoString(item.publishedAt),
     author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
     source: serializePostSource(item),
-    declarations: serializePostDeclarations(item.declarations),
+    declaration: serializePostDeclarations(item.declaration),
     cover: options.cover,
     images: options.images,
     videos: options.videos,

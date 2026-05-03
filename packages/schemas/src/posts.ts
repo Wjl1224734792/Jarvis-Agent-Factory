@@ -70,8 +70,8 @@ export const postSourceSchema = z.object({
 });
 
 export const postDeclarationSchema = z.object({
-  values: z.array(declarationTypeSchema),
-  labels: z.array(z.string())
+  value: declarationTypeSchema,
+  label: z.string()
 });
 
 const postSourceInputFields = {
@@ -80,15 +80,7 @@ const postSourceInputFields = {
 };
 
 const declarationInputField = {
-  declarations: z.preprocess(
-    (value: unknown) => {
-      if (!Array.isArray(value)) return [];
-      return value.filter(
-        (item): item is string => typeof item === 'string' && item.trim().length > 0
-      );
-    },
-    z.array(declarationTypeSchema).min(1, '请至少选择一项内容声明').max(5)
-  )
+  declaration: declarationTypeSchema
 };
 
 function normalizeSourceInputValue(value: unknown) {
@@ -182,6 +174,23 @@ export const createPostInputSchema = z.preprocess(
       });
     }
   })
+  .superRefine((input, context) => {
+    if (input.declaration === 'reprinted' && !input.sourceLabel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '转载内容必须填写来源名称',
+        path: ['sourceLabel']
+      });
+    }
+
+    if (input.declaration === 'original' && input.sourceLabel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '原创内容不应填写来源',
+        path: ['sourceLabel']
+      });
+    }
+  })
 );
 
 export const createPostCommentInputSchema = z.object({
@@ -248,7 +257,7 @@ export const postFeedItemSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   source: postSourceSchema.nullable().default(null),
-  declarations: postDeclarationSchema.nullable().default(null),
+  declaration: postDeclarationSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -305,7 +314,7 @@ export const postDetailSchema = z.object({
   publishedAt: z.string().datetime().nullable(),
   author: userSummarySchema,
   source: postSourceSchema.nullable().default(null),
-  declarations: postDeclarationSchema.nullable().default(null),
+  declaration: postDeclarationSchema.nullable().default(null),
   cover: postCoverSchema.nullable().default(null),
   images: z.array(postImageSchema),
   videos: z.array(postVideoSchema),
@@ -385,6 +394,23 @@ export const adminOfficialArticleUpdateInputSchema = z.preprocess(
     ...declarationInputField,
     imageIds: z.array(z.string().min(1)).default([]),
     videoIds: z.array(z.string().min(1)).default([])
+  })
+  .superRefine((input, context) => {
+    if (input.declaration === 'reprinted' && !input.sourceLabel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '转载内容必须填写来源名称',
+        path: ['sourceLabel']
+      });
+    }
+
+    if (input.declaration === 'original' && input.sourceLabel) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: '原创内容不应填写来源',
+        path: ['sourceLabel']
+      });
+    }
   })
 );
 

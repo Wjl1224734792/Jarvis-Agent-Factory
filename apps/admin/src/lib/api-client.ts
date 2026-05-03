@@ -211,7 +211,7 @@ interface OfficialArticleInput {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
-  declarations?: string[];
+  declaration?: string;
   imageIds?: string[];
   videoIds?: string[];
 }
@@ -459,7 +459,7 @@ const rawApiClient = {
       contentCategoryId: input.contentCategoryId,
       sourceLabel: input.sourceLabel ?? null,
       sourceUrl: input.sourceUrl ?? null,
-      declarations: input.declarations ?? [],
+      declaration: input.declaration ?? '',
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });
@@ -553,7 +553,7 @@ const rawApiClient = {
       contentCategoryId: input.contentCategoryId,
       sourceLabel: input.sourceLabel ?? null,
       sourceUrl: input.sourceUrl ?? null,
-      declarations: input.declarations ?? [],
+      declaration: input.declaration ?? '',
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });

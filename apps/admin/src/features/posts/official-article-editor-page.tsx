@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Checkbox, Form, Input, Select, Space } from "antd";
+import { Button, Form, Input, Radio, Select, Space } from "antd";
 import {
   Suspense,
   lazy,
@@ -45,7 +45,7 @@ type OfficialArticleEditorFormValues = {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
-  declarations?: string[];
+  declaration?: string;
 };
 
 const DECLARATION_OPTIONS = [
@@ -107,7 +107,7 @@ export function OfficialArticleEditorPage() {
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
-  const watchedDeclarations = (Form.useWatch("declarations", form) ?? []) as string[];
+  const watchedDeclaration = (Form.useWatch("declaration", form) ?? "") as string;
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -145,7 +145,7 @@ export function OfficialArticleEditorPage() {
     setUploadedVideos(createMediaAssetList(item.videos));
     setEditorHtml(parsedDocument.contentHtml);
     setEditorText(parsedDocument.plainText || item.content);
-    form.setFieldValue('declarations', item.declarations?.values ?? []);
+    form.setFieldValue('declaration', item.declaration?.value ?? '');
   }, [detailQuery.data?.item, editId, form]);
 
   useEffect(() => {
@@ -346,7 +346,7 @@ export function OfficialArticleEditorPage() {
         contentCategoryId: values.contentCategoryId,
         sourceLabel: values.sourceLabel,
         sourceUrl: values.sourceUrl,
-        declarations: values.declarations,
+        declaration: values.declaration,
         content: document.plainText,
         contentHtml: document.contentHtml
       } satisfies OfficialArticleFormValues,
@@ -430,28 +430,33 @@ export function OfficialArticleEditorPage() {
               <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" size="large" />
             </Form.Item>
 
-            <Form.Item label="声明来源" name="sourceLabel">
-              <Input placeholder="例如：飞加官方、转载媒体名称或作者" size="large" />
-            </Form.Item>
-
-            <Form.Item
-              label="来源链接"
-              name="sourceUrl"
-              rules={[{ type: "url", message: "请输入合法 URL" }]}
-            >
-              <Input placeholder="https://example.com/source" size="large" />
-            </Form.Item>
-
             <Form.Item
               label="内容声明"
-              name="declarations"
-              rules={[
-                { required: true, message: '请至少选择一项内容声明' },
-                { type: 'array', min: 1, message: '请至少选择一项内容声明' }
-              ]}
+              name="declaration"
+              rules={[{ required: true, message: '请选择内容声明' }]}
             >
-              <Checkbox.Group options={DECLARATION_OPTIONS} />
+              <Radio.Group options={DECLARATION_OPTIONS} />
             </Form.Item>
+
+            {watchedDeclaration && watchedDeclaration !== 'original' ? (
+              <>
+                <Form.Item
+                  label="声明来源"
+                  name="sourceLabel"
+                  rules={watchedDeclaration === 'reprinted' ? [{ required: true, message: '转载内容必须填写来源名称' }] : undefined}
+                >
+                  <Input placeholder="例如：飞加官方、转载媒体名称或作者" size="large" />
+                </Form.Item>
+
+                <Form.Item
+                  label="来源链接"
+                  name="sourceUrl"
+                  rules={[{ type: "url", message: "请输入合法 URL" }]}
+                >
+                  <Input placeholder="https://example.com/source" size="large" />
+                </Form.Item>
+              </>
+            ) : null}
 
             <Form.Item
               label={
@@ -565,14 +570,9 @@ export function OfficialArticleEditorPage() {
                   )}
                 </div>
               ) : null}
-              {watchedDeclarations.length > 0 ? (
+              {watchedDeclaration ? (
                 <div className="admin-article-preview__meta">
-                  {watchedDeclarations
-                    .map(
-                      (value) =>
-                        DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
-                    )
-                    .join(' / ')}
+                  {DECLARATION_OPTIONS.find((o) => o.value === watchedDeclaration)?.label ?? watchedDeclaration}
                 </div>
               ) : null}
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>

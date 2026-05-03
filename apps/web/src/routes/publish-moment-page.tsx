@@ -53,7 +53,7 @@ type MomentDraftData = {
   content: string;
   sourceLabel: string;
   sourceUrl: string;
-  declarations: string[];
+  declaration: string;
   uploadedImages: UploadedImage[];
   selectedImageCoverId: string | null;
   uploadedVideo: UploadedVideo | null;
@@ -222,7 +222,7 @@ export function PublishMomentPage() {
   const [content, setContent] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [declarations, setDeclarations] = useState<string[]>([]);
+  const [declaration, setDeclaration] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageCoverId, setSelectedImageCoverId] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -320,7 +320,7 @@ export function PublishMomentPage() {
         setContent(draft.content ?? "");
         setSourceLabel(draft.sourceLabel ?? "");
         setSourceUrl(draft.sourceUrl ?? "");
-        setDeclarations(draft.declarations ?? []);
+        setDeclaration(draft.declaration ?? "");
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
         setUploadedVideo(restoredVideo?.asset ?? null);
@@ -359,7 +359,7 @@ export function PublishMomentPage() {
     setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
-    setDeclarations(item.declarations?.values ?? []);
+    setDeclaration(item.declaration?.value ?? "");
     const nextImages = item.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -456,7 +456,7 @@ export function PublishMomentPage() {
         content,
         sourceLabel,
         sourceUrl,
-        declarations,
+        declaration,
         uploadedImages,
         selectedImageCoverId,
         uploadedVideo,
@@ -468,7 +468,7 @@ export function PublishMomentPage() {
     });
   }, [
     content,
-    declarations,
+    declaration,
     editId,
     selectedImageCoverId,
     sourceLabel,
@@ -850,45 +850,6 @@ export function PublishMomentPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
-                  <Input
-                    onChange={(event) => setSourceLabel(event.target.value)}
-                    placeholder="例如：飞加官方、转载媒体或作者"
-                    value={sourceLabel}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                  <Input
-                    inputMode="url"
-                    onChange={(event) => setSourceUrl(event.target.value)}
-                    placeholder="https://example.com/source"
-                    value={sourceUrl}
-                  />
-                </div>
-              </div>
-
-              {sourceLabelValue ? (
-                <div className="rounded-[1rem] border border-border/70 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
-                  <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                  {sourceUrlValue ? (
-                    <a
-                      className="text-primary underline-offset-4 hover:underline"
-                      href={sourceUrlValue}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {sourceLabelValue}
-                    </a>
-                  ) : (
-                    <span className="text-foreground/82">{sourceLabelValue}</span>
-                  )}
-                </div>
-              ) : null}
-
               <div className="space-y-2">
                 <div className="flex items-center justify-between gap-3">
                   <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
@@ -900,28 +861,67 @@ export function PublishMomentPage() {
                     <button
                       className={cn(
                         'rounded-full border px-3 py-1.5 text-[0.82rem] transition',
-                        declarations.includes(option.value)
+                        declaration === option.value
                           ? 'border-primary bg-primary text-primary-foreground'
                           : 'border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground'
                       )}
                       key={option.value}
-                      onClick={() => {
-                        setDeclarations((current) =>
-                          current.includes(option.value)
-                            ? current.filter((v) => v !== option.value)
-                            : [...current, option.value]
-                        );
-                      }}
+                      onClick={() => setDeclaration(option.value)}
                       type="button"
                     >
                       {option.label}
                     </button>
                   ))}
                 </div>
-                {declarations.length === 0 ? (
-                  <p className="text-xs text-destructive">请至少选择一项内容声明</p>
+                {!declaration ? (
+                  <p className="text-xs text-destructive">请选择内容声明</p>
                 ) : null}
               </div>
+
+              {declaration !== 'original' ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
+                      </div>
+                      <Input
+                        onChange={(event) => setSourceLabel(event.target.value)}
+                        placeholder="例如：飞加官方、转载媒体或作者"
+                        value={sourceLabel}
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
+                      <Input
+                        inputMode="url"
+                        onChange={(event) => setSourceUrl(event.target.value)}
+                        placeholder="https://example.com/source"
+                        value={sourceUrl}
+                      />
+                    </div>
+                  </div>
+
+                  {sourceLabelValue ? (
+                    <div className="rounded-[1rem] border border-border/70 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
+                      <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
+                      {sourceUrlValue ? (
+                        <a
+                          className="text-primary underline-offset-4 hover:underline"
+                          href={sourceUrlValue}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {sourceLabelValue}
+                        </a>
+                      ) : (
+                        <span className="text-foreground/82">{sourceLabelValue}</span>
+                      )}
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
             </SitePanelBody>
           </SitePanel>
 
@@ -934,7 +934,7 @@ export function PublishMomentPage() {
                 disabled={
                   !title.trim() ||
                   !submitCoverReady ||
-                  declarations.length === 0 ||
+                  !declaration ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -981,7 +981,7 @@ export function PublishMomentPage() {
                         content,
                         sourceLabel,
                         sourceUrl,
-                        declarations,
+                        declaration,
                         coverImageId: submitCover.id,
                         imageIds: [],
                         videoIds: [submitVideo.id]
@@ -1010,7 +1010,7 @@ export function PublishMomentPage() {
                       content,
                       sourceLabel,
                       sourceUrl,
-                      declarations,
+                      declaration,
                       coverImageId: coverId,
                       imageIds: submitImages.map((entry) => entry.item.id),
                       videoIds: []
@@ -1103,14 +1103,9 @@ export function PublishMomentPage() {
                   <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
                     {title || "动态标题"}
                   </h2>
-                  {declarations.length > 0 ? (
+                  {declaration ? (
                     <div className="line-clamp-1 text-[0.72rem] text-muted-foreground">
-                      {declarations
-                        .map(
-                          (value) =>
-                            DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
-                        )
-                        .join(' / ')}
+                      {DECLARATION_OPTIONS.find((o) => o.value === declaration)?.label ?? declaration}
                     </div>
                   ) : null}
                   {sourceLabelValue ? (

@@ -437,7 +437,7 @@ export const reviewCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("review_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -495,7 +495,7 @@ export const postsTable = pgTable("posts", {
   contentPlainText: text("content_plain_text"),
   sourceLabel: text("source_label"),
   sourceUrl: text("source_url"),
-  declarations: text("declarations").array(),
+  declaration: text("declaration"),
   contentCategoryId: text("content_category_id"),
   coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),
@@ -551,7 +551,7 @@ export const postCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("post_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -923,7 +923,7 @@ export const ratingTargetCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("rating_target_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -992,7 +992,7 @@ export const aircraftModelCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("aircraft_model_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
