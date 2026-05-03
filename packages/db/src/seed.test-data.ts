@@ -851,6 +851,18 @@ async function seedPostgreSQL() {
   await db.update(usersTable).set({ avatarFileId: avatarFileIds[0] || null }).where(sql`id = ${adminId}`);
   console.log("  ✓ 用户头像已关联");
 
+  // 更新飞行器型号封面图
+  const modelCoverFileIds = fileEntries
+    .filter(f => f.objectKey.includes("models/covers"))
+    .map(f => f.id);
+  for (let i = 0; i < Math.min(modelCoverFileIds.length, MODEL_IDS.length); i++) {
+    await db
+      .update(aircraftModelsTable)
+      .set({ coverImageFileId: modelCoverFileIds[i % modelCoverFileIds.length] })
+      .where(sql`id = ${MODEL_IDS[i]}`);
+  }
+  console.log(`  ✓ 型号封面图已关联: ${Math.min(modelCoverFileIds.length, MODEL_IDS.length)} 个`);
+
   // 8. 帖子 (500: 300 文章 + 200 动态)
   console.log("  📝 创建帖子...");
   const articlePostIds: string[] = [];
