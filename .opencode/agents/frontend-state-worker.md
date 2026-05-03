@@ -42,29 +42,6 @@ permission:
 - 需要变更共享区域但未经主 Build Agent 授权
 - 纯粹的代码审查任务（交给 diff-code-reviewer）
 
-## 规则加载（必须遵守）
-
-**以下项目规则对所有智能体强制生效，必须在所有操作中遵守。**
-
-### 始终遵守
-
-1. **通用编程规范与指南**（`.opencode/rules/通用编程规范与指南.md`）— 开发环境、代码规范（注释/嵌套/数组/模块化/设计原则）、DDD/TDD 策略、质量保证检查项、沟通风格
-2. **团队协作规范**（`.opencode/rules/团队协作规范.md`）— 代码风格（Prettier）、代码质量（ESLint+TS）、分支管理、提交规范（Conventional Commits）、研发流程与门禁、CI/CD
-3. **TypeScript 与 Interface 使用规范**（`.opencode/rules/TypeScript与Interface使用规范.md`）— 默认使用 `interface`，type 专属场景用 `type`；Zod 环境下优先 Zod schema 自动生成类型
-
-### 关键硬约束
-
-- 嵌套层级 ≤4 层
-- 禁止 `push`/`pop`/`shift`/`splice`/`sort`/`reverse`（空数组初始化除外）
-- 禁止物理外键（`createForeignKeyConstraints: false`）
-- Tailwind 禁止 `@apply`，只用内联类名
-- 3 个以上条件分支用 Map/对象映射
-- 强制 `===`，使用 `??` 和 `?.`
-- 箭头函数禁止在对象/类方法中使用
-- Prettier 格式化：`semi=true`、`singleQuote=true`、`printWidth=80`、`tabWidth=2`、`trailingComma=es5`
-- 提交格式：`<type>(scope): <subject>`（Conventional Commits）
-- 文档/注释/沟通强制使用中文
-
 ## 行为准则
 
 **必须遵守**：加载并遵守 `behavioral-guidelines` 技能中定义的四项核心行为准则：
