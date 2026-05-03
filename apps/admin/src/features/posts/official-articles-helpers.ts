@@ -1,54 +1,48 @@
-import { removeAdminRichTextMediaReferenceFromHtml } from "../../components/admin-rich-text-editor-helpers";
-
-export interface OfficialArticleFormValues {
+export type OfficialArticleFormValues = {
   title: string;
   content: string;
   contentHtml?: string | null;
   contentCategoryId: string;
-  sourceLabel?: string | null;
-  sourceUrl?: string | null;
-}
+};
 
-function normalizeSourceLabel(value: string | null | undefined) {
-  const label = value?.trim();
-  return label ? label : null;
-}
-
-/**
- * 构造官方文章创建或更新接口载荷。
- * @param values 文章表单值。
- * @param imageIds 关联图片文件 ID 列表。
- * @param videoIds 关联视频文件 ID 列表。
- * @returns 去空白并收敛来源字段后的提交数据。
- * @throws 本函数不主动抛出异常。
- */
 export function buildOfficialArticlePayload(
   values: OfficialArticleFormValues,
   imageIds: string[],
   videoIds: string[] = []
 ) {
-  const sourceLabel = normalizeSourceLabel(values.sourceLabel);
-  const sourceUrl = sourceLabel && values.sourceUrl?.trim() ? values.sourceUrl.trim() : null;
-
   return {
     title: values.title.trim(),
     content: values.content.trim(),
     contentHtml: values.contentHtml?.trim() ? values.contentHtml.trim() : null,
     contentCategoryId: values.contentCategoryId,
-    sourceLabel,
-    sourceUrl,
     imageIds,
     videoIds
   };
 }
 
-/**
- * 从富文本 HTML 中移除指定媒体引用。
- * @param html 原始文章 HTML。
- * @param assetUrl 需要移除的媒体地址。
- * @returns 删除媒体引用后的 HTML。
- * @throws 本函数不主动抛出异常；底层字符串或 DOM 处理异常会由调用链决定是否透传。
- */
 export function removeMediaFromHtml(html: string, assetUrl: string) {
-  return removeAdminRichTextMediaReferenceFromHtml(html, assetUrl);
+  if (!html.trim()) {
+    return html;
+  }
+
+  if (typeof DOMParser !== "undefined") {
+    const documentNode = new DOMParser().parseFromString(html, "text/html");
+    for (const node of Array.from(documentNode.body.querySelectorAll("img, video"))) {
+      if (node.getAttribute("src") !== assetUrl) {
+        continue;
+      }
+
+      const container = node.closest("figure") ?? node;
+      container.remove();
+    }
+
+    return documentNode.body.innerHTML;
+  }
+
+  const escapedUrl = assetUrl.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  return html
+    .replace(new RegExp(`<figure[^>]*>\\s*<img[^>]*src="${escapedUrl}"[^>]*>\\s*</figure>`, "g"), "")
+    .replace(new RegExp(`<figure[^>]*>\\s*<video[^>]*src="${escapedUrl}"[^>]*>.*?</video>\\s*</figure>`, "g"), "")
+    .replace(new RegExp(`<img[^>]*src="${escapedUrl}"[^>]*>`, "g"), "")
+    .replace(new RegExp(`<video[^>]*src="${escapedUrl}"[^>]*>.*?</video>`, "g"), "");
 }

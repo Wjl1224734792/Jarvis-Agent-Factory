@@ -1,12 +1,12 @@
 import type { FileBizType, FileMediaKind, FileVisibility } from "@feijia/schemas";
 
-export interface UploadPolicy {
+export type UploadPolicy = {
   bizType: FileBizType;
   mediaKind: FileMediaKind;
   visibility: FileVisibility;
   maxSize: number;
   mimePrefixes: string[];
-}
+};
 
 const MB = 1024 * 1024;
 
@@ -80,11 +80,6 @@ const uploadBizTypeEnvKeys = {
   "report-image": "UPLOAD_MAX_REPORT_IMAGE_SIZE_MB"
 } satisfies Record<FileBizType, string>;
 
-const uploadMediaEnvKeys = {
-  image: 'UPLOAD_MAX_IMAGE_SIZE_MB',
-  video: 'UPLOAD_MAX_VIDEO_SIZE_MB'
-} satisfies Record<FileMediaKind, string>;
-
 function parseSizeLimitMb(value: string | undefined) {
   if (!value?.trim()) {
     return undefined;
@@ -100,9 +95,10 @@ function parseSizeLimitMb(value: string | undefined) {
 
 function resolvePolicyMaxSize(policy: UploadPolicy) {
   const globalMaxSize = parseSizeLimitMb(process.env.UPLOAD_MAX_FILE_SIZE_MB);
-  const mediaMaxSize = parseSizeLimitMb(
-    process.env[uploadMediaEnvKeys[policy.mediaKind]]
-  );
+  const mediaMaxSize =
+    policy.mediaKind === "image"
+      ? parseSizeLimitMb(process.env.UPLOAD_MAX_IMAGE_SIZE_MB)
+      : parseSizeLimitMb(process.env.UPLOAD_MAX_VIDEO_SIZE_MB);
   const bizTypeMaxSize = parseSizeLimitMb(
     process.env[uploadBizTypeEnvKeys[policy.bizType]]
   );
@@ -112,13 +108,6 @@ function resolvePolicyMaxSize(policy: UploadPolicy) {
     .reduce((current, candidate) => Math.min(current, candidate), policy.maxSize);
 }
 
-/**
- * 读取指定业务类型的上传策略，并应用环境变量覆盖。
- *
- * @param bizType 上传业务类型。
- * @returns 最终生效的上传策略对象。
- * @throws {never} 未命中环境变量时会直接回退默认值，不会主动抛出异常。
- */
 export function getUploadPolicy(bizType: FileBizType): UploadPolicy {
   const policy = uploadPolicies[bizType];
 
@@ -128,14 +117,6 @@ export function getUploadPolicy(bizType: FileBizType): UploadPolicy {
   };
 }
 
-/**
- * 判断当前文件 MIME 是否符合上传策略白名单。
- *
- * @param policy 已解析的上传策略。
- * @param contentType 客户端上报的 MIME 类型。
- * @returns 命中任一前缀白名单时返回 `true`。
- * @throws {never} 该函数只做字符串前缀匹配，不会主动抛出异常。
- */
 export function isAllowedUploadMime(policy: UploadPolicy, contentType: string) {
   return policy.mimePrefixes.some(prefix => contentType.startsWith(prefix));
 }

@@ -2,7 +2,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Space, Table } from "antd";
 import { Suspense, lazy, startTransition, useEffectEvent, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
-import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import {
@@ -133,16 +132,15 @@ export function OfficialArticlesPage() {
     setEditorText("");
   }
 
-  async function uploadImages(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
+  async function uploadImages(files: FileList | null) {
+    if (!files?.length) {
       return [];
     }
 
     setIsUploading(true);
     try {
       const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
+      for (const file of Array.from(files)) {
         const response = await apiClient.uploadImage(file);
         uploads.push({
           id: response.item.id,
@@ -157,16 +155,15 @@ export function OfficialArticlesPage() {
     }
   }
 
-  async function uploadVideos(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
+  async function uploadVideos(files: FileList | null) {
+    if (!files?.length) {
       return [];
     }
 
     setIsUploading(true);
     try {
       const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
+      for (const file of Array.from(files)) {
         const response = await apiClient.uploadPostVideo(file);
         uploads.push({
           id: response.item.id,
@@ -313,7 +310,7 @@ export function OfficialArticlesPage() {
 
       <div className="admin-split admin-split--wide">
         <AdminPanel
-          description="填写标题、选择分类与正文内容，并保持右侧预览实时同步。"
+          description="填写标题、选择分类、管理封面与正文内容，并保持右侧预览实时同步。"
           title={editingId ? "编辑官方文章" : "新建官方文章"}
         >
           <Form
@@ -366,6 +363,38 @@ export function OfficialArticlesPage() {
                 )}
               </div>
             </Form.Item>
+            <div className="admin-uploader">
+              <div>
+                <div className="admin-panel__title">封面图</div>
+                <div className="admin-panel__description">可选。封面图会优先展示在列表卡片与详情页头图位置。</div>
+              </div>
+              <Space align="center" size="middle" wrap>
+                <Button loading={isUploading} onClick={() => fileInputRef.current?.click()} type="default">
+                  {isUploading ? "上传中..." : "上传封面"}
+                </Button>
+                {coverImage ? <span className="admin-muted">当前封面：{coverImage.fileName ?? coverImage.id}</span> : null}
+                {coverImage ? (
+                  <Button
+                    onClick={() => {
+                      setCoverImage(null);
+                    }}
+                    size="small"
+                    type="link"
+                  >
+                    清除封面
+                  </Button>
+                ) : null}
+              </Space>
+              <input
+                accept="image/*"
+                hidden
+                onChange={(event) => {
+                  void uploadCover(event.target.files?.[0] ?? null);
+                }}
+                ref={fileInputRef}
+                type="file"
+              />
+            </div>
             <div className="admin-form-actions">
               <Button disabled={!editorText.trim()} htmlType="submit" loading={isSubmitting} type="primary">
                 {editingId ? "保存文章" : "发布文章"}
@@ -377,52 +406,20 @@ export function OfficialArticlesPage() {
         <div className="admin-field-stack">
           <AdminPanel description="发布前确认封面、分类、标题和正文效果。" title="实时预览">
             <div className="admin-article-preview">
-              <div className="admin-article-preview__cover">
-                <button
-                  aria-label={coverImage ? "更换封面" : "设置封面"}
-                  className="admin-article-preview__cover-trigger"
-                  disabled={isUploading}
-                  onClick={() => fileInputRef.current?.click()}
-                  title={coverImage ? "更换封面" : "设置封面"}
-                  type="button"
-                >
-                  {previewImageUrl ? (
-                    <span className="admin-image-preview">
-                      <img alt="官方文章封面" src={previewImageUrl} />
-                    </span>
-                  ) : (
-                    <span className="admin-article-preview__placeholder">未设置封面图</span>
-                  )}
-                </button>
-                {coverImage ? (
-                  <button
-                    aria-label="清除封面"
-                    className="admin-article-preview__cover-clear"
-                    onClick={() => {
-                      setCoverImage(null);
-                    }}
-                    title="清除封面"
-                    type="button"
-                  >
-                    ×
-                  </button>
-                ) : null}
-                <input
-                  accept="image/*"
-                  hidden
-                  onChange={(event) => {
-                    void uploadCover(event.target.files?.[0] ?? null);
-                  }}
-                  ref={fileInputRef}
-                  type="file"
-                />
-              </div>
+              {previewImageUrl ? (
+                <div className="admin-image-preview">
+                  <img alt="官方文章封面" src={previewImageUrl} />
+                </div>
+              ) : (
+                <div className="admin-article-preview__placeholder">未设置封面图</div>
+              )}
               <div className="admin-article-preview__meta">{selectedCategoryLabel}</div>
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>
-              <AdminRichTextHtml
+              <div
                 className="admin-article-preview__body"
-                fallbackHtml="<p>正文预览会显示在这里。</p>"
-                html={editorHtml}
+                dangerouslySetInnerHTML={{
+                  __html: editorHtml || "<p>正文预览会显示在这里。</p>"
+                }}
               />
             </div>
           </AdminPanel>

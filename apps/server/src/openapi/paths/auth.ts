@@ -6,7 +6,6 @@ import {
   schemaRef
 } from "../builders";
 import {
-  _sessionCookieSecurity as sessionCookieSecurity,
   adminSessionSecurity,
   optionalBearerSecurity,
   optionalSessionCookieSecurity,
@@ -46,12 +45,11 @@ export const authPaths = {
       summary: "Login on the web client",
       requestBody: jsonRequestBody(
         "WebLoginRequest",
-        "Logs in with either SMS code or password. Password login requires a captcha challenge."
+        "Consumes the SMS code for the given phone number. Captcha validation already happens when requesting the SMS code."
       ),
       responses: {
         "200": jsonResponse("WebLoginResponse", "Authenticated result or registration continuation."),
         "400": jsonResponse("AuthErrorResponse", "Invalid login input or SMS code."),
-        "429": jsonResponse("AuthErrorResponse", "Password login failures are temporarily rate limited."),
         "409": jsonResponse("AuthErrorResponse", "Account state conflict.")
       }
     }
@@ -79,23 +77,6 @@ export const authPaths = {
       responses: {
         "200": jsonResponse("AuthSuccessResponse", "Session refreshed and cookies renewed."),
         "401": jsonResponse("AuthErrorResponse", "Refresh token is missing, invalid or expired.")
-      }
-    }
-  },
-  [API_ROUTES.auth.webChangePassword]: {
-    post: {
-      tags: ["auth"],
-      summary: "Change the current web password",
-      security: sessionCookieSecurity,
-      requestBody: jsonRequestBody(
-        "UserPasswordChangeRequest",
-        "Submits the new strong password plus the SMS verification requestId/code for the current bound phone. Existing-password users must also submit the current password."
-      ),
-      responses: {
-        "200": jsonResponse("ActionSuccessResponse", "Password changed successfully."),
-        "400": jsonResponse("AuthErrorResponse", "Current password, SMS code, or new password is invalid."),
-        "401": jsonResponse("AuthErrorResponse", "Web session is missing or expired."),
-        "403": jsonResponse("AuthErrorResponse", "Only web user sessions can perform this action.")
       }
     }
   },
@@ -134,12 +115,11 @@ export const authPaths = {
       summary: "Login to the admin console",
       requestBody: jsonRequestBody(
         "AdminLoginRequest",
-        "Authenticates an admin account with account, password and captcha challenge."
+        "Authenticates an admin account with account and password."
       ),
       responses: {
         "200": jsonResponse("AuthSuccessResponse", "Admin login succeeded and session cookies were set."),
-        "400": jsonResponse("AuthErrorResponse", "Invalid captcha or admin credentials."),
-        "429": jsonResponse("AuthErrorResponse", "Admin account is temporarily locked.")
+        "400": jsonResponse("AuthErrorResponse", "Invalid admin credentials.")
       }
     }
   },

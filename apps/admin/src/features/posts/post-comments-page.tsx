@@ -53,7 +53,6 @@ type UnifiedRecord = {
   domain: CommentDomain;
   title: string;
   subtitle: string;
-  authorIpLocationLabel: string | null;
   content: string;
   status: "pending" | "visible" | "hidden";
   nextStatus: "visible" | "hidden";
@@ -203,7 +202,6 @@ export function PostCommentsPage() {
         status: item.status,
         nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
-        authorIpLocationLabel: item.author.ipLocationLabel ?? null,
         onToggle: () => apiClient.updateAdminPostCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       review: (reviewCommentsQuery.data?.items ?? []).map((item) => ({
@@ -216,7 +214,6 @@ export function PostCommentsPage() {
         status: item.status,
         nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
-        authorIpLocationLabel: item.author.ipLocationLabel ?? null,
         onToggle: () => apiClient.updateAdminReviewCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       model: (modelCommentsQuery.data?.items ?? []).map((item) => ({
@@ -229,7 +226,6 @@ export function PostCommentsPage() {
         status: item.status,
         nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
-        authorIpLocationLabel: item.author.ipLocationLabel ?? null,
         onToggle: () => apiClient.updateAdminModelCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       ranking: (rankingCommentsQuery.data?.items ?? []).map((item) => ({
@@ -242,7 +238,6 @@ export function PostCommentsPage() {
         status: item.status,
         nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
-        authorIpLocationLabel: item.author.ipLocationLabel ?? null,
         onToggle: () => apiClient.updateAdminRankingCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       })),
       "rating-target": (ratingTargetCommentsQuery.data?.items ?? []).map((item) => ({
@@ -255,7 +250,6 @@ export function PostCommentsPage() {
         status: item.status,
         nextStatus: item.status === "visible" ? "hidden" : "visible",
         reportCount: item.reportCount ?? 0,
-        authorIpLocationLabel: item.author.ipLocationLabel ?? null,
         onToggle: () => apiClient.updateAdminRatingTargetCommentStatus(item.id, { status: item.status === "visible" ? "hidden" : "visible" })
       }))
     }),
@@ -406,12 +400,7 @@ export function PostCommentsPage() {
               render: (_, record: UnifiedRecord) => (
                 <div className="admin-table-meta">
                   <div className="admin-table-title">{record.title}</div>
-                  <div className="admin-table-subtitle">
-                    {record.subtitle}
-                    {record.authorIpLocationLabel ? (
-                      <Tag color="blue">IP属地 {record.authorIpLocationLabel}</Tag>
-                    ) : null}
-                  </div>
+                  <div className="admin-table-subtitle">{record.subtitle}</div>
                 </div>
               ),
               title: "来源"

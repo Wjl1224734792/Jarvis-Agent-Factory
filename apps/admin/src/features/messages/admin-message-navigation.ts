@@ -23,11 +23,6 @@ export const adminMessageDomainOptions: Array<{ label: string; value: AdminMessa
 ];
 
 export const adminMessageTypeOptions: Array<{ label: string; value: NotificationType }> = [
-  { label: "内容状态更新", value: "post_status_changed" },
-  { label: "榜单状态更新", value: "ranking_status_changed" },
-  { label: "评分对象状态更新", value: "rating_target_status_changed" },
-  { label: "机型投稿状态更新", value: "aircraft_submission_status_changed" },
-  { label: "品牌申请状态更新", value: "brand_application_status_changed" },
   { label: "内容审核结果", value: "post_audit_result" },
   { label: "评测审核结果", value: "review_audit_result" },
   { label: "榜单审核结果", value: "ranking_audit_result" },
@@ -37,18 +32,12 @@ export const adminMessageTypeOptions: Array<{ label: string; value: Notification
 ];
 
 const adminMessageTypesByDomain: Partial<Record<AdminMessageDomain, NotificationType[]>> = {
-  posts: ["post_audit_result", "post_status_changed"],
+  posts: ["post_audit_result"],
   reviews: ["review_audit_result"],
-  rankings: ["ranking_audit_result", "ranking_status_changed"],
-  rating_targets: ["rating_target_audit_result", "rating_target_status_changed"],
-  aircraft_submissions: [
-    "aircraft_submission_audit_result",
-    "aircraft_submission_status_changed"
-  ],
-  brand_applications: [
-    "brand_application_audit_result",
-    "brand_application_status_changed"
-  ]
+  rankings: ["ranking_audit_result"],
+  rating_targets: ["rating_target_audit_result"],
+  aircraft_submissions: ["aircraft_submission_audit_result"],
+  brand_applications: ["brand_application_audit_result"]
 };
 
 export const adminMessageReadStatusOptions = [

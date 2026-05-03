@@ -15,7 +15,7 @@ import { ReportActionSheet } from "@/components/report-action-sheet";
 import { Skeleton } from "@/components/ui/skeleton";
 import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
-import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import { apiClient } from "../../lib/api-client";
 import {
@@ -163,7 +163,7 @@ function RootCommentItem(props: {
           <Avatar className="mt-0.5" size="sm">
             <AvatarImage
               alt={props.comment.author.displayName}
-              src={resolveUserAvatarSrc(props.comment.author.avatarUrl)}
+              src={getAvatarImage(props.comment.author.id)}
             />
             <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
@@ -183,7 +183,7 @@ function RootCommentItem(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {editingCommentId === props.comment.id ? (
@@ -349,10 +349,7 @@ function RootCommentItem(props: {
                     <div className="flex items-start gap-3">
                       <ProfileLink userId={reply.author.id}>
                         <Avatar className="mt-0.5" size="sm">
-                          <AvatarImage
-                            alt={reply.author.displayName}
-                            src={resolveUserAvatarSrc(reply.author.avatarUrl)}
-                          />
+                          <AvatarImage alt={reply.author.displayName} src={getAvatarImage(reply.author.id)} />
                           <AvatarFallback>{reply.author.displayName.slice(0, 1)}</AvatarFallback>
                         </Avatar>
                       </ProfileLink>
@@ -377,7 +374,7 @@ function RootCommentItem(props: {
                             </span>
                           ) : null}
                           <CommentPublishedTime createdAt={reply.createdAt} />
-                          <IpLocationText label={reply.author.ipLocationLabel} variant="plain" />
+                          <IpLocationText label={reply.author.ipLocationLabel} />
                         </div>
                         {editingCommentId === reply.id ? (
                           <InlineCommentComposer

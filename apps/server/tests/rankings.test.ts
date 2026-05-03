@@ -91,6 +91,10 @@ beforeAll(async () => {
   await runMigrations();
 });
 
+beforeEach(async () => {
+  await resetIntegrationState("demo");
+});
+
 afterAll(async () => {
   // The server suite shares one cached dbPool across files; ending it here
   // breaks later integration files running in the same Vitest process.
@@ -139,11 +143,6 @@ describe("rankings flows", () => {
     ]);
   });
 
-  describe.sequential("rankings integration flows", () => {
-    beforeEach(async () => {
-      await resetIntegrationState("rankings");
-    });
-
   it("returns persisted official rankings and community rankings", async () => {
     const response = await app.request(API_ROUTES.rankings.overview, { method: "GET" });
 
@@ -164,40 +163,6 @@ describe("rankings flows", () => {
     expect(payload.official[0]?.items.length).toBeGreaterThan(0);
     expect(payload.community.length).toBeGreaterThanOrEqual(1);
     expect(payload.community[0]?.items.length).toBeGreaterThan(0);
-  });
-
-  it("exposes createdAt on rating target detail responses", async () => {
-    const cookie = await loginUser("13800138000");
-
-    const overviewResponse = await app.request(API_ROUTES.rankings.overview, {
-      method: "GET",
-      headers: { cookie }
-    });
-    expect(overviewResponse.status).toBe(200);
-    const overviewPayload = (await overviewResponse.json()) as {
-      official: Array<{ items: Array<{ id: string }> }>;
-      community: Array<{ items: Array<{ id: string }> }>;
-    };
-    const itemId =
-      overviewPayload.community[0]?.items[0]?.id ??
-      overviewPayload.official[0]?.items[0]?.id;
-    expect(itemId).toBeTruthy();
-
-    const detailResponse = await app.request(API_ROUTES.rankings.itemDetail(expectDefined(itemId)), {
-      method: "GET",
-      headers: { cookie }
-    });
-    expect(detailResponse.status).toBe(200);
-    const detailPayload = (await detailResponse.json()) as {
-      item: {
-        createdAt?: string;
-        updatedAt?: string;
-      };
-    };
-
-    expect(detailPayload.item.createdAt).toBeTruthy();
-    expect(Date.parse(detailPayload.item.createdAt ?? "")).not.toBeNaN();
-    expect(detailPayload.item.updatedAt).toBeUndefined();
   });
 
   it("lists admin rating targets without fetching each ranking detail separately", async () => {
@@ -1420,6 +1385,5 @@ describe("rankings flows", () => {
       })
     });
     expect(itemCommentResponse.status).toBe(404);
-  });
   });
 });

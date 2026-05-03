@@ -26,7 +26,6 @@ function buildDetailPayload() {
       averageScore: 8.4,
       totalRatings: 3,
       commentCount: 1,
-      createdAt: "2026-03-20T10:00:00.000Z",
       myRating: 4,
       ranking: {
         id: "ranking_1",
@@ -103,7 +102,6 @@ describe("rankings contract", () => {
               averageScore: 8.8,
               totalRatings: 10,
               commentCount: 0,
-              createdAt: "2026-03-27T12:00:00.000Z",
               myRating: null
             }
           ]
@@ -172,22 +170,6 @@ describe("rankings contract", () => {
 
     expect(payload.item.ratingBreakdown).toHaveLength(5);
     expect(payload.item.ratingBreakdown.map((entry) => entry.score)).toEqual([5, 4, 3, 2, 1]);
-  });
-
-  it("exposes createdAt on rating target detail response", () => {
-    const payload = {
-      ...buildDetailPayload(),
-      item: {
-        ...buildDetailPayload().item,
-        createdAt: "2026-03-20T10:00:00.000Z"
-      }
-    };
-
-    const parsed = ratingTargetDetailResponseSchema.parse(payload);
-
-    expect(parsed.item).toMatchObject({
-      createdAt: "2026-03-20T10:00:00.000Z"
-    });
   });
 
   it("parses submit rating target review response with ratingBreakdown", () => {
@@ -286,7 +268,6 @@ describe("rankings contract", () => {
           averageScore: 8.4,
           totalRatings: 3,
           commentCount: 1,
-          createdAt: "2026-03-29T12:00:00.000Z",
           myRating: null,
           rankingTitle: "Harbor Ranking",
           rankingAuthorName: "Admin",

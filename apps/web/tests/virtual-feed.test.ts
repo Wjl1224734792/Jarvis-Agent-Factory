@@ -1,9 +1,7 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import type { CircleFeedColumnCell } from "../src/routes/circle-page-helpers";
-import type { VirtualFeedProps } from "../src/components/virtual-feed";
-import { VirtualMasonryColumnsRuntime, VirtualFeedRuntime } from "../src/components/virtual-feed-runtime";
 
 vi.mock("@/components/feed-refetch-footer", () => ({
   FeedRefetchFooter: () => createElement("div", { "data-refetch-footer": "" }, "loading")
@@ -13,54 +11,9 @@ vi.mock("@/lib/utils", () => ({
   cn: (...values: Array<string | false | null | undefined>) => values.filter(Boolean).join(" ")
 }));
 
-type MockedVirtuosoProps = {
-  endReached?: () => void;
-  className?: string;
-};
-const virtuosoInstances: Array<MockedVirtuosoProps> = [];
-
-vi.mock("react-virtuoso", () => ({
-  Virtuoso: (props: MockedVirtuosoProps) => {
-    virtuosoInstances.push(props);
-
-    return createElement("div", { className: `virtuoso-${props.className ?? ""}` }, "virtuoso");
-  },
-  VirtuosoGrid: () => createElement("div", null, "virtuoso-grid")
-}));
-
 import { VirtualFeed, VirtualGrid, VirtualMasonryColumns } from "../src/components/virtual-feed";
 
-function renderVirtualFeedRuntime(
-  props: Partial<VirtualFeedProps<string>> = {}
-) {
-  const TestVirtualFeedRuntime = VirtualFeedRuntime<string>;
-
-  renderToStaticMarkup(
-    createElement(TestVirtualFeedRuntime, {
-      data: ["a", "b", "c"],
-      itemKey: (item: unknown) => String(item),
-      renderItem: (item: unknown) => String(item),
-      hasMore: true,
-      isFetchingNextPage: false,
-      ...props
-    })
-  );
-
-  expect(virtuosoInstances).toHaveLength(1);
-
-  return virtuosoInstances[0]?.endReached;
-}
-
-async function flushMicrotasks() {
-  await Promise.resolve();
-  await Promise.resolve();
-}
-
 describe("virtual feed lazy shells", () => {
-  beforeEach(() => {
-    virtuosoInstances.length = 0;
-  });
-
   it("renders a static masonry fallback while the virtuoso runtime is deferred", () => {
     const TestVirtualMasonryColumns = VirtualMasonryColumns<CircleFeedColumnCell<{ id: string }>>;
 
@@ -108,97 +61,5 @@ describe("virtual feed lazy shells", () => {
 
     expect(listMarkup).toContain("empty-list");
     expect(gridMarkup).toContain("empty-grid");
-  });
-
-  it("locks repeated auto load requests after the first end reached signal", () => {
-    const onLoadMore = vi.fn(() => new Promise<void>(() => {}));
-    const endReached = renderVirtualFeedRuntime({ onLoadMore });
-
-    expect(typeof endReached).toBe("function");
-
-    endReached?.();
-    endReached?.();
-
-    expect(onLoadMore).toHaveBeenCalledTimes(1);
-  });
-
-  it("skips auto loading when already fetching next page", () => {
-    const onLoadMore = vi.fn();
-    const endReached = renderVirtualFeedRuntime({
-      isFetchingNextPage: true,
-      onLoadMore
-    });
-
-    endReached?.();
-
-    expect(onLoadMore).not.toHaveBeenCalled();
-  });
-
-  it("skips auto loading when there is no next page", () => {
-    const onLoadMore = vi.fn();
-    const endReached = renderVirtualFeedRuntime({
-      hasMore: false,
-      onLoadMore
-    });
-
-    endReached?.();
-
-    expect(onLoadMore).not.toHaveBeenCalled();
-  });
-
-  it("releases the load lock after a completed request so loading can retry", async () => {
-    const onLoadMore = vi
-      .fn<() => Promise<void>>()
-      .mockResolvedValueOnce(undefined)
-      .mockResolvedValueOnce(undefined);
-    const endReached = renderVirtualFeedRuntime({ onLoadMore });
-
-    endReached?.();
-    await flushMicrotasks();
-    endReached?.();
-
-    expect(onLoadMore).toHaveBeenCalledTimes(2);
-  });
-
-  it("releases the load lock after an error so loading can retry", () => {
-    const onLoadMore = vi
-      .fn<() => void>()
-      .mockImplementationOnce(() => {
-        throw new Error("load failed");
-      })
-      .mockImplementationOnce(() => undefined);
-    const endReached = renderVirtualFeedRuntime({ onLoadMore });
-
-    expect(() => endReached?.()).not.toThrow();
-    endReached?.();
-
-    expect(onLoadMore).toHaveBeenCalledTimes(2);
-  });
-
-  it("only triggers masonry auto load from the first column", () => {
-    const onLoadMore = vi.fn();
-    const columns: Array<
-      { id: string; post: string }[]
-    > = [[{ id: "a", post: "A" }], [{ id: "b", post: "B" }]];
-
-    renderToStaticMarkup(
-      createElement(VirtualMasonryColumnsRuntime, {
-        columns,
-        className: "w-full",
-        gap: "8px",
-        itemKey: (item: unknown) => String((item as { id: string }).id),
-        renderItem: (cell: unknown) => (cell as { post: string }).post,
-        hasMore: true,
-        isFetchingNextPage: false,
-        onLoadMore
-      })
-      );
-
-    expect(virtuosoInstances).toHaveLength(2);
-    virtuosoInstances[1]?.endReached?.();
-    expect(onLoadMore).not.toHaveBeenCalled();
-
-    virtuosoInstances[0]?.endReached?.();
-    expect(onLoadMore).toHaveBeenCalledTimes(1);
   });
 });

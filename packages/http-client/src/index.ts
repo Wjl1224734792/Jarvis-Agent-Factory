@@ -38,10 +38,6 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewsResponseSchema,
   adminSearchResponseSchema,
-  adminBanUserInputSchema,
-  adminUserListQuerySchema,
-  adminUserResponseSchema,
-  adminUsersResponseSchema,
   adminLoginRequestSchema,
   adminPasswordChangeRequestSchema,
   aircraftSubmissionResponseSchema,
@@ -147,7 +143,6 @@ import {
   uploadPostVideoResponseSchema,
   webLoginRequestSchema,
   webLoginResponseSchema,
-  userPasswordChangeRequestSchema,
   siteSettingsResponseSchema,
   siteSearchResponseSchema,
   searchQuerySchema,
@@ -181,8 +176,6 @@ type SmsCodeInput = Parameters<typeof smsCodeRequestSchema.parse>[0];
 type AdminLoginInput = Parameters<typeof adminLoginRequestSchema.parse>[0];
 type AdminPasswordChangeInput =
   Parameters<typeof adminPasswordChangeRequestSchema.parse>[0];
-type UserPasswordChangeInput =
-  Parameters<typeof userPasswordChangeRequestSchema.parse>[0];
 type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
 type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
@@ -196,11 +189,6 @@ type FeedPaginationInput = {
   page?: number;
   limit?: number;
 };
-type FeedCursorPaginationInput = {
-  cursor?: string;
-  limit?: number;
-};
-type CircleFeedInput = FeedCursorPaginationInput;
 type CreatePostInput = Parameters<typeof createPostInputSchema.parse>[0];
 type UpdatePostInput = Parameters<typeof updatePostInputSchema.parse>[0];
 type CreatePostCommentInput = Parameters<typeof createPostCommentInputSchema.parse>[0];
@@ -222,14 +210,7 @@ type UpdateModelCommentStatusInput =
 type UpdateReviewCommentStatusInput =
   Parameters<typeof updateReviewCommentStatusInputSchema.parse>[0];
 type UpdateReviewStatusInput = Parameters<typeof updateReviewStatusInputSchema.parse>[0];
-type HomeFeedInput =
-  | {
-      tab: FeedTabInput;
-      categorySlug?: string;
-      cursor?: string;
-      limit?: number;
-    }
-  | FeedTabInput;
+type HomeFeedInput = { tab: FeedTabInput; categorySlug?: string; page?: number; limit?: number } | FeedTabInput;
 type CreateRankingInput = Parameters<typeof createRankingInputSchema.parse>[0];
 type UpdateRankingInput = Parameters<typeof updateRankingInputSchema.parse>[0];
 type AddRatingTargetInput = Parameters<typeof addRatingTargetInputSchema.parse>[0];
@@ -262,8 +243,6 @@ type AdminMessageListQueryInput = Parameters<typeof adminMessageListQuerySchema.
 type AdminAuditRecordListQueryInput = Parameters<typeof adminAuditRecordListQuerySchema.parse>[0];
 type AdminAuditManualDecisionInput =
   Parameters<typeof adminAuditManualDecisionInputSchema.parse>[0];
-type AdminUserListQueryInput = Parameters<typeof adminUserListQuerySchema.parse>[0];
-type AdminBanUserInput = Parameters<typeof adminBanUserInputSchema.parse>[0];
 
 function normalizeBaseUrl(baseUrl: string): string {
   return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
@@ -313,11 +292,6 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "请先完成注册。";
       case "SMS_PROVIDER_UNAVAILABLE":
         return "短信服务暂时不可用，请稍后重试。";
-      case "RATE_LIMITED":
-      case "SMS_RATE_LIMITED":
-        return "请求过于频繁，请稍后重试。";
-      case "USER_BANNED":
-        return "账号已被封禁，请联系管理员。";
       default:
         return "操作失败，请稍后重试。";
     }
@@ -331,8 +305,6 @@ function mapApiErrorMessage(response: Response, payload: unknown): string {
         return "请先登录后再试。";
       case "FORBIDDEN":
         return "当前没有权限执行此操作。";
-      case "PASSWORD_REQUIRED":
-        return "请先设置登录密码";
       case "NOT_FOUND":
         return "内容不存在或已被删除。";
       case "BAD_REQUEST":
@@ -494,23 +466,6 @@ function buildAdminAuditRecordListQueryString(input: AdminAuditRecordListQueryIn
   return `?${search.toString()}`;
 }
 
-function buildAdminUsersQueryString(input: AdminUserListQueryInput = {}): string {
-  const query = adminUserListQuerySchema.parse(input);
-  const search = new URLSearchParams();
-  if (query.keyword) {
-    search.set("keyword", query.keyword);
-  }
-  if (query.status !== "all") {
-    search.set("status", query.status);
-  }
-  if (query.role !== "all") {
-    search.set("role", query.role);
-  }
-  search.set("page", String(query.page));
-  search.set("pageSize", String(query.pageSize));
-  return `?${search.toString()}`;
-}
-
 // 这里是前后端共享契约的主入口：路径常量、schema 校验和 fetch 细节都在这一层收敛。
 export function createApiClient(options: ApiClientOptions) {
   const baseUrl = normalizeBaseUrl(options.baseUrl);
@@ -563,22 +518,6 @@ export function createApiClient(options: ApiClientOptions) {
       completeUploadResponseSchema,
       completeUploadInputSchema.parse({ fileId })
     );
-  }
-
-  function buildFileContentUrl(fileId: string) {
-    return `${baseUrl}${API_ROUTES.files.content(fileId)}`;
-  }
-
-  function withStableFileContentUrl<TPayload extends { item: { id: string; url: string } }>(
-    payload: TPayload
-  ): TPayload {
-    return {
-      ...payload,
-      item: {
-        ...payload.item,
-        url: buildFileContentUrl(payload.item.id)
-      }
-    };
   }
 
   async function performDirectUpload(
@@ -676,13 +615,6 @@ export function createApiClient(options: ApiClientOptions) {
         API_ROUTES.auth.webRegisterComplete,
         authSuccessResponseSchema,
         completeWebRegistrationRequestSchema.parse(input)
-      );
-    },
-    async changeWebPassword(input: UserPasswordChangeInput) {
-      return postJson(
-        API_ROUTES.auth.webChangePassword,
-        actionSuccessResponseSchema,
-        userPasswordChangeRequestSchema.parse(input)
       );
     },
     async suggestRegistrationDisplayName(input: RegistrationDisplayNameSuggestInput) {
@@ -791,60 +723,21 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, adminRecentSessionsResponseSchema);
     },
-    async listAdminUsers(input: AdminUserListQueryInput = {}) {
-      const response = await fetch(
-        `${baseUrl}${API_ROUTES.admin.users}${buildAdminUsersQueryString(input)}`,
-        {
-          method: "GET",
-          credentials: "include"
-        }
-      );
-
-      return readJson(response, adminUsersResponseSchema);
-    },
-    async getAdminUser(id: string) {
-      const response = await fetch(`${baseUrl}${API_ROUTES.admin.userDetail(id)}`, {
-        method: "GET",
-        credentials: "include"
-      });
-
-      return readJson(response, adminUserResponseSchema);
-    },
-    async banAdminUser(id: string, input: AdminBanUserInput) {
-      return postJson(
-        API_ROUTES.admin.userBan(id),
-        adminUserResponseSchema,
-        adminBanUserInputSchema.parse(input)
-      );
-    },
-    async unbanAdminUser(id: string) {
-      const response = await fetch(`${baseUrl}${API_ROUTES.admin.userUnban(id)}`, {
-        method: "POST",
-        credentials: "include"
-      });
-
-      return readJson(response, adminUserResponseSchema);
-    },
     async listHomeFeed(input: HomeFeedInput, options?: { signal?: AbortSignal }) {
       const normalized =
         typeof input === "string"
-          ? { tab: input, categorySlug: undefined, limit: undefined, cursor: undefined }
-          : {
-              tab: input.tab,
-              categorySlug: input.categorySlug,
-              limit: input.limit,
-              cursor: input.cursor
-            };
+          ? { tab: input, categorySlug: undefined, page: undefined, limit: undefined }
+          : { tab: input.tab, categorySlug: input.categorySlug, page: input.page, limit: input.limit };
       const parsedTab = feedTabSchema.parse(normalized.tab);
       const search = new URLSearchParams({ tab: parsedTab });
       if (normalized.categorySlug) {
         search.set("categorySlug", normalized.categorySlug);
       }
+      if (normalized.page) {
+        search.set("page", String(normalized.page));
+      }
       if (normalized.limit) {
         search.set("limit", String(normalized.limit));
-      }
-      if (normalized.cursor) {
-        search.set("cursor", normalized.cursor);
       }
 
       const response = await fetch(`${baseUrl}${API_ROUTES.feed}?${search.toString()}`, {
@@ -855,14 +748,14 @@ export function createApiClient(options: ApiClientOptions) {
 
       return readJson(response, homeFeedResponseSchema);
     },
-    async listCircleFeed(tab: FeedTabInput, pagination?: CircleFeedInput) {
+    async listCircleFeed(tab: FeedTabInput, pagination?: FeedPaginationInput) {
       const parsedTab = feedTabSchema.parse(tab);
       const search = new URLSearchParams({ tab: parsedTab });
+      if (pagination?.page) {
+        search.set("page", String(pagination.page));
+      }
       if (pagination?.limit) {
         search.set("limit", String(pagination.limit));
-      }
-      if (pagination?.cursor) {
-        search.set("cursor", pagination.cursor);
       }
       const response = await fetch(`${baseUrl}${API_ROUTES.circleFeed}?${search.toString()}`, {
         method: "GET",
@@ -897,11 +790,11 @@ export function createApiClient(options: ApiClientOptions) {
     },
     async uploadPostImage(file: File) {
       const payload = await performDirectUpload(file, "post-image");
-      return withStableFileContentUrl(uploadPostImageResponseSchema.parse(payload));
+      return uploadPostImageResponseSchema.parse(payload);
     },
     async uploadPostVideo(file: File) {
       const payload = await performDirectUpload(file, "post-video");
-      return withStableFileContentUrl(uploadPostVideoResponseSchema.parse(payload));
+      return uploadPostVideoResponseSchema.parse(payload);
     },
     async uploadAvatarImage(file: File) {
       const payload = await performDirectUpload(file, "avatar-image");

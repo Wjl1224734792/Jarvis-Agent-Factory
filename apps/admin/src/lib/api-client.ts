@@ -1,4 +1,4 @@
-import { ApiClientError, createApiClient, parseApiError } from "@feijia/http-client";
+import { createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import type {
   RankingDetail,
@@ -8,22 +8,13 @@ import type {
 import { dispatchAdminAuthInvalidEvent } from "./auth-events";
 
 const fallbackBaseUrl = `http://localhost:${APP_PORTS.server}`;
-const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1", "[::1]"]);
-const ADMIN_AUTH_INVALID_CODES = new Set([
-  "FORBIDDEN",
-  "INVALID_REFRESH_TOKEN",
-  "SESSION_EXPIRED",
-  "TOKEN_EXPIRED",
-  "UNAUTHORIZED"
-]);
-
-interface AdminImportMetaEnv {
+type AdminImportMetaEnv = {
   VITE_ADMIN_API_BASE_URL?: string;
-}
+};
 const configuredBaseUrl = (import.meta.env as AdminImportMetaEnv).VITE_ADMIN_API_BASE_URL;
 
 function isLoopbackHost(hostname: string): boolean {
-  return LOOPBACK_HOSTS.has(hostname);
+  return hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1" || hostname === "[::1]";
 }
 
 function resolveAdminApiBaseUrl() {
@@ -72,7 +63,7 @@ async function parseResponse<T>(response: Response): Promise<T> {
   const payload: unknown = await response.json().catch(() => null);
 
   if (!response.ok) {
-    if (response.status === 401 || response.status === 403) {
+    if (response.status === 401) {
       dispatchAdminAuthInvalidEvent();
     }
 
@@ -89,44 +80,11 @@ async function parseResponse<T>(response: Response): Promise<T> {
   return payload as T;
 }
 
-let refreshingPromise: Promise<boolean> | null = null;
-
-function refreshSession(): Promise<boolean> {
-  if (!refreshingPromise) {
-    refreshingPromise = fetch(`${baseUrl}${API_ROUTES.auth.webRefresh}`, {
-      method: "POST",
-      credentials: "include"
-    })
-      .then((response) => response.ok)
-      .catch(() => false)
-      .finally(() => {
-        refreshingPromise = null;
-      });
-  }
-
-  return refreshingPromise;
-}
-
 async function fetchWithAutoRefresh(
   input: RequestInfo,
-  init: RequestInit,
-  retryCount = 0
+  init: RequestInit
 ): Promise<Response> {
-  const response = await fetch(input, init);
-  if (response.status !== 401 || retryCount > 0) {
-    return response;
-  }
-
-  const payload = (await response.clone().json().catch(() => null)) as {
-    code?: string;
-  } | null;
-  if (payload?.code !== "TOKEN_EXPIRED") {
-    return response;
-  }
-
-  return await refreshSession()
-    ? fetchWithAutoRefresh(input, init, retryCount + 1)
-    : response;
+  return fetch(input, init);
 }
 
 async function postJson<T>(path: string, body: unknown): Promise<T> {
@@ -169,23 +127,23 @@ type AdminRankingDetailRecord = RankingDetail;
 type AdminRankingItem = AdminRankingRecord["items"][number];
 type AdminRankingListItem = AdminRankingRecord;
 
-interface RankingDraftItemInput {
+type RankingDraftItemInput = {
   title: string;
   summary: string | null;
   imageFileId: string | null;
   brandName: string | null;
   linkedModelSlug: string | null;
-}
+};
 
-interface OfficialRankingUpsertInput {
+type OfficialRankingUpsertInput = {
   type: "official";
   title: string;
   coverImageFileId: string | null;
   itemAddPolicy: "public" | "owner";
   items: RankingDraftItemInput[];
-}
+};
 
-export interface AdminAuthSessionItem {
+export type AdminAuthSessionItem = {
   id: string;
   scope: "web" | "admin" | "app";
   clientIp: string | null;
@@ -202,18 +160,16 @@ export interface AdminAuthSessionItem {
     role: "user" | "admin";
     phone: string | null;
   };
-}
+};
 
-interface OfficialArticleInput {
+type OfficialArticleInput = {
   title: string;
   content: string;
   contentHtml?: string | null;
   contentCategoryId: string;
-  sourceLabel?: string | null;
-  sourceUrl?: string | null;
   imageIds?: string[];
   videoIds?: string[];
-}
+};
 
 const _legacyOfficialDefinitions = [
   {
@@ -301,18 +257,6 @@ const rawApiClient = {
   },
   getAdminLogsOverview(input?: { source?: string }) {
     return sharedClient.getAdminLogsOverview(input);
-  },
-  listAdminUsers(input?: Parameters<typeof sharedClient.listAdminUsers>[0]) {
-    return sharedClient.listAdminUsers(input);
-  },
-  getAdminUser(id: string) {
-    return sharedClient.getAdminUser(id);
-  },
-  banAdminUser(id: string, input: Parameters<typeof sharedClient.banAdminUser>[1]) {
-    return sharedClient.banAdminUser(id, input);
-  },
-  unbanAdminUser(id: string) {
-    return sharedClient.unbanAdminUser(id);
   },
   listAdminLogFiles(input: Parameters<typeof sharedClient.listAdminLogFiles>[0]) {
     return sharedClient.listAdminLogFiles(input);
@@ -456,8 +400,6 @@ const rawApiClient = {
       content: input.content,
       contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
-      sourceLabel: input.sourceLabel ?? null,
-      sourceUrl: input.sourceUrl ?? null,
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });
@@ -549,8 +491,6 @@ const rawApiClient = {
       content: input.content,
       contentHtml: input.contentHtml ?? null,
       contentCategoryId: input.contentCategoryId,
-      sourceLabel: input.sourceLabel ?? null,
-      sourceUrl: input.sourceUrl ?? null,
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });
@@ -572,10 +512,10 @@ function wrapAdminApiClient<T extends Record<string, unknown>>(client: T): T {
         try {
           return await (value as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
         } catch (error) {
-          if (error instanceof ApiClientError && error.code === "TOKEN_EXPIRED" && await refreshSession()) {
-            return await (value as (...innerArgs: unknown[]) => Promise<unknown>)(...args);
-          }
-          if (isAdminAuthInvalidError(error)) {
+          if (
+            error instanceof Error &&
+            /登录|unauthorized|Authorization required/i.test(error.message)
+          ) {
             dispatchAdminAuthInvalidEvent();
           }
           throw error;
@@ -583,24 +523,6 @@ function wrapAdminApiClient<T extends Record<string, unknown>>(client: T): T {
       };
     }
   });
-}
-
-/**
- * 判断错误是否意味着管理员登录态已经失效。
- *
- * @param error 待判断的错误对象。
- * @returns 命中鉴权错误码或典型鉴权文案时返回 `true`。
- * @throws {never} 该函数只做错误对象解析，不会主动抛出异常。
- */
-function isAdminAuthInvalidError(error: unknown) {
-  if (error instanceof ApiClientError) {
-    return ADMIN_AUTH_INVALID_CODES.has(error.code ?? "");
-  }
-
-  return (
-    error instanceof Error &&
-    /登录|unauthorized|Authorization required|forbidden|权限不足/i.test(error.message)
-  );
 }
 
 export const apiClient = wrapAdminApiClient(rawApiClient);

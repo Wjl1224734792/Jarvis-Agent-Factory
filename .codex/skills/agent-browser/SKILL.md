@@ -322,28 +322,6 @@ agent-browser --session site2 snapshot -i
 agent-browser session list
 ```
 
-### Multi-Agent Parallel Browser Work
-
-When multiple agents or tasks use `agent-browser` concurrently, isolate each browser context with a semantic `--session` name. Independent sessions can run in parallel; commands targeting the same session must remain ordered.
-
-```bash
-# Good: separate agents, separate browser state
-agent-browser --session fe-home-desktop open https://app.example.com &
-agent-browser --session fe-home-mobile set viewport 390 844 &
-wait
-
-agent-browser --session fe-home-desktop screenshot ./shots/home-desktop.png &
-agent-browser --session fe-home-mobile screenshot ./shots/home-mobile.png &
-wait
-```
-
-Rules:
-- Use one named session per agent, viewport, account, or target site; avoid the default session in multi-agent work.
-- Do not parallelize commands that target the same session; snapshot refs, navigation state, downloads, and focus are session-local and order-sensitive.
-- Use distinct screenshot, download, HAR, video, and profile paths per agent to avoid file collisions.
-- If tasks share one login/account or mutate the same server-side data, serialize those steps or give each agent isolated test data.
-- Re-snapshot inside each session after navigation or DOM changes; refs from one session are not valid in another.
-
 ### Connect to Existing Chrome
 
 ```bash
@@ -553,8 +531,6 @@ agent-browser --session agent2 open site-b.com
 # Check active sessions
 agent-browser session list
 ```
-
-For parallel browser batches, start all independent sessions first, wait for the batch, then collect outputs. Keep commands within one session sequential, and parallelize across sessions only.
 
 Always close your browser session when done to avoid leaked processes:
 

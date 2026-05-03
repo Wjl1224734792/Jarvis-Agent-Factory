@@ -27,11 +27,6 @@ type NotificationType =
   | "post_shared"
   | "post_commented"
   | "comment_replied"
-  | "post_status_changed"
-  | "ranking_status_changed"
-  | "rating_target_status_changed"
-  | "aircraft_submission_status_changed"
-  | "brand_application_status_changed"
   | "post_audit_result"
   | "review_audit_result"
   | "ranking_audit_result"
@@ -720,8 +715,7 @@ export const socialRepo = {
         bio: usersTable.bio,
         avatarFileId: usersTable.avatarFileId,
         coverImageFileId: usersTable.coverImageFileId,
-        phone: usersTable.phone,
-        passwordHash: usersTable.passwordHash
+        phone: usersTable.phone
       })
       .from(usersTable)
       .where(eq(usersTable.id, userId))

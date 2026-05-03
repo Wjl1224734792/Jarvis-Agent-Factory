@@ -8,10 +8,4 @@ describe("admin security navigation", () => {
       ADMIN_ROUTE_PATHS.managementSecurity
     ]);
   });
-
-  it("marks the users page as an active management nav item", () => {
-    expect(getActiveAdminNavItemPaths(ADMIN_ROUTE_PATHS.managementUsers)).toEqual([
-      ADMIN_ROUTE_PATHS.managementUsers
-    ]);
-  });
 });

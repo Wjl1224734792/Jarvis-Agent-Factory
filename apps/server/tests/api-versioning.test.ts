@@ -16,19 +16,4 @@ describe("API route versioning", () => {
 
     expect(legacyResponse.status).toBe(404);
   });
-
-  it("returns BAD_REQUEST instead of INTERNAL_ERROR for malformed JSON bodies", async () => {
-    const response = await app.request(API_ROUTES.auth.smsRequest, {
-      method: "POST",
-      headers: {
-        "content-type": "application/json"
-      },
-      body: "{"
-    });
-
-    expect(response.status).toBe(400);
-    await expect(response.json()).resolves.toMatchObject({
-      code: "BAD_REQUEST"
-    });
-  });
 });

@@ -1,7 +1,7 @@
 import type { Context, Next } from "hono";
 import { getCookie } from "hono/cookie";
 import { authService } from "./auth.service";
-import { authRepo, type SessionScope } from "./auth.repo";
+import { authRepo } from "./auth.repo";
 
 export type AuthVariables = {
   currentUser: {
@@ -10,7 +10,6 @@ export type AuthVariables = {
     avatarUrl: string | null;
     role: "user" | "admin";
   } | null;
-  currentSessionScope: SessionScope | null;
   authErrorCode?: string;
 };
 
@@ -48,16 +47,6 @@ function forbidden(context: AuthContext) {
   );
 }
 
-function banned(context: AuthContext) {
-  return context.json(
-    {
-      code: "USER_BANNED",
-      message: "账号已被封禁，请联系管理员"
-    },
-    403
-  );
-}
-
 export async function attachCurrentUser(context: AuthContext, next: Next) {
   const sessionId = readSessionToken(context);
 
@@ -65,15 +54,7 @@ export async function attachCurrentUser(context: AuthContext, next: Next) {
     const status = await authRepo.getSessionForMiddleware(sessionId);
     if (status === "access_expired") {
       context.set("currentUser", null);
-      context.set("currentSessionScope", null);
       context.set("authErrorCode", "TOKEN_EXPIRED");
-      await next();
-      return;
-    }
-    if (status === "user_banned") {
-      context.set("currentUser", null);
-      context.set("currentSessionScope", null);
-      context.set("authErrorCode", "USER_BANNED");
       await next();
       return;
     }
@@ -81,12 +62,6 @@ export async function attachCurrentUser(context: AuthContext, next: Next) {
 
   const user = await authService.getCurrentUser(sessionId);
   context.set("currentUser", user);
-  if (user && sessionId) {
-    const session = await authRepo.getSession(sessionId, { touch: false });
-    context.set("currentSessionScope", session?.scope ?? null);
-  } else {
-    context.set("currentSessionScope", null);
-  }
   await next();
 }
 
@@ -94,9 +69,6 @@ export async function requireAuth(context: AuthContext, next: Next) {
   const user = context.var.currentUser;
   if (!user) {
     const errorCode = context.var.authErrorCode;
-    if (errorCode === "USER_BANNED") {
-      return banned(context);
-    }
     if (errorCode === "TOKEN_EXPIRED") {
       return context.json(
         {
@@ -115,9 +87,6 @@ export async function requireAdmin(context: AuthContext, next: Next) {
   const user = context.var.currentUser;
   if (!user) {
     const errorCode = context.var.authErrorCode;
-    if (errorCode === "USER_BANNED") {
-      return banned(context);
-    }
     if (errorCode === "TOKEN_EXPIRED") {
       return context.json(
         {
@@ -129,7 +98,7 @@ export async function requireAdmin(context: AuthContext, next: Next) {
     }
     return unauthorized(context);
   }
-  if (user.role !== "admin" || context.var.currentSessionScope !== "admin") {
+  if (user.role !== "admin") {
     return forbidden(context);
   }
   await next();

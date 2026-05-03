@@ -14,55 +14,30 @@ import {
   deviceRegisterInputSchema,
   registrationDisplayNameSuggestResponseSchema,
   smsCodeRequestSchema,
-  strongPasswordSchema,
   userSummarySchema,
-  userPasswordChangeRequestSchema,
   webLoginRequestSchema
 } from "../src/auth";
 
 describe("auth contract", () => {
-  it("parses sms and password web login payloads", () => {
-    const smsPayload = webLoginRequestSchema.parse({
-      method: "sms",
+  it("parses the web login request payload", () => {
+    const payload = webLoginRequestSchema.parse({
       phone: "13800138000",
-      smsCode: "123456"
-    });
-    const legacySmsPayload = webLoginRequestSchema.parse({
-      phone: "13800138000",
-      smsCode: "123456"
-    });
-    const passwordPayload = webLoginRequestSchema.parse({
-      method: "password",
-      phone: "13800138000",
-      password: "Flight#123",
       captchaChallengeId: "challenge-1",
-      captchaCode: "AB12"
+      captchaCode: "AB12",
+      smsCode: "123456"
     });
 
-    expect(smsPayload.method).toBe("sms");
-    expect(smsPayload.smsCode).toBe("123456");
-    expect(legacySmsPayload.method).toBe("sms");
-    expect(passwordPayload.method).toBe("password");
-    expect(passwordPayload.captchaChallengeId).toBe("challenge-1");
+    expect(payload.phone).toBe("13800138000");
+    expect(payload.smsCode).toBe("123456");
   });
 
-  it("parses the admin login request payload with captcha", () => {
+  it("parses the admin login request payload", () => {
     const payload = adminLoginRequestSchema.parse({
       account: "admin",
-      password: "Admin#123",
-      captchaChallengeId: "captcha_1",
-      captchaCode: "ABCD"
+      password: "Admin#123"
     });
 
     expect(payload.account).toBe("admin");
-  });
-
-  it("enforces the shared password policy", () => {
-    expect(strongPasswordSchema.parse("Flight#123")).toBe("Flight#123");
-    expect(strongPasswordSchema.safeParse("flight#123").success).toBe(false);
-    expect(strongPasswordSchema.safeParse("FLIGHT#123").success).toBe(false);
-    expect(strongPasswordSchema.safeParse("Flight123").success).toBe(false);
-    expect(strongPasswordSchema.safeParse("Fli#12").success).toBe(false);
   });
 
   it("parses the admin password change payload", () => {
@@ -77,31 +52,6 @@ describe("auth contract", () => {
       adminPasswordChangeRequestSchema.safeParse({
         currentPassword: "Admin#123",
         newPassword: "Admin#123"
-      }).success
-    ).toBe(false);
-  });
-
-  it("parses the user password change payload", () => {
-    const setupPayload = userPasswordChangeRequestSchema.parse({
-      newPassword: "Flight#123",
-      smsRequestId: "sms_1",
-      smsCode: "123456"
-    });
-    const changePayload = userPasswordChangeRequestSchema.parse({
-      currentPassword: "Flight#123",
-      newPassword: "Flight#456",
-      smsRequestId: "sms_2",
-      smsCode: "234567"
-    });
-
-    expect(setupPayload.currentPassword).toBeUndefined();
-    expect(setupPayload.newPassword).toBe("Flight#123");
-    expect(setupPayload.smsRequestId).toBe("sms_1");
-    expect(changePayload.currentPassword).toBe("Flight#123");
-    expect(changePayload.newPassword).toBe("Flight#456");
-    expect(
-      userPasswordChangeRequestSchema.safeParse({
-        newPassword: "Flight#123"
       }).success
     ).toBe(false);
   });
@@ -161,6 +111,8 @@ describe("auth contract", () => {
   it("parses app auth payloads", () => {
     const loginPayload = appLoginRequestSchema.parse({
       phone: "13800138000",
+      captchaChallengeId: "challenge-1",
+      captchaCode: "AB12",
       smsCode: "123456",
       deviceLabel: "iPhone 16 Pro",
       deviceType: "web"

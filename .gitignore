@@ -41,7 +41,6 @@ build/Release
 node_modules
 jspm_packages/
 .worktrees/
-.claude/worktrees/
 
 # Snowpack dependency directory (https://snowpack.dev/)
 web_modules/
@@ -118,9 +117,7 @@ dist
 .pnp.*
 
 tmp/*
-.tmp/
 .cursor/plans/
 playwright-report/
 test-results/
 *.py
-

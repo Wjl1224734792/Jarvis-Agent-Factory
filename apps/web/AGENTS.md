@@ -30,5 +30,4 @@
 
 - HTTP：`@feijia/http-client`；类型：`@feijia/schemas`；路径常量：`@feijia/shared`。
 - **禁止** 在页面散落请求细节、鉴权、响应适配。
-- 用户头像：空 `avatarUrl` 仅做 trim / 空值归一，交给 `UserAvatar` fallback icon；不得为真实用户补 seed / 随机头像图。
 - `web` 与 `admin` 重复逻辑 → `packages/*`，**禁止** 双份复制。

@@ -5,8 +5,6 @@ export type UploadedMediaAsset = {
   mimeType?: string;
 };
 
-export { normalizeRichTextLinkHref } from "@feijia/shared";
-
 export type RichTextToolbarKey =
   | "bold"
   | "italic"
@@ -98,7 +96,20 @@ export function buildRichTextToolbarState(editor: RichTextToolbarEditor | null):
   ];
 }
 
-export function getRichTextMediaInsertions(kind: "image" | "video", assets: UploadedMediaAsset[]) {
+export function getRichTextMediaInsertions(kind: "image" | "video" | "table", assets: UploadedMediaAsset[]) {
+  if (kind === "table") {
+    return [
+      {
+        type: "table" as const,
+        attrs: {
+          rows: 3,
+          cols: 3,
+          withHeaderRow: true
+        }
+      }
+    ];
+  }
+
   if (kind === "image") {
     return assets.map((asset) => ({
       type: "image" as const,
@@ -120,17 +131,4 @@ export function getRichTextMediaInsertions(kind: "image" | "video", assets: Uplo
 
 export function shouldSyncRichTextValue(currentHtml: string, nextValue: string) {
   return currentHtml !== nextValue;
-}
-
-export function extractPlainTextFromHtml(html: string) {
-  if (!html.trim()) {
-    return "";
-  }
-
-  if (typeof DOMParser !== "undefined") {
-    const documentNode = new DOMParser().parseFromString(html, "text/html");
-    return documentNode.body.textContent?.replace(/\s+\n/g, "\n").trim() ?? "";
-  }
-
-  return html.replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }

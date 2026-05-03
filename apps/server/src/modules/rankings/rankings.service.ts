@@ -1,7 +1,9 @@
-import type { RankingDetail, RankingListItem } from "@feijia/schemas";
+import type { RankingDetail, RatingTarget, RankingListItem } from "@feijia/schemas";
+import { powerTypeSchema } from "@feijia/schemas";
 import { rankingsRepo } from "./rankings.repo";
 import { evaluateTextModeration } from "../audits/text-moderation.service";
 import {
+  resolvePublicUploadedFileUrl,
   resolvePublicUploadedFileUrlMap,
   resolveUploadedFileUrl,
   resolveUploadedFileUrlMap
@@ -9,25 +11,7 @@ import {
 import { uploadsRepo } from "../uploads/upload.repo";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
-import {
-  serializeAdminRankingCommentList,
-  serializeAdminRankingCommentStatusItem,
-  serializeAdminRatingTargetCommentList,
-  serializeAdminRatingTargetCommentStatusItem
-} from "./rankings-admin-comment-presenters";
-import {
-  average,
-  buildPublicUserSummary,
-  buildRatingBreakdownFromRows,
-  buildRatingTargetCommentThreads,
-  resolveRankingImage,
-  serializeRankingComment,
-  serializeRatingTarget
-} from "./rankings-presenters";
-import {
-  createRankingsCommentWorkflow,
-  normalizePersistedCommentStatus
-} from "./rankings-comment-workflow";
+import { buildCommentThreads } from "../../lib/comment-serializer";
 import { rankRatingTargetsByDynamicScore } from "./ranking-score";
 import { usersService } from "../users/users.service";
 import {
@@ -40,8 +24,11 @@ import {
   isValidAuthRole,
   isValidRankingType,
   isValidRankingStatus,
-  isValidRatingTargetAddPolicy
+  isValidRatingTargetAddPolicy,
+  isValidRankingCommentStatus
 } from "../../lib/type-guards";
+
+const RATING_BREAKDOWN_SCORES = [5, 4, 3, 2, 1] as const;
 
 type CurrentUser = {
   id: string;
@@ -52,7 +39,6 @@ type RatingTargetStatus = "pending" | "published" | "rejected" | "hidden";
 const DEFAULT_RANKINGS_PAGE = 1;
 const DEFAULT_RANKINGS_LIMIT = 20;
 const MAX_RANKINGS_LIMIT = 50;
-const rankingsCommentWorkflow = createRankingsCommentWorkflow();
 
 function buildViewer(currentUserId: string): CurrentUser {
   return {
@@ -110,6 +96,61 @@ function canInteractWithRatingTarget(input: {
       itemStatus
     })
   );
+}
+
+function buildPublicUserSummary(
+  user: { id: string; displayName: string; avatarFileId?: string | null; role: string },
+  input?: {
+    avatarUrlMap?: Map<string, string | null>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
+  }
+) {
+  return {
+    id: user.id,
+    displayName: user.displayName,
+    avatarUrl: user.avatarFileId ? (input?.avatarUrlMap?.get(user.avatarFileId) ?? null) : null,
+    ipLocationLabel: input?.ipLocationLabelMap?.get(user.id) ?? null,
+    role: isValidAuthRole(user.role) ? user.role : ("user" as "user" | "admin")
+  };
+}
+
+function toTenPointScore(rawAverage: number): number {
+  if (rawAverage <= 0) {
+    return 0;
+  }
+
+  return Number((rawAverage * 2).toFixed(1));
+}
+
+function average(values: number[]) {
+  if (values.length === 0) {
+    return 0;
+  }
+
+  return Number((values.reduce((sum, value) => sum + value, 0) / values.length).toFixed(1));
+}
+
+function buildRatingBreakdown(scoreCountMap: Map<number, number>) {
+  return RATING_BREAKDOWN_SCORES.map((score) => ({
+    score,
+    count: scoreCountMap.get(score) ?? 0
+  }));
+}
+
+function buildRatingBreakdownFromRows(rows: Array<{ score: number; count: number }>) {
+  const scoreCountMap = new Map<number, number>(
+    rows.map((row) => [row.score, Number(row.count ?? 0)])
+  );
+  return buildRatingBreakdown(scoreCountMap);
+}
+
+async function resolveRankingImage(
+  fileId: string | null | undefined,
+  audience: "internal" | "public" = "internal"
+) {
+  return audience === "public"
+    ? resolvePublicUploadedFileUrl(fileId ?? null)
+    : resolveUploadedFileUrl(fileId ?? null);
 }
 
 function buildSet<T extends string>(rows: Array<{ [key: string]: T }>, key: string) {
@@ -182,6 +223,222 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
     mediaKind: "image",
     bizType: "report-image"
   });
+}
+
+async function serializeRatingTarget(
+  item: Awaited<ReturnType<typeof rankingsRepo.listRatingTargets>>[number],
+  aggregateMap: Map<string, { totalRatings: number; averageRaw: number }>,
+  userRatingMap: Map<string, number | null>,
+  input: {
+    currentUser?: CurrentUser;
+    rankingType: "official" | "community";
+    rankingAuthorId: string;
+    reportedItemIds?: Set<string>;
+    imageUrlMap?: Map<string, string | null>;
+    avatarUrlMap?: Map<string, string | null>;
+    ipLocationLabelMap?: ReadonlyMap<string, string | null>;
+  }
+): Promise<RatingTarget> {
+  const aggregate = aggregateMap.get(item.id) ?? {
+    totalRatings: 0,
+    averageRaw: 0
+  };
+  const hasLinkedModel = Boolean(
+    item.linkedModelId &&
+      item.linkedModelSlug &&
+      item.linkedModelName &&
+      item.linkedModelPowerType &&
+      item.linkedModelCategoryId &&
+      item.linkedModelCategorySlug &&
+      item.linkedModelCategoryName &&
+      item.linkedModelBrandId &&
+      item.linkedModelBrandSlug &&
+      item.linkedModelBrandName
+  );
+  const linkedModel =
+    hasLinkedModel &&
+    item.linkedModelId &&
+    item.linkedModelSlug &&
+    item.linkedModelName &&
+    item.linkedModelPowerType &&
+    item.linkedModelCategoryId &&
+    item.linkedModelCategorySlug &&
+    item.linkedModelCategoryName &&
+    item.linkedModelBrandId &&
+    item.linkedModelBrandSlug &&
+    item.linkedModelBrandName
+      ? {
+          id: item.linkedModelId,
+          slug: item.linkedModelSlug,
+          name: item.linkedModelName,
+          summary: item.linkedModelSummary,
+          powerType: powerTypeSchema.parse(item.linkedModelPowerType),
+          category: {
+            id: item.linkedModelCategoryId,
+            slug: item.linkedModelCategorySlug,
+            name: item.linkedModelCategoryName
+          },
+          brand: {
+            id: item.linkedModelBrandId,
+            slug: item.linkedModelBrandSlug,
+            name: item.linkedModelBrandName
+          }
+        }
+      : null;
+
+  return {
+    id: item.id,
+    rankingId: item.rankingId,
+    authorId: item.authorId,
+    author: buildPublicUserSummary(item.author, {
+      avatarUrlMap: input.avatarUrlMap,
+      ipLocationLabelMap: input.ipLocationLabelMap
+    }),
+    status: isValidRankingStatus(item.status) ? item.status : ("published" satisfies RatingTargetStatus),
+    rejectionReason: item.rejectionReason ?? null,
+    rank: item.rank,
+    title: item.title,
+    summary: item.summary,
+    imageFileId: item.imageFileId ?? null,
+    imageUrl: item.imageFileId
+      ? (input.imageUrlMap?.get(item.imageFileId) ?? (await resolveRankingImage(item.imageFileId)))
+      : null,
+    brandName: item.brandName,
+    linkedModel,
+    averageScore: toTenPointScore(aggregate.averageRaw),
+    totalRatings: aggregate.totalRatings,
+    commentCount: item.commentCount,
+    likeCount: item.likeCount ?? 0,
+    reportCount: item.reportCount ?? 0,
+    myRating: userRatingMap.get(item.id) ?? null,
+    viewer: {
+      canEdit: canManageRatingTarget({
+        currentUser: input.currentUser,
+        rankingType: input.rankingType,
+        rankingAuthorId: input.rankingAuthorId,
+        itemAuthorId: item.authorId
+      }),
+      canDelete: canManageRatingTarget({
+        currentUser: input.currentUser,
+        rankingType: input.rankingType,
+        rankingAuthorId: input.rankingAuthorId,
+        itemAuthorId: item.authorId
+      }),
+      hasReported: input.reportedItemIds?.has(item.id) ?? false
+    }
+  };
+}
+
+async function serializeRankingComment(
+  item: Awaited<ReturnType<typeof rankingsRepo.listRankingComments>>[number],
+  currentUser?: CurrentUser,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
+) {
+  return {
+    id: item.id,
+    rankingId: item.rankingId,
+    content: item.content,
+    status: (item.status ?? "visible") as "pending" | "visible" | "hidden",
+    createdAt: item.createdAt.toISOString(),
+    updatedAt: item.updatedAt.toISOString(),
+    likeCount: item.likeCount ?? 0,
+    reportCount: item.reportCount ?? 0,
+    author: {
+      id: item.author.id,
+      displayName: item.author.displayName,
+      avatarUrl: await resolvePublicUploadedFileUrl(item.author.avatarFileId ?? null),
+      ipLocationLabel: ipLocationLabelMap?.get(item.author.id) ?? null,
+      role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
+    },
+    viewer: {
+      canEdit: Boolean(currentUser && (currentUser.role === "admin" || currentUser.id === item.author.id)),
+      canDelete: Boolean(currentUser && (currentUser.role === "admin" || currentUser.id === item.author.id)),
+      hasLiked: false,
+      hasReported: false
+    }
+  };
+}
+
+type RatingTargetComment = Awaited<ReturnType<typeof rankingsRepo.listRatingTargetComments>>[number];
+
+async function serializeRatingTargetCommentBase(
+  comment: RatingTargetComment,
+  replyToUsers: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel?: string | null; role: "user" | "admin" }
+  >,
+  currentUser?: CurrentUser,
+  likedCommentIds?: Set<string>,
+  reportedCommentIds?: Set<string>,
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>
+) {
+  return {
+    id: comment.id,
+    ratingTargetId: comment.ratingTargetId,
+    parentCommentId: comment.parentCommentId,
+    replyToCommentId: comment.replyToCommentId,
+    content: comment.content,
+    status: (comment.status ?? "visible") as "pending" | "visible" | "hidden",
+    rating: comment.rating ?? null,
+    createdAt: comment.createdAt.toISOString(),
+    updatedAt: comment.updatedAt.toISOString(),
+    likeCount: comment.likeCount ?? 0,
+    reportCount: comment.reportCount ?? 0,
+    author: {
+      id: comment.author.id,
+      displayName: comment.author.displayName,
+      avatarUrl: await resolvePublicUploadedFileUrl(comment.author.avatarFileId ?? null),
+      ipLocationLabel: ipLocationLabelMap?.get(comment.author.id) ?? null,
+      role: isValidAuthRole(comment.author.role) ? comment.author.role : ("user" as "user" | "admin")
+    },
+    replyToUser: comment.replyToUserId
+      ? replyToUsers.get(comment.replyToUserId) ?? null
+      : null,
+    viewer: {
+      canEdit: Boolean(
+        currentUser &&
+          (currentUser.role === "admin" || currentUser.id === comment.author.id)
+      ),
+      canDelete: Boolean(
+        currentUser &&
+          (currentUser.role === "admin" || currentUser.id === comment.author.id)
+      ),
+      hasLiked: likedCommentIds?.has(comment.id) ?? false,
+      hasReported: reportedCommentIds?.has(comment.id) ?? false
+    }
+  };
+}
+
+async function buildRatingTargetCommentThreads(input: {
+  comments: Awaited<ReturnType<typeof rankingsRepo.listRatingTargetComments>>;
+  currentUser?: CurrentUser;
+  replyToUsers: Map<
+    string,
+    { id: string; displayName: string; avatarUrl: string | null; ipLocationLabel?: string | null; role: "user" | "admin" }
+  >;
+  likedCommentIds: Set<string>;
+  reportedCommentIds: Set<string>;
+  ipLocationLabelMap?: ReadonlyMap<string, string | null>;
+}) {
+  const compare = (
+    left: { likeCount: number; updatedAt: string },
+    right: { likeCount: number; updatedAt: string }
+  ) => right.likeCount - left.likeCount || right.updatedAt.localeCompare(left.updatedAt);
+
+  const serialized = await Promise.all(
+    input.comments.map((c) =>
+      serializeRatingTargetCommentBase(
+        c,
+        input.replyToUsers,
+        input.currentUser,
+        input.likedCommentIds,
+        input.reportedCommentIds,
+        input.ipLocationLabelMap
+      )
+    )
+  );
+
+  return buildCommentThreads(serialized, { compare });
 }
 
 async function buildRankingListItems(
@@ -1126,25 +1383,63 @@ export const rankingsService = {
   },
 
   async createRankingComment(rankingId: string, currentUserId: string, content: string) {
-    const currentUser = buildViewer(currentUserId);
     const ranking = await rankingsRepo.getRankingById(rankingId);
     if (
       !ranking ||
       !canInteractWithRanking({
         ranking,
-        currentUser
+        currentUser: buildViewer(currentUserId)
       })
     ) {
       return null;
     }
 
-    return rankingsCommentWorkflow.createRankingComment({
+    const item = await rankingsRepo.createRankingComment({
       rankingId,
-      rankingTitle: ranking.title,
-      rankingAuthorId: ranking.author.id,
-      currentUserId,
+      authorId: currentUserId,
       content,
+      status: "pending"
     });
+
+    if (!item) {
+      return null;
+    }
+
+    let currentItem = item;
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: item.id,
+      text: content
+    });
+    if (moderation.action !== "manual_review") {
+      const moderated = await rankingsRepo.updateRankingCommentStatus(
+        item.id,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
+      if (moderated) {
+        currentItem = moderated;
+      }
+    }
+
+    if (currentItem.status === "visible" && ranking.author.id !== currentUserId) {
+      await socialService.recordNotification({
+        userId: ranking.author.id,
+        actorId: currentUserId,
+        type: "post_commented",
+        commentId: currentItem.id,
+        target: {
+          type: "ranking",
+          id: ranking.id,
+          title: ranking.title,
+          href: `/rankings/${ranking.id}`
+        },
+        title: "榜单收到新评论",
+        summary: `有人评论了你的榜单《${ranking.title}》`
+      });
+    }
+
+    return { item: await serializeRankingComment(currentItem, { id: currentUserId, role: "user" }) };
   },
 
   async reportRanking(
@@ -1399,18 +1694,55 @@ export const rankingsService = {
       return null;
     }
 
-    const submitted = await rankingsCommentWorkflow.submitRatingTargetReview({
-      item: {
-        id: existing.id,
-        authorId: existing.authorId,
-        title: existing.title
-      },
-      currentUserId,
+    let reviewComment = await rankingsRepo.upsertRatingTargetReview({
+      ratingTargetId: id,
+      authorId: currentUserId,
       rating: input.rating,
-      content: input.content
+      content: input.content,
+      status: "pending"
     });
-    if (!submitted) {
+    if (!reviewComment) {
       return null;
+    }
+
+    let finalStatus: "pending" | "visible" | "hidden" = "pending";
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: reviewComment.id,
+      text: input.content
+    });
+    finalStatus =
+      moderation.action === "approve"
+        ? "visible"
+        : moderation.action === "reject"
+          ? "hidden"
+          : "pending";
+    if (finalStatus !== "pending") {
+      const moderated = await rankingsRepo.updateRatingTargetCommentStatus(reviewComment.id, finalStatus);
+      if (moderated) {
+        reviewComment = {
+          ...reviewComment,
+          status: moderated.status
+        };
+      }
+    }
+
+    if (finalStatus === "visible" && existing.authorId !== currentUserId) {
+      await socialService.recordNotification({
+        userId: existing.authorId,
+        actorId: currentUserId,
+        type: "post_commented",
+        commentId: reviewComment.id,
+        target: {
+          type: "rating_target",
+          id: existing.id,
+          title: existing.title,
+          href: `/rating-targets/${existing.id}`
+        },
+        title: "榜单条目收到新评论",
+        summary: `有人评论了你的榜单条目《${existing.title}》`
+      });
     }
 
     return this.getRatingTargetDetail(id, currentUserId);
@@ -1462,7 +1794,6 @@ export const rankingsService = {
         commentCount: payload.item.commentCount,
         likeCount: payload.item.likeCount,
         reportCount: payload.item.reportCount,
-        createdAt: payload.item.createdAt,
         myRating: payload.item.myRating,
         viewer: payload.item.viewer
       }
@@ -1508,6 +1839,9 @@ export const rankingsService = {
     }
 
     let parentComment: Awaited<ReturnType<typeof rankingsRepo.getRatingTargetCommentById>> | null = null;
+    let parentCommentId: string | null = null;
+    let replyToCommentId: string | null = null;
+    let replyToUserId: string | null = null;
 
     if (input.parentCommentId) {
       parentComment = await rankingsRepo.getRatingTargetCommentById(input.parentCommentId);
@@ -1518,22 +1852,74 @@ export const rankingsService = {
       ) {
         return null;
       }
+
+      parentCommentId = parentComment.parentCommentId ?? parentComment.id;
+      replyToCommentId = parentComment.id;
+      replyToUserId = parentComment.author.id;
     }
 
-    const rating = parentComment ? null : (input.rating ?? null);
-    const created = await rankingsCommentWorkflow.createRatingTargetComment({
-      item: {
-        id: item.id,
-        authorId: item.authorId,
-        title: item.title
-      },
-      currentUserId,
+    const status = "pending";
+    const rating = input.parentCommentId ? null : (input.rating ?? null);
+    if (rating !== null) {
+      await rankingsRepo.upsertRatingTargetRating({
+        ratingTargetId: id,
+        userId: currentUserId,
+        rating
+      });
+    }
+
+    const created = await rankingsRepo.createRatingTargetComment({
+      ratingTargetId: id,
+      authorId: currentUserId,
+      parentCommentId,
+      replyToCommentId,
+      replyToUserId,
       content: input.content,
       rating,
-      parentComment
+      status
     });
+
     if (!created) {
       return null;
+    }
+
+    let currentCommentStatus = created.status;
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: created.id,
+      text: input.content
+    });
+    if (moderation.action !== "manual_review") {
+      const moderated = await rankingsRepo.updateRatingTargetCommentStatus(
+        created.id,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
+      if (moderated) {
+        currentCommentStatus = moderated.status;
+      }
+    }
+
+    if (currentCommentStatus === "visible") {
+      const targetUserId = parentComment ? parentComment.author.id : item.authorId;
+      if (targetUserId !== currentUserId) {
+        await socialService.recordNotification({
+          userId: targetUserId,
+          actorId: currentUserId,
+          type: parentComment ? "comment_replied" : "post_commented",
+          commentId: created.id,
+          target: {
+            type: "rating_target",
+            id: item.id,
+            title: item.title,
+            href: `/rating-targets/${item.id}`
+          },
+          title: parentComment ? "榜单条目评论收到回复" : "榜单条目收到新评论",
+          summary: parentComment
+            ? `有人回复了你在《${item.title}》下的评论`
+            : `有人评论了你的榜单条目《${item.title}》`
+        });
+      }
     }
 
     const payload = await this.getRatingTargetDetail(id, currentUserId);
@@ -1545,7 +1931,7 @@ export const rankingsService = {
       ...payload.item.comments,
       ...payload.item.comments.flatMap((entry) => entry.replies)
     ];
-    const selectedComment = allComments.find((entry) => entry.id === created.commentId) ?? null;
+    const selectedComment = allComments.find((entry) => entry.id === created.id) ?? null;
     return selectedComment ? { item: selectedComment } : null;
   },
 
@@ -1564,13 +1950,21 @@ export const rankingsService = {
       return { kind: "forbidden" as const };
     }
 
-    const didUpdate = await rankingsCommentWorkflow.updateRatingTargetComment({
-      commentId,
-      content: input.content,
-      previousStatus: normalizePersistedCommentStatus(comment.status)
+    await rankingsRepo.updateRatingTargetComment(commentId, input.content);
+    if (comment.status === "visible") {
+      await rankingsRepo.updateRatingTargetCommentStatus(commentId, "pending");
+    }
+    const moderation = await evaluateTextModeration({
+      mode: await siteSettingsService.getCommentModerationMode(),
+      domain: "comment",
+      entityId: commentId,
+      text: input.content
     });
-    if (!didUpdate) {
-      return { kind: "not_found" as const };
+    if (moderation.action !== "manual_review") {
+      await rankingsRepo.updateRatingTargetCommentStatus(
+        commentId,
+        moderation.action === "approve" ? "visible" : "hidden"
+      );
     }
 
     const payload = await this.getRatingTargetDetail(itemId, currentUser);
@@ -1582,8 +1976,8 @@ export const rankingsService = {
       ...payload.item.comments,
       ...payload.item.comments.flatMap((entry) => entry.replies)
     ];
-    const updatedComment = allComments.find((entry) => entry.id === commentId) ?? null;
-    return updatedComment ? { kind: "ok" as const, item: updatedComment } : { kind: "not_found" as const };
+    const updated = allComments.find((entry) => entry.id === commentId) ?? null;
+    return updated ? { kind: "ok" as const, item: updated } : { kind: "not_found" as const };
   },
 
   async deleteRatingTargetComment(itemId: string, commentId: string, currentUser: CurrentUser) {
@@ -1655,7 +2049,33 @@ export const rankingsService = {
   },
   async listAdminRankingComments(status?: "pending" | "visible" | "hidden") {
     const items = await rankingsRepo.listAdminRankingComments(status);
-    return serializeAdminRankingCommentList(items);
+    return {
+      items: await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          rankingId: item.rankingId,
+          rankingTitle: item.rankingTitle,
+          content: item.content,
+          status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
+          likeCount: item.likeCount ?? 0,
+          reportCount: item.reportCount ?? 0,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+          author: {
+            id: item.author.id,
+            displayName: item.author.displayName,
+            avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+            role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
+          },
+          viewer: {
+            canEdit: false,
+            canDelete: false,
+            hasLiked: false,
+            hasReported: false
+          }
+        }))
+      )
+    };
   },
   async updateRankingCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
     const item = await rankingsRepo.updateRankingCommentStatus(id, status);
@@ -1663,11 +2083,71 @@ export const rankingsService = {
       return null;
     }
 
-    return serializeAdminRankingCommentStatusItem(item);
+    return {
+      id: item.id,
+      rankingId: item.rankingId,
+      rankingTitle: item.rankingTitle,
+      content: item.content,
+      status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
+      likeCount: item.likeCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      author: {
+        id: item.author.id,
+        displayName: item.author.displayName,
+        avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
+      },
+      viewer: {
+        canEdit: false,
+        canDelete: false,
+        hasLiked: false,
+        hasReported: false
+      }
+    };
   },
   async listAdminRatingTargetComments(status?: "pending" | "visible" | "hidden") {
     const items = await rankingsRepo.listAdminRatingTargetComments(status);
-    return serializeAdminRatingTargetCommentList(items);
+    return {
+      items: await Promise.all(
+        items.map(async (item) => ({
+          id: item.id,
+          ratingTargetId: item.ratingTargetId,
+          ratingTargetTitle: item.ratingTargetTitle,
+          rankingTitle: item.rankingTitle,
+          parentCommentId: item.parentCommentId,
+          replyToCommentId: item.replyToCommentId,
+          content: item.content,
+          status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
+          rating: item.rating ?? null,
+          likeCount: item.likeCount ?? 0,
+          reportCount: item.reportCount ?? 0,
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+          author: {
+            id: item.author.id,
+            displayName: item.author.displayName,
+            avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+            role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
+          },
+          replyToUser: item.replyToUser?.id
+            ? {
+                id: item.replyToUser.id,
+                displayName: item.replyToUser.displayName,
+                avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
+                role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
+              }
+            : null,
+          viewer: {
+            canEdit: false,
+            canDelete: false,
+            hasLiked: false,
+            hasReported: false
+          }
+        }))
+      )
+    };
   },
   async updateRatingTargetCommentStatus(id: string, status: "pending" | "visible" | "hidden") {
     const item = await rankingsRepo.updateRatingTargetCommentStatus(id, status);
@@ -1675,6 +2155,40 @@ export const rankingsService = {
       return null;
     }
 
-    return serializeAdminRatingTargetCommentStatusItem(item);
+    return {
+      id: item.id,
+      ratingTargetId: item.ratingTargetId,
+      ratingTargetTitle: item.ratingTargetTitle,
+      rankingTitle: item.rankingTitle,
+      parentCommentId: item.parentCommentId,
+      replyToCommentId: item.replyToCommentId,
+      content: item.content,
+      status: isValidRankingCommentStatus(item.status) ? item.status : ("visible" as "pending" | "visible" | "hidden"),
+      rating: item.rating ?? null,
+      likeCount: item.likeCount ?? 0,
+      reportCount: item.reportCount ?? 0,
+      createdAt: item.createdAt.toISOString(),
+      updatedAt: item.updatedAt.toISOString(),
+      author: {
+        id: item.author.id,
+        displayName: item.author.displayName,
+        avatarUrl: await resolveUploadedFileUrl(item.author.avatarFileId ?? null),
+        role: isValidAuthRole(item.author.role) ? item.author.role : ("user" as "user" | "admin")
+      },
+      replyToUser: item.replyToUser?.id
+        ? {
+            id: item.replyToUser.id,
+            displayName: item.replyToUser.displayName,
+            avatarUrl: await resolveUploadedFileUrl(item.replyToUser.avatarFileId ?? null),
+            role: isValidAuthRole(item.replyToUser.role) ? item.replyToUser.role : ("user" as "user" | "admin")
+          }
+        : null,
+      viewer: {
+        canEdit: false,
+        canDelete: false,
+        hasLiked: false,
+        hasReported: false
+      }
+    };
   }
 };

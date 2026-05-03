@@ -43,9 +43,6 @@ const socialServiceMock = {
 const uploadsRepoMock = {
   listOwnedUploadedFiles: vi.fn()
 };
-const usersServiceMock = {
-  resolvePublicIpLocationLabelMap: vi.fn()
-};
 
 vi.mock("../src/modules/reviews/reviews.repo", () => ({
   reviewsRepo: repo
@@ -67,14 +64,9 @@ vi.mock("../src/modules/uploads/upload.repo", () => ({
   uploadsRepo: uploadsRepoMock
 }));
 
-vi.mock("../src/modules/users/users.service", () => ({
-  usersService: usersServiceMock
-}));
-
 vi.mock("../src/modules/uploads/uploads.helpers", () => ({
   resolveUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png"),
-  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png"),
-  resolveUploadedFileUrls: vi.fn(async () => [])
+  resolvePublicUploadedFileUrl: vi.fn(async () => "https://cdn.example.com/avatar.png")
 }));
 
 describe("reviews service", () => {
@@ -94,7 +86,6 @@ describe("reviews service", () => {
     });
     socialServiceMock.recordNotification.mockResolvedValue(undefined);
     socialServiceMock.recordSystemNotification.mockResolvedValue(undefined);
-    usersServiceMock.resolvePublicIpLocationLabelMap.mockResolvedValue(new Map());
   });
 
   it("enriches top-level model reviews with like/report counts and viewer state", async () => {
@@ -299,12 +290,6 @@ describe("reviews service", () => {
     ]);
     repo.listViewerReviewCommentLikes.mockResolvedValue([{ commentId: "comment_root" }]);
     repo.listViewerReviewCommentReports.mockResolvedValue([{ commentId: "comment_root" }]);
-    usersServiceMock.resolvePublicIpLocationLabelMap.mockResolvedValue(
-      new Map([
-        ["author_1", "广东省"],
-        ["author_2", "澳大利亚"]
-      ])
-    );
 
     const payload = await reviewsService.listReviewComments("review_1", "viewer_1");
 
@@ -315,9 +300,6 @@ describe("reviews service", () => {
     expect(payload?.items[0]?.viewer.hasReported).toBe(true);
     expect(payload?.items[0]?.replyCount).toBe(1);
     expect(payload?.items[0]?.replies[0]?.replyToUser?.displayName).toBe("Author");
-    expect(payload?.items[0]?.author.ipLocationLabel).toBe("广东省");
-    expect(payload?.items[0]?.replies[0]?.author.ipLocationLabel).toBe("澳大利亚");
-    expect(payload?.items[0]?.replies[0]?.replyToUser?.ipLocationLabel).toBe("广东省");
   });
 
   it("updates, likes and reports review comments with author permission checks", async () => {

@@ -123,7 +123,7 @@ Session ID (即 Access Token) 格式: sess_ + 24字节随机token
 | 参数名 | 类型 | 必填 | 说明 |
 |--------|------|------|------|
 | phone | string | 是 | 中国大陆手机号 |
-| smsCode | string | 是 | 6–8 位短信验证码（默认 6 位） |
+| smsCode | string | 是 | 6 位短信验证码 |
 | deviceLabel | string (可选) | 否 | 设备标识，最大 120 字符 |
 
 **请求示例:**
@@ -383,7 +383,7 @@ Session ID (即 Access Token) 格式: sess_ + 24字节随机token
 │                                                         │
 │  2. 用户输入手机号 + 图形验证码                            │
 │     └─ POST /auth/sms/request                            │
-│        → 发送短信验证码（Redis 哈希存储，默认 5 分钟有效）     │
+│        → 发送短信验证码（Redis 存储，5 分钟有效）             │
 │                                                         │
 │  3. 用户输入短信验证码，点击登录                            │
 │     └─ POST /auth/app/login                              │
@@ -509,7 +509,7 @@ async function refreshSession() {
 | 类型 | 有效期 | 备注 |
 |------|--------|------|
 | 图形验证码 | 5 分钟 | 存储在 Redis |
-| 短信验证码 | 默认 5 分钟 | 哈希存储在 Redis |
+| 短信验证码 | 5 分钟 | 存储在 Redis |
 | 注册临时令牌 | 10 分钟 | 存储在 Redis |
 | Access Token | 2 小时 | Session ID，每次刷新续期 |
 | Refresh Token | 30 天 | 滑动续期：剩余时间 < 一半时续期 30 天 |

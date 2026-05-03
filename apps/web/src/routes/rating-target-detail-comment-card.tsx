@@ -15,7 +15,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { apiClient } from "@/lib/api-client";
-import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getAvatarImage } from "@/lib/aviation-media";
 import {
   patchRatingTargetCommentCreated,
   patchRatingTargetCommentLike
@@ -144,7 +144,7 @@ export function RatingTargetCommentCard(props: RatingTargetCommentCardProps) {
           <Avatar className="mt-0.5" size="sm">
             <AvatarImage
               alt={props.comment.author.displayName}
-              src={resolveUserAvatarSrc(props.comment.author.avatarUrl)}
+              src={props.comment.author.avatarUrl ?? getAvatarImage(props.comment.author.id)}
             />
             <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
@@ -163,7 +163,7 @@ export function RatingTargetCommentCard(props: RatingTargetCommentCardProps) {
             ) : null}
             {props.comment.rating ? <RatingStars size="xs" tone="rating" value={props.comment.rating} /> : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {isEditing ? (

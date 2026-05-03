@@ -27,7 +27,6 @@
     "drizzle-kit": "^0.31.10",
     "drizzle-orm": "^0.45.1",
     "pg": "^8.20.0",
-    "qiniu": "^7.15.1",
     "redis": "^5.8.2"
   },
   "devDependencies": {

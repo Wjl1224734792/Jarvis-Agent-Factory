@@ -54,18 +54,4 @@ export const uploadPaths = {
         }
       }
     },
-    [API_ROUTES.files.content('{id}')]: {
-      get: {
-        tags: ['uploads'],
-        summary: '跳转到文件内容',
-        parameters: [stringPathParameter('id', '文件 ID。')],
-        responses: {
-          '302': {
-            description: '跳转到当前可访问的对象存储下载地址。'
-          },
-          '400': jsonResponse('ErrorResponse', '缺少文件 ID。'),
-          '404': jsonResponse('ErrorResponse', '文件不存在或暂不可公开访问。')
-        }
-      }
-    },
 } as const;

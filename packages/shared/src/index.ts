@@ -4,11 +4,6 @@ export {
   buildRedirectTarget,
   resolveSafeRedirectPath
 } from "./redirects";
-export {
-  normalizeRichTextLinkHref,
-  normalizeRichTextMediaUrl,
-  normalizeRichTextVideoSource
-} from "./rich-text";
 
 /** 本地开发默认端口（避开 3000/3001/3002 等常见占用） */
 export const APP_PORTS = {
@@ -102,11 +97,7 @@ export const API_ROUTES = {
     messageRead: (id: string) => withApiV1Prefix(`/admin/messages/${id}/read`),
     messageTodos: withApiV1Prefix("/admin/messages/todos"),
     audits: withApiV1Prefix("/admin/audits"),
-    auditManualReview: (id: string) => withApiV1Prefix(`/admin/audits/${id}/manual-review`),
-    users: withApiV1Prefix("/admin/users"),
-    userDetail: (id: string) => withApiV1Prefix(`/admin/users/${id}`),
-    userBan: (id: string) => withApiV1Prefix(`/admin/users/${id}/ban`),
-    userUnban: (id: string) => withApiV1Prefix(`/admin/users/${id}/unban`)
+    auditManualReview: (id: string) => withApiV1Prefix(`/admin/audits/${id}/manual-review`)
   },
   auth: {
     captchaChallenge: withApiV1Prefix("/auth/captcha/challenge"),
@@ -114,7 +105,6 @@ export const API_ROUTES = {
     webLogin: withApiV1Prefix("/auth/web/login"),
     webRegisterComplete: withApiV1Prefix("/auth/web/register/complete"),
     webRefresh: withApiV1Prefix("/auth/web/refresh"),
-    webChangePassword: withApiV1Prefix("/auth/web/password/change"),
     registrationDisplayNameSuggest: withApiV1Prefix("/auth/registration/display-name/suggest"),
     logout: withApiV1Prefix("/auth/logout"),
     currentUser: withApiV1Prefix("/auth/me"),
@@ -177,8 +167,7 @@ export const API_ROUTES = {
     complete: withApiV1Prefix("/uploads/complete")
   },
   files: {
-    url: (id: string) => withApiV1Prefix(`/files/${id}/url`),
-    content: (id: string) => withApiV1Prefix(`/files/${id}/content`)
+    url: (id: string) => withApiV1Prefix(`/files/${id}/url`)
   },
   users: {
     meProfile: withApiV1Prefix("/users/me/profile"),

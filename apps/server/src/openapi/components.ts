@@ -16,7 +16,6 @@ import {
   adminPostResponseSchema,
   adminPostStatusUpdateInputSchema,
   adminRecentSessionsResponseSchema,
-  adminBanUserInputSchema,
   adminBrandInputSchema,
   adminBrandResponseSchema,
   adminCategoryInputSchema,
@@ -34,8 +33,6 @@ import {
   adminReviewCommentsResponseSchema,
   adminReviewResponseSchema,
   adminReviewsResponseSchema,
-  adminUserResponseSchema,
-  adminUsersResponseSchema,
   appAuthSessionResponseSchema,
   appLoginRequestSchema,
   appLoginResponseSchema,
@@ -130,7 +127,6 @@ import {
   updateReviewStatusInputSchema,
   updateSiteSettingsInputSchema,
   userContentResponseSchema,
-  userPasswordChangeRequestSchema,
   userProfileResponseSchema,
   webLoginRequestSchema,
   webLoginResponseSchema
@@ -167,7 +163,6 @@ export const componentSchemas = {
   ),
   AdminLoginRequest: toOpenApiSchema(adminLoginRequestSchema),
   AdminPasswordChangeRequest: toOpenApiSchema(adminPasswordChangeRequestSchema),
-  UserPasswordChangeRequest: toOpenApiSchema(userPasswordChangeRequestSchema),
   AuthSuccessResponse: toOpenApiSchema(authSuccessResponseSchema),
   CurrentUserResponse: toOpenApiSchema(currentUserResponseSchema),
   CurrentUserProfileResponse: toOpenApiSchema(currentUserProfileResponseSchema),
@@ -198,9 +193,6 @@ export const componentSchemas = {
   AdminRecentSessionsResponse: toOpenApiSchema(
     adminRecentSessionsResponseSchema
   ),
-  AdminUsersResponse: toOpenApiSchema(adminUsersResponseSchema),
-  AdminUserResponse: toOpenApiSchema(adminUserResponseSchema),
-  AdminBanUserRequest: toOpenApiSchema(adminBanUserInputSchema),
   InitUploadRequest: toOpenApiSchema(initUploadInputSchema),
   InitUploadResponse: toOpenApiSchema(initUploadResponseSchema),
   CompleteUploadRequest: toOpenApiSchema(completeUploadInputSchema),

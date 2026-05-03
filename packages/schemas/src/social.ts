@@ -20,11 +20,6 @@ export const messageTypeSchema = z.enum([
   "post_shared",
   "post_commented",
   "comment_replied",
-  "post_status_changed",
-  "ranking_status_changed",
-  "rating_target_status_changed",
-  "aircraft_submission_status_changed",
-  "brand_application_status_changed",
   "post_audit_result",
   "review_audit_result",
   "ranking_audit_result",
@@ -118,18 +113,12 @@ export const adminMessageListQuerySchema = z.object({
   }
 
   const validTypesByDomain: Partial<Record<z.infer<typeof adminMessageDomainSchema>, Array<z.infer<typeof messageTypeSchema>>>> = {
-    posts: ["post_audit_result", "post_status_changed"],
+    posts: ["post_audit_result"],
     reviews: ["review_audit_result"],
-    rankings: ["ranking_audit_result", "ranking_status_changed"],
-    rating_targets: ["rating_target_audit_result", "rating_target_status_changed"],
-    aircraft_submissions: [
-      "aircraft_submission_audit_result",
-      "aircraft_submission_status_changed"
-    ],
-    brand_applications: [
-      "brand_application_audit_result",
-      "brand_application_status_changed"
-    ]
+    rankings: ["ranking_audit_result"],
+    rating_targets: ["rating_target_audit_result"],
+    aircraft_submissions: ["aircraft_submission_audit_result"],
+    brand_applications: ["brand_application_audit_result"]
   };
 
   const validTypes = validTypesByDomain[input.domain] ?? [];
@@ -214,7 +203,6 @@ export const currentUserProfileSchema = z.object({
   coverImageUrl: z.string().trim().min(1).nullable(),
   phone: z.string().trim().min(1).max(30).nullable(),
   phoneMasked: z.string().trim().min(1).max(30).nullable(),
-  hasPassword: z.boolean(),
   profileVisibility: profileVisibilitySchema,
   notifyComments: z.boolean(),
   notifyMentions: z.boolean(),
@@ -235,13 +223,13 @@ export const phoneChangeRequestInputSchema = z.object({
 export const phoneChangeRequestResponseSchema = z.object({
   requestId: z.string().min(1),
   expiresInSeconds: z.number().int().positive(),
-  mockCode: z.string().regex(/^\d{6,8}$/).optional()
+  mockCode: z.string().length(6).optional()
 });
 
 export const phoneChangeConfirmInputSchema = z.object({
   phone: chinaMainlandMobilePhoneSchema,
   requestId: z.string().min(1),
-  smsCode: z.string().regex(/^\d{6,8}$/)
+  smsCode: z.string().length(6)
 });
 
 export const updateCurrentUserProfileInputSchema = z
@@ -251,6 +239,7 @@ export const updateCurrentUserProfileInputSchema = z
     avatarFileId: z.string().trim().min(1).nullable().optional(),
     coverImageFileId: z.string().trim().min(1).nullable().optional(),
     avatarUrl: z.string().trim().min(1).nullable().optional(),
+    phone: z.string().trim().min(1).max(30).nullable().optional(),
     profileVisibility: profileVisibilitySchema.optional(),
     notifyComments: z.boolean().optional(),
     notifyMentions: z.boolean().optional(),

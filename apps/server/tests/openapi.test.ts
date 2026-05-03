@@ -38,7 +38,6 @@ describe('OpenAPI docs', () => {
     expect(payload.paths['/health']).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/login')]).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/refresh')]).toBeDefined();
-    expect(payload.paths[v1Path('/auth/web/password/change')]).toBeDefined();
     expect(payload.paths[v1Path('/users/me/profile')]).toBeDefined();
     expect(payload.paths[v1Path('/brand-applications')]).toBeDefined();
     expect(payload.paths[v1Path('/aircraft-submissions')]).toBeDefined();
@@ -50,10 +49,6 @@ describe('OpenAPI docs', () => {
     expect(payload.paths[v1Path('/admin/site-settings')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/analytics/overview')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/reports/{kind}/{id}')]).toBeDefined();
-    expect(payload.paths[v1Path('/admin/users')]).toBeDefined();
-    expect(payload.paths[v1Path('/admin/users/{id}')]).toBeDefined();
-    expect(payload.paths[v1Path('/admin/users/{id}/ban')]).toBeDefined();
-    expect(payload.paths[v1Path('/admin/users/{id}/unban')]).toBeDefined();
     expect(payload.paths[v1Path('/models')]).toBeDefined();
     expect(payload.paths[v1Path('/models/{slug}/comments')]).toBeDefined();
     expect(payload.paths[v1Path('/models/{slug}/comments/{commentId}')]).toBeDefined();
@@ -79,33 +74,16 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.AircraftSubmissionResponse).toBeDefined();
     expect(payload.components.schemas.AdminAnalyticsOverviewResponse).toBeDefined();
     expect(payload.components.schemas.AdminReportRecordsResponse).toBeDefined();
-    expect(payload.components.schemas.AdminUsersResponse).toBeDefined();
-    expect(payload.components.schemas.AdminUserResponse).toBeDefined();
-    expect(payload.components.schemas.AdminBanUserRequest).toBeDefined();
     expect(payload.components.schemas.AdminPasswordChangeRequest).toBeDefined();
-    expect(payload.components.schemas.UserPasswordChangeRequest).toBeDefined();
     expect(payload.paths[v1Path('/users/me/profile')]?.put?.responses?.['409']).toBeDefined();
     expect(
       payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['409']
     ).toBeDefined();
     expect(
-      payload.paths[v1Path('/users/me/phone/change/request')]?.post?.responses?.['403']
-    ).toBeDefined();
-    expect(
       payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['409']
     ).toBeDefined();
-    expect(
-      payload.paths[v1Path('/users/me/phone/change/confirm')]?.post?.responses?.['403']
-    ).toBeDefined();
     expect(payload.paths[v1Path('/auth/web/refresh')]?.post?.responses?.['401']).toBeDefined();
-    expect(
-      payload.paths[v1Path('/auth/web/password/change')]?.post?.responses?.['401']
-    ).toBeDefined();
-    expect(
-      payload.paths[v1Path('/auth/web/password/change')]?.post?.responses?.['403']
-    ).toBeDefined();
     expect(payload.paths[v1Path('/auth/protected/ping')]?.get?.responses?.['401']).toBeDefined();
-    expect(payload.paths[v1Path('/admin/users/{id}/ban')]?.post?.responses?.['400']).toBeDefined();
     expect(payload.paths[v1Path('/admin/rankings/{id}/status')]?.put?.responses?.['403']).toBeDefined();
     expect(payload.paths[v1Path('/auth/device/register')]?.post).toBeDefined();
     expect(payload.paths[v1Path('/auth/device/unregister')]?.post).toBeDefined();

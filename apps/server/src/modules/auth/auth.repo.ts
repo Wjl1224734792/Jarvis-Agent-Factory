@@ -2,16 +2,14 @@ import {
   createId,
   createSecretToken,
   db,
-  hashVerificationCode,
   hashPassword,
   hashToken,
-  verifyVerificationCodeHash,
   verifyPassword,
   sessionsTable,
   usersTable,
   devicesTable
 } from "@feijia/db";
-import type { AuthRole, UserStatus, UserSummary } from "@feijia/schemas";
+import type { AuthRole, UserSummary } from "@feijia/schemas";
 import { isValidAuthRole, isValidSessionScope } from "../../lib/type-guards";
 import { and, asc, desc, eq, gt, inArray, isNull } from "drizzle-orm";
 import svgCaptcha from "@zhennann/svg-captcha";
@@ -46,13 +44,8 @@ export type SessionRecord = {
   accessExpiresAt: number;
 };
 
-const DEFAULT_CAPTCHA_TTL_S = 300;
-const DEFAULT_SMS_TTL_S = 300;
-const DEFAULT_SMS_CODE_LENGTH = 6;
-const MIN_CODE_TTL_S = 60;
-const MAX_CODE_TTL_S = 600;
-const MIN_SMS_CODE_LENGTH = 6;
-const MAX_SMS_CODE_LENGTH = 8;
+const CAPTCHA_TTL_S = 300;
+const SMS_TTL_S = 300;
 const REGISTRATION_TTL_S = 600;
 const ACCESS_TTL_MS = 2 * 60 * 60 * 1000;
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
@@ -61,20 +54,9 @@ const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000;
 const ADMIN_LOGIN_FAIL_TTL_S = 300;
 /** 管理员登录最大失败次数：5 分钟内最多 5 次 */
 export const ADMIN_LOGIN_MAX_FAILURES = 5;
-/** Web 密码登录失败计数 TTL（秒）：5 分钟 */
-const WEB_PASSWORD_LOGIN_FAIL_TTL_S = 300;
-/** Web 密码登录最大失败次数：同一手机号 + IP 5 分钟内最多 5 次 */
-export const WEB_PASSWORD_LOGIN_MAX_FAILURES = 5;
 
 /** 短信发送频率限制：同一手机号 60 秒内最多发送 1 次 */
 const SMS_RATE_LIMIT_WINDOW_S = 60;
-const SMS_PHONE_RATE_LIMIT_MAX = 1;
-const SMS_CLIENT_IP_RATE_LIMIT_MAX = 10;
-const SMS_PHONE_IP_RATE_LIMIT_MAX = 2;
-const CAPTCHA_RATE_LIMIT_WINDOW_S = 60;
-const CAPTCHA_CLIENT_IP_RATE_LIMIT_MAX = 30;
-const CODE_VERIFY_MAX_ATTEMPTS = 5;
-const DEV_AUTH_CODE_HASH_SECRET = "feijia-dev-auth-code-hash-secret";
 
 /** 生成可用用户名时随机尝试的最大次数 */
 const DISPLAY_NAME_RANDOMIZE_MAX_ATTEMPTS = 40;
@@ -87,113 +69,17 @@ function now() {
   return Date.now();
 }
 
-function parseBoundedIntEnv(
-  env: NodeJS.ProcessEnv,
-  name: string,
-  fallback: number,
-  options: { min: number; max: number }
-) {
-  const raw = env[name]?.trim();
-  if (!raw) {
-    return fallback;
-  }
-
-  const parsed = Number(raw);
-  if (!Number.isInteger(parsed) || parsed < options.min || parsed > options.max) {
-    throw new Error(
-      `${name} must be an integer between ${options.min} and ${options.max}.`
-    );
-  }
-
-  return parsed;
-}
-
-export function resolveAuthCodeConfig(env: NodeJS.ProcessEnv = process.env) {
-  const hashSecret = env.AUTH_CODE_HASH_SECRET?.trim();
-  if (!hashSecret && env.NODE_ENV === "production") {
-    throw new Error("AUTH_CODE_HASH_SECRET is required in production.");
-  }
-
-  if (hashSecret && hashSecret.length < 16) {
-    throw new Error("AUTH_CODE_HASH_SECRET must be at least 16 characters.");
-  }
-
-  return {
-    captchaTtlSeconds: parseBoundedIntEnv(env, "AUTH_CAPTCHA_TTL_SECONDS", DEFAULT_CAPTCHA_TTL_S, {
-      min: MIN_CODE_TTL_S,
-      max: MAX_CODE_TTL_S
-    }),
-    smsTtlSeconds: parseBoundedIntEnv(env, "AUTH_SMS_CODE_TTL_SECONDS", DEFAULT_SMS_TTL_S, {
-      min: MIN_CODE_TTL_S,
-      max: MAX_CODE_TTL_S
-    }),
-    smsCodeLength: parseBoundedIntEnv(env, "AUTH_SMS_CODE_LENGTH", DEFAULT_SMS_CODE_LENGTH, {
-      min: MIN_SMS_CODE_LENGTH,
-      max: MAX_SMS_CODE_LENGTH
-    }),
-    hashSecret: hashSecret || DEV_AUTH_CODE_HASH_SECRET
-  };
-}
-
-async function consumeRateLimit(input: {
-  key: string;
-  limit: number;
-  windowSeconds: number;
-  errorCode: string;
-}) {
-  const attempts = await redis.incr(input.key);
-  if (attempts === 1) {
-    await redis.expire(input.key, input.windowSeconds);
-  }
-  if (attempts > input.limit) {
-    throw new Error(input.errorCode);
-  }
-}
-
-async function updateCodeRecordWithTtl(key: string, value: unknown) {
-  const ttl = await redis.ttl(key);
-  if (ttl <= 0) {
-    await redis.del(key);
-    return;
-  }
-
-  await redis.set(key, JSON.stringify(value), { EX: ttl });
-}
-
-function generateNumericCode(length: number) {
-  const min = 10 ** (length - 1);
-  const max = 10 ** length;
-  return randomInt(min, max).toString();
-}
-
-function toUserStatus(value: string): UserStatus {
-  return value === "banned" ? "banned" : "active";
-}
-
-function buildAdminLoginFailureKey(account: string, clientIp?: string | null) {
-  return `admin_login_fail:${account}:${clientIp?.trim() || "unknown"}`;
-}
-
-function buildWebPasswordLoginFailureKey(phone: string, clientIp?: string | null) {
-  return `web_password_login_fail:${phone.trim()}:${clientIp?.trim() || "unknown"}`;
-}
-
 function toUserRecord(user: typeof usersTable.$inferSelect): UserRecord {
   return {
     id: user.id,
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole),
-    status: toUserStatus(user.status),
     displayName: user.displayName,
     phone: user.phone,
     wechatOpenId: user.wechatOpenId,
     wechatUnionId: user.wechatUnionId,
     account: user.account,
-    password: user.passwordHash,
-    bannedAt: user.bannedAt,
-    bannedUntil: user.bannedUntil,
-    banReason: user.banReason,
-    bannedBy: user.bannedBy
+    password: user.passwordHash
   };
 }
 
@@ -208,33 +94,6 @@ async function toUserSummary(
     // Database text column constrained to valid AuthRole values at insert time
     role: isValidAuthRole(user.role) ? user.role : ("user" satisfies AuthRole)
   };
-}
-
-/**
- * 按用户 ID 直接读取展示摘要，避免调用方为了返回登录结果而额外依赖 session 读链路。
- *
- * @param userId 目标用户 ID。
- * @returns 用户存在时返回摘要，否则返回 `null`。
- * @throws {Error} 当头像 URL 解析失败时继续向上透传异常。
- */
-async function findUserSummaryById(userId: string) {
-  const rows = await db
-    .select({
-      id: usersTable.id,
-      displayName: usersTable.displayName,
-      avatarFileId: usersTable.avatarFileId,
-      role: usersTable.role
-    })
-    .from(usersTable)
-    .where(eq(usersTable.id, userId))
-    .limit(1);
-
-  const user = rows[0];
-  if (!user) {
-    return null;
-  }
-
-  return toUserSummary(user);
 }
 
 async function localizeAdminUser(user: typeof usersTable.$inferSelect) {
@@ -274,18 +133,8 @@ export const authRepo = {
   resetEphemeralState() {
     // 验证码/短信/待注册已迁移到 Redis，测试时通过 redis.flushDb() 清理
   },
-  async createCaptchaChallenge(options?: { clientIp?: string | null }) {
+  async createCaptchaChallenge() {
     await ensureRedisConnected();
-    const config = resolveAuthCodeConfig();
-    if (options?.clientIp) {
-      await consumeRateLimit({
-        key: `captcha_rate:ip:${options.clientIp}`,
-        limit: CAPTCHA_CLIENT_IP_RATE_LIMIT_MAX,
-        windowSeconds: CAPTCHA_RATE_LIMIT_WINDOW_S,
-        errorCode: "CAPTCHA_RATE_LIMITED"
-      });
-    }
-
     const { data: svg, text } = svgCaptcha.create({
       size: 4,
       ignoreChars: "0oO1iIl",
@@ -296,196 +145,68 @@ export const authRepo = {
     });
     const code = text;
     const challengeId = createId("captcha");
-    const record = {
-      challengeId,
-      codeHash: hashVerificationCode({
-        code: code.toUpperCase(),
-        purpose: "captcha",
-        subject: challengeId,
-        secret: config.hashSecret
-      }),
-      attempts: 0
-    };
+    const record = { challengeId, code };
     await redis.set(`captcha:${challengeId}`, JSON.stringify(record), {
-      EX: config.captchaTtlSeconds
+      EX: CAPTCHA_TTL_S
     });
-    if (process.env.NODE_ENV === "test") {
-      await redis.set(`captcha_test:${challengeId}`, code.toUpperCase(), {
-        EX: config.captchaTtlSeconds
-      });
-    }
     return {
       challengeId,
       code,
       svg,
-      expiresAt: now() + config.captchaTtlSeconds * 1000
+      expiresAt: now() + CAPTCHA_TTL_S * 1000
     };
   },
   async validateCaptcha(challengeId: string, code: string) {
     await ensureRedisConnected();
-    const config = resolveAuthCodeConfig();
-    const key = `captcha:${challengeId}`;
-    const raw = await redis.get(key);
+    const raw = await redis.getDel(`captcha:${challengeId}`);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { codeHash?: string; attempts?: number };
-    if (!record.codeHash) {
-      await redis.del(key);
-      await redis.del(`captcha_test:${challengeId}`);
-      return false;
-    }
-
-    const passed = verifyVerificationCodeHash(record.codeHash, {
-      code: code.toUpperCase(),
-      purpose: "captcha",
-      subject: challengeId,
-      secret: config.hashSecret
-    });
-    if (passed) {
-      await redis.del(key);
-      await redis.del(`captcha_test:${challengeId}`);
-      return true;
-    }
-
-    const attempts = (record.attempts ?? 0) + 1;
-    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
-      await redis.del(key);
-      await redis.del(`captcha_test:${challengeId}`);
-    } else {
-      await updateCodeRecordWithTtl(key, { ...record, attempts });
-    }
-
-    return false;
+    const record = JSON.parse(raw) as { code: string };
+    return record.code.toUpperCase() === code.toUpperCase();
   },
-  async createSmsCode(phone: string, options?: { clientIp?: string | null }) {
+  async createSmsCode(phone: string) {
     await ensureRedisConnected();
-    const config = resolveAuthCodeConfig();
 
     // 频率限制：同一手机号 60 秒内最多发送 1 次
-    const rateLimitClientIp = options?.clientIp?.trim() || "unknown";
-
-    await consumeRateLimit({
-      key: `sms_rate:phone:${phone}`,
-      limit: SMS_PHONE_RATE_LIMIT_MAX,
-      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
-      errorCode: "SMS_RATE_LIMITED"
-    });
-    await consumeRateLimit({
-      key: `sms_rate:ip:${rateLimitClientIp}`,
-      limit: SMS_CLIENT_IP_RATE_LIMIT_MAX,
-      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
-      errorCode: "SMS_RATE_LIMITED"
-    });
-    await consumeRateLimit({
-      key: `sms_rate:phone_ip:${phone}:${rateLimitClientIp}`,
-      limit: SMS_PHONE_IP_RATE_LIMIT_MAX,
-      windowSeconds: SMS_RATE_LIMIT_WINDOW_S,
-      errorCode: "SMS_RATE_LIMITED"
-    });
-
-    // 使用密码学安全的随机数生成指定长度验证码。
-    const code = generateNumericCode(config.smsCodeLength);
-    const requestId = createId("sms");
-    const record = {
-      requestId,
-      phone,
-      codeHash: hashVerificationCode({
-        code,
-        purpose: "sms",
-        subject: phone,
-        secret: config.hashSecret
-      }),
-      attempts: 0
-    };
-    await redis.set(`sms:${phone}`, JSON.stringify(record), {
-      EX: config.smsTtlSeconds
-    });
-    if (process.env.NODE_ENV === "test") {
-      await redis.set(`sms_test:${phone}`, code, {
-        EX: config.smsTtlSeconds
-      });
+    const rateLimitKey = `sms_rate:${phone}`;
+    const attempts = await redis.incr(rateLimitKey);
+    if (attempts === 1) {
+      await redis.expire(rateLimitKey, SMS_RATE_LIMIT_WINDOW_S);
     }
-    return { requestId, phone, code, expiresAt: now() + config.smsTtlSeconds * 1000 };
+    if (attempts > 1) {
+      throw new Error("SMS_RATE_LIMITED");
+    }
+
+    // 使用密码学安全的随机数生成 6 位验证码
+    const code = randomInt(100000, 1000000).toString();
+    const requestId = createId("sms");
+    const record = { requestId, phone, code };
+    await redis.set(`sms:${phone}`, JSON.stringify(record), {
+      EX: SMS_TTL_S
+    });
+    return { ...record, expiresAt: now() + SMS_TTL_S * 1000 };
   },
   async validateSmsCode(phone: string, code: string) {
     await ensureRedisConnected();
-    const config = resolveAuthCodeConfig();
-    const key = `sms:${phone}`;
-    const raw = await redis.get(key);
+    const raw = await redis.getDel(`sms:${phone}`);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { codeHash?: string; requestId: string; attempts?: number };
-    if (!record.codeHash) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-      return false;
-    }
-
-    const passed = verifyVerificationCodeHash(record.codeHash, {
-      code,
-      purpose: "sms",
-      subject: phone,
-      secret: config.hashSecret
-    });
-    if (passed) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-      return true;
-    }
-
-    const attempts = (record.attempts ?? 0) + 1;
-    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-    } else {
-      await updateCodeRecordWithTtl(key, { ...record, attempts });
-    }
-
-    return false;
+    const record = JSON.parse(raw) as { code: string; requestId: string };
+    return record.code === code;
   },
   async validateSmsCodeByRequest(phone: string, requestId: string, code: string) {
     await ensureRedisConnected();
-    const config = resolveAuthCodeConfig();
-    const key = `sms:${phone}`;
-    const raw = await redis.get(key);
+    const raw = await redis.getDel(`sms:${phone}`);
     if (!raw) {
       return false;
     }
 
-    const record = JSON.parse(raw) as { codeHash?: string; requestId: string; attempts?: number };
-    if (!record.codeHash) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-      return false;
-    }
-
-    const passed =
-      record.requestId === requestId &&
-      verifyVerificationCodeHash(record.codeHash, {
-        code,
-        purpose: "sms",
-        subject: phone,
-        secret: config.hashSecret
-      });
-    if (passed) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-      return true;
-    }
-
-    const attempts = (record.attempts ?? 0) + 1;
-    if (attempts >= CODE_VERIFY_MAX_ATTEMPTS) {
-      await redis.del(key);
-      await redis.del(`sms_test:${phone}`);
-    } else {
-      await updateCodeRecordWithTtl(key, { ...record, attempts });
-    }
-
-    return false;
+    const record = JSON.parse(raw) as { code: string; requestId: string };
+    return record.requestId === requestId && record.code === code;
   },
   async findUserByPhone(phone: string) {
     const rows = await db
@@ -504,9 +225,6 @@ export const authRepo = {
       .limit(1);
 
     return rows[0] ? toUserRecord(rows[0]) : null;
-  },
-  async findUserSummaryById(id: string) {
-    return findUserSummaryById(id);
   },
   async findUserByDisplayName(displayName: string) {
     const rows = await db
@@ -645,11 +363,9 @@ export const authRepo = {
   async createUserByPhoneProfile(input: {
     phone: string;
     displayName: string;
-    password?: string | null;
     avatarFileId?: string | null;
   }): Promise<UserRecord> {
     const id = createId("user");
-    const passwordHash = input.password ? await hashPassword(input.password) : null;
 
     await db.insert(usersTable).values({
       id,
@@ -658,23 +374,18 @@ export const authRepo = {
       phone: input.phone,
       avatarFileId: input.avatarFileId ?? null,
       account: null,
-      passwordHash
+      passwordHash: null
     });
 
     return {
       id,
       role: "user",
-      status: "active",
       displayName: input.displayName,
       phone: input.phone,
       wechatOpenId: null,
       wechatUnionId: null,
       account: null,
-      password: passwordHash,
-      bannedAt: null,
-      bannedUntil: null,
-      banReason: null,
-      bannedBy: null
+      password: null
     };
   },
   async findAdminByCredentials(account: string, password: string): Promise<UserRecord | null> {
@@ -701,31 +412,6 @@ export const authRepo = {
     }
 
     return user;
-  },
-  async findUserByPhoneAndPassword(phone: string, password: string): Promise<UserRecord | null> {
-    const user = await this.findUserByPhone(phone);
-    if (!user?.password) {
-      return null;
-    }
-
-    return (await verifyPassword(password, user.password)) ? user : null;
-  },
-  async verifyUserPassword(userId: string, password: string) {
-    const user = await this.findUserById(userId);
-    if (!user?.password) {
-      return false;
-    }
-
-    return verifyPassword(password, user.password);
-  },
-  async updateUserPassword(userId: string, password: string) {
-    const passwordHash = await hashPassword(password);
-    await db
-      .update(usersTable)
-      .set({
-        passwordHash
-      })
-      .where(eq(usersTable.id, userId));
   },
   async findAdminById(userId: string): Promise<UserRecord | null> {
     const admin = await db
@@ -758,43 +444,24 @@ export const authRepo = {
       })
       .where(and(eq(usersTable.id, userId), eq(usersTable.role, "admin")));
   },
-  async recordAdminLoginFailure(account: string, clientIp?: string | null) {
+  async recordAdminLoginFailure(account: string) {
     await ensureRedisConnected();
-    const key = buildAdminLoginFailureKey(account, clientIp);
+    const key = `admin_login_fail:${account}`;
     const count = await redis.incr(key);
     if (count === 1) {
       await redis.expire(key, ADMIN_LOGIN_FAIL_TTL_S);
     }
     return count;
   },
-  async getAdminLoginFailures(account: string, clientIp?: string | null): Promise<number> {
+  async getAdminLoginFailures(account: string): Promise<number> {
     await ensureRedisConnected();
-    const key = buildAdminLoginFailureKey(account, clientIp);
+    const key = `admin_login_fail:${account}`;
     const count = await redis.get(key);
     return count ? parseInt(count, 10) : 0;
   },
-  async clearAdminLoginFailures(account: string, clientIp?: string | null) {
+  async clearAdminLoginFailures(account: string) {
     await ensureRedisConnected();
-    await redis.del(buildAdminLoginFailureKey(account, clientIp));
-  },
-  async recordWebPasswordLoginFailure(phone: string, clientIp?: string | null) {
-    await ensureRedisConnected();
-    const key = buildWebPasswordLoginFailureKey(phone, clientIp);
-    const count = await redis.incr(key);
-    if (count === 1) {
-      await redis.expire(key, WEB_PASSWORD_LOGIN_FAIL_TTL_S);
-    }
-    return count;
-  },
-  async getWebPasswordLoginFailures(phone: string, clientIp?: string | null): Promise<number> {
-    await ensureRedisConnected();
-    const key = buildWebPasswordLoginFailureKey(phone, clientIp);
-    const count = await redis.get(key);
-    return count ? parseInt(count, 10) : 0;
-  },
-  async clearWebPasswordLoginFailures(phone: string, clientIp?: string | null) {
-    await ensureRedisConnected();
-    await redis.del(buildWebPasswordLoginFailureKey(phone, clientIp));
+    await redis.del(`admin_login_fail:${account}`);
   },
   async createSession(
     user: UserRecord,
@@ -917,7 +584,7 @@ export const authRepo = {
   },
   async getSessionForMiddleware(
     sessionId: string
-  ): Promise<"valid" | "access_expired" | "not_found" | "user_banned"> {
+  ): Promise<"valid" | "access_expired" | "not_found"> {
     const rows = await db
       .select()
       .from(sessionsTable)
@@ -941,35 +608,9 @@ export const authRepo = {
       return "access_expired";
     }
 
-    const users = await db
-      .select({
-        id: usersTable.id,
-        status: usersTable.status
-      })
-      .from(usersTable)
-      .where(eq(usersTable.id, current.userId))
-      .limit(1);
-
-    if (users.length === 0) {
-      await this.revokeSession(sessionId);
-      return "not_found";
-    }
-
-    if (toUserStatus(users[0].status) === "banned") {
-      await this.revokeSession(sessionId);
-      return "user_banned";
-    }
-
     return "valid";
   },
-  async renewSession(
-    sessionId: string,
-    input?: {
-      refreshTokenHash?: string | null;
-      refreshExpiresAt?: Date | null;
-      replacedRefreshTokenHash?: string | null;
-    }
-  ) {
+  async renewSession(sessionId: string) {
     const current = await db
       .select()
       .from(sessionsTable)
@@ -986,25 +627,14 @@ export const authRepo = {
     const remaining = refreshExpiry - nowMs;
     const halfTtl = SESSION_TTL_MS / 2;
 
-    const updateData: {
-      accessExpiresAt: Date;
-      lastSeenAt: Date;
-      refreshTokenHash?: string | null;
-      refreshExpiresAt?: Date;
-      expiresAt?: Date;
-    } = {
+    const updateData: Record<string, Date> = {
       accessExpiresAt: new Date(nowMs + ACCESS_TTL_MS),
       lastSeenAt: new Date()
     };
 
-    if (input && "refreshTokenHash" in input) {
-      updateData.refreshTokenHash = input.refreshTokenHash ?? null;
-    }
-
     // 滑动续期 refresh token
-    const newExpiry =
-      input?.refreshExpiresAt ?? (remaining < halfTtl ? new Date(nowMs + SESSION_TTL_MS) : null);
-    if (newExpiry) {
+    if (remaining < halfTtl) {
+      const newExpiry = new Date(nowMs + SESSION_TTL_MS);
       updateData.expiresAt = newExpiry;
       updateData.refreshExpiresAt = newExpiry;
     }
@@ -1013,22 +643,8 @@ export const authRepo = {
       .update(sessionsTable)
       .set(updateData)
       .where(eq(sessionsTable.id, sessionId));
-
-    if (input?.replacedRefreshTokenHash) {
-      await ensureRedisConnected();
-      const replayTtlSeconds = Math.max(
-        1,
-        Math.ceil(((newExpiry ?? row.refreshExpiresAt ?? row.expiresAt).getTime() - nowMs) / 1000)
-      );
-      await redis.set(`used_refresh:${input.replacedRefreshTokenHash}`, sessionId, {
-        EX: replayTtlSeconds
-      });
-    }
   },
-  async findSessionByRefreshToken(
-    refreshToken: string,
-    options?: { scopes?: SessionScope[] }
-  ) {
+  async findSessionByRefreshToken(refreshToken: string) {
     const refreshTokenHash = hashToken(refreshToken);
     const rows = await db
       .select()
@@ -1038,11 +654,6 @@ export const authRepo = {
 
     const current = rows[0];
     if (!current) {
-      await ensureRedisConnected();
-      const replayedSessionId = await redis.get(`used_refresh:${refreshTokenHash}`);
-      if (replayedSessionId) {
-        await this.revokeSession(replayedSessionId);
-      }
       return null;
     }
 
@@ -1058,48 +669,7 @@ export const authRepo = {
       return null;
     }
 
-    const scope = isValidSessionScope(current.scope)
-      ? current.scope
-      : ("web" satisfies SessionScope);
-    if (options?.scopes && !options.scopes.includes(scope)) {
-      return null;
-    }
-
-    const users = await db
-      .select({
-        id: usersTable.id,
-        role: usersTable.role,
-        status: usersTable.status
-      })
-      .from(usersTable)
-      .where(eq(usersTable.id, current.userId))
-      .limit(1);
-
-    if (users.length === 0) {
-      await this.revokeSession(current.id);
-      return null;
-    }
-
-    if (toUserStatus(users[0].status) === "banned") {
-      await this.revokeSession(current.id);
-      return null;
-    }
-
-    return {
-      id: current.id,
-      userId: current.userId,
-      role: isValidAuthRole(users[0].role) ? users[0].role : ("user" satisfies AuthRole),
-      scope,
-      clientIp: current.clientIp,
-      userAgent: current.userAgent,
-      deviceLabel: current.deviceLabel,
-      lastSeenAt: current.lastSeenAt.getTime(),
-      revokedAt: null,
-      refreshTokenHash: current.refreshTokenHash,
-      refreshExpiresAt: current.refreshExpiresAt?.getTime() ?? null,
-      expiresAt: current.expiresAt.getTime(),
-      accessExpiresAt: current.accessExpiresAt?.getTime() ?? now()
-    } satisfies SessionRecord;
+    return this.getSession(current.id, { touch: false });
   },
   async revokeSession(sessionId: string) {
     await db
@@ -1136,11 +706,6 @@ export const authRepo = {
       .limit(1);
 
     if (user.length === 0) {
-      await this.revokeSession(sessionId);
-      return null;
-    }
-
-    if (toUserStatus(user[0].status) === "banned") {
       await this.revokeSession(sessionId);
       return null;
     }

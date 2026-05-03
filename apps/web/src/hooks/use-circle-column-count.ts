@@ -13,7 +13,7 @@ import {
   getCircleColumnCount
 } from "@/routes/circle-page-helpers";
 
-export interface UseCircleColumnCountOptions {
+export type UseCircleColumnCountOptions = {
   /** 传入时用其内容宽度推算列数（飞友圈等真实内容区），避免仅用视口宽度与侧栏/内边距不一致 */
   widthElementRef?: RefObject<HTMLElement | null>;
   /** 最小列数，默认与飞友圈一致为 2；榜单页可传 1 允许单列 */
@@ -23,7 +23,7 @@ export interface UseCircleColumnCountOptions {
    * 配合 `minmax(0,1fr)` 可避免网格撑出容器而出现横向滚动条（榜单页与 RANKING_CARD_MIN_WIDTH_PX 对齐）。
    */
   minTrackWidthPx?: number;
-}
+};
 
 function capColumnCountByMinTrackWidth(
   basisPx: number,
@@ -58,14 +58,6 @@ function getInitialCircleColumnCount(minColumns: number, minTrackWidthPx?: numbe
  * - 传入 `widthElementRef` 时用 ResizeObserver 测量容器宽度；宽度为 0 时回退到 `window.innerWidth`。
  * - 否则用 `window.innerWidth` + resize。
  * - resize / ResizeObserver 回调经 requestAnimationFrame 合并，减少连续布局时重复 setState；列数未变时不更新。
- */
-/**
- * 计算并维护飞友圈瀑布流列数。
- *
- * @param override 显式覆盖列数；传入后不再监听尺寸变化。
- * @param options 计算列数时使用的容器宽度、最小列数与最小轨道宽度配置。
- * @returns 当前应使用的列数。
- * @throws {never} 浏览器 API 不可用时会自动回退，不会主动抛出异常。
  */
 export function useCircleColumnCount(override?: number, options?: UseCircleColumnCountOptions) {
   const widthElementRef = options?.widthElementRef;

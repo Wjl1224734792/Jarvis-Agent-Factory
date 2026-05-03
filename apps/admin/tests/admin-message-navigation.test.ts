@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   adminMessagesQueryKey,
   adminModerationTodosQueryKey,
-  getAdminMessageTypeOptions,
   resolveAdminMessageDestination,
   sanitizeAdminMessageFilters
 } from "../src/features/messages/admin-message-navigation";
@@ -65,25 +64,6 @@ describe("admin message navigation helpers", () => {
       activeType: undefined,
       activeReadStatus: "unread",
       ignoredType: true
-    });
-  });
-
-  it("keeps legacy status message filters for matching moderation domains", () => {
-    expect(
-      getAdminMessageTypeOptions("brand_applications").map((item) => item.value)
-    ).toContain("brand_application_status_changed");
-
-    expect(
-      sanitizeAdminMessageFilters({
-        domain: "brand_applications",
-        type: "brand_application_status_changed",
-        readStatus: "unread"
-      })
-    ).toEqual({
-      activeDomain: "brand_applications",
-      activeType: "brand_application_status_changed",
-      activeReadStatus: "unread",
-      ignoredType: false
     });
   });
 });

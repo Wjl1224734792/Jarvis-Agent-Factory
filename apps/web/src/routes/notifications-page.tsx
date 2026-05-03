@@ -5,7 +5,7 @@ import {
   BellRingIcon,
   ExternalLinkIcon,
   HeartIcon,
-  MessageCircleIcon,
+  MessageSquareTextIcon,
   RefreshCcwIcon,
   Settings2Icon,
   ShieldCheckIcon,
@@ -27,10 +27,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { UserAvatar } from "@/components/ui/user-avatar";
 import { useAuthStore } from "../features/auth/auth-store";
-import {
-  getNotificationsQueryKey,
-  shouldFetchNotifications
-} from "../features/auth/notification-state";
+import { getNotificationsQueryKey } from "../features/auth/notification-state";
 import { useNotifications } from "../features/auth/use-notifications";
 import {
   adaptMessageCenterPayload,
@@ -41,7 +38,7 @@ import {
 } from "../features/notifications/message-center";
 import { openMessageCenterItem } from "../features/notifications/message-actions";
 import { apiClient } from "../lib/api-client";
-import { resolveUserAvatarSrc } from "../lib/avatar-url";
+import { getAvatarImage } from "../lib/aviation-media";
 import { cn } from "../lib/utils";
 import { openDetailPageInNewTab } from "../lib/web-routes";
 
@@ -63,7 +60,7 @@ const messageCenterCategories: Array<{
   {
     value: "comment",
     label: "评论和@",
-    icon: MessageCircleIcon
+    icon: MessageSquareTextIcon
   },
   {
     value: "system",
@@ -125,7 +122,7 @@ function MessageCenterRow(props: {
           className="size-11 shrink-0"
           displayName={props.item.actor.displayName}
           size="default"
-          src={resolveUserAvatarSrc(props.item.actor.avatarUrl)}
+          src={props.item.actor.avatarUrl ?? getAvatarImage(props.item.actor.id)}
         />
       ) : (
         <div className="flex size-11 shrink-0 items-center justify-center rounded-full bg-primary/10 text-primary">
@@ -187,13 +184,8 @@ function MessageCenterRow(props: {
 export function NotificationsPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const authStatus = useAuthStore((state) => state.status);
-  const isAuthBootstrapped = useAuthStore((state) => state.isBootstrapped);
   const authUserId = useAuthStore((state) => state.user?.id ?? null);
-  const notificationsQuery = useNotifications(
-    authUserId,
-    shouldFetchNotifications(authStatus, isAuthBootstrapped)
-  );
+  const notificationsQuery = useNotifications(authUserId);
   const [activeCategory, setActiveCategory] = useState<MessageCenterCategory>("engagement");
   const [actionError, setActionError] = useState<string | null>(null);
   const [pendingItemId, setPendingItemId] = useState<string | null>(null);

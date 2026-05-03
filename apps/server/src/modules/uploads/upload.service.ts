@@ -266,21 +266,5 @@ export const uploadsService = {
 
     return fileUrlResponseSchema.parse({ url });
   },
-  async getFileContentUrl(input: {
-    fileId: string;
-    viewer: { id: string; role: "user" | "admin" } | null;
-  }) {
-    const file = await uploadsRepo.getFileById(input.fileId);
-    if (!file || file.status !== "uploaded") {
-      return null;
-    }
-
-    const canUseInternalUrl =
-      input.viewer?.role === "admin" || input.viewer?.id === file.ownerId;
-
-    return canUseInternalUrl
-      ? resolveUploadedFileUrl(file.id)
-      : resolvePublicUploadedFileUrl(file.id);
-  },
   serializeFileItem
 };

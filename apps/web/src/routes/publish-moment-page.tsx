@@ -51,8 +51,6 @@ type UploadedVideo = {
 type MomentDraftData = {
   title: string;
   content: string;
-  sourceLabel: string;
-  sourceUrl: string;
   uploadedImages: UploadedImage[];
   selectedImageCoverId: string | null;
   uploadedVideo: UploadedVideo | null;
@@ -211,8 +209,6 @@ export function PublishMomentPage() {
   const videoCoverInputRef = useRef<HTMLInputElement | null>(null);
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [sourceLabel, setSourceLabel] = useState("");
-  const [sourceUrl, setSourceUrl] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageCoverId, setSelectedImageCoverId] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -308,8 +304,6 @@ export function PublishMomentPage() {
         const restoredVideoCover = restorePersistedPreviewAsset(draft.videoCoverImage ?? null);
         setTitle(draft.title ?? "");
         setContent(draft.content ?? "");
-        setSourceLabel(draft.sourceLabel ?? "");
-        setSourceUrl(draft.sourceUrl ?? "");
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
         setUploadedVideo(restoredVideo?.asset ?? null);
@@ -346,8 +340,6 @@ export function PublishMomentPage() {
     const item = detailQuery.data.item;
     setTitle(item.title);
     setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
-    setSourceLabel(item.source?.label ?? "");
-    setSourceUrl(item.source?.url ?? "");
     const nextImages = item.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -442,8 +434,6 @@ export function PublishMomentPage() {
       data: {
         title,
         content,
-        sourceLabel,
-        sourceUrl,
         uploadedImages,
         selectedImageCoverId,
         uploadedVideo,
@@ -457,8 +447,6 @@ export function PublishMomentPage() {
     content,
     editId,
     selectedImageCoverId,
-    sourceLabel,
-    sourceUrl,
     title,
     uploadedImages,
     uploadedVideo,
@@ -561,8 +549,6 @@ export function PublishMomentPage() {
   const previewImageUrl = uploadedVideo
     ? videoCoverImage?.url ?? null
     : selectedImageCover?.url ?? null;
-  const sourceLabelValue = sourceLabel.trim();
-  const sourceUrlValue = sourceUrl.trim();
   const selectedFrameSecondText =
     videoDuration && Number.isFinite(videoDuration)
       ? `${((videoDuration * videoFrameRatio) / 100).toFixed(1)}s`
@@ -835,45 +821,6 @@ export function PublishMomentPage() {
                   {content.length}/{MOMENT_CONTENT_MAX}
                 </div>
               </div>
-
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
-                  <Input
-                    onChange={(event) => setSourceLabel(event.target.value)}
-                    placeholder="例如：飞加官方、转载媒体或作者"
-                    value={sourceLabel}
-                  />
-                </div>
-
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                  <Input
-                    inputMode="url"
-                    onChange={(event) => setSourceUrl(event.target.value)}
-                    placeholder="https://example.com/source"
-                    value={sourceUrl}
-                  />
-                </div>
-              </div>
-
-              {sourceLabelValue ? (
-                <div className="rounded-[1rem] border border-border/70 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
-                  <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                  {sourceUrlValue ? (
-                    <a
-                      className="text-primary underline-offset-4 hover:underline"
-                      href={sourceUrlValue}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {sourceLabelValue}
-                    </a>
-                  ) : (
-                    <span className="text-foreground/82">{sourceLabelValue}</span>
-                  )}
-                </div>
-              ) : null}
             </SitePanelBody>
           </SitePanel>
 
@@ -930,8 +877,6 @@ export function PublishMomentPage() {
                         type: "moment",
                         title: title.trim(),
                         content,
-                        sourceLabel,
-                        sourceUrl,
                         coverImageId: submitCover.id,
                         imageIds: [],
                         videoIds: [submitVideo.id]
@@ -958,8 +903,6 @@ export function PublishMomentPage() {
                       type: "moment",
                       title: title.trim(),
                       content,
-                      sourceLabel,
-                      sourceUrl,
                       coverImageId: coverId,
                       imageIds: submitImages.map((entry) => entry.item.id),
                       videoIds: []
@@ -1052,23 +995,6 @@ export function PublishMomentPage() {
                   <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
                     {title || "动态标题"}
                   </h2>
-                  {sourceLabelValue ? (
-                    <div className="line-clamp-1 text-[0.74rem] text-muted-foreground">
-                      来源：
-                      {sourceUrlValue ? (
-                        <a
-                          className="text-primary underline-offset-4 hover:underline"
-                          href={sourceUrlValue}
-                          rel="noreferrer"
-                          target="_blank"
-                        >
-                          {sourceLabelValue}
-                        </a>
-                      ) : (
-                        <span className="text-foreground/78">{sourceLabelValue}</span>
-                      )}
-                    </div>
-                  ) : null}
                   <p className="line-clamp-2 text-[0.82rem] leading-[1.35rem] text-foreground/72">
                     {content || "动态内容会显示在这里。"}
                   </p>

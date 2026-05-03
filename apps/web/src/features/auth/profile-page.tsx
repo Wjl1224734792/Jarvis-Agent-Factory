@@ -9,10 +9,10 @@ import { UserAvatar } from "@/components/ui/user-avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { IpLocationText } from "@/components/ip-location-text";
 import { apiClient } from "../../lib/api-client";
-import { resolveUserAvatarSrc } from "../../lib/avatar-url";
-import { getProfileBanner } from "../../lib/aviation-media";
+import { getAvatarImage, getProfileBanner } from "../../lib/aviation-media";
 import { useAuthStore } from "./auth-store";
 import { ContentFeedListRow, type ContentItem } from "./profile-content-card";
 import {
@@ -25,13 +25,9 @@ import {
   getProfileMessageSummary
 } from "./profile-overview";
 import { getNotificationNavTone, shouldFetchNotifications } from "./notification-state";
+import { ProfileOverviewCard } from "./profile-surface";
 import { profileVisibilityLabel } from "./profile-settings-state";
 import { useNotifications } from "./use-notifications";
-import { ProfileLayoutShell } from "./profile-layout-shell";
-import { ProfileMetaBar } from "./profile-meta-bar";
-import { ProfileStatusHint } from "./profile-status-hint";
-import { ProfileFilterBar } from "./profile-filter-bar";
-import { ProfilePagination } from "./profile-surface";
 
 type ProfileTab = "activity" | "favorites";
 
@@ -60,6 +56,38 @@ const profileLifecycleFilters: Array<{ value: ProfileLifecycle; label: string }>
 ];
 
 const PROFILE_CONTENT_PAGE_SIZE = 9;
+
+function ProfileGridPagination(props: {
+  page: number;
+  totalPages: number;
+  onPageChange: (page: number) => void;
+}) {
+  return (
+    <div className="flex flex-wrap items-center justify-center gap-3 border-t border-border/60 pt-4">
+      <Button
+        disabled={props.page <= 1}
+        onClick={() => props.onPageChange(props.page - 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        上一页
+      </Button>
+      <span className="text-sm tabular-nums text-muted-foreground">
+        {props.page} / {props.totalPages}
+      </span>
+      <Button
+        disabled={props.page >= props.totalPages}
+        onClick={() => props.onPageChange(props.page + 1)}
+        size="sm"
+        type="button"
+        variant="outline"
+      >
+        下一页
+      </Button>
+    </div>
+  );
+}
 
 function ProfilePageSkeleton() {
   return (
@@ -100,6 +128,15 @@ function ProfilePageSkeleton() {
       </SitePanel>
       <Skeleton className="h-[32rem] rounded-[0.9rem]" />
     </SitePage>
+  );
+}
+
+function MetricStrip(props: { label: string; value: number }) {
+  return (
+    <div className="flex min-w-0 items-center justify-between gap-4 border border-border/70 bg-surface-2/72 px-4 py-3">
+      <div className="text-[0.72rem] uppercase tracking-[0.16em] text-muted-foreground">{props.label}</div>
+      <div className="text-lg font-semibold text-foreground">{props.value}</div>
+    </div>
   );
 }
 
@@ -239,7 +276,8 @@ export function ProfilePage() {
   const displayName = settings?.displayName ?? user.displayName;
   const ipLocationLabel = profile?.user.ipLocationLabel ?? settings?.ipLocationLabel ?? user.ipLocationLabel ?? null;
   const userId = user.id;
-  const avatarSrc = resolveUserAvatarSrc(settings?.avatarUrl) ?? resolveUserAvatarSrc(user.avatarUrl);
+  const avatarSrc =
+    settings?.avatarUrl?.trim() || user.avatarUrl?.trim() || getAvatarImage(userId);
   const coverImageUrl = settings?.coverImageUrl ?? null;
   const bio = settings?.bio ?? "还没有填写个人简介。";
   const overviewMetrics = buildSelfProfileOverviewMetrics({
@@ -309,226 +347,252 @@ export function ProfilePage() {
     }
   }
 
-  const publishedCount = overviewMetrics.find((m) => m.key === "published")?.value ?? 0;
-  const hasUnread = (notificationsQuery.data?.unreadCount ?? 0) > 0;
+  return (
+    <SitePage className="mx-auto w-full max-w-[72rem] gap-4">
+      <SitePanel className="overflow-hidden !border-0" variant="floating">
+        <div className="relative h-40 overflow-hidden border-b border-border/80 md:h-48">
+          <img
+            alt={`${displayName} 顶部横幅`}
+            className="h-full w-full object-cover"
+            src={coverImageUrl ?? getProfileBanner(displayName)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-slate-950/30 to-transparent" />
+          <div className="absolute right-4 top-4 z-10 md:right-5 md:top-5">
+            <Button
+              disabled={isUpdatingCover}
+              onClick={() => coverInputRef.current?.click()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              <CameraIcon data-icon="inline-start" />
+              {isUpdatingCover ? "上传中..." : "编辑封面"}
+            </Button>
+            <input
+              accept="image/*"
+              className="hidden"
+              onChange={(event) => {
+                const file = event.target.files?.[0];
+                if (file) {
+                  void handleCoverChange(file);
+                }
+              }}
+              ref={coverInputRef}
+              type="file"
+            />
+          </div>
+          <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
+            <div className="flex items-end gap-4">
+              <UserAvatar
+                className="!h-28 !w-28 md:!h-32 md:!w-32"
+                displayName={displayName}
+                size="lg"
+                src={avatarSrc}
+              />
+              <div className="space-y-2 pb-3">
+                <div className="text-[2rem] font-semibold tracking-[-0.05em] text-white drop-shadow-[0_6px_20px_rgba(0,0,0,0.36)] md:text-[2.5rem]">
+                  {displayName}
+                </div>
+                <IpLocationText
+                  className="block text-white/88 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
+                  label={ipLocationLabel}
+                />
+                {settings?.profileVisibility ? (
+                  <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
+                    {profileVisibilityLabel(settings.profileVisibility)}
+                  </Badge>
+                ) : null}
+              </div>
+            </div>
+          </div>
+        </div>
 
-  const alertNode = (
-    <>
+        <SitePanelBody className="space-y-4">
+          <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_24rem] lg:items-start">
+            <div className="grid gap-4 md:grid-cols-[9rem_minmax(0,1fr)] md:items-start">
+              <div className="space-y-4">
+                <p className="text-sm leading-6 text-muted-foreground">{bio}</p>
+              </div>
+            </div>
+
+            <div className="space-y-3">
+              <div className="grid gap-2 sm:grid-cols-2">
+                {overviewMetrics.map((metric) => (
+                  <MetricStrip key={metric.key} label={metric.label} value={metric.value} />
+                ))}
+              </div>
+              <ProfileOverviewCard
+                description={messageSummary.description}
+                eyebrow="消息中心"
+                title={messageSummary.title}
+                tone={messageSummary.tone === "unread" ? "highlight" : "default"}
+              >
+                <Button asChild size="sm" variant={messageTone === "unread" ? "hero" : "outline"}>
+                  <Link to={APP_ROUTES.notifications}>
+                    {messageTone === "unread" ? <BellRingIcon data-icon="inline-start" /> : <BellIcon data-icon="inline-start" />}
+                    进入消息中心
+                  </Link>
+                </Button>
+              </ProfileOverviewCard>
+            </div>
+          </div>
+
+          <div className="flex flex-wrap gap-3 border-t border-border/70 pt-4">
+            <Button asChild size="sm" variant="panel">
+              <Link to={APP_ROUTES.webSettings}>
+                <Settings2Icon data-icon="inline-start" />
+                修改资料
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="panel">
+              <Link to={APP_ROUTES.notifications}>
+                {messageTone === "unread" ? <BellRingIcon data-icon="inline-start" /> : <BellIcon data-icon="inline-start" />}
+                {messageSummary.title}
+              </Link>
+            </Button>
+            <Button asChild size="sm" variant="hero">
+              <Link to={APP_ROUTES.compose}>
+                <PenSquareIcon data-icon="inline-start" />
+                去发布内容
+              </Link>
+            </Button>
+          </div>
+        </SitePanelBody>
+      </SitePanel>
+
       {actionError ? (
         <Alert variant="destructive">
           <AlertTitle>内容管理失败</AlertTitle>
           <AlertDescription>{actionError}</AlertDescription>
         </Alert>
       ) : null}
+
       {profileQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>个人主页加载失败</AlertTitle>
           <AlertDescription>{profileQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
+
       {currentProfileQuery.isError ? (
         <Alert variant="destructive">
           <AlertTitle>个人设置加载失败</AlertTitle>
           <AlertDescription>{currentProfileQuery.error.message}</AlertDescription>
         </Alert>
       ) : null}
-    </>
-  );
 
-  const bannerNode = (
-    <div className="relative h-40 overflow-hidden border-b border-border/60 md:h-48">
-      <img
-        alt={`${displayName} 顶部横幅`}
-        className="h-full w-full object-cover"
-        src={coverImageUrl ?? getProfileBanner(displayName)}
-      />
-      <div className="absolute inset-0 bg-gradient-to-t from-slate-950/70 via-slate-950/20 to-transparent" />
-      <div className="absolute right-4 top-4 z-10 md:right-5 md:top-5">
-        <Button
-          disabled={isUpdatingCover}
-          onClick={() => coverInputRef.current?.click()}
-          size="sm"
-          type="button"
-          variant="ghost"
-          className="bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm"
-        >
-          <CameraIcon data-icon="inline-start" />
-          {isUpdatingCover ? "上传中..." : "编辑封面"}
-        </Button>
-        <input
-          accept="image/*"
-          className="hidden"
-          onChange={(event) => {
-            const file = event.target.files?.[0];
-            if (file) {
-              void handleCoverChange(file);
-            }
-          }}
-          ref={coverInputRef}
-          type="file"
-        />
-      </div>
-      <div className="absolute inset-x-0 bottom-0 p-5 md:p-6">
-        <div className="flex items-end gap-4">
-          <UserAvatar
-            className="!h-20 !w-20 md:!h-24 md:!w-24"
-            displayName={displayName}
-            size="lg"
-            src={avatarSrc}
-          />
-          <div className="space-y-1.5 pb-2">
-            <div className="text-[1.5rem] font-semibold tracking-[-0.03em] text-white drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)] md:text-[1.75rem]">
-              {displayName}
-            </div>
-            <IpLocationText
-              className="block text-sm text-white/80 drop-shadow-[0_4px_14px_rgba(0,0,0,0.28)]"
-              label={ipLocationLabel}
-              variant="profile"
-            />
-            {settings?.profileVisibility ? (
-              <Badge className="border-white/24 bg-white/12 text-white backdrop-blur-sm" variant="outline">
-                {profileVisibilityLabel(settings.profileVisibility)}
-              </Badge>
-            ) : null}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-
-  const metaBarNode = (
-    <ProfileMetaBar
-      bio={bio}
-      metrics={[
-        { key: "followers", label: "关注者", value: profile?.followerCount ?? 0 },
-        { key: "following", label: "关注中", value: profile?.followingCount ?? 0 },
-        { key: "favorites", label: "收藏", value: profile?.favoriteCount ?? 0 },
-        { key: "published", label: "内容", value: publishedCount }
-      ]}
-    >
-      <Button asChild size="sm" variant="outline">
-        <Link to={APP_ROUTES.webSettings}>
-          <Settings2Icon data-icon="inline-start" />
-          修改资料
-        </Link>
-      </Button>
-      <Button asChild size="sm" variant="outline">
-        <Link to={APP_ROUTES.notifications}>
-          {messageTone === "unread" ? <BellRingIcon data-icon="inline-start" /> : <BellIcon data-icon="inline-start" />}
-          {messageSummary.title}
-        </Link>
-      </Button>
-      <Button asChild size="sm" variant="default">
-        <Link to={APP_ROUTES.compose}>
-          <PenSquareIcon data-icon="inline-start" />
-          去发布内容
-        </Link>
-      </Button>
-    </ProfileMetaBar>
-  );
-
-  const statusHintNode = hasUnread ? (
-    <ProfileStatusHint
-      description={messageSummary.description}
-      tone="highlight"
-      title={messageSummary.title}
-    >
-      <Button asChild size="sm" variant="default">
-        <Link to={APP_ROUTES.notifications}>进入消息中心</Link>
-      </Button>
-    </ProfileStatusHint>
-  ) : null;
-
-  const filterBarNode = activeTab === "activity" ? (
-    <>
-      <ProfileFilterBar
-        active={activeContentCategory}
-        onChange={(v) => setActiveContentCategory(v as ProfileContentCategory)}
-        options={profileContentCategories.map((c) => ({
-          value: c.value,
-          label: c.label,
-          count: contentCategoryCounts.get(c.value) ?? 0
-        }))}
-      />
-      <ProfileFilterBar
-        active={activeLifecycle}
-        onChange={(v) => setActiveLifecycle(v as ProfileLifecycle)}
-        options={profileLifecycleFilters.map((l) => ({ value: l.value, label: l.label }))}
-      />
-    </>
-  ) : (
-    <ProfileFilterBar
-      active={activeFavoriteCategory}
-      onChange={(v) => setActiveFavoriteCategory(v as ProfileContentCategory)}
-      options={profileFavoriteCategories.map((c) => ({
-        value: c.value,
-        label: c.label,
-        count: favoriteCategoryCounts.get(c.value) ?? 0
-      }))}
-    />
-  );
-
-  const contentNode = activeTab === "activity" ? (
-    activityItems.length === 0 ? (
-      <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
-        当前分类下还没有内容。
-      </div>
-    ) : (
-      <>
-        <div className="divide-y divide-border/60 border border-border/60 bg-white">
-          {paginatedActivityItems.map((item, idx) => (
-            <ContentFeedListRow
-              deletingId={deletingId}
-              index={(activityPage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
-              item={item}
-              key={`${item.type}-${item.id}`}
-              onDelete={handleDelete}
-              showManagement
-            />
+      <Tabs onValueChange={(value) => setActiveTab(value as ProfileTab)} value={activeTab}>
+        <TabsList variant="line">
+          {profileTabs.map((tab) => (
+            <TabsTrigger key={tab.value} value={tab.value}>
+              {tab.label}
+            </TabsTrigger>
           ))}
-        </div>
-        <ProfilePagination
-          onPageChange={setActivityPage}
-          page={activityPage}
-          totalPages={activityTotalPages}
-        />
-      </>
-    )
-  ) : favoriteItems.length === 0 ? (
-    <div className="bg-white px-5 py-8 text-center text-sm text-muted-foreground">
-      当前分类下还没有收藏内容。
-    </div>
-  ) : (
-    <>
-      <div className="divide-y divide-border/60 border border-border/60 bg-white">
-        {paginatedFavoriteItems.map((item, idx) => (
-          <ContentFeedListRow
-            index={(favoritePage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
-            item={item}
-            key={`${item.type}-${item.id}`}
-          />
-        ))}
-      </div>
-        <ProfilePagination
-          onPageChange={setFavoritePage}
-          page={favoritePage}
-          totalPages={favoriteTotalPages}
-        />
-    </>
-  );
+        </TabsList>
 
-  return (
-    <ProfileLayoutShell
-      alert={alertNode}
-      activeTab={activeTab}
-      banner={bannerNode}
-      filterBar={filterBarNode}
-      metaBar={metaBarNode}
-      onTabChange={(value) => setActiveTab(value as ProfileTab)}
-      statusHint={statusHintNode}
-      tabs={profileTabs}
-    >
-      {contentNode}
-    </ProfileLayoutShell>
+        <TabsContent className="space-y-4" value="activity">
+          <div className="flex flex-wrap items-center gap-2">
+            {profileContentCategories.map((category) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeContentCategory === category.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 text-foreground/70 hover:text-foreground"
+                }`}
+                key={category.value}
+                onClick={() => setActiveContentCategory(category.value)}
+                type="button"
+              >
+                {category.label}
+                <span className="ml-1.5 text-[0.72rem] opacity-80">
+                  {contentCategoryCounts.get(category.value) ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {profileLifecycleFilters.map((lifecycle) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeLifecycle === lifecycle.value
+                    ? "border-foreground bg-foreground text-background"
+                    : "border-border/70 text-foreground/68 hover:text-foreground"
+                }`}
+                key={lifecycle.value}
+                onClick={() => setActiveLifecycle(lifecycle.value)}
+                type="button"
+              >
+                {lifecycle.label}
+              </button>
+            ))}
+          </div>
+          {activityItems.length === 0 ? (
+            <div className="bg-white px-5 py-5 text-sm text-muted-foreground">当前分类下还没有内容。</div>
+          ) : (
+            <>
+              <div className="divide-y divide-border/60 border border-border/70 bg-white">
+                {paginatedActivityItems.map((item, idx) => (
+                  <ContentFeedListRow
+                    deletingId={deletingId}
+                    index={(activityPage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
+                    item={item}
+                    key={`${item.type}-${item.id}`}
+                    onDelete={handleDelete}
+                    showManagement
+                  />
+                ))}
+              </div>
+              <ProfileGridPagination
+                onPageChange={setActivityPage}
+                page={activityPage}
+                totalPages={activityTotalPages}
+              />
+            </>
+          )}
+        </TabsContent>
+
+        <TabsContent className="space-y-4" value="favorites">
+          <div className="flex flex-wrap items-center gap-2">
+            {profileFavoriteCategories.map((category) => (
+              <button
+                className={`site-tab-trigger rounded-full border px-3 py-1.5 text-[0.78rem] transition ${
+                  activeFavoriteCategory === category.value
+                    ? "border-primary bg-primary text-primary-foreground"
+                    : "border-border/70 text-foreground/70 hover:text-foreground"
+                }`}
+                key={category.value}
+                onClick={() => setActiveFavoriteCategory(category.value)}
+                type="button"
+              >
+                {category.label}
+                <span className="ml-1.5 text-[0.72rem] opacity-80">
+                  {favoriteCategoryCounts.get(category.value) ?? 0}
+                </span>
+              </button>
+            ))}
+          </div>
+          {favoriteItems.length === 0 ? (
+            <div className="bg-white px-5 py-5 text-sm text-muted-foreground">当前分类下还没有收藏内容。</div>
+          ) : (
+            <>
+              <div className="divide-y divide-border/60 border border-border/70 bg-white">
+                {paginatedFavoriteItems.map((item, idx) => (
+                  <ContentFeedListRow
+                    index={(favoritePage - 1) * PROFILE_CONTENT_PAGE_SIZE + idx}
+                    item={item}
+                    key={`${item.type}-${item.id}`}
+                  />
+                ))}
+              </div>
+              <ProfileGridPagination
+                onPageChange={setFavoritePage}
+                page={favoritePage}
+                totalPages={favoriteTotalPages}
+              />
+            </>
+          )}
+        </TabsContent>
+      </Tabs>
+    </SitePage>
   );
 }

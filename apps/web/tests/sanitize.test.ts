@@ -21,34 +21,6 @@ describe("sanitizeHtml", () => {
     expect(sanitized).toContain('src="https://cdn.example.com/video.mp4"');
   });
 
-  it("keeps local blob media previews while stripping blob links", () => {
-    const sanitized = sanitizeHtml(
-      [
-        '<img src="blob:http://localhost:17380/image-preview" />',
-        '<video controls src="blob:http://localhost:17380/video-preview"></video>',
-        '<a href="blob:http://localhost:17380/link-preview">bad</a>'
-      ].join("")
-    );
-
-    expect(sanitized).toContain('src="blob:http://localhost:17380/image-preview"');
-    expect(sanitized).toContain('src="blob:http://localhost:17380/video-preview"');
-    expect(sanitized).not.toContain('href="blob:');
-  });
-
-  it("strips local blob media when rendering persisted content", () => {
-    const sanitized = sanitizeHtml(
-      [
-        '<img src="blob:http://localhost:17380/image-preview" />',
-        '<video controls poster="blob:http://localhost:17380/poster-preview"><source src="blob:http://localhost:17380/video-preview" type="video/mp4" /></video>',
-        '<img src="https://cdn.example.com/image.png" />'
-      ].join(""),
-      { allowBlobMedia: false }
-    );
-
-    expect(sanitized).not.toContain("blob:");
-    expect(sanitized).toContain('src="https://cdn.example.com/image.png"');
-  });
-
   it("keeps trusted iframes and removes untrusted ones", () => {
     const sanitized = sanitizeHtml(
       '<iframe src="https://player.bilibili.com/player.html?bvid=BV1xx411x7xx"></iframe><iframe src="https://evil.example/embed"></iframe>'
@@ -56,18 +28,5 @@ describe("sanitizeHtml", () => {
 
     expect(sanitized).toContain("player.bilibili.com");
     expect(sanitized).not.toContain("evil.example");
-  });
-
-  it("strips dangerous layout styles while keeping safe rich-text styles", () => {
-    const sanitized = sanitizeHtml(
-      '<p style="position:fixed; inset:0; z-index:9999; color: red; text-align: center; background-color: #fff">copy</p>'
-    );
-
-    expect(sanitized).not.toContain("position");
-    expect(sanitized).not.toContain("z-index");
-    expect(sanitized).not.toContain("inset");
-    expect(sanitized).toContain("color: red");
-    expect(sanitized).toContain("text-align: center");
-    expect(sanitized).toContain("background-color: #fff");
   });
 });

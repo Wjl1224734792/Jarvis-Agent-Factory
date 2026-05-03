@@ -1,10 +1,8 @@
 import { LockOutlined, SafetyCertificateOutlined } from "@ant-design/icons";
-import { useQueryClient } from "@tanstack/react-query";
 import { Alert, Button, Form, Input } from "antd";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES } from "@feijia/shared";
-import { passwordPolicyDescription, strongPasswordSchema } from "@feijia/schemas";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { useAdminAuthStore } from "./auth-store";
@@ -15,10 +13,7 @@ type PasswordDraft = {
   confirmPassword: string;
 };
 
-const passwordPolicyHint = "至少 8 位，并同时包含大写字母、小写字母和特殊符号。";
-
 export function AdminPasswordPage() {
-  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const setAnonymous = useAdminAuthStore((state) => state.setAnonymous);
   const setError = useAdminAuthStore((state) => state.setError);
@@ -34,7 +29,6 @@ export function AdminPasswordPage() {
         currentPassword: values.currentPassword,
         newPassword: values.newPassword
       });
-      queryClient.clear();
       setAnonymous();
       void navigate(`${APP_ROUTES.adminLogin}?notice=password-updated`, {
         replace: true
@@ -54,7 +48,7 @@ export function AdminPasswordPage() {
       title="安全设置"
     >
       <AdminPanel
-        description={passwordPolicyHint}
+        description="建议使用 8 位以上、包含大小写字母和符号的密码。"
         title="修改管理员密码"
       >
         <Form<PasswordDraft> layout="vertical" onFinish={handleSubmit}>
@@ -71,19 +65,8 @@ export function AdminPasswordPage() {
             name="newPassword"
             rules={[
               { required: true, message: "请输入新密码" },
-              {
-                validator: async (_, value: string | undefined) => {
-                  if (!value) {
-                    return;
-                  }
-                  const result = strongPasswordSchema.safeParse(value);
-                  if (!result.success) {
-                    throw new Error(passwordPolicyDescription);
-                  }
-                }
-              }
+              { min: 8, message: "新密码至少 8 位" }
             ]}
-            extra={passwordPolicyHint}
           >
             <Input.Password placeholder="请输入新密码" prefix={<SafetyCertificateOutlined />} />
           </Form.Item>

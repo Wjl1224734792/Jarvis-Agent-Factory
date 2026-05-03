@@ -1,7 +1,7 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   CornerDownRightIcon,
-  MessageCircleIcon,
+  MessageSquareTextIcon,
   SquarePenIcon,
   Trash2Icon
 } from "lucide-react";
@@ -21,7 +21,7 @@ import { IpLocationText } from "@/components/ip-location-text";
 import { InlineCommentComposer } from "@/features/posts/inline-comment-composer";
 import { getVisibleRootComments, shouldShowCommentCollapseToggle } from "@/features/posts/comment-collapse-helpers";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
-import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { apiClient } from "@/lib/api-client";
 
 type ModelComment = Awaited<ReturnType<typeof apiClient.listModelComments>>["items"][number];
@@ -143,7 +143,7 @@ function ModelCommentCard(props: {
           <Avatar className="mt-0.5" size="sm">
             <AvatarImage
               alt={props.comment.author.displayName}
-              src={resolveUserAvatarSrc(props.comment.author.avatarUrl)}
+              src={props.comment.author.avatarUrl ?? getAvatarImage(props.comment.author.id)}
             />
             <AvatarFallback>{props.comment.author.displayName.slice(0, 1)}</AvatarFallback>
           </Avatar>
@@ -166,7 +166,7 @@ function ModelCommentCard(props: {
               </span>
             ) : null}
             <CommentPublishedTime createdAt={props.comment.createdAt} />
-            <IpLocationText label={props.comment.author.ipLocationLabel} variant="plain" />
+            <IpLocationText label={props.comment.author.ipLocationLabel} />
           </div>
 
           {isEditing ? (
@@ -374,7 +374,7 @@ export function ModelCommentsSection(props: {
       <div className="space-y-1">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 text-base font-semibold text-foreground">
-            <MessageCircleIcon className="size-4.5 text-primary" />
+            <MessageSquareTextIcon className="size-4.5 text-primary" />
             评论区
           </div>
           <div className="flex items-center gap-2">

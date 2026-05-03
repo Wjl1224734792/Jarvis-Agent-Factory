@@ -3,7 +3,6 @@ import { Button, Image, Input, Modal, Select, Space, Table, Tag } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { AdminModerationCard } from "../../components/admin-moderation-card";
-import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
 import { promptRejectionReason } from "../../lib/moderation-actions";
@@ -107,7 +106,7 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
     }
 
     return items.filter((item) =>
-      [item.title, item.contentPreview, item.author.displayName, item.source?.label ?? ""]
+      [item.title, item.contentPreview, item.author.displayName]
         .filter(Boolean)
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
@@ -352,18 +351,6 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                   <div className="admin-table-subtitle">
                     {record.author.displayName} 路 {record.type === "article" ? "文章" : "动态"} 路 评论 {record.commentCount}
                   </div>
-                  {record.source ? (
-                    <div className="admin-table-subtitle">
-                      来源：
-                      {record.source.url ? (
-                        <a href={record.source.url} rel="noreferrer" target="_blank">
-                          {record.source.label}
-                        </a>
-                      ) : (
-                        record.source.label
-                      )}
-                    </div>
-                  ) : null}
                 </div>
               ),
               title: "内容"
@@ -473,22 +460,10 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
               <Tag>{postStatusLabel(detailQuery.data.item.status)}</Tag>
               <span>{detailQuery.data.item.author.displayName}</span>
             </div>
-            {detailQuery.data.item.source ? (
-              <div className="admin-detail-sheet__meta">
-                <span>来源：</span>
-                {detailQuery.data.item.source.url ? (
-                  <a href={detailQuery.data.item.source.url} rel="noreferrer" target="_blank">
-                    {detailQuery.data.item.source.label}
-                  </a>
-                ) : (
-                  <span>{detailQuery.data.item.source.label}</span>
-                )}
-              </div>
-            ) : null}
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
             <div className="admin-detail-sheet__body">
               {detailQuery.data.item.contentHtml ? (
-                <AdminRichTextHtml html={detailQuery.data.item.contentHtml} />
+                <div dangerouslySetInnerHTML={{ __html: detailQuery.data.item.contentHtml }} />
               ) : (
                 <p>{detailQuery.data.item.content}</p>
               )}

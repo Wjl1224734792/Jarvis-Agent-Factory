@@ -23,8 +23,7 @@
 ## 修改要求
 
 - 路由常量：`@feijia/shared.API_ROUTES`；请求/响应：`@feijia/schemas`；数据：`@feijia/db` + 现有 repo。
-- 改认证、上传、会话、缓存、短信、CORS、OpenAPI → 核对 `.env.example`、根 `README.md`。
-- CORS 显式配置以 `CORS_ORIGIN` 为主；代码兼容读取 `CORS_ORIGINS`，文档同步时两者须一起检查。
+- 改认证、上传、会话、缓存、短信、OpenAPI → 核对 `.env.example`、根 `README.md`。
 
 ## OpenAPI 实现位置
 

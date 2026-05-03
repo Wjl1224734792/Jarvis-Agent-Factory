@@ -40,7 +40,7 @@ export function OfficialArticlesLibraryPage() {
     }
 
     return items.filter((item) =>
-      [item.title, item.author.displayName, item.contentCategory?.name ?? "", item.source?.label ?? ""]
+      [item.title, item.author.displayName, item.contentCategory?.name ?? ""]
         .some((value) => String(value).toLowerCase().includes(keyword))
     );
   }, [articlesQuery.data?.items, searchText]);
@@ -96,18 +96,6 @@ export function OfficialArticlesLibraryPage() {
                   <div className="admin-table-subtitle">
                     {record.contentCategory?.name ?? "未分类"} · {record.author.displayName}
                   </div>
-                  {record.source ? (
-                    <div className="admin-table-subtitle">
-                      来源：
-                      {record.source.url ? (
-                        <a href={record.source.url} rel="noreferrer" target="_blank">
-                          {record.source.label}
-                        </a>
-                      ) : (
-                        record.source.label
-                      )}
-                    </div>
-                  ) : null}
                 </div>
               ),
               title: "文章"

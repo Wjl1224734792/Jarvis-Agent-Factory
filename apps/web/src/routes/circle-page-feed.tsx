@@ -1,13 +1,14 @@
 import { HeartIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { IpLocationText } from "@/components/ip-location-text";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
+import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { VirtualMasonryColumns } from "@/components/virtual-feed";
-import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
-import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getAvatarImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
@@ -27,10 +28,6 @@ export type FeedTab = (typeof feedTabs)[number]["id"];
 export type CircleFeedItem = {
   id: string;
   title: string;
-  source?: {
-    label: string;
-    url?: string | null;
-  } | null;
   cover?: { url?: string | null } | null;
   images: Array<{ url?: string | null }>;
   videos: Array<{ url?: string | null }>;
@@ -53,13 +50,8 @@ type CirclePageFeedProps = {
   selectedNoteId: string | null;
   isLoading: boolean;
   isRefetching: boolean;
-  isFetchingNextPage: boolean;
   isError: boolean;
   errorMessage?: string;
-  isLoadMoreError?: boolean;
-  loadMoreErrorMessage?: string;
-  hasMore?: boolean;
-  onLoadMore?: () => void;
   formatCount: (value: number) => string;
 };
 
@@ -122,13 +114,14 @@ function CircleFeedCard(props: {
         <div className="flex items-center justify-between gap-2 text-[0.72rem] text-foreground/58">
           <div className="flex min-w-0 items-center gap-2">
             <Avatar className="size-6" size="sm">
-              <AvatarImage alt={item.author.displayName} src={resolveUserAvatarSrc(item.author.avatarUrl)} />
+              <AvatarImage alt={item.author.displayName} src={item.author.avatarUrl ?? getAvatarImage(item.author.id)} />
               <AvatarFallback>{item.author.displayName.slice(0, 1)}</AvatarFallback>
             </Avatar>
             <div className="min-w-0">
               <ProfileLink className="block truncate hover:text-foreground" userId={item.author.id}>
                 {item.author.displayName}
               </ProfileLink>
+              <IpLocationText className="block" label={item.author.ipLocationLabel} />
             </div>
           </div>
           <span className="inline-flex shrink-0 items-center gap-1">
@@ -136,33 +129,6 @@ function CircleFeedCard(props: {
             {formatCount(item.engagement.likeCount)}
           </span>
         </div>
-        {item.source ? (
-          <div className="text-[0.72rem] text-muted-foreground">
-            来源：
-            {item.source.url ? (
-              <span
-                className="text-primary underline-offset-4 hover:underline"
-                onClick={(event) => {
-                  event.stopPropagation();
-                  window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
-                }}
-                onKeyDown={(event) => {
-                  if (event.key === "Enter" || event.key === " ") {
-                    event.preventDefault();
-                    event.stopPropagation();
-                    window.open(item.source?.url ?? "", "_blank", "noopener,noreferrer");
-                  }
-                }}
-                role="link"
-                tabIndex={0}
-              >
-                {item.source.label}
-              </span>
-            ) : (
-              <span className="text-foreground/78">{item.source.label}</span>
-            )}
-          </div>
-        ) : null}
       </div>
     </button>
   );
@@ -176,22 +142,17 @@ export function CirclePageFeed({
   selectedNoteId,
   isLoading,
   isRefetching,
-  isFetchingNextPage,
   isError,
   errorMessage,
-  isLoadMoreError = false,
-  loadMoreErrorMessage,
-  hasMore = false,
-  onLoadMore,
   formatCount
 }: CirclePageFeedProps) {
   const feedMeasureRef = useRef<HTMLDivElement>(null);
   const columnCount = useCircleColumnCount(undefined, { widthElementRef: feedMeasureRef });
+
   const columns = useMemo(
     () => partitionCircleFeedShortestColumn(posts, columnCount),
     [posts, columnCount]
   );
-  const showFooter = isLoadMoreError || isFetchingNextPage || (isRefetching && !isFetchingNextPage);
 
   return (
     <div ref={feedMeasureRef} className="w-full min-w-0">
@@ -217,7 +178,7 @@ export function CirclePageFeed({
       {isError ? (
         <Alert className="rounded-none border-0" variant="destructive">
           <AlertTitle>飞友圈加载失败</AlertTitle>
-          <AlertDescription>{errorMessage ?? "网络开小差了，请稍后重试。"}</AlertDescription>
+          <AlertDescription>{errorMessage ?? "网络开小差了"}</AlertDescription>
         </Alert>
       ) : null}
 
@@ -228,16 +189,13 @@ export function CirclePageFeed({
         </Alert>
       ) : null}
 
-      {isLoading ? <MasonryFeedSkeleton className="mt-4" columnCount={columnCount} count={10} /> : null}
+      {isLoading ? <MasonryFeedSkeleton columnCount={columnCount} count={10} /> : null}
 
       {posts.length > 0 ? (
-        <div className="site-tab-panel mt-4 w-full space-y-0">
+        <div className="site-tab-panel w-full space-y-0">
           <VirtualMasonryColumns
             className="w-full"
             columns={columns}
-            hasMore={hasMore}
-            isFetchingNextPage={isFetchingNextPage}
-            onLoadMore={onLoadMore}
             gap={CIRCLE_CARD_COLUMN_GAP}
             itemKey={({ item }) => item.id}
             renderItem={({ item, absoluteIndex }) => (
@@ -250,16 +208,7 @@ export function CirclePageFeed({
               />
             )}
           />
-          <FeedRefetchFooter
-            errorMessage={
-              isLoadMoreError
-                ? `${loadMoreErrorMessage ?? "飞友圈加载失败，请稍后重试。"} 继续上滑将自动重试。`
-                : undefined
-            }
-            label={isFetchingNextPage ? "正在加载更多..." : "加载中..."}
-            show={showFooter}
-            state={isLoadMoreError ? "error" : "loading"}
-          />
+          <FeedRefetchFooter show={isRefetching} />
         </div>
       ) : null}
     </div>

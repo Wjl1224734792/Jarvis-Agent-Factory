@@ -56,7 +56,6 @@ export const ratingTargetSchema = z.object({
   commentCount: z.number().int().nonnegative(),
   likeCount: z.number().int().nonnegative().default(0),
   reportCount: z.number().int().nonnegative().default(0),
-  createdAt: z.string().datetime(),
   myRating: reviewRatingSchema.nullable(),
   viewer: ratingTargetViewerStateSchema.default({
     canEdit: false,

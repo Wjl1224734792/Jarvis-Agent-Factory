@@ -11,8 +11,7 @@ import {
   OrderedListOutlined,
   ReadOutlined,
   TagsOutlined,
-  TrophyOutlined,
-  UserOutlined
+  TrophyOutlined
 } from "@ant-design/icons";
 import { Button, Flex } from "antd";
 import { Suspense, lazy, type ReactNode } from "react";
@@ -116,11 +115,6 @@ const AdminModerationTodosPage = lazy(() =>
 const AdminPasswordPage = lazy(() =>
   import("./features/auth/admin-password-page").then((module) => ({
     default: module.AdminPasswordPage
-  }))
-);
-const AdminUsersPage = lazy(() =>
-  import("./features/users/admin-users-page").then((module) => ({
-    default: module.AdminUsersPage
   }))
 );
 const AdminSearchPage = lazy(() =>
@@ -410,12 +404,6 @@ const router = createBrowserRouter([
                 icon: <TagsOutlined />
               },
               {
-                title: "用户管理",
-                description: "搜索用户、查看详情，并处理封禁或解封操作。",
-                to: ADMIN_ROUTE_PATHS.managementUsers,
-                icon: <UserOutlined />
-              },
-              {
                 title: "安全设置",
                 description: "管理员密码修改与后台账号安全。",
                 to: ADMIN_ROUTE_PATHS.managementSecurity,
@@ -497,10 +485,6 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementOfficialArticles),
         element: withAdminRouteFallback(<OfficialArticlesLibraryPage />)
-      },
-      {
-        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementUsers),
-        element: withAdminRouteFallback(<AdminUsersPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementSecurity),

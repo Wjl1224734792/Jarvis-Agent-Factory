@@ -1,6 +1,6 @@
 {
-  "id": "261428b5-f33c-450c-b744-c1fdc5224124",
-  "prevId": "3b5cc6a2-1477-4a45-97e6-55ce508f7d4c",
+  "id": "3c237172-6673-4f6a-802d-32c9cb5e90f5",
+  "prevId": "713491e2-4c40-4382-b12c-be57027a30d1",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1652,24 +1652,6 @@
           "primaryKey": false,
           "notNull": true
         },
-        "current_audit_record_id": {
-          "name": "current_audit_record_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_audit_status": {
-          "name": "current_audit_status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "current_audit_updated_at": {
-          "name": "current_audit_updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
         "visibility": {
           "name": "visibility",
           "type": "text",
@@ -1713,10 +1695,6 @@
         "files_media_kind_check": {
           "name": "files_media_kind_check",
           "value": "\"files\".\"media_kind\" IN ('image', 'video', 'document')"
-        },
-        "files_current_audit_status_check": {
-          "name": "files_current_audit_status_check",
-          "value": "\"files\".\"current_audit_status\" IS NULL OR \"files\".\"current_audit_status\" IN ('queued', 'running', 'passed', 'rejected', 'needs_manual_review', 'failed', 'manual_passed', 'manual_rejected')"
         }
       },
       "isRLSEnabled": false
@@ -2265,18 +2243,6 @@
           "primaryKey": false,
           "notNull": false
         },
-        "source_label": {
-          "name": "source_label",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "source_url": {
-          "name": "source_url",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "content_category_id": {
           "name": "content_category_id",
           "type": "text",
@@ -2366,9 +2332,15 @@
         }
       },
       "indexes": {
-        "posts_feed_status_type_seek_idx": {
-          "name": "posts_feed_status_type_seek_idx",
+        "posts_feed_status_type_published_idx": {
+          "name": "posts_feed_status_type_published_idx",
           "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
             {
               "expression": "type",
               "isExpression": false,
@@ -2376,26 +2348,25 @@
               "nulls": "last"
             },
             {
-              "expression": "coalesce(\"published_at\", \"created_at\") desc",
+              "expression": "published_at",
+              "isExpression": false,
               "asc": true,
-              "isExpression": true,
               "nulls": "last"
             },
             {
-              "expression": "id",
+              "expression": "created_at",
               "isExpression": false,
-              "asc": false,
+              "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "where": "\"posts\".\"status\" = 'published'",
           "concurrently": false,
           "method": "btree",
           "with": {}
         },
-        "posts_feed_category_status_type_seek_idx": {
-          "name": "posts_feed_category_status_type_seek_idx",
+        "posts_feed_category_status_type_idx": {
+          "name": "posts_feed_category_status_type_idx",
           "columns": [
             {
               "expression": "content_category_id",
@@ -2404,26 +2375,64 @@
               "nulls": "last"
             },
             {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
               "expression": "type",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
             },
             {
-              "expression": "coalesce(\"published_at\", \"created_at\") desc",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
+              "expression": "published_at",
               "isExpression": false,
-              "asc": false,
+              "asc": true,
               "nulls": "last"
             }
           ],
           "isUnique": false,
-          "where": "\"posts\".\"status\" = 'published'",
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "posts_feed_recommended_score_idx": {
+          "name": "posts_feed_recommended_score_idx",
+          "columns": [
+            {
+              "expression": "status",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "like_count",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "comment_count",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "published_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
           "concurrently": false,
           "method": "btree",
           "with": {}
@@ -3991,46 +4000,8 @@
           "primaryKey": false,
           "notNull": false
         },
-        "status": {
-          "name": "status",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'active'"
-        },
-        "banned_at": {
-          "name": "banned_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "banned_until": {
-          "name": "banned_until",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "ban_reason": {
-          "name": "ban_reason",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "banned_by": {
-          "name": "banned_by",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
         "created_at": {
           "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
@@ -4112,21 +4083,6 @@
           "concurrently": false,
           "method": "btree",
           "with": {}
-        },
-        "users_status_idx": {
-          "name": "users_status_idx",
-          "columns": [
-            {
-              "expression": "status",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
         }
       },
       "foreignKeys": {},
@@ -4137,10 +4093,6 @@
         "users_role_check": {
           "name": "users_role_check",
           "value": "\"users\".\"role\" IN ('user', 'admin')"
-        },
-        "users_status_check": {
-          "name": "users_status_check",
-          "value": "\"users\".\"status\" IN ('active', 'banned')"
         }
       },
       "isRLSEnabled": false

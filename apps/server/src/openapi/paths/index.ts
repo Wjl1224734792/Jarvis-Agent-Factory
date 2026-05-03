@@ -2,7 +2,6 @@ import { systemPaths } from './system';
 import { authPaths } from './auth';
 import { adminAnalyticsPaths } from './admin-analytics';
 import { adminReportsPaths } from './admin-reports';
-import { adminUserPaths } from './admin-users';
 import { socialPaths } from './social';
 import { uploadPaths } from './uploads';
 import { brandApplicationPaths } from './brand-applications';
@@ -19,7 +18,6 @@ export const openApiPaths = {
   ...authPaths,
   ...adminAnalyticsPaths,
   ...adminReportsPaths,
-  ...adminUserPaths,
   ...socialPaths,
   ...uploadPaths,
   ...brandApplicationPaths,

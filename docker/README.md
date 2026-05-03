@@ -91,8 +91,6 @@ bun run setup:dev
 bun run setup:test-data
 ```
 
-`setup:test-data` 是 `setup:test` 的别名，等价于 `infra:up + db:reset:mock`。
-
 ## 数据持久化
 
 所有服务使用 Docker 命名卷持久化数据：
