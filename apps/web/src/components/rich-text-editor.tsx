@@ -10,7 +10,12 @@ import videoModule from "@wangeditor/video-module";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml, type UploadedMediaAsset } from "./rich-text-editor-helpers";
 
-Boot.registerModule(videoModule);
+// HMR 热更新时模块重新执行但 Boot 单例未重置，重复注册会抛 Duplicated key 异常。
+try {
+  Boot.registerModule(videoModule);
+} catch {
+  // video module already registered by a previous HMR cycle, ignore
+}
 
 type RichTextEditorProps = {
   value: string;
