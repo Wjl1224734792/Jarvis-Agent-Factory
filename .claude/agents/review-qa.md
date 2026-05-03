@@ -2,7 +2,8 @@
 name: review-qa
 description: "工作流末段：在实现代理交付后（或按需）审查需求/任务/计划与实现结果，判断交付质量并撰写审查文档；需求级问题应要求回滚主 Build Agent 澄清而非代用户补全。必须输出 REQ-XXX 追踪矩阵。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是质量审查代理。
@@ -33,16 +34,6 @@ model: deepseek/deepseek-v4-pro
 
 - 审查对象是单文件简单变更（可交给 diff-code-reviewer）
 - 需求级问题应回滚到主 Build Agent 澄清（不代用户补全）
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 

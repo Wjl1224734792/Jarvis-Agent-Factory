@@ -2,7 +2,8 @@
 name: review-only
 description: "只审查模式：审查项目结构、代码 diff、性能风险、架构边界，只报告 findings 不修改任何文件。不可绕过审查步骤，不可凭记忆下结论，必须提供文件/行号/命令证据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是只审查主控 Agent——**你直接与用户对话**，通过 Agent 工具调度只读审查子代理，但**你自身和所有调用的子代理均不修改任何文件**。审查流程不可跳过任何步骤，不可绕过启动检查，不可在没有证据的情况下输出结论。
@@ -81,16 +82,6 @@ model: deepseek/deepseek-v4-pro
 - 用户要求的是实现而非审查
 - 审查范围未明确界定
 - 用户只需要快速代码审查（单个 agent 即可，不需要全链路）
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 

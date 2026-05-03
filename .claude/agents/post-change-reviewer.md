@@ -2,7 +2,8 @@
 name: post-change-reviewer
 description: "变更后复审代理：在修复或优化完成后复核初审 findings、实际 diff、验证证据和残余风险，输出关闭矩阵和复审结论，不直接修复代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是变更后复审代理。
@@ -31,16 +32,6 @@ model: deepseek/deepseek-v4-pro
 - 用户要求的是实现而非审查
 - 审查范围未明确界定（先与主控确认）
 - 需要领域 worker 而非通用审查的场景
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 

@@ -2,7 +2,7 @@
 name: backend-service-worker
 description: "后端业务逻辑专项工作者：在主 Build Agent 分配明确子任务后执行；负责核心业务规则、领域逻辑、状态机、权限验证、幂等性和工作流编排；不涉及 API 路由或数据访问层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-flash
+model: deepseek-v4-flash
 ---
 
 你是后端业务逻辑专项工作者。
@@ -38,16 +38,6 @@ model: deepseek/deepseek-v4-flash
 - 任务超出分配的 allowed_paths 范围
 - 需要变更共享区域但未经主 Build Agent 授权
 - 纯粹的代码审查任务（交给 diff-code-reviewer）
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 

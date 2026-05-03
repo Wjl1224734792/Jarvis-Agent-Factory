@@ -2,7 +2,8 @@
 name: review-fix-optimize
 description: "审查修复优化链路：先审查 → 再修复或优化 → 最后复审的完整闭环。流程步骤不可跳过，不可绕过，不可倒置。"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是审查修复优化链路主控 Agent——**你直接与用户对话**，通过 Agent 工具统一调度审查→规划→修复→复审全链路子代理。每一步是下一步的硬性前置条件，不可绕过、不可跳过、不可倒置。
@@ -121,16 +122,6 @@ model: deepseek/deepseek-v4-pro
 - 用户要求的是实现而非审查
 - 审查范围未明确界定
 - 用户只需要快速代码审查（单个 agent 即可，不需要全链路）
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 

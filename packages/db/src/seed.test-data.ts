@@ -4,30 +4,32 @@
  * 用途：向 PostgreSQL、Redis 和 MinIO 推送大量测试数据
  * 使用：bun run packages/db/src/seed.test-data.ts
  *
- * 数据规模：
- * - 用户：50 个
- * - 飞行器分类：4 个
- * - 品牌：20 个
- * - 飞行器型号：30 个
- * - 内容分类：3 个
- * - 帖子：60 个（文章 30 + 动态 30）
- * - 帖子评论：120 条
- * - 帖子互动：200 条
- * - 帖子举报：15 条
- * - 飞行器评测：40 条
- * - 飞行器型号评论：50 条
- * - 飞行器型号互动：80 条
- * - 排行榜：10 个
- * - 排行榜项目：50 个
- * - 排行榜评论：20 条
- * - 排行榜项目评分：100 条
- * - 排行榜项目评论：40 条
- * - 用户关注：80 条
- * - 通知：100 条
- * - 会话：30 个
- * - 飞行器提交：15 个
- * - 文件记录：80 个
- * - 各类举报：30 条
+ * 数据规模（v2 扩容版）：
+ * - 用户：200 个
+ * - 飞行器分类：6 个
+ * - 品牌：40 个
+ * - 飞行器型号：100 个
+ * - 内容分类：5 个
+ * - 帖子：500 个（文章 300 + 动态 200）
+ * - 帖子评论：800 条
+ * - 帖子互动：1,000 条
+ * - 帖子评论点赞：300 条
+ * - 飞行器评测：200 条
+ * - 飞行器型号评论：200 条
+ * - 飞行器型号互动：300 条
+ * - 排行榜：20 个
+ * - 排行榜项目：150 个
+ * - 排行榜评论：60 条
+ * - 排行榜项目评分：500 条
+ * - 排行榜项目评论：120 条
+ * - 用户关注：300 条
+ * - 通知：400 条
+ * - 会话：100 个
+ * - 飞行器提交：50 个
+ * - 品牌申请：20 个
+ * - 设备：60 个
+ * - 文件记录：350 个
+ * - 各类举报：75 条
  */
 
 /* eslint-disable no-console */
@@ -43,8 +45,10 @@ import {
   aircraftModelsTable,
   aircraftReviewsTable,
   aircraftSubmissionsTable,
+  brandApplicationsTable,
   brandsTable,
   contentCategoriesTable,
+  devicesTable,
   filesTable,
   notificationsTable,
   postCommentLikesTable,
@@ -155,6 +159,33 @@ const USER_DISPLAY_NAMES = [
   "低空旅游达人", "飞行器测评师", "航拍摄影师", "飞行安全官", "无人机维修师",
   "飞行数据分析师", "航拍剪辑师", "飞行器设计师", "飞行模拟器玩家", "低空法规研究员",
   "无人机赛事解说", "飞行气象员", "航拍后期师", "飞行器试飞员", "低空交通规划师",
+  "云端摄影师", "星河飞行者", "极光航拍", "海风飞手", "城市探索家",
+  "山海飞行者", "云端漫步", "雷雨飞行者", "破风飞行", "极速飞手",
+  "暗夜飞行者", "晨光航拍", "暮色飞行", "蓝天守望者", "飞越地平线",
+  "云中漫步", "天际漫游者", "风之翼", "光影飞行者", "时空穿梭者",
+  "飞行梦想家", "航迹记录者", "云端守护者", "追风少年", "天际追踪者",
+  "云海飞行家", "蓝天使者", "星际航拍", "极速穿越者", "空中画家",
+  "飞行画家", "航空摄影师", "旋翼达人", "飞行探险家", "天际航拍师",
+  "低空摄影师", "云中鸟", "飞行诗人", "航拍摄像师", "天空艺术",
+  "云海漫游", "飞鹰航拍", "极光飞行者", "飞行哲学家", "天空旅行家",
+  "风行者航拍", "飞行狂热者", "航拍观察家", "飞行顾问", "低空玩家",
+  "快门飞行者", "天际艺术", "云上飞手", "飞行导航家", "低空摄手",
+  "飞沙走石", "云游四方", "飞行科学家", "极客飞手", "航拍创客",
+  "无人机极客", "飞行程序员", "数据飞行", "开源飞手", "DIY飞行家",
+  "飞行测评君", "新品速递", "飞行开箱", "真实体验", "深度测评",
+  "权威评测", "专业测评师", "飞行对比", "购机指南", "飞行情报局",
+  "行业观察家", "飞行市场", "前沿科技", "未来飞行", "创新飞行",
+  "绿色飞行", "新能源飞行", "可持续飞行", "碳中性航空", "环保飞行者",
+  "低空经济师", "空域管理", "政策解读", "法规咨询", "合规飞行",
+  "飞行安全专家", "风险管理", "应急飞行", "安全保障", "飞行保险",
+  "飞行教育者", "飞行学院", "考证指导", "飞行培训", "新手导航",
+  "飞行创业者", "低空商业", "飞行投资", "产业观察", "创业飞行",
+  "飞行艺术家", "空中影像", "光影航拍", "视觉飞行", "创意航拍",
+  "飞行故事家", "航拍纪录片", "飞行Vlog", "内容创作", "飞行自媒体",
+  "社区达人", "飞行版主", "热心飞友", "飞行志愿者", "社区建设者",
+  "元老飞手", "十年飞行", "资深玩家", "飞行先驱", "航拍前辈",
+  "飞行达人秀", "航拍比赛", "飞行竞技", "无人机竞速", "飞行挑战",
+  "国际飞手", "环球航拍", "世界飞行", "跨境飞行", "全球视角",
 ];
 
 const CATEGORY_IDS: string[] = [];
@@ -163,6 +194,8 @@ const CATEGORY_DATA = [
   { slug: "fixed-wing", name: "固定翼" },
   { slug: "evtol", name: "eVTOL" },
   { slug: "helicopter", name: "直升机" },
+  { slug: "hybrid-vtol", name: "混合垂直起降" },
+  { slug: "personal-air-vehicle", name: "个人飞行器" },
 ];
 
 const BRAND_IDS: string[] = [];
@@ -172,21 +205,41 @@ const BRAND_DATA = [
   { slug: "hubsan", name: "Hubsan 哈博森", categoryIdx: 0 },
   { slug: "fimi", name: "FIMI 飞米", categoryIdx: 0 },
   { slug: "potensic", name: "Potensic", categoryIdx: 0 },
+  { slug: "parrot", name: "Parrot 派诺特", categoryIdx: 0 },
+  { slug: "skydio", name: "Skydio", categoryIdx: 0 },
+  { slug: "yuneec", name: "Yuneec 昊翔", categoryIdx: 0 },
+  { slug: "ryze", name: "Ryze 睿炽", categoryIdx: 0 },
+  { slug: "zerotech", name: "ZeroTech 零度", categoryIdx: 0 },
   { slug: "ehang", name: "EHang 亿航", categoryIdx: 2 },
   { slug: "joby", name: "Joby Aviation", categoryIdx: 2 },
   { slug: "volocopter", name: "Volocopter", categoryIdx: 2 },
   { slug: "lilium", name: "Lilium", categoryIdx: 2 },
   { slug: "archer", name: "Archer Aviation", categoryIdx: 2 },
+  { slug: "wisk", name: "Wisk Aero", categoryIdx: 2 },
+  { slug: "beta", name: "Beta Technologies", categoryIdx: 2 },
+  { slug: "supernal", name: "Supernal", categoryIdx: 2 },
   { slug: "robinson", name: "Robinson 罗宾逊", categoryIdx: 3 },
   { slug: "airbus-heli", name: "Airbus Helicopters", categoryIdx: 3 },
   { slug: "bell", name: "Bell 贝尔", categoryIdx: 3 },
+  { slug: "leonardo", name: "Leonardo 莱昂纳多", categoryIdx: 3 },
+  { slug: "sikorsky", name: "Sikorsky 西科斯基", categoryIdx: 3 },
   { slug: "cirrus", name: "Cirrus 西锐", categoryIdx: 1 },
   { slug: "embraer", name: "Embraer 巴航工业", categoryIdx: 1 },
   { slug: "textron", name: "Textron Aviation", categoryIdx: 1 },
+  { slug: "pipistrel", name: "Pipistrel 蝙蝠", categoryIdx: 1 },
+  { slug: "diamond", name: "Diamond 钻石", categoryIdx: 1 },
   { slug: "xpeng-aero", name: "小鹏汇天", categoryIdx: 2 },
   { slug: "auto-flight", name: "峰飞航空", categoryIdx: 2 },
   { slug: "tcab", name: "TCAB 太力", categoryIdx: 2 },
   { slug: "vertical", name: "Vertical Aerospace", categoryIdx: 2 },
+  { slug: "aerofugia", name: "沃飞长空", categoryIdx: 2 },
+  { slug: "shangfeng", name: "上飞航空", categoryIdx: 5 },
+  { slug: "jetx", name: "JetX 捷行", categoryIdx: 5 },
+  { slug: "skyvue", name: "SkyVue 天景", categoryIdx: 4 },
+  { slug: "pal-v", name: "PAL-V", categoryIdx: 4 },
+  { slug: "aero-mobil", name: "AeroMobil", categoryIdx: 4 },
+  { slug: "samad", name: "Samad Aerospace", categoryIdx: 2 },
+  { slug: "heaviside", name: "Heaviside 灵翼", categoryIdx: 2 },
 ];
 
 const MODEL_IDS: string[] = [];
@@ -221,6 +274,56 @@ const MODEL_DATA = [
   { slug: "tcab-transition", name: "太力 Transition", brandIdx: 18, catIdx: 2, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 800, speed: 180, weight: null },
   { slug: "va-x4", name: "Vertical VA-X4", brandIdx: 19, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 160, speed: 320, weight: null },
   { slug: "dji-agras-t50", name: "DJI Agras T50", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 69999, priceMax: 89999, flight: 20, range: 5, speed: 36, weight: 40000 },
+  { slug: "dji-mavic-3-classic", name: "DJI Mavic 3 Classic", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 10499, priceMax: 12888, flight: 46, range: 30, speed: 75, weight: 895 },
+  { slug: "dji-mini-3-pro", name: "DJI Mini 3 Pro", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 3999, priceMax: 5499, flight: 34, range: 18, speed: 57, weight: 249 },
+  { slug: "dji-phantom-4-rtk", name: "DJI Phantom 4 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 29999, priceMax: 42999, flight: 30, range: 7, speed: 72, weight: 1391 },
+  { slug: "autel-evo-ii-pro", name: "Autel EVO II Pro V3", brandIdx: 1, catIdx: 0, power: "electric", priceMin: 11999, priceMax: 15999, flight: 40, range: 25, speed: 72, weight: 1190 },
+  { slug: "hubsan-ace-pro", name: "Hubsan Ace Pro", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 3499, priceMax: 4499, flight: 32, range: 10, speed: 58, weight: 460 },
+  { slug: "parrot-anafi-ai", name: "Parrot Anafi Ai", brandIdx: 5, catIdx: 0, power: "electric", priceMin: 24999, priceMax: 34999, flight: 32, range: 20, speed: 60, weight: 898 },
+  { slug: "skydio-x10", name: "Skydio X10", brandIdx: 6, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 40, range: 12, speed: 72, weight: 1490 },
+  { slug: "yuneec-h520e", name: "Yuneec H520E", brandIdx: 7, catIdx: 0, power: "electric", priceMin: 32999, priceMax: 44999, flight: 28, range: 8, speed: 45, weight: 2245 },
+  { slug: "ryze-tello", name: "Ryze Tello", brandIdx: 8, catIdx: 0, power: "electric", priceMin: 699, priceMax: 999, flight: 13, range: 0, speed: 28, weight: 80 },
+  { slug: "zerotech-dobby", name: "ZeroTech Dobby", brandIdx: 9, catIdx: 0, power: "electric", priceMin: 1799, priceMax: 2399, flight: 9, range: 0, speed: 25, weight: 199 },
+  { slug: "wisk-cora", name: "Wisk Cora", brandIdx: 15, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 100, speed: 180, weight: null },
+  { slug: "beta-alia-250", name: "Beta Alia-250", brandIdx: 16, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 60, range: 463, speed: 275, weight: null },
+  { slug: "supernal-sa1", name: "Supernal SA-1", brandIdx: 17, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 96, speed: 260, weight: null },
+  { slug: "leonardo-aw609", name: "Leonardo AW609", brandIdx: 21, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 1389, speed: 509, weight: null },
+  { slug: "sikorsky-s76", name: "Sikorsky S-76D", brandIdx: 22, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 150, range: 760, speed: 287, weight: null },
+  { slug: "pipistrel-panthera", name: "Pipistrel Panthera", brandIdx: 26, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 1850, speed: 370, weight: 1315 },
+  { slug: "diamond-da62", name: "Diamond DA62", brandIdx: 27, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 2350, speed: 350, weight: null },
+  { slug: "aerofugia-ae200", name: "沃飞长空 AE200", brandIdx: 32, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 40, range: 200, speed: 250, weight: null },
+  { slug: "shangfeng-sf1", name: "上飞航空 SF-1", brandIdx: 33, catIdx: 5, power: "electric", priceMin: null, priceMax: null, flight: 25, range: 50, speed: 120, weight: null },
+  { slug: "jetx-j1", name: "JetX J1", brandIdx: 34, catIdx: 5, power: "electric", priceMin: null, priceMax: null, flight: 20, range: 40, speed: 100, weight: null },
+  { slug: "skyvue-x1", name: "SkyVue X1", brandIdx: 35, catIdx: 4, power: "hybrid", priceMin: null, priceMax: null, flight: 90, range: 500, speed: 180, weight: null },
+  { slug: "pal-v-liberty", name: "PAL-V Liberty", brandIdx: 36, catIdx: 4, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 500, speed: 180, weight: null },
+  { slug: "aero-mobil-am4", name: "AeroMobil AM4", brandIdx: 37, catIdx: 4, power: "hybrid", priceMin: null, priceMax: null, flight: 200, range: 740, speed: 260, weight: null },
+  { slug: "samad-starling", name: "Samad Starling", brandIdx: 38, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 80, speed: 220, weight: null },
+  { slug: "heaviside-hx1", name: "Heaviside HX-1", brandIdx: 39, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 50, range: 160, speed: 290, weight: null },
+  { slug: "dji-fpv-2", name: "DJI FPV 2", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 4299, priceMax: 6299, flight: 20, range: 12, speed: 140, weight: 410 },
+  { slug: "autel-dragonfish", name: "Autel Dragonfish", brandIdx: 1, catIdx: 1, power: "electric", priceMin: 89999, priceMax: 139999, flight: 120, range: 30, speed: 108, weight: 4600 },
+  { slug: "parrot-disco", name: "Parrot Disco", brandIdx: 5, catIdx: 1, power: "electric", priceMin: 4999, priceMax: 6999, flight: 45, range: 12, speed: 80, weight: 750 },
+  { slug: "eh216-l", name: "EHang EH216-L", brandIdx: 10, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 60, speed: 150, weight: null },
+  { slug: "bell-429", name: "Bell 429 GlobalRanger", brandIdx: 20, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 760, speed: 280, weight: null },
+  { slug: "pipistrel-velis", name: "Pipistrel Velis Electro", brandIdx: 26, catIdx: 1, power: "electric", priceMin: 299999, priceMax: 399999, flight: 50, range: 180, speed: 180, weight: 600 },
+  { slug: "volocopter-volocity", name: "Volocopter VoloCity", brandIdx: 12, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 20, range: 35, speed: 110, weight: null },
+  { slug: "archer-maker", name: "Archer Maker", brandIdx: 14, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 30, range: 80, speed: 240, weight: null },
+  { slug: "skydio-s2", name: "Skydio S2+", brandIdx: 6, catIdx: 0, power: "electric", priceMin: 29999, priceMax: 39999, flight: 27, range: 6, speed: 58, weight: 800 },
+  { slug: "yuneec-typhoon-h3", name: "Yuneec Typhoon H3", brandIdx: 7, catIdx: 0, power: "electric", priceMin: 8999, priceMax: 12999, flight: 25, range: 10, speed: 70, weight: 1950 },
+  { slug: "dji-matrice-30", name: "DJI Matrice 30", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 49999, priceMax: 69999, flight: 41, range: 15, speed: 82, weight: 3998 },
+  { slug: "dji-matrice-300", name: "DJI Matrice 300 RTK", brandIdx: 0, catIdx: 0, power: "electric", priceMin: 79999, priceMax: 109999, flight: 55, range: 15, speed: 82, weight: 4700 },
+  { slug: "diamond-da40", name: "Diamond DA40 NG", brandIdx: 27, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 240, range: 1300, speed: 280, weight: 1280 },
+  { slug: "textron-latitude", name: "Textron Citation Latitude", brandIdx: 25, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 5000, speed: 890, weight: null },
+  { slug: "embraer-praetor", name: "Embraer Praetor 600", brandIdx: 24, catIdx: 1, power: "fuel", priceMin: null, priceMax: null, flight: 300, range: 7400, speed: 863, weight: null },
+  { slug: "fimi-x8pro", name: "FIMI X8 Pro", brandIdx: 3, catIdx: 0, power: "electric", priceMin: 4999, priceMax: 6999, flight: 40, range: 15, speed: 68, weight: 820 },
+  { slug: "potensic-dreamer", name: "Potensic Dreamer Pro", brandIdx: 4, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 3999, flight: 30, range: 8, speed: 55, weight: 650 },
+  { slug: "xpeng-x2", name: "小鹏汇天旅航者X2", brandIdx: 28, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 35, range: 75, speed: 130, weight: null },
+  { slug: "autoflight-v1500", name: "峰飞 V1500M", brandIdx: 29, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 50, range: 200, speed: 200, weight: null },
+  { slug: "robinson-r22", name: "Robinson R22 Beta", brandIdx: 18, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 120, range: 370, speed: 180, weight: 635 },
+  { slug: "airbus-h125", name: "Airbus H125", brandIdx: 19, catIdx: 3, power: "fuel", priceMin: null, priceMax: null, flight: 180, range: 630, speed: 260, weight: null },
+  { slug: "hubsan-h501s", name: "Hubsan H501S", brandIdx: 2, catIdx: 0, power: "electric", priceMin: 1399, priceMax: 1799, flight: 20, range: 5, speed: 55, weight: 410 },
+  { slug: "zerotech-falcon", name: "ZeroTech Falcon", brandIdx: 9, catIdx: 0, power: "electric", priceMin: 2999, priceMax: 4199, flight: 28, range: 6, speed: 60, weight: 550 },
+  { slug: "vertical-va1x", name: "Vertical VA-1X", brandIdx: 31, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 45, range: 160, speed: 320, weight: null },
+  { slug: "lilium-jet-7", name: "Lilium Jet 7-Seater", brandIdx: 13, catIdx: 2, power: "electric", priceMin: null, priceMax: null, flight: 70, range: 250, speed: 280, weight: null },
 ];
 
 const CONTENT_CAT_IDS: string[] = [];
@@ -261,24 +364,52 @@ const ARTICLE_TITLES = [
   "无人机在电力巡检中的应用",
   "航拍视频剪辑入门教程",
   "飞行器通信技术：图传系统解析",
+  "DJI Mavic 3 Pro 长期使用体验报告",
+  "Autel EVO Lite+ 夜景航拍能力测试",
+  "固定翼 vs 多旋翼：长航程任务选择指南",
+  "eVTOL 适航审定最新进展汇总",
+  "无人机冷链物流应用前景分析",
+  "FPV 竞速无人机选购与组装指南",
+  "航拍全景图拍摄与后期合成全流程",
+  "无人机在林业资源调查中的应用实践",
+  "低空经济政策红包：2026 补贴申领指南",
+  "无人机测绘精度影响因素深度分析",
+  "个人飞行器离我们还有多远？",
+  "航拍纪录片拍摄经验分享",
+  "混合垂直起降飞行器技术难点剖析",
+  "无人机在光伏电站巡检中的实战经验",
+  "如何搭建专业的航拍工作流",
+  "低空交通管理系统技术架构探讨",
+  "无人机编队飞行通信协议解析",
+  "城市物流无人机航线规划方法论",
+  "航拍中的天气判断与应对策略",
+  "氢燃料电池在无人机上的应用前景",
+  "无人机在海上风电场运维中的应用",
+  "飞行器噪声控制技术与法规趋势",
+  "无人机机场自动化运营方案",
+  "eVTOL 电池技术路线之争",
+  "低空旅游商业模式探索",
+  "航空摄影测量与三维建模入门",
+  "无人机反制技术与安全防护",
+  "城市空中交通法规框架国际比较",
+  "AI 在无人机自主飞行中的应用",
+  "无人机在高精度农业中的应用与收益分析",
 ];
 
 const MOMENT_TITLES = [
-  "今日飞行记录",
-  "周末航拍打卡",
-  "新入手的飞行器首飞",
-  "夕阳下的城市天际线",
-  "山谷飞行体验",
-  "海边航拍日记",
-  "夜间飞行测试",
-  "春季花海航拍",
-  "雪山航拍挑战",
-  "城市夜景航拍",
-  "森林航拍探险",
-  "湖泊航拍记录",
-  "田野航拍随拍",
-  "桥梁航拍特写",
-  "港口航拍日志",
+  "今日飞行记录", "周末航拍打卡", "新入手的飞行器首飞",
+  "夕阳下的城市天际线", "山谷飞行体验", "海边航拍日记",
+  "夜间飞行测试", "春季花海航拍", "雪山航拍挑战",
+  "城市夜景航拍", "森林航拍探险", "湖泊航拍记录",
+  "田野航拍随拍", "桥梁航拍特写", "港口航拍日志",
+  "雾中飞行", "日出航拍", "沙漠飞行探险",
+  "草原航拍", "水库飞行记录", "高架桥穿越",
+  "峡谷飞行", "海岸线巡逻", "城市建筑群扫描",
+  "园林航拍", "古镇鸟瞰", "新机开箱测试",
+  "风暴前飞行", "云层穿透", "极光飞行记录",
+  "瀑布航拍", "梯田飞行", "雪山攀登伴飞",
+  "湖畔落日", "工业区巡查", "高速路况监测",
+  "体育赛事航拍", "烟花表演记录", "热气球伴飞",
 ];
 
 const REVIEW_CONTENTS = [
@@ -562,13 +693,13 @@ async function seedPostgreSQL() {
       "aircraft_reviews", "aircraft_review_likes", "aircraft_review_reports",
       "aircraft_submissions", "brand_applications", "aircraft_models", "brands",
       "content_categories", "aircraft_categories", "files", "user_follows",
-      "notifications", "user_settings", "sessions", "users"
+      "notifications", "user_settings", "sessions", "devices", "users"
       RESTART IDENTITY CASCADE;`
   ));
   console.log("  ✓ 清理完成");
 
-  // 1. 用户 (50)
-  console.log("  👥 创建 50 个用户...");
+  // 1. 用户 (200)
+  console.log("  👥 创建 200 个用户...");
   const adminPasswordHash = await hashPassword("Admin#123");
   const users = [
     { id: uid("user"), role: "admin" as const, displayName: "系统管理员", phone: null, account: "admin", passwordHash: adminPasswordHash, avatarFileId: null, bio: null },
@@ -600,7 +731,7 @@ async function seedPostgreSQL() {
   const adminId = USER_IDS[0];
   const regularUsers = USER_IDS.slice(1);
   await db.insert(userSettingsTable).values(
-    regularUsers.slice(0, 30).map((userId) => ({
+    regularUsers.slice(0, 120).map((userId) => ({
       id: uid("setting"), userId,
       profileVisibility: pick(["public", "community", "private"]),
       notifyComments: Math.random() > 0.3,
@@ -609,7 +740,7 @@ async function seedPostgreSQL() {
       emailDigest: Math.random() > 0.7,
     }))
   );
-  console.log("  ✓ 用户设置: 30 个");
+  console.log("  ✓ 用户设置: 120 个");
 
   // 3. 飞行器分类 (6)
   console.log("  📂 创建飞行器分类...");
@@ -633,8 +764,9 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 品牌: ${BRAND_IDS.length} 个`);
 
-  // 5. 飞行器型号 (30)
+  // 5. 飞行器型号 (100)
   console.log("  ✈️ 创建飞行器型号...");
+  const lifecycleStatuses = ["concept", "development", "testing", "unreleased", "released", "not_in_market", "marketed"] as const;
   for (const m of MODEL_DATA) {
     const id = uid("model");
     MODEL_IDS.push(id);
@@ -644,6 +776,7 @@ async function seedPostgreSQL() {
       brandId: BRAND_IDS[m.brandIdx],
       ownerId: pick(regularUsers),
       powerType: m.power,
+      lifecycleStatus: pick(lifecycleStatuses),
       summary: pick(["经典机型，性能稳定", "新一代飞行器代表", "市场热门机型", "技术创新典范", "行业标杆产品"]),
       description: `${m.name} 是一款${m.power === "electric" ? "电动" : "燃油"}飞行器，${m.flight ? `续航 ${m.flight} 分钟` : ""}，${m.range ? `航程 ${m.range} 公里` : ""}，${m.speed ? `最高时速 ${m.speed} km/h` : ""}。`,
       priceMin: m.priceMin, priceMax: m.priceMax,
@@ -651,6 +784,12 @@ async function seedPostgreSQL() {
       maxRangeKilometers: m.range || null,
       maxSpeedKph: m.speed || null,
       takeoffWeightGrams: m.weight || null,
+      coverImageFileId: null,
+      galleryImageFileIds: "[]",
+      videoFileId: null,
+      reportCount: randInt(0, 3),
+      viewCount: randInt(0, 5000),
+      isPublished: Math.random() > 0.1,
     });
   }
   console.log(`  ✓ 型号: ${MODEL_IDS.length} 个`);
@@ -712,7 +851,7 @@ async function seedPostgreSQL() {
   await db.update(usersTable).set({ avatarFileId: avatarFileIds[0] || null }).where(sql`id = ${adminId}`);
   console.log("  ✓ 用户头像已关联");
 
-  // 8. 帖子 (60: 30 文章 + 30 动态)
+  // 8. 帖子 (500: 300 文章 + 200 动态)
   console.log("  📝 创建帖子...");
   const articlePostIds: string[] = [];
   const momentPostIds: string[] = [];
@@ -721,10 +860,10 @@ async function seedPostgreSQL() {
   const allPostIds: string[] = [];
 
   const posts = [];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 300; i++) {
     const id = uid("post");
     const authorId = pick(regularUsers);
-    const status = i < 24 ? "published" : i < 27 ? "pending" : "rejected";
+    const status = i < 240 ? "published" : i < 270 ? "pending" : "rejected";
     const catId = pick(CONTENT_CAT_IDS);
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
     const publishedAt = status === "published" ? createdAt : null;
@@ -744,17 +883,17 @@ async function seedPostgreSQL() {
       status, rejectionReason: status === "rejected" ? pick(REPORT_REASONS) : null,
       commentCount: randInt(0, 15),
       reportCount: status !== "published" ? randInt(0, 3) : 0,
-      likeCount: randInt(0, 50),
-      favoriteCount: randInt(0, 30),
-      shareCount: randInt(0, 10),
+      likeCount: randInt(0, 80),
+      favoriteCount: randInt(0, 40),
+      shareCount: randInt(0, 15),
       createdAt, updatedAt: createdAt, publishedAt,
     });
   }
 
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 200; i++) {
     const id = uid("post");
     const authorId = pick(regularUsers);
-    const status = i < 25 ? "published" : i < 28 ? "pending" : "hidden";
+    const status = i < 170 ? "published" : i < 190 ? "pending" : "hidden";
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
 
     if (status === "published") momentPostIds.push(id);
@@ -763,16 +902,16 @@ async function seedPostgreSQL() {
 
     posts.push({
       id, authorId, type: "moment" as const,
-      title: `${pick(USER_DISPLAY_NAMES.slice(0, 20))}的${MOMENT_TITLES[i % MOMENT_TITLES.length]}`,
+      title: `${pick(USER_DISPLAY_NAMES.slice(0, 40))}的${MOMENT_TITLES[i % MOMENT_TITLES.length]}`,
       content: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length] + ` 今天天气不错，飞了一圈。`,
       contentPlainText: COMMENT_CONTENTS[i % COMMENT_CONTENTS.length] + ` 今天天气不错，飞了一圈。`,
       contentCategoryId: null,
       status, rejectionReason: null,
       commentCount: randInt(0, 8),
       reportCount: 0,
-      likeCount: randInt(0, 30),
-      favoriteCount: randInt(0, 15),
-      shareCount: randInt(0, 5),
+      likeCount: randInt(0, 40),
+      favoriteCount: randInt(0, 20),
+      shareCount: randInt(0, 8),
       createdAt, updatedAt: createdAt, publishedAt: status === "published" ? createdAt : null,
     });
   }
@@ -780,7 +919,7 @@ async function seedPostgreSQL() {
   for (let i = 0; i < posts.length; i += 50) {
     await db.insert(postsTable).values(posts.slice(i, i + 50));
   }
-  console.log(`  ✓ 帖子: ${posts.length} 个 (文章 30 + 动态 30)`);
+  console.log(`  ✓ 帖子: ${posts.length} 个 (文章 300 + 动态 200)`);
 
   // 关联帖子图片
   const postImageFiles = fileEntries.filter(f => f.bizType === "post-image");
@@ -789,18 +928,18 @@ async function seedPostgreSQL() {
   }
   console.log("  ✓ 帖子图片已关联");
 
-  // 9. 帖子评论 (120)
+  // 9. 帖子评论 (800)
   console.log("  💬 创建帖子评论...");
   const postComments = [];
   const commentIds: string[] = [];
-  for (let i = 0; i < 120; i++) {
+  for (let i = 0; i < 800; i++) {
     const id = uid("pcomment");
     commentIds.push(id);
     const postId = pick(allPostIds);
     const authorId = pick(regularUsers);
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 30 && Math.random() > 0.6;
-    const parentCommentId = isReply ? pick(commentIds.slice(0, Math.min(30, commentIds.length))) : null;
+    const isReply = i > 100 && Math.random() > 0.6;
+    const parentCommentId = isReply ? pick(commentIds.slice(0, Math.min(100, commentIds.length))) : null;
 
     postComments.push({
       id, postId, authorId,
@@ -819,10 +958,10 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 帖子评论: ${postComments.length} 条`);
 
-  // 10. 帖子互动 (200)
+  // 10. 帖子互动 (1000)
   console.log("  ❤️ 创建帖子互动...");
   const types = ["like", "favorite", "share"] as const;
-  const interactions = buildUniqueRows(200, () => {
+  const interactions = buildUniqueRows(1000, () => {
     const postId = pick(allPostIds);
     const userId = pick(regularUsers);
     const type = pick(types);
@@ -843,9 +982,9 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 帖子互动: ${interactions.length} 条`);
 
-  // 11. 帖子评论点赞 (80)
+  // 11. 帖子评论点赞 (300)
   console.log("  👍 创建帖子评论点赞...");
-  const commentLikes = buildUniqueRows(80, () => {
+  const commentLikes = buildUniqueRows(300, () => {
     const commentId = pick(commentIds);
     const userId = pick(regularUsers);
 
@@ -864,10 +1003,10 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 帖子评论点赞: ${commentLikes.length} 条`);
 
-  // 12. 飞行器评测 (40)
+  // 12. 飞行器评测 (200)
   console.log("  ⭐ 创建飞行器评测...");
   let reviewIndex = 0;
-  const reviews = buildUniqueRows(40, () => {
+  const reviews = buildUniqueRows(200, () => {
     const id = uid("review");
     const modelId = pick(MODEL_IDS);
     const userId = pick(regularUsers);
@@ -895,16 +1034,16 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 飞行器评测: ${reviews.length} 条`);
 
-  // 13. 飞行器型号评论 (50)
+  // 13. 飞行器型号评论 (200)
   console.log("  🗣️ 创建飞行器型号评论...");
   const modelCommentIds: string[] = [];
   const modelComments = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 200; i++) {
     const id = uid("mcomment");
     modelCommentIds.push(id);
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 15 && Math.random() > 0.6;
-    const parentId = isReply ? pick(modelCommentIds.slice(0, Math.min(15, modelCommentIds.length))) : null;
+    const isReply = i > 60 && Math.random() > 0.6;
+    const parentId = isReply ? pick(modelCommentIds.slice(0, Math.min(60, modelCommentIds.length))) : null;
     modelComments.push({
       id,
       modelId: pick(MODEL_IDS),
@@ -924,10 +1063,10 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 飞行器型号评论: ${modelComments.length} 条`);
 
-  // 14. 飞行器型号互动 (80)
+  // 14. 飞行器型号互动 (300)
   console.log("  📌 创建飞行器型号互动...");
   const modelInteractionTypes = ["favorite", "viewed", "compared"] as const;
-  const modelInteractions = buildUniqueRows(80, () => {
+  const modelInteractions = buildUniqueRows(300, () => {
     const modelId = pick(MODEL_IDS);
     const userId = pick(regularUsers);
     const type = pick(modelInteractionTypes);
@@ -949,11 +1088,11 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 飞行器型号互动: ${modelInteractions.length} 条`);
 
-  // 15. 排行榜 (10)
+  // 15. 排行榜 (20)
   console.log("  🏆 创建排行榜...");
   const rankingIds: string[] = [];
   const rankingCoverFiles = fileEntries.filter(f => f.bizType === "ranking-cover-image");
-  for (let i = 0; i < 10; i++) {
+  for (let i = 0; i < 20; i++) {
     const id = uid("ranking");
     rankingIds.push(id);
     await db.insert(rankingsTable).values({
@@ -962,6 +1101,8 @@ async function seedPostgreSQL() {
       type: pick(["community", "community", "official"]),
       title: RANKING_TITLES[i % RANKING_TITLES.length],
       description: RANKING_DESCS[i % RANKING_DESCS.length],
+      status: pick(["published", "published", "published", "pending"]),
+      rejectionReason: null,
       coverImageFileId: rankingCoverFiles[i % rankingCoverFiles.length]?.id || null,
       itemAddPolicy: pick(["owner", "anyone", "moderated"]),
       commentCount: randInt(0, 10),
@@ -972,12 +1113,12 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 排行榜: ${rankingIds.length} 个`);
 
-  // 16. 排行榜项目 (50)
+  // 16. 排行榜项目 (150)
   console.log("  📊 创建排行榜项目...");
   const rankingItemIds: string[] = [];
   const rankingItemFiles = fileEntries.filter(f => f.bizType === "ranking-item-image");
   const rankingItems = [];
-  for (let i = 0; i < 50; i++) {
+  for (let i = 0; i < 150; i++) {
     const id = uid("rtarget");
     rankingItemIds.push(id);
     rankingItems.push({
@@ -1004,10 +1145,10 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 排行榜项目: ${rankingItems.length} 个`);
 
-  // 17. 排行榜评论 (20)
+  // 17. 排行榜评论 (60)
   console.log("  🗨️ 创建排行榜评论...");
   const rankingComments = [];
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < 60; i++) {
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
     rankingComments.push({
       id: uid("rcomment"),
@@ -1025,9 +1166,9 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 排行榜评论: ${rankingComments.length} 条`);
 
-  // 18. 排行榜项目评分 (100)
+  // 18. 排行榜项目评分 (500)
   console.log("  🔢 创建排行榜项目评分...");
-  const ratings = buildUniqueRows(100, () => {
+  const ratings = buildUniqueRows(500, () => {
     const ratingTargetId = pick(rankingItemIds);
     const userId = pick(regularUsers);
 
@@ -1048,16 +1189,16 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 排行榜项目评分: ${ratings.length} 条`);
 
-  // 19. 排行榜项目评论 (40)
+  // 19. 排行榜项目评论 (120)
   console.log("  💬 创建排行榜项目评论...");
   const rtComments = [];
   const rtCommentIds: string[] = [];
-  for (let i = 0; i < 40; i++) {
+  for (let i = 0; i < 120; i++) {
     const id = uid("rtcomment");
     rtCommentIds.push(id);
     const createdAt = seededDate(randInt(1, 28), randInt(0, 23));
-    const isReply = i > 10 && Math.random() > 0.6;
-    const parentId = isReply ? pick(rtCommentIds.slice(0, Math.min(10, rtCommentIds.length))) : null;
+    const isReply = i > 30 && Math.random() > 0.6;
+    const parentId = isReply ? pick(rtCommentIds.slice(0, Math.min(30, rtCommentIds.length))) : null;
     rtComments.push({
       id,
       ratingTargetId: pick(rankingItemIds),
@@ -1078,12 +1219,12 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 排行榜项目评论: ${rtComments.length} 条`);
 
-  // 20. 用户关注 (80)
+  // 20. 用户关注 (300)
   console.log("  👥 创建用户关注...");
   const follows = [];
   const followSet = new Set<string>();
   let followCount = 0;
-  while (followCount < 80) {
+  while (followCount < 300) {
     const follower = pick(regularUsers);
     const followee = pick(regularUsers);
     if (follower === followee) continue;
@@ -1103,7 +1244,7 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 用户关注: ${follows.length} 条`);
 
-  // 21. 通知 (100)
+  // 21. 通知 (400)
   console.log("  🔔 创建通知...");
   const notifications = [];
   const notifTypes = [
@@ -1116,7 +1257,7 @@ async function seedPostgreSQL() {
     "aircraft_submission_status_changed",
     "brand_application_status_changed"
   ] as const;
-  for (let i = 0; i < 100; i++) {
+  for (let i = 0; i < 400; i++) {
     const type = pick(notifTypes);
     const postId = Math.random() > 0.5 ? pick(allPostIds) : null;
     const commentId = Math.random() > 0.6 ? pick(commentIds) : null;
@@ -1186,12 +1327,12 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 通知: ${notifications.length} 条`);
 
-  // 22. 会话 (30)
+  // 22. 会话 (100)
   console.log("  🔑 创建会话...");
   const sessions = [];
   const scopes = ["web", "app"] as const;
   const devices = ["Chrome on Windows", "Safari on macOS", "FeijiaApp iOS", "FeijiaApp Android", "Firefox on Linux", "Edge on Windows"];
-  for (let i = 0; i < 30; i++) {
+  for (let i = 0; i < 100; i++) {
     sessions.push({
       id: `sess_${createSecretToken(24)}`,
       userId: pick(USER_IDS),
@@ -1210,12 +1351,12 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 会话: ${sessions.length} 个`);
 
-  // 23. 飞行器提交 (15)
+  // 23. 飞行器提交 (50)
   console.log("  📤 创建飞行器提交...");
   const submissionCoverFiles = fileEntries.filter(f => f.bizType === "aircraft-cover-image");
   const submissions = [];
   const statuses = ["submitted", "submitted", "submitted", "approved", "approved", "rejected"] as const;
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 50; i++) {
     const status = pick(statuses);
     submissions.push({
       id: uid("submission"),
@@ -1353,7 +1494,45 @@ async function seedPostgreSQL() {
 
   console.log("  ✓ 举报数据: 帖子 15 + 评论 10 + 排行榜 5 + 项目 5 + 项目评论 5");
 
-  // 25. 站点设置
+  // 25. 品牌申请 (20)
+  console.log("  🏷️ 创建品牌申请...");
+  const brandAppStatuses = ["pending", "approved", "rejected"] as const;
+  for (let i = 0; i < 20; i++) {
+    const status = pick(brandAppStatuses);
+    await db.insert(brandApplicationsTable).values({
+      id: uid("brandapp"),
+      applicantId: pick(regularUsers),
+      status,
+      slug: `test-brand-app-${i + 1}`,
+      name: `测试品牌申请 ${i + 1}`,
+      logoUrl: null,
+      description: `${status === "approved" ? "已通过" : status === "rejected" ? "已驳回" : "待审核"}的测试品牌申请。`,
+      rejectionReason: status === "rejected" ? pick(REPORT_REASONS) : null,
+      approvedBrandId: status === "approved" ? pick(BRAND_IDS) : null,
+      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+    });
+  }
+  console.log("  ✓ 品牌申请: 20 个");
+
+  // 26. 设备 (60)
+  console.log("  📱 创建设备...");
+  const deviceTypes = ["ios", "android", "web"] as const;
+  const deviceLabels = ["iPhone 15 Pro", "Samsung Galaxy S24", "Google Pixel 9", "iPad Pro M4", "MacBook Pro M3", "Windows Desktop"];
+  for (let i = 0; i < 60; i++) {
+    await db.insert(devicesTable).values({
+      id: uid("device"),
+      userId: pick(USER_IDS),
+      deviceType: pick(deviceTypes),
+      deviceLabel: pick(deviceLabels),
+      pushToken: `test-push-token-${crypto.randomUUID()}`,
+      createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
+      updatedAt: seededDate(randInt(1, 28), randInt(0, 23)),
+    });
+  }
+  console.log("  ✓ 设备: 60 个");
+
+  // 27. 站点设置
   console.log("  ⚙️ 创建站点设置...");
   await db.insert(siteSettingsTable).values({
     id: uid("site"),
@@ -1367,6 +1546,7 @@ async function seedPostgreSQL() {
     brandModerationEnabled: true,
     modelModerationEnabled: true,
     ratingTargetModerationEnabled: true,
+    moderationModes: "{}",
   });
   console.log("  ✓ 站点设置: 1 个");
 
@@ -1388,7 +1568,7 @@ export async function seedMockTestDataDatabase() {
   console.log("🎉 测试数据生成完成！");
   console.log("\n📋 测试账号:");
   console.log("  管理员: admin / Admin#123");
-  console.log("  普通用户: 50 个 (手机号 138 开头，短信登录)");
+  console.log("  普通用户: 200 个 (手机号 138 开头，短信登录)");
   console.log("\n🔑 Redis 测试数据:");
   console.log("  图形验证码: test_captcha_001 (code: TEST01)");
   console.log("  短信验证码: 13800138000 (code: 888888)");

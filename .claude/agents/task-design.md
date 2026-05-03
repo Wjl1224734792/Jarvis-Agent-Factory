@@ -2,7 +2,8 @@
 name: task-design
 description: "在主 Build Agent 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是任务设计代理。
@@ -79,16 +80,6 @@ L 和 XL 任务必须标注为风险任务并说明拆分/不拆分的理由。
 - 完成标准（可验证的验收条件）
 - 文件所有权（谁修改哪些文件）
 - 共享区域冲突检查（是否有其他任务修改同一共享区域）
-
-## 规范加载（硬约束）
-
-**收到任务后，必须在开始任何修改前读取 `.claude/rules/` 目录下的全部规范文件并严格遵守：**
-
-1. `TypeScript与Interface使用规范.md` — 所有 TS/TSX 代码必须遵守
-2. `团队协作规范.md` — 提交、分支、CI/CD、代码风格必须遵守
-3. `通用编程规范与指南.md` — 嵌套、数组、DDD、TDD、数据库、Tailwind 等必须遵守
-
-> 违反上述规范的代码变更视为未通过审查，必须回退修复。
 
 ## 技能加载（必须执行）
 
