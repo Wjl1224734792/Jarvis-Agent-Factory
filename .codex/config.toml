@@ -130,6 +130,18 @@ config_file = "agents/remediation_worker.toml"
 description = "修复/优化后复核 findings、diff、验证证据与关闭矩阵"
 config_file = "agents/post_change_reviewer.toml"
 
+[agents.algorithm_expert]
+description = "算法选型、复杂度分析、数据结构设计与性能优化策略"
+config_file = "agents/algorithm_expert.toml"
+
+[agents.frontend_architect]
+description = "前端技术选型、组件架构、状态管理、构建工具链与性能架构"
+config_file = "agents/frontend_architect.toml"
+
+[agents.backend_architect]
+description = "微服务拆分、数据库架构、分布式可靠性、数据一致性与可观测性"
+config_file = "agents/backend_architect.toml"
+
 [agents.frontend_implementer]
 description = "前端多维度完整实现（页面+状态+测试）"
 config_file = "agents/frontend_implementer.toml"
