@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { SitePage } from "@/components/site-shell";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -39,14 +39,42 @@ export function CirclePage() {
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
   const promptLogin = useLoginPrompt();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
   const [commentContent, setCommentContent] = useState("");
   const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const selectedNoteId = searchParams.get("note");
+  function readNoteIdFromURL(): string | null {
+    return new URLSearchParams(window.location.search).get("note");
+  }
+
+  function syncNoteIdToURL(noteId: string | null) {
+    const params = new URLSearchParams(window.location.search);
+    if (noteId) {
+      params.set("note", noteId);
+    } else {
+      params.delete("note");
+    }
+    const search = params.toString();
+    const url = search
+      ? `${window.location.pathname}?${search}`
+      : window.location.pathname;
+    window.history.replaceState(window.history.state, "", url);
+  }
+
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
+    readNoteIdFromURL()
+  );
+
+  // 响应浏览器前进/后退时同步 selectedNoteId
+  useEffect(() => {
+    function handlePopState() {
+      setSelectedNoteId(readNoteIdFromURL());
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", activeTab],
     initialPageParam: undefined as string | undefined,
@@ -95,15 +123,13 @@ export function CirclePage() {
   }, [queryClient, selectedNote]);
 
   function openNote(id: string) {
-    const next = new URLSearchParams(searchParams);
-    next.set("note", id);
-    setSearchParams(next, { replace: true });
+    setSelectedNoteId(id);
+    syncNoteIdToURL(id);
   }
 
   function closeNote() {
-    const next = new URLSearchParams(searchParams);
-    next.delete("note");
-    setSearchParams(next);
+    setSelectedNoteId(null);
+    syncNoteIdToURL(null);
     setCommentContent("");
     setActionError(null);
   }
@@ -211,6 +237,7 @@ export function CirclePage() {
       {selectedNoteId ? (
         <Suspense fallback={null}>
           <CirclePageDetail
+            key={selectedNoteId}
             selectedNoteId={selectedNoteId}
             selectedNote={selectedNote}
             displayNote={displayNote}
