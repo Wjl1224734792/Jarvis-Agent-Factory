@@ -1,11 +1,6 @@
 ---
 name: git-workflow-and-versioning
 description: "Git 工作流与版本管理——分支策略、提交规范、合并与变基、标签与发布、回滚与修复。用于统一团队的 Git 操作习惯，确保提交历史清晰可追溯。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # Git 工作流与版本管理

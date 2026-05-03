@@ -1,11 +1,6 @@
 ---
 name: documentation-and-adrs
 description: "文档与架构决策记录——ADRs、API 文档、内联文档标准。记录'为什么'而不是'是什么'。用于架构决策、API 变更或功能交付。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 文档与架构决策记录

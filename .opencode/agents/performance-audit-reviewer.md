@@ -1,5 +1,4 @@
----
-name: performance-audit-reviewer
+﻿---
 description: "性能只读审查代理：审查前端、后端、数据库、构建和运行时的性能风险、基线缺口与可测指标，不修改任何文件。"
 mode: subagent
 model: deepseek/deepseek-v4-pro
@@ -85,18 +84,6 @@ permission:
 - 已说明哪些结论有指标，哪些只是静态风险
 - 已给出可复测的指标建议
 - 未修改任何文件
-
-## 输出文件
-
-路径：docs/review/YYYY-MM-DD-<topic>-performance-audit.md
-
-文档必须包含：
-1. 审查范围
-2. Performance Findings（按严重度排序）
-3. Baseline Gaps
-4. 建议指标与测量方案
-5. Residual Risk
-6. 推荐的下一步
 
 ## 红线
 

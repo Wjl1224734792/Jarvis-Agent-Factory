@@ -1,5 +1,4 @@
 ---
-name: review-only
 description: "只审查模式：审查项目结构、代码 diff、性能风险、架构边界，只报告 findings 不修改任何文件。不可绕过审查步骤，不可凭记忆下结论，必须提供文件/行号/命令证据。"
 mode: primary
 model: deepseek/deepseek-v4-pro
@@ -11,10 +10,6 @@ permission:
   bash: allow
   task:
     project-audit-reviewer: allow
-    diff-code-reviewer: allow
-    performance-audit-reviewer: allow
-    repo-explorer: allow
-    docs-researcher: allow
     diff-code-reviewer: allow
     performance-audit-reviewer: allow
     repo-explorer: allow
@@ -104,19 +99,6 @@ permission:
 | "都审查完了，简化一下流程" | 步骤是硬性前置条件。复审不对照初审 = 复审失去意义。 |
 | "这些审查代理的结果差不多，归并一下" | 每个代理的视角不同。归并 findings 会丢失分类和证据。 |
 | "用户不太满意，先修了再说" | 先认清楚发现了什么。修复策略是第二步，不是第一步。 |
-
-## 输出文件
-
-路径：docs/review/YYYY-MM-DD-<topic>-full-review.md
-
-文档必须包含：
-1. 审查对象与范围
-2. 审查维度与调度记录
-3. 汇总 Findings（含各子代理发现）
-4. Open Questions
-5. 未覆盖的验证范围
-6. Residual Risk
-7. 推荐的下一步
 
 ## 红线
 

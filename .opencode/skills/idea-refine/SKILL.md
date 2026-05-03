@@ -1,11 +1,6 @@
 ---
 name: idea-refine
 description: "想法细化——将模糊的用户想法提炼为结构化需求，在进入 spec-driven-development 之前完成。用于用户描述不够精确、缺少明确验收标准、或存在多种可能解释时。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 想法细化

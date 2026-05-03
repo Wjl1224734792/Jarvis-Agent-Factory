@@ -1,11 +1,6 @@
 ---
 name: chinese-documentation
 description: 中文技术文档写作规范——排版、术语、结构一步到位，告别机翻味
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 中文技术文档写作规范

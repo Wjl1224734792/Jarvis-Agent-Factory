@@ -1,5 +1,4 @@
----
-name: diff-code-reviewer
+﻿---
 description: "代码差异只读审查代理：审查 git diff、PR 或指定文件变更中的 bug、回归、安全、边界条件和缺失测试，不修改任何文件。"
 mode: subagent
 model: deepseek/deepseek-v4-pro
@@ -117,18 +116,6 @@ permission:
 3. 再读调用链：只读取判断缺陷所需的上下文
 4. findings first：只报告有具体影响的问题
 5. 没有阻塞问题时，明确说"未发现阻塞问题"，并列出未覆盖范围
-
-## 输出文件
-
-路径：docs/review/YYYY-MM-DD-<topic>-diff-review.md
-
-文档必须包含：
-1. 审查范围（diff / PR / 文件列表）
-2. Findings（按严重度排序）
-3. Open Questions
-4. Test Gaps
-5. Residual Risk
-6. 推荐的下一步
 
 ## 输出格式
 

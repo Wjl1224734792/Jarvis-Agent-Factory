@@ -1,5 +1,4 @@
----
-name: remediation-planner
+﻿---
 description: "修复与优化规划代理：把初审 findings 转成可执行修复/优化计划，明确所有权、顺序、验证命令和共享区域边界。"
 mode: subagent
 model: deepseek/deepseek-v4-pro

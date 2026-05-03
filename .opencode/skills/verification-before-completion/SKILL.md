@@ -1,11 +1,6 @@
 ---
 name: verification-before-completion
 description: "完成前验证——在声称任务完成前，逐项核查实现是否满足所有验收标准。用于实现代理交付阶段，确保不遗漏边界条件、测试、文档和清理工作。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 完成前验证

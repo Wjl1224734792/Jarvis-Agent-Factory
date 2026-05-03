@@ -1,5 +1,4 @@
----
-name: task-design
+﻿---
 description: "在主 Build Agent 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
 mode: subagent
 model: deepseek/deepseek-v4-pro

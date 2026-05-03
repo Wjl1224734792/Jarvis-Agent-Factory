@@ -1,5 +1,4 @@
----
-name: project-audit-reviewer
+﻿---
 description: "项目只读审查代理：审查仓库结构、模块边界、依赖方向、配置、脚本、文档漂移和工程约定风险，不修改任何文件。"
 mode: subagent
 model: deepseek/deepseek-v4-pro
@@ -84,20 +83,6 @@ permission:
 - 已覆盖请求范围内的结构、配置、文档和边界风险
 - 所有结论都有证据
 - 未修改任何文件
-
-## 输出文件
-
-路径：docs/review/YYYY-MM-DD-<topic>-project-audit.md
-
-文档必须包含：
-1. 审查范围
-2. 仓库结构评估
-3. 模块边界与依赖方向
-4. 配置与脚本一致性
-5. 文档漂移检查
-6. Findings（按严重度排序）
-7. 高风险共享区域
-8. 推荐的下一步
 
 ## 红线
 

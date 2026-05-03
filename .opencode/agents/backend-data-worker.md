@@ -1,8 +1,7 @@
----
-name: backend-data-worker
+﻿---
 description: "后端数据层专项工作者：在主 Build Agent 分配明确子任务后执行；负责数据库 Schema、ORM 模型、数据访问层（Repository）、迁移脚本和查询优化；不涉及业务逻辑或 API 路由。"
 mode: subagent
-model: alibaba-cn/glm-5.1
+model: deepseek/deepseek-v4-flash
 reasoningEffort: max
 temperature: 0
 permission:
@@ -83,21 +82,6 @@ permission:
 ## 共享区域变更规则
 
 若发现必须变更共享契约、数据库结构、路由前缀、根配置、全局请求客户端，必须先停止直接实现，并提交 plan patch 或 contract change request，等待主 Build Agent 决定。
-
-## 输出文件
-
-路径：docs/implementation/YYYY-MM-DD-<topic>-data-implementation.md
-
-文档必须包含：
-1. 当前实现目标
-2. 对应需求 ID / 任务 ID
-3. 变更文件 / 变更范围
-4. Schema / 模型变更说明
-5. 迁移脚本说明（含回滚方案）
-6. 查询优化说明
-7. 测试和验证结果
-8. 风险 / 未解决项
-9. 推荐的下一步
 
 ## 完成标准
 

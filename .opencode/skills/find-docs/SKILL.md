@@ -15,11 +15,6 @@ description: >-
   for API details, signatures, or configuration options as they are frequently
   outdated. Always verify against current docs. Prefer this over web search for
   library documentation and API details.
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # Documentation Lookup

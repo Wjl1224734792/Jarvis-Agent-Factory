@@ -1,8 +1,7 @@
----
-name: frontend-test-worker
+﻿---
 description: "前端测试专项工作者：在主 Build Agent 分配明确子任务后执行；负责前端单元测试、组件测试、集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 mode: subagent
-model: alibaba-cn/glm-5.1
+model: deepseek/deepseek-v4-flash
 reasoningEffort: max
 temperature: 0
 permission:
@@ -90,21 +89,6 @@ permission:
 ## 共享区域变更规则
 
 测试通常不涉及共享区域变更。若测试发现共享区域（共享契约、共享组件等）存在问题，应返回主 Build Agent 而不是自行修改。
-
-## 输出文件
-
-路径：docs/testing/YYYY-MM-DD-<topic>-frontend-test.md
-
-文档必须包含：
-1. 测试目标
-2. 对应需求 ID / 任务 ID
-3. 测试文件清单
-4. 测试覆盖范围（单元/组件/集成）
-5. 测试用例清单
-6. 运行结果（含 Red→Green 记录，如适用）
-7. Mock / Fixture 说明
-8. 未覆盖项
-9. 推荐的下一步
 
 ## 完成标准
 

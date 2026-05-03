@@ -1,5 +1,4 @@
----
-name: planner
+﻿---
 description: "在需求文档已通过 Gate A、任务文档已通过 Gate B 后使用；选择当前轮次任务包，生成执行计划，并明确实现代理分工、共享改动归属与 Execution Packet。"
 mode: subagent
 model: deepseek/deepseek-v4-pro

@@ -1,11 +1,6 @@
 ---
 name: debugging-and-error-recovery
 description: "系统化调试与错误恢复——根因追踪、纵深防御、基于条件的等待、错误分类与恢复策略。用于排查 Bug、处理线上问题和构建健壮的错误处理逻辑。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 系统化调试与错误恢复

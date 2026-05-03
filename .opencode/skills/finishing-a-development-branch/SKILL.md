@@ -1,11 +1,6 @@
 ---
 name: finishing-a-development-branch
 description: "完成开发分支——功能开发完成后的收尾流程：代码审查、清理、合并、部署、文档更新与分支归档。用于确保每个功能分支的完成都是完整、干净、可追溯的。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 完成开发分支

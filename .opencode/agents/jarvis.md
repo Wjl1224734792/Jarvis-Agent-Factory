@@ -1,5 +1,4 @@
----
-name: jarvis
+﻿---
 description: "贾维斯（Jarvis）：唯一的编排者，通过 Task 工具统一调度所有子代理完成 需求澄清→文档→任务分解→规划→实现→评审 全流程。流程不可绕过，阶段推进必须通过对应闸门检查。"
 mode: primary
 model: deepseek/deepseek-v4-pro

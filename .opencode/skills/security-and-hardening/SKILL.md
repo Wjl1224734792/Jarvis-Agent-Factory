@@ -1,11 +1,6 @@
 ---
 name: security-and-hardening
 description: "安全加固——OWASP 前十防护模式、鉴权模式、密钥管理、依赖审计、三层边界体系。用于处理用户输入、鉴权、数据存储或外部集成。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 安全加固

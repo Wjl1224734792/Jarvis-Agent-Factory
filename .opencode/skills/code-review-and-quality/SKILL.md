@@ -1,11 +1,6 @@
 ---
 name: code-review-and-quality
 description: "代码审查与质量——五轴审查框架、严重度分级、变更规模标准、依赖审查与死代码处理。用于代码审查时提供统一的方法论，适用于人工审查和 AI 审查。"
-license: MIT
-compatibility: "OpenCode >=1.0, Claude Code, Codex"
-metadata:
-  version: "1.0"
-  author: lin
 ---
 
 # 代码审查与质量
