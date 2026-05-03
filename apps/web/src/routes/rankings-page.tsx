@@ -20,7 +20,6 @@ import { getModelImage } from "../lib/aviation-media";
 import { CIRCLE_CARD_COLUMN_GAP, RANKING_GRID_MIN_COLUMNS } from "./circle-page-helpers";
 import {
   estimateRankingListItemRelativeHeight,
-  mergeRankingsByTab,
   RANKING_CARD_MIN_WIDTH_PX
 } from "./rankings-page-helpers";
 
@@ -109,17 +108,18 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
 export function RankingsPage() {
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
-    queryKey: ["rankings"],
+    queryKey: ["rankings", activeTab],
     placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listRankings()
+    queryFn: () => apiClient.listRankings({ sort: activeTab })
   });
 
-  const merged = useMemo(
-    () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data) : { hot: [], latest: [] }),
+  const activeItems = useMemo(
+    () => {
+      if (!rankingsQuery.data) return [];
+      return [...rankingsQuery.data.official, ...rankingsQuery.data.community];
+    },
     [rankingsQuery.data]
   );
-
-  const activeItems = activeTab === "hot" ? merged.hot : merged.latest;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const columnCount = useCircleColumnCount(undefined, {
     minColumns: RANKING_GRID_MIN_COLUMNS,

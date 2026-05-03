@@ -202,5 +202,26 @@ export const usersRepo = {
     );
 
     return (result.rowCount ?? 0) > 0;
+  },
+
+  async getUserModelPreferences(userId: string): Promise<
+    Array<{ modelId: string; interactionCount: number }>
+  > {
+    const result = await dbPool.query<{ model_id: string; interaction_count: number }>(
+      `
+        select model_id, cast(count(*) as int) as interaction_count
+        from aircraft_model_interactions
+        where user_id = $1
+          and created_at >= now() - interval '30 days'
+        group by model_id
+        order by interaction_count desc
+      `,
+      [userId]
+    );
+
+    return result.rows.map(row => ({
+      modelId: row.model_id,
+      interactionCount: row.interaction_count
+    }));
   }
 };

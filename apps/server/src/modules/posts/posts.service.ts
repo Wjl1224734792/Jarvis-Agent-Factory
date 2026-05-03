@@ -16,6 +16,7 @@ import {
   FEED_CURSOR_VERSION,
   resolveFeedCursorTime
 } from "./feed-cursor";
+import { rankFeedItemsByRecommendation } from "./feed-recommendation";
 import { buildCoversByPostId, buildImagesByPostId, buildVideosByPostId } from "./post-media";
 import {
   serializeAdminOfficialArticleDetail,
@@ -123,7 +124,7 @@ export const postsService = {
       limit: limit + 1
     });
     const hasMore = feedResult.items.length > limit;
-    const items = hasMore ? feedResult.items.slice(0, limit) : feedResult.items;
+    let items = hasMore ? feedResult.items.slice(0, limit) : feedResult.items;
     const postIds = items.map((item) => item.id);
     const authorIds = items.map((item) => item.author.id);
     const [interactions, followingAuthorIds, ipLocationLabelMap] = await Promise.all([
@@ -132,6 +133,72 @@ export const postsService = {
       usersService.resolvePublicIpLocationLabelMap(authorIds)
     ]);
     const interactionMap = buildInteractionMap(interactions);
+
+    // TASK-001 / REQ-001: Re-rank recommended feed items with diversity penalty
+    // to reduce consecutive same-author / same-category content. Runs before
+    // serialization so that the ranker sees raw engagement/viewer signals and
+    // the downstream cursor is derived from the diversified tail.
+    if (tab === "recommended" && items.length > 0) {
+      const precomputedBaseScores = new Map<string, number>();
+      const feedRecItems = items.map((item) => {
+        if (typeof item.recommendationBaseScore === "number") {
+          precomputedBaseScores.set(item.id, item.recommendationBaseScore);
+        }
+
+        const viewerState = toViewerState({
+          authorId: item.author.id,
+          currentUser,
+          followingAuthorIds,
+          interactionTypes: interactionMap.get(item.id)
+        });
+
+        return {
+          id: item.id,
+          title: item.title,
+          contentPreview:
+            item.contentPlainText && item.contentPlainText.length > 160
+              ? `${item.contentPlainText.slice(0, 160)}...`
+              : (item.contentPlainText ?? ""),
+          viewCount: item.viewCount,
+          reportCount: item.reportCount,
+          commentCount: item.commentCount,
+          engagement: {
+            likeCount: item.likeCount,
+            favoriteCount: item.favoriteCount,
+            shareCount: item.shareCount,
+            viewer: viewerState
+          },
+          author: {
+            id: item.author.id,
+            role: item.author.role as "user" | "admin"
+          },
+          images: [],
+          videos: [],
+          createdAt: item.createdAt.toISOString(),
+          updatedAt: item.updatedAt.toISOString(),
+          publishedAt: item.publishedAt ? item.publishedAt.toISOString() : null,
+          contentCategory: item.contentCategory?.id
+            ? {
+                id: item.contentCategory.id,
+                slug: item.contentCategory.slug,
+                name: item.contentCategory.name
+              }
+            : null
+        };
+      });
+
+      const rankedItems = rankFeedItemsByRecommendation(feedRecItems, {
+        type: input.type,
+        precomputedBaseScores,
+        now: recommendationNow
+      });
+
+      const itemsById = new Map(items.map((item) => [item.id, item]));
+      items = rankedItems
+        .map((ranked) => itemsById.get(ranked.id))
+        .filter((x): x is NonNullable<typeof x> => x != null);
+    }
+
     const orderedItems = items
       .map((item) =>
         serializePostListItem(item, {

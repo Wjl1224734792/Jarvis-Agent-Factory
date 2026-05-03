@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { RankingListItem } from "@feijia/schemas";
-import { buildRankingHotScore, mergeRankingsByTab } from "../src/routes/rankings-page-helpers";
+import { mergeRankingsByTab } from "../src/routes/rankings-page-helpers";
 
 function createRanking(overrides: Partial<RankingListItem>): RankingListItem {
   return {
@@ -62,22 +62,7 @@ function createRanking(overrides: Partial<RankingListItem>): RankingListItem {
 }
 
 describe("rankings page helpers", () => {
-  it("gives hot score priority to higher-quality and better-engaged rankings", () => {
-    const baseline = createRanking({
-      averageScore: 6.2,
-      commentCount: 2
-    });
-    const stronger = createRanking({
-      id: "ranking_2",
-      averageScore: 8.8,
-      commentCount: 6,
-      createdAt: "2026-04-08T09:00:00.000Z"
-    });
-
-    expect(buildRankingHotScore(stronger)).toBeGreaterThan(buildRankingHotScore(baseline));
-  });
-
-  it("merges official and community rankings into hot and latest streams", () => {
+  it("merges official and community rankings into latest stream sorted by createdAt desc", () => {
     const official = createRanking({
       id: "official_1",
       type: "official",
@@ -95,7 +80,7 @@ describe("rankings page helpers", () => {
       community: [community]
     });
 
+    // 按创建时间降序：community_1 (10:00) 应排在 official_1 (07:00) 前面
     expect(merged.latest.map((item) => item.id)).toEqual(["community_1", "official_1"]);
-    expect(merged.hot[0]?.id).toBe("community_1");
   });
 });

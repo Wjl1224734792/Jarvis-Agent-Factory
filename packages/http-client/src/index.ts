@@ -1261,13 +1261,16 @@ export function createApiClient(options: ApiClientOptions) {
         updateBrandApplicationStatusInputSchema.parse(input)
       );
     },
-    async listRankings(input?: FeedPaginationInput) {
+    async listRankings(input?: FeedPaginationInput & { sort?: "hot" | "latest" }) {
       const search = new URLSearchParams();
       if (input?.page) {
         search.set("page", String(input.page));
       }
       if (input?.limit) {
         search.set("limit", String(input.limit));
+      }
+      if (input?.sort) {
+        search.set("sort", input.sort);
       }
       const query = search.size > 0 ? `?${search.toString()}` : "";
       const response = await fetch(`${baseUrl}${API_ROUTES.rankings.overview}${query}`, {

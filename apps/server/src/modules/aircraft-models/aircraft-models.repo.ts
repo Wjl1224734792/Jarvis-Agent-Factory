@@ -10,10 +10,11 @@ import {
   brandsTable,
   createId,
   db,
+  ratingTargetsTable,
   userFollowsTable,
   usersTable
 } from "@feijia/db";
-import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, or, sql } from "drizzle-orm";
 import { buildIlikeAnyCondition, buildSearchPatterns } from "../../lib/search";
 
 type ListFilters = {
@@ -146,6 +147,62 @@ export const aircraftModelsRepo = {
     }
 
     return query;
+  },
+  async getModelHotExtraData(modelIds: string[]) {
+    if (modelIds.length === 0) {
+      return [];
+    }
+
+    // 批量查询机型浏览数据（现有 viewCount 作为浏览热度代理）
+    const viewRows = await db
+      .select({
+        modelId: aircraftModelsTable.id,
+        viewCount: aircraftModelsTable.viewCount,
+      })
+      .from(aircraftModelsTable)
+      .where(inArray(aircraftModelsTable.id, modelIds));
+
+    // 批量查询机型被榜单引用次数（rating_targets.linked_model_id）
+    const rankingRefRows = await db
+      .select({
+        modelId: ratingTargetsTable.linkedModelId,
+        refCount: sql<number>`cast(count(*) as int)`,
+      })
+      .from(ratingTargetsTable)
+      .where(
+        and(
+          inArray(ratingTargetsTable.linkedModelId, modelIds),
+          eq(ratingTargetsTable.status, "published")
+        )
+      )
+      .groupBy(ratingTargetsTable.linkedModelId);
+
+    // 批量查询机型近期交互频次（近 7 天，作为搜索热度代理）
+    const sevenDaysAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+    const interactionRows = await db
+      .select({
+        modelId: aircraftModelInteractionsTable.modelId,
+        count: sql<number>`cast(count(*) as int)`,
+      })
+      .from(aircraftModelInteractionsTable)
+      .where(
+        and(
+          inArray(aircraftModelInteractionsTable.modelId, modelIds),
+          gte(aircraftModelInteractionsTable.createdAt, sevenDaysAgo)
+        )
+      )
+      .groupBy(aircraftModelInteractionsTable.modelId);
+
+    const viewMap = new Map(viewRows.map((r) => [r.modelId, r.viewCount]));
+    const interactionMap = new Map(interactionRows.map((r) => [r.modelId, r.count]));
+    const rankingRefMap = new Map(rankingRefRows.map((r) => [r.modelId, r.refCount]));
+
+    return modelIds.map((id) => ({
+      modelId: id,
+      recentViewCount: viewMap.get(id) ?? 0,
+      recentSearchCount: interactionMap.get(id) ?? 0,
+      rankingReferenceCount: rankingRefMap.get(id) ?? 0,
+    }));
   },
   async findBySlug(slug: string) {
     const items = await db

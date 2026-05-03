@@ -161,5 +161,18 @@ export const usersService = {
 
     await usersRepo.unbanUser(userId);
     return this.getAdminUser(userId);
+  },
+
+  /**
+   * 构建用户的机型偏好向量（模型 ID 列表，按交互频次降序）。
+   * 查询近 30 天用户与机型模型的交互记录（浏览、收藏、评论等），
+   * 返回按交互频次降序排列的机型 ID 数组。
+   *
+   * 此方法适合作为异步更新逻辑（每周一次），结果可缓存，
+   * 避免每次 Feed 请求都执行聚合查询。
+   */
+  async buildUserModelPreferenceVector(userId: string): Promise<string[]> {
+    const preferences = await usersRepo.getUserModelPreferences(userId);
+    return preferences.map(p => p.modelId);
   }
 };

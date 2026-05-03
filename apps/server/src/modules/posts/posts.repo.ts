@@ -29,6 +29,104 @@ type RecommendedFeedCursorInput = {
   id: string;
 };
 
+// ---------------------------------------------------------------------------
+// Configurable recommendation parameters from environment variables
+// ---------------------------------------------------------------------------
+
+function getArticleHalfLifeHours(): number {
+  const raw = process.env.RECOMMENDATION_ARTICLE_HALFLIFE_HOURS?.trim();
+  if (raw === undefined || raw === "") {
+    return 36;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 36;
+}
+
+function getMomentHalfLifeHours(): number {
+  const raw = process.env.RECOMMENDATION_MOMENT_HALFLIFE_HOURS?.trim();
+  if (raw === undefined || raw === "") {
+    return 18;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 18;
+}
+
+function getInteractionWeight(): number {
+  const raw = process.env.RECOMMENDATION_INTERACTION_WEIGHT?.trim();
+  if (raw === undefined || raw === "") {
+    return 0.58;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : 0.58;
+}
+
+function getPreferenceBoostWeight(): number {
+  const raw = process.env.RECOMMENDATION_PREFERENCE_BOOST_WEIGHT?.trim();
+  if (raw === undefined || raw === "") {
+    return 5;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : 5;
+}
+
+/**
+ * Build a SQL expression for the user model preference boost.
+ *
+ * Returns a CASE expression that adds a small score boost when a post is
+ * approximately related to any aircraft model the current user has recently
+ * interacted with. The matching uses an "equivalent association" via
+ * rating_targets (rankings that reference the user's preferred models) and
+ * rankings (authored by the post's author).
+ *
+ * When `currentUserId` is null/undefined the expression hard-codes 0 so that
+ * unauthenticated requests incur zero subquery overhead.
+ *
+ * @param currentUserId  Logged-in user id, or null/undefined for guests.
+ */
+function buildUserModelPreferenceBoostExpression(currentUserId?: string | null) {
+  if (!currentUserId) {
+    return sql<number>`0`;
+  }
+
+  const preferenceBoostWeight = getPreferenceBoostWeight();
+
+  // The nested EXISTS subquery below matches a post to the user's preferred
+  // aircraft models through a multi-hop "equivalent association":
+  //
+  //   user ↔ aircraft_model_interactions (user is interested in model X)
+  //   post.author ↔ ranking.author (post author created a ranking)
+  //   ranking → rating_target (ranking contains targets with linkedModelId)
+  //   rating_target.linkedModelId = model X
+  //
+  // When a dedicated post_aircraft_links table is added in the future, this
+  // subquery should be rewritten to join directly on that table for exact
+  // per-post matching.
+  //
+  // NOTE: Table and column names in this expression are hard-coded as quoted
+  // identifiers to ensure unambiguous resolution within correlated subqueries.
+  return sql<number>`
+    (
+      case
+        when exists (
+          select 1
+          from "aircraft_model_interactions"
+          where "aircraft_model_interactions"."user_id" = ${currentUserId}
+            and "aircraft_model_interactions"."created_at" >= now() - make_interval(days => 30)
+            and exists (
+              select 1
+              from "rating_targets"
+              inner join "rankings"
+                on "rankings"."id" = "rating_targets"."ranking_id"
+              where "rankings"."author_id" = "posts"."author_id"
+                and "rating_targets"."linked_model_id" = "aircraft_model_interactions"."model_id"
+            )
+        ) then ${preferenceBoostWeight}
+        else 0
+      end
+    )
+  `;
+}
+
 function buildFeedPublishedAtExpressionFrom(input: {
   publishedAt: SQLWrapper;
   createdAt: SQLWrapper;
@@ -84,7 +182,7 @@ function buildRecommendationInteractionScoreExpression(type: PostType) {
 }
 
 function buildRecommendationFreshnessMultiplierExpression(type: PostType, recommendationNow?: Date) {
-  const halfLife = type === "article" ? 42 : 22;
+  const halfLife = type === "article" ? getArticleHalfLifeHours() : getMomentHalfLifeHours();
 
   return sql<number>`
     power(0.5, ${buildRecommendationAgeHoursExpression(recommendationNow)} / ${halfLife})
@@ -206,11 +304,13 @@ function buildRecommendedStaticBaseScoreExpression(
       end
     )
   `;
+  const interactionWeight = getInteractionWeight();
+  const freshnessWeight = 1 - interactionWeight;
 
   return sql<number>`
     round(
       (
-        (${interactionScore} * (0.58 + (${freshnessMultiplier} * 0.42))) +
+        (${interactionScore} * (${interactionWeight} + (${freshnessMultiplier} * ${freshnessWeight}))) +
         (${freshnessMultiplier} * ${freshnessBoostWeight}) +
         ${buildRecommendedFollowBoostExpression(type, currentUserId)} +
         ${officialBoost} +
@@ -393,6 +493,8 @@ function postFeedSelection(input?: { recommendationBaseScore?: SQL<number> | SQL
     }
   };
 }
+
+export { buildUserModelPreferenceBoostExpression };
 
 export const postsRepo = {
   async listUsersByIds(ids: string[]) {
@@ -756,11 +858,11 @@ export const postsRepo = {
         : null;
 
     if (input.tab === "recommended") {
-      const recommendationBaseScore = buildRecommendedStaticBaseScoreExpression(
-        input.type,
-        input.currentUserId,
-        input.recommendationNow
-      ).as("recommendation_base_score");
+      const preferenceBoost = buildUserModelPreferenceBoostExpression(input.currentUserId);
+      const recommendationBaseScore = sql<number>`
+        ${buildRecommendedStaticBaseScoreExpression(input.type, input.currentUserId, input.recommendationNow)} +
+        coalesce(${preferenceBoost}, 0)
+      `.as("recommendation_base_score");
       const scoredFeed = db.$with("scored_feed").as(
         db
           .select({

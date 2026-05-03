@@ -1,4 +1,4 @@
-type FeedRecommendationItem = {
+export type FeedRecommendationItem = {
   id: string;
   title: string;
   contentPreview: string;
@@ -32,13 +32,44 @@ type FeedRecommendationItem = {
   } | null;
 };
 
-type ScoredFeedRecommendationItem<T extends FeedRecommendationItem> = {
+export type ScoredFeedRecommendationItem<T extends FeedRecommendationItem> = {
   item: T;
   baseScore: number;
   publishedTime: number;
 };
 
 const MS_PER_HOUR = 1000 * 60 * 60;
+
+// ---------------------------------------------------------------------------
+// Configurable parameters from environment variables
+// ---------------------------------------------------------------------------
+
+function getArticleHalfLifeHours(): number {
+  const raw = process.env.RECOMMENDATION_ARTICLE_HALFLIFE_HOURS?.trim();
+  if (raw === undefined || raw === "") {
+    return 36;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 36;
+}
+
+function getMomentHalfLifeHours(): number {
+  const raw = process.env.RECOMMENDATION_MOMENT_HALFLIFE_HOURS?.trim();
+  if (raw === undefined || raw === "") {
+    return 18;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value > 0 ? value : 18;
+}
+
+function getInteractionWeight(): number {
+  const raw = process.env.RECOMMENDATION_INTERACTION_WEIGHT?.trim();
+  if (raw === undefined || raw === "") {
+    return 0.58;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : 0.58;
+}
 
 function getPublishedTime(item: FeedRecommendationItem) {
   return new Date(item.publishedAt ?? item.createdAt).getTime();
@@ -89,7 +120,7 @@ function buildFreshnessMultiplier(
   input: { now: Date; type: "article" | "moment" }
 ) {
   const ageHours = getAgeHours(item, input.now);
-  const halfLife = input.type === "article" ? 42 : 22;
+  const halfLife = input.type === "article" ? getArticleHalfLifeHours() : getMomentHalfLifeHours();
   return Math.pow(0.5, ageHours / halfLife);
 }
 
@@ -150,7 +181,13 @@ function buildStaticFeedRecommendationScore(
       : item.reportCount > 0
         ? Math.min(10, item.reportCount * 1.8)
         : 0;
-  const freshnessAdjustedInteraction = interactionScore * clamp(0.58 + freshnessMultiplier * 0.42, 0.58, 1);
+  const interactionWeight = getInteractionWeight();
+  const freshnessWeight = 1 - interactionWeight;
+  const freshnessAdjustedInteraction = interactionScore * clamp(
+    interactionWeight + freshnessMultiplier * freshnessWeight,
+    interactionWeight,
+    1
+  );
 
   return (
     freshnessAdjustedInteraction +
@@ -165,7 +202,7 @@ function buildStaticFeedRecommendationScore(
   );
 }
 
-function buildDiversityPenalty<T extends FeedRecommendationItem>(
+export function buildDiversityPenalty<T extends FeedRecommendationItem>(
   candidate: T,
   selected: Array<ScoredFeedRecommendationItem<T>>,
   type: "article" | "moment"
