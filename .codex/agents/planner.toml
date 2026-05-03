@@ -64,6 +64,9 @@ developer_instructions = """
 - 算法选型 / 复杂度分析 / 性能 POC：`algorithm_expert`
 - 前端技术选型 / 组件架构 / 构建策略：`frontend_architect`
 - 后端微服务 / 数据库架构 / 分布式设计：`backend_architect`
+- CI/CD / 容器化 / 部署配置：`infra_worker`
+- 安全审计 / 威胁建模 / 漏洞扫描：`security_auditor`
+- 端到端测试 / 浏览器自动化：`e2e_test_worker`
 
 spawn 策略以 `using-agent-skills` 中的代理分类和编排者传入的当前轮次计划为准。
 

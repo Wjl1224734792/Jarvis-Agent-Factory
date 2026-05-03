@@ -305,6 +305,44 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 - 单次实现变更行数未超过 ~1000 行（超过 → 评估是否需拆分评审）
 - 所有 REQ-XXX 在实现文档中都有对应的变更记录
 
+### Gate E：评审 → 发布上线
+
+Gate D 评审通过后，进入发布上线阶段。必须满足：
+- [ ] 所有 REQ-XXX 对应的实现已通过 Gate D 评审
+- [ ] 上线检查清单已执行（加载 `shipping-and-launch` 技能）
+- [ ] 回滚预案已就绪
+- [ ] 监控告警规则已配置
+- [ ] 数据库迁移脚本已就绪（如涉及 Schema 变更）
+- [ ] 版本号已递增，changelog 已生成（加载 `git-workflow-and-versioning` 技能）
+
+上线后加载 `finishing-a-development-branch` 执行分支归档，监控关键指标 30 分钟无异常则 Gate E 通过。
+
+---
+
+## Plan Patch / Contract Change Request
+
+实现代理若发现必须变更共享区域（共享契约、数据库 Schema、路由前缀、根配置），不得直接修改，必须提交 plan patch：
+
+```
+## Plan Patch Request
+- 提出者：<agent 名称>
+- 关联任务：TASK-XXX
+- 冲突描述：<当前计划与代码现状的冲突>
+- 建议变更：<对共享区域的变更建议>
+- 影响评估：<对其他并行任务的影响>
+- 替代方案：<已考虑的替代方案>
+```
+
+编排者收到 plan patch 后评估、决策、更新计划文档，再通知相关代理继续。
+
+## 架构评审 Gate（B→C 之间，复杂项目强制）
+
+若 planner 产出的计划涉及以下任一情况，必须先 spawn `frontend-architect` 或 `backend-architect` 做架构评审：
+- 引入新的技术栈组件（框架、数据库、中间件）
+- 微服务拆分或合并
+- 数据库分库分表或架构变更
+- 前端架构模式变更（SPA→SSR、状态管理方案替换）
+
 ---
 
 ## 子代理调度策略
@@ -325,6 +363,9 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 | 算法选型 / 性能优化 / POC 验证 | `algorithm-expert` |
 | 前端架构设计 / 技术选型 | `frontend-architect` |
 | 后端架构设计 / 分布式方案 | `backend-architect` |
+| CI/CD / 容器化 / 部署 | `infra-worker` |
+| 安全审计 / 威胁建模 | `security-auditor` |
+| 端到端集成测试 | `e2e-test-worker` |
 
 ### 审查与修复调度
 

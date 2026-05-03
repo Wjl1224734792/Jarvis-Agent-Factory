@@ -13,7 +13,7 @@
 ```
 想法细化 ─→ 需求澄清 ─→ 需求文档 ─→ 任务分解 ─→ 执行规划 ─→ 并行实现 ─→ 评审交付 ─→ 发布上线
                 │             │             │             │             │             │
-             Gate A       Gate B       Gate C       Gate D       Gate E
+             Gate A       Gate B       Gate C       Gate D        Gate E
 ```
 
 | 阶段 | 执行者 | 关键产出 |
@@ -24,7 +24,7 @@
 | **3. 执行规划** | planner 代理 | Execution Packet 并行计划 |
 | **4. 并行实现** | 各领域实现代理 | 垂直切片代码 |
 | **5. 评审交付** | review-qa 代理 | 需求追踪矩阵 |
-| **6. 发布上线** | Jarvis | 上线检查清单 |
+| **6. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 |
 
 每个阶段有对应闸门（Gate），未通过不可进入下一阶段。
 
@@ -141,16 +141,17 @@ model_reasoning_effort = "xhigh"
 
 ## 智能体体系
 
-共 **26 个智能体**，按职责分为六大类：
+共 **29 个智能体**，按职责分为六大类：
 
 | 类别 | 智能体 |
 |------|--------|
 | **规划与评审** | `jarvis`、`task-design`、`planner`、`review-qa` |
 | **探索与资料** | `repo-explorer`、`docs-researcher` |
 | **架构设计** | `algorithm-expert`、`frontend-architect`、`backend-architect` |
-| **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
+| **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`security-auditor`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
 | **后端实现** | `backend-implementer`、`backend-api-worker`、`backend-service-worker`、`backend-data-worker`、`backend-test-worker` |
 | **前端实现** | `frontend-implementer`、`frontend-ui-worker`、`frontend-state-worker`、`frontend-test-worker` |
+| **基础设施** | `infra-worker`、`e2e-test-worker` |
 
 ## 技能系统
 
@@ -173,16 +174,16 @@ model_reasoning_effort = "xhigh"
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
   commands/                      #   6 个 slash 命令
-  agents/                        #   26 个智能体定义
+  agents/                        #   29 个智能体定义
   skills/                        #   20 个方法论技能
 
 .opencode/                       # OpenCode 配置
-  agents/                        #   26 个智能体定义
+  agents/                        #   29 个智能体定义
   skills/                        #   20 个方法论技能
 
 .codex/                          # Codex 配置
   config.toml                    #   主配置
-  agents/                        #   23 个子智能体
+  agents/                        #   26 个子智能体
   skills/                        #   20 个方法论技能
 ```
 

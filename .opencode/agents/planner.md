@@ -115,6 +115,9 @@ permission:
 - 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
 - 前端技术选型 / 组件架构 / 构建策略：frontend-architect
 - 后端微服务 / 数据库架构 / 分布式设计：backend-architect
+- CI/CD / 容器化 / 部署配置：infra-worker
+- 安全审计 / 威胁建模 / 漏洞扫描：security-auditor
+- 端到端测试 / 浏览器自动化：e2e-test-worker
 
 ## 共享区域规则
 
