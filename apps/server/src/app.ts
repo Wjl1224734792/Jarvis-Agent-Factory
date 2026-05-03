@@ -80,14 +80,7 @@ export function resolveCorsOrigin():
   if (raw) {
     const list = parseConfiguredCorsOrigins(raw);
     if (list.length > 0) {
-      if (process.env.NODE_ENV === 'production') {
-        return list;
-      }
-
-      return (origin: string) =>
-        list.includes(origin) || isAllowedDevCorsOrigin(origin)
-          ? origin
-          : undefined;
+      return list;
     }
   }
 
