@@ -10,6 +10,32 @@
 
 每个门禁是硬阻断。不跳过，不合并相邻阶段，不在规划前实现。
 
+## 文档落盘
+
+所有管道产物**必须**写入 `docs/` 对应子目录，格式：`docs/<子目录>/YYYY-MM-DD-<topic>-<类型>.md`。
+
+| 门禁/阶段 | 产物 | 落盘路径 | 负责代理 |
+|-----------|------|----------|----------|
+| Gate A | 需求文档（REQ-XXX） | `docs/requirements/` | 主 Build Agent |
+| Gate B | 任务文档（TASK-XXX） | `docs/tasks/` | `task-design` |
+| Gate C | 执行计划 | `docs/plans/` | `planner` |
+| 实现 | 实现记录 | `docs/implementation/` | 实现代理 |
+| Gate D | 审查报告 | `docs/review/` | `review-qa` |
+| 契约变更 | 契约变更记录 | `docs/contracts/` | 变更发起代理 |
+| 分析 | 分析报告 | `docs/analysis/` | 按需 |
+
+未有对应子目录时，**必须先创建子目录再写入**。
+
+## 专项规范
+
+所有代理必须遵守 `.claude/rules/` 下的规范，不得违反：
+
+| 规范文件 | 适用范围 |
+|----------|----------|
+| `通用编程规范与指南.md` | 嵌套≤4层、数组不可变操作、DDD/TDD、禁止物理外键、禁止 `@apply`、检出清单 |
+| `TypeScript与Interface使用规范.md` | interface vs type 选择、Zod 实践原则 |
+| `团队协作规范.md` | Prettier/ESLint 配置、分支命名、提交规范（Conventional Commits）、CI/CD 门禁 |
+
 ## 会话启动
 
 每次会话开始时，立即调用：
@@ -25,7 +51,7 @@ Skill("behavioral-guidelines")
 4. **最大化并行。** 独立的 Agent 调用在单条消息中批量发出。
 5. **仅垂直切片。** 任务按功能路径拆分，绝不按技术层拆分。
 6. **共享区域单一负责人。** 契约、Schema、配置 —— 每个区域恰好一个 Agent 负责。
-7. **变更留下痕迹。** 计划补丁和契约变更必须被记录，不能口头传递。
+7. **变更留下痕迹。** 计划补丁和契约变更必须写入 `docs/plans/` 和 `docs/contracts/`，不能口头传递。所有门禁产物落盘到 `docs/` 对应子目录。
 
 ## 子代理
 

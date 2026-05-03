@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Form, Input, Select, Space } from "antd";
+import { Button, Checkbox, Form, Input, Select, Space } from "antd";
 import {
   Suspense,
   lazy,
@@ -45,7 +45,16 @@ type OfficialArticleEditorFormValues = {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
+  declarations?: string[];
 };
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+];
 
 const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
 
@@ -98,6 +107,7 @@ export function OfficialArticleEditorPage() {
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
+  const watchedDeclarations = (Form.useWatch("declarations", form) ?? []) as string[];
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -135,6 +145,7 @@ export function OfficialArticleEditorPage() {
     setUploadedVideos(createMediaAssetList(item.videos));
     setEditorHtml(parsedDocument.contentHtml);
     setEditorText(parsedDocument.plainText || item.content);
+    form.setFieldValue('declarations', item.declarations?.values ?? []);
   }, [detailQuery.data?.item, editId, form]);
 
   useEffect(() => {
@@ -335,6 +346,7 @@ export function OfficialArticleEditorPage() {
         contentCategoryId: values.contentCategoryId,
         sourceLabel: values.sourceLabel,
         sourceUrl: values.sourceUrl,
+        declarations: values.declarations,
         content: document.plainText,
         contentHtml: document.contentHtml
       } satisfies OfficialArticleFormValues,
@@ -428,6 +440,17 @@ export function OfficialArticleEditorPage() {
               rules={[{ type: "url", message: "请输入合法 URL" }]}
             >
               <Input placeholder="https://example.com/source" size="large" />
+            </Form.Item>
+
+            <Form.Item
+              label="内容声明"
+              name="declarations"
+              rules={[
+                { required: true, message: '请至少选择一项内容声明' },
+                { type: 'array', min: 1, message: '请至少选择一项内容声明' }
+              ]}
+            >
+              <Checkbox.Group options={DECLARATION_OPTIONS} />
             </Form.Item>
 
             <Form.Item
@@ -540,6 +563,16 @@ export function OfficialArticleEditorPage() {
                   ) : (
                     watchedSourceLabel.trim()
                   )}
+                </div>
+              ) : null}
+              {watchedDeclarations.length > 0 ? (
+                <div className="admin-article-preview__meta">
+                  {watchedDeclarations
+                    .map(
+                      (value) =>
+                        DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
+                    )
+                    .join(' / ')}
                 </div>
               ) : null}
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>

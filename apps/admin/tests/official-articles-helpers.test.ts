@@ -26,6 +26,7 @@ describe("buildOfficialArticlePayload", () => {
       contentCategoryId: "cat_1",
       sourceLabel: "Flight Daily",
       sourceUrl: "https://example.com/source",
+      declarations: [],
       imageIds: ["img_1"],
       videoIds: ["vid_1"]
     });

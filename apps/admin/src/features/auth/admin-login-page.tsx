@@ -176,17 +176,17 @@ export function AdminLoginPage() {
                     void refreshLoginCaptcha();
                   }}
                   style={{
-                    alignItems: "center",
-                    background: "#fff",
-                    border: "1px solid rgba(15, 23, 42, 0.14)",
+                    alignItems: 'center',
+                    background: '#fff',
+                    border: '1px solid rgba(15, 23, 42, 0.14)',
                     borderRadius: 8,
-                    cursor: isCaptchaLoading ? "wait" : "pointer",
-                    display: "flex",
-                    height: 42,
-                    justifyContent: "center",
-                    overflow: "hidden",
+                    cursor: isCaptchaLoading ? 'wait' : 'pointer',
+                    display: 'flex',
+                    height: 44,
+                    justifyContent: 'center',
+                    overflow: 'hidden',
                     padding: 0,
-                    width: 128
+                    width: 150
                   }}
                   title="点击刷新"
                   type="button"
@@ -194,7 +194,14 @@ export function AdminLoginPage() {
                   {captchaChallenge ? (
                     <span
                       dangerouslySetInnerHTML={{ __html: captchaChallenge.imageOrText }}
-                      style={{ display: "block", lineHeight: 0, width: "100%" }}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        lineHeight: 0,
+                        width: '100%',
+                        height: '100%'
+                      }}
                     />
                   ) : (
                     <ReloadOutlined spin={isCaptchaLoading} />

@@ -165,6 +165,26 @@ export function serializePostSource(item: {
   };
 }
 
+const DECLARATION_LABEL_MAP: Record<string, string> = {
+  original: '原创',
+  ai_generated: 'AI生成',
+  ai_assisted: 'AI辅助创作',
+  reprinted: '转载',
+  deep_synthesis: '深度合成'
+};
+
+export function serializePostDeclarations(declarations: string[] | null | undefined) {
+  if (!declarations || declarations.length === 0) {
+    return null;
+  }
+  return {
+    values: declarations,
+    labels: declarations
+      .map((d) => DECLARATION_LABEL_MAP[d] ?? d)
+      .filter(Boolean)
+  };
+}
+
 /**
  * 序列化帖子列表项。
  *
@@ -198,6 +218,7 @@ export function serializePostListItem(
     publishedAt: toIsoString(item.publishedAt),
     author: buildPublicUserSummary(item.author, options.ipLocationLabelMap),
     source: serializePostSource(item),
+    declarations: serializePostDeclarations(item.declarations),
     cover: options.cover,
     images: options.images,
     videos: options.videos,

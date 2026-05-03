@@ -53,6 +53,7 @@ type MomentDraftData = {
   content: string;
   sourceLabel: string;
   sourceUrl: string;
+  declarations: string[];
   uploadedImages: UploadedImage[];
   selectedImageCoverId: string | null;
   uploadedVideo: UploadedVideo | null;
@@ -60,6 +61,14 @@ type MomentDraftData = {
   videoCoverSource: "frame" | "manual";
   videoFrameRatio: number;
 };
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+] as const;
 
 async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
   const video = document.createElement("video");
@@ -213,6 +222,7 @@ export function PublishMomentPage() {
   const [content, setContent] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [declarations, setDeclarations] = useState<string[]>([]);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageCoverId, setSelectedImageCoverId] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -310,6 +320,7 @@ export function PublishMomentPage() {
         setContent(draft.content ?? "");
         setSourceLabel(draft.sourceLabel ?? "");
         setSourceUrl(draft.sourceUrl ?? "");
+        setDeclarations(draft.declarations ?? []);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
         setUploadedVideo(restoredVideo?.asset ?? null);
@@ -348,6 +359,7 @@ export function PublishMomentPage() {
     setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
+    setDeclarations(item.declarations?.values ?? []);
     const nextImages = item.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -444,6 +456,7 @@ export function PublishMomentPage() {
         content,
         sourceLabel,
         sourceUrl,
+        declarations,
         uploadedImages,
         selectedImageCoverId,
         uploadedVideo,
@@ -455,6 +468,7 @@ export function PublishMomentPage() {
     });
   }, [
     content,
+    declarations,
     editId,
     selectedImageCoverId,
     sourceLabel,
@@ -874,6 +888,40 @@ export function PublishMomentPage() {
                   )}
                 </div>
               ) : null}
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    内容声明 <span className="text-destructive">*</span>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {DECLARATION_OPTIONS.map((option) => (
+                    <button
+                      className={cn(
+                        'rounded-full border px-3 py-1.5 text-[0.82rem] transition',
+                        declarations.includes(option.value)
+                          ? 'border-primary bg-primary text-primary-foreground'
+                          : 'border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground'
+                      )}
+                      key={option.value}
+                      onClick={() => {
+                        setDeclarations((current) =>
+                          current.includes(option.value)
+                            ? current.filter((v) => v !== option.value)
+                            : [...current, option.value]
+                        );
+                      }}
+                      type="button"
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {declarations.length === 0 ? (
+                  <p className="text-xs text-destructive">请至少选择一项内容声明</p>
+                ) : null}
+              </div>
             </SitePanelBody>
           </SitePanel>
 
@@ -886,6 +934,7 @@ export function PublishMomentPage() {
                 disabled={
                   !title.trim() ||
                   !submitCoverReady ||
+                  declarations.length === 0 ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -932,6 +981,7 @@ export function PublishMomentPage() {
                         content,
                         sourceLabel,
                         sourceUrl,
+                        declarations,
                         coverImageId: submitCover.id,
                         imageIds: [],
                         videoIds: [submitVideo.id]
@@ -960,6 +1010,7 @@ export function PublishMomentPage() {
                       content,
                       sourceLabel,
                       sourceUrl,
+                      declarations,
                       coverImageId: coverId,
                       imageIds: submitImages.map((entry) => entry.item.id),
                       videoIds: []
@@ -1052,6 +1103,16 @@ export function PublishMomentPage() {
                   <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
                     {title || "动态标题"}
                   </h2>
+                  {declarations.length > 0 ? (
+                    <div className="line-clamp-1 text-[0.72rem] text-muted-foreground">
+                      {declarations
+                        .map(
+                          (value) =>
+                            DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
+                        )
+                        .join(' / ')}
+                    </div>
+                  ) : null}
                   {sourceLabelValue ? (
                     <div className="line-clamp-1 text-[0.74rem] text-muted-foreground">
                       来源：

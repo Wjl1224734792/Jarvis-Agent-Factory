@@ -57,10 +57,19 @@ type ArticleDraftData = {
   categoryId: string;
   sourceLabel: string;
   sourceUrl: string;
+  declarations: string[];
   coverImage: UploadedImage | null;
   uploadedImages: UploadedImage[];
   uploadedVideos: UploadedVideo[];
 };
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+] as const;
 
 function escapeHtml(input: string) {
   return input
@@ -164,6 +173,7 @@ export function PublishArticlePage() {
   const [categoryId, setCategoryId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [declarations, setDeclarations] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
@@ -222,6 +232,7 @@ export function PublishArticlePage() {
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
         setSourceUrl(parsed.sourceUrl ?? "");
+        setDeclarations(parsed.declarations ?? []);
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
@@ -259,6 +270,7 @@ export function PublishArticlePage() {
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
+    setDeclarations(item.declarations?.values ?? []);
     setCoverImage(
       item.images[0]
         ? {
@@ -309,6 +321,7 @@ export function PublishArticlePage() {
     Boolean(articleText.trim()) &&
     Boolean(categoryId) &&
     Boolean(coverImage) &&
+    declarations.length > 0 &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
   const mediaSummaryText = useMemo(
@@ -334,6 +347,7 @@ export function PublishArticlePage() {
         categoryId,
         sourceLabel,
         sourceUrl,
+        declarations,
         coverImage,
         uploadedImages,
         uploadedVideos
@@ -344,6 +358,7 @@ export function PublishArticlePage() {
   }, [
     categoryId,
     coverImage,
+    declarations,
     editorHtml,
     sourceLabel,
     sourceUrl,
@@ -525,6 +540,7 @@ export function PublishArticlePage() {
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
+        declarations,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
         ),
@@ -693,6 +709,40 @@ export function PublishArticlePage() {
                   </div>
                 ) : null}
 
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      内容声明 <span className="text-destructive">*</span>
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {DECLARATION_OPTIONS.map((option) => (
+                      <button
+                        className={cn(
+                          'rounded-full border px-3 py-1.5 text-[0.82rem] transition',
+                          declarations.includes(option.value)
+                            ? 'border-primary bg-primary text-primary-foreground'
+                            : 'border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground'
+                        )}
+                        key={option.value}
+                        onClick={() => {
+                          setDeclarations((current) =>
+                            current.includes(option.value)
+                              ? current.filter((v) => v !== option.value)
+                              : [...current, option.value]
+                          );
+                        }}
+                        type="button"
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {declarations.length === 0 ? (
+                    <p className="text-xs text-destructive">请至少选择一项内容声明</p>
+                  ) : null}
+                </div>
+
                 <RichTextEditor
                   onChange={setEditorHtml}
                   onUploadImage={uploadImages}
@@ -799,6 +849,16 @@ export function PublishArticlePage() {
                 </div>
               ) : null}
               <div className="text-[1.2rem] font-semibold text-foreground">{title || "未命名文章"}</div>
+              {declarations.length > 0 ? (
+                <div className="text-[0.72rem] text-muted-foreground">
+                  {declarations
+                    .map(
+                      (value) =>
+                        DECLARATION_OPTIONS.find((o) => o.value === value)?.label ?? value
+                    )
+                    .join(' / ')}
+                </div>
+              ) : null}
               {sourceLabelValue ? (
                 <div className="text-[0.8rem] text-muted-foreground">
                   来源：
