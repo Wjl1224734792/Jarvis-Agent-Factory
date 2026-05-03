@@ -28,6 +28,10 @@ export function AircraftCreatorPage() {
     queryKey: ["admin-brands"],
     queryFn: () => apiClient.listBrands()
   });
+  const powerTypesQuery = useQuery({
+    queryKey: ["admin-power-types"],
+    queryFn: () => apiClient.listPowerTypes()
+  });
   const [form] = Form.useForm<ModelEditorValues>();
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
@@ -235,7 +239,13 @@ export function AircraftCreatorPage() {
               />
             </Form.Item>
             <Form.Item label="动力类型" name="powerType" rules={[{ required: true, message: "请选择动力类型" }]}>
-              <Select options={modelPowerOptions} />
+              <Select
+                loading={powerTypesQuery.isLoading}
+                options={(powerTypesQuery.data ?? []).map((item) => ({
+                  label: item.name,
+                  value: item.slug,
+                }))}
+              />
             </Form.Item>
             <Form.Item label="生命周期状态" name="lifecycleStatus" rules={[{ required: true, message: "请选择生命周期状态" }]}>
               <Select options={modelLifecycleStatusOptions} />

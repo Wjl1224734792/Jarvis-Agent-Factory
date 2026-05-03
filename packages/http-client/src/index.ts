@@ -59,6 +59,7 @@ import {
   completeUploadInputSchema,
   completeUploadResponseSchema,
   contentCategoriesResponseSchema,
+  powerTypeCategorySchema,
   createBrandApplicationInputSchema,
   createAircraftSubmissionInputSchema,
   createPostCommentInputSchema,
@@ -1136,6 +1137,18 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, contentCategoriesResponseSchema);
+    },
+    async listPowerTypes() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.powerTypes.list}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, {
+        parse(input: unknown) {
+          return powerTypeCategorySchema.array().parse(input);
+        }
+      });
     },
     async createContentCategory(input: AdminContentCategoryInput) {
       return postJson(
