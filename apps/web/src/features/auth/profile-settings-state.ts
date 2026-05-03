@@ -48,8 +48,7 @@ export type SettingsTextField =
 export type SettingsBooleanField =
   | "notifyComments"
   | "notifyMentions"
-  | "sessionAlerts"
-  | "emailDigest";
+  | "sessionAlerts";
 
 function trimToNullable(value: string): string | null {
   const next = value.trim();

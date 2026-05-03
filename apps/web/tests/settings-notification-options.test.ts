@@ -6,8 +6,7 @@ describe("settings notification options", () => {
     expect(settingsNotificationOptions.map((item) => item.field)).toEqual([
       "notifyComments",
       "notifyMentions",
-      "sessionAlerts",
-      "emailDigest"
+      "sessionAlerts"
     ]);
   });
 });

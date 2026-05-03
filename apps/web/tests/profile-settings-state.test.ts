@@ -61,10 +61,10 @@ describe("profile settings state helpers", () => {
       "displayName",
       "Shanghai Captain"
     );
-    const toggled = toggleSettingsFlag(updated, "emailDigest");
+    const toggled = toggleSettingsFlag(updated, "notifyComments");
 
     expect(updated.displayName).toBe("Shanghai Captain");
-    expect(toggled.emailDigest).toBe(true);
+    expect(toggled.notifyComments).toBe(false);
     expect(toggled.hasPendingChanges).toBe(true);
   });
 
@@ -89,14 +89,14 @@ describe("profile settings state helpers", () => {
       setProfileVisibility(
         toggleSettingsFlag(
           updateSettingsTextField(createSettingsDraft(sampleSnapshot), "bio", "Updated bio"),
-          "emailDigest"
+          "notifyComments"
         ),
         "followers"
       )
     );
 
     expect(input.bio).toBe("Updated bio");
-    expect(input.emailDigest).toBe(true);
+    expect(input.notifyComments).toBe(false);
     expect(input.profileVisibility).toBe("followers");
   });
 

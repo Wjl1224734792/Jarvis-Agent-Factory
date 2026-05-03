@@ -194,6 +194,7 @@ export function SettingsPage() {
   const [passwordRequestId, setPasswordRequestId] = useState<string | null>(null);
   const [passwordActionError, setPasswordActionError] = useState<string | null>(null);
   const [isChangingPassword, setIsChangingPassword] = useState(false);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
   const phoneSmsFlow = useSmsVerificationFlow();
   const passwordSmsFlow = useSmsVerificationFlow();
 
@@ -849,85 +850,125 @@ export function SettingsPage() {
                   </AlertDescription>
                 </Alert>
               ) : null}
-              <div className={cn("grid gap-3", hasPassword ? "md:grid-cols-3" : "md:grid-cols-2")}>
-                {hasPassword ? (
-                  <Input
-                    autoComplete="current-password"
-                    onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
-                    placeholder="当前密码"
-                    type="password"
-                    value={passwordForm.currentPassword}
-                  />
-                ) : null}
-                <Input
-                  autoComplete="new-password"
-                  onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
-                  placeholder={hasPassword ? "新密码" : "设置登录密码"}
-                  type="password"
-                  value={passwordForm.newPassword}
-                />
-                <Input
-                  autoComplete="new-password"
-                  onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
-                  placeholder="确认新密码"
-                  type="password"
-                  value={passwordForm.confirmPassword}
-                />
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
-                <Input
-                  inputMode="numeric"
-                  onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
-                  placeholder="手机短信验证码"
-                  value={passwordSmsFlow.smsCode}
-                />
-                <Button
-                  className="h-10 w-full rounded-full"
-                  disabled={
-                    passwordSmsFlow.isSendingSms ||
-                    passwordSmsFlow.cooldownSeconds > 0 ||
-                    !isChinaMainlandMobilePhone(boundPhoneDigits)
-                  }
-                  onClick={() => {
-                    setPasswordActionError(null);
-                    setIsPasswordSmsCaptchaOpen(true);
-                  }}
-                  type="button"
-                  variant="outline"
-                >
-                  {passwordSmsFlow.isSendingSms
-                    ? "发送中..."
-                    : passwordSmsFlow.cooldownSeconds > 0
-                      ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
-                      : passwordSmsFlow.requestHint
-                        ? "重新获取验证码"
-                        : "获取验证码"}
-                </Button>
-              </div>
-              {passwordSmsFlow.requestHint ? (
-                <div className="mt-2 text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
-              ) : null}
-              {passwordActionError ? (
-                <div className="mt-2 text-sm text-destructive">{passwordActionError}</div>
-              ) : null}
-              <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-                <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
-                  <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
-                  {passwordPolicyHint}
+              {showPasswordForm ? (
+                <>
+                  <div className={cn("grid gap-3", hasPassword ? "md:grid-cols-3" : "md:grid-cols-2")}>
+                    {hasPassword ? (
+                      <Input
+                        autoComplete="current-password"
+                        onChange={(event) => updatePasswordForm("currentPassword", event.target.value)}
+                        placeholder="当前密码"
+                        type="password"
+                        value={passwordForm.currentPassword}
+                      />
+                    ) : null}
+                    <Input
+                      autoComplete="new-password"
+                      onChange={(event) => updatePasswordForm("newPassword", event.target.value)}
+                      placeholder={hasPassword ? "新密码" : "设置登录密码"}
+                      type="password"
+                      value={passwordForm.newPassword}
+                    />
+                    <Input
+                      autoComplete="new-password"
+                      onChange={(event) => updatePasswordForm("confirmPassword", event.target.value)}
+                      placeholder="确认新密码"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                    />
+                  </div>
+                  <div className="mt-3 grid gap-3 sm:grid-cols-[minmax(0,1fr)_180px] sm:items-end">
+                    <Input
+                      inputMode="numeric"
+                      onChange={(event) => passwordSmsFlow.setSmsCode(event.target.value)}
+                      placeholder="手机短信验证码"
+                      value={passwordSmsFlow.smsCode}
+                    />
+                    <Button
+                      className="h-10 w-full rounded-full"
+                      disabled={
+                        passwordSmsFlow.isSendingSms ||
+                        passwordSmsFlow.cooldownSeconds > 0 ||
+                        !isChinaMainlandMobilePhone(boundPhoneDigits)
+                      }
+                      onClick={() => {
+                        setPasswordActionError(null);
+                        setIsPasswordSmsCaptchaOpen(true);
+                      }}
+                      type="button"
+                      variant="outline"
+                    >
+                      {passwordSmsFlow.isSendingSms
+                        ? "发送中..."
+                        : passwordSmsFlow.cooldownSeconds > 0
+                          ? `${passwordSmsFlow.cooldownSeconds} 秒后重发`
+                          : passwordSmsFlow.requestHint
+                            ? "重新获取验证码"
+                            : "获取验证码"}
+                    </Button>
+                  </div>
+                  {passwordSmsFlow.requestHint ? (
+                    <div className="mt-2 text-sm text-muted-foreground">短信验证码已发送至绑定手机号。</div>
+                  ) : null}
+                  {passwordActionError ? (
+                    <div className="mt-2 text-sm text-destructive">{passwordActionError}</div>
+                  ) : null}
+                  <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+                    <div className="inline-flex items-start gap-2 text-sm leading-6 text-muted-foreground">
+                      <KeyRoundIcon className="mt-0.5 size-4 shrink-0" />
+                      {passwordPolicyHint}
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        className="rounded-full"
+                        onClick={() => {
+                          setShowPasswordForm(false);
+                          setPasswordForm({ currentPassword: "", newPassword: "", confirmPassword: "" });
+                          setPasswordRequestId(null);
+                          passwordSmsFlow.reset();
+                          setPasswordActionError(null);
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        取消
+                      </Button>
+                      <Button
+                        className="rounded-full"
+                        disabled={isChangingPassword}
+                        onClick={() => {
+                          void changePassword();
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="default"
+                      >
+                        {isChangingPassword ? "保存中..." : hasPassword ? "确认修改" : "确认设置"}
+                      </Button>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-sm text-muted-foreground">
+                    {hasPassword ? "密码已设置，修改时需要短信验证。密码须至少 8 位，同时包含大小写字母与特殊符号。" : "通过手机短信验证后设置登录密码。"}
+                  </div>
+                  <Button
+                    className="shrink-0 rounded-full"
+                    onClick={() => {
+                      setShowPasswordForm(true);
+                      setPasswordActionError(null);
+                    }}
+                    size="sm"
+                    type="button"
+                    variant="outline"
+                  >
+                    <KeyRoundIcon data-icon="inline-start" />
+                    {hasPassword ? "修改密码" : "设置密码"}
+                  </Button>
                 </div>
-                <Button
-                  className="rounded-full"
-                  disabled={isChangingPassword}
-                  onClick={() => {
-                    void changePassword();
-                  }}
-                  size="sm"
-                  type="button"
-                  variant="default"
-                >
-                  {isChangingPassword ? "保存中..." : hasPassword ? "修改密码" : "设置密码"}
-                </Button>
-              </div>
+              )}
             </SettingsRow>
           </div>
         </SettingsPanel>

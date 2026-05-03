@@ -29,11 +29,5 @@ export const settingsNotificationOptions: SettingsNotificationOption[] = [
     label: "账号安全提醒",
     description: "当账号出现新的登录会话或异常安全事件时提醒。",
     successMessage: "账号安全提醒已更新"
-  },
-  {
-    field: "emailDigest",
-    label: "邮件摘要",
-    description: "定期接收账号动态与内容互动的邮件摘要。",
-    successMessage: "邮件摘要设置已更新"
   }
 ];
