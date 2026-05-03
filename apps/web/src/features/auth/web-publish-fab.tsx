@@ -39,7 +39,7 @@ export function WebPublishFab() {
           aria-expanded={open}
           aria-haspopup="menu"
           aria-label="打开发布菜单"
-          className="size-14 rounded-full shadow-[var(--shadow-float)]"
+          className="size-11 rounded-full shadow-[var(--shadow-float)] xl:size-14"
           onClick={() => {
             if (authStatus !== "authenticated") {
               promptLogin({
@@ -55,7 +55,7 @@ export function WebPublishFab() {
           type="button"
           variant="hero"
         >
-          <PlusIcon className="size-6" />
+          <PlusIcon className="size-5 xl:size-6" />
         </Button>
 
         {open ? (
