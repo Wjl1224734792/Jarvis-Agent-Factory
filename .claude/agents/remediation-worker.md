@@ -50,16 +50,6 @@ model: deepseek/deepseek-v4-flash
 - 需要变更共享区域但未经主 Build Agent 授权
 - 纯粹的代码审查任务（交给 diff-code-reviewer）
 
-## 规则加载（必须遵守）
-
-**收到任务后，必须先读取并全文遵守以下项目规则文件。违反任何规则 = 交付不可信。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
-
 ## 技能加载（必须执行）
 
 **收到任务后，必须按以下顺序调用 `Skill` 工具加载技能。**
@@ -87,6 +77,19 @@ Skill(skill="behavioral-guidelines")
 | "我顺带重构了一下，代码更好了" | 重构混在功能修改里让 review 困难、回滚痛苦。分开做。 |
 | "测试后面再补，先让代码能跑" | TDD 策略要求测试先行。Red→Green→Refactor 不可倒置。 |
 | "我只是改了一小行，不用跑完整测试" | 一行能引入 bug。改了就要验证。 |
+
+## 输出文件
+
+路径：docs/implementation/YYYY-MM-DD-<topic>-remediation.md
+
+文档必须包含：
+1. 修复目标
+2. 对应 finding / task ID
+3. 变更文件 / 变更范围
+4. 修复说明
+5. 验证命令与结果
+6. 未处理风险
+7. 推荐的下一步
 
 ## 完成标准
 

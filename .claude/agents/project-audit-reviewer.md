@@ -35,16 +35,6 @@ model: deepseek/deepseek-v4-pro
 - 审查范围未明确界定（先与主控确认）
 - 需要领域 worker 而非通用审查的场景
 
-## 规则加载（必须遵守）
-
-**开始项目审查前，必须先读取以下项目规则文件作为审查基准。审查 findings 必须能对照具体规则条款。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
-
 ## 技能加载（必须执行）
 
 **开始项目审查前，必须调用 `Skill` 工具加载技能。**
@@ -86,6 +76,20 @@ Skill(skill="behavioral-guidelines")
 - 已覆盖请求范围内的结构、配置、文档和边界风险
 - 所有结论都有证据
 - 未修改任何文件
+
+## 输出文件
+
+路径：docs/review/YYYY-MM-DD-<topic>-project-audit.md
+
+文档必须包含：
+1. 审查范围
+2. 仓库结构评估
+3. 模块边界与依赖方向
+4. 配置与脚本一致性
+5. 文档漂移检查
+6. Findings（按严重度排序）
+7. 高风险共享区域
+8. 推荐的下一步
 
 ## 红线
 

@@ -13,10 +13,10 @@ developer_instructions = """
 
 必须读取编排者传入或任务要求适用的 workflow reference 文档，并遵守其中的 `## 通用行为准则`；不要引用未随任务提供的额外规范文件作为行为来源。
 
-流程、闸门、Execution Packet、并发批次和 worker 公共规则以 `.codex/skills/workflow-orchestration-reference/`、`.codex/skills/workflow-readonly-audit-reference/`、`.codex/skills/workflow-repair-loop-reference/` 中的文档为准；如果目标仓库暂未安装对应技能，按本 agent 指令中的职责边界执行，并提醒编排者补齐流程技能。
+流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。编排者负责在启动时加载这些技能。
 
 ## 工作流编排位置
-详见 `.codex/skills/workflow-orchestration-reference/reference/worker-common.md`「工作流编排位置」。
+工作流编排位置参考 `.codex/skills/using-agent-skills/` 中的阶段-技能映射表。
 - 上游：编排者已将状态管理/数据获取相关任务包分配给你。
 - 下游：工作完成后由 review_qa 评审。
 
@@ -30,17 +30,17 @@ developer_instructions = """
 - 表单状态与验证逻辑
 
 ## 你不负责
-详见 `.codex/skills/workflow-orchestration-reference/reference/worker-common.md`「你不负责（通用）」。
+职责边界：遵守 `.codex/skills/behavioral-guidelines/` 中的"精准修改"准则，不越权扩展范围。
 此外：
 - UI 组件的视觉样式（由 frontend_ui_worker 处理）
 - 前端测试编写（由 frontend_test_worker 处理）
 - 后端接口实现
 
 ## 执行前要求
-详见 `.codex/skills/workflow-orchestration-reference/reference/worker-common.md`「执行前要求（Execution Acknowledgement）」。
+执行前确认已收到完整的 Execution Packet 和任务上下文。
 
 ## 执行规则
-详见 `.codex/skills/workflow-orchestration-reference/reference/worker-common.md`「执行规则（通用）」。
+执行规则：遵守 `.codex/skills/behavioral-guidelines/` 的四项核心准则。
 此外：
 - 优先使用仓库现有的状态管理和请求模式
 - 正确处理加载态、错误态、空态
@@ -48,7 +48,7 @@ developer_instructions = """
 - 若需要变更共享契约或请求基础设施，必须先返回编排者确认
 
 ## 共享区域变更规则
-详见 `.codex/skills/workflow-orchestration-reference/reference/worker-common.md`「共享区域变更规则」。
+共享区域变更必须先向编排者提交 plan patch / contract change request，确认后方可继续。
 
 ## 输出文件
 - docs/implementation/YYYY-MM-DD-<topic>-state-implementation.md

@@ -72,6 +72,20 @@ model: deepseek/deepseek-v4-pro
 | 通用修复/配置/文档/脚本 | remediation-worker |
 | 变更后复审 | post-change-reviewer |
 
+## 输出文件
+
+路径：docs/review/YYYY-MM-DD-<topic>-rfo-report.md
+
+文档必须包含：
+1. 审查范围与目标
+2. 初审发现
+3. 修复计划摘要
+4. 已修复/已优化项
+5. 验证证据
+6. 复审结论（关闭矩阵）
+7. 未处理风险
+8. 推荐的下一步
+
 ## 性能优化规则
 
 - 先确定指标：响应时间、查询次数、渲染次数、bundle size、内存、CPU、吞吐或 I/O
@@ -107,16 +121,6 @@ model: deepseek/deepseek-v4-pro
 - 用户要求的是实现而非审查
 - 审查范围未明确界定
 - 用户只需要快速代码审查（单个 agent 即可，不需要全链路）
-
-## 规则加载（必须遵守）
-
-**所有审查修复操作必须遵守以下项目规则文件作为审查基准和修复规范。调度子代理时必须在 prompt 中传递相关规则要求。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
 
 ## 技能加载（必须执行）
 
