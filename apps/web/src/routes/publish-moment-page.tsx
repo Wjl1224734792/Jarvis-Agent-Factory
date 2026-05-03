@@ -53,12 +53,34 @@ type MomentDraftData = {
   content: string;
   sourceLabel: string;
   sourceUrl: string;
+  declaration: string;
   uploadedImages: UploadedImage[];
   selectedImageCoverId: string | null;
   uploadedVideo: UploadedVideo | null;
   videoCoverImage: UploadedImage | null;
   videoCoverSource: "frame" | "manual";
   videoFrameRatio: number;
+};
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+] as const;
+
+const SOURCE_LABEL_OPTIONS = [
+  { label: '飞加官方', value: '飞加官方' },
+  { label: '转载媒体', value: '转载媒体' },
+  { label: '作者投稿', value: '作者投稿' },
+  { label: '行业媒体', value: '行业媒体' },
+  { label: '航司官方', value: '航司官方' },
+  { label: '其他来源', value: '其他来源' },
+];
+
+const SOURCE_URL_MAP: Record<string, string> = {
+  '飞加官方': 'https://feijia.com',
 };
 
 async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
@@ -213,6 +235,7 @@ export function PublishMomentPage() {
   const [content, setContent] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [declaration, setDeclaration] = useState("");
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [selectedImageCoverId, setSelectedImageCoverId] = useState<string | null>(null);
   const [uploadedVideo, setUploadedVideo] = useState<UploadedVideo | null>(null);
@@ -310,6 +333,7 @@ export function PublishMomentPage() {
         setContent(draft.content ?? "");
         setSourceLabel(draft.sourceLabel ?? "");
         setSourceUrl(draft.sourceUrl ?? "");
+        setDeclaration(draft.declaration ?? "");
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setSelectedImageCoverId(draft.selectedImageCoverId ?? null);
         setUploadedVideo(restoredVideo?.asset ?? null);
@@ -348,6 +372,7 @@ export function PublishMomentPage() {
     setContent(item.content.slice(0, MOMENT_CONTENT_MAX));
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
+    setDeclaration(item.declaration?.value ?? "");
     const nextImages = item.images.map((image) => ({
       id: image.id,
       url: image.url,
@@ -444,6 +469,7 @@ export function PublishMomentPage() {
         content,
         sourceLabel,
         sourceUrl,
+        declaration,
         uploadedImages,
         selectedImageCoverId,
         uploadedVideo,
@@ -455,6 +481,7 @@ export function PublishMomentPage() {
     });
   }, [
     content,
+    declaration,
     editId,
     selectedImageCoverId,
     sourceLabel,
@@ -836,43 +863,82 @@ export function PublishMomentPage() {
                 </div>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
-                  <Input
-                    onChange={(event) => setSourceLabel(event.target.value)}
-                    placeholder="例如：飞加官方、转载媒体或作者"
-                    value={sourceLabel}
-                  />
+              <div className="space-y-2">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                    内容声明 <span className="text-destructive">*</span>
+                  </div>
                 </div>
-
-                <div className="space-y-2">
-                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                  <Input
-                    inputMode="url"
-                    onChange={(event) => setSourceUrl(event.target.value)}
-                    placeholder="https://example.com/source"
-                    value={sourceUrl}
-                  />
-                </div>
+                <select
+                  className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                  onChange={(e) => setDeclaration(e.target.value)}
+                  value={declaration}
+                >
+                  <option disabled value="">选择内容声明</option>
+                  {DECLARATION_OPTIONS.map((option) => (
+                    <option key={option.value} value={option.value}>{option.label}</option>
+                  ))}
+                </select>
+                {!declaration ? (
+                  <p className="text-xs text-destructive">请选择内容声明</p>
+                ) : null}
               </div>
 
-              {sourceLabelValue ? (
-                <div className="rounded-[1rem] border border-border/70 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
-                  <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                  {sourceUrlValue ? (
-                    <a
-                      className="text-primary underline-offset-4 hover:underline"
-                      href={sourceUrlValue}
-                      rel="noreferrer"
-                      target="_blank"
-                    >
-                      {sourceLabelValue}
-                    </a>
-                  ) : (
-                    <span className="text-foreground/82">{sourceLabelValue}</span>
-                  )}
-                </div>
+              {declaration !== 'original' ? (
+                <>
+                  <div className="grid gap-4 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                        来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
+                      </div>
+                      <select
+                        className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSourceLabel(value);
+                          const defaultUrl = SOURCE_URL_MAP[value];
+                          if (defaultUrl !== undefined) {
+                            setSourceUrl(defaultUrl);
+                          }
+                        }}
+                        value={sourceLabel}
+                      >
+                        <option disabled value="">选择来源名称</option>
+                        {SOURCE_LABEL_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
+                      <Input
+                        inputMode="url"
+                        onChange={(event) => setSourceUrl(event.target.value)}
+                        placeholder="https://example.com/source"
+                        value={sourceUrl}
+                      />
+                    </div>
+                  </div>
+
+                  {sourceLabelValue ? (
+                    <div className="rounded-[1rem] border border-border/70 bg-surface-1 px-4 py-3 text-sm text-muted-foreground">
+                      <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
+                      {sourceUrlValue ? (
+                        <a
+                          className="text-primary underline-offset-4 hover:underline"
+                          href={sourceUrlValue}
+                          rel="noreferrer"
+                          target="_blank"
+                        >
+                          {sourceLabelValue}
+                        </a>
+                      ) : (
+                        <span className="text-foreground/82">{sourceLabelValue}</span>
+                      )}
+                    </div>
+                  ) : null}
+                </>
               ) : null}
             </SitePanelBody>
           </SitePanel>
@@ -886,6 +952,7 @@ export function PublishMomentPage() {
                 disabled={
                   !title.trim() ||
                   !submitCoverReady ||
+                  !declaration ||
                   isPublishing ||
                   isUploading ||
                   !canSubmitMomentMedia(uploadedImages.length, uploadedVideo ? 1 : 0)
@@ -932,6 +999,7 @@ export function PublishMomentPage() {
                         content,
                         sourceLabel,
                         sourceUrl,
+                        declaration,
                         coverImageId: submitCover.id,
                         imageIds: [],
                         videoIds: [submitVideo.id]
@@ -960,6 +1028,7 @@ export function PublishMomentPage() {
                       content,
                       sourceLabel,
                       sourceUrl,
+                      declaration,
                       coverImageId: coverId,
                       imageIds: submitImages.map((entry) => entry.item.id),
                       videoIds: []
@@ -1052,6 +1121,11 @@ export function PublishMomentPage() {
                   <h2 className="line-clamp-2 text-[0.88rem] leading-[1.32rem] font-semibold text-foreground">
                     {title || "动态标题"}
                   </h2>
+                  {declaration ? (
+                    <div className="line-clamp-1 text-[0.72rem] text-muted-foreground">
+                      {DECLARATION_OPTIONS.find((o) => o.value === declaration)?.label ?? declaration}
+                    </div>
+                  ) : null}
                   {sourceLabelValue ? (
                     <div className="line-clamp-1 text-[0.74rem] text-muted-foreground">
                       来源：

@@ -100,6 +100,7 @@ describe("posts contract", () => {
       content: "This airframe held trim better than expected in gusty conditions.",
       sourceLabel: "Flight Test Weekly",
       sourceUrl: "https://example.com/reports/crosswind",
+      declarations: ['original'],
       imageIds: ["file_1", "file_2"],
       videoIds: ["file_3"]
     });
@@ -119,6 +120,7 @@ describe("posts contract", () => {
       content: "",
       sourceLabel: "   ",
       sourceUrl: "https://example.com/ignored",
+      declarations: ['original'],
       imageIds: [],
       videoIds: []
     });
@@ -128,6 +130,7 @@ describe("posts contract", () => {
       content: "Factory bulletin body.",
       sourceLabel: "  Manufacturer update  ",
       sourceUrl: "  https://example.com/bulletin  ",
+      declarations: ['original'],
       imageIds: [],
       videoIds: []
     });
@@ -143,7 +146,8 @@ describe("posts contract", () => {
         content: "Body.",
         sourceLabel: "External",
         sourceUrl: "not-a-url",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       }).success
     ).toBe(false);
@@ -154,7 +158,8 @@ describe("posts contract", () => {
         content: "Body.",
         sourceLabel: "External",
         sourceUrl: "javascript:alert(1)",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       }).success
     ).toBe(false);
@@ -171,6 +176,7 @@ describe("posts contract", () => {
       type: "article",
       title: "Long-form dispatch",
       content: "Detailed long-form article content.",
+      declarations: ['original'],
       imageIds: Array.from({ length: 7 }, (_, index) => `img_${index + 1}`),
       videoIds: Array.from({ length: 3 }, (_, index) => `vid_${index + 1}`)
     });
@@ -187,6 +193,7 @@ describe("posts contract", () => {
       contentCategoryId: "cat_1",
       sourceLabel: "Official newsroom",
       sourceUrl: "https://example.com/newsroom",
+      declarations: ['original'],
       imageIds: Array.from({ length: 8 }, (_, index) => `img_${index + 1}`),
       videoIds: Array.from({ length: 4 }, (_, index) => `vid_${index + 1}`)
     });
@@ -201,6 +208,7 @@ describe("posts contract", () => {
     const momentWithoutContent = createPostInputSchema.parse({
       type: "moment",
       title: "无正文也可发布",
+      declarations: ['original'],
       imageIds: [],
       videoIds: []
     });
@@ -210,6 +218,7 @@ describe("posts contract", () => {
       type: "moment",
       title: "仅标题",
       content: "",
+      declarations: ['original'],
       imageIds: [],
       videoIds: []
     });
@@ -219,6 +228,7 @@ describe("posts contract", () => {
       type: "moment",
       title: "图说",
       content: "   ",
+      declarations: ['original'],
       imageIds: ["file_1"],
       videoIds: []
     });
@@ -228,6 +238,7 @@ describe("posts contract", () => {
       type: "moment",
       title: "空值正文动态",
       content: null,
+      declarations: ['original'],
       imageIds: [],
       videoIds: []
     });
@@ -238,7 +249,8 @@ describe("posts contract", () => {
         type: "article",
         title: "空正文文章",
         content: "",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       })
     ).toThrow();
@@ -248,7 +260,8 @@ describe("posts contract", () => {
         type: "article",
         title: "空白正文文章",
         content: "   ",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       })
     ).toThrow();
@@ -257,7 +270,8 @@ describe("posts contract", () => {
       createPostInputSchema.parse({
         type: "article",
         title: "缺失正文文章",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       })
     ).toThrow();
@@ -267,7 +281,8 @@ describe("posts contract", () => {
         type: "article",
         title: "空值正文文章",
         content: null,
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: []
       })
     ).toThrow();
@@ -278,6 +293,7 @@ describe("posts contract", () => {
       type: "moment",
       title: "图文封面",
       content: "",
+      declarations: ['original'],
       imageIds: ["file_1", "file_2"],
       videoIds: [],
       coverImageId: "file_2"
@@ -289,7 +305,8 @@ describe("posts contract", () => {
         type: "moment",
         title: "非法封面",
         content: "",
-        imageIds: ["file_1", "file_2"],
+        declarations: ['original'],
+      imageIds: ["file_1", "file_2"],
         videoIds: [],
         coverImageId: "file_9"
       })
@@ -299,6 +316,7 @@ describe("posts contract", () => {
       type: "moment",
       title: "视频封面",
       content: "",
+      declarations: ['original'],
       imageIds: [],
       videoIds: ["video_1"],
       coverImageId: "cover_1"
@@ -312,7 +330,8 @@ describe("posts contract", () => {
         type: "moment",
         title: "Harbor night",
         content: "Night shooting log.",
-        imageIds: ["file_1"],
+        declarations: ['original'],
+      imageIds: ["file_1"],
         videoIds: ["file_2"]
       })
     ).toThrow();
@@ -322,7 +341,8 @@ describe("posts contract", () => {
         type: "moment",
         title: "Harbor night",
         content: "Night shooting log.",
-        imageIds: [],
+        declarations: ['original'],
+      imageIds: [],
         videoIds: ["file_1", "file_2"]
       })
     ).toThrow();
@@ -353,6 +373,7 @@ describe("posts contract", () => {
     });
     const report = reportPostInputSchema.parse({
       reason: "Looks like spam promotion.",
+      declarations: ['original'],
       imageIds: ["file_report_1"]
     });
 
@@ -362,14 +383,16 @@ describe("posts contract", () => {
     expect(() =>
       reportPostInputSchema.parse({
         reason: "Looks like spam promotion.",
-        imageIds: []
+        declarations: ['original'],
+      imageIds: []
       })
     ).toThrow();
 
     expect(() =>
       reportPostInputSchema.parse({
         reason: "Looks like spam promotion.",
-        imageIds: ["file_report_1", "file_report_2", "file_report_3", "file_report_4"]
+        declarations: ['original'],
+      imageIds: ["file_report_1", "file_report_2", "file_report_3", "file_report_4"]
       })
     ).toThrow();
   });

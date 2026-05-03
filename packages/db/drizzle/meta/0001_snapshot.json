@@ -1,6 +1,6 @@
 {
-  "id": "3b5cc6a2-1477-4a45-97e6-55ce508f7d4c",
-  "prevId": "d90a9e7f-9e10-46c3-aba1-c87c32d6d78e",
+  "id": "e725e17d-27d8-40ec-8823-e260c6ea8645",
+  "prevId": "b8ef6f7d-919a-4f9d-8dee-936e7bd315ab",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -2265,6 +2265,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "source_label": {
+          "name": "source_label",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "source_url": {
+          "name": "source_url",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "declaration": {
+          "name": "declaration",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
         "content_category_id": {
           "name": "content_category_id",
           "type": "text",
@@ -2431,6 +2449,74 @@
           "value": "\"posts\".\"status\" IN ('pending', 'published', 'rejected', 'hidden')"
         }
       },
+      "isRLSEnabled": false
+    },
+    "public.power_types": {
+      "name": "power_types",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "slug": {
+          "name": "slug",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "sort_order": {
+          "name": "sort_order",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 0
+        },
+        "is_enabled": {
+          "name": "is_enabled",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "power_types_slug_unique": {
+          "name": "power_types_slug_unique",
+          "columns": [
+            {
+              "expression": "slug",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
       "isRLSEnabled": false
     },
     "public.ranking_comment_likes": {

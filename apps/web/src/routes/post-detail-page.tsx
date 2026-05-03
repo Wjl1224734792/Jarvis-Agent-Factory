@@ -235,7 +235,7 @@ export function PostDetailPage() {
       <div className="flex gap-6 md:gap-8">
         {/* 桌面端左侧 sticky 互动栏 */}
         <aside className="hidden md:flex w-12 shrink-0 flex-col items-center">
-          <div className="sticky top-1/2 flex -translate-y-1/2 flex-col items-center gap-5 py-4">
+          <div className="sticky top-[50vh] flex -translate-y-1/2 flex-col items-center gap-4 py-4">
             <PostInteractionBar
               layout="vertical"
               hideFollow
@@ -307,6 +307,9 @@ export function PostDetailPage() {
                         {item.author.displayName}
                       </ProfileLink>
                       {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
+                      {item.declaration ? (
+                        <span className="text-[0.72rem] text-muted-foreground">{item.declaration.label}</span>
+                      ) : null}
                     </div>
                     <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
                       {new Date(item.publishedAt ?? item.createdAt).toLocaleDateString("zh-CN")} ·
@@ -405,8 +408,21 @@ export function PostDetailPage() {
               </div>
             ) : null}
 
-            {/* 移动端互动栏 */}
-            <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/40 pt-4 md:hidden">
+            {item.source?.url ? (
+              <div className="border-t border-border/40 pt-4">
+                <a
+                  className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                  href={item.source.url}
+                  rel="noreferrer"
+                  target="_blank"
+                >
+                  原文链接
+                </a>
+              </div>
+            ) : null}
+
+            {/* 移动端固定悬浮互动栏 */}
+            <div className="sticky bottom-0 z-30 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 border-t border-border/40 bg-background/92 px-4 py-2 backdrop-blur-xl md:hidden">
               <PostInteractionBar
                 compact
                 hideFollow

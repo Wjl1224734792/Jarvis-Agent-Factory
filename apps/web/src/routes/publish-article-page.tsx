@@ -57,9 +57,31 @@ type ArticleDraftData = {
   categoryId: string;
   sourceLabel: string;
   sourceUrl: string;
+  declaration: string;
   coverImage: UploadedImage | null;
   uploadedImages: UploadedImage[];
   uploadedVideos: UploadedVideo[];
+};
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+] as const;
+
+const SOURCE_LABEL_OPTIONS = [
+  { label: '飞加官方', value: '飞加官方' },
+  { label: '转载媒体', value: '转载媒体' },
+  { label: '作者投稿', value: '作者投稿' },
+  { label: '行业媒体', value: '行业媒体' },
+  { label: '航司官方', value: '航司官方' },
+  { label: '其他来源', value: '其他来源' },
+];
+
+const SOURCE_URL_MAP: Record<string, string> = {
+  '飞加官方': 'https://feijia.com',
 };
 
 function escapeHtml(input: string) {
@@ -164,6 +186,7 @@ export function PublishArticlePage() {
   const [categoryId, setCategoryId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
+  const [declaration, setDeclaration] = useState("");
   const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
@@ -222,6 +245,7 @@ export function PublishArticlePage() {
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
         setSourceUrl(parsed.sourceUrl ?? "");
+        setDeclaration(parsed.declaration ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
@@ -259,6 +283,7 @@ export function PublishArticlePage() {
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
+    setDeclaration(item.declaration?.value ?? "");
     setCoverImage(
       item.images[0]
         ? {
@@ -309,6 +334,7 @@ export function PublishArticlePage() {
     Boolean(articleText.trim()) &&
     Boolean(categoryId) &&
     Boolean(coverImage) &&
+    Boolean(declaration) &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
   const mediaSummaryText = useMemo(
@@ -334,6 +360,7 @@ export function PublishArticlePage() {
         categoryId,
         sourceLabel,
         sourceUrl,
+        declaration,
         coverImage,
         uploadedImages,
         uploadedVideos
@@ -344,6 +371,7 @@ export function PublishArticlePage() {
   }, [
     categoryId,
     coverImage,
+    declaration,
     editorHtml,
     sourceLabel,
     sourceUrl,
@@ -525,6 +553,7 @@ export function PublishArticlePage() {
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
+        declaration,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
         ),
@@ -654,43 +683,82 @@ export function PublishArticlePage() {
                   />
                 </div>
 
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源名称</div>
-                    <Input
-                      onChange={(event) => setSourceLabel(event.target.value)}
-                      placeholder="例如：飞加官方、转载媒体或作者"
-                      value={sourceLabel}
-                    />
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                      内容声明 <span className="text-destructive">*</span>
+                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                    <Input
-                      inputMode="url"
-                      onChange={(event) => setSourceUrl(event.target.value)}
-                      placeholder="https://example.com/source"
-                      value={sourceUrl}
-                    />
-                  </div>
+                  <select
+                    className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                    onChange={(e) => setDeclaration(e.target.value)}
+                    value={declaration}
+                  >
+                    <option disabled value="">选择内容声明</option>
+                    {DECLARATION_OPTIONS.map((option) => (
+                      <option key={option.value} value={option.value}>{option.label}</option>
+                    ))}
+                  </select>
+                  {!declaration ? (
+                    <p className="text-xs text-destructive">请选择内容声明</p>
+                  ) : null}
                 </div>
 
-                {sourceLabelValue ? (
-                  <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
-                    <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                    {sourceUrlValue ? (
-                      <a
-                        className="text-primary underline-offset-4 hover:underline"
-                        href={sourceUrlValue}
-                        rel="noreferrer"
-                        target="_blank"
-                      >
-                        {sourceLabelValue}
-                      </a>
-                    ) : (
-                      <span className="text-foreground/82">{sourceLabelValue}</span>
-                    )}
-                  </div>
+                {declaration !== 'original' ? (
+                  <>
+                    <div className="grid gap-4 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
+                          来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
+                        </div>
+                        <select
+                          className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                          onChange={(e) => {
+                            const value = e.target.value;
+                            setSourceLabel(value);
+                            const defaultUrl = SOURCE_URL_MAP[value];
+                            if (defaultUrl !== undefined) {
+                              setSourceUrl(defaultUrl);
+                            }
+                          }}
+                          value={sourceLabel}
+                        >
+                          <option disabled value="">选择来源名称</option>
+                          {SOURCE_LABEL_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>{opt.label}</option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
+                        <Input
+                          inputMode="url"
+                          onChange={(event) => setSourceUrl(event.target.value)}
+                          placeholder="https://example.com/source"
+                          value={sourceUrl}
+                        />
+                      </div>
+                    </div>
+
+                    {sourceLabelValue ? (
+                      <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
+                        <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
+                        {sourceUrlValue ? (
+                          <a
+                            className="text-primary underline-offset-4 hover:underline"
+                            href={sourceUrlValue}
+                            rel="noreferrer"
+                            target="_blank"
+                          >
+                            {sourceLabelValue}
+                          </a>
+                        ) : (
+                          <span className="text-foreground/82">{sourceLabelValue}</span>
+                        )}
+                      </div>
+                    ) : null}
+                  </>
                 ) : null}
 
                 <RichTextEditor
@@ -799,6 +867,11 @@ export function PublishArticlePage() {
                 </div>
               ) : null}
               <div className="text-[1.2rem] font-semibold text-foreground">{title || "未命名文章"}</div>
+              {declaration ? (
+                <div className="text-[0.72rem] text-muted-foreground">
+                  {DECLARATION_OPTIONS.find((o) => o.value === declaration)?.label ?? declaration}
+                </div>
+              ) : null}
               {sourceLabelValue ? (
                 <div className="text-[0.8rem] text-muted-foreground">
                   来源：

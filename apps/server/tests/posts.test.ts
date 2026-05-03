@@ -285,6 +285,7 @@ async function createPost(
     contentCategoryId?: string | null;
     sourceLabel?: string | null;
     sourceUrl?: string | null;
+    declaration?: string;
   }
 ) {
   const response = await app.request(API_ROUTES.posts.create, {
@@ -301,7 +302,8 @@ async function createPost(
       videoIds: input.videoIds ?? [],
       contentCategoryId: input.contentCategoryId ?? null,
       sourceLabel: input.sourceLabel ?? null,
-      sourceUrl: input.sourceUrl ?? null
+      sourceUrl: input.sourceUrl ?? null,
+      declaration: input.declaration ?? "original"
     })
   });
 
@@ -1691,6 +1693,7 @@ describe.sequential("posts and social flows", () => {
       contentCategoryId: null,
       sourceLabel: null,
       sourceUrl: null,
+      declaration: "original",
       status: "published",
       publishedAt: new Date("2099-04-09T12:00:00.000Z"),
       coverImageFileId: null,

@@ -5,10 +5,10 @@ import type {
   ModelListItem,
   PowerType
 } from "@feijia/schemas";
-import { APP_ROUTES } from "@feijia/shared";
-import { SearchIcon, SlidersHorizontal } from "lucide-react";
+import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
+import { LockKeyholeIcon, SearchIcon, SlidersHorizontal } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { ModelsPageSkeleton } from "@/components/page-skeletons";
@@ -27,6 +27,7 @@ import {
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { partitionByShortestColumn } from "@/lib/masonry-partition";
+import { useAuthStore } from "@/features/auth/auth-store";
 import { apiClient } from "../lib/api-client";
 import { cn } from "../lib/utils";
 import { CIRCLE_CARD_COLUMN_GAP } from "./circle-page-helpers";
@@ -242,10 +243,13 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
 }
 
 export function ModelsPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [categorySearch, setCategorySearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [tab, setTab] = useState<"recommended" | "latest" | "following">("recommended");
+  const authStatus = useAuthStore((state) => state.status);
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
   const filtersState = readModelFilterParams(searchParams);
   const [keywordDraft, setKeywordDraft] = useState(filtersState.keyword);
@@ -266,6 +270,7 @@ export function ModelsPage() {
   const modelsQuery = useQuery({
     queryKey: [
       "models",
+      tab,
       filtersState.categorySlugs,
       filtersState.brandSlugs,
       filtersState.powerTypes,
@@ -274,6 +279,7 @@ export function ModelsPage() {
     placeholderData: keepPreviousData,
     queryFn: () =>
       apiClient.listModels({
+        tab,
         categorySlugs: filtersState.categorySlugs,
         brandSlugs: filtersState.brandSlugs,
         powerTypes: filtersState.powerTypes,
@@ -448,49 +454,110 @@ export function ModelsPage() {
             </div>
           </div>
 
-          {modelsQuery.isError ? (
-            <Alert variant="destructive">
-              <AlertTitle>{"\u98de\u884c\u5668\u52a0\u8f7d\u5931\u8d25"}</AlertTitle>
-              <AlertDescription>{modelsQuery.error.message}</AlertDescription>
-            </Alert>
-          ) : null}
+          <div className="flex gap-5 overflow-x-auto whitespace-nowrap border-b border-border/60">
+            {(
+              [
+                { value: "recommended" as const, label: "推荐" },
+                { value: "latest" as const, label: "最新" },
+                { value: "following" as const, label: "关注" }
+              ] satisfies Array<{ value: "recommended" | "latest" | "following"; label: string }>
+            ).map((item) => (
+              <button
+                className={cn(
+                  "site-tab-trigger border-b-2 px-0 py-2.5 text-[0.92rem] transition-colors",
+                  tab === item.value
+                    ? "border-primary font-semibold text-primary"
+                    : "border-transparent text-foreground/62 hover:text-foreground"
+                )}
+                key={item.value}
+                onClick={() => setTab(item.value)}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
+          </div>
 
-          {modelsQuery.isSuccess ? (
-            <div className="space-y-0">
-              {modelsQuery.data.items.length > 0 ? (
-                <div
-                  className="grid w-full min-w-0"
-                  style={{
-                    gap: CIRCLE_CARD_COLUMN_GAP,
-                    gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-                  }}
-                >
-                  {modelColumns.map((column, colIndex) => (
+          {tab === "following" && authStatus === "anonymous" ? (
+            <div className="bg-white px-5 py-12 text-center">
+              <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
+                <LockKeyholeIcon className="size-5 text-muted-foreground" />
+              </div>
+              <div className="mt-4 text-base font-semibold text-foreground">
+                {"\u767b\u5f55\u540e\u67e5\u770b\u4f60\u5173\u6ce8\u7684\u521b\u4f5c\u8005"}
+              </div>
+              <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                {"\u767b\u5f55\u540e\u5373\u53ef\u67e5\u770b\u4f60\u5173\u6ce8\u7684\u521b\u4f5c\u8005\u53d1\u5e03\u7684\u673a\u578b\u52a8\u6001\u3002"}
+              </div>
+              <Button
+                className="mt-5"
+                onClick={() => {
+                  void navigate(
+                    buildLoginRedirectUrl(APP_ROUTES.webLogin, {
+                      pathname: resolveSafeRedirectPath({
+                        candidate: window.location.pathname + window.location.search,
+                        fallbackPath: APP_ROUTES.feedHome,
+                        blockedPaths: [APP_ROUTES.webLogin]
+                      })
+                    })
+                  );
+                }}
+                size="sm"
+                type="button"
+                variant="hero"
+              >
+                {"\u53bb\u767b\u5f55"}
+              </Button>
+            </div>
+          ) : (
+            <>
+              {modelsQuery.isError ? (
+                <Alert variant="destructive">
+                  <AlertTitle>{"\u98de\u884c\u5668\u52a0\u8f7d\u5931\u8d25"}</AlertTitle>
+                  <AlertDescription>{modelsQuery.error.message}</AlertDescription>
+                </Alert>
+              ) : null}
+
+              {modelsQuery.isSuccess ? (
+                <div className="space-y-0">
+                  {modelsQuery.data.items.length > 0 ? (
                     <div
-                      className="flex min-w-0 flex-col"
-                      key={colIndex}
-                      style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
+                      className="grid w-full min-w-0"
+                      style={{
+                        gap: CIRCLE_CARD_COLUMN_GAP,
+                        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
+                      }}
                     >
-                      {column.map(({ item: model, absoluteIndex }) => (
-                        <ModelCard index={absoluteIndex} key={model.id} model={model} />
+                      {modelColumns.map((column, colIndex) => (
+                        <div
+                          className="flex min-w-0 flex-col"
+                          key={colIndex}
+                          style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
+                        >
+                          {column.map(({ item: model, absoluteIndex }) => (
+                            <ModelCard index={absoluteIndex} key={model.id} model={model} />
+                          ))}
+                        </div>
                       ))}
                     </div>
-                  ))}
+                  ) : (
+                    <div className="bg-white px-5 py-8">
+                      <div className="text-base font-semibold text-foreground">
+                        {tab === "following"
+                          ? "\u6ca1\u6709\u5173\u6ce8\u7684\u521b\u4f5c\u8005\u53d1\u5e03\u7684\u673a\u578b"
+                          : "\u6ca1\u6709\u5339\u914d\u673a\u578b"}
+                      </div>
+                      <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                        {tab === "following"
+                          ? "\u53bb\u5173\u6ce8\u4e00\u4e9b\u521b\u4f5c\u8005\u5427\uff0c\u4ed6\u4eec\u53d1\u5e03\u7684\u673a\u578b\u5c06\u5728\u8fd9\u91cc\u5c55\u793a\u3002"
+                          : "\u53ef\u4ee5\u6e05\u7a7a\u90e8\u5206\u7b5b\u9009\uff0c\u6216\u6362\u4e00\u4e2a\u5173\u952e\u8bcd\u518d\u8bd5\u3002"}
+                      </div>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="bg-white px-5 py-8">
-                  <div className="text-base font-semibold text-foreground">
-                    {"\u6ca1\u6709\u5339\u914d\u673a\u578b"}
-                  </div>
-                  <div className="mt-2 text-sm leading-6 text-muted-foreground">
-                    {
-                      "\u53ef\u4ee5\u6e05\u7a7a\u90e8\u5206\u7b5b\u9009\uff0c\u6216\u6362\u4e00\u4e2a\u5173\u952e\u8bcd\u518d\u8bd5\u3002"
-                    }
-                  </div>
-                </div>
-              )}
-            </div>
-          ) : null}
+              ) : null}
+            </>
+          )}
         </div>
       </div>
 

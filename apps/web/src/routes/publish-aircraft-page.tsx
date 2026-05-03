@@ -47,12 +47,6 @@ type UploadedVideo = {
   isLocal?: boolean;
 };
 
-const powerTypeOptions = [
-  { value: "electric", label: "电动" },
-  { value: "fuel", label: "燃油" },
-  { value: "hybrid", label: "混动" },
-  { value: "other", label: "其他" }
-] as const;
 const lifecycleStatusOptions = [
   { value: "concept", label: "概念" },
   { value: "development", label: "研发" },
@@ -240,6 +234,10 @@ export function PublishAircraftPage() {
   const brandsQuery = useQuery({
     queryKey: ["aircraft-submission-brands"],
     queryFn: () => apiClient.listBrands()
+  });
+  const powerTypesQuery = useQuery({
+    queryKey: ["power-types"],
+    queryFn: () => apiClient.listPowerTypes()
   });
   const submissionQuery = useQuery({
     queryKey: ["aircraft-submission-edit", editId],
@@ -912,9 +910,9 @@ export function PublishAircraftPage() {
                     onChange={(event) => setSelectedPowerType(event.target.value)}
                     value={selectedPowerType}
                   >
-                    {powerTypeOptions.map((item) => (
-                      <option key={item.value} value={item.value}>
-                        {item.label}
+                    {(powerTypesQuery.data ?? []).map((item) => (
+                      <option key={item.slug} value={item.slug}>
+                        {item.name}
                       </option>
                     ))}
                   </select>
@@ -1286,7 +1284,7 @@ export function PublishAircraftPage() {
               lifecycleStatusOptions.find((item) => item.value === selectedLifecycleStatus)?.label ?? "未发布"
             }
             modelName={modelName}
-            powerLabel={powerTypeOptions.find((item) => item.value === selectedPowerType)?.label ?? "其他"}
+            powerLabel={(powerTypesQuery.data ?? []).find((item) => item.slug === selectedPowerType)?.name ?? "其他"}
             priceMaxStr={priceMax}
             priceMinStr={priceMin}
             summary={summary}

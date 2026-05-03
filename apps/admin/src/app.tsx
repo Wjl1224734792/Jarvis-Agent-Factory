@@ -173,6 +173,11 @@ const ContentCategoriesPage = lazy(() =>
     default: module.ContentCategoriesPage
   }))
 );
+const PowerTypesPage = lazy(() =>
+  import("./features/models/power-types-page").then((module) => ({
+    default: module.PowerTypesPage
+  }))
+);
 const OfficialArticlesPage = lazy(() =>
   import("./features/posts/official-articles-page").then((module) => ({
     default: module.OfficialArticlesPage
@@ -493,6 +498,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementContentCategories),
         element: withAdminRouteFallback(<ContentCategoriesPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementPowerTypes),
+        element: withAdminRouteFallback(<PowerTypesPage />)
       },
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementOfficialArticles),

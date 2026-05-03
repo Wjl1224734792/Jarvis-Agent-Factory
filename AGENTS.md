@@ -91,6 +91,7 @@
 ### 环境变量
 
 改 env → **必须**同步：[`.env.example`](./.env.example)、根 [`README.md`](./README.md)、已提到该变量的子目录文档。  
+加载顺序：先 `.env`（公共，不覆盖系统 env），再 `.env.{NODE_ENV}`（环境专属，覆盖公共值）。  
 `CORS_ORIGIN` / `CORS_ORIGINS` / `WEB_DEV_PORT` / `ADMIN_DEV_PORT` / `WEB_DEV_HOST` / `ADMIN_DEV_HOST` → 同步 README「CORS 与局域网访问」。
 
 ### 基础设施
@@ -106,9 +107,9 @@
 **CORS**
 
 - 挂载：`apps/server/src/app.ts`；默认开发来源逻辑：`apps/server/src/lib/cors-origins.ts`。
-- 未显式配置 `CORS_ORIGIN` / `CORS_ORIGINS` 时，开发环境仅允许 `localhost`、`127.0.0.1`、私网 IPv4 的 `WEB_DEV_PORT` / `ADMIN_DEV_PORT`。
-- 非默认来源或生产访问 → 根 `.env` 配 `CORS_ORIGIN`；**操作说明** → [`README.md`](./README.md) 对应节。
-- 生产 **禁止** `CORS_ORIGIN=all`。
+- **显式配置** `CORS_ORIGIN` / `CORS_ORIGINS` 后，严格按配置列表放行（所有环境均不再追加开发来源）。
+- **未配置**时：开发/测试环境自动允许 `localhost`、`127.0.0.1`、私网 IPv4 的 `WEB_DEV_PORT` / `ADMIN_DEV_PORT`；生产环境仅允许 `localhost`/`127.0.0.1` 的默认端口。
+- 生产 **禁止** `CORS_ORIGIN=all` 或 `*`。
 
 **用户头像**
 

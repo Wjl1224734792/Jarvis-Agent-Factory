@@ -26,6 +26,7 @@ export const ADMIN_ROUTE_PATHS = {
   managementModels: "/admin/management/models",
   managementCategories: "/admin/management/categories",
   managementContentCategories: "/admin/management/content-categories",
+  managementPowerTypes: "/admin/management/power-types",
   managementUsers: "/admin/management/users",
   managementSecurity: "/admin/management/security",
   officialArticles: "/admin/official-articles",

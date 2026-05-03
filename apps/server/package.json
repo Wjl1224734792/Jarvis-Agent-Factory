@@ -5,11 +5,11 @@
   "type": "module",
   "scripts": {
     "dev": "cross-env NODE_ENV=development bun --watch src/index.ts",
-    "start": "bun src/index.ts",
+    "start": "cross-env NODE_ENV=production bun src/index.ts",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "typecheck": "tsc -p tsconfig.json",
     "lint": "eslint src/",
-    "test": "vitest run --root ../.. --config vitest.config.ts --maxWorkers 1 --testTimeout 30000 apps/server/tests"
+    "test": "cross-env NODE_ENV=test vitest run --root ../.. --config vitest.config.ts --maxWorkers 1 --testTimeout 30000 apps/server/tests"
   },
   "dependencies": {
     "@alicloud/dysmsapi20170525": "^4.5.0",
@@ -19,7 +19,6 @@
     "@feijia/db": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
-    "@hono/node-server": "^1.19.11",
     "@hono/swagger-ui": "^0.6.1",
     "@zhennann/svg-captcha": "^1.5.0",
     "dotenv": "^16.4.7",

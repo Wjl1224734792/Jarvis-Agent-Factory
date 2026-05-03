@@ -63,7 +63,8 @@ export const APP_ROUTES = {
   adminReviewComments: "/admin/review-comments",
   adminModelComments: "/admin/model-comments",
   adminRankingComments: "/admin/ranking-comments",
-  adminRatingTargetComments: "/admin/rating-target-comments"
+  adminRatingTargetComments: "/admin/rating-target-comments",
+  adminPowerTypes: "/admin/power-types"
 } as const;
 
 export const API_BASE_PREFIX = "/api" as const;
@@ -153,6 +154,11 @@ export const API_ROUTES = {
     adminComments: withApiV1Prefix("/admin/post-comments"),
     adminCommentDetail: (id: string) => withApiV1Prefix(`/admin/post-comments/${id}`),
     adminCommentReports: (id: string) => withApiV1Prefix(`/admin/post-comments/${id}/reports`)
+  },
+  powerTypes: {
+    list: withApiV1Prefix("/power-types"),
+    adminList: withApiV1Prefix("/admin/power-types"),
+    adminDetail: (id: string) => withApiV1Prefix(`/admin/power-types/${id}`)
   },
   content: {
     categories: withApiV1Prefix("/content-categories"),

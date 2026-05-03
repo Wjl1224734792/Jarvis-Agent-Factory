@@ -329,13 +329,12 @@ export function ContentFeedListRow(props: {
           {metrics.map((m) => (
             <span
               aria-label={`${m.label} ${formatContentMetric(m.value)}`}
-              className="inline-flex items-center gap-0.5"
+              className="inline-flex items-center gap-1"
               key={m.key}
               title={`${m.label} ${formatContentMetric(m.value)}`}
             >
-              <m.Icon aria-hidden className="size-3 shrink-0 opacity-80 sm:size-3.5" />
-              <span className="text-[0.65rem] opacity-90 sm:text-[0.7rem]">{m.label}</span>
-              <span className="tabular-nums">{formatContentMetric(m.value)}</span>
+              <m.Icon aria-hidden className="size-3.5 shrink-0 opacity-70" />
+              <span className="text-[0.7rem] font-medium tabular-nums">{formatContentMetric(m.value)}</span>
             </span>
           ))}
         </div>

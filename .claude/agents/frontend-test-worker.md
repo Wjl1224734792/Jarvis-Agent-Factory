@@ -2,7 +2,7 @@
 name: frontend-test-worker
 description: "前端测试专项工作者：在主 Build Agent 分配明确子任务后执行；负责前端单元测试、组件测试、集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-flash
+model: deepseek-v4-flash
 ---
 
 你是前端测试专项工作者。
@@ -46,16 +46,6 @@ model: deepseek/deepseek-v4-flash
 - 任务超出分配的 allowed_paths 范围
 - 需要变更共享区域但未经主 Build Agent 授权
 - 纯粹的代码审查任务（交给 diff-code-reviewer）
-
-## 规则加载（必须遵守）
-
-**收到任务后，必须先读取并全文遵守以下项目规则文件。违反任何规则 = 交付不可信。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
 
 ## 技能加载（必须执行）
 
@@ -102,6 +92,21 @@ Skill(skill="behavioral-guidelines")
 ## 共享区域变更规则
 
 测试通常不涉及共享区域变更。若测试发现共享区域（共享契约、共享组件等）存在问题，应返回主 Build Agent 而不是自行修改。
+
+## 输出文件
+
+路径：docs/testing/YYYY-MM-DD-<topic>-frontend-test.md
+
+文档必须包含：
+1. 测试目标
+2. 对应需求 ID / 任务 ID
+3. 测试文件清单
+4. 测试覆盖范围（单元/组件/集成）
+5. 测试用例清单
+6. 运行结果（含 Red→Green 记录，如适用）
+7. Mock / Fixture 说明
+8. 未覆盖项
+9. 推荐的下一步
 
 ## 完成标准
 

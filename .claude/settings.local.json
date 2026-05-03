@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(bun run *)",
+      "Bash(bun test *)",
+      "Bash(npx tsc *)",
+      "mcp__Claude_Preview__preview_start"
+    ]
+  }
+}

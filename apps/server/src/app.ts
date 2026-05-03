@@ -16,6 +16,7 @@ import { brandApplicationsRoute } from './modules/brand-applications/brand-appli
 import { brandsRoute } from './modules/brands/brands.route';
 import { categoriesRoute } from './modules/categories/categories.route';
 import { contentCategoriesRoute } from './modules/content-categories/content-categories.route';
+import { powerTypesRoute } from './modules/power-types/power-types.route';
 import { postsRoute } from './modules/posts/posts.route';
 import { rankingsRoute } from './modules/rankings/rankings.route';
 import { reviewsRoute } from './modules/reviews/reviews.route';
@@ -229,6 +230,7 @@ app.route('/', reviewsRoute);
 app.route('/', siteSettingsRoute);
 app.route(API_ROUTES.models.categories, categoriesRoute);
 app.route(API_ROUTES.models.brands, brandsRoute);
+app.route('/', powerTypesRoute);
 app.route('/', contentCategoriesRoute);
 
 app.notFound(context =>

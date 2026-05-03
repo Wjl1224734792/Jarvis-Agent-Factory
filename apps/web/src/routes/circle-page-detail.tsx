@@ -111,11 +111,11 @@ export function CirclePageDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden overscroll-none bg-black/46 p-3 backdrop-blur-[2px] transition-opacity"
+      className="fixed inset-0 z-50 flex overflow-hidden overscroll-none bg-black/46 backdrop-blur-[2px] transition-opacity md:items-center md:justify-center"
       onClick={onClose}
     >
       <div
-        className="relative flex h-[min(92dvh,860px,calc(100dvh-1.5rem))] w-full max-w-[1220px] flex-col overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:flex-row"
+        className="relative flex h-dvh w-full flex-col overflow-hidden bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:h-[min(92dvh,860px,calc(100dvh-1.5rem))] md:max-w-[1220px] md:flex-row md:self-center md:rounded-[1rem]"
         onClick={(event) => event.stopPropagation()}
       >
         <button
@@ -266,27 +266,33 @@ export function CirclePageDetail({
                     <h1 className="text-[1.2rem] leading-[1.28] font-semibold text-foreground">
                       {selectedNote.title}
                     </h1>
-                    {selectedNote.source ? (
-                      <div className="text-[0.8rem] text-muted-foreground">
-                        来源：
-                        {selectedNote.source.url ? (
-                          <a
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={selectedNote.source.url}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            {selectedNote.source.label}
-                          </a>
-                        ) : (
-                          <span className="text-foreground/78">{selectedNote.source.label}</span>
-                        )}
-                      </div>
-                    ) : null}
+                    <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.8rem] text-muted-foreground">
+                      {selectedNote.declaration ? (
+                        <span>{selectedNote.declaration.label}</span>
+                      ) : null}
+                      {selectedNote.source ? (
+                        <span>
+                          来源：{selectedNote.source.label}
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-[0.88rem] leading-6 text-foreground/72">
                       {selectedNote.content}
                     </p>
                   </div>
+
+                  {selectedNote.source?.url ? (
+                    <div>
+                      <a
+                        className="inline-flex items-center gap-1.5 text-sm text-primary hover:underline"
+                        href={selectedNote.source.url}
+                        rel="noreferrer"
+                        target="_blank"
+                      >
+                        原文链接
+                      </a>
+                    </div>
+                  ) : null}
 
                   <div className="border-t border-border pt-3.5">
                     <div className="mb-3 flex flex-wrap items-center justify-between gap-3">

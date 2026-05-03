@@ -203,6 +203,23 @@ export const aircraftCategoriesTable = pgTable(
   })
 );
 
+export const powerTypesTable = pgTable(
+  "power_types",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    isEnabled: boolean("is_enabled").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("power_types_slug_unique").on(table.slug)
+  })
+);
+
 export const brandsTable = pgTable(
   "brands",
   {
@@ -437,7 +454,7 @@ export const reviewCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("review_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -495,6 +512,7 @@ export const postsTable = pgTable("posts", {
   contentPlainText: text("content_plain_text"),
   sourceLabel: text("source_label"),
   sourceUrl: text("source_url"),
+  declaration: text("declaration"),
   contentCategoryId: text("content_category_id"),
   coverImageFileId: text("cover_image_file_id"),
   status: text("status").default("pending").notNull(),
@@ -550,7 +568,7 @@ export const postCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("post_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -922,7 +940,7 @@ export const ratingTargetCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("rating_target_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );
@@ -991,7 +1009,7 @@ export const aircraftModelCommentsTable = pgTable(
       .defaultNow()
       .notNull()
   },
-  (table) => ({
+  (table) => ({
     statusCheck: check("aircraft_model_comments_status_check", sql`${table.status} IN ('pending', 'visible', 'hidden')`)
   })
 );

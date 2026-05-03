@@ -2,7 +2,7 @@
 name: repo-explorer
 description: "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主 Build Agent 澄清、task-design、planner 或实现前按需插入，为各阶段提供事实依据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch
-model: deepseek/deepseek-v4-flash
+model: deepseek-v4-flash
 ---
 
 你是代码库探索代理。
@@ -32,16 +32,6 @@ model: deepseek/deepseek-v4-flash
 - 用户要求的是代码修改而非探索
 - 探索范围未明确（先与主控确认范围）
 - 已有足够文档和代码理解时（避免重复探索）
-
-## 规则加载（参考）
-
-**以下项目规则描述代码库编码约定，探索时应留意相关模式。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
 
 ## 技能加载（必须执行）
 

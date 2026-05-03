@@ -352,17 +352,6 @@ export function App() {
               path: toRootChildPath(APP_ROUTES.compose),
               element: <Navigate replace to={WEB_ROUTE_PATHS.publishArticle} />
             },
-            // 主站兜底统一回到首页 feed，避免落入空白页。
-            {
-              path: "*",
-              element: <Navigate replace to={APP_ROUTES.feedHome} />
-            }
-          ]
-        },
-        {
-          path: APP_ROUTES.home,
-          element: <ImmersiveLayout />,
-          children: [
             {
               path: toRootChildPath(APP_ROUTES.modelDetail),
               element: withSuspenseFallback(
@@ -399,6 +388,17 @@ export function App() {
                 </DeferredFallback>
               )
             },
+            // 主站兜底统一回到首页 feed，避免落入空白页。
+            {
+              path: "*",
+              element: <Navigate replace to={APP_ROUTES.feedHome} />
+            }
+          ]
+        },
+        {
+          path: APP_ROUTES.home,
+          element: <ImmersiveLayout />,
+          children: [
             {
               path: toRootChildPath(WEB_ROUTE_PATHS.publishArticle),
               // 发布链路必须登录，但这里使用 fallback 模式，避免把用户带回登录页后丢失上下文。

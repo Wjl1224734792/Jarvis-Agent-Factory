@@ -2,7 +2,8 @@
 name: planner
 description: "在需求文档已通过 Gate A、任务文档已通过 Gate B 后使用；选择当前轮次任务包，生成执行计划，并明确实现代理分工、共享改动归属与 Execution Packet。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是执行规划代理。
@@ -63,16 +64,6 @@ model: deepseek/deepseek-v4-pro
 ### 变更规模控制
 
 单轮次所有任务的预期变更总行数不应超过 ~1000 行。超过时考虑拆分为两个轮次。
-
-## 规则加载（必须遵守）
-
-**开始规划前，必须先读取并遵守以下项目规则文件。生成的计划/Execution Packet 不得违反任何规则。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
 
 ## 技能加载（必须执行）
 

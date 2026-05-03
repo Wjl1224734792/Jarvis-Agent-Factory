@@ -3,6 +3,7 @@ export {
   auditRecordsTable,
   aircraftSubmissionsTable,
   aircraftCategoriesTable,
+  powerTypesTable,
   aircraftModelsTable,
   aircraftModelInteractionsTable,
   aircraftModelCommentsTable,

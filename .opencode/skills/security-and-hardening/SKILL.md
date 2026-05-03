@@ -23,16 +23,6 @@ description: "安全加固——OWASP 前十防护模式、鉴权模式、密钥
 
 如果你在代码中看到了 `password = "admin123"`、`sql += userInput` 或 `innerHTML = data`，请立即停下来。
 
-## 仓库规范
-
-本仓库在 `.opencode/rules/` 下定义了以下规范，所有代理和技能均须遵守：
-
-- **通用编程规范与指南** — 语言（中文）、注释规范、嵌套控制、数组操作、模块化、设计原则（SOLID/DRY/KISS）、DDD/TDD 策略、Tailwind CSS 规范、质量检查清单。
-- **团队协作规范** — 代码风格（Prettier）、代码质量（ESLint + TypeScript strict）、分支管理、提交规范（Conventional Commits）、研发流程与质量门禁、CI/CD Pipeline。
-- **TypeScript 与 Interface 使用规范** — 默认 `interface` 优先，特定场景用 `type`；Zod 环境下以 schema 推断类型为准。
-
-> 详细规范见 `.opencode/rules/` 下的三个文件。
-
 ## 何时使用
 
 **必须使用：**

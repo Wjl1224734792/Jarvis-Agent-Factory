@@ -47,5 +47,6 @@ export const openApiTags = [
   { name: "settings", description: "Admin site-setting endpoints" },
   { name: "admin-analytics", description: "Admin dashboard analytics endpoints" },
   { name: "admin-reports", description: "Admin report detail and evidence endpoints" },
-  { name: "reviews", description: "Review comment, interaction and moderation endpoints" }
+  { name: "reviews", description: "Review comment, interaction and moderation endpoints" },
+  { name: "动力分类", description: "飞行器动力类型分类管理" }
 ] as const;

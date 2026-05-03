@@ -211,6 +211,7 @@ interface OfficialArticleInput {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
+  declaration?: string;
   imageIds?: string[];
   videoIds?: string[];
 }
@@ -395,6 +396,38 @@ const rawApiClient = {
       input
     );
   },
+  listPowerTypes() {
+    return getJson<
+      Array<{
+        id: string;
+        slug: string;
+        name: string;
+        sortOrder: number;
+        isEnabled: boolean;
+        createdAt: string;
+      }>
+    >(API_ROUTES.powerTypes.adminList);
+  },
+  createPowerType(input: {
+    slug: string;
+    name: string;
+    sortOrder?: number;
+    isEnabled: boolean;
+  }) {
+    return postJson<{ item: { id: string; slug: string; name: string } }>(
+      API_ROUTES.powerTypes.adminList,
+      { ...input, sortOrder: Number(input.sortOrder ?? 0) }
+    );
+  },
+  updatePowerType(
+    id: string,
+    input: { slug: string; name: string; sortOrder: number; isEnabled: boolean }
+  ) {
+    return putJson<{ item: { id: string; slug: string; name: string } }>(
+      API_ROUTES.powerTypes.adminDetail(id),
+      input
+    );
+  },
   createBrand(input: {
     slug: string;
     name: string;
@@ -458,6 +491,7 @@ const rawApiClient = {
       contentCategoryId: input.contentCategoryId,
       sourceLabel: input.sourceLabel ?? null,
       sourceUrl: input.sourceUrl ?? null,
+      declaration: input.declaration ?? '',
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });
@@ -551,6 +585,7 @@ const rawApiClient = {
       contentCategoryId: input.contentCategoryId,
       sourceLabel: input.sourceLabel ?? null,
       sourceUrl: input.sourceUrl ?? null,
+      declaration: input.declaration ?? '',
       imageIds: input.imageIds ?? [],
       videoIds: input.videoIds ?? []
     });

@@ -45,6 +45,28 @@ type OfficialArticleEditorFormValues = {
   contentCategoryId: string;
   sourceLabel?: string | null;
   sourceUrl?: string | null;
+  declaration?: string;
+};
+
+const DECLARATION_OPTIONS = [
+  { label: '原创', value: 'original' },
+  { label: 'AI生成', value: 'ai_generated' },
+  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '转载', value: 'reprinted' },
+  { label: '深度合成', value: 'deep_synthesis' }
+];
+
+const SOURCE_LABEL_OPTIONS = [
+  { label: '飞加官方', value: '飞加官方' },
+  { label: '转载媒体', value: '转载媒体' },
+  { label: '作者投稿', value: '作者投稿' },
+  { label: '行业媒体', value: '行业媒体' },
+  { label: '航司官方', value: '航司官方' },
+  { label: '其他来源', value: '其他来源' },
+];
+
+const SOURCE_URL_MAP: Record<string, string> = {
+  '飞加官方': 'https://feijia.com',
 };
 
 const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
@@ -98,6 +120,7 @@ export function OfficialArticleEditorPage() {
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
+  const watchedDeclaration = (Form.useWatch("declaration", form) ?? "") as string;
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -135,6 +158,7 @@ export function OfficialArticleEditorPage() {
     setUploadedVideos(createMediaAssetList(item.videos));
     setEditorHtml(parsedDocument.contentHtml);
     setEditorText(parsedDocument.plainText || item.content);
+    form.setFieldValue('declaration', item.declaration?.value ?? '');
   }, [detailQuery.data?.item, editId, form]);
 
   useEffect(() => {
@@ -335,6 +359,7 @@ export function OfficialArticleEditorPage() {
         contentCategoryId: values.contentCategoryId,
         sourceLabel: values.sourceLabel,
         sourceUrl: values.sourceUrl,
+        declaration: values.declaration,
         content: document.plainText,
         contentHtml: document.contentHtml
       } satisfies OfficialArticleFormValues,
@@ -418,17 +443,43 @@ export function OfficialArticleEditorPage() {
               <Select loading={categoriesQuery.isLoading} options={categoryOptions} placeholder="选择分类" size="large" />
             </Form.Item>
 
-            <Form.Item label="声明来源" name="sourceLabel">
-              <Input placeholder="例如：飞加官方、转载媒体名称或作者" size="large" />
+            <Form.Item
+              label="内容声明"
+              name="declaration"
+              rules={[{ required: true, message: '请选择内容声明' }]}
+            >
+              <Select options={DECLARATION_OPTIONS} placeholder="选择内容声明" />
             </Form.Item>
 
-            <Form.Item
-              label="来源链接"
-              name="sourceUrl"
-              rules={[{ type: "url", message: "请输入合法 URL" }]}
-            >
-              <Input placeholder="https://example.com/source" size="large" />
-            </Form.Item>
+            {watchedDeclaration && watchedDeclaration !== 'original' ? (
+              <>
+                <Form.Item
+                  label="声明来源"
+                  name="sourceLabel"
+                  rules={watchedDeclaration === 'reprinted' ? [{ required: true, message: '转载内容必须填写来源名称' }] : undefined}
+                >
+                  <Select
+                    onChange={(value) => {
+                      const defaultUrl = SOURCE_URL_MAP[value];
+                      if (defaultUrl !== undefined) {
+                        form.setFieldValue('sourceUrl', defaultUrl);
+                      }
+                    }}
+                    options={SOURCE_LABEL_OPTIONS}
+                    placeholder="选择来源名称"
+                    size="large"
+                  />
+                </Form.Item>
+
+                <Form.Item
+                  label="来源链接"
+                  name="sourceUrl"
+                  rules={[{ type: "url", message: "请输入合法 URL" }]}
+                >
+                  <Input placeholder="https://example.com/source" size="large" />
+                </Form.Item>
+              </>
+            ) : null}
 
             <Form.Item
               label={
@@ -540,6 +591,11 @@ export function OfficialArticleEditorPage() {
                   ) : (
                     watchedSourceLabel.trim()
                   )}
+                </div>
+              ) : null}
+              {watchedDeclaration ? (
+                <div className="admin-article-preview__meta">
+                  {DECLARATION_OPTIONS.find((o) => o.value === watchedDeclaration)?.label ?? watchedDeclaration}
                 </div>
               ) : null}
               <div className="admin-article-preview__title">{watchedTitle || "文章标题"}</div>

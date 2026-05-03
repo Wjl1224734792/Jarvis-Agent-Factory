@@ -6,6 +6,7 @@ import {
 } from "../uploads/uploads.helpers";
 import { uploadsRepo } from "../uploads/upload.repo";
 import { categoriesService } from "../categories/categories.service";
+import { powerTypesService } from "../power-types/power-types.service";
 import { brandsService } from "../brands/brands.service";
 import { siteSettingsService } from "../site-settings/site-settings.service";
 import { socialService } from "../social/social.service";
@@ -21,6 +22,8 @@ type ListFilters = {
   powerTypes?: string[];
   keyword?: string;
   sort?: "hot" | "latest";
+  tab?: "recommended" | "latest" | "following";
+  currentUserId?: string;
   limit?: number;
   page?: number;
 };
@@ -242,14 +245,24 @@ function parseFileIdArray(value: string) {
 
 export const aircraftModelsService = {
   async listModels(filters: ListFilters) {
-    const [rows, categories, brands] = await Promise.all([
-      aircraftModelsRepo.list(filters),
+    const tab = filters.tab ?? "recommended";
+    const repoFilters = {
+      categorySlugs: filters.categorySlugs,
+      brandSlugs: filters.brandSlugs,
+      powerTypes: filters.powerTypes,
+      keyword: filters.keyword,
+      followingUserId: tab === "following" ? filters.currentUserId : undefined
+    };
+
+    const [rows, categories, brands, powerTypes] = await Promise.all([
+      aircraftModelsRepo.list(repoFilters),
       categoriesService.listCategories(),
-      brandsService.listBrands()
+      brandsService.listBrands(),
+      powerTypesService.listPowerTypes()
     ]);
 
     const orderedRows =
-      filters.sort === "hot"
+      tab === "recommended"
         ? sortModelsByHotScore(
             rows.map((row) => ({
               ...row,
@@ -285,7 +298,7 @@ export const aircraftModelsService = {
       filters: {
         categories,
         brands,
-        powerTypes: ["electric", "fuel", "hybrid", "other"] as const
+        powerTypes: powerTypes.map((item) => item.slug)
       }
     };
   },

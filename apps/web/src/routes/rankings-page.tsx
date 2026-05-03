@@ -10,6 +10,7 @@ import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
+import { IpLocationText } from "@/components/ip-location-text";
 import { ProfileLink } from "@/components/profile-link";
 import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
@@ -60,6 +61,7 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
               <ProfileLink className="truncate hover:text-foreground" userId={ranking.author.id}>
                 {ranking.author.displayName}
               </ProfileLink>
+              <IpLocationText label={ranking.author.ipLocationLabel} variant="plain" />
               <span>{ranking.commentCount} 条评论</span>
               <span>均分 {ranking.averageScore.toFixed(1)}</span>
             </div>

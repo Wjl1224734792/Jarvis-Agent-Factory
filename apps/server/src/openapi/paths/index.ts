@@ -13,6 +13,7 @@ import { modelPaths } from './models';
 import { reviewPaths } from './reviews';
 import { postPaths } from './posts';
 import { rankingPaths } from './rankings';
+import { powerTypePaths } from './power-types';
 
 export const openApiPaths = {
   ...systemPaths,
@@ -30,4 +31,5 @@ export const openApiPaths = {
   ...reviewPaths,
   ...postPaths,
   ...rankingPaths,
+  ...powerTypePaths,
 } as const;

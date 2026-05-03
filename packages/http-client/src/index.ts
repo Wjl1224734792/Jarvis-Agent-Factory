@@ -59,6 +59,7 @@ import {
   completeUploadInputSchema,
   completeUploadResponseSchema,
   contentCategoriesResponseSchema,
+  powerTypeCategorySchema,
   createBrandApplicationInputSchema,
   createAircraftSubmissionInputSchema,
   createPostCommentInputSchema,
@@ -183,7 +184,18 @@ type AdminPasswordChangeInput =
   Parameters<typeof adminPasswordChangeRequestSchema.parse>[0];
 type UserPasswordChangeInput =
   Parameters<typeof userPasswordChangeRequestSchema.parse>[0];
-type ModelsQueryInput = Parameters<typeof modelListQuerySchema.parse>[0];
+type ModelsQueryInput = {
+  categorySlugs?: string[];
+  brandSlugs?: string[];
+  powerTypes?: string[];
+  keyword?: string;
+  categorySlug?: string;
+  brandSlug?: string;
+  sort?: "hot" | "latest";
+  tab?: "recommended" | "latest" | "following";
+  limit?: number;
+  page?: number;
+};
 type ModelInteractionTypeInput = Parameters<typeof modelInteractionTypeSchema.parse>[0];
 type AdminCategoryInput = Parameters<typeof adminCategoryInputSchema.parse>[0];
 type AdminBrandInput = Parameters<typeof adminBrandInputSchema.parse>[0];
@@ -421,6 +433,10 @@ function buildQueryString(input: ModelsQueryInput): string {
 
   if (query.sort) {
     search.set("sort", query.sort);
+  }
+
+  if (query.tab) {
+    search.set("tab", query.tab);
   }
 
   if (typeof query.limit === "number") {
@@ -1136,6 +1152,18 @@ export function createApiClient(options: ApiClientOptions) {
       });
 
       return readJson(response, contentCategoriesResponseSchema);
+    },
+    async listPowerTypes() {
+      const response = await fetch(`${baseUrl}${API_ROUTES.powerTypes.list}`, {
+        method: "GET",
+        credentials: "include"
+      });
+
+      return readJson(response, {
+        parse(input: unknown) {
+          return powerTypeCategorySchema.array().parse(input);
+        }
+      });
     },
     async createContentCategory(input: AdminContentCategoryInput) {
       return postJson(

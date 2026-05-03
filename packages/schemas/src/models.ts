@@ -136,7 +136,9 @@ export const modelListQuerySchema = z
     brandSlug: z.string().min(1).optional(),
     sort: z.enum(["hot", "latest"]).optional(),
     limit: z.coerce.number().int().positive().max(20).optional(),
-    page: z.coerce.number().int().positive().optional()
+    page: z.coerce.number().int().positive().optional(),
+    tab: z.enum(["recommended", "latest", "following"]).optional(),
+    currentUserId: z.string().min(1).optional()
   })
   .transform((input) => ({
     categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
@@ -144,6 +146,8 @@ export const modelListQuerySchema = z
     powerTypes: input.powerTypes,
     keyword: input.keyword?.trim() || undefined,
     sort: input.sort,
+    tab: input.tab,
+    currentUserId: input.currentUserId,
     limit: input.limit,
     page: input.page
   }));
@@ -257,6 +261,28 @@ export const adminCategoryInputSchema = z.object({
 
 export const adminCategoryResponseSchema = z.object({
   item: aircraftCategorySchema
+});
+
+export const powerTypeCategorySchema = z.object({
+  id: z.string().min(1),
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  sortOrder: z.number().int().nonnegative(),
+  isEnabled: z.boolean(),
+  createdAt: z.string().datetime()
+});
+
+export type PowerTypeCategory = z.infer<typeof powerTypeCategorySchema>;
+
+export const adminPowerTypeCategoryInputSchema = z.object({
+  slug: z.string().min(1),
+  name: z.string().min(1),
+  sortOrder: z.number().int().nonnegative().default(0),
+  isEnabled: z.boolean().default(true)
+});
+
+export const adminPowerTypeCategoryResponseSchema = z.object({
+  item: powerTypeCategorySchema
 });
 
 export const adminBrandInputSchema = z.object({

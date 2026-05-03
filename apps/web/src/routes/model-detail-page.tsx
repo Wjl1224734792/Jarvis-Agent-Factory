@@ -520,7 +520,7 @@ export function ModelDetailPage() {
               type="button"
             >
               <MessageCircleIcon className="size-5 shrink-0 transition-transform duration-150 ease-out group-active:scale-[0.92]" />
-              <span className="sr-only">前往评论区</span>
+              <span className="text-xs">{item.commentCount}</span>
             </button>
 
             <DetailMoreActions
@@ -738,6 +738,7 @@ export function ModelDetailPage() {
                       type="button"
                     >
                       <MessageCircleIcon className="size-[1.125rem] shrink-0" />
+                      <span className="ml-0.5 text-xs tabular-nums">{item.commentCount}</span>
                     </button>
                     <DetailMoreActions
                       canDelete={canManageModel}

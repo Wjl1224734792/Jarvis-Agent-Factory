@@ -2,7 +2,8 @@
 name: remediation-planner
 description: "修复与优化规划代理：把初审 findings 转成可执行修复/优化计划，明确所有权、顺序、验证命令和共享区域边界。"
 tools: Read, Write, Edit, Bash, Glob, Grep
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是修复与优化规划代理。
@@ -32,16 +33,6 @@ model: deepseek/deepseek-v4-pro
 - 用户要求的是实现而非审查
 - 审查范围未明确界定（先与主控确认）
 - 需要领域 worker 而非通用审查的场景
-
-## 规则加载（必须遵守）
-
-**开始规划修复前，必须先读取并遵守以下项目规则文件。生成的修复计划不得违反任何规则。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
 
 ## 技能加载（必须执行）
 

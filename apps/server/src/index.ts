@@ -1,6 +1,4 @@
-import { serve } from '@hono/node-server';
 import { APP_NAME, APP_PORTS } from '@feijia/shared';
-import { createServer } from 'node:net';
 import { app } from './app';
 import { logger } from './lib/logger';
 import { API_DOCS_PATH } from './openapi/document';
@@ -11,31 +9,22 @@ const preferredPort = Number(
   process.env.SERVER_PORT ?? process.env.PORT ?? APP_PORTS.server
 );
 
-function isPortAvailable(port: number): Promise<boolean> {
-  return new Promise(resolve => {
-    const server = createServer();
-
-    server.once('error', (error: NodeJS.ErrnoException) => {
-      if (error.code === 'EADDRINUSE') {
-        resolve(false);
-        return;
-      }
-
-      resolve(false);
+function isPortAvailable(port: number): boolean {
+  try {
+    const testServer = Bun.listen({
+      socket: { data() {} },
+      port,
+      hostname: '0.0.0.0',
     });
-
-    server.once('listening', () => {
-      server.close(() => {
-        resolve(true);
-      });
-    });
-
-    server.listen(port, '0.0.0.0');
-  });
+    testServer.stop();
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-async function resolveListenPort(preferred: number): Promise<number> {
-  if (await isPortAvailable(preferred)) {
+function resolveListenPort(preferred: number): number {
+  if (isPortAvailable(preferred)) {
     return preferred;
   }
 
@@ -46,7 +35,7 @@ async function resolveListenPort(preferred: number): Promise<number> {
   const maxOffset = 20;
   for (let offset = 1; offset <= maxOffset; offset += 1) {
     const candidate = preferred + offset;
-    if (await isPortAvailable(candidate)) {
+    if (isPortAvailable(candidate)) {
       logger.warn(`Port ${preferred} is in use, switched to ${candidate} for local development.`);
       return candidate;
     }
@@ -56,18 +45,15 @@ async function resolveListenPort(preferred: number): Promise<number> {
 }
 
 await ensureRedisConnected();
-const port = await resolveListenPort(preferredPort);
+const port = resolveListenPort(preferredPort);
 
-serve(
-  {
-    fetch: app.fetch,
-    port
-  },
-  info => {
-    const listenPort = info.port;
-    logger.info(`${APP_NAME} server running at http://localhost:${listenPort}`);
-    logger.info(
-      `${APP_NAME} api docs available at http://localhost:${listenPort}${API_DOCS_PATH}`
-    );
-  }
+Bun.serve({
+  fetch: app.fetch,
+  port,
+  hostname: '0.0.0.0',
+});
+
+logger.info(`${APP_NAME} server running at http://localhost:${port}`);
+logger.info(
+  `${APP_NAME} api docs available at http://localhost:${port}${API_DOCS_PATH}`
 );

@@ -4,6 +4,7 @@ import * as schema from "./schema.js";
 import {
   auditRecordsTable,
   aircraftCategoriesTable,
+  powerTypesTable,
   aircraftModelCommentLikesTable,
   aircraftModelCommentReportsTable,
   aircraftModelCommentsTable,
@@ -429,6 +430,7 @@ function buildSeedFile(input: {
     size: input.byteSize,
     etag: null,
     status: "uploaded",
+    currentAuditStatus: "passed",
     visibility: "public",
     createdAt: input.createdAt,
     uploadedAt: input.createdAt,
@@ -499,9 +501,8 @@ async function seedContentCategories() {
     .insert(contentCategoriesTable)
     .values([
       { id: CONTENT_CATEGORY_IDS.news, slug: "news", name: "资讯", sortOrder: 1, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.review, slug: "review", name: "评测", sortOrder: 2, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "技术", sortOrder: 3, isEnabled: true },
-      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "指南", sortOrder: 4, isEnabled: true }
+      { id: CONTENT_CATEGORY_IDS.tech, slug: "tech", name: "技术", sortOrder: 2, isEnabled: true },
+      { id: CONTENT_CATEGORY_IDS.guide, slug: "guide", name: "指南", sortOrder: 3, isEnabled: true }
     ])
     .onConflictDoNothing();
 }
@@ -514,6 +515,18 @@ async function seedAircraftCategories() {
       { id: AIRCRAFT_CATEGORY_IDS.evtol, slug: "evtol", name: "电动垂直起降", sortOrder: 2, isEnabled: true },
       { id: AIRCRAFT_CATEGORY_IDS.helicopter, slug: "helicopter", name: "直升机", sortOrder: 3, isEnabled: true },
       { id: AIRCRAFT_CATEGORY_IDS.businessJet, slug: "business-jet", name: "公务机", sortOrder: 4, isEnabled: true }
+    ])
+    .onConflictDoNothing();
+}
+
+async function seedPowerTypes() {
+  await db
+    .insert(powerTypesTable)
+    .values([
+      { id: "seed_pwt_electric", slug: "electric", name: "电动", sortOrder: 1, isEnabled: true },
+      { id: "seed_pwt_fuel", slug: "fuel", name: "燃油", sortOrder: 2, isEnabled: true },
+      { id: "seed_pwt_hybrid", slug: "hybrid", name: "混动", sortOrder: 3, isEnabled: true },
+      { id: "seed_pwt_other", slug: "other", name: "其他", sortOrder: 4, isEnabled: true }
     ])
     .onConflictDoNothing();
 }
@@ -534,12 +547,12 @@ async function seedDemoAircraftCatalog() {
   await db
     .insert(aircraftModelsTable)
     .values([
-      { id: MODEL_IDS.mini4, slug: "mini-4-pro", name: "DJI Mini 4 Pro", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, powerType: "electric", summary: "Compact and stable flight model.", description: "Suitable for travel and everyday aerial shooting.", priceMin: 4999, priceMax: 6999, maxFlightTimeMinutes: 45, maxRangeKilometers: 18, maxSpeedKph: 58, takeoffWeightGrams: 249, isPublished: true },
-      { id: MODEL_IDS.mavic3, slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, powerType: "electric", summary: "Multi-lens flagship for commercial workflows.", description: "High-end model for demanding image capture.", priceMin: 13888, priceMax: 17688, maxFlightTimeMinutes: 43, maxRangeKilometers: 28, maxSpeedKph: 75, takeoffWeightGrams: 958, isPublished: true },
-      { id: MODEL_IDS.autelLite, slug: "evo-lite-plus", name: "Autel EVO Lite+", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.autel, powerType: "electric", summary: "Balanced image quality and endurance.", description: "Good low-light and stable handling.", priceMin: 7299, priceMax: 8599, maxFlightTimeMinutes: 40, maxRangeKilometers: 24, maxSpeedKph: 68, takeoffWeightGrams: 835, isPublished: true },
-      { id: MODEL_IDS.eh216, slug: "eh216-s", name: "EHang EH216-S", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: BRAND_IDS.ehang, powerType: "electric", summary: "Representative urban eVTOL sample.", description: "Used as low-altitude mobility benchmark data.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 25, maxRangeKilometers: 35, maxSpeedKph: 130, takeoffWeightGrams: null, isPublished: true },
-      { id: MODEL_IDS.jobyS4, slug: "joby-s4", name: "Joby S4", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: BRAND_IDS.joby, powerType: "electric", summary: "Commercial-route eVTOL reference.", description: "Long-term tracking target for eVTOL progress.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 45, maxRangeKilometers: 240, maxSpeedKph: 320, takeoffWeightGrams: null, isPublished: true },
-      { id: MODEL_IDS.visionJet, slug: "vision-jet-g2-plus", name: "Cirrus Vision Jet G2+", categoryId: AIRCRAFT_CATEGORY_IDS.businessJet, brandId: BRAND_IDS.cirrus, powerType: "fuel", summary: "General aviation personal jet sample.", description: "Cross-category baseline for low-altitude transport.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 300, maxRangeKilometers: 2300, maxSpeedKph: 576, takeoffWeightGrams: null, isPublished: true }
+      { id: MODEL_IDS.mini4, slug: "mini-4-pro", name: "DJI Mini 4 Pro", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, ownerId: USER_IDS.skyline, lifecycleStatus: "marketed", powerType: "electric", summary: "Compact and stable flight model.", description: "Suitable for travel and everyday aerial shooting.", priceMin: 4999, priceMax: 6999, maxFlightTimeMinutes: 45, maxRangeKilometers: 18, maxSpeedKph: 58, takeoffWeightGrams: 249, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true },
+      { id: MODEL_IDS.mavic3, slug: "mavic-3-pro", name: "DJI Mavic 3 Pro", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.dji, ownerId: USER_IDS.skyline, lifecycleStatus: "marketed", powerType: "electric", summary: "Multi-lens flagship for commercial workflows.", description: "High-end model for demanding image capture.", priceMin: 13888, priceMax: 17688, maxFlightTimeMinutes: 43, maxRangeKilometers: 28, maxSpeedKph: 75, takeoffWeightGrams: 958, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true },
+      { id: MODEL_IDS.autelLite, slug: "evo-lite-plus", name: "Autel EVO Lite+", categoryId: AIRCRAFT_CATEGORY_IDS.drone, brandId: BRAND_IDS.autel, ownerId: USER_IDS.canyon, lifecycleStatus: "marketed", powerType: "electric", summary: "Balanced image quality and endurance.", description: "Good low-light and stable handling.", priceMin: 7299, priceMax: 8599, maxFlightTimeMinutes: 40, maxRangeKilometers: 24, maxSpeedKph: 68, takeoffWeightGrams: 835, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true },
+      { id: MODEL_IDS.eh216, slug: "eh216-s", name: "EHang EH216-S", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: BRAND_IDS.ehang, ownerId: USER_IDS.night, lifecycleStatus: "released", powerType: "electric", summary: "Representative urban eVTOL sample.", description: "Used as low-altitude mobility benchmark data.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 25, maxRangeKilometers: 35, maxSpeedKph: 130, takeoffWeightGrams: null, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true },
+      { id: MODEL_IDS.jobyS4, slug: "joby-s4", name: "Joby S4", categoryId: AIRCRAFT_CATEGORY_IDS.evtol, brandId: BRAND_IDS.joby, ownerId: USER_IDS.review, lifecycleStatus: "testing", powerType: "electric", summary: "Commercial-route eVTOL reference.", description: "Long-term tracking target for eVTOL progress.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 45, maxRangeKilometers: 240, maxSpeedKph: 320, takeoffWeightGrams: null, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true },
+      { id: MODEL_IDS.visionJet, slug: "vision-jet-g2-plus", name: "Cirrus Vision Jet G2+", categoryId: AIRCRAFT_CATEGORY_IDS.businessJet, brandId: BRAND_IDS.cirrus, ownerId: USER_IDS.ranking, lifecycleStatus: "marketed", powerType: "fuel", summary: "General aviation personal jet sample.", description: "Cross-category baseline for low-altitude transport.", priceMin: null, priceMax: null, maxFlightTimeMinutes: 300, maxRangeKilometers: 2300, maxSpeedKph: 576, takeoffWeightGrams: null, coverImageFileId: null, galleryImageFileIds: "[]", videoFileId: null, reportCount: 0, viewCount: 0, isPublished: true }
     ])
     .onConflictDoNothing();
 }
@@ -591,12 +604,12 @@ async function seedPosts(adminUserId: string) {
       { id: POST_IDS.officialLaunch, authorId: adminUserId, type: "article", title: "Official Low-Altitude Weekly", content: "The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.", contentHtml: "<p>The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.</p>", contentPlainText: "The official weekly brief collects low-altitude mobility updates, ranking changes, and community highlights for the home feed.", contentCategoryId: CONTENT_CATEGORY_IDS.news, status: "published", commentCount: 1, reportCount: 0, likeCount: 2, favoriteCount: 2, shareCount: 1, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9), publishedAt: seededDate(24, 8) },
       { id: POST_IDS.officialGuide, authorId: adminUserId, type: "article", title: "Official Preflight Checklist", content: "This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.", contentHtml: "<p>This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.</p>", contentPlainText: "This official guide summarizes preflight checks, low-altitude pattern work, and return-to-home confirmation steps.", contentCategoryId: CONTENT_CATEGORY_IDS.guide, status: "published", commentCount: 0, reportCount: 0, likeCount: 1, favoriteCount: 1, shareCount: 1, createdAt: seededDate(24, 12), updatedAt: seededDate(24, 13), publishedAt: seededDate(24, 12) },
       { id: POST_IDS.skylineArticle, authorId: USER_IDS.skyline, type: "article", title: SKYLINE_ARTICLE_TITLE, content: SKYLINE_ARTICLE_SUMMARY, contentHtml: SKYLINE_ARTICLE_CONTENT_HTML, contentPlainText: SKYLINE_ARTICLE_PLAIN_TEXT, contentCategoryId: CONTENT_CATEGORY_IDS.news, status: "published", commentCount: 2, reportCount: 0, likeCount: 4, favoriteCount: 3, shareCount: 2, createdAt: seededDate(23, 10), updatedAt: seededDate(23, 11), publishedAt: seededDate(23, 10) },
-      { id: POST_IDS.reviewArticle, authorId: USER_IDS.review, type: "article", title: REVIEW_ARTICLE_TITLE, content: REVIEW_ARTICLE_SUMMARY, contentHtml: REVIEW_ARTICLE_CONTENT_HTML, contentPlainText: REVIEW_ARTICLE_PLAIN_TEXT, contentCategoryId: CONTENT_CATEGORY_IDS.review, status: "published", commentCount: 2, reportCount: 0, likeCount: 3, favoriteCount: 2, shareCount: 2, createdAt: seededDate(22, 9), updatedAt: seededDate(22, 10), publishedAt: seededDate(22, 9) },
+      { id: POST_IDS.reviewArticle, authorId: USER_IDS.review, type: "article", title: REVIEW_ARTICLE_TITLE, content: REVIEW_ARTICLE_SUMMARY, contentHtml: REVIEW_ARTICLE_CONTENT_HTML, contentPlainText: REVIEW_ARTICLE_PLAIN_TEXT, contentCategoryId: CONTENT_CATEGORY_IDS.tech, status: "published", commentCount: 2, reportCount: 0, likeCount: 3, favoriteCount: 2, shareCount: 2, createdAt: seededDate(22, 9), updatedAt: seededDate(22, 10), publishedAt: seededDate(22, 9) },
       { id: POST_IDS.pendingArticle, authorId: USER_IDS.canyon, type: "article", title: "Pending canyon observation", content: "This article stays pending so admin can verify the queue.", contentHtml: "<p>This article stays pending so admin can verify the queue.</p>", contentPlainText: "This article stays pending so admin can verify the queue.", contentCategoryId: CONTENT_CATEGORY_IDS.tech, status: "pending", commentCount: 0, reportCount: 0, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(25, 8), updatedAt: seededDate(25, 8), publishedAt: null },
       { id: POST_IDS.rejectedArticle, authorId: USER_IDS.night, type: "article", title: "Rejected sample article", content: "Rejected sample article for admin review history.", contentHtml: "<p>Rejected sample article for admin review history.</p>", contentPlainText: "Rejected sample article for admin review history.", contentCategoryId: CONTENT_CATEGORY_IDS.tech, status: "rejected", commentCount: 0, reportCount: 1, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(25, 9), updatedAt: seededDate(25, 9), publishedAt: null },
-      { id: POST_IDS.coastMoment, authorId: USER_IDS.canyon, type: "moment", title: "Coastline test log", content: "Wind was stronger than expected but return-to-home stayed stable.", contentHtml: null, contentPlainText: "Wind was stronger than expected but return-to-home stayed stable.", contentCategoryId: null, status: "published", commentCount: 0, reportCount: 0, likeCount: 2, favoriteCount: 1, shareCount: 0, createdAt: seededDate(25, 6), updatedAt: seededDate(25, 6), publishedAt: seededDate(25, 6) },
-      { id: POST_IDS.valleyMoment, authorId: USER_IDS.review, type: "moment", title: "Valley wind note", content: "Reserve extra height before final descent in crosswind valleys.", contentHtml: null, contentPlainText: "Reserve extra height before final descent in crosswind valleys.", contentCategoryId: null, status: "published", commentCount: 1, reportCount: 0, likeCount: 1, favoriteCount: 0, shareCount: 0, createdAt: seededDate(24, 14), updatedAt: seededDate(24, 14), publishedAt: seededDate(24, 14) },
-      { id: POST_IDS.hiddenMoment, authorId: USER_IDS.night, type: "moment", title: "Hidden sample moment", content: "Hidden sample moment for moderation history.", contentHtml: null, contentPlainText: "Hidden sample moment for moderation history.", contentCategoryId: null, status: "hidden", commentCount: 0, reportCount: 1, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(23, 18), updatedAt: seededDate(23, 18), publishedAt: seededDate(23, 18) }
+      { id: POST_IDS.coastMoment, authorId: USER_IDS.canyon, type: "moment", title: "Coastline test log", content: "Wind was stronger than expected but return-to-home stayed stable.", contentHtml: null, contentPlainText: "Wind was stronger than expected but return-to-home stayed stable.", coverImageFileId: POST_IMAGE_IDS.coastMoment, contentCategoryId: null, status: "published", commentCount: 0, reportCount: 0, likeCount: 2, favoriteCount: 1, shareCount: 0, createdAt: seededDate(25, 6), updatedAt: seededDate(25, 6), publishedAt: seededDate(25, 6) },
+      { id: POST_IDS.valleyMoment, authorId: USER_IDS.review, type: "moment", title: "Valley wind note", content: "Reserve extra height before final descent in crosswind valleys.", contentHtml: null, contentPlainText: "Reserve extra height before final descent in crosswind valleys.", coverImageFileId: POST_IMAGE_IDS.valleyMoment, contentCategoryId: null, status: "published", commentCount: 1, reportCount: 0, likeCount: 1, favoriteCount: 0, shareCount: 0, createdAt: seededDate(24, 14), updatedAt: seededDate(24, 14), publishedAt: seededDate(24, 14) },
+      { id: POST_IDS.hiddenMoment, authorId: USER_IDS.night, type: "moment", title: "Hidden sample moment", content: "Hidden sample moment for moderation history.", contentHtml: null, contentPlainText: "Hidden sample moment for moderation history.", coverImageFileId: POST_IMAGE_IDS.valleyMoment, contentCategoryId: null, status: "hidden", commentCount: 0, reportCount: 1, likeCount: 0, favoriteCount: 0, shareCount: 0, createdAt: seededDate(23, 18), updatedAt: seededDate(23, 18), publishedAt: seededDate(23, 18) }
     ])
     .onConflictDoNothing();
 }
@@ -963,8 +976,8 @@ async function seedRankings(adminUserId: string) {
   await db
     .insert(rankingsTable)
     .values([
-      { id: RANKING_IDS.community, authorId: USER_IDS.ranking, type: "community", title: "2026 City Aerial Picks", description: "Community shortlist for urban aerial workflows.", coverImageFileId: FILE_IDS.rankingCommunityCover, itemAddPolicy: "owner", commentCount: 1, createdAt: seededDate(23, 8), updatedAt: seededDate(23, 9) },
-      { id: RANKING_IDS.official, authorId: adminUserId, type: "official", title: "Official Endurance Ranking", description: "Official board based on reviewed flight performance.", coverImageFileId: FILE_IDS.rankingOfficialCover, itemAddPolicy: "owner", commentCount: 0, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9) }
+      { id: RANKING_IDS.community, authorId: USER_IDS.ranking, type: "community", title: "2026 City Aerial Picks", description: "Community shortlist for urban aerial workflows.", status: "published", rejectionReason: null, coverImageFileId: FILE_IDS.rankingCommunityCover, itemAddPolicy: "owner", commentCount: 1, reportCount: 0, createdAt: seededDate(23, 8), updatedAt: seededDate(23, 9) },
+      { id: RANKING_IDS.official, authorId: adminUserId, type: "official", title: "Official Endurance Ranking", description: "Official board based on reviewed flight performance.", status: "published", rejectionReason: null, coverImageFileId: FILE_IDS.rankingOfficialCover, itemAddPolicy: "owner", commentCount: 0, reportCount: 0, createdAt: seededDate(24, 8), updatedAt: seededDate(24, 9) }
     ])
     .onConflictDoNothing();
 
@@ -1057,11 +1070,16 @@ export async function seedBaseDatabase(options?: { reset?: boolean }) {
   await ensureAdminUser();
   await seedContentCategories();
   await seedAircraftCategories();
+  await seedPowerTypes();
+}
+
+async function seedBaseInfrastructure() {
   await seedSiteSettings();
 }
 
 export async function seedDemoDatabase(options?: { reset?: boolean }) {
   await seedBaseDatabase(options);
+  await seedBaseInfrastructure();
   const adminUserId = await ensureAdminUser();
   await seedDemoAircraftCatalog();
   await seedUsers();
@@ -1078,6 +1096,7 @@ export async function seedDemoDatabase(options?: { reset?: boolean }) {
 
 export async function seedRankingsDatabase(options?: { reset?: boolean }) {
   await seedBaseDatabase(options);
+  await seedBaseInfrastructure();
   const adminUserId = await ensureAdminUser();
   await seedDemoAircraftCatalog();
   await seedUsers();
@@ -1090,6 +1109,7 @@ type SeedDatabaseProfile = "demo" | "catalog" | "rankings";
 export async function seedDatabase(options?: { reset?: boolean; profile?: SeedDatabaseProfile }) {
   if (options?.profile === "catalog") {
     await seedBaseDatabase(options);
+    await seedBaseInfrastructure();
     await seedDemoAircraftCatalog();
     return;
   }
