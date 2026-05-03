@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { Button, Form, Input, Radio, Select, Space } from "antd";
+import { Button, Form, Input, Select, Space } from "antd";
 import {
   Suspense,
   lazy,
@@ -55,6 +55,19 @@ const DECLARATION_OPTIONS = [
   { label: '转载', value: 'reprinted' },
   { label: '深度合成', value: 'deep_synthesis' }
 ];
+
+const SOURCE_LABEL_OPTIONS = [
+  { label: '飞加官方', value: '飞加官方' },
+  { label: '转载媒体', value: '转载媒体' },
+  { label: '作者投稿', value: '作者投稿' },
+  { label: '行业媒体', value: '行业媒体' },
+  { label: '航司官方', value: '航司官方' },
+  { label: '其他来源', value: '其他来源' },
+];
+
+const SOURCE_URL_MAP: Record<string, string> = {
+  '飞加官方': 'https://feijia.com',
+};
 
 const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
 
@@ -435,7 +448,7 @@ export function OfficialArticleEditorPage() {
               name="declaration"
               rules={[{ required: true, message: '请选择内容声明' }]}
             >
-              <Radio.Group options={DECLARATION_OPTIONS} />
+              <Select options={DECLARATION_OPTIONS} placeholder="选择内容声明" />
             </Form.Item>
 
             {watchedDeclaration && watchedDeclaration !== 'original' ? (
@@ -445,7 +458,17 @@ export function OfficialArticleEditorPage() {
                   name="sourceLabel"
                   rules={watchedDeclaration === 'reprinted' ? [{ required: true, message: '转载内容必须填写来源名称' }] : undefined}
                 >
-                  <Input placeholder="例如：飞加官方、转载媒体名称或作者" size="large" />
+                  <Select
+                    onChange={(value) => {
+                      const defaultUrl = SOURCE_URL_MAP[value];
+                      if (defaultUrl !== undefined) {
+                        form.setFieldValue('sourceUrl', defaultUrl);
+                      }
+                    }}
+                    options={SOURCE_LABEL_OPTIONS}
+                    placeholder="选择来源名称"
+                    size="large"
+                  />
                 </Form.Item>
 
                 <Form.Item

@@ -26,9 +26,48 @@ describe("buildOfficialArticlePayload", () => {
       contentCategoryId: "cat_1",
       sourceLabel: "Flight Daily",
       sourceUrl: "https://example.com/source",
-      declaration: "original",
+      declaration: "",
       imageIds: ["img_1"],
       videoIds: ["vid_1"]
+    });
+  });
+
+  it("passes declaration through unchanged when provided", () => {
+    expect(
+      buildOfficialArticlePayload(
+        {
+          title: "Reprinted article",
+          content: "Content",
+          contentCategoryId: "cat_1",
+          declaration: "reprinted",
+          sourceLabel: "Original Source",
+          sourceUrl: "https://origin.example.com"
+        },
+        [],
+        []
+      )
+    ).toMatchObject({
+      declaration: "reprinted",
+      sourceLabel: "Original Source",
+      sourceUrl: "https://origin.example.com"
+    });
+  });
+
+  it("returns empty declaration and null source when only title and content provided", () => {
+    expect(
+      buildOfficialArticlePayload(
+        {
+          title: "Simple post",
+          content: "Body",
+          contentCategoryId: "cat_1"
+        },
+        [],
+        []
+      )
+    ).toMatchObject({
+      declaration: "",
+      sourceLabel: null,
+      sourceUrl: null
     });
   });
 

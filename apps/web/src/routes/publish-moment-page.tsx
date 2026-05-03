@@ -70,6 +70,19 @@ const DECLARATION_OPTIONS = [
   { label: '深度合成', value: 'deep_synthesis' }
 ] as const;
 
+const SOURCE_LABEL_OPTIONS = [
+  { label: '飞加官方', value: '飞加官方' },
+  { label: '转载媒体', value: '转载媒体' },
+  { label: '作者投稿', value: '作者投稿' },
+  { label: '行业媒体', value: '行业媒体' },
+  { label: '航司官方', value: '航司官方' },
+  { label: '其他来源', value: '其他来源' },
+];
+
+const SOURCE_URL_MAP: Record<string, string> = {
+  '飞加官方': 'https://feijia.com',
+};
+
 async function captureVideoFrameAsJpegFile(videoUrl: string, seekRatio: number): Promise<File> {
   const video = document.createElement("video");
   video.crossOrigin = "anonymous";
@@ -856,23 +869,16 @@ export function PublishMomentPage() {
                     内容声明 <span className="text-destructive">*</span>
                   </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
+                <select
+                  className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                  onChange={(e) => setDeclaration(e.target.value)}
+                  value={declaration}
+                >
+                  <option disabled value="">选择内容声明</option>
                   {DECLARATION_OPTIONS.map((option) => (
-                    <button
-                      className={cn(
-                        'rounded-full border px-3 py-1.5 text-[0.82rem] transition',
-                        declaration === option.value
-                          ? 'border-primary bg-primary text-primary-foreground'
-                          : 'border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground'
-                      )}
-                      key={option.value}
-                      onClick={() => setDeclaration(option.value)}
-                      type="button"
-                    >
-                      {option.label}
-                    </button>
+                    <option key={option.value} value={option.value}>{option.label}</option>
                   ))}
-                </div>
+                </select>
                 {!declaration ? (
                   <p className="text-xs text-destructive">请选择内容声明</p>
                 ) : null}
@@ -885,11 +891,23 @@ export function PublishMomentPage() {
                       <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
                         来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
                       </div>
-                      <Input
-                        onChange={(event) => setSourceLabel(event.target.value)}
-                        placeholder="例如：飞加官方、转载媒体或作者"
+                      <select
+                        className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                        onChange={(e) => {
+                          const value = e.target.value;
+                          setSourceLabel(value);
+                          const defaultUrl = SOURCE_URL_MAP[value];
+                          if (defaultUrl !== undefined) {
+                            setSourceUrl(defaultUrl);
+                          }
+                        }}
                         value={sourceLabel}
-                      />
+                      >
+                        <option disabled value="">选择来源名称</option>
+                        {SOURCE_LABEL_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>{opt.label}</option>
+                        ))}
+                      </select>
                     </div>
 
                     <div className="space-y-2">

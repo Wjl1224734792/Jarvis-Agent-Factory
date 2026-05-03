@@ -4,10 +4,13 @@ import {
   normalizeRichTextMediaUrl,
   normalizeRichTextVideoSource
 } from "@feijia/shared";
-import { i18nChangeLanguage, type IDomEditor, type IEditorConfig, type IToolbarConfig } from "@wangeditor/editor";
+import { Boot, i18nChangeLanguage, type IDomEditor, type IEditorConfig, type IToolbarConfig } from "@wangeditor/editor";
 import { Editor, Toolbar } from "@wangeditor/editor-for-react";
+import videoModule from "@wangeditor/video-module";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { extractPlainTextFromHtml, type UploadedMediaAsset } from "./rich-text-editor-helpers";
+
+Boot.registerModule(videoModule);
 
 type RichTextEditorProps = {
   value: string;
