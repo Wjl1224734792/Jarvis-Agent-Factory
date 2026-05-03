@@ -7,8 +7,8 @@ import { BrandIdentity } from "@/components/brand-identity";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
-import { IpLocationText } from "@/components/ip-location-text";
-import { ProfileLink } from "@/components/profile-link";
+
+
 import { SiteGrid, SitePage, SiteRail } from "@/components/site-shell";
 import { SidebarSection } from "@/components/sidebar-section";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -72,12 +72,8 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
             {item.author.role === "admin" ? <Badge variant="secondary">官方</Badge> : null}
           </div>
 
-          <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[0.72rem] text-muted-foreground">
-            <ProfileLink className="hover:text-foreground" userId={item.author.id}>
-              {item.author.displayName}
-            </ProfileLink>
-            <IpLocationText label={item.author.ipLocationLabel} variant="plain" />
-          </div>
+
+
 
           {item.source ? (
             <div className="mt-1 text-[0.72rem] text-muted-foreground">
