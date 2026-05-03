@@ -91,11 +91,14 @@ function getClientIp(context: Context) {
     );
   }
 
-  return normalizeClientIp(
-    context.req.header("x-real-ip") ??
-    context.req.header("cf-connecting-ip") ??
-    null
-  );
+  const proxyHeaderIp = context.req.header("x-real-ip") ?? context.req.header("cf-connecting-ip");
+  if (proxyHeaderIp) {
+    return normalizeClientIp(proxyHeaderIp);
+  }
+
+  // 无反向代理时回退到 TCP 连接的远程地址（适配本地开发与直连场景）
+  const rawRequest = context.req.raw as { socket?: { remoteAddress?: string } };
+  return normalizeClientIp(rawRequest.socket?.remoteAddress ?? null);
 }
 
 function getRequestMetadata(

@@ -8,6 +8,7 @@ import { BrandIdentity } from "@/components/brand-identity";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { FeedStreamSkeleton } from "@/components/page-skeletons";
+import { IpLocationText } from "@/components/ip-location-text";
 import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -191,6 +192,7 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
             <ProfileLink className="hover:text-foreground" userId={item.author.id}>
               {item.author.displayName}
             </ProfileLink>
+            <IpLocationText label={item.author.ipLocationLabel} variant="plain" />
           </div>
 
           {item.source ? (

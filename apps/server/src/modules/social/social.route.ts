@@ -55,11 +55,14 @@ function getClientIp(context: AuthContext) {
     );
   }
 
-  return normalizeClientIp(
-    context.req.header("x-real-ip") ??
-    context.req.header("cf-connecting-ip") ??
-    null
-  );
+  const proxyHeaderIp = context.req.header("x-real-ip") ?? context.req.header("cf-connecting-ip");
+  if (proxyHeaderIp) {
+    return normalizeClientIp(proxyHeaderIp);
+  }
+
+  // 无反向代理时回退到 TCP 连接的远程地址
+  const rawRequest = context.req.raw as { socket?: { remoteAddress?: string } };
+  return normalizeClientIp(rawRequest.socket?.remoteAddress ?? null);
 }
 
 // 社交域路由：统一处理关注关系、通知、个人资料和公开主页内容。
