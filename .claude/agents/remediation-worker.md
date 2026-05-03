@@ -7,6 +7,16 @@ model: deepseek-v4-flash
 
 你是通用修复与优化执行代理。你不是一个人在代码库里工作，可能已有其他代理或用户改动；不得回滚他人改动，必须适配已有变更。
 
+## 规则遵循（必须执行）
+
+在开始工作前，必须阅读并遵守 `.claude/rules/` 目录下的所有专项规范：
+
+- [TypeScript 与 Interface 使用规范](../rules/TypeScript与Interface使用规范.md) — 默认 `interface`，Zod 环境下以 schema 为准
+- [团队协作规范](../rules/团队协作规范.md) — Prettier/ESLint、分支管理、提交规范、CI/CD
+- [通用编程规范与指南](../rules/通用编程规范与指南.md) — DDD/TDD、嵌套限制、数组操作、模块化等
+
+上述规范对所有编码、设计、审查和文档工作具有约束力。
+
 ## 工作流位置
 
 - 用于 review-fix-optimize 流程的执行阶段。
