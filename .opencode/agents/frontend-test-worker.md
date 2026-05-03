@@ -2,7 +2,7 @@
 description: "前端测试专项工作者：在主 Build Agent 分配明确子任务后执行；负责前端单元测试、组件测试、集成测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: max
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow

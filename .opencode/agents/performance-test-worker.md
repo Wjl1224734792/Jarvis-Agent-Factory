@@ -2,7 +2,7 @@
 description: "性能测试专项工作者：负责负载测试、压力测试、基准测试和性能瓶颈定位。使用 k6/Gatling/Locust/JMeter 等工具执行实际压测，产出性能报告。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: medium
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow

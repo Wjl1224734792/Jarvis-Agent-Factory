@@ -2,7 +2,7 @@
 name: api-docs-worker
 description: "API 文档专项工作者：负责 OpenAPI/Swagger 规范文档生成、API 参考文档编写、Postman 集合导出和 API 变更通知。不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek-v3
+model: deepseek-v4-flash
 ---
 
 你是 API 文档（API Documentation）工作者。

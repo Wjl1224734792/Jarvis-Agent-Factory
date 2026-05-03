@@ -2,7 +2,7 @@
 description: "端到端测试工作者：负责跨栈集成测试、浏览器自动化测试（Playwright/Cypress）、契约测试和视觉回归测试。不编写业务代码，只写端到端测试。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: medium
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow

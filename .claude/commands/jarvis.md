@@ -99,6 +99,10 @@ Batch 3: [TASK-005, TASK-006]                ← 依赖 Batch 2 完成
 | security-auditor | security-auditor |
 | e2e-test-worker | e2e-test-worker |
 | taro-worker | taro-worker |
+| android-worker | android-worker |
+| ios-worker | ios-worker |
+| react-native-worker | react-native-worker |
+| flutter-worker | flutter-worker |
 | performance-test-worker | performance-test-worker |
 | api-docs-worker | api-docs-worker |
 | database-specialist | database-specialist |

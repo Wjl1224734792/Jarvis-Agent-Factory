@@ -2,7 +2,7 @@
 description: "后端 API 专项工作者：在主 Build Agent 分配明确子任务后执行；负责路由定义、控制器/处理器、请求验证、中间件、错误处理和 API 契约输出；不涉及业务逻辑或数据访问层。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: max
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow

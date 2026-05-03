@@ -117,6 +117,10 @@ permission:
 | 代理 | 职责 |
 |------|------|
 | `taro-worker` | Taro（React/Vue）跨端小程序/H5 页面与组件 |
+| `android-worker` | Kotlin/Jetpack Compose Android 原生开发 |
+| `ios-worker` | Swift/SwiftUI iOS/macOS 原生开发 |
+| `react-native-worker` | React Native（JS/TS）iOS/Android 双端开发 |
+| `flutter-worker` | Dart/Flutter iOS/Android/Web 多端开发 |
 
 ### 架构设计
 
@@ -423,6 +427,10 @@ Gate D 评审通过后，进入发布上线阶段。必须满足：
 | 后端仅数据层 | `backend-data-worker` |
 | 后端仅测试 | `backend-test-worker` |
 | Taro 小程序/H5 移动端 | `taro-worker` |
+| Android 原生（Kotlin/Compose） | `android-worker` |
+| iOS 原生（Swift/SwiftUI） | `ios-worker` |
+| React Native 跨端 | `react-native-worker` |
+| Flutter 跨端 | `flutter-worker` |
 | 算法选型 / 性能优化 / POC 验证 | `algorithm-expert` |
 | 前端架构设计 / 技术选型 | `frontend-architect` |
 | 后端架构设计 / 分布式方案 | `backend-architect` |

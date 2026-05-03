@@ -119,6 +119,10 @@ permission:
 - 仅数据层 / Schema / Repository / Migration：backend-data-worker
 - 仅后端测试：backend-test-worker
 - Taro 小程序/H5 移动端：taro-worker
+- Android 原生（Kotlin/Compose）：android-worker
+- iOS 原生（Swift/SwiftUI）：ios-worker
+- React Native 跨端：react-native-worker
+- Flutter 跨端：flutter-worker
 - 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
 - 前端技术选型 / 组件架构 / 构建策略：frontend-architect
 - 后端微服务 / 数据库架构 / 分布式设计：backend-architect

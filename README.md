@@ -97,7 +97,7 @@ vim .claude/settings.json
 opencode --agent jarvis
 ```
 
-支持与 Claude Code 相同的 33 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
+支持与 Claude Code 相同的 37 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
 
 ### Codex
 
@@ -141,7 +141,7 @@ model_reasoning_effort = "xhigh"
 
 ## 智能体体系
 
-共 **33 个智能体**，按职责分为八大类：
+共 **37 个智能体**，按职责分为八大类：
 
 | 类别 | 智能体 |
 |------|--------|
@@ -151,7 +151,7 @@ model_reasoning_effort = "xhigh"
 | **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`security-auditor`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
 | **后端实现** | `backend-implementer`、`backend-api-worker`、`backend-service-worker`、`backend-data-worker`、`backend-test-worker` |
 | **前端实现** | `frontend-implementer`、`frontend-ui-worker`、`frontend-state-worker`、`frontend-test-worker` |
-| **移动端实现** | `taro-worker` |
+| **移动端实现** | `taro-worker`、`android-worker`、`ios-worker`、`react-native-worker`、`flutter-worker` |
 | **测试与文档** | `e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
 | **基础设施** | `infra-worker` |
 
@@ -176,16 +176,16 @@ model_reasoning_effort = "xhigh"
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
   commands/                      #   6 个 slash 命令
-  agents/                        #   33 个智能体定义
+  agents/                        #   37 个智能体定义
   skills/                        #   20 个方法论技能
 
 .opencode/                       # OpenCode 配置
-  agents/                        #   33 个智能体定义
+  agents/                        #   37 个智能体定义
   skills/                        #   20 个方法论技能
 
 .codex/                          # Codex 配置
   config.toml                    #   主配置
-  agents/                        #   30 个子智能体
+  agents/                        #   34 个子智能体
   skills/                        #   20 个方法论技能
 ```
 

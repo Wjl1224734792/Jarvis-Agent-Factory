@@ -309,3 +309,19 @@ config_file = "agents/api_docs_worker.toml"
 [agents.database_specialist]
 description = "数据库架构设计、查询优化、索引策略、分库分表、数据迁移"
 config_file = "agents/database_specialist.toml"
+
+[agents.android_worker]
+description = "Kotlin/Jetpack Compose Android 原生开发"
+config_file = "agents/android_worker.toml"
+
+[agents.ios_worker]
+description = "Swift/SwiftUI iOS/macOS 原生开发"
+config_file = "agents/ios_worker.toml"
+
+[agents.react_native_worker]
+description = "React Native（JS/TS）iOS/Android 双端跨平台开发"
+config_file = "agents/react_native_worker.toml"
+
+[agents.flutter_worker]
+description = "Dart/Flutter iOS/Android/Web 多端跨平台开发"
+config_file = "agents/flutter_worker.toml"

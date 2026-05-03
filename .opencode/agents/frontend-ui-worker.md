@@ -2,7 +2,7 @@
 description: "前端 UI 专项工作者：在主 Build Agent 分配明确子任务后执行；负责页面布局、组件构建、样式实现、响应式适配和无障碍访问；不涉及状态管理、数据获取或测试。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: max
+reasoningEffort: high
 temperature: 0.2
 permission:
   edit: allow
