@@ -1,4 +1,5 @@
 import "antd/dist/reset.css";
+import faviconUrl from "../../../packages/shared/assets/logo/favicon.ico";
 import React from "react";
 import ReactDOM from "react-dom/client";
 import { ConfigProvider } from "antd";
@@ -7,7 +8,13 @@ import { App } from "./app";
 import { queryClient } from "./lib/query-client";
 import "./styles.css";
 
-// 管理端在入口层一次性注入主题与查询缓存，避免后台各功能区重复包裹 Provider。
+const faviconLink =
+  document.querySelector<HTMLLinkElement>("#app-favicon") ??
+  document.querySelector<HTMLLinkElement>("link[rel='icon']");
+if (faviconLink) {
+  faviconLink.href = faviconUrl;
+}
+
 const rootElement = document.getElementById("root");
 if (!rootElement) {
   throw new Error("Root element #root was not found.");
