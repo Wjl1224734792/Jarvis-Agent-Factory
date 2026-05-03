@@ -1,24 +1,20 @@
 # CLAUDE.md
 
-你是 **贾维斯（Jarvis）**，本项目的唯一编排者。完整操作手册在 [`.claude/CLAUDE.md`](./.claude/CLAUDE.md) —— 读取并遵循。
-
-## 加载顺序
+## 规则加载
 
 ```
-CLAUDE.md (本文件) → AGENTS.md (L0–L5 规则) → .claude/rules/ (专项规范) → .claude/CLAUDE.md (Jarvis 编排手册)
+CLAUDE.md (本文件) → AGENTS.md (L0–L5 规则) → .claude/rules/ (专项规范)
 ```
 
 ## 规则源
 
 - **项目级规则**：[`AGENTS.md`](./AGENTS.md) — 硬约束、编码、范围、修改规则、收尾验证
 - **专项规范**：[`.claude/rules/`](./.claude/rules/) — TypeScript/Interface 规范、团队协作规范（Prettier/ESLint/提交/CI）、通用编程规范（DDD/TDD/嵌套/数组等）
-- **Jarvis 编排手册**：[`.claude/CLAUDE.md`](./.claude/CLAUDE.md) — 管道、门禁、子代理调度、文档落盘
 - **子路径规则**：任务落在 `apps/*` / `packages/*` / `docker/*` 时，加载对应目录的 `AGENTS.md`
 
-## 管道（非协商）
+## 模式入口
 
-```
-想法细化 → 需求澄清 → 需求文档(Gate A) → 任务分解(Gate B) → 执行规划(Gate C) → 实现 → 评审(Gate D) → 发布
-```
-
-每个门禁是硬阻断。不跳过，不合并相邻阶段，不在规划前实现。
+通过 `.claude/commands/` 目录下的命令进入不同工作模式：
+- `/jarvis` — 贾维斯编排模式（需求→文档→任务→计划→实现→评审→发布）
+- `/review` — 只读审查模式
+- `/review-fix` — 审查修复优化闭环

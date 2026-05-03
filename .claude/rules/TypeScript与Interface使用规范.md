@@ -1,3 +1,8 @@
+---
+alwaysApply: true
+platforms: [claude]
+description: TypeScript Type 与 Interface 使用规范（含 Zod 实践）— 所有 .claude 智能体强制遵守
+---
 # TypeScript Type 与 Interface 使用规范（含 Zod 实践）
 
 ## 一句话原则
