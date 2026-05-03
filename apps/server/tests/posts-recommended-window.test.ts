@@ -1,9 +1,8 @@
 import { db, postsTable, runMigrations } from "@feijia/db";
 import { API_ROUTES } from "@feijia/shared";
 import { eq } from "drizzle-orm";
-import { beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
+import { beforeAll, beforeEach, describe, expect, it } from "vitest";
 import { app } from "../src/app";
-import { postsRepo } from "../src/modules/posts/posts.repo";
 import { resetIntegrationState } from "./test-state";
 
 async function getSyntheticFeedAuthorId() {
@@ -52,7 +51,21 @@ async function replaceMomentFeedWithSyntheticPosts(
   );
 }
 
-describe.sequential("recommended deep-page query window", () => {
+function decodeRecommendedCursor(cursor: string) {
+  expect(cursor.startsWith("seek:")).toBe(true);
+  const payload = JSON.parse(Buffer.from(cursor.slice("seek:".length), "base64url").toString("utf8")) as {
+    v?: unknown;
+    t?: unknown;
+    s?: unknown;
+    n?: unknown;
+    p?: unknown;
+    i?: unknown;
+  };
+  expect(payload.t).toBe("recommended");
+  return payload;
+}
+
+describe.sequential("recommended cursor pagination", () => {
   beforeAll(async () => {
     await runMigrations();
   });
@@ -61,17 +74,16 @@ describe.sequential("recommended deep-page query window", () => {
     await resetIntegrationState("demo");
   });
 
-  it("pushes deep-page candidate clipping into repo query options while keeping page contract stable", async () => {
+  it("returns nextCursor and can paginate deeply without 200-candidate clipping", async () => {
     const authorId = await getSyntheticFeedAuthorId();
     const baseTime = new Date("2026-04-20T09:40:00.000Z");
-    const listFeedSpy = vi.spyOn(postsRepo, "listFeed");
 
     await replaceMomentFeedWithSyntheticPosts(
       authorId,
-      Array.from({ length: 220 }, (_, index) => ({
-        id: `moment_deep_window_${index + 1}`,
-        title: `Deep window ${index + 1}`,
-        content: "Stable synthetic content for recommended deep-page coverage.",
+      Array.from({ length: 240 }, (_, index) => ({
+        id: `moment_cursor_${index + 1}`,
+        title: `Cursor ${index + 1}`,
+        content: "Stable synthetic content for recommended cursor pagination coverage.",
         likeCount: index % 4,
         favoriteCount: index % 3,
         shareCount: index % 6,
@@ -81,58 +93,189 @@ describe.sequential("recommended deep-page query window", () => {
       }))
     );
 
-    const pageTwelveResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=12`, {
+    const pagePayloads: Array<{
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    }> = [];
+    let cursor: string | undefined;
+
+    for (let index = 0; index < 21; index += 1) {
+      const query = cursor
+        ? `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent(cursor)}`
+        : `${API_ROUTES.circleFeed}?tab=recommended&limit=10`;
+      const response = await app.request(query, { method: "GET" });
+      expect(response.status).toBe(200);
+
+      const payload = (await response.json()) as {
+        items: Array<{ id: string }>;
+        nextCursor: string | null;
+        pagination: { limit: number; hasMore: boolean };
+      };
+      pagePayloads.push(payload);
+      cursor = payload.nextCursor ?? undefined;
+    }
+
+    expect(pagePayloads[0]?.nextCursor).toBeTruthy();
+    expect(pagePayloads[19]?.nextCursor).toBeTruthy();
+    expect(pagePayloads[20]?.items).toHaveLength(10);
+    expect(pagePayloads[20]?.pagination.limit).toBe(10);
+    expect(pagePayloads[20]?.pagination.hasMore).toBe(true);
+
+    const ids = pagePayloads.flatMap((payload) => payload.items.map((item) => item.id));
+    expect(new Set(ids).size).toBe(ids.length);
+  });
+
+  it("keeps recommended cursor contract fields and malformed cursor compatibility", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-20T11:40:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 40 }, (_, index) => ({
+        id: `moment_cursor_contract_${index + 1}`,
+        title: `Cursor contract ${index + 1}`,
+        content: "Stable synthetic content for recommended cursor contract coverage.",
+        reportCount: 0,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const firstPageResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
       method: "GET"
     });
-    const pageThirteenResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10&page=13`, {
+    expect(firstPageResponse.status).toBe(200);
+    const firstPage = (await firstPageResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(firstPage.nextCursor).toBeTruthy();
+    expect(firstPage.pagination.limit).toBe(10);
+
+    const cursor = firstPage.nextCursor ?? "";
+    const payload = decodeRecommendedCursor(cursor);
+    expect(payload).toMatchObject({
+      v: 1,
+      t: "recommended",
+      s: expect.any(Number),
+      n: expect.any(String),
+      p: expect.any(String),
+      i: expect.any(String)
+    });
+    expect(Number.isNaN(new Date(String(payload.n)).getTime())).toBe(false);
+    expect(Number.isNaN(new Date(String(payload.p)).getTime())).toBe(false);
+
+    const malformedResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent("not-a-seek-cursor")}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(malformedResponse.status).toBe(200);
+    const malformedPage = (await malformedResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(malformedPage.pagination.limit).toBe(10);
+    expect(malformedPage.items.map((item) => item.id)).toEqual(firstPage.items.map((item) => item.id));
+
+    const legacyFeedCursor = `seek:${Buffer.from(
+      JSON.stringify({
+        v: 1,
+        t: "feed",
+        p: payload.p,
+        i: payload.i
+      }),
+      "utf8"
+    ).toString("base64url")}`;
+    const legacyResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent(legacyFeedCursor)}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(legacyResponse.status).toBe(200);
+    const legacyPage = (await legacyResponse.json()) as {
+      items: Array<{ id: string }>;
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
+    };
+    expect(legacyPage.pagination.limit).toBe(10);
+    expect(legacyPage.items.map((item) => item.id)).toEqual(firstPage.items.map((item) => item.id));
+  });
+
+  it("keeps recommended pagination stable when a new top candidate appears between pages", async () => {
+    const authorId = await getSyntheticFeedAuthorId();
+    const baseTime = new Date("2026-04-20T10:40:00.000Z");
+
+    await replaceMomentFeedWithSyntheticPosts(
+      authorId,
+      Array.from({ length: 40 }, (_, index) => ({
+        id: `moment_seek_stable_${index + 1}`,
+        title: `Seek stable ${index + 1}`,
+        content: "Stable synthetic content for seek pagination stability.",
+        likeCount: index % 4,
+        favoriteCount: index % 3,
+        shareCount: index % 6,
+        commentCount: index % 2,
+        reportCount: 0,
+        publishedAt: new Date(baseTime.getTime() - index * 60_000)
+      }))
+    );
+
+    const pageOneResponse = await app.request(`${API_ROUTES.circleFeed}?tab=recommended&limit=10`, {
       method: "GET"
     });
-
-    expect(pageTwelveResponse.status).toBe(200);
-    expect(pageThirteenResponse.status).toBe(200);
-
-    const pageTwelvePayload = (await pageTwelveResponse.json()) as {
+    expect(pageOneResponse.status).toBe(200);
+    const pageOne = (await pageOneResponse.json()) as {
       items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
+      nextCursor: string | null;
+      pagination: { limit: number; hasMore: boolean };
     };
-    const pageThirteenPayload = (await pageThirteenResponse.json()) as {
+    expect(pageOne.nextCursor).toBeTruthy();
+
+    await db.insert(postsTable).values({
+      id: "moment_seek_stable_inserted",
+      authorId,
+      type: "moment",
+      title: "Inserted after page one",
+      content: "Inserted candidate between recommended page fetches.",
+      contentHtml: null,
+      contentPlainText: "Inserted candidate between recommended page fetches.",
+      contentCategoryId: null,
+      coverImageFileId: null,
+      status: "published",
+      rejectionReason: null,
+      commentCount: 0,
+      reportCount: 0,
+      likeCount: 0,
+      favoriteCount: 0,
+      shareCount: 0,
+      viewCount: 0,
+      publishedAt: new Date(baseTime.getTime() + 120_000),
+      createdAt: new Date(baseTime.getTime() + 120_000),
+      updatedAt: new Date(baseTime.getTime() + 120_000)
+    });
+
+    const pageTwoResponse = await app.request(
+      `${API_ROUTES.circleFeed}?tab=recommended&limit=10&cursor=${encodeURIComponent(pageOne.nextCursor ?? "")}`,
+      {
+        method: "GET"
+      }
+    );
+    expect(pageTwoResponse.status).toBe(200);
+    const pageTwo = (await pageTwoResponse.json()) as {
       items: Array<{ id: string }>;
-      pagination: { total: number; hasMore: boolean };
+      pagination: { limit: number; hasMore: boolean };
     };
 
-    expect(pageTwelvePayload.items).toHaveLength(10);
-    expect(pageThirteenPayload.items).toHaveLength(10);
-    expect(pageTwelvePayload.pagination.total).toBe(200);
-    expect(pageThirteenPayload.pagination.total).toBe(200);
-    expect(pageTwelvePayload.pagination.hasMore).toBe(true);
-    expect(pageThirteenPayload.pagination.hasMore).toBe(true);
-
-    expect(listFeedSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tab: "recommended",
-        type: "moment",
-        page: 1,
-        limit: 170,
-        recommendedWindowOffset: 90,
-        recommendedWindowLimit: 80
-      })
-    );
-    expect(listFeedSpy).toHaveBeenCalledWith(
-      expect.objectContaining({
-        tab: "recommended",
-        type: "moment",
-        page: 1,
-        limit: 180,
-        recommendedWindowOffset: 100,
-        recommendedWindowLimit: 80
-      })
-    );
-
-    const pageTwelveIds = new Set(pageTwelvePayload.items.map((item) => item.id));
-    const pageThirteenIds = new Set(pageThirteenPayload.items.map((item) => item.id));
-    const overlap = [...pageTwelveIds].filter((id) => pageThirteenIds.has(id));
+    const pageOneIds = new Set(pageOne.items.map((item) => item.id));
+    const pageTwoIds = pageTwo.items.map((item) => item.id);
+    const overlap = pageTwoIds.filter((id) => pageOneIds.has(id));
+    expect(pageTwo.pagination.limit).toBe(10);
     expect(overlap).toHaveLength(0);
-
-    listFeedSpy.mockRestore();
+    expect(pageTwoIds).not.toContain("moment_seek_stable_inserted");
   });
 });

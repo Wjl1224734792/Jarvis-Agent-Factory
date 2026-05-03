@@ -100,6 +100,14 @@ describe("models contract", () => {
         powerType: "electric",
         lifecycleStatus: "released",
         isPublished: true,
+        ownerId: "user_owner_1",
+        owner: {
+          id: "user_owner_1",
+          displayName: "Model Owner",
+          avatarUrl: null,
+          ipLocationLabel: "广东省",
+          role: "user"
+        },
         reviewSummary: {
           totalReviews: 12
         },
@@ -158,6 +166,7 @@ describe("models contract", () => {
 
     expect(detail.item.parameters.maxFlightTimeMinutes).toBe(45);
     expect(detail.item.interactionSummary.interestCount).toBe(5);
+    expect(detail.item.owner?.ipLocationLabel).toBe("广东省");
     expect(adminInput.brandId).toBe("brand_1");
     expect(detail.item.brand.logoUrl).toContain("dji.png");
     expect(detail.item.priceMin).toBe(4999);

@@ -3,7 +3,7 @@ import { create } from "zustand";
 
 type AuthStatus = "idle" | "loading" | "authenticated" | "anonymous";
 
-type AdminAuthStore = {
+interface AdminAuthStore {
   status: AuthStatus;
   user: UserSummary | null;
   error: string | null;
@@ -11,7 +11,7 @@ type AdminAuthStore = {
   setAuthenticated: (user: UserSummary) => void;
   setAnonymous: () => void;
   setError: (message: string | null) => void;
-};
+}
 
 export const useAdminAuthStore = create<AdminAuthStore>((set) => ({
   // 后台没有本地持久化用户摘要，进入后台后一律从 idle 开始做服务端会话校验。

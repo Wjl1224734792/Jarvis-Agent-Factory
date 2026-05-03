@@ -4,6 +4,7 @@ import {
   getWebErrorRetryable,
   isWebAuthInvalidError,
   mapWebApiError,
+  resolveWebApiBaseUrl,
   sanitizeWebApiErrorMessage
 } from "../src/lib/api-client";
 
@@ -57,5 +58,29 @@ describe("sanitizeWebApiErrorMessage", () => {
     expect(isWebAuthInvalidError(result)).toBe(false);
     expect(getWebErrorRetryable(result)).toBe(true);
     expect(result.message).toBe(SERVER_UNAVAILABLE);
+  });
+});
+
+describe("resolveWebApiBaseUrl", () => {
+  it("aligns localhost api hosts with the current page host during local development", () => {
+    expect(
+      resolveWebApiBaseUrl("http://localhost:17382", {
+        hostname: "127.0.0.1"
+      })
+    ).toBe("http://127.0.0.1:17382");
+
+    expect(
+      resolveWebApiBaseUrl("http://localhost:17382", {
+        hostname: "192.168.1.10"
+      })
+    ).toBe("http://192.168.1.10:17382");
+  });
+
+  it("preserves explicit non-local api hosts", () => {
+    expect(
+      resolveWebApiBaseUrl("https://api.example.com", {
+        hostname: "127.0.0.1"
+      })
+    ).toBe("https://api.example.com");
   });
 });

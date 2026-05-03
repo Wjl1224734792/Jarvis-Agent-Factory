@@ -21,6 +21,7 @@ const sampleSnapshot: UserSettingsSnapshot = {
   avatarUrl: "https://cdn.example.com/avatar.png",
   phone: "13800138000",
   phoneMasked: "****8000",
+  hasPassword: true,
   profileVisibility: "community",
   notifyComments: true,
   notifyMentions: true,
@@ -38,6 +39,7 @@ describe("profile settings state helpers", () => {
     expect(draft.avatarUrl).toBe("https://cdn.example.com/avatar.png");
     expect(draft.phone).toBe("13800138000");
     expect(draft.phoneMasked).toBe("****8000");
+    expect(draft.hasPassword).toBe(true);
     expect(draft.profileVisibility).toBe("community");
     expect(draft.hasPendingChanges).toBe(false);
   });

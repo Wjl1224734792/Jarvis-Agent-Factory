@@ -3,7 +3,6 @@ import { Clock3Icon, FlameIcon } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
-import { IpLocationText } from "@/components/ip-location-text";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -61,7 +60,6 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
               <ProfileLink className="truncate hover:text-foreground" userId={ranking.author.id}>
                 {ranking.author.displayName}
               </ProfileLink>
-              <IpLocationText label={ranking.author.ipLocationLabel} />
               <span>{ranking.commentCount} 条评论</span>
               <span>均分 {ranking.averageScore.toFixed(1)}</span>
             </div>

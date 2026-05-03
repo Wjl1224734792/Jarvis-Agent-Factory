@@ -42,6 +42,7 @@ type RatingTargetDetailHeaderProps = {
 
 export function RatingTargetDetailHeader(props: RatingTargetDetailHeaderProps) {
   const sharePath = `${buildRatingTargetDetailPath(props.item.id)}${props.locationSearch}`;
+  const ipLocationLabel = props.item.author?.ipLocationLabel?.trim() ?? "";
 
   async function handleSave() {
     props.setBusy(true);
@@ -107,9 +108,17 @@ export function RatingTargetDetailHeader(props: RatingTargetDetailHeaderProps) {
                 <ProfileLink className="hover:text-foreground" userId={props.item.author.id}>
                   {props.item.author.displayName}
                 </ProfileLink>
-                <IpLocationText label={props.item.author.ipLocationLabel} />
               </div>
             ) : null}
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-sm text-muted-foreground">
+              <span>{new Date(props.item.createdAt).toLocaleDateString("zh-CN")}</span>
+              {ipLocationLabel ? (
+                <>
+                  <span aria-hidden="true">·</span>
+                  <IpLocationText label={ipLocationLabel} variant="plain" />
+                </>
+              ) : null}
+            </div>
             {props.item.summary ? (
               <p className="text-sm leading-7 text-muted-foreground">{props.item.summary}</p>
             ) : null}

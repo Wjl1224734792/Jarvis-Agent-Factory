@@ -3,13 +3,12 @@ import { ensureRedisConnected, redis } from "../src/modules/auth/redis-client";
 /** Reads the captcha answer from Redis before the challenge is consumed. */
 export async function readCaptchaAnswerForTests(challengeId: string): Promise<string> {
   await ensureRedisConnected();
-  const raw = await redis.get(`captcha:${challengeId}`);
-  if (!raw) {
+  const code = await redis.get(`captcha_test:${challengeId}`);
+  if (!code) {
     throw new Error(`missing captcha record for ${challengeId}`);
   }
 
-  const record = JSON.parse(raw) as { code: string };
-  return record.code;
+  return code;
 }
 
 /** Falls back to Redis when the SMS provider doesn't expose the mock code inline. */
@@ -22,11 +21,10 @@ export async function resolveSmsCodeForTests(
   }
 
   await ensureRedisConnected();
-  const raw = await redis.get(`sms:${phone}`);
-  if (!raw) {
+  const code = await redis.get(`sms_test:${phone}`);
+  if (!code) {
     throw new Error(`missing sms code for ${phone}`);
   }
 
-  const record = JSON.parse(raw) as { code: string };
-  return record.code;
+  return code;
 }

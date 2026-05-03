@@ -1,13 +1,13 @@
-type PersistedLocalPreviewAsset = {
+interface PersistedLocalPreviewAsset {
   url: string;
   file?: File;
   isLocal?: boolean;
-};
+}
 
-export type RestoredPreviewAsset<T extends PersistedLocalPreviewAsset> = {
+export interface RestoredPreviewAsset<T extends PersistedLocalPreviewAsset> {
   asset: T;
   previousUrl: string | null;
-};
+}
 
 /**
  * Blob URL does not survive a page reload, so persisted drafts need to recreate
@@ -54,6 +54,13 @@ export function restorePersistedPreviewAssets<T extends PersistedLocalPreviewAss
  * Rich text payloads may inline the blob URL directly; callers can patch stale
  * draft markup with this replacement map after restoring the preview assets.
  */
+/**
+ * 构建富文本草稿里旧 blob URL 到新 blob URL 的替换映射。
+ *
+ * @param restoredAssets 已完成还原的预览资源数组。
+ * @returns 可用于修补草稿 HTML 的 URL 映射表。
+ * @throws {never} 该函数只遍历数组生成映射，不会主动抛出异常。
+ */
 export function buildRestoredPreviewUrlMap<T extends PersistedLocalPreviewAsset>(
   restoredAssets: readonly RestoredPreviewAsset<T>[]
 ) {
@@ -68,6 +75,13 @@ export function buildRestoredPreviewUrlMap<T extends PersistedLocalPreviewAsset>
   return mapping;
 }
 
+/**
+ * 释放单个本地预览资源对应的 blob URL。
+ *
+ * @param asset 需要释放的预览资源。
+ * @returns 无返回值；非本地资源或非 blob URL 时静默跳过。
+ * @throws {never} 浏览器不支持 `URL.revokeObjectURL` 时不会主动抛出异常。
+ */
 export function revokePreviewAsset(asset: PersistedLocalPreviewAsset | null | undefined) {
   if (
     !asset?.isLocal ||
@@ -80,6 +94,13 @@ export function revokePreviewAsset(asset: PersistedLocalPreviewAsset | null | un
   URL.revokeObjectURL(asset.url);
 }
 
+/**
+ * 批量释放预览资源对应的 blob URL。
+ *
+ * @param assets 需要释放的预览资源数组。
+ * @returns 无返回值；空数组时静默跳过。
+ * @throws {never} 释放单项失败不会中断整个批次。
+ */
 export function revokePreviewAssets(
   assets: readonly PersistedLocalPreviewAsset[] | null | undefined
 ) {

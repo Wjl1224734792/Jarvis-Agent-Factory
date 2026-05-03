@@ -19,6 +19,8 @@
 | 给 AI 定规矩、查审查标准、收尾要跑什么命令 | [`AGENTS.md`](./AGENTS.md) |
 | Codex 相关 | [`.codex/AGENTS.md`](./.codex/AGENTS.md) |
 
+本仓库当前以 Codex 配置为准；`.claude/`、`.trae/`、`.cursor/` 属于其它工具目录，日常文档同步和仓库扫描默认忽略。
+
 各子目录的 **`AGENTS.md` 只写该目录范围内**的约束，细则见根 [`AGENTS.md`](./AGENTS.md) 文首「分层写作规则」。
 
 ---
@@ -41,7 +43,7 @@ feijia/
 ├─ docs/
 ├─ AGENTS.md          ← 代理指令（L0–L5）
 ├─ EXAMPLES.md        ← 编码准则正反例示意
-└─ .codex/AGENTS.md
+└─ .codex/            ← Codex 配置、代理与技能
 ```
 
 ## 环境要求
@@ -94,7 +96,7 @@ bun run dev:admin
 |------|------|----------|
 | `base` | 最小可运行（管理员、站点设置、分类等） | `setup:deploy`、`db:seed:base` |
 | `demo` | 在 base 上增加演示内容（机型、帖子、榜单等） | 本地开发、`db:seed` / `db:seed:demo` |
-| `mock` | 大规模测试数据（PostgreSQL + Redis + MinIO） | E2E、`db:seed:mock`、`setup:test` |
+| `mock` | 大规模测试数据（PostgreSQL + Redis + 当前 `STORAGE_PROVIDER` 指向的对象存储） | E2E、`db:seed:mock`、`setup:test` |
 
 ## 常用脚本
 
@@ -157,13 +159,15 @@ bun run lint
 bun run typecheck
 bun run test:unit
 bun run test:server
+bun run test:integration
 bun run test
 bun run test:e2e
 bun run build
 bun run check
 ```
 
-- `test` = `test:unit` + `test:server`。
+- `test` = 快速测试入口（当前同 `test:unit`），不再默认跑会反复清库 / seed 的 server 集成测试。
+- `test:server` / `test:integration`：服务端集成测试，会按用例重置数据库与 Redis，耗时较长；改 API、DB、认证、上传、通知等服务端行为时单独运行。
 - `test:e2e`：先 `infra:up` 与 `db:reset:mock`，再 Playwright；结束后库为 `mock`，需 demo 可 `bun run db:reset:demo`。
 - `check` = lint + test + typecheck + build。
 
@@ -190,9 +194,9 @@ Stop-Process -Id <PID> -Force
 
 服务端（`apps/server`）使用 Hono 的 `cors` 中间件，并允许携带 Cookie（`credentials: true`）。
 
-- 未设置 `CORS_ORIGIN` 时：默认允许 `localhost` / `127.0.0.1` 对应的前端端口。
-- 使用局域网 IP 打开前端时，必须在根目录 `.env` 中配置 `CORS_ORIGIN`。
-- 修改 `CORS_ORIGIN` 后需重启 `dev:server`。
+- 未设置 `CORS_ORIGIN` / `CORS_ORIGINS` 时：开发环境默认允许 `localhost`、`127.0.0.1`、私网 IPv4（如 `192.168.x.x`、`10.x.x.x`、`172.16-31.x.x`、`169.254.x.x`）访问 `WEB_DEV_PORT` / `ADMIN_DEV_PORT`。
+- 生产环境或非上述来源访问时：在根目录 `.env` 中显式配置 `CORS_ORIGIN`（多个 Origin 用英文逗号分隔；`CORS_ORIGINS` 仅作兼容别名）。
+- 生产环境禁止 `CORS_ORIGIN=all`；修改 CORS 配置后需重启 `dev:server`。
 
 ## OpenAPI 文档
 
@@ -207,6 +211,12 @@ Stop-Process -Id <PID> -Force
 - `OPENAPI_ENABLED=false`：显式关闭
 - 未配置时：非生产默认开启，生产默认关闭
 
+## 用户头像默认策略
+
+- 用户未设置头像时，服务端返回 `avatarUrl = null`（或空值）。
+- 前端统一使用头像组件的 icon / fallback 展示，不生成或回退到随机 seed 头像。
+- `getAvatarImage` 仅用于示例内容或预览场景，不作为真实用户头像默认值。
+
 ## 日志与监控
 
 开发默认控制台；生产默认写入 `apps/server/logs/*`（`LOG_DIR` 可覆盖），分 `app` / `request` / `error` / `security`。环境变量：`LOG_MODE`、`LOG_DIR`、`LOG_LEVEL`、`LOG_HTTP_ENABLED`、`API_METRICS_ENABLED`、`LOG_MAX_READ_LINES`。Admin：`/admin/logs`；API：`GET /admin/logs/overview|files|entries`（管理员）。
@@ -220,6 +230,8 @@ Stop-Process -Id <PID> -Force
 - `SMS_PROVIDER=aliyun` 对接阿里云短信，填写 `ALIYUN_SMS_ACCESS_KEY_ID`、`ALIYUN_SMS_ACCESS_KEY_SECRET`、`ALIYUN_SMS_SIGN_NAME`、`ALIYUN_SMS_TEMPLATE_CODE`。
 - `SMS_PROVIDER=tencent` 对接腾讯云短信，填写 `TENCENT_SMS_SECRET_ID`、`TENCENT_SMS_SECRET_KEY`、`TENCENT_SMS_SDK_APP_ID`、`TENCENT_SMS_SIGN_NAME`、`TENCENT_SMS_TEMPLATE_ID`。
 - 服务端默认把验证码作为单一模板变量发送：阿里云走 `{"code":"123456"}`，腾讯云走 `["123456"]`。
+- 本地可用 `SMS_PROVIDER=mock` 与 `SMS_EXPOSE_MOCK_CODE=true` 联调；生产环境禁止 mock provider，且必须配置 `AUTH_CODE_HASH_SECRET`（建议 32 字节以上随机值）用于 Redis 验证码哈希。
+- 验证码策略可通过 `AUTH_CAPTCHA_TTL_SECONDS`、`AUTH_SMS_CODE_TTL_SECONDS`、`AUTH_SMS_CODE_LENGTH` 调整；当前 TTL 允许 60–600 秒，短信验证码位数允许 6–8 位。
 
 对象存储：
 
@@ -228,10 +240,12 @@ Stop-Process -Id <PID> -Force
 - `minio` 继续走本地 S3 兼容链路；`kodo` 已切换为七牛官方 `qiniu` SDK：服务端生成 upload token 与下载 URL，前端按表单上传直传对象存储。
 - `kodo` 下的 `STORAGE_ENDPOINT` 应配置为上传域名，例如 `https://up-z0.qiniup.com`；如需固定区域，可额外配置 `KODO_REGION_ID`。
 - `kodo` 强烈建议显式配置 `STORAGE_PUBLIC_BASE_URL` 为绑定的下载域名或 CDN 域名，避免依赖上传域名推导读地址。
+- `kodo` 默认对读取 URL 使用七牛私有下载签名，避免下载域名未公开时浏览器 401；确认下载域名已开放匿名读时，可设置 `STORAGE_PRESIGN_READ_URLS=false` 改用直链。
 - 云厂商环境请显式设置 `STORAGE_FORCE_PATH_STYLE=false`；`true` 只适合 MinIO 等本地 S3 兼容存储。
 - 如果生产访问走 CDN 或自定义域名，请显式配置 `STORAGE_PUBLIC_BASE_URL`，不要依赖服务端从 endpoint 推导公网域名。
 - 本地开发仍推荐 `STORAGE_PROVIDER=minio`；云厂商配置示例见 [`.env.example`](./.env.example)。
-- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；切到 `kodo` 后请改为手动上传示例资源，或继续用 MinIO 承担本地种子资源。
+- `db:seed:mock` / `db:reset:mock` 会按当前 `.env` 的 `DATABASE_URL`、`REDIS_URL`、`STORAGE_PROVIDER` 与 `STORAGE_*` 导入 mock 数据；若指向远程环境，将直接写入该远程环境。
+- `packages/db/src/runtime-seed.ts` 的对象存储示例资源仍按 MinIO/本地开发链路设计；mock/test-data seed 已支持按当前 `STORAGE_PROVIDER` 上传测试资源。
 
 审核：
 

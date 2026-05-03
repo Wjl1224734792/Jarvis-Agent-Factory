@@ -1,0 +1,4 @@
+interface:
+  display_name: "Project Standards"
+  short_description: "Load mandatory project agent rules."
+  default_prompt: "Use $project-standards to read and follow this repository's mandatory AGENTS.md, .codex/rules files, and relevant local skills before starting work."

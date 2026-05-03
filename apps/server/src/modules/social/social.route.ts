@@ -21,6 +21,7 @@ import {
   requireAuth,
   type AuthVariables
 } from "../auth/auth.middleware";
+import { normalizeClientIp } from "../../lib/ip-location";
 import { socialService } from "./social.service";
 
 export const socialRoute = new Hono<{ Variables: AuthVariables }>();
@@ -41,6 +42,24 @@ function getRequiredParam(context: AuthContext, key: string, missingMessage: str
   }
 
   return value;
+}
+
+function getClientIp(context: AuthContext) {
+  const forwarded = context.req.header("x-forwarded-for");
+  if (forwarded) {
+    return normalizeClientIp(
+      forwarded
+        .split(",")
+        .map((value) => value.trim())
+        .find(Boolean) ?? null
+    );
+  }
+
+  return normalizeClientIp(
+    context.req.header("x-real-ip") ??
+    context.req.header("cf-connecting-ip") ??
+    null
+  );
 }
 
 // 社交域路由：统一处理关注关系、通知、个人资料和公开主页内容。
@@ -198,12 +217,17 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeRequest, requireAuth, async (cont
   }
 
   const input = phoneChangeRequestInputSchema.parse(await context.req.json());
-  const payload = await socialService.requestPhoneChange(currentUser.id, input);
+  const payload = await socialService.requestPhoneChange(currentUser.id, input, {
+    clientIp: getClientIp(context)
+  });
   if (!payload) {
     return context.json({ code: "NOT_FOUND", message: "User not found." }, 404);
   }
   if ("kind" in payload && payload.kind === "conflict") {
     return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);
+  }
+  if ("kind" in payload && payload.kind === "password_required") {
+    return context.json({ code: "PASSWORD_REQUIRED", message: "请先设置登录密码" }, 403);
   }
 
   return context.json(phoneChangeRequestResponseSchema.parse(payload.payload));
@@ -222,6 +246,9 @@ socialRoute.post(API_ROUTES.users.mePhoneChangeConfirm, requireAuth, async (cont
   }
   if (result.kind === "invalid_sms") {
     return context.json({ code: "BAD_REQUEST", message: "短信验证码无效或已过期" }, 400);
+  }
+  if (result.kind === "password_required") {
+    return context.json({ code: "PASSWORD_REQUIRED", message: "请先设置登录密码" }, 403);
   }
   if (result.kind === "conflict") {
     return context.json({ code: "CONFLICT", message: "手机号已被其他账号占用" }, 409);

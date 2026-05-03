@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { buildSafeRedirectPath, isExternalHttpUrl } from "../src/lib/web-routes";
+import {
+  buildSafeRedirectPath,
+  isExternalHttpUrl,
+  normalizeSafeRedirectFromPath
+} from "../src/lib/web-routes";
 
 describe("safe redirect routes", () => {
   it("builds target-only safe redirect url", () => {
@@ -16,5 +20,16 @@ describe("safe redirect routes", () => {
     expect(isExternalHttpUrl("https://example.com", "https://feijia.local")).toBe(true);
     expect(isExternalHttpUrl("/models", "https://feijia.local")).toBe(false);
     expect(isExternalHttpUrl("javascript:alert(1)", "https://feijia.local")).toBe(false);
+  });
+
+  it("keeps safe redirect return paths on-site", () => {
+    expect(normalizeSafeRedirectFromPath("/posts/post_1?tab=comments#top")).toBe(
+      "/posts/post_1?tab=comments#top"
+    );
+    expect(normalizeSafeRedirectFromPath(null)).toBe("/");
+    expect(normalizeSafeRedirectFromPath("https://evil.example")).toBe("/");
+    expect(normalizeSafeRedirectFromPath("//evil.example/path")).toBe("/");
+    expect(normalizeSafeRedirectFromPath("\\\\evil.example\\path")).toBe("/");
+    expect(normalizeSafeRedirectFromPath("/safe-redirect?target=https://evil.example")).toBe("/");
   });
 });

@@ -1,17 +1,17 @@
 import { cn } from "@/lib/utils";
 
+type IpLocationTextVariant = "plain" | "profile";
+
 export function IpLocationText(props: {
   label?: string | null;
   className?: string;
-  prefix?: string;
+  variant: IpLocationTextVariant;
 }) {
-  if (!props.label) {
-    return null;
-  }
+  const label = props.label?.trim() || "未知";
 
   return (
     <span className={cn("text-[0.72rem] text-muted-foreground", props.className)}>
-      {(props.prefix ?? "IP属地")}：{props.label}
+      {props.variant === "profile" ? `IP属地:${label}` : label}
     </span>
   );
 }

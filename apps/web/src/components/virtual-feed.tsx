@@ -9,11 +9,16 @@ export type VirtualFeedProps<T> = {
   className?: string;
   height?: number;
   useWindowScroll?: boolean;
+  hasMore?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void | PromiseLike<unknown>;
   showItemDividers?: boolean;
   emptyState?: ReactNode;
   /** 后台刷新时在列表末尾显示轻量加载，避免全屏遮罩抖动 */
   showRefetchFooter?: boolean;
   refetchFooterLabel?: string;
+  refetchFooterState?: "loading" | "error";
+  refetchFooterErrorMessage?: string;
 };
 
 export type VirtualGridProps<T> = {
@@ -37,6 +42,9 @@ export type VirtualMasonryColumnsProps<T> = {
   gap?: string;
   emptyState?: ReactNode;
   useWindowScroll?: boolean;
+  hasMore?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void | PromiseLike<unknown>;
 };
 
 const shouldDeferVirtualFeedRuntime = typeof window !== "undefined";
@@ -90,7 +98,14 @@ function StaticVirtualFeedFallback<T>(props: VirtualFeedProps<T>) {
           {props.renderItem(item, index)}
         </div>
       ))}
-      {props.showRefetchFooter ? <FeedRefetchFooter label={props.refetchFooterLabel} show /> : null}
+      {props.showRefetchFooter ? (
+        <FeedRefetchFooter
+          errorMessage={props.refetchFooterErrorMessage}
+          label={props.refetchFooterLabel}
+          show
+          state={props.refetchFooterState}
+        />
+      ) : null}
     </div>
   );
 }

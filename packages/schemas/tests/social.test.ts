@@ -57,6 +57,107 @@ describe("social contract", () => {
     expect(payload.items[0]?.type).toBe("post_liked");
   });
 
+  it("keeps legacy system notification types readable for existing seeded messages", () => {
+    const payload = notificationsResponseSchema.parse({
+      unreadCount: 3,
+      unreadByCategory: {
+        likesAndFavorites: 0,
+        newFollowers: 0,
+        commentsAndMentions: 0,
+        system: 3
+      },
+      items: [
+        {
+          id: "notice_post_status",
+          category: "system",
+          type: "post_status_changed",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          title: "内容状态更新",
+          summary: "内容状态已更新",
+          target: {
+            type: "status",
+            id: "post_1",
+            title: "相关内容",
+            status: "rejected",
+            href: "/publish/status/article/post_1"
+          },
+          actor: null,
+          preview: null,
+          metadata: {}
+        },
+        {
+          id: "notice_submission_status",
+          category: "system",
+          type: "aircraft_submission_status_changed",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          title: "机型投稿状态更新",
+          summary: "机型投稿状态已更新",
+          target: {
+            type: "aircraft_submission",
+            id: "submission_1",
+            title: "机型投稿",
+            status: "rejected",
+            href: "/publish/status/aircraft/submission_1"
+          },
+          actor: null,
+          preview: null,
+          metadata: {}
+        },
+        {
+          id: "notice_brand_status",
+          category: "system",
+          type: "brand_application_status_changed",
+          isRead: false,
+          createdAt: new Date().toISOString(),
+          title: "品牌申请状态更新",
+          summary: "品牌申请状态已更新",
+          target: {
+            type: "brand_application",
+            id: "brand_application_1",
+            title: "品牌申请",
+            status: "approved",
+            href: "/publish/brand?submitted=brand_application_1"
+          },
+          actor: null,
+          preview: null,
+          metadata: {}
+        }
+      ]
+    });
+
+    expect(payload.items.map((item) => item.type)).toEqual([
+      "post_status_changed",
+      "aircraft_submission_status_changed",
+      "brand_application_status_changed"
+    ]);
+  });
+
+  it("accepts legacy admin message types with matching moderation domains", () => {
+    expect(
+      adminMessageListQuerySchema.parse({
+        domain: "brand_applications",
+        type: "brand_application_status_changed",
+        readStatus: "unread"
+      })
+    ).toMatchObject({
+      domain: "brand_applications",
+      type: "brand_application_status_changed",
+      readStatus: "unread"
+    });
+
+    expect(
+      adminMessageListQuerySchema.parse({
+        domain: "rating_targets",
+        type: "rating_target_status_changed"
+      })
+    ).toMatchObject({
+      domain: "rating_targets",
+      type: "rating_target_status_changed"
+    });
+  });
+
   it("parses user profile and aggregated content payload", () => {
     const profile = userProfileResponseSchema.parse({
       item: {

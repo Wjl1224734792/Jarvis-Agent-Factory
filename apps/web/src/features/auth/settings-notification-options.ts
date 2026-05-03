@@ -33,7 +33,7 @@ export const settingsNotificationOptions: SettingsNotificationOption[] = [
   {
     field: "emailDigest",
     label: "邮件摘要",
-    description: "定期通过邮件汇总你关心的互动与动态。",
-    successMessage: "邮件摘要已更新"
+    description: "定期接收账号动态与内容互动的邮件摘要。",
+    successMessage: "邮件摘要设置已更新"
   }
 ];

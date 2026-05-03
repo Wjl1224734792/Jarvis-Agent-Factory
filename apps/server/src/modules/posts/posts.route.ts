@@ -54,20 +54,29 @@ function parsePositiveInt(value: string | undefined) {
   return parsed;
 }
 
+function parseCursor(value: string | undefined) {
+  if (!value) {
+    return undefined;
+  }
+
+  const normalized = value.trim();
+  return normalized.length > 0 ? normalized : undefined;
+}
+
 // 帖子路由既服务前台消费，又承载后台审核，所以先统一注入 currentUser 再按场景加权限。
 postsRoute.use('*', attachCurrentUser);
 
 postsRoute.get(API_ROUTES.feed, async (context) => {
   const tabQuery = context.req.query("tab");
   const categorySlug = context.req.query("categorySlug") || undefined;
-  const page = parsePositiveInt(context.req.query("page"));
   const limit = parsePositiveInt(context.req.query("limit"));
+  const cursor = parseCursor(context.req.query("cursor"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
     type: "article",
     contentCategorySlug: categorySlug,
-    page,
-    limit
+    limit,
+    cursor
   });
 
   return context.json(payload);
@@ -75,13 +84,13 @@ postsRoute.get(API_ROUTES.feed, async (context) => {
 
 postsRoute.get(API_ROUTES.circleFeed, async (context) => {
   const tabQuery = context.req.query("tab");
-  const page = parsePositiveInt(context.req.query("page"));
   const limit = parsePositiveInt(context.req.query("limit"));
+  const cursor = parseCursor(context.req.query("cursor"));
   const tab = tabQuery === "recommended" || tabQuery === "following" ? tabQuery : "latest";
   const payload = await postsService.listFeed(tab, context.get("currentUser"), {
     type: "moment",
-    page,
-    limit
+    limit,
+    cursor
   });
 
   return context.json(payload);
@@ -118,6 +127,8 @@ postsRoute.post(API_ROUTES.posts.create, requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
@@ -213,6 +224,8 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId ?? null,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     coverImageId: input.coverImageId ?? null,
     imageIds: input.imageIds,
     videoIds: input.videoIds
@@ -225,6 +238,15 @@ postsRoute.put(API_ROUTES.posts.detail(":id"), requireAuth, async (context) => {
   }
   if (result.kind === "invalid_cover") {
     return context.json({ code: "BAD_REQUEST", message: "Invalid cover image." }, 400);
+  }
+  if (result.kind === "invalid_images") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded images." }, 400);
+  }
+  if (result.kind === "invalid_videos") {
+    return context.json({ code: "BAD_REQUEST", message: "Invalid uploaded videos." }, 400);
+  }
+  if (result.kind === "invalid_category") {
+    return context.json({ code: "BAD_REQUEST", message: "Article category is required." }, 400);
   }
   if (result.kind === "sensitive_content") {
     return context.json({ code: "BAD_REQUEST", message: "Post content contains blocked words." }, 400);
@@ -402,6 +424,8 @@ postsRoute.put(API_ROUTES.posts.adminOfficialDetail(":id"), requireAdmin, async 
     content: input.content,
     contentHtml: input.contentHtml ?? null,
     contentCategoryId: input.contentCategoryId,
+    sourceLabel: input.sourceLabel,
+    sourceUrl: input.sourceUrl,
     imageIds: input.imageIds,
     videoIds: input.videoIds
   });
