@@ -57,11 +57,6 @@ type ArticleDraftData = {
   categoryId: string;
   sourceLabel: string;
   sourceUrl: string;
-  contentSourceType: string;
-  sourceUsageFlags: string[];
-  sourceDescription: string;
-  aiUseLevel: string;
-  aiGeneratedModalities: string[];
   coverImage: UploadedImage | null;
   uploadedImages: UploadedImage[];
   uploadedVideos: UploadedVideo[];
@@ -169,11 +164,6 @@ export function PublishArticlePage() {
   const [categoryId, setCategoryId] = useState("");
   const [sourceLabel, setSourceLabel] = useState("");
   const [sourceUrl, setSourceUrl] = useState("");
-  const [contentSourceType, setContentSourceType] = useState("original");
-  const [sourceUsageFlags, setSourceUsageFlags] = useState<string[]>([]);
-  const [sourceDescription, setSourceDescription] = useState("");
-  const [aiUseLevel, setAiUseLevel] = useState("none");
-  const [aiGeneratedModalities, setAiGeneratedModalities] = useState<string[]>([]);
   const [coverImage, setCoverImage] = useState<UploadedImage | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedImage[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
@@ -232,11 +222,6 @@ export function PublishArticlePage() {
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
         setSourceUrl(parsed.sourceUrl ?? "");
-        setContentSourceType(parsed.contentSourceType ?? "original");
-        setSourceUsageFlags(parsed.sourceUsageFlags ?? []);
-        setSourceDescription(parsed.sourceDescription ?? "");
-        setAiUseLevel(parsed.aiUseLevel ?? "none");
-        setAiGeneratedModalities(parsed.aiGeneratedModalities ?? []);
         setCoverImage(restoredCoverImage?.asset ?? null);
         setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
         setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
@@ -274,11 +259,6 @@ export function PublishArticlePage() {
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
-    setContentSourceType(item.contentDeclaration?.sourceType ?? "original");
-    setSourceUsageFlags(item.contentDeclaration?.sourceUsageFlags ?? []);
-    setSourceDescription(item.contentDeclaration?.sourceDescription ?? "");
-    setAiUseLevel(item.contentDeclaration?.aiUseLevel ?? "none");
-    setAiGeneratedModalities(item.contentDeclaration?.aiGeneratedModalities ?? []);
     setCoverImage(
       item.images[0]
         ? {
@@ -354,11 +334,6 @@ export function PublishArticlePage() {
         categoryId,
         sourceLabel,
         sourceUrl,
-        contentSourceType,
-        sourceUsageFlags,
-        sourceDescription,
-        aiUseLevel,
-        aiGeneratedModalities,
         coverImage,
         uploadedImages,
         uploadedVideos
@@ -368,11 +343,6 @@ export function PublishArticlePage() {
     setLastDraftSavedAt(savedAt);
   }, [
     categoryId,
-    contentSourceType,
-    sourceUsageFlags,
-    sourceDescription,
-    aiUseLevel,
-    aiGeneratedModalities,
     coverImage,
     editorHtml,
     sourceLabel,
@@ -493,16 +463,6 @@ export function PublishArticlePage() {
       return;
     }
 
-    if (contentSourceType !== "original" && !sourceDescription.trim()) {
-      setError("非原创内容请填写来源说明。");
-      return;
-    }
-
-    if (aiUseLevel === "generated" && aiGeneratedModalities.length === 0) {
-      setError("AI 生成内容请至少选择一个使用范围。");
-      return;
-    }
-
     setError(null);
     setIsPublishing(true);
 
@@ -565,11 +525,6 @@ export function PublishArticlePage() {
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
-        contentSourceType,
-        sourceUsageFlags,
-        sourceDescription: sourceDescription.trim() || null,
-        aiUseLevel,
-        aiGeneratedModalities,
         imageIds: Array.from(
           new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
         ),
@@ -697,168 +652,6 @@ export function PublishArticlePage() {
                     placeholder="摘要（可选）"
                     value={summary}
                   />
-                </div>
-
-                {/* 内容声明 */}
-                <div className="space-y-6 border-t border-border/40 pt-6">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/60">内容声明</span>
-                    <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-destructive">必填</span>
-                  </div>
-
-                  {/* 内容性质 */}
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">内容性质</div>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { value: "original", label: "原创" },
-                        { value: "repost", label: "转载" },
-                        { value: "translation", label: "翻译" },
-                        { value: "adaptation", label: "改编/二创" },
-                        { value: "compilation", label: "资料整理/汇编" },
-                      ] as const).map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
-                            contentSourceType === opt.value
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
-                          )}
-                          onClick={() => setContentSourceType(opt.value)}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  {/* 内容涉及（多选） */}
-                  <div className="space-y-2">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">内容涉及（多选）</div>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { value: "quote", label: "含引用/摘录" },
-                        { value: "external_media", label: "使用外部图片/视频" },
-                        { value: "self_captured_media", label: "本人拍摄/自有素材" },
-                        { value: "old_event", label: "旧闻旧事/历史资料" },
-                        { value: "data_reference", label: "数据/政策引用" },
-                      ] as const).map((opt) => {
-                        const active = sourceUsageFlags.includes(opt.value);
-                        return (
-                          <button
-                            key={opt.value}
-                            type="button"
-                            className={cn(
-                              "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
-                              active
-                                ? "border-primary/60 bg-primary/10 text-primary"
-                                : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
-                            )}
-                            onClick={() =>
-                              setSourceUsageFlags((prev) =>
-                                prev.includes(opt.value)
-                                  ? prev.filter((v) => v !== opt.value)
-                                  : [...prev, opt.value]
-                              )
-                            }
-                          >
-                            {opt.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-
-                  {/* 来源说明（非原创必填） */}
-                  {contentSourceType !== "original" && (
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2">
-                        <span className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源说明</span>
-                        <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-destructive">必填</span>
-                      </div>
-                      <Input
-                        onChange={(event) => setSourceDescription(event.target.value)}
-                        placeholder="原作者、平台名、作品名、书籍/线下采访/公开资料说明等"
-                        value={sourceDescription}
-                      />
-                    </div>
-                  )}
-
-                  {/* AI 声明 */}
-                  <div className="space-y-3 border-t border-border/40 pt-5">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[0.72rem] font-semibold uppercase tracking-[0.18em] text-foreground/60">AI 声明</span>
-                      <span className="rounded-full bg-destructive/10 px-2 py-0.5 text-[0.62rem] font-semibold uppercase tracking-wide text-destructive">必填</span>
-                    </div>
-                    <div className="flex flex-wrap gap-2">
-                      {([
-                        { value: "none", label: "未使用 AI" },
-                        { value: "assisted", label: "AI 辅助创作" },
-                        { value: "generated", label: "AI 生成/合成" },
-                      ] as const).map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
-                            aiUseLevel === opt.value
-                              ? "border-primary bg-primary text-primary-foreground"
-                              : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
-                          )}
-                          onClick={() => {
-                            setAiUseLevel(opt.value);
-                            if (opt.value !== "generated") {
-                              setAiGeneratedModalities([]);
-                            }
-                          }}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
-                    </div>
-
-                    {aiUseLevel === "generated" && (
-                      <div className="space-y-2 pl-1">
-                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          生成类型（多选，至少选一项）
-                        </div>
-                        <div className="flex flex-wrap gap-2">
-                          {([
-                            { value: "text", label: "文本" },
-                            { value: "image", label: "图片" },
-                            { value: "audio", label: "音频" },
-                            { value: "video", label: "视频" },
-                            { value: "virtual_scene", label: "虚拟场景" },
-                          ] as const).map((opt) => {
-                            const active = aiGeneratedModalities.includes(opt.value);
-                            return (
-                              <button
-                                key={opt.value}
-                                type="button"
-                                className={cn(
-                                  "rounded-full border px-3 py-1.5 text-[0.82rem] transition",
-                                  active
-                                    ? "border-primary/60 bg-primary/10 text-primary"
-                                    : "border-border/70 text-foreground/72 hover:border-primary/24 hover:text-foreground"
-                                )}
-                                onClick={() =>
-                                  setAiGeneratedModalities((prev) =>
-                                    prev.includes(opt.value)
-                                      ? prev.filter((v) => v !== opt.value)
-                                      : [...prev, opt.value]
-                                  )
-                                }
-                              >
-                                {opt.label}
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    )}
-                  </div>
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2">

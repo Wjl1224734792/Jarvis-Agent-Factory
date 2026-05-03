@@ -42,11 +42,6 @@ interface CreatePostInput {
   contentCategoryId: string | null;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-  sourceUsageFlags: Array<'quote' | 'external_media' | 'self_captured_media' | 'old_event' | 'data_reference'>;
-  sourceDescription: string | null;
-  aiUseLevel: 'none' | 'assisted' | 'generated';
-  aiGeneratedModalities: Array<'text' | 'image' | 'audio' | 'video' | 'virtual_scene'>;
 }
 
 interface UpdatePostInput {
@@ -58,11 +53,6 @@ interface UpdatePostInput {
   coverImageId: string | null;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-  sourceUsageFlags: Array<'quote' | 'external_media' | 'self_captured_media' | 'old_event' | 'data_reference'>;
-  sourceDescription: string | null;
-  aiUseLevel: 'none' | 'assisted' | 'generated';
-  aiGeneratedModalities: Array<'text' | 'image' | 'audio' | 'video' | 'virtual_scene'>;
   imageIds: string[];
   videoIds: string[];
 }
@@ -74,11 +64,6 @@ interface UpdateAdminOfficialArticleInput {
   contentCategoryId: string;
   sourceLabel: string | null;
   sourceUrl: string | null;
-  contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-  sourceUsageFlags: Array<'quote' | 'external_media' | 'self_captured_media' | 'old_event' | 'data_reference'>;
-  sourceDescription: string | null;
-  aiUseLevel: 'none' | 'assisted' | 'generated';
-  aiGeneratedModalities: Array<'text' | 'image' | 'audio' | 'video' | 'virtual_scene'>;
   imageIds: string[];
   videoIds: string[];
 }
@@ -264,13 +249,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        contentSourceType: input.contentSourceType,
-        sourceUsageFlags: JSON.stringify(input.sourceUsageFlags),
-        sourceDescription: input.sourceDescription,
-        aiUseLevel: input.aiUseLevel,
-        aiGeneratedModalities: input.aiUseLevel === 'generated'
-          ? JSON.stringify(input.aiGeneratedModalities)
-          : null,
         coverImageFileId: coverResolution.coverImageId,
         status,
         rejectionReason: null,
@@ -389,13 +367,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.contentCategoryId,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        contentSourceType: input.contentSourceType,
-        sourceUsageFlags: JSON.stringify(input.sourceUsageFlags),
-        sourceDescription: input.sourceDescription,
-        aiUseLevel: input.aiUseLevel,
-        aiGeneratedModalities: input.aiUseLevel === 'generated'
-          ? JSON.stringify(input.aiGeneratedModalities)
-          : null,
         coverImageFileId: null,
         status: shouldAutoPublish ? 'published' : 'pending',
         rejectionReason: null,
@@ -485,13 +456,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         contentCategoryId: input.type === 'article' ? input.contentCategoryId : null,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        contentSourceType: input.contentSourceType,
-        sourceUsageFlags: JSON.stringify(input.sourceUsageFlags),
-        sourceDescription: input.sourceDescription,
-        aiUseLevel: input.aiUseLevel,
-        aiGeneratedModalities: input.aiUseLevel === 'generated'
-          ? JSON.stringify(input.aiGeneratedModalities)
-          : null,
         coverImageFileId: coverResolution.coverImageId,
         status: 'pending',
         rejectionReason: null,

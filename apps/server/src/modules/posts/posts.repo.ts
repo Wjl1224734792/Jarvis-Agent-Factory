@@ -328,11 +328,6 @@ function postSelection() {
     contentPlainText: postsTable.contentPlainText,
     sourceLabel: postsTable.sourceLabel,
     sourceUrl: postsTable.sourceUrl,
-    contentSourceType: postsTable.contentSourceType,
-    sourceUsageFlags: postsTable.sourceUsageFlags,
-    sourceDescription: postsTable.sourceDescription,
-    aiUseLevel: postsTable.aiUseLevel,
-    aiGeneratedModalities: postsTable.aiGeneratedModalities,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
     coverImageFileId: postsTable.coverImageFileId,
@@ -371,11 +366,6 @@ function postFeedSelection(input?: { recommendationBaseScore?: SQL<number> | SQL
     contentPlainText: previewSource,
     sourceLabel: postsTable.sourceLabel,
     sourceUrl: postsTable.sourceUrl,
-    contentSourceType: postsTable.contentSourceType,
-    sourceUsageFlags: postsTable.sourceUsageFlags,
-    sourceDescription: postsTable.sourceDescription,
-    aiUseLevel: postsTable.aiUseLevel,
-    aiGeneratedModalities: postsTable.aiGeneratedModalities,
     status: postsTable.status,
     rejectionReason: postsTable.rejectionReason,
     coverImageFileId: postsTable.coverImageFileId,
@@ -574,11 +564,6 @@ export const postsRepo = {
     contentCategoryId: string | null;
     sourceLabel: string | null;
     sourceUrl: string | null;
-    contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-    sourceUsageFlags: string | null;
-    sourceDescription: string | null;
-    aiUseLevel: 'none' | 'assisted' | 'generated';
-    aiGeneratedModalities: string | null;
     status: PostStatus;
     rejectionReason?: string | null;
     publishedAt: Date | null;
@@ -598,11 +583,6 @@ export const postsRepo = {
       contentPlainText: input.contentPlainText,
       sourceLabel: input.sourceLabel,
       sourceUrl: input.sourceUrl,
-      contentSourceType: input.contentSourceType,
-      sourceUsageFlags: input.sourceUsageFlags,
-      sourceDescription: input.sourceDescription,
-      aiUseLevel: input.aiUseLevel,
-      aiGeneratedModalities: input.aiGeneratedModalities,
       contentCategoryId: input.contentCategoryId,
       coverImageFileId: input.coverImageFileId,
       status: input.status,
@@ -644,11 +624,6 @@ export const postsRepo = {
     contentCategoryId: string;
     sourceLabel: string | null;
     sourceUrl: string | null;
-    contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-    sourceUsageFlags: string | null;
-    sourceDescription: string | null;
-    aiUseLevel: 'none' | 'assisted' | 'generated';
-    aiGeneratedModalities: string | null;
     imageIds: string[];
     videoIds: string[];
   }) {
@@ -661,11 +636,6 @@ export const postsRepo = {
         contentPlainText: input.content,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        contentSourceType: input.contentSourceType,
-        sourceUsageFlags: input.sourceUsageFlags,
-        sourceDescription: input.sourceDescription,
-        aiUseLevel: input.aiUseLevel,
-        aiGeneratedModalities: input.aiGeneratedModalities,
         contentCategoryId: input.contentCategoryId,
         updatedAt: new Date()
       })
@@ -685,11 +655,6 @@ export const postsRepo = {
     contentCategoryId: string | null;
     sourceLabel: string | null;
     sourceUrl: string | null;
-    contentSourceType: 'original' | 'repost' | 'translation' | 'adaptation' | 'compilation';
-    sourceUsageFlags: string | null;
-    sourceDescription: string | null;
-    aiUseLevel: 'none' | 'assisted' | 'generated';
-    aiGeneratedModalities: string | null;
     status: PostStatus;
     rejectionReason?: string | null;
     ownerId: string;
@@ -706,11 +671,6 @@ export const postsRepo = {
         contentPlainText: input.contentPlainText,
         sourceLabel: input.sourceLabel,
         sourceUrl: input.sourceUrl,
-        contentSourceType: input.contentSourceType,
-        sourceUsageFlags: input.sourceUsageFlags,
-        sourceDescription: input.sourceDescription,
-        aiUseLevel: input.aiUseLevel,
-        aiGeneratedModalities: input.aiGeneratedModalities,
         contentCategoryId: input.contentCategoryId,
         coverImageFileId: input.coverImageFileId,
         status: input.status,

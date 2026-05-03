@@ -37,22 +37,6 @@ function postStatusLabel(status: PostRecord["status"]) {
   }
 }
 
-const SOURCE_TYPE_LABEL: Record<string, string> = {
-  original: "原创",
-  repost: "转载",
-  translation: "翻译",
-  adaptation: "改编/二创",
-  compilation: "资料整理/汇编"
-};
-
-const SOURCE_TYPE_COLOR: Record<string, string> = {
-  original: "blue",
-  repost: "green",
-  translation: "purple",
-  adaptation: "magenta",
-  compilation: "cyan"
-};
-
 export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
   const [searchParams, setSearchParams] = useSearchParams();
   const urlStatus = searchParams.get("status");
@@ -380,20 +364,6 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                       )}
                     </div>
                   ) : null}
-                  {record.contentDeclaration ? (
-                    <div className="admin-table-subtitle" style={{ marginTop: 4 }}>
-                      <Space size={4} wrap>
-                        <Tag color={SOURCE_TYPE_COLOR[record.contentDeclaration.sourceType]}>
-                          {SOURCE_TYPE_LABEL[record.contentDeclaration.sourceType]}
-                        </Tag>
-                        {record.contentDeclaration.aiUseLevel === "assisted" ? (
-                          <Tag color="orange">AI辅助</Tag>
-                        ) : record.contentDeclaration.aiUseLevel === "generated" ? (
-                          <Tag color="orange">AI生成</Tag>
-                        ) : null}
-                      </Space>
-                    </div>
-                  ) : null}
                 </div>
               ),
               title: "内容"
@@ -514,62 +484,6 @@ export function PostsPage(props: { contentType?: "article" | "moment" } = {}) {
                   <span>{detailQuery.data.item.source.label}</span>
                 )}
               </div>
-            ) : null}
-            {detailQuery.data.item.contentDeclaration ? (
-              <>
-                <div className="admin-detail-sheet__meta">
-                  <Space size={4} wrap>
-                    <Tag color={SOURCE_TYPE_COLOR[detailQuery.data.item.contentDeclaration.sourceType]}>
-                      {SOURCE_TYPE_LABEL[detailQuery.data.item.contentDeclaration.sourceType]}
-                    </Tag>
-                    {detailQuery.data.item.contentDeclaration.aiUseLevel === "assisted" ? (
-                      <Tag color="orange">AI辅助</Tag>
-                    ) : detailQuery.data.item.contentDeclaration.aiUseLevel === "generated" ? (
-                      <Tag color="orange">AI生成</Tag>
-                    ) : null}
-                  </Space>
-                </div>
-                {detailQuery.data.item.contentDeclaration.sourceUsageFlags.length > 0 ? (
-                  <div className="admin-detail-sheet__meta">
-                    <span>使用标记：</span>
-                    {(() => {
-                      const flagMap: Record<string, string> = {
-                        quote: "引用",
-                        external_media: "外部媒体",
-                        self_captured_media: "自摄素材",
-                        old_event: "旧闻素材",
-                        data_reference: "数据参考"
-                      };
-                      return detailQuery.data.item.contentDeclaration.sourceUsageFlags
-                        .map((f) => flagMap[f] ?? f)
-                        .join("、");
-                    })()}
-                  </div>
-                ) : null}
-                {detailQuery.data.item.contentDeclaration.sourceDescription ? (
-                  <div className="admin-detail-sheet__meta">
-                    <span>来源说明：{detailQuery.data.item.contentDeclaration.sourceDescription}</span>
-                  </div>
-                ) : null}
-                {detailQuery.data.item.contentDeclaration.aiUseLevel === "generated" &&
-                detailQuery.data.item.contentDeclaration.aiGeneratedModalities.length > 0 ? (
-                  <div className="admin-detail-sheet__meta">
-                    <span>AI生成模态：</span>
-                    {(() => {
-                      const modalityMap: Record<string, string> = {
-                        text: "文本",
-                        image: "图像",
-                        audio: "音频",
-                        video: "视频",
-                        virtual_scene: "虚拟场景"
-                      };
-                      return detailQuery.data.item.contentDeclaration.aiGeneratedModalities
-                        .map((m) => modalityMap[m] ?? m)
-                        .join("、");
-                    })()}
-                  </div>
-                ) : null}
-              </>
             ) : null}
             <h3 className="admin-detail-sheet__title">{detailQuery.data.item.title}</h3>
             <div className="admin-detail-sheet__body">

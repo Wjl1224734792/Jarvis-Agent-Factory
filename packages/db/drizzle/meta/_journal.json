@@ -22,13 +22,6 @@
       "when": 1777317409366,
       "tag": "0002_melted_maelstrom",
       "breakpoints": true
-    },
-    {
-      "idx": 3,
-      "version": "7",
-      "when": 1778000000000,
-      "tag": "0003_content_declaration",
-      "breakpoints": true
     }
   ]
 }
