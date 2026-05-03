@@ -451,7 +451,7 @@ export function ModelsPage() {
             </div>
           </div>
 
-          <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
+          <div className="flex gap-5 overflow-x-auto whitespace-nowrap border-b border-border/60">
             {(
               [
                 { value: "recommended" as const, label: "推荐" },
@@ -461,10 +461,10 @@ export function ModelsPage() {
             ).map((item) => (
               <button
                 className={cn(
-                  "flex-1 rounded-[0.65rem] py-1.5 text-center text-sm font-medium transition",
+                  "site-tab-trigger border-b-2 px-0 py-2.5 text-[0.92rem] transition-colors",
                   tab === item.value
-                    ? "bg-white text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
+                    ? "border-primary font-semibold text-primary"
+                    : "border-transparent text-foreground/62 hover:text-foreground"
                 )}
                 key={item.value}
                 onClick={() => setTab(item.value)}

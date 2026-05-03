@@ -240,6 +240,11 @@ export function ModelsPageSkeleton(props: { count?: number }) {
             <Skeleton className="h-10 rounded-none" />
             <Skeleton className="h-10 w-24 rounded-none" />
           </div>
+          <div className="flex gap-5 overflow-x-auto border-b border-border/60">
+            {Array.from({ length: 3 }).map((_, tabIndex) => (
+              <Skeleton className="h-10 w-12 rounded-none" key={tabIndex} />
+            ))}
+          </div>
         </div>
         <ModelGridSkeleton count={props.count ?? 10} />
       </div>
