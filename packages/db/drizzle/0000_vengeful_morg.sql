@@ -320,6 +320,9 @@ CREATE TABLE "posts" (
 	"content" text NOT NULL,
 	"content_html" text,
 	"content_plain_text" text,
+	"source_label" text,
+	"source_url" text,
+	"declaration" text,
 	"content_category_id" text,
 	"cover_image_file_id" text,
 	"status" text DEFAULT 'pending' NOT NULL,
@@ -561,8 +564,15 @@ CREATE TABLE "users" (
 	"wechat_union_id" text,
 	"account" text,
 	"password_hash" text,
+	"status" text DEFAULT 'active' NOT NULL,
+	"banned_at" timestamp with time zone,
+	"banned_until" timestamp with time zone,
+	"ban_reason" text,
+	"banned_by" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
-	CONSTRAINT "users_role_check" CHECK ("users"."role" IN ('user', 'admin'))
+	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
+	CONSTRAINT "users_role_check" CHECK ("users"."role" IN ('user', 'admin')),
+	CONSTRAINT "users_status_check" CHECK ("users"."status" IN ('active', 'banned'))
 );
 --> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_categories_slug_unique" ON "aircraft_categories" USING btree ("slug");--> statement-breakpoint
@@ -601,4 +611,5 @@ CREATE UNIQUE INDEX "users_display_name_unique" ON "users" USING btree ("display
 CREATE UNIQUE INDEX "users_phone_unique" ON "users" USING btree ("phone");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_wechat_open_id_unique" ON "users" USING btree ("wechat_open_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "users_wechat_union_id_unique" ON "users" USING btree ("wechat_union_id");--> statement-breakpoint
-CREATE UNIQUE INDEX "users_account_unique" ON "users" USING btree ("account");
+CREATE UNIQUE INDEX "users_account_unique" ON "users" USING btree ("account");--> statement-breakpoint
+CREATE INDEX "users_status_idx" ON "users" USING btree ("status");
