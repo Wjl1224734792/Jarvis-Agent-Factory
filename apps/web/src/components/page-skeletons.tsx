@@ -153,23 +153,14 @@ export function MasonryFeedSkeleton(props: {
 function ModelCardSkeletonBlock() {
   return (
     <div className="block min-w-0 overflow-hidden bg-white">
-      <div className="aspect-[4/3] w-full overflow-hidden">
+      <div className="aspect-[4/3] w-full overflow-hidden bg-slate-100">
         <Skeleton className="h-full w-full rounded-none" />
       </div>
-      <div className="space-y-1.5 px-2.5 pb-2.5 pt-2.5">
-        <div className="space-y-1">
-          <Skeleton className="h-4.5 w-[92%] rounded-none" />
-          <Skeleton className="h-4.5 w-4/5 rounded-none" />
-        </div>
-        <div className="flex min-w-0 items-center gap-1.5">
-          <Skeleton className="size-3.5 shrink-0 rounded-none" />
-          <Skeleton className="h-3 w-24 max-w-full rounded-none" />
-        </div>
-        <Skeleton className="h-3.5 w-20 rounded-none" />
-        <div className="space-y-1">
-          <Skeleton className="h-3.5 w-full rounded-none" />
-          <Skeleton className="h-3.5 w-11/12 rounded-none" />
-        </div>
+      <div className="space-y-1.5 px-2.5 pb-3 pt-2.5">
+        <Skeleton className="h-4.5 w-[88%] rounded-none" />
+        <Skeleton className="h-3 w-14 rounded-none" />
+        <Skeleton className="h-3.5 w-16 rounded-none" />
+        <Skeleton className="h-3 w-3/4 rounded-none" />
       </div>
     </div>
   );
