@@ -49,7 +49,7 @@
 
 ### Claude Code（推荐）
 
-将 `.claude/` 目录复制到你的项目根目录，然后通过三个 slash 命令切换工作模式：
+将 `.claude/` 目录复制到你的项目根目录，然后通过六个 slash 命令切换工作模式：
 
 | 命令 | 用途 |
 |------|------|
@@ -69,10 +69,14 @@ cp -r path/to/.claude/ your-project/
 # 2. 启动 Claude Code
 claude
 
-# 3. 输入 /jarvis 进入编排模式
-# 4. 提出你的需求，Jarvis 会自动推进：
-#    需求澄清 → 文档 → 任务分解 → 规划 → 并行实现 → 评审 → 发布
+# 3. 全流水线模式：输入 /jarvis 进入编排模式
+# 4. 单项专家模式：输入 /frontend-architect、/backend-architect、/algorithm-expert
+#    直接与对应架构师一对一讨论方案，无需走完整流水线
 ```
+
+**流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。
+
+**专家模式**（`/frontend-architect`、`/backend-architect`、`/algorithm-expert`）：当你只需要架构方案和选型建议时，直接 spawn 对应架构师。它们不写业务代码，只产出选型矩阵、ADR 和 POC 验证。
 
 #### 权限配置
 
@@ -93,7 +97,7 @@ vim .claude/settings.json
 opencode --agent jarvis
 ```
 
-支持与 Claude Code 相同的 23 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
+支持与 Claude Code 相同的 26 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
 
 ### Codex
 
