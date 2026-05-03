@@ -203,10 +203,7 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     resolve: {
       alias: {
-        "@": path.resolve(__dirname, "./src"),
-        "@feijia/shared": path.resolve(__dirname, "../../packages/shared/src"),
-        "@feijia/schemas": path.resolve(__dirname, "../../packages/schemas/src"),
-        "@feijia/http-client": path.resolve(__dirname, "../../packages/http-client/src"),
+        "@": path.resolve(__dirname, "./src")
       }
     },
     server: {
