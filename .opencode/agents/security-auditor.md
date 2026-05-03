@@ -37,6 +37,13 @@ permission:
 
 **必须遵守**：加载并遵守 `behavioral-guidelines` 技能中定义的四项核心行为准则。
 
+## 按场景加载技能
+
+| 时机 | 加载技能 | 用途 |
+|------|---------|------|
+| 发现分级与报告 | `code-review-and-quality` | 严重度分级标准（Critical/High/Medium/Low/Info） |
+| 涉及安全规范 | `security-and-hardening` | OWASP 前十、三层边界体系、密钥管理 |
+
 ## 反合理化表
 
 | 合理化借口 | 现实 |

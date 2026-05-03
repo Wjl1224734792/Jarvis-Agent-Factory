@@ -36,6 +36,13 @@ permission:
 
 **必须遵守**：加载并遵守 `behavioral-guidelines` 技能中定义的四项核心行为准则。
 
+## 按场景加载技能
+
+| 时机 | 加载技能 | 用途 |
+|------|---------|------|
+| E2E 测试失败需要分析根因 | `debugging-and-error-recovery` | 系统化调试与根因追踪 |
+| 交付前自检 | `verification-before-completion` | 完成前验证清单 |
+
 ## 反合理化表
 
 | 合理化借口 | 现实 |

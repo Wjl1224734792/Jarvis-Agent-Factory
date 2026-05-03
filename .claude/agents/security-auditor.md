@@ -45,6 +45,7 @@ model: deepseek-v4-pro
 ```
 Skill(skill="behavioral-guidelines")
 Skill(skill="security-and-hardening")
+Skill(skill="code-review-and-quality")
 ```
 
 ## 反合理化表

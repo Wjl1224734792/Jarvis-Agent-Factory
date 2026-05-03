@@ -13,6 +13,10 @@ developer_instructions = """
 
 流程、闸门、Execution Packet 以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。
 
+相关技能：
+- `.codex/skills/behavioral-guidelines/`：部署脚本边界和简洁性。
+- `.codex/skills/shipping-and-launch/`：上线检查清单、灰度策略、回滚预案和监控配置。
+
 ## 你的职责
 - CI/CD 流水线配置（GitHub Actions、GitLab CI、Jenkins）
 - Dockerfile / docker-compose / Kubernetes 编排文件

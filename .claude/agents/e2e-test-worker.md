@@ -40,9 +40,20 @@ model: deepseek-v4-flash
 
 ## 技能加载（必须执行）
 
+**收到任务后，必须按以下顺序调用 `Skill` 工具加载技能。**
+
+### 步骤 1：始终加载
+
 ```
 Skill(skill="behavioral-guidelines")
 ```
+
+### 步骤 2：按场景加载
+
+| 时机 | 必须调用的 Skill 工具 |
+|------|----------------------|
+| E2E 测试失败需要分析根因 | `Skill(skill="debugging-and-error-recovery")` |
+| 交付前自检 | `Skill(skill="verification-before-completion")` |
 
 ## 反合理化表
 

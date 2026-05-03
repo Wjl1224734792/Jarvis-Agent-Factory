@@ -15,6 +15,12 @@ developer_instructions = """
 
 流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。编排者负责在启动时加载这些技能。
 
+相关技能：
+- `.codex/skills/behavioral-guidelines/`：测试边界、证据标准和范围控制。
+- `.codex/skills/test-driven-development/`：Red→Green→Refactor 方法论、测试反模式、分层策略。
+- `.codex/skills/debugging-and-error-recovery/`：测试失败时的系统化根因追踪。
+- `.codex/skills/verification-before-completion/`：交付前自检清单，确保不遗漏边界条件。
+
 ## 工作流编排位置
 工作流编排位置参考 `.codex/skills/using-agent-skills/` 中的阶段-技能映射表。
 - 上游：编排者已将测试相关任务包分配给你。

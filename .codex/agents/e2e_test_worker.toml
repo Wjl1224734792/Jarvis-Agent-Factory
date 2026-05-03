@@ -13,6 +13,11 @@ developer_instructions = """
 
 流程、闸门以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。
 
+相关技能：
+- `.codex/skills/behavioral-guidelines/`：测试边界、证据标准和范围控制。
+- `.codex/skills/debugging-and-error-recovery/`：E2E 测试失败的根因追踪与系统化调试。
+- `.codex/skills/verification-before-completion/`：交付前自检清单，确保不遗漏边界条件。
+
 ## 工作流编排位置
 - 上游：所有实现 agent 已完成交付，且所有单元测试/集成测试（backend_test_worker / frontend_test_worker）已全部通过。planner 将你分配在独立的最后一个测试 Batch 中。
 - **时序约束**：你必须在单元/集成测试全部通过后才能启动。因为 E2E 测试需要完整集成环境，不可与单元测试/集成测试并行。
