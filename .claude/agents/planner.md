@@ -112,12 +112,16 @@ Skill(skill="behavioral-guidelines")
 - 仅业务规则 / 权限 / 状态机 / 幂等：backend-service-worker
 - 仅数据层 / Schema / Repository / Migration：backend-data-worker
 - 仅后端测试：backend-test-worker
+- Taro 小程序/H5 移动端：taro-worker
 - 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
 - 前端技术选型 / 组件架构 / 构建策略：frontend-architect
 - 后端微服务 / 数据库架构 / 分布式设计：backend-architect
 - CI/CD / 容器化 / 部署配置：infra-worker
 - 安全审计 / 威胁建模 / 漏洞扫描：security-auditor
 - 端到端测试 / 浏览器自动化：e2e-test-worker
+- 负载测试 / 压力测试 / 基准测试：performance-test-worker
+- API 文档生成 / Postman / 契约验证：api-docs-worker
+- 数据库架构 / 查询优化 / 索引 / 迁移：database-specialist
 
 ## 共享区域规则
 

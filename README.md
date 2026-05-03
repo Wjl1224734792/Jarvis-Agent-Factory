@@ -97,7 +97,7 @@ vim .claude/settings.json
 opencode --agent jarvis
 ```
 
-支持与 Claude Code 相同的 26 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
+支持与 Claude Code 相同的 33 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
 
 ### Codex
 
@@ -141,17 +141,19 @@ model_reasoning_effort = "xhigh"
 
 ## 智能体体系
 
-共 **29 个智能体**，按职责分为六大类：
+共 **33 个智能体**，按职责分为八大类：
 
 | 类别 | 智能体 |
 |------|--------|
 | **规划与评审** | `jarvis`、`task-design`、`planner`、`review-qa` |
 | **探索与资料** | `repo-explorer`、`docs-researcher` |
-| **架构设计** | `algorithm-expert`、`frontend-architect`、`backend-architect` |
+| **架构设计** | `algorithm-expert`、`frontend-architect`、`backend-architect`、`database-specialist` |
 | **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`security-auditor`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
 | **后端实现** | `backend-implementer`、`backend-api-worker`、`backend-service-worker`、`backend-data-worker`、`backend-test-worker` |
 | **前端实现** | `frontend-implementer`、`frontend-ui-worker`、`frontend-state-worker`、`frontend-test-worker` |
-| **基础设施** | `infra-worker`、`e2e-test-worker` |
+| **移动端实现** | `taro-worker` |
+| **测试与文档** | `e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
+| **基础设施** | `infra-worker` |
 
 ## 技能系统
 
@@ -174,16 +176,16 @@ model_reasoning_effort = "xhigh"
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
   commands/                      #   6 个 slash 命令
-  agents/                        #   29 个智能体定义
+  agents/                        #   33 个智能体定义
   skills/                        #   20 个方法论技能
 
 .opencode/                       # OpenCode 配置
-  agents/                        #   29 个智能体定义
+  agents/                        #   33 个智能体定义
   skills/                        #   20 个方法论技能
 
 .codex/                          # Codex 配置
   config.toml                    #   主配置
-  agents/                        #   26 个子智能体
+  agents/                        #   30 个子智能体
   skills/                        #   20 个方法论技能
 ```
 

@@ -98,6 +98,11 @@ Batch 3: [TASK-005, TASK-006]                ← 依赖 Batch 2 完成
 | infra-worker | infra-worker |
 | security-auditor | security-auditor |
 | e2e-test-worker | e2e-test-worker |
+| taro-worker | taro-worker |
+| performance-test-worker | performance-test-worker |
+| api-docs-worker | api-docs-worker |
+| database-specialist | database-specialist |
+| performance-audit-reviewer | performance-audit-reviewer |
 
 ### 步骤 4：同一 Batch 的任务必须在一条消息中同时发出
 

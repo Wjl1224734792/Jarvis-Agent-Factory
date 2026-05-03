@@ -293,3 +293,19 @@ config_file = "agents/security_auditor.toml"
 [agents.e2e_test_worker]
 description = "跨栈集成测试、浏览器自动化、契约测试"
 config_file = "agents/e2e_test_worker.toml"
+
+[agents.taro_worker]
+description = "Taro 跨端小程序/H5 移动端开发"
+config_file = "agents/taro_worker.toml"
+
+[agents.performance_test_worker]
+description = "负载测试、压力测试、基准测试与性能瓶颈定位"
+config_file = "agents/performance_test_worker.toml"
+
+[agents.api_docs_worker]
+description = "OpenAPI/Swagger 文档生成、Postman 集合、API 变更通知"
+config_file = "agents/api_docs_worker.toml"
+
+[agents.database_specialist]
+description = "数据库架构设计、查询优化、索引策略、分库分表、数据迁移"
+config_file = "agents/database_specialist.toml"

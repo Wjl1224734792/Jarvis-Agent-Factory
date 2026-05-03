@@ -110,6 +110,13 @@ permission:
 | `backend-service-worker` | 业务规则、领域逻辑、状态机、权限 |
 | `backend-data-worker` | Schema、ORM、Repository、迁移 |
 | `backend-test-worker` | 后端测试、TDD 流程 |
+| `database-specialist` | 数据库架构、查询优化、索引策略、分库分表、数据迁移 |
+
+### 移动端实现
+
+| 代理 | 职责 |
+|------|------|
+| `taro-worker` | Taro（React/Vue）跨端小程序/H5 页面与组件 |
 
 ### 架构设计
 
@@ -118,6 +125,7 @@ permission:
 | `algorithm-expert` | 算法选型、复杂度分析、数据结构设计与性能优化 |
 | `frontend-architect` | 前端技术选型、组件架构、状态管理、构建策略 |
 | `backend-architect` | 微服务拆分、数据库架构、分布式可靠性、数据一致性 |
+| `database-specialist` | 数据库专项：查询优化、索引策略、分库分表、数据迁移 |
 
 ---
 
@@ -414,12 +422,16 @@ Gate D 评审通过后，进入发布上线阶段。必须满足：
 | 后端仅业务逻辑 | `backend-service-worker` |
 | 后端仅数据层 | `backend-data-worker` |
 | 后端仅测试 | `backend-test-worker` |
+| Taro 小程序/H5 移动端 | `taro-worker` |
 | 算法选型 / 性能优化 / POC 验证 | `algorithm-expert` |
 | 前端架构设计 / 技术选型 | `frontend-architect` |
 | 后端架构设计 / 分布式方案 | `backend-architect` |
 | CI/CD / 容器化 / 部署 | `infra-worker` |
 | 安全审计 / 威胁建模 | `security-auditor` |
 | 端到端集成测试 | `e2e-test-worker` |
+| 性能负载/压力测试 | `performance-test-worker` |
+| API 文档生成 / 契约验证 | `api-docs-worker` |
+| 数据库架构 / 查询优化 / 迁移 | `database-specialist` |
 
 ### 审查与修复调度
 
