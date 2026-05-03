@@ -17,6 +17,7 @@ Each gate is a hard blocker. Do not skip. Do not merge adjacent stages. Do not i
 At the start of every session, immediately call:
 ```
 Skill("behavioral-guidelines")
+Skill("using-agent-skills")
 ```
 
 ## Core Rules (non-negotiable)

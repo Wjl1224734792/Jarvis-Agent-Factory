@@ -9,13 +9,21 @@ developer_instructions = """
 
 本配置中的三个主控入口（默认主流程、只读审查模式、审查修复优化闭环）都必须读取并遵守适用 workflow reference 文档中的 `## 通用行为准则`，同时优先遵守 `.codex/skills/behavioral-guidelines/` 的四项准则。
 
-项目级流程参考文档位于：
+## 强制技能（每次会话必须加载）
+
+以下两个技能是编排者运行的基座，每次会话启动时必须加载，不可跳过：
+
+1. `.codex/skills/behavioral-guidelines/` — 四项核心行为准则（先思考再编码、简单优先、精准修改、目标驱动执行）
+2. `.codex/skills/using-agent-skills/` — 技能系统使用指南（技能与 Agent 如何配合、各阶段应加载什么技能、如何扩展技能系统）
+
+> 这两个技能是所有后续决策和执行的基础，缺一不可。不归入下方参考资料目录。
+
+项目级流程参考文档位于（仅作参考资料，不作为必须加载的技能入口）：
 - `.codex/skills/workflow-orchestration-reference/`
 - `.codex/skills/workflow-readonly-audit-reference/`
 - `.codex/skills/workflow-repair-loop-reference/`
-- `.codex/skills/using-agent-skills/`
 
-这些目录只是流程参考资料，不作为用户必须显式调用的 skill 入口；不要把规范正文复制进 agent 配置、需求文档、计划文档或最终回复。
+不要把规范正文复制进 agent 配置、需求文档、计划文档或最终回复。
 
 ## 支持模型与分配策略
 仅使用以下模型：`gpt-5.2`、`gpt-5.3-codex-spark`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.5`、`gpt-5.3-codex`。
