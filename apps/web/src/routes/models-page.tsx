@@ -246,6 +246,7 @@ export function ModelsPage() {
   const [categorySearch, setCategorySearch] = useState("");
   const [brandSearch, setBrandSearch] = useState("");
   const [mobileFiltersOpen, setMobileFiltersOpen] = useState(false);
+  const [tab, setTab] = useState<"recommended" | "latest" | "following">("recommended");
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
   const filtersState = readModelFilterParams(searchParams);
   const [keywordDraft, setKeywordDraft] = useState(filtersState.keyword);
@@ -266,6 +267,7 @@ export function ModelsPage() {
   const modelsQuery = useQuery({
     queryKey: [
       "models",
+      tab,
       filtersState.categorySlugs,
       filtersState.brandSlugs,
       filtersState.powerTypes,
@@ -274,6 +276,7 @@ export function ModelsPage() {
     placeholderData: keepPreviousData,
     queryFn: () =>
       apiClient.listModels({
+        tab,
         categorySlugs: filtersState.categorySlugs,
         brandSlugs: filtersState.brandSlugs,
         powerTypes: filtersState.powerTypes,
@@ -446,6 +449,30 @@ export function ModelsPage() {
                 {"\u6e05\u7a7a\u7b5b\u9009"}
               </Button>
             </div>
+          </div>
+
+          <div className="flex gap-1 rounded-xl bg-muted/60 p-1">
+            {(
+              [
+                { value: "recommended" as const, label: "推荐" },
+                { value: "latest" as const, label: "最新" },
+                { value: "following" as const, label: "关注" }
+              ] satisfies Array<{ value: "recommended" | "latest" | "following"; label: string }>
+            ).map((item) => (
+              <button
+                className={cn(
+                  "flex-1 rounded-[0.65rem] py-1.5 text-center text-sm font-medium transition",
+                  tab === item.value
+                    ? "bg-white text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+                key={item.value}
+                onClick={() => setTab(item.value)}
+                type="button"
+              >
+                {item.label}
+              </button>
+            ))}
           </div>
 
           {modelsQuery.isError ? (

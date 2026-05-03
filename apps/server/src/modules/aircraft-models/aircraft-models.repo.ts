@@ -10,6 +10,7 @@ import {
   brandsTable,
   createId,
   db,
+  userFollowsTable,
   usersTable
 } from "@feijia/db";
 import { and, asc, desc, eq, inArray, or, sql } from "drizzle-orm";
@@ -20,6 +21,7 @@ type ListFilters = {
   brandSlugs?: string[];
   powerTypes?: string[];
   keyword?: string;
+  followingUserId?: string;
 };
 
 export const aircraftModelsRepo = {
@@ -51,6 +53,18 @@ export const aircraftModelsRepo = {
       if (keywordCondition) {
         conditions.push(keywordCondition);
       }
+    }
+
+    if (filters.followingUserId) {
+      conditions.push(
+        inArray(
+          aircraftModelsTable.ownerId,
+          db
+            .select({ followeeId: userFollowsTable.followeeId })
+            .from(userFollowsTable)
+            .where(eq(userFollowsTable.followerId, filters.followingUserId))
+        )
+      );
     }
 
     const favoriteCounts = db

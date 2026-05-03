@@ -136,7 +136,9 @@ export const modelListQuerySchema = z
     brandSlug: z.string().min(1).optional(),
     sort: z.enum(["hot", "latest"]).optional(),
     limit: z.coerce.number().int().positive().max(20).optional(),
-    page: z.coerce.number().int().positive().optional()
+    page: z.coerce.number().int().positive().optional(),
+    tab: z.enum(["recommended", "latest", "following"]).optional(),
+    currentUserId: z.string().min(1).optional()
   })
   .transform((input) => ({
     categorySlugs: input.categorySlugs ?? (input.categorySlug ? [input.categorySlug] : undefined),
@@ -144,6 +146,8 @@ export const modelListQuerySchema = z
     powerTypes: input.powerTypes,
     keyword: input.keyword?.trim() || undefined,
     sort: input.sort,
+    tab: input.tab,
+    currentUserId: input.currentUserId,
     limit: input.limit,
     page: input.page
   }));

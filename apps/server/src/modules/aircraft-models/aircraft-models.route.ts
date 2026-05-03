@@ -48,6 +48,8 @@ aircraftModelsRoute.get(API_ROUTES.models.list, async (context) => {
     powerTypes: context.req.queries("powerType"),
     keyword: context.req.query("keyword") || undefined,
     sort: context.req.query("sort") || undefined,
+    tab: context.req.query("tab") || undefined,
+    currentUserId: context.get("currentUser")?.id ?? undefined,
     limit: context.req.query("limit") || undefined,
     page: context.req.query("page") || undefined
   });

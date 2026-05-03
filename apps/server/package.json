@@ -19,7 +19,6 @@
     "@feijia/db": "workspace:*",
     "@feijia/schemas": "workspace:*",
     "@feijia/shared": "workspace:*",
-    "@hono/node-server": "^1.19.11",
     "@hono/swagger-ui": "^0.6.1",
     "@zhennann/svg-captcha": "^1.5.0",
     "dotenv": "^16.4.7",

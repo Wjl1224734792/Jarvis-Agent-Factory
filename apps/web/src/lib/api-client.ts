@@ -584,6 +584,7 @@ function buildModelListSearch(input?: {
   powerTypes?: string[];
   keyword?: string;
   sort?: "hot" | "latest";
+  tab?: "recommended" | "latest" | "following";
   limit?: number;
 }) {
   const search = new URLSearchParams();
@@ -606,6 +607,10 @@ function buildModelListSearch(input?: {
 
   if (input?.sort) {
     search.set("sort", input.sort);
+  }
+
+  if (input?.tab) {
+    search.set("tab", input.tab);
   }
 
   if (typeof input?.limit === "number") {
@@ -636,6 +641,7 @@ const rawApiClient = {
     categorySlug?: string;
     brandSlug?: string;
     sort?: "hot" | "latest";
+    tab?: "recommended" | "latest" | "following";
     limit?: number;
   }) {
     return getJson<WebModelListResponse>(
@@ -645,6 +651,7 @@ const rawApiClient = {
         powerTypes: input?.powerTypes ?? [],
         keyword: input?.keyword ?? "",
         sort: input?.sort,
+        tab: input?.tab,
         limit: input?.limit
       })}`
     );
