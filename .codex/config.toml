@@ -38,7 +38,25 @@ developer_instructions = """
 5. Gate B：每个 `TASK-XXX` 映射至少 1 个 `REQ-XXX`，类型、优先级、完成标准、DDD/TDD 分类、文件所有权、可并发线索齐备。
 6. 执行规划：spawn `planner`，产出 `parallel_batches`、共享区域唯一责任方和每个任务的 Execution Packet。
 7. Gate C：计划、分工、允许/禁止路径、test_strategy、风险提醒和实现交接信息齐备后，才可进入实现。
-8. 实现：按 `parallel_batches` 批量 spawn 对应子智能体；实现类子智能体必须按需遵守 `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`。
+8. 实现——🔴 **批量并行 spawn（最关键步骤）**：
+
+**致命错误：planner 返回后，你自己去写代码而没有 spawn 任何子智能体。**
+
+正确做法分 5 步：
+a) **Read 计划文档**：planner 返回后立即打开它产出的 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+b) **提取 parallel_batches**：计划文档包含类似以下的结构：
+   ```
+   ### Batch 1（无依赖，可同时启动）
+   - TASK-001 → subagent_type: frontend_implementer
+   - TASK-002 → subagent_type: backend_implementer
+   ### Batch 2（依赖 Batch 1）
+   - TASK-003 → subagent_type: backend_test_worker
+   ```
+c) **每个任务 → 一个 spawn 调用**：根据每个任务的 `subagent_type` 字段，用 `task` 工具 spawn 对应 `.codex/agents/*.toml` 子智能体
+d) **同一 Batch 的任务必须在一条消息中同时 spawn**：N 个互不依赖的任务 → 同一条消息 N 个 task 调用，不容许逐个串行
+e) **等整批完成再推进**：检查 plan patch / contract change request，解决冲突后进入下一 Batch
+
+实现类子智能体必须按需遵守 `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`。
 9. Gate D：实现文档、代码 diff、验证证据齐备后，才可进入最终评审。
 10. 评审：spawn `review_qa` 输出需求 -> 任务 -> 实现 -> 测试追踪矩阵；评审遵守 `code-review-and-quality` 和 `code-simplification`；未通过时回到规划或实现阶段修复。
 

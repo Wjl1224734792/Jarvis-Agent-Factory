@@ -111,6 +111,14 @@ permission:
 | `backend-data-worker` | Schema、ORM、Repository、迁移 |
 | `backend-test-worker` | 后端测试、TDD 流程 |
 
+### 架构设计
+
+| 代理 | 职责 |
+|------|------|
+| `algorithm-expert` | 算法选型、复杂度分析、数据结构设计与性能优化 |
+| `frontend-architect` | 前端技术选型、组件架构、状态管理、构建策略 |
+| `backend-architect` | 微服务拆分、数据库架构、分布式可靠性、数据一致性 |
+
 ---
 
 ## 执行流程与并行策略
@@ -208,7 +216,64 @@ planner 会在规划前自主检查，你需复核：
 - 单个任务的预期变更行数不超过 ~200 行（超过需特殊标注为风险任务）
 - 单次实现的变更总行数不超过 ~1000 行（超过需拆分为多轮次）
 
-> **并发提示**：Gate C 通过后，将 plan 中所有无共享依赖的实现任务在**同一条消息中**批量发起。不要一个接一个地串行调用。
+---
+
+## 🔴 Gate C：批量并行 spawn 实现 Agent（最关键步骤）
+
+**致命错误：planner 返回后，你自己去写代码而没有 spawn 任何 Task。正确做法如下：**
+
+### 步骤 1：读取 planner 产出的计划文档
+
+planner 返回后，立即用 Read 打开它产出的计划文档（路径在 planner 输出末尾标注，通常为 `docs/plans/YYYY-MM-DD-<topic>-plan.md`）。
+
+### 步骤 2：从计划中提取 parallel_batches
+
+计划文档必须包含明确标注的 `parallel_batches`，例如：
+
+```
+## parallel_batches
+
+### Batch 1（无依赖，可同时启动）
+- TASK-001 → subagent_type: frontend-implementer
+- TASK-002 → subagent_type: backend-implementer
+
+### Batch 2（依赖 Batch 1 全部完成）
+- TASK-003 → subagent_type: frontend-test-worker
+
+### Batch 3（依赖 Batch 2 完成）
+- TASK-004 → subagent_type: backend-api-worker
+```
+
+### 步骤 3：每个任务 → 一个 `<invoke name="task">` 调用
+
+根据每个任务的 `subagent_type` 字段，用 `task` 工具 spawn 对应 agent。传递完整的 Execution Packet 作为 prompt 内容。
+
+### 步骤 4：同一 Batch 的任务必须在一条消息中同时发出
+
+**同一 Batch 内的 N 个任务，必须在同一条消息中使用 N 个 `<invoke name="task">` 标签。** 这是并行的核心——不是逐条发起然后等待，而是一次性全部发出。
+
+**反例（错误）：**
+```
+消息1: task → frontend-implementer (TASK-001)
+等待返回...
+消息2: task → backend-implementer (TASK-002)
+等待返回...
+```
+这是串行！两个任务互不依赖却被顺序执行，浪费双倍时间。
+
+**正例（正确）：**
+```
+消息1: task → frontend-implementer (TASK-001)
+       task → backend-implementer (TASK-002)
+       task → backend-data-worker (TASK-003)
+       ↑ 三个 task 调用在同一消息中同时发出
+```
+
+### 步骤 5：等待整批完成后，检查结果
+
+- 每个 agent 返回后，检查是否有 plan patch / contract change request
+- 若有共享区域冲突，协调解决后再进入下一 Batch
+- 整批通过后，进入下一 Batch；全部 Batch 完成后进入 Gate D
 
 ### 垂直切片原则
 
@@ -257,6 +322,9 @@ planner 会在规划前自主检查，你需复核：
 | 后端仅业务逻辑 | `backend-service-worker` |
 | 后端仅数据层 | `backend-data-worker` |
 | 后端仅测试 | `backend-test-worker` |
+| 算法选型 / 性能优化 / POC 验证 | `algorithm-expert` |
+| 前端架构设计 / 技术选型 | `frontend-architect` |
+| 后端架构设计 / 分布式方案 | `backend-architect` |
 
 ### 审查与修复调度
 

@@ -112,6 +112,9 @@ permission:
 - 仅业务规则 / 权限 / 状态机 / 幂等：backend-service-worker
 - 仅数据层 / Schema / Repository / Migration：backend-data-worker
 - 仅后端测试：backend-test-worker
+- 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
+- 前端技术选型 / 组件架构 / 构建策略：frontend-architect
+- 后端微服务 / 数据库架构 / 分布式设计：backend-architect
 
 ## 共享区域规则
 
@@ -119,6 +122,31 @@ permission:
 - 禁止把同一共享区域同时分配给多个实现代理
 - 若某任务依赖共享区域调整，必须在计划中显式写出顺序关系
 - 若共享区域可能发生变化，必须在计划中预留 plan patch / contract change request 触发条件
+
+## parallel_batches 输出格式（必须使用）
+
+计划文档中必须包含以下格式的并行批次定义，确保编排者可以直接解析并 spawn Task：
+
+```
+## parallel_batches
+
+### Batch 1（无依赖，可同时启动）
+- TASK-XXX → subagent_type: frontend-implementer
+- TASK-YYY → subagent_type: backend-implementer
+
+### Batch 2（依赖 Batch 1 全部完成）
+- TASK-ZZZ → subagent_type: frontend-test-worker
+
+### Batch 3（依赖 Batch 2 完成）
+- TASK-AAA → subagent_type: backend-api-worker
+- TASK-BBB → subagent_type: backend-test-worker（可与 TASK-AAA 并行）
+```
+
+规则：
+- 每个 Batch 内的任务间无共享文件冲突，可安全并行
+- Batch 之间必须标注依赖关系（依赖哪个 Batch 完成）
+- 每个任务必须写明 `subagent_type`（使用上述分工规则中的 kebab-case 名称）
+- 若某任务需要架构设计先导，应在前置 Batch 中纳入 architect agent
 
 ## 必须输出的计划文档
 
