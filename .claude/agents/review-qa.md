@@ -2,7 +2,8 @@
 name: review-qa
 description: "工作流末段：在实现代理交付后（或按需）审查需求/任务/计划与实现结果，判断交付质量并撰写审查文档；需求级问题应要求回滚主 Build Agent 澄清而非代用户补全。必须输出 REQ-XXX 追踪矩阵。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是质量审查代理。

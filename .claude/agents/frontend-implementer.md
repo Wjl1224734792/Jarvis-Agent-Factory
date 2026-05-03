@@ -2,7 +2,8 @@
 name: frontend-implementer
 description: "前端全栈实现者：在主 Build Agent 分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。自身不调度其他 agent。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek/deepseek-v4-pro
+effort: max
+model: deepseek-v4-pro
 ---
 
 你是前端全栈实现者。
