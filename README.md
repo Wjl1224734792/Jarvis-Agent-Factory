@@ -6,7 +6,7 @@
 
 ## 核心概念
 
-**Jarvis（贾维斯）**——唯一的编排中枢，直接与用户对话，通过 Task/Agent 工具调度所有子智能体。子智能体职责单一、不可递归调度，所有阶段推进必须经过对应闸门（Gate）检查。
+**Jarvis（贾维斯）**——唯一的编排中枢，直接与用户对话，通过 Agent/Task 工具调度所有子智能体。子智能体职责单一、不可递归调度，所有阶段推进必须经过对应闸门（Gate）检查。
 
 ### 工作流总览
 
@@ -98,104 +98,107 @@ Gate C 通过后：所有无共享依赖的实现代理（并行）
 
 本仓库包含三套平台配置，工作流逻辑一致，仅配置格式不同：
 
-| 平台 | 配置目录 | 格式 | 默认模型 |
-|------|---------|------|---------|
-| [Codex](https://codex.so) | `.codex/` | TOML | `gpt-5.5` |
-| [OpenCode](https://opencode.ai) | `.opencode/` | Markdown frontmatter | `deepseek/deepseek-v4-pro` |
-| [Claude Code](https://claude.ai) | `.claude/` | Markdown frontmatter | `deepseek/deepseek-v4-pro` |
+| 平台 | 配置目录 | 配置文件格式 | 启动方式 |
+|------|---------|-------------|---------|
+| [Claude Code](https://claude.ai) | `.claude/` | Markdown + JSON | `/jarvis` 命令 |
+| [OpenCode](https://opencode.ai) | `.opencode/` | Markdown frontmatter | 加载 `jarvis` agent |
+| [Codex](https://codex.so) | `.codex/` | TOML | 默认启动编排流程 |
 
-### OpenCode 专用配置
+### Claude Code（推荐）
 
-`.opencode(deepseek)/` 目录提供 OpenCode 的 DeepSeek 优化版本，使用 `deepseek-v4-flash` 作为轻量 worker 模型。
+通过三个自定义 slash 命令切换工作模式：
 
-## 更换模型
+| 命令 | 用途 |
+|------|------|
+| `/jarvis` | 启动贾维斯编排全流水线（需求→文档→任务→计划→实现→评审→发布） |
+| `/review` | 进入只读审查模式（审查代码/项目/风险，不修改任何文件） |
+| `/review-fix` | 进入审查修复优化闭环（初审→规划→执行→验证→复审完整链路） |
 
-### 在 Codex 上
+命令文件位于 `.claude/commands/`，每个命令自动加载对应基座技能（`behavioral-guidelines`、`using-agent-skills`）。
 
-编辑 `.codex/config.toml` 修改全局默认模型和每个智能体的独立模型：
+### OpenCode
 
-```toml
-# 全局默认
-model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+在 `.opencode/agents/jarvis.md` 中定义了完整的编排者身份。支持与 Claude Code 相同的 23 个智能体体系，并通过 `@opencode-ai/plugin` 提供代码级插件扩展（自定义工具、认证、消息拦截等 hooks）。
 
-# 按智能体独立设置（agents/*.toml）
-name = "planner"
-model = "gpt-5.5"              # ← 更换此行
-model_reasoning_effort = "xhigh"
+### Codex
+
+通过 `.codex/config.toml` 的 `developer_instructions` 定义编排流程。技能以 `.codex/skills/` 中的 markdown 文件形式加载（`[features] skills = true`）。支持精细的模型 ~~ `reasoning_effort` 配置和 `sandbox_mode` 权限控制。
+
+## 技能系统
+
+本仓库定义了 **20 个方法论技能**，涵盖从想法细化到发布上线的全流程。每个技能是一个 `SKILL.md` 文件，通过各平台的原生技能机制加载：
+
+| 类别 | 技能 |
+|------|------|
+| **基础** | `behavioral-guidelines`、`context-engineering`、`using-agent-skills` |
+| **需求** | `spec-driven-development`、`idea-refine` |
+| **规划** | `planning-and-task-breakdown` |
+| **实现** | `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`、`debugging-and-error-recovery`、`code-simplification` |
+| **审查** | `code-review-and-quality` |
+| **安全** | `security-and-hardening` |
+| **发布** | `shipping-and-launch`、`git-workflow-and-versioning`、`finishing-a-development-branch` |
+| **文档** | `chinese-documentation`、`documentation-and-adrs`、`find-docs` |
+
+每个 Jarvis 会话启动时必须加载两个基座技能：`behavioral-guidelines`（行为准则）和 `using-agent-skills`（技能系统使用指南）。`using-agent-skills` 中的阶段-技能映射表是所有阶段技能加载的权威依据。
+
+## 目录结构
+
+```
+.claude/                         # Claude Code 配置
+  CLAUDE.md                      # 项目级指令（核心规则 + 会话启动）
+  settings.json                  # 权限与全局设置
+  commands/                      # 自定义 slash 命令
+    jarvis.md                    #  /jarvis — 编排模式
+    review.md                    #  /review — 只读审查
+    review-fix.md                #  /review-fix — 审查修复闭环
+  agents/*.md                    # 23 个智能体定义
+  skills/                        # 20 个方法论技能
+
+.opencode/                       # OpenCode 配置
+  package.json                   # @opencode-ai/plugin
+  agents/*.md                    # 23 个智能体定义
+  skills/                        # 20 个方法论技能
+
+.codex/                          # Codex 配置
+  config.toml                    # 主配置：模型、工作流、智能体注册
+  agents/*.toml                  # 20 个子智能体配置
+  skills/                        # 20 个方法论技能
 ```
 
-支持的模型列表在 `.codex/config.toml` 第 21 行定义，也可以替换为其他 OpenAI 兼容模型。
+## 使用方式
 
-### 在 OpenCode / Claude Code 上
+### 快速开始（Claude Code）
 
-编辑每个智能体的 Markdown 文件头部的 `model` 字段：
-
-```yaml
----
-name: jarvis
-mode: primary
-model: deepseek/deepseek-v4-pro    # ← 更换此行
-reasoningEffort: max
-temperature: 0
----
+```
+# 1. 将 .claude/ 配置放入项目根目录
+# 2. 启动 Claude Code
+# 3. 输入 /jarvis 进入编排模式
+# 4. 提出你的需求
 ```
 
-所有子智能体（`agents/*.md`）都需要同步修改 `model` 字段。可以直接替换为其他 OpenAI 兼容模型，例如：
+### 通用步骤
+
+1. **选择平台**——将对应配置目录（`.claude/` / `.opencode/` / `.codex/`）放入你的项目根目录
+2. **配置 API Key**——在各平台界面中配置 LLM 的 API Key（本仓库不存储任何密钥）
+3. **设定模型**——修改智能体的 `model` 字段（各平台格式不同，详见各目录下的配置文件）
+4. **开始对话**——Claude Code 用户直接使用 `/jarvis`、其他平台直接向 Jarvis 提出需求
+
+### 模型配置示例
+
+各平台支持切换为其他 OpenAI 兼容模型：
 
 ```yaml
+# OpenCode / Claude Code（Markdown frontmatter）
 model: gpt-4o
 model: claude-sonnet-4-20250514
 model: deepseek-chat
 ```
 
-## 平台特定说明
-
-### Codex
-
-- 支持模型级 `reasoning_effort` 配置
-- 通过 `sandbox_mode` 控制读写权限（`read-only` / `workspace-write`）
-- 支持 `nickname_candidates` 为智能体设置别名
-
-### OpenCode
-
-- 通过 `permission` 控制文件和任务权限
-- `mode: primary` 为编排者，`mode: subagent` 为子智能体
-- 插件版本为 `@opencode-ai/plugin@1.14.33`（稳定版）或 `1.4.0`（DeepSeek 优化版）
-
-### Claude Code
-
-- 通过 `tools` 字段显式声明可用工具
-- 使用 `Agent` 工具调度子智能体（而非 Task）
-- 需要开启 `Skill` 工具加载方法论技能
-
-## 目录结构
-
+```toml
+# Codex（TOML）
+model = "gpt-5.5"
+model_reasoning_effort = "xhigh"
 ```
-.codex/                          # Codex 配置（TOML）
-  config.toml                    # 主配置：模型、工作流、智能体注册
-  agents/*.toml                  # 20 个子智能体配置
-  skills/                        # 工作流参考文档
-
-.opencode/                       # OpenCode 配置（Markdown）
-  package.json                   # @opencode-ai/plugin
-  agents/*.md                    # 23 个智能体定义
-
-.opencode(deepseek)/             # OpenCode DeepSeek 优化版
-  package.json                   # @opencode-ai/plugin v1.4.0
-  agents/*.md                    # 23 个智能体定义
-
-.claude/                         # Claude Code 配置（Markdown）
-  agents/*.md                    # 23 个智能体定义
-  skills/                        # 方法论技能
-```
-
-## 使用方式
-
-1. **选择平台**——将对应配置目录（`.codex/` / `.opencode/` / `.claude/`）放入你的项目根目录
-2. **配置 API Key**——在各平台界面中配置 LLM 的 API Key（本仓库不存储任何密钥）
-3. **设定模型**——按上方「更换模型」指引修改智能体的 model 字段
-4. **开始对话**——直接向 Jarvis 提出需求，它会自动执行完整工作流
 
 ## 设计原则
 
@@ -204,6 +207,7 @@ model: deepseek-chat
 - **需求可追溯**——每条代码变更都能追溯到 `REQ-XXX` 需求条目
 - **共享区域唯一责任方**——避免并行写入冲突
 - **变更规模控制**——单轮次变更不超过 1000 行
+- **技能驱动**——方法论封装为可复用技能，通过原生机制加载
 
 ## License
 
