@@ -112,11 +112,21 @@ Skill(skill="behavioral-guidelines")
 - 仅业务规则 / 权限 / 状态机 / 幂等：backend-service-worker
 - 仅数据层 / Schema / Repository / Migration：backend-data-worker
 - 仅后端测试：backend-test-worker
-- Taro 小程序/H5 移动端：taro-worker
-- Android 原生（Kotlin/Compose）：android-worker
-- iOS 原生（Swift/SwiftUI）：ios-worker
-- React Native 跨端：react-native-worker
-- Flutter 跨端：flutter-worker
+- Taro 小程序/H5（全栈）：taro-worker
+- Taro 仅 UI/样式：taro-ui-worker
+- Taro 仅状态/数据：taro-state-worker
+- Android 原生（全栈）：android-worker
+- Android 仅 UI/Compose：android-ui-worker
+- Android 仅状态/数据：android-state-worker
+- iOS 原生（全栈）：ios-worker
+- iOS 仅 UI/SwiftUI：ios-ui-worker
+- iOS 仅状态/数据：ios-state-worker
+- React Native（全栈）：react-native-worker
+- React Native 仅 UI：rn-ui-worker
+- React Native 仅状态/数据：rn-state-worker
+- Flutter（全栈）：flutter-worker
+- Flutter 仅 UI/Widget：flutter-ui-worker
+- Flutter 仅状态/数据：flutter-state-worker
 - 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
 - 前端技术选型 / 组件架构 / 构建策略：frontend-architect
 - 后端微服务 / 数据库架构 / 分布式设计：backend-architect

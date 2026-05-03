@@ -116,11 +116,21 @@ permission:
 
 | 代理 | 职责 |
 |------|------|
-| `taro-worker` | Taro（React/Vue）跨端小程序/H5 页面与组件 |
-| `android-worker` | Kotlin/Jetpack Compose Android 原生开发 |
-| `ios-worker` | Swift/SwiftUI iOS/macOS 原生开发 |
-| `react-native-worker` | React Native（JS/TS）iOS/Android 双端开发 |
-| `flutter-worker` | Dart/Flutter iOS/Android/Web 多端开发 |
+| `taro-worker` | Taro（React/Vue）跨端小程序/H5 全栈实现 |
+| `taro-ui-worker` | Taro 仅 UI/样式/多端适配 |
+| `taro-state-worker` | Taro 仅状态管理/数据/路由 |
+| `android-worker` | Kotlin/Jetpack Compose 全栈实现 |
+| `android-ui-worker` | Android 仅 UI/Compose/Material 3 |
+| `android-state-worker` | Android 仅 ViewModel/Room/网络/导航 |
+| `ios-worker` | Swift/SwiftUI iOS/macOS 全栈实现 |
+| `ios-ui-worker` | iOS 仅 UI/SwiftUI/HIG |
+| `ios-state-worker` | iOS 仅 ObservableObject/SwiftData/网络 |
+| `react-native-worker` | React Native（JS/TS）全栈实现 |
+| `rn-ui-worker` | React Native 仅 UI/样式/动画 |
+| `rn-state-worker` | React Native 仅状态/数据/导航 |
+| `flutter-worker` | Dart/Flutter 多端全栈实现 |
+| `flutter-ui-worker` | Flutter 仅 Widget/主题/动画 |
+| `flutter-state-worker` | Flutter 仅 Provider/BLoC/存储/路由 |
 
 ### 架构设计
 
@@ -426,11 +436,21 @@ Gate D 评审通过后，进入发布上线阶段。必须满足：
 | 后端仅业务逻辑 | `backend-service-worker` |
 | 后端仅数据层 | `backend-data-worker` |
 | 后端仅测试 | `backend-test-worker` |
-| Taro 小程序/H5 移动端 | `taro-worker` |
-| Android 原生（Kotlin/Compose） | `android-worker` |
-| iOS 原生（Swift/SwiftUI） | `ios-worker` |
-| React Native 跨端 | `react-native-worker` |
-| Flutter 跨端 | `flutter-worker` |
+| Taro 小程序/H5（全栈） | `taro-worker` |
+| Taro 仅 UI/样式 | `taro-ui-worker` |
+| Taro 仅状态/数据 | `taro-state-worker` |
+| Android 原生（全栈） | `android-worker` |
+| Android 仅 UI/Compose | `android-ui-worker` |
+| Android 仅状态/数据 | `android-state-worker` |
+| iOS 原生（全栈） | `ios-worker` |
+| iOS 仅 UI/SwiftUI | `ios-ui-worker` |
+| iOS 仅状态/数据 | `ios-state-worker` |
+| React Native（全栈） | `react-native-worker` |
+| React Native 仅 UI | `rn-ui-worker` |
+| React Native 仅状态/数据 | `rn-state-worker` |
+| Flutter（全栈） | `flutter-worker` |
+| Flutter 仅 UI/Widget | `flutter-ui-worker` |
+| Flutter 仅状态/数据 | `flutter-state-worker` |
 | 算法选型 / 性能优化 / POC 验证 | `algorithm-expert` |
 | 前端架构设计 / 技术选型 | `frontend-architect` |
 | 后端架构设计 / 分布式方案 | `backend-architect` |

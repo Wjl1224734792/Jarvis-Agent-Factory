@@ -325,3 +325,43 @@ config_file = "agents/react_native_worker.toml"
 [agents.flutter_worker]
 description = "Dart/Flutter iOS/Android/Web 多端跨平台开发"
 config_file = "agents/flutter_worker.toml"
+
+[agents.taro_ui_worker]
+description = "Taro 小程序/H5 UI 专项：页面布局、组件样式、多端适配"
+config_file = "agents/taro_ui_worker.toml"
+
+[agents.taro_state_worker]
+description = "Taro 小程序/H5 状态与数据专项：状态管理、数据获取、路由"
+config_file = "agents/taro_state_worker.toml"
+
+[agents.android_ui_worker]
+description = "Android Jetpack Compose UI 专项"
+config_file = "agents/android_ui_worker.toml"
+
+[agents.android_state_worker]
+description = "Android 状态与数据专项：ViewModel、Room、网络、导航"
+config_file = "agents/android_state_worker.toml"
+
+[agents.ios_ui_worker]
+description = "iOS SwiftUI UI 专项：页面布局、HIG 主题、动画"
+config_file = "agents/ios_ui_worker.toml"
+
+[agents.ios_state_worker]
+description = "iOS 状态与数据专项：ObservableObject、SwiftData、网络、导航"
+config_file = "agents/ios_state_worker.toml"
+
+[agents.rn_ui_worker]
+description = "React Native UI 专项：页面布局、样式、动画"
+config_file = "agents/rn_ui_worker.toml"
+
+[agents.rn_state_worker]
+description = "React Native 状态与数据专项：Zustand/Redux、AsyncStorage、导航"
+config_file = "agents/rn_state_worker.toml"
+
+[agents.flutter_ui_worker]
+description = "Flutter UI 专项：Widget 页面、Material/Cupertino 主题、动画"
+config_file = "agents/flutter_ui_worker.toml"
+
+[agents.flutter_state_worker]
+description = "Flutter 状态与数据专项：Provider/BLoC、本地存储、网络、路由"
+config_file = "agents/flutter_state_worker.toml"
