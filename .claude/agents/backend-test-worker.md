@@ -49,16 +49,6 @@ model: deepseek/deepseek-v4-flash
 - 需要变更共享区域但未经主 Build Agent 授权
 - 纯粹的代码审查任务（交给 diff-code-reviewer）
 
-## 规则加载（必须遵守）
-
-**收到任务后，必须先读取并全文遵守以下项目规则文件。违反任何规则 = 交付不可信。**
-
-| 规则文件 | 说明 |
-|---------|------|
-| `.claude/rules/通用编程规范与指南.md` | 嵌套层级、数组操作、DDD/TDD、数据库外键、Tailwind 等硬约束 |
-| `.claude/rules/TypeScript与Interface使用规范.md` | interface vs type 选择规范、Zod 实践 |
-| `.claude/rules/团队协作规范.md` | Prettier、ESLint、分支命名、提交规范、CI/CD 门禁 |
-
 ## 技能加载（必须执行）
 
 **收到任务后，必须按以下顺序调用 `Skill` 工具加载技能。**
