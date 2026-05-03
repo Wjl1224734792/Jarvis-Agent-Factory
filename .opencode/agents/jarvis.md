@@ -132,7 +132,8 @@ permission:
 | 3 执行规划 | Task → `planner` | — | `docs/plans/` + Execution Packets |
 | 4 探索（按需） | Task → `repo-explorer` / `docs-researcher` | **与阶段 0/1B/2 并行，且 repo-explorer 与 docs-researcher 互不依赖可同时发起** | `docs/analysis/` 或 `docs/research/` |
 | 5 实现 | 按计划并发 Task → 对应实现代理 | **同轮次无共享依赖的任务可全部并行** | `docs/implementation/` |
-| 6 评审 | Task → `review-qa`，加载 `code-review-and-quality` | — | `docs/review/` |
+| 5B 测试验证 | 先并发 unit/integration test workers → 全部通过后 spawn e2e-test-worker → 汇总测试结果 | **backend-test-worker 与 frontend-test-worker 可并行；E2E 必须串行在最后** | `docs/testing/` |
+| 6 评审 | Task → `review-qa`，加载 `code-review-and-quality`，**消费 Gate C2 测试汇总报告** | — | `docs/review/` |
 | 7 发布上线 | Task →（加载 `shipping-and-launch`）| — | `docs/shipping/` |
 
 ---
@@ -159,7 +160,8 @@ permission:
 | **Gate B 通过后** | `planner`（仅一个） | planner 是串行单点，无并行对象 |
 | **Gate C 通过后** | 所有无共享依赖的实现代理 | 前端的 `frontend-ui-worker` 和后端的 `backend-data-worker` 可同时启动；`frontend-implementer` 和 `backend-implementer` 如无共享依赖也可并行 |
 | **Gate C 通过后（TDD）** | 不同 TASK 的 Red 步骤可并行 | 例如 TASK-001 的 Red 和 TASK-002 的 Red 无依赖，可同时启动各自的 test-worker |
-| **实现全部交付后** | `review-qa`（仅一个） | review-qa 是串行单点 |
+| **实现全部交付后** | `backend-test-worker` + `frontend-test-worker`（并行）→ 全部通过后 → `e2e-test-worker`（串行） | 单元/集成测试并行；E2E 必须在集成环境就绪后串行执行 |
+| **Gate C2 通过后** | `review-qa`（仅一个） | review-qa 是串行单点，消费 Gate C2 测试汇总报告 |
 
 ### 反例：不可并行的情形
 
@@ -239,10 +241,16 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 
 ### Batch 2（依赖 Batch 1 全部完成）
 - TASK-003 → subagent_type: frontend-test-worker
+- TASK-004 → subagent_type: backend-test-worker（可与 TASK-003 并行）
 
-### Batch 3（依赖 Batch 2 完成）
-- TASK-004 → subagent_type: backend-api-worker
+### Batch 3（依赖 Batch 2 全部测试通过）
+- TASK-005 → subagent_type: e2e-test-worker
 ```
+
+**测试 Batch 时序规则：**
+- 单元/集成测试（backend-test-worker / frontend-test-worker）应紧跟对应实现 Batch，二者可放入同一 Batch
+- **E2E 测试（e2e-test-worker）必须放在独立于单元/集成测试的最后一个测试 Batch**——因为 E2E 需要完整集成环境
+- planner 不得将 e2e-test-worker 与 backend-test-worker / frontend-test-worker 放入同一 Batch
 
 ### 步骤 3：每个任务 → 一个 `<invoke name="task">` 调用
 
@@ -298,12 +306,58 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 
 **功能开关策略：** 当某个切片尚未完成时，使用环境变量或配置开关隐藏功能入口。不要在 master/main 分支暴露未完成功能。
 
-### Gate D：实现 → 评审
+### Gate C2：实现 → 测试验证（🆕 强制测试验证门）
 
-实现代理交付后，调用 `review-qa` 前检查：
+全部实现 Batch 完成后，必须通过此门才能进入 Gate D 评审。
+
+**通过条件：**
+- [ ] 所有 `test_strategy=tdd` 的任务有 Red→Green→Refactor 记录（Red 失败记录 + Green 通过记录 + Refactor 仍绿记录）
+- [ ] 所有 `test_strategy=test_after` 的任务有测试文件 + 全部通过记录
+- [ ] 单元测试与集成测试全部通过（backend-test-worker + frontend-test-worker 均返回通过）
+- [ ] E2E 测试全部通过（e2e-test-worker 返回通过，**必须在单元/集成测试通过后执行**）
+- [ ] 测试结果已汇总：`docs/testing/YYYY-MM-DD-<topic>-test-summary.md` 已生成
+- [ ] 覆盖率达标：若项目配置了覆盖率阈值，新增代码覆盖率不低于阈值；覆盖率下降超过 2% 需标注原因
+
+**执行流程：**
+```
+全部实现 Batch 完成
+  ├── Batch N: backend-test-worker + frontend-test-worker（并行）
+  ├── 等待 N 全部通过（失败 → 回退实现 agent 修复）
+  ├── Batch N+1: e2e-test-worker（独立 Batch，不可与 N 并行）
+  ├── 等待 N+1 通过（失败 → 回退修复）
+  └── 编排者汇总测试报告 → Gate C2 通过
+```
+
+**test_after 策略规范：**
+- 当 `test_strategy=test_after`：实现代理先完成代码 → planner 在独立测试 Batch 中分配 test worker → test worker 基于实现编写测试 → 测试通过 → Gate C2 通过
+- `test_after` 与 `tdd` 的区别：`tdd` 测试先行驱动设计，`test_after` 实现先行测试验证；但无论哪种策略，**测试必须在 Gate C2 通过前全部完成并通过**
+- `test_after` 适用场景：UI 交互、样式调整、简单 CRUD 等设计已明确的场景
+- `manual_only` 的任务：无自动化测试要求，但需在实现文档中附手工验证记录
+
+**测试汇总文档模板：**
+编排者在所有测试通过后生成 `docs/testing/YYYY-MM-DD-<topic>-test-summary.md`：
+```markdown
+# 测试汇总报告
+- 需求：REQ-XXX, REQ-YYY
+## 单元/集成测试
+| 测试代理 | 测试文件数 | 用例数 | 通过 | 失败 | 跳过 |
+|----------|-----------|--------|------|------|------|
+## E2E 测试
+| 用户路径数 | 通过 | 失败 | Flaky |
+## 覆盖率
+| 模块 | 行覆盖率 | 分支覆盖率 | 变化 |
+## 结论
+- [ ] 所有测试通过 / [ ] E2E 测试通过 / [ ] 覆盖率达标
+```
+
+### Gate D：测试验证 → 评审
+
+实现代理交付且 **Gate C2 测试全部通过**后，调用 `review-qa` 前检查：
 - 实现文档是否包含完整信息
 - 单次实现变更行数未超过 ~1000 行（超过 → 评估是否需拆分评审）
 - 所有 REQ-XXX 在实现文档中都有对应的变更记录
+- **Gate C2 测试汇总报告已就绪**（`docs/testing/YYYY-MM-DD-<topic>-test-summary.md`）
+- **所有测试用例均已通过，无失败或跳过**
 
 ### Gate E：评审 → 发布上线
 

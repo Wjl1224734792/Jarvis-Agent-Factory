@@ -101,6 +101,12 @@ permission:
 
 若缺失任一项：停止规划，明确指出缺失项，回退 task-design。
 
+同时检查以下测试覆盖条件：
+- 每个 test_strategy=tdd 的任务是否已分配对应的 test worker
+- 每个 test_strategy=test_after 的任务是否已在独立于实现的 Batch 中分配 test worker
+- E2E 测试是否已分配且放置在独立于单元/集成测试的最后一个测试 Batch
+- 若缺少任何测试覆盖：停止规划，回退 task-design 要求补充测试类任务
+
 ## 分工规则
 
 - 纯前端多维度任务：frontend-implementer
@@ -139,10 +145,10 @@ permission:
 
 ### Batch 2（依赖 Batch 1 全部完成）
 - TASK-ZZZ → subagent_type: frontend-test-worker
+- TASK-WWW → subagent_type: backend-test-worker（可与 TASK-ZZZ 并行）
 
-### Batch 3（依赖 Batch 2 完成）
-- TASK-AAA → subagent_type: backend-api-worker
-- TASK-BBB → subagent_type: backend-test-worker（可与 TASK-AAA 并行）
+### Batch 3（依赖 Batch 2 全部测试通过）
+- TASK-EEE → subagent_type: e2e-test-worker
 ```
 
 规则：
@@ -150,6 +156,13 @@ permission:
 - Batch 之间必须标注依赖关系（依赖哪个 Batch 完成）
 - 每个任务必须写明 `subagent_type`（使用上述分工规则中的 kebab-case 名称）
 - 若某任务需要架构设计先导，应在前置 Batch 中纳入 architect agent
+
+**测试 Batch 时序规则（必须遵守）：**
+- 单元/集成测试（backend-test-worker / frontend-test-worker）应紧跟在对应实现 Batch 之后，二者可放入同一 Batch
+- **E2E 测试（e2e-test-worker）必须放在独立的最后一个测试 Batch**，排在所有单元/集成测试 Batch 通过之后——因为 E2E 需要完整集成环境
+- 禁止将 e2e-test-worker 与 backend-test-worker / frontend-test-worker 放入同一 Batch
+- test_strategy=test_after 的测试任务应与对应实现任务分入不同 Batch（实现在前，测试在后）
+- test_strategy=tdd 的任务，Red→Green→Refactor 三步必须串行，但同一任务内的三步可跨越多个 Batch（Red 和 Green 在实现 Batch，Refactor 在测试 Batch）
 
 ## 必须输出的计划文档
 

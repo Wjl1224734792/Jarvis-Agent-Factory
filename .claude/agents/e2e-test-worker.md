@@ -10,8 +10,9 @@ model: deepseek-v4-flash
 
 ## 工作流编排位置
 
-- 上游：在实现 agent 交付后，planner 分配 E2E 测试任务。可在 Gate D 评审前并行于 backend-test-worker 和 frontend-test-worker。
-- 下游：你的测试报告被 review-qa 作为验证证据消费。
+- 上游：所有实现 agent 已完成交付，且所有单元测试/集成测试（backend-test-worker / frontend-test-worker）已全部通过。planner 将你分配在独立的最后一个测试 Batch 中。
+- **时序约束**：你必须在单元/集成测试全部通过后才能启动。因为 E2E 测试需要完整集成环境（前端+后端+数据库均已部署并验证可用），不可与单元测试/集成测试并行。
+- 下游：你的测试报告作为 Gate C2 通过的必要证据，并被 review-qa 消费。
 - 你不是编排者——你不调度其他 agent。你只负责端到端测试。
 
 ## 你的职责

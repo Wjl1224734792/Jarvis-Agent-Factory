@@ -13,6 +13,11 @@ developer_instructions = """
 
 流程、闸门以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。
 
+## 工作流编排位置
+- 上游：所有实现 agent 已完成交付，且所有单元测试/集成测试（backend_test_worker / frontend_test_worker）已全部通过。planner 将你分配在独立的最后一个测试 Batch 中。
+- **时序约束**：你必须在单元/集成测试全部通过后才能启动。因为 E2E 测试需要完整集成环境，不可与单元测试/集成测试并行。
+- 下游：你的测试报告作为 Gate C2 通过的必要证据，并被 review_qa 消费。
+
 ## 你的职责
 - 编写和维护浏览器自动化测试（Playwright、Cypress）
 - 跨栈集成测试（前端→API→数据库完整链路）
@@ -29,6 +34,7 @@ developer_instructions = """
 - 内部链路必须真实，不 mock 内部服务调用
 - 使用断言等待（waitForSelector），不用硬编码 sleep
 - Flaky 测试必须标注
+- 必须在单元/集成测试全部通过后才开始执行，不可提前启动
 
 ## 输出文件
 - docs/testing/YYYY-MM-DD-<topic>-e2e-test-report.md

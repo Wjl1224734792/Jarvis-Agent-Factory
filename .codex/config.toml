@@ -47,7 +47,25 @@ developer_instructions = """
    - [ ] 架构评审已触发（如适用：新组件引入、DB 架构变更、微服务拆分）
    以上全部满足才可进入实现阶段。
 
-8. 实现——🔴 **批量并行 spawn（最关键步骤）**：
+8. Gate C2（🆕 强制测试验证门）：全部实现 Batch 完成后，必须通过此门才能进入 Gate D 评审。
+   - [ ] 所有 test_strategy=tdd 的任务有 Red→Green→Refactor 记录
+   - [ ] 所有 test_strategy=test_after 的任务有测试文件 + 全部通过记录
+   - [ ] 单元测试与集成测试全部通过（backend_test_worker + frontend_test_worker 均返回通过）
+   - [ ] E2E 测试全部通过（e2e_test_worker 返回通过，**必须在单元/集成测试通过后执行**）
+   - [ ] 测试结果已汇总：docs/testing/YYYY-MM-DD-<topic>-test-summary.md 已生成
+   - [ ] 覆盖率达标（若配置了阈值）
+
+   test_after 策略规范：
+   - test_after：实现代理先完成代码 → planner 在独立测试 Batch 中分配 test worker → test worker 基于实现编写测试 → 测试通过 → Gate C2 通过
+   - tdd：测试先行驱动设计，Red→Green→Refactor 三步串行
+   - 无论哪种策略，测试必须在 Gate C2 通过前全部完成并通过
+   - test_after 适用：UI 交互、样式调整、简单 CRUD 等设计已明确的场景
+   - manual_only 的任务需在实现文档中附手工验证记录
+
+   Gate C2 执行流程：
+   全部实现 Batch 完成 → Batch N: backend_test_worker + frontend_test_worker（并行）→ 全部通过后 → Batch N+1: e2e_test_worker（串行，不可与 N 并行）→ 编排者汇总测试报告 → Gate C2 通过
+
+9. 实现——🔴 **批量并行 spawn（最关键步骤）**：
 
 **致命错误：planner 返回后，你自己去写代码而没有 spawn 任何子智能体。**
 
@@ -60,20 +78,25 @@ b) **提取 parallel_batches**：计划文档包含类似以下的结构：
    - TASK-002 → subagent_type: backend_implementer
    ### Batch 2（依赖 Batch 1）
    - TASK-003 → subagent_type: backend_test_worker
+   - TASK-004 → subagent_type: frontend_test_worker（可与 TASK-003 并行）
+   ### Batch 3（依赖 Batch 2 全部测试通过）
+   - TASK-005 → subagent_type: e2e_test_worker
    ```
+   **测试 Batch 时序规则：** 单元/集成测试紧跟实现 Batch；E2E 测试必须放在独立于单元/集成测试的最后一个测试 Batch（需要完整集成环境）。
 c) **每个任务 → 一个 spawn 调用**：根据每个任务的 `subagent_type` 字段，用 `task` 工具 spawn 对应 `.codex/agents/*.toml` 子智能体
 d) **同一 Batch 的任务必须在一条消息中同时 spawn**：N 个互不依赖的任务 → 同一条消息 N 个 task 调用，不容许逐个串行
 e) **等整批完成再推进**：检查 plan patch / contract change request，解决冲突后进入下一 Batch
 
 实现类子智能体必须按需遵守 `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`。
 
-9. Gate D：实现文档、代码 diff、验证证据齐备后，才可进入最终评审。**必须对照检查**：
+9. Gate D：实现文档、代码 diff、验证证据齐备，**且 Gate C2 测试汇总报告已就绪**，才可进入最终评审。**必须对照检查**：
    - [ ] 每个实现 agent 产出了实现文档
    - [ ] 代码 diff 可审查（变更量 ≤1000 行/轮次）
-   - [ ] 测试结果（通过/失败/未运行）已记录
+   - [ ] Gate C2 测试汇总报告已就绪（docs/testing/YYYY-MM-DD-<topic>-test-summary.md）
+   - [ ] 所有测试用例均已通过，无失败或跳过
    - [ ] 所有 REQ-XXX 在实现文档中有对应变更记录
 
-10. 评审：spawn `review_qa` 输出需求 -> 任务 -> 实现 -> 测试追踪矩阵；评审遵守 `code-review-and-quality` 和 `code-simplification`；未通过时回到规划或实现阶段修复。
+10. 评审：spawn `review_qa` 输出需求 -> 任务 -> 实现 -> 测试追踪矩阵；评审遵守 `code-review-and-quality` 和 `code-simplification`；未通过时回到规划或实现阶段修复。review_qa 必须消费 Gate C2 测试汇总报告作为硬性前置条件。
 
 11. 发布上线——🟢 **Gate E**：Gate D 评审通过后进入发布阶段：
     - [ ] 加载 `shipping-and-launch` 技能执行上线检查清单
@@ -149,8 +172,9 @@ Gate 失败 → 根因可修复则修复后重试（最多 2 次）→ 仍失败
 - 默认并发：只要任务互不依赖、输出不互相阻塞、写入路径不冲突、共享区域无重叠，就同批启动。
 - 先批量 spawn，同批全部启动后再等待整批结果。
 - 只读探索、文档研究、专项审查可作为 sidecar 与主线并行，但不得改变 Gate 顺序。
+- 实现全部交付后，先并发 spawn 单元/集成 test worker（backend_test_worker + frontend_test_worker）；全部通过后再串行 spawn e2e_test_worker——E2E 不可与单元/集成测试并行。
 - 同一 TDD 任务的 Red -> Green -> Refactor 必须串行；不同任务的同阶段步骤可按路径边界并发。
-- 每个串行安排都必须写明真实阻塞原因，不能只写“按顺序执行”。
+- 每个串行安排都必须写明真实阻塞原因，不能只写”按顺序执行”。
 
 ## 输出要求
 - 阶段推进前简要说明当前 Gate 状态。
