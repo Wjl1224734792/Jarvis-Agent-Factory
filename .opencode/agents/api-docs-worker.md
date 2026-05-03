@@ -2,7 +2,7 @@
 description: "API 文档专项工作者：负责 OpenAPI/Swagger 规范文档生成、API 参考文档编写、Postman 集合导出和 API 变更通知。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: medium
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow

@@ -2,7 +2,7 @@
 description: "Taro 跨端移动开发工作者：在编排者分配明确子任务后执行；负责 Taro（React/Vue）小程序/H5/移动端页面、组件、交互与平台适配。"
 mode: subagent
 model: deepseek/deepseek-v4-flash
-reasoningEffort: medium
+reasoningEffort: high
 temperature: 0
 permission:
   edit: allow
