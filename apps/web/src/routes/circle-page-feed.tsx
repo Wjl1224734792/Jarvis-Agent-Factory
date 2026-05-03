@@ -1,5 +1,5 @@
 import { HeartIcon, LockKeyholeIcon, PlayIcon } from "lucide-react";
-import { useMemo, useRef } from "react";
+import { memo, useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -66,7 +66,7 @@ type CirclePageFeedProps = {
   onNavigateToLogin: () => void;
 };
 
-function CircleFeedCard(props: {
+const CircleFeedCard = memo(function CircleFeedCard(props: {
   item: CircleFeedItem;
   absoluteIndex: number;
   selectedNoteId: string | null;
@@ -169,7 +169,9 @@ function CircleFeedCard(props: {
       </div>
     </button>
   );
-}
+});
+
+CircleFeedCard.displayName = "CircleFeedCard";
 
 export function CirclePageFeed({
   activeTab,
