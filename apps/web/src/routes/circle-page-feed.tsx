@@ -1,4 +1,4 @@
-import { HeartIcon, PlayIcon } from "lucide-react";
+import { HeartIcon, LockKeyholeIcon, PlayIcon } from "lucide-react";
 import { useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { IpLocationText } from "@/components/ip-location-text";
@@ -6,6 +6,7 @@ import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
@@ -62,6 +63,8 @@ type CirclePageFeedProps = {
   hasMore?: boolean;
   onLoadMore?: () => void;
   formatCount: (value: number) => string;
+  authStatus: "idle" | "loading" | "authenticated" | "anonymous";
+  onNavigateToLogin: () => void;
 };
 
 function CircleFeedCard(props: {
@@ -185,7 +188,9 @@ export function CirclePageFeed({
   loadMoreErrorMessage,
   hasMore = false,
   onLoadMore,
-  formatCount
+  formatCount,
+  authStatus,
+  onNavigateToLogin
 }: CirclePageFeedProps) {
   const feedMeasureRef = useRef<HTMLDivElement>(null);
   const columnCount = useCircleColumnCount(undefined, { widthElementRef: feedMeasureRef });
@@ -216,23 +221,48 @@ export function CirclePageFeed({
         </div>
       </div>
 
-      {isError ? (
-        <Alert className="rounded-none border-0" variant="destructive">
-          <AlertTitle>飞友圈加载失败</AlertTitle>
-          <AlertDescription>{errorMessage ?? "网络开小差了，请稍后重试。"}</AlertDescription>
-        </Alert>
-      ) : null}
+      {activeTab === "following" && authStatus === "anonymous" ? (
+        <div className="bg-white px-5 py-12 text-center">
+          <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
+            <LockKeyholeIcon className="size-5 text-muted-foreground" />
+          </div>
+          <div className="mt-4 text-base font-semibold text-foreground">
+            登录后查看你关注的创作者
+          </div>
+          <div className="mt-2 text-sm leading-6 text-muted-foreground">
+            登录后即可查看你关注的创作者发布的动态。
+          </div>
+          <Button className="mt-5" onClick={onNavigateToLogin} size="sm" type="button" variant="hero">
+            去登录
+          </Button>
+        </div>
+      ) : (
+        <>
+          {isError ? (
+            <Alert className="rounded-none border-0" variant="destructive">
+              <AlertTitle>飞友圈加载失败</AlertTitle>
+              <AlertDescription>{errorMessage ?? "网络开小差了，请稍后重试。"}</AlertDescription>
+            </Alert>
+          ) : null}
 
-      {!isLoading && !isError && posts.length === 0 ? (
-        <Alert className="rounded-none border-0">
-          <AlertTitle>飞友圈还没有新动态</AlertTitle>
-          <AlertDescription>先发一条动态试试。</AlertDescription>
-        </Alert>
-      ) : null}
+          {!isLoading && !isError && posts.length === 0 ? (
+            <Alert className="rounded-none border-0">
+              <AlertTitle>
+                {activeTab === "following"
+                  ? "没有关注的创作者发布的动态"
+                  : "飞友圈还没有新动态"}
+              </AlertTitle>
+              <AlertDescription>
+                {activeTab === "following"
+                  ? "去关注一些创作者吧。"
+                  : "先发一条动态试试。"}
+              </AlertDescription>
+            </Alert>
+          ) : null}
 
-      {isLoading ? <MasonryFeedSkeleton className="mt-4" columnCount={columnCount} count={10} /> : null}
+          {isLoading ? <MasonryFeedSkeleton className="mt-4" columnCount={columnCount} count={10} /> : null}
 
-      {posts.length > 0 ? (
+          {posts.length > 0 ? (
         <div className="site-tab-panel mt-4 w-full space-y-0">
           <VirtualMasonryColumns
             className="w-full"
@@ -264,6 +294,8 @@ export function CirclePageFeed({
           />
         </div>
       ) : null}
+        </>
+      )}
     </div>
   );
 }

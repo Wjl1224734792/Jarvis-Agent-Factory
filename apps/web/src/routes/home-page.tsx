@@ -1,9 +1,9 @@
 ﻿import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
-import { APP_ROUTES } from "@feijia/shared";
+import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import type { RankingListItem } from "@feijia/schemas";
-import { EyeIcon, Flame, HeartIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
+import { EyeIcon, Flame, HeartIcon, LockKeyholeIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
 import { useMemo } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
@@ -13,6 +13,7 @@ import { ProfileLink } from "@/components/profile-link";
 import { SiteGrid, SitePage, SitePanel, SitePanelBody, SiteRail } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { VirtualFeed } from "@/components/virtual-feed";
 import { TAILWIND_XL_MEDIA, useMatchMedia } from "@/hooks/use-match-media";
@@ -257,6 +258,7 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
 }
 
 export function HomePage() {
+  const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const isAuthenticated = authStatus === "authenticated";
   const activeTab = useHomeTabStore((state) => state.activeTab);
@@ -383,53 +385,96 @@ export function HomePage() {
           </div>
 
           <section className="site-tab-panel relative mt-2.5 overflow-hidden bg-white">
-            {isFeedError ? (
-              <Alert variant="destructive">
-                <AlertTitle>首页内容加载失败</AlertTitle>
-                <AlertDescription>
-                  {getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)}
-                </AlertDescription>
-              </Alert>
-            ) : null}
-
-            {isFeedLoading ? (
-              <div className="p-3">
-                <FeedStreamSkeleton rows={4} />
+            {feedTab === "following" && authStatus === "anonymous" ? (
+              <div className="bg-white px-5 py-12 text-center">
+                <div className="mx-auto flex size-12 items-center justify-center rounded-full bg-muted">
+                  <LockKeyholeIcon className="size-5 text-muted-foreground" />
+                </div>
+                <div className="mt-4 text-base font-semibold text-foreground">
+                  登录后查看你关注的创作者
+                </div>
+                <div className="mt-2 text-sm leading-6 text-muted-foreground">
+                  登录后即可查看你关注的创作者发布的内容。
+                </div>
+                <Button
+                  className="mt-5"
+                  onClick={() => {
+                    void navigate(
+                      buildLoginRedirectUrl(APP_ROUTES.webLogin, {
+                        pathname: resolveSafeRedirectPath({
+                          candidate: window.location.pathname + window.location.search,
+                          fallbackPath: APP_ROUTES.feedHome,
+                          blockedPaths: [APP_ROUTES.webLogin]
+                        })
+                      })
+                    );
+                  }}
+                  size="sm"
+                  type="button"
+                  variant="hero"
+                >
+                  去登录
+                </Button>
               </div>
             ) : (
               <>
-                <VirtualFeed
-                  className="!border-0 bg-transparent"
-                  data={feedItems}
-                  hasMore={hasMoreFeedItems}
-                  isFetchingNextPage={isFetchingNextFeedPage}
-                  onLoadMore={() => {
-                    void homeFeedQuery.fetchNextPage();
-                  }}
-                  emptyState={
-                    !isFeedError ? (
-                      <Alert className="rounded-none border-0 shadow-none">
-                        <AlertTitle>首页还没有公开内容</AlertTitle>
-                        <AlertDescription>
-                          {isAuthenticated ? "你可以先发布一篇内容。" : "登录后可发布动态和文章。"}
-                        </AlertDescription>
-                      </Alert>
-                    ) : null
-                  }
-                  itemKey={(item) => item.id}
-                  renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
-                  useWindowScroll
-                />
-                <FeedRefetchFooter
-                  errorMessage={
-                    isFeedNextPageError
-                      ? `${getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)} 继续上滑将自动重试。`
-                      : undefined
-                  }
-                  label={isFetchingNextFeedPage ? "正在加载更多..." : "加载中..."}
-                  show={showFeedFooter}
-                  state={isFeedNextPageError ? "error" : "loading"}
-                />
+                {isFeedError ? (
+                  <Alert variant="destructive">
+                    <AlertTitle>首页内容加载失败</AlertTitle>
+                    <AlertDescription>
+                      {getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)}
+                    </AlertDescription>
+                  </Alert>
+                ) : null}
+
+                {isFeedLoading ? (
+                  <div className="p-3">
+                    <FeedStreamSkeleton rows={4} />
+                  </div>
+                ) : (
+                  <>
+                    <VirtualFeed
+                      className="!border-0 bg-transparent"
+                      data={feedItems}
+                      hasMore={hasMoreFeedItems}
+                      isFetchingNextPage={isFetchingNextFeedPage}
+                      onLoadMore={() => {
+                        void homeFeedQuery.fetchNextPage();
+                      }}
+                      emptyState={
+                        !isFeedError ? (
+                          <Alert className="rounded-none border-0 shadow-none">
+                            <AlertTitle>
+                              {feedTab === "following"
+                                ? "没有关注的创作者发布的内容"
+                                : "首页还没有公开内容"}
+                            </AlertTitle>
+                            <AlertDescription>
+                              {feedTab === "following"
+                                ? "去关注一些创作者吧。"
+                                : isAuthenticated
+                                  ? "你可以先发布一篇内容。"
+                                  : "登录后可发布动态和文章。"}
+                            </AlertDescription>
+                          </Alert>
+                        ) : null
+                      }
+                      itemKey={(item) => item.id}
+                      renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                      useWindowScroll
+                    />
+                    <FeedRefetchFooter
+                      errorMessage={
+                        isFeedNextPageError
+                          ? `${getHomeFeedErrorDescription(feedError, HOME_FEED_FETCH_TIMEOUT_MS)} 继续上滑将自动重试。`
+                          : undefined
+                      }
+                      label={isFetchingNextFeedPage ? "正在加载更多..." : "加载中..."}
+                      show={showFeedFooter}
+                      state={isFeedNextPageError ? "error" : "loading"}
+                    />
+                  </>
+                )}
               </>
             )}
           </section>

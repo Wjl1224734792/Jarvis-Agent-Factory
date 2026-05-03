@@ -1,6 +1,7 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { SitePage } from "@/components/site-shell";
 import { useAuthStore } from "@/features/auth/auth-store";
 import { useLoginPrompt } from "@/features/auth/use-login-prompt";
@@ -34,6 +35,7 @@ function formatCount(value: number) {
 
 export function CirclePage() {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
   const promptLogin = useLoginPrompt();
@@ -170,6 +172,18 @@ export function CirclePage() {
       });
   }
 
+  function handleNavigateToLogin() {
+    void navigate(
+      buildLoginRedirectUrl(APP_ROUTES.webLogin, {
+        pathname: resolveSafeRedirectPath({
+          candidate: window.location.pathname + window.location.search,
+          fallbackPath: APP_ROUTES.feedHome,
+          blockedPaths: [APP_ROUTES.webLogin]
+        })
+      })
+    );
+  }
+
   return (
     <SitePage className="gap-4">
       <CirclePageFeed
@@ -190,6 +204,8 @@ export function CirclePage() {
           void circleFeedQuery.fetchNextPage();
         }}
         formatCount={formatCount}
+        authStatus={authStatus}
+        onNavigateToLogin={handleNavigateToLogin}
       />
 
       {selectedNoteId ? (

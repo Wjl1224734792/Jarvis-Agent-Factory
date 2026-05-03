@@ -44,7 +44,9 @@ describe("circle page feed", () => {
         isError: false,
         hasMore: true,
         onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value)
+        formatCount: (value: number) => String(value),
+        authStatus: "anonymous",
+        onNavigateToLogin: vi.fn()
       })
     );
 
@@ -66,7 +68,9 @@ describe("circle page feed", () => {
         isError: false,
         hasMore: true,
         onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value)
+        formatCount: (value: number) => String(value),
+        authStatus: "anonymous",
+        onNavigateToLogin: vi.fn()
       })
     );
 
@@ -89,7 +93,9 @@ describe("circle page feed", () => {
         loadMoreErrorMessage: "请求失败",
         hasMore: true,
         onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value)
+        formatCount: (value: number) => String(value),
+        authStatus: "anonymous",
+        onNavigateToLogin: vi.fn()
       })
     );
 
@@ -112,7 +118,9 @@ describe("circle page feed", () => {
         errorMessage: "请求失败",
         hasMore: false,
         onLoadMore: vi.fn(),
-        formatCount: (value: number) => String(value)
+        formatCount: (value: number) => String(value),
+        authStatus: "anonymous",
+        onNavigateToLogin: vi.fn()
       })
     );
 

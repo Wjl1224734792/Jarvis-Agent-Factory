@@ -111,7 +111,7 @@ export function CirclePageDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex overflow-hidden overscroll-none bg-black/46 backdrop-blur-[2px] transition-opacity"
+      className="fixed inset-0 z-50 flex overflow-hidden overscroll-none bg-black/46 backdrop-blur-[2px] transition-opacity md:items-center md:justify-center"
       onClick={onClose}
     >
       <div

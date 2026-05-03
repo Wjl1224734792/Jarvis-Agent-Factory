@@ -831,6 +831,7 @@ async function seedPostgreSQL() {
       contentType: isVideo ? "video/mp4" : "image/png",
       size: isVideo ? randInt(1000000, 50000000) : randInt(50000, 5000000),
       status: "uploaded",
+      currentAuditStatus: "passed",
       visibility: "public",
       createdAt: seededDate(randInt(1, 28), randInt(0, 23)),
       uploadedAt: seededDate(randInt(1, 28), randInt(0, 23)),
@@ -867,6 +868,7 @@ async function seedPostgreSQL() {
   console.log("  📝 创建帖子...");
   const articlePostIds: string[] = [];
   const momentPostIds: string[] = [];
+  const allMomentIds: string[] = [];
   const pendingPostIds: string[] = [];
   const rejectedPostIds: string[] = [];
   const allPostIds: string[] = [];
@@ -911,6 +913,7 @@ async function seedPostgreSQL() {
     if (status === "published") momentPostIds.push(id);
     if (status === "pending") pendingPostIds.push(id);
     allPostIds.push(id);
+    allMomentIds.push(id);
 
     posts.push({
       id, authorId, type: "moment" as const,
@@ -933,27 +936,22 @@ async function seedPostgreSQL() {
   }
   console.log(`  ✓ 帖子: ${posts.length} 个 (文章 300 + 动态 200)`);
 
-  // 关联帖子图片
+  // 关联帖子图片（文章优先关联图片作为内容插图）
   const postImageFiles = fileEntries.filter(f => f.bizType === "post-image");
-  for (let i = 0; i < Math.min(postImageFiles.length, allPostIds.length); i++) {
-    await db.update(filesTable).set({ postId: allPostIds[i] }).where(sql`id = ${postImageFiles[i].id}`);
+  for (let i = 0; i < Math.min(postImageFiles.length, articlePostIds.length); i++) {
+    await db.update(filesTable).set({ postId: articlePostIds[i] }).where(sql`id = ${postImageFiles[i].id}`);
   }
   console.log("  ✓ 帖子图片已关联");
 
-  // 为动态帖子设置封面（取第一张关联图片作为 coverImageFileId）
-  const momentIds = momentPostIds.concat(posts.filter(p => p.type === "moment").map(p => p.id));
-  const momentIdSet = new Set(momentIds);
-  const coverCandidates = postImageFiles.filter(f => f.postId && momentIdSet.has(f.postId));
-  const coverByPostId = new Map<string, string>();
-  for (const file of coverCandidates) {
-    if (file.postId && !coverByPostId.has(file.postId)) {
-      coverByPostId.set(file.postId, file.id);
+  // 为所有动态帖子设置封面（循环使用所有 post-image 文件，含 pending/hidden）
+  const postImageFileIds = postImageFiles.map(f => f.id);
+  if (postImageFileIds.length > 0 && allMomentIds.length > 0) {
+    for (let i = 0; i < allMomentIds.length; i++) {
+      const fileId = postImageFileIds[i % postImageFileIds.length];
+      await db.update(postsTable).set({ coverImageFileId: fileId }).where(sql`id = ${allMomentIds[i]}`);
     }
   }
-  for (const [postId, fileId] of coverByPostId) {
-    await db.update(postsTable).set({ coverImageFileId: fileId }).where(sql`id = ${postId}`);
-  }
-  console.log("  ✓ 动态封面已关联");
+  console.log(`  ✓ 动态封面已关联: ${allMomentIds.length} 个`);
 
   // 9. 帖子评论 (800)
   console.log("  💬 创建帖子评论...");

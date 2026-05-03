@@ -430,6 +430,7 @@ function buildSeedFile(input: {
     size: input.byteSize,
     etag: null,
     status: "uploaded",
+    currentAuditStatus: "passed",
     visibility: "public",
     createdAt: input.createdAt,
     uploadedAt: input.createdAt,
