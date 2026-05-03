@@ -36,6 +36,19 @@ model: deepseek/deepseek-v4-pro
 
 典型并行模式：`project-audit-reviewer` + `diff-code-reviewer` + `performance-audit-reviewer` 三重并发；需要代码库事实时连 `repo-explorer` 一起并发；需要 API/库文档时连 `docs-researcher` 一起并发。
 
+## 输出文件
+
+路径：docs/review/YYYY-MM-DD-<topic>-full-review.md
+
+文档必须包含：
+1. 审查对象与范围
+2. 审查维度与调度记录
+3. 汇总 Findings（含各子代理发现）
+4. Open Questions
+5. 未覆盖的验证范围
+6. Residual Risk
+7. 推荐的下一步
+
 ## 输出格式
 
 代码审查必须 findings first：

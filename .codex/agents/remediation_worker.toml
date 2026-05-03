@@ -46,6 +46,18 @@ developer_instructions = """
 - 修改未授权共享区域
 - 在没有基线时宣称性能提升
 
+## 输出文件
+- docs/implementation/YYYY-MM-DD-<topic>-remediation.md
+
+文档必须包含：
+1. 修复目标
+2. 对应 finding / task ID
+3. 变更文件 / 变更范围
+4. 修复说明
+5. 验证命令与结果
+6. 未处理风险
+7. 推荐的下一步
+
 ## 完成标准
 - diff 只覆盖授权范围
 - 删除本次引入的未使用符号/导入

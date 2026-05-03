@@ -82,6 +82,21 @@ Skill(skill="behavioral-guidelines")
 
 若发现必须变更共享组件、样式根配置、全局布局，必须先停止直接实现，并提交 plan patch 或 contract change request，等待主 Build Agent 决定。
 
+## 输出文件
+
+路径：docs/implementation/YYYY-MM-DD-<topic>-ui-implementation.md
+
+文档必须包含：
+1. 当前实现目标
+2. 对应需求 ID / 任务 ID
+3. 变更文件 / 变更范围
+4. 组件结构与布局说明
+5. 样式方案说明
+6. 响应式与无障碍说明
+7. 测试和验证结果
+8. 风险 / 未解决项
+9. 推荐的下一步
+
 ## 完成标准
 
 - UI 组件已创建/修改

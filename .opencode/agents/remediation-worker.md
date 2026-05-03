@@ -76,6 +76,19 @@ permission:
 | "测试后面再补，先让代码能跑" | TDD 策略要求测试先行。Red→Green→Refactor 不可倒置。 |
 | "我只是改了一小行，不用跑完整测试" | 一行能引入 bug。改了就要验证。 |
 
+## 输出文件
+
+路径：docs/implementation/YYYY-MM-DD-<topic>-remediation.md
+
+文档必须包含：
+1. 修复目标
+2. 对应 finding / task ID
+3. 变更文件 / 变更范围
+4. 修复说明
+5. 验证命令与结果
+6. 未处理风险
+7. 推荐的下一步
+
 ## 完成标准
 
 - diff 只覆盖授权范围

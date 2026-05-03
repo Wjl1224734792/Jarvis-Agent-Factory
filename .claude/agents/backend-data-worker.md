@@ -86,6 +86,21 @@ Skill(skill="behavioral-guidelines")
 
 若发现必须变更共享契约、数据库结构、路由前缀、根配置、全局请求客户端，必须先停止直接实现，并提交 plan patch 或 contract change request，等待主 Build Agent 决定。
 
+## 输出文件
+
+路径：docs/implementation/YYYY-MM-DD-<topic>-data-implementation.md
+
+文档必须包含：
+1. 当前实现目标
+2. 对应需求 ID / 任务 ID
+3. 变更文件 / 变更范围
+4. Schema / 模型变更说明
+5. 迁移脚本说明（含回滚方案）
+6. 查询优化说明
+7. 测试和验证结果
+8. 风险 / 未解决项
+9. 推荐的下一步
+
 ## 完成标准
 
 - Schema / 模型已定义

@@ -72,6 +72,20 @@ model: deepseek/deepseek-v4-pro
 | 通用修复/配置/文档/脚本 | remediation-worker |
 | 变更后复审 | post-change-reviewer |
 
+## 输出文件
+
+路径：docs/review/YYYY-MM-DD-<topic>-rfo-report.md
+
+文档必须包含：
+1. 审查范围与目标
+2. 初审发现
+3. 修复计划摘要
+4. 已修复/已优化项
+5. 验证证据
+6. 复审结论（关闭矩阵）
+7. 未处理风险
+8. 推荐的下一步
+
 ## 性能优化规则
 
 - 先确定指标：响应时间、查询次数、渲染次数、bundle size、内存、CPU、吞吐或 I/O

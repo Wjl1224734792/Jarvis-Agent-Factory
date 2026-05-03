@@ -60,6 +60,17 @@ developer_instructions = """
 - 已说明哪些结论有指标，哪些只是静态风险
 - 已给出可复测的指标建议
 - 未修改任何文件
+
+## 输出文件
+- docs/review/YYYY-MM-DD-<topic>-performance-audit.md
+
+文档必须包含：
+1. 审查范围
+2. Performance Findings（按严重度排序）
+3. Baseline Gaps
+4. 建议指标与测量方案
+5. Residual Risk
+6. 推荐的下一步
 """
 
 
