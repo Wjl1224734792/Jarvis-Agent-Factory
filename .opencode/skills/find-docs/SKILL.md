@@ -19,17 +19,6 @@ description: >-
 
 # Documentation Lookup
 
-## Repository Rules
-
-This repository defines the following rules in `.opencode/rules/` that all agents and skills must follow:
-- **通用编程规范与指南** — Chinese language for docs/comments, SOLID/DRY/KISS, TDD, Tailwind CSS restriction.
-- **团队协作规范** — Prettier/ESLint config, branch strategy, Conventional Commits, CI/CD.
-- **TypeScript 与 Interface 使用规范** — `interface` first, `type` for unions/tuples; Zod schemas for runtime validation.
-
-> See `.opencode/rules/` for full details.
-
-## Instructions
-
 Retrieve current documentation and code examples for any library using the Context7 CLI.
 
 Make sure the CLI is up to date before running commands:
