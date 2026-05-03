@@ -12,6 +12,7 @@ import {
   createRankingInputSchema,
   createRatingTargetCommentInputSchema,
   createRatingTargetCommentResponseSchema,
+  rankingsSortSchema,
   reportContentInputSchema,
   ratingTargetDetailResponseSchema,
   ratingTargetResponseSchema,
@@ -57,9 +58,12 @@ function parsePositiveInt(value: string | undefined) {
 
 rankingsRoute.get(API_ROUTES.rankings.overview, async (context) => {
   const currentUser = context.get("currentUser");
+  const sortResult = rankingsSortSchema.safeParse(context.req.query("sort"));
+  const sort = sortResult.success ? sortResult.data : "latest";
   const payload = await rankingsService.listRankings(currentUser ?? undefined, {
     page: parsePositiveInt(context.req.query("page")),
-    limit: parsePositiveInt(context.req.query("limit"))
+    limit: parsePositiveInt(context.req.query("limit")),
+    sort
   });
   return context.json(rankingsResponseSchema.parse(payload));
 });

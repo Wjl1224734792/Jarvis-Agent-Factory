@@ -10,8 +10,7 @@ import { SitePage } from "@/components/site-shell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { PageShareControl } from "@/components/page-share-control";
 import { Badge } from "@/components/ui/badge";
-import { IpLocationText } from "@/components/ip-location-text";
-import { ProfileLink } from "@/components/profile-link";
+
 import { buildRankingDetailPath, DETAIL_PAGE_LINK_PROPS } from "@/lib/web-routes";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { partitionByShortestColumn } from "@/lib/masonry-partition";
@@ -20,7 +19,6 @@ import { getModelImage } from "../lib/aviation-media";
 import { CIRCLE_CARD_COLUMN_GAP, RANKING_GRID_MIN_COLUMNS } from "./circle-page-helpers";
 import {
   estimateRankingListItemRelativeHeight,
-  mergeRankingsByTab,
   RANKING_CARD_MIN_WIDTH_PX
 } from "./rankings-page-helpers";
 
@@ -58,10 +56,6 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
               {ranking.type === "official" ? <Badge variant="outline">官方</Badge> : null}
             </div>
             <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-              <ProfileLink className="truncate hover:text-foreground" userId={ranking.author.id}>
-                {ranking.author.displayName}
-              </ProfileLink>
-              <IpLocationText label={ranking.author.ipLocationLabel} variant="plain" />
               <span>{ranking.commentCount} 条评论</span>
               <span>均分 {ranking.averageScore.toFixed(1)}</span>
             </div>
@@ -109,17 +103,18 @@ const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingLis
 export function RankingsPage() {
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
-    queryKey: ["rankings"],
+    queryKey: ["rankings", activeTab],
     placeholderData: keepPreviousData,
-    queryFn: () => apiClient.listRankings()
+    queryFn: () => apiClient.listRankings({ sort: activeTab })
   });
 
-  const merged = useMemo(
-    () => (rankingsQuery.data ? mergeRankingsByTab(rankingsQuery.data) : { hot: [], latest: [] }),
+  const activeItems = useMemo(
+    () => {
+      if (!rankingsQuery.data) return [];
+      return [...rankingsQuery.data.official, ...rankingsQuery.data.community];
+    },
     [rankingsQuery.data]
   );
-
-  const activeItems = activeTab === "hot" ? merged.hot : merged.latest;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const columnCount = useCircleColumnCount(undefined, {
     minColumns: RANKING_GRID_MIN_COLUMNS,

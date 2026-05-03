@@ -261,15 +261,24 @@ export const aircraftModelsService = {
       powerTypesService.listPowerTypes()
     ]);
 
-    const orderedRows =
-      tab === "recommended"
-        ? sortModelsByHotScore(
-            rows.map((row) => ({
-              ...row,
-              reviewCount: row.reviewSummary.totalReviews
-            }))
-          )
-        : [...rows].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    let orderedRows;
+    if (tab === "recommended") {
+      const extraDataRows = await aircraftModelsRepo.getModelHotExtraData(
+        rows.map((row) => row.id)
+      );
+      const extraDataMap = new Map(
+        extraDataRows.map((d) => [d.modelId, d])
+      );
+      orderedRows = sortModelsByHotScore(
+        rows.map((row) => ({
+          ...row,
+          reviewCount: row.reviewSummary.totalReviews,
+          ...extraDataMap.get(row.id) ?? {},
+        }))
+      );
+    } else {
+      orderedRows = [...rows].sort((left, right) => right.createdAt.getTime() - left.createdAt.getTime());
+    }
     const page = Math.max(DEFAULT_MODELS_PAGE, filters.page ?? DEFAULT_MODELS_PAGE);
     const limit = Math.max(1, filters.limit ?? DEFAULT_MODELS_LIMIT);
     const offset = (page - 1) * limit;

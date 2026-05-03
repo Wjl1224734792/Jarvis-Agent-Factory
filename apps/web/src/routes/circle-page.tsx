@@ -97,7 +97,7 @@ export function CirclePage() {
   function openNote(id: string) {
     const next = new URLSearchParams(searchParams);
     next.set("note", id);
-    setSearchParams(next);
+    setSearchParams(next, { replace: true });
   }
 
   function closeNote() {

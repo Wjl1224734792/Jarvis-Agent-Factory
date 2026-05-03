@@ -8,6 +8,10 @@ export const ratingTargetAddPolicySchema = z.enum(["public", "owner"]);
 export const rankingStatusSchema = z.enum(["pending", "published", "rejected", "hidden"]);
 export const rankingCommentStatusSchema = z.enum(["pending", "visible", "hidden"]);
 
+/** 榜单列表排序方式，默认 latest 保持向后兼容 */
+export const rankingsSortSchema = z.enum(["hot", "latest"]).default("latest");
+export type RankingsSort = z.infer<typeof rankingsSortSchema>;
+
 const linkedRankingModelSchema = z.object({
   id: z.string().min(1),
   slug: z.string().min(1),

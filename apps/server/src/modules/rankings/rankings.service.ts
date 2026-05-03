@@ -28,7 +28,7 @@ import {
   createRankingsCommentWorkflow,
   normalizePersistedCommentStatus
 } from "./rankings-comment-workflow";
-import { rankRatingTargetsByDynamicScore } from "./ranking-score";
+import { rankRatingTargetsByDynamicScore, sortRankingsByHotScore } from "./ranking-score";
 import { usersService } from "../users/users.service";
 import {
   canInspectRatingTarget,
@@ -186,7 +186,7 @@ async function validateOwnedReportImages(ownerId: string, imageIds: string[]) {
 
 async function buildRankingListItems(
   currentUser?: CurrentUser,
-  input?: { page?: number; limit?: number }
+  input?: { page?: number; limit?: number; sort?: "hot" | "latest" }
 ) {
   const page = Math.max(DEFAULT_RANKINGS_PAGE, input?.page ?? DEFAULT_RANKINGS_PAGE);
   const limit = Math.min(MAX_RANKINGS_LIMIT, Math.max(1, input?.limit ?? DEFAULT_RANKINGS_LIMIT));
@@ -318,8 +318,14 @@ async function buildRankingListItems(
     })
   );
 
-  const officialItems = all.filter((item) => item.type === "official");
-  const communityItems = all.filter((item) => item.type === "community");
+  let officialItems = all.filter((item) => item.type === "official");
+  let communityItems = all.filter((item) => item.type === "community");
+
+  if (input?.sort === "hot") {
+    officialItems = sortRankingsByHotScore(officialItems);
+    communityItems = sortRankingsByHotScore(communityItems);
+  }
+
   const pagedOfficialItems = officialItems.slice(offset, offset + limit);
   const pagedCommunityItems = communityItems.slice(offset, offset + limit);
 
@@ -355,7 +361,7 @@ async function buildRankingListItems(
  *   this layer focuses on domain invariants and side effects.
  */
 export const rankingsService = {
-  async listRankings(currentUser?: CurrentUser, input?: { page?: number; limit?: number }) {
+  async listRankings(currentUser?: CurrentUser, input?: { page?: number; limit?: number; sort?: "hot" | "latest" }) {
     return buildRankingListItems(currentUser, input);
   },
 

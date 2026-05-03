@@ -15,6 +15,13 @@
       "when": 1777812218177,
       "tag": "0001_hot_the_twelve",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777852800000,
+      "tag": "0002_wandering_index",
+      "breakpoints": true
     }
   ]
 }

@@ -293,7 +293,8 @@ export const aircraftModelsTable = pgTable(
       .notNull()
   },
   (table) => ({
-    slugUnique: uniqueIndex("aircraft_models_slug_unique").on(table.slug)
+    slugUnique: uniqueIndex("aircraft_models_slug_unique").on(table.slug),
+    isPublishedIdx: index("aircraft_models_is_published_idx").on(table.isPublished)
   })
 );
 
@@ -428,6 +429,10 @@ export const aircraftModelInteractionsTable = pgTable(
       table.modelId,
       table.userId,
       table.type
+    ),
+    userCreatedAtIdx: index("aircraft_model_interactions_user_created_at_idx").on(
+      table.userId,
+      table.createdAt
     )
   })
 );
@@ -543,7 +548,10 @@ export const postsTable = pgTable("posts", {
     table.type,
     sql`coalesce(${table.publishedAt}, ${table.createdAt}) desc`,
     table.id.desc()
-  ).where(sql`${table.status} = 'published'`)
+  ).where(sql`${table.status} = 'published'`),
+  authorIdIdx: index("posts_author_id_idx").on(table.authorId),
+  reportCountIdx: index("posts_report_count_idx").on(table.reportCount),
+  viewCountIdx: index("posts_view_count_idx").on(table.viewCount)
 }));
 
 export const postCommentsTable = pgTable(
@@ -757,7 +765,9 @@ export const rankingsTable = pgTable("rankings", {
     .notNull()
 }, (table) => ({
   typeCheck: check("rankings_type_check", sql`${table.type} IN ('community', 'official')`),
-  statusCheck: check("rankings_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
+  statusCheck: check("rankings_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`),
+  authorIdIdx: index("rankings_author_id_idx").on(table.authorId),
+  updatedAtIdx: index("rankings_updated_at_idx").on(table.updatedAt)
 }));
 
 export const rankingReportsTable = pgTable(
@@ -806,7 +816,11 @@ export const ratingTargetsTable = pgTable("rating_targets", {
     .defaultNow()
     .notNull()
 }, (table) => ({
-  statusCheck: check("rating_targets_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`)
+  statusCheck: check("rating_targets_status_check", sql`${table.status} IN ('pending', 'published', 'rejected', 'hidden')`),
+  linkedModelIdStatusIdx: index("rating_targets_linked_model_id_status_idx").on(
+    table.linkedModelId,
+    table.status
+  )
 }));
 
 export const ratingTargetReportsTable = pgTable(
