@@ -213,6 +213,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.managementPowerTypes,
+    label: "动力分类",
+    hint: "飞行器动力类型配置",
+    icon: ApartmentOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: ADMIN_ROUTE_PATHS.managementContentCategories,
     label: "内容分类",
     hint: "文章与资讯栏目配置",
@@ -319,6 +327,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === APP_ROUTES.adminCategories) {
     return ADMIN_ROUTE_PATHS.managementCategories;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.managementPowerTypes) {
+    return ADMIN_ROUTE_PATHS.managementPowerTypes;
   }
   if (pathname === APP_ROUTES.adminContentCategories) {
     return ADMIN_ROUTE_PATHS.managementContentCategories;

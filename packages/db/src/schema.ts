@@ -203,6 +203,23 @@ export const aircraftCategoriesTable = pgTable(
   })
 );
 
+export const powerTypesTable = pgTable(
+  "power_types",
+  {
+    id: text("id").primaryKey(),
+    slug: text("slug").notNull(),
+    name: text("name").notNull(),
+    sortOrder: integer("sort_order").default(0).notNull(),
+    isEnabled: boolean("is_enabled").default(true).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .defaultNow()
+      .notNull()
+  },
+  (table) => ({
+    slugUnique: uniqueIndex("power_types_slug_unique").on(table.slug)
+  })
+);
+
 export const brandsTable = pgTable(
   "brands",
   {

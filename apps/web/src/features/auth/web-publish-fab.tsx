@@ -34,7 +34,12 @@ export function WebPublishFab() {
 
   return (
     <div className="fixed right-4 z-[45] max-xl:bottom-[calc(4.75rem+env(safe-area-inset-bottom,0px))] xl:bottom-6">
-      <div className="relative" ref={rootRef}>
+      <div
+        className="relative pb-2"
+        ref={rootRef}
+        onMouseEnter={() => { if (authStatus === "authenticated") setOpen(true); }}
+        onMouseLeave={() => setOpen(false)}
+      >
         <Button
           aria-expanded={open}
           aria-haspopup="menu"
@@ -59,7 +64,7 @@ export function WebPublishFab() {
         </Button>
 
         {open ? (
-          <div className="absolute right-0 bottom-[calc(100%+0.45rem)] z-50 w-[10.5rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
+          <div className="absolute right-0 bottom-full z-50 w-[10.5rem] rounded-[0.95rem] bg-background/96 p-1.5 shadow-[0_24px_60px_-40px_rgba(15,23,42,0.34)] backdrop-blur">
             <div className="space-y-0.5">
               {webPublishMenuEntries.map((entry) => (
                 <Link

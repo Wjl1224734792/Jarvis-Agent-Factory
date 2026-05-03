@@ -928,6 +928,21 @@ async function seedPostgreSQL() {
   }
   console.log("  ✓ 帖子图片已关联");
 
+  // 为动态帖子设置封面（取第一张关联图片作为 coverImageFileId）
+  const momentIds = momentPostIds.concat(posts.filter(p => p.type === "moment").map(p => p.id));
+  const momentIdSet = new Set(momentIds);
+  const coverCandidates = postImageFiles.filter(f => f.postId && momentIdSet.has(f.postId));
+  const coverByPostId = new Map<string, string>();
+  for (const file of coverCandidates) {
+    if (file.postId && !coverByPostId.has(file.postId)) {
+      coverByPostId.set(file.postId, file.id);
+    }
+  }
+  for (const [postId, fileId] of coverByPostId) {
+    await db.update(postsTable).set({ coverImageFileId: fileId }).where(sql`id = ${postId}`);
+  }
+  console.log("  ✓ 动态封面已关联");
+
   // 9. 帖子评论 (800)
   console.log("  💬 创建帖子评论...");
   const postComments = [];

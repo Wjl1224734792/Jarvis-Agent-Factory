@@ -396,6 +396,38 @@ const rawApiClient = {
       input
     );
   },
+  listPowerTypes() {
+    return getJson<
+      Array<{
+        id: string;
+        slug: string;
+        name: string;
+        sortOrder: number;
+        isEnabled: boolean;
+        createdAt: string;
+      }>
+    >(API_ROUTES.powerTypes.adminList);
+  },
+  createPowerType(input: {
+    slug: string;
+    name: string;
+    sortOrder?: number;
+    isEnabled: boolean;
+  }) {
+    return postJson<{ item: { id: string; slug: string; name: string } }>(
+      API_ROUTES.powerTypes.adminList,
+      { ...input, sortOrder: Number(input.sortOrder ?? 0) }
+    );
+  },
+  updatePowerType(
+    id: string,
+    input: { slug: string; name: string; sortOrder: number; isEnabled: boolean }
+  ) {
+    return putJson<{ item: { id: string; slug: string; name: string } }>(
+      API_ROUTES.powerTypes.adminDetail(id),
+      input
+    );
+  },
   createBrand(input: {
     slug: string;
     name: string;

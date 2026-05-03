@@ -111,11 +111,11 @@ export function CirclePageDetail({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center overflow-hidden overscroll-none bg-black/46 p-3 backdrop-blur-[2px] transition-opacity"
+      className="fixed inset-0 z-50 flex overflow-hidden overscroll-none bg-black/46 backdrop-blur-[2px] transition-opacity"
       onClick={onClose}
     >
       <div
-        className="relative flex h-[min(92dvh,860px,calc(100dvh-1.5rem))] w-full max-w-[1220px] flex-col overflow-hidden rounded-[1rem] bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:flex-row"
+        className="relative flex h-dvh w-full flex-col overflow-hidden bg-background shadow-[0_34px_100px_-42px_rgba(0,0,0,0.48)] md:h-[min(92dvh,860px,calc(100dvh-1.5rem))] md:max-w-[1220px] md:flex-row md:self-center md:rounded-[1rem]"
         onClick={(event) => event.stopPropagation()}
       >
         <button
