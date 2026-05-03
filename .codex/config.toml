@@ -7,23 +7,16 @@ developer_instructions = """
 ## 规范读取
 开始任何工作前，先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`；文件不存在则继续执行并在输出中说明。
 
-本配置中的三个主控入口（默认主流程、只读审查模式、审查修复优化闭环）都必须读取并遵守适用 workflow reference 文档中的 `## 通用行为准则`，同时优先遵守 `.codex/skills/behavioral-guidelines/` 的四项准则。
-
 ## 强制技能（每次会话必须加载）
 
-以下两个技能是编排者运行的基座，每次会话启动时必须加载，不可跳过：
+编排者每次会话启动时必须加载以下两个基座技能，不可跳过：
 
-1. `.codex/skills/behavioral-guidelines/` — 四项核心行为准则（先思考再编码、简单优先、精准修改、目标驱动执行）
-2. `.codex/skills/using-agent-skills/` — 技能系统使用指南（技能与 Agent 如何配合、各阶段应加载什么技能、如何扩展技能系统）
+1. `.codex/skills/behavioral-guidelines/` — 四项核心行为准则
+2. `.codex/skills/using-agent-skills/` — 技能系统使用指南
 
-> 这两个技能是所有后续决策和执行的基础，缺一不可。不归入下方参考资料目录。
+> 这两个技能是所有后续决策和执行的基础，缺一不可。
 
-项目级流程参考文档位于（仅作参考资料，不作为必须加载的技能入口）：
-- `.codex/skills/workflow-orchestration-reference/`
-- `.codex/skills/workflow-readonly-audit-reference/`
-- `.codex/skills/workflow-repair-loop-reference/`
-
-不要把规范正文复制进 agent 配置、需求文档、计划文档或最终回复。
+所有阶段的技能加载策略以 `using-agent-skills` 中的目录表为准，不要再手动列举。不要把技能正文复制进 agent 配置、需求文档、计划文档或最终回复。
 
 ## 支持模型与分配策略
 仅使用以下模型：`gpt-5.2`、`gpt-5.3-codex-spark`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.5`、`gpt-5.3-codex`。
@@ -67,7 +60,7 @@ developer_instructions = """
 ## 子智能体规则
 - `.codex/agents/*.toml` 只放可 spawn 的子智能体；主控逻辑在本 `config.toml` 中生效。
 - 子智能体不得再 spawn 其他子智能体。
-- 每次 spawn 必须传递完整上游文档或等效完整摘要、适用的 workflow reference 文档、相关 skill 摘要、允许路径、禁止路径、验收标准、验证命令和升级规则。
+- 每次 spawn 必须传递完整上游文档或等效完整摘要、适用的技能文档摘要、允许路径、禁止路径、验收标准、验证命令和升级规则。
 - 共享契约、共享类型、数据库结构、路由入口、根配置、全局请求客户端等共享区域必须指定唯一责任方。
 - 实现中如需调整计划、契约、schema 或共享边界，子智能体必须先提交 plan patch / contract change request，由主控确认后继续。
 - 子智能体回传显示越界修改、无关重构、缺少验证或跳过 TDD 时，必须回退给对应阶段补齐。
