@@ -91,6 +91,7 @@
 ### 环境变量
 
 改 env → **必须**同步：[`.env.example`](./.env.example)、根 [`README.md`](./README.md)、已提到该变量的子目录文档。  
+加载顺序：先 `.env`（公共，不覆盖系统 env），再 `.env.{NODE_ENV}`（环境专属，覆盖公共值）。  
 `CORS_ORIGIN` / `CORS_ORIGINS` / `WEB_DEV_PORT` / `ADMIN_DEV_PORT` / `WEB_DEV_HOST` / `ADMIN_DEV_HOST` → 同步 README「CORS 与局域网访问」。
 
 ### 基础设施
