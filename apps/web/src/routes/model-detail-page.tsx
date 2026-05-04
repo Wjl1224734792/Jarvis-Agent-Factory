@@ -121,7 +121,11 @@ export function ModelDetailPage() {
   });
 
   const [activeGalleryIndex, setActiveGalleryIndex] = useState(0);
-  const [interactionBusy, setInteractionBusy] = useState<"interested" | "favorite" | "share" | null>(null);
+  const [interactionPending, setInteractionPending] = useState<
+    Record<"interested" | "favorite" | "share", boolean>
+  >({ interested: false, favorite: false, share: false });
+  const interactionPendingRef = useRef(interactionPending);
+  interactionPendingRef.current = interactionPending;
   const [actionError, setActionError] = useState<string | null>(null);
   const mainVideoRef = useRef<HTMLVideoElement | null>(null);
 
@@ -322,7 +326,7 @@ export function ModelDetailPage() {
   }
 
   async function handleInteraction(type: "interested" | "favorite") {
-    if (interactionBusy !== null) {
+    if (interactionPendingRef.current[type]) {
       return;
     }
 
@@ -334,7 +338,7 @@ export function ModelDetailPage() {
       return;
     }
 
-    setInteractionBusy(type);
+    setInteractionPending((prev) => ({ ...prev, [type]: true }));
     try {
       const response = await apiClient.interactModel(modelSlug, type);
       patchModelInteractionState(type, response.item.active);
@@ -343,19 +347,19 @@ export function ModelDetailPage() {
         void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
       });
     } finally {
-      setInteractionBusy(null);
+      setInteractionPending((prev) => ({ ...prev, [type]: false }));
     }
   }
 
   async function recordModelShareAfterCopy() {
-    if (interactionBusy !== null) {
+    if (interactionPendingRef.current.share) {
       return;
     }
 
     if (!isAuthenticated) {
       return;
     }
-    setInteractionBusy("share");
+    setInteractionPending((prev) => ({ ...prev, share: true }));
     try {
       const response = await apiClient.interactModel(modelSlug, "share");
       patchModelInteractionState("share", response.item.active);
@@ -364,7 +368,7 @@ export function ModelDetailPage() {
         void queryClient.invalidateQueries({ queryKey: ["self-profile-content", currentUserId] });
       });
     } finally {
-      setInteractionBusy(null);
+      setInteractionPending((prev) => ({ ...prev, share: false }));
     }
   }
 
@@ -437,7 +441,7 @@ export function ModelDetailPage() {
                   ? "text-rose-600 dark:text-rose-400"
                   : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
               )}
-              disabled={interactionBusy !== null}
+              disabled={interactionPending.interested}
               onClick={() => {
                 void handleInteraction("interested");
               }}
@@ -465,7 +469,7 @@ export function ModelDetailPage() {
                   ? "text-amber-700 dark:text-amber-400"
                   : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
               )}
-              disabled={interactionBusy !== null}
+              disabled={interactionPending.favorite}
               onClick={() => {
                 void handleInteraction("favorite");
               }}
@@ -487,7 +491,7 @@ export function ModelDetailPage() {
                 active={item.viewer.hasShared}
                 aria-label={`分享，${item.interactionSummary.shareCount} 次`}
                 className="[&_button]:px-1.5 [&_button]:py-2.5 [&_button]:rounded-full"
-                disabled={interactionBusy !== null}
+                disabled={interactionPending.share}
                 iconClassName="size-5"
                 onCopySuccess={() => {
                   void recordModelShareAfterCopy();
@@ -658,7 +662,7 @@ export function ModelDetailPage() {
                           ? "text-rose-600 dark:text-rose-400"
                           : "text-muted-foreground hover:text-rose-600 dark:hover:text-rose-400"
                       )}
-                      disabled={interactionBusy !== null}
+                      disabled={interactionPending.interested}
                       onClick={() => {
                         void handleInteraction("interested");
                       }}
@@ -685,7 +689,7 @@ export function ModelDetailPage() {
                           ? "text-amber-700 dark:text-amber-400"
                           : "text-muted-foreground hover:text-amber-700 dark:hover:text-amber-400"
                       )}
-                      disabled={interactionBusy !== null}
+                      disabled={interactionPending.favorite}
                       onClick={() => {
                         void handleInteraction("favorite");
                       }}
@@ -713,7 +717,7 @@ export function ModelDetailPage() {
                         active={item.viewer.hasShared}
                         aria-label={`分享，${item.interactionSummary.shareCount} 次`}
                         className="[&_button]:p-0"
-                        disabled={interactionBusy !== null}
+                        disabled={interactionPending.share}
                         iconClassName="size-[1.125rem]"
                         onCopySuccess={() => {
                           void recordModelShareAfterCopy();
