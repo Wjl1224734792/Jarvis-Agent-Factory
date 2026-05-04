@@ -3,6 +3,7 @@ import { Clock3Icon, FlameIcon } from "lucide-react";
 import { memo, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -104,6 +105,8 @@ export function RankingsPage() {
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
     queryKey: ["rankings", activeTab],
+    staleTime: 120_000,
+    gcTime: 10 * 60_000,
     placeholderData: keepPreviousData,
     queryFn: () => apiClient.listRankings({ sort: activeTab })
   });
@@ -167,25 +170,12 @@ export function RankingsPage() {
       ) : (
         <div className="space-y-0">
           {activeItems.length > 0 ? (
-            <div
-              className="grid w-full min-w-0"
-              style={{
-                gap: CIRCLE_CARD_COLUMN_GAP,
-                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-              }}
-            >
-              {rankingColumns.map((column, colIndex) => (
-                <div
-                  className="flex min-w-0 flex-col"
-                  key={colIndex}
-                  style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
-                >
-                  {column.map(({ item: ranking }) => (
-                    <RankingCard key={ranking.id} ranking={ranking} />
-                  ))}
-                </div>
-              ))}
-            </div>
+            <VirtualMasonryColumns
+              columns={rankingColumns}
+              gap={CIRCLE_CARD_COLUMN_GAP}
+              itemKey={({ item }) => item.id}
+              renderItem={({ item }) => <RankingCard ranking={item} />}
+            />
           ) : null}
           <FeedRefetchFooter show={rankingsQuery.isRefetching} />
         </div>
