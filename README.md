@@ -13,9 +13,11 @@
 ### 工作流
 
 ```
-想法细化 ─→ 需求澄清 ─→ 需求文档 ─→ 任务分解 ─→ 执行规划 ─→ 并行实现 ─→ 评审交付 ─→ 发布上线
-                │             │             │             │             │             │
-             Gate A       Gate B       Gate C       Gate D        Gate E
+想法细化 ─→ 需求澄清 ─→ 需求文档 ─→ 任务分解 ─→ 执行规划 ─→ 并行实现 ─→ 代码质量 ─→ 测试验证 ─→ 评审交付 ─→ 发布上线
+                │             │             │             │             │             │             │
+             Gate A       Gate B       Gate C       Gate C1       Gate C2      Gate D       Gate E
+                                                              (Lint/Build/    (Test)
+                                                               Type-check)
 ```
 
 | 阶段 | 执行者 | 关键产出 |
@@ -25,8 +27,10 @@
 | **2. 任务分解** | task-design 代理 | `TASK-XXX` 任务卡片 |
 | **3. 执行规划** | planner 代理 | Execution Packet 并行计划 |
 | **4. 并行实现** | 各领域实现代理 | 垂直切片代码 |
-| **5. 评审交付** | review-qa 代理 | 需求追踪矩阵 |
-| **6. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 |
+| **4B. 代码质量** | Jarvis 直接执行 | Lint + Type-check + Build 检查摘要 |
+| **5. 测试验证** | test workers | 测试汇总报告 + 覆盖率 |
+| **6. 评审交付** | review-qa 代理 | 需求追踪矩阵 |
+| **7. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 |
 
 每个阶段有对应闸门（Gate），未通过不可进入下一阶段。
 
@@ -95,9 +99,11 @@ claude
 #    直接与对应架构师一对一讨论方案，无需走完整流水线
 ```
 
-**流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。
+**流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 代码质量检查（Lint/Type-check/Build）→ 测试验证 → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。实现完成后立即进入 Gate C1 代码质量门，三项全部通过后进入 Gate C2 测试验证。
 
-**Gate C2 测试验证门**：在 Gate C（并行实现）通过后、Gate D（规划下一轮）之前插入测试验证门。实现在一轮并行开发后自动执行对应测试，确保实现质量后进入下一轮。支持 TDD 和测试后补两种策略。
+**Gate C1 代码质量门**：所有实现完成后，自动执行三项质量检查——Lint（零 error）、Type-check（零 error）、Build（成功）。按项目类型自动选择对应工具链（TypeScript→eslint/tsc、Python→ruff/mypy、Rust→clippy/cargo check、Go→golangci-lint/go vet 等）。三项全部通过方可进入测试验证。
+
+**Gate C2 测试验证门**：代码质量检查通过后，执行单元测试、集成测试、E2E 测试全部通过，覆盖率达标注。支持 TDD 和测试后补两种策略。
 
 **`/browser-test` 浏览器测试闭环**：独立于流水线的自闭环测试命令：
 

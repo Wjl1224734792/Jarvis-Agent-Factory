@@ -32,6 +32,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
    ### 阶段四：验证
    - 验证修复/优化已生效
+   - **代码质量检查**：Lint + Type-check + Build 三项全部通过（有失败 → 回退修复）
    - 运行测试确保没有回归
    - **涉及前端页面/交互的修复**：用 browser-use 按相同复现步骤重新操作浏览器，截图对比修复前后，确认 Bug 不再出现
 

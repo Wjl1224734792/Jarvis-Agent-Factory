@@ -155,7 +155,8 @@ permission:
 | 4 探索（按需） | Task → `repo-explorer` / `docs-researcher` | **与阶段 0/1B/2 并行，且 repo-explorer 与 docs-researcher 互不依赖可同时发起** | `docs/analysis/` 或 `docs/research/` |
 | 5 实现 | 按计划并发 Task → 对应实现代理 | **同轮次无共享依赖的任务可全部并行** | `docs/implementation/` |
 | 5B 测试验证 | 先并发 unit/integration test workers → 全部通过后 spawn e2e-test-worker → 汇总测试结果 | **backend-test-worker 与 frontend-test-worker 可并行；E2E 必须串行在最后** | `docs/testing/` |
-| 6 评审 | Task → `review-qa`，加载 `code-review-and-quality`，**消费 Gate C2 测试汇总报告** | — | `docs/review/` |
+| 5C 代码质量检查 | 编排者直接执行 Lint + Type-check + Build → 三项全部通过 | Gate C1 | `docs/quality/` |
+| 6 评审 | Task → `review-qa`，加载 `code-review-and-quality`，**消费 Gate C1/C2 报告** | — | `docs/review/` |
 | 7 发布上线 | Task →（加载 `shipping-and-launch`）| — | `docs/shipping/` |
 
 ---
@@ -303,7 +304,7 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 
 - 每个 agent 返回后，检查是否有 plan patch / contract change request
 - 若有共享区域冲突，协调解决后再进入下一 Batch
-- 整批通过后，进入下一 Batch；全部 Batch 完成后进入 Gate D
+- 整批通过后，进入下一 Batch；全部 Batch 完成后进入 Gate C1（Lint + Type-check + Build）
 
 ### 垂直切片原则
 
@@ -328,9 +329,20 @@ planner 返回后，立即用 Read 打开它产出的计划文档（路径在 pl
 
 **功能开关策略：** 当某个切片尚未完成时，使用环境变量或配置开关隐藏功能入口。不要在 master/main 分支暴露未完成功能。
 
-### Gate C2：实现 → 测试验证（🆕 强制测试验证门）
+### Gate C1：实现 → 代码质量门（Lint + Type-check + Build）
 
-全部实现 Batch 完成后，必须通过此门才能进入 Gate D 评审。
+全部实现 Batch 完成后，必须先通过代码质量门才能进入 Gate C2 测试验证。
+
+**通过条件：**
+- [ ] **Lint 零错误**：代码风格检查通过，0 error
+- [ ] **Type-check 零错误**：静态类型检查通过，0 error
+- [ ] **Build 成功**：项目构建成功，exit 0
+
+编排者直接执行检查命令（按项目类型选择对应工具），全部通过后输出 Gate C1 质量检查摘要，方可进入 Gate C2。
+
+### Gate C2：代码质量通过 → 测试验证（🆕 强制测试验证门）
+
+Gate C1 通过后，必须通过此门才能进入 Gate D 评审。
 
 **通过条件：**
 - [ ] 所有 `test_strategy=tdd` 的任务有 Red→Green→Refactor 记录（Red 失败记录 + Green 通过记录 + Refactor 仍绿记录）
