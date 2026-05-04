@@ -13,26 +13,47 @@
 ### 工作流
 
 ```
-想法细化 ─→ 需求澄清 ─→ 需求文档 ─→ 任务分解 ─→ 执行规划 ─→ 并行实现 ─→ 代码质量 ─→ 测试验证 ─→ 评审交付 ─→ 发布上线
-                │             │             │             │             │             │             │
-             Gate A       Gate B       Gate C       Gate C1       Gate C2      Gate D       Gate E
-                                                              (Lint/Build/    (Test)
-                                                               Type-check)
+                    ┌─ 并行 ─┐     ┌─ 并行 ─┐
+                    │         │     │         │
+想法细化 → 需求澄清 → 需求文档 → 任务分解 → 执行规划 → 并行实现 → 代码质量 → 测试验证 → 评审交付 → 安全审计 → 发布上线
+   │         │        │         │         │         │         │         │         │         │         │
+   └─ 阶段 0           Gate A    Gate B    Gate C    │    Gate C1    Gate C2    Gate D   Gate E1   Gate E2
+                                                     │
+                                          ┌──────────┘
+                                          │ 同 Batch 内任务并行
+                                          │ Batch 之间串行等待
+                                          └── 无共享依赖 → 可跨 Batch 提前启动
 ```
 
-| 阶段 | 执行者 | 关键产出 |
-|------|--------|---------|
-| **0. 想法细化** | Jarvis + idea-refine | 结构化问题清单 |
-| **1. 需求文档** | Jarvis | `REQ-XXX` 需求条目 |
-| **2. 任务分解** | task-design 代理 | `TASK-XXX` 任务卡片 |
-| **3. 执行规划** | planner 代理 | Execution Packet 并行计划 |
-| **4. 并行实现** | 各领域实现代理 | 垂直切片代码 |
-| **4B. 代码质量** | Jarvis 直接执行 | Lint + Type-check + Build 检查摘要 |
-| **5. 测试验证** | test workers | 测试汇总报告 + 覆盖率 |
-| **6. 评审交付** | review-qa 代理 | 需求追踪矩阵 |
-| **7. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 |
+**并行/串行规则总览：**
 
-每个阶段有对应闸门（Gate），未通过不可进入下一阶段。
+| 阶段 | 执行方式 | 可并行的对象 |
+|------|---------|-------------|
+| 0 想法细化 | 串行（Jarvis 直接对话） | — |
+| 1 需求文档 | 串行 | 可与 repo-explorer + docs-researcher 并行 |
+| 2 任务分解 | 串行（task-design） | 探索结果作为增强输入 |
+| 3 执行规划 | 串行（planner） | 可与架构师评审并行 |
+| 4 并行实现 | **同 Batch 内全部并行** | 同 Batch 所有无共享依赖的实现 agent |
+| Gate C1 代码质量 | 串行（Lint→Type-check→Build→Deps Audit） | 四步串行，不可并行 |
+| Gate C2 测试 | unit/integration 并行；E2E 串行在最后 | backend-test + frontend-test 并行 |
+| Gate D 评审 | 串行（review-qa） | — |
+| Gate E1 安全审计 | 串行（security-auditor） | 可与上线准备并行 |
+| Gate E2 发布 | 串行 | — |
+
+| 阶段 | 执行者 | 关键产出 | 并行/串行 |
+|------|--------|---------|----------|
+| **0. 想法细化** | Jarvis + idea-refine | 结构化问题清单 | 串行 |
+| **1. 需求文档** | Jarvis | `REQ-XXX` 需求条目 | 串行（可并行探索） |
+| **2. 任务分解** | task-design | `TASK-XXX` 任务卡片 | 串行 |
+| **3. 执行规划** | planner | Execution Packet 并行计划 | 串行（可并行架构评审） |
+| **4. 并行实现** | 各领域实现代理 | 垂直切片代码 | **同 Batch 并行** |
+| **5. 代码质量** | Jarvis 直接执行 | Lint + Type-check + Build + Deps Audit | 四步串行 |
+| **6. 测试验证** | test workers | 测试汇总报告 + 覆盖率 | unit/integration 并行，E2E 串行 |
+| **7. 评审交付** | review-qa | REQ-XXX 追踪矩阵 | 串行 |
+| **8. 安全审计** | security-auditor | 安全报告 + CVE 清单 | 串行（可与上线准备并行） |
+| **9. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 | 串行 |
+
+每个阶段有对应闸门（Gate），未通过不可进入下一阶段。**并行阶段标注了可并行的条件，串行阶段标注了依赖关系。**
 
 ### 故障恢复与韧性框架
 
@@ -46,7 +67,28 @@
 | **会话检查点** | 每个 Gate 通过后输出结构化检查点，支持中断后恢复 |
 | **冲突解决** | Plan patch 冲突串行化排队，数据层 > API 层 > UI 层裁决，10 分钟超时 |
 
-## 适用场景
+## 闭环体系
+
+流水线内置 **5 个独立闭环**，确保任何环节出问题都能自愈：
+
+| # | 闭环 | 触发方式 | 流程 |
+|---|------|---------|------|
+| 1 | **开发闭环** | `/jarvis` Gate C→C1→C2 | 实现 → Lint/Type-check/Build/Deps Audit → 测试 → 失败回退修复 → 重检 |
+| 2 | **测试闭环** | `/browser-test` | 写用例 → 浏览器执行 → 截图 → 失败→`/review-fix`→ 重测 → 通过 |
+| 3 | **Bug 闭环** | `/bug-fix` | Bug → 浏览器复现 → 截图 → 定位根因 → 修复 → 代码质量检查 → 浏览器验证 |
+| 4 | **审查闭环** | `/review-fix` | 初审 → 规划 → 执行 → Lint/Test 验证 → 复审关闭 |
+| 5 | **安全闭环** | Gate E（发布前强制） | security-auditor → 威胁建模 + CVE + SAST + 密钥检测 → 修复 → 重扫 |
+
+闭环之间的交叉连接：
+
+```
+/browser-test 失败 ──→ /review-fix ──→ 修复后重新 /browser-test
+/bug-fix 修复后    ──→ /browser-test 回归验证
+/review-fix 涉及前端Bug ──→ browser-use 复现 + 验证
+Gate E 安全审计失败 ──→ /review-fix 修复 ──→ 重新安全审计
+```
+
+任何环节的失败都会自动路由到对应的修复闭环，最多 2 轮；第 3 轮仍失败则标记 BLOCKED，保留所有产物和诊断信息。
 
 - 新功能开发
 - 项目改造重构
@@ -99,9 +141,11 @@ claude
 #    直接与对应架构师一对一讨论方案，无需走完整流水线
 ```
 
-**流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 代码质量检查（Lint/Type-check/Build）→ 测试验证 → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。实现完成后立即进入 Gate C1 代码质量门，三项全部通过后进入 Gate C2 测试验证。
+**流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 代码质量检查（Lint/Type-check/Build/Deps Audit）→ 测试验证 → 评审 → 安全审计 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。实现完成后立即进入 Gate C1 代码质量门，全部通过后依次通过 Gate C2 测试验证 → Gate D 评审 → Gate E 安全审计 → 发布上线。
 
-**Gate C1 代码质量门**：所有实现完成后，自动执行三项质量检查——Lint（零 error）、Type-check（零 error）、Build（成功）。按项目类型自动选择对应工具链（TypeScript→eslint/tsc、Python→ruff/mypy、Rust→clippy/cargo check、Go→golangci-lint/go vet 等）。三项全部通过方可进入测试验证。
+**Gate C1 代码质量门**：所有实现完成后，自动执行四项质量检查——Lint（零 error）、Type-check（零 error）、Build（成功）、依赖安全扫描（无 Critical/High CVE）。按项目类型自动选择对应工具链。四项全部通过方可进入测试验证。
+
+**Gate E 安全审计门**：发布上线前，强制 spawn `security-auditor` 执行完整安全扫描（威胁建模 + 依赖 CVE + SAST + 密钥检测 + 安全头审计）。Critical/High 发现必须修复或书面豁免。安全审计可与上线准备工作并行执行。
 
 **Gate C2 测试验证门**：代码质量检查通过后，执行单元测试、集成测试、E2E 测试全部通过，覆盖率达标注。支持 TDD 和测试后补两种策略。
 
