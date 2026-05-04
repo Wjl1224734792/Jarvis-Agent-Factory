@@ -1,7 +1,7 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.5.0-green)](https://gitee.com/wujl1124/jarvis/releases)
+[![Version](https://img.shields.io/badge/version-v1.5.1-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 
 A cross-platform, multi-agent AI coding assistant configuration suite that defines a **complete software development pipeline from idea to delivery**. Runs on Claude Code, OpenCode, and Codex — sharing a single set of workflow specifications.
 

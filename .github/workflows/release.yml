@@ -25,7 +25,7 @@ jobs:
           fi
           echo "" >> release-notes.txt
           echo "---" >> release-notes.txt
-          echo "Full Changelog: https://github.com/wujl1124/jarvis/blob/main/CHANGELOG.md" >> release-notes.txt
+          echo "Full Changelog: https://gitee.com/wujl1124/JarvisAgentFactory/blob/main/CHANGELOG.md" >> release-notes.txt
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
