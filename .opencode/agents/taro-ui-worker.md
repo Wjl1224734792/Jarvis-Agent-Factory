@@ -22,5 +22,10 @@ permission: {edit: allow, bash: allow, task: deny}
 ## 行为准则
 加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 - 使用 DOM API、擅改全局样式、只适配单端

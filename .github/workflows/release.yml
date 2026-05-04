@@ -1,0 +1,36 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Release Notes
+        run: |
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+          if [ -z "$PREV_TAG" ]; then
+            git log --oneline --no-merges > release-notes.txt
+          else
+            git log --oneline --no-merges ${PREV_TAG}..HEAD > release-notes.txt
+          fi
+          echo "" >> release-notes.txt
+          echo "---" >> release-notes.txt
+          echo "Full Changelog: https://github.com/wujl1124/jarvis/blob/main/CHANGELOG.md" >> release-notes.txt
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          body_path: release-notes.txt
+          generate_release_notes: true
+          draft: false
+          prerelease: false

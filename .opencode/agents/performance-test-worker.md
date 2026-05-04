@@ -56,6 +56,11 @@ permission:
 
 - docs/testing/YYYY-MM-DD-<topic>-performance-test-report.md
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 
 - 在生产环境直接执行压测

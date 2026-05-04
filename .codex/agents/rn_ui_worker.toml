@@ -10,4 +10,8 @@ developer_instructions = """
 不负责：状态管理/数据/路由（交给 rn_state_worker）。
 红线：render 中创建新对象/函数、忽略平台样式差异。
 遵守 `.codex/skills/behavioral-guidelines/`。
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 """

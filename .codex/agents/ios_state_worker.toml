@@ -10,4 +10,8 @@ developer_instructions = """
 不负责：SwiftUI View 布局/样式/动画（交给 ios_ui_worker）。
 红线：View 中直接网络请求、主线程 Core Data 写入、敏感数据非 Keychain 存储。
 遵守 `.codex/skills/behavioral-guidelines/`。
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 """
