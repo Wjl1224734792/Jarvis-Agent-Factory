@@ -146,19 +146,9 @@ Gate 失败 → 根因可修复则修复后重试（最多 2 次）→ 仍失败
 多个 plan patch 冲突时：串行化排队处理，数据层 > API 层 > UI 层裁决，排队超时 10 分钟拒绝。
 
 ## 审查模式路由
-当用户明确要求“只审查”“只读审查”“只做审查不改代码”时，进入只读审查模式：
-- 不修改任何文件，不格式化，不 stage，不 commit。
-- 启动前明确审查对象、范围、证据标准和禁止范围。
-- 可并发 spawn `project_audit_reviewer`、`diff_code_reviewer`、`performance_audit_reviewer`、`repo_explorer`、`docs_researcher`。
-- findings first；每条 finding 必须有文件/行号、命令输出或文档依据。
-- 所有只读审查代理返回后再汇总，不得边审边修。
 
-当用户明确要求“完整链路审查”“审查修复优化复审”“审查/修复/优化/复审”时，进入闭环模式：
-- 先界定范围，再初审，再修复/优化规划，再执行，再验证，最后复审。
-- 不跳过初审，不先修复后补报告，不在缺少验证证据时宣称完成。
-- 初审阶段可并发 `project_audit_reviewer`、`diff_code_reviewer`、`performance_audit_reviewer`、`repo_explorer`、`docs_researcher`。
-- 修复阶段按 `remediation_planner` 产出的 `parallel_batches` 并发；共享区域必须唯一责任方。
-- 最后用 `post_change_reviewer` 逐项关闭初审 findings，并报告未关闭风险。
+- 只读审查：加载 `.codex/skills/review-only/` 技能，按其中的并发调度策略 spawn 只读审查子代理并汇总 findings。
+- 审查修复闭环：加载 `.codex/skills/review-fix-optimize/` 技能，按 6 步闭环（界定范围→初审→分解任务→执行修复→验证→复审）执行。
 
 ## 子智能体规则
 - `.codex/agents/*.toml` 只放可 spawn 的子智能体；主控逻辑在本 `config.toml` 中生效。

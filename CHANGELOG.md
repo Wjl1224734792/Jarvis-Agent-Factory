@@ -4,6 +4,17 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.5.2] - 2026-05-05
+
+### Changed
+- **Codex 审查模式重构**：从 config.toml 内联指令改为独立技能（`.codex/skills/review-only/` + `.codex/skills/review-fix-optimize/`），与 Claude 指令模式、OpenCode 智能体切换模式对齐
+- **OpenCode 补齐 8 个斜杠命令**：镜像 `.claude/commands/`，支持 `/jarvis`、`/review`、`/review-fix`、`/browser-test`、`/bug-fix`、`/algorithm-expert`、`/backend-architect`、`/frontend-architect`
+
+### Added
+- 根目录 `CLAUDE.md`：Claude Code 项目级入口文件
+- 根目录 `AGENTS.md`：所有智能体首读项目约束文件
+- `docs/` 流水线产物目录：requirements / plans / implementation / testing / review
+
 ## [1.5.1] - 2026-05-04
 
 ### Added
