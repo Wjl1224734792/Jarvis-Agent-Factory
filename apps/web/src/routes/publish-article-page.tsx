@@ -642,7 +642,7 @@ export function PublishArticlePage() {
 
               <div className="space-y-5">
                 <Input
-                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
+                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal break-words shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
                   onChange={(event) => setTitle(event.target.value)}
                   placeholder="标题"
                   value={title}

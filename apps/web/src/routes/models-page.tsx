@@ -7,12 +7,13 @@ import type {
 } from "@feijia/schemas";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { LockKeyholeIcon, SearchIcon, SlidersHorizontal } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { memo, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { ModelThumbCover } from "@/components/model-thumb-cover";
 import { ModelsPageSkeleton } from "@/components/page-skeletons";
 import { SitePage } from "@/components/site-shell";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -203,7 +204,7 @@ function PowerSection(props: {
   );
 }
 
-function ModelCard({ model, index }: { model: WebModelListItem; index: number }) {
+const ModelCard = memo(function ModelCard({ model, index }: { model: WebModelListItem; index: number }) {
   const priceLabel = formatModelPriceRange(model.priceMin ?? null, model.priceMax ?? null);
 
   return (
@@ -240,7 +241,7 @@ function ModelCard({ model, index }: { model: WebModelListItem; index: number })
       </div>
     </Link>
   );
-}
+});
 
 export function ModelsPage() {
   const navigate = useNavigate();
@@ -521,25 +522,14 @@ export function ModelsPage() {
               {modelsQuery.isSuccess ? (
                 <div className="space-y-0">
                   {modelsQuery.data.items.length > 0 ? (
-                    <div
-                      className="grid w-full min-w-0"
-                      style={{
-                        gap: CIRCLE_CARD_COLUMN_GAP,
-                        gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-                      }}
-                    >
-                      {modelColumns.map((column, colIndex) => (
-                        <div
-                          className="flex min-w-0 flex-col"
-                          key={colIndex}
-                          style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
-                        >
-                          {column.map(({ item: model, absoluteIndex }) => (
-                            <ModelCard index={absoluteIndex} key={model.id} model={model} />
-                          ))}
-                        </div>
-                      ))}
-                    </div>
+                    <VirtualMasonryColumns
+                      columns={modelColumns}
+                      gap={CIRCLE_CARD_COLUMN_GAP}
+                      itemKey={({ item: model }) => model.id}
+                      renderItem={({ item: model, absoluteIndex }) => (
+                        <ModelCard index={absoluteIndex} model={model} />
+                      )}
+                    />
                   ) : (
                     <div className="bg-white px-5 py-8">
                       <div className="text-base font-semibold text-foreground">

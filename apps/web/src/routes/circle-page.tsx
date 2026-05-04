@@ -1,5 +1,5 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
+import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { SitePage } from "@/components/site-shell";
@@ -142,8 +142,10 @@ export function CirclePage() {
   const hasMoreFeedItems = Boolean(circleFeedQuery.hasNextPage);
   const isFetchingNextFeedPage = circleFeedQuery.isFetchingNextPage;
 
+  const isFollowingPendingRef = useRef(false);
+
   function handleToggleFollow() {
-    if (!selectedNote) {
+    if (!selectedNote || isFollowingPendingRef.current) {
       return;
     }
 
@@ -158,23 +160,31 @@ export function CirclePage() {
 
     const nextIsFollowing = !selectedNote.engagement.viewer.isFollowingAuthor;
     setActionError(null);
+    isFollowingPendingRef.current = true;
+    // 乐观更新: 立即反映 UI 状态
+    patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
+
     void apiClient
       .toggleFollow(selectedNote.author.id)
       .then(() => {
-        patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
         startTransition(() => {
           void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         });
       })
       .catch((reason: unknown) => {
+        // 回滚乐观更新
+        patchPostAuthorFollowState(queryClient, selectedNote.author.id, !nextIsFollowing);
         setActionError(
           reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
         );
+      })
+      .finally(() => {
+        isFollowingPendingRef.current = false;
       });
   }
 
   function handleCommentSubmit() {
-    if (!selectedNote || !commentContent.trim()) {
+    if (!selectedNote || !commentContent.trim() || isSubmitting) {
       return;
     }
 

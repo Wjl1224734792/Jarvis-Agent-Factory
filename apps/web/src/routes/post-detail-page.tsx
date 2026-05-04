@@ -6,7 +6,7 @@ import {
   UserCheckIcon,
   UserPlusIcon
 } from "lucide-react";
-import { startTransition, useEffect, useMemo, useState } from "react";
+import { startTransition, useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -91,6 +91,8 @@ export function PostDetailPage() {
   const [actionError, setActionError] = useState<string | null>(null);
   const [commentError, setCommentError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isFollowPending, setIsFollowPending] = useState(false);
+  const isFollowPendingRef = useRef(false);
 
   const postQuery = useQuery({
     queryKey: ["post-detail", id],
@@ -330,7 +332,9 @@ export function PostDetailPage() {
                   {!item.engagement.viewer.isAuthor ? (
                     <Button
                       className="rounded-full"
+                      disabled={isFollowPending}
                       onClick={() => {
+                        if (isFollowPendingRef.current) return;
                         if (
                           !promptLogin({
                             title: "登录后才能关注作者",
@@ -341,16 +345,25 @@ export function PostDetailPage() {
                         }
                         const nextIsFollowing = !isFollowingAuthor;
                         setActionError(null);
+                        isFollowPendingRef.current = true;
+                        setIsFollowPending(true);
+                        // 乐观更新
+                        patchPostAuthorFollowState(queryClient, item.author.id, nextIsFollowing);
                         void apiClient
                           .toggleFollow(item.author.id)
                           .then(() => {
-                            patchPostAuthorFollowState(queryClient, item.author.id, nextIsFollowing);
                             startTransition(() => {
                               void queryClient.invalidateQueries({ queryKey: ["notifications"] });
                             });
                           })
                           .catch((value: unknown) => {
+                            // 回滚
+                            patchPostAuthorFollowState(queryClient, item.author.id, !nextIsFollowing);
                             setActionError(value instanceof Error ? value.message : "关注失败");
+                          })
+                          .finally(() => {
+                            isFollowPendingRef.current = false;
+                            setIsFollowPending(false);
                           });
                       }}
                       size="sm"

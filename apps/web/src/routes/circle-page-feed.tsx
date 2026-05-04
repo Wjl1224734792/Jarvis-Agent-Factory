@@ -1,5 +1,5 @@
 import { HeartIcon, LockKeyholeIcon, PlayIcon } from "lucide-react";
-import { memo, useMemo, useRef } from "react";
+import { memo, useCallback, useMemo, useRef } from "react";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { MasonryFeedSkeleton } from "@/components/page-skeletons";
 import { ProfileLink } from "@/components/profile-link";
@@ -197,6 +197,23 @@ export function CirclePageFeed({
   );
   const showFooter = isLoadMoreError || isFetchingNextPage || (isRefetching && !isFetchingNextPage);
 
+  const masonryItemKey = useCallback(
+    ({ item }: (typeof columns)[number][number]) => item.id,
+    []
+  );
+  const masonryRenderItem = useCallback(
+    ({ item, absoluteIndex }: (typeof columns)[number][number]) => (
+      <CircleFeedCard
+        absoluteIndex={absoluteIndex}
+        formatCount={formatCount}
+        item={item}
+        openNote={openNote}
+        selectedNoteId={selectedNoteId}
+      />
+    ),
+    [formatCount, openNote, selectedNoteId]
+  );
+
   return (
     <div ref={feedMeasureRef} className="w-full min-w-0">
       <div className="border-b border-border/60">
@@ -268,16 +285,8 @@ export function CirclePageFeed({
             isFetchingNextPage={isFetchingNextPage}
             onLoadMore={onLoadMore}
             gap={CIRCLE_CARD_COLUMN_GAP}
-            itemKey={({ item }) => item.id}
-            renderItem={({ item, absoluteIndex }) => (
-              <CircleFeedCard
-                absoluteIndex={absoluteIndex}
-                formatCount={formatCount}
-                item={item}
-                openNote={openNote}
-                selectedNoteId={selectedNoteId}
-              />
-            )}
+            itemKey={masonryItemKey}
+            renderItem={masonryRenderItem}
           />
           <FeedRefetchFooter
             errorMessage={
