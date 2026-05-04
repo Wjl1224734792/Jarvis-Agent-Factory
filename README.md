@@ -4,7 +4,7 @@
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持在 Claude Code、OpenCode、Codex 三个平台上运行，共享同一套工作流规范。
 
-> **当前版本** — Claude Code 46 智能体 + 6 斜杠命令，OpenCode 47 智能体，Codex 44 智能体，跨平台共享 20 个方法论技能。
+> **当前版本** — Claude Code 47 智能体 + 7 斜杠命令，OpenCode 48 智能体，Codex 45 智能体，跨平台共享 20 个方法论技能。已集成 browser-use 浏览器自动化测试闭环。
 
 ## 核心概念
 
@@ -63,11 +63,12 @@
 
 ### Claude Code（推荐）
 
-将 `.claude/` 目录复制到你的项目根目录，然后通过六个 slash 命令切换工作模式：
+将 `.claude/` 目录复制到你的项目根目录，然后通过七个 slash 命令切换工作模式：
 
 | 命令 | 用途 |
 |------|------|
 | **`/jarvis`** | 启动贾维斯编排全流水线（从需求到发布） |
+| **`/browser-test`** | 浏览器自动化测试闭环——先写用例，再执行浏览器操作，记录结果，失败驱动修复重测 |
 | **`/review`** | 进入只读审查模式（审查代码/项目/风险，不修改文件） |
 | **`/review-fix`** | 进入审查修复优化闭环（初审→规划→执行→验证→复审） |
 | **`/algorithm-expert`** | 直接对话算法专家（算法选型、复杂度分析、性能优化） |
@@ -80,17 +81,37 @@
 # 1. 将配置放入项目根目录
 cp -r path/to/.claude/ your-project/
 
-# 2. 启动 Claude Code
+# 2. 安装 browser-use 全局技能（浏览器测试闭环依赖）
+npx skills add browser-use/browser-use@browser-use -g -y
+
+# 3. 启动 Claude Code
 claude
 
-# 3. 全流水线模式：输入 /jarvis 进入编排模式
-# 4. 单项专家模式：输入 /frontend-architect、/backend-architect、/algorithm-expert
+# 4. 全流水线模式：输入 /jarvis 进入编排模式
+# 5. 浏览器测试闭环：输入 /browser-test 独立执行 Web 测试
+# 6. 单项专家模式：输入 /frontend-architect、/backend-architect、/algorithm-expert
 #    直接与对应架构师一对一讨论方案，无需走完整流水线
 ```
 
 **流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。
 
 **Gate C2 测试验证门**：在 Gate C（并行实现）通过后、Gate D（规划下一轮）之前插入测试验证门。实现在一轮并行开发后自动执行对应测试，确保实现质量后进入下一轮。支持 TDD 和测试后补两种策略。
+
+**`/browser-test` 浏览器测试闭环**：独立于流水线的自闭环测试命令：
+
+```
+编写测试用例清单 → 逐条 browser-use 执行 → 截图记录 →
+ ──全部通过──→ ✅ 闭环完成
+    │
+    └──存在失败──→ Browser Test Findings
+                      │
+                      └──→ /review-fix（审查修复）──→ 重测失败用例
+                                                        │
+                                                        ├── 通过 ──→ ✅ 闭环完成
+                                                        └── 仍失败 ──→ 再次修复（最多 2 轮）
+```
+
+此闭环既可独立使用（`/browser-test`），也可嵌入流水线 Gate C2 作为 E2E 补充验证。基于 `browser-use` 技能执行真实浏览器操作，适合快速冒烟测试、UI 回归检查和交互验证。
 
 **专家模式**（`/frontend-architect`、`/backend-architect`、`/algorithm-expert`）：当你只需要架构方案和选型建议时，直接 spawn 对应架构师。它们不写业务代码，只产出选型矩阵、ADR 和 POC 验证。
 
@@ -113,11 +134,11 @@ vim .claude/settings.json
 opencode --agent jarvis
 ```
 
-支持与 Claude Code 几乎相同的智能体体系（47 个，含 jarvis 编排 Agent），通过 `@opencode-ai/plugin` 提供代码级插件扩展。
+支持与 Claude Code 几乎相同的智能体体系（48 个，含 jarvis 编排 Agent），通过 `@opencode-ai/plugin` 提供代码级插件扩展。
 
 ### Codex
 
-将 `.codex/` 目录复制到项目根目录，启动 Codex 后自动加载编排流程（44 个智能体）。
+将 `.codex/` 目录复制到项目根目录，启动 Codex 后自动加载编排流程（45 个智能体）。
 
 ```toml
 # .codex/config.toml 已配置完整工作流
@@ -157,7 +178,7 @@ model_reasoning_effort = "xhigh"
 
 ## 智能体体系
 
-各平台智能体数量不同（Claude Code 46 个、OpenCode 47 个、Codex 44 个），按职责分为十大类：
+各平台智能体数量不同（Claude Code 47 个、OpenCode 48 个、Codex 45 个），按职责分为十大类：
 
 | 类别 | 智能体 |
 |------|--------|
@@ -168,14 +189,14 @@ model_reasoning_effort = "xhigh"
 | **后端实现** | `backend-implementer`、`backend-api-worker`、`backend-service-worker`、`backend-data-worker`、`backend-test-worker` |
 | **前端实现** | `frontend-implementer`、`frontend-ui-worker`、`frontend-state-worker`、`frontend-test-worker` |
 | **移动端实现** | `taro-worker`、`taro-ui-worker`、`taro-state-worker`、`android-worker`、`android-ui-worker`、`android-state-worker`、`ios-worker`、`ios-ui-worker`、`ios-state-worker`、`react-native-worker`、`rn-ui-worker`、`rn-state-worker`、`flutter-worker`、`flutter-ui-worker`、`flutter-state-worker` |
-| **测试与文档** | `e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
+| **测试与文档** | `browser-test-worker`、`e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
 | **基础设施** | `infra-worker` |
 
-> 注：Claude Code 中 jarvis 为斜杠命令（`.claude/commands/jarvis.md`），OpenCode 中为独立 Agent。Codex 不含 review-only 和 review-fix-optimize（这两个为 Claude Code 命令专属功能）。
+> 注：Claude Code 中 jarvis 为斜杠命令（`.claude/commands/jarvis.md`），OpenCode 中为独立 Agent。Codex 不含 review-only 和 review-fix-optimize（这两个为 Claude Code 命令专属功能）。browser-test-worker 三平台均有，依赖 browser-use 全局技能。
 
 ## 技能系统
 
-**20 个方法论技能**，覆盖从想法细化到发布上线的全流程。每个技能是一个 `SKILL.md` 文件，通过各平台的原生技能机制加载：
+**20 个方法论技能**（+ 1 个全局外部技能 `browser-use`，用于浏览器自动化测试），覆盖从想法细化到发布上线的全流程。每个内置技能是一个 `SKILL.md` 文件，通过各平台的原生技能机制加载：
 
 | 类别 | 技能 |
 |------|------|
@@ -193,17 +214,17 @@ model_reasoning_effort = "xhigh"
 ```
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
-  commands/                      #   6 个 slash 命令
-  agents/                        #   46 个智能体定义
+  commands/                      #   7 个 slash 命令
+  agents/                        #   47 个智能体定义
   skills/                        #   20 个方法论技能
 
 .opencode/                       # OpenCode 配置
-  agents/                        #   47 个智能体定义
+  agents/                        #   48 个智能体定义
   skills/                        #   20 个方法论技能
 
 .codex/                          # Codex 配置
   config.toml                    #   主配置
-  agents/                        #   44 个子智能体
+  agents/                        #   45 个子智能体
   skills/                        #   20 个方法论技能
 ```
 
