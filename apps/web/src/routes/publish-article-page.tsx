@@ -71,6 +71,7 @@ type ArticleDraftData = {
 
 const DECLARATION_OPTIONS = [
   { label: '原创', value: 'original' },
+  { label: '含AI生成内容', value: 'ai_generated' },
   { label: '转载', value: 'reprinted' },
 ] as const;
 
@@ -400,39 +401,37 @@ export function PublishArticlePage() {
   }, [editId, persistDraft]);
 
   async function uploadImages(files: File[]) {
-    if (files.length === 0) {
-      return [];
-    }
+    if (files.length === 0) return [];
 
     setError(null);
-    const nextImages: UploadedImage[] = files.map((file) => ({
-      id: uid("local-image"),
-      url: URL.createObjectURL(file),
-      fileName: file.name,
-      file,
-      isLocal: true
-    }));
-
-    setUploadedImages((current) => [...current, ...nextImages]);
-    return nextImages;
+    const results: UploadedImage[] = [];
+    for (const file of files) {
+      const uploaded = await apiClient.uploadPostImage(file);
+      results.push({
+        id: uploaded.item.id,
+        url: uploaded.item.url,
+        fileName: uploaded.item.fileName ?? file.name
+      });
+    }
+    setUploadedImages((current) => [...current, ...results]);
+    return results;
   }
 
   async function uploadVideos(files: File[]) {
-    if (files.length === 0) {
-      return [];
-    }
+    if (files.length === 0) return [];
 
     setError(null);
-    const nextVideos: UploadedVideo[] = files.map((file) => ({
-      id: uid("local-video"),
-      url: URL.createObjectURL(file),
-      fileName: file.name,
-      file,
-      isLocal: true
-    }));
-
-    setUploadedVideos((current) => [...current, ...nextVideos]);
-    return nextVideos;
+    const results: UploadedVideo[] = [];
+    for (const file of files) {
+      const uploaded = await apiClient.uploadPostVideo(file);
+      results.push({
+        id: uploaded.item.id,
+        url: uploaded.item.url,
+        fileName: uploaded.item.fileName ?? file.name
+      });
+    }
+    setUploadedVideos((current) => [...current, ...results]);
+    return results;
   }
 
   async function uploadCoverImage(file: File | null) {
@@ -461,19 +460,11 @@ export function PublishArticlePage() {
   }
 
   function handleRemoveImage(image: UploadedImage) {
-    if (image.isLocal) {
-      URL.revokeObjectURL(image.url);
-    }
-
     setUploadedImages((current) => current.filter((item) => item.id !== image.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, image.url));
   }
 
   function handleRemoveVideo(video: UploadedVideo) {
-    if (video.isLocal) {
-      URL.revokeObjectURL(video.url);
-    }
-
     setUploadedVideos((current) => current.filter((item) => item.id !== video.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, video.url));
   }
@@ -510,37 +501,9 @@ export function PublishArticlePage() {
         mediaUrlMapping[coverImage.url] = uploaded.item.url;
       }
 
-      const submitImages = await Promise.all(
-        uploadedImages.map(async (item) => {
-          if (!item.file) {
-            return item;
-          }
-
-          const uploaded = await apiClient.uploadPostImage(item.file);
-          mediaUrlMapping[item.url] = uploaded.item.url;
-          return {
-            id: uploaded.item.id,
-            url: uploaded.item.url,
-            fileName: uploaded.item.fileName
-          } satisfies UploadedImage;
-        })
-      );
-
-      const submitVideos = await Promise.all(
-        uploadedVideos.map(async (item) => {
-          if (!item.file) {
-            return item;
-          }
-
-          const uploaded = await apiClient.uploadPostVideo(item.file);
-          mediaUrlMapping[item.url] = uploaded.item.url;
-          return {
-            id: uploaded.item.id,
-            url: uploaded.item.url,
-            fileName: uploaded.item.fileName
-          } satisfies UploadedVideo;
-        })
-      );
+      // 图片和视频已在编辑器插入时立即上传，无需再次上传
+      const submitImages = uploadedImages;
+      const submitVideos = uploadedVideos;
 
       const replacedArticleHtml = replaceArticleLocalMediaUrls(articleHtml, mediaUrlMapping);
       if (replacedArticleHtml.unresolvedMediaUrls.length > 0) {
