@@ -935,13 +935,7 @@ async function seedPostgreSQL() {
   console.log(`  ✓ 帖子: ${posts.length} 个 (文章 300 + 动态 200)`);
 
   // 关联帖子图片（文章优先关联图片作为内容插图）
-  const postImageFiles = fileEntries.filter(f => f.bizType === "post-image");
-  for (let i = 0; i < Math.min(postImageFiles.length, articlePostIds.length); i++) {
-    await db.update(filesTable).set({ postId: articlePostIds[i] }).where(sql`id = ${postImageFiles[i].id}`);
-  }
-  console.log("  ✓ 帖子图片已关联");
-
-  // 动态封面不设 coverImageFileId，前端会自动使用 aviation-media.ts 兜底图（picsum.photos）
+  // 文章和动态封面不关联种子图片，前端自动使用 aviation-media.ts 兜底图（picsum.photos）
 
   // 9. 帖子评论 (800)
   console.log("  💬 创建帖子评论...");
