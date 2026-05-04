@@ -125,6 +125,11 @@ Skill(skill="behavioral-guidelines")
 | TDD 任务 | `Skill(skill="test-driven-development")` | Red→Green→Refactor 详细方法论、测试反模式、分层策略 |
 | 测试失败分析 | `Skill(skill="debugging-and-error-recovery")` | 系统化调试流程、根因追踪 |
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 
 - 实际修改的文件超出了 Execution Packet 的 allowed_paths

@@ -49,6 +49,11 @@ Skill(skill="behavioral-guidelines")
 
 `docs/implementation/YYYY-MM-DD-<topic>-rn-implementation.md`
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 
 - 在不理解原生模块的情况下随意修改原生代码

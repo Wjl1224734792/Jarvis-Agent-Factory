@@ -33,6 +33,11 @@ Skill(skill="behavioral-guidelines")
 ## 输出
 `docs/implementation/YYYY-MM-DD-<topic>-flutter-state.md`
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 - 在 build 中执行异步操作
 - 敏感数据明文存储

@@ -171,6 +171,11 @@ browser-use close
 1. `docs/testing/YYYY-MM-DD-<topic>-browser-test-cases.md` — 测试用例清单
 2. `docs/testing/YYYY-MM-DD-<topic>-browser-test-report.md` — 测试执行报告（含截图引用）
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 
 - 不编写测试用例清单就直接操作浏览器

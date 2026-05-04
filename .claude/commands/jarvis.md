@@ -80,44 +80,14 @@ Batch 3: [TASK-005, TASK-006]                ← 依赖 Batch 2 完成
 
 ### 步骤 3：每个任务 → 一个 Agent() 调用
 
-根据每个任务的 `owner` 字段，选择对应的 `subagent_type`：
+根据任务的 `owner` 字段选择 `subagent_type`（owner 值与 agent 名一致，直接映射）。按类别速查：
 
-| owner 字段值 | subagent_type |
-|-------------|---------------|
-| frontend-implementer | frontend-implementer |
-| frontend-ui-worker | frontend-ui-worker |
-| frontend-state-worker | frontend-state-worker |
-| frontend-test-worker | frontend-test-worker |
-| backend-implementer | backend-implementer |
-| backend-api-worker | backend-api-worker |
-| backend-service-worker | backend-service-worker |
-| backend-data-worker | backend-data-worker |
-| backend-test-worker | backend-test-worker |
-| algorithm-expert | algorithm-expert |
-| frontend-architect | frontend-architect |
-| backend-architect | backend-architect |
-| infra-worker | infra-worker |
-| security-auditor | security-auditor |
-| e2e-test-worker | e2e-test-worker |
-| taro-worker | taro-worker |
-| taro-ui-worker | taro-ui-worker |
-| taro-state-worker | taro-state-worker |
-| android-worker | android-worker |
-| android-ui-worker | android-ui-worker |
-| android-state-worker | android-state-worker |
-| ios-worker | ios-worker |
-| ios-ui-worker | ios-ui-worker |
-| ios-state-worker | ios-state-worker |
-| react-native-worker | react-native-worker |
-| rn-ui-worker | rn-ui-worker |
-| rn-state-worker | rn-state-worker |
-| flutter-worker | flutter-worker |
-| flutter-ui-worker | flutter-ui-worker |
-| flutter-state-worker | flutter-state-worker |
-| performance-test-worker | performance-test-worker |
-| api-docs-worker | api-docs-worker |
-| database-specialist | database-specialist |
-| performance-audit-reviewer | performance-audit-reviewer |
+- **前端**：frontend-implementer / frontend-ui-worker / frontend-state-worker / frontend-test-worker
+- **后端**：backend-implementer / backend-api-worker / backend-service-worker / backend-data-worker / backend-test-worker
+- **移动端**：taro-* / android-* / ios-* / rn-* / flutter-*（每种含全栈 / -ui- / -state- 三个变体）
+- **测试**：e2e-test-worker / performance-test-worker / browser-test-worker
+- **架构/专家**：algorithm-expert / frontend-architect / backend-architect / database-specialist
+- **审查/审计**：security-auditor / performance-audit-reviewer / api-docs-worker / infra-worker
 
 ### 步骤 4：同一 Batch 的任务必须在一条消息中同时发出
 
@@ -266,36 +236,7 @@ Gate C2 是**代码质量门与评审之间的测试验证门**。Gate C1 通过
 
 ### 测试汇总文档模板
 
-编排者在所有测试通过后，生成测试汇总文档：
-
-路径：`docs/testing/YYYY-MM-DD-<topic>-test-summary.md`
-
-```
-# 测试汇总报告
-- 需求：REQ-XXX, REQ-YYY
-- 轮次：<当前轮次>
-
-## 单元/集成测试
-| 测试代理 | 测试文件数 | 用例数 | 通过 | 失败 | 跳过 |
-|----------|-----------|--------|------|------|------|
-| backend-test-worker | N | M | ... | 0 | ... |
-| frontend-test-worker | N | M | ... | 0 | ... |
-
-## E2E 测试
-| 测试代理 | 用户路径数 | 通过 | 失败 | Flaky |
-|----------|-----------|------|------|-------|
-| e2e-test-worker | N | ... | 0 | ... |
-
-## 覆盖率
-| 模块 | 行覆盖率 | 分支覆盖率 | 变化 |
-|------|---------|-----------|------|
-| ... | ...% | ...% | ±...% |
-
-## 结论
-- [ ] 所有测试通过
-- [ ] E2E 测试通过
-- [ ] 覆盖率达标
-```
+路径：`docs/testing/YYYY-MM-DD-<topic>-test-summary.md`，含单元/集成/E2E 测试通过/失败/跳过统计、覆盖率变化、结论清单。
 
 ---
 
@@ -413,3 +354,7 @@ Gate 失败
 - 不同 TDD 任务的同阶段步骤可按路径边界并行
 
 向用户确认已进入 Jarvis 模式，说明当前阶段并开始推进。
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。

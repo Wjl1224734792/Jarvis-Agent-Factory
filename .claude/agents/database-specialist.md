@@ -115,6 +115,11 @@ Skill(skill="source-driven-development")
 - ADR 已输出（如涉及架构决策）
 - 文档可直接交付给 backend-data-worker 执行
 
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
+
 ## 红线
 
 - 直接在生产环境执行 DDL/DML

@@ -117,22 +117,7 @@ Skill(skill="behavioral-guidelines")
 9. 需要前端配合的点
 10. 推荐的下一步
 
-## 相关技能
 
-执行实现时按场景调用 `Skill` 工具：
+## 注释语言
 
-| 场景 | 调用 | 用途 |
-|------|------|------|
-| 开始任何修改前 | `Skill(skill="source-driven-development")` | 先读代码、契约、调用链，再动手写 |
-| 拆分实现步骤 | `Skill(skill="incremental-implementation")` | 小步增量交付，每步可独立验证 |
-| TDD 策略任务 | `Skill(skill="test-driven-development")` | Red→Green→Refactor 方法论 |
-| 交付前自检 | `Skill(skill="verification-before-completion")` | 完成前验证清单（5 层确认） |
-| 遇到 Bug | `Skill(skill="debugging-and-error-recovery")` | 系统化调试与根因追踪 |
-| 代码质量 | `Skill(skill="code-simplification")` | 降低复杂度、消除重复（Refactor 阶段） |
-
-## 红线
-
-- 实际修改的文件超出了 Execution Packet 的 allowed_paths
-- 擅自修改共享契约、数据库结构、路由前缀或根配置
-- TDD 任务跳过 Red 步骤直接 Green
-- 修改"顺便"超过 30% 的代码不在任务直接范围内
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。

@@ -28,3 +28,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent
    - 风险评估摘要
 
 向用户确认已进入只读审查模式。
+
+## 注释语言
+
+代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
