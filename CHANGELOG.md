@@ -1,10 +1,28 @@
 # Changelog
 
-All notable changes to the Jarvis Collaborative Agents project.
+All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
-## [Unreleased]
+## [1.5.1] - 2026-05-04
+
+### Added
+- 项目正式命名：**Jarvis Agent Factory（贾维斯智能体工厂）**
+- README_EN.md：完整英文版文档
+- 致谢章节：browser-use、superpowers、superpowers-zh
+- writing-skills 技能：元技能——编写技能的 TDD 方法论
+- mcp-builder 技能：MCP 服务器构建规范
+- browser-testing 技能：从 agent 提示词中抽取 ~80 行测试方法论
+
+### Changed
+- git-workflow 技能升级为四平台支持：Gitee / Coding.net / 极狐 GitLab / GitHub
+- finishing-a-development-branch 技能重构为 5 步清理流程
+- browser-test-worker 从 185→100 行，方法论迁移至 browser-testing 技能
+- 8 个斜杠命令优化约 36%，添加不可绕过标记
+- 三平台技能全量同步（.claude 25 / .opencode 25 / .codex 25）
+- README 技能数 22→25，目录结构同步修正
+
+## [1.5.0] - 2026-05-04
 
 ### Added
 - Gate C1 代码质量门：Lint + Type-check + Build + Deps Audit 四项强制检查
