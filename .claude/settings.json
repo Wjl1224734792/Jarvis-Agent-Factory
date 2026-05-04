@@ -9,7 +9,10 @@
       "Bash(docker:*)",
       "WebFetch",
       "WebSearch",
-      "Skill(*)"
+      "Skill(*)",
+      "mcp__dashscope__dashscope_image_analyze",
+      "mcp__dashscope__dashscope_ocr",
+      "mcp__dashscope__dashscope_video_analyze"
     ]
   }
 }
