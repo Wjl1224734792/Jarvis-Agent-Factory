@@ -9,6 +9,7 @@ import { Button } from "@/components/ui/button";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { useCircleColumnCount } from "@/hooks/use-circle-column-count";
 import { resolveUserAvatarSrc } from "@/lib/avatar-url";
+import { getEditorialImage } from "@/lib/aviation-media";
 import { cn } from "@/lib/utils";
 import {
   CIRCLE_CARD_COLUMN_GAP,
@@ -74,7 +75,7 @@ const CircleFeedCard = memo(function CircleFeedCard(props: {
   formatCount: (value: number) => string;
 }) {
   const { item, absoluteIndex, selectedNoteId, openNote, formatCount } = props;
-  const previewImage = item.cover?.url ?? item.images[0]?.url ?? null;
+  const previewImage = item.cover?.url ?? item.images[0]?.url ?? getEditorialImage(item.id, absoluteIndex);
   const previewVideo = item.videos[0]?.url ?? null;
 
   return (
@@ -93,13 +94,7 @@ const CircleFeedCard = memo(function CircleFeedCard(props: {
           getCircleCardMediaAspectClass(absoluteIndex)
         )}
       >
-        {previewImage ? (
-          <img
-            alt={item.title}
-            className="h-full w-full rounded-[1rem] object-cover"
-            src={previewImage}
-          />
-        ) : previewVideo ? (
+        {previewVideo ? (
           <video
             className="h-full w-full rounded-[1rem] object-cover"
             muted
@@ -108,9 +103,11 @@ const CircleFeedCard = memo(function CircleFeedCard(props: {
             src={previewVideo}
           />
         ) : (
-          <div className="flex h-full w-full items-center justify-center rounded-[1rem] bg-slate-100 text-xs text-muted-foreground">
-            未设置封面
-          </div>
+          <img
+            alt={item.title}
+            className="h-full w-full rounded-[1rem] object-cover"
+            src={previewImage}
+          />
         )}
         {item.videos.length > 0 ? (
           <span className="absolute right-3 top-3 inline-flex size-7 items-center justify-center rounded-full bg-black/55 text-white">
