@@ -4,6 +4,8 @@
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持在 Claude Code、OpenCode、Codex 三个平台上运行，共享同一套工作流规范。
 
+> **当前版本** — Claude Code 46 智能体 + 6 斜杠命令，OpenCode 47 智能体，Codex 44 智能体，跨平台共享 20 个方法论技能。
+
 ## 核心概念
 
 **Jarvis（贾维斯）**——唯一的编排中枢，直接与用户对话，通过 Agent/Task 工具调度所有子智能体。子智能体职责单一、不可递归调度，所有阶段推进必须经过对应闸门（Gate）检查。
@@ -27,6 +29,18 @@
 | **6. 发布上线** | Jarvis + infra-worker | 上线检查清单 + 部署 |
 
 每个阶段有对应闸门（Gate），未通过不可进入下一阶段。
+
+### 故障恢复与韧性框架
+
+流水线内置完整故障处理机制，覆盖五个维度：
+
+| 维度 | 策略 |
+|------|------|
+| **Agent 失败重试** | 4 种失败类型差异化重试（超时/工具错误/输出不完整/越界修改），最多 3 次 |
+| **Batch 部分失败** | 成功产物保留，仅重试失败任务，依赖分析决定是否阻塞后续 Batch |
+| **回滚/中止协议** | 决策树：可修复→重试→回退→中止，同 Gate 最多回退 2 次 |
+| **会话检查点** | 每个 Gate 通过后输出结构化检查点，支持中断后恢复 |
+| **冲突解决** | Plan patch 冲突串行化排队，数据层 > API 层 > UI 层裁决，10 分钟超时 |
 
 ## 适用场景
 
@@ -76,6 +90,8 @@ claude
 
 **流水线模式**（`/jarvis`）：需求澄清 → 文档 → 任务分解 → 规划 → **并行实现** → 评审 → 发布。其中 Gate C 是核心——planner 产出 `parallel_batches` 后，Jarvis 在一条消息中同时 spawn 多个实现 Agent，互不依赖的任务真正并发执行。
 
+**Gate C2 测试验证门**：在 Gate C（并行实现）通过后、Gate D（规划下一轮）之前插入测试验证门。实现在一轮并行开发后自动执行对应测试，确保实现质量后进入下一轮。支持 TDD 和测试后补两种策略。
+
 **专家模式**（`/frontend-architect`、`/backend-architect`、`/algorithm-expert`）：当你只需要架构方案和选型建议时，直接 spawn 对应架构师。它们不写业务代码，只产出选型矩阵、ADR 和 POC 验证。
 
 #### 权限配置
@@ -97,11 +113,11 @@ vim .claude/settings.json
 opencode --agent jarvis
 ```
 
-支持与 Claude Code 相同的 47 个智能体体系，通过 `@opencode-ai/plugin` 提供代码级插件扩展。
+支持与 Claude Code 几乎相同的智能体体系（47 个，含 jarvis 编排 Agent），通过 `@opencode-ai/plugin` 提供代码级插件扩展。
 
 ### Codex
 
-将 `.codex/` 目录复制到项目根目录，启动 Codex 后自动加载编排流程。
+将 `.codex/` 目录复制到项目根目录，启动 Codex 后自动加载编排流程（44 个智能体）。
 
 ```toml
 # .codex/config.toml 已配置完整工作流
@@ -141,11 +157,11 @@ model_reasoning_effort = "xhigh"
 
 ## 智能体体系
 
-共 **47 个智能体**，按职责分为八大类：
+各平台智能体数量不同（Claude Code 46 个、OpenCode 47 个、Codex 44 个），按职责分为十大类：
 
 | 类别 | 智能体 |
 |------|--------|
-| **规划与评审** | `jarvis`、`task-design`、`planner`、`review-qa` |
+| **规划与评审** | `jarvis`（编排中枢）、`task-design`、`planner`、`review-qa` |
 | **探索与资料** | `repo-explorer`、`docs-researcher` |
 | **架构设计** | `algorithm-expert`、`frontend-architect`、`backend-architect`、`database-specialist` |
 | **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`security-auditor`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
@@ -154,6 +170,8 @@ model_reasoning_effort = "xhigh"
 | **移动端实现** | `taro-worker`、`taro-ui-worker`、`taro-state-worker`、`android-worker`、`android-ui-worker`、`android-state-worker`、`ios-worker`、`ios-ui-worker`、`ios-state-worker`、`react-native-worker`、`rn-ui-worker`、`rn-state-worker`、`flutter-worker`、`flutter-ui-worker`、`flutter-state-worker` |
 | **测试与文档** | `e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
 | **基础设施** | `infra-worker` |
+
+> 注：Claude Code 中 jarvis 为斜杠命令（`.claude/commands/jarvis.md`），OpenCode 中为独立 Agent。Codex 不含 review-only 和 review-fix-optimize（这两个为 Claude Code 命令专属功能）。
 
 ## 技能系统
 
@@ -176,7 +194,7 @@ model_reasoning_effort = "xhigh"
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
   commands/                      #   6 个 slash 命令
-  agents/                        #   47 个智能体定义
+  agents/                        #   46 个智能体定义
   skills/                        #   20 个方法论技能
 
 .opencode/                       # OpenCode 配置
