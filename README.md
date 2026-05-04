@@ -268,14 +268,14 @@ model_reasoning_effort = "xhigh"
 
 ## 技能系统
 
-**20 个方法论技能**（+ 1 个全局外部技能 `browser-use`，用于浏览器自动化测试），覆盖从想法细化到发布上线的全流程。每个内置技能是一个 `SKILL.md` 文件，通过各平台的原生技能机制加载：
+**21 个方法论技能**（+ 1 个全局外部技能 `browser-use`），覆盖从想法细化到发布部署的全生命周期。技能内容独立于智能体提示词，智能体按需加载：
 
 | 类别 | 技能 |
 |------|------|
 | **基础** | `behavioral-guidelines`、`context-engineering`、`using-agent-skills` |
 | **需求** | `spec-driven-development`、`idea-refine` |
 | **规划** | `planning-and-task-breakdown` |
-| **实现** | `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`、`debugging-and-error-recovery`、`code-simplification` |
+| **实现** | `source-driven-development`、`incremental-implementation`、`test-driven-development`、`verification-before-completion`、`debugging-and-error-recovery`、`code-simplification`、`code-quality-gate` |
 | **审查** | `code-review-and-quality` |
 | **安全** | `security-and-hardening` |
 | **发布** | `shipping-and-launch`、`git-workflow-and-versioning`、`finishing-a-development-branch` |
