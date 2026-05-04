@@ -1,10 +1,13 @@
-# 协作智能体工厂（Collaborative Agents）
+# Jarvis Agent Factory · 贾维斯智能体工厂
 
-[![GitHub](https://img.shields.io/badge/license-MIT-blue)]()
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
+[![Version](https://img.shields.io/badge/version-v1.5.0-green)](https://gitee.com/wujl1124/jarvis/releases)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持在 Claude Code、OpenCode、Codex 三个平台上运行，共享同一套工作流规范。
 
-> **当前版本** — Claude Code 47 智能体 + 8 斜杠命令，OpenCode 48 智能体，Codex 45 智能体，跨平台共享 20 个方法论技能。已集成 browser-use 浏览器自动化测试与 Bug 复现闭环。
+> **当前版本** — Claude Code 47 智能体 + 8 斜杠命令，OpenCode 48 智能体，Codex 45 智能体，跨平台共享 25 个方法论技能。已集成 browser-use 浏览器自动化测试与 Bug 复现闭环。
+
+> 📖 **English readers**: see [README_EN.md](./README_EN.md)
 
 ## 核心概念
 
@@ -268,7 +271,7 @@ model_reasoning_effort = "xhigh"
 
 ## 技能系统
 
-**22 个方法论技能**（+ 1 个全局外部技能 `browser-use`），覆盖从想法细化到发布部署的全生命周期。技能内容独立于智能体提示词，智能体按需加载：
+**25 个方法论技能**（+ 1 个全局外部技能 `browser-use`），覆盖从想法细化到发布部署的全生命周期。技能内容独立于智能体提示词，智能体按需加载：
 
 | 类别 | 技能 |
 |------|------|
@@ -288,16 +291,16 @@ model_reasoning_effort = "xhigh"
   settings.json                  #   权限与全局设置
   commands/                      #   8 个 slash 命令
   agents/                        #   47 个智能体定义
-  skills/                        #   20 个方法论技能
+  skills/                        #   25 个方法论技能
 
 .opencode/                       # OpenCode 配置
   agents/                        #   48 个智能体定义
-  skills/                        #   20 个方法论技能
+  skills/                        #   25 个方法论技能
 
 .codex/                          # Codex 配置
   config.toml                    #   主配置
   agents/                        #   45 个子智能体
-  skills/                        #   20 个方法论技能
+  skills/                        #   25 个方法论技能
 ```
 
 ## 设计原则
@@ -310,7 +313,13 @@ model_reasoning_effort = "xhigh"
 - **最大并发**——无依赖的任务必须在同一条消息中批量调度
 - **注释语言约定**——代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释；不确定时检查已有文件
 
-## 自定义配置
+## 致谢
+
+本项目受以下优秀开源项目启发并参考了它们的方法论：
+
+- **[browser-use](https://github.com/browser-use/browser-use)** — 浏览器自动化工具，为本项目的 `/browser-test` 和 `/bug-fix` 闭环提供基于真实浏览器的测试与复现能力
+- **[superpowers](https://github.com/obra/superpowers)**（英文原版）— 智能体技能系统的方法论基础，定义了技能即文档（Skills as Documentation）的核心理念
+- **[superpowers-zh](https://github.com/jnMetaCode/superpowers-zh)**（中文版）— superpowers 的中文翻译与本地化，为本项目的中文技能体系提供了参考范式
 
 ## License
 
