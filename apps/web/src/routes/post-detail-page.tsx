@@ -7,7 +7,7 @@ import {
   UserPlusIcon
 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useState } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { PostDetailPageSkeleton } from "@/components/route-skeletons";
 import { ProfileLink } from "@/components/profile-link";
 import { DetailMoreActions } from "@/components/detail-more-actions";
@@ -212,20 +212,10 @@ export function PostDetailPage() {
       header={
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-3 text-sm text-foreground/80">
-            <Button
-              className="size-8 rounded-full p-0"
-              onClick={() => {
-                if (window.history.length > 1) {
-                  void navigate(-1);
-                  return;
-                }
-
-                void navigate(APP_ROUTES.feedHome);
-              }}
-              type="button"
-              variant="ghost"
-            >
-              <ArrowLeftIcon className="size-4" />
+            <Button asChild className="size-8 rounded-full p-0" variant="ghost">
+              <Link to={APP_ROUTES.feedHome}>
+                <ArrowLeftIcon className="size-4" />
+              </Link>
             </Button>
             <span className="font-medium">{APP_NAME}</span>
           </div>

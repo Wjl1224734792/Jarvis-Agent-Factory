@@ -941,15 +941,7 @@ async function seedPostgreSQL() {
   }
   console.log("  ✓ 帖子图片已关联");
 
-  // 为所有动态帖子设置封面（循环使用所有 post-image 文件，含 pending/hidden）
-  const postImageFileIds = postImageFiles.map(f => f.id);
-  if (postImageFileIds.length > 0 && allMomentIds.length > 0) {
-    for (let i = 0; i < allMomentIds.length; i++) {
-      const fileId = postImageFileIds[i % postImageFileIds.length];
-      await db.update(postsTable).set({ coverImageFileId: fileId }).where(sql`id = ${allMomentIds[i]}`);
-    }
-  }
-  console.log(`  ✓ 动态封面已关联: ${allMomentIds.length} 个`);
+  // 动态封面不设 coverImageFileId，前端会自动使用 aviation-media.ts 兜底图（picsum.photos）
 
   // 9. 帖子评论 (800)
   console.log("  💬 创建帖子评论...");
