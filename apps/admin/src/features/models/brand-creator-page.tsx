@@ -1,15 +1,22 @@
 import { Button, Form, Image, Input, Select } from "antd";
 import { ImageUpIcon } from "lucide-react";
-import { useRef, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { ADMIN_ROUTE_PATHS } from "../../lib/admin-routes";
 import { apiClient } from "../../lib/api-client";
+import { createMediaManager, uploadMediaBatch } from "@feijia/rich-text-editor";
 
 type BrandCreateValues = {
   slug: string;
   name: string;
   sortOrder?: number;
   isEnabled: boolean;
+};
+
+type LogoAsset = {
+  blobUrl: string;
+  fileId: string;
+  fileName?: string;
 };
 
 function BrandLogoPreview(props: { logoUrl?: string | null; alt: string }) {
@@ -28,34 +35,27 @@ export function BrandCreatorPage() {
   const [form] = Form.useForm<BrandCreateValues>();
   const watchedName = Form.useWatch("name", form);
   const inputRef = useRef<HTMLInputElement | null>(null);
-  const [logoAsset, setLogoAsset] = useState<{ id: string; url: string; fileName?: string } | null>(null);
+  const [logoAsset, setLogoAsset] = useState<LogoAsset | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
-  async function uploadLogo(file: File | null) {
+  function handleSelectLogo(file: File | null) {
     if (!file) {
       return;
     }
 
     setError(null);
     setStatusMessage(null);
-    setIsUploadingLogo(true);
-    try {
-      const response = await apiClient.uploadPostImage(file);
-      setLogoAsset({
-        id: response.item.id,
-        url: response.item.url,
-        fileName: response.item.fileName
-      });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "Logo 上传失败");
-    } finally {
-      setIsUploadingLogo(false);
-      if (inputRef.current) {
-        inputRef.current.value = "";
-      }
+    const { blobUrl, fileId } = mediaManager.register(file);
+    setLogoAsset({
+      blobUrl,
+      fileId,
+      fileName: file.name
+    });
+    if (inputRef.current) {
+      inputRef.current.value = "";
     }
   }
 
@@ -63,15 +63,30 @@ export function BrandCreatorPage() {
     setError(null);
     setStatusMessage(null);
     setIsSubmitting(true);
+
     try {
+      let logoUrl: string | null = null;
+
+      if (logoAsset?.blobUrl) {
+        const files = mediaManager.getAllFiles();
+        const result = await uploadMediaBatch(
+          files,
+          (file) => apiClient.uploadPostImage(file).then((r) => r.item),
+          () => Promise.reject(new Error("品牌创建不支持视频上传"))
+        );
+
+        logoUrl = result.urlMapping.get(logoAsset.blobUrl) ?? null;
+      }
+
       await apiClient.createBrand({
         slug: values.slug.trim(),
         name: values.name.trim(),
         categoryId: null,
-        logoUrl: logoAsset?.url ?? null,
+        logoUrl,
         sortOrder: Number(values.sortOrder ?? 0),
         isEnabled: values.isEnabled
       });
+      await mediaManager.clear("admin-brand-creator");
       form.resetFields();
       form.setFieldsValue({
         isEnabled: true
@@ -131,14 +146,13 @@ export function BrandCreatorPage() {
               <span>品牌 Logo</span>
               <Button
                 icon={<ImageUpIcon className="size-4" />}
-                loading={isUploadingLogo}
                 onClick={() => inputRef.current?.click()}
                 type="default"
               >
                 上传 Logo
               </Button>
             </div>
-            <BrandLogoPreview alt={watchedName?.trim() || "品牌 Logo"} logoUrl={logoAsset?.url ?? null} />
+            <BrandLogoPreview alt={watchedName?.trim() || "品牌 Logo"} logoUrl={logoAsset?.blobUrl ?? null} />
             {logoAsset ? (
               <Button
                 onClick={() => {
@@ -154,7 +168,7 @@ export function BrandCreatorPage() {
               accept="image/*"
               hidden
               onChange={(event) => {
-                void uploadLogo(event.target.files?.[0] ?? null);
+                handleSelectLogo(event.target.files?.[0] ?? null);
               }}
               ref={inputRef}
               type="file"

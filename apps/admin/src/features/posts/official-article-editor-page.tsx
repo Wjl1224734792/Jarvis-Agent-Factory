@@ -4,6 +4,7 @@ import {
   Suspense,
   lazy,
   startTransition,
+  useCallback,
   useEffect,
   useEffectEvent,
   useMemo,
@@ -25,6 +26,17 @@ import {
   buildOfficialArticlePayload,
   type OfficialArticleFormValues
 } from "./official-articles-helpers";
+import {
+  collectBlobUrls,
+  createMediaManager,
+  replaceBlobUrls,
+  uploadMediaBatch
+} from "@feijia/rich-text-editor";
+import {
+  clearDraftSnapshot,
+  loadDraftSnapshot,
+  saveDraftSnapshot,
+} from "../../lib/uploads/draft-store";
 
 type IdleDeadline = {
   didTimeout: boolean;
@@ -70,6 +82,29 @@ const SOURCE_URL_MAP: Record<string, string> = {
 };
 
 const OFFICIAL_ARTICLE_SUMMARY_MAX_LENGTH = 120;
+const ADMIN_ARTICLE_DRAFT_KEY = "feijia:admin-article-draft";
+const ADMIN_AUTO_SAVE_DELAY_MS = 500;
+
+/** Admin 文章编辑器草稿数据类型 */
+interface AdminArticleDraftData {
+  title: string;
+  summary: string;
+  editorHtml: string;
+  categoryId: string;
+  sourceLabel: string | null;
+  sourceUrl: string | null;
+  declaration: string;
+  /** 封面图数据（携带本地 File 用于恢复 blob URL） */
+  coverImage: {
+    id?: string;
+    url: string;
+    fileName?: string;
+    file?: File;
+    isLocal?: boolean;
+  } | null;
+  /** 按注册顺序的 media blob URL 列表，用于恢复时构造旧→新 URL 映射 */
+  mediaBlobUrls: string[];
+}
 
 const LazyAdminRichTextEditor = lazy(() =>
   import("../../components/admin-rich-text-editor").then((module) => ({
@@ -84,6 +119,20 @@ function createMediaAssetList(
   return (items ?? [])
     .slice(skipFirst ? 1 : 0)
     .map((item) => ({ id: item.id, url: item.url, fileName: item.fileName }));
+}
+
+function isBlobUrl(url: string) {
+  return url.startsWith("blob:");
+}
+
+/** 过滤 HTML 中的 file:/// 本地路径（WPS/Word 粘贴残留） */
+function stripFileUrls(html: string): string {
+  if (!html) {
+    return html;
+  }
+  return html
+    .replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "")
+    .replace(/src\s*=\s*["']\s*["']\s*/gi, "");
 }
 
 function RichTextEditorFallback(props: { loading: boolean; onLoad?: () => void }) {
@@ -105,10 +154,10 @@ export function OfficialArticleEditorPage() {
   const [form] = Form.useForm<OfficialArticleEditorFormValues>();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const editorViewportRef = useRef<HTMLDivElement | null>(null);
+  const coverFileRef = useRef<File | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
   const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
@@ -121,6 +170,8 @@ export function OfficialArticleEditorPage() {
   const watchedSourceLabel = Form.useWatch("sourceLabel", form) ?? "";
   const watchedSourceUrl = Form.useWatch("sourceUrl", form) ?? "";
   const watchedDeclaration = (Form.useWatch("declaration", form) ?? "") as string;
+
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
   const categoriesQuery = useQuery({
     queryKey: ["admin-official-article-categories"],
@@ -175,6 +226,71 @@ export function OfficialArticleEditorPage() {
       form.setFieldValue("contentCategoryId", firstCategoryId);
     }
   }, [categoriesQuery.data?.items, editId, form]);
+
+  /** 创建模式下从 IndexedDB 恢复草稿 */
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+
+    void loadDraftSnapshot<AdminArticleDraftData>(ADMIN_ARTICLE_DRAFT_KEY)
+      .then(async (snapshot) => {
+        if (!snapshot) {
+          return;
+        }
+
+        const parsed = snapshot.data;
+
+        // 恢复 mediaManager 中的文件，获取新的 blob URL
+        const restoredFiles = await mediaManager.restore(ADMIN_ARTICLE_DRAFT_KEY);
+        const newBlobUrls = Array.from(restoredFiles.keys());
+
+        // 构建旧→新 blob URL 映射
+        const oldBlobUrls: string[] = parsed.mediaBlobUrls ?? [];
+        const blobUrlMapping = new Map<string, string>();
+        oldBlobUrls.forEach((oldUrl, i) => {
+          if (i < newBlobUrls.length) {
+            blobUrlMapping.set(oldUrl, newBlobUrls[i]);
+          }
+        });
+
+        // 恢复封面图（重建 blob URL）
+        const restoredCover = parsed.coverImage;
+        if (restoredCover?.isLocal && restoredCover.file) {
+          coverFileRef.current = restoredCover.file;
+          const newBlobUrl = URL.createObjectURL(restoredCover.file);
+          setCoverImage({
+            id: restoredCover.id ?? "",
+            url: newBlobUrl,
+            fileName: restoredCover.fileName ?? restoredCover.file.name,
+          });
+        } else if (restoredCover) {
+          setCoverImage({
+            id: restoredCover.id ?? "",
+            url: restoredCover.url,
+            fileName: restoredCover.fileName ?? "",
+          });
+        }
+
+        // 还原表单字段
+        form.setFieldsValue({
+          title: parsed.title,
+          summary: parsed.summary,
+          contentCategoryId: parsed.categoryId || undefined,
+          sourceLabel: parsed.sourceLabel ?? undefined,
+          sourceUrl: parsed.sourceUrl ?? undefined,
+          declaration: parsed.declaration || undefined,
+        });
+
+        // 替换 HTML 中的旧 blob URL 为新 blob URL
+        const restoredHtml = replaceBlobUrls(parsed.editorHtml ?? "", blobUrlMapping);
+        setEditorHtml(stripFileUrls(restoredHtml));
+        setEditorText("");
+      })
+      .catch(() => {
+        // 草稿恢复失败不阻塞页面使用
+      });
+  }, [editId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const categoryOptions = (categoriesQuery.data?.items ?? []).map((item) => ({
     label: item.name,
@@ -240,6 +356,62 @@ export function OfficialArticleEditorPage() {
     };
   }, [requestEditorLoad, shouldLoadEditor]);
 
+  /** 持久化当前编辑器状态到 IndexedDB */
+  const persistDraft = useCallback(async () => {
+    const allFiles = mediaManager.getAllFiles();
+    const mediaBlobUrls = Array.from(allFiles.keys());
+    const coverFile = coverFileRef.current;
+
+    await saveDraftSnapshot<AdminArticleDraftData>({
+      key: ADMIN_ARTICLE_DRAFT_KEY,
+      version: 1,
+      updatedAt: Date.now(),
+      data: {
+        title: watchedTitle,
+        summary: watchedSummary,
+        editorHtml,
+        categoryId: watchedCategoryId ?? "",
+        sourceLabel: watchedSourceLabel,
+        sourceUrl: watchedSourceUrl,
+        declaration: watchedDeclaration,
+        coverImage: coverFile && coverImage
+          ? { id: coverImage.id, url: coverImage.url, fileName: coverImage.fileName, file: coverFile, isLocal: true }
+          : coverImage,
+        mediaBlobUrls,
+      },
+      filesBySlot: {},
+    });
+
+    await mediaManager.persist(ADMIN_ARTICLE_DRAFT_KEY);
+  }, [
+    coverImage,
+    editorHtml,
+    mediaManager,
+    watchedCategoryId,
+    watchedDeclaration,
+    watchedSourceLabel,
+    watchedSourceUrl,
+    watchedSummary,
+    watchedTitle,
+  ]);
+
+  /** 创建模式下自动保存草稿（500ms debounce） */
+  useEffect(() => {
+    if (editId) {
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void persistDraft().catch(() => {
+        // 草稿持久化尽力而为，不应阻塞书写
+      });
+    }, ADMIN_AUTO_SAVE_DELAY_MS);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [editId, persistDraft]);
+
   function removeMediaAsset(assetUrl: string, kind: "image" | "video") {
     const nextHtml = removeAdminRichTextMediaReferenceFromHtml(editorHtml, assetUrl);
     const parsedDocument = parseOfficialArticleDocument(nextHtml);
@@ -259,11 +431,16 @@ export function OfficialArticleEditorPage() {
     form.resetFields();
     setError(null);
     setStatusMessage(null);
+    if (coverImage && isBlobUrl(coverImage.url)) {
+      URL.revokeObjectURL(coverImage.url);
+    }
     setCoverImage(null);
+    coverFileRef.current = null;
     setUploadedImages([]);
     setUploadedVideos([]);
     setEditorHtml("");
     setEditorText("");
+    void mediaManager.clear("admin:official-article");
 
     if (clearEdit) {
       setSearchParams((current) => {
@@ -274,77 +451,20 @@ export function OfficialArticleEditorPage() {
     }
   }
 
-  async function uploadImages(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
-      return [];
-    }
-
-    setIsUploading(true);
-    try {
-      const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
-        const response = await apiClient.uploadPostImage(file);
-        uploads.push({
-          id: response.item.id,
-          url: response.item.url,
-          fileName: response.item.fileName
-        });
-      }
-      setUploadedImages((current) => [...current, ...uploads]);
-      return uploads;
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  async function uploadVideos(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
-      return [];
-    }
-
-    setIsUploading(true);
-    try {
-      const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
-        const response = await apiClient.uploadPostVideo(file);
-        uploads.push({
-          id: response.item.id,
-          url: response.item.url,
-          fileName: response.item.fileName
-        });
-      }
-      setUploadedVideos((current) => [...current, ...uploads]);
-      return uploads;
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  async function uploadCover(file: File | null) {
+  function handleCoverSelect(file: File | null) {
     if (!file) {
       return;
     }
 
-    setIsUploading(true);
-    setError(null);
-    try {
-      const response = await apiClient.uploadPostImage(file);
-      setCoverImage({
-        id: response.item.id,
-        url: response.item.url,
-        fileName: response.item.fileName
-      });
-      setStatusMessage("封面已更新。");
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面上传失败");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
+    // Clean up previous blob URL if any
+    if (coverImage && isBlobUrl(coverImage.url)) {
+      URL.revokeObjectURL(coverImage.url);
     }
+
+    coverFileRef.current = file;
+    const blobUrl = URL.createObjectURL(file);
+    setCoverImage({ id: "", url: blobUrl, fileName: file.name });
+    setStatusMessage("封面已选择，发布时上传。");
   }
 
   async function handleSubmit(values: OfficialArticleEditorFormValues) {
@@ -352,36 +472,118 @@ export function OfficialArticleEditorPage() {
     setError(null);
     setStatusMessage(null);
 
-    const document = buildOfficialArticleDocument(values.summary, editorHtml);
-    const payload = buildOfficialArticlePayload(
-      {
-        title: values.title,
-        contentCategoryId: values.contentCategoryId,
-        sourceLabel: values.sourceLabel,
-        sourceUrl: values.sourceUrl,
-        declaration: values.declaration,
-        content: document.plainText,
-        contentHtml: document.contentHtml
-      } satisfies OfficialArticleFormValues,
-      Array.from(new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))) as string[],
-      uploadedVideos.map((item) => item.id)
-    );
-
     try {
+      // Step 1: Upload cover image if it is a local file (blob URL)
+      let coverId = "";
+      if (coverImage) {
+        if (coverFileRef.current) {
+          const response = await apiClient.uploadPostImage(coverFileRef.current);
+          coverId = response.item.id;
+          coverFileRef.current = null;
+        } else {
+          // Existing uploaded cover image from edit mode
+          coverId = coverImage.id ?? "";
+        }
+      }
+
+      // Step 2: Collect blob URLs from editor HTML
+      const blobUrls = collectBlobUrls(editorHtml);
+
+      // Step 3: Get pending files from mediaManager
+      const pendingFiles = new Map<string, File>();
+      for (const blobUrl of blobUrls) {
+        const file = mediaManager.getFile(blobUrl);
+        if (file) {
+          pendingFiles.set(blobUrl, file);
+        }
+      }
+
+      // Step 4: Batch upload pending files
+      const { urlMapping, imageIds: newImageIds, videoIds: newVideoIds } = await uploadMediaBatch(
+        pendingFiles,
+        (file) =>
+          apiClient.uploadPostImage(file).then((r) => ({
+            id: r.item.id,
+            url: r.item.url,
+            fileName: r.item.fileName ?? file.name
+          })),
+        (file) =>
+          apiClient.uploadPostVideo(file).then((r) => ({
+            id: r.item.id,
+            url: r.item.url,
+            fileName: r.item.fileName ?? file.name
+          }))
+      );
+
+      // Step 5: Replace blob URLs in HTML with real URLs
+      const finalHtml = replaceBlobUrls(editorHtml, urlMapping);
+
+      // Step 6: Build document and payload
+      const document = buildOfficialArticleDocument(values.summary, finalHtml);
+      const payload = buildOfficialArticlePayload(
+        {
+          title: values.title,
+          contentCategoryId: values.contentCategoryId,
+          sourceLabel: values.sourceLabel,
+          sourceUrl: values.sourceUrl,
+          declaration: values.declaration,
+          content: document.plainText,
+          contentHtml: document.contentHtml
+        } satisfies OfficialArticleFormValues,
+        Array.from(new Set([coverId, ...uploadedImages.map((item) => item.id), ...newImageIds].filter(Boolean))) as string[],
+        [...uploadedVideos.map((item) => item.id), ...newVideoIds]
+      );
+
+      // Step 7: Update editorHtml with real URLs before clearing mediaManager
+      setEditorHtml(finalHtml);
+      setEditorText(document.plainText);
+
+      // Step 8: Submit
       if (editId) {
         await apiClient.updateAdminOfficialArticle(editId, payload);
         setStatusMessage("官方文章已更新。");
       } else {
         await apiClient.createOfficialArticle(payload);
-        resetFormState(false);
         setStatusMessage("官方文章已发布。");
+        await clearDraftSnapshot(ADMIN_ARTICLE_DRAFT_KEY);
+        resetFormState(false);
+        return;
       }
+
+      // Step 9: Clear draft snapshot and media manager after successful update
+      await clearDraftSnapshot(ADMIN_ARTICLE_DRAFT_KEY);
+      await mediaManager.clear("admin:official-article");
     } catch (reason: unknown) {
       setError(reason instanceof Error ? reason.message : "保存官方文章失败");
     } finally {
       setIsSubmitting(false);
     }
   }
+
+  const localMediaEntries = useMemo(() => {
+    const blobUrls = new Set(collectBlobUrls(editorHtml));
+    const images: Array<{ blobUrl: string; fileName: string }> = [];
+    const videos: Array<{ blobUrl: string; fileName: string }> = [];
+
+    for (const blobUrl of blobUrls) {
+      const file = mediaManager.getFile(blobUrl);
+      if (!file) {
+        continue;
+      }
+
+      const entry = { blobUrl, fileName: file.name };
+      if (file.type.startsWith("video/")) {
+        videos.push(entry);
+      } else {
+        images.push(entry);
+      }
+    }
+
+    return { images, videos };
+  }, [editorHtml, mediaManager]);
+
+  const hasLocalMedia = localMediaEntries.images.length > 0 || localMediaEntries.videos.length > 0;
+  const hasExistingMedia = uploadedImages.length > 0 || uploadedVideos.length > 0;
 
   return (
     <AdminPage
@@ -414,7 +616,7 @@ export function OfficialArticleEditorPage() {
             </div>
             <div className="admin-official-article-editor__stat">
               <span className="admin-official-article-editor__stat-label">媒体</span>
-              <strong>{uploadedImages.length} 图 / {uploadedVideos.length} 视频</strong>
+              <strong>{localMediaEntries.images.length + uploadedImages.length} 图 / {localMediaEntries.videos.length + uploadedVideos.length} 视频</strong>
             </div>
             <div className="admin-official-article-editor__stat">
               <span className="admin-official-article-editor__stat-label">正文</span>
@@ -503,14 +705,14 @@ export function OfficialArticleEditorPage() {
                 {shouldLoadEditor ? (
                   <Suspense fallback={<RichTextEditorFallback loading />}>
                     <LazyAdminRichTextEditor
+                      mediaManager={mediaManager}
                       onChange={(value) => {
                         setEditorHtml(value.html);
                         setEditorText(value.plainText);
                       }}
-                      onUploadImage={uploadImages}
-                      onUploadVideo={uploadVideos}
                       placeholder="输入正文"
                       value={editorHtml}
+                      variant="admin"
                     />
                   </Suspense>
                 ) : (
@@ -526,7 +728,7 @@ export function OfficialArticleEditorPage() {
 
             <div className="admin-form-actions">
               <Button
-                disabled={!editorText.trim() || isUploading}
+                disabled={!editorText.trim()}
                 htmlType="submit"
                 loading={isSubmitting}
                 type="primary"
@@ -544,7 +746,6 @@ export function OfficialArticleEditorPage() {
                 <button
                   aria-label={coverImage ? "更换封面" : "设置封面"}
                   className="admin-article-preview__cover-trigger"
-                  disabled={isUploading}
                   onClick={() => fileInputRef.current?.click()}
                   title={coverImage ? "更换封面" : "设置封面"}
                   type="button"
@@ -562,6 +763,10 @@ export function OfficialArticleEditorPage() {
                     aria-label="清除封面"
                     className="admin-article-preview__cover-clear"
                     onClick={() => {
+                      if (isBlobUrl(coverImage.url)) {
+                        URL.revokeObjectURL(coverImage.url);
+                      }
+                      coverFileRef.current = null;
                       setCoverImage(null);
                     }}
                     title="清除封面"
@@ -574,7 +779,7 @@ export function OfficialArticleEditorPage() {
                   accept="image/*"
                   hidden
                   onChange={(event) => {
-                    void uploadCover(event.target.files?.[0] ?? null);
+                    handleCoverSelect(event.target.files?.[0] ?? null);
                   }}
                   ref={fileInputRef}
                   type="file"
@@ -610,9 +815,51 @@ export function OfficialArticleEditorPage() {
             </div>
           </AdminPanel>
 
-          {(uploadedImages.length > 0 || uploadedVideos.length > 0) ? (
-            <AdminPanel description="移除媒体时会同步从正文中删除对应节点。" title="正文媒体">
+          {(hasLocalMedia || hasExistingMedia) ? (
+            <AdminPanel description="移除媒体时会同步从正文中删除对应节点。本地文件在发布时统一上传。" title="正文媒体">
               <div className="admin-official-article-editor__media-list">
+                {localMediaEntries.images.map((image) => (
+                  <div className="admin-official-article-editor__media-item" key={image.blobUrl}>
+                    <div className="admin-official-article-editor__media-thumb">
+                      <img alt={image.fileName} src={image.blobUrl} />
+                    </div>
+                    <div className="admin-official-article-editor__media-copy">
+                      <div className="admin-table-title">{image.fileName}</div>
+                      <div className="admin-table-subtitle">图片（发布时上传）</div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        removeMediaAsset(image.blobUrl, "image");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      移除
+                    </Button>
+                  </div>
+                ))}
+
+                {localMediaEntries.videos.map((video) => (
+                  <div className="admin-official-article-editor__media-item" key={video.blobUrl}>
+                    <div className="admin-official-article-editor__media-thumb admin-official-article-editor__media-thumb--video">
+                      <span>VIDEO</span>
+                    </div>
+                    <div className="admin-official-article-editor__media-copy">
+                      <div className="admin-table-title">{video.fileName}</div>
+                      <div className="admin-table-subtitle">视频（发布时上传）</div>
+                    </div>
+                    <Button
+                      onClick={() => {
+                        removeMediaAsset(video.blobUrl, "video");
+                      }}
+                      size="small"
+                      type="link"
+                    >
+                      移除
+                    </Button>
+                  </div>
+                ))}
+
                 {uploadedImages.map((image) => (
                   <div className="admin-official-article-editor__media-item" key={image.id}>
                     <div className="admin-official-article-editor__media-thumb">
@@ -620,7 +867,7 @@ export function OfficialArticleEditorPage() {
                     </div>
                     <div className="admin-official-article-editor__media-copy">
                       <div className="admin-table-title">{image.fileName ?? image.id}</div>
-                      <div className="admin-table-subtitle">图片</div>
+                      <div className="admin-table-subtitle">图片（已上传）</div>
                     </div>
                     <Button
                       onClick={() => {
@@ -641,7 +888,7 @@ export function OfficialArticleEditorPage() {
                     </div>
                     <div className="admin-official-article-editor__media-copy">
                       <div className="admin-table-title">{video.fileName ?? video.id}</div>
-                      <div className="admin-table-subtitle">视频</div>
+                      <div className="admin-table-subtitle">视频（已上传）</div>
                     </div>
                     <Button
                       onClick={() => {

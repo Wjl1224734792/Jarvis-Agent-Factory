@@ -1,4 +1,4 @@
-import type { RichTextToolbarKey } from "./rich-text-editor-helpers";
+import type { RichTextToolbarKey } from "@feijia/rich-text-editor";
 
 export type RichTextToolbarControl = {
   key:

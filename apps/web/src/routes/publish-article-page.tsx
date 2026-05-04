@@ -12,14 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { extractPlainTextFromHtml } from "@/components/rich-text-editor-helpers";
+import { createMediaManager, replaceBlobUrls, uploadMediaBatch } from "@feijia/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import {
-  buildRestoredPreviewUrlMap,
   restorePersistedPreviewAsset,
-  restorePersistedPreviewAssets,
-  revokePreviewAsset,
-  revokePreviewAssets
+  revokePreviewAsset
 } from "@/lib/uploads/local-preview-assets";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -65,8 +63,8 @@ type ArticleDraftData = {
   sourceUrl: string;
   declaration: string;
   coverImage: UploadedImage | null;
-  uploadedImages: UploadedImage[];
-  uploadedVideos: UploadedVideo[];
+  /** 已注册 blob URL 列表（保持注册顺序），用于恢复时构建旧→新 URL 映射 */
+  mediaBlobUrls: string[];
 };
 
 const DECLARATION_OPTIONS = [
@@ -173,15 +171,7 @@ export function PublishArticlePage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
-  const previewAssetsRef = useRef<{
-    coverImage: UploadedImage | null;
-    uploadedImages: UploadedImage[];
-    uploadedVideos: UploadedVideo[];
-  }>({
-    coverImage: null,
-    uploadedImages: [],
-    uploadedVideos: []
-  });
+  const coverImageRef = useRef<UploadedImage | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
@@ -196,6 +186,7 @@ export function PublishArticlePage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -222,7 +213,7 @@ export function PublishArticlePage() {
     setHasRestoredDraftSnapshot(false);
 
     void loadDraftSnapshot<ArticleDraftData>(ARTICLE_DRAFT_KEY)
-      .then((snapshot) => {
+      .then(async (snapshot) => {
         if (!snapshot) {
           return;
         }
@@ -232,18 +223,25 @@ export function PublishArticlePage() {
 
         const parsed = snapshot.data;
         const restoredCoverImage = restorePersistedPreviewAsset(parsed.coverImage ?? null);
-        const restoredImageEntries = restorePersistedPreviewAssets(parsed.uploadedImages ?? []);
-        const restoredVideoEntries = restorePersistedPreviewAssets(parsed.uploadedVideos ?? []);
-        const restoredMediaUrlMap = {
-          ...buildRestoredPreviewUrlMap(restoredImageEntries),
-          ...buildRestoredPreviewUrlMap(restoredVideoEntries)
-        };
+
+        // Restore mediaManager files from IndexedDB
+        const restoredFiles = await mediaManager.restore(ARTICLE_DRAFT_KEY);
+        const newBlobUrls = Array.from(restoredFiles.keys());
+
+        // Build old→new blob URL mapping using saved registration order
+        const oldBlobUrls: string[] = parsed.mediaBlobUrls ?? [];
+        const blobUrlMapping: Record<string, string> = {};
+        oldBlobUrls.forEach((oldUrl, i) => {
+          if (i < newBlobUrls.length) {
+            blobUrlMapping[oldUrl] = newBlobUrls[i];
+          }
+        });
 
         setTitle(parsed.title ?? "");
         setSummary(parsed.summary ?? "");
         setEditorHtml(
           stripFileUrls(
-            replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
+            replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", blobUrlMapping).html
           )
         );
         setCategoryId(parsed.categoryId ?? "");
@@ -251,29 +249,25 @@ export function PublishArticlePage() {
         setSourceUrl(parsed.sourceUrl ?? "");
         setDeclaration(parsed.declaration ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
-        setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
-        setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
       })
       .catch(() => {
         // Keep the workspace usable even when draft restore fails.
       });
-  }, [editId]);
+  }, [editId, mediaManager]);
 
   useEffect(() => {
-    previewAssetsRef.current = {
-      coverImage,
-      uploadedImages,
-      uploadedVideos
-    };
-  }, [coverImage, uploadedImages, uploadedVideos]);
+    coverImageRef.current = coverImage;
+  }, [coverImage]);
 
   useEffect(() => {
     return () => {
-      revokePreviewAsset(previewAssetsRef.current.coverImage);
-      revokePreviewAssets(previewAssetsRef.current.uploadedImages);
-      revokePreviewAssets(previewAssetsRef.current.uploadedVideos);
+      revokePreviewAsset(coverImageRef.current);
+      // Release any remaining blob URLs tracked by mediaManager
+      for (const blobUrl of mediaManager.getAllFiles().keys()) {
+        URL.revokeObjectURL(blobUrl);
+      }
     };
-  }, []);
+  }, [mediaManager]);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {
@@ -350,8 +344,41 @@ export function PublishArticlePage() {
   );
   const hasInsertedMedia = uploadedImages.length > 0 || uploadedVideos.length > 0;
 
+  /** 在创建模式下，从 mediaManager 同步媒体资源到显示清单 */
+  useEffect(() => {
+    // 编辑模式下由 detailQuery 管理清单，不同步
+    if (editId) {
+      return;
+    }
+
+    const files = mediaManager.getAllFiles();
+    const images: UploadedImage[] = [];
+    const videos: UploadedVideo[] = [];
+
+    for (const [blobUrl, file] of files) {
+      // 只显示当前在编辑器 HTML 中的 blob URL
+      if (!editorHtml.includes(blobUrl)) {
+        continue;
+      }
+      const entry = { id: blobUrl, url: blobUrl, fileName: file.name, isLocal: true as const };
+      if (file.type.startsWith("video/")) {
+        videos.push(entry as unknown as UploadedVideo);
+      } else {
+        images.push(entry);
+      }
+    }
+
+    setUploadedImages(images);
+    setUploadedVideos(videos);
+  }, [editId, editorHtml, mediaManager]);
+
   const persistDraft = useCallback(async () => {
     const savedAt = Date.now();
+
+    // 获取当前 mediaManager 中所有 blob URL（保持注册顺序）
+    const allFiles = mediaManager.getAllFiles();
+    const mediaBlobUrls = Array.from(allFiles.keys());
+
     await saveDraftSnapshot<ArticleDraftData>({
       key: ARTICLE_DRAFT_KEY,
       version: 1,
@@ -365,23 +392,23 @@ export function PublishArticlePage() {
         sourceUrl,
         declaration,
         coverImage,
-        uploadedImages,
-        uploadedVideos
+        mediaBlobUrls
       },
       filesBySlot: {}
     });
+
+    await mediaManager.persist(ARTICLE_DRAFT_KEY);
     setLastDraftSavedAt(savedAt);
   }, [
     categoryId,
     coverImage,
     declaration,
     editorHtml,
+    mediaManager,
     sourceLabel,
     sourceUrl,
     summary,
-    title,
-    uploadedImages,
-    uploadedVideos
+    title
   ]);
 
   useEffect(() => {
@@ -399,40 +426,6 @@ export function PublishArticlePage() {
       window.clearTimeout(timer);
     };
   }, [editId, persistDraft]);
-
-  async function uploadImages(files: File[]) {
-    if (files.length === 0) return [];
-
-    setError(null);
-    const results: UploadedImage[] = [];
-    for (const file of files) {
-      const uploaded = await apiClient.uploadPostImage(file);
-      results.push({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName ?? file.name
-      });
-    }
-    setUploadedImages((current) => [...current, ...results]);
-    return results;
-  }
-
-  async function uploadVideos(files: File[]) {
-    if (files.length === 0) return [];
-
-    setError(null);
-    const results: UploadedVideo[] = [];
-    for (const file of files) {
-      const uploaded = await apiClient.uploadPostVideo(file);
-      results.push({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName ?? file.name
-      });
-    }
-    setUploadedVideos((current) => [...current, ...results]);
-    return results;
-  }
 
   async function uploadCoverImage(file: File | null) {
     if (!file) {
@@ -460,11 +453,17 @@ export function PublishArticlePage() {
   }
 
   function handleRemoveImage(image: UploadedImage) {
+    if (image.isLocal) {
+      URL.revokeObjectURL(image.url);
+    }
     setUploadedImages((current) => current.filter((item) => item.id !== image.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, image.url));
   }
 
   function handleRemoveVideo(video: UploadedVideo) {
+    if (video.isLocal) {
+      URL.revokeObjectURL(video.url);
+    }
     setUploadedVideos((current) => current.filter((item) => item.id !== video.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, video.url));
   }
@@ -488,8 +487,7 @@ export function PublishArticlePage() {
     setIsPublishing(true);
 
     try {
-      const mediaUrlMapping: Record<string, string> = {};
-
+      // Step 1: 上传封面图（保留原流程）
       let submitCoverImage = coverImage;
       if (coverImage.file) {
         const uploaded = await apiClient.uploadPostImage(coverImage.file);
@@ -498,31 +496,72 @@ export function PublishArticlePage() {
           url: uploaded.item.url,
           fileName: uploaded.item.fileName
         };
-        mediaUrlMapping[coverImage.url] = uploaded.item.url;
       }
 
-      // 图片和视频已在编辑器插入时立即上传，无需再次上传
-      const submitImages = uploadedImages;
-      const submitVideos = uploadedVideos;
+      // Step 2: 批量上传 mediaManager 中的所有本地文件
+      const allFiles = mediaManager.getAllFiles();
+      let batchImageIds: string[] = [];
+      let batchVideoIds: string[] = [];
+      let urlMapping = new Map<string, string>();
 
-      const replacedArticleHtml = replaceArticleLocalMediaUrls(articleHtml, mediaUrlMapping);
-      if (replacedArticleHtml.unresolvedMediaUrls.length > 0) {
-        throw new Error("仍有媒体停留在本地预览状态，请重新上传后再提交。");
+      if (allFiles.size > 0) {
+        const batchResult = await uploadMediaBatch(
+          allFiles,
+          async (file) => {
+            const result = await apiClient.uploadPostImage(file);
+            return {
+              id: result.item.id,
+              url: result.item.url,
+              fileName: result.item.fileName ?? file.name,
+              mimeType: file.type
+            };
+          },
+          async (file) => {
+            const result = await apiClient.uploadPostVideo(file);
+            return {
+              id: result.item.id,
+              url: result.item.url,
+              fileName: result.item.fileName ?? file.name,
+              mimeType: file.type
+            };
+          }
+        );
+
+        if (batchResult.errors.length > 0) {
+          throw new Error(`部分媒体上传失败: ${batchResult.errors[0].message}`);
+        }
+
+        urlMapping = batchResult.urlMapping;
+        batchImageIds = batchResult.imageIds;
+        batchVideoIds = batchResult.videoIds;
       }
+
+      // Step 3: 替换文章 HTML 中的 blob URL
+      const replacedHtml = replaceBlobUrls(articleHtml, urlMapping);
+
+      // Step 4: 组装图片/视频 ID 列表
+      // 编辑模式：包含已有的服务端媒体 ID
+      const existingImageIds = uploadedImages.filter((img) => !img.isLocal).map((img) => img.id);
+      const existingVideoIds = uploadedVideos.filter((vid) => !vid.isLocal).map((vid) => vid.id);
+
+      const imageIds = Array.from(
+        new Set(
+          [submitCoverImage?.id, ...batchImageIds, ...existingImageIds].filter(Boolean)
+        )
+      );
+      const videoIds = [...batchVideoIds, ...existingVideoIds];
 
       const payload = {
         type: "article" as const,
         title,
         content: articleText,
-        contentHtml: replacedArticleHtml.html,
+        contentHtml: replacedHtml,
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
         declaration,
-        imageIds: Array.from(
-          new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
-        ),
-        videoIds: submitVideos.map((item) => item.id)
+        imageIds,
+        videoIds
       };
 
       const response = editId
@@ -530,6 +569,7 @@ export function PublishArticlePage() {
         : await apiClient.createPost(payload);
 
       await clearDraftSnapshot(ARTICLE_DRAFT_KEY);
+      await mediaManager.clear(ARTICLE_DRAFT_KEY);
       setLastDraftSavedAt(null);
 
       await Promise.all([
@@ -687,11 +727,11 @@ export function PublishArticlePage() {
                 </div>
 
                 <RichTextEditor
-                  onChange={setEditorHtml}
-                  onUploadImage={uploadImages}
-                  onUploadVideo={uploadVideos}
+                  onChange={({ html }) => setEditorHtml(html)}
+                  mediaManager={mediaManager}
                   placeholder="开始写作"
                   value={editorHtml}
+                  variant="web"
                 />
               </div>
 

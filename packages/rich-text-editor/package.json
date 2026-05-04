@@ -1,0 +1,21 @@
+{
+  "name": "@feijia/rich-text-editor",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./helpers": "./src/rich-text-editor-helpers.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "lint": "eslint src/"
+  },
+  "dependencies": {
+    "@feijia/shared": "workspace:*",
+    "@wangeditor/editor": "5.1.23",
+    "@wangeditor/editor-for-react": "1.0.6",
+    "@wangeditor/video-module": "1.1.4",
+    "react": "^18.3.1"
+  }
+}
