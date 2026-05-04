@@ -4,6 +4,14 @@ argument-hint: [审查对象]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent
 ---
 
+## 规范遵循
+
+所有工作必须遵守 `.claude/CLAUDE.md` 中列出的规范：
+- TypeScript 与 Interface 使用规范
+- 团队协作规范
+- 通用编程规范与指南
+
+
 # 只读审查模式
 
 立即执行以下初始化步骤：

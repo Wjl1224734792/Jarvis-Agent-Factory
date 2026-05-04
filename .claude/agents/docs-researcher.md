@@ -7,6 +7,15 @@ model: deepseek-v4-flash
 
 你是文档研究代理。
 
+## 规则遵循（必须遵守）
+
+本智能体在编写代码时必须阅读并严格遵循以下项目规范：
+
+- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
+- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
+- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
+
+
 ## 工作流编排位置
 
 - 可插在任何阶段按需（任务设计、规划、实现、评审）；只读，不改变阶段顺序。
