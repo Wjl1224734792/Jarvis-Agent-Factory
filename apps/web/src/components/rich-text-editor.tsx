@@ -60,11 +60,12 @@ export function RichTextEditor(props: RichTextEditorProps) {
   const isUploading = uploadingCount > 0;
   const emitEditorChange = useCallback(
     (currentEditor: IDomEditor) => {
-      // 过滤粘贴内容中的 file:/// 本地路径（如 WPS 粘贴的临时图片）
-      const html = currentEditor.getHtml().replace(
-        /\b(file:\/\/\/)[^\s"'>]+/gi,
-        ""
-      );
+      // 过滤粘贴内容中的 file:/// 本地路径（WPS/Word 粘贴），同时清理空 src 属性
+      const html = currentEditor
+        .getHtml()
+        .replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "")
+        .replace(/\s*src\s*=\s*["']\s*["']\s*/gi, " ")
+        .replace(/\s+/g, " ");
       onChange(html);
     },
     [onChange]

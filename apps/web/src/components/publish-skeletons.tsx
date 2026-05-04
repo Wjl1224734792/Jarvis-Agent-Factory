@@ -1,7 +1,6 @@
 import type { ReactNode } from "react";
 import { ImmersivePageShell } from "@/components/immersive-page-shell";
 import {
-  SitePageDescription,
   SitePageEyebrow,
   SitePageHead,
   SitePageTitle,
@@ -38,10 +37,10 @@ export function PublishShellSkeleton(props: {
               <Skeleton className="h-10 w-[min(100%,18rem)] rounded-none md:h-12" />
             </SitePageTitle>
             {props.withDescription !== false ? (
-              <SitePageDescription className="max-w-[54rem] text-sm">
+              <div className="site-page-description max-w-[54rem] text-sm">
                 <Skeleton className="h-4 w-full max-w-[36rem] rounded-none" />
                 <Skeleton className="mt-2 h-4 w-full max-w-[28rem] rounded-none" />
-              </SitePageDescription>
+              </div>
             ) : null}
           </SitePageHead>
         </div>

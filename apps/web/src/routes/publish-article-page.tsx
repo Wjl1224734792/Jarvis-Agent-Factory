@@ -31,8 +31,14 @@ import {
 } from "./publish-article-page-helpers";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
+const ARTICLE_TITLE_MAX_LENGTH = 64;
 const ARTICLE_SUMMARY_MAX_LENGTH = 120;
 const AUTO_SAVE_DELAY_MS = 500;
+
+/** 生成简易唯一 ID（避免 crypto.randomUUID 兼容性问题） */
+function uid(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 type UploadedImage = {
   id: string;
@@ -65,24 +71,12 @@ type ArticleDraftData = {
 
 const DECLARATION_OPTIONS = [
   { label: '原创', value: 'original' },
-  { label: 'AI生成', value: 'ai_generated' },
-  { label: 'AI辅助创作', value: 'ai_assisted' },
   { label: '转载', value: 'reprinted' },
-  { label: '深度合成', value: 'deep_synthesis' }
 ] as const;
 
 const SOURCE_LABEL_OPTIONS = [
-  { label: '飞加官方', value: '飞加官方' },
-  { label: '转载媒体', value: '转载媒体' },
-  { label: '作者投稿', value: '作者投稿' },
-  { label: '行业媒体', value: '行业媒体' },
-  { label: '航司官方', value: '航司官方' },
-  { label: '其他来源', value: '其他来源' },
-];
-
-const SOURCE_URL_MAP: Record<string, string> = {
-  '飞加官方': 'https://feijia.com',
-};
+  { label: '转载', value: '转载' },
+] as const;
 
 function escapeHtml(input: string) {
   return input
@@ -140,6 +134,13 @@ function removeMediaReferenceFromHtml(html: string, mediaUrl: string) {
   });
 
   return documentNode.body.innerHTML.trim();
+}
+
+/** 过滤 HTML 中的 file:/// 本地路径（WPS/Word 粘贴残留） */
+function stripFileUrls(html: string): string {
+  if (!html) return html;
+  // 移除 src="file:///..." 和 src='file:///...'
+  return html.replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "").replace(/src\s*=\s*["']\s*["']\s*/gi, "");
 }
 
 function formatDraftSavedAt(timestamp: number | null) {
@@ -240,7 +241,9 @@ export function PublishArticlePage() {
         setTitle(parsed.title ?? "");
         setSummary(parsed.summary ?? "");
         setEditorHtml(
-          replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
+          stripFileUrls(
+            replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
+          )
         );
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
@@ -279,7 +282,7 @@ export function PublishArticlePage() {
     const item = detailQuery.data.item;
     setTitle(item.title);
     setSummary("");
-    setEditorHtml(item.contentHtml ?? "");
+    setEditorHtml(stripFileUrls(item.contentHtml ?? ""));
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
@@ -334,7 +337,6 @@ export function PublishArticlePage() {
     Boolean(articleText.trim()) &&
     Boolean(categoryId) &&
     Boolean(coverImage) &&
-    Boolean(declaration) &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
   const mediaSummaryText = useMemo(
@@ -404,7 +406,7 @@ export function PublishArticlePage() {
 
     setError(null);
     const nextImages: UploadedImage[] = files.map((file) => ({
-      id: `local-image-${crypto.randomUUID()}`,
+      id: uid("local-image"),
       url: URL.createObjectURL(file),
       fileName: file.name,
       file,
@@ -422,7 +424,7 @@ export function PublishArticlePage() {
 
     setError(null);
     const nextVideos: UploadedVideo[] = files.map((file) => ({
-      id: `local-video-${crypto.randomUUID()}`,
+      id: uid("local-video"),
       url: URL.createObjectURL(file),
       fileName: file.name,
       file,
@@ -445,7 +447,7 @@ export function PublishArticlePage() {
       }
 
       return {
-        id: `local-cover-${crypto.randomUUID()}`,
+        id: uid("local-cover"),
         url: URL.createObjectURL(file),
         fileName: file.name,
         file,
@@ -642,8 +644,9 @@ export function PublishArticlePage() {
 
               <div className="space-y-5">
                 <Input
-                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal break-words shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
-                  onChange={(event) => setTitle(event.target.value)}
+                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal break-words overflow-wrap-anywhere shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
+                  maxLength={ARTICLE_TITLE_MAX_LENGTH}
+                  onChange={(event) => setTitle(event.target.value.slice(0, ARTICLE_TITLE_MAX_LENGTH))}
                   placeholder="标题"
                   value={title}
                 />
@@ -684,82 +687,41 @@ export function PublishArticlePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      内容声明 <span className="text-destructive">*</span>
-                    </div>
-                  </div>
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">声明</div>
                   <select
                     className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
                     onChange={(e) => setDeclaration(e.target.value)}
                     value={declaration}
                   >
-                    <option disabled value="">选择内容声明</option>
+                    <option value="">不设置</option>
                     {DECLARATION_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                  {!declaration ? (
-                    <p className="text-xs text-destructive">请选择内容声明</p>
-                  ) : null}
                 </div>
 
-                {declaration !== 'original' ? (
-                  <>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
-                        </div>
-                        <select
-                          className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSourceLabel(value);
-                            const defaultUrl = SOURCE_URL_MAP[value];
-                            if (defaultUrl !== undefined) {
-                              setSourceUrl(defaultUrl);
-                            }
-                          }}
-                          value={sourceLabel}
-                        >
-                          <option disabled value="">选择来源名称</option>
-                          {SOURCE_LABEL_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                        <Input
-                          inputMode="url"
-                          onChange={(event) => setSourceUrl(event.target.value)}
-                          placeholder="https://example.com/source"
-                          value={sourceUrl}
-                        />
-                      </div>
-                    </div>
-
-                    {sourceLabelValue ? (
-                      <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
-                        <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                        {sourceUrlValue ? (
-                          <a
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={sourceUrlValue}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            {sourceLabelValue}
-                          </a>
-                        ) : (
-                          <span className="text-foreground/82">{sourceLabelValue}</span>
-                        )}
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
+                <div className="space-y-2">
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源（可选）</div>
+                  <select
+                    className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                    onChange={(e) => setSourceLabel(e.target.value)}
+                    value={sourceLabel}
+                  >
+                    <option value="">不设置</option>
+                    {SOURCE_LABEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {sourceLabel ? (
+                    <Input
+                      className="mt-2"
+                      inputMode="url"
+                      onChange={(event) => setSourceUrl(event.target.value)}
+                      placeholder="链接（可选）"
+                      value={sourceUrl}
+                    />
+                  ) : null}
+                </div>
 
                 <RichTextEditor
                   onChange={setEditorHtml}
