@@ -6,6 +6,8 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 
 # 浏览器自动化测试闭环
 
+> 这是主动测试模式（编写用例 → 执行 → 修复）。如果你要修复一个已知 Bug 并需要浏览器复现，请使用 `/bug-fix` 命令。
+
 立即执行以下步骤：
 
 ## 步骤 0：加载技能

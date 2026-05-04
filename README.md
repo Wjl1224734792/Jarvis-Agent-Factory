@@ -4,7 +4,7 @@
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持在 Claude Code、OpenCode、Codex 三个平台上运行，共享同一套工作流规范。
 
-> **当前版本** — Claude Code 47 智能体 + 7 斜杠命令，OpenCode 48 智能体，Codex 45 智能体，跨平台共享 20 个方法论技能。已集成 browser-use 浏览器自动化测试闭环。
+> **当前版本** — Claude Code 47 智能体 + 8 斜杠命令，OpenCode 48 智能体，Codex 45 智能体，跨平台共享 20 个方法论技能。已集成 browser-use 浏览器自动化测试与 Bug 复现闭环。
 
 ## 核心概念
 
@@ -63,12 +63,13 @@
 
 ### Claude Code（推荐）
 
-将 `.claude/` 目录复制到你的项目根目录，然后通过七个 slash 命令切换工作模式：
+将 `.claude/` 目录复制到你的项目根目录，然后通过八个 slash 命令切换工作模式：
 
 | 命令 | 用途 |
 |------|------|
 | **`/jarvis`** | 启动贾维斯编排全流水线（从需求到发布） |
 | **`/browser-test`** | 浏览器自动化测试闭环——先写用例，再执行浏览器操作，记录结果，失败驱动修复重测 |
+| **`/bug-fix`** | Bug 修复闭环——浏览器复现 Bug→定位根因→修复代码→浏览器验证修复 |
 | **`/review`** | 进入只读审查模式（审查代码/项目/风险，不修改文件） |
 | **`/review-fix`** | 进入审查修复优化闭环（初审→规划→执行→验证→复审） |
 | **`/algorithm-expert`** | 直接对话算法专家（算法选型、复杂度分析、性能优化） |
@@ -89,7 +90,8 @@ claude
 
 # 4. 全流水线模式：输入 /jarvis 进入编排模式
 # 5. 浏览器测试闭环：输入 /browser-test 独立执行 Web 测试
-# 6. 单项专家模式：输入 /frontend-architect、/backend-architect、/algorithm-expert
+# 6. Bug 修复闭环：输入 /bug-fix，浏览器复现→定位→修复→验证
+# 7. 单项专家模式：输入 /frontend-architect、/backend-architect、/algorithm-expert
 #    直接与对应架构师一对一讨论方案，无需走完整流水线
 ```
 
@@ -112,6 +114,26 @@ claude
 ```
 
 此闭环既可独立使用（`/browser-test`），也可嵌入流水线 Gate C2 作为 E2E 补充验证。基于 `browser-use` 技能执行真实浏览器操作，适合快速冒烟测试、UI 回归检查和交互验证。
+
+**`/bug-fix` Bug 修复闭环**：当前端/页面交互类 Bug 浮现时，浏览器复现 → 修复 → 验证的完整闭环：
+
+```
+Bug Report ──→ 浏览器复现 ──→ 截图/证据 ──→ 定位根因（文件:行号）
+                                                  │
+                                                  ▼
+                                             修复代码
+                                                  │
+                                                  ▼
+                              浏览器验证（相同步骤复测）
+                               │                │
+                          Bug 不再出现    Bug 仍存在
+                               │                │
+                               ▼                ▼
+                          ✅ 关闭          回到定位根因
+                                          （最多 2 轮回退）
+```
+
+此闭环也可通过 `/review-fix` 触发——当审查初审发现前端页面 Bug 时，自动加载 browser-use 技能进行浏览器复现和验证。
 
 **专家模式**（`/frontend-architect`、`/backend-architect`、`/algorithm-expert`）：当你只需要架构方案和选型建议时，直接 spawn 对应架构师。它们不写业务代码，只产出选型矩阵、ADR 和 POC 验证。
 
@@ -214,7 +236,7 @@ model_reasoning_effort = "xhigh"
 ```
 .claude/                         # Claude Code 配置（主推）
   settings.json                  #   权限与全局设置
-  commands/                      #   7 个 slash 命令
+  commands/                      #   8 个 slash 命令
   agents/                        #   47 个智能体定义
   skills/                        #   20 个方法论技能
 
