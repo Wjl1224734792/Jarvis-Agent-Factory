@@ -629,6 +629,8 @@ Gate 失败时：
 | 5 实现 | `test-driven-development` | TDD Red→Green→Refactor 方法论 |
 | 5 实现 | `verification-before-completion` | 实现 Agent 交付前自检清单 |
 | 5 实现 | `context-engineering` | 向实现代理传递选择性上下文 |
+| 5B 代码质量 | `code-quality-gate` | Gate C1 四项强制检查（Lint/Type-check/Build/Deps） |
+| 5C 浏览器测试 | `browser-testing` | 浏览器自动化测试方法论（用例/执行/报告/闭环） |
 | 6 评审 | `code-review-and-quality` | 五轴审查框架、严重度分级 |
 | 6 评审 | `code-simplification` | 审查时评估代码简化机会 |
 | 7 发布上线 | `shipping-and-launch` | 上线检查清单与灰度策略 |
