@@ -79,6 +79,7 @@ import {
   type SeedStorageObject
 } from "./seed.storage.js";
 import { hashVerificationCode } from "./helpers.js";
+import { SEED_PIXEL } from "./seed-image.js";
 
 // ==================== 工具函数 ====================
 
@@ -548,22 +549,19 @@ async function seedObjectStorage() {
 
   const config = resolveSeedStorageConfig();
   FILE_KEYS.length = 0;
-  const ONE_PIXEL_PNG = Buffer.from(
-    "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO1f4f8AAAAASUVORK5CYII=",
-    "base64"
-  );
+  // 用彩色像素 PNG 替代原来看不见的 1px 透明 PNG
   const TINY_MP4 = Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 
   const categories = [
-    { prefix: "avatars", count: 50, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "posts/articles", count: 30, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "posts/moments", count: 30, type: "image/png" as const, data: ONE_PIXEL_PNG },
+    { prefix: "avatars", count: 50, type: "image/png" as const, data: SEED_PIXEL.purple },
+    { prefix: "posts/articles", count: 30, type: "image/png" as const, data: SEED_PIXEL.blue },
+    { prefix: "posts/moments", count: 30, type: "image/png" as const, data: SEED_PIXEL.teal },
     { prefix: "posts/videos", count: 10, type: "video/mp4" as const, data: TINY_MP4 },
-    { prefix: "rankings/covers", count: 10, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "rankings/items", count: 50, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "models/covers", count: 30, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "submissions/covers", count: 15, type: "image/png" as const, data: ONE_PIXEL_PNG },
-    { prefix: "reports/evidence", count: 10, type: "image/png" as const, data: ONE_PIXEL_PNG },
+    { prefix: "rankings/covers", count: 10, type: "image/png" as const, data: SEED_PIXEL.orange },
+    { prefix: "rankings/items", count: 50, type: "image/png" as const, data: SEED_PIXEL.amber },
+    { prefix: "models/covers", count: 30, type: "image/png" as const, data: SEED_PIXEL.green },
+    { prefix: "submissions/covers", count: 15, type: "image/png" as const, data: SEED_PIXEL.slate },
+    { prefix: "reports/evidence", count: 10, type: "image/png" as const, data: SEED_PIXEL.slate },
   ];
 
   const objects: SeedStorageObject[] = [];
