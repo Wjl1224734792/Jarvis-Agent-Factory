@@ -1,6 +1,6 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Clock3Icon, FlameIcon } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { VirtualMasonryColumns } from "@/components/virtual-feed";
@@ -26,7 +26,13 @@ import {
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
 /** 卡片内预览条：与榜单详情一致展示分数 + 五星 + 评数 */
-function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
+const RatingTargetScoreCompact = memo(function RatingTargetScoreCompact({
+  score,
+  totalRatings
+}: {
+  score: number;
+  totalRatings: number;
+}) {
   return (
     <div className="flex w-max max-w-[4.25rem] shrink-0 flex-col items-end gap-0.5 text-right">
       <RatingValue className="tabular-nums" score={score} size="sm" />
@@ -36,7 +42,7 @@ function RatingTargetScoreCompact({ score, totalRatings }: { score: number; tota
       ) : null}
     </div>
   );
-}
+});
 
 const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingListItem }) {
   const previewItems = ranking.items.slice(0, 3);
@@ -129,6 +135,15 @@ export function RankingsPage() {
     [activeItems, columnCount]
   );
 
+  const rankingItemKey = useCallback(
+    ({ item }: (typeof rankingColumns)[number][number]) => item.id,
+    []
+  );
+  const rankingRenderItem = useCallback(
+    ({ item }: (typeof rankingColumns)[number][number]) => <RankingCard ranking={item} />,
+    []
+  );
+
   return (
     <SitePage className="w-full min-w-0 gap-4">
       <div className="flex flex-wrap items-center gap-4 border-b border-border/60 pb-3">
@@ -173,8 +188,8 @@ export function RankingsPage() {
             <VirtualMasonryColumns
               columns={rankingColumns}
               gap={CIRCLE_CARD_COLUMN_GAP}
-              itemKey={({ item }) => item.id}
-              renderItem={({ item }) => <RankingCard ranking={item} />}
+              itemKey={rankingItemKey}
+              renderItem={rankingRenderItem}
             />
           ) : null}
           <FeedRefetchFooter show={rankingsQuery.isRefetching} />
