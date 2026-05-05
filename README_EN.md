@@ -1,44 +1,42 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.5.7-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v1.5.9-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 
-A cross-platform multi-agent AI coding assistant configuration set, defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex, sharing a unified workflow specification.
+A cross-platform multi-agent AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex with a unified workflow specification and shared skill system.
 
-> **Current** — Claude Code 47 agents + 15 slash commands, OpenCode 48 agents + 15 commands, Codex 45 agents. 26 methodology skills shared across platforms. Integrated browser-use for automated testing and bug reproduction.
+> **Current** — Claude Code 47 agents + 15 commands, OpenCode 48 agents + 15 commands, Codex 45 agents. 27 methodology skills shared cross-platform (29 for Codex). Integrated browser-use for automated testing and bug reproduction.
 
-> 中文读者请见：[README.md](./README.md) | Chinese readers please refer to the Chinese version linked above.
+> 中文读者请见：[README.md](./README.md)
 
 ## Core Concepts
 
-**Jarvis** — the single orchestration hub. Talks directly to the user and dispatches all sub-agents via Agent/Task tools. Sub-agents have **single responsibility** and **cannot recursively spawn**. Every phase must pass its corresponding Gate before advancing.
+**Jarvis** — the single orchestration hub. Talks directly to the user and dispatches sub-agents. Sub-agents have single responsibility, cannot recursively spawn, and all phases must pass their corresponding Gate before advancing.
 
 ### Pipeline
 
 ```
 Idea Refine → Requirements → Task Design → Planning → Parallel Impl → Code Quality → Testing → Review → Security → Release
-     │             │            │           │              │              │          │        │         │
-     Phase 0      Gate A      Gate B     Gate C      Gate C1        Gate C2    Gate D   Gate E1   Gate E2
+     │             │            │           │              │              │          │        │         │         │
+   Phase 0       Gate A       Gate B     Gate C        Gate C1        Gate C2    Gate D   Gate E1   Gate E2
 ```
 
-### Resilience Framework
+### Resilience
 
 | Dimension | Strategy |
 |-----------|----------|
-| **Agent Retry** | 4 failure types, differentiated retries (timeout/tool error/incomplete output/out-of-scope), max 3 attempts |
-| **Batch Partial Failure** | Keep successful artifacts, retry only failed tasks, dependency analysis for blocking |
-| **Rollback/Abort** | Decision tree: fixable→retry→rollback→abort, max 2 rollbacks per Gate |
-| **Session Checkpoints** | Structured checkpoint output after each Gate for session recovery |
-| **Conflict Resolution** | Plan patch conflict queuing, Data > API > UI priority, 10-minute timeout |
+| **Agent Retry** | 4 failure types × differentiated retries, max 3 attempts |
+| **Batch Partial Failure** | Keep successful artifacts, retry only failures |
+| **Rollback/Abort** | Fixable→retry→rollback→abort, max 2 rollbacks per Gate |
+| **Checkpoints** | Structured output after each Gate for session recovery |
+| **Conflict Resolution** | Plan patch queuing, Data > API > UI priority, 10min timeout |
 
 ## Closed Loops
 
-5 independent closed loops built into the pipeline:
-
 | # | Loop | Trigger | Flow |
 |---|------|---------|------|
-| 1 | **Dev Loop** | `/jarvis` Gate C→C1→C2 | Implement → Quality check → Test → Fix → Retest |
-| 2 | **Test Loop** | `/browser-test` | Write cases → Execute → Screenshot → Fail→`/review-fix`→ Retest |
+| 1 | **Dev Loop** | `/jarvis` Gate C→C1→C2 | Implement → Quality → Test → Fix → Retest |
+| 2 | **Test Loop** | `/browser-test` | Write cases → Browser execute → Screenshot → Fail→Fix→Retest |
 | 3 | **Bug Loop** | `/bug-fix` | Bug → Reproduce → Root cause → Fix → Verify |
 | 4 | **Review Loop** | `/review-fix` | Audit → Plan → Execute → Verify → Close |
 | 5 | **Security Loop** | Gate E (pre-release) | security-auditor → Threat model + CVE + SAST → Fix → Rescan |
@@ -53,27 +51,27 @@ npx skills add browser-use/browser-use@browser-use -g -y
 claude
 ```
 
-**Domain Commands** (full lifecycle: Requirements→Implement→Quality→Test→Review→Release):
+**Domain Commands** (full lifecycle A→B→C→C1→C2→D→E):
 
 | Command | Domain | Agents |
 |---------|--------|--------|
 | **`/backend`** | Backend | backend-implementer, backend-api/data/service-worker, backend-test-worker, database-specialist, performance-test-worker, security-auditor, api-docs-worker, infra-worker |
 | **`/frontend`** | Frontend | frontend-implementer, frontend-ui/state-worker, frontend-test-worker, browser-test-worker, e2e-test-worker, performance-audit-reviewer, security-auditor, infra-worker |
-| **`/taro`** | Taro Mini-program/H5 | taro-worker, taro-ui/state-worker, browser-test-worker, e2e-test-worker, security-auditor, infra-worker |
-| **`/android`** | Android Native | android-worker, android-ui/state-worker, e2e-test-worker, security-auditor, infra-worker |
-| **`/ios`** | iOS Native | ios-worker, ios-ui/state-worker, e2e-test-worker, security-auditor, infra-worker |
-| **`/expo`** | Expo Cross-platform | react-native-worker, rn-ui/state-worker, browser-test-worker, e2e-test-worker, security-auditor, infra-worker |
-| **`/flutter`** | Flutter Cross-platform | flutter-worker, flutter-ui/state-worker, browser-test-worker, e2e-test-worker, security-auditor, infra-worker |
+| **`/taro`** | Taro Mini-program/H5 | taro-worker, taro-ui/state-worker, browser-test-worker, e2e-test-worker |
+| **`/android`** | Android | android-worker, android-ui/state-worker, e2e-test-worker |
+| **`/ios`** | iOS | ios-worker, ios-ui/state-worker, e2e-test-worker |
+| **`/expo`** | Expo Cross-platform | react-native-worker, rn-ui/state-worker, browser-test-worker, e2e-test-worker |
+| **`/flutter`** | Flutter | flutter-worker, flutter-ui/state-worker, browser-test-worker, e2e-test-worker |
 
-**Full-stack & Specialized Commands**:
+**Specialized Commands**:
 
 | Command | Purpose |
 |---------|---------|
-| **`/jarvis`** | Full pipeline orchestration (cross-domain lifecycle) |
+| **`/jarvis`** | Full pipeline orchestration |
 | **`/browser-test`** | Browser automation test loop |
 | **`/bug-fix`** | Bug fix loop (reproduce→fix→verify) |
 | **`/review`** | Read-only review mode |
-| **`/review-fix`** | Review→Fix→Re-review closed loop |
+| **`/review-fix`** | Review→Fix→Re-review loop |
 | **`/algorithm-expert`** | Algorithm selection & complexity analysis |
 | **`/frontend-architect`** | Frontend architecture & tech selection |
 | **`/backend-architect`** | Backend architecture & distributed design |
@@ -82,20 +80,18 @@ claude
 
 ```bash
 opencode --agent jarvis         # Agent mode
-opencode                        # Command mode (/jarvis /backend /frontend ...)
+opencode                        # Command mode (all 15 commands available)
 ```
 
-48 agents (includes jarvis agent), mirrors all 15 slash commands from Claude Code.
+48 agents + 15 commands, mirrors `.claude/commands/`.
 
 ### Codex
 
-Place `.codex/` in your project root. Starts with full orchestration pipeline (45 agents). Review modes via skills:
-
-```toml
-# .codex/config.toml — full workflow configured
-# Default: gpt-5.5, edit model field as needed
-# Review: load review-only / review-fix-optimize skills
+```bash
+cp -r path/to/.codex/ your-project/
 ```
+
+45 agents. Review workflows enabled via skills (`review-only` / `review-fix-optimize`).
 
 ## Agent System
 
@@ -107,20 +103,20 @@ Place `.codex/` in your project root. Starts with full orchestration pipeline (4
 | **Review & Fix** | `review-only`, `review-fix-optimize`, `project-audit-reviewer`, `diff-code-reviewer`, `performance-audit-reviewer`, `security-auditor`, `remediation-planner`, `remediation-worker`, `post-change-reviewer` |
 | **Backend** | `backend-implementer`, `backend-api-worker`, `backend-service-worker`, `backend-data-worker`, `backend-test-worker` |
 | **Frontend** | `frontend-implementer`, `frontend-ui-worker`, `frontend-state-worker`, `frontend-test-worker` |
-| **Mobile** | `taro-worker/unified`, `android-worker/unified`, `ios-worker/unified`, `react-native-worker/unified` (Expo), `flutter-worker/unified` (each with ui/state sub-variants) |
+| **Mobile** | `taro-worker`, `android-worker`, `ios-worker`, `react-native-worker` (Expo), `flutter-worker` (each with ui/state sub-variants, 15 total) |
 | **Testing & Docs** | `browser-test-worker`, `e2e-test-worker`, `performance-test-worker`, `api-docs-worker` |
 | **Infrastructure** | `infra-worker` |
 
 ## Skill System
 
-**26 methodology skills** (+ 1 external `browser-use`), covering the full lifecycle:
+**27 methodology skills** (+ `browser-use` external skill):
 
 | Category | Skills |
 |----------|--------|
-| **Foundation** | `behavioral-guidelines`, `context-engineering`, `using-agent-skills` |
+| **Foundation** | `behavioral-guidelines` (5 principles + comment convention), `context-engineering`, `using-agent-skills` |
 | **Requirements** | `spec-driven-development`, `idea-refine` |
 | **Planning** | `planning-and-task-breakdown` |
-| **Implementation** | `source-driven-development`, `incremental-implementation`, `test-driven-development`, `verification-before-completion`, `debugging-and-error-recovery`, `code-simplification`, `code-quality-gate`, `browser-testing` |
+| **Implementation** | `source-driven-development`, `incremental-implementation`, `test-driven-development`, `verification-before-completion`, `debugging-and-error-recovery`, `code-simplification`, `code-quality-gate`, `browser-testing`, **`code-standards`** (code quality rules) |
 | **Review** | `code-review-and-quality` |
 | **Security** | `security-and-hardening` |
 | **Release** | `shipping-and-launch`, `git-workflow-and-versioning`, `finishing-a-development-branch` |
@@ -130,37 +126,37 @@ Place `.codex/` in your project root. Starts with full orchestration pipeline (4
 ## Directory Structure
 
 ```
-.claude/                         # Claude Code config (primary)
-  settings.json                  #   Permissions & global settings
+.claude/                         # Claude Code (primary)
+  settings.json                  #   Permissions & settings
   commands/                      #   15 slash commands
   agents/                        #   47 agent definitions
-  skills/                        #   26 methodology skills
+  skills/                        #   27 methodology skills
 
-.opencode/                       # OpenCode config
-  commands/                      #   15 slash commands (mirrors .claude)
+.opencode/                       # OpenCode
+  commands/                      #   15 commands (mirrors .claude)
   agents/                        #   48 agent definitions
-  skills/                        #   26 methodology skills
+  skills/                        #   27 methodology skills
 
-.codex/                          # Codex config
-  config.toml                    #   Main config & orchestration
+.codex/                          # Codex
+  config.toml                    #   Main orchestration config
   agents/                        #   45 sub-agents
-  skills/                        #   28 methodology skills (incl. review-only / review-fix-optimize)
+  skills/                        #   29 skills (incl. review-only / review-fix-optimize)
 ```
 
 ## Design Principles
 
 - **Vertical Slices** — tasks split by end-to-end features, not tech layers
-- **Gate Control** — each phase requires alignment before advancing
-- **Requirement Traceability** — every code change traces to a `REQ-XXX`
+- **Gate Control** — each phase requires alignment before advancing (unbypassable)
+- **Requirement Traceability** — every change traces to a `REQ-XXX`
 - **Single Owner Per Shared Area** — prevents parallel write conflicts
 - **Maximum Concurrency** — independent tasks dispatched in same message
-- **Comment Language Convention** — follow existing project language; Chinese projects use Chinese, English projects use English
+- **Comment Language Convention** — follows `behavioral-guidelines` Principle 5
 
 ## Acknowledgments
 
-- **[browser-use](https://github.com/browser-use/browser-use)** — browser automation powering the `/browser-test` and `/bug-fix` loops
-- **[superpowers](https://github.com/obra/superpowers)** — skills-as-documentation methodology foundation
-- **[superpowers-zh](https://github.com/jnMetaCode/superpowers-zh)** — Chinese localization reference
+- **[browser-use](https://github.com/browser-use/browser-use)** — browser automation for test & bug loops
+- **[superpowers](https://github.com/obra/superpowers)** — skills-as-documentation methodology
+- **[superpowers-zh](https://github.com/jnMetaCode/superpowers-zh)** — Chinese skill system reference
 
 ## License
 
