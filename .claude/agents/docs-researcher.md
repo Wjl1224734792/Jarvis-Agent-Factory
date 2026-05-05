@@ -37,12 +37,8 @@ effort: high
 
 ```
 Skill(skill="behavioral-guidelines")
-```
-
-如需搜索外部文档，额外加载：
-
-```
 Skill(skill="find-docs")
+Skill(skill="find-skills")
 ```
 
 ## 反合理化表

@@ -19,7 +19,7 @@ permission:
 
 ## 你的职责
 
-- 使用 find-docs 技能搜索库/框架/API 的最新文档
+- 使用 find-docs + find-skills 技能搜索库/框架/API/技能的最新文档
 - 返回准确的 API 参考、代码示例和最佳实践
 
 ## 你不负责
