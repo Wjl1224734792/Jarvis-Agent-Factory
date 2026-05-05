@@ -121,9 +121,9 @@ Skill(skill="behavioral-guidelines")
 - iOS 原生（全栈）：ios-worker
 - iOS 仅 UI/SwiftUI：ios-ui-worker
 - iOS 仅状态/数据：ios-state-worker
-- React Native（全栈）：react-native-worker
-- React Native 仅 UI：rn-ui-worker
-- React Native 仅状态/数据：rn-state-worker
+- Expo / React Native（全栈）：react-native-worker
+- Expo 仅 UI：rn-ui-worker
+- Expo 仅状态/数据：rn-state-worker
 - Flutter（全栈）：flutter-worker
 - Flutter 仅 UI/Widget：flutter-ui-worker
 - Flutter 仅状态/数据：flutter-state-worker

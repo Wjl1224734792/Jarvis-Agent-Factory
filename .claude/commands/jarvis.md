@@ -83,7 +83,7 @@ Batch 3: [TASK-005, TASK-006]                ← 依赖 Batch 2 完成
 根据 `owner` 字段选择对应 `subagent_type`。按类别速查：
 - **前端**：frontend-implementer / frontend-ui-worker / frontend-state-worker / frontend-test-worker
 - **后端**：backend-implementer / backend-api-worker / backend-service-worker / backend-data-worker / backend-test-worker
-- **移动端**：taro-* / android-* / ios-* / rn-* / flutter-*（各含全栈 / -ui- / -state- 三变体）
+- **移动端**：taro-* / android-* / ios-* / expo-* (rn-*) / flutter-*（各含全栈 / -ui- / -state- 三变体）
 - **测试**：e2e-test-worker / performance-test-worker
 - **架构/专家**：algorithm-expert / frontend-architect / backend-architect / database-specialist
 - **审查/审计**：security-auditor / performance-audit-reviewer / api-docs-worker / infra-worker

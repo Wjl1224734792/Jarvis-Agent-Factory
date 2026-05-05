@@ -263,7 +263,7 @@ model_reasoning_effort = "xhigh"
 | **审查与修复** | `review-only`、`review-fix-optimize`、`project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`security-auditor`、`remediation-planner`、`remediation-worker`、`post-change-reviewer` |
 | **后端实现** | `backend-implementer`、`backend-api-worker`、`backend-service-worker`、`backend-data-worker`、`backend-test-worker` |
 | **前端实现** | `frontend-implementer`、`frontend-ui-worker`、`frontend-state-worker`、`frontend-test-worker` |
-| **移动端实现** | `taro-worker`、`taro-ui-worker`、`taro-state-worker`、`android-worker`、`android-ui-worker`、`android-state-worker`、`ios-worker`、`ios-ui-worker`、`ios-state-worker`、`react-native-worker`、`rn-ui-worker`、`rn-state-worker`、`flutter-worker`、`flutter-ui-worker`、`flutter-state-worker` |
+| **移动端实现** | `taro-worker`、`taro-ui-worker`、`taro-state-worker`、`android-worker`、`android-ui-worker`、`android-state-worker`、`ios-worker`、`ios-ui-worker`、`ios-state-worker`、`react-native-worker`（Expo）、`rn-ui-worker`（Expo）、`rn-state-worker`（Expo）、`flutter-worker`、`flutter-ui-worker`、`flutter-state-worker` |
 | **测试与文档** | `browser-test-worker`、`e2e-test-worker`、`performance-test-worker`、`api-docs-worker` |
 | **基础设施** | `infra-worker` |
 

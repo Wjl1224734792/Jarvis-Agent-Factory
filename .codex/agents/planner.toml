@@ -76,9 +76,9 @@ developer_instructions = """
 - iOS 原生（全栈）：`ios_worker`
 - iOS 仅 UI/SwiftUI：`ios_ui_worker`
 - iOS 仅状态/数据：`ios_state_worker`
-- React Native（全栈）：`react_native_worker`
-- React Native 仅 UI：`rn_ui_worker`
-- React Native 仅状态/数据：`rn_state_worker`
+- Expo / React Native（全栈）：`react_native_worker`
+- Expo 仅 UI：`rn_ui_worker`
+- Expo 仅状态/数据：`rn_state_worker`
 - Flutter（全栈）：`flutter_worker`
 - Flutter 仅 UI/Widget：`flutter_ui_worker`
 - Flutter 仅状态/数据：`flutter_state_worker`

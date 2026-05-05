@@ -29,7 +29,7 @@ effort: high
 ## 你不负责
 
 - 后端 API 实现
-- 跨平台方案（React Native / Flutter）
+- 跨平台方案（Expo / Flutter）
 - iOS 开发
 - App Store / Google Play 审核与发布（交给 infra-worker）
 

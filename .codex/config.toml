@@ -309,7 +309,7 @@ description = "Swift/SwiftUI iOS/macOS 原生开发"
 config_file = "agents/ios_worker.toml"
 
 [agents.react_native_worker]
-description = "React Native（JS/TS）iOS/Android 双端跨平台开发"
+description = "Expo (React Native) iOS/Android 双端跨平台开发，基于 Expo SDK + Expo Router"
 config_file = "agents/react_native_worker.toml"
 
 [agents.flutter_worker]
@@ -341,11 +341,11 @@ description = "iOS 状态与数据专项：ObservableObject、SwiftData、网络
 config_file = "agents/ios_state_worker.toml"
 
 [agents.rn_ui_worker]
-description = "React Native UI 专项：页面布局、样式、动画"
+description = "Expo UI 专项：页面布局、样式、动画、平台适配"
 config_file = "agents/rn_ui_worker.toml"
 
 [agents.rn_state_worker]
-description = "React Native 状态与数据专项：Zustand/Redux、AsyncStorage、导航"
+description = "Expo 状态与数据专项：Zustand/Redux、expo-secure-store、Expo Router"
 config_file = "agents/rn_state_worker.toml"
 
 [agents.flutter_ui_worker]

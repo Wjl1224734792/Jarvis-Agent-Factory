@@ -147,7 +147,7 @@ opencode --agent jarvis
 | **Review & Fix** | `review-only`, `review-fix-optimize`, `project-audit-reviewer`, `diff-code-reviewer`, `performance-audit-reviewer`, `security-auditor`, `remediation-planner`, `remediation-worker`, `post-change-reviewer` |
 | **Backend** | `backend-implementer`, `backend-api-worker`, `backend-service-worker`, `backend-data-worker`, `backend-test-worker` |
 | **Frontend** | `frontend-implementer`, `frontend-ui-worker`, `frontend-state-worker`, `frontend-test-worker` |
-| **Mobile** | `taro-worker`, `taro-ui-worker`, `taro-state-worker`, `android-worker/unified`, `ios-worker/unified`, `react-native-worker/unified`, `flutter-worker/unified` (each with ui/state sub-variants) |
+| **Mobile** | `taro-worker`, `taro-ui-worker`, `taro-state-worker`, `android-worker/unified`, `ios-worker/unified`, `react-native-worker/unified` (Expo), `flutter-worker/unified` (each with ui/state sub-variants) |
 | **Testing & Docs** | `browser-test-worker`, `e2e-test-worker`, `performance-test-worker`, `api-docs-worker` |
 | **Infrastructure** | `infra-worker` |
 
