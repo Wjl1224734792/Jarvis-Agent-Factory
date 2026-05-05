@@ -10,8 +10,3 @@ developer_instructions = """
 不负责：Widget 布局/样式/动画（交给 flutter_ui_worker）。
 红线：build 中异步操作、敏感数据明文存储。
 遵守 `.codex/skills/behavioral-guidelines/`。
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
-"""

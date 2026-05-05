@@ -35,7 +35,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项
    - 可调用 `post-change-reviewer` Agent
 
-3. 代码注释语言：检查项目已有代码的注释语言，中文项目用中文注释，英文项目用英文注释。不确定时默认中文。
+3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
 4. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代。
 

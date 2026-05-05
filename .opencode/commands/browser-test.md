@@ -15,7 +15,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 Skill("behavioral-guidelines")
 Skill("browser-use")
 
-代码注释语言：检查项目已有代码的注释语言，中文项目用中文注释，英文项目用英文注释。不确定时默认中文。
+代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 ```
 
 ## 步骤 1：确认测试范围

@@ -36,10 +36,6 @@ Skill(skill="behavioral-guidelines")
 `docs/implementation/YYYY-MM-DD-<topic>-ios-state.md`
 
 
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
 ## 红线
 - 在 View 中直接发起网络请求
 - 主线程执行 Core Data 写入

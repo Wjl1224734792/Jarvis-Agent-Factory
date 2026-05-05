@@ -170,10 +170,6 @@ Skill(skill="behavioral-guidelines")
 | 选择性上下文 | `Skill(skill="context-engineering")` | 确保接收完整需求文档上下文 |
 
 
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
 ## 红线
 
 - 有 TASK 没有映射到 REQ-XXX

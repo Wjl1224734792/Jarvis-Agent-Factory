@@ -24,10 +24,6 @@ permission: {edit: allow, bash: allow, task: deny}
 加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。
 
 
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
 ## 红线
 - render 中异步请求
 - 敏感数据明文存储（必须 expo-secure-store）

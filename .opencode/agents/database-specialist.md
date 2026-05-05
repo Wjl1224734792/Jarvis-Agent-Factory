@@ -61,10 +61,6 @@ permission:
 - docs/database/YYYY-MM-DD-<topic>-database.md
 
 
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
 ## 红线
 
 - 直接在生产环境执行 DDL/DML

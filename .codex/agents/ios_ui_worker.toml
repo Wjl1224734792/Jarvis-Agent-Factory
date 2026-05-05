@@ -10,8 +10,3 @@ developer_instructions = """
 不负责：ObservableObject/SwiftData/网络（交给 ios_state_worker）。
 红线：主线程网络、Optional 强制解包、View 中直接操作数据层。
 遵守 `.codex/skills/behavioral-guidelines/`。
-## 注释语言
-
-代码注释跟随项目已有语言：中文项目用中文注释，英文项目用英文注释。不确定时检查已有代码文件的注释语言。
-
-"""

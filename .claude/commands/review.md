@@ -20,7 +20,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent
    - 收集证据（文件读取、搜索、命令输出），每条 finding 必须有文件/行号、命令输出或文档依据
    - 可并发调用 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`repo-explorer` 等只读 Agent
 
-4. 代码注释语言：检查项目已有代码的注释语言，中文项目用中文注释，英文项目用英文注释。不确定时默认中文。
+4. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
 5. 审查结束后输出结构化报告，包含：
    - 审查范围
