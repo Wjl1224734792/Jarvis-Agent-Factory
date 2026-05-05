@@ -1,7 +1,7 @@
 name = "api_docs_worker"
 description = "API 文档专项工作者：负责 OpenAPI/Swagger 规范文档生成、API 参考文档编写、Postman 集合导出和 API 变更通知。"
 model = "gpt-5.3-codex"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 nickname_candidates = ["API-Docs", "Swagger", "OpenAPI", "Postman"]
 sandbox_mode = "workspace-write"
 

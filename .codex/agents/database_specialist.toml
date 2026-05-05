@@ -1,7 +1,7 @@
 name = "database_specialist"
 description = "数据库专项专家：负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。只输出方案建议，不直接执行 DDL。"
 model = "gpt-5.5"
-model_reasoning_effort = "max"
+model_reasoning_effort = "xhigh"
 nickname_candidates = ["DBA", "SQL", "DB-Opt", "Migration"]
 sandbox_mode = "read-only"
 

@@ -1,7 +1,7 @@
 name = "e2e_test_worker"
 description = "端到端测试工作者：负责跨栈集成测试、浏览器自动化测试（Playwright/Cypress）、契约测试和视觉回归测试。只写端到端测试。"
 model = "gpt-5.3-codex"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 nickname_candidates = ["E2E", "Browser", "Integration"]
 sandbox_mode = "workspace-write"
 

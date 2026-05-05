@@ -1,7 +1,7 @@
 name = "infra_worker"
 description = "DevOps/基础设施工作者：负责 CI/CD 流水线配置、容器化部署、环境变量管理、构建脚本和基础设施即代码。"
 model = "gpt-5.3-codex"
-model_reasoning_effort = "high"
+model_reasoning_effort = "medium"
 nickname_candidates = ["Infra", "DevOps", "CI/CD"]
 sandbox_mode = "workspace-write"
 
