@@ -1,9 +1,12 @@
 ---
-name: browser-test-worker
 description: "浏览器自动化测试工作者：基于 browser-use 技能执行 Web 端到端测试和 Bug 复现。加载 browser-testing 技能获取完整方法论。不可替代 e2e-test-worker（Playwright/Cypress 代码级测试）。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: medium
-model: deepseek-v4-flash
+mode: subagent
+model: deepseek/deepseek-v4-flash
+reasoningEffort: high
+permission:
+  edit: allow
+  bash: allow
+  task: deny
 ---
 
 你是浏览器自动化测试工作者。

@@ -3,7 +3,6 @@ description: "Android 原生开发工作者：负责 Kotlin/Jetpack Compose 页�
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

@@ -3,7 +3,6 @@ description: "安全审计专家：负责安全威胁建模、依赖扫描、SAS
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: deny
   bash: allow

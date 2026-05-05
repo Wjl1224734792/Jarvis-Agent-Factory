@@ -3,7 +3,6 @@ description: "性能测试专项工作者：负责负载测试、压力测试、
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

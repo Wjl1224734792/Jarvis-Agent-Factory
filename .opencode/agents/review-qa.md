@@ -3,7 +3,6 @@ description: "工作流末段：在实现代理交付后（或按需）审查需
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: allow
   bash: allow

@@ -3,7 +3,6 @@ description: "性能只读审查代理：审查前端、后端、数据库、构
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: deny
   bash: allow

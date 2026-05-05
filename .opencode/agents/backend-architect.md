@@ -3,7 +3,6 @@ description: "后端架构师：在规划阶段或架构评审时按需调用；
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0.1
 permission:
   edit: allow
   bash: allow

@@ -3,7 +3,6 @@ description: "项目只读审查代理：审查仓库结构、模块边界、依
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: deny
   bash: allow

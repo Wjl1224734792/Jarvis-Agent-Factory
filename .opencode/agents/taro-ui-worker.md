@@ -3,7 +3,6 @@ description: "Taro UI 专项工作者：负责 Taro 小程序/H5 页面布局、
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission: {edit: allow, bash: allow, task: deny}
 ---
 你是 Taro UI 专项工作者。只负责 UI 呈现，可与 taro-state-worker 并行。

@@ -3,7 +3,6 @@ description: "数据库专项专家：负责数据库架构设计、查询优化
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: allow
   bash: allow

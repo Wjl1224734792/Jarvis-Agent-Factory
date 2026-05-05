@@ -3,7 +3,6 @@ description: "在需求文档已通过 Gate A、任务文档已通过 Gate B 后
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: allow
   bash: allow

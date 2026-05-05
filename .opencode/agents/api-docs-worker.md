@@ -3,7 +3,6 @@ description: "API 文档专项工作者：负责 OpenAPI/Swagger 规范文档生
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

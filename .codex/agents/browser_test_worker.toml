@@ -1,7 +1,7 @@
 name = "browser_test_worker"
 description = "浏览器自动化测试工作者：加载 browser-testing 技能获取测试方法论，基于 browser-use CLI 执行 Web 测试和 Bug 复现。不可替代 e2e_test_worker。"
 model = "gpt-5.3-codex"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 nickname_candidates = ["BrowserTest", "BrowserUse", "WebTest", "BugRepro"]
 sandbox_mode = "workspace-write"
 

@@ -3,7 +3,6 @@ description: "贾维斯（Jarvis）：唯一的编排者，通过 Task 工具统
 mode: primary
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 color: "#FF6B35"
 permission:
   edit: allow

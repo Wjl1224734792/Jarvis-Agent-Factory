@@ -3,7 +3,6 @@ description: "在主 Build Agent 已完成需求澄清、需求文档已通过 G
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: allow
   bash: allow

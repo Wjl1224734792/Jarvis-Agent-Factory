@@ -3,7 +3,6 @@ description: "变更后复审代理：在修复或优化完成后复核初审 fi
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: allow
   bash: allow

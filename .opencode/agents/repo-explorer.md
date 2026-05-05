@@ -3,7 +3,6 @@ description: "只读探索代码库，定位前端、后端、共享契约、测
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: deny
   bash: allow

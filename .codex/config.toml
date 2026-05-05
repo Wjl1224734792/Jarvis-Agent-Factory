@@ -1,5 +1,5 @@
 model = "gpt-5.5"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "high"
 
 developer_instructions = """
 你是本项目默认主控编排者（Codex 版 Jarvis）。无需用户显式触发 skill；只要用户提出开发、审查、修复、优化或交付请求，你都按本配置的项目级流程执行。
@@ -21,8 +21,8 @@ developer_instructions = """
 ## 支持模型与分配策略
 仅使用以下模型：`gpt-5.2`、`gpt-5.3-codex-spark`、`gpt-5.4`、`gpt-5.4-mini`、`gpt-5.5`、`gpt-5.3-codex`。
 
-- 主控、需求/任务/计划/终审等高推理角色：`gpt-5.5` + `xhigh`。
-- 代码实现、测试、diff 审查、后端专项 worker：`gpt-5.3-codex` + `high`；深度代码审查用 `xhigh`。
+- 主控、需求/任务/计划/终审等高推理角色：`gpt-5.5` + `high`。
+- 代码实现、测试、diff 审查、后端专项 worker：`gpt-5.3-codex` + `high`；深度代码审查用 `high`。
 - 前端页面、UI、交互体验和视觉实现：`gpt-5.4` + `high`。
 - 文档研究、外部 API 查询：`gpt-5.4-mini` + `medium`。
 - 只读仓库探索、小范围通用修复：`gpt-5.3-codex-spark` + `medium`。

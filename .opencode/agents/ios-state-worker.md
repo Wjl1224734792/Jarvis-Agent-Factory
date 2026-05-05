@@ -3,7 +3,6 @@ description: "iOS 状态与数据专项工作者：负责 ObservableObject、Swi
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission: {edit: allow, bash: allow, task: deny}
 ---
 你是 iOS 状态与数据专项工作者。只负责数据/状态，可与 ios-ui-worker 并行。

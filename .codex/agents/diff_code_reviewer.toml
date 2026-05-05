@@ -1,7 +1,7 @@
 name = "diff_code_reviewer"
 description = "代码差异只读审查代理：用于项目级只读审查模式；审查 git diff、PR 或指定文件变更中的 bug、回归、安全、边界条件和缺失测试，不修改任何文件。"
 model = "gpt-5.3-codex"
-model_reasoning_effort = "xhigh"
+model_reasoning_effort = "max"
 nickname_candidates = ["Diff-Review", "Code-Review", "Reviewer"]
 sandbox_mode = "read-only"
 

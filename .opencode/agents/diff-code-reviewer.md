@@ -3,7 +3,6 @@ description: "代码差异只读审查代理：审查 git diff、PR 或指定文
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0
 permission:
   edit: deny
   bash: allow

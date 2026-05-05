@@ -3,7 +3,6 @@ description: "文档研究代理：通过 ctx7 CLI 搜索库/框架/API 的最�
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: deny
   bash: allow

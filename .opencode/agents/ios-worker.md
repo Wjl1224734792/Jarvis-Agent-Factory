@@ -3,7 +3,6 @@ description: "iOS 原生开发工作者：负责 Swift/SwiftUI 页面、组件�
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

@@ -3,7 +3,6 @@ description: "Flutter 跨端移动开发工作者：负责 Dart/Flutter iOS/Andr
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

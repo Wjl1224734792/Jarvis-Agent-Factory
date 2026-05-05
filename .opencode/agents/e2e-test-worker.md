@@ -3,7 +3,6 @@ description: "端到端测试工作者：负责跨栈集成测试、浏览器自
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

@@ -3,7 +3,6 @@ description: "后端 API 专项工作者：在主 Build Agent 分配明确子任
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission:
   edit: allow
   bash: allow

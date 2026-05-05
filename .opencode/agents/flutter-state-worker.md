@@ -3,7 +3,6 @@ description: "Flutter 状态与数据专项工作者：负责 Provider/Riverpod/
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission: {edit: allow, bash: allow, task: deny}
 ---
 你是 Flutter 状态与数据专项工作者。只负责数据/状态，可与 flutter-ui-worker 并行。

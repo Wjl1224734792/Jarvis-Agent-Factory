@@ -3,7 +3,6 @@ description: "Flutter UI 专项工作者：负责 Widget 页面布局、Material
 mode: subagent
 model: deepseek/deepseek-v4-flash
 reasoningEffort: high
-temperature: 0
 permission: {edit: allow, bash: allow, task: deny}
 ---
 你是 Flutter UI 专项工作者。只负责 UI 呈现，可与 flutter-state-worker 并行。

@@ -1,7 +1,7 @@
 name = "remediation_worker"
 description = "通用修复与优化执行代理：用于项目级审查修复优化闭环；在没有更合适领域 worker 时执行小范围修复、配置同步、文档同步、脚本修正或跨层胶水改动。"
 model = "gpt-5.3-codex-spark"
-model_reasoning_effort = "medium"
+model_reasoning_effort = "high"
 nickname_candidates = ["Fix-Worker", "Repair", "Optimize"]
 sandbox_mode = "workspace-write"
 

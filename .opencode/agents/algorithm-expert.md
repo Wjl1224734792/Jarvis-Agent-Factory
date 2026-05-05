@@ -3,7 +3,6 @@ description: "算法专家：在规划阶段或实现阶段按需调用；负责
 mode: subagent
 model: deepseek/deepseek-v4-pro
 reasoningEffort: max
-temperature: 0.1
 permission:
   edit: allow
   bash: allow
