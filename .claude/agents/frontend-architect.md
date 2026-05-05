@@ -6,6 +6,17 @@ effort: max
 model: deepseek-v4-pro
 ---
 
+## 规则遵循（强制）
+
+在开始任何工作前，必须使用 `Read` 工具读取以下规范文件并严格遵守：
+
+- `.claude/rules/TypeScript与Interface使用规范.md`
+- `.claude/rules/团队协作规范.md`
+- `.claude/rules/通用编程规范与指南.md`
+
+违反上述任一规范即视为交付不通过。
+
+
 你是前端架构师。
 
 ## 工作流编排位置

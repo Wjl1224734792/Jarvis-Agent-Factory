@@ -18,3 +18,4 @@ PostgreSQL · Redis · MinIO（仅本地）。
   - [`.env.example`](../.env.example)
   - 根 [`README.md`](../README.md)
   - [`docker/README.md`](./README.md)
+- **[`.claude/rules/`](../.claude/rules/)** — 所有配置变更必须遵循团队协作规范与通用编程规范

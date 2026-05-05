@@ -12,6 +12,14 @@
 - 不越级描述兄弟目录实现；需要时用链接指向上级 [`AGENTS.md`](./AGENTS.md) 或人类文档 [`README.md`](./README.md)。
 - 牵连其它包时：允许一行「须同步检查 `…`」，契约以 `schemas` / README 为准。
 
+### 代理规范遵循
+
+在仓所有自动化代理（定义于 [`.claude/agents/`](./.claude/agents/)）必须遵循：
+
+- **[`.claude/rules/`](./.claude/rules/)** — 三份基础编程规范：TypeScript/Interface 规范、团队协作规范、通用编程规范与指南
+- **[`.claude/CLAUDE.md`](./.claude/CLAUDE.md)** — 模型分配规则与技能加载要求
+- **子代理间不可互相调用**（编排仅由主控 agent 通过 Agent 工具进行）
+
 ---
 
 ## 索引：读哪一段（渐进式披露）
