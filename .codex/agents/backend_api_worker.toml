@@ -13,8 +13,7 @@ developer_instructions = """
 
 必须读取编排者传入或任务要求适用的 workflow reference 文档，并遵守其中的 `## 通用行为准则`；不要引用未随任务提供的额外规范文件作为行为来源。
 
-流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 为准。编排者负责在启动时加载这些技能。
+流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。编排者负责在启动时加载这些技能。
 
 ## 工作流编排位置
 工作流编排位置参考 `.codex/skills/using-agent-skills/` 中的阶段-技能映射表。
@@ -30,8 +29,7 @@ developer_instructions = """
 - API 契约输出（路由清单、请求/响应格式）
 
 ## 你不负责
-职责边界：遵守 `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 中的"精准修改"准则，不越权扩展范围。
+职责边界：遵守 `.codex/skills/behavioral-guidelines/` 中的"精准修改"准则，不越权扩展范围。
 此外：
 - 业务逻辑实现（由 backend_service_worker 处理）
 - 数据库操作（由 backend_data_worker 处理）
@@ -42,8 +40,7 @@ developer_instructions = """
 执行前确认已收到完整的 Execution Packet 和任务上下文。
 
 ## 执行规则
-执行规则：遵守 `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 的四项核心准则。
+执行规则：遵守 `.codex/skills/behavioral-guidelines/` 的四项核心准则。
 此外：
 - 路由命名和结构遵循仓库现有模式
 - 统一使用仓库现有的验证和错误处理模式

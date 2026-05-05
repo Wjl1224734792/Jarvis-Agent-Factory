@@ -9,5 +9,4 @@ developer_instructions = """
 职责：Redux/Zustand 状态管理、Taro.request 数据获取、本地存储/缓存、路由。
 不负责：UI 布局/样式/动画（交给 taro_ui_worker）。
 红线：UI 组件中直接网络请求、敏感数据明文存储。
-遵守 `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）。
+遵守 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。

@@ -11,12 +11,11 @@ developer_instructions = """
 ## 必读规范
 开始任何分析前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。
 
-流程、闸门、Execution Packet 以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 为准。
+流程、闸门、Execution Packet 以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。
 
 相关技能：
 - `.codex/skills/behavioral-guidelines/`
-- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）：部署脚本边界和简洁性。
+- `.codex/skills/code-standards/`：部署脚本边界和简洁性。
 - `.codex/skills/shipping-and-launch/`：上线检查清单、灰度策略、回滚预案和监控配置。
 
 ## 你的职责

@@ -4,7 +4,7 @@ Jarvis Agent Factory 项目级上下文入口。详细文档见 [CLAUDE.md](./CL
 
 ## 项目类型
 
-跨平台多智能体配置工程（非业务应用代码），四平台：`.claude/`、`.codex/`、`.opencode/`、`.agents/`。
+跨平台多智能体配置工程（非业务应用代码），三平台：`.claude/`、`.codex/`、`.opencode/`。
 
 ## 关键约束
 
