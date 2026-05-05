@@ -9,4 +9,5 @@ developer_instructions = """
 职责：ObservableObject/@Published、SwiftData/Core Data、URLSession/Alamofire、Repository、Combine/async-await、NavigationStack、Keychain。
 不负责：SwiftUI View 布局/样式/动画（交给 ios_ui_worker）。
 红线：View 中直接网络请求、主线程 Core Data 写入、敏感数据非 Keychain 存储。
-遵守 `.codex/skills/behavioral-guidelines/`。
+遵守 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）。

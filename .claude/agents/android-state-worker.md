@@ -26,6 +26,7 @@ effort: high
 ## 技能加载
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 | 时机 | Skill |
 |------|-------|

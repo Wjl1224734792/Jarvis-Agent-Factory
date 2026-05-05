@@ -37,6 +37,7 @@ effort: high
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 | 时机 | Skill |

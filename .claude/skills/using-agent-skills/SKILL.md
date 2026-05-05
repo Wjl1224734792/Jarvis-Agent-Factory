@@ -83,6 +83,7 @@ Jarvis 按流程调度子 Agent
 | `verification-before-completion` | 交付前自检清单 | 所有实现 Agent |
 | `debugging-and-error-recovery` | 系统化调试与根因追踪 | 所有 Agent（遇到 Bug 时） |
 | `code-simplification` | 降低复杂度、消除重复 | 所有实现 Agent（Refactor 阶段） |
+| `code-standards` | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） | 所有实现 Agent |
 | `behavioral-guidelines` | 行为准则 | 所有 Agent |
 
 ### 阶段 6：审查

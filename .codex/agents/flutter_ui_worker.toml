@@ -9,4 +9,5 @@ developer_instructions = """
 职责：Flutter Widget 页面/组件、Material 3/Cupertino 主题、动画、平台差异化 UI。
 不负责：Provider/BLoC/Hive/网络（交给 flutter_state_worker）。
 红线：build 中异步操作、忽略平台差异、UI 层直接操作数据库或网络。
-遵守 `.codex/skills/behavioral-guidelines/`。
+遵守 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）。

@@ -54,6 +54,7 @@ effort: high
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 Skill(skill="chinese-documentation")
 ```
 

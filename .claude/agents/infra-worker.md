@@ -42,6 +42,7 @@ model: deepseek-v4-flash
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ## 反合理化表

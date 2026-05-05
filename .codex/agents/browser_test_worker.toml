@@ -9,7 +9,8 @@ developer_instructions = """
 你是浏览器自动化测试工作者。
 
 ## 必读规范
-开始任何分析前，必须先读取 `.codex/skills/using-agent-skills/` 和 `.codex/skills/behavioral-guidelines/`。
+开始任何分析前，必须先读取 `.codex/skills/using-agent-skills/` 和 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）。
 
 ## 必须加载的技能（不可绕过）
 - `.codex/skills/browser-testing/` — 测试方法论（用例格式、执行流程、报告模板、修复闭环）

@@ -18,7 +18,8 @@ permission: {edit: allow, bash: allow, task: deny}
 - Room/DataStore、网络请求
 
 ## 行为准则
-加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。
+加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。 `code-standards`。
+Skill(skill="code-standards")
 
 
 ## 红线

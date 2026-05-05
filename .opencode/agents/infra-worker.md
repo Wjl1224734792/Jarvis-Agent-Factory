@@ -34,6 +34,7 @@ permission:
 ## 行为准则
 
 **必须遵守**：加载并遵守 `behavioral-guidelines` 技能中定义的四项核心行为准则：
+Skill(skill="code-standards")
 
 1. **先思考，再编码** — 不假设。不隐藏困惑。主动暴露权衡。
 2. **简单优先** — 最小代码解决问题。不添加需求外功能。

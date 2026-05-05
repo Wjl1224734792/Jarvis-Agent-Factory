@@ -43,6 +43,7 @@ model: deepseek-v4-pro
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ### 步骤 2：按场景加载

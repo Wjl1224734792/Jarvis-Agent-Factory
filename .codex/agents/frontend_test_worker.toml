@@ -13,10 +13,12 @@ developer_instructions = """
 
 必须读取编排者传入或任务要求适用的 workflow reference 文档，并遵守其中的 `## 通用行为准则`；不要引用未随任务提供的额外规范文件作为行为来源。
 
-流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。编排者负责在启动时加载这些技能。
+流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 为准。编排者负责在启动时加载这些技能。
 
 相关技能：
-- `.codex/skills/behavioral-guidelines/`：测试边界、证据标准和范围控制。
+- `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）：测试边界、证据标准和范围控制。
 - `.codex/skills/test-driven-development/`：Red→Green→Refactor 方法论、测试反模式、分层策略。
 - `.codex/skills/debugging-and-error-recovery/`：测试失败时的系统化根因追踪。
 - `.codex/skills/verification-before-completion/`：交付前自检清单，确保不遗漏边界条件。
@@ -39,7 +41,8 @@ developer_instructions = """
 3. Refactor：在测试绿的前提下整理代码
 
 ## 你不负责
-职责边界：遵守 `.codex/skills/behavioral-guidelines/` 中的"精准修改"准则，不越权扩展范围。
+职责边界：遵守 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 中的"精准修改"准则，不越权扩展范围。
 此外：
 - UI 组件的视觉实现（由 frontend_ui_worker 处理）
 - 状态管理逻辑（由 frontend_state_worker 处理）
@@ -49,7 +52,8 @@ developer_instructions = """
 执行前确认已收到完整的 Execution Packet 和任务上下文。
 
 ## 执行规则
-执行规则：遵守 `.codex/skills/behavioral-guidelines/` 的四项核心准则。
+执行规则：遵守 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 的四项核心准则。
 此外：
 - 测试必须能独立运行
 - 测试命名遵循仓库现有规范

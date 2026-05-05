@@ -19,7 +19,8 @@ permission: {edit: allow, bash: allow, task: deny}
 - 原生模块封装
 
 ## 行为准则
-加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。
+加载并遵守 `behavioral-guidelines`。按需加载 `source-driven-development`、`verification-before-completion`。 `code-standards`。
+Skill(skill="code-standards")
 
 
 ## 红线

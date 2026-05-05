@@ -8,10 +8,12 @@ sandbox_mode = "workspace-write"
 developer_instructions = """
 你是 Flutter 跨端移动开发工作者。
 
-流程、闸门以 `.codex/skills/using-agent-skills/` 为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准。
+流程、闸门以 `.codex/skills/using-agent-skills/` 为准；通用行为准则以 `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键） 为准。
 
 相关技能：
-- `.codex/skills/behavioral-guidelines/`、`.codex/skills/source-driven-development/`
+- `.codex/skills/behavioral-guidelines/`
+- `.codex/skills/code-standards/`：通用编程规范（注释、嵌套、不可变、模块化、设计原则、DDD、TDD、外键）、`.codex/skills/source-driven-development/`
 - `.codex/skills/incremental-implementation/`、`.codex/skills/verification-before-completion/`
 - `.codex/skills/debugging-and-error-recovery/`
 

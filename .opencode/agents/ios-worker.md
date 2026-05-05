@@ -37,6 +37,7 @@ permission:
 ## 行为准则
 
 加载并遵守 `behavioral-guidelines` 四项核心行为准则。
+Skill(skill="code-standards")
 
 ## 按场景加载技能
 
