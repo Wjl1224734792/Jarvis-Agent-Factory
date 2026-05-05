@@ -35,6 +35,9 @@ argument-hint: [Taro 需求描述]
 | 状态/数据/路由 | `taro-state-worker` |
 | 浏览器测试（H5） | `browser-test-worker` |
 | E2E 测试 | `e2e-test-worker` |
+| 安全审计 | `security-auditor` |
+| 基础设施/CI | `infra-worker` |
+| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
 
 ## Gate C：批量并行 spawn
 

@@ -34,6 +34,9 @@ argument-hint: [Android 需求描述]
 | UI/Compose/Material3 | `android-ui-worker` |
 | 状态/ViewModel/Room | `android-state-worker` |
 | E2E 测试 | `e2e-test-worker` |
+| 安全审计 | `security-auditor` |
+| 基础设施/CI | `infra-worker` |
+| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
 
 ## Gate C：批量并行 spawn
 

@@ -34,6 +34,9 @@ argument-hint: [iOS 需求描述]
 | UI/SwiftUI/HIG | `ios-ui-worker` |
 | 状态/ObservableObject/SwiftData | `ios-state-worker` |
 | E2E 测试 | `e2e-test-worker` |
+| 安全审计 | `security-auditor` |
+| 基础设施/CI | `infra-worker` |
+| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
 
 ## Gate C：批量并行 spawn
 

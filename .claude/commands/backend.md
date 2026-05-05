@@ -53,9 +53,11 @@ argument-hint: [后端需求描述]
 | 业务逻辑/领域 | `backend-service-worker` |
 | 数据层/Schema/迁移 | `backend-data-worker` |
 | 后端测试 | `backend-test-worker` |
+| 性能/负载测试 | `performance-test-worker` |
 | 安全审计 | `security-auditor` |
 | API 文档 | `api-docs-worker` |
 | 基础设施/CI | `infra-worker` |
+| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
 
 ## Gate C：批量并行 spawn
 
@@ -71,8 +73,8 @@ argument-hint: [后端需求描述]
 ```
 Batch 1: [backend-api-worker, backend-data-worker]     ← API + Schema 可并行
 Batch 2: [backend-service-worker]                       ← 依赖 Batch 1 契约
-Batch 3: [backend-test-worker]                          ← 单元/集成测试
-Batch 4: [api-docs-worker]                              ← API 文档生成
+Batch 3: [backend-test-worker, api-docs-worker]         ← 测试 + 文档可并行
+Batch 4: [performance-test-worker]                      ← 负载/压力测试
 Batch 5: [security-auditor]                             ← 安全审计
 ```
 
@@ -80,8 +82,10 @@ Batch 5: [security-auditor]                             ← 安全审计
 
 ```
 全部实现 Batch 完成
-  → spawn backend-test-worker（单元+集成）
-  → 全部通过后 Gate C2 通过
+  → 步骤 1：spawn backend-test-worker（单元+集成测试）
+  → 步骤 2：spawn performance-test-worker（负载/压力/基准测试）
+     如涉及 API 性能要求，不可跳过；使用 k6/Gatling/Locust
+  → 全部通过，汇总 docs/testing/ → Gate C2 通过
   → 进入 Gate D 评审（spawn review-qa）
 ```
 
