@@ -2,6 +2,7 @@
 name: ios-ui-worker
 description: "iOS UI 专项工作者：负责 SwiftUI 页面布局、组件构建、Human Interface Guidelines 主题、响应式适配和无障碍访问。不涉及状态管理或数据层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+effort: high
 model: deepseek-v4-flash
 ---
 

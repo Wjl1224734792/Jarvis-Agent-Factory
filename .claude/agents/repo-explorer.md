@@ -2,6 +2,7 @@
 name: repo-explorer
 description: "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主 Build Agent 澄清、task-design、planner 或实现前按需插入，为各阶段提供事实依据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch
+effort: high
 model: deepseek-v4-flash
 ---
 

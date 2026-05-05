@@ -2,6 +2,7 @@
 name: database-specialist
 description: "数据库专项专家：负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。不编写业务逻辑代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+effort: max
 model: deepseek-v4-pro
 ---
 

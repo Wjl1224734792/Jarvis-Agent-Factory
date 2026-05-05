@@ -2,6 +2,7 @@
 name: remediation-worker
 description: "通用修复与优化执行代理：在没有更合适领域 worker 时执行小范围修复、配置同步、文档同步、脚本修正或跨层胶水改动。"
 tools: Read, Write, Edit, Bash, Glob, Grep
+effort: high
 model: deepseek-v4-flash
 ---
 

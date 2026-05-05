@@ -2,6 +2,7 @@
 name: rn-state-worker
 description: "React Native 状态与数据专项工作者：负责 Zustand/Redux 状态管理、AsyncStorage 存储、数据获取、React Navigation 路由。不涉及 UI 样式或布局。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+effort: high
 model: deepseek-v4-flash
 ---
 

@@ -2,6 +2,7 @@
 name: rn-ui-worker
 description: "React Native UI 专项工作者：负责 RN 页面布局、组件构建、样式实现、交互动画和平台适配样式。不涉及状态管理或数据获取。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+effort: high
 model: deepseek-v4-flash
 ---
 

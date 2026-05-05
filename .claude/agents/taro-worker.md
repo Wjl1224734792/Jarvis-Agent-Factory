@@ -2,6 +2,7 @@
 name: taro-worker
 description: "Taro 跨端移动开发工作者：在主 Build Agent 分配明确子任务后执行；负责 Taro（React/Vue）小程序/H5/移动端页面、组件、交互与平台适配。不涉及后端或 API。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
+effort: high
 model: deepseek-v4-flash
 ---
 
