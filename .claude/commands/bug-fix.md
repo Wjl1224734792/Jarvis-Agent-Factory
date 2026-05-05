@@ -4,13 +4,6 @@ argument-hint: [Bug 描述、URL 或复现步骤]
 allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 ---
 
-## 规范遵循
-
-所有工作必须遵守 `.claude/CLAUDE.md` 中列出的规范：
-- TypeScript 与 Interface 使用规范
-- 团队协作规范
-- 通用编程规范与指南
-
 # Bug 修复闭环（浏览器复现 → 修复 → 验证）
 
 立即执行以下步骤：
@@ -20,7 +13,7 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 Skill("behavioral-guidelines")
 Skill("browser-use")
 
-代码注释语言：检查项目已有代码的注释语言，中文项目用中文注释，英文项目用英文注释。不确定时默认中文。
+代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 ```
 
 ## 步骤 1：收集 Bug 信息（不可绕过）

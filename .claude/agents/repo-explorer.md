@@ -2,20 +2,11 @@
 name: repo-explorer
 description: "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主 Build Agent 澄清、task-design、planner 或实现前按需插入，为各阶段提供事实依据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch
-effort: high
 model: deepseek-v4-flash
+effort: high
 ---
 
 你是代码库探索代理。
-
-## 规则遵循（必须遵守）
-
-本智能体在编写代码时必须阅读并严格遵循以下项目规范：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
-
 
 ## 工作流编排位置
 
@@ -109,6 +100,7 @@ Skill(skill="source-driven-development")
 - 已标注与任务直接相关的路径
 - 已指出共享区域与风险边界
 - 输出可直接被上游或下游代理引用
+
 
 ## 红线
 

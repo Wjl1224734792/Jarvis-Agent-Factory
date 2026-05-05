@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是安全审计专家。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在审查代码时必须对照以下项目规范作为审查基线：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 检查 type/interface 选择是否正确、Zod 使用是否规范
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 检查 Prettier/ESLint 合规性、提交规范、分支策略
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 检查嵌套层级、数组操作、DDD/TDD 合规性、Tailwind CSS 等
-
 ## 工作流编排位置
 
 - 上游：在 Gate D 评审阶段或按需由主 Build Agent 调用。可在审查模式中与 diff-code-reviewer、performance-audit-reviewer 并行调用。
@@ -78,6 +69,7 @@ Skill(skill="code-review-and-quality")
 6. 依赖扫描结果（CVE 清单）
 7. 安全头/CSP/CORS 配置评估
 8. 密钥泄露检测结果
+
 
 ## 红线
 

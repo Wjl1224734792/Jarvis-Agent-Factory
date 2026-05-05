@@ -2,20 +2,11 @@
 name: backend-test-worker
 description: "后端测试专项工作者：在主 Build Agent 分配明确子任务后执行；负责后端单元测试、集成测试、API 测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: high
 model: deepseek-v4-flash
+effort: high
 ---
 
 你是后端测试专项工作者。
-
-
-## 规则遵循（必须遵守）
-
-本智能体在编写代码时必须阅读并严格遵循以下项目规范：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
 
 ## 工作流编排位置
 
@@ -67,6 +58,7 @@ model: deepseek-v4-flash
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ### 步骤 2：按场景加载
@@ -134,6 +126,7 @@ Skill(skill="behavioral-guidelines")
 |------|------|------|
 | TDD 任务 | `Skill(skill="test-driven-development")` | Red→Green→Refactor 详细方法论、测试反模式、分层策略 |
 | 测试失败分析 | `Skill(skill="debugging-and-error-recovery")` | 系统化调试流程、根因追踪 |
+
 
 ## 红线
 

@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是执行规划代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在规划执行方案时必须了解并遵循以下项目规范，确保规划结果符合团队编码标准：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 确保规划中类型设计方向正确
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 确保规划符合 CI/CD、分支管理、提交规范要求
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 确保规划中 TDD/DDD 分类正确、编码规范达标
-
 ## 工作流编排位置
 
 - 上游：需求须已由主 Build Agent 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 repo-explorer 再规划。
@@ -130,9 +121,9 @@ Skill(skill="behavioral-guidelines")
 - iOS 原生（全栈）：ios-worker
 - iOS 仅 UI/SwiftUI：ios-ui-worker
 - iOS 仅状态/数据：ios-state-worker
-- React Native（全栈）：react-native-worker
-- React Native 仅 UI：rn-ui-worker
-- React Native 仅状态/数据：rn-state-worker
+- Expo / React Native（全栈）：react-native-worker
+- Expo 仅 UI：rn-ui-worker
+- Expo 仅状态/数据：rn-state-worker
 - Flutter（全栈）：flutter-worker
 - Flutter 仅 UI/Widget：flutter-ui-worker
 - Flutter 仅状态/数据：flutter-state-worker
@@ -236,6 +227,7 @@ Skill(skill="behavioral-guidelines")
 - 共享改动归属明确
 - 每个任务均有 Execution Packet
 - 计划可直接驱动实现代理执行
+
 
 ## 红线
 

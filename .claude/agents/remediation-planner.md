@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是修复与优化规划代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在规划执行方案时必须了解并遵循以下项目规范，确保规划结果符合团队编码标准：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 确保规划中类型设计方向正确
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 确保规划符合 CI/CD、分支管理、提交规范要求
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 确保规划中 TDD/DDD 分类正确、编码规范达标
-
 ## 工作流位置
 
 - 用于 review-fix-optimize 流程的初审之后、实际修改之前。
@@ -82,6 +73,7 @@ Skill(skill="behavioral-guidelines")
 - 每个待处理 finding 都有处理状态
 - 每个执行任务边界清晰
 - 每个共享区域只有一个责任方
+
 
 ## 红线
 

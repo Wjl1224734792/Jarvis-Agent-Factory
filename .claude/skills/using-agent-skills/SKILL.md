@@ -73,6 +73,7 @@ Jarvis 按流程调度子 Agent
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
 | `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | docs-researcher Agent |
+| `find-skills` | 搜索和安装开源 Agent 技能 | docs-researcher Agent |
 
 ### 阶段 5：实现
 | 技能 | 用途 | 加载者 |
@@ -83,6 +84,7 @@ Jarvis 按流程调度子 Agent
 | `verification-before-completion` | 交付前自检清单 | 所有实现 Agent |
 | `debugging-and-error-recovery` | 系统化调试与根因追踪 | 所有 Agent（遇到 Bug 时） |
 | `code-simplification` | 降低复杂度、消除重复 | 所有实现 Agent（Refactor 阶段） |
+| `code-standards` | 通用编程规范（注释/嵌套/不可变/设计原则/DDD/外键） | 所有实现 Agent |
 | `behavioral-guidelines` | 行为准则 | 所有 Agent |
 
 ### 阶段 6：审查
@@ -166,15 +168,16 @@ Skill(skill="<技能名>")
 | 6 | `debugging-and-error-recovery` | 调试 | 系统化调试流程与根因追踪 |
 | 7 | `documentation-and-adrs` | 架构 | 架构决策记录 |
 | 8 | `find-docs` | 探索 | 文档查询（WebSearch/WebFetch） |
-| 9 | `finishing-a-development-branch` | 流程 | 分支合并、清理、部署验证 |
-| 10 | `git-workflow-and-versioning` | 流程 | Git 工作流与版本管理 |
-| 11 | `idea-refine` | 梳理 | 模糊想法 → 结构化问题 |
-| 12 | `incremental-implementation` | 实现 | 小步增量交付 |
-| 13 | `planning-and-task-breakdown` | 规划 | 垂直切片、风险标注、并行识别 |
-| 14 | `security-and-hardening` | 安全 | 安全漏洞修复与加固 |
-| 15 | `shipping-and-launch` | 流程 | 上线检查清单与灰度策略 |
-| 16 | `source-driven-development` | 实现 | 先读代码再写代码 |
-| 17 | `spec-driven-development` | 需求 | 结构化需求规格编写 |
-| 18 | `test-driven-development` | 测试 | Red→Green→Refactor 方法论 |
-| 19 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
-| 20 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |
+| 9 | `find-skills` | 探索 | 搜索和安装开源 Agent 技能 |
+| 10 | `finishing-a-development-branch` | 流程 | 分支合并、清理、部署验证 |
+| 11 | `git-workflow-and-versioning` | 流程 | Git 工作流与版本管理 |
+| 12 | `idea-refine` | 梳理 | 模糊想法 → 结构化问题 |
+| 13 | `incremental-implementation` | 实现 | 小步增量交付 |
+| 14 | `planning-and-task-breakdown` | 规划 | 垂直切片、风险标注、并行识别 |
+| 15 | `security-and-hardening` | 安全 | 安全漏洞修复与加固 |
+| 16 | `shipping-and-launch` | 流程 | 上线检查清单与灰度策略 |
+| 17 | `source-driven-development` | 实现 | 先读代码再写代码 |
+| 18 | `spec-driven-development` | 需求 | 结构化需求规格编写 |
+| 19 | `test-driven-development` | 测试 | Red→Green→Refactor 方法论 |
+| 20 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
+| 21 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |

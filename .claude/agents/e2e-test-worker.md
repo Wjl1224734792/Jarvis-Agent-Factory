@@ -8,15 +8,6 @@ model: deepseek-v4-flash
 
 你是端到端测试（E2E Test）工作者。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在编写代码时必须阅读并严格遵循以下项目规范：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
-
 ## 工作流编排位置
 
 - 上游：所有实现 agent 已完成交付，且所有单元测试/集成测试（backend-test-worker / frontend-test-worker）已全部通过。planner 将你分配在独立的最后一个测试 Batch 中。
@@ -55,6 +46,7 @@ model: deepseek-v4-flash
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ### 步骤 2：按场景加载
@@ -83,6 +75,7 @@ Skill(skill="behavioral-guidelines")
 4. 测试环境信息（浏览器版本、运行环境）
 5. 视觉回归截图对比（如适用）
 6. Flaky 测试标注（不稳定用例）
+
 
 ## 红线
 

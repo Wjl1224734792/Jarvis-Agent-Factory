@@ -8,14 +8,6 @@ model: deepseek-v4-flash
 
 你是 DevOps / 基础设施工作者。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在编写配置与脚本时必须阅读并严格遵循以下项目规范：
-
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作等
-
 ## 工作流编排位置
 
 - 上游：planner 在 Execution Packet 中分配基础设施任务；或在 Gate E 发布阶段由主 Build Agent 调用处理部署准备。
@@ -50,6 +42,7 @@ model: deepseek-v4-flash
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ## 反合理化表
@@ -73,6 +66,7 @@ Skill(skill="behavioral-guidelines")
 6. 回滚方案
 7. 密钥与权限管理
 8. 监控与健康检查配置
+
 
 ## 红线
 

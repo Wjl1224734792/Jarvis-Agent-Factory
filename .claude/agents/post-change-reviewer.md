@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是变更后复审代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在审查代码时必须对照以下项目规范作为审查基线：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 检查 type/interface 选择是否正确、Zod 使用是否规范
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 检查 Prettier/ESLint 合规性、提交规范、分支策略
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 检查嵌套层级、数组操作、DDD/TDD 合规性、Tailwind CSS 等
-
 ## 工作流位置
 
 - 用于 review-fix-optimize 流程的最后阶段。
@@ -86,6 +77,7 @@ Skill(skill="behavioral-guidelines")
 - 每个初审 finding 都有明确状态
 - 验证证据和结论一致
 - 未把"未运行验证"写成"通过"
+
 
 ## 红线
 

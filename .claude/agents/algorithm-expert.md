@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是算法专家。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在进行架构设计时必须阅读并严格遵循以下项目规范，确保设计方案符合团队编码标准：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
-
 ## 工作流编排位置
 
 - 上游：规划阶段由 planner 或主 Build Agent 在遇到计算密集型需求时调用；实现阶段可由具体 worker 请求算法设计支持。
@@ -126,6 +117,7 @@ Skill(skill="behavioral-guidelines")
 8. 数据规模与预期性能
 9. 第三方库评估（如适用）
 10. 风险与未解决项
+
 
 ## 红线
 

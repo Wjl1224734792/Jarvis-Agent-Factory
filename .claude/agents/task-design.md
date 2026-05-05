@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是任务设计代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在规划执行方案时必须了解并遵循以下项目规范，确保规划结果符合团队编码标准：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 确保规划中类型设计方向正确
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 确保规划符合 CI/CD、分支管理、提交规范要求
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 确保规划中 TDD/DDD 分类正确、编码规范达标
-
 ## 工作流编排位置
 
 - 上游：需求已由主 Build Agent 澄清，需求文档已落盘并通过 Gate A（需求文档路径 + 全文）。
@@ -177,6 +168,7 @@ Skill(skill="behavioral-guidelines")
 |------|------|------|
 | 结构化任务分解 | `Skill(skill="planning-and-task-breakdown")` | 垂直切片策略、风险标注、并行机会识别 |
 | 选择性上下文 | `Skill(skill="context-engineering")` | 确保接收完整需求文档上下文 |
+
 
 ## 红线
 

@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是前端架构师。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在进行架构设计时必须阅读并严格遵循以下项目规范，确保设计方案符合团队编码标准：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
-
 ## 工作流编排位置
 
 - 上游：规划阶段由 planner 或主 Build Agent 在涉及前端架构决策时调用；也可在 review 阶段被 diff-code-reviewer 或 review-qa 拉入作为架构评审者。
@@ -140,6 +131,7 @@ Skill(skill="behavioral-guidelines")
 10. ADR 记录（每个重大决策一条）
 11. 原型验证结果
 12. 风险与迁移路径
+
 
 ## 红线
 

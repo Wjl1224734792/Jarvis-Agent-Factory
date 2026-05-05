@@ -4,14 +4,6 @@ argument-hint: [审查范围]
 allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 ---
 
-## 规范遵循
-
-所有工作必须遵守 `.claude/CLAUDE.md` 中列出的规范：
-- TypeScript 与 Interface 使用规范
-- 团队协作规范
-- 通用编程规范与指南
-
-
 # 审查修复优化闭环
 
 立即执行以下初始化步骤：
@@ -20,32 +12,31 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
 
-2. 确认你进入**审查修复优化闭环模式**。完整链路不可跳过、不可倒置：
+2. 确认进入**审查修复优化闭环模式**。完整链路不可跳过、不可倒置（不可绕过）。
 
-   ### 阶段一：初审
-   - 界定审查范围
+   ### **阶段一：初审**（不可绕过）
+   - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
    - 可并发调用 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`repo-explorer` 收集 findings
-   - 每条 finding 必须有文件/行号、命令输出或文档依据
+   - **涉及前端页面/交互的 Bug**：先加载 `Skill("browser-use")`，用 browser-use 复现 Bug（导航→复现步骤→截图异常状态），复现证据作为 finding 附件
    - 所有只读 Agent 返回后再进入下一阶段
 
-   ### 阶段二：修复/优化规划
-   - 将初审 findings 转为可执行修复计划
-   - 标注修复顺序、责任方、共享区域唯一责任方
+   ### **阶段二：修复/优化规划**（不可绕过）
+   - 将 findings 转为可执行修复计划，标注修复顺序、责任方、共享区域唯一责任方
    - 可调用 `remediation-planner` Agent 辅助规划
 
-   ### 阶段三：执行
-   - 按修复计划顺序或并发执行
-   - 共享区域必须唯一责任方，不得多个 Agent 同时修改
+   ### **阶段三：执行**（不可绕过）
+   - 按计划顺序或并发执行；共享区域必须唯一责任方，不得多个 Agent 同时修改
 
-   ### 阶段四：验证
-   - 验证修复/优化已生效
-   - 运行测试确保没有回归
+   ### **阶段四：验证**（不可绕过）
+   - Lint + Type-check + Build 三项全部通过（失败→回退修复），运行测试确保无回归
+   - **涉及前端页面/交互的修复**：用 browser-use 按相同步骤重新操作，截图对比修复前后，确认 Bug 不再出现
 
-   ### 阶段五：复审
-   - 逐项关闭初审 findings
-   - 输出关闭矩阵，报告未关闭的风险项
+   ### **阶段五：复审**（不可绕过）
+   - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项
    - 可调用 `post-change-reviewer` Agent
 
-3. **红线**：不跳过初审直接修复，不缺少验证证据就宣称完成。
+3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
+
+4. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代。
 
 向用户确认已进入审查修复优化闭环模式。

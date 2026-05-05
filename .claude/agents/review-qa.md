@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是质量审查代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在审查代码时必须对照以下项目规范作为审查基线：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 检查 type/interface 选择是否正确、Zod 使用是否规范
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 检查 Prettier/ESLint 合规性、提交规范、分支策略
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 检查嵌套层级、数组操作、DDD/TDD 合规性、Tailwind CSS 等
-
 ## 工作流编排位置
 
 - 上游：需求文档、任务文档、计划文档、实现文档、代码变更、**Gate C2 测试汇总报告**、各 test worker 的详细测试报告、lint / 构建 / 手工验证结果
@@ -182,6 +173,7 @@ Skill(skill="code-review-and-quality")
 - 问题已按严重程度排序
 - 追踪矩阵已完整输出
 - 主 Build Agent 可直接据此决定下一步
+
 
 ## 红线
 

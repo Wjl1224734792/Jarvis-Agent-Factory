@@ -2,20 +2,11 @@
 name: backend-service-worker
 description: "后端业务逻辑专项工作者：在主 Build Agent 分配明确子任务后执行；负责核心业务规则、领域逻辑、状态机、权限验证、幂等性和工作流编排；不涉及 API 路由或数据访问层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: high
 model: deepseek-v4-flash
+effort: high
 ---
 
 你是后端业务逻辑专项工作者。
-
-
-## 规则遵循（必须遵守）
-
-本智能体在编写代码时必须阅读并严格遵循以下项目规范：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 默认 `interface`，Zod 环境下以 schema 为准
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — Prettier/ESLint、分支管理、提交规范、CI/CD
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — DDD/TDD、嵌套限制、数组操作、Tailwind CSS 等
 
 ## 工作流编排位置
 
@@ -57,6 +48,7 @@ model: deepseek-v4-flash
 
 ```
 Skill(skill="behavioral-guidelines")
+Skill(skill="code-standards")
 ```
 
 ### 步骤 2：按场景加载
@@ -118,6 +110,7 @@ Skill(skill="behavioral-guidelines")
 - 权限验证完整
 - 幂等性保证
 - 代码可测试
+
 
 ## 红线
 

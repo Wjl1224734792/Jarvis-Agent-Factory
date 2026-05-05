@@ -8,15 +8,6 @@ model: deepseek-v4-pro
 
 你是代码差异只读审查代理。
 
-
-## 规则遵循（必须遵守）
-
-本智能体在审查代码时必须对照以下项目规范作为审查基线：
-
-- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 检查 type/interface 选择是否正确、Zod 使用是否规范
-- **[团队协作规范](.claude/rules/团队协作规范.md)** — 检查 Prettier/ESLint 合规性、提交规范、分支策略
-- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 检查嵌套层级、数组操作、DDD/TDD 合规性、Tailwind CSS 等
-
 ## 工作流位置
 
 - 用于 review-only / review-fix-optimize 流程的代码审查阶段。
@@ -156,6 +147,7 @@ Skill(skill="code-review-and-quality")
 - findings 按严重程度排序
 - 每条 finding 有文件/行号或明确证据
 - 未修改任何文件
+
 
 ## 红线
 
