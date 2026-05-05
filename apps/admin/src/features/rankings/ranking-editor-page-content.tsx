@@ -22,6 +22,7 @@ import {
   toRankingDraftItems,
   type RankingDraftItem
 } from "./rankings-admin-helpers";
+import { createMediaManager, uploadMediaBatch } from "@feijia/rich-text-editor";
 
 type RankingFormValues = {
   title: string;
@@ -42,7 +43,9 @@ export function RankingEditorPage() {
   const [selectedModelSlug, setSelectedModelSlug] = useState<string | null>(null);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
+  const [coverBlobUrl, setCoverBlobUrl] = useState<string | null>(null);
+  const [itemBlobUrls, setItemBlobUrls] = useState<Record<string, string>>({});
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
   const detailQuery = useQuery({
     queryKey: ["admin-ranking-detail", editId],
@@ -67,6 +70,9 @@ export function RankingEditorPage() {
     });
     setCoverImageUrl(ranking.coverImageUrl ?? "");
     setDraftItems(toRankingDraftItems(ranking.items));
+    // Reset deferred upload tracking when edit data loads
+    setCoverBlobUrl(null);
+    setItemBlobUrls({});
   }, [detailQuery.data?.item, form]);
 
   const selectedModelSlugs = useMemo(
@@ -86,6 +92,12 @@ export function RankingEditorPage() {
   const watchedTitle = Form.useWatch("title", form);
   const watchedCoverImageFileId = Form.useWatch("coverImageFileId", form);
   const watchedItemAddPolicy = Form.useWatch("itemAddPolicy", form) ?? "owner";
+
+  const isFormValid =
+    (coverBlobUrl !== null || (watchedCoverImageFileId?.trim().length ?? 0) > 0) &&
+    draftItems.length > 0 &&
+    draftItems.every((item) => item.title.trim().length > 0) &&
+    (watchedTitle?.trim()?.length ?? 0) > 1;
 
   function appendModel(slug: string) {
     const model = modelsQuery.data?.items.find((item) => item.slug === slug);
@@ -113,46 +125,38 @@ export function RankingEditorPage() {
     setDraftItems((items) => items.map((item) => (item.id === id ? { ...item, ...patch } : item)));
   }
 
-  async function uploadImage(file: File | null, target: "cover" | "item") {
+  function handleSelectCover(file: File | null) {
     if (!file) {
       return;
     }
 
-    setIsUploading(true);
     setSubmitError(null);
-    try {
-      const response =
-        target === "cover"
-          ? await apiClient.uploadRankingCoverImage(file)
-          : await apiClient.uploadRankingItemImage(file);
-      if (target === "cover") {
-        form.setFieldValue("coverImageFileId", response.item.id);
-        setCoverImageUrl(response.item.url);
-      } else if (activeImageItemId) {
-        updateItem(activeImageItemId, {
-          imageFileId: response.item.id,
-          imageUrl: response.item.url
-        });
-      }
-    } catch (reason: unknown) {
-      setSubmitError(reason instanceof Error ? reason.message : "图片上传失败");
-    } finally {
-      setIsUploading(false);
-      if (target === "cover" && coverInputRef.current) {
-        coverInputRef.current.value = "";
-      }
-      if (target === "item" && itemImageInputRef.current) {
-        itemImageInputRef.current.value = "";
-      }
-      setActiveImageItemId(null);
+    const { blobUrl } = mediaManager.register(file);
+    setCoverImageUrl(blobUrl);
+    setCoverBlobUrl(blobUrl);
+    form.setFieldValue("coverImageFileId", "");
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
     }
   }
 
-  const isFormValid =
-    (watchedCoverImageFileId?.trim().length ?? 0) > 0 &&
-    draftItems.length > 0 &&
-    draftItems.every((item) => item.title.trim().length > 0) &&
-    (watchedTitle?.trim()?.length ?? 0) > 1;
+  function handleSelectItemImage(targetItemId: string, file: File | null) {
+    if (!file) {
+      return;
+    }
+
+    setSubmitError(null);
+    const { blobUrl } = mediaManager.register(file);
+    setItemBlobUrls((prev) => ({ ...prev, [targetItemId]: blobUrl }));
+    updateItem(targetItemId, {
+      imageFileId: "",
+      imageUrl: blobUrl
+    });
+    if (itemImageInputRef.current) {
+      itemImageInputRef.current.value = "";
+    }
+    setActiveImageItemId(null);
+  }
 
   return (
     <AdminPage
@@ -201,7 +205,6 @@ export function RankingEditorPage() {
                 <Space wrap>
                   <Button
                     icon={<ImagePlusIcon className="size-4" />}
-                    loading={isUploading}
                     onClick={() => coverInputRef.current?.click()}
                     type="default"
                   >
@@ -212,6 +215,7 @@ export function RankingEditorPage() {
                       onClick={() => {
                         form.setFieldValue("coverImageFileId", "");
                         setCoverImageUrl("");
+                        setCoverBlobUrl(null);
                       }}
                       size="small"
                       type="link"
@@ -234,7 +238,7 @@ export function RankingEditorPage() {
                 accept="image/*"
                 hidden
                 onChange={(event) => {
-                  void uploadImage(event.target.files?.[0] ?? null, "cover");
+                  handleSelectCover(event.target.files?.[0] ?? null);
                 }}
                 ref={coverInputRef}
                 type="file"
@@ -345,7 +349,9 @@ export function RankingEditorPage() {
               accept="image/*"
               hidden
               onChange={(event) => {
-                void uploadImage(event.target.files?.[0] ?? null, "item");
+                if (activeImageItemId) {
+                  handleSelectItemImage(activeImageItemId, event.target.files?.[0] ?? null);
+                }
               }}
               ref={itemImageInputRef}
               type="file"
@@ -398,23 +404,77 @@ export function RankingEditorPage() {
               <div className="admin-form-actions">
                 <Button
                   block
-                  disabled={isSubmitting || isUploading || !isFormValid}
+                  disabled={isSubmitting || !isFormValid}
                   loading={isSubmitting}
                   onClick={() => {
                     setSubmitError(null);
                     setIsSubmitting(true);
                     void form
                       .validateFields()
-                      .then((values) => {
-                        if (!values.coverImageFileId?.trim()) {
+                      .then(async (values) => {
+                        if (!coverBlobUrl && !values.coverImageFileId?.trim()) {
                           throw new Error("请先上传榜单封面。");
                         }
 
-                        const payload = buildRankingPayload(values, draftItems);
+                        // Upload pending images (cover + item images)
+                        const files = mediaManager.getAllFiles();
+                        let coverFileId = values.coverImageFileId?.trim() ?? "";
+                        const updatedDraftItems = [...draftItems];
+
+                        if (files.size > 0) {
+                          const result = await uploadMediaBatch(
+                            files,
+                            (file) => apiClient.uploadRankingCoverImage(file).then((r) => r.item),
+                            () => Promise.reject(new Error("榜单不支持视频上传"))
+                          );
+
+                          // Build blobUrl → fileId mapping
+                          const blobIdMap = new Map<string, string>();
+                          {
+                            let imageIdx = 0;
+                            for (const [blobUrl] of files) {
+                              const id = result.imageIds[imageIdx];
+                              if (id) {
+                                blobIdMap.set(blobUrl, id);
+                              }
+                              imageIdx++;
+                            }
+                          }
+
+                          // Map cover blobUrl to real fileId
+                          if (coverBlobUrl) {
+                            const realId = blobIdMap.get(coverBlobUrl);
+                            if (realId) {
+                              coverFileId = realId;
+                            }
+                          }
+
+                          // Map item image blobUrls to real fileIds
+                          for (let i = 0; i < updatedDraftItems.length; i++) {
+                            const itemBlobUrl = itemBlobUrls[updatedDraftItems[i].id];
+                            if (itemBlobUrl && blobIdMap.has(itemBlobUrl)) {
+                              updatedDraftItems[i] = {
+                                ...updatedDraftItems[i],
+                                imageFileId: blobIdMap.get(itemBlobUrl) ?? updatedDraftItems[i].imageFileId,
+                                imageUrl: result.urlMapping.get(itemBlobUrl) ?? updatedDraftItems[i].imageUrl
+                              };
+                            }
+                          }
+                        }
+
+                        const payload = buildRankingPayload(
+                          {
+                            title: values.title,
+                            coverImageFileId: coverFileId || null,
+                            itemAddPolicy: values.itemAddPolicy
+                          },
+                          updatedDraftItems
+                        );
                         return (editId
                           ? apiClient.updateRanking(editId, payload)
                           : apiClient.createRanking(payload)
-                        ).then((response) => {
+                        ).then(async (response) => {
+                          await mediaManager.clear("admin-ranking-editor");
                           void navigate(`${APP_ROUTES.adminRankings}/${response.item.id}`, { replace: true });
                         });
                       })

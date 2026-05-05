@@ -1,5 +1,6 @@
 {
   "name": "feijia",
+  "version": "1.4.0",
   "private": true,
   "packageManager": "bun@1.3.11",
   "workspaces": [
@@ -36,10 +37,10 @@
     "setup:dev": "bun run infra:up && bun run db:reset:demo",
     "setup:test": "bun run infra:up && bun run db:reset:mock",
     "setup:test-data": "bun run setup:test",
-    "typecheck": "bun run --cwd packages/shared typecheck && bun run --cwd packages/schemas typecheck && bun run --cwd packages/http-client typecheck && bun run --cwd packages/db typecheck && bun run --cwd apps/server typecheck && bun run --cwd apps/web typecheck && bun run --cwd apps/admin typecheck",
+    "typecheck": "bun run --cwd packages/rich-text-editor typecheck && bun run --cwd packages/shared typecheck && bun run --cwd packages/schemas typecheck && bun run --cwd packages/http-client typecheck && bun run --cwd packages/db typecheck && bun run --cwd apps/server typecheck && bun run --cwd apps/web typecheck && bun run --cwd apps/admin typecheck",
     "lint": "eslint .",
     "lint:fix": "eslint . --fix",
-    "test:unit": "vitest run --config ./vitest.config.ts packages/shared/tests/**/*.test.ts packages/schemas/tests/**/*.test.ts packages/http-client/tests/**/*.test.ts packages/db/tests/**/*.test.ts apps/web/tests/**/*.test.ts apps/admin/tests/**/*.test.ts",
+    "test:unit": "vitest run --config ./vitest.config.ts packages/rich-text-editor/tests/**/*.test.ts packages/shared/tests/**/*.test.ts packages/schemas/tests/**/*.test.ts packages/http-client/tests/**/*.test.ts packages/db/tests/**/*.test.ts apps/web/tests/**/*.test.ts apps/admin/tests/**/*.test.ts",
     "test:server": "bun run --cwd apps/server test",
     "test:integration": "bun run test:server",
     "test": "bun run test:unit",
@@ -62,6 +63,7 @@
     "eslint-config-prettier": "10",
     "eslint-plugin-react": "7",
     "eslint-plugin-react-hooks": "5",
+    "jsdom": "^29.1.1",
     "playwright": "1.59.1",
     "tailwindcss": "^4.2.2",
     "typescript": "^6.0.2",

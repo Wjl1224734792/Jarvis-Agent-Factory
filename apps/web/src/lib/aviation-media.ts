@@ -1,55 +1,56 @@
 type PowerType = "electric" | "fuel" | "hybrid" | "other";
 
+/** 使用 picsum.photos 作为兜底图片源（Unsplash 国内可能不可用） */
 const fallbackFlightPhoto =
-  "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1400&q=80";
+  "https://picsum.photos/seed/aviation-flight/800/600";
 
 const modelMediaPools: Record<PowerType, string[]> = {
   electric: [
-    "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1508444845599-5c89863b1c44?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80"
+    "https://picsum.photos/seed/drone-electric-1/800/600",
+    "https://picsum.photos/seed/drone-electric-2/800/600",
+    "https://picsum.photos/seed/drone-electric-3/800/600",
+    "https://picsum.photos/seed/drone-electric-4/800/600"
   ],
   fuel: [
     fallbackFlightPhoto,
-    "https://images.unsplash.com/photo-1521727857535-28d2047314ac?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1518991791750-7499f803d71c?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80"
+    "https://picsum.photos/seed/helicopter-fuel-1/800/600",
+    "https://picsum.photos/seed/helicopter-fuel-2/800/600",
+    "https://picsum.photos/seed/jet-fuel-1/800/600"
   ],
   hybrid: [
-    "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
+    "https://picsum.photos/seed/drone-electric-1/800/600",
+    "https://picsum.photos/seed/evtol-hybrid-1/800/600",
+    "https://picsum.photos/seed/drone-electric-4/800/600",
     fallbackFlightPhoto
   ],
   other: [
-    "https://images.unsplash.com/photo-1474302770737-173ee21bab63?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80",
-    "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
+    "https://picsum.photos/seed/drone-electric-4/800/600",
+    "https://picsum.photos/seed/drone-electric-2/800/600",
+    "https://picsum.photos/seed/evtol-hybrid-1/800/600",
     fallbackFlightPhoto
   ]
 };
 
 const editorialMediaPool = [
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1519638399535-1b036603ac77?auto=format&fit=crop&w=1400&q=80",
-  "https://images.unsplash.com/photo-1544016768-982d1554f0b9?auto=format&fit=crop&w=1400&q=80",
+  "https://picsum.photos/seed/editorial-tech-1/800/600",
+  "https://picsum.photos/seed/editorial-drone-1/800/600",
+  "https://picsum.photos/seed/editorial-city-1/800/600",
+  "https://picsum.photos/seed/editorial-evtol-1/800/600",
   fallbackFlightPhoto,
-  "https://images.unsplash.com/photo-1529078155058-5d716f45d604?auto=format&fit=crop&w=1400&q=80"
+  "https://picsum.photos/seed/editorial-drone-2/800/600"
 ];
 
 const profileBannerPool = [
-  "https://images.unsplash.com/photo-1517479149777-5f3b1511d5ad?auto=format&fit=crop&w=1800&q=80",
-  "https://images.unsplash.com/photo-1436491865332-7a61a109cc05?auto=format&fit=crop&w=1800&q=80",
-  "https://images.unsplash.com/photo-1451187580459-43490279c0fa?auto=format&fit=crop&w=1800&q=80"
+  "https://picsum.photos/seed/profile-banner-1/1200/400",
+  "https://picsum.photos/seed/profile-banner-2/1200/400",
+  "https://picsum.photos/seed/profile-banner-3/1200/400"
 ];
 
 const avatarPool = [
-  "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=320&q=80",
-  "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=320&q=80",
-  "https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=320&q=80",
-  "https://images.unsplash.com/photo-1544723795-3fb6469f5b39?auto=format&fit=crop&w=320&q=80"
+  "https://picsum.photos/seed/avatar-person-1/200/200",
+  "https://picsum.photos/seed/avatar-person-2/200/200",
+  "https://picsum.photos/seed/avatar-person-3/200/200",
+  "https://picsum.photos/seed/avatar-person-4/200/200"
 ];
 
 function hashSeed(seed: string): number {

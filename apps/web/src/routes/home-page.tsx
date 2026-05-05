@@ -1,7 +1,7 @@
 ﻿import { keepPreviousData, useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { EyeIcon, Flame, HeartIcon, LockKeyholeIcon, MessageCircleIcon, TrophyIcon } from "lucide-react";
-import { useMemo } from "react";
+import { memo, useCallback, useMemo } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { BrandIdentity } from "@/components/brand-identity";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
@@ -56,7 +56,7 @@ function formatCount(value: number) {
   return String(value);
 }
 
-function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
+const HomeFeedCard = memo(function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
   return (
     <article className="bg-white px-3 py-2.5 transition duration-200 hover:bg-sky-50/55">
       <Link
@@ -134,7 +134,9 @@ function HomeFeedCard({ item, index }: { item: HomeFeedItem; index: number }) {
       </Link>
     </article>
   );
-}
+});
+
+HomeFeedCard.displayName = "HomeFeedCard";
 
 export function HomePage() {
   const navigate = useNavigate();
@@ -176,6 +178,7 @@ export function HomePage() {
 
   const modelsQuery = useQuery({
     queryKey: ["home-shell-models"],
+    staleTime: 120_000,
     placeholderData: keepPreviousData,
     queryFn: () =>
       apiClient.listModels({
@@ -186,6 +189,7 @@ export function HomePage() {
 
   const rankingsQuery = useQuery({
     queryKey: ["home-shell-rankings"],
+    staleTime: 120_000,
     placeholderData: keepPreviousData,
     queryFn: () => apiClient.listRankings({ sort: "hot", limit: 3 })
   });
@@ -239,6 +243,10 @@ export function HomePage() {
   const isFetchingNextFeedPage = homeFeedQuery.isFetchingNextPage;
   const showFeedFooter =
     isFeedNextPageError || isFetchingNextFeedPage || (isFeedRefetching && !isFetchingNextFeedPage);
+  const renderFeedItem = useCallback(
+    (item: HomeFeedItem, index: number) => <HomeFeedCard index={index} item={item} />,
+    []
+  );
   const isModelsLoading = modelsQuery.isLoading && !modelsQuery.data;
   const isRankingsLoading = rankingsQuery.isLoading && !rankingsQuery.data;
   const isXlViewport = useMatchMedia(TAILWIND_XL_MEDIA);
@@ -342,7 +350,7 @@ export function HomePage() {
                         ) : null
                       }
                       itemKey={(item) => item.id}
-                      renderItem={(item, index) => <HomeFeedCard index={index} item={item} />}
+                      renderItem={renderFeedItem}
                       useWindowScroll
                     />
                     <FeedRefetchFooter

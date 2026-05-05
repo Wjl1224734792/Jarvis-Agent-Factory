@@ -12,10 +12,11 @@ import {
   validateModelPriceRange,
   type ModelEditorValues
 } from "./model-editor-helpers";
+import { createMediaManager, uploadMediaBatch } from "@feijia/rich-text-editor";
 
-type UploadedAsset = {
-  id: string;
-  url: string;
+type RegisteredAsset = {
+  blobUrl: string;
+  fileId: string;
   fileName?: string;
 };
 
@@ -36,17 +37,15 @@ export function AircraftCreatorPage() {
   const coverInputRef = useRef<HTMLInputElement | null>(null);
   const galleryInputRef = useRef<HTMLInputElement | null>(null);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
-  const [coverAsset, setCoverAsset] = useState<UploadedAsset | null>(null);
-  const [galleryAssets, setGalleryAssets] = useState<UploadedAsset[]>([]);
-  const [videoAsset, setVideoAsset] = useState<UploadedAsset | null>(null);
+  const [coverAsset, setCoverAsset] = useState<RegisteredAsset | null>(null);
+  const [galleryAssets, setGalleryAssets] = useState<RegisteredAsset[]>([]);
+  const [videoAsset, setVideoAsset] = useState<RegisteredAsset | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
-  const [isUploadingGallery, setIsUploadingGallery] = useState(false);
-  const [isUploadingVideo, setIsUploadingVideo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const watchedName = Form.useWatch("name", form);
   const watchedLifecycle = Form.useWatch("lifecycleStatus", form);
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
   const categoryOptions = useMemo(
     () => (categoriesQuery.data ?? []).map((item) => ({ label: item.name, value: item.id })),
@@ -65,82 +64,57 @@ export function AircraftCreatorPage() {
     return modelLifecycleStatusOptions.find((item) => item.value === value)?.label ?? "未发布";
   }, [watchedLifecycle]);
 
-  async function uploadCover(file: File | null) {
+  function handleSelectCover(file: File | null) {
     if (!file) {
       return;
     }
 
     setError(null);
     setStatusMessage(null);
-    setIsUploadingCover(true);
-    try {
-      const uploaded = await apiClient.uploadAircraftCoverImage(file);
-      setCoverAsset({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面上传失败");
-    } finally {
-      setIsUploadingCover(false);
-      if (coverInputRef.current) {
-        coverInputRef.current.value = "";
-      }
+    const { blobUrl, fileId } = mediaManager.register(file);
+    setCoverAsset({
+      blobUrl,
+      fileId,
+      fileName: file.name
+    });
+    if (coverInputRef.current) {
+      coverInputRef.current.value = "";
     }
   }
 
-  async function uploadGallery(files: FileList | null) {
+  function handleSelectGallery(files: FileList | null) {
     if (!files?.length) {
       return;
     }
 
     setError(null);
     setStatusMessage(null);
-    setIsUploadingGallery(true);
-    try {
-      const uploads: UploadedAsset[] = [];
-      for (const file of Array.from(files)) {
-        const uploaded = await apiClient.uploadAircraftCoverImage(file);
-        uploads.push({
-          id: uploaded.item.id,
-          url: uploaded.item.url,
-          fileName: uploaded.item.fileName
-        });
-      }
-      setGalleryAssets((current) => [...current, ...uploads]);
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "图集上传失败");
-    } finally {
-      setIsUploadingGallery(false);
-      if (galleryInputRef.current) {
-        galleryInputRef.current.value = "";
-      }
+    const newAssets: RegisteredAsset[] = [];
+    for (const file of Array.from(files)) {
+      const { blobUrl, fileId } = mediaManager.register(file);
+      newAssets.push({ blobUrl, fileId, fileName: file.name });
+    }
+    setGalleryAssets((current) => [...current, ...newAssets]);
+    if (galleryInputRef.current) {
+      galleryInputRef.current.value = "";
     }
   }
 
-  async function uploadVideo(file: File | null) {
+  function handleSelectVideo(file: File | null) {
     if (!file) {
       return;
     }
 
     setError(null);
     setStatusMessage(null);
-    setIsUploadingVideo(true);
-    try {
-      const uploaded = await apiClient.uploadAircraftVideo(file);
-      setVideoAsset({
-        id: uploaded.item.id,
-        url: uploaded.item.url,
-        fileName: uploaded.item.fileName
-      });
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "视频上传失败");
-    } finally {
-      setIsUploadingVideo(false);
-      if (videoInputRef.current) {
-        videoInputRef.current.value = "";
-      }
+    const { blobUrl, fileId } = mediaManager.register(file);
+    setVideoAsset({
+      blobUrl,
+      fileId,
+      fileName: file.name
+    });
+    if (videoInputRef.current) {
+      videoInputRef.current.value = "";
     }
   }
 
@@ -157,20 +131,55 @@ export function AircraftCreatorPage() {
       return;
     }
 
-    if (!coverAsset?.id) {
+    if (!coverAsset?.blobUrl) {
       setError("请先上传封面图片。");
       return;
     }
 
-    const payload = buildModelUpsertPayload(values, {
-      coverImageFileId: coverAsset.id,
-      galleryImageFileIds: galleryAssets.map((item) => item.id),
-      videoFileId: videoAsset?.id ?? null
-    });
-
     setIsSubmitting(true);
     try {
+      const files = mediaManager.getAllFiles();
+      const result = await uploadMediaBatch(
+        files,
+        (file) => apiClient.uploadAircraftCoverImage(file).then((r) => r.item),
+        (file) => apiClient.uploadAircraftVideo(file).then((r) => r.item)
+      );
+
+      // Build blobUrl → fileId mapping from upload result order
+      const blobIdMap = new Map<string, string>();
+      let imageIdx = 0;
+      let videoIdx = 0;
+      for (const [blobUrl, file] of files) {
+        const isVideo = file.type.startsWith("video/");
+        if (isVideo) {
+          const id = result.videoIds[videoIdx];
+          if (id) {
+            blobIdMap.set(blobUrl, id);
+          }
+          videoIdx++;
+        } else {
+          const id = result.imageIds[imageIdx];
+          if (id) {
+            blobIdMap.set(blobUrl, id);
+          }
+          imageIdx++;
+        }
+      }
+
+      const coverImageFileId = blobIdMap.get(coverAsset.blobUrl) ?? null;
+      const galleryImageFileIds = galleryAssets
+        .map((a) => blobIdMap.get(a.blobUrl))
+        .filter((id): id is string => !!id);
+      const videoFileId = videoAsset ? (blobIdMap.get(videoAsset.blobUrl) ?? null) : null;
+
+      const payload = buildModelUpsertPayload(values, {
+        coverImageFileId,
+        galleryImageFileIds,
+        videoFileId
+      });
+
       await apiClient.createModel(payload);
+      await mediaManager.clear("admin-aircraft-creator");
       form.resetFields();
       form.setFieldsValue({
         powerType: "electric",
@@ -303,7 +312,6 @@ export function AircraftCreatorPage() {
                 <Space wrap>
                   <Button
                     icon={<ImagePlusIcon className="size-4" />}
-                    loading={isUploadingCover}
                     onClick={() => coverInputRef.current?.click()}
                     type="default"
                   >
@@ -324,7 +332,7 @@ export function AircraftCreatorPage() {
               </div>
               {coverAsset ? (
                 <div className="admin-ranking-cover__preview">
-                  <Image alt="飞行器封面" preview={false} src={coverAsset.url} />
+                  <Image alt="飞行器封面" preview={false} src={coverAsset.blobUrl} />
                 </div>
               ) : (
                 <div className="admin-ranking-cover__empty">尚未上传封面</div>
@@ -333,7 +341,7 @@ export function AircraftCreatorPage() {
                 accept="image/*"
                 hidden
                 onChange={(event) => {
-                  void uploadCover(event.target.files?.[0] ?? null);
+                  handleSelectCover(event.target.files?.[0] ?? null);
                 }}
                 ref={coverInputRef}
                 type="file"
@@ -348,7 +356,6 @@ export function AircraftCreatorPage() {
                 </div>
                 <Button
                   icon={<ImagePlusIcon className="size-4" />}
-                  loading={isUploadingGallery}
                   onClick={() => galleryInputRef.current?.click()}
                   type="default"
                 >
@@ -358,17 +365,17 @@ export function AircraftCreatorPage() {
 
               <div className="admin-preview-list">
                 {galleryAssets.map((item) => (
-                  <div className="admin-preview-item admin-preview-item--ranking" key={item.id}>
+                  <div className="admin-preview-item admin-preview-item--ranking" key={item.fileId}>
                     <div className="admin-preview-item__media">
-                      <Image alt={item.fileName ?? "图集图片"} preview={false} src={item.url} />
+                      <Image alt={item.fileName ?? "图集图片"} preview={false} src={item.blobUrl} />
                     </div>
                     <div className="admin-row-actions">
-                      <span className="admin-muted">{item.fileName ?? item.id}</span>
+                      <span className="admin-muted">{item.fileName ?? item.fileId}</span>
                       <Button
                         danger
                         icon={<Trash2Icon className="size-4" />}
                         onClick={() => {
-                          setGalleryAssets((current) => current.filter((asset) => asset.id !== item.id));
+                          setGalleryAssets((current) => current.filter((asset) => asset.fileId !== item.fileId));
                         }}
                         size="small"
                         type="link"
@@ -385,7 +392,7 @@ export function AircraftCreatorPage() {
                 hidden
                 multiple
                 onChange={(event) => {
-                  void uploadGallery(event.target.files);
+                  handleSelectGallery(event.target.files);
                 }}
                 ref={galleryInputRef}
                 type="file"
@@ -401,7 +408,6 @@ export function AircraftCreatorPage() {
                 <Space wrap>
                   <Button
                     icon={<VideoIcon className="size-4" />}
-                    loading={isUploadingVideo}
                     onClick={() => videoInputRef.current?.click()}
                     type="default"
                   >
@@ -423,7 +429,7 @@ export function AircraftCreatorPage() {
               {videoAsset ? (
                 <video
                   controls
-                  src={videoAsset.url}
+                  src={videoAsset.blobUrl}
                   style={{ borderRadius: 8, maxWidth: "100%", width: "100%" }}
                 />
               ) : (
@@ -433,7 +439,7 @@ export function AircraftCreatorPage() {
                 accept="video/*"
                 hidden
                 onChange={(event) => {
-                  void uploadVideo(event.target.files?.[0] ?? null);
+                  handleSelectVideo(event.target.files?.[0] ?? null);
                 }}
                 ref={videoInputRef}
                 type="file"

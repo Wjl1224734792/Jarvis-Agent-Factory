@@ -12,14 +12,12 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { extractPlainTextFromHtml } from "@/components/rich-text-editor-helpers";
+import { createMediaManager, replaceBlobUrls, uploadMediaBatch } from "@feijia/rich-text-editor";
 import { sanitizeHtml } from "@/lib/sanitize";
 import { clearDraftSnapshot, loadDraftSnapshot, saveDraftSnapshot } from "@/lib/uploads/draft-store";
 import {
-  buildRestoredPreviewUrlMap,
   restorePersistedPreviewAsset,
-  restorePersistedPreviewAssets,
-  revokePreviewAsset,
-  revokePreviewAssets
+  revokePreviewAsset
 } from "@/lib/uploads/local-preview-assets";
 import { cn } from "@/lib/utils";
 import { useLoginPrompt } from "../features/auth/use-login-prompt";
@@ -31,8 +29,14 @@ import {
 } from "./publish-article-page-helpers";
 
 const ARTICLE_DRAFT_KEY = "feijia:article-draft";
+const ARTICLE_TITLE_MAX_LENGTH = 64;
 const ARTICLE_SUMMARY_MAX_LENGTH = 120;
 const AUTO_SAVE_DELAY_MS = 500;
+
+/** 生成简易唯一 ID（避免 crypto.randomUUID 兼容性问题） */
+function uid(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
 
 type UploadedImage = {
   id: string;
@@ -59,30 +63,19 @@ type ArticleDraftData = {
   sourceUrl: string;
   declaration: string;
   coverImage: UploadedImage | null;
-  uploadedImages: UploadedImage[];
-  uploadedVideos: UploadedVideo[];
+  /** 已注册 blob URL 列表（保持注册顺序），用于恢复时构建旧→新 URL 映射 */
+  mediaBlobUrls: string[];
 };
 
 const DECLARATION_OPTIONS = [
   { label: '原创', value: 'original' },
-  { label: 'AI生成', value: 'ai_generated' },
-  { label: 'AI辅助创作', value: 'ai_assisted' },
+  { label: '含AI生成内容', value: 'ai_generated' },
   { label: '转载', value: 'reprinted' },
-  { label: '深度合成', value: 'deep_synthesis' }
 ] as const;
 
 const SOURCE_LABEL_OPTIONS = [
-  { label: '飞加官方', value: '飞加官方' },
-  { label: '转载媒体', value: '转载媒体' },
-  { label: '作者投稿', value: '作者投稿' },
-  { label: '行业媒体', value: '行业媒体' },
-  { label: '航司官方', value: '航司官方' },
-  { label: '其他来源', value: '其他来源' },
-];
-
-const SOURCE_URL_MAP: Record<string, string> = {
-  '飞加官方': 'https://feijia.com',
-};
+  { label: '转载', value: '转载' },
+] as const;
 
 function escapeHtml(input: string) {
   return input
@@ -142,6 +135,13 @@ function removeMediaReferenceFromHtml(html: string, mediaUrl: string) {
   return documentNode.body.innerHTML.trim();
 }
 
+/** 过滤 HTML 中的 file:/// 本地路径（WPS/Word 粘贴残留） */
+function stripFileUrls(html: string): string {
+  if (!html) return html;
+  // 移除 src="file:///..." 和 src='file:///...'
+  return html.replace(/\b(file:\/\/\/)[^\s"'>]+/gi, "").replace(/src\s*=\s*["']\s*["']\s*/gi, "");
+}
+
 function formatDraftSavedAt(timestamp: number | null) {
   if (!timestamp) {
     return "草稿保存在当前浏览器";
@@ -171,15 +171,7 @@ export function PublishArticlePage() {
   const [searchParams] = useSearchParams();
   const editId = searchParams.get("edit");
   const coverInputRef = useRef<HTMLInputElement | null>(null);
-  const previewAssetsRef = useRef<{
-    coverImage: UploadedImage | null;
-    uploadedImages: UploadedImage[];
-    uploadedVideos: UploadedVideo[];
-  }>({
-    coverImage: null,
-    uploadedImages: [],
-    uploadedVideos: []
-  });
+  const coverImageRef = useRef<UploadedImage | null>(null);
   const [title, setTitle] = useState("");
   const [summary, setSummary] = useState("");
   const [editorHtml, setEditorHtml] = useState("");
@@ -194,6 +186,7 @@ export function PublishArticlePage() {
   const [isPublishing, setIsPublishing] = useState(false);
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
+  const mediaManager = useMemo(() => createMediaManager(), []);
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -220,7 +213,7 @@ export function PublishArticlePage() {
     setHasRestoredDraftSnapshot(false);
 
     void loadDraftSnapshot<ArticleDraftData>(ARTICLE_DRAFT_KEY)
-      .then((snapshot) => {
+      .then(async (snapshot) => {
         if (!snapshot) {
           return;
         }
@@ -230,46 +223,51 @@ export function PublishArticlePage() {
 
         const parsed = snapshot.data;
         const restoredCoverImage = restorePersistedPreviewAsset(parsed.coverImage ?? null);
-        const restoredImageEntries = restorePersistedPreviewAssets(parsed.uploadedImages ?? []);
-        const restoredVideoEntries = restorePersistedPreviewAssets(parsed.uploadedVideos ?? []);
-        const restoredMediaUrlMap = {
-          ...buildRestoredPreviewUrlMap(restoredImageEntries),
-          ...buildRestoredPreviewUrlMap(restoredVideoEntries)
-        };
+
+        // Restore mediaManager files from IndexedDB
+        const restoredFiles = await mediaManager.restore(ARTICLE_DRAFT_KEY);
+        const newBlobUrls = Array.from(restoredFiles.keys());
+
+        // Build old→new blob URL mapping using saved registration order
+        const oldBlobUrls: string[] = parsed.mediaBlobUrls ?? [];
+        const blobUrlMapping: Record<string, string> = {};
+        oldBlobUrls.forEach((oldUrl, i) => {
+          if (i < newBlobUrls.length) {
+            blobUrlMapping[oldUrl] = newBlobUrls[i];
+          }
+        });
 
         setTitle(parsed.title ?? "");
         setSummary(parsed.summary ?? "");
         setEditorHtml(
-          replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", restoredMediaUrlMap).html
+          stripFileUrls(
+            replaceArticleLocalMediaUrls(parsed.editorHtml ?? "", blobUrlMapping).html
+          )
         );
         setCategoryId(parsed.categoryId ?? "");
         setSourceLabel(parsed.sourceLabel ?? "");
         setSourceUrl(parsed.sourceUrl ?? "");
         setDeclaration(parsed.declaration ?? "");
         setCoverImage(restoredCoverImage?.asset ?? null);
-        setUploadedImages(restoredImageEntries.map((entry) => entry.asset));
-        setUploadedVideos(restoredVideoEntries.map((entry) => entry.asset));
       })
       .catch(() => {
         // Keep the workspace usable even when draft restore fails.
       });
-  }, [editId]);
+  }, [editId, mediaManager]);
 
   useEffect(() => {
-    previewAssetsRef.current = {
-      coverImage,
-      uploadedImages,
-      uploadedVideos
-    };
-  }, [coverImage, uploadedImages, uploadedVideos]);
+    coverImageRef.current = coverImage;
+  }, [coverImage]);
 
   useEffect(() => {
     return () => {
-      revokePreviewAsset(previewAssetsRef.current.coverImage);
-      revokePreviewAssets(previewAssetsRef.current.uploadedImages);
-      revokePreviewAssets(previewAssetsRef.current.uploadedVideos);
+      revokePreviewAsset(coverImageRef.current);
+      // Release any remaining blob URLs tracked by mediaManager
+      for (const blobUrl of mediaManager.getAllFiles().keys()) {
+        URL.revokeObjectURL(blobUrl);
+      }
     };
-  }, []);
+  }, [mediaManager]);
 
   useEffect(() => {
     if (!detailQuery.data?.item) {
@@ -279,7 +277,7 @@ export function PublishArticlePage() {
     const item = detailQuery.data.item;
     setTitle(item.title);
     setSummary("");
-    setEditorHtml(item.contentHtml ?? "");
+    setEditorHtml(stripFileUrls(item.contentHtml ?? ""));
     setCategoryId(item.contentCategory?.id ?? "");
     setSourceLabel(item.source?.label ?? "");
     setSourceUrl(item.source?.url ?? "");
@@ -334,7 +332,6 @@ export function PublishArticlePage() {
     Boolean(articleText.trim()) &&
     Boolean(categoryId) &&
     Boolean(coverImage) &&
-    Boolean(declaration) &&
     !isPublishing;
   const draftStatusText = formatDraftSavedAt(lastDraftSavedAt);
   const mediaSummaryText = useMemo(
@@ -347,8 +344,41 @@ export function PublishArticlePage() {
   );
   const hasInsertedMedia = uploadedImages.length > 0 || uploadedVideos.length > 0;
 
+  /** 在创建模式下，从 mediaManager 同步媒体资源到显示清单 */
+  useEffect(() => {
+    // 编辑模式下由 detailQuery 管理清单，不同步
+    if (editId) {
+      return;
+    }
+
+    const files = mediaManager.getAllFiles();
+    const images: UploadedImage[] = [];
+    const videos: UploadedVideo[] = [];
+
+    for (const [blobUrl, file] of files) {
+      // 只显示当前在编辑器 HTML 中的 blob URL
+      if (!editorHtml.includes(blobUrl)) {
+        continue;
+      }
+      const entry = { id: blobUrl, url: blobUrl, fileName: file.name, isLocal: true as const };
+      if (file.type.startsWith("video/")) {
+        videos.push(entry as unknown as UploadedVideo);
+      } else {
+        images.push(entry);
+      }
+    }
+
+    setUploadedImages(images);
+    setUploadedVideos(videos);
+  }, [editId, editorHtml, mediaManager]);
+
   const persistDraft = useCallback(async () => {
     const savedAt = Date.now();
+
+    // 获取当前 mediaManager 中所有 blob URL（保持注册顺序）
+    const allFiles = mediaManager.getAllFiles();
+    const mediaBlobUrls = Array.from(allFiles.keys());
+
     await saveDraftSnapshot<ArticleDraftData>({
       key: ARTICLE_DRAFT_KEY,
       version: 1,
@@ -362,23 +392,23 @@ export function PublishArticlePage() {
         sourceUrl,
         declaration,
         coverImage,
-        uploadedImages,
-        uploadedVideos
+        mediaBlobUrls
       },
       filesBySlot: {}
     });
+
+    await mediaManager.persist(ARTICLE_DRAFT_KEY);
     setLastDraftSavedAt(savedAt);
   }, [
     categoryId,
     coverImage,
     declaration,
     editorHtml,
+    mediaManager,
     sourceLabel,
     sourceUrl,
     summary,
-    title,
-    uploadedImages,
-    uploadedVideos
+    title
   ]);
 
   useEffect(() => {
@@ -397,42 +427,6 @@ export function PublishArticlePage() {
     };
   }, [editId, persistDraft]);
 
-  async function uploadImages(files: File[]) {
-    if (files.length === 0) {
-      return [];
-    }
-
-    setError(null);
-    const nextImages: UploadedImage[] = files.map((file) => ({
-      id: `local-image-${crypto.randomUUID()}`,
-      url: URL.createObjectURL(file),
-      fileName: file.name,
-      file,
-      isLocal: true
-    }));
-
-    setUploadedImages((current) => [...current, ...nextImages]);
-    return nextImages;
-  }
-
-  async function uploadVideos(files: File[]) {
-    if (files.length === 0) {
-      return [];
-    }
-
-    setError(null);
-    const nextVideos: UploadedVideo[] = files.map((file) => ({
-      id: `local-video-${crypto.randomUUID()}`,
-      url: URL.createObjectURL(file),
-      fileName: file.name,
-      file,
-      isLocal: true
-    }));
-
-    setUploadedVideos((current) => [...current, ...nextVideos]);
-    return nextVideos;
-  }
-
   async function uploadCoverImage(file: File | null) {
     if (!file) {
       return;
@@ -445,7 +439,7 @@ export function PublishArticlePage() {
       }
 
       return {
-        id: `local-cover-${crypto.randomUUID()}`,
+        id: uid("local-cover"),
         url: URL.createObjectURL(file),
         fileName: file.name,
         file,
@@ -462,7 +456,6 @@ export function PublishArticlePage() {
     if (image.isLocal) {
       URL.revokeObjectURL(image.url);
     }
-
     setUploadedImages((current) => current.filter((item) => item.id !== image.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, image.url));
   }
@@ -471,7 +464,6 @@ export function PublishArticlePage() {
     if (video.isLocal) {
       URL.revokeObjectURL(video.url);
     }
-
     setUploadedVideos((current) => current.filter((item) => item.id !== video.id));
     setEditorHtml((current) => removeMediaReferenceFromHtml(current, video.url));
   }
@@ -495,8 +487,7 @@ export function PublishArticlePage() {
     setIsPublishing(true);
 
     try {
-      const mediaUrlMapping: Record<string, string> = {};
-
+      // Step 1: 上传封面图（保留原流程）
       let submitCoverImage = coverImage;
       if (coverImage.file) {
         const uploaded = await apiClient.uploadPostImage(coverImage.file);
@@ -505,59 +496,72 @@ export function PublishArticlePage() {
           url: uploaded.item.url,
           fileName: uploaded.item.fileName
         };
-        mediaUrlMapping[coverImage.url] = uploaded.item.url;
       }
 
-      const submitImages = await Promise.all(
-        uploadedImages.map(async (item) => {
-          if (!item.file) {
-            return item;
+      // Step 2: 批量上传 mediaManager 中的所有本地文件
+      const allFiles = mediaManager.getAllFiles();
+      let batchImageIds: string[] = [];
+      let batchVideoIds: string[] = [];
+      let urlMapping = new Map<string, string>();
+
+      if (allFiles.size > 0) {
+        const batchResult = await uploadMediaBatch(
+          allFiles,
+          async (file) => {
+            const result = await apiClient.uploadPostImage(file);
+            return {
+              id: result.item.id,
+              url: result.item.url,
+              fileName: result.item.fileName ?? file.name,
+              mimeType: file.type
+            };
+          },
+          async (file) => {
+            const result = await apiClient.uploadPostVideo(file);
+            return {
+              id: result.item.id,
+              url: result.item.url,
+              fileName: result.item.fileName ?? file.name,
+              mimeType: file.type
+            };
           }
+        );
 
-          const uploaded = await apiClient.uploadPostImage(item.file);
-          mediaUrlMapping[item.url] = uploaded.item.url;
-          return {
-            id: uploaded.item.id,
-            url: uploaded.item.url,
-            fileName: uploaded.item.fileName
-          } satisfies UploadedImage;
-        })
-      );
+        if (batchResult.errors.length > 0) {
+          throw new Error(`部分媒体上传失败: ${batchResult.errors[0].message}`);
+        }
 
-      const submitVideos = await Promise.all(
-        uploadedVideos.map(async (item) => {
-          if (!item.file) {
-            return item;
-          }
-
-          const uploaded = await apiClient.uploadPostVideo(item.file);
-          mediaUrlMapping[item.url] = uploaded.item.url;
-          return {
-            id: uploaded.item.id,
-            url: uploaded.item.url,
-            fileName: uploaded.item.fileName
-          } satisfies UploadedVideo;
-        })
-      );
-
-      const replacedArticleHtml = replaceArticleLocalMediaUrls(articleHtml, mediaUrlMapping);
-      if (replacedArticleHtml.unresolvedMediaUrls.length > 0) {
-        throw new Error("仍有媒体停留在本地预览状态，请重新上传后再提交。");
+        urlMapping = batchResult.urlMapping;
+        batchImageIds = batchResult.imageIds;
+        batchVideoIds = batchResult.videoIds;
       }
+
+      // Step 3: 替换文章 HTML 中的 blob URL
+      const replacedHtml = replaceBlobUrls(articleHtml, urlMapping);
+
+      // Step 4: 组装图片/视频 ID 列表
+      // 编辑模式：包含已有的服务端媒体 ID
+      const existingImageIds = uploadedImages.filter((img) => !img.isLocal).map((img) => img.id);
+      const existingVideoIds = uploadedVideos.filter((vid) => !vid.isLocal).map((vid) => vid.id);
+
+      const imageIds = Array.from(
+        new Set(
+          [submitCoverImage?.id, ...batchImageIds, ...existingImageIds].filter(Boolean)
+        )
+      );
+      const videoIds = [...batchVideoIds, ...existingVideoIds];
 
       const payload = {
         type: "article" as const,
         title,
         content: articleText,
-        contentHtml: replacedArticleHtml.html,
+        contentHtml: replacedHtml,
         contentCategoryId: categoryId,
         sourceLabel,
         sourceUrl,
         declaration,
-        imageIds: Array.from(
-          new Set([submitCoverImage?.id, ...submitImages.map((item) => item.id)].filter(Boolean))
-        ),
-        videoIds: submitVideos.map((item) => item.id)
+        imageIds,
+        videoIds
       };
 
       const response = editId
@@ -565,6 +569,7 @@ export function PublishArticlePage() {
         : await apiClient.createPost(payload);
 
       await clearDraftSnapshot(ARTICLE_DRAFT_KEY);
+      await mediaManager.clear(ARTICLE_DRAFT_KEY);
       setLastDraftSavedAt(null);
 
       await Promise.all([
@@ -642,8 +647,9 @@ export function PublishArticlePage() {
 
               <div className="space-y-5">
                 <Input
-                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
-                  onChange={(event) => setTitle(event.target.value)}
+                  className="h-auto min-h-14 border-0 px-0 py-2 text-[2rem] leading-tight font-semibold tracking-normal break-words overflow-wrap-anywhere shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0 md:text-[2.625rem]"
+                  maxLength={ARTICLE_TITLE_MAX_LENGTH}
+                  onChange={(event) => setTitle(event.target.value.slice(0, ARTICLE_TITLE_MAX_LENGTH))}
                   placeholder="标题"
                   value={title}
                 />
@@ -684,89 +690,48 @@ export function PublishArticlePage() {
                 </div>
 
                 <div className="space-y-2">
-                  <div className="flex items-center justify-between gap-3">
-                    <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                      内容声明 <span className="text-destructive">*</span>
-                    </div>
-                  </div>
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">声明</div>
                   <select
                     className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
                     onChange={(e) => setDeclaration(e.target.value)}
                     value={declaration}
                   >
-                    <option disabled value="">选择内容声明</option>
+                    <option value="">不设置</option>
                     {DECLARATION_OPTIONS.map((option) => (
                       <option key={option.value} value={option.value}>{option.label}</option>
                     ))}
                   </select>
-                  {!declaration ? (
-                    <p className="text-xs text-destructive">请选择内容声明</p>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源（可选）</div>
+                  <select
+                    className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
+                    onChange={(e) => setSourceLabel(e.target.value)}
+                    value={sourceLabel}
+                  >
+                    <option value="">不设置</option>
+                    {SOURCE_LABEL_OPTIONS.map((opt) => (
+                      <option key={opt.value} value={opt.value}>{opt.label}</option>
+                    ))}
+                  </select>
+                  {sourceLabel ? (
+                    <Input
+                      className="mt-2"
+                      inputMode="url"
+                      onChange={(event) => setSourceUrl(event.target.value)}
+                      placeholder="链接（可选）"
+                      value={sourceUrl}
+                    />
                   ) : null}
                 </div>
 
-                {declaration !== 'original' ? (
-                  <>
-                    <div className="grid gap-4 md:grid-cols-2">
-                      <div className="space-y-2">
-                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">
-                          来源名称{declaration === 'reprinted' ? <span className="text-destructive"> *</span> : null}
-                        </div>
-                        <select
-                          className="rounded-full border border-border/70 bg-surface-1 px-3 py-1.5 text-[0.82rem] text-foreground/82 focus:border-primary focus:outline-none"
-                          onChange={(e) => {
-                            const value = e.target.value;
-                            setSourceLabel(value);
-                            const defaultUrl = SOURCE_URL_MAP[value];
-                            if (defaultUrl !== undefined) {
-                              setSourceUrl(defaultUrl);
-                            }
-                          }}
-                          value={sourceLabel}
-                        >
-                          <option disabled value="">选择来源名称</option>
-                          {SOURCE_LABEL_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>{opt.label}</option>
-                          ))}
-                        </select>
-                      </div>
-
-                      <div className="space-y-2">
-                        <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">来源链接</div>
-                        <Input
-                          inputMode="url"
-                          onChange={(event) => setSourceUrl(event.target.value)}
-                          placeholder="https://example.com/source"
-                          value={sourceUrl}
-                        />
-                      </div>
-                    </div>
-
-                    {sourceLabelValue ? (
-                      <div className="rounded-[0.9rem] border border-border/70 bg-surface-1/72 px-4 py-3 text-sm text-muted-foreground">
-                        <span className="mr-2 text-[0.72rem] font-medium uppercase tracking-[0.16em] text-foreground/72">来源</span>
-                        {sourceUrlValue ? (
-                          <a
-                            className="text-primary underline-offset-4 hover:underline"
-                            href={sourceUrlValue}
-                            rel="noreferrer"
-                            target="_blank"
-                          >
-                            {sourceLabelValue}
-                          </a>
-                        ) : (
-                          <span className="text-foreground/82">{sourceLabelValue}</span>
-                        )}
-                      </div>
-                    ) : null}
-                  </>
-                ) : null}
-
                 <RichTextEditor
-                  onChange={setEditorHtml}
-                  onUploadImage={uploadImages}
-                  onUploadVideo={uploadVideos}
+                  onChange={({ html }) => setEditorHtml(html)}
+                  mediaManager={mediaManager}
                   placeholder="开始写作"
                   value={editorHtml}
+                  variant="web"
                 />
               </div>
 

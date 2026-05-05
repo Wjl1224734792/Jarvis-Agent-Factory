@@ -707,6 +707,12 @@ const rawApiClient = {
   uploadRatingTargetImage(file: File) {
     return sharedClient.uploadRankingItemImage(file);
   },
+  uploadPostImage(file: File) {
+    return sharedClient.uploadPostImage(file);
+  },
+  uploadPostVideo(file: File) {
+    return sharedClient.uploadPostVideo(file);
+  },
   recordPostView(id: string) {
     return sharedClient.recordPostView(id, {
       sessionId: getViewSessionId() ?? undefined

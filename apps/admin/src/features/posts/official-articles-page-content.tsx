@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { Button, Form, Input, Modal, Select, Space, Table } from "antd";
-import { Suspense, lazy, startTransition, useEffectEvent, useMemo, useRef, useState } from "react";
-import { extractPlainTextFromHtml } from "../../components/admin-rich-text-editor-helpers";
+import { Suspense, lazy, startTransition, useCallback, useEffectEvent, useMemo, useRef, useState } from "react";
+import { createMediaManager, extractPlainTextFromHtml, collectBlobUrls, uploadMediaBatch, replaceBlobUrls } from "@feijia/rich-text-editor";
 import { AdminRichTextHtml } from "../../components/admin-rich-text-html";
 import { AdminPage, AdminPanel } from "../../components/admin-ui";
 import { apiClient } from "../../lib/api-client";
@@ -70,14 +70,14 @@ export function OfficialArticlesPage() {
   const [error, setError] = useState<string | null>(null);
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isUploading, setIsUploading] = useState(false);
-  const [coverImage, setCoverImage] = useState<UploadedMediaAsset | null>(null);
+  const [coverImage, setCoverImage] = useState<(UploadedMediaAsset & { file?: File; isLocal?: boolean }) | null>(null);
   const [uploadedImages, setUploadedImages] = useState<UploadedMediaAsset[]>([]);
   const [uploadedVideos, setUploadedVideos] = useState<UploadedMediaAsset[]>([]);
   const [shouldLoadEditor, setShouldLoadEditor] = useState(false);
   const [editorHtml, setEditorHtml] = useState("");
   const [editorText, setEditorText] = useState("");
   const [searchText, setSearchText] = useState("");
+  const mediaManager = useMemo(() => createMediaManager(), []);
   const watchedTitle = Form.useWatch("title", form);
   const watchedCategoryId = Form.useWatch("contentCategoryId", form);
 
@@ -131,79 +131,17 @@ export function OfficialArticlesPage() {
     setUploadedVideos([]);
     setEditorHtml("");
     setEditorText("");
+    mediaManager.clear("feijia:admin-article-library");
+    URL.revokeObjectURL(coverImage?.url ?? "");
   }
 
-  async function uploadImages(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
-      return [];
-    }
-
-    setIsUploading(true);
-    try {
-      const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
-        const response = await apiClient.uploadImage(file);
-        uploads.push({
-          id: response.item.id,
-          url: response.item.url,
-          fileName: response.item.fileName
-        });
-      }
-      setUploadedImages((current) => [...current, ...uploads]);
-      return uploads;
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  async function uploadVideos(files: FileList | File[] | null) {
-    const selectedFiles = Array.from(files ?? []);
-    if (selectedFiles.length === 0) {
-      return [];
-    }
-
-    setIsUploading(true);
-    try {
-      const uploads: UploadedMediaAsset[] = [];
-      for (const file of selectedFiles) {
-        const response = await apiClient.uploadPostVideo(file);
-        uploads.push({
-          id: response.item.id,
-          url: response.item.url,
-          fileName: response.item.fileName
-        });
-      }
-      setUploadedVideos((current) => [...current, ...uploads]);
-      return uploads;
-    } finally {
-      setIsUploading(false);
-    }
-  }
-
-  async function uploadCover(file: File | null) {
-    if (!file) {
-      return;
-    }
-
-    setIsUploading(true);
-    setError(null);
-    try {
-      const response = await apiClient.uploadImage(file);
-      setCoverImage({
-        id: response.item.id,
-        url: response.item.url,
-        fileName: response.item.fileName
-      });
-      setStatusMessage("封面图上传成功。");
-    } catch (reason: unknown) {
-      setError(reason instanceof Error ? reason.message : "封面图上传失败");
-    } finally {
-      setIsUploading(false);
-      if (fileInputRef.current) {
-        fileInputRef.current.value = "";
-      }
-    }
+  function handleSelectCover(file: File | null) {
+    if (!file) return;
+    const prevUrl = coverImage?.url;
+    const { blobUrl, fileId } = mediaManager.register(file);
+    setCoverImage({ id: fileId, url: blobUrl, fileName: file.name, file, isLocal: true });
+    if (prevUrl?.startsWith("blob:")) URL.revokeObjectURL(prevUrl);
+    if (fileInputRef.current) fileInputRef.current.value = "";
   }
 
   async function handleEdit(id: string) {
@@ -257,17 +195,46 @@ export function OfficialArticlesPage() {
     setError(null);
     setStatusMessage(null);
 
-    const payload = buildOfficialArticlePayload(
-      {
-        ...values,
-        content: editorText,
-        contentHtml: editorHtml
-      },
-      Array.from(new Set([coverImage?.id, ...uploadedImages.map((item) => item.id)].filter(Boolean))) as string[],
-      uploadedVideos.map((item) => item.id)
-    );
-
     try {
+      // Step 1: Upload cover if local
+      let coverId = coverImage?.isLocal ? null : (coverImage?.id ?? null);
+      if (coverImage?.isLocal && coverImage.file) {
+        const uploaded = await apiClient.uploadImage(coverImage.file);
+        coverId = uploaded.item.id;
+        setCoverImage({ id: uploaded.item.id, url: uploaded.item.url, fileName: uploaded.item.fileName });
+      }
+
+      // Step 2: Batch upload all local media from editor
+      const blobUrls = collectBlobUrls(editorHtml);
+      const allFiles = mediaManager.getAllFiles();
+      const pendingFiles = new Map<string, File>();
+      for (const blobUrl of blobUrls) {
+        const file = allFiles.get(blobUrl);
+        if (file) pendingFiles.set(blobUrl, file);
+      }
+
+      const { urlMapping, imageIds, videoIds } = await uploadMediaBatch(
+        pendingFiles,
+        async (file) => {
+          const res = await apiClient.uploadImage(file);
+          return { id: res.item.id, url: res.item.url, fileName: res.item.fileName };
+        },
+        async (file) => {
+          const res = await apiClient.uploadPostVideo(file);
+          return { id: res.item.id, url: res.item.url, fileName: res.item.fileName };
+        }
+      );
+
+      // Step 3: Replace blob URLs in HTML
+      const processedHtml = replaceBlobUrls(editorHtml, urlMapping);
+
+      // Step 4: Build payload with real media IDs
+      const payload = buildOfficialArticlePayload(
+        { ...values, content: editorText, contentHtml: processedHtml },
+        Array.from(new Set([coverId, ...imageIds].filter(Boolean))) as string[],
+        videoIds
+      );
+
       if (editingId) {
         await apiClient.updateAdminOfficialArticle(editingId, payload);
         setStatusMessage("官方文章已更新。");
@@ -346,14 +313,14 @@ export function OfficialArticlesPage() {
                 {shouldLoadEditor ? (
                   <Suspense fallback={<RichTextEditorFallback loading />}>
                     <LazyAdminRichTextEditor
+                      mediaManager={mediaManager}
                       onChange={(value) => {
                         setEditorHtml(value.html);
                         setEditorText(value.plainText);
                       }}
-                      onUploadImage={uploadImages}
-                      onUploadVideo={uploadVideos}
                       placeholder="请输入官方文章正文..."
                       value={editorHtml}
+                      variant="admin"
                     />
                   </Suspense>
                 ) : (
@@ -381,7 +348,7 @@ export function OfficialArticlesPage() {
                 <button
                   aria-label={coverImage ? "更换封面" : "设置封面"}
                   className="admin-article-preview__cover-trigger"
-                  disabled={isUploading}
+                  disabled={isSubmitting}
                   onClick={() => fileInputRef.current?.click()}
                   title={coverImage ? "更换封面" : "设置封面"}
                   type="button"
@@ -411,7 +378,7 @@ export function OfficialArticlesPage() {
                   accept="image/*"
                   hidden
                   onChange={(event) => {
-                    void uploadCover(event.target.files?.[0] ?? null);
+                    handleSelectCover(event.target.files?.[0] ?? null);
                   }}
                   ref={fileInputRef}
                   type="file"

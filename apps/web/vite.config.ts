@@ -125,23 +125,6 @@ function buildWebManualChunk(id: string) {
     return wangeditorChunk;
   }
 
-  if (packageName === "@tiptap/react") {
-    return "editor-react-vendor";
-  }
-  if (
-    packageName === "@tiptap/pm" ||
-    packageName.startsWith("prosemirror-") ||
-    packageName === "orderedmap"
-  ) {
-    return "editor-core-vendor";
-  }
-  if (
-    packageName === "@tiptap/core" ||
-    packageName === "@tiptap/starter-kit" ||
-    packageName.startsWith("@tiptap/extension-")
-  ) {
-    return "editor-kit-vendor";
-  }
   if (packageName === "react-virtuoso") {
     return "feed-vendor";
   }

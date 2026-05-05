@@ -6,6 +6,7 @@ import {
   S3Client
 } from "@aws-sdk/client-s3";
 import { createClient } from "redis";
+import { SEED_PIXEL } from "./seed-image.js";
 
 type RuntimeSeedSummary = {
   storage: { provider: string; bucket: string; objectCount: number } | { skipped: string };
@@ -68,10 +69,10 @@ const DEMO_REDIS_KEYS = {
   heroMedia: "feed:hero-media"
 } as const;
 
-const ONE_PIXEL_PNG = Buffer.from(
-  "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO1f4f8AAAAASUVORK5CYII=",
-  "base64"
-);
+// 用彩色像素 PNG（非透明）替代原来看不见的 1px 透明 PNG
+const SEED_IMAGE_PNG = SEED_PIXEL.blue;
+const SEED_COVER_PNG = SEED_PIXEL.teal;
+const SEED_ITEM_PNG = SEED_PIXEL.amber;
 
 const TINY_MP4 = Buffer.from([0, 0, 0, 24, 102, 116, 121, 112, 105, 115, 111, 109]);
 
@@ -227,11 +228,16 @@ async function seedStorageArtifacts(): Promise<RuntimeSeedSummary["storage"]> {
 
   for (const asset of listRuntimeSeedAssets()) {
     const key = resolveRuntimeSeedObjectKey(asset.key);
+    const pngBody = asset.key.includes("ranking")
+      ? SEED_ITEM_PNG
+      : asset.key.includes("moments") || asset.key.includes("submissions")
+        ? SEED_COVER_PNG
+        : SEED_IMAGE_PNG;
     await client.send(
       new PutObjectCommand({
         Bucket: bucket,
         Key: key,
-        Body: asset.contentType === "image/png" ? ONE_PIXEL_PNG : TINY_MP4,
+        Body: asset.contentType === "image/png" ? pngBody : TINY_MP4,
         ContentType: asset.contentType,
         CacheControl: "public, max-age=86400",
         Metadata: {

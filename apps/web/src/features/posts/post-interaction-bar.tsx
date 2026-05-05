@@ -73,6 +73,17 @@ function ActionButton({
           ? "border-primary/20 bg-primary/10 text-primary hover:bg-primary/15 hover:text-primary"
           : "border-sky-200 bg-sky-50 text-rating-blue hover:bg-sky-100 hover:text-rating-blue";
 
+  const plainHoverTone =
+    plain && layout === "vertical"
+      ? tone === "like"
+        ? "hover:text-rose-600 dark:hover:text-rose-400"
+        : tone === "favorite"
+          ? "hover:text-amber-700 dark:hover:text-amber-400"
+          : tone === "share"
+            ? "hover:text-blue-600 dark:hover:text-blue-400"
+            : "hover:text-primary"
+      : null;
+
   const plainActiveIconTone =
     plain && active
       ? tone === "like"
@@ -100,7 +111,11 @@ function ActionButton({
         "rounded-full",
         layout === "vertical" && "flex-col gap-0.5",
         plain &&
-          "group h-auto border-0 bg-transparent px-2 py-1 text-agree-gray shadow-none hover:!bg-transparent hover:text-foreground active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+          cn(
+            "group h-auto border-0 bg-transparent px-2 py-1 text-agree-gray shadow-none hover:!bg-transparent active:translate-y-0 focus-visible:ring-2 focus-visible:ring-primary/25 focus-visible:ring-offset-2",
+            layout !== "vertical" && "hover:text-foreground",
+            plainHoverTone
+          ),
         layout === "vertical" && plain && "px-1.5 py-2.5",
         plain &&
           active &&

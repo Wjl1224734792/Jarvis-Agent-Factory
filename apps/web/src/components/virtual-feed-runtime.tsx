@@ -1,4 +1,4 @@
-import { useEffect, useRef, type MutableRefObject } from "react";
+import { memo, useCallback, useEffect, useRef, type MutableRefObject } from "react";
 import { Virtuoso, VirtuosoGrid } from "react-virtuoso";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
 import { cn } from "@/lib/utils";
@@ -128,7 +128,7 @@ export function VirtualGridRuntime<T>({
   );
 }
 
-export function VirtualMasonryColumnsRuntime<T>({
+export const VirtualMasonryColumnsRuntime = memo(function VirtualMasonryColumnsRuntime<T>({
   columns,
   itemKey,
   renderItem,
@@ -148,24 +148,27 @@ export function VirtualMasonryColumnsRuntime<T>({
     }
   }, [isFetchingNextPage]);
 
-  const requestLoadMore = (columnIndex: number) => {
-    if (columnIndex !== 0) {
-      return;
-    }
+  const requestLoadMore = useCallback(
+    (columnIndex: number) => {
+      if (columnIndex !== 0) {
+        return;
+      }
 
-    if (!onLoadMore || !hasMore || isFetchingNextPage || isLoadRequestedRef.current) {
-      return;
-    }
+      if (!onLoadMore || !hasMore || isFetchingNextPage || isLoadRequestedRef.current) {
+        return;
+      }
 
-    isLoadRequestedRef.current = true;
+      isLoadRequestedRef.current = true;
 
-    try {
-      const loadResult = onLoadMore();
-      releaseLoadLockAfterSettled(loadResult, isLoadRequestedRef);
-    } catch {
-      isLoadRequestedRef.current = false;
-    }
-  };
+      try {
+        const loadResult = onLoadMore();
+        releaseLoadLockAfterSettled(loadResult, isLoadRequestedRef);
+      } catch {
+        isLoadRequestedRef.current = false;
+      }
+    },
+    [onLoadMore, hasMore, isFetchingNextPage]
+  );
 
   return (
     <div
@@ -183,7 +186,7 @@ export function VirtualMasonryColumnsRuntime<T>({
           }}
           computeItemKey={(index, item) => itemKey(item, index, columnIndex)}
           data={column}
-          increaseViewportBy={{ top: 320, bottom: 480 }}
+          increaseViewportBy={{ top: 200, bottom: 320 }}
           itemContent={(index, item) => (
             <div style={{ paddingBottom: index < column.length - 1 ? gap : undefined }}>
               {renderItem(item, index, columnIndex)}
@@ -195,4 +198,6 @@ export function VirtualMasonryColumnsRuntime<T>({
       ))}
     </div>
   );
-}
+});
+
+VirtualMasonryColumnsRuntime.displayName = "VirtualMasonryColumnsRuntime";

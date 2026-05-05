@@ -4,7 +4,8 @@
     "agent-browser": {
       "source": "vercel-labs/agent-browser",
       "sourceType": "github",
-      "computedHash": "6f2c9c0ab62a0d030780c51b955e4f0ec561581d59fa123daad1c87a7748b85a"
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "c19a532a3777698b80b35270939a1dc559da451381971b3e1e78174d1ab54863"
     },
     "ant-design": {
       "source": "ant-design/antd-skill",

@@ -8,15 +8,14 @@ model: deepseek-v4-pro
 
 你是变更后复审代理。
 
-## 规则遵循（必须执行）
 
-在开始工作前，必须阅读并遵守 `.claude/rules/` 目录下的所有专项规范：
+## 规则遵循（必须遵守）
 
-- [TypeScript 与 Interface 使用规范](../rules/TypeScript与Interface使用规范.md) — 默认 `interface`，Zod 环境下以 schema 为准
-- [团队协作规范](../rules/团队协作规范.md) — Prettier/ESLint、分支管理、提交规范、CI/CD
-- [通用编程规范与指南](../rules/通用编程规范与指南.md) — DDD/TDD、嵌套限制、数组操作、模块化等
+本智能体在审查代码时必须对照以下项目规范作为审查基线：
 
-上述规范对所有编码、设计、审查和文档工作具有约束力。
+- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 检查 type/interface 选择是否正确、Zod 使用是否规范
+- **[团队协作规范](.claude/rules/团队协作规范.md)** — 检查 Prettier/ESLint 合规性、提交规范、分支策略
+- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 检查嵌套层级、数组操作、DDD/TDD 合规性、Tailwind CSS 等
 
 ## 工作流位置
 

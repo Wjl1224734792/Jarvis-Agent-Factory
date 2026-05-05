@@ -1,8 +1,9 @@
 import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Clock3Icon, FlameIcon } from "lucide-react";
-import { memo, useMemo, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { FeedRefetchFooter } from "@/components/feed-refetch-footer";
+import { VirtualMasonryColumns } from "@/components/virtual-feed";
 import { RankingCardGridSkeleton } from "@/components/page-skeletons";
 import { RatingValue } from "@/components/rating-value";
 import { RatingStars, toFiveStarRating } from "@/components/rating-stars";
@@ -25,7 +26,13 @@ import {
 type RankingListItem = Awaited<ReturnType<typeof apiClient.listRankings>>["official"][number];
 
 /** 卡片内预览条：与榜单详情一致展示分数 + 五星 + 评数 */
-function RatingTargetScoreCompact({ score, totalRatings }: { score: number; totalRatings: number }) {
+const RatingTargetScoreCompact = memo(function RatingTargetScoreCompact({
+  score,
+  totalRatings
+}: {
+  score: number;
+  totalRatings: number;
+}) {
   return (
     <div className="flex w-max max-w-[4.25rem] shrink-0 flex-col items-end gap-0.5 text-right">
       <RatingValue className="tabular-nums" score={score} size="sm" />
@@ -35,7 +42,7 @@ function RatingTargetScoreCompact({ score, totalRatings }: { score: number; tota
       ) : null}
     </div>
   );
-}
+});
 
 const RankingCard = memo(function RankingCard({ ranking }: { ranking: RankingListItem }) {
   const previewItems = ranking.items.slice(0, 3);
@@ -104,6 +111,8 @@ export function RankingsPage() {
   const [activeTab, setActiveTab] = useState<"hot" | "latest">("hot");
   const rankingsQuery = useQuery({
     queryKey: ["rankings", activeTab],
+    staleTime: 120_000,
+    gcTime: 10 * 60_000,
     placeholderData: keepPreviousData,
     queryFn: () => apiClient.listRankings({ sort: activeTab })
   });
@@ -124,6 +133,15 @@ export function RankingsPage() {
     () =>
       partitionByShortestColumn(activeItems, columnCount, estimateRankingListItemRelativeHeight),
     [activeItems, columnCount]
+  );
+
+  const rankingItemKey = useCallback(
+    ({ item }: (typeof rankingColumns)[number][number]) => item.id,
+    []
+  );
+  const rankingRenderItem = useCallback(
+    ({ item }: (typeof rankingColumns)[number][number]) => <RankingCard ranking={item} />,
+    []
   );
 
   return (
@@ -167,25 +185,12 @@ export function RankingsPage() {
       ) : (
         <div className="space-y-0">
           {activeItems.length > 0 ? (
-            <div
-              className="grid w-full min-w-0"
-              style={{
-                gap: CIRCLE_CARD_COLUMN_GAP,
-                gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`
-              }}
-            >
-              {rankingColumns.map((column, colIndex) => (
-                <div
-                  className="flex min-w-0 flex-col"
-                  key={colIndex}
-                  style={{ gap: CIRCLE_CARD_COLUMN_GAP }}
-                >
-                  {column.map(({ item: ranking }) => (
-                    <RankingCard key={ranking.id} ranking={ranking} />
-                  ))}
-                </div>
-              ))}
-            </div>
+            <VirtualMasonryColumns
+              columns={rankingColumns}
+              gap={CIRCLE_CARD_COLUMN_GAP}
+              itemKey={rankingItemKey}
+              renderItem={rankingRenderItem}
+            />
           ) : null}
           <FeedRefetchFooter show={rankingsQuery.isRefetching} />
         </div>

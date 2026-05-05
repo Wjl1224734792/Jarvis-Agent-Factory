@@ -124,3 +124,7 @@ playwright-report/
 test-results/
 *.py
 
+
+# Claude Code local settings (contains API keys)
+.claude/settings.local.json
+.mcp.json

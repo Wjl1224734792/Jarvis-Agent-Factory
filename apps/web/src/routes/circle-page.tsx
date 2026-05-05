@@ -1,6 +1,6 @@
 import { useInfiniteQuery, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Suspense, lazy, startTransition, useEffect, useMemo, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { Suspense, lazy, startTransition, useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { APP_ROUTES, buildLoginRedirectUrl, resolveSafeRedirectPath } from "@feijia/shared";
 import { SitePage } from "@/components/site-shell";
 import { useAuthStore } from "@/features/auth/auth-store";
@@ -39,14 +39,42 @@ export function CirclePage() {
   const authStatus = useAuthStore((state) => state.status);
   const currentUser = useAuthStore((state) => state.user);
   const promptLogin = useLoginPrompt();
-  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState<FeedTab>("recommended");
   const [commentContent, setCommentContent] = useState("");
   const [commentSort, setCommentSort] = useState<"latest" | "hot">("latest");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
 
-  const selectedNoteId = searchParams.get("note");
+  function readNoteIdFromURL(): string | null {
+    return new URLSearchParams(window.location.search).get("note");
+  }
+
+  function syncNoteIdToURL(noteId: string | null) {
+    const params = new URLSearchParams(window.location.search);
+    if (noteId) {
+      params.set("note", noteId);
+    } else {
+      params.delete("note");
+    }
+    const search = params.toString();
+    const url = search
+      ? `${window.location.pathname}?${search}`
+      : window.location.pathname;
+    window.history.replaceState(window.history.state, "", url);
+  }
+
+  const [selectedNoteId, setSelectedNoteId] = useState<string | null>(() =>
+    readNoteIdFromURL()
+  );
+
+  // 响应浏览器前进/后退时同步 selectedNoteId
+  useEffect(() => {
+    function handlePopState() {
+      setSelectedNoteId(readNoteIdFromURL());
+    }
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+  }, []);
   const circleFeedQuery = useInfiniteQuery({
     queryKey: ["circle-feed", activeTab],
     initialPageParam: undefined as string | undefined,
@@ -95,15 +123,13 @@ export function CirclePage() {
   }, [queryClient, selectedNote]);
 
   function openNote(id: string) {
-    const next = new URLSearchParams(searchParams);
-    next.set("note", id);
-    setSearchParams(next, { replace: true });
+    setSelectedNoteId(id);
+    syncNoteIdToURL(id);
   }
 
   function closeNote() {
-    const next = new URLSearchParams(searchParams);
-    next.delete("note");
-    setSearchParams(next);
+    setSelectedNoteId(null);
+    syncNoteIdToURL(null);
     setCommentContent("");
     setActionError(null);
   }
@@ -116,8 +142,10 @@ export function CirclePage() {
   const hasMoreFeedItems = Boolean(circleFeedQuery.hasNextPage);
   const isFetchingNextFeedPage = circleFeedQuery.isFetchingNextPage;
 
+  const isFollowingPendingRef = useRef(false);
+
   function handleToggleFollow() {
-    if (!selectedNote) {
+    if (!selectedNote || isFollowingPendingRef.current) {
       return;
     }
 
@@ -132,23 +160,31 @@ export function CirclePage() {
 
     const nextIsFollowing = !selectedNote.engagement.viewer.isFollowingAuthor;
     setActionError(null);
+    isFollowingPendingRef.current = true;
+    // 乐观更新: 立即反映 UI 状态
+    patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
+
     void apiClient
       .toggleFollow(selectedNote.author.id)
       .then(() => {
-        patchPostAuthorFollowState(queryClient, selectedNote.author.id, nextIsFollowing);
         startTransition(() => {
           void queryClient.invalidateQueries({ queryKey: ["notifications"] });
         });
       })
       .catch((reason: unknown) => {
+        // 回滚乐观更新
+        patchPostAuthorFollowState(queryClient, selectedNote.author.id, !nextIsFollowing);
         setActionError(
           reason instanceof Error ? reason.message : "操作失败，请稍后重试。"
         );
+      })
+      .finally(() => {
+        isFollowingPendingRef.current = false;
       });
   }
 
   function handleCommentSubmit() {
-    if (!selectedNote || !commentContent.trim()) {
+    if (!selectedNote || !commentContent.trim() || isSubmitting) {
       return;
     }
 
@@ -211,6 +247,7 @@ export function CirclePage() {
       {selectedNoteId ? (
         <Suspense fallback={null}>
           <CirclePageDetail
+            key={selectedNoteId}
             selectedNoteId={selectedNoteId}
             selectedNote={selectedNote}
             displayNote={displayNote}

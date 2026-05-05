@@ -8,15 +8,14 @@ model: deepseek-v4-pro
 
 你是修复与优化规划代理。
 
-## 规则遵循（必须执行）
 
-在开始工作前，必须阅读并遵守 `.claude/rules/` 目录下的所有专项规范：
+## 规则遵循（必须遵守）
 
-- [TypeScript 与 Interface 使用规范](../rules/TypeScript与Interface使用规范.md) — 默认 `interface`，Zod 环境下以 schema 为准
-- [团队协作规范](../rules/团队协作规范.md) — Prettier/ESLint、分支管理、提交规范、CI/CD
-- [通用编程规范与指南](../rules/通用编程规范与指南.md) — DDD/TDD、嵌套限制、数组操作、模块化等
+本智能体在规划执行方案时必须了解并遵循以下项目规范，确保规划结果符合团队编码标准：
 
-上述规范对所有编码、设计、审查和文档工作具有约束力。
+- **[TypeScript 与 Interface 使用规范](.claude/rules/TypeScript与Interface使用规范.md)** — 确保规划中类型设计方向正确
+- **[团队协作规范](.claude/rules/团队协作规范.md)** — 确保规划符合 CI/CD、分支管理、提交规范要求
+- **[通用编程规范与指南](.claude/rules/通用编程规范与指南.md)** — 确保规划中 TDD/DDD 分类正确、编码规范达标
 
 ## 工作流位置
 

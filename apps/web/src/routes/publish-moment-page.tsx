@@ -32,6 +32,10 @@ const MOMENT_CONTENT_MAX = 1000;
 const VIDEO_COVER_RATIO_DEFAULT = 10;
 const MOMENT_DRAFT_KEY = "feijia:moment-draft";
 
+function uid(prefix: string): string {
+  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
+}
+
 type UploadedImage = {
   id: string;
   url: string;
@@ -277,7 +281,7 @@ export function PublishMomentPage() {
         setVideoCoverImage((current) => {
           revokePreviewAsset(current);
           return {
-            id: `local-video-cover-${crypto.randomUUID()}`,
+            id: uid("local-video-cover"),
             url: URL.createObjectURL(frameFile),
             fileName: frameFile.name,
             file: frameFile,
@@ -303,7 +307,7 @@ export function PublishMomentPage() {
     setVideoCoverImage((current) => {
       revokePreviewAsset(current);
       return {
-        id: `local-video-cover-${crypto.randomUUID()}`,
+        id: uid("local-video-cover"),
         url: URL.createObjectURL(file),
         fileName: file.name,
         file,
@@ -506,7 +510,7 @@ export function PublishMomentPage() {
 
     setError(null);
     const nextImages: UploadedImage[] = Array.from(files).map((file) => ({
-      id: `local-image-${crypto.randomUUID()}`,
+      id: uid("local-image"),
       url: URL.createObjectURL(file),
       fileName: file.name,
       file,
@@ -566,7 +570,7 @@ export function PublishMomentPage() {
     setUploadedImages([]);
     setSelectedImageCoverId(null);
     setUploadedVideo({
-      id: `local-video-${crypto.randomUUID()}`,
+      id: uid("local-video"),
       url: URL.createObjectURL(file),
       fileName: file.name,
       file,
