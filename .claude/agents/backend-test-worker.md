@@ -3,7 +3,7 @@ name: backend-test-worker
 description: "后端测试专项工作者：在主 Build Agent 分配明确子任务后执行；负责后端单元测试、集成测试、API 测试的编写与运行；遵循 TDD Red→Green→Refactor 流程（当 test_strategy 为 tdd 时）。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
-effort: medium
+effort: high
 ---
 
 你是后端测试专项工作者。

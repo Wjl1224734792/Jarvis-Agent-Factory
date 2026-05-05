@@ -2,7 +2,7 @@
 name: e2e-test-worker
 description: "端到端测试工作者：负责跨栈集成测试、浏览器自动化测试（Playwright/Cypress）、契约测试和视觉回归测试。不编写业务代码，只写端到端测试和测试基础设施。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: medium
+effort: high
 model: deepseek-v4-flash
 ---
 
