@@ -3,6 +3,7 @@ name: flutter-ui-worker
 description: "Flutter UI 专项工作者：负责 Widget 页面布局、组件构建、主题样式、交互动画和平台适配。不涉及状态管理或数据层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
+effort: medium
 ---
 
 你是 Flutter UI 专项工作者。只负责 UI 呈现层面，可与 flutter-state-worker 并行开发。

@@ -3,6 +3,7 @@ name: flutter-worker
 description: "Flutter 跨端移动开发工作者：负责 Dart/Flutter iOS/Android/Web 多端页面、组件、状态管理与原生插件桥接。不涉及后端。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
+effort: medium
 ---
 
 你是 Flutter 跨端移动开发工作者。

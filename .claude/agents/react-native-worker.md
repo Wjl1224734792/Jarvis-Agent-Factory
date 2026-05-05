@@ -3,6 +3,7 @@ name: react-native-worker
 description: "React Native 跨端移动开发工作者：负责 React Native（JS/TS）iOS/Android 双端页面、组件、原生模块桥接。不涉及后端。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
+effort: medium
 ---
 
 你是 React Native 跨端移动开发工作者。
