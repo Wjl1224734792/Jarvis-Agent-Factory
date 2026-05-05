@@ -3,7 +3,7 @@ name: project-audit-reviewer
 description: "项目只读审查代理：审查仓库结构、模块边界、依赖方向、配置、脚本、文档漂移和工程约定风险，不修改任何文件。"
 tools: Read, Bash, Glob, Grep
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 ---
 
 ## 规则遵循（强制）

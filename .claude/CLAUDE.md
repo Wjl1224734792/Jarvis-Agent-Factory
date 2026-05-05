@@ -21,18 +21,33 @@
 
 ## 模型分配规则
 
-| 模型 | 适用场景 | 分配对象 |
-|------|---------|---------|
-| `mimo-v2.5-pro` | 无联网搜索，复杂任务（MAX effort） | backend-implementer, database-specialist, frontend-implementer, performance-audit-reviewer, planner, post-change-reviewer, project-audit-reviewer, remediation-planner, review-qa, task-design |
-| `mimo-v2.5` | 无联网搜索，专项任务（HIGH effort） | 其余所有专项 worker（android/ios/flutter/taro/rn/frontend/backend worker 等） |
-| `deepseek-v4-pro` | 需要 WebSearch/WebFetch | algorithm-expert, backend-architect, diff-code-reviewer, frontend-architect, review-fix-optimize, review-only, security-auditor |
-| `deepseek-v4-flash` | 需要 WebSearch/WebFetch，轻量探索 | docs-researcher, repo-explorer |
+### 分配逻辑
+
+模型分配基于**任务本质**而非单一维度：
+
+| 任务本质 | 首选模型 | 理由 |
+|---------|---------|------|
+| 代码生成/实现 | `mimo-v2.5-pro` | SWE-bench 57.2%，代码工程领先 |
+| 长链规划/编排 | `mimo-v2.5-pro` | ClawEval 64%，Agent 任务第一 |
+| 深度分析/审查 | `deepseek-v4-pro` | 强推理能力，适合多维度判断 |
+| 需要联网搜索 | `deepseek-v4-pro` | Mimo 系列不支持 WebSearch/WebFetch |
+| 专项聚焦任务 | `mimo-v2.5` | 范围明确，逻辑集中 |
+| 轻量探索+联网 | `deepseek-v4-flash` | 快速文档搜索与代码探索 |
+
+### 具体分配
+
+| 模型 | 数量 | Agent |
+|------|------|-------|
+| `deepseek-v4-pro` | **11** | algorithm-expert, backend-architect, diff-code-reviewer, frontend-architect, performance-audit-reviewer, post-change-reviewer, project-audit-reviewer, review-fix-optimize, review-only, review-qa, security-auditor |
+| `mimo-v2.5-pro` | **6** | backend-implementer, database-specialist, frontend-implementer, planner, remediation-planner, task-design |
+| `mimo-v2.5` | **28** | 所有专项 worker（android/ios/flutter/taro/rn/frontend/backend/browser/e2e/infra/performance/remediation worker 等） |
+| `deepseek-v4-flash` | **2** | docs-researcher, repo-explorer |
 
 ### 核心原则
 
-- **小米 Mimo 系列模型不用于联网搜索**（WebSearch/WebFetch），该场景统一使用 DeepSeek
-- Mimo-V2.5-Pro 用于高复杂度实现与规划类 agent
-- Mimo-V2.5 用于范围明确、逻辑集中的专项任务
+- **任务本质决定模型**：代码生成 → Mimo，深度分析 → DeepSeek，不简单按是否联网二分
+- **Mimo 不用于 WebSearch/WebFetch**，该场景统一使用 DeepSeek
+- 审查/审计类 agent 需要强推理和多维度判断 → `deepseek-v4-pro`
 
 ### 预留模型（未分配）
 

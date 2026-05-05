@@ -3,7 +3,7 @@ name: performance-audit-reviewer
 description: "性能只读审查代理：审查前端、后端、数据库、构建和运行时的性能风险、基线缺口与可测指标，不修改任何文件。"
 tools: Read, Bash, Glob, Grep
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 ---
 
 ## 规则遵循（强制）

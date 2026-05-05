@@ -3,7 +3,7 @@ name: post-change-reviewer
 description: "变更后复审代理：在修复或优化完成后复核初审 findings、实际 diff、验证证据和残余风险，输出关闭矩阵和复审结论，不直接修复代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 ---
 
 ## 规则遵循（强制）
