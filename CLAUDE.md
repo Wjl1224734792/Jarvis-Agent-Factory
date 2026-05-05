@@ -31,9 +31,9 @@
 ## 常用命令
 
 - `/jarvis` — 全栈流水线编排
-- `/backend` — 后端开发生命周期（需求→实现→发布）
-- `/frontend` — 前端开发生命周期（需求→实现→发布）
-- `/mobile` — 移动端开发生命周期（需求→实现→发布）
+- `/backend` — 后端开发生命周期
+- `/frontend` — 前端开发生命周期
+- `/taro` `/android` `/ios` `/expo` `/flutter` — 移动端五平台各自生命周期
 - `/review` — 只读审查（不修改文件）
 - `/review-fix` — 审查→修复→复审闭环
 - `/browser-test` — 浏览器自动化测试
