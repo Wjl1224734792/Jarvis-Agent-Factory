@@ -1,6 +1,7 @@
 import { db, postsTable } from "@feijia/db";
 import { eq } from "drizzle-orm";
 import { CacheService } from "../../lib/cache-service";
+import { aiRateLimitRepo } from "./ai-rate-limit.repo";
 import { aiSettingsService } from "./ai-settings.service";
 
 const CACHE_TTL_SECONDS = 86400;
@@ -36,6 +37,7 @@ const cache = new CacheService();
  * @throws Error 含 "403" 表示功能关闭；含 "429" 表示频率限制；含 "LLM_API_ERROR" 表示 API 失败。
  */
 export async function generateSummary(
+  userId: string,
   postId: string,
   content?: string
 ): Promise<{ summary: string; cached: boolean }> {
@@ -65,7 +67,9 @@ export async function generateSummary(
           throw new Error("文章不存在");
         }
 
-        const summaryText = await callLlm(settings, content.slice(0, CONTENT_MAX_LENGTH));
+        const summaryText = await withRateLimit(userId, "summary", () =>
+          callLlm(userId, settings, content.slice(0, CONTENT_MAX_LENGTH))
+        );
         return { summary: summaryText, cached: false };
       }
 
@@ -84,7 +88,9 @@ export async function generateSummary(
       }
 
       const truncatedContent = (content ?? "").slice(0, CONTENT_MAX_LENGTH);
-      const summary = await callLlm(settings, truncatedContent);
+      const summary = await withRateLimit(userId, "summary", () =>
+        callLlm(userId, settings, truncatedContent)
+      );
 
       await db
         .update(postsTable)
@@ -108,6 +114,7 @@ export async function generateSummary(
  * @throws Error 含 "400" 表示输入过长或为空；含 "403" 表示功能关闭；含 "LLM_API_ERROR" 表示 API 失败。
  */
 export async function formatContent(
+  userId: string,
   content: string,
   mode: "beautify" | "structure"
 ): Promise<{ html: string; changes: string[] }> {
@@ -127,7 +134,9 @@ export async function formatContent(
     throw new Error("403: AI 排版功能已关闭，请联系管理员开启");
   }
 
-  const result = await callLlmForFormat(settings, content, mode);
+  const result = await withRateLimit(userId, "format", () =>
+    callLlmForFormat(userId, settings, content, mode)
+  );
   return result;
 }
 
@@ -139,7 +148,25 @@ export async function formatContent(
  * @returns 生成的摘要文本。
  * @throws Error 含 "LLM_API_ERROR" 前缀表示 API 调用失败。
  */
+/**
+ * 带 PostgreSQL 限流的 LLM 调用包装器。
+ * 自动获取/释放并发槽位，确保不被高并发打垮。
+ */
+async function withRateLimit<T>(
+  userId: string,
+  action: string,
+  fn: () => Promise<T>
+): Promise<T> {
+  const requestId = await aiRateLimitRepo.acquireSlot(userId, action);
+  try {
+    return await fn();
+  } finally {
+    await aiRateLimitRepo.releaseSlot(requestId, true);
+  }
+}
+
 async function callLlm(
+  userId: string,
   settings: { apiKey: string; baseUrl: string; summaryModel: string },
   content: string
 ): Promise<string> {
@@ -194,6 +221,7 @@ async function callLlm(
  * @throws Error 含 "LLM_API_ERROR" 前缀表示 API 调用失败。
  */
 async function callLlmForFormat(
+  userId: string,
   settings: {
     apiKey: string;
     baseUrl: string;

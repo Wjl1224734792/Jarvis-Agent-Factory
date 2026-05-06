@@ -59,6 +59,13 @@ vi.mock("../src/modules/ai/ai-settings.service", () => ({
   }
 }));
 
+vi.mock("../src/modules/ai/ai-rate-limit.repo", () => ({
+  aiRateLimitRepo: {
+    acquireSlot: vi.fn(async () => "mock-request-id"),
+    releaseSlot: vi.fn(async () => undefined)
+  }
+}));
+
 const fetchMock = Object.assign(vi.fn(), { preconnect: vi.fn() });
 
 // ---------------------------------------------------------------------------
@@ -115,7 +122,7 @@ describe("generateSummary", () => {
     });
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-1");
+    const result = await generateSummary("test-user", "post-1");
 
     expect(result).toStrictEqual({ summary: "缓存中的摘要", cached: true });
     expect(dbSelectMock).not.toHaveBeenCalled();
@@ -139,7 +146,7 @@ describe("generateSummary", () => {
     dbUpdateMock.mockImplementation(mockDb.update);
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-2");
+    const result = await generateSummary("test-user", "post-2");
 
     expect(result).toStrictEqual({ summary: "数据库中的摘要", cached: true });
     expect(fetchMock).not.toHaveBeenCalled();
@@ -168,7 +175,7 @@ describe("generateSummary", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-3", "这是一篇测试文章的内容");
+    const result = await generateSummary("test-user", "post-3", "这是一篇测试文章的内容");
 
     expect(result).toStrictEqual({ summary: "LLM 生成的摘要内容", cached: false });
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -186,7 +193,7 @@ describe("generateSummary", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-4");
+      await generateSummary("test-user", "post-4");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -218,7 +225,7 @@ describe("generateSummary", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-5");
+      await generateSummary("test-user", "post-5");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -253,7 +260,7 @@ describe("generateSummary", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-6", "测试内容");
+      await generateSummary("test-user", "post-6", "测试内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -295,7 +302,7 @@ describe("generateSummary -- 边界条件", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-empty", "");
+    const result = await generateSummary("test-user", "post-empty", "");
 
     expect(result.cached).toBe(false);
     expect(result.summary).toBe("该文章内容为空，无法生成有效摘要");
@@ -320,7 +327,7 @@ describe("generateSummary -- 边界条件", () => {
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
     // 不传 content 参数
-    const result = await generateSummary("post-undef");
+    const result = await generateSummary("test-user", "post-undef");
 
     expect(result.cached).toBe(false);
     // 验证 fetch 被调用，即 content undefined 时不会崩溃
@@ -349,7 +356,7 @@ describe("generateSummary -- 边界条件", () => {
 
     const longContent = "A".repeat(5000);
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    await generateSummary("post-long", longContent);
+    await generateSummary("test-user", "post-long", longContent);
 
     // 从请求体中提取实际发送给 LLM 的内容
     const bodyObj = JSON.parse(capturedBody) as {
@@ -389,7 +396,7 @@ describe("generateSummary -- 边界条件", () => {
       '<p>HTML 标签内容</p><script>alert("xss")</script>Emoji: 🎉🔥💻 特殊字符: @#$%^&*()';
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-special", specialContent);
+    const result = await generateSummary("test-user", "post-special", specialContent);
 
     expect(result.cached).toBe(false);
     expect(result.summary).toBe("特殊内容摘要");
@@ -421,7 +428,7 @@ describe("generateSummary -- 边界条件", () => {
     const mixedContent = "这是一篇关于 TypeScript 的文章。TypeScript is a typed superset of JavaScript.";
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-mixed", mixedContent);
+    const result = await generateSummary("test-user", "post-mixed", mixedContent);
 
     expect(result.summary).toBe("Mixed content summary");
     expect(result.cached).toBe(false);
@@ -458,7 +465,7 @@ describe("generateSummary -- 缓存失效路径", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-retry", "文章内容");
+    const result = await generateSummary("test-user", "post-retry", "文章内容");
 
     expect(result.cached).toBe(false);
     expect(result.summary).toBe("重新生成的摘要");
@@ -488,7 +495,7 @@ describe("generateSummary -- 缓存失效路径", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    const result = await generateSummary("post-expired", "新内容");
+    const result = await generateSummary("test-user", "post-expired", "新内容");
 
     // 超过 24h 但已有摘要，直接返回（实现行为：有摘要即返回，不区分时间）
     expect(result.cached).toBe(true);
@@ -497,7 +504,22 @@ describe("generateSummary -- 缓存失效路径", () => {
     expect(dbUpdateMock).not.toHaveBeenCalled();
   });
 
-  it("DB 文章不存在时抛出错误", async () => {
+  it("DB 文章不存在但有 content 时直接调用 LLM 生成（不抛错误）", async () => {
+    cacheHandler = async fn => fn();
+    getRawSettingsMock.mockResolvedValue(defaultSettings);
+
+    const mockDb = createDbMock([]);
+    dbSelectMock.mockImplementation(mockDb.select);
+    dbUpdateMock.mockImplementation(mockDb.update);
+
+    const { generateSummary } = await import("../src/modules/ai/ai.service");
+    const result = await generateSummary("test-user", "post-nonexistent", "测试内容");
+
+    expect(result.cached).toBe(false);
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
+  it("DB 文章不存在且无 content 时抛出错误", async () => {
     cacheHandler = async fn => fn();
     getRawSettingsMock.mockResolvedValue(defaultSettings);
 
@@ -508,7 +530,7 @@ describe("generateSummary -- 缓存失效路径", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-nonexistent", "内容");
+      await generateSummary("test-user", "post-nonexistent");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -548,7 +570,7 @@ describe("generateSummary -- LLM 异常响应", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-empty-choices", "内容");
+      await generateSummary("test-user", "post-empty-choices", "内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -578,7 +600,7 @@ describe("generateSummary -- LLM 异常响应", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-empty-content", "内容");
+      await generateSummary("test-user", "post-empty-content", "内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -604,7 +626,7 @@ describe("generateSummary -- LLM 异常响应", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-bad-json", "内容");
+      await generateSummary("test-user", "post-bad-json", "内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -632,7 +654,7 @@ describe("generateSummary -- LLM 异常响应", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-json-err", "内容");
+      await generateSummary("test-user", "post-json-err", "内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -655,7 +677,7 @@ describe("generateSummary -- LLM 异常响应", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     try {
-      await generateSummary("post-timeout", "内容");
+      await generateSummary("test-user", "post-timeout", "内容");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -698,7 +720,7 @@ describe("generateSummary -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    await generateSummary("post-prompt", "测试文章");
+    await generateSummary("test-user", "post-prompt", "测试文章");
 
     const bodyObj = JSON.parse(capturedBody) as {
       messages: Array<{ role: string; content: string }>;
@@ -744,7 +766,7 @@ describe("generateSummary -- Prompt 构造验证", () => {
 
     const content4001 = "B".repeat(4001);
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    await generateSummary("post-trim", content4001);
+    await generateSummary("test-user", "post-trim", content4001);
 
     const bodyObj = JSON.parse(capturedBody) as {
       messages: Array<{ content: string }>;
@@ -777,7 +799,7 @@ describe("generateSummary -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { generateSummary } = await import("../src/modules/ai/ai.service");
-    await generateSummary("post-url", "内容");
+    await generateSummary("test-user", "post-url", "内容");
 
     // 验证 URL 尾部斜杠被清理
     expect(fetchMock).toHaveBeenCalledWith(
@@ -820,9 +842,9 @@ describe("generateSummary -- 并发请求", () => {
 
     // 并发 3 个相同请求
     const results = await Promise.all([
-      generateSummary("post-concurrent", "内容A"),
-      generateSummary("post-concurrent", "内容B"),
-      generateSummary("post-concurrent", "内容C")
+      generateSummary("test-user", "post-concurrent", "内容A"),
+      generateSummary("test-user", "post-concurrent", "内容B"),
+      generateSummary("test-user", "post-concurrent", "内容C")
     ]);
 
     // 每个请求都能拿到结果
@@ -856,9 +878,9 @@ describe("generateSummary -- 并发请求", () => {
     const { generateSummary } = await import("../src/modules/ai/ai.service");
 
     const results = await Promise.all([
-      generateSummary("post-1", "文章1"),
-      generateSummary("post-2", "文章2"),
-      generateSummary("post-3", "文章3")
+      generateSummary("test-user", "post-1", "文章1"),
+      generateSummary("test-user", "post-2", "文章2"),
+      generateSummary("test-user", "post-3", "文章3")
     ]);
 
     expect(results).toHaveLength(3);

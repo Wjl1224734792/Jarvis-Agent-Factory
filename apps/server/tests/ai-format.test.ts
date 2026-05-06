@@ -42,6 +42,13 @@ vi.mock("../src/modules/ai/ai-settings.service", () => ({
   }
 }));
 
+vi.mock("../src/modules/ai/ai-rate-limit.repo", () => ({
+  aiRateLimitRepo: {
+    acquireSlot: vi.fn(async () => "mock-request-id"),
+    releaseSlot: vi.fn(async () => undefined)
+  }
+}));
+
 const fetchMock = Object.assign(vi.fn(), { preconnect: vi.fn() });
 
 // ---------------------------------------------------------------------------
@@ -100,7 +107,7 @@ describe("formatContent", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("<p>原始内容</p>", "beautify");
+    const result = await formatContent("test-user", "<p>原始内容</p>", "beautify");
 
     expect(result.html).toBe("<p>优化后的内容</p>");
     expect(result.changes).toStrictEqual([
@@ -129,7 +136,7 @@ describe("formatContent", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("标题 段落内容", "structure");
+    const result = await formatContent("test-user", "标题 段落内容", "structure");
 
     expect(result.html).toBe("<h2>标题</h2><p>段落</p>");
     expect(result.changes).toStrictEqual(["识别了标题层级", "拆分了段落"]);
@@ -142,7 +149,7 @@ describe("formatContent", () => {
     const longContent = "a".repeat(8001);
 
     try {
-      await formatContent(longContent, "beautify");
+      await formatContent("test-user", longContent, "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -161,7 +168,7 @@ describe("formatContent", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -185,7 +192,7 @@ describe("formatContent", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -202,7 +209,7 @@ describe("formatContent", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("", "beautify");
+      await formatContent("test-user", "", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -229,7 +236,7 @@ describe("formatContent -- 边界条件", () => {
 
     for (const input of whitespaceInputs) {
       try {
-        await formatContent(input, "beautify");
+        await formatContent("test-user", input, "beautify");
         expect.fail(`输入 "${input}" 应抛出错误`);
       } catch (error) {
         expect(error).toBeInstanceOf(Error);
@@ -260,7 +267,7 @@ describe("formatContent -- 边界条件", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("<p></p>", "beautify");
+    const result = await formatContent("test-user", "<p></p>", "beautify");
 
     expect(result.html).toBe("<p>默认段落</p>");
     expect(result.changes).toStrictEqual(["添加了默认内容"]);
@@ -286,7 +293,7 @@ describe("formatContent -- 边界条件", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("这是一段纯文本内容", "beautify");
+    const result = await formatContent("test-user", "这是一段纯文本内容", "beautify");
 
     expect(result.html).toBe("<p>这是一段纯文本内容</p>");
     expect(result.changes).toStrictEqual(["添加了段落标签"]);
@@ -319,7 +326,7 @@ describe("formatContent -- 边界条件", () => {
       "<div><div><div><table><tr><td>嵌套内容</td></tr></table></div></div></div>";
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent(complexHtml, "beautify");
+    const result = await formatContent("test-user", complexHtml, "beautify");
 
     expect(result.html).toContain("<table>");
     expect(result.changes).toStrictEqual(["优化了表格结构"]);
@@ -350,7 +357,7 @@ describe("formatContent -- 边界条件", () => {
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
     const exactMaxContent = "a".repeat(8000);
-    const result = await formatContent(exactMaxContent, "beautify");
+    const result = await formatContent("test-user", exactMaxContent, "beautify");
 
     expect(result.html).toBe("<p>优化后</p>");
     expect(fetchMock).toHaveBeenCalledOnce();
@@ -363,7 +370,7 @@ describe("formatContent -- 边界条件", () => {
     const overMaxContent = "a".repeat(8001);
 
     try {
-      await formatContent(overMaxContent, "beautify");
+      await formatContent("test-user", overMaxContent, "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -400,7 +407,7 @@ describe("formatContent -- 边界条件", () => {
       '<p>Emoji: 🎉🔥💻 中文标点：，。！？ HTML实体：&amp;&lt;&gt;</p>';
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent(specialContent, "beautify");
+    const result = await formatContent("test-user", specialContent, "beautify");
 
     expect(result.html).toBe("<p>特殊内容已优化</p>");
 
@@ -440,8 +447,8 @@ describe("formatContent -- 输出格式一致性", () => {
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
-    const beautifyResult = await formatContent("<p>测试</p>", "beautify");
-    const structureResult = await formatContent("<p>测试</p>", "structure");
+    const beautifyResult = await formatContent("test-user", "<p>测试</p>", "beautify");
+    const structureResult = await formatContent("test-user", "<p>测试</p>", "structure");
 
     // 两者都应包含 html 和 changes 字段
     expect(beautifyResult).toHaveProperty("html");
@@ -474,7 +481,7 @@ describe("formatContent -- 输出格式一致性", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("<p>内容</p>", "beautify");
+    const result = await formatContent("test-user", "<p>内容</p>", "beautify");
 
     expect(result.html).toBe("<p>内容</p>");
     expect(result.changes).toStrictEqual([]);
@@ -498,7 +505,7 @@ describe("formatContent -- 输出格式一致性", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    const result = await formatContent("<p>内容</p>", "structure");
+    const result = await formatContent("test-user", "<p>内容</p>", "structure");
 
     expect(result.html).toBe("<p>内容</p>");
     // changes 应被默认为空数组
@@ -525,7 +532,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -548,7 +555,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "structure");
+      await formatContent("test-user", "<p>内容</p>", "structure");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -569,7 +576,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -598,7 +605,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -627,7 +634,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "structure");
+      await formatContent("test-user", "<p>内容</p>", "structure");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -645,7 +652,7 @@ describe("formatContent -- LLM 异常响应", () => {
     const { formatContent } = await import("../src/modules/ai/ai.service");
 
     try {
-      await formatContent("<p>内容</p>", "beautify");
+      await formatContent("test-user", "<p>内容</p>", "beautify");
       expect.fail("应抛出错误");
     } catch (error) {
       expect(error).toBeInstanceOf(Error);
@@ -678,7 +685,7 @@ describe("formatContent -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    await formatContent("<p>原始</p>", "beautify");
+    await formatContent("test-user", "<p>原始</p>", "beautify");
 
     const bodyObj = JSON.parse(capturedBody) as {
       messages: Array<{ role: string; content: string }>;
@@ -721,7 +728,7 @@ describe("formatContent -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    await formatContent("原始内容", "structure");
+    await formatContent("test-user", "原始内容", "structure");
 
     const bodyObj = JSON.parse(capturedBody) as {
       messages: Array<{ role: string; content: string }>;
@@ -753,7 +760,7 @@ describe("formatContent -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    await formatContent("<p>内容</p>", "beautify");
+    await formatContent("test-user", "<p>内容</p>", "beautify");
 
     // 验证 URL 尾部斜杠被清理
     expect(fetchMock).toHaveBeenCalledWith(
@@ -781,7 +788,7 @@ describe("formatContent -- Prompt 构造验证", () => {
     globalThis.fetch = fetchMock;
 
     const { formatContent } = await import("../src/modules/ai/ai.service");
-    await formatContent("<p>内容</p>", "beautify");
+    await formatContent("test-user", "<p>内容</p>", "beautify");
 
     const bodyObj = JSON.parse(capturedBody) as { model: string };
     expect(bodyObj.model).toBe("qwen-plus");

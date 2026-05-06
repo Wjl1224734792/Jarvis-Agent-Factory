@@ -49,9 +49,10 @@ aiRoute.post(`${API_ROUTES.ai.adminSettings}/test`, requireAdmin, async (context
  */
 aiRoute.post(API_ROUTES.ai.summary, requireAuth, async (context) => {
   const body = aiSummaryRequestSchema.parse(await context.req.json());
+  const userId = context.get("currentUser")?.id ?? "anonymous";
 
   try {
-    const result = await generateSummary(body.postId, body.content);
+    const result = await generateSummary(userId, body.postId, body.content);
     return context.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
@@ -80,7 +81,8 @@ aiRoute.post(API_ROUTES.ai.format, requireAuth, async (context) => {
   const body = aiFormatRequestSchema.parse(await context.req.json());
 
   try {
-    const result = await formatContent(body.content, body.mode);
+    const userId = context.get("currentUser")?.id ?? "anonymous";
+  const result = await formatContent(userId, body.content, body.mode);
     return context.json(result);
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);

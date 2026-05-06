@@ -1,5 +1,7 @@
 export { db, dbPool } from "./client.js";
 export {
+  aiRateLimitsTable,
+  aiRequestsTable,
   auditRecordsTable,
   aircraftSubmissionsTable,
   aircraftCategoriesTable,

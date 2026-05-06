@@ -1108,3 +1108,26 @@ export const filesTable = pgTable("files", {
     sql`${table.currentAuditStatus} IS NULL OR ${table.currentAuditStatus} IN ('queued', 'running', 'passed', 'rejected', 'needs_manual_review', 'failed', 'manual_passed', 'manual_rejected')`
   )
 }));
+
+// ---------------------------------------------------------------------------
+// AI 请求限流（PostgreSQL 防高并发）
+// ---------------------------------------------------------------------------
+
+/** AI 请求并发控制表 */
+export const aiRequestsTable = pgTable("ai_requests", {
+  id: text("id").primaryKey(),
+  userId: text("user_id").notNull(),
+  action: text("action").notNull(),
+  status: text("status").notNull().default("processing"),
+  createdAt: timestamp("created_at", { withTimezone: true }).defaultNow().notNull(),
+}, (table) => ({
+  statusCheck: check("ai_requests_status_check", sql`${table.status} IN ('processing', 'completed', 'failed')`),
+  userIdActionIdx: index("ai_requests_user_action_idx").on(table.userId, table.action)
+}));
+
+/** AI 请求速率限制表 */
+export const aiRateLimitsTable = pgTable("ai_rate_limits", {
+  id: text("id").primaryKey(),
+  counter: integer("counter").notNull().default(1),
+  windowStart: timestamp("window_start", { withTimezone: true }).defaultNow().notNull(),
+});
