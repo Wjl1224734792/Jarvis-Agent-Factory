@@ -2,6 +2,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readFileSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { homedir } from 'node:os';
 import { install } from './install.js';
 import { doctor } from './doctor.js';
 
@@ -18,19 +19,20 @@ const PLATFORMS = {
 };
 
 const HELP = `
-🧠 Jarvis Agent Factory v${PKG_VERSION} — 跨平台多智能体 AI 编程助手配置安装器
+🧠 Jarvis Agent Factory v${PKG_VERSION}
 
 Usage:
-  jarvis init [path] [--yes|-y]        初始化项目，安装全部三平台配置
-  jarvis install <platform> [path]     安装指定平台配置到目标目录
-  jarvis update [path]                 更新已安装的平台配置到最新版本
-  jarvis doctor [path]                 检查已安装的配置版本和健康状态
-  jarvis version                       显示当前版本
-  jarvis list                          列出可用平台
+  jarvis init [path] [--yes|-y] [--global|-g]   初始化项目（含 Playwright MCP 配置）
+  jarvis install <platform> [path] [--yes|-y] [--global|-g]  安装指定平台
+  jarvis update [path] [--yes|-y]                更新已安装的平台配置
+  jarvis doctor [path]                           健康检查
+  jarvis version                                 查看版本 + 检查更新
+  jarvis list                                    列出可用平台
 
 Options:
-  --yes, -y      跳过覆盖确认，直接覆盖
-  --help, -h     显示帮助
+  --yes, -y       跳过覆盖确认
+  --global, -g    安装到用户全局目录（~/.claude/ etc）
+  --help, -h      显示帮助
 
 Platforms:
   claude     ${PLATFORMS.claude.desc}
@@ -38,22 +40,20 @@ Platforms:
   codex      ${PLATFORMS.codex.desc}
 
 Examples:
-  jarvis init ./my-project              # 新项目安装全部配置
-  jarvis init -y                        # 当前目录，跳过确认
-  jarvis install claude ./my-app        # 仅安装 Claude Code 配置
-  jarvis update                         # 更新当前目录所有配置
-  jarvis doctor                         # 检查当前目录
-  jarvis version                        # 显示版本
-  jarvis list                           # 列出可用平台
+  jarvis init ./my-project         # 项目级安装（含 MCP）
+  jarvis init --global -y          # 全局安装，跳过确认
+  jarvis install claude --global   # 全局安装 Claude Code
+  jarvis version                   # 查看版本
 `;
 
 function showHelp() { console.log(HELP); }
 
 function parseFlags(args) {
-  const flags = { yes: false };
+  const flags = { yes: false, global: false };
   const cleaned = [];
   for (const a of args) {
     if (a === '--yes' || a === '-y') flags.yes = true;
+    else if (a === '--global' || a === '-g') flags.global = true;
     else cleaned.push(a);
   }
   return { flags, args: cleaned };
@@ -61,10 +61,9 @@ function parseFlags(args) {
 
 function checkLatest() {
   try {
-    const result = execSync(`npm view ${PKG_NAME} version`, {
+    return execSync(`npm view ${PKG_NAME} version`, {
       encoding: 'utf-8', timeout: 8000, stdio: ['ignore', 'pipe', 'ignore']
-    }).trim();
-    return result || null;
+    }).trim() || null;
   } catch { return null; }
 }
 
@@ -73,10 +72,7 @@ export async function run() {
   const { flags, args } = parseFlags(rawArgs);
   const cmd = args[0];
 
-  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') {
-    showHelp();
-    return;
-  }
+  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { showHelp(); return; }
 
   switch (cmd) {
     case 'version':
@@ -91,28 +87,26 @@ export async function run() {
       break;
     }
     case 'update': {
-      // Check for CLI self-update first
       const latest = checkLatest();
       if (latest && latest !== PKG_VERSION) {
         console.log(`\n⬆️  CLI update: v${PKG_VERSION} → v${latest}`);
         console.log(`   Run: npm i -g ${PKG_NAME}@latest\n`);
       }
-
-      // Update platform configs in target directory
       const target = resolve(args[1] || '.');
-      console.log(`🔄 Updating platform configs → ${target}\n`);
+      console.log(`🔄 Updating configs → ${target}\n`);
       for (const name of Object.keys(PLATFORMS)) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes });
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
       }
-      console.log(`\n✅ Update complete! Run \`jarvis doctor\` to verify.\n`);
+      console.log(`\n✅ Done!\n`);
       break;
     }
     case 'init': {
       const target = resolve(args[1] || '.');
+      const scope = flags.global ? `~ (global)` : target;
       console.log(`\n🚀 Jarvis Agent Factory v${PKG_VERSION}\n`);
-      console.log(`   Target: ${target}\n`);
+      console.log(`   Target: ${scope}\n`);
       for (const name of Object.keys(PLATFORMS)) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes });
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
       }
       console.log(`\n✅ Done! Run \`jarvis doctor\` to verify.\n`);
       break;
@@ -125,8 +119,9 @@ export async function run() {
         return;
       }
       const target = resolve(args[2] || '.');
-      console.log(`\n📦 Installing ${platform} → ${target}\n`);
-      await install({ platform, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes });
+      const scope = flags.global ? `~ (global)` : target;
+      console.log(`\n📦 Installing ${platform} → ${scope}\n`);
+      await install({ platform, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
       console.log(`\n✅ Done!\n`);
       break;
     }
