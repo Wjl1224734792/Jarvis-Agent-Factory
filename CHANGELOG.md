@@ -4,6 +4,17 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [2.0.0] - 2026-05-06
+
+### Added
+- **npm CLI**：`jarvis-agent-factory` 一键安装工具（`jarvis init / install / doctor / list`）
+  - 智能覆盖确认（`--yes` 跳过交互）
+  - 自动跳过敏感文件（`settings.local.json`）
+- `.npmignore` 安全加固：排空个人配置与 Token
+
+### Changed
+- **版本跃迁至 v2.0.0**：npm CLI 发布标志 API 化成熟度里程碑
+
 ## [1.5.13] - 2026-05-06
 
 ### Changed

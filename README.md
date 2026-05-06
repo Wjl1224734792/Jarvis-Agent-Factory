@@ -1,12 +1,12 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.5.13-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v2.0.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 <br>**简体中文** | [English](./README_EN.md)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持 Claude Code、OpenCode、Codex 三平台，共享同一套工作流规范与技能体系。
 
-> **v1.5.13** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
+> **v2.0.0** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
 
 ## 核心概念
 
@@ -49,7 +49,30 @@
 
 ## 使用方法
 
-### Claude Code（推荐）
+### npm CLI（推荐）
+
+```bash
+npm i -g jarvis-agent-factory
+
+# 新项目一键安装
+jarvis init ./my-project
+jarvis init -y              # 跳过确认
+
+# 按平台安装
+jarvis install claude
+jarvis install opencode
+jarvis install codex
+
+# 查看版本 / 检查更新
+jarvis version
+jarvis update
+
+# 健康检查
+jarvis doctor
+jarvis list
+```
+
+### 手动安装
 
 ```bash
 cp -r path/to/.claude/ your-project/
