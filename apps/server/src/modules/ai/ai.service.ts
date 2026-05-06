@@ -61,7 +61,12 @@ export async function generateSummary(
       const post = rows[0];
 
       if (!post) {
-        throw new Error("文章不存在");
+        if (!content) {
+          throw new Error("文章不存在");
+        }
+
+        const summaryText = await callLlm(settings, content.slice(0, CONTENT_MAX_LENGTH));
+        return { summary: summaryText, cached: false };
       }
 
       if (post.aiSummary) {
