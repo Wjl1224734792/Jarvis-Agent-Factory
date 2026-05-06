@@ -366,6 +366,77 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   // ---- Health ----
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_init', 'pipeline_status', 'gate_enforce', 'advance_gate', 'report_status'] }));
 
+  // ---- Agent Model Config ----
+  const agentConfigPath = join(root, '.jarvis', 'agent-models.json');
+
+  function readAgentConfig() {
+    if (!existsSync(agentConfigPath)) return {};
+    try { return JSON.parse(readFileSync(agentConfigPath, 'utf-8')); } catch { return {}; }
+  }
+  function writeAgentConfig(cfg) {
+    const dir = join(root, '.jarvis'); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(agentConfigPath, JSON.stringify(cfg, null, 2));
+  }
+
+  const AVAILABLE_MODELS = [
+    'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash',
+    'gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.3-codex-spark', 'gpt-5.4-mini', 'gpt-5.2',
+    'claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5',
+  ];
+
+  const AGENT_LIST = [
+    { id:'jarvis', name:'Jarvis', role:'编排中枢', icon:'brain', defaultModel:'deepseek-v4-pro' },
+    { id:'frontend-implementer', name:'Frontend', role:'前端全栈', icon:'layout', defaultModel:'deepseek-v4-pro' },
+    { id:'frontend-ui-worker', name:'UI Worker', role:'UI/样式', icon:'palette', defaultModel:'deepseek-v4-flash' },
+    { id:'frontend-state-worker', name:'State Worker', role:'状态/数据', icon:'database', defaultModel:'deepseek-v4-flash' },
+    { id:'frontend-test-worker', name:'Frontend Test', role:'前端测试', icon:'test', defaultModel:'deepseek-v4-flash' },
+    { id:'backend-implementer', name:'Backend', role:'后端全栈', icon:'server', defaultModel:'deepseek-v4-pro' },
+    { id:'backend-api-worker', name:'API Worker', role:'API/路由', icon:'route', defaultModel:'deepseek-v4-flash' },
+    { id:'backend-service-worker', name:'Service Worker', role:'业务逻辑', icon:'cog', defaultModel:'deepseek-v4-flash' },
+    { id:'backend-data-worker', name:'Data Worker', role:'数据层', icon:'table', defaultModel:'deepseek-v4-flash' },
+    { id:'backend-test-worker', name:'Backend Test', role:'后端测试', icon:'test', defaultModel:'deepseek-v4-flash' },
+    { id:'browser-test-worker', name:'Browser Test', role:'浏览器测试', icon:'globe', defaultModel:'deepseek-v4-flash' },
+    { id:'e2e-test-worker', name:'E2E Test', role:'端到端测试', icon:'play', defaultModel:'deepseek-v4-flash' },
+    { id:'api-docs-worker', name:'API Docs', role:'API文档', icon:'file', defaultModel:'deepseek-v4-flash' },
+    { id:'planner', name:'Planner', role:'执行规划', icon:'map', defaultModel:'deepseek-v4-pro' },
+    { id:'task-design', name:'Task Design', role:'任务分解', icon:'list', defaultModel:'deepseek-v4-pro' },
+    { id:'security-auditor', name:'Security', role:'安全审计', icon:'shield', defaultModel:'deepseek-v4-pro' },
+    { id:'review-qa', name:'Review QA', role:'评审', icon:'eye', defaultModel:'deepseek-v4-pro' },
+  ];
+
+  // REST: agent config
+  app.get('/api/agents', (_req, res) => {
+    const cfg = readAgentConfig();
+    const list = AGENT_LIST.map(a => ({ ...a, model: cfg[a.id] || a.defaultModel }));
+    res.json({ agents: list, available_models: AVAILABLE_MODELS });
+  });
+
+  app.post('/api/agents', (req, res) => {
+    const { agent_id, model } = req.body;
+    if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
+    if (!AVAILABLE_MODELS.includes(model)) return res.status(400).json({ error: `Unknown model. Available: ${AVAILABLE_MODELS.join(', ')}` });
+    const cfg = readAgentConfig();
+    cfg[agent_id] = model;
+    writeAgentConfig(cfg);
+    res.json({ ok: true, agent_id, model });
+  });
+
+  // MCP: agent_config
+  server.tool('agent_config', '配置子 Agent 模型。读取/设置特定 Agent 的模型。', {
+    agent_id: z.string().optional().describe('Agent ID（不传则列出全部）'),
+    model: z.string().optional().describe('模型名（不传则只读当前配置）'),
+  }, async ({ agent_id, model }) => {
+    const cfg = readAgentConfig();
+    if (agent_id && model) {
+      if (!AVAILABLE_MODELS.includes(model)) return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown model. Available: ${AVAILABLE_MODELS.join(', ')}` }) }] };
+      cfg[agent_id] = model;
+      writeAgentConfig(cfg);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, agent_id, model, message: `${agent_id} → ${model}` }) }] };
+    }
+    const list = AGENT_LIST.map(a => ({ id: a.id, name: a.name, role: a.role, model: cfg[a.id] || a.defaultModel, is_custom: !!cfg[a.id] }));
+    return { content: [{ type: 'text', text: JSON.stringify({ agents: list, available_models: AVAILABLE_MODELS }) }] };
+  });
+
   // ---- SSE (real-time pipeline events) ----
   const sseClients = new Set();
   app.get('/api/events', (req, res) => {
@@ -385,8 +456,8 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
   // ---- Dashboard ----
   if (dashboard) {
-    const dashHtml = readFileSync(resolve(import.meta.dirname, 'dashboard.html'), 'utf-8');
-    app.get('/dashboard', (_req, res) => res.type('html').send(dashHtml));
+    app.get('/dashboard', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'dashboard.html'), 'utf-8')));
+    app.get('/agents', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'agents.html'), 'utf-8')));
   }
 
   app.listen(port, () => {
