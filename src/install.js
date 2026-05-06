@@ -94,11 +94,14 @@ function installMcp(platform, target, force) {
 
     const content = readFileSync(src, 'utf-8');
     const existing = readFileSync(dest, 'utf-8');
-    if (existing.includes('[mcp_servers.playwright]')) {
-      console.log(`  ~ ${t.file.padEnd(18)} playwright already configured`);
+    if (existing.includes('[mcp_servers.playwright]') && existing.includes('[mcp_servers.jarvis]')) {
+      console.log(`  ~ ${t.file.padEnd(18)} playwright + jarvis already configured`);
+    } else if (existing.includes('[mcp_servers.playwright]')) {
+      appendFileSync(dest, '\n[mcp_servers.jarvis]\nurl = "http://localhost:3456/mcp"\n');
+      console.log(`  ~ ${t.file.padEnd(18)} appended jarvis engine section`);
     } else {
       appendFileSync(dest, '\n' + content);
-      console.log(`  ~ ${t.file.padEnd(18)} appended playwright MCP section`);
+      console.log(`  ~ ${t.file.padEnd(18)} appended playwright + jarvis MCP`);
     }
   } else {
     // Claude/OpenCode: write standalone config

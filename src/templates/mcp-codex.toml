@@ -2,3 +2,6 @@
 [mcp_servers.playwright]
 command = "npx"
 args = ["@playwright/mcp@latest"]
+
+[mcp_servers.jarvis]
+url = "http://localhost:3456/mcp"

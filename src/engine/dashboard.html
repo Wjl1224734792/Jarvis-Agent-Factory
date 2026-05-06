@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang=zh>
+<head>
+<meta charset=utf-8>
+<meta name=viewport content="width=device-width,initial-scale=1">
+<title>Jarvis Engine</title>
+<style>
+:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--accent:#FF6B35;--green:#3fb950;--red:#f85149;--yellow:#d2991d}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:16px 24px;display:flex;justify-content:space-between;align-items:center}
+h1{color:var(--accent);font-size:20px}
+.ver{color:var(--muted);font-size:13px}
+main{max-width:1000px;margin:0 auto;padding:24px}
+.progress-bar{background:var(--card);border-radius:8px;height:16px;margin:16px 0;overflow:hidden;border:1px solid var(--border)}
+.progress-bar div{background:var(--accent);height:100%;transition:width .8s}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin:16px 0}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:16px;text-align:center}
+.stat .num{font-size:28px;font-weight:700;color:var(--accent)}
+.stat .label{font-size:12px;color:var(--muted);margin-top:4px}
+.gates{margin:20px 0}
+.gate{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;cursor:pointer;transition:border-color .2s}
+.gate:hover{border-color:var(--accent)}
+.gate.passed{opacity:.6}
+.gate.current{border-color:var(--accent);border-width:2px;background:#1a120e}
+.gate-left{display:flex;align-items:center;gap:12px}
+.gate-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px}
+.gate-icon.pass{background:#1b3825;color:var(--green)}
+.gate-icon.curr{background:#3d2700;color:var(--yellow)}
+.gate-icon.wait{background:var(--bg);color:var(--muted)}
+.gate-name{font-weight:600}
+.gate-check{font-size:12px;color:var(--muted);max-width:300px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.gate-time{font-size:11px;color:var(--muted)}
+.gate-actions{display:flex;gap:8px}
+.btn{padding:6px 14px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);cursor:pointer;font-size:12px;transition:all .2s}
+.btn:hover{border-color:var(--accent);color:var(--accent)}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+.btn.primary:hover{opacity:.9}
+.artifacts{margin-top:24px}
+.artifact{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin:4px 0;font-size:13px;display:flex;justify-content:space-between;align-items:center}
+.artifact a{color:#58a6ff;text-decoration:none}
+.artifact a:hover{text-decoration:underline}
+.artifact .dir{color:var(--muted);font-size:11px}
+.section-title{font-size:14px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:1px;margin:20px 0 8px}
+.toast{position:fixed;top:16px;right:16px;background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;animation:fadein .3s}
+@keyframes fadein{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
+.spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .8s linear infinite;margin-right:8px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty{text-align:center;padding:40px;color:var(--muted)}
+footer{text-align:center;padding:24px;color:var(--muted);font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>🧠 Jarvis Engine</h1></div>
+  <div class=ver id=version>v---</div>
+</header>
+<main>
+  <div class=stats>
+    <div class=stat><div class=num id=statProgress>0%</div><div class=label>Progress</div></div>
+    <div class=stat><div class=num id=statGates>0/8</div><div class=label>Gates</div></div>
+    <div class=stat><div class=num id=statCurrent>---</div><div class=label>Current Gate</div></div>
+    <div class=stat><div class=num id=statArtifacts>0</div><div class=label>Artifacts</div></div>
+  </div>
+  <div class=progress-bar><div id=progressFill style=width:0%></div></div>
+  <div class=section-title>Pipeline Gates</div>
+  <div class=gates id=gatesList><div class=empty><span class=spinner></span> Loading...</div></div>
+  <div class=section-title>Recent Artifacts</div>
+  <div id=artifactsList><div class=empty>No artifacts yet</div></div>
+</main>
+<div id=toastContainer></div>
+<footer>Jarvis Engine · <a href=/health style=color:var(--accent)>health</a> · MCP: POST /mcp</footer>
+<script>
+const GATES = ['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
+
+async function refresh() {
+  try {
+    const r = await fetch('/health');
+    const h = await r.json();
+    document.getElementById('version').textContent = 'v' + h.version;
+
+    // Fetch pipeline status via MCP JSON-RPC
+    const mr = await fetch('/mcp', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'pipeline_status',arguments:{}}})
+    });
+    const m = await mr.json();
+    const data = JSON.parse(m.result.content[0].text);
+
+    // Stats
+    const completed = data.completed.length;
+    const pct = Math.round(completed / GATES.length * 100);
+    document.getElementById('statProgress').textContent = pct + '%';
+    document.getElementById('statGates').textContent = completed + '/' + GATES.length;
+    document.getElementById('statCurrent').textContent = data.current_gate;
+    document.getElementById('progressFill').style.width = pct + '%';
+
+    // Gates
+    const gatesHtml = data.gates.map(g => {
+      const icon = g.passed ? 'pass' : (g.gate === data.current_gate ? 'curr' : 'wait');
+      const emoji = g.passed ? '✓' : (g.gate === data.current_gate ? '●' : '○');
+      return `<div class="gate${g.passed?' passed':''}${g.gate===data.current_gate?' current':''}" onclick="checkGate('${g.gate}')">
+        <div class=gate-left><div class="gate-icon ${icon}">${emoji}</div>
+        <div><div class=gate-name>${g.gate}</div>
+        <div class=gate-check>${g.requirement||''}</div></div></div>
+        <div class=gate-actions>${!g.passed && g.gate===data.current_gate ? `<button class="btn primary" onclick="event.stopPropagation();advanceGate('${g.gate}')">Advance →</button>` : ''}
+        ${g.checkpoints.length ? `<span class=gate-time>${g.checkpoints[0].passed_at?.slice(0,16)||''}</span>` : ''}</div></div>`;
+    }).join('');
+    document.getElementById('gatesList').innerHTML = gatesHtml;
+
+    // Artifacts
+    const allArtifacts = data.gates.flatMap(g => g.artifacts.map(a => ({gate:g.gate, file:a})));
+    document.getElementById('statArtifacts').textContent = allArtifacts.length;
+    if (allArtifacts.length) {
+      document.getElementById('artifactsList').innerHTML = allArtifacts.slice(0,10).map(a =>
+        `<div class=artifact><span>📄 ${a.file}</span><span class=dir>${a.gate}</span></div>`
+      ).join('');
+    }
+  } catch(e) { console.error(e); }
+}
+
+async function checkGate(gate) {
+  const r = await fetch('/mcp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'check_gate',arguments:{gate}}})
+  });
+  const m = await r.json();
+  const d = JSON.parse(m.result.content[0].text);
+  toast(d.passed ? `✅ ${gate} — Ready to advance` : `⏳ ${gate} — ${d.suggestion}`);
+}
+
+async function advanceGate(gate) {
+  const r = await fetch('/mcp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'advance_gate',arguments:{gate}}})
+  });
+  const m = await r.json();
+  const d = JSON.parse(m.result.content[0].text);
+  toast(`🚀 Advanced to ${d.current_gate}`);
+  refresh();
+}
+
+function toast(msg) {
+  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(() => t.remove(), 2500);
+}
+
+refresh();
+setInterval(refresh, 8000);
+</script>
+</body>
+</html>

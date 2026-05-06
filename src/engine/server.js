@@ -203,37 +203,37 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   });
 
   // ==============================
-  // TRANSPORT + DASHBOARD
+  // TRANSPORT
   // ==============================
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
   app.post('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
   app.get('/mcp/sse', async (req, res) => { await transport.handleRequest(req, res, undefined); });
   await server.connect(transport);
 
+  // ---- Health ----
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_status', 'check_gate', 'advance_gate', 'report_status'] }));
 
+  // ---- SSE (real-time pipeline events) ----
+  const sseClients = new Set();
+  app.get('/api/events', (req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
+    sseClients.add(res);
+    req.on('close', () => sseClients.delete(res));
+  });
+  setInterval(() => {
+    if (sseClients.size === 0) return;
+    const gates = GATES.map(g => ({ gate: g, passed: readCheckpoints(root, g).length > 0, artifacts: findGateArtifacts(join(root, 'docs'), g), checkpoints: readCheckpoints(root, g), requirement: GATE_CHECKS[g]?.check || '' }));
+    const current = gates.find(g => !g.passed)?.gate || 'Complete';
+    const completed = gates.filter(g => g.passed).map(g => g.gate);
+    const pct = Math.round(completed.length / gates.length * 100);
+    const data = JSON.stringify({ project: root, current_gate: current, completed, progress: pct, gates, _display: formatGateDisplay(gates, current) });
+    for (const c of sseClients) c.write(`data: ${data}\n\n`);
+  }, 8000);
+
+  // ---- Dashboard ----
   if (dashboard) {
-    app.get('/dashboard', (_req, res) => {
-      const gates = GATES.map(g => {
-        const cp = readCheckpoints(root, g);
-        return { gate: g, passed: cp.length > 0, time: cp[0]?.passed_at || '' };
-      });
-      const current = gates.find(g => !g.passed)?.gate || 'Complete';
-      const pct = Math.round(gates.filter(g => g.passed).length / gates.length * 100);
-      res.send(`<!DOCTYPE html><html><head><title>Jarvis Engine</title>
-<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-<style>body{font-family:system-ui;max-width:900px;margin:40px auto;padding:20px;background:#0d1117;color:#c9d1d9}
-h1{color:#FF6B35;margin:0}.ver{color:#8b949e;font-size:14px}.bar{background:#21262d;border-radius:8px;height:12px;margin:16px 0;overflow:hidden}
-.bar div{background:#FF6B35;height:100%;transition:width .5s}
-.card{background:#161b22;border:1px solid #30363d;border-radius:8px;padding:12px 16px;margin:8px 0;display:flex;justify-content:space-between;align-items:center}
-.card.passed{opacity:.5}.card.current{border-color:#FF6B35}
-.gate-name{font-weight:600}.gate-time{color:#8b949e;font-size:12px}
-.badge{padding:2px 8px;border-radius:12px;font-size:12px}.badge-pass{background:#1b3825;color:#3fb950}.badge-pending{background:#21262d;color:#8b949e}</style></head>
-<body><h1>🧠 Jarvis Engine <span class=ver>v${readPkgVersion()}</span></h1>
-<div class=bar><div style="width:${pct}%"></div></div><p>${pct}% — Current: ${current}</p>
-${gates.map(g => `<div class="card${g.passed?' passed':''}${g.gate===current?' current':''}"><span class=gate-name>${g.gate}</span><span><span class=badge ${g.passed?'badge-pass':'badge-pending'}>${g.passed?'✅':'⏳'}</span>${g.time?` <span class=gate-time>${g.time}</span>`:''}</span></div>`).join('')}
-<p style=margin-top:20px>MCP: <code>POST /mcp</code> · <a href=/health style=color:#58a6ff>/health</a></p></body></html>`);
-    });
+    const dashHtml = readFileSync(resolve(import.meta.dirname, 'dashboard.html'), 'utf-8');
+    app.get('/dashboard', (_req, res) => res.type('html').send(dashHtml));
   }
 
   app.listen(port, () => {

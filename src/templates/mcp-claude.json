@@ -3,6 +3,9 @@
     "playwright": {
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
+    },
+    "jarvis": {
+      "url": "http://localhost:3456/mcp"
     }
   }
 }

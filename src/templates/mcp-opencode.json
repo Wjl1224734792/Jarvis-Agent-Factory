@@ -4,6 +4,11 @@
       "type": "local",
       "command": ["npx", "@playwright/mcp@latest"],
       "enabled": true
+    },
+    "jarvis": {
+      "type": "remote",
+      "url": "http://localhost:3456/mcp",
+      "enabled": true
     }
   }
 }
