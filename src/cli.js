@@ -7,6 +7,7 @@ import { homedir } from 'node:os';
 import { install } from './install.js';
 import { doctor } from './doctor.js';
 import { startEngine, stopEngine, engineStatus } from './engine/server.js';
+import { hookCommand } from './hook.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(__dirname, '..');
@@ -223,6 +224,10 @@ export async function run() {
       } else {
         console.log('\nUsage: jarvis engine <start|stop|status> [--dashboard] [--port=<N>]\n');
       }
+      break;
+    }
+    case 'hook': {
+      await hookCommand(positional.slice(1));
       break;
     }
     case 'doctor':

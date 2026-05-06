@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 
@@ -67,9 +67,34 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   // Install MCP config
   installMcp(platform, isGlobal ? null : target, force);
 
+  // Install hook configs (Claude Code hooks drive gate enforcement)
+  if (platform === 'claude') installHooks(target, isGlobal);
+
   const status = destExists ? 'updated' : 'installed';
   const label = isGlobal ? `~/${info.dir}` : destRoot;
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
+}
+
+function installHooks(target, isGlobal) {
+  const hookConfig = {
+    hooks: {
+      PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
+      Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
+    },
+  };
+  const settingsFile = resolve(target, '.claude', 'settings.json');
+  let existing = {};
+  if (existsSync(settingsFile)) {
+    try { existing = JSON.parse(readFileSync(settingsFile, 'utf-8')); } catch {}
+  }
+  // Merge hooks — don't overwrite existing hooks
+  if (!existing.hooks) {
+    existing.hooks = hookConfig.hooks;
+    writeFileSync(settingsFile, JSON.stringify(existing, null, 2));
+    console.log(`  🔗 hooks configured — PostToolUse{Agent} → gate-check`);
+  } else {
+    console.log(`  ~ hooks already configured, skipping`);
+  }
 }
 
 function installMcp(platform, target, force) {
