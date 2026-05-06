@@ -1,0 +1,42 @@
+{
+  "name": "jarvis-agent-factory",
+  "version": "1.5.13",
+  "description": "Jarvis Agent Factory CLI — 跨平台多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code / OpenCode / Codex",
+  "keywords": [
+    "jarvis",
+    "agent",
+    "ai",
+    "claude-code",
+    "opencode",
+    "codex",
+    "multi-agent",
+    "orchestration",
+    "skills",
+    "pipeline",
+    "agenti"
+  ],
+  "homepage": "https://gitee.com/wujl1124/JarvisAgentFactory",
+  "repository": {
+    "type": "git",
+    "url": "https://gitee.com/wujl1124/JarvisAgentFactory.git"
+  },
+  "license": "MIT",
+  "author": "lin <wujl1124@163.com>",
+  "type": "module",
+  "bin": {
+    "jarvis": "./bin/jarvis.js",
+    "jaf": "./bin/jarvis.js"
+  },
+  "files": [
+    "bin/",
+    "src/",
+    ".claude/",
+    ".opencode/",
+    ".codex/",
+    "CLAUDE.md",
+    "AGENTS.md"
+  ],
+  "engines": {
+    "node": ">=18"
+  }
+}

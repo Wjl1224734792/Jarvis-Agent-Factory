@@ -3,3 +3,5 @@
 .agents/_rf_b64.txt
 _runner.py
 .agents/
+node_modules/
+package-lock.json
