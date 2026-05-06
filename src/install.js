@@ -1,6 +1,9 @@
-import { resolve, join } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
 import { createInterface } from 'node:readline';
+
+// Only these subdirectories are installed — everything else in the platform dir is left untouched
+const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 
 const SKIP_FILES = new Set([
   'settings.json',
@@ -10,39 +13,66 @@ const SKIP_FILES = new Set([
 ]);
 
 /**
- * Copy a platform config directory from the package to the target.
- * Strategy: new files added, existing files overwritten (after confirmation).
- * Skips sensitive files.
+ * Install platform config: only agents/ commands/ skills/ subdirectories.
+ * File-level merge: new files added, same-name overwritten, extra files in target preserved.
  */
 export async function install({ platform, target, pkgRoot, platforms, force }) {
   const info = platforms[platform];
-  const srcDir = resolve(pkgRoot, info.dir);
-  const destDir = resolve(target, info.dir);
+  const srcRoot = resolve(pkgRoot, info.dir);
+  const destRoot = resolve(target, info.dir);
 
-  if (!existsSync(srcDir)) {
-    console.error(`  ⚠  Source not found: ${srcDir}`);
+  if (!existsSync(srcRoot)) {
+    console.error(`  ⚠  Source not found: ${srcRoot}`);
     return;
   }
 
-  // Check if target already has this platform
-  const destExists = existsSync(destDir);
+  const destExists = existsSync(destRoot);
+
+  // Only confirm if target already has this platform
   if (destExists && !force) {
-    const ok = await confirm(`  📁 ${info.dir}/ already exists. Overwrite? [y/N] `);
+    const ok = await confirm(`  📁 ${info.dir}/ exists, merge agents/skills/commands? [y/N] `);
     if (!ok) {
-      console.log(`  ⏭  Skipped ${platform} (directory exists)`);
+      console.log(`  ⏭  Skipped ${platform}`);
       return;
     }
   }
 
-  const stats = copyDir(srcDir, destDir);
+  // Ensure platform root exists
+  if (!destExists) {
+    mkdirSync(destRoot, { recursive: true });
+  }
+
+  let totalFiles = 0;
+  let totalDirs = 0;
+
+  for (const bucket of INSTALL_BUCKETS) {
+    const srcDir = join(srcRoot, bucket);
+    const destDir = join(destRoot, bucket);
+
+    if (!existsSync(srcDir)) continue;
+
+    const stats = mergeDir(srcDir, destDir);
+    totalFiles += stats.files;
+    totalDirs += stats.dirs;
+
+    const existed = existsSync(destDir) && stats.files > 0;
+    const tag = existed ? '~' : '+';
+    console.log(`  ${tag} ${info.dir}/${bucket.padEnd(8)} → ${stats.files} files`);
+  }
+
   const status = destExists ? 'updated' : 'installed';
-  console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${destDir}  (${stats.files} files, ${stats.dirs} dirs${stats.skipped > 0 ? `, ${stats.skipped} skipped` : ''})`);
+  console.log(`  ✅ ${platform.padEnd(10)} ${status} (${totalFiles} files total)`);
 }
 
-function copyDir(src, dest) {
+/**
+ * Merge files from src into dest.
+ * - New files: added
+ * - Same-name files: overwritten
+ * - Extra files in dest: PRESERVED
+ */
+function mergeDir(src, dest) {
   let files = 0;
   let dirs = 0;
-  let skipped = 0;
 
   if (!existsSync(dest)) {
     mkdirSync(dest, { recursive: true });
@@ -50,29 +80,22 @@ function copyDir(src, dest) {
 
   for (const entry of readdirSync(src)) {
     if (SKIP_FILES.has(entry)) continue;
-    // Skip hidden files except platform dirs and .mcp.json
-    if (entry.startsWith('.')) {
-      if (entry !== '.mcp.json' &&
-          !entry.startsWith('.claude') &&
-          !entry.startsWith('.opencode') &&
-          !entry.startsWith('.codex')) continue;
-    }
+    if (entry.startsWith('.') || entry === 'node_modules') continue;
 
     const srcPath = join(src, entry);
     const destPath = join(dest, entry);
 
     if (statSync(srcPath).isDirectory()) {
-      const d = copyDir(srcPath, destPath);
+      const d = mergeDir(srcPath, destPath);
       files += d.files;
       dirs += d.dirs + 1;
-      skipped += d.skipped;
     } else {
       copyFileSync(srcPath, destPath);
       files++;
     }
   }
 
-  return { files, dirs, skipped };
+  return { files, dirs };
 }
 
 async function confirm(question) {
