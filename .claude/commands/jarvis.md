@@ -95,6 +95,7 @@ Batch 3: [TASK-005, TASK-006]                ← 依赖 Batch 2 完成
 - objective（一句话目标）
 - allowed_paths 和 forbidden_paths
 - dependencies（依赖的 API 契约 / Schema）
+- required_skills（子 Agent 必须逐一 Skill() 加载的技能列表）
 - acceptance_criteria（可验证的验收条件）
 - test_strategy（tdd / test_after / manual_only）
 - input_documents（上游文档路径）

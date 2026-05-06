@@ -124,7 +124,7 @@ Jarvis 按流程调度子 Agent
 作为编排者，你不需要在每个阶段手动加载所有技能。关键规则：
 
 1. **每个阶段只加载该阶段的核心技能**（1-3 个）
-2. **子 Agent 自己会加载执行所需的技能**——你只需在 Agent prompt 中告诉它应该加载哪个技能
+2. **通过 Execution Packet 传递技能清单**——planner 在 `required_skills` 字段指定该任务需要的技能；编排者 spawn 子 Agent 时原样传递；子 Agent 启动后逐一 `Skill()` 加载
 3. **behavioral-guidelines 是所有 Agent 的基座**——每个 Agent 都会自动遵守
 4. **context-engineering 在三个关键时刻使用**：启动新会话、任务切换、子 Agent 结果偏离预期时
 
