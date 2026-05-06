@@ -305,6 +305,36 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   // ---- Health ----
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_init', 'pipeline_status', 'gate_enforce', 'advance_gate', 'report_status'] }));
 
+  // ---- REST API (for hooks, bypasses MCP transport) ----
+  app.get('/api/pipeline', (_req, res) => {
+    const p = readPipeline(); const gates = GATES.map(g => ({ gate: g, passed: getCheckpoints(db, g).length > 0, artifacts: findGateArtifacts(join(root, 'docs'), g) }));
+    const current = gates.find(g => !g.passed)?.gate || 'Complete';
+    res.json({ current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates, _display: formatGateDisplay(gates, current) });
+  });
+  app.get('/api/gate/:gate/enforce', (req, res) => {
+    const gate = req.params.gate.replace(/_/g, ' ');
+    const artifacts = findGateArtifacts(join(root, 'docs'), gate);
+    const checkpoints = getCheckpoints(db, gate);
+    const allowed = artifacts.length > 0 || checkpoints.length > 0;
+    res.json({ gate, allowed, artifacts, checkpoints: checkpoints.map(c => c.passed_at), ...(allowed ? {} : { blocked: true, required: GATE_CHECKS[gate]?.check || '' }) });
+  });
+  app.post('/api/gate/advance', (req, res) => {
+    const pstate = readPipeline(); const currentGate = pstate?.current_gate || 'Gate A';
+    const currentIdx = GATES.indexOf(currentGate); const targetIdx = currentIdx + 1;
+    if (targetIdx >= GATES.length) return res.json({ allowed: false, error: 'Pipeline complete' });
+    const targetGate = GATES[targetIdx];
+    const artifacts = findGateArtifacts(join(root, 'docs'), currentGate);
+    const checkpoints = getCheckpoints(db, currentGate);
+    if (artifacts.length === 0 && checkpoints.length === 0) return res.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
+    addCheckpoint(db, currentGate, targetGate, 'hook');
+    updatePipelineGate(db, targetGate);
+    res.json({ allowed: true, previous: currentGate, current: targetGate, next: GATES[targetIdx + 1] || 'Complete' });
+  });
+  app.get('/api/sessions', (_req, res) => {
+    const leader = getLeader(db);
+    res.json({ sessions: getSessions(db).map(s => ({ id: s.id, role: s.role, platform: s.platform, leader: s.id === leader?.id })), leader: leader?.id });
+  });
+
   // ---- Agent Model Config (SQLite) ----
   const AVAILABLE_MODELS = [
     'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash',
