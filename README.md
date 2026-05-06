@@ -2,12 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Version](https://img.shields.io/badge/version-v1.5.12-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+<br>**简体中文** | [English](./README_EN.md)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持 Claude Code、OpenCode、Codex 三平台，共享同一套工作流规范与技能体系。
 
-> **当前版本** — Claude Code 47 智能体 + 15 命令，OpenCode 55 智能体 + 15 命令（10 主智能体支持双入口），Codex 45 智能体。跨平台共享 27 个方法论技能（Codex 29 含审查技能）。已集成 browser-use 浏览器自动化测试与 Bug 复现闭环。
-
-> For English readers: [README_EN.md](./README_EN.md)
+> **当前版本** — Claude Code 47 智能体 + 15 命令，OpenCode 55 智能体 + 15 命令（10 主智能体支持双入口），Codex 45 智能体。
 
 ## 核心概念
 

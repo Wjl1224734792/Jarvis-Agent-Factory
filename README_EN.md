@@ -2,12 +2,11 @@
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
 [![Version](https://img.shields.io/badge/version-v1.5.12-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+<br>[简体中文](./README.md) | **English**
 
 A cross-platform multi-agent AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex with a unified workflow specification and shared skill system.
 
-> **Current** — Claude Code 47 agents + 15 commands, OpenCode 55 agents + 15 commands (10 primary agents with dual-entry), Codex 45 agents. 27 methodology skills shared cross-platform (29 for Codex). Integrated browser-use for automated testing and bug reproduction.
-
-> 中文读者请见：[README.md](./README.md)
+> **Current** — Claude Code 47 agents + 15 commands, OpenCode 55 agents + 15 commands (10 primary agents with dual-entry), Codex 45 agents.
 
 ## Core Concepts
 
