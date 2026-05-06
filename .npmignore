@@ -1,0 +1,24 @@
+# 个人本地配置 —— 绝不上传/发布
+settings.local.json
+.claude/settings.local.json
+.opencode/settings.local.json
+.codex/settings.local.json
+
+# IDE/编辑器
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# 系统文件
+.DS_Store
+Thumbs.db
+
+# Git
+.git/
+.gitignore
+.gitattributes
+
+# 临时文件
+*.tmp
+*.log
