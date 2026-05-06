@@ -1,11 +1,11 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.5.10-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v1.5.12-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 
 A cross-platform multi-agent AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex with a unified workflow specification and shared skill system.
 
-> **Current** — Claude Code 47 agents + 15 commands, OpenCode 48 agents + 15 commands, Codex 45 agents. 27 methodology skills shared cross-platform (29 for Codex). Integrated browser-use for automated testing and bug reproduction.
+> **Current** — Claude Code 47 agents + 15 commands, OpenCode 55 agents + 15 commands (10 primary agents with dual-entry), Codex 45 agents. 27 methodology skills shared cross-platform (29 for Codex). Integrated browser-use for automated testing and bug reproduction.
 
 > 中文读者请见：[README.md](./README.md)
 
@@ -79,11 +79,18 @@ claude
 ### OpenCode
 
 ```bash
-opencode --agent jarvis         # Agent mode
-opencode                        # Command mode (all 15 commands available)
+opencode --agent frontend       # Agent mode (switch to frontend orchestrator)
+opencode --agent backend        # Agent mode (switch to backend orchestrator)
+opencode --agent jarvis         # Agent mode (full-stack orchestrator)
+opencode                        # Command mode (/jarvis /frontend /backend ...)
 ```
 
-48 agents + 15 commands, mirrors `.claude/commands/`.
+55 agents + 15 commands, **dual-entry architecture**: each domain supports both switching primary agents or `/command` invocation, equivalent and individually complete loops (Gate A→B→C→C1→C2→D→E).
+
+| Entry | Method | Count |
+|-------|--------|-------|
+| Agent switching | Switch directly to a primary agent | 10 |
+| `/command` | Load domain mode on current agent | 15 |
 
 ### Codex
 
@@ -97,15 +104,19 @@ cp -r path/to/.codex/ your-project/
 
 | Category | Agents |
 |----------|--------|
-| **Planning & Review** | `jarvis`, `task-design`, `planner`, `review-qa` |
+| **Orchestration (Primary)** | `jarvis`, `frontend`, `backend`, `android`, `ios`, `flutter`, `expo`, `taro` |
+| **Review Orchestrators (Primary)** | `review-only` (read-only), `review-fix-optimize` (review→fix loop) |
+| **Planning & Review** | `task-design`, `planner`, `review-qa` |
 | **Exploration** | `repo-explorer`, `docs-researcher` |
 | **Architecture** | `algorithm-expert`, `frontend-architect`, `backend-architect`, `database-specialist` |
-| **Review & Fix** | `review-only`, `review-fix-optimize`, `project-audit-reviewer`, `diff-code-reviewer`, `performance-audit-reviewer`, `security-auditor`, `remediation-planner`, `remediation-worker`, `post-change-reviewer` |
+| **Review & Fix** | `project-audit-reviewer`, `diff-code-reviewer`, `performance-audit-reviewer`, `security-auditor`, `remediation-planner`, `remediation-worker`, `post-change-reviewer` |
 | **Backend** | `backend-implementer`, `backend-api-worker`, `backend-service-worker`, `backend-data-worker`, `backend-test-worker` |
 | **Frontend** | `frontend-implementer`, `frontend-ui-worker`, `frontend-state-worker`, `frontend-test-worker` |
 | **Mobile** | `taro-worker`, `android-worker`, `ios-worker`, `react-native-worker` (Expo), `flutter-worker` (each with ui/state sub-variants, 15 total) |
 | **Testing & Docs** | `browser-test-worker`, `e2e-test-worker`, `performance-test-worker`, `api-docs-worker` |
 | **Infrastructure** | `infra-worker` |
+
+> **10 Primary agents** (OpenCode only): use `opencode --agent <name>` to switch. Each is a complete domain orchestrator with independent Gate A→B→C→C1→C2→D→E loops. Claude Code uses equivalent domain commands instead.
 
 ## Skill System
 
@@ -133,8 +144,8 @@ cp -r path/to/.codex/ your-project/
   skills/                        #   27 methodology skills
 
 .opencode/                       # OpenCode
-  commands/                      #   15 commands (mirrors .claude)
-  agents/                        #   48 agent definitions
+  commands/                      #   15 commands (aligned with .claude)
+  agents/                        #   55 agents (10 primary + 45 sub-agents)
   skills/                        #   27 methodology skills
 
 .codex/                          # Codex
