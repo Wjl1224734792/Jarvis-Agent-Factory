@@ -1,12 +1,12 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v2.1.5-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.7.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 <br>**简体中文** | [English](./README_EN.md)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持 Claude Code、OpenCode、Codex 三平台，共享同一套工作流规范与技能体系。
 
-> **v2.1.5** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
+> **v3.7.0** — MCP 编排引擎 + 硬约束状态机 + 三平台钩子驱动 + npm CLI 一键部署
 
 ## 核心概念
 
@@ -47,6 +47,41 @@
 | 6 | **契约闭环** | Gate C2（API 变更强制） | api-docs-worker 模式A → 对比 auto-generated spec vs 代码实现 → 标记漂移 |
 
 失败自动路由到修复闭环，最多 2 轮；第 3 轮仍失败标记 BLOCKED 并保留产物。
+
+## 编排引擎（v3）
+
+```
+提示词工程（软约束）→ 引擎驱动（硬约束）
+"请勿跳过 Gate"       → FSM 直接拒绝非法操作
+```
+
+| 组件 | 说明 |
+|------|------|
+| **MCP Server** | 4 个编排工具：pipeline_init / status / gate_enforce / advance_gate |
+| **硬约束 FSM** | 跳过 Gate 被拒 / 乱序推进被拒 / 条件未满足被拒 |
+| **SQLite 持久化** | pipeline + sessions + checkpoints + agent_models 四表 |
+| **Session 管理** | Leader 选举 + 心跳超时 + Observer 只读 |
+| **三平台钩子** | PostToolUse{Agent} → `jarvis hook gate-check`，每次 spawn 后自动验证 |
+| **Web Dashboard** | Gate 进度条 + Agent 像素模型配置卡片 + SSE 实时推送 |
+| **REST API** | `/api/pipeline` `/api/gate/enforce` `/api/gate/advance` `/api/agents` |
+
+```bash
+jarvis engine start --dashboard   # 启动引擎 + Web 面板 → localhost:3456
+jarvis engine stop                # 停止
+```
+
+## 架构
+
+```
+src/
+├── engine/     🧠 MCP Server + SQLite + FSM 状态机
+├── web/        🌐 REST API + Dashboard + SSE
+├── cli.js      ⌨️  init/add/remove/upgrade/doctor/engine/hook
+├── install.js  📥  平台安装 + MCP 生成 + 钩子注入
+├── templates/  📋  三平台配置模板 + MCP 模板 + 钩子模板
+│   └── platforms/{claude,opencode,codex}/  ← 单一事实源
+└── hook.js     🪝  gate-check / gate-advance / status
+```
 
 ## 使用方法
 
@@ -201,19 +236,22 @@ npm i -g agent-browser && agent-browser install
 ## 目录结构
 
 ```
-.claude/                         # Claude Code
-  settings.json                  #   权限与全局设置
-  commands/                      #   15 个 slash 命令
-  agents/                        #   47 个智能体
-  skills/                        #   27 个技能
-
-.opencode/                       # OpenCode
-  agents/                        #   55 个智能体（10 主智能体 + 45 子智能体）
-  skills/                        #   27 个技能（无命令目录）
-
-.codex/                          # Codex
-  agents/                        #   45 个智能体
-  skills/                        #   42 个技能（含 13 个主流程 + 15 个共享技能 + review-only/fix-optimize）
+src/
+├── templates/platforms/         # 📦 配置模板（单一事实源）
+│   ├── claude/                  #   47 agents + 15 commands + 27 skills
+│   ├── opencode/                #   55 agents + 27 skills
+│   └── codex/                   #   45 agents + 42 skills + config.toml
+├── engine/                      # 🧠 引擎层
+│   ├── server.js                #   MCP HTTP Server
+│   ├── db.js                    #   SQLite 持久化（WAL）
+│   └── gates.js                 #   状态机 + Agent 定义
+├── web/                         # 🌐 Web 层
+│   ├── routes.js                #   REST API + SSE
+│   └── views/                   #   Dashboard HTML
+├── templates/                   # 📋 MCP + 钩子模板
+├── cli.js                       # ⌨️  CLI 入口
+├── install.js                   # 📥 安装 + 钩子注入
+└── hook.js                      # 🪝 钩子集成
 ```
 
 ## 设计原则

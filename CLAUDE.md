@@ -2,7 +2,7 @@
 
 一套跨平台多智能体 AI 编程助手配置集，定义从想法到交付的完整软件开发流水线。支持 Claude Code、OpenCode、Codex 三平台。
 
-> 版本 v2.1.5 | MIT 协议
+> 版本 v3.7.0 | MIT 协议
 >
 > **Agent 入口**：[AGENTS.md](./AGENTS.md) — 所有智能体首读项目约束文件
 
@@ -12,10 +12,12 @@
 
 | | Claude Code | OpenCode | Codex |
 |---|------------|----------|-------|
-| **入口** | `/` 斜杠命令 + Agent 切换 | 智能体切换 | Skill 触发 |
+| **入口** | `/` 命令 + Agent 切换 | 智能体切换 | Skill 触发 |
 | **Agents** | 47 | 55 | 45 |
 | **Commands** | 15 | 0 | 0 |
 | **Skills** | 27 | 27 | 42 |
+| **钩子** | settings.json | 兼容 Claude Code 格式 | hooks.json |
+| **MCP 引擎** | ✅ HTTP :3456 | ✅ HTTP :3456 | ✅ HTTP :3456 |
 
 ## 核心架构
 
