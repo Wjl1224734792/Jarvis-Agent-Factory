@@ -4,6 +4,32 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [1.5.13] - 2026-05-06
+
+### Changed
+- **浏览器工具链迁移**：Claude in Chrome MCP / browser-use → agent-browser CLI（Vercel Labs, 80+ 命令）
+  - 不依赖 Anthropic 订阅，兼容第三方 API 网关
+  - 快照+引用机制（`@e1, @e2`），token 高效
+  - Claude Code: Preview MCP + agent-browser 双轨；OpenCode/Codex: agent-browser 纯 Bash
+- **OpenCode 平台对齐**：移除全部 15 个斜杠命令，仅保留智能体切换入口；同步全部 27 技能到 Claude 优化版
+- **Codex 平台对齐**：新增 13 个主流程技能（skill-triggered form），同步 4 个已有技能到 Claude 优化版
+
+### Added
+- `agent-browser` 技能（三平台，替代 browser-use）
+- Codex 主流程技能 13 个：jarvis / frontend / backend / android / ios / flutter / expo / taro / algorithm-expert / backend-architect / frontend-architect / browser-test / bug-fix
+
+### Fixed
+- 7 个审查类 Agent 缺少 Skill 工具：diff-code-reviewer / project-audit-reviewer / remediation-planner / post-change-reviewer / performance-audit-reviewer / remediation-worker / repo-explorer
+- browser-test-worker 补充 preview_logs + preview_stop
+- bug-fix 命令补充 browser-testing 技能加载
+- using-agent-skills 技能表 21→26 条目
+- 移除全部 Claude in Chrome MCP 引用（0 残留）
+- 移除全部 browser-use 引用（0 残留）
+
+### Removed
+- browser-use 技能（三平台，被 agent-browser 替代）
+- OpenCode 15 个斜杠命令（仅保留智能体切换）
+
 ## [1.5.2] - 2026-05-05
 
 ### Changed
