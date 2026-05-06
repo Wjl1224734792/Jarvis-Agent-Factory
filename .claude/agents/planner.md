@@ -61,6 +61,31 @@ model: deepseek-v4-pro
 - TDD 任务的 Red→Green→Refactor 必须串行
 - 不同 TDD 任务的 Red 步骤可并行
 
+### 技能分配规则
+
+根据任务类型和 test_strategy，在 Execution Packet 中指定 `required_skills`。子 Agent 收到后会在启动时加载这些技能。
+
+| 任务场景 | required_skills（基础 + 场景） |
+|---------|------|
+| 所有任务（基础） | `behavioral-guidelines` `code-standards` |
+| 代码实现 | + `source-driven-development` `incremental-implementation` `verification-before-completion` |
+| TDD 任务 | + `test-driven-development` |
+| 前端 UI/组件 | + `source-driven-development` `incremental-implementation` `verification-before-completion` |
+| 后端业务逻辑 | + `source-driven-development` `incremental-implementation` `verification-before-completion` |
+| 代码审查 | + `code-review-and-quality` |
+| 架构设计 | + `source-driven-development` `documentation-and-adrs` |
+| 安全审计 | + `security-and-hardening` |
+| 数据层/DB | + `source-driven-development` |
+| 性能测试 | + `debugging-and-error-recovery` |
+| E2E 测试 | + `debugging-and-error-recovery` `verification-before-completion` |
+| 浏览器测试 | + `agent-browser` `browser-testing` |
+| Bug 修复 | + `source-driven-development` `debugging-and-error-recovery` |
+| 重构 | + `code-simplification` `source-driven-development` `verification-before-completion` |
+| API 文档 | + `source-driven-development` `chinese-documentation` |
+| 发布/部署 | + `shipping-and-launch` `git-workflow-and-versioning` `finishing-a-development-branch` |
+
+> 若任务有项目专属 skill（如 `.claude/skills/my-custom-skill/`），编排者可在 Execution Packet 的 `required_skills` 中追加。
+
 ### 变更规模控制
 
 单轮次所有任务的预期变更总行数不应超过 ~1000 行。超过时考虑拆分为两个轮次。
@@ -212,6 +237,7 @@ Skill(skill="behavioral-guidelines")
 ### allowed_paths: <允许修改的目录/文件>
 ### forbidden_paths: <禁止修改的共享区域>
 ### dependencies: <依赖的 API / 契约 / schema>
+### required_skills: <技能列表，按上方「技能分配规则」填写。子 Agent 启动后必须逐一 Skill() 加载>
 ### parallel_group: <可与此任务并行的任务 ID 列表>
 ### wait_for: <必须等待完成的任务 ID 列表>
 ### acceptance_criteria: <可验证的验收条件>
