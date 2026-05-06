@@ -38,6 +38,43 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
   const server = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
 
+  // ---- Session Manager (multi-session safety) ----
+  const sessions = new Map(); // sessionId → { id, platform, created_at, last_heartbeat, role }
+  const SESSION_TIMEOUT = 120_000; // 2 min heartbeat timeout
+  let leaderSessionId = null;
+
+  function cleanupStaleSessions() {
+    const now = Date.now();
+    for (const [sid, s] of sessions) {
+      if (now - s.last_heartbeat > SESSION_TIMEOUT) {
+        sessions.delete(sid);
+        if (sid === leaderSessionId) {
+          leaderSessionId = null;
+          // Elect new leader
+          const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
+          if (oldest) { leaderSessionId = oldest.id; oldest.role = 'leader'; }
+        }
+      }
+    }
+    // If no leader but sessions exist, elect oldest
+    if (!leaderSessionId && sessions.size > 0) {
+      const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
+      leaderSessionId = oldest.id;
+      oldest.role = 'leader';
+    }
+  }
+
+  function requireLeader(sessionId) {
+    cleanupStaleSessions();
+    const s = sessions.get(sessionId);
+    if (!s) return { error: 'Session not registered. Call session_join first.' };
+    if (s.role !== 'leader') return { error: `Write lock held by session ${leaderSessionId}. You are observer (read-only).` };
+    return null;
+  }
+
+  // Heartbeat cleanup
+  setInterval(cleanupStaleSessions, 30_000);
+
   // ---- Pipeline state machine (hard constraints) ----
   const pipelinePath = join(root, '.jarvis', 'pipeline.json');
 
@@ -54,17 +91,78 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   // TOOLS
   // ==============================
 
+  // --- Session management ---
+  server.tool(
+    'session_join',
+    '【多会话安全】注册当前会话。第一个注册的会话获得 leader 写锁，后续会话为 observer（只读）。返回 session_id 和角色。',
+    { platform: z.enum(['claude','opencode','codex','other']).optional().describe('平台名称') },
+    async ({ platform }, extra) => {
+      const sessionId = extra?.sessionId || `s${Date.now()}`;
+      cleanupStaleSessions();
+      const existing = sessions.get(sessionId);
+      if (existing) { existing.last_heartbeat = Date.now(); return { content: [{ type: 'text', text: JSON.stringify({ session_id: sessionId, role: existing.role, leader: leaderSessionId, active_sessions: sessions.size }) }] }; }
+
+      const role = sessions.size === 0 ? 'leader' : 'observer';
+      const s = { id: sessionId, platform: platform || 'unknown', created_at: Date.now(), last_heartbeat: Date.now(), role };
+      sessions.set(sessionId, s);
+      if (role === 'leader') leaderSessionId = sessionId;
+
+      return {
+        content: [{ type: 'text', text: JSON.stringify({
+          session_id: sessionId, role, leader: leaderSessionId,
+          active_sessions: sessions.size,
+          message: role === 'leader' ? '🔑 You are leader — write access granted.' : '👁 You are observer — read-only. Leader holds write lock.',
+        }, null, 2) }],
+      };
+    }
+  );
+
+  server.tool('session_heartbeat', '【多会话安全】发送心跳，保持会话活跃。每 60 秒至少发一次，否则会话超时被清理。', {},
+    async (_args, extra) => {
+      const sid = extra?.sessionId;
+      if (!sid || !sessions.has(sid)) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Session not found. Call session_join first.' }) }] };
+      sessions.get(sid).last_heartbeat = Date.now();
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, session_id: sid, role: sessions.get(sid).role, leader: leaderSessionId }) }] };
+    }
+  );
+
+  server.tool('session_list', '【多会话安全】列出所有活跃会话及其角色。', {},
+    async () => {
+      cleanupStaleSessions();
+      const list = [...sessions.values()].map(s => ({ session_id: s.id, platform: s.platform, role: s.role, leader: s.id === leaderSessionId, last_heartbeat_ago: `${Math.round((Date.now() - s.last_heartbeat) / 1000)}s` }));
+      return { content: [{ type: 'text', text: JSON.stringify({ active_sessions: sessions.size, leader_session: leaderSessionId, sessions: list }) }] };
+    }
+  );
+
+  server.tool('session_leave', '【多会话安全】主动离开。如果是 leader，锁自动移交给最老的 observer。', {},
+    async (_args, extra) => {
+      const sid = extra?.sessionId;
+      if (!sid || !sessions.has(sid)) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Session not registered.' }) }] };
+      const wasLeader = sessions.get(sid).role === 'leader';
+      sessions.delete(sid);
+      if (wasLeader) {
+        leaderSessionId = null;
+        const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
+        if (oldest) { leaderSessionId = oldest.id; oldest.role = 'leader'; }
+      }
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Session left.', lock_transferred: wasLeader && leaderSessionId ? `Lock → ${leaderSessionId}` : 'No active sessions' }) }] };
+    }
+  );
+
+  // --- Pipeline management ---
+
   // Tool: pipeline_init — hard state bootstrap
   server.tool(
     'pipeline_init',
-    '【硬约束】初始化流水线状态机。项目启动时必须调用。创建 pipeline.json，设置当前 Gate 为 Gate A。已初始化则返回当前状态。',
+    '【硬约束·需Leader】初始化流水线状态机。只有 leader 会话可调用。observer 会被拒绝。',
     { project_name: z.string().optional().describe('项目名称（可选）') },
-    async ({ project_name }) => {
+    async ({ project_name }, extra) => {
+      const lockErr = requireLeader(extra?.sessionId); if (lockErr) return { content: [{ type: 'text', text: JSON.stringify(lockErr) }] };
       const existing = readPipeline();
-      if (existing) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline already initialized', state: existing }, null, 2) }] };
-      const state = { project: project_name || root, current_gate: 'Gate A', started_at: new Date().toISOString(), gates_passed: [], mode: 'strict' };
+      if (existing) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline already initialized', state: existing, session: extra?.sessionId, role: 'leader' }, null, 2) }] };
+      const state = { project: project_name || root, current_gate: 'Gate A', started_at: new Date().toISOString(), gates_passed: [], mode: 'strict', initialized_by: extra?.sessionId };
       writePipeline(state);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline initialized — hard state machine active. Next: Gate A', state }, null, 2) }] };
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline initialized — hard state machine active. Next: Gate A', state, session: extra?.sessionId, role: 'leader' }, null, 2) }] };
     }
   );
 
@@ -80,6 +178,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
         return { gate, passed: checkpoints.length > 0, checkpoints, artifacts: findGateArtifacts(join(root, 'docs'), gate), requirement: GATE_CHECKS[gate]?.check || '' };
       });
       const current = pstate?.current_gate || (gates.find(g => !g.passed)?.gate || 'Gate A');
+      const sessionInfo = { active_sessions: sessions.size, leader: leaderSessionId, sessions: [...sessions.values()].map(s => ({ id: s.id, role: s.role, platform: s.platform, alive_s: Math.round((Date.now() - s.last_heartbeat)/1000) })) };
       return {
         content: [{ type: 'text', text: JSON.stringify({
           project: root,
@@ -87,6 +186,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
           current_gate: current,
           completed: gates.filter(g => g.passed).map(g => g.gate),
           gates,
+          sessions: sessionInfo,
           _display: formatGateDisplay(gates, current),
         }, null, 2) }],
       };
@@ -127,12 +227,13 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     }
   );
 
-  // Tool: advance_gate — FSM enforced
+  // Tool: advance_gate — FSM enforced + leader check
   server.tool(
     'advance_gate',
-    '【硬约束】推进到下一个 Gate。仅当当前 Gate 的 gate_enforce 返回 allowed=true 时才允许推进。非顺序推进（跳过 Gate）会被拒绝。',
+    '【硬约束·需Leader】推进到下一个 Gate。仅 leader 会话可调用，observer 被拒绝。非顺序推进被 FSM 拒绝。',
     { gate: z.enum(GATES).describe('要推进到的 Gate 名称') },
-    async ({ gate }) => {
+    async ({ gate }, extra) => {
+      const lockErr = requireLeader(extra?.sessionId); if (lockErr) return { content: [{ type: 'text', text: JSON.stringify(lockErr) }] };
       const pstate = readPipeline();
       const currentGate = pstate?.current_gate || 'Gate A';
       const currentIdx = GATES.indexOf(currentGate);
