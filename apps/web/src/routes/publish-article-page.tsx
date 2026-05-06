@@ -189,7 +189,13 @@ export function PublishArticlePage() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
-  const [editorInstance, setEditorInstance] = useState<IDomEditor | null>(null);
+  const editorRef = useRef<IDomEditor | null>(null);
+  const [editorReady, setEditorReady] = useState(false);
+
+  const handleEditorCreated = useCallback((editor: IDomEditor) => {
+    editorRef.current = editor;
+    setEditorReady(true);
+  }, []);
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
   const mediaManager = useMemo(() => createMediaManager(), []);
@@ -686,23 +692,21 @@ export function PublishArticlePage() {
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
                     <div className="flex items-center gap-2">
-                      {editId ? (
-                        <Button
-                          disabled={aiSummary.isLoading}
-                          onClick={() => {
-                            aiSummary.generate({
-                              postId: editId,
-                              content: articleText.slice(0, 4000)
-                            });
-                          }}
-                          size="sm"
-                          type="button"
-                          variant="ghost"
-                        >
-                          <SparklesIcon data-icon="inline-start" />
-                          {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
-                        </Button>
-                      ) : null}
+                      <Button
+                        disabled={aiSummary.isLoading || !articleText.trim()}
+                        onClick={() => {
+                          aiSummary.generate({
+                            postId: editId || 'draft',
+                            content: articleText.slice(0, 4000)
+                          });
+                        }}
+                        size="sm"
+                        type="button"
+                        variant="ghost"
+                      >
+                        <SparklesIcon data-icon="inline-start" />
+                        {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
+                      </Button>
                       <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
                     </div>
                   </div>
@@ -720,13 +724,13 @@ export function PublishArticlePage() {
                       disabled={aiSummary.isLoading}
                       error={aiSummary.error?.message ?? null}
                       isLoading={aiSummary.isLoading}
-                      onRegenerate={editId ? () => {
+                      onRegenerate={() => {
                         aiSummary.reset();
                         aiSummary.generate({
-                          postId: editId,
+                          postId: editId || 'draft',
                           content: articleText.slice(0, 4000)
                         });
-                      } : undefined}
+                      }}
                       summary={aiSummary.summary}
                     />
                   ) : null}
@@ -770,14 +774,14 @@ export function PublishArticlePage() {
                 </div>
 
                 <div className="flex justify-end gap-2">
-                  <AiFormatButton editor={editorInstance} />
-                  <ImportFileButton editor={editorInstance} />
+                  <AiFormatButton editor={editorRef.current} />
+                  <ImportFileButton editor={editorRef.current} />
                 </div>
 
                 <RichTextEditor
                   onChange={({ html }) => setEditorHtml(html)}
                   mediaManager={mediaManager}
-                  onCreated={setEditorInstance}
+                  onCreated={handleEditorCreated}
                   placeholder="开始写作"
                   value={editorHtml}
                   variant="web"
