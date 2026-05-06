@@ -1,12 +1,12 @@
 # Jarvis Agent Factory
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v1.5.12-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v1.5.13-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 <br>[简体中文](./README.md) | **English**
 
 A cross-platform multi-agent AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex with a unified workflow specification and shared skill system.
 
-> **Current** — Claude Code 47 agents + 15 commands, OpenCode 55 agents + 15 commands (10 primary agents with dual-entry), Codex 45 agents.
+> **v1.5.13** — Claude Code 47 agents + 15 commands / OpenCode 55 agents (agent-switching only) / Codex 45 agents + 42 skills (skill-triggered)
 
 ## Core Concepts
 
@@ -15,9 +15,9 @@ A cross-platform multi-agent AI coding assistant configuration set defining a co
 ### Pipeline
 
 ```
-Idea Refine → Requirements → Task Design → Planning → Parallel Impl → Code Quality → Testing → Review → Security → Release
-     │             │            │           │              │              │          │        │         │         │
-   Phase 0       Gate A       Gate B     Gate C        Gate C1        Gate C2    Gate D   Gate E1   Gate E2
+Idea Refine → Requirements → Task Design → Planning → Parallel Impl → Code Quality → Visual Verify → Testing → Review → Release
+     │             │            │           │              │              │             │         │        │         │
+   Phase 0       Gate A       Gate B     Gate C        Gate C1       Gate C1.5    Gate C2   Gate D    Gate E
 ```
 
 ### Resilience
@@ -34,11 +34,13 @@ Idea Refine → Requirements → Task Design → Planning → Parallel Impl → 
 
 | # | Loop | Trigger | Flow |
 |---|------|---------|------|
-| 1 | **Dev Loop** | `/jarvis` Gate C→C1→C2 | Implement → Quality → Test → Fix → Retest |
-| 2 | **Test Loop** | `/browser-test` | Write cases → Browser execute → Screenshot → Fail→Fix→Retest |
-| 3 | **Bug Loop** | `/bug-fix` | Bug → Reproduce → Root cause → Fix → Verify |
-| 4 | **Review Loop** | `/review-fix` | Audit → Plan → Execute → Verify → Close |
+| 1 | **Dev Loop** | Orchestrator Gate C→C1→C2 | Implement → Quality → Test → Fix → Retest |
+| 2 | **Test Loop** | `browser-test` | Write cases → agent-browser execute → Screenshot → Fail→Fix→Retest |
+| 3 | **Bug Loop** | `bug-fix` | Bug → agent-browser reproduce → Root cause → Fix → Verify |
+| 4 | **Review Loop** | `review-fix-optimize` | Audit → Plan → Execute → Verify → Close |
 | 5 | **Security Loop** | Gate E (pre-release) | security-auditor → Threat model + CVE + SAST → Fix → Rescan |
+
+Failures auto-route to fix loop, max 2 rounds; 3rd failure marked BLOCKED with artifacts preserved.
 
 ## Usage
 
@@ -46,11 +48,10 @@ Idea Refine → Requirements → Task Design → Planning → Parallel Impl → 
 
 ```bash
 cp -r path/to/.claude/ your-project/
-npx skills add browser-use/browser-use@browser-use -g -y
 claude
 ```
 
-**Domain Commands** (full lifecycle A→B→C→C1→C2→D→E):
+**Domain Commands** (full lifecycle A→B→C→C1→C1.5→C2→D→E):
 
 | Command | Domain | Agents |
 |---------|--------|--------|
@@ -67,8 +68,8 @@ claude
 | Command | Purpose |
 |---------|---------|
 | **`/jarvis`** | Full pipeline orchestration |
-| **`/browser-test`** | Browser automation test loop |
-| **`/bug-fix`** | Bug fix loop (reproduce→fix→verify) |
+| **`/browser-test`** | Browser automation test loop (agent-browser) |
+| **`/bug-fix`** | Bug fix loop (agent-browser reproduce→fix→verify) |
 | **`/review`** | Read-only review mode |
 | **`/review-fix`** | Review→Fix→Re-review loop |
 | **`/algorithm-expert`** | Algorithm selection & complexity analysis |
@@ -78,18 +79,20 @@ claude
 ### OpenCode
 
 ```bash
-opencode --agent frontend       # Agent mode (switch to frontend orchestrator)
-opencode --agent backend        # Agent mode (switch to backend orchestrator)
-opencode --agent jarvis         # Agent mode (full-stack orchestrator)
-opencode                        # Command mode (/jarvis /frontend /backend ...)
+opencode --agent frontend       # Switch to frontend orchestrator
+opencode --agent backend        # Switch to backend orchestrator
+opencode --agent jarvis         # Switch to full-stack orchestrator
 ```
 
-55 agents + 15 commands, **dual-entry architecture**: each domain supports both switching primary agents or `/command` invocation, equivalent and individually complete loops (Gate A→B→C→C1→C2→D→E).
+55 agents + 0 commands, **agent-switching only**: switch to a primary agent to enter its complete domain lifecycle (Gate A→B→C→C1→C1.5→C2→D→E).
 
-| Entry | Method | Count |
-|-------|--------|-------|
-| Agent switching | Switch directly to a primary agent | 10 |
-| `/command` | Load domain mode on current agent | 15 |
+| Primary Agent | Domain |
+|---------------|--------|
+| `jarvis` | Full-stack orchestration |
+| `frontend` `backend` | Frontend / Backend |
+| `taro` `android` `ios` `expo` `flutter` | Mobile platforms |
+| `review-only` | Read-only review |
+| `review-fix-optimize` | Review→Fix→Re-review loop |
 
 ### Codex
 
@@ -97,7 +100,27 @@ opencode                        # Command mode (/jarvis /frontend /backend ...)
 cp -r path/to/.codex/ your-project/
 ```
 
-45 agents. Review workflows enabled via skills (`review-only` / `review-fix-optimize`).
+45 agents + 42 skills, **skill-triggered mode**: load a skill to enter its workflow.
+
+| Skill | Purpose |
+|-------|---------|
+| `jarvis` `frontend` `backend` `android` `ios` `flutter` `expo` `taro` | Domain lifecycles |
+| `algorithm-expert` `backend-architect` `frontend-architect` | Expert conversations |
+| `browser-test` `bug-fix` | Test loops |
+| `review-only` `review-fix-optimize` | Review modes |
+
+## Browser Automation
+
+Unified **agent-browser** CLI (Vercel Labs, 29K+ GitHub stars, 80+ commands), replacing Claude in Chrome MCP and browser-use.
+
+```bash
+npm i -g agent-browser && agent-browser install
+```
+
+- **Snapshot + Refs**: `agent-browser snapshot -i` → `@e1, @e2` compact element refs, token-efficient
+- **Chrome profile**: `agent-browser --profile "Default" open <url>` for authenticated sessions
+- **Full capabilities**: network monitoring, console logs, performance tracing, visual regression, React DevTools
+- Claude Code additionally uses Preview MCP for local dev preview verification
 
 ## Agent System
 
@@ -115,42 +138,43 @@ cp -r path/to/.codex/ your-project/
 | **Testing & Docs** | `browser-test-worker`, `e2e-test-worker`, `performance-test-worker`, `api-docs-worker` |
 | **Infrastructure** | `infra-worker` |
 
-> **10 Primary agents** (OpenCode only): use `opencode --agent <name>` to switch. Each is a complete domain orchestrator with independent Gate A→B→C→C1→C2→D→E loops. Claude Code uses equivalent domain commands instead.
+> **10 Primary agents** (OpenCode): switch via `opencode --agent <name>`. Claude Code uses equivalent `/commands`, Codex uses skills.
 
 ## Skill System
 
-**27 methodology skills** (+ `browser-use` external skill):
+**27 shared skills** (cross-platform) + Codex 15 additional primary workflow skills (42 total):
 
 | Category | Skills |
 |----------|--------|
-| **Foundation** | `behavioral-guidelines` (5 principles + comment convention), `context-engineering`, `using-agent-skills` |
-| **Requirements** | `spec-driven-development`, `idea-refine` |
+| **Foundation** | `behavioral-guidelines` `context-engineering` `using-agent-skills` |
+| **Requirements** | `spec-driven-development` `idea-refine` |
 | **Planning** | `planning-and-task-breakdown` |
-| **Implementation** | `source-driven-development`, `incremental-implementation`, `test-driven-development`, `verification-before-completion`, `debugging-and-error-recovery`, `code-simplification`, `code-quality-gate`, `browser-testing`, **`code-standards`** (code quality rules) |
-| **Review** | `code-review-and-quality` |
+| **Implementation** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` |
+| **Quality** | `code-quality-gate` `code-review-and-quality` `verification-before-completion` |
+| **Debugging** | `debugging-and-error-recovery` |
+| **Browser** | `agent-browser` `browser-testing` |
 | **Security** | `security-and-hardening` |
-| **Release** | `shipping-and-launch`, `git-workflow-and-versioning`, `finishing-a-development-branch` |
-| **Documentation** | `chinese-documentation`, `documentation-and-adrs`, `find-docs`, `find-skills` |
-| **Tooling** | `mcp-builder`, `writing-skills` |
+| **Release** | `shipping-and-launch` `git-workflow-and-versioning` `finishing-a-development-branch` |
+| **Documentation** | `chinese-documentation` `documentation-and-adrs` `writing-skills` |
+| **Discovery** | `find-docs` `find-skills` |
+| **Tooling** | `mcp-builder` |
 
 ## Directory Structure
 
 ```
-.claude/                         # Claude Code (primary)
+.claude/                         # Claude Code
   settings.json                  #   Permissions & settings
   commands/                      #   15 slash commands
   agents/                        #   47 agent definitions
   skills/                        #   27 methodology skills
 
 .opencode/                       # OpenCode
-  commands/                      #   15 commands (aligned with .claude)
   agents/                        #   55 agents (10 primary + 45 sub-agents)
-  skills/                        #   27 methodology skills
+  skills/                        #   27 skills (no commands directory)
 
 .codex/                          # Codex
-  config.toml                    #   Main orchestration config
   agents/                        #   45 sub-agents
-  skills/                        #   29 skills (incl. review-only / review-fix-optimize)
+  skills/                        #   42 skills (13 primary workflows + 15 shared + review-only/fix-optimize)
 ```
 
 ## Design Principles
@@ -164,7 +188,7 @@ cp -r path/to/.codex/ your-project/
 
 ## Acknowledgments
 
-- **[browser-use](https://github.com/browser-use/browser-use)** — browser automation for test & bug loops
+- **[agent-browser](https://github.com/vercel-labs/agent-browser)** — Vercel Labs, browser automation CLI (80+ commands) for test & bug loops
 - **[superpowers](https://github.com/obra/superpowers)** — skills-as-documentation methodology
 - **[superpowers-zh](https://github.com/jnMetaCode/superpowers-zh)** — Chinese skill system reference
 
