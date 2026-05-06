@@ -43,7 +43,7 @@ When a user asks for help with something, identify:
 
 ### Step 2: Check the Leaderboard First
 
-Before running a CLI search, check the [skills.sh leaderboard](https://skills.sh/) to see if a well-known skill already exists for the domain. The leaderboard ranks skills by total installs, surfacing the most popular and battle-tested options.
+Before running a CLI search, check the [skills.sh leaderboard](https://skills.sh/) to see if a well-known skill already exists for the domain.
 
 For example, top skills for web development include:
 - `vercel-labs/agent-skills` — React, Next.js, web design (100K+ installs each)
@@ -57,12 +57,6 @@ If the leaderboard doesn't cover the user's need, run the find command:
 npx skills find [query]
 ```
 
-For example:
-
-- User asks "how do I make my React app faster?" → `npx skills find react performance`
-- User asks "can you help me with PR reviews?" → `npx skills find pr review`
-- User asks "I need to create a changelog" → `npx skills find changelog`
-
 ### Step 4: Verify Quality Before Recommending
 
 **Do not recommend a skill based solely on search results.** Always verify:
@@ -73,25 +67,7 @@ For example:
 
 ### Step 5: Present Options to the User
 
-When you find relevant skills, present them to the user with:
-
-1. The skill name and what it does
-2. The install count and source
-3. The install command they can run
-4. A link to learn more at skills.sh
-
-Example response:
-
-```
-I found a skill that might help! The "react-best-practices" skill provides
-React and Next.js performance optimization guidelines from Vercel Engineering.
-(185K installs)
-
-To install it:
-npx skills add vercel-labs/agent-skills@react-best-practices
-
-Learn more: https://skills.sh/vercel-labs/agent-skills/react-best-practices
-```
+When you find relevant skills, present them to the user with the skill name, install count, source, install command, and a link to learn more at skills.sh.
 
 ### Step 6: Offer to Install
 
@@ -104,8 +80,6 @@ npx skills add <owner/repo@skill> -g -y
 The `-g` flag installs globally (user-level) and `-y` skips confirmation prompts.
 
 ## Common Skill Categories
-
-When searching, consider these common categories:
 
 | Category        | Example Queries                          |
 | --------------- | ---------------------------------------- |
@@ -130,13 +104,3 @@ If no relevant skills exist:
 1. Acknowledge that no existing skill was found
 2. Offer to help with the task directly using your general capabilities
 3. Suggest the user could create their own skill with `npx skills init`
-
-Example:
-
-```
-I searched for skills related to "xyz" but didn't find any matches.
-I can still help you with this task directly! Would you like me to proceed?
-
-If this is something you do often, you could create your own skill:
-npx skills init my-xyz-skill
-```
