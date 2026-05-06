@@ -53,7 +53,10 @@ footer{text-align:center;padding:24px;color:var(--muted);font-size:12px}
 <body>
 <header>
   <div><h1>🧠 Jarvis Engine</h1></div>
-  <div class=ver id=version>v---</div>
+  <div style=display:flex;gap:12px;align-items:center>
+    <button class="btn primary" onclick=initPipeline()>🔒 Init Pipeline</button>
+    <span class=ver id=version>v---</span>
+  </div>
 </header>
 <main>
   <div class=stats>
@@ -123,11 +126,15 @@ async function refresh() {
 async function checkGate(gate) {
   const r = await fetch('/mcp', {
     method:'POST', headers:{'Content-Type':'application/json'},
-    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'check_gate',arguments:{gate}}})
+    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'gate_enforce',arguments:{gate}}})
   });
   const m = await r.json();
   const d = JSON.parse(m.result.content[0].text);
-  toast(d.passed ? `✅ ${gate} — Ready to advance` : `⏳ ${gate} — ${d.suggestion}`);
+  if (d.allowed) {
+    toast(`✅ ${gate} — Ready. Click Advance →`);
+  } else {
+    toast(`🚫 ${gate} BLOCKED — ${d.blocked_reasons?.join('; ') || d.action_required}`);
+  }
 }
 
 async function advanceGate(gate) {
@@ -137,7 +144,22 @@ async function advanceGate(gate) {
   });
   const m = await r.json();
   const d = JSON.parse(m.result.content[0].text);
-  toast(`🚀 Advanced to ${d.current_gate}`);
+  if (d.allowed) {
+    toast(`🚀 ${d.message || ('Advanced to ' + d.current_gate)}`);
+    refresh();
+  } else {
+    toast(`🚫 FSM BLOCKED — ${d.error}`);
+  }
+}
+
+async function initPipeline() {
+  const r = await fetch('/mcp', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'pipeline_init',arguments:{}}})
+  });
+  const m = await r.json();
+  const d = JSON.parse(m.result.content[0].text);
+  toast(d.ok ? '🔒 Pipeline initialized — hard state active' : d.message);
   refresh();
 }
 

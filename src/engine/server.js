@@ -38,84 +38,136 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
   const server = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
 
+  // ---- Pipeline state machine (hard constraints) ----
+  const pipelinePath = join(root, '.jarvis', 'pipeline.json');
+
+  function readPipeline() {
+    if (!existsSync(pipelinePath)) return null;
+    try { return JSON.parse(readFileSync(pipelinePath, 'utf-8')); } catch { return null; }
+  }
+  function writePipeline(state) {
+    const dir = join(root, '.jarvis'); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeFileSync(pipelinePath, JSON.stringify({ ...state, updated_at: new Date().toISOString() }, null, 2));
+  }
+
   // ==============================
   // TOOLS
   // ==============================
 
-  // Tool: pipeline_status (Phase 1, enhanced)
+  // Tool: pipeline_init — hard state bootstrap
+  server.tool(
+    'pipeline_init',
+    '【硬约束】初始化流水线状态机。项目启动时必须调用。创建 pipeline.json，设置当前 Gate 为 Gate A。已初始化则返回当前状态。',
+    { project_name: z.string().optional().describe('项目名称（可选）') },
+    async ({ project_name }) => {
+      const existing = readPipeline();
+      if (existing) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline already initialized', state: existing }, null, 2) }] };
+      const state = { project: project_name || root, current_gate: 'Gate A', started_at: new Date().toISOString(), gates_passed: [], mode: 'strict' };
+      writePipeline(state);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline initialized — hard state machine active. Next: Gate A', state }, null, 2) }] };
+    }
+  );
+
+  // Tool: pipeline_status
   server.tool(
     'pipeline_status',
-    '完整流水线状态：当前 Gate、已完成 Gate、产物文件、Gate 检查点时间戳',
+    '完整流水线状态：当前 Gate、已完成 Gate、产物文件、Gate 检查点时间戳。同时读取硬状态 pipeline.json。',
     {},
     async () => {
+      const pstate = readPipeline();
       const gates = GATES.map(gate => {
         const checkpoints = readCheckpoints(root, gate);
-        return {
-          gate,
-          passed: checkpoints.length > 0,
-          checkpoints,
-          artifacts: findGateArtifacts(join(root, 'docs'), gate),
-          requirement: GATE_CHECKS[gate]?.check || '',
-        };
+        return { gate, passed: checkpoints.length > 0, checkpoints, artifacts: findGateArtifacts(join(root, 'docs'), gate), requirement: GATE_CHECKS[gate]?.check || '' };
       });
-      const current = gates.find(g => !g.passed) || gates[gates.length - 1];
+      const current = pstate?.current_gate || (gates.find(g => !g.passed)?.gate || 'Gate A');
       return {
         content: [{ type: 'text', text: JSON.stringify({
           project: root,
-          current_gate: current.gate,
+          mode: pstate?.mode || 'soft',
+          current_gate: current,
           completed: gates.filter(g => g.passed).map(g => g.gate),
           gates,
-          _display: formatGateDisplay(gates, current.gate),
+          _display: formatGateDisplay(gates, current),
         }, null, 2) }],
       };
     }
   );
 
-  // Tool: check_gate
+  // Tool: gate_enforce — HARD constraint
   server.tool(
-    'check_gate',
-    '验证指定 Gate 的通过条件：检查产物文件、Gate 文档完整性',
-    { gate: z.enum(GATES).describe('要检查的 Gate 名称') },
+    'gate_enforce',
+    '【硬约束】验证当前 Gate 的通过条件。返回 allowed=true 才可以 proceed。allowed=false 时必须先完成条件再重试。不可绕过。',
+    { gate: z.enum(GATES).optional().describe('要检查的 Gate（默认当前 Gate）') },
     async ({ gate }) => {
-      const artifacts = findGateArtifacts(join(root, 'docs'), gate);
-      const passed = artifacts.length > 0;
-      const checkpoints = readCheckpoints(root, gate);
-      const requirement = GATE_CHECKS[gate];
+      const pstate = readPipeline();
+      const targetGate = gate || pstate?.current_gate || 'Gate A';
+      const artifacts = findGateArtifacts(join(root, 'docs'), targetGate);
+      const checkpoints = readCheckpoints(root, targetGate);
+      const requirement = GATE_CHECKS[targetGate];
+
+      // Hard check: must have artifacts and/or checkpoints
+      const hasArtifacts = artifacts.length > 0;
+      const hasCheckpoint = checkpoints.length > 0;
+      const allowed = hasArtifacts || hasCheckpoint;
+
+      const reasons = [];
+      if (!hasArtifacts) reasons.push(`No artifacts found in docs/${GATE_DIRS[targetGate] || '?'}/`);
+      if (!hasCheckpoint) reasons.push(`No checkpoint recorded for ${targetGate}`);
+
       return {
         content: [{ type: 'text', text: JSON.stringify({
-          gate,
-          passed,
-          checkpoints,
-          artifacts_found: artifacts,
-          requirement: requirement?.check || 'No specific check defined',
-          suggestion: passed ? 'Gate 条件满足，可以推进' : `需要完成：${requirement?.check}`,
+          gate: targetGate,
+          allowed,
+          enforced: true,
+          requirement: requirement?.check || '',
+          check_results: { artifacts_found: artifacts, checkpoints_found: checkpoints.map(c => c.passed_at) },
+          ...(allowed ? { message: `✅ ${targetGate} conditions met — proceed to next gate` } : { blocked_reasons: reasons, action_required: requirement?.check || 'Complete gate requirements' }),
         }, null, 2) }],
       };
     }
   );
 
-  // Tool: advance_gate
+  // Tool: advance_gate — FSM enforced
   server.tool(
     'advance_gate',
-    '标记 Gate 为已通过，写入检查点文件。调用前应先 check_gate 确认条件满足。',
-    { gate: z.enum(GATES).describe('要推进到的 Gate（标记此 Gate 之前的 Gate 为已通过）') },
+    '【硬约束】推进到下一个 Gate。仅当当前 Gate 的 gate_enforce 返回 allowed=true 时才允许推进。非顺序推进（跳过 Gate）会被拒绝。',
+    { gate: z.enum(GATES).describe('要推进到的 Gate 名称') },
     async ({ gate }) => {
-      const idx = GATES.indexOf(gate);
-      if (idx === -1) return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown gate: ${gate}` }) }] };
-      const prevGate = GATES[Math.max(0, idx - 1)];
+      const pstate = readPipeline();
+      const currentGate = pstate?.current_gate || 'Gate A';
+      const currentIdx = GATES.indexOf(currentGate);
+      const targetIdx = GATES.indexOf(gate);
+
+      if (targetIdx === -1) return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown gate: ${gate}` }) }] };
+
+      // FSM: only allow current gate → next gate (no skipping)
+      if (targetIdx <= currentIdx) {
+        return { content: [{ type: 'text', text: JSON.stringify({ allowed: false, error: `FSM blocked: Cannot move backward or stay. Current: ${currentGate}, Requested: ${gate}` }) }] };
+      }
+      if (targetIdx > currentIdx + 1) {
+        return { content: [{ type: 'text', text: JSON.stringify({ allowed: false, error: `FSM blocked: Cannot skip gates. Current: ${currentGate}, Requested: ${gate}. Must advance to ${GATES[currentIdx + 1]} first.` }) }] };
+      }
+
+      // Enforce: must pass current gate
+      const artifacts = findGateArtifacts(join(root, 'docs'), currentGate);
+      const checkpoints = readCheckpoints(root, currentGate);
+      if (artifacts.length === 0 && checkpoints.length === 0) {
+        return { content: [{ type: 'text', text: JSON.stringify({ allowed: false, error: `FSM blocked: ${currentGate} conditions NOT met. Run gate_enforce first. Required: ${GATE_CHECKS[currentGate]?.check}` }) }] };
+      }
+
+      // Allowed — advance
       const cpDir = join(root, '.jarvis', 'checkpoints');
       if (!existsSync(cpDir)) mkdirSync(cpDir, { recursive: true });
-      const cpFile = join(cpDir, `${prevGate.replace(/ /g, '_')}.json`);
-      writeFileSync(cpFile, JSON.stringify({
-        gate: prevGate, passed_at: new Date().toISOString(), advance_to: gate,
-      }, null, 2));
+      writeFileSync(join(cpDir, `${currentGate.replace(/ /g, '_')}.json`), JSON.stringify({ gate: currentGate, passed_at: new Date().toISOString(), advance_to: gate }, null, 2));
+      writePipeline({ ...pstate, current_gate: gate, gates_passed: [...(pstate?.gates_passed || []), currentGate] });
+
+      const nextGate = GATES[targetIdx + 1];
       return {
         content: [{ type: 'text', text: JSON.stringify({
-          ok: true,
-          previous_gate: prevGate,
-          marked_passed_at: new Date().toISOString(),
-          current_gate: gate,
-          next: GATES[idx + 1] || 'Done',
+          allowed: true,
+          previous_gate: currentGate, marked_passed_at: new Date().toISOString(),
+          current_gate: gate, next: nextGate || 'Pipeline Complete',
+          message: nextGate ? `Next: ${nextGate}` : '🎉 All gates passed! Move to Gate E: Release.',
         }, null, 2) }],
       };
     }
@@ -211,7 +263,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   await server.connect(transport);
 
   // ---- Health ----
-  app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_status', 'check_gate', 'advance_gate', 'report_status'] }));
+  app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_init', 'pipeline_status', 'gate_enforce', 'advance_gate', 'report_status'] }));
 
   // ---- SSE (real-time pipeline events) ----
   const sseClients = new Set();
