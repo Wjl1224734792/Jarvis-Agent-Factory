@@ -34,7 +34,7 @@ argument-hint: [后端需求描述]
    - **Gate B**：每个 TASK-XXX 映射至少 1 个 REQ-XXX
    - **Gate C**：计划含 parallel_batches、共享区域唯一责任方
    - **Gate C1**：Lint + Type-check + Build + Deps Audit 全部通过
-   - **Gate C2**：单元/集成测试全部通过、测试汇总已生成
+   - **Gate C2**：单元/集成测试全部通过、API 契约一致性验证通过、测试汇总已生成
    - **Gate D**：实现文档 + diff + 验证证据 + Gate C1/C2 报告齐备
    - **Gate E**：上线检查清单 + 回滚预案 + 监控告警 + DB 迁移就绪
 
@@ -83,7 +83,9 @@ Batch 5: [security-auditor]                             ← 安全审计
 ```
 全部实现 Batch 完成
   → 步骤 1：spawn backend-test-worker（单元+集成测试）
-  → 步骤 2：spawn performance-test-worker（负载/压力/基准测试）
+  → 步骤 2：spawn api-docs-worker（模式 A：契约一致性验证，轻量对比不写文档）
+     涉及 API 端点变更时必须执行，逐端点对比实现 vs 已有文档
+  → 步骤 3：spawn performance-test-worker（负载/压力/基准测试）
      如涉及 API 性能要求，不可跳过；使用 k6/Gatling/Locust
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
   → 进入 Gate D 评审（spawn review-qa）

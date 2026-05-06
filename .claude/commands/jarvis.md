@@ -146,6 +146,7 @@ Gate C1（+ Gate C1.5 如适用）通过后方可进入此门。
 必须**全部**满足才能调用 `review-qa`：
 - [ ] **单元测试与集成测试全部通过**：`tdd` 任务有 Red→Green→Refactor 记录；`test_after` 任务有测试文件 + 通过记录
 - [ ] **浏览器交互测试全部通过**（涉及前端页面/交互的任务）：由 `browser-test-worker` 使用 `agent-browser` CLI 执行，包含截图证据和控制台/网络日志
+- [ ] **API 契约一致性验证通过**（涉及后端 API 变更的任务）：由 `api-docs-worker` 模式 A 执行，逐端点对比实现 vs 文档，标记漂移项。确保"文档不撒谎"
 - [ ] **E2E 测试全部通过**：必须在单元/集成测试通过后执行——不可与单元测试并行
 - [ ] **测试结果已汇总**：`docs/testing/YYYY-MM-DD-<topic>-test-summary.md` 已生成，汇总所有 test worker 的测试结果
 - [ ] **覆盖率达标**：若项目配置了覆盖率阈值（如 80%），新增代码的覆盖率不低于阈值；若覆盖率下降超过 2%，需标注原因
@@ -166,10 +167,13 @@ Gate C1（+ Gate C1.5 如适用）通过后方可进入此门。
   ├── 步骤 3：运行浏览器交互测试（涉及前端页面/交互时）
   │     └── spawn browser-test-worker（使用 agent-browser CLI 工具）
   │
-  ├── 步骤 4：运行 E2E 测试（不可与步骤 1/3 并行）
+  ├── 步骤 4：API 契约一致性验证（涉及后端 API 变更时）
+  │     └── spawn api-docs-worker（模式 A：轻量对比验证，不写文档）
+  │
+  ├── 步骤 5：运行 E2E 测试（不可与步骤 1/3/4 并行）
   │     └── spawn e2e-test-worker
   │
-  ├── 步骤 5：测试结果汇总 → docs/testing/...
+  ├── 步骤 6：测试结果汇总 → docs/testing/...
   └── Gate C2 通过 → 进入 Gate D 评审
 ```
 
