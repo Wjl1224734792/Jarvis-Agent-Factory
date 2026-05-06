@@ -331,6 +331,10 @@ export function PublishArticlePage() {
     () => [summary.trim(), extractPlainTextFromHtml(editorHtml)].filter(Boolean).join("\n\n"),
     [summary, editorHtml]
   );
+  const editorPlainText = useMemo(
+    () => extractPlainTextFromHtml(editorHtml),
+    [editorHtml]
+  );
   const articleCharacterCount = useMemo(
     () => articleText.replace(/\s+/g, "").length,
     [articleText]
@@ -693,11 +697,11 @@ export function PublishArticlePage() {
                     <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
                     <div className="flex items-center gap-2">
                       <Button
-                        disabled={aiSummary.isLoading || !articleText.trim()}
+                        disabled={aiSummary.isLoading || !editorPlainText.trim()}
                         onClick={() => {
                           aiSummary.generate({
                             postId: editId || 'draft',
-                            content: articleText.slice(0, 4000)
+                            content: editorPlainText.slice(0, 4000)
                           });
                         }}
                         size="sm"
@@ -728,7 +732,7 @@ export function PublishArticlePage() {
                         aiSummary.reset();
                         aiSummary.generate({
                           postId: editId || 'draft',
-                          content: articleText.slice(0, 4000)
+                          content: editorPlainText.slice(0, 4000)
                         });
                       }}
                       summary={aiSummary.summary}
