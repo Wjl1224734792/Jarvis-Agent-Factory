@@ -130,6 +130,7 @@ export const siteSettingsTable = pgTable("site_settings", {
     .default(true)
     .notNull(),
   moderationModes: text("moderation_modes").default("{}").notNull(),
+  aiSettings: text("ai_settings"),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),
@@ -529,6 +530,9 @@ export const postsTable = pgTable("posts", {
   shareCount: integer("share_count").default(0).notNull(),
   viewCount: integer("view_count").default(0).notNull(),
   publishedAt: timestamp("published_at", { withTimezone: true }),
+  aiSummary: text("ai_summary"),
+  aiSummaryGeneratedAt: timestamp("ai_summary_generated_at", { withTimezone: true }),
+  aiFormattedAt: timestamp("ai_formatted_at", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true })
     .defaultNow()
     .notNull(),

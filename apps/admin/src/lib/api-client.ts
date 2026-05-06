@@ -1,6 +1,8 @@
 import { ApiClientError, createApiClient, parseApiError } from "@feijia/http-client";
 import { API_ROUTES, APP_PORTS } from "@feijia/shared";
 import type {
+  AiSettings,
+  AiSettingsResponse,
   RankingDetail,
   RankingListItem,
   UpdateSiteSettingsInput
@@ -554,6 +556,18 @@ const rawApiClient = {
   },
   getSiteSettings() {
     return sharedClient.getAdminSiteSettings();
+  },
+  getAiSettings() {
+    return getJson<{ item: AiSettingsResponse }>(API_ROUTES.ai.adminSettings);
+  },
+  updateAiSettings(input: AiSettings) {
+    return putJson<{ item: AiSettingsResponse }>(API_ROUTES.ai.adminSettings, input);
+  },
+  testAiConnection() {
+    return postJson<{ success: boolean; message: string }>(
+      `${API_ROUTES.ai.adminSettings}/test`,
+      {}
+    );
   },
   listAdminRatingTargets(status?: "pending" | "published" | "rejected" | "hidden") {
     return sharedClient.listAdminRatingTargets(status);

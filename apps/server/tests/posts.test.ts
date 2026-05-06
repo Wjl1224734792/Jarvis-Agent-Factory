@@ -2289,7 +2289,8 @@ describe("posts and social flows", () => {
     expect(detailAfterDeleteResponse.status).toBe(404);
   });
 
-  it("rejects sensitive content when creating a post", async () => {
+  // TASK-010: 本地敏感词过滤已移除，内容审核统一由七牛 AI 处理
+  it.skip("rejects sensitive content when creating a post", async () => {
     const cookie = await loginWebUser("13800138196");
 
     const response = await app.request(API_ROUTES.posts.create, {
@@ -2313,7 +2314,8 @@ describe("posts and social flows", () => {
     expect(payload.message).toBe("Post content contains blocked words.");
   });
 
-  it("rejects sensitive content when updating a post", async () => {
+  // TASK-010: 本地敏感词过滤已移除，内容审核统一由七牛 AI 处理
+  it.skip("rejects sensitive content when updating a post", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
       items: Array<{ id: string }>;
@@ -2352,7 +2354,8 @@ describe("posts and social flows", () => {
     expect(payload.message).toBe("Post content contains blocked words.");
   });
 
-  it("rejects sensitive content when updating an official article", async () => {
+  // TASK-010: 本地敏感词过滤已移除，内容审核统一由七牛 AI 处理
+  it.skip("rejects sensitive content when updating an official article", async () => {
     const categoriesResponse = await app.request(API_ROUTES.content.categories, { method: "GET" });
     const categoriesPayload = (await categoriesResponse.json()) as {
       items: Array<{ id: string }>;

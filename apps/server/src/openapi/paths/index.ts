@@ -4,6 +4,7 @@ import { adminAnalyticsPaths } from './admin-analytics';
 import { adminLogPaths } from './admin-logs';
 import { adminReportsPaths } from './admin-reports';
 import { adminUserPaths } from './admin-users';
+import { aiPaths } from './ai';
 import { auditPaths } from './audits';
 import { searchPaths } from './search';
 import { socialPaths } from './social';
@@ -25,6 +26,7 @@ export const openApiPaths = {
   ...adminLogPaths,
   ...adminReportsPaths,
   ...adminUserPaths,
+  ...aiPaths,
   ...auditPaths,
   ...searchPaths,
   ...socialPaths,

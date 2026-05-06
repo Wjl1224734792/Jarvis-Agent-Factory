@@ -81,6 +81,15 @@ describe('OpenAPI docs', () => {
     expect(payload.paths[v1Path('/admin/search')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/audits')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/audits/{id}/manual-review')]).toBeDefined();
+    expect(payload.paths[v1Path('/ai/summary')]).toBeDefined();
+    expect(payload.paths[v1Path('/ai/format')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/ai/settings')]).toBeDefined();
+    expect(payload.paths[v1Path('/ai/summary')]?.post?.responses?.['403']).toBeDefined();
+    expect(payload.paths[v1Path('/ai/summary')]?.post?.responses?.['502']).toBeDefined();
+    expect(payload.paths[v1Path('/ai/format')]?.post?.responses?.['403']).toBeDefined();
+    expect(payload.paths[v1Path('/ai/format')]?.post?.responses?.['502']).toBeDefined();
+    expect(payload.paths[v1Path('/admin/ai/settings')]?.get?.responses?.['403']).toBeDefined();
+    expect(payload.paths[v1Path('/admin/ai/settings')]?.put?.responses?.['403']).toBeDefined();
     expect(payload.components.securitySchemes.sessionCookieAuth).toBeDefined();
     expect(payload.components.securitySchemes.bearerAuth).toBeDefined();
     expect(payload.components.schemas.CurrentUserProfileResponse).toBeDefined();

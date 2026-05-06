@@ -1,7 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { APP_ROUTES } from "@feijia/shared";
-import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, XIcon } from "lucide-react";
+import { Clock3Icon, PencilLineIcon, SaveIcon, SendHorizonalIcon, SparklesIcon, XIcon } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import type { IDomEditor } from "@wangeditor/editor";
+import { AiFormatButton } from "../features/ai/ai-format-button";
+import { ImportFileButton } from "../features/ai/import-file-button";
+import { AiSummaryPanel } from "../features/ai/ai-summary-panel";
+import { useAiSummary } from "../features/ai/use-ai-summary";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { RichTextEditor } from "@/components/rich-text-editor";
 import { PublishArticlePageSkeleton } from "@/components/page-skeletons";
@@ -184,9 +189,11 @@ export function PublishArticlePage() {
   const [uploadedVideos, setUploadedVideos] = useState<UploadedVideo[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [isPublishing, setIsPublishing] = useState(false);
+  const [editorInstance, setEditorInstance] = useState<IDomEditor | null>(null);
   const [hasRestoredDraftSnapshot, setHasRestoredDraftSnapshot] = useState(false);
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<number | null>(null);
   const mediaManager = useMemo(() => createMediaManager(), []);
+  const aiSummary = useAiSummary();
 
   const categoriesQuery = useQuery({
     queryKey: ["publish-article-categories"],
@@ -678,7 +685,26 @@ export function PublishArticlePage() {
                 <div className="space-y-2">
                   <div className="flex items-center justify-between gap-3">
                     <div className="text-[0.72rem] font-medium uppercase tracking-[0.18em] text-muted-foreground">摘要</div>
-                    <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
+                    <div className="flex items-center gap-2">
+                      {editId ? (
+                        <Button
+                          disabled={aiSummary.isLoading}
+                          onClick={() => {
+                            aiSummary.generate({
+                              postId: editId,
+                              content: articleText.slice(0, 4000)
+                            });
+                          }}
+                          size="sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          <SparklesIcon data-icon="inline-start" />
+                          {aiSummary.isLoading ? '生成中...' : 'AI 生成摘要'}
+                        </Button>
+                      ) : null}
+                      <div className="text-xs text-muted-foreground">{summary.length}/{ARTICLE_SUMMARY_MAX_LENGTH}</div>
+                    </div>
                   </div>
                   <Textarea
                     className="min-h-28 resize-none border-0 bg-surface-1/72 px-4 py-3 shadow-none placeholder:text-muted-foreground/72 focus-visible:ring-0"
@@ -687,6 +713,23 @@ export function PublishArticlePage() {
                     placeholder="摘要（可选）"
                     value={summary}
                   />
+                  {(aiSummary.summary || aiSummary.isLoading || aiSummary.error) ? (
+                    <AiSummaryPanel
+                      cached={aiSummary.cached}
+                      className="mt-2"
+                      disabled={aiSummary.isLoading}
+                      error={aiSummary.error?.message ?? null}
+                      isLoading={aiSummary.isLoading}
+                      onRegenerate={editId ? () => {
+                        aiSummary.reset();
+                        aiSummary.generate({
+                          postId: editId,
+                          content: articleText.slice(0, 4000)
+                        });
+                      } : undefined}
+                      summary={aiSummary.summary}
+                    />
+                  ) : null}
                 </div>
 
                 <div className="space-y-2">
@@ -726,9 +769,15 @@ export function PublishArticlePage() {
                   ) : null}
                 </div>
 
+                <div className="flex justify-end gap-2">
+                  <AiFormatButton editor={editorInstance} />
+                  <ImportFileButton editor={editorInstance} />
+                </div>
+
                 <RichTextEditor
                   onChange={({ html }) => setEditorHtml(html)}
                   mediaManager={mediaManager}
+                  onCreated={setEditorInstance}
                   placeholder="开始写作"
                   value={editorHtml}
                   variant="web"

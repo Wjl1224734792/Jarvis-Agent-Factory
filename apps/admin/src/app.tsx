@@ -228,6 +228,11 @@ const AircraftSubmissionsPage = lazy(() =>
     default: module.AircraftSubmissionsPage
   }))
 );
+const AiSettingsPage = lazy(() =>
+  import("./features/ai/ai-settings-page").then((module) => ({
+    default: module.AiSettingsPage
+  }))
+);
 
 const router = createBrowserRouter([
   {
@@ -514,6 +519,10 @@ const router = createBrowserRouter([
       {
         path: stripAdminPrefix(ADMIN_ROUTE_PATHS.managementSecurity),
         element: withAdminRouteFallback(<AdminPasswordPage />)
+      },
+      {
+        path: stripAdminPrefix(ADMIN_ROUTE_PATHS.aiSettings),
+        element: withAdminRouteFallback(<AiSettingsPage />)
       },
       {
         path: stripAdminPrefix(APP_ROUTES.adminCategories),

@@ -14,10 +14,7 @@ import {
   resolveMomentCoverImageId,
   validatePostMediaOwnership
 } from './posts-write-guards';
-import {
-  evaluatePostWriteModeration,
-  inspectPostWriteContent
-} from './posts-write-moderation';
+import { evaluatePostWriteModeration } from './posts-write-moderation';
 
 type PostStatus = 'pending' | 'published' | 'rejected' | 'hidden';
 type PostType = 'article' | 'moment';
@@ -191,14 +188,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
 
   return {
     async createPost(input: CreatePostInput) {
-      const sensitiveCheck = inspectPostWriteContent({
-        title: input.title,
-        content: input.content
-      });
-      if (sensitiveCheck.kind === 'sensitive_content') {
-        return sensitiveCheck;
-      }
-
       const mediaValidation = await validatePostMediaOwnership({
         imageIds: input.imageIds,
         videoIds: input.videoIds,
@@ -333,14 +322,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
         return { kind: 'not_found' as const };
       }
 
-      const sensitiveCheck = inspectPostWriteContent({
-        title: input.title,
-        content: input.content
-      });
-      if (sensitiveCheck.kind === 'sensitive_content') {
-        return sensitiveCheck;
-      }
-
       const mediaValidation = await validatePostMediaOwnership({
         imageIds: input.imageIds,
         videoIds: input.videoIds,
@@ -401,14 +382,6 @@ export function createPostsWriteService(dependencies: PostsWriteServiceDependenc
       const canEdit = currentUser.role === 'admin' || currentUser.id === existing.author.id;
       if (!canEdit) {
         return { kind: 'forbidden' as const };
-      }
-
-      const sensitiveCheck = inspectPostWriteContent({
-        title: input.title,
-        content: input.content
-      });
-      if (sensitiveCheck.kind === 'sensitive_content') {
-        return sensitiveCheck;
       }
 
       const mediaValidation = await validatePostMediaOwnership({

@@ -16,6 +16,7 @@ import {
   OrderedListOutlined,
   RadarChartOutlined,
   ReadOutlined,
+  RobotOutlined,
   SafetyCertificateOutlined,
   ScheduleOutlined,
   TrophyOutlined,
@@ -245,6 +246,14 @@ export const ADMIN_NAV_ITEMS: AdminNavItem[] = [
   },
   {
     group: "管理",
+    to: ADMIN_ROUTE_PATHS.aiSettings,
+    label: "AI 设置",
+    hint: "AI 服务商配置、模型选择和功能开关",
+    icon: RobotOutlined,
+    end: false
+  },
+  {
+    group: "管理",
     to: APP_ROUTES.adminReviews,
     label: "评测档案",
     hint: "评测存量内容管理与兜底入口",
@@ -336,6 +345,9 @@ function normalizeAdminPath(pathname: string) {
   }
   if (pathname === ADMIN_ROUTE_PATHS.managementSecurity) {
     return ADMIN_ROUTE_PATHS.managementSecurity;
+  }
+  if (pathname === ADMIN_ROUTE_PATHS.aiSettings) {
+    return ADMIN_ROUTE_PATHS.aiSettings;
   }
   if (pathname === ADMIN_ROUTE_PATHS.managementUsers) {
     return ADMIN_ROUTE_PATHS.managementUsers;
