@@ -1,7 +1,12 @@
+import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, writeFileSync, appendFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+const TEMPLATES_DIR = resolve(__dirname, 'templates');
 
 const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 const SKIP_FILES = new Set(['settings.json', 'settings.local.json', 'node_modules', '.git']);
@@ -71,7 +76,7 @@ function installMcp(platform, target, force) {
   const t = MCP_TEMPLATES[platform];
   if (!t) return;
 
-  const src = resolve(dirname(fileURLToPath(import.meta.url)), 'templates', t.tmpl);
+  const src = resolve(TEMPLATES_DIR, t.tmpl);
   if (!existsSync(src)) return;
 
   const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
@@ -107,8 +112,6 @@ function installMcp(platform, target, force) {
     console.log(`  + ${t.file.padEnd(18)} → ${dest}`);
   }
 }
-
-function fileURLToPath(url) { return url.replace('file:///', '').replace(/^\/(\w:)/, '$1/'); }
 
 function mergeDir(src, dest) {
   let files = 0, dirs = 0;
