@@ -5,3 +5,4 @@ _runner.py
 .agents/
 node_modules/
 package-lock.json
+.jarvis/
