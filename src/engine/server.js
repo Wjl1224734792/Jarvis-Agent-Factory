@@ -2,30 +2,17 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
-import { readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync, statSync } from 'node:fs';
+import { readFileSync, readdirSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
+import { openDb, getPipeline, updatePipelineGate, initPipeline as dbInitPipeline, getCheckpoints, addCheckpoint, getSessions, getSession, addSession, heartbeatSession, removeSession, updateSessionRole, cleanupStaleSessions, getOldestSession, getLeader, getAgentConfig, setAgentModel } from './db.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
+const SESSION_TIMEOUT = 120_000;
 const GATES = ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'];
-
-const GATE_DIRS = {
-  'Gate A': 'requirements', 'Gate B': 'tasks', 'Gate C': 'plans',
-  'Gate C1': 'implementation', 'Gate C1.5': 'implementation',
-  'Gate C2': 'testing', 'Gate D': 'review', 'Gate E': 'shipping',
-};
-
-const GATE_CHECKS = {
-  'Gate A': { requires: ['requirements'], check: '至少 1 个需求文档，含 REQ-XXX 编号' },
-  'Gate B': { requires: ['tasks'], check: '每个 TASK-XXX 映射至少 1 个 REQ-XXX' },
-  'Gate C': { requires: ['plans'], check: '计划文档含 parallel_batches + Execution Packet' },
-  'Gate C1': { requires: ['implementation'], check: 'Lint + Type-check + Build + Deps Audit 全部通过' },
-  'Gate C1.5': { requires: ['implementation'], check: '页面/组件视觉验证截图证据已附' },
-  'Gate C2': { requires: ['testing'], check: '单元/集成/E2E/浏览器测试全部通过，API 契约验证通过' },
-  'Gate D': { requires: ['review'], check: 'review-qa 评审通过，REQ 追踪矩阵完整' },
-  'Gate E': { requires: ['shipping'], check: '安全审计 + 上线检查清单 + 回滚预案就绪' },
-};
+const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate C':'plans','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
+const GATE_CHECKS = { 'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},'Gate B':{check:'每个TASK-XXX映射至少1个REQ-XXX'},'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},'Gate D':{check:'review-qa评审通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'} };
 
 export async function startEngine({ port = DEFAULT_PORT, dashboard = false, projectRoot = '.' } = {}) {
   const root = resolve(projectRoot);
@@ -38,131 +25,84 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
   const server = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
 
-  // ---- Session Manager (multi-session safety) ----
-  const sessions = new Map(); // sessionId → { id, platform, created_at, last_heartbeat, role }
-  const SESSION_TIMEOUT = 120_000; // 2 min heartbeat timeout
-  let leaderSessionId = null;
+  // ---- Database (SQLite) ----
+  const db = openDb(root);
 
-  function cleanupStaleSessions() {
-    const now = Date.now();
-    for (const [sid, s] of sessions) {
-      if (now - s.last_heartbeat > SESSION_TIMEOUT) {
-        sessions.delete(sid);
-        if (sid === leaderSessionId) {
-          leaderSessionId = null;
-          // Elect new leader
-          const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
-          if (oldest) { leaderSessionId = oldest.id; oldest.role = 'leader'; }
-        }
-      }
-    }
-    // If no leader but sessions exist, elect oldest
-    if (!leaderSessionId && sessions.size > 0) {
-      const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
-      leaderSessionId = oldest.id;
-      oldest.role = 'leader';
-    }
-  }
-
+  // ---- Session Manager (SQLite-backed) ----
   function requireLeader(sessionId) {
-    cleanupStaleSessions();
-    const s = sessions.get(sessionId);
+    cleanupStaleSessions(db, SESSION_TIMEOUT);
+    const s = getSession(db, sessionId);
     if (!s) return { error: 'Session not registered. Call session_join first.' };
-    if (s.role !== 'leader') return { error: `Write lock held by session ${leaderSessionId}. You are observer (read-only).` };
+    if (s.role !== 'leader') {
+      const leader = getLeader(db);
+      return { error: `Write lock held by session ${leader?.id || '?'}. You are observer (read-only).` };
+    }
     return null;
   }
-
-  // Heartbeat cleanup
-  setInterval(cleanupStaleSessions, 30_000);
-
-  // ---- Pipeline state machine (hard constraints) ----
-  const pipelinePath = join(root, '.jarvis', 'pipeline.json');
-
-  function readPipeline() {
-    if (!existsSync(pipelinePath)) return null;
-    try { return JSON.parse(readFileSync(pipelinePath, 'utf-8')); } catch { return null; }
+  function electLeader() {
+    const leader = getLeader(db);
+    if (leader) return leader.id;
+    const oldest = getOldestSession(db);
+    if (oldest) { updateSessionRole(db, oldest.id, 'leader'); return oldest.id; }
+    return null;
   }
+  // Heartbeat cleanup every 30s
+  setInterval(() => {
+    const stale = cleanupStaleSessions(db, SESSION_TIMEOUT);
+    if (stale.length) electLeader();
+  }, 30_000);
+
+  // ---- Pipeline state machine (SQLite-backed) ----
+  function readPipeline() { return getPipeline(db); }
   function writePipeline(state) {
-    const dir = join(root, '.jarvis'); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(pipelinePath, JSON.stringify({ ...state, updated_at: new Date().toISOString() }, null, 2));
+    updatePipelineGate(db, state.current_gate);
   }
 
   // ==============================
   // TOOLS
   // ==============================
 
-  // --- Session management ---
-  server.tool(
-    'session_join',
-    '【多会话安全】注册当前会话。第一个注册的会话获得 leader 写锁，后续会话为 observer（只读）。返回 session_id 和角色。',
-    { platform: z.enum(['claude','opencode','codex','other']).optional().describe('平台名称') },
+  // --- Session management (SQLite) ---
+  server.tool('session_join', '注册会话。第一个=leader🔑，后续=observer👁。SQLite持久化，引擎重启不丢。',
+    { platform: z.enum(['claude','opencode','codex','other']).optional() },
     async ({ platform }, extra) => {
-      const sessionId = extra?.sessionId || `s${Date.now()}`;
-      cleanupStaleSessions();
-      const existing = sessions.get(sessionId);
-      if (existing) { existing.last_heartbeat = Date.now(); return { content: [{ type: 'text', text: JSON.stringify({ session_id: sessionId, role: existing.role, leader: leaderSessionId, active_sessions: sessions.size }) }] }; }
-
-      const role = sessions.size === 0 ? 'leader' : 'observer';
-      const s = { id: sessionId, platform: platform || 'unknown', created_at: Date.now(), last_heartbeat: Date.now(), role };
-      sessions.set(sessionId, s);
-      if (role === 'leader') leaderSessionId = sessionId;
-
-      return {
-        content: [{ type: 'text', text: JSON.stringify({
-          session_id: sessionId, role, leader: leaderSessionId,
-          active_sessions: sessions.size,
-          message: role === 'leader' ? '🔑 You are leader — write access granted.' : '👁 You are observer — read-only. Leader holds write lock.',
-        }, null, 2) }],
-      };
+      const sid = extra?.sessionId || `s${Date.now()}`;
+      const existing = getSession(db, sid);
+      if (existing) { heartbeatSession(db, sid); const leader = getLeader(db); return { content: [{ type: 'text', text: JSON.stringify({ session_id: sid, role: existing.role, leader: leader?.id, active_sessions: getSessions(db).length }) }] }; }
+      const role = getSessions(db).length === 0 ? 'leader' : 'observer';
+      addSession(db, sid, platform || 'unknown', role);
+      const leader = getLeader(db);
+      return { content: [{ type: 'text', text: JSON.stringify({ session_id: sid, role, leader: leader?.id, active_sessions: getSessions(db).length, message: role==='leader'?'🔑 Leader — write access granted.':'👁 Observer — read-only.' }) }] };
     }
   );
-
-  server.tool('session_heartbeat', '【多会话安全】发送心跳，保持会话活跃。每 60 秒至少发一次，否则会话超时被清理。', {},
-    async (_args, extra) => {
-      const sid = extra?.sessionId;
-      if (!sid || !sessions.has(sid)) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Session not found. Call session_join first.' }) }] };
-      sessions.get(sid).last_heartbeat = Date.now();
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, session_id: sid, role: sessions.get(sid).role, leader: leaderSessionId }) }] };
-    }
-  );
-
-  server.tool('session_list', '【多会话安全】列出所有活跃会话及其角色。', {},
-    async () => {
-      cleanupStaleSessions();
-      const list = [...sessions.values()].map(s => ({ session_id: s.id, platform: s.platform, role: s.role, leader: s.id === leaderSessionId, last_heartbeat_ago: `${Math.round((Date.now() - s.last_heartbeat) / 1000)}s` }));
-      return { content: [{ type: 'text', text: JSON.stringify({ active_sessions: sessions.size, leader_session: leaderSessionId, sessions: list }) }] };
-    }
-  );
-
-  server.tool('session_leave', '【多会话安全】主动离开。如果是 leader，锁自动移交给最老的 observer。', {},
-    async (_args, extra) => {
-      const sid = extra?.sessionId;
-      if (!sid || !sessions.has(sid)) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Session not registered.' }) }] };
-      const wasLeader = sessions.get(sid).role === 'leader';
-      sessions.delete(sid);
-      if (wasLeader) {
-        leaderSessionId = null;
-        const oldest = [...sessions.values()].sort((a, b) => a.created_at - b.created_at)[0];
-        if (oldest) { leaderSessionId = oldest.id; oldest.role = 'leader'; }
-      }
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Session left.', lock_transferred: wasLeader && leaderSessionId ? `Lock → ${leaderSessionId}` : 'No active sessions' }) }] };
-    }
-  );
+  server.tool('session_heartbeat', '心跳保活。60s一次，超时自动清理。', {}, async (_args, extra) => {
+    const sid = extra?.sessionId; if (!sid || !getSession(db, sid)) return { content: [{ type: 'text', text: JSON.stringify({ error: 'Session not found.' }) }] };
+    heartbeatSession(db, sid); return { content: [{ type: 'text', text: JSON.stringify({ ok: true, session_id: sid }) }] };
+  });
+  server.tool('session_list', '列出所有活跃会话。', {}, async () => {
+    cleanupStaleSessions(db, SESSION_TIMEOUT); electLeader();
+    const leader = getLeader(db);
+    const list = getSessions(db).map(s => ({ session_id: s.id, platform: s.platform, role: s.role, leader: s.id===leader?.id, last_heartbeat_ago: `${Math.round((Date.now()-s.last_heartbeat)/1000)}s` }));
+    return { content: [{ type: 'text', text: JSON.stringify({ active_sessions: list.length, leader_session: leader?.id, sessions: list }) }] };
+  });
+  server.tool('session_leave', '主动离开。leader离开自动移交锁。', {}, async (_args, extra) => {
+    const sid = extra?.sessionId; if (!sid || !getSession(db, sid)) return { content: [{ type: 'text', text: JSON.stringify({ ok: true }) }] };
+    const wasLeader = getSession(db, sid)?.role === 'leader';
+    removeSession(db, sid);
+    const newLeader = wasLeader ? electLeader() : null;
+    return { content: [{ type: 'text', text: JSON.stringify({ ok: true, lock_transferred: newLeader ? `→ ${newLeader}` : null }) }] };
+  });
 
   // --- Pipeline management ---
 
-  // Tool: pipeline_init — hard state bootstrap
-  server.tool(
-    'pipeline_init',
-    '【硬约束·需Leader】初始化流水线状态机。只有 leader 会话可调用。observer 会被拒绝。',
-    { project_name: z.string().optional().describe('项目名称（可选）') },
+  // Tool: pipeline_init — DB-backed
+  server.tool('pipeline_init', '【硬约束·需Leader】初始化流水线。SQLite持久化。',
+    { project_name: z.string().optional() },
     async ({ project_name }, extra) => {
       const lockErr = requireLeader(extra?.sessionId); if (lockErr) return { content: [{ type: 'text', text: JSON.stringify(lockErr) }] };
-      const existing = readPipeline();
-      if (existing) return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline already initialized', state: existing, session: extra?.sessionId, role: 'leader' }, null, 2) }] };
-      const state = { project: project_name || root, current_gate: 'Gate A', started_at: new Date().toISOString(), gates_passed: [], mode: 'strict', initialized_by: extra?.sessionId };
-      writePipeline(state);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline initialized — hard state machine active. Next: Gate A', state, session: extra?.sessionId, role: 'leader' }, null, 2) }] };
+      dbInitPipeline(db, project_name || root, extra?.sessionId);
+      const state = readPipeline();
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, message: 'Pipeline initialized (SQLite). Next: Gate A', state }) }] };
     }
   );
 
@@ -174,11 +114,12 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     async () => {
       const pstate = readPipeline();
       const gates = GATES.map(gate => {
-        const checkpoints = readCheckpoints(root, gate);
+        const checkpoints = readCheckpointsDb( gate);
         return { gate, passed: checkpoints.length > 0, checkpoints, artifacts: findGateArtifacts(join(root, 'docs'), gate), requirement: GATE_CHECKS[gate]?.check || '' };
       });
       const current = pstate?.current_gate || (gates.find(g => !g.passed)?.gate || 'Gate A');
-      const sessionInfo = { active_sessions: sessions.size, leader: leaderSessionId, sessions: [...sessions.values()].map(s => ({ id: s.id, role: s.role, platform: s.platform, alive_s: Math.round((Date.now() - s.last_heartbeat)/1000) })) };
+      const allSessions = getSessions(db); const leader = getLeader(db);
+      const sessionInfo = { active_sessions: allSessions.length, leader: leader?.id, sessions: allSessions.map(s => ({ id: s.id, role: s.role, platform: s.platform, alive_s: Math.round((Date.now()-s.last_heartbeat)/1000) })) };
       return {
         content: [{ type: 'text', text: JSON.stringify({
           project: root,
@@ -202,7 +143,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
       const pstate = readPipeline();
       const targetGate = gate || pstate?.current_gate || 'Gate A';
       const artifacts = findGateArtifacts(join(root, 'docs'), targetGate);
-      const checkpoints = readCheckpoints(root, targetGate);
+      const checkpoints = readCheckpointsDb( targetGate);
       const requirement = GATE_CHECKS[targetGate];
 
       // Hard check: must have artifacts and/or checkpoints
@@ -251,16 +192,14 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
       // Enforce: must pass current gate
       const artifacts = findGateArtifacts(join(root, 'docs'), currentGate);
-      const checkpoints = readCheckpoints(root, currentGate);
+      const checkpoints = readCheckpointsDb( currentGate);
       if (artifacts.length === 0 && checkpoints.length === 0) {
         return { content: [{ type: 'text', text: JSON.stringify({ allowed: false, error: `FSM blocked: ${currentGate} conditions NOT met. Run gate_enforce first. Required: ${GATE_CHECKS[currentGate]?.check}` }) }] };
       }
 
-      // Allowed — advance
-      const cpDir = join(root, '.jarvis', 'checkpoints');
-      if (!existsSync(cpDir)) mkdirSync(cpDir, { recursive: true });
-      writeFileSync(join(cpDir, `${currentGate.replace(/ /g, '_')}.json`), JSON.stringify({ gate: currentGate, passed_at: new Date().toISOString(), advance_to: gate }, null, 2));
-      writePipeline({ ...pstate, current_gate: gate, gates_passed: [...(pstate?.gates_passed || []), currentGate] });
+      // Allowed — advance (SQLite)
+      addCheckpoint(db, currentGate, gate, extra?.sessionId);
+      updatePipelineGate(db, gate);
 
       const nextGate = GATES[targetIdx + 1];
       return {
@@ -282,7 +221,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     async () => {
       const gates = GATES.map(gate => ({
         gate,
-        passed: readCheckpoints(root, gate).length > 0,
+        passed: readCheckpointsDb( gate).length > 0,
         artifacts: findGateArtifacts(join(root, 'docs'), gate),
       }));
       const completed = gates.filter(g => g.passed).length;
@@ -292,7 +231,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
         if (gate.passed) {
           reports[gate.gate] = {
             artifacts: gate.artifacts,
-            checkpoints: readCheckpoints(root, gate.gate),
+            checkpoints: readCheckpointsDb( gate.gate),
           };
         }
       }
@@ -350,7 +289,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   }, async (uri) => {
     const gate = decodeURIComponent(uri.pathname.split('/').pop()).replace(/_/g, ' ');
     const artifacts = findGateArtifacts(join(root, 'docs'), gate);
-    const checkpoints = readCheckpoints(root, gate);
+    const checkpoints = readCheckpointsDb( gate);
     const text = `# ${gate} Report\n\n**Passed:** ${checkpoints.length > 0}\n**Checkpoints:** ${checkpoints.map(c => c.passed_at).join(', ') || 'none'}\n\n**Artifacts:**\n${artifacts.map(a => `- ${a}`).join('\n') || 'none'}`;
     return { contents: [{ uri: uri.href, text, mimeType: 'text/markdown' }] };
   });
@@ -366,18 +305,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   // ---- Health ----
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: readPkgVersion(), tools: ['pipeline_init', 'pipeline_status', 'gate_enforce', 'advance_gate', 'report_status'] }));
 
-  // ---- Agent Model Config ----
-  const agentConfigPath = join(root, '.jarvis', 'agent-models.json');
-
-  function readAgentConfig() {
-    if (!existsSync(agentConfigPath)) return {};
-    try { return JSON.parse(readFileSync(agentConfigPath, 'utf-8')); } catch { return {}; }
-  }
-  function writeAgentConfig(cfg) {
-    const dir = join(root, '.jarvis'); if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(agentConfigPath, JSON.stringify(cfg, null, 2));
-  }
-
+  // ---- Agent Model Config (SQLite) ----
   const AVAILABLE_MODELS = [
     'deepseek-v4-pro', 'deepseek-v4-flash', 'deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash',
     'gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex', 'gpt-5.3-codex-spark', 'gpt-5.4-mini', 'gpt-5.2',
@@ -404,49 +332,45 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     { id:'review-qa', name:'Review QA', role:'评审', icon:'eye', defaultModel:'deepseek-v4-pro' },
   ];
 
-  // REST: agent config
+  // REST: agent config (SQLite)
   app.get('/api/agents', (_req, res) => {
-    const cfg = readAgentConfig();
-    const list = AGENT_LIST.map(a => ({ ...a, model: cfg[a.id] || a.defaultModel }));
+    const cfg = getAgentConfig(db);
+    const list = AGENT_LIST.map(a => ({ ...a, model: cfg[a.id] || a.defaultModel, is_custom: !!cfg[a.id] }));
     res.json({ agents: list, available_models: AVAILABLE_MODELS });
   });
-
   app.post('/api/agents', (req, res) => {
     const { agent_id, model } = req.body;
     if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
     if (!AVAILABLE_MODELS.includes(model)) return res.status(400).json({ error: `Unknown model. Available: ${AVAILABLE_MODELS.join(', ')}` });
-    const cfg = readAgentConfig();
-    cfg[agent_id] = model;
-    writeAgentConfig(cfg);
+    setAgentModel(db, agent_id, model);
     res.json({ ok: true, agent_id, model });
   });
 
-  // MCP: agent_config
-  server.tool('agent_config', '配置子 Agent 模型。读取/设置特定 Agent 的模型。', {
-    agent_id: z.string().optional().describe('Agent ID（不传则列出全部）'),
-    model: z.string().optional().describe('模型名（不传则只读当前配置）'),
+  // MCP: agent_config (SQLite)
+  server.tool('agent_config', '配置子Agent模型（SQLite持久化）。', {
+    agent_id: z.string().optional(), model: z.string().optional(),
   }, async ({ agent_id, model }) => {
-    const cfg = readAgentConfig();
+    const cfg = getAgentConfig(db);
     if (agent_id && model) {
       if (!AVAILABLE_MODELS.includes(model)) return { content: [{ type: 'text', text: JSON.stringify({ error: `Unknown model. Available: ${AVAILABLE_MODELS.join(', ')}` }) }] };
-      cfg[agent_id] = model;
-      writeAgentConfig(cfg);
-      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, agent_id, model, message: `${agent_id} → ${model}` }) }] };
+      setAgentModel(db, agent_id, model);
+      return { content: [{ type: 'text', text: JSON.stringify({ ok: true, agent_id, model }) }] };
     }
     const list = AGENT_LIST.map(a => ({ id: a.id, name: a.name, role: a.role, model: cfg[a.id] || a.defaultModel, is_custom: !!cfg[a.id] }));
     return { content: [{ type: 'text', text: JSON.stringify({ agents: list, available_models: AVAILABLE_MODELS }) }] };
   });
 
-  // ---- SSE (real-time pipeline events) ----
+  // ---- SSE ----
   const sseClients = new Set();
   app.get('/api/events', (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' });
-    sseClients.add(res);
-    req.on('close', () => sseClients.delete(res));
+    sseClients.add(res); req.on('close', () => sseClients.delete(res));
   });
   setInterval(() => {
     if (sseClients.size === 0) return;
-    const gates = GATES.map(g => ({ gate: g, passed: readCheckpoints(root, g).length > 0, artifacts: findGateArtifacts(join(root, 'docs'), g), checkpoints: readCheckpoints(root, g), requirement: GATE_CHECKS[g]?.check || '' }));
+    const checkpoints = getCheckpoints(db);
+    const cpGateMap = {}; for (const c of checkpoints) cpGateMap[c.gate] = c;
+    const gates = GATES.map(g => ({ gate: g, passed: !!cpGateMap[g], checkpoints: cpGateMap[g] ? [cpGateMap[g]] : [], artifacts: findGateArtifacts(join(root, 'docs'), g), requirement: GATE_CHECKS[g]?.check || '' }));
     const current = gates.find(g => !g.passed)?.gate || 'Complete';
     const completed = gates.filter(g => g.passed).map(g => g.gate);
     const pct = Math.round(completed.length / gates.length * 100);
@@ -486,13 +410,7 @@ export function engineStatus() {
 }
 
 function readPkgVersion() { try { return JSON.parse(readFileSync(resolve(import.meta.dirname, '..', '..', 'package.json'), 'utf-8')).version; } catch { return '?.?.?'; } }
-
-function readCheckpoints(root, gate) {
-  const cpDir = join(root, '.jarvis', 'checkpoints');
-  if (!existsSync(cpDir)) return [];
-  const files = readdirSync(cpDir).filter(f => f.includes(gate.replace(/ /g, '_')));
-  return files.map(f => { try { return JSON.parse(readFileSync(join(cpDir, f), 'utf-8')); } catch { return null; } }).filter(Boolean);
-}
+function readCheckpointsDb(gate) { return getCheckpoints(db, gate); }
 
 function findGateArtifacts(docsDir, gate) {
   const subdir = GATE_DIRS[gate]; if (!subdir) return [];
