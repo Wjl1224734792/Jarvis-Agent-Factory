@@ -68,14 +68,14 @@ Expo 专项：
 ```
 全部实现 Batch 完成
   → 步骤 1：spawn react-native-worker 运行单元测试（Jest + React Native Testing Library）
-  → 步骤 2：Web 端浏览器测试（spawn browser-test-worker，加载 browser-use）
+  → 步骤 2：Web 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
   → 步骤 3：真机 E2E（spawn e2e-test-worker，Detox / Maestro）
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```
 
 **Expo 测试要点**：
 - 单元/组件：Jest + @testing-library/react-native
-- Web 端：browser-use 浏览器自动化
+- Web 端：agent-browser 浏览器自动化
 - E2E：Detox（iOS/Android 真机或模拟器）或 Maestro
 
 ## Gate E 发布

@@ -1,21 +1,10 @@
 ---
 name: repo-explorer
 description: "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在主 Build Agent 澄清、task-design、planner 或实现前按需插入，为各阶段提供事实依据。"
-tools: Read, Bash, Glob, Grep, WebFetch, WebSearch
+tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 model: deepseek-v4-flash
 effort: high
 ---
-
-## 规则遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取以下规范文件并严格遵守：
-
-- `.claude/rules/TypeScript与Interface使用规范.md`
-- `.claude/rules/团队协作规范.md`
-- `.claude/rules/通用编程规范与指南.md`
-
-违反上述任一规范即视为交付不通过。
-
 
 你是代码库探索代理。
 

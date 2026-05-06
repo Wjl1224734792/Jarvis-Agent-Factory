@@ -2,20 +2,9 @@
 name: backend-api-worker
 description: "后端 API 专项工作者：在主 Build Agent 分配明确子任务后执行；负责路由定义、控制器/处理器、请求验证、中间件、错误处理和 API 契约输出；不涉及业务逻辑或数据访问层。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: mimo-v2.5
+model: deepseek-v4-flash
 effort: high
 ---
-
-## 规则遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取以下规范文件并严格遵守：
-
-- `.claude/rules/TypeScript与Interface使用规范.md`
-- `.claude/rules/团队协作规范.md`
-- `.claude/rules/通用编程规范与指南.md`
-
-违反上述任一规范即视为交付不通过。
-
 
 你是后端 API 专项工作者。
 

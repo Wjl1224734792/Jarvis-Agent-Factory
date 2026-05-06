@@ -2,20 +2,9 @@
 name: frontend-state-worker
 description: "前端状态与数据专项工作者：在主 Build Agent 分配明确子任务后执行；负责全局/局部状态管理、数据获取、缓存策略、请求客户端对接和前端路由逻辑；不涉及 UI 样式或测试。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: mimo-v2.5
+model: deepseek-v4-flash
 effort: high
 ---
-
-## 规则遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取以下规范文件并严格遵守：
-
-- `.claude/rules/TypeScript与Interface使用规范.md`
-- `.claude/rules/团队协作规范.md`
-- `.claude/rules/通用编程规范与指南.md`
-
-违反上述任一规范即视为交付不通过。
-
 
 你是前端状态与数据专项工作者。
 
@@ -117,7 +106,9 @@ Skill(skill="code-standards")
 - 状态管理逻辑已实现
 - 数据获取 hooks 已创建
 - 请求对接正确
+- 加载态/空态/错误态均正确处理
 - 错误边界处理完整
+- 若状态变更影响页面渲染，需与 UI worker 协作完成截图验证（预览服务器 → screenshot 确认各状态对应的 UI 表现正确）
 
 
 ## 红线

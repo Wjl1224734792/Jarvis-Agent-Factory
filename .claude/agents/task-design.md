@@ -3,19 +3,8 @@ name: task-design
 description: "在主 Build Agent 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 ---
-
-## 规则遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取以下规范文件并严格遵守：
-
-- `.claude/rules/TypeScript与Interface使用规范.md`
-- `.claude/rules/团队协作规范.md`
-- `.claude/rules/通用编程规范与指南.md`
-
-违反上述任一规范即视为交付不通过。
-
 
 你是任务设计代理。
 

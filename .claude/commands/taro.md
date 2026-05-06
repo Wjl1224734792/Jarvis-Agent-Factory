@@ -60,14 +60,14 @@ Batch 3: [e2e-test-worker]                       ← 真机/模拟器 E2E
 ```
 全部实现 Batch 完成
   → 步骤 1：spawn taro-worker 运行单元/组件测试
-  → 步骤 2：H5 端浏览器测试（spawn browser-test-worker，加载 browser-use）
+  → 步骤 2：H5 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
   → 步骤 3：小程序端 E2E（spawn e2e-test-worker，微信开发者工具 CLI）
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```
 
 **小程序测试要点**：
 - 微信开发者工具 CLI：`cli open --project` + 自动化操作
-- H5 端：browser-use 浏览器自动化
+- H5 端：agent-browser 浏览器自动化
 - 多端适配验证：至少覆盖微信 + H5 两端
 
 ## Gate E 发布
