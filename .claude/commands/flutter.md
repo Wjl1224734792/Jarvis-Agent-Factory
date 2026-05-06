@@ -77,7 +77,7 @@ Flutter 专项：
 - 单元测试：`flutter test`（test/ 目录）
 - Widget 测试：`flutter test`（WidgetTester + pumpWidget）
 - 集成测试：`flutter test integration_test/`（IntegrationTestWidgetsFlutterBinding）
-- Web 端：browser-use 浏览器自动化
+- Web 端：agent-browser 浏览器自动化
 - Golden 测试：`matchesGoldenFile`（视觉回归）
 
 ## Gate E 发布

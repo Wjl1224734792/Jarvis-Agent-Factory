@@ -74,7 +74,7 @@ permission:
   ├── 步骤 1：flutter test（单元/Widget 测试）
   │    └── WidgetTester + pumpWidget + Golden 测试
   ├── 步骤 2：Web 端浏览器测试（spawn browser-test-worker，若含 Web 目标）
-  │    └── 加载 browser-use + browser-testing
+  │    └── 加载 agent-browser + browser-testing
   ├── 步骤 3：flutter test integration_test/
   │    └── IntegrationTestWidgetsFlutterBinding
   ├── 步骤 4：E2E（真机/模拟器）

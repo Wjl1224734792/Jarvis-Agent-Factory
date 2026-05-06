@@ -127,7 +127,7 @@ permission:
   ├── Batch N: frontend-test-worker（单元+组件测试）
   ├── 失败 → 回退实现 agent 修复 → 重跑
   ├── Batch N+1: browser-test-worker（浏览器交互验证，不可与 N 并行）
-  │    └── 加载 browser-use + browser-testing 技能，最多 2 轮修复-重测
+  │    └── 加载 agent-browser + browser-testing 技能，最多 2 轮修复-重测
   ├── Batch N+2: e2e-test-worker（端到端，独立 Batch，不可与 N/N+1 并行）
   └── 汇总 docs/testing/ → Gate C2 通过
 ```

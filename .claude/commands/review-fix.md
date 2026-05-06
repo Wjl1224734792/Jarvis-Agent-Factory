@@ -17,7 +17,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
    ### **阶段一：初审**（不可绕过）
    - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
    - 可并发调用 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`repo-explorer` 收集 findings
-   - **涉及前端页面/交互的 Bug**：先加载 `Skill("browser-use")`，用 browser-use 复现 Bug（导航→复现步骤→截图异常状态），复现证据作为 finding 附件
+   - **涉及前端页面/交互的 Bug**：加载 `Skill("agent-browser")` 和 `Skill("browser-testing")`，用 `agent-browser` CLI 复现 Bug（open→snapshot -i→复现步骤→screenshot 异常状态），复现证据作为 finding 附件
    - 所有只读 Agent 返回后再进入下一阶段
 
    ### **阶段二：修复/优化规划**（不可绕过）
@@ -29,7 +29,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
    ### **阶段四：验证**（不可绕过）
    - Lint + Type-check + Build 三项全部通过（失败→回退修复），运行测试确保无回归
-   - **涉及前端页面/交互的修复**：用 browser-use 按相同步骤重新操作，截图对比修复前后，确认 Bug 不再出现
+   - **涉及前端页面/交互的修复**：用 `agent-browser` CLI 按相同步骤重新操作（open→snapshot -i→复现步骤→screenshot），截图对比修复前后，确认 Bug 不再出现
 
    ### **阶段五：复审**（不可绕过）
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项
@@ -37,6 +37,4 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
 3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
-4. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代。
-
-向用户确认已进入审查修复优化闭环模式。
+4. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代；不用硬等待（sleep/wait）替代内容轮询。

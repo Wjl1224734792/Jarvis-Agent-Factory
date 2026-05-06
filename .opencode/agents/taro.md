@@ -71,7 +71,7 @@ permission:
 ```
 全部实现 Batch 完成
   ├── 步骤 1：Jest + @tarojs/test-utils（单元/组件测试）
-  ├── 步骤 2：H5 端浏览器测试（spawn browser-test-worker，加载 browser-use）
+  ├── 步骤 2：H5 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
   ├── 步骤 3：小程序端 E2E（spawn e2e-test-worker，微信开发者工具 CLI）
   │    └── cli open --project + 自动化操作
   └── 汇总 docs/testing/ → Gate C2 通过

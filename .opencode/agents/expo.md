@@ -72,7 +72,7 @@ permission:
 ```
 全部实现 Batch 完成
   ├── 步骤 1：Jest + @testing-library/react-native（单元/组件）
-  ├── 步骤 2：Web 端浏览器测试（spawn browser-test-worker，加载 browser-use）
+  ├── 步骤 2：Web 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
   ├── 步骤 3：Native E2E（spawn e2e-test-worker，Detox / Maestro）
   │    └── 需真机或模拟器
   └── 汇总 docs/testing/ → Gate C2 通过
