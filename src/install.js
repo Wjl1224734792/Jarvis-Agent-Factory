@@ -3,6 +3,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node
 import { createInterface } from 'node:readline';
 
 const SKIP_FILES = new Set([
+  'settings.json',
   'settings.local.json',
   'node_modules',
   '.git',

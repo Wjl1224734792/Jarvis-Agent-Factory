@@ -1,6 +1,8 @@
 # 个人本地配置 —— 绝不上传/发布
 settings.local.json
+settings.json
 .claude/settings.local.json
+.claude/settings.json
 .opencode/settings.local.json
 .codex/settings.local.json
 
