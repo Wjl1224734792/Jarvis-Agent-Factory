@@ -5,15 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1778031890294,
-      "tag": "0000_flashy_molly_hayes",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1778050292211,
-      "tag": "0001_cooing_puppet_master",
+      "when": 1778066997156,
+      "tag": "0000_bright_sway",
       "breakpoints": true
     }
   ]

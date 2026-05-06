@@ -334,6 +334,9 @@ CREATE TABLE "posts" (
 	"share_count" integer DEFAULT 0 NOT NULL,
 	"view_count" integer DEFAULT 0 NOT NULL,
 	"published_at" timestamp with time zone,
+	"ai_summary" text,
+	"ai_summary_generated_at" timestamp with time zone,
+	"ai_formatted_at" timestamp with time zone,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL,
 	CONSTRAINT "posts_type_check" CHECK ("posts"."type" IN ('article', 'moment')),
@@ -538,6 +541,7 @@ CREATE TABLE "site_settings" (
 	"model_moderation_enabled" boolean DEFAULT true NOT NULL,
 	"rating_target_moderation_enabled" boolean DEFAULT true NOT NULL,
 	"moderation_modes" text DEFAULT '{}' NOT NULL,
+	"ai_settings" text,
 	"created_at" timestamp with time zone DEFAULT now() NOT NULL,
 	"updated_at" timestamp with time zone DEFAULT now() NOT NULL
 );

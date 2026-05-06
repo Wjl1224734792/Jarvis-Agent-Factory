@@ -1,5 +1,5 @@
 {
-  "id": "6e2784c5-88a4-4271-8d9e-b731c8b2e725",
+  "id": "60b03a61-e78c-4cc4-a485-ca93b745c3cb",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -2392,6 +2392,24 @@
           "primaryKey": false,
           "notNull": false
         },
+        "ai_summary": {
+          "name": "ai_summary",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_summary_generated_at": {
+          "name": "ai_summary_generated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "ai_formatted_at": {
+          "name": "ai_formatted_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -3955,6 +3973,12 @@
           "primaryKey": false,
           "notNull": true,
           "default": "'{}'"
+        },
+        "ai_settings": {
+          "name": "ai_settings",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
         },
         "created_at": {
           "name": "created_at",
