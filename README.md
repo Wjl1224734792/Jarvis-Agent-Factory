@@ -1,12 +1,12 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v2.1.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v2.1.5-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 <br>**简体中文** | [English](./README_EN.md)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持 Claude Code、OpenCode、Codex 三平台，共享同一套工作流规范与技能体系。
 
-> **v2.1.0** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
+> **v2.1.5** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
 
 ## 核心概念
 
@@ -44,6 +44,7 @@
 | 3 | **Bug 闭环** | `bug-fix` | Bug → agent-browser 复现 → 定位根因 → 修复 → 验证 |
 | 4 | **审查闭环** | `review-fix-optimize` | 初审 → 规划 → 执行 → 验证 → 复审关闭 |
 | 5 | **安全闭环** | Gate E | security-auditor → 威胁建模 + CVE + SAST → 修复 → 重扫 |
+| 6 | **契约闭环** | Gate C2（API 变更强制） | api-docs-worker 模式A → 对比 auto-generated spec vs 代码实现 → 标记漂移 |
 
 失败自动路由到修复闭环，最多 2 轮；第 3 轮仍失败标记 BLOCKED 并保留产物。
 
