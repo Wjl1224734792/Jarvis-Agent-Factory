@@ -1,7 +1,8 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync, rmSync } from 'node:fs';
 import { execSync } from 'node:child_process';
+import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import { install } from './install.js';
 import { doctor } from './doctor.js';
@@ -13,26 +14,31 @@ const PKG_VERSION = PKG.version;
 const PKG_NAME = PKG.name;
 
 const PLATFORMS = {
-  claude:  { dir: '.claude',  desc: 'Claude Code — 47 agents + 15 commands + 27 skills' },
-  opencode:{ dir: '.opencode',desc: 'OpenCode — 55 agents (智能体切换) + 27 skills' },
-  codex:   { dir: '.codex',   desc: 'Codex — 45 agents + 42 skills (Skill触发)' },
+  claude:   { dir: '.claude',  desc: 'Claude Code — 47 agents + 15 commands + 27 skills' },
+  opencode: { dir: '.opencode', desc: 'OpenCode — 55 agents + 27 skills (agent switching)' },
+  codex:    { dir: '.codex',   desc: 'Codex — 45 agents + 42 skills (skill-triggered)' },
 };
 
-const HELP = `
-🧠 Jarvis Agent Factory v${PKG_VERSION}
+const ALL_PLATFORMS = Object.keys(PLATFORMS);
+
+const HELP = `🧠 Jarvis Agent Factory v${PKG_VERSION}
+
+  Bootstrap multi-agent AI coding assistant configs
+  for Claude Code, OpenCode, and Codex.
 
 Usage:
-  jarvis init [path] [--yes|-y] [--global|-g]   初始化项目（含 Playwright MCP 配置）
-  jarvis install <platform> [path] [--yes|-y] [--global|-g]  安装指定平台
-  jarvis update [path] [--yes|-y]                更新已安装的平台配置
-  jarvis doctor [path]                           健康检查
-  jarvis version                                 查看版本 + 检查更新
-  jarvis list                                    列出可用平台
+  jarvis [path]                  ≡ jarvis init [path]
+  jarvis init [path]             Bootstrap project with all platforms + MCP
+  jarvis add <p...> [path]       Add platform(s) to project
+  jarvis remove <p...> [path]    Remove platform(s) from project
+  jarvis upgrade [path]          Upgrade to latest config version
+  jarvis doctor [path]           Verify installation
 
 Options:
-  --yes, -y       跳过覆盖确认
-  --global, -g    安装到用户全局目录（~/.claude/ etc）
-  --help, -h      显示帮助
+  -g, --global    Target user global directory instead of project
+  -y, --yes       Skip confirmation prompts
+  -h, --help      Show this help
+  -v, --version   Show version
 
 Platforms:
   claude     ${PLATFORMS.claude.desc}
@@ -40,23 +46,28 @@ Platforms:
   codex      ${PLATFORMS.codex.desc}
 
 Examples:
-  jarvis init ./my-project         # 项目级安装（含 MCP）
-  jarvis init --global -y          # 全局安装，跳过确认
-  jarvis install claude --global   # 全局安装 Claude Code
-  jarvis version                   # 查看版本
+  jarvis                          Bootstrap current directory
+  jarvis init my-app              Bootstrap new project
+  jarvis add claude opencode      Add platforms to current directory
+  jarvis add claude -g            Add Claude Code globally
+  jarvis remove codex             Remove Codex from project
+  jarvis upgrade                  Upgrade all configs
+  jarvis doctor                   Check current directory
 `;
 
 function showHelp() { console.log(HELP); }
 
-function parseFlags(args) {
-  const flags = { yes: false, global: false };
-  const cleaned = [];
-  for (const a of args) {
-    if (a === '--yes' || a === '-y') flags.yes = true;
-    else if (a === '--global' || a === '-g') flags.global = true;
-    else cleaned.push(a);
+function parseArgs(raw) {
+  const opts = { yes: false, global: false };
+  const positional = [];
+  for (const a of raw) {
+    if (a === '-y' || a === '--yes') opts.yes = true;
+    else if (a === '-g' || a === '--global') opts.global = true;
+    else if (a === '-h' || a === '--help') { opts.help = true; return { opts, positional }; }
+    else if (a === '-v' || a === '--version') { opts.version = true; return { opts, positional }; }
+    else positional.push(a);
   }
-  return { flags, args: cleaned };
+  return { opts, positional };
 }
 
 function checkLatest() {
@@ -67,80 +78,171 @@ function checkLatest() {
   } catch { return null; }
 }
 
-export async function run() {
-  const rawArgs = process.argv.slice(2);
-  const { flags, args } = parseFlags(rawArgs);
-  const cmd = args[0];
+function resolveTarget(path, isGlobal) {
+  return isGlobal ? resolve('.') : resolve(path || '.');
+}
 
-  if (!cmd || cmd === 'help' || cmd === '--help' || cmd === '-h') { showHelp(); return; }
+export async function run() {
+  const { opts, positional } = parseArgs(process.argv.slice(2));
+
+  if (opts.help) { showHelp(); return; }
+  if (opts.version) {
+    console.log(`${PKG_NAME} v${PKG_VERSION}`);
+    const latest = checkLatest();
+    if (latest && latest !== PKG_VERSION) {
+      console.log(`\n  Update available: v${latest} → npm i -g ${PKG_NAME}@latest`);
+    }
+    return;
+  }
+
+  const cmd = positional[0];
+
+  // jarvis (no args) ≡ jarvis init .
+  if (!cmd) {
+    const target = resolve('.');
+    const scope = opts.global ? '~ (global)' : target;
+    console.log(`\n🚀 Jarvis v${PKG_VERSION}\n`);
+    console.log(`   Target: ${scope}\n`);
+    for (const name of ALL_PLATFORMS) {
+      await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+    }
+    console.log(`\n✅ Done! \`jarvis doctor\` to verify.\n`);
+    return;
+  }
 
   switch (cmd) {
-    case 'version':
-    case '--version':
-    case '-v': {
-      console.log(`${PKG_NAME} v${PKG_VERSION}`);
-      const latest = checkLatest();
-      if (latest && latest !== PKG_VERSION) {
-        console.log(`\n  ⚡ Update available: v${latest} (current: v${PKG_VERSION})`);
-        console.log(`  Run: npm i -g ${PKG_NAME}@latest`);
-      }
-      break;
-    }
-    case 'update': {
-      const latest = checkLatest();
-      if (latest && latest !== PKG_VERSION) {
-        console.log(`\n⬆️  CLI update: v${PKG_VERSION} → v${latest}`);
-        console.log(`   Run: npm i -g ${PKG_NAME}@latest\n`);
-      }
-      const target = resolve(args[1] || '.');
-      console.log(`🔄 Updating configs → ${target}\n`);
-      for (const name of Object.keys(PLATFORMS)) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
+    case 'init': {
+      const path = positional[1];
+      const target = resolveTarget(path, opts.global);
+      const scope = opts.global ? '~ (global)' : target;
+      console.log(`\n🚀 Jarvis v${PKG_VERSION}\n`);
+      console.log(`   Target: ${scope}\n`);
+      for (const name of ALL_PLATFORMS) {
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
       }
       console.log(`\n✅ Done!\n`);
       break;
     }
-    case 'init': {
-      const target = resolve(args[1] || '.');
-      const scope = flags.global ? `~ (global)` : target;
-      console.log(`\n🚀 Jarvis Agent Factory v${PKG_VERSION}\n`);
-      console.log(`   Target: ${scope}\n`);
-      for (const name of Object.keys(PLATFORMS)) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
+
+    case 'add': {
+      const platforms = [];
+      let path = '.';
+      for (let i = 1; i < positional.length; i++) {
+        const p = positional[i];
+        if (PLATFORMS[p]) platforms.push(p);
+        else if (!p.startsWith('-')) path = p;
       }
-      console.log(`\n✅ Done! Run \`jarvis doctor\` to verify.\n`);
-      break;
-    }
-    case 'install': {
-      const platform = args[1];
-      if (!platform || !PLATFORMS[platform]) {
-        console.error(`\n❌ Unknown platform: ${platform || '(none)'}\n`);
-        console.log(`Available: ${Object.keys(PLATFORMS).join(', ')}\n`);
+      if (platforms.length === 0) {
+        console.error('\n❌  No valid platform specified.\n');
+        console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
         return;
       }
-      const target = resolve(args[2] || '.');
-      const scope = flags.global ? `~ (global)` : target;
-      console.log(`\n📦 Installing ${platform} → ${scope}\n`);
-      await install({ platform, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: flags.yes, global: flags.global });
+      const target = resolveTarget(path, opts.global);
+      const scope = opts.global ? '~ (global)' : target;
+      console.log(`\n📦 Adding to ${scope}\n`);
+      for (const name of platforms) {
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+      }
       console.log(`\n✅ Done!\n`);
       break;
     }
-    case 'doctor': {
-      const target = resolve(args[1] || '.');
-      doctor({ target, platforms: PLATFORMS, pkgRoot: PKG_ROOT });
-      break;
-    }
-    case 'list': {
-      console.log('\n📋 Available platforms:\n');
-      for (const [name, info] of Object.entries(PLATFORMS)) {
-        console.log(`  ${name.padEnd(10)} ${info.desc}`);
+
+    case 'remove':
+    case 'rm': {
+      const platforms = [];
+      let path = '.';
+      for (let i = 1; i < positional.length; i++) {
+        const p = positional[i];
+        if (PLATFORMS[p]) platforms.push(p);
+        else if (!p.startsWith('-')) path = p;
       }
-      console.log('');
+      if (platforms.length === 0) {
+        console.error('\n❌  No valid platform specified.\n');
+        console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
+        return;
+      }
+      const target = resolveTarget(path, opts.global);
+      const scope = opts.global ? '~ (global)' : target;
+      for (const name of platforms) {
+        const dir = opts.global ? (GLOBAL_ROOTS[name]) : resolve(target, PLATFORMS[name].dir);
+        if (existsSync(dir)) {
+          if (!opts.yes) {
+            const ok = await confirm(`  Remove ${dir}? [y/N] `);
+            if (!ok) { console.log(`  ⏭  Skipped ${name}`); continue; }
+          }
+          rmSync(dir, { recursive: true, force: true });
+          console.log(`  - ${PLATFORMS[name].dir.padEnd(10)} removed`);
+          // Also remove MCP config
+          removeMcp(name, target, opts.global);
+        } else {
+          console.log(`  ⏭  ${PLATFORMS[name].dir.padEnd(10)} not found`);
+        }
+      }
+      console.log(`\n✅ Done!\n`);
       break;
     }
+
+    case 'upgrade':
+    case 'update': {
+      // Check CLI self-upgrade
+      const latest = checkLatest();
+      if (latest && latest !== PKG_VERSION) {
+        console.log(`\n⬆️  CLI: v${PKG_VERSION} → v${latest}`);
+        console.log(`   npm i -g ${PKG_NAME}@latest\n`);
+      }
+      const path = positional[1];
+      const target = resolveTarget(path, opts.global);
+      const scope = opts.global ? '~ (global)' : target;
+      console.log(`🔄 Upgrading → ${scope}\n`);
+      for (const name of ALL_PLATFORMS) {
+        const dir = opts.global ? GLOBAL_ROOTS[name] : resolve(target, PLATFORMS[name].dir);
+        if (existsSync(dir)) {
+          await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+        } else {
+          console.log(`  ⏭  ${PLATFORMS[name].dir} not installed, skipped`);
+        }
+      }
+      console.log(`\n✅ Done!\n`);
+      break;
+    }
+
+    case 'doctor':
+    case 'check': {
+      const path = positional[1];
+      const target = resolveTarget(path, opts.global);
+      doctor({ target, platforms: PLATFORMS, pkgRoot: PKG_ROOT, global: opts.global });
+      break;
+    }
+
     default: {
-      console.error(`\n❌ Unknown command: ${cmd}\n`);
+      console.error(`\n❌  Unknown command: ${cmd}\n`);
       showHelp();
     }
   }
+}
+
+const GLOBAL_ROOTS = {
+  claude:   resolve(homedir(), '.claude'),
+  opencode: resolve(homedir(), '.config', 'opencode'),
+  codex:    resolve(homedir(), '.codex'),
+};
+
+function removeMcp(platform, target, isGlobal) {
+  const files = {
+    claude:   '.mcp.json',
+    opencode: 'opencode.json',
+    codex:    '.codex/config.toml',
+  };
+  const f = files[platform];
+  if (!f) return;
+  const dest = isGlobal ? resolve(homedir(), f) : resolve(target, f);
+  if (existsSync(dest)) {
+    rmSync(dest, { recursive: true, force: true });
+    console.log(`  - ${f.padEnd(18)} removed`);
+  }
+}
+
+async function confirm(q) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(res => { rl.question(q, a => { rl.close(); res(a.toLowerCase() === 'y' || a.toLowerCase() === 'yes'); }); });
 }

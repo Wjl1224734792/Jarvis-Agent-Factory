@@ -2,7 +2,7 @@
 
 一套跨平台多智能体 AI 编程助手配置集，定义从想法到交付的完整软件开发流水线。支持 Claude Code、OpenCode、Codex 三平台。
 
-> 版本 v2.0.1 | MIT 协议
+> 版本 v2.1.0 | MIT 协议
 >
 > **Agent 入口**：[AGENTS.md](./AGENTS.md) — 所有智能体首读项目约束文件
 

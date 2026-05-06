@@ -1,12 +1,12 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v2.0.1-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v2.1.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 <br>**简体中文** | [English](./README_EN.md)
 
 一套跨平台的多智能体（Multi-Agent）AI 编程助手配置集，定义了一条**从想法到交付的完整软件开发流水线**。支持 Claude Code、OpenCode、Codex 三平台，共享同一套工作流规范与技能体系。
 
-> **v2.0.1** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
+> **v2.1.0** — Claude Code 47 agents + 15 commands / OpenCode 55 agents（纯智能体切换） / Codex 45 agents + 42 skills（Skill 触发）
 
 ## 核心概念
 
@@ -53,23 +53,33 @@
 
 ```bash
 npm i -g jarvis-agent-factory
+```
 
-# 新项目一键安装
-jarvis init ./my-project
-jarvis init -y              # 跳过确认
+| 命令 | 说明 |
+|------|------|
+| `jarvis` | 引导当前目录（≡ `jarvis init .`） |
+| `jarvis init [path]` | 初始化项目，安装全部三平台 + Playwright MCP 配置 |
+| `jarvis add <p...> [path]` | 添加指定平台（`claude` `opencode` `codex` 可多选） |
+| `jarvis remove <p...> [path]` | 移除指定平台 + 对应 MCP 配置 |
+| `jarvis upgrade [path]` | 升级已安装的配置到最新版本 |
+| `jarvis doctor [path]` | 健康检查 |
+| `-g, --global` | 安装到用户全局目录 `~/.claude/` 等 |
+| `-y, --yes` | 跳过覆盖确认 |
+| `-v, --version` | 查看版本 |
+| `-h, --help` | 帮助 |
 
-# 按平台安装
-jarvis install claude
-jarvis install opencode
-jarvis install codex
+```bash
+# 常用
+jarvis                                  # 引导当前目录
+jarvis init my-app -y                   # 一键初始化
+jarvis add claude                       # 追加 Claude Code
+jarvis remove codex                     # 移除 Codex
+jarvis upgrade                          # 升级配置
+jarvis doctor                           # 检查
 
-# 查看版本 / 检查更新
-jarvis version
-jarvis update
-
-# 健康检查
-jarvis doctor
-jarvis list
+# 全局安装
+jarvis init -g -y                       # 一键全局安装
+jarvis add opencode -g                  # 全局追加 OpenCode
 ```
 
 ### 手动安装
