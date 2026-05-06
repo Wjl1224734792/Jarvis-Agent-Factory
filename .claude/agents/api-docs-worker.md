@@ -12,18 +12,30 @@ effort: high
 
 **每个涉及后端 API 变更的任务必须执行**，验证"文档不撒谎"。
 
+**"已有文档"指什么**：现代后端框架大多支持从代码注解/装饰器自动生成 OpenAPI spec。例如 FastAPI 的 Pydantic 模型 + `/openapi.json`、NestJS 的 `@ApiProperty` 装饰器 + swagger 插件、Spring Boot 的 springdoc、Go 的 swaggo 注解、Express 的 swagger-jsdoc。**验证就是拿这份自动生成的 spec，去对比实际的 route/controller 实现代码**，检查注解有没有过时、漏写或写错。
+
 职责：
-- 对比 API 实现代码（路由/控制器）与已有 OpenAPI/Swagger 文档
+- 对比 API 实现代码（路由/控制器）与自动生成的 OpenAPI/Swagger spec
 - 检查路径、方法、参数、响应 schema 是否一致
-- 标记漂移项（文档未更新、实现未文档化、breaking change 未标注）
+- 标记漂移项：注解改了但 spec 没重新生成、实现改了注解没改、breaking change 未标注
 - 输出契约一致性验证报告
 
 执行流程：
-1. 读取 API 路由实现代码（controller/router 文件）
-2. 读取已有 OpenAPI/Swagger 文档（如有）
+1. 读取 API 路由实现代码（controller/router 文件 + 类型/DTO 定义）
+2. 定位项目的 OpenAPI spec 来源（`/openapi.json` 端点、`swagger.yaml` 文件、`@nestjs/swagger` 插件输出等）
 3. 逐端点对比：路径、HTTP 方法、参数名/类型/必填、响应 status/schema
-4. 标记每条端点的状态：✅ 一致 / ⚠ 文档过时 / ❌ 未文档化 / 🔴 breaking change
+4. 标记每条端点的状态：✅ 一致 / ⚠ spec 过时（代码改了文档没更新）/ ❌ 未文档化（缺少注解）/ 🔴 breaking change
 5. 输出 `docs/testing/YYYY-MM-DD-<topic>-api-contract-report.md`
+
+**常见框架的 spec 来源**：
+| 框架 | 自动生成机制 | 获取方式 |
+|------|-------------|---------|
+| FastAPI | Pydantic 模型 → OpenAPI | `GET /openapi.json` |
+| NestJS | `@nestjs/swagger` 装饰器 | SwaggerModule 生成的 `/api-json` |
+| Spring Boot | springdoc-openapi 注解 | `/v3/api-docs` |
+| Express | swagger-jsdoc 注释 | 构建输出的 `swagger.json` |
+| Go (swaggo) | 代码注释 → `swag init` | `docs/swagger.json` |
+| Django | drf-spectacular | `GET /api/schema/` |
 
 **红线**：不编写 API 实现代码、不修改路由、不凭记忆对比。
 
