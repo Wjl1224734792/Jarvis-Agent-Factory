@@ -340,6 +340,15 @@ CREATE TABLE "posts" (
 	CONSTRAINT "posts_status_check" CHECK ("posts"."status" IN ('pending', 'published', 'rejected', 'hidden'))
 );
 --> statement-breakpoint
+CREATE TABLE "power_types" (
+	"id" text PRIMARY KEY NOT NULL,
+	"slug" text NOT NULL,
+	"name" text NOT NULL,
+	"sort_order" integer DEFAULT 0 NOT NULL,
+	"is_enabled" boolean DEFAULT true NOT NULL,
+	"created_at" timestamp with time zone DEFAULT now() NOT NULL
+);
+--> statement-breakpoint
 CREATE TABLE "ranking_comment_likes" (
 	"id" text PRIMARY KEY NOT NULL,
 	"comment_id" text NOT NULL,
@@ -579,8 +588,10 @@ CREATE UNIQUE INDEX "aircraft_categories_slug_unique" ON "aircraft_categories" U
 CREATE UNIQUE INDEX "aircraft_model_comment_likes_comment_user_unique" ON "aircraft_model_comment_likes" USING btree ("comment_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_model_comment_reports_comment_reporter_unique" ON "aircraft_model_comment_reports" USING btree ("comment_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_model_interactions_model_user_type_unique" ON "aircraft_model_interactions" USING btree ("model_id","user_id","type");--> statement-breakpoint
+CREATE INDEX "aircraft_model_interactions_user_created_at_idx" ON "aircraft_model_interactions" USING btree ("user_id","created_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_model_reports_model_reporter_unique" ON "aircraft_model_reports" USING btree ("model_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_models_slug_unique" ON "aircraft_models" USING btree ("slug");--> statement-breakpoint
+CREATE INDEX "aircraft_models_is_published_idx" ON "aircraft_models" USING btree ("is_published");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_review_likes_review_user_unique" ON "aircraft_review_likes" USING btree ("review_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_review_reports_review_reporter_unique" ON "aircraft_review_reports" USING btree ("review_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "aircraft_reviews_model_user_unique" ON "aircraft_reviews" USING btree ("model_id","user_id");--> statement-breakpoint
@@ -596,13 +607,20 @@ CREATE UNIQUE INDEX "post_interactions_post_user_type_unique" ON "post_interacti
 CREATE UNIQUE INDEX "post_reports_post_reporter_unique" ON "post_reports" USING btree ("post_id","reporter_id");--> statement-breakpoint
 CREATE INDEX "posts_feed_status_type_seek_idx" ON "posts" USING btree ("type",coalesce("published_at", "created_at") desc,"id" DESC NULLS LAST) WHERE "posts"."status" = 'published';--> statement-breakpoint
 CREATE INDEX "posts_feed_category_status_type_seek_idx" ON "posts" USING btree ("content_category_id","type",coalesce("published_at", "created_at") desc,"id" DESC NULLS LAST) WHERE "posts"."status" = 'published';--> statement-breakpoint
+CREATE INDEX "posts_author_id_idx" ON "posts" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "posts_report_count_idx" ON "posts" USING btree ("report_count");--> statement-breakpoint
+CREATE INDEX "posts_view_count_idx" ON "posts" USING btree ("view_count");--> statement-breakpoint
+CREATE UNIQUE INDEX "power_types_slug_unique" ON "power_types" USING btree ("slug");--> statement-breakpoint
 CREATE UNIQUE INDEX "ranking_comment_likes_comment_user_unique" ON "ranking_comment_likes" USING btree ("comment_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "ranking_comment_reports_comment_reporter_unique" ON "ranking_comment_reports" USING btree ("comment_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "ranking_reports_ranking_reporter_unique" ON "ranking_reports" USING btree ("ranking_id","reporter_id");--> statement-breakpoint
+CREATE INDEX "rankings_author_id_idx" ON "rankings" USING btree ("author_id");--> statement-breakpoint
+CREATE INDEX "rankings_updated_at_idx" ON "rankings" USING btree ("updated_at");--> statement-breakpoint
 CREATE UNIQUE INDEX "rating_target_comment_likes_comment_user_unique" ON "rating_target_comment_likes" USING btree ("comment_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "rating_target_comment_reports_comment_reporter_unique" ON "rating_target_comment_reports" USING btree ("comment_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "rating_target_ratings_target_user_unique" ON "rating_target_ratings" USING btree ("rating_target_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "rating_target_reports_target_reporter_unique" ON "rating_target_reports" USING btree ("rating_target_id","reporter_id");--> statement-breakpoint
+CREATE INDEX "rating_targets_linked_model_id_status_idx" ON "rating_targets" USING btree ("linked_model_id","status");--> statement-breakpoint
 CREATE UNIQUE INDEX "review_comment_likes_comment_user_unique" ON "review_comment_likes" USING btree ("comment_id","user_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "review_comment_reports_comment_reporter_unique" ON "review_comment_reports" USING btree ("comment_id","reporter_id");--> statement-breakpoint
 CREATE UNIQUE INDEX "user_follows_follower_followee_unique" ON "user_follows" USING btree ("follower_id","followee_id");--> statement-breakpoint

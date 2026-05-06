@@ -75,6 +75,17 @@ export const postPaths = {
         }
       }
     },
+    [API_ROUTES.posts.view('{id}')]: {
+      post: {
+        tags: ['posts'],
+        summary: '记录帖子浏览',
+        parameters: [stringPathParameter('id', '帖子 ID。')],
+        responses: {
+          '200': jsonResponse('ActionSuccessResponse', '浏览记录成功。'),
+          '404': jsonResponse('ErrorResponse', '帖子不存在。')
+        }
+      }
+    },
     [API_ROUTES.posts.comments('{id}')]: {
       post: {
         tags: ['posts'],

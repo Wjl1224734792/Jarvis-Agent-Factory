@@ -80,7 +80,7 @@ const postSourceInputFields = {
 };
 
 const declarationInputField = {
-  declaration: declarationTypeSchema
+  declaration: declarationTypeSchema.default("original")
 };
 
 function normalizeSourceInputValue(value: unknown) {

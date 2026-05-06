@@ -29,7 +29,7 @@ async function uploadReportImage(cookie: string, name = "report-evidence.png") {
     ownerId: expectDefined(ownerId),
     bizType: "report-image",
     mediaKind: "image",
-    provider: "minio",
+    provider: (process.env.STORAGE_PROVIDER === "kodo" ? "kodo" : "minio"),
     bucket: "feijia-media",
     region: "us-east-1",
     objectKey: `report-image/${ownerId}/${name}`,
@@ -139,7 +139,7 @@ describe("rankings flows", () => {
     ]);
   });
 
-  describe.sequential("rankings integration flows", () => {
+  describe("rankings integration flows", () => {
     beforeEach(async () => {
       await resetIntegrationState("rankings");
     });

@@ -265,7 +265,11 @@ export function resolveStorageProviderConfig(
   env: EnvLike = process.env
 ): StorageProviderConfig {
   const isTestEnv = env.NODE_ENV === 'test';
-  const providerRaw = (isTestEnv ? 'minio' : env.STORAGE_PROVIDER ?? 'minio')
+  const providerRaw = (
+    isTestEnv
+      ? (env.TEST_STORAGE_PROVIDER ?? env.STORAGE_PROVIDER ?? 'minio')
+      : (env.STORAGE_PROVIDER ?? 'minio')
+  )
     .toLowerCase()
     .trim() as StorageProviderEnvValue;
   const normalizedProvider =
@@ -276,18 +280,26 @@ export function resolveStorageProviderConfig(
     );
   }
 
-  const endpoint = isTestEnv
-    ? env.TEST_STORAGE_ENDPOINT?.trim() || 'http://localhost:9000'
-    : env.STORAGE_ENDPOINT?.trim();
-  const bucket = isTestEnv
-    ? env.TEST_STORAGE_BUCKET?.trim() || 'feijia-media'
-    : env.STORAGE_BUCKET?.trim();
-  const accessKeyId = isTestEnv
-    ? env.TEST_STORAGE_ACCESS_KEY_ID?.trim() || 'minioadmin'
-    : env.STORAGE_ACCESS_KEY_ID?.trim();
-  const secretAccessKey = isTestEnv
-    ? env.TEST_STORAGE_SECRET_ACCESS_KEY?.trim() || 'minioadmin123'
-    : env.STORAGE_SECRET_ACCESS_KEY?.trim();
+  const endpoint = (
+    isTestEnv
+      ? env.TEST_STORAGE_ENDPOINT?.trim() || env.STORAGE_ENDPOINT?.trim()
+      : env.STORAGE_ENDPOINT?.trim()
+  ) || (normalizedProvider === 'minio' ? 'http://localhost:9000' : undefined);
+  const bucket = (
+    isTestEnv
+      ? env.TEST_STORAGE_BUCKET?.trim() || env.STORAGE_BUCKET?.trim()
+      : env.STORAGE_BUCKET?.trim()
+  ) || (normalizedProvider === 'minio' ? 'feijia-media' : undefined);
+  const accessKeyId = (
+    isTestEnv
+      ? env.TEST_STORAGE_ACCESS_KEY_ID?.trim() || env.STORAGE_ACCESS_KEY_ID?.trim()
+      : env.STORAGE_ACCESS_KEY_ID?.trim()
+  ) || (normalizedProvider === 'minio' ? 'minioadmin' : undefined);
+  const secretAccessKey = (
+    isTestEnv
+      ? env.TEST_STORAGE_SECRET_ACCESS_KEY?.trim() || env.STORAGE_SECRET_ACCESS_KEY?.trim()
+      : env.STORAGE_SECRET_ACCESS_KEY?.trim()
+  ) || (normalizedProvider === 'minio' ? 'minioadmin123' : undefined);
 
   if (!endpoint || !bucket || !accessKeyId || !secretAccessKey) {
     throw new Error(
@@ -298,7 +310,7 @@ export function resolveStorageProviderConfig(
   const provider: StorageProvider = normalizedProvider;
   const forcePathStyle = parseBooleanEnv(
     isTestEnv
-      ? env.TEST_STORAGE_FORCE_PATH_STYLE
+      ? (env.TEST_STORAGE_FORCE_PATH_STYLE ?? env.STORAGE_FORCE_PATH_STYLE)
       : env.STORAGE_FORCE_PATH_STYLE,
     provider === 'minio'
   );
@@ -311,8 +323,10 @@ export function resolveStorageProviderConfig(
     endpoint,
     bucket,
     region:
-      (isTestEnv ? env.TEST_STORAGE_REGION : env.STORAGE_REGION)?.trim() ||
-      'us-east-1',
+      (isTestEnv
+        ? (env.TEST_STORAGE_REGION ?? env.STORAGE_REGION)?.trim()
+        : env.STORAGE_REGION?.trim()
+      ) || 'us-east-1',
     accessKeyId,
     secretAccessKey,
     keyPrefix: normalizePrefix(env.STORAGE_KEY_PREFIX),

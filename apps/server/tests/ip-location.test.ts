@@ -76,7 +76,7 @@ afterAll(async () => {
   // breaks later integration files running in the same Vitest process.
 });
 
-describe.sequential("ip location visibility", () => {
+describe("ip location visibility", () => {
   it("formats public ip2region labels to province or country", () => {
     expect(formatPublicIpLocationLabel("中国|广东省|深圳市|电信|CN")).toBe("广东省");
     expect(formatPublicIpLocationLabel("Australia|Queensland|Brisbane|0|AU")).toBe("澳大利亚");

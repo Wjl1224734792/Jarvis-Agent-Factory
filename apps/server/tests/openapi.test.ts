@@ -49,7 +49,11 @@ describe('OpenAPI docs', () => {
     expect(payload.paths[v1Path('/admin/brands')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/site-settings')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/analytics/overview')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/reports')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/reports/{kind}/{id}')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/logs/overview')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/logs/files')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/logs/entries')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/users')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/users/{id}')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/users/{id}/ban')]).toBeDefined();
@@ -61,6 +65,7 @@ describe('OpenAPI docs', () => {
     expect(payload.paths[v1Path('/admin/models/{id}')]).toBeDefined();
     expect(payload.paths[v1Path('/home/feed')]).toBeDefined();
     expect(payload.paths[v1Path('/circle/feed')]).toBeDefined();
+    expect(payload.paths[v1Path('/posts/{id}/view')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/posts/{id}')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/official-articles/{id}')]).toBeDefined();
     expect(payload.paths[v1Path('/admin/rankings')]).toBeDefined();
@@ -72,6 +77,10 @@ describe('OpenAPI docs', () => {
     expect(payload.paths[v1Path('/auth/admin/logout')]).toBeDefined();
     expect(payload.paths[v1Path('/auth/admin/password/change')]).toBeDefined();
     expect(payload.paths[v1Path('/auth/protected/ping')]).toBeDefined();
+    expect(payload.paths[v1Path('/search')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/search')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/audits')]).toBeDefined();
+    expect(payload.paths[v1Path('/admin/audits/{id}/manual-review')]).toBeDefined();
     expect(payload.components.securitySchemes.sessionCookieAuth).toBeDefined();
     expect(payload.components.securitySchemes.bearerAuth).toBeDefined();
     expect(payload.components.schemas.CurrentUserProfileResponse).toBeDefined();
@@ -112,6 +121,14 @@ describe('OpenAPI docs', () => {
     expect(payload.components.schemas.DeviceRegisterRequest).toBeDefined();
     expect(payload.components.schemas.DeviceRegisterResponse).toBeDefined();
     expect(payload.components.schemas.DeviceUnregisterRequest).toBeDefined();
+    expect(payload.components.schemas.SiteSearchResponse).toBeDefined();
+    expect(payload.components.schemas.AdminSearchResponse).toBeDefined();
+    expect(payload.components.schemas.AdminLogsOverviewResponse).toBeDefined();
+    expect(payload.components.schemas.AdminLogFilesResponse).toBeDefined();
+    expect(payload.components.schemas.AdminLogEntriesResponse).toBeDefined();
+    expect(payload.components.schemas.AdminAuditRecordListResponse).toBeDefined();
+    expect(payload.components.schemas.AdminAuditRecordResponse).toBeDefined();
+    expect(payload.components.schemas.AdminAuditManualDecisionRequest).toBeDefined();
     expect(payload.components.schemas.PaginationQuery).toBeDefined();
     expect(payload.components.schemas.PaginationMeta).toBeDefined();
     const appLoginOperation = payload.paths[v1Path('/auth/app/login')]?.post as

@@ -5,22 +5,8 @@
     {
       "idx": 0,
       "version": "7",
-      "when": 1777798806641,
-      "tag": "0000_vengeful_morg",
-      "breakpoints": true
-    },
-    {
-      "idx": 1,
-      "version": "7",
-      "when": 1777812218177,
-      "tag": "0001_hot_the_twelve",
-      "breakpoints": true
-    },
-    {
-      "idx": 2,
-      "version": "7",
-      "when": 1777852800000,
-      "tag": "0002_wandering_index",
+      "when": 1778031890294,
+      "tag": "0000_flashy_molly_hayes",
       "breakpoints": true
     }
   ]

@@ -91,8 +91,6 @@ export const API_ROUTES = {
   admin: {
     siteSettings: withApiV1Prefix("/admin/site-settings"),
     analyticsOverview: withApiV1Prefix("/admin/analytics/overview"),
-    logsSummary: withApiV1Prefix("/admin/logs/summary"),
-    logsRead: withApiV1Prefix("/admin/logs/read"),
     logsOverview: withApiV1Prefix("/admin/logs/overview"),
     logsFiles: withApiV1Prefix("/admin/logs/files"),
     logsEntries: withApiV1Prefix("/admin/logs/entries"),
@@ -208,7 +206,6 @@ export const API_ROUTES = {
     update: (id: string) => withApiV1Prefix(`/rankings/${id}`),
     detail: (id: string) => withApiV1Prefix(`/rankings/${id}`),
     adminList: withApiV1Prefix("/admin/rankings"),
-    adminDetail: (id: string) => withApiV1Prefix(`/admin/rankings/${id}`),
     adminStatus: (id: string) => withApiV1Prefix(`/admin/rankings/${id}/status`),
     adminReports: (id: string) => withApiV1Prefix(`/admin/rankings/${id}/reports`),
     adminRankingComments: withApiV1Prefix("/admin/ranking-comments"),
@@ -223,10 +220,6 @@ export const API_ROUTES = {
     comments: (id: string) => withApiV1Prefix(`/rankings/${id}/comments`),
     commentDetail: (rankingId: string, commentId: string) =>
       withApiV1Prefix(`/rankings/${rankingId}/comments/${commentId}`),
-    commentLike: (rankingId: string, commentId: string) =>
-      withApiV1Prefix(`/rankings/${rankingId}/comments/${commentId}/like`),
-    commentReport: (rankingId: string, commentId: string) =>
-      withApiV1Prefix(`/rankings/${rankingId}/comments/${commentId}/report`),
     report: (id: string) => withApiV1Prefix(`/rankings/${id}/report`),
     itemDetail: (id: string) => withApiV1Prefix(`/rating-targets/${id}`),
     adminItemStatus: (id: string) => withApiV1Prefix(`/admin/rating-targets/${id}/status`),
