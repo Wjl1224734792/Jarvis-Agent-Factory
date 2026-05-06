@@ -36,7 +36,7 @@ function mcpGlobalDest(platform) {
 
 export async function install({ platform, target, pkgRoot, platforms, force, global: isGlobal }) {
   const info = platforms[platform];
-  const srcRoot = resolve(pkgRoot, info.dir);
+  const srcRoot = resolve(pkgRoot, 'src', 'templates', 'platforms', platform);
   const destRoot = isGlobal ? globalTarget(platform) : resolve(target, info.dir);
 
   if (!existsSync(srcRoot)) {
@@ -46,8 +46,8 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
   const destExists = existsSync(destRoot);
   if (destExists && !force) {
-    const scope = isGlobal ? 'global' : info.dir;
-    const ok = await confirm(`  📁 ${scope}/ exists, merge agents/skills/commands? [y/N] `);
+    const scope = isGlobal ? 'global' : platform;
+    const ok = await confirm(`  📁 ${info.dir}/ exists, merge agents/skills/commands? [y/N] `);
     if (!ok) { console.log(`  ⏭  Skipped ${platform}`); return; }
   }
 
