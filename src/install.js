@@ -67,33 +67,38 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   // Install MCP config
   installMcp(platform, isGlobal ? null : target, force);
 
-  // Install hook configs (Claude Code hooks drive gate enforcement)
-  if (platform === 'claude') installHooks(target, isGlobal);
+  // Install hook configs (platform-native hooks drive gate enforcement)
+  installHooks(platform, target, isGlobal);
 
   const status = destExists ? 'updated' : 'installed';
   const label = isGlobal ? `~/${info.dir}` : destRoot;
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
 }
 
-function installHooks(target, isGlobal) {
-  const hookConfig = {
-    hooks: {
-      PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
-      Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
-    },
+function installHooks(platform, target, isGlobal) {
+  const hookJson = {
+    PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
+    Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
-  const settingsFile = resolve(target, '.claude', 'settings.json');
-  let existing = {};
-  if (existsSync(settingsFile)) {
-    try { existing = JSON.parse(readFileSync(settingsFile, 'utf-8')); } catch {}
+
+  if (platform === 'claude' || platform === 'opencode') {
+    // Both Claude Code and OpenCode read hooks from .claude/settings.json
+    const claudeDir = resolve(target, '.claude');
+    if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
+    const file = resolve(claudeDir, 'settings.json');
+    let existing = {};
+    if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
+    if (!existing.hooks) { existing.hooks = hookJson; writeFileSync(file, JSON.stringify(existing, null, 2)); console.log('  🔗 hooks → .claude/settings.json'); }
+    else console.log('  ~ hooks already configured');
   }
-  // Merge hooks — don't overwrite existing hooks
-  if (!existing.hooks) {
-    existing.hooks = hookConfig.hooks;
-    writeFileSync(settingsFile, JSON.stringify(existing, null, 2));
-    console.log(`  🔗 hooks configured — PostToolUse{Agent} → gate-check`);
-  } else {
-    console.log(`  ~ hooks already configured, skipping`);
+
+  if (platform === 'codex') {
+    // Codex hooks go into .codex/hooks.json (separate file, cleaner than config.toml merge)
+    const hookFile = resolve(target, '.codex', 'hooks.json');
+    if (!existsSync(hookFile)) {
+      writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
+      console.log('  🔗 hooks → .codex/hooks.json');
+    } else console.log('  ~ hooks already configured');
   }
 }
 
