@@ -498,6 +498,7 @@ planner 产出计划后，你调用实现代理时必须传递 Execution Packet 
 ### in_scope / out_of_scope: <明确范围>
 ### allowed_paths / forbidden_paths: <文件路径>
 ### dependencies: <依赖的 API/契约/schema>
+### required_skills: <技能列表，planner 按技能分配规则指定。子 Agent 启动后逐一 Skill() 加载>
 ### parallel_group: <可并行的任务 ID 列表>
 ### wait_for: <必须等待完成的任务 ID 列表>
 ### acceptance_criteria: <可验证的验收条件>
