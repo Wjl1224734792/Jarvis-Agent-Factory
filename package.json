@@ -1,6 +1,6 @@
 {
   "name": "jarvis-agent-factory",
-  "version": "2.1.5",
+  "version": "3.0.0-alpha",
   "description": "Jarvis Agent Factory CLI — 跨平台多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code / OpenCode / Codex",
   "keywords": [
     "jarvis",
@@ -41,5 +41,9 @@
   ],
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.29.0",
+    "express": "^5.2.1"
   }
 }
