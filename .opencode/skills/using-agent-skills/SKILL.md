@@ -111,6 +111,11 @@ Jarvis 按流程调度子 Agent
 | `debugging-and-error-recovery` | 系统化调试 | 任何 Agent（遇到 Bug 时） |
 | `documentation-and-adrs` | 架构决策记录 | Jarvis/planner |
 | `context-engineering` | 上下文不足时重置 | 任何 Agent |
+| `agent-browser` | 浏览器自动化 CLI 工具（80+ 命令） | browser-test-worker、browser-test/bug-fix 命令 |
+| `browser-testing` | 浏览器测试方法论（用例格式/执行流程/报告模板） | browser-test-worker（配合 agent-browser） |
+| `code-quality-gate` | Gate C1 四项检查（Lint/Type-check/Build/Deps Audit） | Jarvis（Gate C1 时） |
+| `mcp-builder` | MCP 服务器构建方法论 | 需要构建自定义 MCP 工具的 Agent |
+| `writing-skills` | 技能文件编写与验证 | 创建/编辑技能文件的 Agent |
 
 ---
 
@@ -181,5 +186,8 @@ Skill(skill="<技能名>")
 | 19 | `test-driven-development` | 测试 | Red→Green→Refactor 方法论 |
 | 20 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
 | 21 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |
-| 19 | `using-agent-skills` | 元技能 | 技能系统使用指南 |
-| 20 | `verification-before-completion` | 质量 | 交付前 5 层验证清单 |
+| 22 | `agent-browser` | 浏览器 | 浏览器自动化 CLI（80+ 命令、快照+ref） |
+| 23 | `browser-testing` | 浏览器 | 浏览器测试方法论（用例/执行/报告/修复闭环） |
+| 24 | `code-quality-gate` | 质量 | Gate C1 四项检查（Lint/Type-check/Build/Deps） |
+| 25 | `mcp-builder` | 基础设施 | MCP 服务器构建方法论 |
+| 26 | `writing-skills` | 元技能 | 技能文件编写与验证 |

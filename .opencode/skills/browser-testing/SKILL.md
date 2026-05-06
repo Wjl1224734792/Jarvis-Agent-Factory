@@ -150,7 +150,7 @@ agent-browser screenshot desktop.png
 ## 修复闭环
 
 1. 全部通过 → ✅ 闭环完成
-2. 存在失败 → Browser Test Findings → `/review-fix` 修复 → 仅重跑失败用例 → 更新报告
+2. 存在失败 → Browser Test Findings → `review-fix-optimize` 修复 → 仅重跑失败用例 → 更新报告
 3. 最多 2 轮，第 3 轮仍失败标记 BLOCKED
 
 ## 红线
