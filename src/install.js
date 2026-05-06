@@ -1,45 +1,44 @@
-import { resolve, join, relative, dirname } from 'node:path';
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync } from 'node:fs';
+import { resolve, join } from 'node:path';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync } from 'node:fs';
+import { createInterface } from 'node:readline';
+
+const SKIP_FILES = new Set([
+  'settings.local.json',
+  'node_modules',
+  '.git',
+]);
 
 /**
  * Copy a platform config directory from the package to the target.
- * Strategy: directory-level overwrite — new files added, existing files overwritten.
- * Skips settings.local.json and other sensitive files that shouldn't be distributed.
+ * Strategy: new files added, existing files overwritten (after confirmation).
+ * Skips sensitive files.
  */
-export function install({ platform, target, pkgRoot, platforms }) {
+export async function install({ platform, target, pkgRoot, platforms, force }) {
   const info = platforms[platform];
   const srcDir = resolve(pkgRoot, info.dir);
   const destDir = resolve(target, info.dir);
 
   if (!existsSync(srcDir)) {
-    console.error(`  ⚠ Source not found: ${srcDir}`);
+    console.error(`  ⚠  Source not found: ${srcDir}`);
     return;
   }
 
-  const stats = copyDir(srcDir, destDir, platform);
-  console.log(`  ${platform.padEnd(10)} → ${destDir}  (${stats.files} files, ${stats.dirs} dirs${stats.skipped > 0 ? `, ${stats.skipped} skipped` : ''})`);
-}
-
-/**
- * Copy CLAUDE.md and AGENTS.md to target if they don't exist.
- */
-export function installRootFiles({ target, pkgRoot }) {
-  const files = ['CLAUDE.md', 'AGENTS.md'];
-  for (const f of files) {
-    const src = resolve(pkgRoot, f);
-    const dest = resolve(target, f);
-    if (existsSync(src)) {
-      if (!existsSync(dest)) {
-        copyFileSync(src, dest);
-        console.log(`  root       → ${dest} (new)`);
-      } else {
-        console.log(`  root       → ${dest} (exists, skipped — use --force to overwrite)`);
-      }
+  // Check if target already has this platform
+  const destExists = existsSync(destDir);
+  if (destExists && !force) {
+    const ok = await confirm(`  📁 ${info.dir}/ already exists. Overwrite? [y/N] `);
+    if (!ok) {
+      console.log(`  ⏭  Skipped ${platform} (directory exists)`);
+      return;
     }
   }
+
+  const stats = copyDir(srcDir, destDir);
+  const status = destExists ? 'updated' : 'installed';
+  console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${destDir}  (${stats.files} files, ${stats.dirs} dirs${stats.skipped > 0 ? `, ${stats.skipped} skipped` : ''})`);
 }
 
-function copyDir(src, dest, label) {
+function copyDir(src, dest) {
   let files = 0;
   let dirs = 0;
   let skipped = 0;
@@ -49,19 +48,20 @@ function copyDir(src, dest, label) {
   }
 
   for (const entry of readdirSync(src)) {
+    if (SKIP_FILES.has(entry)) continue;
+    // Skip hidden files except platform dirs and .mcp.json
+    if (entry.startsWith('.')) {
+      if (entry !== '.mcp.json' &&
+          !entry.startsWith('.claude') &&
+          !entry.startsWith('.opencode') &&
+          !entry.startsWith('.codex')) continue;
+    }
+
     const srcPath = join(src, entry);
     const destPath = join(dest, entry);
 
-    // Skip package-internal and sensitive files
-    if (entry === 'node_modules' || entry === '.git') continue;
-    if (entry === 'settings.local.json') continue;
-    if (entry.startsWith('.') && entry !== '.claude' && entry !== '.opencode' && entry !== '.codex' && entry !== '.mcp.json') {
-      // Keep .mcp.json and platform dirs, skip other dotfiles
-      if (!entry.startsWith('.claude') && !entry.startsWith('.opencode') && !entry.startsWith('.codex')) continue;
-    }
-
     if (statSync(srcPath).isDirectory()) {
-      const d = copyDir(srcPath, destPath, label);
+      const d = copyDir(srcPath, destPath);
       files += d.files;
       dirs += d.dirs + 1;
       skipped += d.skipped;
@@ -72,4 +72,14 @@ function copyDir(src, dest, label) {
   }
 
   return { files, dirs, skipped };
+}
+
+async function confirm(question) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(resolve => {
+    rl.question(question, answer => {
+      rl.close();
+      resolve(answer.toLowerCase() === 'y' || answer.toLowerCase() === 'yes');
+    });
+  });
 }
