@@ -7,7 +7,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
-import { getAgentsByPlatform, getPlatforms, getPlatformModels } from './agent-registry.js';
+import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupWebRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
@@ -237,10 +237,11 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
         return resp({ ok: true, agent_id, model, effort: effort || 'high' });
       }
       const cfg = getAgentConfig(db);
-      return resp({ agents: AGENT_LIST.map(a => {
+      const agents = getAgentList(true);
+      return resp({ agents: agents.map(a => {
         const c = cfg[a.id];
         return { id: a.id, name: a.name, role: a.role, platform: a.platform, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
-      }), available_models: [...new Set(AGENT_LIST.map(a=>a.defaultModel).filter(Boolean))], available_efforts: EFFORTS });
+      }), available_models: [...new Set(agents.map(a=>a.defaultModel).filter(Boolean))], available_efforts: EFFORTS });
     });
 
   server.tool('platform_info',
@@ -248,10 +249,10 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     { platform: z.string().optional().describe('指定平台名称（claude/opencode/codex），不传则返回全部平台信息') },
     async ({ platform }) => {
       const platforms = getPlatforms();
-      const models = getPlatformModels();
+      const models = getPlatformModels(true);
       if (platform) {
         if (!platforms.includes(platform)) return resp({ error: `Unknown platform: ${platform}. Available: ${platforms.join(', ')}` });
-        const agents = getAgentsByPlatform(platform);
+        const agents = getAgentsByPlatform(platform, true);
         return resp({
           platform,
           agent_count: agents.length,
@@ -261,10 +262,10 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
       }
       const summary = {};
       for (const p of platforms) {
-        const agents = getAgentsByPlatform(p);
+        const agents = getAgentsByPlatform(p, true);
         summary[p] = { agent_count: agents.length, available_models: models[p] || [] };
       }
-      return resp({ platforms: summary, total_agents: AGENT_LIST.length });
+      return resp({ platforms: summary, total_agents: getAgentList(true).length });
     });
 
   // ---- Transport + Web ----

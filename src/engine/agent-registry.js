@@ -172,8 +172,9 @@ let _agentList = null;
 /** @type {Record<string, {base:string, type:'md'|'toml'}>} */
 let _agentFiles = null;
 
-export function getAgentList() {
-  if (!_agentList) {
+/** @param {boolean} [force] — 强制重新扫描模板目录 */
+export function getAgentList(force) {
+  if (force || !_agentList) {
     _agentList = [];
     _agentFiles = {};
     for (const [key, config] of Object.entries(PLATFORM_CONFIG)) {
@@ -185,14 +186,15 @@ export function getAgentList() {
   return _agentList;
 }
 
-export function getAgentFiles() {
-  if (!_agentFiles) getAgentList(); // 触发扫描
+/** @param {boolean} [force] — 强制重新扫描 */
+export function getAgentFiles(force) {
+  if (force || !_agentFiles) getAgentList(force);
   return _agentFiles;
 }
 
-/** 按平台筛选 agent 列表 */
-export function getAgentsByPlatform(platform) {
-  return getAgentList().filter(a => a.platform === platform);
+/** 按平台筛选 agent 列表，force 强制重新扫描 */
+export function getAgentsByPlatform(platform, force) {
+  return getAgentList(force).filter(a => a.platform === platform);
 }
 
 /** 获取所有平台名称 */
@@ -200,9 +202,9 @@ export function getPlatforms() {
   return Object.keys(PLATFORM_CONFIG);
 }
 
-/** 按平台分组的可用模型 */
-export function getPlatformModels() {
-  const agents = getAgentList();
+/** 按平台分组的可用模型，force 强制重新扫描 */
+export function getPlatformModels(force) {
+  const agents = getAgentList(force);
   const models = {};
   for (const a of agents) {
     if (!models[a.platform]) models[a.platform] = new Set();

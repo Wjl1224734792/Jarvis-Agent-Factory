@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
-import { getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
+import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 /** 按平台分组可用模型 */
@@ -80,7 +80,10 @@ export function setupWebRoutes(app, db, root, dashboard) {
     const platform = req.query.platform;
     const category = req.query.category;
     const search = (req.query.search || '').toLowerCase();
-    let list = AGENT_LIST.map(a => {
+    // 每次请求动态扫描模板目录，不依赖缓存
+    const agentList = getAgentList(true);
+    const platformModels = getPlatformModels(true);
+    let list = agentList.map(a => {
       const c = cfg[a.id];
       return { ...a, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
     });
@@ -89,12 +92,12 @@ export function setupWebRoutes(app, db, root, dashboard) {
     if (search) list = list.filter(a => a.name.toLowerCase().includes(search) || a.id.toLowerCase().includes(search) || a.role.toLowerCase().includes(search));
     res.json({
       agents: list,
-      available_models: AVAILABLE_MODELS,
+      available_models: [...AVAILABLE_MODELS],
       available_efforts: EFFORTS,
-      platforms: [...new Set(AGENT_LIST.map(a=>a.platform))],
-      platform_models: PLATFORM_MODELS,
+      platforms: [...new Set(agentList.map(a=>a.platform))],
+      platform_models: platformModels,
       categories: getCategories(),
-      total_count: AGENT_LIST.length,
+      total_count: agentList.length,
     });
   });
 
@@ -103,9 +106,10 @@ export function setupWebRoutes(app, db, root, dashboard) {
     if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
     if (effort && !EFFORTS.includes(effort)) return res.status(400).json({ error: `Unknown effort. Valid: ${EFFORTS.join(', ')}` });
 
-    const agent = AGENT_LIST.find(a => a.id === agent_id);
+    const agent = getAgentList().find(a => a.id === agent_id);
     if (agent) {
-      const validModels = PLATFORM_MODELS[agent.platform] || [];
+      const pModels = getPlatformModels();
+      const validModels = pModels[agent.platform] || [];
       if (validModels.length > 0 && !validModels.includes(model)) {
         console.log(`  ⚠️  ${agent_id}: 自定义模型 "${model}"（不在 ${agent.platform} 预设列表中）`);
       }
@@ -119,13 +123,13 @@ export function setupWebRoutes(app, db, root, dashboard) {
   // ---- 平台信息 ----
   app.get('/api/platforms', (_req, res) => {
     const platforms = getPlatforms();
-    const models = getPlatformModels();
+    const models = getPlatformModels(true);
     const summary = {};
     for (const p of platforms) {
-      const agents = getAgentsByPlatform(p);
+      const agents = getAgentsByPlatform(p, true);
       summary[p] = { agent_count: agents.length, available_models: models[p] || [], template_dir: `src/templates/platforms/${p}/` };
     }
-    res.json({ platforms: summary, supported: platforms, total_agents: AGENT_LIST.length });
+    res.json({ platforms: summary, supported: platforms, total_agents: getAgentList(true).length });
   });
 
   // ---- SSE ----
