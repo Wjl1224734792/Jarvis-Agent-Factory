@@ -12,7 +12,12 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
 
-2. 确认进入**审查修复优化闭环模式**。完整链路不可跳过、不可倒置（不可绕过）。
+2. 注册引擎会话（硬约束——引擎确保各阶段操作权限不可绕过）：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - 每个阶段开始调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 允许的操作
+   - 关键操作前调用 `gate_check`：审查→`review`，修复→`fix`，Lint→`lint`，构建→`build`
+
+3. 确认进入**审查修复优化闭环模式**。完整链路不可跳过、不可倒置（不可绕过）。
 
    ### **阶段一：初审**（不可绕过）
    - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
@@ -35,6 +40,6 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项
    - 可调用 `change-review-expert` Agent
 
-3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
+4. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 
-4. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代；不用硬等待（sleep/wait）替代内容轮询。
+5. **红线**：不跳过初审直接修复；不缺少验证证据就宣称完成；涉及前端页面 Bug 时必须用浏览器复现和验证，不可仅凭代码审查替代；不用硬等待（sleep/wait）替代内容轮询。

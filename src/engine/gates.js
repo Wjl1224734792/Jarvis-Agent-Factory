@@ -50,8 +50,43 @@ export const GATE_CHECKS = {
   'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},'Gate B':{check:'每个TASK-XXX映射至少1个REQ-XXX'},
   'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
   'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},
-  'Gate D':{check:'review-qa评审通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
+  'Gate D':{check:'领域审查+安全审计+性能审计通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
 };
+
+/**
+ * 每个 Gate 允许的操作类型（硬约束）。
+ * 引擎根据此表在 gate_check 工具中阻断非法操作。
+ *
+ * 操作类型：
+ *   read       — 读取文件/探索代码
+ *   write_doc  — 编写文档（需求/任务/计划/报告）
+ *   write_code — 编写/修改业务代码
+ *   sweep_arch — 架构评审（architect agent）
+ *   spawn_impl — 生成实现 Agent（dev/ui/state/api/logic/data expert）
+ *   spawn_test — 生成测试 Agent
+ *   lint       — 代码检查
+ *   build      — 构建
+ *   preview    — 预览/截图
+ *   review     — 代码审查
+ *   audit      — 安全/性能审计
+ *   deploy     — 发布/部署
+ *   fix        — 修复（质量/测试/审查反馈驱动）
+ */
+export const GATE_OPERATIONS = {
+  'Gate A':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate B':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate C':    { allow: ['read','write_doc','sweep_arch'],               deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate C1':   { allow: ['read','lint','build','fix'],                   deny: ['spawn_impl','spawn_test','deploy','write_code'] },
+  'Gate C1.5': { allow: ['read','preview','fix'],                        deny: ['spawn_impl','spawn_test','build','deploy','write_code'] },
+  'Gate C2':   { allow: ['read','spawn_test','fix'],                     deny: ['spawn_impl','deploy','write_code'] },
+  'Gate D':    { allow: ['read','review','audit','fix'],                 deny: ['spawn_impl','spawn_test','build','deploy','write_code'] },
+  'Gate E':    { allow: ['read','deploy','write_doc'],                   deny: ['write_code','spawn_impl','spawn_test','lint','build'] },
+};
+
+/** 获取当前 Gate 允许的操作列表 */
+export function getGateOperations(gate) {
+  return GATE_OPERATIONS[gate] || { allow: [], deny: [] };
+}
 
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */
 export const AGENT_LIST = getAgentList();

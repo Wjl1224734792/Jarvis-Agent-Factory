@@ -12,9 +12,12 @@ effort: max
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
 
-2. 注册引擎会话（通过 MCP 工具）：
+2. 注册引擎会话（硬约束——引擎驱动全流程）：
    - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
-   - 引擎驱动：每个 Gate 完成后调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后调用 `mcp__jarvis-engine__advance_gate({ gate: "<下一Gate>" })` 推进
+   - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文（允许的操作、可生成的 Agent、下一步指引）
+   - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 或 `"spawn_test"` `"review"` 等验证操作被允许
+   - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后调用 `mcp__jarvis-engine__advance_gate({ gate: "<下一Gate>" })` 推进
+   - **不确定下一步时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取流程指引
 
 3. 判断是否适合流水线：
    - ❌ 不适合：纯信息提问、单 agent 可完成的简单修改、纯文档翻译
@@ -55,6 +58,7 @@ effort: max
 3. 写需求文档到 `docs/requirements/YYYY-MM-DD-<topic>.md`，每条需求标注 `REQ-XXX`
 
 Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
+**引擎验证**：spawn 前 `gate_check({ operation: "read" })` 确认允许读取探索
 ```
 ├── code-explore-expert × N（各自探索不同模块/目录）
 │   ├── code-explore-expert（前端 src/ 目录）
@@ -75,6 +79,7 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 
 **流程**：
 1. `spawn task-design` Agent，传入需求文档路径
+   **引擎验证**：spawn 前 `gate_check({ operation: "write_doc" })` 确认 Gate B 允许任务分解
 2. 产出：`docs/tasks/YYYY-MM-DD-<topic>-tasks.md`
 3. 验证：所有 TASK 有 REQ 映射、无水平切片、粒度合理
 
@@ -124,6 +129,8 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 
 ### 步骤 3：spawn Agent
 同一 Batch 的任务在 **一条消息中同时发出**（不可串行逐个等待）。
+
+**引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过。
 
 每个 Agent() 调用携带：
 - `task_id` 和 `requirement_ids`
@@ -212,6 +219,7 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 **流程**：
 
 ``` [可并行 - 步骤 1]
+**引擎验证**：spawn 前 `gate_check({ operation: "spawn_test" })` 确认 Gate C2 允许测试
 ├── spawn backend-test-expert（单元+集成测试）
 ├── spawn frontend-test-expert（单元+组件测试）
 ├── spawn browser-test-expert（浏览器交互测试，如有前端变更）
@@ -244,6 +252,7 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 **目标**：代码审查通过，REQ 追踪矩阵完整
 
 **步骤 1 — 领域审查（4 个专家并行）**：
+**引擎验证**：spawn 前 `gate_check({ operation: "review" })` 确认 Gate D 允许审查
 ```
 ├── spawn frontend-review-expert（前端代码审查：组件/样式/状态/性能/可访问性）
 ├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
@@ -295,6 +304,7 @@ qa-review-expert 综合报告后，按严重度处理：
 3. 最多 2 轮修复；仍不通过 → 标记 `ABORT`，保留所有产物，向用户报告阻塞原因
 
 上线后：加载 `Skill("finishing-a-development-branch")` 归档
+**引擎验证**：部署前 `gate_check({ operation: "deploy" })` 确认 Gate E 允许发布
 
 ---
 

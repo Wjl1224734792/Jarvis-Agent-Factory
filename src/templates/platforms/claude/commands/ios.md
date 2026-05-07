@@ -10,21 +10,25 @@ argument-hint: [iOS 需求描述]
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
-   Gate C1 时：`Skill("code-quality-gate")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。
-   Gate E 时：`Skill("shipping-and-launch")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。 `Skill("git-workflow-and-versioning")` `Skill("finishing-a-development-branch")`
 
-2. 判断需求是否适合流水线。✅ 适合：SwiftUI 页面、ObservableObject 状态管理、SwiftData/Core Data、性能优化、App Store 审核问题修复。
+2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
+   - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
+   - **Gate C1 时**加载 `Skill("code-quality-gate")`，Lint/Type-check/Build 前调用 `gate_check`
+   - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
+   - **Gate E 时**加载 `Skill("shipping-and-launch")`、`Skill("git-workflow-and-versioning")`、`Skill("finishing-a-development-branch")`
 
-3. 你是 iOS 开发编排者。职责：
+3. 判断需求是否适合流水线。✅ 适合：SwiftUI 页面、ObservableObject 状态管理、SwiftData/Core Data、性能优化、App Store 审核问题修复。
+
+4. 你是 iOS 开发编排者。职责：
    - 澄清需求——至少确认 1 个关键假设（最低 iOS 版本、Swift 版本）
    - 模糊时加载 `idea-refine`；生成 `docs/requirements/` 带 `REQ-XXX`
    - Gate A→B→C→C1→C2→D→E 全链路，不可绕过
    - 通过 Gate C 后按 `parallel_batches` 批量 spawn iOS Agent
    - 代码注释语言：中文项目用中文注释
 
-4. Plan Patch 机制：共享组件/模块/导航图变更必须提交 plan patch。
+5. Plan Patch 机制：共享组件/模块/导航图变更必须提交 plan patch。
 
 ---
 

@@ -8,16 +8,20 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 
 立即执行以下步骤：
 
-## 步骤 0：加载技能
+## 步骤 0：加载技能 + 注册引擎
 ```
 Skill("behavioral-guidelines")
 Skill("agent-browser")
 Skill("browser-testing")
+```
 
-**引擎驱动**：引擎运行时，修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate，`mcp__jarvis-engine__advance_gate` 推进状态机。
+**引擎会话注册**（硬约束——引擎确保修复操作按 Gate 权限执行）：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- 修复代码前调用 `mcp__jarvis-engine__gate_check({ operation: "fix" })`
+- 构建/Lint 前调用 `mcp__jarvis-engine__gate_check({ operation: "lint" })` 和 `mcp__jarvis-engine__gate_check({ operation: "build" })`
+- 修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate 条件
 
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
-```
 
 ## 步骤 1：收集 Bug 信息（不可绕过）
 向用户确认（如未提供）：

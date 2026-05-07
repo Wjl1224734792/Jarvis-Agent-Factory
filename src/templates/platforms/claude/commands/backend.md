@@ -70,7 +70,7 @@ Batch 5: [security-review-expert]                             ← 安全审计
 
 | Gate | 可并行操作 |
 |------|-----------|
-| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索）+ `docs-research-expert` × N（多库并行搜索） |
+| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `docs-research-expert` × N（多库并行搜索） |
 | Gate B→C 之间 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
 | Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |
@@ -81,15 +81,16 @@ Batch 5: [security-review-expert]                             ← 安全审计
 
 1. Read planner 产出 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 2. 提取 `parallel_batches`
-3. 每个任务 → `Agent()` 调用，选择后端代理路由表中的 `subagent_type`
-4. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
-5. 等待整批完成，检查 plan patch / contract change request
+3. **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过
+4. 每个任务 → `Agent()` 调用，选择后端代理路由表中的 `subagent_type`
+5. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
+6. 等待整批完成，检查 plan patch / contract change request
 
 ### Gate C2：测试
 
 ```
 全部实现 Batch 完成
-  → [可并行] spawn backend-test-expert + api-contract-expert（模式 A：契约一致性验证）
+  → [可并行] spawn backend-test-expert + api-contract-expert（模式 A：契约一致性验证，spawn 前 gate_check("spawn_test")）
   → 全部通过后 spawn perf-test-expert（负载/压力/基准）
   → 汇总到 docs/testing/ → Gate C2 通过
 ```
@@ -112,7 +113,7 @@ Batch 5: [security-review-expert]                             ← 安全审计
 ### Gate D：评审
 
 ```
-[可并行] 3 个领域审查专家同时启动：
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
 ├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
 ├── spawn security-review-expert（安全审计：OWASP/CVE/SAST/密钥检测）
 └── spawn perf-review-expert（性能审计：查询效率/运行时/资源使用）
