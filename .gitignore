@@ -6,3 +6,6 @@ _runner.py
 node_modules/
 package-lock.json
 .jarvis/
+.claude/
+.claude/settings.json
+.mcp.json
