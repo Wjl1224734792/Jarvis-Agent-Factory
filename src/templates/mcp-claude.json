@@ -4,7 +4,7 @@
       "command": "npx",
       "args": ["@playwright/mcp@latest"]
     },
-    "jarvis": {
+    "jarvis-engine": {
       "url": "http://localhost:3456/mcp"
     }
   }
