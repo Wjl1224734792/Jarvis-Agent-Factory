@@ -4,13 +4,11 @@
 <meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Jarvis Engine · 流水线</title>
 <style>
-:root{--pink:#FF7B9C;--purple:#B4A7FF;--mint:#7DE2D1;--yellow:#FFE17B;--bg:#FAF7F5;--card:#FFFFFF;--border:#F0E8E0;--text:#2D2B3D;--muted:#8B869B;--accent:#FF5C8A;--green:#4ECB71;--red:#FF5C5C}
+:root{--pink:#FF7B9C;--purple:#B4A7FF;--mint:#7DE2D1;--yellow:#FFE17B;--bg:#FAF7F5;--card:#FFFFFF;--border:#F0E8E0;--text:#2D2B3D;--muted:#8B869B;--accent:#FF5C8A;--green:#4ECB71;--red:#FF5C5C;--warn:#F0A000}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-/* Sakura floating petals */
 body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;animation:sakura1 12s linear infinite;opacity:.3;pointer-events:none;z-index:0}
 @keyframes sakura1{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(80px,25vh) rotate(90deg)}50%{transform:translate(160px,50vh) rotate(180deg)}75%{transform:translate(80px,75vh) rotate(270deg)}100%{transform:translate(0,100vh) rotate(360deg)}}
-/* Sidebar */
 .sidebar{width:250px;min-width:250px;background:linear-gradient(180deg,#FFF5F8 0%,#F8F5FF 50%,#F0FBFF 100%);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
 .sidebar .logo{padding:0 20px 20px;border-bottom:2px solid var(--pink);margin-bottom:16px}
 .sidebar .logo h1{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
@@ -19,18 +17,27 @@ body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;anim
 .sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;margin:2px 0;transition:all .2s}
 .sidebar nav a:hover{background:rgba(255,123,156,.08);color:var(--accent)}
 .sidebar nav a.active{background:linear-gradient(135deg,rgba(255,123,156,.12),rgba(180,167,255,.12));color:var(--accent);border-left:3px solid var(--accent)}
-.sidebar nav a .badge{font-size:11px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;margin-left:auto}
 .sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
 .sidebar .help-section h3{font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
 .sidebar .help-section .tip{font-size:11px;color:var(--muted);line-height:1.6;margin:4px 0}
 .sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
 .sidebar .help-btn{display:block;width:100%;padding:10px;margin-top:12px;border-radius:12px;border:2px solid var(--accent);background:white;color:var(--accent);cursor:pointer;font-weight:600;font-size:13px;transition:all .2s}
 .sidebar .help-btn:hover{background:var(--accent);color:#fff}
-
-/* Main content */
 .main{flex:1;padding:32px 40px;overflow-y:auto}
 .main h2{font-size:24px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.main .subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+.main .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+/* Sessions strip */
+.sessions-strip{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
+.sessions-strip h3{font-size:13px;color:var(--muted);margin-right:4px}
+.session-chip{padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:white;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:6px}
+.session-chip:hover{border-color:var(--accent)}
+.session-chip.active{border-color:var(--accent);background:rgba(255,123,156,.06);color:var(--accent)}
+.session-chip .s-platform{font-size:14px}
+.session-chip .s-gate{font-size:10px;color:var(--muted);background:rgba(0,0,0,.04);padding:1px 6px;border-radius:6px}
+.session-chip .s-online{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
+.session-chip .s-offline{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.no-sessions{padding:8px 0;color:var(--muted);font-size:12px}
 
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
@@ -70,7 +77,6 @@ body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;anim
 .btn-check{background:white;border:2px solid var(--purple);color:var(--purple)}
 .btn-check:hover{background:rgba(180,167,255,.08)}
 
-/* Help modal */
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
 .modal{background:white;border-radius:24px;padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.1)}
@@ -82,7 +88,6 @@ body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;anim
 .modal .step code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px;font-size:11px}
 .modal .close-btn{width:100%;padding:12px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:20px}
 
-/* Toast */
 .toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:14px 24px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 8px 30px rgba(0,0,0,.12)}
 .toast.success{border-left:4px solid var(--green);color:var(--green)}
 .toast.error{border-left:4px solid var(--red);color:var(--red)}
@@ -106,15 +111,22 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   </nav>
   <div class=help-section>
     <h3>操作提示</h3>
+    <div class=tip>会话隔离 — 每窗口独立流水线</div>
+    <div class=tip>点击会话标签切换查看</div>
     <div class=tip>Gate C2 含 API 契约验证</div>
-    <div class=tip>钩子自动检查 Agent spawn</div>
     <button class=help-btn onclick=showHelp()>📖 完整指南</button>
   </div>
 </aside>
 
 <main class=main>
   <h2>流水线看板</h2>
-  <p class=subtitle id=pipelineProject>项目流水线状态 · 实时刷新</p>
+  <p class=subtitle id=pipelineProject>项目流水线状态 · 会话隔离 · 实时刷新</p>
+
+  <!-- Session selector strip -->
+  <div class=sessions-strip>
+    <h3>📡 会话:</h3>
+    <div id=sessionsList><span class=no-sessions>⏳ 等待连接...</span></div>
+  </div>
 
   <div class=stats>
     <div class=stat><div class=num id=statProgress>0%</div><div class=label>完成进度</div></div>
@@ -129,11 +141,11 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   </div>
 
   <div class=gates-section>
-    <h3>🚪 Gate 状态</h3>
+    <h3>🚪 Gate 状态 <span id=gateSessionLabel style=font-weight:400;font-size:11px;color:var(--muted)></span></h3>
     <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)">⏳ 加载中...</div></div>
   </div>
 
-  <footer>Jarvis Engine · MCP :3456 · <a href=/health style=color:var(--purple)>健康检查</a></footer>
+  <footer>Jarvis Engine · MCP :3456 · <a href=/health style=color:var(--purple)>健康检查</a> · 会话隔离模式</footer>
 </main>
 
 <div class=modal-overlay id=helpModal>
@@ -141,11 +153,11 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
     <h2>📖 操作指南</h2>
     <h3>Jarvis Engine 编排引擎使用步骤</h3>
     <div class=step><div class=num>1</div><div class=text><b>启动引擎</b><br><code>jarvis engine start --dashboard</code></div></div>
-    <div class=step><div class=num>2</div><div class=text><b>初始化流水线</b><br>在平台里说 /jarvis 开始开发，引擎自动接管</div></div>
+    <div class=step><div class=num>2</div><div class=text><b>连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰</div></div>
     <div class=step><div class=num>3</div><div class=text><b>完成 Gate 产出</b><br>每个 Gate 完成对应文档/测试/报告</div></div>
     <div class=step><div class=num>4</div><div class=text><b>点击 Gate 行</b><br>引擎验证条件是否满足</div></div>
     <div class=step><div class=num>5</div><div class=text><b>点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div></div>
-    <div class=step><div class=num>6</div><div class=text><b>钩子自动检查</b><br>每次 Agent 执行后自动验证 Gate</div></div>
+    <div class=step><div class=num>6</div><div class=text><b>切换会话标签</b><br>顶部点击不同会话查看各自流水线状态</div></div>
     <button class=close-btn onclick=closeHelp()>知道啦 ✨</button>
   </div>
 </div>
@@ -153,39 +165,131 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
 
 <script>
 const GATES=['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
-const mcp=(name,args)=>fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args||{}}})}).then(r=>r.json()).then(m=>m.error?null:JSON.parse(m.result.content[0].text));
+const PLATFORM_ICONS = {claude:'🔵', opencode:'🟣', codex:'🟢', other:'⚪', unknown:'⚪'};
+let selectedSession = null;
+let allSessions = [];
+
+async function fetchAPI(path) {
+  try { const r = await fetch(path); return await r.json(); }
+  catch { return null; }
+}
 
 async function refresh(){
-  const h=await fetch('/health').then(r=>r.json());
-  document.getElementById('verNum').textContent='v'+h.version;
-  const d=await mcp('pipeline_status');if(!d)return;
-  document.getElementById('pipelineProject').textContent=d.project||'项目流水线状态 · 实时刷新';
-  const completed=d.completed.length;const pct=Math.round(completed/GATES.length*100);
-  document.getElementById('statProgress').textContent=pct+'%';
-  document.getElementById('statGates').textContent=completed+'/'+GATES.length;
-  document.getElementById('statCurrent').textContent=d.current_gate;
-  document.getElementById('progressFill').style.width=pct+'%';
-  document.getElementById('progressText').textContent=pct+'% 完成';
-  document.getElementById('progressGate').textContent=d.current_gate;
-  let total=0;
-  const html=d.gates.map(g=>{
-    total+=g.artifacts?.length||0;
-    const icon=g.passed?'pass':(g.gate===d.current_gate?'curr':'wait');
-    const cp=g.checkpoints?.[0];
-    return`<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="check('${g.gate}')">
+  const h = await fetchAPI('/health');
+  if (h) document.getElementById('verNum').textContent='v'+h.version;
+
+  // 1. Load sessions
+  const sd = await fetchAPI('/api/sessions');
+  if (sd) {
+    allSessions = sd.sessions || [];
+    renderSessions();
+    // Auto-select first session if none selected
+    if (!selectedSession && allSessions.length > 0) selectedSession = allSessions[0].id;
+  }
+
+  // 2. Load pipeline for selected session (or all sessions merged)
+  const pd = await fetchAPI('/api/pipeline');
+  if (!pd) return;
+
+  // Find the selected session's pipeline data
+  let sessionData = null;
+  if (selectedSession && pd.sessions) {
+    sessionData = pd.sessions.find(s => s.session_id === selectedSession);
+  }
+  // Fallback to first session
+  if (!sessionData && pd.sessions && pd.sessions.length > 0) {
+    sessionData = pd.sessions[0];
+    selectedSession = sessionData.session_id;
+  }
+
+  document.getElementById('pipelineProject').textContent =
+    `会话隔离模式 · ${allSessions.length || 0} 个活跃会话 · 实时刷新`;
+
+  if (!sessionData) {
+    document.getElementById('gatesList').innerHTML =
+      '<div style=text-align:center;padding:40px;color:var(--muted)">📡 等待会话连接...<br><small>在 Claude Code/OpenCode/Codex 中启动编排即可</small></div>';
+    return;
+  }
+
+  const d = sessionData;
+  document.getElementById('gateSessionLabel').textContent = ' · 会话: ' + (selectedSession||'').slice(0,8)+'...';
+  const completed = d.completed.length;
+  const pct = Math.round(completed / GATES.length * 100);
+  document.getElementById('statProgress').textContent = pct+'%';
+  document.getElementById('statGates').textContent = completed+'/'+GATES.length;
+  document.getElementById('statCurrent').textContent = d.current_gate;
+  document.getElementById('progressFill').style.width = pct+'%';
+  document.getElementById('progressText').textContent = pct+'% 完成';
+  document.getElementById('progressGate').textContent = d.current_gate;
+  let total = 0;
+  const html = d.gates.map(g => {
+    total += g.artifacts?.length || 0;
+    const icon = g.passed ? 'pass' : (g.gate === d.current_gate ? 'curr' : 'wait');
+    const cp = g.checkpoints?.[0];
+    return `<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="check('${g.gate}')">
       <div class=gate-left><div class="gate-dot ${icon}"></div><div><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
       <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-advance" onclick="event.stopPropagation();advance('${g.gate}')">推进 →</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
   }).join('');
-  document.getElementById('gatesList').innerHTML=html;
-  document.getElementById('statArtifacts').textContent=total;
+  document.getElementById('gatesList').innerHTML = html;
+  document.getElementById('statArtifacts').textContent = total;
 }
-async function check(gate){const d=await mcp('gate_enforce',{gate});if(!d)return;toast(d.allowed?`✅ ${gate} 条件满足！`:`🚫 ${gate} 被阻止 — ${d.blocked_reasons?.join(';')||d.action_required}`,d.allowed)}
-async function advance(gate){const d=await mcp('advance_gate',{gate});if(!d)return;toast(d.allowed?`🚀 ${d.message||('已推进到 '+d.current_gate)}`:d.error,!d.allowed);if(d.allowed)refresh()}
-function toast(msg,err){const t=document.createElement('div');t.className='toast '+(err===false?'error':'success');t.textContent=msg;document.getElementById('toastContainer').appendChild(t);setTimeout(()=>t.remove(),3200)}
+
+function renderSessions() {
+  if (allSessions.length === 0) {
+    document.getElementById('sessionsList').innerHTML = '<span class=no-sessions>⏳ 等待会话连接...</span>';
+    return;
+  }
+  document.getElementById('sessionsList').innerHTML = allSessions.map(s => {
+    const icon = PLATFORM_ICONS[s.platform] || '⚪';
+    const active = s.id === selectedSession ? ' active' : '';
+    const online = (Date.now() - s.heartbeat) < 120000 ? 's-online' : 's-offline';
+    const shortId = (s.id||'').slice(0,10);
+    return `<div class="session-chip${active}" onclick="selectSession('${s.id}')" title="${s.id}">
+      <span class="${online}"></span>
+      <span class=s-platform>${icon}</span>
+      <span>${shortId}...</span>
+      <span class=s-gate>${s.gate||'?'}</span>
+    </div>`;
+  }).join('');
+}
+
+function selectSession(sid) {
+  selectedSession = sid;
+  renderSessions();
+  refresh();
+}
+
+async function check(gate) {
+  const sid = selectedSession ? '&session_id='+selectedSession : '';
+  const d = await fetchAPI('/api/gate/'+gate.replace(/ /g,'_')+'/enforce'+sid);
+  if (!d) return;
+  toast(d.allowed ? `✅ ${gate} 条件满足！` : `🚫 ${gate} 被阻止 — ${d.blocked_reasons?.join(';')||d.action_required}`, d.allowed);
+}
+
+async function advance(gate) {
+  const resp = await fetch('/api/gate/advance', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({gate, session_id: selectedSession})
+  });
+  const d = await resp.json();
+  if (!d) return;
+  toast(d.allowed ? `🚀 ${d.message||('已推进到 '+d.current)}` : d.error, !d.allowed);
+  if (d.allowed) refresh();
+}
+
+function toast(msg, err) {
+  const t = document.createElement('div');
+  t.className = 'toast ' + (err === false ? 'error' : 'success');
+  t.textContent = msg;
+  document.getElementById('toastContainer').appendChild(t);
+  setTimeout(()=>t.remove(),3200);
+}
+
 function showHelp(){document.getElementById('helpModal').classList.add('show')}
 function closeHelp(){document.getElementById('helpModal').classList.remove('show')}
 document.getElementById('helpModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeHelp()});
-refresh();setInterval(refresh,8000);
+
+refresh(); setInterval(refresh, 5000);
 </script>
 </body>
 </html>
