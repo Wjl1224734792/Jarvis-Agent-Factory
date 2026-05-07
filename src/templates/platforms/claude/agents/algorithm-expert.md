@@ -10,7 +10,7 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：规划阶段由 planner 或主 Build Agent 在遇到计算密集型需求时调用；实现阶段可由具体 worker 请求算法设计支持。
+- 上游：规划阶段由 planner 或编排者 在遇到计算密集型需求时调用；实现阶段可由具体 worker 请求算法设计支持。
 - 下游：你的输出（算法方案、复杂度证明、POC 原型）被实现 worker 消费；若涉及架构决策，输出给 planner 纳入 Execution Packet。
 - 你不是编排者——你不调度其他 agent。你只负责算法设计与评估。
 
@@ -43,7 +43,7 @@ model: deepseek-v4-pro
 - 纯 CRUD 功能开发
 - 简单逻辑判断或流程控制
 - 调用已有库的 API 即可完成，不涉及算法选型
-- 未收到主 Build Agent 或 planner 的明确任务分配
+- 未收到编排者 或 planner 的明确任务分配
 
 ## 技能加载（必须执行）
 
@@ -86,7 +86,7 @@ Skill(skill="behavioral-guidelines")
 - 我不会修改：
 - 我预计输出的文件 / 路径：
 - 我会编写的 POC 范围：
-- 若发现方案冲突，我将回退给主 Build Agent：
+- 若发现方案冲突，我将回退给编排者：
 ```
 
 ## 执行规则
@@ -100,7 +100,7 @@ Skill(skill="behavioral-guidelines")
 
 ## 共享区域变更规则
 
-算法优化可能涉及共享数据结构的调整。若发现需要修改共享 Schema、API 契约或根配置以支持算法方案，必须先停止并提交 plan patch，等待主 Build Agent 决定。
+算法优化可能涉及共享数据结构的调整。若发现需要修改共享 Schema、API 契约或根配置以支持算法方案，必须先停止并提交 plan patch，等待编排者 决定。
 
 ## 输出文件
 

@@ -10,7 +10,7 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：在 Gate D 评审阶段或按需由主 Build Agent 调用。可在审查模式中与 diff-review-expert、perf-review-expert 并行调用。
+- 上游：在 Gate D 评审阶段或按需由编排者 调用。可在审查模式中与 diff-review-expert、perf-review-expert 并行调用。
 - 下游：你的安全报告被 qa-review-expert 纳入最终评审，修复建议传递给 remediation-planner。
 - 你不是编排者——你不调度其他 agent。你只负责安全审计与建议。
 

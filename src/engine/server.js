@@ -7,6 +7,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
+import { getAgentsByPlatform, getPlatforms, getPlatformModels } from './agent-registry.js';
 import { setupWebRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
@@ -224,6 +225,30 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
         const c = cfg[a.id];
         return { id: a.id, name: a.name, role: a.role, platform: a.platform, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
       }), available_models: [...new Set(AGENT_LIST.map(a=>a.defaultModel).filter(Boolean))], available_efforts: EFFORTS });
+    });
+
+  server.tool('platform_info',
+    '获取平台信息：支持哪些平台（claude/opencode/codex）、各平台 Agent 数量、可用模型列表。用于引擎扩展和平台适配。',
+    { platform: z.string().optional().describe('指定平台名称（claude/opencode/codex），不传则返回全部平台信息') },
+    async ({ platform }) => {
+      const platforms = getPlatforms();
+      const models = getPlatformModels();
+      if (platform) {
+        if (!platforms.includes(platform)) return resp({ error: `Unknown platform: ${platform}. Available: ${platforms.join(', ')}` });
+        const agents = getAgentsByPlatform(platform);
+        return resp({
+          platform,
+          agent_count: agents.length,
+          available_models: models[platform] || [],
+          agents: agents.map(a => ({ id: a.id, name: a.name, role: a.role, category: a.category, defaultModel: a.defaultModel, defaultEffort: a.defaultEffort })),
+        });
+      }
+      const summary = {};
+      for (const p of platforms) {
+        const agents = getAgentsByPlatform(p);
+        summary[p] = { agent_count: agents.length, available_models: models[p] || [] };
+      }
+      return resp({ platforms: summary, total_agents: AGENT_LIST.length });
     });
 
   // ---- Transport + Web ----

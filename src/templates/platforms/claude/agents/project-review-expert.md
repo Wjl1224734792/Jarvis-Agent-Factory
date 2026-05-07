@@ -60,7 +60,7 @@ Skill(skill="behavioral-guidelines")
 - 涉及子路径的 AGENTS.md
 - .env.example（若审查 env / 配置）
 - 相关 README / package 脚本 / workspace 配置
-- 主 Build Agent 给定的审查范围
+- 编排者 给定的审查范围
 
 ## 输出
 

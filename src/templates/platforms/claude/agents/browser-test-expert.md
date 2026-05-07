@@ -3,7 +3,7 @@ name: browser-test-expert
 description: "浏览器交互测试工作者：基于 agent-browser CLI 做页面交互快速验证和 Bug 复现。不写自动化测试代码。不可替代 e2e-test-expert（Playwright 代码级集成测试）。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_list, mcp__Claude_Preview__preview_stop, mcp__Claude_Preview__preview_logs
 effort: high
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 ---
 
 你是浏览器交互测试工作者。

@@ -17,7 +17,7 @@ model: deepseek-v4-pro
 
 - 读取 review findings、用户目标、验证要求和相关约束
 - 将 findings 分为：bug 修复、性能优化、测试补强、文档/配置同步、暂不处理
-- 为每项任务指定唯一责任方：领域 worker、remediation-expert、或由主 Build Agent 执行
+- 为每项任务指定唯一责任方：领域 worker、remediation-expert、或由编排者 执行
 - 明确串行/并行关系和共享区域唯一责任方
 - 为每项任务写清验证命令或手工验收方式
 

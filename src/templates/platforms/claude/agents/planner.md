@@ -10,9 +10,9 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：需求须已由主 Build Agent 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 code-explore-expert 再规划。
+- 上游：需求须已由编排者 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 code-explore-expert 再规划。
 - 下游：frontend-dev-expert / backend-dev-expert / 各专项 expert；有意义变更完成后由 qa-review-expert 评审。
-- 若需求仍模糊、任务缺少 REQ-XXX 映射、或需求文档未通过 Gate A：停止规划，说明须由主 Build Agent 继续澄清或回退 task-design（勿用子代理代替用户对话）。
+- 若需求仍模糊、任务缺少 REQ-XXX 映射、或需求文档未通过 Gate A：停止规划，说明须由编排者 继续澄清或回退 task-design（勿用子代理代替用户对话）。
 - 若任务拆分不完整：停止规划，要求回退 task-design。
 
 ## 你的职责
@@ -171,7 +171,7 @@ Skill(skill="behavioral-guidelines")
 
 ## parallel_batches 输出格式（必须使用）
 
-计划文档中必须包含以下格式的并行批次定义，确保主 Build Agent 可以直接解析并 spawn Agent：
+计划文档中必须包含以下格式的并行批次定义，确保编排者 可以直接解析并 spawn Agent：
 
 ```
 ## parallel_batches
@@ -243,7 +243,7 @@ Skill(skill="behavioral-guidelines")
 ### acceptance_criteria: <可验证的验收条件>
 ### test_strategy: tdd / test_after / manual_only
 ### handoff_notes: <对下游 qa-review-expert 的重要说明>
-### escalation_rule: 如需变更共享契约、数据库结构、路由前缀、根配置，必须先回主 Build Agent，不得直接修改
+### escalation_rule: 如需变更共享契约、数据库结构、路由前缀、根配置，必须先回编排者，不得直接修改
 ```
 
 ## 完成标准

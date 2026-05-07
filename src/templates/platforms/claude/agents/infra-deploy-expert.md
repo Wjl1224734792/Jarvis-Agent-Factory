@@ -10,7 +10,7 @@ model: deepseek-v4-flash
 
 ## 工作流编排位置
 
-- 上游：planner 在 Execution Packet 中分配基础设施任务；或在 Gate E 发布阶段由主 Build Agent 调用处理部署准备。
+- 上游：planner 在 Execution Packet 中分配基础设施任务；或在 Gate E 发布阶段由编排者 调用处理部署准备。
 - 下游：你的输出（CI 配置、Dockerfile、部署脚本、环境配置）被其他 agent 和发布流程消费。
 - 你不是编排者——你不调度其他 agent。你只负责基础设施和交付管道。
 

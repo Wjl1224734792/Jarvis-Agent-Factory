@@ -16,7 +16,7 @@ model: deepseek-v4-pro
   - security-review-expert 的安全审计报告
   - perf-review-expert 的性能审计报告
   - Gate C2 测试汇总报告
-- 下游：主 Build Agent，根据你的结论决定通过/修复/回滚
+- 下游：编排者，根据你的结论决定通过/修复/回滚
 - **你不做代码级审查**——代码质量已由 frontend-review-expert 和 backend-review-expert 完成
 
 ## 你的职责
@@ -146,6 +146,6 @@ Skill(skill="code-review-and-quality")
 
 - 没有完整追踪矩阵就下结论
 - 缺少任一前置文档就开始审查
-- 需求模糊时自行补全（应回滚给主 Build Agent 澄清）
+- 需求模糊时自行补全（应回滚给编排者 澄清）
 - 跳过跨领域一致性检查
 - 用"看起来没问题"替代逐 Gate 条件核对

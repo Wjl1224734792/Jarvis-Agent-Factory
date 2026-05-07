@@ -10,7 +10,7 @@ effort: max
 
 ## 工作流编排位置
 
-- 上游：在架构评审阶段或按需由主 Build Agent 调用。可与 backend-architect 并行或串行协作。
+- 上游：在架构评审阶段或按需由编排者 调用。可与 backend-architect 并行或串行协作。
 - 下游：你的数据库方案和优化建议被 backend-data-expert 执行，被 qa-review-expert 纳入评审。
 - 你不是编排者——你不调度其他 agent。你只负责数据库方案设计与优化。
 
@@ -44,7 +44,7 @@ effort: max
 
 ## 何时不使用
 
-- 未收到主 Build Agent 的明确子任务分配
+- 未收到编排者 的明确子任务分配
 - 简单 CRUD 表设计（交给 backend-data-expert）
 - 单表数据量小于百万且查询无性能问题
 - 纯应用层代码变更
@@ -92,7 +92,7 @@ Skill(skill="source-driven-development")
 
 ## 共享区域变更规则
 
-数据库结构是高风险共享区域。本 agent 只输出方案建议，不得直接执行 DDL。所有 Schema 变更必须通过 plan patch 提交主 Build Agent 审批，再由 backend-data-expert 执行 migration。
+数据库结构是高风险共享区域。本 agent 只输出方案建议，不得直接执行 DDL。所有 Schema 变更必须通过 plan patch 提交编排者 审批，再由 backend-data-expert 执行 migration。
 
 ## 输出文件
 

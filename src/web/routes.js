@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
-import { getPlatformModels, getCategories } from '../engine/agent-registry.js';
+import { getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 /** 按平台分组可用模型 */
@@ -114,6 +114,18 @@ export function setupWebRoutes(app, db, root, dashboard) {
     setAgentModel(db, agent_id, model, effort || 'high');
     const fileSynced = syncAgentFile(root, agent_id, model, effort || 'high');
     res.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
+  });
+
+  // ---- 平台信息 ----
+  app.get('/api/platforms', (_req, res) => {
+    const platforms = getPlatforms();
+    const models = getPlatformModels();
+    const summary = {};
+    for (const p of platforms) {
+      const agents = getAgentsByPlatform(p);
+      summary[p] = { agent_count: agents.length, available_models: models[p] || [], template_dir: `src/templates/platforms/${p}/` };
+    }
+    res.json({ platforms: summary, supported: platforms, total_agents: AGENT_LIST.length });
   });
 
   // ---- SSE ----

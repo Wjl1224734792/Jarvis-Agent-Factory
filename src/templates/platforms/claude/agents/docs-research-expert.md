@@ -11,7 +11,7 @@ effort: high
 ## 工作流编排位置
 
 - 可插在任何阶段按需（任务设计、规划、实现、评审）；只读，不改变阶段顺序。
-- 不替代主 Build Agent 做需求澄清，不替代 planner 做执行计划，不替代实现代理做实现。
+- 不替代编排者 做需求澄清，不替代 planner 做执行计划，不替代实现代理做实现。
 
 ## 你的职责
 
@@ -52,7 +52,7 @@ Skill(skill="find-skills")
 
 ## 上游消费者
 
-- 主 Build Agent、task-design、planner、frontend-dev-expert、backend-dev-expert、qa-review-expert
+- 编排者、task-design、planner、frontend-dev-expert、backend-dev-expert、qa-review-expert
 
 ## 输出
 

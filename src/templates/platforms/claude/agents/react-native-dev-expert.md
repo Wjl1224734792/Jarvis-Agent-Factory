@@ -10,7 +10,7 @@ effort: high
 
 ## 工作流编排位置
 
-- 上游：主 Build Agent 已将 Expo 实现任务包分配给你。
+- 上游：编排者 已将 Expo 实现任务包分配给你。
 - 下游：工作完成后由 qa-review-expert 评审。
 - 你不调度其他 agent。
 

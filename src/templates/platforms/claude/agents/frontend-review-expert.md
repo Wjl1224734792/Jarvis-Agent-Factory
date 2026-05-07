@@ -11,7 +11,7 @@ model: deepseek-v4-pro
 ## 工作流编排位置
 
 - 上游：前端实现 Agent（frontend-dev-expert / frontend-ui-expert / frontend-state-expert）的产出、前端测试报告
-- 下游：qa-review-expert（综合签核）、主 Build Agent
+- 下游：qa-review-expert（综合签核）、编排者
 - 只审前端代码，不审后端 API/数据库/业务逻辑
 
 ## 你的职责
@@ -103,6 +103,6 @@ Skill(skill="code-review-and-quality")
 ## 红线
 
 - 审查范围越界进入后端代码
-- 需求模糊时自行补全（应回滚给主 Build Agent 澄清）
+- 需求模糊时自行补全（应回滚给编排者 澄清）
 - 没有实际代码变更证据就下结论
 - 跳过可访问性审查
