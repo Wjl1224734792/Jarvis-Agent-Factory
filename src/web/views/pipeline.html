@@ -41,6 +41,7 @@ body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--
 .session-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
 .session-chip.inactive{opacity:.5}
 .session-chip .s-gate{font-size:10px;color:var(--muted);background:rgba(0,0,0,.04);padding:1px 6px;border-radius:6px}
+.session-chip .s-ptype{font-size:9px;color:var(--accent);background:var(--accent-light);padding:1px 5px;border-radius:4px;font-weight:600;text-transform:uppercase}
 .session-chip .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 .session-chip .s-dot.online{background:var(--green)}
 .session-chip .s-dot.offline{background:var(--border)}
@@ -242,11 +243,12 @@ async function refresh(){
   }
 
   const d = sessionData;
-  document.getElementById('gateSessionLabel').textContent = ' · 会话: ' + (selectedSession||'').slice(0,8)+'...';
+  document.getElementById('gateSessionLabel').textContent = ' · ' + (d.pipeline_name || d.pipeline_type || '') + ' · 会话: ' + (selectedSession||'').slice(0,8)+'...';
   const completed = d.completed.length;
-  const pct = Math.round(completed / GATES.length * 100);
+  const totalGates = d.gates.length;
+	  const pct = Math.round(completed / totalGates * 100);
   document.getElementById('statProgress').textContent = pct+'%';
-  document.getElementById('statGates').textContent = completed+'/'+GATES.length;
+  document.getElementById('statGates').textContent = completed+'/'+totalGates;
   document.getElementById('statCurrent').textContent = d.current_gate;
   document.getElementById('progressFill').style.width = pct+'%';
   document.getElementById('progressText').textContent = pct+'% 完成';
@@ -301,6 +303,7 @@ function renderSessions() {
       <span class="s-dot ${dotClass}" title="${dotTitle}"></span>
       <span>${shortId}...</span>
       <span class=s-gate>${s.gate||'?'}</span>
+	      <span class=s-ptype>${s.pipeline_type||'?'}</span>
       ${restoreBtn}
     </div>`;
   }).join('');

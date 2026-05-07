@@ -2,7 +2,47 @@ import { join } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 import { getAgentList, getPlatformModels } from './agent-registry.js';
 
-export const GATES = ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'];
+/**
+ * 流水线定义表 — 不同工作流可注册不同的 Gate 序列。
+ * 引擎只做通用状态机：记录当前 Gate、验证 FSM 顺序、记录检查点。
+ * 工作流特定逻辑（通过条件、可用代理、并行策略）由编排提示词定义。
+ *
+ * 新增流水线类型只需在此表添加条目，然后在对应 command 提示词中引用即可。
+ */
+export const PIPELINE_DEFS = {
+  /** 全流程编排（默认）：需求→任务→计划→实现→质量→测试→评审→发布 */
+  full: {
+    name: '全流程',
+    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+  },
+  /** 前端开发流程：同全流程但仅使用前端代理 */
+  frontend: {
+    name: '前端开发',
+    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+  },
+  /** 后端开发流程：跳过了 C1.5（视觉验证） */
+  backend: {
+    name: '后端开发',
+    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
+  },
+};
+
+export const DEFAULT_PIPELINE = 'full';
+
+/** 默认流水线的 Gate 序列（向后兼容） */
+export const GATES = PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
+
+/** 按流水线类型获取 Gate 序列 */
+export function getPipelineGates(type) {
+  const def = PIPELINE_DEFS[type];
+  return def ? def.gates : PIPELINE_DEFS[DEFAULT_PIPELINE].gates;
+}
+
+/** 获取流水线定义名称 */
+export function getPipelineName(type) {
+  const def = PIPELINE_DEFS[type];
+  return def ? def.name : (type || DEFAULT_PIPELINE);
+}
 
 export const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate C':'plans','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
 
