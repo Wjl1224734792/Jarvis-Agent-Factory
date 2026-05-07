@@ -19,12 +19,14 @@ const DEFAULT_WEB_PORT = 3457;
 const SESSION_TIMEOUT = 600_000; // 10分钟超时，标记 inactive 而非删除
 
 /** 检测端口是否被占用 */
+const BIND_HOST = '127.0.0.1';
+
 function isPortInUse(port) {
   return new Promise((resolve) => {
     const s = createServer();
     s.once('error', () => resolve(true));
     s.once('listening', () => { s.close(); resolve(false); });
-    s.listen(port, '127.0.0.1');
+    s.listen(port, BIND_HOST);
   });
 }
 
@@ -298,23 +300,23 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   if (stdio) {
     // ---- Stdio Transport：MCP 通过 stdin/stdout，Claude Code 自动拉起 ----
-    const transport = new StdioServerTransport();
-    await server.connect(transport);
-    log(`Jarvis Engine v${readPkgVersion()} — stdio MCP`);
-
-    // HTTP 服务器仅用于 REST API + Web 面板，端口已占用则跳过
+    // 先启动 HTTP 服务器（确保 jarvis web 立即可用），再连接 MCP
     setupApiRoutes(app, db, root);
     try {
       if (!(await isPortInUse(port))) {
-        await new Promise((resolve) => { app.listen(port, resolve); });
+        await new Promise((resolve) => { app.listen(port, BIND_HOST, resolve); });
+        log(`Jarvis Engine v${readPkgVersion()} — stdio MCP`);
         log(`   API: http://localhost:${port}/api/pipeline`);
         log(`   Web: jarvis web`);
       } else {
-        log(`   HTTP port ${port} in use — API handled by another instance`);
+        log(`Jarvis Engine v${readPkgVersion()} — stdio MCP (HTTP on port ${port} handled by another instance)`);
       }
     } catch (e) {
-      log(`   HTTP server skipped: ${e.message}`);
+      log(`Jarvis Engine v${readPkgVersion()} — HTTP server unavailable: ${e.message}`);
     }
+
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
   } else {
     // ---- HTTP Transport：MCP 通过 HTTP + SSE（手动启动 jarvis engine start） ----
     const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
@@ -326,7 +328,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
     setupApiRoutes(app, db, root);
 
-    app.listen(port, () => {
+    app.listen(port, BIND_HOST, () => {
       console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
       console.log(`   MCP: http://localhost:${port}/mcp`);
       console.log(`   API: http://localhost:${port}/api/pipeline`);
@@ -424,7 +426,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
   app.get('/dashboard', (_req, res) => res.type('html').send(readFileSync(resolve(viewsDir, 'pipeline.html'), 'utf-8')));
   app.get('/agents', (_req, res) => res.type('html').send(readFileSync(resolve(viewsDir, 'agents.html'), 'utf-8')));
 
-  app.listen(port, () => {
+  app.listen(port, BIND_HOST, () => {
     console.log(`Jarvis Web Panel — http://localhost:${port}/dashboard`);
     console.log(`   引擎: http://localhost:${enginePort}`);
     console.log(`   智能体: http://localhost:${port}/agents`);
