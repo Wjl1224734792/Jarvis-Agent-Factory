@@ -11,3 +11,5 @@ package-lock.json
 .claude/rules
 .claude/settings.json
 .mcp.json
+docs/*
+logs/*

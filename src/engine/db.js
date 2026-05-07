@@ -1,13 +1,13 @@
-import Database from 'better-sqlite3';
-import { resolve, join } from 'node:path';
+import { DatabaseSync } from 'node:sqlite';
+import { join } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 
 export function openDb(root) {
   const dir = join(root, '.jarvis');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const db = new Database(join(dir, 'engine.db'));
-  db.pragma('journal_mode = WAL');
-  db.pragma('busy_timeout = 5000');
+  const db = new DatabaseSync(join(dir, 'engine.db'));
+  db.exec('PRAGMA journal_mode=WAL');
+  db.exec('PRAGMA busy_timeout=5000');
   initSchema(db);
   return db;
 }
