@@ -2,196 +2,156 @@
 <html lang=zh>
 <head>
 <meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-<title>Agents · Jarvis Engine</title>
+<title>智能体配置 · Jarvis Engine</title>
 <style>
-:root{--bg:#0d1117;--card:#161b22;--border:#30363d;--text:#c9d1d9;--muted:#8b949e;--accent:#FF6B35;--green:#3fb950;--blue:#58a6ff;--purple:#bc8cff;--yellow:#d2991d}
+:root{
+  --pink:#FFB7C5;--lav:#C9B1FF;--mint:#98FF98;--sky:#87CEEB;
+  --bg:#1a1a2e;--card:#16213e;--text:#e0d6ff;--muted:#9b8ec4;
+  --accent:#FF6B9D;--green:#5CDB95;--red:#FF6B6B;--yellow:#FFD93D;--blue:#87CEEB;
+}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui;background:var(--bg);color:var(--text);min-height:100vh}
-header{background:var(--card);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;justify-content:space-between;align-items:center}
-h1{color:var(--accent);font-size:18px}
-nav{display:flex;gap:8px}
-nav a{color:var(--muted);text-decoration:none;padding:6px 14px;border-radius:6px;font-size:13px;transition:all .2s}
-nav a:hover,nav a.active{color:var(--text);background:var(--border)}
-main{max-width:1200px;margin:0 auto;padding:24px}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:var(--text);min-height:100vh;position:relative;overflow-x:hidden}
+body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 20% 80%,rgba(255,183,197,.08) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(201,177,255,.08) 0%,transparent 50%);pointer-events:none;z-index:0}
+.sparkle{position:fixed;pointer-events:none;z-index:0;animation:float 6s ease-in-out infinite;opacity:.6;font-size:20px}
+.sparkle:nth-child(1){top:15%;left:8%;animation-delay:0s}
+.sparkle:nth-child(2){top:25%;right:12%;animation-delay:2s}
+.sparkle:nth-child(3){top:70%;left:20%;animation-delay:4s}
+@keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-20px) rotate(10deg)}}
+nav{position:sticky;top:0;z-index:100;background:rgba(22,33,62,.95);backdrop-filter:blur(20px);border-bottom:2px solid var(--accent);padding:0 24px;display:flex;justify-content:space-between;align-items:center;height:56px}
+nav .logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--lav));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+nav .tabs{display:flex;gap:4px;height:100%}
+nav .tabs a{display:flex;align-items:center;gap:6px;padding:0 20px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;border-bottom:3px solid transparent;transition:all .2s}
+nav .tabs a:hover{color:var(--text);border-bottom-color:var(--lav)}
+nav .tabs a.active{color:var(--accent);border-bottom-color:var(--accent)}
+nav .help-btn{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+nav .help-btn:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(255,107,157,.3)}
+main{max-width:1200px;margin:0 auto;padding:24px;position:relative;z-index:1}
 .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;flex-wrap:wrap;gap:12px}
 .toolbar .info{color:var(--muted);font-size:13px}
 .model-filter{display:flex;gap:6px;flex-wrap:wrap}
-.model-filter button{padding:4px 10px;border-radius:12px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;font-size:11px;transition:all .2s}
-.model-filter button:hover,.model-filter button.sel{border-color:var(--accent);color:var(--accent)}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
-/* Pixel card */
-.pixel-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden}
-.pixel-card:hover{border-color:var(--accent);transform:translateY(-2px)}
-.pixel-card.custom{border-color:var(--purple)}
+.model-filter button{padding:5px 14px;border-radius:20px;border:2px solid var(--muted);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.model-filter button:hover,.model-filter button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.pixel-card{background:var(--card);border:2px solid transparent;border-radius:20px;padding:18px;cursor:pointer;transition:all .3s;position:relative;overflow:hidden}
+.pixel-card:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,107,157,.15)}
+.pixel-card.custom{border-color:var(--lav)}
 .pixel-card .role-tag{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.pixel-card .agent-name{font-size:14px;font-weight:600;margin:4px 0}
-.pixel-card .model-name{font-size:11px;color:var(--accent);margin-top:4px}
-.pixel-card .model-name.custom{color:var(--purple)}
-/* Pixel art avatar — 12x12 CSS grid */
-.pixel-avatar{width:60px;height:60px;margin:8px auto;image-rendering:pixelated;position:relative}
-.pixel-avatar .px{position:absolute;width:5px;height:5px;border-radius:0}
-/* Pixel art patterns per icon */
-.px-brain{background:var(--purple)} .px-layout{background:var(--blue)} .px-palette{background:var(--accent)}
-.px-database{background:var(--green)} .px-test{background:var(--yellow)} .px-server{background:var(--blue)}
-.px-route{background:var(--accent)} .px-cog{background:var(--muted)} .px-table{background:var(--green)}
-.px-globe{background:var(--blue)} .px-play{background:var(--green)} .px-file{background:var(--muted)}
-.px-map{background:var(--purple)} .px-list{background:var(--yellow)} .px-shield{background:var(--accent)}
-.px-eye{background:var(--purple)}
-/* Pixel patterns — simplified 8x8 */
+.pixel-card .agent-name{font-size:14px;font-weight:700;margin:4px 0}
+.pixel-card .model-name{font-size:11px;color:var(--accent);background:rgba(255,107,157,.1);padding:2px 10px;border-radius:10px;display:inline-block;margin-top:4px}
+.pixel-card .model-name.custom{color:var(--lav);background:rgba(201,177,255,.1)}
 .avatar-8{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:56px;height:56px;gap:1px;margin:8px auto}
 .avatar-8 span{width:100%;height:100%;border-radius:1px}
-/* Model selector popup */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:99;justify-content:center;align-items:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
-.modal{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:24px;min-width:320px;max-width:400px}
-.modal h3{font-size:16px;margin-bottom:4px}
-.modal .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-.modal select{width:100%;padding:10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:13px;margin-bottom:12px}
+.modal{background:var(--card);border:2px solid var(--lav);border-radius:24px;padding:24px;min-width:340px;max-width:400px}
+.modal h3{font-size:18px;background:linear-gradient(135deg,var(--accent),var(--lav));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.modal .sub{font-size:12px;color:var(--muted);margin:4px 0 16px}
+.modal select{width:100%;padding:10px 14px;background:var(--bg);color:var(--text);border:2px solid var(--muted);border-radius:12px;font-size:14px;margin-bottom:16px;cursor:pointer}
 .modal .btns{display:flex;gap:8px;justify-content:flex-end}
-.modal .btn{padding:8px 18px;border-radius:8px;border:1px solid var(--border);background:var(--bg);color:var(--text);cursor:pointer;font-size:13px}
-.modal .btn.save{background:var(--accent);border-color:var(--accent);color:#fff}
-.modal .btn.reset{color:var(--muted)}
-.toast{position:fixed;top:16px;right:16px;background:var(--green);color:#000;padding:10px 20px;border-radius:8px;font-size:14px;font-weight:600;z-index:999;animation:fadein .3s}
-@keyframes fadein{from{opacity:0;transform:translateY(-10px)}to{opacity:1;transform:translateY(0)}}
-.empty{text-align:center;padding:40px;color:var(--muted)}
+.modal .btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
+.modal .btn.save{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff}
+.modal .btn.save:hover{box-shadow:0 4px 20px rgba(255,107,157,.3)}
+.modal .btn.reset{background:transparent;border:2px solid var(--muted);color:var(--muted)}
+.toast{position:fixed;top:20px;right:20px;z-index:300;padding:14px 24px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:14px;background:rgba(92,219,149,.2);border:1px solid var(--green);color:var(--green)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+footer{text-align:center;padding:40px;color:var(--muted);font-size:12px;position:relative;z-index:1}
+footer a{color:var(--lav);text-decoration:none}
+@media(max-width:768px){.grid{grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}}
 </style>
 </head>
 <body>
-<header>
-  <div style=display:flex;gap:16px;align-items:center>
-    <h1>🧠 Jarvis Engine</h1>
-    <nav><a href=/dashboard>Pipeline</a><a href=/agents class=active>Agents</a></nav>
+<div class=sparkle>✨</div><div class=sparkle>⭐</div><div class=sparkle>💫</div>
+
+<nav>
+  <div class=logo>🧠 Jarvis Engine</div>
+  <div class=tabs>
+    <a href=/dashboard>📊 流水线</a>
+    <a href=/agents class=active>🤖 智能体</a>
   </div>
-  <span style=font-size:12px;color:var(--muted) id=agentCount>17 agents</span>
-</header>
+  <button class=help-btn onclick=showHelp()>📖 使用说明</button>
+</nav>
+
 <main>
   <div class=toolbar>
-    <div class=info id=toolbarInfo>Click a card to configure model</div>
+    <div class=info id=toolbarInfo>💡 点击卡片配置模型 · 紫色边框 = 已自定义</div>
     <div class=model-filter id=modelFilter></div>
   </div>
-  <div class=grid id=agentsGrid><div class=empty>Loading...</div></div>
+  <div class=grid id=agentsGrid><div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1>⏳ 加载中...</div></div>
 </main>
+
+<div class=modal-overlay id=helpModal>
+  <div class=modal>
+    <h2>📖 使用说明</h2>
+    <h3>智能体模型配置指南</h3>
+    <div class=step><div class=num>1</div><div class=text>每个子智能体独立配置运行模型</div></div>
+    <div class=step><div class=num>2</div><div class=text>点击卡片 → 选择模型 → 💾 保存</div></div>
+    <div class=step><div class=num>3</div><div class=text>模型筛选按钮快速查看分配情况</div></div>
+    <button class=close-btn onclick=closeHelp()>知道啦！✨</button>
+  </div>
+</div>
+
+<!-- Agent config modal -->
 <div class=modal-overlay id=modal>
   <div class=modal>
     <h3 id=modalName>---</h3>
     <div class=sub id=modalRole>---</div>
     <select id=modalSelect></select>
     <div class=btns>
-      <button class="btn reset" onclick=resetModel()>↩ Reset default</button>
-      <button class="btn save" onclick=saveModel()>💾 Save</button>
+      <button class="btn reset" onclick=resetModel()>↩ 恢复默认</button>
+      <button class="btn save" onclick=saveModel()>💾 保存</button>
     </div>
   </div>
 </div>
+
 <div id=toastContainer></div>
+<footer>✨ Jarvis Engine · <a href=/dashboard>流水线</a> · <a href=/health>API</a></footer>
 
+<!-- Same pixel art patterns as before -->
 <script>
-let agents=[],currentAgent=null,currentFilter='all';
-
-const PIXEL_PATTERNS = {
-  brain: [0,0,0,1,1,0,0,0, 0,1,1,1,1,1,1,0, 1,1,0,1,1,0,1,1, 1,1,0,1,1,0,1,1, 1,1,1,1,1,1,1,1, 0,1,1,1,1,1,1,0, 0,0,1,0,0,1,0,0, 0,0,0,1,1,0,0,0],
-  layout:[0,0,0,0,0,0,0,0, 1,1,1,1,1,1,1,1, 1,0,0,0,0,0,0,1, 1,0,1,1,1,0,0,1, 1,0,1,1,1,0,0,1, 1,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1, 0,0,0,0,0,0,0,0],
-  palette:[0,0,1,0,0,1,0,0, 0,1,1,1,1,1,1,0, 1,0,0,0,0,0,0,1, 1,0,1,0,0,1,0,1, 1,0,0,1,1,0,0,1, 1,0,0,0,0,0,0,1, 0,1,1,1,1,1,1,0, 0,0,0,0,0,0,0,0],
-  database:[0,0,1,1,1,1,0,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1],
-  test:[0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 1,1,0,0,0,0,1,1, 0,0,1,0,0,1,0,0, 0,0,0,1,1,0,0,0, 0,0,1,0,0,1,0,0, 1,1,0,0,0,0,1,1, 0,0,0,0,0,0,0,0],
-  server:[0,0,1,1,1,1,0,0, 0,1,0,0,0,0,1,0, 1,0,1,1,1,0,0,1, 1,0,1,0,1,0,0,1, 1,0,1,1,1,0,0,1, 1,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,1, 0,1,1,1,1,1,1,0],
-  route:[0,0,0,0,0,0,1,0, 0,0,0,0,0,1,0,0, 0,0,0,0,1,0,1,0, 0,0,0,1,0,0,1,0, 0,0,1,0,0,0,1,0, 0,1,0,0,0,0,1,0, 1,0,0,0,0,0,1,0, 0,0,0,0,0,0,1,0],
-  cog:[0,0,0,1,1,0,0,0, 0,0,1,0,0,1,0,0, 0,1,0,1,1,0,1,0, 1,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,1, 0,1,0,1,1,0,1,0, 0,0,1,0,0,1,0,0, 0,0,0,1,1,0,0,0],
-  table:[1,1,1,1,1,1,1,1, 1,0,0,0,0,0,0,1, 1,0,1,0,0,0,0,1, 1,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1, 1,0,0,0,0,0,0,1, 1,0,0,0,0,0,0,1, 1,1,1,1,1,1,1,1],
-  globe:[0,0,1,1,1,1,0,0, 0,1,0,1,1,0,1,0, 1,0,0,0,0,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,0,0,0,0,1, 1,0,1,0,0,1,0,1, 0,1,0,0,0,0,1,0, 0,0,1,1,1,1,0,0],
-  play:[0,0,0,0,0,0,0,0, 0,1,1,0,0,0,0,0, 0,1,1,1,0,0,0,0, 0,1,1,1,1,0,0,0, 0,1,1,1,1,1,0,0, 0,1,1,1,0,0,0,0, 0,1,1,0,0,0,0,0, 0,0,0,0,0,0,0,0],
-  file:[1,1,1,1,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,0,0,0,1,0,0,0, 1,1,1,1,1,0,0,0, 1,1,1,1,1,1,1,0],
-  map:[0,0,0,1,1,0,0,0, 0,0,1,0,0,1,0,0, 0,1,0,1,1,0,1,0, 1,0,0,0,0,0,0,1, 1,0,0,1,1,0,0,1, 0,1,0,0,0,0,1,0, 0,0,1,0,0,1,0,0, 0,0,0,1,1,0,0,0],
-  list:[1,1,1,1,1,0,0,0, 1,0,0,0,0,0,0,0, 1,0,0,0,0,0,0,0, 0,1,1,1,1,0,0,0, 0,0,0,0,0,1,0,0, 0,0,0,0,0,1,0,0, 0,0,0,0,0,1,0,0, 1,1,1,1,1,1,0,0],
-  shield:[0,0,0,0,0,0,0,0, 0,1,1,1,1,1,1,0, 1,0,0,0,0,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,1,1,0,0,1, 1,0,0,0,0,0,0,1, 0,1,0,0,0,0,1,0, 0,0,1,1,1,1,0,0],
-  eye:[0,0,0,0,0,0,0,0, 0,1,1,1,0,1,1,0, 1,0,0,1,0,0,0,1, 1,0,0,1,0,0,0,1, 0,1,1,1,0,1,1,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0, 0,0,0,0,0,0,0,0],
+const PIXEL_PATTERNS={
+  brain:[0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
+  layout:[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
+  palette:[0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0],
+  database:[0,0,1,1,1,1,0,0,0,1,0,0,0,0,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1],
+  test:[0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,1,1,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0,0,0,1,0,0,1,0,0,1,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0],
+  server:[0,0,1,1,1,1,0,0,0,1,0,0,0,0,1,0,1,0,1,1,1,0,0,1,1,0,1,0,1,0,0,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0],
+  route:[0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,1,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,1,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0],
+  cog:[0,0,0,1,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,0,1,0,1,1,0,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
+  table:[1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,1,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1],
+  globe:[0,0,1,1,1,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0,1,0,1,0,0,0,0,1,0,0,0,1,1,1,1,0,0],
+  play:[0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,1,0,0,0,0,0,1,1,1,1,0,0,0,0,1,1,1,1,1,0,0,0,1,1,1,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0],
+  file:[1,1,1,1,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,0,0,0,1,1,1,1,1,0,0,0,1,1,1,1,1,1,1,0],
+  map:[0,0,0,1,1,0,0,0,0,0,1,0,0,1,0,0,0,1,0,1,1,0,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,0,1,0,0,0,0,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
+  list:[1,1,1,1,1,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,1,1,1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,1,1,1,1,1,1,0,0],
+  shield:[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,1,1,1,1,0,0],
+  eye:[0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,0,1,0,0,1,0,0,0,1,1,0,0,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 };
+const ICON_COLORS={brain:'#bc8cff',layout:'#58a6ff',palette:'#FF6B35',database:'#3fb950',test:'#d2991d',server:'#58a6ff',route:'#FF6B35',cog:'#8b949e',table:'#3fb950',globe:'#58a6ff',play:'#3fb950',file:'#8b949e',map:'#bc8cff',list:'#d2991d',shield:'#FF6B35',eye:'#bc8cff'};
+function pixelAvatar(icon){const p=PIXEL_PATTERNS[icon]||PIXEL_PATTERNS.brain;const c=ICON_COLORS[icon]||ICON_COLORS.brain;return`<div class=avatar-8>${p.map(v=>`<span style="background:${v?c:'transparent'}"></span>`).join('')}</div>`}
 
-const ICON_COLORS = {
-  brain:'#bc8cff', layout:'#58a6ff', palette:'#FF6B35', database:'#3fb950', test:'#d2991d',
-  server:'#58a6ff', route:'#FF6B35', cog:'#8b949e', table:'#3fb950', globe:'#58a6ff',
-  play:'#3fb950', file:'#8b949e', map:'#bc8cff', list:'#d2991d', shield:'#FF6B35', eye:'#bc8cff',
-};
+let agents=[],currentAgent=null,currentFilter='all',data=null;
 
-function pixelAvatar(icon) {
-  const pattern = PIXEL_PATTERNS[icon] || PIXEL_PATTERNS.brain;
-  const color = ICON_COLORS[icon] || ICON_COLORS.brain;
-  return `<div class=avatar-8>${pattern.map(v => `<span style="background:${v?color:'transparent'}"></span>`).join('')}</div>`;
+async function load(){
+  const r=await fetch('/api/agents');data=await r.json();agents=data.agents;
+  document.getElementById('agentsGrid').innerHTML=renderCards();
+  const models=[...new Set(agents.map(a=>a.model))];
+  document.getElementById('modelFilter').innerHTML=['<button class="'+(currentFilter==='all'?'sel':'')+'" onclick="filterBy(\'all\')">全部</button>',...models.map(m=>'<button class="'+(currentFilter===m?'sel':'')+'" onclick="filterBy(\''+m+'\')">'+m+'</button>')].join('');
+  document.getElementById('toolbarInfo').textContent='💡 '+filtered().length+' 个智能体 · 点击卡片配置模型';
 }
-
-async function load() {
-  try {
-    const r = await fetch('/api/agents');
-    const data = await r.json();
-    agents = data.agents;
-    renderAgents();
-    // Model filter buttons
-    const models = [...new Set(agents.map(a=>a.model))];
-    document.getElementById('modelFilter').innerHTML = [
-      `<button class="${currentFilter==='all'?'sel':''}" onclick="filterBy('all')">All</button>`,
-      ...models.map(m => `<button class="${currentFilter===m?'sel':''}" onclick="filterBy('${m}')">${m}</button>`)
-    ].join('');
-  } catch(e) { console.error(e); }
+function filtered(){return currentFilter==='all'?agents:agents.filter(a=>a.model===currentFilter)}
+function renderCards(){
+  return filtered().map(a=>'<div class="pixel-card'+(a.is_custom?' custom':'')+'" onclick="openModal(\''+a.id+'\')">'+pixelAvatar(a.icon)+'<div class=role-tag>'+a.role+'</div><div class=agent-name>'+a.name+'</div><div class="model-name'+(a.is_custom?' custom':'')+'">'+a.model+'</div></div>').join('');
 }
-
-function renderAgents() {
-  const filtered = currentFilter === 'all' ? agents : agents.filter(a => a.model === currentFilter);
-  document.getElementById('agentCount').textContent = filtered.length + ' agents';
-  document.getElementById('agentsGrid').innerHTML = filtered.map(a =>
-    `<div class="pixel-card${a.is_custom?' custom':''}" onclick="openModal('${a.id}')">
-      ${pixelAvatar(a.icon)}
-      <div class=role-tag>${a.role}</div>
-      <div class=agent-name>${a.name}</div>
-      <div class="model-name${a.is_custom?' custom':''}">${a.model}</div>
-    </div>`
-  ).join('');
-}
-
-function filterBy(model) { currentFilter = model; renderAgents(); load(); }
-
-function openModal(id) {
-  currentAgent = agents.find(a => a.id === id);
-  if (!currentAgent) return;
-  document.getElementById('modalName').textContent = currentAgent.name;
-  document.getElementById('modalRole').textContent = currentAgent.role + ' · Default: ' + currentAgent.defaultModel;
-  const sel = document.getElementById('modalSelect');
-  sel.innerHTML = data?.available_models?.map(m => `<option value="${m}" ${m===currentAgent.model?'selected':''}>${m}</option>`).join('') || '';
-  document.getElementById('modal').classList.add('show');
-}
-
-async function loadModels() {
-  const r = await fetch('/api/agents'); data = await r.json();
-  agents = data.agents;
-  const sel = document.getElementById('modalSelect');
-  sel.innerHTML = data.available_models.map(m => `<option value="${m}">${m}</option>`).join('');
-  renderAgents();
-}
-
-let data = null;
-
-async function saveModel() {
-  const model = document.getElementById('modalSelect').value;
-  await fetch('/api/agents', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent_id:currentAgent.id, model}) });
-  document.getElementById('modal').classList.remove('show');
-  toast(`💾 ${currentAgent.name} → ${model}`);
-  loadModels();
-}
-
-async function resetModel() {
-  await fetch('/api/agents', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({agent_id:currentAgent.id, model:currentAgent.defaultModel}) });
-  document.getElementById('modal').classList.remove('show');
-  toast(`↩ ${currentAgent.name} → default (${currentAgent.defaultModel})`);
-  loadModels();
-}
-
-document.getElementById('modal').addEventListener('click', e => { if (e.target === e.currentTarget) document.getElementById('modal').classList.remove('show'); });
-
-function toast(msg) {
-  const t = document.createElement('div'); t.className='toast'; t.textContent=msg;
-  document.getElementById('toastContainer').appendChild(t);
-  setTimeout(() => t.remove(), 2500);
-}
-
-loadModels();
+function filterBy(m){currentFilter=m;document.getElementById('agentsGrid').innerHTML=renderCards();load()}
+function openModal(id){currentAgent=agents.find(a=>a.id===id);if(!currentAgent)return;document.getElementById('modalName').textContent=currentAgent.name;document.getElementById('modalRole').textContent=currentAgent.role+' · 默认: '+currentAgent.defaultModel;document.getElementById('modalSelect').innerHTML=data.available_models.map(m=>'<option value="'+m+'" '+(m===currentAgent.model?'selected':'')+'>'+m+'</option>').join('');document.getElementById('modal').classList.add('show')}
+async function saveModel(){const m=document.getElementById('modalSelect').value;await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:currentAgent.id,model:m})});document.getElementById('modal').classList.remove('show');toast('💾 '+currentAgent.name+' → '+m);load()}
+async function resetModel(){await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:currentAgent.id,model:currentAgent.defaultModel})});document.getElementById('modal').classList.remove('show');toast('↩ '+currentAgent.name+' → '+currentAgent.defaultModel);load()}
+function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.getElementById('toastContainer').appendChild(t);setTimeout(()=>t.remove(),2500)}
+function showHelp(){document.getElementById('helpModal').classList.add('show')}
+function closeHelp(){document.getElementById('helpModal').classList.remove('show')}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal').classList.remove('show')});
+document.getElementById('helpModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeHelp()});
+load();
 </script>
 </body>
 </html>
