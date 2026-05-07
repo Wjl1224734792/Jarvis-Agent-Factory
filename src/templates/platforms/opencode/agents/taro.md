@@ -58,6 +58,8 @@ permission:
 
 ## 🚪 闸门门禁（A→B→C→C1→C2→D→E）
 
+**引擎驱动**：每个 Gate 通过后调用引擎 MCP：gate_enforce 验证条件，gate_advance 推进硬状态机。
+
 ### Gate A → Gate B → Gate C（标准）
 需求文档落盘、REQ-XXX 映射、parallel_batches + Execution Packet。注意小程序分包策略和体积限制。
 

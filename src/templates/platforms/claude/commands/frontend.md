@@ -12,7 +12,9 @@ argument-hint: [前端需求描述]
    - `Skill("using-agent-skills")`
 
    Gate C1 时：`Skill("code-quality-gate")`
-   Gate E 时：`Skill("shipping-and-launch")` `Skill("git-workflow-and-versioning")` `Skill("finishing-a-development-branch")`
+   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。
+   Gate E 时：`Skill("shipping-and-launch")`
+   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。 `Skill("git-workflow-and-versioning")` `Skill("finishing-a-development-branch")`
 
 2. 判断当前需求是否适合流水线：
    - ❌ **不适合**：纯信息提问、单 agent 可完成的简单样式修改、纯文档翻译

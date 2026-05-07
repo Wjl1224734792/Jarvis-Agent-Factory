@@ -11,6 +11,8 @@ description: iOS 原生开发生命周期——需求→任务→计划→实现
 
 加载 `.codex/skills/behavioral-guidelines/` `.codex/skills/using-agent-skills/`
 
+**引擎驱动**：每个 Gate 通过后调用引擎 MCP：gate_enforce 验证条件，gate_advance 推进硬状态机。
+
 ## 阶段 0
 
 确认 Swift/SwiftUI、iOS 版本目标、HIG 要求、设备适配（iPhone/iPad）。

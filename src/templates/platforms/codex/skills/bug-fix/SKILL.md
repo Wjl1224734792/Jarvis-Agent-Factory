@@ -8,6 +8,7 @@ description: Bug 修复闭环——浏览器复现→定位根因→修复→浏
 加载此技能后进入 Bug 修复模式：浏览器复现→定位根因→修复→代码质量→浏览器验证→关闭。
 
 ## 加载技能
+**引擎驱动**：每个 Gate 通过后调用引擎 MCP：gate_enforce 验证条件，gate_advance 推进硬状态机。
 
 `.codex/skills/behavioral-guidelines/` `.codex/skills/agent-browser/` `.codex/skills/browser-testing/`
 

@@ -14,6 +14,8 @@ Skill("behavioral-guidelines")
 Skill("agent-browser")
 Skill("browser-testing")
 
+**引擎驱动**：引擎运行时，修复完成后 `mcp__jarvis-engine__gate_enforce` 验证当前 Gate，`mcp__jarvis-engine__advance_gate` 推进状态机。
+
 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 ```
 

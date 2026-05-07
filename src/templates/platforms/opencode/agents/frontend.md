@@ -97,6 +97,8 @@ permission:
 
 ## 🚪 闸门门禁（硬性阻断，顺序 A→B→C→C1→C2→D→E）
 
+**引擎驱动**：每个 Gate 通过后调用引擎 MCP：gate_enforce 验证条件，gate_advance 推进硬状态机。
+
 ### Gate A：需求 → 任务分解
 - [ ] 需求文档落盘 `docs/requirements/`，状态 `confirmed`
 - [ ] 需求有 `REQ-XXX` 编号、优先级、可验证验收标准
