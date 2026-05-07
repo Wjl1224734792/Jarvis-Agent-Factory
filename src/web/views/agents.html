@@ -75,8 +75,13 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   <p class=subtitle id=agentCount>17 个智能体 · 独立模型配置 · SQLite持久化</p>
 
   <div class=toolbar>
-    <span style=font-size:13px;color:var(--muted)" id=toolbarInfo>💡 点击卡片配置模型</span>
-    <div class=filter id=modelFilter></div>
+    <div class=filter id=platformTabs>
+      <button class=sel onclick="setPlatform('all')">全部</button>
+      <button onclick="setPlatform('claude')">🔵 Claude</button>
+      <button onclick="setPlatform('opencode')">🟣 OpenCode</button>
+      <button onclick="setPlatform('codex')">🟢 Codex</button>
+    </div>
+    <span style=font-size:12px;color:var(--muted)" id=toolbarInfo>💡 点击卡片配置模型 · 输入自定义模型名</span>
   </div>
   <div class=grid id=agentsGrid><div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">⏳ 加载中...</div></div>
   <footer>Jarvis Engine · <a href=/dashboard style=color:var(--purple)>流水线</a></footer>
@@ -86,7 +91,8 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   <div class=modal>
     <h3 id=modalName>---</h3>
     <div class=sub id=modalRole>---</div>
-    <select id=modalSelect></select>
+    <select id=modalSelect onchange="onModelChange()"></select>
+    <input id=modalCustom placeholder="或输入自定义模型名称..." style="display:none;width:100%;padding:10px 14px;background:#f8f6f9;color:var(--text);border:2px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:16px" oninput="onCustomInput()">
     <div class=sub style=margin-top:-8px>思考等级</div>
     <select id=modalEffort></select>
     <div class=btns>
@@ -119,20 +125,15 @@ const PIXEL={
 const COLORS={brain:'#B4A7FF',layout:'#7DE2D1',palette:'#FF7B9C',db:'#4ECB71',test:'#FFE17B',server:'#7DE2D1',route:'#FF7B9C',cog:'#8B869B',table:'#4ECB71',globe:'#7DE2D1',play:'#4ECB71',file:'#8B869B',map:'#B4A7FF',list:'#FFE17B',shield:'#FF7B9C',eye:'#B4A7FF'};
 function px(icon){const p=PIXEL[icon]||PIXEL.brain;const c=COLORS[icon]||COLORS.brain;return`<div class=avatar-8>${p.map(v=>`<span style="background:${v?c:'transparent'}"></span>`).join('')}</div>`}
 
-let agents=[],cur=null,filter='all',d=null;
-async function load(){
-  const r=await fetch('/api/agents');d=await r.json();agents=d.agents;
-  document.getElementById('agentsGrid').innerHTML=render();
-  const models=[...new Set(agents.map(a=>a.model))];
-  document.getElementById('modelFilter').innerHTML=['<button class="'+(filter==='all'?'sel':'')+'" onclick="f(\'all\')">全部</button>',...models.map(m=>'<button class="'+(filter===m?'sel':'')+'" onclick="f(\''+m+'\')">'+m+'</button>')].join('');
-  document.getElementById('toolbarInfo').textContent='💡 '+flt().length+' 个智能体 · 点击卡片配置模型';
-}
-function flt(){return filter==='all'?agents:agents.filter(a=>a.model===filter)}
-function render(){return flt().map(a=>'<div class="card'+(a.is_custom?' custom':'')+'" onclick="openM(\''+a.id+'\')">'+px(a.icon)+'<div class=role>'+a.role+'</div><div class=name>'+a.name+'</div><div class="model'+(a.is_custom?' custom':'')+'">'+a.model+'<span class=effort-badge>'+(a.effort||'high')+'</span></div></div>').join('')}
-function f(m){filter=m;document.getElementById('agentsGrid').innerHTML=render();load()}
-function openM(id){cur=agents.find(a=>a.id===id);if(!cur)return;document.getElementById('modalName').textContent=cur.name;document.getElementById('modalRole').textContent=cur.role+' · 默认: '+cur.defaultModel+' @'+(cur.defaultEffort||'high');document.getElementById('modalSelect').innerHTML=d.available_models.map(m=>'<option value="'+m+'" '+(m===cur.model?'selected':'')+'>'+m+'</option>').join('');document.getElementById('modalEffort').innerHTML=(d.available_efforts||['low','medium','high','xhigh','max']).map(e=>'<option value="'+e+'" '+(e===(cur.effort||'high')?'selected':'')+'>'+e+'</option>').join('');document.getElementById('modal').classList.add('show')}
-async function saveModel(){const m=document.getElementById('modalSelect').value;const e=document.getElementById('modalEffort').value;await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:m,effort:e})});document.getElementById('modal').classList.remove('show');toast('💾 '+cur.name+' → '+m+' @'+e);load()}
-async function resetModel(){await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:cur.defaultModel})});document.getElementById('modal').classList.remove('show');toast('↩ '+cur.name+' → '+cur.defaultModel);load()}
+let agents=[],cur=null,platform='all',d=null,customModel='';
+async function load(p){if(p!==undefined)platform=p;const r=await fetch('/api/agents'+(platform!=='all'?'?platform='+platform:''));d=await r.json();agents=d.agents;document.getElementById('agentsGrid').innerHTML=render();document.getElementById('toolbarInfo').textContent='💡 '+agents.length+' 个智能体 · 点击卡片配置';}
+function setPlatform(p){platform=p;document.querySelectorAll('#platformTabs button').forEach(b=>b.classList.remove('sel'));document.querySelector('#platformTabs button[onclick*="'+p+'"]').classList.add('sel');load()}
+function render(){return agents.map(a=>'<div class="card'+(a.is_custom?' custom':'')+'" onclick="openM(\''+a.id+'\')">'+px(a.icon)+'<div class=role>'+(a.platform||'')+' · '+a.role+'</div><div class=name>'+a.name+'</div><div class="model'+(a.is_custom?' custom':'')+'">'+a.model+'<span class=effort-badge>'+(a.effort||'high')+'</span></div></div>').join('')}
+function onModelChange(){const v=document.getElementById('modalSelect').value;if(v==='__custom__'){document.getElementById('modalCustom').style.display='block';document.getElementById('modalCustom').focus()}else{document.getElementById('modalCustom').style.display='none'}}
+function onCustomInput(){customModel=document.getElementById('modalCustom').value}
+function openM(id){cur=agents.find(a=>a.id===id);if(!cur)return;customModel='';document.getElementById('modalName').textContent=cur.name;document.getElementById('modalRole').textContent=cur.role+' · 默认: '+cur.defaultModel+' @'+(cur.defaultEffort||'high');document.getElementById('modalSelect').innerHTML=d.available_models.map(m=>'<option value="'+m+'" '+(m===cur.model?'selected':'')+'>'+m+'</option>').join('')+'<option value="__custom__">✏️ 自定义输入...</option>';document.getElementById('modalCustom').style.display='none';document.getElementById('modalCustom').value='';document.getElementById('modalEffort').innerHTML=(d.available_efforts||['low','medium','high','xhigh','max']).map(e=>'<option value="'+e+'" '+(e===(cur.effort||'high')?'selected':'')+'>'+e+'</option>').join('');document.getElementById('modal').classList.add('show')}
+async function saveModel(){const sel=document.getElementById('modalSelect').value;const m=sel==='__custom__'?customModel||cur.model:sel;const e=document.getElementById('modalEffort').value;await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:m,effort:e})});document.getElementById('modal').classList.remove('show');toast('💾 '+cur.name+' → '+m+' @'+e);load()}
+async function resetModel(){await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:cur.defaultModel,effort:cur.defaultEffort||'high'})});document.getElementById('modal').classList.remove('show');toast('↩ '+cur.name+' → '+cur.defaultModel);load()}
 function toast(m){const t=document.createElement('div');t.className='toast';t.textContent=m;document.getElementById('toastContainer').appendChild(t);setTimeout(()=>t.remove(),2500)}
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal').classList.remove('show')});
 load();
