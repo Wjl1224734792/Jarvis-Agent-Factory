@@ -5,7 +5,7 @@
       "command": ["npx", "@playwright/mcp@latest"],
       "enabled": true
     },
-    "jarvis": {
+    "jarvis-engine": {
       "type": "remote",
       "url": "http://localhost:3456/mcp",
       "enabled": true
