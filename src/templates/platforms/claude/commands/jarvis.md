@@ -1,5 +1,7 @@
 ---
 description: 启动贾维斯编排模式——需求→文档→任务→计划→实现→评审→发布全流水线
+model: deepseek-v4-pro
+effort: max
 ---
 
 # 贾维斯编排模式

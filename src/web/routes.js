@@ -3,6 +3,13 @@ import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getLeader, getAgentConfig, setAgentModel } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay } from '../engine/gates.js';
+
+/** 按平台分组可用模型（Claude 无前缀，OpenCode 带 provider/ 前缀，Codex 用 GPT 系列） */
+const PLATFORM_MODELS = {
+  claude:   AVAILABLE_MODELS.filter(m => !m.includes('/') && !m.startsWith('gpt-') && !m.startsWith('claude-')),
+  opencode: AVAILABLE_MODELS.filter(m => m.includes('/')),
+  codex:    AVAILABLE_MODELS.filter(m => m.startsWith('gpt-')),
+};
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 export function setupWebRoutes(app, db, root, dashboard) {
@@ -52,13 +59,24 @@ export function setupWebRoutes(app, db, root, dashboard) {
       return { ...a, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
     });
     if (platform) list = list.filter(a => a.platform === platform);
-    res.json({ agents: list, available_models: AVAILABLE_MODELS, available_efforts: EFFORTS, platforms: [...new Set(AGENT_LIST.map(a=>a.platform))] });
+    res.json({ agents: list, available_models: AVAILABLE_MODELS, available_efforts: EFFORTS, platforms: [...new Set(AGENT_LIST.map(a=>a.platform))], platform_models: PLATFORM_MODELS });
   });
 
   app.post('/api/agents', (req, res) => {
     const { agent_id, model, effort } = req.body;
     if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
     if (effort && !EFFORTS.includes(effort)) return res.status(400).json({ error: `Unknown effort. Valid: ${EFFORTS.join(', ')}` });
+
+    // 查找 agent 所属平台，校验模型格式
+    const agent = AGENT_LIST.find(a => a.id === agent_id);
+    if (agent) {
+      const validModels = PLATFORM_MODELS[agent.platform] || AVAILABLE_MODELS;
+      if (validModels.length > 0 && !validModels.includes(model)) {
+        // 自定义模型允许，但给提示
+        console.log(`  ⚠️  ${agent_id}: 自定义模型 "${model}"（不在 ${agent.platform} 预设列表中）`);
+      }
+    }
+
     setAgentModel(db, agent_id, model, effort || 'high');
     const fileSynced = syncAgentFile(root, agent_id, model, effort || 'high');
     res.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
