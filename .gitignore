@@ -5,6 +5,7 @@ settings.local.json
 settings.json
 .env
 .env.*
+!.env.example
 *.token
 *.pem
 *.key
