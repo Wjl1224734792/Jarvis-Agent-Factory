@@ -5,117 +5,206 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>智能体配置 · Jarvis Engine</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',bg:'#F5F3FF',surface:'#FFFFFF',text:'#1E1B4B',muted:'#6B7280',border:'#E5E7EB'},fontFamily:{sans:['Plus Jakarta Sans','system-ui','sans-serif']}}}}</script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',surface:'#FFFFFF',text:'#1E1B4B',muted:'#64748B'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['JetBrains Mono','Fira Code','monospace']}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
-.toast-in{animation:slideIn .25s ease-out}
-@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-.avatar-8{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:36px;height:36px;gap:1px;margin:6px auto}
-.avatar-8 span{width:100%;height:100%;border-radius:1px}
+  * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+  .toast-in { animation:slideIn .25s ease-out; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+  .live-dot { animation:pulse-dot 2s ease-in-out infinite; }
+  .agent-card { transition: all .2s ease; }
+  .agent-card:hover { transform: translateY(-2px); }
+  .avatar-8 { display:grid; grid-template-columns:repeat(8,1fr); grid-template-rows:repeat(8,1fr); width:36px; height:36px; gap:1px; margin:6px auto; }
+  .avatar-8 span { width:100%; height:100%; border-radius:1px; }
 </style>
 </head>
-<body class="bg-[#F5F3FF] text-[#1E1B4B] font-sans flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-800 font-sans flex h-screen overflow-hidden">
 
-<!-- ===== 左侧边栏 ===== -->
-<aside class="w-64 min-w-[256px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-sm">
-  <div class="px-5 py-5 border-b border-gray-100">
+<!-- ===== 控制台式左侧边栏 ===== -->
+<aside class="w-72 min-w-[288px] bg-slate-900 text-slate-300 flex flex-col h-full z-10 shadow-xl">
+  <!-- Logo 区域 -->
+  <div class="px-5 py-5 border-b border-slate-700/60">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/25">
+        <i data-lucide="zap" class="w-5 h-5 text-white"></i>
       </div>
       <div>
-        <h1 class="text-base font-bold text-[#1E1B4B] leading-tight">Jarvis Engine</h1>
-        <p class="text-[11px] text-gray-400">智能体配置</p>
+        <h1 class="text-[15px] font-bold text-white leading-tight font-mono tracking-tight">Jarvis Engine</h1>
+        <p class="text-[11px] text-slate-500 font-mono" id="verNum">v3.22.0</p>
       </div>
     </div>
   </div>
+
+  <!-- 导航 -->
   <nav class="px-3 py-4 flex flex-col gap-0.5">
-    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-l-[3px] border-transparent transition-colors">
+    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-[3px] border-transparent transition-colors">
       <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
       流水线看板
     </a>
-    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500">
+    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-600/20 text-indigo-300 border-l-[3px] border-indigo-500 transition-colors">
       <i data-lucide="bot" class="w-4 h-4"></i>
       智能体配置
     </a>
   </nav>
-  <div class="px-4 py-4 border-t border-gray-100 mt-auto">
-    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">MCP 接入状态</p>
-    <div class="flex flex-col gap-1.5 mb-3" id="mcpStatusSidebar">
-      <div class="flex items-center gap-2 text-[11px] text-gray-400"><span class="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block flex-shrink-0"></span> 加载中...</div>
+
+  <!-- 统计概览 -->
+  <div class="px-4 py-3">
+    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">智能体概览</p>
+    <div class="grid grid-cols-2 gap-2">
+      <div class="bg-slate-800 rounded-lg p-2.5 text-center">
+        <div class="text-lg font-bold text-white font-mono" id="statTotal">--</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">全部智能体</div>
+      </div>
+      <div class="bg-slate-800 rounded-lg p-2.5 text-center">
+        <div class="text-lg font-bold text-indigo-400 font-mono" id="statCustom">--</div>
+        <div class="text-[10px] text-slate-500 mt-0.5">已自定义</div>
+      </div>
     </div>
-    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">操作提示</p>
-    <p class="text-[11px] text-gray-400 leading-relaxed">点击卡片配置模型与思考等级</p>
-    <p class="text-[11px] text-gray-400 leading-relaxed">蓝色边框 = 已自定义配置</p>
-    <p class="text-[11px] text-gray-400 leading-relaxed">搜索框快速定位 agent</p>
+  </div>
+
+  <!-- 操作提示 -->
+  <div class="flex-1"></div>
+  <div class="px-4 py-3 border-t border-slate-700/60">
+    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">MCP 接入状态</p>
+    <div class="flex flex-col gap-1.5 mb-2.5" id="mcpStatusSidebar">
+      <div class="flex items-center gap-2 text-[11px] text-slate-600"><span class="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block flex-shrink-0"></span> 检测中...</div>
+    </div>
+    <div class="text-[10px] text-slate-500 pt-2 border-t border-slate-700/40 leading-relaxed">
+      <p>点击卡片配置模型与思考等级</p>
+      <p class="mt-1"><span class="text-indigo-400">●</span> 紫色边框 = 已自定义配置</p>
+      <p><span class="text-slate-500">●</span> 灰色边框 = 使用默认值</p>
+    </div>
   </div>
 </aside>
 
 <!-- ===== 主内容区域 ===== -->
-<main class="flex-1 overflow-y-auto">
+<main class="flex-1 overflow-y-auto bg-slate-50">
   <div class="max-w-6xl mx-auto px-8 py-8">
+
+    <!-- 页面标题 -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#1E1B4B]">智能体配置</h2>
-      <p class="text-sm text-gray-500 mt-1" id="agentCount">动态扫描模板目录 · 独立模型配置</p>
+      <div class="flex items-center gap-3 mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">智能体配置</h2>
+        <span class="px-2.5 py-0.5 text-[11px] font-medium bg-indigo-100 text-indigo-700 rounded-full">独立模型设置</span>
+      </div>
+      <p class="text-sm text-slate-500" id="agentCount">动态扫描模板目录 · 加载中...</p>
     </div>
 
     <!-- 工具栏 -->
     <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
       <div class="flex gap-1.5" id="platformTabs">
-        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors" onclick="setPlatform('all')">全部</button>
-        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('claude')">Claude</button>
-        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('opencode')">OpenCode</button>
-        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('codex')">Codex</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm" onclick="setPlatform('all')">全部平台</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setPlatform('claude')">Claude Code</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setPlatform('opencode')">OpenCode</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setPlatform('codex')">Codex</button>
       </div>
-      <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5">
-        <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
-        <input id="searchInput" class="text-sm bg-transparent outline-none w-48 text-[#1E1B4B] placeholder-gray-400" placeholder="搜索 agent 名称..." oninput="onSearch()">
-        <span id="clearSearch" class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 hidden" onclick="clearSearch()">清除</span>
+      <div class="flex items-center gap-2 bg-white border border-slate-200 rounded-lg px-3 py-2 shadow-sm">
+        <i data-lucide="search" class="w-4 h-4 text-slate-400"></i>
+        <input id="searchInput" class="text-sm bg-transparent outline-none w-48 text-slate-700 placeholder-slate-400" placeholder="搜索 agent 名称..." oninput="onSearch()">
+        <span id="clearSearch" class="text-xs text-slate-400 cursor-pointer hover:text-slate-600 hidden" onclick="clearSearch()">✕</span>
       </div>
     </div>
 
     <!-- 分类筛选 -->
     <div class="flex gap-1.5 flex-wrap mb-6" id="categoryTabs">
-      <button class="px-3 py-1 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors" onclick="setCategory('全部')">全部</button>
+      <button class="px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm" onclick="setCategory('全部')">全部</button>
     </div>
 
     <!-- 智能体网格 -->
-    <div class="grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-3" id="agentsGrid">
-      <div class="text-center py-12 text-gray-400 col-span-full text-sm">加载中...</div>
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(185px,1fr))] gap-3" id="agentsGrid">
+      <div class="text-center py-16 text-slate-400 col-span-full">
+        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-3 text-slate-300 animate-spin"></i>
+        <p class="text-sm">加载中...</p>
+      </div>
     </div>
 
-    <footer class="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
-      <span>Jarvis Engine</span>
-      <span><a href="/dashboard" class="text-indigo-500 hover:text-indigo-600 transition-colors">流水线看板</a><span class="mx-2">·</span>会话隔离模式</span>
+    <!-- Footer -->
+    <footer class="mt-8 pt-6 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
+      <span class="font-mono">Jarvis Engine · MCP :3456</span>
+      <span>
+        <a href="/dashboard" class="text-indigo-500 hover:text-indigo-600 transition-colors font-medium">流水线看板</a>
+        <span class="mx-2 text-slate-300">·</span>
+        <span>会话隔离模式</span>
+      </span>
     </footer>
   </div>
 </main>
 
 <!-- ===== 配置弹窗 ===== -->
-<div class="fixed inset-0 bg-black/25 z-50 hidden items-center justify-center" id="modal">
-  <div class="bg-white rounded-2xl p-6 min-w-[360px] max-w-[420px] shadow-xl">
-    <h3 class="text-lg font-bold text-[#1E1B4B]" id="modalName">---</h3>
-    <p class="text-xs text-gray-500 mb-4" id="modalRole">---</p>
+<div class="fixed inset-0 bg-black/30 z-50 hidden items-center justify-center backdrop-blur-sm" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="bg-white rounded-2xl p-6 min-w-[380px] max-w-[440px] shadow-2xl border border-slate-200">
+    <div class="flex items-center gap-3 mb-1">
+      <div class="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
+        <i data-lucide="settings" class="w-5 h-5 text-indigo-600"></i>
+      </div>
+      <div>
+        <h3 class="text-lg font-bold text-slate-800" id="modalName">---</h3>
+        <p class="text-[11px] text-slate-500 font-mono" id="modalRole">---</p>
+      </div>
+    </div>
 
-    <label class="block text-xs font-medium text-gray-500 mb-1">模型</label>
-    <select id="modalSelect" class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-3" onchange="onModelChange()"></select>
-    <input id="modalCustom" type="text" placeholder="或输入自定义模型名称..." class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-3 hidden" oninput="onCustomInput()">
+    <div class="mt-4 space-y-4">
+      <!-- 模型选择 -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1.5">模型选择</label>
+        <select id="modalSelect" class="w-full px-3 py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all" onchange="onModelChange()"></select>
+        <input id="modalCustom" type="text" placeholder="输入自定义模型名称..." class="w-full px-3 py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mt-2 hidden font-mono" oninput="onCustomInput()">
+      </div>
 
-    <label class="block text-xs font-medium text-gray-500 mb-1">思考等级</label>
-    <select id="modalEffort" class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-5"></select>
+      <!-- 思考等级 -->
+      <div>
+        <label class="block text-xs font-semibold text-slate-600 mb-1.5">思考等级（Effort）</label>
+        <select id="modalEffort" class="w-full px-3 py-2.5 bg-slate-50 text-slate-700 border border-slate-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all"></select>
+        <p class="text-[10px] text-slate-400 mt-1">等级越高推理越深入，响应时间越长</p>
+      </div>
+    </div>
 
-    <div class="flex gap-2 justify-end">
-      <button class="px-4 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-indigo-300 hover:text-indigo-500 transition-colors mr-auto" id="resetBtn" onclick="resetModel()">恢复默认</button>
-      <button class="px-5 py-2 text-xs font-semibold bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors" id="saveBtn" onclick="saveModel()">保存</button>
+    <div class="flex gap-2 justify-end mt-5 pt-4 border-t border-slate-100">
+      <button class="px-4 py-2 text-xs font-medium text-slate-500 border border-slate-200 rounded-lg hover:border-indigo-300 hover:text-indigo-500 transition-colors mr-auto" id="resetBtn" onclick="resetModel()">
+        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5 inline mr-1"></i>恢复默认
+      </button>
+      <button class="px-5 py-2 text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors shadow-sm" id="saveBtn" onclick="saveModel()">保存配置</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
+<!-- Toast 容器 -->
 <div id="toastContainer" class="fixed bottom-6 right-6 z-[300] flex flex-col gap-2"></div>
 
 <script>
+/** 平台中文名映射 */
+const PLATFORM_NAMES = {
+  claude: 'Claude Code',
+  opencode: 'OpenCode',
+  codex: 'Codex',
+};
+
+/** 角色中文说明 */
+const ROLE_INFO = {
+  '全栈':         { desc: '前后端全栈开发', icon: 'code' },
+  '前端':         { desc: '页面、组件、交互实现', icon: 'layout' },
+  '后端':         { desc: '服务端逻辑与 API', icon: 'server' },
+  '移动端':       { desc: 'iOS/Android/跨端', icon: 'smartphone' },
+  '测试':         { desc: '单元/集成/E2E 测试', icon: 'test-tube' },
+  '审查':         { desc: '代码审查与质量审计', icon: 'search' },
+  '架构':         { desc: '系统架构与设计', icon: 'blueprint' },
+  '文档':         { desc: 'API 契约与文档', icon: 'file-text' },
+  '基础设施':     { desc: 'CI/CD 与部署', icon: 'container' },
+  '探索':         { desc: '代码库探索与研究', icon: 'compass' },
+};
+
+/** 努力等级中文说明 */
+const EFFORT_NAMES = {
+  low:    { label: '低',    desc: '快速响应，适合简单任务' },
+  medium: { label: '中',    desc: '平衡速度与质量' },
+  high:   { label: '高',    desc: '深入推理，默认推荐' },
+  xhigh:  { label: '极高',  desc: '最大推理深度' },
+  max:    { label: '最大',  desc: '极限推理，实验性' },
+};
+
+// ---- 像素头像数据 ----
 const PIXEL = {
   brain:[0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
   layout:[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
@@ -134,186 +223,291 @@ const PIXEL = {
   shield:[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,1,1,1,1,0,0],
   eye:[0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,0,1,0,0,1,0,0,0,1,1,0,0,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 };
-const COLORS = {brain:'#B4A7FF',layout:'#7DE2D1',palette:'#FF7B9C',db:'#4ECB71',test:'#FFE17B',server:'#7DE2D1',route:'#FF7B9C',cog:'#8B869B',table:'#4ECB71',globe:'#7DE2D1',play:'#4ECB71',file:'#8B869B',map:'#B4A7FF',list:'#FFE17B',shield:'#FF7B9C',eye:'#B4A7FF'};
-function px(icon){const p=PIXEL[icon]||PIXEL.brain;const c=COLORS[icon]||COLORS.brain;return`<div class=avatar-8>${p.map(v=>`<span style="background:${v?c:'transparent'}"></span>`).join('')}</div>`}
 
-let agents=[],cur=null,platform='all',category='全部',d=null,customModel='',saving=false,searchText='';
+const PIXEL_COLORS = {
+  brain:'#B4A7FF', layout:'#7DE2D1', palette:'#FF7B9C', db:'#4ECB71', test:'#FFE17B',
+  server:'#7DE2D1', route:'#FF7B9C', cog:'#8B869B', table:'#4ECB71', globe:'#7DE2D1',
+  play:'#4ECB71', file:'#8B869B', map:'#B4A7FF', list:'#FFE17B', shield:'#FF7B9C', eye:'#B4A7FF',
+};
 
-async function load(p){
-  if(p!==undefined)platform=p;
+function px(icon) {
+  const p = PIXEL[icon] || PIXEL.brain;
+  const c = PIXEL_COLORS[icon] || PIXEL_COLORS.brain;
+  return `<div class="avatar-8">${p.map(v => `<span style="background:${v ? c : 'transparent'}"></span>`).join('')}</div>`;
+}
+
+// ---- 状态 ----
+let agents = [], cur = null, platform = 'all', category = '全部', d = null, customModel = '', saving = false, searchText = '';
+
+async function load(p) {
+  if (p !== undefined) platform = p;
   const params = new URLSearchParams();
-  if(platform!=='all') params.set('platform',platform);
-  if(category!=='全部') params.set('category',category);
-  if(searchText) params.set('search',searchText);
-  const qs = params.toString() ? '?'+params.toString() : '';
-  const r=await fetch('/api/agents'+qs);
-  d=await r.json();agents=d.agents;
-  if(d.categories && document.getElementById('categoryTabs').children.length<=1){
-    document.getElementById('categoryTabs').innerHTML = d.categories.map(c=>{
-      const isSel = c===category;
-      return `<button class="px-3 py-1 text-xs font-medium rounded-lg transition-colors ${isSel?'bg-indigo-500 text-white':'text-gray-500 hover:bg-gray-100'}" onclick="setCategory('${c}')">${c==='全部'?'全部':c}</button>`;
+  if (platform !== 'all') params.set('platform', platform);
+  if (category !== '全部') params.set('category', category);
+  if (searchText) params.set('search', searchText);
+  const qs = params.toString() ? '?' + params.toString() : '';
+  const r = await fetch('/api/agents' + qs);
+  d = await r.json();
+  agents = d.agents;
+
+  // 更新统计
+  document.getElementById('statTotal').textContent = d.total_count || agents.length;
+  document.getElementById('statCustom').textContent = agents.filter(a => a.is_custom).length;
+
+  // 懒初始化分类按钮
+  if (d.categories && document.getElementById('categoryTabs').children.length <= 1) {
+    document.getElementById('categoryTabs').innerHTML = d.categories.map(c => {
+      const isSel = c === category;
+      return `<button class="px-3 py-1 text-xs font-medium rounded-lg transition-colors ${isSel ? 'bg-indigo-600 text-white shadow-sm' : 'text-slate-500 hover:bg-slate-200'}" onclick="setCategory('${c}')">${c === '全部' ? '全部' : c}</button>`;
     }).join('');
   }
-  document.getElementById('agentsGrid').innerHTML=render();
-  const scope = (platform==='all'?'全部平台 ':'') + (category==='全部'?'':category+' ');
-  document.getElementById('agentCount').textContent=scope+agents.length+' 个智能体 · 共 '+d.total_count+' 个';
+
+  document.getElementById('agentsGrid').innerHTML = render();
+
+  const scopeParts = [];
+  if (platform !== 'all') scopeParts.push(PLATFORM_NAMES[platform] || platform);
+  if (category !== '全部') scopeParts.push(category);
+  scopeParts.push(agents.length + ' 个智能体');
+  scopeParts.push('共 ' + d.total_count + ' 个');
+  document.getElementById('agentCount').textContent = scopeParts.join(' · ');
+
   lucide.createIcons();
 }
 
-function setPlatform(p){
-  platform=p;
-  document.querySelectorAll('#platformTabs button').forEach(b=>{
+function setPlatform(p) {
+  platform = p;
+  document.querySelectorAll('#platformTabs button').forEach(b => {
     const txt = b.textContent.trim().toLowerCase();
-    b.className = (txt === p || (p==='all' && txt==='全部'))
-      ? 'px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors'
-      : 'px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors';
+    const isActive = txt === p || (p === 'all' && txt.includes('全部'));
+    b.className = isActive
+      ? 'px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
+      : 'px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';
   });
   load();
 }
 
-function setCategory(c){
-  category=c;
-  document.querySelectorAll('#categoryTabs button').forEach(b=>{
+function setCategory(c) {
+  category = c;
+  document.querySelectorAll('#categoryTabs button').forEach(b => {
     b.className = b.textContent.trim() === c
-      ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors'
-      : 'px-3 py-1 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors';
+      ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
+      : 'px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';
   });
   load();
 }
 
-function onSearch(){
-  searchText=document.getElementById('searchInput').value.trim();
-  document.getElementById('clearSearch').classList.toggle('hidden',searchText.length===0);
+function onSearch() {
+  searchText = document.getElementById('searchInput').value.trim();
+  document.getElementById('clearSearch').classList.toggle('hidden', searchText.length === 0);
   load();
 }
-function clearSearch(){
-  document.getElementById('searchInput').value='';
-  searchText='';
+
+function clearSearch() {
+  document.getElementById('searchInput').value = '';
+  searchText = '';
   document.getElementById('clearSearch').classList.add('hidden');
   load();
 }
 
-function render(){
-  if(agents.length===0) return '<div class="text-center py-12 text-gray-400 col-span-full text-sm">未找到匹配的智能体</div>';
-  return agents.map(a=>{
-    const synced = a.is_custom ? '<span class="inline-block w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" title="已自定义"></span>' : '';
-    const cardExtra = a.is_custom ? 'ring-2 ring-indigo-300 border-indigo-300' : 'border-gray-100';
-    return `<div class="bg-white rounded-xl p-4 border ${cardExtra} cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onclick="openM('${a.id}')">
+/** 获取角色图标（Lucide 图标名） */
+function roleIcon(role) {
+  const map = {
+    '全栈': 'code-2', '前端': 'palette', '后端': 'server', '移动端': 'smartphone',
+    '测试': 'beaker', '审查': 'search-check', '架构': 'boxes', '文档': 'file-code',
+    '基础设施': 'container', '探索': 'compass',
+  };
+  return map[role] || 'bot';
+}
+
+function render() {
+  if (agents.length === 0) {
+    return `<div class="text-center py-16 text-slate-400 col-span-full">
+      <i data-lucide="bot" class="w-10 h-10 mx-auto mb-3 text-slate-300"></i>
+      <p class="text-sm font-medium">未找到匹配的智能体</p>
+      <p class="text-xs mt-1 text-slate-400">尝试调整搜索条件或平台筛选</p>
+    </div>`;
+  }
+
+  return agents.map(a => {
+    const roleInfo = ROLE_INFO[a.role] || { desc: a.role || '', icon: 'bot' };
+    const effortInfo = EFFORT_NAMES[a.effort] || { label: a.effort || 'high' };
+    const platformName = PLATFORM_NAMES[a.platform] || a.platform || '';
+
+    // 自定义标记
+    const borderClass = a.is_custom
+      ? 'ring-2 ring-indigo-400 border-indigo-400 shadow-md shadow-indigo-100'
+      : 'border-slate-200 hover:border-slate-300';
+
+    const customBadge = a.is_custom
+      ? '<span class="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full font-medium"><span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>已配置</span>'
+      : '';
+
+    return `<div class="agent-card bg-white rounded-xl p-4 border ${borderClass} cursor-pointer group" onclick="openM('${a.id}')">
       ${px(a.icon)}
-      <div class="text-[10px] text-gray-400 uppercase tracking-wide mt-1">${a.platform||''} · ${a.role||''}</div>
-      <div class="text-sm font-semibold text-[#1E1B4B] mt-1 flex items-center gap-1.5">${a.name}${synced}</div>
-      <div class="inline-block text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md mt-2 font-medium max-w-full truncate" title="${a.model}">${a.model||'(未配置)'}<span class="ml-1 text-[10px] text-emerald-500 font-medium">${a.effort||'high'}</span></div>
+      <div class="flex items-center gap-1.5 justify-center mt-1 flex-wrap">
+        <span class="text-[10px] text-slate-400 uppercase tracking-wide font-medium">${platformName}</span>
+        ${customBadge}
+      </div>
+      <div class="text-sm font-semibold text-slate-800 mt-1.5 text-center truncate" title="${a.name}">${a.name}</div>
+      <div class="flex items-center justify-center gap-1 mt-1">
+        <i data-lucide="${roleIcon(a.role)}" class="w-3 h-3 text-slate-400"></i>
+        <span class="text-[11px] text-slate-500" title="${roleInfo.desc}">${a.role || '未知'}</span>
+      </div>
+      <div class="flex items-center justify-center gap-1.5 mt-2">
+        <span class="text-[10px] text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full font-mono max-w-[120px] truncate" title="${a.model || '未配置'}">${a.model || '(未配置)'}</span>
+        <span class="text-[10px] font-medium ${a.is_custom ? 'text-indigo-500 bg-indigo-50' : 'text-slate-400 bg-slate-100'} px-1.5 py-0.5 rounded-full">${effortInfo.label}</span>
+      </div>
     </div>`;
   }).join('');
 }
 
-function platformModels(p){return d&&d.platform_models?d.platform_models[p]||d.available_models:d.available_models}
+function platformModels(p) { return d && d.platform_models ? d.platform_models[p] || d.available_models : d.available_models; }
 
-function onModelChange(){
-  if(document.getElementById('modalSelect').value==='__custom__'){
-    document.getElementById('modalCustom').classList.remove('hidden');
-    document.getElementById('modalCustom').focus();
-  }else{document.getElementById('modalCustom').classList.add('hidden')}
+function onModelChange() {
+  document.getElementById('modalCustom').classList.toggle('hidden', document.getElementById('modalSelect').value !== '__custom__');
+  if (document.getElementById('modalSelect').value === '__custom__') document.getElementById('modalCustom').focus();
 }
-function onCustomInput(){customModel=document.getElementById('modalCustom').value}
 
-function openM(id){
-  cur=agents.find(a=>a.id===id);
-  if(!cur)return;
-  customModel='';
-  document.getElementById('modalName').textContent=cur.name;
-  document.getElementById('modalRole').textContent=cur.platform+' · '+(cur.role||'')+' · 默认: '+(cur.defaultModel||'?')+' @'+(cur.defaultEffort||'high');
-  const pModels=platformModels(cur.platform);
-  const curInList=pModels.includes(cur.model);
-  document.getElementById('modalSelect').innerHTML=
-    pModels.map(m=>`<option value="${m}" ${m===cur.model?'selected':''}>${m}</option>`).join('')+
-    (curInList?'':'<option value="'+cur.model+'" selected>'+cur.model+'</option>')+
-    '<option value="__custom__">自定义输入...</option>';
+function onCustomInput() { customModel = document.getElementById('modalCustom').value; }
+
+function openM(id) {
+  cur = agents.find(a => a.id === id);
+  if (!cur) return;
+
+  customModel = '';
+  document.getElementById('modalName').textContent = cur.name;
+  const platformName = PLATFORM_NAMES[cur.platform] || cur.platform;
+  document.getElementById('modalRole').textContent =
+    platformName + ' · ' + (cur.role || '未知') + ' · 默认: ' + (cur.defaultModel || '?') + ' @' + (cur.defaultEffort || 'high');
+
+  const pModels = platformModels(cur.platform);
+  const curInList = pModels.includes(cur.model);
+  document.getElementById('modalSelect').innerHTML =
+    pModels.map(m => `<option value="${m}" ${m === cur.model ? 'selected' : ''}>${m}</option>`).join('') +
+    (curInList ? '' : `<option value="${cur.model}" selected>${cur.model}</option>`) +
+    '<option value="__custom__">✏️ 自定义输入...</option>';
   document.getElementById('modalCustom').classList.add('hidden');
-  document.getElementById('modalCustom').value='';
-  document.getElementById('modalEffort').innerHTML=(d.available_efforts||['low','medium','high','xhigh','max']).map(e=>'<option value="'+e+'" '+(e===(cur.effort||'high')?'selected':'')+'>'+e+'</option>').join('');
+  document.getElementById('modalCustom').value = '';
+
+  const efforts = d.available_efforts || ['low', 'medium', 'high', 'xhigh', 'max'];
+  document.getElementById('modalEffort').innerHTML = efforts.map(e => {
+    const ei = EFFORT_NAMES[e] || { label: e };
+    return `<option value="${e}" ${e === (cur.effort || 'high') ? 'selected' : ''}>${e} — ${ei.label}${ei.desc ? ' · ' + ei.desc : ''}</option>`;
+  }).join('');
+
   document.getElementById('modal').classList.remove('hidden');
   document.getElementById('modal').classList.add('flex');
-  document.getElementById('saveBtn').disabled=false;
-  document.getElementById('saveBtn').textContent='保存';
+  document.getElementById('saveBtn').disabled = false;
+  document.getElementById('saveBtn').textContent = '保存配置';
+  lucide.createIcons();
 }
 
-function setSaveLoading(loading){
-  saving=loading;
-  const btn=document.getElementById('saveBtn');
-  const reset=document.getElementById('resetBtn');
-  btn.disabled=loading;reset.disabled=loading;
-  btn.textContent=loading?'保存中...':'保存';
+function closeModal() {
+  document.getElementById('modal').classList.add('hidden');
+  document.getElementById('modal').classList.remove('flex');
 }
 
-async function saveModel(){
-  if(saving)return;
+function setSaveLoading(loading) {
+  saving = loading;
+  const btn = document.getElementById('saveBtn');
+  const reset = document.getElementById('resetBtn');
+  btn.disabled = loading;
+  reset.disabled = loading;
+  btn.textContent = loading ? '保存中...' : '保存配置';
+}
+
+async function saveModel() {
+  if (saving) return;
   setSaveLoading(true);
-  try{
-    const sel=document.getElementById('modalSelect').value;
-    const m=sel==='__custom__'?customModel||cur.model:sel;
-    const e=document.getElementById('modalEffort').value;
-    const resp=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:m,effort:e})});
-    const r=await resp.json();
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-    cur.model=m;cur.effort=e;cur.is_custom=true;
-    document.getElementById('agentsGrid').innerHTML=render();
-    toast(r.file_synced?'已保存并同步到源文件 · '+cur.name+' → '+m+' @'+e:'已保存到数据库（源文件同步未成功）',r.file_synced?'success':'warn');
-  }catch(err){toast('保存失败: '+err.message,'error')}
-  finally{setSaveLoading(false)}
+  try {
+    const sel = document.getElementById('modalSelect').value;
+    const m = sel === '__custom__' ? customModel || cur.model : sel;
+    const e = document.getElementById('modalEffort').value;
+    const resp = await fetch('/api/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_id: cur.id, model: m, effort: e }),
+    });
+    const r = await resp.json();
+    closeModal();
+    cur.model = m;
+    cur.effort = e;
+    cur.is_custom = true;
+    document.getElementById('agentsGrid').innerHTML = render();
+    document.getElementById('statCustom').textContent = agents.filter(a => a.is_custom).length;
+    lucide.createIcons();
+    toast(r.file_synced
+      ? '已保存并同步到源文件 · ' + cur.name + ' → ' + m + ' @' + e
+      : '已保存到数据库（源文件同步未成功）', r.file_synced ? 'success' : 'warn');
+  } catch (err) { toast('保存失败: ' + err.message, 'error'); }
+  finally { setSaveLoading(false); }
 }
 
-async function resetModel(){
-  if(saving)return;
+async function resetModel() {
+  if (saving) return;
   setSaveLoading(true);
-  try{
-    const resp=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:cur.defaultModel,effort:cur.defaultEffort||'high'})});
-    const r=await resp.json();
-    document.getElementById('modal').classList.add('hidden');
-    document.getElementById('modal').classList.remove('flex');
-    cur.model=cur.defaultModel;cur.effort=cur.defaultEffort||'high';cur.is_custom=false;
-    document.getElementById('agentsGrid').innerHTML=render();
-    toast(r.file_synced?'已恢复默认 · '+cur.name:'已恢复默认（文件同步未成功）','success');
-  }catch(err){toast('重置失败: '+err.message,'error')}
-  finally{setSaveLoading(false)}
+  try {
+    const resp = await fetch('/api/agents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ agent_id: cur.id, model: cur.defaultModel, effort: cur.defaultEffort || 'high' }),
+    });
+    const r = await resp.json();
+    closeModal();
+    cur.model = cur.defaultModel;
+    cur.effort = cur.defaultEffort || 'high';
+    cur.is_custom = false;
+    document.getElementById('agentsGrid').innerHTML = render();
+    document.getElementById('statCustom').textContent = agents.filter(a => a.is_custom).length;
+    lucide.createIcons();
+    toast(r.file_synced ? '已恢复默认 · ' + cur.name : '已恢复默认（文件同步未成功）', 'success');
+  } catch (err) { toast('重置失败: ' + err.message, 'error'); }
+  finally { setSaveLoading(false); }
 }
 
-function toast(msg,type){
-  const t=document.createElement('div');
-  const bg = type==='error'?'bg-red-500':type==='warn'?'bg-amber-500':'bg-emerald-500';
-  t.className='toast-in px-4 py-3 rounded-lg text-sm font-medium shadow-lg text-white '+bg;
-  t.textContent=msg;
+function toast(msg, type) {
+  const t = document.createElement('div');
+  const bg = type === 'error' ? 'bg-red-500' : type === 'warn' ? 'bg-amber-500' : 'bg-emerald-600';
+  t.className = 'toast-in px-4 py-3 rounded-xl text-sm font-medium shadow-lg text-white ' + bg;
+  t.textContent = msg;
   document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},3500);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
 }
-
-document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget){document.getElementById('modal').classList.add('hidden');document.getElementById('modal').classList.remove('flex')}});
 
 // MCP 平台接入状态轮询
-async function loadMcpStatus(){
-  try{
-    const r=await fetch('/api/status');
-    const d=await r.json();
+async function loadMcpStatus() {
+  try {
+    const r = await fetch('/api/status');
+    const d = await r.json();
     const platforms = d.connected_platforms || {};
-    const names = {claude:'Claude Code',opencode:'OpenCode',codex:'Codex'};
-    let html='';
-    for(const [key,label] of Object.entries(names)){
+    const names = { claude: 'Claude Code', opencode: 'OpenCode', codex: 'Codex' };
+    let html = '';
+    for (const [key, label] of Object.entries(names)) {
       const p = platforms[key];
-      const connected = p&&p.connected;
-      const sessions = p?p.active_sessions:0;
-      html+=`<div class="flex items-center gap-2 text-[11px] ${connected?'text-emerald-600':'text-gray-400'}">
-        <span class="w-1.5 h-1.5 rounded-full ${connected?'bg-emerald-500':'bg-gray-300'} inline-block flex-shrink-0"></span>
-        ${label} ${connected?'· '+sessions+' 会话':''}
+      const connected = p && p.connected;
+      const sessions = p ? p.active_sessions : 0;
+      html += `<div class="flex items-center gap-2 text-[11px] ${connected ? 'text-emerald-400' : 'text-slate-600'}">
+        <span class="w-1.5 h-1.5 rounded-full ${connected ? 'bg-emerald-500 live-dot' : 'bg-slate-600'} inline-block flex-shrink-0"></span>
+        ${label} ${connected ? '<span class="text-emerald-500 font-mono">' + sessions + '</span> 会话' : ''}
       </div>`;
     }
-    document.getElementById('mcpStatusSidebar').innerHTML=html;
-  }catch{}
+    document.getElementById('mcpStatusSidebar').innerHTML = html;
+  } catch {}
 }
-setInterval(loadMcpStatus,5000);
-loadMcpStatus();
 
+// 读取版本号
+(async () => {
+  try {
+    const r = await fetch('/health');
+    const h = await r.json();
+    if (h && h.version) document.getElementById('verNum').textContent = 'v' + h.version;
+  } catch {}
+})();
+
+// 初始加载
 load();
+setInterval(loadMcpStatus, 5000);
+loadMcpStatus();
 lucide.createIcons();
 </script>
 </body>

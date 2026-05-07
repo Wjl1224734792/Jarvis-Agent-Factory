@@ -3,183 +3,219 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Jarvis Engine · 流水线看板</title>
+<title>流水线看板 · Jarvis Engine</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',bg:'#F5F3FF',surface:'#FFFFFF',text:'#1E1B4B',muted:'#6B7280',border:'#E5E7EB'},fontFamily:{sans:['Plus Jakarta Sans','system-ui','sans-serif']}}}}</script>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',surface:'#FFFFFF',text:'#1E1B4B',muted:'#64748B'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['JetBrains Mono','Fira Code','monospace']}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
-  .step-line{position:absolute;left:11px;top:28px;bottom:4px;width:2px}
-  .toast-in{animation:slideIn .25s ease-out}
-  @keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-  .refreshing{animation:spin .6s linear}
-  .session-item:hover .session-actions{opacity:1}
-  .session-actions{opacity:0;transition:opacity .15s}
+  * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
+  .step-line { position:absolute; left:11px; top:28px; bottom:4px; width:2px; }
+  .toast-in { animation:slideIn .25s ease-out; }
+  @keyframes slideIn { from{opacity:0;transform:translateY(12px);} to{opacity:1;transform:translateY(0);} }
+  @keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
+  @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.5;} }
+  .refreshing { animation:spin .6s linear; }
+  .session-item:hover .session-actions { opacity:1; }
+  .session-actions { opacity:0; transition:opacity .15s; }
+  .live-dot { animation:pulse-dot 2s ease-in-out infinite; }
+  .console-line { border-left: 2px solid #6366F1; padding-left: 10px; }
 </style>
 </head>
-<body class="bg-[#F5F3FF] text-[#1E1B4B] font-sans flex h-screen overflow-hidden">
+<body class="bg-slate-50 text-slate-800 font-sans flex h-screen overflow-hidden">
 
-<!-- ===== 左侧边栏 ===== -->
-<aside class="w-64 min-w-[256px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-sm">
-  <!-- Logo -->
-  <div class="px-5 py-5 border-b border-gray-100">
+<!-- ===== 控制台式左侧边栏 ===== -->
+<aside class="w-72 min-w-[288px] bg-slate-900 text-slate-300 flex flex-col h-full z-10 shadow-xl">
+  <!-- Logo 区域 -->
+  <div class="px-5 py-5 border-b border-slate-700/60">
     <div class="flex items-center gap-3">
-      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
-        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      <div class="w-9 h-9 bg-indigo-600 rounded-lg flex items-center justify-center shadow-lg shadow-indigo-500/25">
+        <i data-lucide="zap" class="w-5 h-5 text-white"></i>
       </div>
       <div>
-        <h1 class="text-base font-bold text-[#1E1B4B] leading-tight">Jarvis Engine</h1>
-        <p class="text-[11px] text-gray-400" id="verNum">v---</p>
+        <h1 class="text-[15px] font-bold text-white leading-tight font-mono tracking-tight">Jarvis Engine</h1>
+        <p class="text-[11px] text-slate-500 font-mono" id="verNum">v3.22.0</p>
       </div>
     </div>
   </div>
 
   <!-- 导航 -->
   <nav class="px-3 py-4 flex flex-col gap-0.5">
-    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500">
+    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-600/20 text-indigo-300 border-l-[3px] border-indigo-500 transition-colors">
       <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
       流水线看板
     </a>
-    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-l-[3px] border-transparent transition-colors">
+    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-400 hover:bg-slate-800 hover:text-slate-200 border-l-[3px] border-transparent transition-colors">
       <i data-lucide="bot" class="w-4 h-4"></i>
       智能体配置
     </a>
   </nav>
 
   <!-- 平台筛选 -->
-  <div class="px-4 py-2">
-    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">平台筛选</p>
+  <div class="px-4 py-3">
+    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">平台筛选</p>
     <div class="flex gap-1" id="sessionPlatformTabs">
-      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-500 text-white transition-colors" onclick="setSessionPlatform('all')">全部</button>
-      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('claude')">Claude</button>
-      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('opencode')">OpenCode</button>
-      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('codex')">Codex</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-600 text-white transition-all" onclick="setSessionPlatform('all')">全部</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all" onclick="setSessionPlatform('claude')">Claude</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all" onclick="setSessionPlatform('opencode')">OpenCode</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all" onclick="setSessionPlatform('codex')">Codex</button>
     </div>
   </div>
 
   <!-- 会话列表 -->
   <div class="flex-1 overflow-y-auto px-3 py-2">
-    <div class="flex items-center justify-between px-1 mb-2">
-      <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">会话列表</p>
-      <button id="manualRefresh" onclick="manualRefresh()" class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors text-gray-400" title="刷新状态">
+    <div class="flex items-center justify-between px-1 mb-2.5">
+      <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest">会话列表</p>
+      <button id="manualRefresh" onclick="manualRefresh()" class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-slate-800 transition-colors text-slate-500" title="刷新状态">
         <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
       </button>
     </div>
-    <div id="sessionsList" class="flex flex-col gap-1">
-      <p class="text-xs text-gray-400 text-center py-8">等待连接...</p>
+    <div id="sessionsList" class="flex flex-col gap-0.5">
+      <p class="text-xs text-slate-600 text-center py-8 font-mono">等待会话连接...</p>
     </div>
   </div>
 
-  <!-- MCP 接入状态 -->
-  <div class="px-4 py-3 border-t border-gray-100">
-    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">MCP 接入</p>
-    <div class="flex flex-col gap-1 mb-2" id="mcpStatusSidebar">
-      <div class="flex items-center gap-2 text-[11px] text-gray-400"><span class="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block flex-shrink-0"></span> 加载中...</div>
+  <!-- MCP 状态 -->
+  <div class="px-4 py-3 border-t border-slate-700/60">
+    <p class="text-[10px] font-semibold text-slate-500 uppercase tracking-widest mb-2.5">MCP 接入状态</p>
+    <div class="flex flex-col gap-1.5 mb-2.5" id="mcpStatusSidebar">
+      <div class="flex items-center gap-2 text-[11px] text-slate-600"><span class="w-1.5 h-1.5 rounded-full bg-slate-600 inline-block flex-shrink-0"></span> 检测中...</div>
     </div>
-    <div class="flex items-center justify-between text-[11px] text-gray-400 pt-1.5 border-t border-gray-50">
-      <span id="sessionCount">0 个会话</span>
-      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 运行中</span>
+    <div class="flex items-center justify-between text-[10px] text-slate-500 pt-2 border-t border-slate-700/40">
+      <span id="sessionCount" class="font-mono">0 个会话</span>
+      <span class="flex items-center gap-1.5"><span class="w-2 h-2 rounded-full bg-emerald-500 live-dot"></span> 运行中</span>
     </div>
   </div>
 </aside>
 
 <!-- ===== 主内容区域 ===== -->
-<main class="flex-1 overflow-y-auto">
-  <div class="max-w-4xl mx-auto px-8 py-8">
+<main class="flex-1 overflow-y-auto bg-slate-50">
+  <div class="max-w-5xl mx-auto px-8 py-8">
 
     <!-- 页面标题 -->
     <div class="mb-8">
-      <h2 class="text-2xl font-bold text-[#1E1B4B]">流水线看板</h2>
-      <p class="text-sm text-gray-500 mt-1" id="pipelineProject">会话隔离模式 · 实时刷新</p>
+      <div class="flex items-center gap-3 mb-2">
+        <h2 class="text-2xl font-bold text-slate-800">流水线看板</h2>
+        <span class="px-2.5 py-0.5 text-[11px] font-medium bg-indigo-100 text-indigo-700 rounded-full">Gate 实时监控</span>
+      </div>
+      <p class="text-sm text-slate-500" id="pipelineProject">会话隔离模式 · 实时刷新 · 每 5 秒自动轮询</p>
     </div>
 
     <!-- 统计卡片 -->
     <div class="grid grid-cols-4 gap-4 mb-8">
-      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-        <div class="text-3xl font-bold text-indigo-500" id="statProgress">0%</div>
-        <div class="text-xs text-gray-500 mt-1">完成进度</div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">完成进度</span>
+          <i data-lucide="trending-up" class="w-4 h-4 text-indigo-400"></i>
+        </div>
+        <div class="text-3xl font-bold text-indigo-600 font-mono" id="statProgress">0%</div>
       </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-        <div class="text-3xl font-bold text-[#818CF8]" id="statGates">0/8</div>
-        <div class="text-xs text-gray-500 mt-1">已通过 Gate</div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">已通过 Gate</span>
+          <i data-lucide="check-circle" class="w-4 h-4 text-violet-400"></i>
+        </div>
+        <div class="text-3xl font-bold text-violet-600 font-mono" id="statGates">0/8</div>
       </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-        <div class="text-3xl font-bold text-emerald-500" id="statCurrent">---</div>
-        <div class="text-xs text-gray-500 mt-1">当前阶段</div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">当前阶段</span>
+          <i data-lucide="target" class="w-4 h-4 text-emerald-400"></i>
+        </div>
+        <div class="text-2xl font-bold text-emerald-600 font-mono" id="statCurrent">---</div>
       </div>
-      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
-        <div class="text-3xl font-bold text-amber-500" id="statArtifacts">0</div>
-        <div class="text-xs text-gray-500 mt-1">产物文件</div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">产物文件</span>
+          <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
+        </div>
+        <div class="text-3xl font-bold text-amber-600 font-mono" id="statArtifacts">0</div>
       </div>
     </div>
 
     <!-- 进度条 -->
-    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+    <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm mb-8">
       <div class="flex justify-between items-center mb-2.5">
-        <span class="text-sm font-medium text-gray-600" id="progressText">开始流水线</span>
-        <span class="text-xs font-semibold text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-full" id="progressGate">Gate A</span>
+        <span class="text-sm font-medium text-slate-600 font-mono" id="progressText">等待流水线启动...</span>
+        <span class="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2.5 py-1 rounded-full font-mono" id="progressGate">Gate A</span>
       </div>
-      <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
-        <div class="h-full bg-gradient-to-r from-indigo-500 to-[#818CF8] rounded-full transition-all duration-700 ease-out" id="progressFill" style="width:0%"></div>
+      <div class="h-2.5 bg-slate-100 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-indigo-500 to-violet-500 rounded-full transition-all duration-700 ease-out" id="progressFill" style="width:0%"></div>
       </div>
     </div>
 
-    <!-- Gate 步骤条 -->
-    <div class="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
-      <h3 class="text-sm font-semibold text-gray-700 mb-1">Gate 状态</h3>
-      <p class="text-xs text-gray-400 mb-5" id="gateSessionLabel"></p>
+    <!-- Gate 步骤列表 -->
+    <div class="bg-white rounded-xl p-6 border border-slate-200 shadow-sm">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="text-sm font-semibold text-slate-700">Gate 状态追踪</h3>
+        <button onclick="showHelp()" class="text-xs text-indigo-500 hover:text-indigo-600 flex items-center gap-1 transition-colors">
+          <i data-lucide="help-circle" class="w-3.5 h-3.5"></i> 操作指南
+        </button>
+      </div>
+      <p class="text-xs text-slate-400 mb-5 font-mono" id="gateSessionLabel">选择左侧会话查看详情</p>
       <div id="gatesList" class="relative">
-        <div class="text-center py-12 text-gray-400 text-sm">等待加载中...</div>
+        <div class="text-center py-12 text-slate-400">
+          <i data-lucide="activity" class="w-10 h-10 mx-auto mb-3 text-slate-300"></i>
+          <p class="text-sm">等待会话连接...</p>
+          <p class="text-xs mt-1 text-slate-400">在 Claude Code / OpenCode / Codex 中执行编排即可</p>
+        </div>
       </div>
     </div>
 
     <!-- Footer -->
-    <footer class="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
-      <span>Jarvis Engine · MCP :3456</span>
+    <footer class="mt-8 pt-6 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
+      <span class="font-mono">Jarvis Engine · MCP :3456</span>
       <span>
-        <a href="/health" class="text-indigo-500 hover:text-indigo-600 transition-colors">健康检查</a>
-        <span class="mx-2">·</span>
-        <a href="/agents" class="text-indigo-500 hover:text-indigo-600 transition-colors">智能体配置</a>
-        <span class="mx-2">·</span>
-        会话隔离模式
+        <a href="/health" class="text-indigo-500 hover:text-indigo-600 transition-colors font-medium">健康检查</a>
+        <span class="mx-2 text-slate-300">·</span>
+        <a href="/agents" class="text-indigo-500 hover:text-indigo-600 transition-colors font-medium">智能体配置</a>
+        <span class="mx-2 text-slate-300">·</span>
+        <span>会话隔离模式</span>
       </span>
     </footer>
   </div>
 </main>
 
 <!-- ===== 帮助弹窗 ===== -->
-<div class="fixed inset-0 bg-black/25 z-50 hidden items-center justify-center" id="helpModal">
-  <div class="bg-white rounded-2xl p-7 max-w-md w-[90%] max-h-[80vh] overflow-y-auto shadow-xl">
-    <h2 class="text-xl font-bold text-[#1E1B4B] mb-1">操作指南</h2>
-    <p class="text-sm text-gray-500 mb-5">Jarvis Engine 编排引擎使用步骤</p>
-    <div class="space-y-3">
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">1</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">启动引擎</b><br><code class="bg-gray-200/60 px-1.5 py-0.5 rounded text-[11px]">jarvis engine start --dashboard</code></div>
+<div class="fixed inset-0 bg-black/30 z-50 hidden items-center justify-center backdrop-blur-sm" id="helpModal" onclick="if(event.target===this)closeHelp()">
+  <div class="bg-white rounded-2xl p-7 max-w-lg w-[92%] max-h-[80vh] overflow-y-auto shadow-2xl">
+    <div class="flex items-center gap-3 mb-2">
+      <div class="w-9 h-9 bg-indigo-100 rounded-xl flex items-center justify-center">
+        <i data-lucide="book-open" class="w-5 h-5 text-indigo-600"></i>
       </div>
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">2</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰</div>
-      </div>
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">3</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">完成 Gate 产出</b><br>每个 Gate 完成对应文档/测试/报告</div>
-      </div>
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">4</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">点击 Gate 行</b><br>引擎验证条件是否满足</div>
-      </div>
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">5</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div>
-      </div>
-      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
-        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">6</div>
-        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">切换会话</b><br>左侧列表点击不同会话查看各自流水线状态</div>
+      <div>
+        <h2 class="text-xl font-bold text-slate-800">操作指南</h2>
+        <p class="text-xs text-slate-500">Jarvis Engine 编排引擎使用步骤</p>
       </div>
     </div>
-    <button class="w-full mt-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-semibold transition-colors" onclick="closeHelp()">知道了</button>
+
+    <div class="space-y-3 mt-5">
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">1</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">启动引擎</b><br><code class="bg-slate-800 text-emerald-400 px-2 py-0.5 rounded text-[11px] font-mono">jarvis engine start</code><br><span class="text-slate-400">Claude Code 通过 MCP stdio 自动拉起，无需手动</span></div>
+      </div>
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">2</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰，流水线状态完全隔离</div>
+      </div>
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">3</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">完成 Gate 产出</b><br>每个 Gate 对应不同的产出要求：文档、测试、审查报告等</div>
+      </div>
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">4</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">点击 Gate 行</b><br>引擎验证该 Gate 的条件是否满足（产物文件是否存在）</div>
+      </div>
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">5</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">点「推进」按钮</b><br>FSM 状态机保护，不可跳过、不可回退</div>
+      </div>
+      <div class="flex gap-3 p-3.5 bg-indigo-50/50 rounded-xl border border-indigo-100">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-600 text-white flex items-center justify-center text-xs font-bold shadow-sm shadow-indigo-200">6</div>
+        <div class="text-xs leading-relaxed"><b class="text-slate-800">切换会话</b><br>左侧列表点击不同会话查看各自独立的流水线状态</div>
+      </div>
+    </div>
+    <button class="w-full mt-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-sm font-semibold transition-colors shadow-sm" onclick="closeHelp()">知道了</button>
   </div>
 </div>
 
@@ -188,6 +224,27 @@
 
 <script>
 const GATES = ['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
+
+/** Gate 中文名称与说明 */
+const GATE_INFO = {
+  'Gate A':    { name: '需求澄清',  icon: 'clipboard-list',    desc: '梳理用户需求，输出需求文档，标注 REQ-XXX' },
+  'Gate B':    { name: '任务分解',  icon: 'list-tree',          desc: '将需求拆分为可执行任务，DDD/TDD 分类' },
+  'Gate C':    { name: '执行规划',  icon: 'git-branch',         desc: '制定并行批次、Execution Packet、共享区域归属' },
+  'Gate C1':   { name: '代码质量',  icon: 'shield-check',       desc: 'Lint + Type-check + Build + 依赖审计全部通过' },
+  'Gate C1.5': { name: '视觉验证',  icon: 'eye',                desc: '前端页面截图对比、响应式三视口验证' },
+  'Gate C2':   { name: '测试验证',  icon: 'flask-conical',      desc: '单元/集成/E2E 测试全部通过，覆盖率达标' },
+  'Gate D':    { name: '全面评审',  icon: 'search-check',       desc: '代码审查、安全审计、性能审计、REQ 追踪矩阵' },
+  'Gate E':    { name: '发布上线',  icon: 'rocket',             desc: '版本递增、changelog、数据库迁移、三平台发布' },
+};
+
+/** 流水线类型中文名 */
+const PIPELINE_NAMES = {
+  'full': '完整流水线',
+  'frontend': '前端流水线',
+  'backend': '后端流水线',
+  'lite': '轻量流水线',
+};
+
 let selectedSession = null, allSessions = [], sessionPlatform = 'all';
 
 async function fetchAPI(path) {
@@ -210,7 +267,11 @@ async function refresh() {
   if (sd) {
     allSessions = sd.sessions || [];
     renderSessions();
-    if (!selectedSession && allSessions.length > 0) selectedSession = allSessions[0].id;
+    if (!selectedSession && allSessions.length > 0) {
+      // 优先选 active 会话
+      const active = allSessions.find(s => s.status === 'active');
+      selectedSession = (active || allSessions[0]).id;
+    }
   }
 
   // 加载流水线
@@ -226,18 +287,25 @@ async function refresh() {
     selectedSession = sessionData.session_id;
   }
 
+  const activeCount = allSessions.filter(s => s.status === 'active').length;
   document.getElementById('pipelineProject').textContent =
-    `会话隔离模式 · ${allSessions.length || 0} 个活跃会话 · 实时刷新`;
+    '会话隔离模式 · ' + (allSessions.length || 0) + ' 个会话（' + activeCount + ' 活跃）· 每 5 秒自动刷新';
 
   if (!sessionData) {
     document.getElementById('gatesList').innerHTML =
-      '<div class="text-center py-12 text-gray-400"><p class="text-sm">等待会话连接...</p><p class="text-xs mt-1">在 Claude Code / OpenCode / Codex 中启动编排即可</p></div>';
+      `<div class="text-center py-12 text-slate-400">
+        <i data-lucide="activity" class="w-10 h-10 mx-auto mb-3 text-slate-300"></i>
+        <p class="text-sm">等待会话连接...</p>
+        <p class="text-xs mt-1 text-slate-400">在 Claude Code / OpenCode / Codex 中执行编排即可</p>
+      </div>`;
+    lucide.createIcons();
     return;
   }
 
   const d = sessionData;
+  const ptName = PIPELINE_NAMES[d.pipeline_type] || d.pipeline_type || '未知';
   document.getElementById('gateSessionLabel').textContent =
-    (d.pipeline_name || d.pipeline_type || '') + ' · 会话: ' + (selectedSession || '').slice(0, 12) + '...';
+    ptName + ' · 会话: ' + (selectedSession || '').slice(0, 14) + '...';
 
   const completed = d.completed.length;
   const totalGates = d.gates.length;
@@ -245,51 +313,61 @@ async function refresh() {
 
   document.getElementById('statProgress').textContent = pct + '%';
   document.getElementById('statGates').textContent = completed + '/' + totalGates;
-  document.getElementById('statCurrent').textContent = d.current_gate;
+  document.getElementById('statCurrent').textContent = (GATE_INFO[d.current_gate]?.name || d.current_gate);
   document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressText').textContent = pct + '% 完成';
+  document.getElementById('progressText').textContent = pct > 0 ? (pct + '% 完成 — ' + (GATE_INFO[d.current_gate]?.name || d.current_gate)) : '流水线就绪';
   document.getElementById('progressGate').textContent = d.current_gate;
 
   // 渲染步骤条
   let total = 0;
   const html = d.gates.map((g, i) => {
     total += g.artifacts?.length || 0;
+    const info = GATE_INFO[g.gate] || {};
     const isPassed = g.passed;
     const isCurrent = g.gate === d.current_gate;
     const isLast = i === d.gates.length - 1;
     const cp = g.checkpoints?.[0];
 
     const dotClass = isPassed
-      ? 'bg-emerald-500 border-emerald-500'
+      ? 'bg-emerald-500 border-emerald-500 shadow-sm shadow-emerald-200'
       : isCurrent
-        ? 'bg-indigo-500 border-indigo-500 ring-4 ring-indigo-100'
-        : 'bg-gray-200 border-gray-300';
+        ? 'bg-indigo-600 border-indigo-600 ring-4 ring-indigo-100 shadow-sm shadow-indigo-200'
+        : 'bg-slate-200 border-slate-300';
 
     const cardClass = isCurrent
-      ? 'border-indigo-200 bg-indigo-50/50'
+      ? 'border-indigo-200 bg-indigo-50/50 shadow-sm'
       : isPassed
-        ? 'border-gray-100 opacity-70'
-        : 'border-gray-100';
+        ? 'border-slate-200 bg-slate-50/50 opacity-75'
+        : 'border-slate-200';
+
+    const artifactsHtml = g.artifacts && g.artifacts.length > 0
+      ? `<div class="flex flex-wrap gap-1 mt-2">${g.artifacts.map(a => `<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono" title="${a}">${a.split('/').pop()}</span>`).join('')}</div>`
+      : '';
 
     return `
-    <div class="relative flex gap-4 ${isLast ? '' : 'pb-2'}">
+    <div class="relative flex gap-4 ${isLast ? '' : 'pb-1'}">
       <!-- 步骤指示器 -->
       <div class="flex flex-col items-center">
         <div class="w-6 h-6 rounded-full border-2 ${dotClass} flex items-center justify-center flex-shrink-0 z-10 relative transition-all">
           ${isPassed ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : isCurrent ? '<i data-lucide="loader" class="w-3 h-3 text-white animate-spin"></i>' : ''}
         </div>
-        ${!isLast ? '<div class="step-line ' + (isPassed ? 'bg-emerald-400' : 'bg-gray-200') + '"></div>' : ''}
+        ${!isLast ? '<div class="step-line ' + (isPassed ? 'bg-emerald-400' : 'bg-slate-200') + '"></div>' : ''}
       </div>
       <!-- Gate 内容卡片 -->
-      <div class="flex-1 mb-3 bg-white rounded-lg border ${cardClass} p-4 transition-all hover:shadow-sm cursor-pointer" onclick="check('${g.gate}')">
-        <div class="flex items-center justify-between">
-          <div>
-            <span class="text-sm font-semibold ${isCurrent ? 'text-indigo-600' : isPassed ? 'text-gray-500' : 'text-gray-400'}">${g.gate}</span>
-            <p class="text-xs ${isCurrent ? 'text-gray-500' : 'text-gray-400'} mt-0.5">${g.requirement || ''}</p>
+      <div class="flex-1 mb-3 bg-white rounded-xl border ${cardClass} p-4 transition-all hover:shadow cursor-pointer" onclick="checkGate('${g.gate}')" title="点击验证 ${g.gate} 条件">
+        <div class="flex items-start justify-between gap-3">
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center gap-2 flex-wrap">
+              <span class="text-sm font-bold ${isCurrent ? 'text-indigo-700' : isPassed ? 'text-slate-500' : 'text-slate-400'}">${g.gate}</span>
+              <span class="text-[11px] ${isCurrent ? 'text-indigo-500 bg-indigo-100' : 'text-slate-400 bg-slate-100'} px-1.5 py-0.5 rounded font-medium">${info.name || ''}</span>
+              <i data-lucide="${info.icon || 'circle'}" class="w-3 h-3 ${isCurrent ? 'text-indigo-400' : 'text-slate-300'}"></i>
+            </div>
+            <p class="text-[11px] ${isCurrent ? 'text-slate-500' : 'text-slate-400'} mt-1.5 leading-relaxed">${info.desc || g.requirement || '等待 Gate 条件定义'}</p>
+            ${artifactsHtml}
+            ${cp ? `<p class="text-[10px] text-slate-400 mt-1.5 font-mono">通过于 ${new Date(cp.passed_at).toLocaleString('zh-CN')}</p>` : ''}
           </div>
-          <div class="flex items-center gap-2">
-            ${cp ? `<span class="text-[10px] text-gray-400">${cp.passed_at?.slice(0, 16) || ''}</span>` : ''}
-            ${!isPassed && isCurrent ? `<button class="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs font-medium transition-colors" onclick="event.stopPropagation();advance('${g.gate}')">推进</button>` : ''}
+          <div class="flex items-center gap-2 flex-shrink-0">
+            ${!isPassed && isCurrent ? `<button class="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm" onclick="event.stopPropagation();advanceGate('${g.gate}')">推进 →</button>` : ''}
           </div>
         </div>
       </div>
@@ -298,7 +376,6 @@ async function refresh() {
 
   document.getElementById('gatesList').innerHTML = html;
   document.getElementById('statArtifacts').textContent = total;
-  // 重新渲染 Lucide 图标
   lucide.createIcons();
 }
 
@@ -306,9 +383,11 @@ function setSessionPlatform(p) {
   sessionPlatform = p;
   const btns = document.querySelectorAll('#sessionPlatformTabs button');
   btns.forEach(b => {
-    b.className = b.textContent.trim().toLowerCase() === p || (p === 'all' && b.textContent.trim() === '全部')
-      ? 'flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-500 text-white transition-colors'
-      : 'flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors';
+    const label = b.textContent.trim().toLowerCase();
+    const match = p === 'all' ? label === '全部' : label === p;
+    b.className = match
+      ? 'flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-600 text-white transition-all'
+      : 'flex-1 py-1.5 text-[11px] font-medium rounded-md text-slate-400 hover:bg-slate-800 hover:text-slate-200 transition-all';
   });
   renderSessions();
 }
@@ -319,7 +398,7 @@ function renderSessions() {
     : allSessions.filter(s => s.platform === sessionPlatform);
 
   if (filtered.length === 0) {
-    document.getElementById('sessionsList').innerHTML = '<p class="text-xs text-gray-400 text-center py-8">暂无会话</p>';
+    document.getElementById('sessionsList').innerHTML = '<p class="text-xs text-slate-600 text-center py-8 font-mono">暂无会话</p>';
     document.getElementById('sessionCount').textContent = '0 个会话';
     return;
   }
@@ -331,24 +410,24 @@ function renderSessions() {
     const isOnline = !isInactive && (Date.now() - s.heartbeat) < 120000;
 
     let statusColor, statusLabel;
-    if (isInactive) { statusColor = 'bg-amber-400'; statusLabel = 'inactive'; }
-    else if (isOnline) { statusColor = 'bg-emerald-500'; statusLabel = 'online'; }
-    else { statusColor = 'bg-gray-300'; statusLabel = 'offline'; }
+    if (isInactive) { statusColor = 'bg-amber-500'; statusLabel = '休眠'; }
+    else if (isOnline) { statusColor = 'bg-emerald-500 live-dot'; statusLabel = '在线'; }
+    else { statusColor = 'bg-slate-500'; statusLabel = '离线'; }
 
-    const shortId = (s.id || '').slice(0, 10);
-    const platformIcon = s.platform === 'claude' ? 'bot' : s.platform === 'opencode' ? 'terminal' : s.platform === 'codex' ? 'code-2' : 'monitor';
+    const shortId = (s.id || '').slice(0, 12);
+    const ptName = PIPELINE_NAMES[s.pipeline_type] || s.pipeline_type || '?';
 
     return `
-    <div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-gray-50 border border-transparent'} ${isInactive ? 'opacity-50' : ''}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
+    <div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isActive ? 'bg-indigo-600/15 border border-indigo-500/40' : 'hover:bg-slate-800/50 border border-transparent'} ${isInactive ? 'opacity-45' : ''}" onclick="selectSession('${s.id}')" title="${s.platform} · 完整 ID: ${s.id}">
       <span class="w-2 h-2 rounded-full flex-shrink-0 ${statusColor}" title="${statusLabel}"></span>
       <div class="flex-1 min-w-0">
-        <div class="text-xs font-medium text-[#1E1B4B] truncate">${shortId}...</div>
+        <div class="text-xs font-mono text-slate-300 truncate">${shortId}...</div>
         <div class="flex items-center gap-1.5 mt-0.5">
-          <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-px rounded">${s.gate || '?'}</span>
-          <span class="text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-px rounded font-medium">${s.pipeline_type || '?'}</span>
+          <span class="text-[10px] text-slate-500 bg-slate-800 px-1.5 py-px rounded font-mono">${s.gate || '?'}</span>
+          <span class="text-[10px] text-indigo-400 bg-indigo-600/15 px-1.5 py-px rounded font-medium">${ptName}</span>
         </div>
       </div>
-      ${isInactive ? `<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-500 flex-shrink-0" title="恢复会话" onclick="event.stopPropagation();resumeSession('${s.id}')"></i>` : ''}
+      ${isInactive ? `<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-400 flex-shrink-0 hover:text-indigo-300" title="恢复会话" onclick="event.stopPropagation();resumeSession('${s.id}')"></i>` : ''}
     </div>`;
   }).join('');
   lucide.createIcons();
@@ -361,46 +440,51 @@ function selectSession(sid) {
 }
 
 async function resumeSession(sid) {
-  const d = await fetchAPI('/api/sessions/' + sid + '/resume');
-  if (!d || d.error) return;
-  toast('会话已恢复', true);
+  const r = await fetch('/api/sessions/' + sid + '/resume', { method: 'POST' });
+  const d = await r.json();
+  if (!d || d.error) { toast('恢复失败: ' + (d?.error || '未知错误'), false); return; }
+  toast('会话已恢复 — ' + d.gate, true);
   refresh();
 }
 
-async function check(gate) {
+async function checkGate(gate) {
   const sid = selectedSession ? '&session_id=' + selectedSession : '';
   const d = await fetchAPI('/api/gate/' + gate.replace(/ /g, '_') + '/enforce' + sid);
   if (!d) return;
-  toast(d.allowed ? gate + ' 条件满足' : gate + ' 被阻止 — ' + (d.blocked_reasons?.join(';') || d.action_required), d.allowed);
+  const info = GATE_INFO[gate] || {};
+  toast(d.allowed
+    ? (info.name || gate) + ' ✓ 条件满足 — 可以推进'
+    : (info.name || gate) + ' ✗ 被阻止 — ' + (d.blocked_reasons?.join('; ') || d.action_required || '条件不满足'),
+    d.allowed);
 }
 
-async function advance(gate) {
+async function advanceGate(gate) {
   const resp = await fetch('/api/gate/advance', {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ gate, session_id: selectedSession })
   });
   const d = await resp.json();
   if (!d) return;
-  toast(d.allowed ? (d.message || '已推进到 ' + d.current) : d.error, !d.allowed);
-  if (d.allowed) refresh();
+  if (d.allowed) {
+    const curInfo = GATE_INFO[d.current] || {};
+    toast('✅ 已推进到 ' + d.current + ' — ' + (curInfo.name || ''), true);
+    refresh();
+  } else {
+    toast('❌ ' + (d.error || '推进失败'), false);
+  }
 }
 
 function toast(msg, isSuccess) {
   const t = document.createElement('div');
-  t.className = 'toast-in px-4 py-3 rounded-lg text-sm font-medium shadow-lg ' +
-    (isSuccess !== false ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white');
+  t.className = 'toast-in px-4 py-3 rounded-xl text-sm font-medium shadow-lg ' +
+    (isSuccess !== false ? 'bg-emerald-600 text-white' : 'bg-red-500 text-white');
   t.textContent = msg;
   document.getElementById('toastContainer').appendChild(t);
-  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3200);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3500);
 }
 
 function showHelp() { document.getElementById('helpModal').classList.remove('hidden'); document.getElementById('helpModal').classList.add('flex'); }
 function closeHelp() { document.getElementById('helpModal').classList.add('hidden'); document.getElementById('helpModal').classList.remove('flex'); }
-document.getElementById('helpModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeHelp(); });
-
-// 初始加载 + 5s 轮询
-refresh();
-setInterval(refresh, 5000);
 
 // MCP 平台接入状态轮询
 async function loadMcpStatus(){
@@ -414,16 +498,21 @@ async function loadMcpStatus(){
       const p = platforms[key];
       const connected = p&&p.connected;
       const sessions = p?p.active_sessions:0;
-      html+=`<div class="flex items-center gap-2 text-[11px] ${connected?'text-emerald-600':'text-gray-400'}">
-        <span class="w-1.5 h-1.5 rounded-full ${connected?'bg-emerald-500':'bg-gray-300'} inline-block flex-shrink-0"></span>
-        ${label} ${connected?'· '+sessions+' 会话':''}
+      html+=`<div class="flex items-center gap-2 text-[11px] ${connected?'text-emerald-400':'text-slate-600'}">
+        <span class="w-1.5 h-1.5 rounded-full ${connected?'bg-emerald-500':'bg-slate-600'} inline-block flex-shrink-0"></span>
+        ${label} ${connected?'<span class="text-emerald-500 font-mono">'+sessions+'</span> 会话':''}
       </div>`;
     }
     document.getElementById('mcpStatusSidebar').innerHTML=html;
   }catch{}
 }
-setInterval(loadMcpStatus,5000);
+
+// 初始加载 + 轮询
+refresh();
+setInterval(refresh, 5000);
 loadMcpStatus();
+setInterval(loadMcpStatus, 5000);
+lucide.createIcons();
 </script>
 </body>
 </html>
