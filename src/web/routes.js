@@ -3,6 +3,7 @@ import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getLeader, getAgentConfig, setAgentModel } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay } from '../engine/gates.js';
+import { syncAgentFile } from '../engine/agent-fs.js';
 
 export function setupWebRoutes(app, db, root, dashboard) {
   // Health
@@ -59,7 +60,8 @@ export function setupWebRoutes(app, db, root, dashboard) {
     if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
     if (effort && !EFFORTS.includes(effort)) return res.status(400).json({ error: `Unknown effort. Valid: ${EFFORTS.join(', ')}` });
     setAgentModel(db, agent_id, model, effort || 'high');
-    res.json({ ok: true, agent_id, model, effort: effort || 'high' });
+    const fileSynced = syncAgentFile(root, agent_id, model, effort || 'high');
+    res.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
   });
 
   // ---- SSE ----
