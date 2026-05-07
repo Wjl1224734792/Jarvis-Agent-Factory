@@ -1,6 +1,7 @@
 import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, createReadStream } from 'node:fs';
 import { resolve, join } from 'node:path';
@@ -33,11 +34,10 @@ function sessionGates(db, sid) {
   return getPipelineGates(p?.pipeline_type || DEFAULT_PIPELINE);
 }
 
-export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.' } = {}) {
-  // 防重复启动：端口已被占用 → 复用已有引擎
-  if (await isPortInUse(port)) {
+export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdio = false } = {}) {
+  // 非 stdio 模式：端口已被占用 → 复用已有引擎
+  if (!stdio && await isPortInUse(port)) {
     console.log(`Jarvis Engine already running on port ${port} — reusing existing instance.`);
-    // 清理可能残留的旧 PID 文件
     if (existsSync(PID_FILE)) {
       const oldPid = Number(readFileSync(PID_FILE, 'utf-8').trim());
       if (oldPid !== process.pid) {
@@ -294,25 +294,45 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.' } = {
       return resp({ platforms: summary, total_agents: getAgentList(true).length });
     });
 
-  // ---- Transport + Web ----
-  const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
-  // SSE 握手：兼容 Claude Code (type=http) 和 OpenCode (type=remote) 两种客户端
-  // StreamableHTTPServerTransport 通过 handleRequest 内部判断 GET/POST 自动处理 SSE 升级
-  app.get('/mcp/sse', async (req, res) => { await transport.handleRequest(req, res, undefined); });
-  app.get('/mcp', async (req, res) => { await transport.handleRequest(req, res, undefined); });
-  app.post('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
-  // 额外 SSE 端点（部分客户端直接在 URL 上发起 GET）
-  app.delete('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
-  await server.connect(transport);
+  const log = (...args) => (stdio ? process.stderr : process.stdout).write(args.join(' ') + '\n');
 
-  setupApiRoutes(app, db, root);
+  if (stdio) {
+    // ---- Stdio Transport：MCP 通过 stdin/stdout，Claude Code 自动拉起 ----
+    const transport = new StdioServerTransport();
+    await server.connect(transport);
+    log(`Jarvis Engine v${readPkgVersion()} — stdio MCP`);
 
-  app.listen(port, () => {
-    console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
-    console.log(`   MCP: http://localhost:${port}/mcp`);
-    console.log(`   API: http://localhost:${port}/api/pipeline`);
-    console.log(`   Web: jarvis web (独立启动)`);
-  });
+    // HTTP 服务器仅用于 REST API + Web 面板，端口已占用则跳过
+    setupApiRoutes(app, db, root);
+    try {
+      if (!(await isPortInUse(port))) {
+        await new Promise((resolve) => { app.listen(port, resolve); });
+        log(`   API: http://localhost:${port}/api/pipeline`);
+        log(`   Web: jarvis web`);
+      } else {
+        log(`   HTTP port ${port} in use — API handled by another instance`);
+      }
+    } catch (e) {
+      log(`   HTTP server skipped: ${e.message}`);
+    }
+  } else {
+    // ---- HTTP Transport：MCP 通过 HTTP + SSE（手动启动 jarvis engine start） ----
+    const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
+    app.get('/mcp/sse', async (req, res) => { await transport.handleRequest(req, res, undefined); });
+    app.get('/mcp', async (req, res) => { await transport.handleRequest(req, res, undefined); });
+    app.post('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
+    app.delete('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
+    await server.connect(transport);
+
+    setupApiRoutes(app, db, root);
+
+    app.listen(port, () => {
+      console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
+      console.log(`   MCP: http://localhost:${port}/mcp`);
+      console.log(`   API: http://localhost:${port}/api/pipeline`);
+      console.log(`   Web: jarvis web (独立启动)`);
+    });
+  }
 }
 
 function resp(obj) { return { content: [{ type: 'text', text: JSON.stringify(obj) }] }; }

@@ -224,7 +224,8 @@ export async function run() {
       const sub = positional[1];
       if (sub === 'start') {
         const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.PORT || '3456');
-        await startEngine({ port, projectRoot: positional.find(a => !a.startsWith('-') && a !== 'start' && a !== 'engine') || '.' });
+        const stdio = positional.includes('--stdio');
+        await startEngine({ port, stdio, projectRoot: positional.find(a => !a.startsWith('-') && a !== 'start' && a !== 'engine' && a !== '--stdio') || '.' });
       } else if (sub === 'stop') {
         stopEngine();
       } else if (sub === 'status') {

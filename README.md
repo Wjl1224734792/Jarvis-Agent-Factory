@@ -1,20 +1,20 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.21.4-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.21.5-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.21.4** — Web 面板独立启动 · 防重复启动 · MCP 平台接入状态指示 · 引擎自动守护
+> **v3.21.5** — MCP stdio 自动拉起引擎 · 零手动启动 · Web 面板独立按需 · 防重复启动
 
 ## 快速开始
 
 ```bash
 npm i -g jarvis-agent-factory   # 安装 CLI（零原生依赖，node:sqlite 内置）
 jarvis init -y                   # 一键部署三平台配置 + MCP + 钩子
-jarvis engine start              # 启动编排引擎（MCP + API）
+# → Claude Code 重启后引擎自动拉起，无需手动启动
 jarvis web                       # 启动 Web 面板（按需）
 # → http://localhost:3457/dashboard
 ```
@@ -24,6 +24,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | 特性 | 说明 |
 |------|------|
 | **MCP 编排引擎** | FSM 硬约束 Gate A→B→C→C1→C1.5→C2→D→E，跳过/回退被拒绝 |
+| **零手动启动** | MCP stdio 自动拉起引擎，Claude Code / OpenCode 开箱即用 |
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
@@ -40,14 +41,15 @@ jarvis web                       # 启动 Web 面板（按需）
 ┌─────────────────────────────────────────────────────────┐
 │                    Jarvis Engine (:3456)                  │
 │  ┌─────────┐  ┌──────────┐  ┌────────────────────────┐  │
-│  │ MCP API │  │ REST API │  │   SQLite               │  │
-│  │ 8 tools │  │ /api/*   │  │   WAL · 会话隔离        │  │
+│  │ MCP stdio│  │ REST API │  │   SQLite               │  │
+│  │ 自动拉起  │  │ /api/*   │  │   WAL · 会话隔离        │  │
 │  └────┬────┘  └────┬─────┘  └────────────────────────┘  │
 │       └────────────┼─────────────────────────────────────│
 └─────────────────────┼─────────────────────────────────────┘
          ▲            │              ▲
     .mcp.json   jarvis web     .codex/config.toml
-    Claude Code (:3457)        Codex
+ Claude Code (:3457)          Codex
+ (stdio 自动拉起引擎)                               
                                
     Web Panel (:3457) — 独立按需启动
     ┌───────────────────────────────┐
@@ -67,7 +69,7 @@ jarvis upgrade [path]                     # 智能升级（只覆盖变更文件
 jarvis diff [path]                        # 预览待更新文件
 jarvis doctor [path]                      # 健康检查
 
-jarvis engine start [--port=N]            # 启动编排引擎（MCP + API）
+jarvis engine start [--port=N]            # 手动启动编排引擎（stdio 模式下 Claude Code 自动拉起）
 jarvis engine stop / status               # 停止 / 状态
 jarvis web [--port=N]                     # 启动 Web 面板（独立，需引擎运行）
 
@@ -116,11 +118,11 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 ## 三平台 MCP 配置
 
-| 平台 | 配置文件 | Key 格式 | Type |
-|------|---------|---------|------|
-| **Claude Code** | `.mcp.json` | `mcpServers.jarvis-engine` | `type: http` → `localhost:3456/mcp` |
-| **OpenCode** | `opencode.json` + `.opencode/opencode.json` | `mcp.jarvis-engine` | `type: remote` → `localhost:3456/mcp` |
-| **Codex** | `.codex/config.toml` | `[mcp_servers.jarvis-engine]` | `url = "localhost:3456/mcp"` |
+| 平台 | 配置文件 | Transport | 说明 |
+|------|---------|-----------|------|
+| **Claude Code** | `.mcp.json` | `type: stdio` → 自动拉起 `jarvis engine start --stdio` |
+| **OpenCode** | `opencode.json` | `type: local` → 自动拉起 `jarvis engine start --stdio` |
+| **Codex** | `.codex/config.toml` | `url = "localhost:3456/mcp"` → 需引擎已运行 |
 
 ## 生命周期流水线
 
@@ -163,7 +165,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 | 能力 | 机制 | 触发方式 |
 |------|------|----------|
-| Agent spawn 后检查 Gate | Hook/Plugin → `gate_check` | 🔄 自动 |
+| Agent spawn 后检查 Gate | Hook/Plugin → `gate_check` | 🔄 自动（engine auto-start via stdio） |
 | 条件不满足报警 | Hook/Plugin → `gate_enforce` | 🔄 自动 |
 | 推进 Gate | `advance_gate` MCP 工具 | 👆 编排者手动 |
 | 轻量入口跳转 | `gate_jump` MCP 工具（lite 模式） | 👆 编排者手动 |

@@ -6,8 +6,9 @@
       "args": ["-y", "@playwright/mcp@latest"]
     },
     "jarvis-engine": {
-      "type": "http",
-      "url": "http://localhost:3456/mcp"
+      "type": "stdio",
+      "command": "jarvis",
+      "args": ["engine", "start", "--stdio"]
     }
   }
 }

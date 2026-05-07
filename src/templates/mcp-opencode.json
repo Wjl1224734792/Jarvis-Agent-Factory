@@ -7,10 +7,9 @@
       "enabled": true
     },
     "jarvis-engine": {
-      "type": "remote",
-      "url": "http://localhost:3456/mcp",
-      "enabled": true,
-      "timeout": 30000
+      "type": "local",
+      "command": ["jarvis", "engine", "start", "--stdio"],
+      "enabled": true
     }
   }
 }
