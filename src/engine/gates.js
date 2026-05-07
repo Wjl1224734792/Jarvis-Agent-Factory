@@ -25,6 +25,12 @@ export const PIPELINE_DEFS = {
     name: '后端开发',
     gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
   },
+  /** 轻量编排水：支持 Gate 入口跳转，按任务类型智能跳过无关闸门 */
+  lite: {
+    name: '轻量编排',
+    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    allow_jump: true,
+  },
 };
 
 export const DEFAULT_PIPELINE = 'full';

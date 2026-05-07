@@ -6,7 +6,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
-import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
+import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels } from './agent-registry.js';
 import { setupWebRoutes } from '../web/routes.js';
 
@@ -152,6 +152,22 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
       return resp({ allowed: true, session_id: sid, previous_gate: cur, current_gate: gate,
         next: gateList[ti + 1] || 'Complete',
         message: gateList[ti + 1] ? `Next: ${gateList[ti + 1]}` : 'Complete!' });
+    });
+  server.tool('gate_jump',
+    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。',
+    { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E') },
+    async ({ gate }, extra) => {
+      const sid = extra?.sessionId || 'legacy';
+      const p = getPipeline(db, sid);
+      const pt = p?.pipeline_type || DEFAULT_PIPELINE;
+      const def = PIPELINE_DEFS[pt];
+      if (!def?.allow_jump) return resp({ allowed: false, error: `gate_jump 仅在 lite 模式可用。当前: ${pt}` });
+      const gateList = sessionGates(db, sid);
+      const ti = gateList.indexOf(gate);
+      if (ti === -1) return resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });
+      updatePipelineGate(db, sid, gate);
+      return resp({ allowed: true, session_id: sid, pipeline_type: pt, entry_gate: gate,
+        message: `已跳转至 ${gate}，跳过了 ${gateList.slice(0, ti).join(', ')}。剩余: ${gateList.slice(ti).join(' → ')}` });
     });
   server.tool('report_status', '【会话隔离】流水线完整报告。', {},
     async (_args, extra) => {
