@@ -84,8 +84,8 @@ function installHooks(platform, target, isGlobal) {
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
 
-  if (platform === 'claude' || platform === 'opencode') {
-    // Both Claude Code and OpenCode read hooks from .claude/settings.json
+  if (platform === 'claude') {
+    // Claude Code: hooks in .claude/settings.json
     const claudeDir = resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
     const file = resolve(claudeDir, 'settings.json');
@@ -95,9 +95,22 @@ function installHooks(platform, target, isGlobal) {
     else console.log('  ~ hooks already configured');
   }
 
+  if (platform === 'opencode') {
+    // OpenCode: 原生 hooks 在 .opencode/hooks.json（不用 Claude 兼容模式）
+    const opencodeDir = resolve(target, '.opencode');
+    if (!existsSync(opencodeDir)) mkdirSync(opencodeDir, { recursive: true });
+    const hookFile = resolve(opencodeDir, 'hooks.json');
+    if (!existsSync(hookFile)) {
+      writeFileSync(hookFile, JSON.stringify({ hooks: hookJson }, null, 2));
+      console.log('  🔗 hooks → .opencode/hooks.json');
+    } else console.log('  ~ hooks already configured');
+  }
+
   if (platform === 'codex') {
-    // Codex hooks go into .codex/hooks.json (separate file, cleaner than config.toml merge)
-    const hookFile = resolve(target, '.codex', 'hooks.json');
+    // Codex: hooks in .codex/hooks.json
+    const codexDir = resolve(target, '.codex');
+    if (!existsSync(codexDir)) mkdirSync(codexDir, { recursive: true });
+    const hookFile = resolve(codexDir, 'hooks.json');
     if (!existsSync(hookFile)) {
       writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
       console.log('  🔗 hooks → .codex/hooks.json');

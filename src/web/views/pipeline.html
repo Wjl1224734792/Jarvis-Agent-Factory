@@ -125,6 +125,12 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   <!-- Session selector strip -->
   <div class=sessions-strip>
     <h3>📡 会话:</h3>
+    <div class=filter id=sessionPlatformTabs style=margin-right:8px>
+      <button class=sel onclick="setSessionPlatform('all')">全部</button>
+      <button onclick="setSessionPlatform('claude')">🔵 Claude</button>
+      <button onclick="setSessionPlatform('opencode')">🟣 OpenCode</button>
+      <button onclick="setSessionPlatform('codex')">🟢 Codex</button>
+    </div>
     <div id=sessionsList><span class=no-sessions>⏳ 等待连接...</span></div>
   </div>
 
@@ -168,6 +174,7 @@ const GATES=['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D'
 const PLATFORM_ICONS = {claude:'🔵', opencode:'🟣', codex:'🟢', other:'⚪', unknown:'⚪'};
 let selectedSession = null;
 let allSessions = [];
+let sessionPlatform = 'all';
 
 async function fetchAPI(path) {
   try { const r = await fetch(path); return await r.json(); }
@@ -234,23 +241,36 @@ async function refresh(){
   document.getElementById('statArtifacts').textContent = total;
 }
 
+function setSessionPlatform(p) {
+  sessionPlatform = p;
+  document.querySelectorAll('#sessionPlatformTabs button').forEach(b=>b.classList.remove('sel'));
+  document.querySelector('#sessionPlatformTabs button[onclick*="'+p+'"]').classList.add('sel');
+  renderSessions();
+}
+
 function renderSessions() {
-  if (allSessions.length === 0) {
+  const filtered = sessionPlatform === 'all'
+    ? allSessions
+    : allSessions.filter(s => s.platform === sessionPlatform);
+  if (filtered.length === 0) {
     document.getElementById('sessionsList').innerHTML = '<span class=no-sessions>⏳ 等待会话连接...</span>';
     return;
   }
-  document.getElementById('sessionsList').innerHTML = allSessions.map(s => {
+  document.getElementById('sessionsList').innerHTML = filtered.map(s => {
     const icon = PLATFORM_ICONS[s.platform] || '⚪';
     const active = s.id === selectedSession ? ' active' : '';
     const online = (Date.now() - s.heartbeat) < 120000 ? 's-online' : 's-offline';
     const shortId = (s.id||'').slice(0,10);
-    return `<div class="session-chip${active}" onclick="selectSession('${s.id}')" title="${s.id}">
+    return `<div class="session-chip${active}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
       <span class="${online}"></span>
       <span class=s-platform>${icon}</span>
       <span>${shortId}...</span>
       <span class=s-gate>${s.gate||'?'}</span>
     </div>`;
   }).join('');
+  // 更新计数
+  document.getElementById('pipelineProject').textContent =
+    `会话隔离模式 · ${allSessions.length} 个会话 (${sessionPlatform==='all'?'全部':sessionPlatform}) · 实时刷新`;
 }
 
 function selectSession(sid) {
