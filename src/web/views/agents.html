@@ -1,155 +1,118 @@
 <!DOCTYPE html>
-<html lang=zh>
+<html lang="zh">
 <head>
-<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>智能体配置 · Jarvis Engine</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',bg:'#F5F3FF',surface:'#FFFFFF',text:'#1E1B4B',muted:'#6B7280',border:'#E5E7EB'},fontFamily:{sans:['Plus Jakarta Sans','system-ui','sans-serif']}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
-:root{--bg:#F8F9FA;--card:#FFFFFF;--border:#E5E7EB;--text:#111827;--muted:#6B7280;--accent:#2563EB;--accent-light:#EFF6FF;--purple:#6366F1;--green:#10B981;--red:#EF4444;--warn:#F59E0B}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-
-/* Sidebar */
-.sidebar{width:250px;min-width:250px;background:#FAFBFC;border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
-.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
-.sidebar .logo h1{font-size:18px;font-weight:700;color:var(--accent)}
-.sidebar nav{flex:1;padding:0 12px}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;margin:1px 12px 1px 0;transition:all .12s;border-left:3px solid transparent}
-.sidebar nav a:hover{background:var(--accent-light);color:var(--accent)}
-.sidebar nav a.active{background:var(--accent-light);color:var(--accent);font-weight:600;border-left-color:var(--accent)}
-.sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
-.sidebar .help-section h3{font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
-.sidebar .help-section .tip{font-size:12px;color:var(--muted);line-height:1.6;margin:4px 0}
-.sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
-
-/* Main */
-.main{flex:1;padding:32px 40px;overflow-y:auto}
-.main h2{font-size:24px;font-weight:700;margin-bottom:4px;color:var(--text)}
-.main .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
-
-/* Toolbar */
-.toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px}
-.filter{display:flex;gap:6px;flex-wrap:wrap}
-.filter button{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:white;color:var(--muted);cursor:pointer;font-size:12px;font-weight:500;transition:all .12s}
-.filter button:hover{border-color:var(--accent);color:var(--accent)}
-.filter button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
-
-/* Search */
-.search-box{display:flex;align-items:center;gap:8px}
-.search-box input{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:white;color:var(--text);font-size:13px;width:200px;outline:none;transition:border-color .12s,box-shadow .12s}
-.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
-.search-box input::placeholder{color:#9CA3AF}
-.search-box .clear-btn{font-size:12px;color:var(--muted);cursor:pointer;display:none;padding:2px 6px;user-select:none}
-.search-box .clear-btn.show{display:inline}
-
-/* Grid & Cards */
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;position:relative}
-.card:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.card.custom{border-color:var(--accent);border-width:2px}
-.card .role{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.card .name{font-size:13px;font-weight:600;margin:4px 0;display:flex;align-items:center;gap:5px;color:var(--text)}
-.card .name .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
-.card .model{font-size:11px;color:var(--muted);background:#F3F4F6;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:4px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .model.custom{background:var(--accent-light);color:var(--accent)}
-.effort-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;background:rgba(16,185,129,.1);color:var(--green);margin-left:4px}
-
-/* Pixel avatar */
+.toast-in{animation:slideIn .25s ease-out}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 .avatar-8{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:36px;height:36px;gap:1px;margin:6px auto}
 .avatar-8 span{width:100%;height:100%;border-radius:1px}
-
-/* Modal */
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;justify-content:center;align-items:center}
-.modal-overlay.show{display:flex}
-.modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:400px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-.modal h3{font-size:18px;font-weight:600;margin-bottom:2px}
-.modal .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
-.modal select{width:100%;padding:8px 12px;background:#F9FAFB;color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;cursor:pointer;outline:none;transition:border-color .12s,box-shadow .12s}
-.modal select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
-.modal select:disabled{opacity:.5;cursor:not-allowed}
-.modal input[type=text]{width:100%;padding:8px 12px;background:#F9FAFB;color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .12s,box-shadow .12s}
-.modal input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
-.modal .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.modal .btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .12s}
-.modal .btn:disabled{opacity:.5;cursor:not-allowed}
-.modal .btn.save{background:var(--accent);color:#fff}
-.modal .btn.save:hover:not(:disabled){box-shadow:0 4px 12px rgba(37,99,235,.25)}
-.modal .btn.reset{background:white;border:1px solid var(--border);color:var(--muted);margin-right:auto}
-.modal .btn.reset:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-
-/* Toast */
-.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 20px;border-radius:10px;font-weight:500;animation:slideIn .25s ease-out;font-size:13px;background:white;box-shadow:0 4px 20px rgba(0,0,0,.1)}
-.toast.success{border-left:4px solid var(--green);color:var(--green)}
-.toast.warn{border-left:4px solid var(--warn);color:var(--warn);background:#FFFBEB}
-.toast.error{border-left:4px solid var(--red);color:var(--red)}
-@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
-
-/* Footer */
-footer{padding:24px 0;color:var(--muted);font-size:12px}
-footer a{color:var(--accent);text-decoration:none}
-
-/* Responsive */
-@media(max-width:768px){body{flex-direction:column}.sidebar{width:100%;min-width:100%;height:auto;position:static;padding:12px}.sidebar nav{display:flex;flex-direction:row}.sidebar .help-section{display:none}.main{padding:20px}.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
 </style>
 </head>
-<body>
+<body class="bg-[#F5F3FF] text-[#1E1B4B] font-sans flex h-screen overflow-hidden">
 
-<aside class=sidebar>
-  <div class=logo><h1>Jarvis Engine</h1></div>
-  <nav>
-    <a href=/dashboard>流水线看板</a>
-    <a href=/agents class=active>智能体配置</a>
+<!-- ===== 左侧边栏 ===== -->
+<aside class="w-64 min-w-[256px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-sm">
+  <div class="px-5 py-5 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-[#1E1B4B] leading-tight">Jarvis Engine</h1>
+        <p class="text-[11px] text-gray-400">智能体配置</p>
+      </div>
+    </div>
+  </div>
+  <nav class="px-3 py-4 flex flex-col gap-0.5">
+    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-l-[3px] border-transparent transition-colors">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+      流水线看板
+    </a>
+    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500">
+      <i data-lucide="bot" class="w-4 h-4"></i>
+      智能体配置
+    </a>
   </nav>
-  <div class=help-section>
-    <h3>操作提示</h3>
-    <div class=tip>点击卡片配置模型与思考等级</div>
-    <div class=tip>蓝色边框 = 已自定义配置</div>
-    <div class=tip>绿点标识已保存自定义</div>
-    <div class=tip>搜索框快速定位 agent</div>
+  <div class="px-4 py-4 border-t border-gray-100 mt-auto">
+    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">操作提示</p>
+    <p class="text-[11px] text-gray-400 leading-relaxed">点击卡片配置模型与思考等级</p>
+    <p class="text-[11px] text-gray-400 leading-relaxed">蓝色边框 = 已自定义配置</p>
+    <p class="text-[11px] text-gray-400 leading-relaxed">搜索框快速定位 agent</p>
   </div>
 </aside>
 
-<main class=main>
-  <h2>智能体配置</h2>
-  <p class=subtitle id=agentCount>动态扫描模板目录 · 独立模型配置 · SQLite持久化 · 文件同步</p>
+<!-- ===== 主内容区域 ===== -->
+<main class="flex-1 overflow-y-auto">
+  <div class="max-w-6xl mx-auto px-8 py-8">
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-[#1E1B4B]">智能体配置</h2>
+      <p class="text-sm text-gray-500 mt-1" id="agentCount">动态扫描模板目录 · 独立模型配置</p>
+    </div>
 
-  <div class=toolbar>
-    <div class=filter id=platformTabs>
-      <button class=sel onclick="setPlatform('all')">全部</button>
-      <button onclick="setPlatform('claude')">Claude</button>
-      <button onclick="setPlatform('opencode')">OpenCode</button>
-      <button onclick="setPlatform('codex')">Codex</button>
+    <!-- 工具栏 -->
+    <div class="flex flex-wrap items-center justify-between gap-4 mb-4">
+      <div class="flex gap-1.5" id="platformTabs">
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors" onclick="setPlatform('all')">全部</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('claude')">Claude</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('opencode')">OpenCode</button>
+        <button class="px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors" onclick="setPlatform('codex')">Codex</button>
+      </div>
+      <div class="flex items-center gap-2 bg-white border border-gray-200 rounded-lg px-3 py-1.5">
+        <i data-lucide="search" class="w-4 h-4 text-gray-400"></i>
+        <input id="searchInput" class="text-sm bg-transparent outline-none w-48 text-[#1E1B4B] placeholder-gray-400" placeholder="搜索 agent 名称..." oninput="onSearch()">
+        <span id="clearSearch" class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 hidden" onclick="clearSearch()">清除</span>
+      </div>
     </div>
+
+    <!-- 分类筛选 -->
+    <div class="flex gap-1.5 flex-wrap mb-6" id="categoryTabs">
+      <button class="px-3 py-1 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors" onclick="setCategory('全部')">全部</button>
+    </div>
+
+    <!-- 智能体网格 -->
+    <div class="grid grid-cols-[repeat(auto-fill,minmax(175px,1fr))] gap-3" id="agentsGrid">
+      <div class="text-center py-12 text-gray-400 col-span-full text-sm">加载中...</div>
+    </div>
+
+    <footer class="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
+      <span>Jarvis Engine</span>
+      <span><a href="/dashboard" class="text-indigo-500 hover:text-indigo-600 transition-colors">流水线看板</a><span class="mx-2">·</span>会话隔离模式</span>
+    </footer>
   </div>
-  <div class=toolbar style=margin-bottom:16px>
-    <div class=filter id=categoryTabs>
-      <button class=sel onclick="setCategory('全部')">全部</button>
-    </div>
-    <div class=search-box>
-      <input id=searchInput placeholder="搜索 agent 名称..." oninput="onSearch()">
-      <span class=clear-btn id=clearSearch onclick="clearSearch()">清除</span>
-    </div>
-  </div>
-  <div class=grid id=agentsGrid><div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">加载中...</div></div>
-  <footer>Jarvis Engine · <a href=/dashboard>流水线</a> · 会话隔离模式</footer>
 </main>
 
-<div class=modal-overlay id=modal>
-  <div class=modal>
-    <h3 id=modalName>---</h3>
-    <div class=sub id=modalRole>---</div>
-    <select id=modalSelect onchange="onModelChange()"></select>
-    <input id=modalCustom type=text placeholder="或输入自定义模型名称..." style="display:none" oninput="onCustomInput()">
-    <select id=modalEffort></select>
-    <div class=btns>
-      <button class="btn reset" id=resetBtn onclick=resetModel()>恢复默认</button>
-      <button class="btn save" id=saveBtn onclick=saveModel()>保存</button>
+<!-- ===== 配置弹窗 ===== -->
+<div class="fixed inset-0 bg-black/25 z-50 hidden items-center justify-center" id="modal">
+  <div class="bg-white rounded-2xl p-6 min-w-[360px] max-w-[420px] shadow-xl">
+    <h3 class="text-lg font-bold text-[#1E1B4B]" id="modalName">---</h3>
+    <p class="text-xs text-gray-500 mb-4" id="modalRole">---</p>
+
+    <label class="block text-xs font-medium text-gray-500 mb-1">模型</label>
+    <select id="modalSelect" class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-3" onchange="onModelChange()"></select>
+    <input id="modalCustom" type="text" placeholder="或输入自定义模型名称..." class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-3 hidden" oninput="onCustomInput()">
+
+    <label class="block text-xs font-medium text-gray-500 mb-1">思考等级</label>
+    <select id="modalEffort" class="w-full px-3 py-2 bg-gray-50 text-[#1E1B4B] border border-gray-200 rounded-lg text-sm cursor-pointer outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all mb-5"></select>
+
+    <div class="flex gap-2 justify-end">
+      <button class="px-4 py-2 text-xs font-medium text-gray-500 border border-gray-200 rounded-lg hover:border-indigo-300 hover:text-indigo-500 transition-colors mr-auto" id="resetBtn" onclick="resetModel()">恢复默认</button>
+      <button class="px-5 py-2 text-xs font-semibold bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors" id="saveBtn" onclick="saveModel()">保存</button>
     </div>
   </div>
 </div>
-<div id=toastContainer></div>
+
+<!-- Toast -->
+<div id="toastContainer" class="fixed bottom-6 right-6 z-[300] flex flex-col gap-2"></div>
 
 <script>
-const PIXEL={
+const PIXEL = {
   brain:[0,0,0,1,1,0,0,0,0,1,1,1,1,1,1,0,1,1,0,1,1,0,1,1,1,1,0,1,1,0,1,1,1,1,1,1,1,1,1,1,0,1,1,1,1,1,1,0,0,0,1,0,0,1,0,0,0,0,0,1,1,0,0,0],
   layout:[0,0,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,1,1,0,1,1,1,0,0,1,1,0,1,1,1,0,0,1,1,0,0,0,0,0,0,1,1,1,1,1,1,1,1,1,0,0,0,0,0,0,0,0],
   palette:[0,0,1,0,0,1,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,1,0,0,1,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0],
@@ -167,7 +130,7 @@ const PIXEL={
   shield:[0,0,0,0,0,0,0,0,0,1,1,1,1,1,1,0,1,0,0,0,0,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,1,1,0,0,0,0,0,0,1,0,1,0,0,0,0,1,0,0,0,1,1,1,1,0,0],
   eye:[0,0,0,0,0,0,0,0,0,1,1,1,0,1,1,0,1,0,0,1,0,0,0,1,1,0,0,1,0,0,0,1,0,1,1,1,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
 };
-const COLORS={brain:'#B4A7FF',layout:'#7DE2D1',palette:'#FF7B9C',db:'#4ECB71',test:'#FFE17B',server:'#7DE2D1',route:'#FF7B9C',cog:'#8B869B',table:'#4ECB71',globe:'#7DE2D1',play:'#4ECB71',file:'#8B869B',map:'#B4A7FF',list:'#FFE17B',shield:'#FF7B9C',eye:'#B4A7FF'};
+const COLORS = {brain:'#B4A7FF',layout:'#7DE2D1',palette:'#FF7B9C',db:'#4ECB71',test:'#FFE17B',server:'#7DE2D1',route:'#FF7B9C',cog:'#8B869B',table:'#4ECB71',globe:'#7DE2D1',play:'#4ECB71',file:'#8B869B',map:'#B4A7FF',list:'#FFE17B',shield:'#FF7B9C',eye:'#B4A7FF'};
 function px(icon){const p=PIXEL[icon]||PIXEL.brain;const c=COLORS[icon]||COLORS.brain;return`<div class=avatar-8>${p.map(v=>`<span style="background:${v?c:'transparent'}"></span>`).join('')}</div>`}
 
 let agents=[],cur=null,platform='all',category='全部',d=null,customModel='',saving=false,searchText='';
@@ -182,50 +145,60 @@ async function load(p){
   const r=await fetch('/api/agents'+qs);
   d=await r.json();agents=d.agents;
   if(d.categories && document.getElementById('categoryTabs').children.length<=1){
-    document.getElementById('categoryTabs').innerHTML = d.categories.map(c=>
-      `<button class="${c===category?'sel':''}" onclick="setCategory('${c}')">${c==='全部'?'全部':c}</button>`
-    ).join('');
+    document.getElementById('categoryTabs').innerHTML = d.categories.map(c=>{
+      const isSel = c===category;
+      return `<button class="px-3 py-1 text-xs font-medium rounded-lg transition-colors ${isSel?'bg-indigo-500 text-white':'text-gray-500 hover:bg-gray-100'}" onclick="setCategory('${c}')">${c==='全部'?'全部':c}</button>`;
+    }).join('');
   }
   document.getElementById('agentsGrid').innerHTML=render();
   const scope = (platform==='all'?'全部平台 ':'') + (category==='全部'?'':category+' ');
   document.getElementById('agentCount').textContent=scope+agents.length+' 个智能体 · 共 '+d.total_count+' 个';
+  lucide.createIcons();
 }
 
 function setPlatform(p){
   platform=p;
-  document.querySelectorAll('#platformTabs button').forEach(b=>b.classList.remove('sel'));
-  document.querySelector('#platformTabs button[onclick*="'+p+'"]').classList.add('sel');
+  document.querySelectorAll('#platformTabs button').forEach(b=>{
+    const txt = b.textContent.trim().toLowerCase();
+    b.className = (txt === p || (p==='all' && txt==='全部'))
+      ? 'px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors'
+      : 'px-3.5 py-1.5 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors';
+  });
   load();
 }
 
 function setCategory(c){
   category=c;
-  document.querySelectorAll('#categoryTabs button').forEach(b=>b.classList.remove('sel'));
-  document.querySelector('#categoryTabs button[onclick*="'+c+'"]').classList.add('sel');
+  document.querySelectorAll('#categoryTabs button').forEach(b=>{
+    b.className = b.textContent.trim() === c
+      ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-500 text-white transition-colors'
+      : 'px-3 py-1 text-xs font-medium rounded-lg text-gray-500 hover:bg-gray-100 transition-colors';
+  });
   load();
 }
 
 function onSearch(){
   searchText=document.getElementById('searchInput').value.trim();
-  document.getElementById('clearSearch').classList.toggle('show',searchText.length>0);
+  document.getElementById('clearSearch').classList.toggle('hidden',searchText.length===0);
   load();
 }
 function clearSearch(){
   document.getElementById('searchInput').value='';
   searchText='';
-  document.getElementById('clearSearch').classList.remove('show');
+  document.getElementById('clearSearch').classList.add('hidden');
   load();
 }
 
 function render(){
-  if(agents.length===0) return '<div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">未找到匹配的智能体</div>';
+  if(agents.length===0) return '<div class="text-center py-12 text-gray-400 col-span-full text-sm">未找到匹配的智能体</div>';
   return agents.map(a=>{
-    const synced = a.is_custom ? '<span class=sync-dot title="已自定义"></span>' : '';
-    return `<div class="card${a.is_custom?' custom':''}" onclick="openM('${a.id}')">
+    const synced = a.is_custom ? '<span class="inline-block w-2 h-2 rounded-full bg-emerald-500 flex-shrink-0" title="已自定义"></span>' : '';
+    const cardExtra = a.is_custom ? 'ring-2 ring-indigo-300 border-indigo-300' : 'border-gray-100';
+    return `<div class="bg-white rounded-xl p-4 border ${cardExtra} cursor-pointer hover:shadow-md transition-all hover:-translate-y-0.5" onclick="openM('${a.id}')">
       ${px(a.icon)}
-      <div class=role>${a.platform||''} · ${a.role||''}</div>
-      <div class=name>${a.name}${synced}</div>
-      <div class="model${a.is_custom?' custom':''}" title="${a.model}">${a.model||'(未配置)'}<span class=effort-badge>${a.effort||'high'}</span></div>
+      <div class="text-[10px] text-gray-400 uppercase tracking-wide mt-1">${a.platform||''} · ${a.role||''}</div>
+      <div class="text-sm font-semibold text-[#1E1B4B] mt-1 flex items-center gap-1.5">${a.name}${synced}</div>
+      <div class="inline-block text-[11px] text-gray-500 bg-gray-100 px-2 py-0.5 rounded-md mt-2 font-medium max-w-full truncate" title="${a.model}">${a.model||'(未配置)'}<span class="ml-1 text-[10px] text-emerald-500 font-medium">${a.effort||'high'}</span></div>
     </div>`;
   }).join('');
 }
@@ -234,9 +207,9 @@ function platformModels(p){return d&&d.platform_models?d.platform_models[p]||d.a
 
 function onModelChange(){
   if(document.getElementById('modalSelect').value==='__custom__'){
-    document.getElementById('modalCustom').style.display='block';
+    document.getElementById('modalCustom').classList.remove('hidden');
     document.getElementById('modalCustom').focus();
-  }else{document.getElementById('modalCustom').style.display='none'}
+  }else{document.getElementById('modalCustom').classList.add('hidden')}
 }
 function onCustomInput(){customModel=document.getElementById('modalCustom').value}
 
@@ -252,10 +225,11 @@ function openM(id){
     pModels.map(m=>`<option value="${m}" ${m===cur.model?'selected':''}>${m}</option>`).join('')+
     (curInList?'':'<option value="'+cur.model+'" selected>'+cur.model+'</option>')+
     '<option value="__custom__">自定义输入...</option>';
-  document.getElementById('modalCustom').style.display='none';
+  document.getElementById('modalCustom').classList.add('hidden');
   document.getElementById('modalCustom').value='';
   document.getElementById('modalEffort').innerHTML=(d.available_efforts||['low','medium','high','xhigh','max']).map(e=>'<option value="'+e+'" '+(e===(cur.effort||'high')?'selected':'')+'>'+e+'</option>').join('');
-  document.getElementById('modal').classList.add('show');
+  document.getElementById('modal').classList.remove('hidden');
+  document.getElementById('modal').classList.add('flex');
   document.getElementById('saveBtn').disabled=false;
   document.getElementById('saveBtn').textContent='保存';
 }
@@ -277,7 +251,8 @@ async function saveModel(){
     const e=document.getElementById('modalEffort').value;
     const resp=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:m,effort:e})});
     const r=await resp.json();
-    document.getElementById('modal').classList.remove('show');
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
     cur.model=m;cur.effort=e;cur.is_custom=true;
     document.getElementById('agentsGrid').innerHTML=render();
     toast(r.file_synced?'已保存并同步到源文件 · '+cur.name+' → '+m+' @'+e:'已保存到数据库（源文件同步未成功）',r.file_synced?'success':'warn');
@@ -291,7 +266,8 @@ async function resetModel(){
   try{
     const resp=await fetch('/api/agents',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({agent_id:cur.id,model:cur.defaultModel,effort:cur.defaultEffort||'high'})});
     const r=await resp.json();
-    document.getElementById('modal').classList.remove('show');
+    document.getElementById('modal').classList.add('hidden');
+    document.getElementById('modal').classList.remove('flex');
     cur.model=cur.defaultModel;cur.effort=cur.defaultEffort||'high';cur.is_custom=false;
     document.getElementById('agentsGrid').innerHTML=render();
     toast(r.file_synced?'已恢复默认 · '+cur.name:'已恢复默认（文件同步未成功）','success');
@@ -301,14 +277,16 @@ async function resetModel(){
 
 function toast(msg,type){
   const t=document.createElement('div');
-  t.className='toast '+(type||'success');
+  const bg = type==='error'?'bg-red-500':type==='warn'?'bg-amber-500':'bg-emerald-500';
+  t.className='toast-in px-4 py-3 rounded-lg text-sm font-medium shadow-lg text-white '+bg;
   t.textContent=msg;
   document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>t.remove(),3500);
+  setTimeout(()=>{t.style.opacity='0';t.style.transition='opacity .3s';setTimeout(()=>t.remove(),300)},3500);
 }
 
-document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)document.getElementById('modal').classList.remove('show')});
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget){document.getElementById('modal').classList.add('hidden');document.getElementById('modal').classList.remove('flex')}});
 load();
+lucide.createIcons();
 </script>
 </body>
 </html>

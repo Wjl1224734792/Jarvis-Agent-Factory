@@ -18,6 +18,7 @@ function initSchema(db) {
       session_id TEXT PRIMARY KEY,
       project TEXT NOT NULL,
       current_gate TEXT NOT NULL DEFAULT 'Gate A',
+      pipeline_type TEXT NOT NULL DEFAULT 'full',
       started_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
@@ -56,6 +57,8 @@ function initSchema(db) {
   } catch {}
   // Migrate: add status column to sessions if missing
   try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
+  // Migrate: add pipeline_type column to pipeline if missing
+  try { db.exec("ALTER TABLE pipeline ADD COLUMN pipeline_type TEXT DEFAULT 'full'"); } catch {}
 }
 
 // ---- Pipeline (per-session) ----
@@ -65,8 +68,9 @@ export function getPipeline(db, sessionId) {
 export function updatePipelineGate(db, sessionId, gate) {
   db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId || 'legacy');
 }
-export function initPipeline(db, sessionId, project) {
-  db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, started_at, updated_at) VALUES (?, ?, 'Gate A', datetime('now'), datetime('now'))`).run(sessionId, project);
+/** @param {'full'|'frontend'|'backend'} pipelineType */
+export function initPipeline(db, sessionId, project, pipelineType = 'full') {
+  db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, pipeline_type, started_at, updated_at) VALUES (?, ?, 'Gate A', ?, datetime('now'), datetime('now'))`).run(sessionId, project, pipelineType);
 }
 export function getAllPipelines(db) {
   return db.prepare('SELECT * FROM pipeline ORDER BY updated_at DESC').all();

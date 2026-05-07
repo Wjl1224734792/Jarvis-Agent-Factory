@@ -10,14 +10,17 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 
 立即执行以下步骤：
 
-## 步骤 0：加载技能
+## 步骤 0：加载技能 + 注册引擎
 ```
 Skill("behavioral-guidelines")
 Skill("agent-browser")
 Skill("browser-testing")
-
-**引擎驱动**：引擎运行时，测试完成后 `mcp__jarvis-engine__gate_enforce` 验证 Gate C2，`mcp__jarvis-engine__advance_gate` 推进。
 ```
+
+**引擎会话注册**（硬约束——引擎确保测试操作不越权）：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- 生成测试 Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
+- 测试完成后 `mcp__jarvis-engine__gate_enforce` 验证结果，`mcp__jarvis-engine__advance_gate` 推进状态机
 
 ## 步骤 1：确认测试范围
 若用户未提供，先询问并确认：

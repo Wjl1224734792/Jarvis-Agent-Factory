@@ -478,7 +478,7 @@ if featureFlag.isEnabled('new-checkout'):  # 服务挂了直接炸
 ```
 jarvis.md Gate D（评审通过）
      │
-     ├── review-qa 给出通过意见
+     ├── qa-review-expert 给出通过意见
      │
      ▼
 shipping-and-launch（本技能）
@@ -489,4 +489,4 @@ shipping-and-launch（本技能）
 生产环境
 ```
 
-**前置条件：** Gate D 必须已通过。如果 review-qa 提出了阻塞性问题，必须先修复后重新评审，再进入上线流程。
+**前置条件：** Gate D 必须已通过。如果 qa-review-expert 提出了阻塞性问题，必须先修复后重新评审，再进入上线流程。

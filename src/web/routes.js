@@ -2,8 +2,8 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions } from '../engine/db.js';
-import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay } from '../engine/gates.js';
-import { getPlatformModels, getCategories } from '../engine/agent-registry.js';
+import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
+import { getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 /** 按平台分组可用模型 */
@@ -19,9 +19,11 @@ export function setupWebRoutes(app, db, root, dashboard) {
     const sessions = getSessions(db, 'active');
     const sessionList = sessions.map(s => {
       const p = getPipeline(db, s.id);
-      const gates = GATES.map(g => ({ gate: g, passed: getCheckpoints(db, g, s.id).length > 0, artifacts: findGateArtifacts(getDocsDir(root), g) }));
+      const pt = p?.pipeline_type || DEFAULT_PIPELINE;
+      const gateList = getPipelineGates(pt);
+      const gates = gateList.map(g => ({ gate: g, passed: getCheckpoints(db, g, s.id).length > 0, artifacts: findGateArtifacts(getDocsDir(root), g) }));
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
-      return { session_id: s.id, platform: s.platform, status: s.status, current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates, _display: formatGateDisplay(gates, current) };
+      return { session_id: s.id, platform: s.platform, status: s.status, pipeline_type: pt, pipeline_name: getPipelineName(pt), current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates, _display: formatGateDisplay(gates, current) };
     });
     res.json({ sessions: sessionList, active_count: sessions.length });
   });
@@ -38,23 +40,25 @@ export function setupWebRoutes(app, db, root, dashboard) {
   app.post('/api/gate/advance', (req, res) => {
     const sid = req.body.session_id || (getSessions(db)[0]?.id);
     const pstate = getPipeline(db, sid);
-    const currentGate = pstate?.current_gate || 'Gate A';
-    const currentIdx = GATES.indexOf(currentGate); const targetIdx = currentIdx + 1;
-    if (targetIdx >= GATES.length) return res.json({ allowed: false, error: 'Pipeline complete' });
-    const targetGate = GATES[targetIdx];
+    const pt = pstate?.pipeline_type || DEFAULT_PIPELINE;
+    const gateList = getPipelineGates(pt);
+    const currentGate = pstate?.current_gate || gateList[0];
+    const currentIdx = gateList.indexOf(currentGate); const targetIdx = currentIdx + 1;
+    if (targetIdx >= gateList.length) return res.json({ allowed: false, error: 'Pipeline complete' });
+    const targetGate = gateList[targetIdx];
     const artifacts = findGateArtifacts(getDocsDir(root), currentGate);
     const checkpoints = getCheckpoints(db, currentGate, sid);
     if (artifacts.length === 0 && checkpoints.length === 0) return res.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
     addCheckpoint(db, currentGate, targetGate, sid);
     updatePipelineGate(db, sid, targetGate);
-    res.json({ allowed: true, session_id: sid, previous: currentGate, current: targetGate, next: GATES[targetIdx + 1] || 'Complete' });
+    res.json({ allowed: true, session_id: sid, pipeline_type: pt, previous: currentGate, current: targetGate, next: gateList[targetIdx + 1] || 'Complete' });
   });
 
   app.get('/api/sessions', (_req, res) => {
     markStaleSessions(db, 600_000);
     const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
-      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat, status: s.status };
+      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE, heartbeat: s.last_heartbeat, status: s.status };
     });
     res.json({ sessions, count: sessions.length });
   });
@@ -112,6 +116,18 @@ export function setupWebRoutes(app, db, root, dashboard) {
     res.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
   });
 
+  // ---- 平台信息 ----
+  app.get('/api/platforms', (_req, res) => {
+    const platforms = getPlatforms();
+    const models = getPlatformModels();
+    const summary = {};
+    for (const p of platforms) {
+      const agents = getAgentsByPlatform(p);
+      summary[p] = { agent_count: agents.length, available_models: models[p] || [], template_dir: `src/templates/platforms/${p}/` };
+    }
+    res.json({ platforms: summary, supported: platforms, total_agents: AGENT_LIST.length });
+  });
+
   // ---- SSE ----
   const sseClients = new Set();
   app.get('/api/events', (req, res) => {
@@ -121,7 +137,10 @@ export function setupWebRoutes(app, db, root, dashboard) {
   setInterval(() => {
     if (sseClients.size === 0) return;
     const sessions = getSessions(db);
-    const data = JSON.stringify({ sessions: sessions.map(s => ({ id: s.id, platform: s.platform, role: s.role, gate: getPipeline(db, s.id)?.current_gate || '?', status: s.status })), count: sessions.length });
+    const data = JSON.stringify({ sessions: sessions.map(s => {
+        const p = getPipeline(db, s.id);
+        return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE, status: s.status };
+      }), count: sessions.length });
     for (const c of sseClients) c.write(`data: ${data}\n\n`);
   }, 8000);
 

@@ -3,15 +3,22 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
-import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, findGateArtifacts, formatGateDisplay } from './gates.js';
+import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
+import { getAgentsByPlatform, getPlatforms, getPlatformModels } from './agent-registry.js';
 import { setupWebRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
 const SESSION_TIMEOUT = 600_000; // 10分钟超时，标记 inactive 而非删除
+
+/** 从 session 获取该会话的 Gate 序列（向后兼容：无 pipeline_type 默认 full） */
+function sessionGates(db, sid) {
+  const p = getPipeline(db, sid);
+  return getPipelineGates(p?.pipeline_type || DEFAULT_PIPELINE);
+}
 
 export async function startEngine({ port = DEFAULT_PORT, dashboard = false, projectRoot = '.' } = {}) {
   const root = resolve(projectRoot);
@@ -29,9 +36,14 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 30_000);
 
   // ---- MCP Tools ----
-  server.tool('session_join', '注册/恢复会话。每个会话独立流水线状态。支持传入 resume_session_id 恢复旧会话。', { platform: z.enum(['claude','opencode','codex','other']).optional(), resume_session_id: z.string().optional() },
-    async ({ platform, resume_session_id }, extra) => {
+  server.tool('session_join',
+    '注册/恢复会话。每个会话独立流水线状态。支持 resume_session_id 恢复旧会话，pipeline_type 指定流水线类型（full/frontend/backend）。',
+    { platform: z.enum(['claude','opencode','codex','other']).optional(),
+      resume_session_id: z.string().optional(),
+      pipeline_type: z.string().optional() },
+    async ({ platform, resume_session_id, pipeline_type }, extra) => {
       const sid = extra?.sessionId || `s${Date.now()}`;
+      const pt = pipeline_type || DEFAULT_PIPELINE;
       // 恢复旧会话：迁移 pipeline/checkpoints 到新 sessionId
       if (resume_session_id) {
         const old = getSession(db, resume_session_id);
@@ -44,13 +56,16 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
       if (existing) {
         heartbeatSession(db, sid);
         const p = getPipeline(db, sid);
-        return resp({ session_id: sid, platform: existing.platform, gate: p?.current_gate || 'Gate A', project: p?.project || root, resumed: false });
+        return resp({ session_id: sid, platform: existing.platform, gate: p?.current_gate || 'Gate A',
+          pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE, project: p?.project || root, resumed: false });
       }
       addSession(db, sid, platform || 'unknown', 'member');
       // 为新 session 自动初始化独立 pipeline（仅当未从旧会话迁移时）
-      if (!getPipeline(db, sid)) initPipeline(db, sid, root);
+      if (!getPipeline(db, sid)) initPipeline(db, sid, root, pt);
       const p = getPipeline(db, sid);
-      return resp({ session_id: sid, platform: platform || 'unknown', gate: p?.current_gate || 'Gate A', project: p?.project || root, message: '🆕 新会话已初始化，独立流水线已就绪。', resumed: !!resume_session_id });
+      return resp({ session_id: sid, platform: platform || 'unknown', gate: p?.current_gate || 'Gate A',
+        pipeline_type: pt, project: p?.project || root,
+        message: '\u{1F195} 新会话已初始化，独立流水线已就绪。', resumed: !!resume_session_id });
     });
   server.tool('session_heartbeat', '心跳保活。', {}, async (_args, extra) => {
     const sid = extra?.sessionId;
@@ -61,7 +76,9 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     markStaleSessions(db, SESSION_TIMEOUT);
     const sessions = getSessions(db, 'active').map(s => {
       const p = getPipeline(db, s.id);
-      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat, status: s.status };
+      return { id: s.id, platform: s.platform, role: s.role,
+        gate: p?.current_gate || '?', pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
+        heartbeat: s.last_heartbeat, status: s.status };
     });
     return resp({ sessions, count: sessions.length });
   });
@@ -72,62 +89,130 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     return resp({ ok: true, message: 'Session removed.' });
   });
 
-  server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。', { project_name: z.string().optional() },
-    async ({ project_name }, extra) => {
+  server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
+    { project_name: z.string().optional(), pipeline_type: z.string().optional() },
+    async ({ project_name, pipeline_type }, extra) => {
       const sid = extra?.sessionId || 'legacy';
-      initPipeline(db, sid, project_name || root);
-      return resp({ ok: true, session_id: sid, message: 'Pipeline initialized. Next: Gate A', state: getPipeline(db, sid) });
+      const pt = pipeline_type || DEFAULT_PIPELINE;
+      initPipeline(db, sid, project_name || root, pt);
+      return resp({ ok: true, session_id: sid, pipeline_type: pt,
+        message: 'Pipeline initialized. Next: Gate A', state: getPipeline(db, sid) });
     });
   server.tool('pipeline_status', '【会话隔离】当前会话流水线状态。', {},
     async (_args, extra) => {
       const sid = extra?.sessionId || 'legacy';
       const p = getPipeline(db, sid);
+      const pt = p?.pipeline_type || DEFAULT_PIPELINE;
+      const gateList = getPipelineGates(pt);
       const docs = join(root, 'docs');
-      const gates = GATES.map(g => {
+      const gates = gateList.map(g => {
         const cp = getCheckpoints(db, g, sid);
-        return { gate: g, passed: cp.length > 0, checkpoints: cp, artifacts: findGateArtifacts(docs, g), requirement: GATE_CHECKS[g]?.check || '' };
+        return { gate: g, passed: cp.length > 0, checkpoints: cp,
+          artifacts: findGateArtifacts(docs, g), requirement: GATE_CHECKS[g]?.check || '' };
       });
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
       return resp({
-        session_id: sid, project: root, current_gate: current,
-        completed: gates.filter(g => g.passed).map(g => g.gate), gates,
+        session_id: sid, project: root, pipeline_type: pt, pipeline_name: getPipelineName(pt),
+        current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates,
         all_sessions: getSessions(db).map(s => ({ id: s.id, gate: getPipeline(db, s.id)?.current_gate || '?' })),
         _display: formatGateDisplay(gates, current)
       });
     });
-  server.tool('gate_enforce', '【会话隔离·硬约束】验证Gate条件。', { gate: z.enum(GATES).optional() },
+  server.tool('gate_enforce', '【会话隔离·硬约束】验证Gate条件。',
+    { gate: z.string().optional() },
     async ({ gate }, extra) => {
       const sid = extra?.sessionId || 'legacy';
-      const target = gate || getPipeline(db, sid)?.current_gate || 'Gate A';
+      const gateList = sessionGates(db, sid);
+      const target = gate || getPipeline(db, sid)?.current_gate || gateList[0];
       const artifacts = findGateArtifacts(join(root, 'docs'), target);
       const checkpoints = getCheckpoints(db, target, sid);
       const allowed = artifacts.length > 0 || checkpoints.length > 0;
       return resp(allowed
-        ? { gate: target, allowed: true, session_id: sid, message: `✅ ${target} — proceed.` }
-        : { gate: target, allowed: false, session_id: sid, blocked_reasons: [artifacts.length ? '' : `No artifacts in docs/${GATE_DIRS[target]}/`].filter(Boolean), action_required: GATE_CHECKS[target]?.check || '' });
+        ? { gate: target, allowed: true, session_id: sid, message: `${target} — proceed.` }
+        : { gate: target, allowed: false, session_id: sid,
+            blocked_reasons: [artifacts.length ? '' : `No artifacts in docs/${GATE_DIRS[target] || '?'}/`].filter(Boolean),
+            action_required: GATE_CHECKS[target]?.check || '' });
     });
-  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。', { gate: z.enum(GATES) },
+  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。',
+    { gate: z.string() },
     async ({ gate }, extra) => {
       const sid = extra?.sessionId || 'legacy';
       const p = getPipeline(db, sid);
-      const cur = p?.current_gate || 'Gate A';
-      const ci = GATES.indexOf(cur), ti = GATES.indexOf(gate);
+      const gateList = sessionGates(db, sid);
+      const cur = p?.current_gate || gateList[0];
+      const ci = gateList.indexOf(cur), ti = gateList.indexOf(gate);
+      if (ti === -1) return resp({ allowed: false, error: `Unknown gate: ${gate}. Valid gates for this pipeline: ${gateList.join(', ')}` });
       if (ti <= ci) return resp({ allowed: false, error: `FSM blocked: Cannot move backward. Current: ${cur}` });
-      if (ti > ci + 1) return resp({ allowed: false, error: `FSM blocked: Cannot skip gates. Next: ${GATES[ci + 1]}` });
+      if (ti > ci + 1) return resp({ allowed: false, error: `FSM blocked: Cannot skip gates. Next: ${gateList[ci + 1]}` });
       const artifacts = findGateArtifacts(join(root, 'docs'), cur);
       const cps = getCheckpoints(db, cur, sid);
       if (artifacts.length === 0 && cps.length === 0) return resp({ allowed: false, error: `${cur} conditions NOT met.` });
       addCheckpoint(db, cur, gate, sid);
       updatePipelineGate(db, sid, gate);
-      return resp({ allowed: true, session_id: sid, previous_gate: cur, current_gate: gate, next: GATES[ti + 1] || 'Complete', message: GATES[ti + 1] ? `Next: ${GATES[ti + 1]}` : '🎉 Complete!' });
+      return resp({ allowed: true, session_id: sid, previous_gate: cur, current_gate: gate,
+        next: gateList[ti + 1] || 'Complete',
+        message: gateList[ti + 1] ? `Next: ${gateList[ti + 1]}` : 'Complete!' });
     });
   server.tool('report_status', '【会话隔离】流水线完整报告。', {},
     async (_args, extra) => {
       const sid = extra?.sessionId || 'legacy';
-      const gates = GATES.map(g => ({ gate: g, passed: getCheckpoints(db, g, sid).length > 0, artifacts: findGateArtifacts(join(root, 'docs'), g) }));
+      const gateList = sessionGates(db, sid);
+      const gates = gateList.map(g => ({ gate: g, passed: getCheckpoints(db, g, sid).length > 0,
+        artifacts: findGateArtifacts(join(root, 'docs'), g) }));
       const completed = gates.filter(g => g.passed).length;
-      return resp({ session_id: sid, project: root, progress: `${completed}/${GATES.length}`, current: gates.find(g => !g.passed)?.gate || 'Complete' });
+      return resp({ session_id: sid, project: root, pipeline_type: getPipeline(db, sid)?.pipeline_type || DEFAULT_PIPELINE,
+        progress: `${completed}/${gateList.length}`, current: gates.find(g => !g.passed)?.gate || 'Complete' });
     });
+  // ---- 硬约束工具 ----
+  server.tool('gate_check',
+    '【硬约束·操作前检查】在执行关键操作（写代码/生成Agent/测试/构建/审查/部署）之前调用。返回该操作在当前Gate是否被允许，以及被阻止的原因和下一步指引。',
+    { operation: z.enum(['read','write_doc','write_code','sweep_arch','spawn_impl','spawn_test','lint','build','preview','review','audit','deploy','fix']).describe('要执行的操作类型') },
+    async ({ operation }, extra) => {
+      const sid = extra?.sessionId || 'legacy';
+      const p = getPipeline(db, sid);
+      const gateList = sessionGates(db, sid);
+      const cur = p?.current_gate || gateList[0];
+      const ops = getGateOperations(cur);
+      const allowed = ops.allow.includes(operation);
+      if (allowed) return resp({ allowed: true, gate: cur, operation, session_id: sid, message: `${operation} 在 ${cur} 允许执行` });
+      // 构建详细的阻止信息
+      const reasons = [`操作 "${operation}" 在 ${cur} 不被允许`, `允许的操作: ${ops.allow.join(', ')}`, `下一步: ${GATE_CHECKS[cur]?.check || '完成当前Gate条件'}`];
+      return resp({ allowed: false, gate: cur, operation, session_id: sid, blocked_reasons: reasons, allowed_operations: ops.allow, next_step: GATE_CHECKS[cur]?.check || '' });
+    });
+  server.tool('pipeline_guide',
+    '【硬约束·流程指引】返回当前Gate的完整上下文：允许/禁止的操作、可生成的Agent类型、下一步行动指南。在不确定下一步做什么时调用。',
+    {},
+    async (_args, extra) => {
+      const sid = extra?.sessionId || 'legacy';
+      const p = getPipeline(db, sid);
+      const gateList = sessionGates(db, sid);
+      const cur = p?.current_gate || gateList[0];
+      const ci = gateList.indexOf(cur);
+      const ops = getGateOperations(cur);
+      // 每个Gate的Agent生成指引
+      const agentGuide = {
+        'Gate A':  { can_spawn: ['code-explore-expert','docs-research-expert'], note: '需求澄清阶段，只探索和写文档' },
+        'Gate B':  { can_spawn: ['task-design'], note: '任务分解阶段，spawn task-design 做垂直切片' },
+        'Gate C':  { can_spawn: ['planner','frontend-architect','backend-architect','database-architect'], note: '规划阶段，spawn planner 产出 parallel_batches；按需做架构评审' },
+        'Gate C1': { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
+        'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
+        'Gate C2': { can_spawn: ['frontend-test-expert','backend-test-expert','browser-test-expert','api-contract-expert','perf-test-expert','e2e-test-expert'], note: '测试阶段——先并行单元/组件测试，最后E2E' },
+        'Gate D':  { can_spawn: ['frontend-review-expert','backend-review-expert','security-review-expert','perf-review-expert','qa-review-expert'], note: '评审阶段——4个领域审查并行，最后qa-review-expert综合签核' },
+        'Gate E':  { can_spawn: ['security-review-expert','infra-deploy-expert'], note: '发布阶段——安全审计+上线检查+版本管理+归档' },
+      };
+      return resp({
+        session_id: sid, gate: cur, gate_index: ci + 1, total_gates: gateList.length,
+        pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE, pipeline_name: getPipelineName(p?.pipeline_type || DEFAULT_PIPELINE),
+        allowed_operations: ops.allow, forbidden_operations: ops.deny,
+        agent_spawn: agentGuide[cur] || { can_spawn: [], note: '未知Gate' },
+        gate_requirement: GATE_CHECKS[cur]?.check || '',
+        next_gate: gateList[ci + 1] || 'Complete',
+        previous_gate: ci > 0 ? gateList[ci - 1] : null,
+        fix_loop: cur === 'Gate C1' || cur === 'Gate C1.5' || cur === 'Gate C2' || cur === 'Gate D'
+          ? '当前Gate支持修复回退循环，最多2轮。调用 gate_check("fix") 确认修复操作已允许。' : null,
+      });
+    });
+
   const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
   server.tool('agent_config', 'Agent模型+思考等级配置。', { agent_id: z.string().optional(), model: z.string().optional(), effort: z.string().optional() },
     async ({ agent_id, model, effort }) => {
@@ -140,6 +225,30 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
         const c = cfg[a.id];
         return { id: a.id, name: a.name, role: a.role, platform: a.platform, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
       }), available_models: [...new Set(AGENT_LIST.map(a=>a.defaultModel).filter(Boolean))], available_efforts: EFFORTS });
+    });
+
+  server.tool('platform_info',
+    '获取平台信息：支持哪些平台（claude/opencode/codex）、各平台 Agent 数量、可用模型列表。用于引擎扩展和平台适配。',
+    { platform: z.string().optional().describe('指定平台名称（claude/opencode/codex），不传则返回全部平台信息') },
+    async ({ platform }) => {
+      const platforms = getPlatforms();
+      const models = getPlatformModels();
+      if (platform) {
+        if (!platforms.includes(platform)) return resp({ error: `Unknown platform: ${platform}. Available: ${platforms.join(', ')}` });
+        const agents = getAgentsByPlatform(platform);
+        return resp({
+          platform,
+          agent_count: agents.length,
+          available_models: models[platform] || [],
+          agents: agents.map(a => ({ id: a.id, name: a.name, role: a.role, category: a.category, defaultModel: a.defaultModel, defaultEffort: a.defaultEffort })),
+        });
+      }
+      const summary = {};
+      for (const p of platforms) {
+        const agents = getAgentsByPlatform(p);
+        summary[p] = { agent_count: agents.length, available_models: models[p] || [] };
+      }
+      return resp({ platforms: summary, total_agents: AGENT_LIST.length });
     });
 
   // ---- Transport + Web ----
@@ -156,7 +265,7 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   setupWebRoutes(app, db, root, dashboard);
 
   app.listen(port, () => {
-    console.log(`🧠 Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
+    console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
     if (dashboard) console.log(`   Web: http://localhost:${port}/dashboard`);
     console.log(`   API: http://localhost:${port}/api/pipeline`);
     console.log(`   MCP: http://localhost:${port}/mcp`);

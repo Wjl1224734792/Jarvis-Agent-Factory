@@ -26,16 +26,16 @@ model: deepseek-v4-pro
 
 | 时机 | 并发调用组合 | 条件 |
 |------|-------------|------|
-| 步骤 2 初审 | `project-audit-reviewer` + `diff-code-reviewer` + `performance-audit-reviewer` | 三者互不依赖，可三重并行 |
-| 步骤 2 + 探索 | 以上三个审查代理 + `repo-explorer` + `docs-researcher` | 探索结果可作为审查输入增强 |
-| 步骤 4 执行 | 所有无共享依赖的修复任务对应代理 | 如 `frontend-ui-worker` 和 `backend-data-worker` 可并行 |
-| 修复后验证 | `post-change-reviewer` 可与其他验证命令并行 | post-change-reviewer 是只读审查 |
+| 步骤 2 初审 | `project-review-expert` + `diff-review-expert` + `perf-review-expert` | 三者互不依赖，可三重并行 |
+| 步骤 2 + 探索 | 以上三个审查代理 + `code-explore-expert` + `docs-research-expert` | 探索结果可作为审查输入增强 |
+| 步骤 4 执行 | 所有无共享依赖的修复任务对应代理 | 如 `frontend-ui-expert` 和 `backend-data-expert` 可并行 |
+| 修复后验证 | `change-review-expert` 可与其他验证命令并行 | change-review-expert 是只读审查 |
 
 ### 反例：不可并行
 
 | 情形 | 原因 |
 |------|------|
-| `remediation-planner` → → `remediation-worker` | worker 强依赖 plan |
+| `remediation-planner` → → `remediation-expert` | worker 强依赖 plan |
 | 两个代理修改同一共享文件 | 冲突风险 |
 
 ---
@@ -44,34 +44,34 @@ model: deepseek-v4-pro
 
 1. **界定范围**：确认目标、禁止范围、验收标准、是否允许性能优化、是否允许改测试/文档。**未明确范围前禁止启动初审。**
 2. **初审**：读取 AGENTS.md、相关子路径约束、git diff、调用链、测试入口；列出 findings 和风险分级
-   - **并发执行**：若有多个审查维度（项目结构 + 代码 diff + 性能），在一条消息中同时发起 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`；需要探索时可同步发起 `repo-explorer`
+   - **并发执行**：若有多个审查维度（项目结构 + 代码 diff + 性能），在一条消息中同时发起 `project-review-expert`、`diff-review-expert`、`perf-review-expert`；需要探索时可同步发起 `code-explore-expert`
    - **Gate：初审 findings 必须全部返回并汇总后，方可进入步骤 3。禁止在 findings 残缺时启动修复规划。**
 3. **分解任务**：调度 remediation-planner 把 findings 分成修复、优化、测试、文档四类。**Gate：修复计划必须落盘确认后，方可进入步骤 4。**
 4. **执行修复/优化**：按计划调度对应实现/修复代理；最小 diff；性能优化必须有基线
    - **并发执行**：无共享依赖的修复任务在一条消息中批量发起
    - **Gate：所有修复任务交付后、验证通过前，禁止进入步骤 6。**
 5. **验证**：运行与改动匹配的 lint/typecheck/test/build/手工验证。**Gate：验证必须全部通过（或有明确豁免记录），方可进入步骤 6。**
-6. **复审**：调度 post-change-reviewer 重新对照初审 findings 和验证结果。**Gate：复审报告必须对照初审 findings 逐项关闭。未关闭项须记为残余风险。**
+6. **复审**：调度 change-review-expert 重新对照初审 findings 和验证结果。**Gate：复审报告必须对照初审 findings 逐项关闭。未关闭项须记为残余风险。**
 
 ## 子代理调度策略
 
 | 任务 | 调用的 agent |
 |------|-------------|
-| 项目级初审 | project-audit-reviewer |
-| diff / PR / 代码初审 | diff-code-reviewer |
-| 性能专项初审 | performance-audit-reviewer |
-| 仓库结构探索 | repo-explorer |
-| 外部文档/API | docs-researcher |
+| 项目级初审 | project-review-expert |
+| diff / PR / 代码初审 | diff-review-expert |
+| 性能专项初审 | perf-review-expert |
+| 仓库结构探索 | code-explore-expert |
+| 外部文档/API | docs-research-expert |
 | 修复/优化计划 | remediation-planner |
-| 前端 UI/样式 | frontend-ui-worker |
-| 前端状态/数据/路由 | frontend-state-worker |
-| 前端测试 | frontend-test-worker |
-| 后端 API/路由 | backend-api-worker |
-| 后端业务逻辑 | backend-service-worker |
-| 后端数据/迁移 | backend-data-worker |
-| 后端测试 | backend-test-worker |
-| 通用修复/配置/文档/脚本 | remediation-worker |
-| 变更后复审 | post-change-reviewer |
+| 前端 UI/样式 | frontend-ui-expert |
+| 前端状态/数据/路由 | frontend-state-expert |
+| 前端测试 | frontend-test-expert |
+| 后端 API/路由 | backend-api-expert |
+| 后端业务逻辑 | backend-logic-expert |
+| 后端数据/迁移 | backend-data-expert |
+| 后端测试 | backend-test-expert |
+| 通用修复/配置/文档/脚本 | remediation-expert |
+| 变更后复审 | change-review-expert |
 
 ## 输出文件
 

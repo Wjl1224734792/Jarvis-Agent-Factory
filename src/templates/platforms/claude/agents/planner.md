@@ -10,9 +10,9 @@ model: deepseek-v4-pro
 
 ## 工作流编排位置
 
-- 上游：需求须已由主 Build Agent 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 repo-explorer 再规划。
-- 下游：frontend-implementer / backend-implementer / 各专项 worker；有意义变更完成后由 review-qa 评审。
-- 若需求仍模糊、任务缺少 REQ-XXX 映射、或需求文档未通过 Gate A：停止规划，说明须由主 Build Agent 继续澄清或回退 task-design（勿用子代理代替用户对话）。
+- 上游：需求须已由编排者 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 code-explore-expert 再规划。
+- 下游：frontend-dev-expert / backend-dev-expert / 各专项 expert；有意义变更完成后由 qa-review-expert 评审。
+- 若需求仍模糊、任务缺少 REQ-XXX 映射、或需求文档未通过 Gate A：停止规划，说明须由编排者 继续澄清或回退 task-design（勿用子代理代替用户对话）。
 - 若任务拆分不完整：停止规划，要求回退 task-design。
 
 ## 你的职责
@@ -121,46 +121,46 @@ Skill(skill="behavioral-guidelines")
 若缺失任一项：停止规划，明确指出缺失项，回退 task-design。
 
 同时检查以下测试覆盖条件：
-- 每个 test_strategy=tdd 的任务是否已分配对应的 test worker
-- 每个 test_strategy=test_after 的任务是否已在独立于实现的 Batch 中分配 test worker
+- 每个 test_strategy=tdd 的任务是否已分配对应的 test expert
+- 每个 test_strategy=test_after 的任务是否已在独立于实现的 Batch 中分配 test expert
 - E2E 测试是否已分配且放置在独立于单元/集成测试的最后一个测试 Batch
 - 若缺少任何测试覆盖：停止规划，回退 task-design 要求补充测试类任务
 
 ## 分工规则
 
-- 纯前端多维度任务：frontend-implementer
-- 纯后端多维度任务：backend-implementer
-- 仅 UI / 样式：frontend-ui-worker
-- 仅状态 / 数据 / 路由：frontend-state-worker
-- 仅前端测试：frontend-test-worker
-- 仅 API / 路由 / 控制器：backend-api-worker
-- 仅业务规则 / 权限 / 状态机 / 幂等：backend-service-worker
-- 仅数据层 / Schema / Repository / Migration：backend-data-worker
-- 仅后端测试：backend-test-worker
-- Taro 小程序/H5（全栈）：taro-worker
-- Taro 仅 UI/样式：taro-ui-worker
-- Taro 仅状态/数据：taro-state-worker
-- Android 原生（全栈）：android-worker
-- Android 仅 UI/Compose：android-ui-worker
-- Android 仅状态/数据：android-state-worker
-- iOS 原生（全栈）：ios-worker
-- iOS 仅 UI/SwiftUI：ios-ui-worker
-- iOS 仅状态/数据：ios-state-worker
-- Expo / React Native（全栈）：react-native-worker
-- Expo 仅 UI：rn-ui-worker
-- Expo 仅状态/数据：rn-state-worker
-- Flutter（全栈）：flutter-worker
-- Flutter 仅 UI/Widget：flutter-ui-worker
-- Flutter 仅状态/数据：flutter-state-worker
+- 纯前端多维度任务：frontend-dev-expert
+- 纯后端多维度任务：backend-dev-expert
+- 仅 UI / 样式：frontend-ui-expert
+- 仅状态 / 数据 / 路由：frontend-state-expert
+- 仅前端测试：frontend-test-expert
+- 仅 API / 路由 / 控制器：backend-api-expert
+- 仅业务规则 / 权限 / 状态机 / 幂等：backend-logic-expert
+- 仅数据层 / Schema / Repository / Migration：backend-data-expert
+- 仅后端测试：backend-test-expert
+- Taro 小程序/H5（全栈）：taro-dev-expert
+- Taro 仅 UI/样式：taro-ui-expert
+- Taro 仅状态/数据：taro-state-expert
+- Android 原生（全栈）：android-dev-expert
+- Android 仅 UI/Compose：android-ui-expert
+- Android 仅状态/数据：android-state-expert
+- iOS 原生（全栈）：ios-dev-expert
+- iOS 仅 UI/SwiftUI：ios-ui-expert
+- iOS 仅状态/数据：ios-state-expert
+- Expo / React Native（全栈）：react-native-dev-expert
+- Expo 仅 UI：react-native-ui-expert
+- Expo 仅状态/数据：react-native-state-expert
+- Flutter（全栈）：flutter-dev-expert
+- Flutter 仅 UI/Widget：flutter-ui-expert
+- Flutter 仅状态/数据：flutter-state-expert
 - 算法选型 / 复杂度分析 / 性能 POC：algorithm-expert
 - 前端技术选型 / 组件架构 / 构建策略：frontend-architect
 - 后端微服务 / 数据库架构 / 分布式设计：backend-architect
-- CI/CD / 容器化 / 部署配置：infra-worker
-- 安全审计 / 威胁建模 / 漏洞扫描：security-auditor
-- 端到端测试 / 浏览器自动化：e2e-test-worker
-- 负载测试 / 压力测试 / 基准测试：performance-test-worker
-- API 文档生成 / Postman / 契约验证：api-docs-worker
-- 数据库架构 / 查询优化 / 索引 / 迁移：database-specialist
+- CI/CD / 容器化 / 部署配置：infra-deploy-expert
+- 安全审计 / 威胁建模 / 漏洞扫描：security-review-expert
+- 端到端测试 / 浏览器自动化：e2e-test-expert
+- 负载测试 / 压力测试 / 基准测试：perf-test-expert
+- API 文档生成 / Postman / 契约验证：api-contract-expert
+- 数据库架构 / 查询优化 / 索引 / 迁移：database-architect
 
 ## 共享区域规则
 
@@ -171,21 +171,21 @@ Skill(skill="behavioral-guidelines")
 
 ## parallel_batches 输出格式（必须使用）
 
-计划文档中必须包含以下格式的并行批次定义，确保主 Build Agent 可以直接解析并 spawn Agent：
+计划文档中必须包含以下格式的并行批次定义，确保编排者 可以直接解析并 spawn Agent：
 
 ```
 ## parallel_batches
 
 ### Batch 1（无依赖，可同时启动）
-- TASK-XXX → subagent_type: frontend-implementer
-- TASK-YYY → subagent_type: backend-implementer
+- TASK-XXX → subagent_type: frontend-dev-expert
+- TASK-YYY → subagent_type: backend-dev-expert
 
 ### Batch 2（依赖 Batch 1 全部完成）
-- TASK-ZZZ → subagent_type: frontend-test-worker
-- TASK-WWW → subagent_type: backend-test-worker（可与 TASK-ZZZ 并行）
+- TASK-ZZZ → subagent_type: frontend-test-expert
+- TASK-WWW → subagent_type: backend-test-expert（可与 TASK-ZZZ 并行）
 
 ### Batch 3（依赖 Batch 2 全部测试通过）
-- TASK-EEE → subagent_type: e2e-test-worker
+- TASK-EEE → subagent_type: e2e-test-expert
 ```
 
 规则：
@@ -195,9 +195,9 @@ Skill(skill="behavioral-guidelines")
 - 若某任务需要架构设计先导，应在前置 Batch 中纳入 architect agent
 
 **测试 Batch 时序规则（必须遵守）：**
-- 单元/集成测试（backend-test-worker / frontend-test-worker）应紧跟在对应实现 Batch 之后，二者可放入同一 Batch
-- **E2E 测试（e2e-test-worker）必须放在独立的最后一个测试 Batch**，排在所有单元/集成测试 Batch 通过之后——因为 E2E 需要完整集成环境
-- 禁止将 e2e-test-worker 与 backend-test-worker / frontend-test-worker 放入同一 Batch
+- 单元/集成测试（backend-test-expert / frontend-test-expert）应紧跟在对应实现 Batch 之后，二者可放入同一 Batch
+- **E2E 测试（e2e-test-expert）必须放在独立的最后一个测试 Batch**，排在所有单元/集成测试 Batch 通过之后——因为 E2E 需要完整集成环境
+- 禁止将 e2e-test-expert 与 backend-test-expert / frontend-test-expert 放入同一 Batch
 - test_strategy=test_after 的测试任务应与对应实现任务分入不同 Batch（实现在前，测试在后）
 - test_strategy=tdd 的任务，Red→Green→Refactor 三步必须串行，但同一任务内的三步可跨越多个 Batch（Red 和 Green 在实现 Batch，Refactor 在测试 Batch）
 
@@ -211,7 +211,7 @@ Skill(skill="behavioral-guidelines")
 3. 当前轮次目标
 4. 当前轮次范围
 5. 完成标准
-6. 是否需要先查阅 repo-explorer / docs-researcher
+6. 是否需要先查阅 code-explore-expert / docs-research-expert
 7. 执行代理分工
 8. 共享区域改动归属
 9. 并行 / 串行策略（标注并行组：[task-A, task-B 并行]，串行链：task-C → task-D）
@@ -242,8 +242,8 @@ Skill(skill="behavioral-guidelines")
 ### wait_for: <必须等待完成的任务 ID 列表>
 ### acceptance_criteria: <可验证的验收条件>
 ### test_strategy: tdd / test_after / manual_only
-### handoff_notes: <对下游 review-qa 的重要说明>
-### escalation_rule: 如需变更共享契约、数据库结构、路由前缀、根配置，必须先回主 Build Agent，不得直接修改
+### handoff_notes: <对下游 qa-review-expert 的重要说明>
+### escalation_rule: 如需变更共享契约、数据库结构、路由前缀、根配置，必须先回编排者，不得直接修改
 ```
 
 ## 完成标准

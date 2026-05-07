@@ -10,21 +10,25 @@ argument-hint: [Expo 需求描述]
 1. 加载基座技能：
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
-   Gate C1 时：`Skill("code-quality-gate")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。
-   Gate E 时：`Skill("shipping-and-launch")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。 `Skill("git-workflow-and-versioning")` `Skill("finishing-a-development-branch")`
 
-2. 判断需求是否适合流水线。✅ 适合：Expo 页面/组件、Expo Router 路由、状态管理、原生模块封装、EAS 构建配置、Bug 修复。
+2. 注册引擎会话（硬约束——引擎驱动全流程，不可绕过）：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+   - **每个 Gate 开始时**调用 `mcp__jarvis-engine__pipeline_guide()` 获取当前 Gate 上下文
+   - **生成 Agent 前**调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 验证操作被允许
+   - **Gate C1 时**加载 `Skill("code-quality-gate")`，Lint/Type-check/Build 前调用 `gate_check`
+   - **每个 Gate 完成后**调用 `mcp__jarvis-engine__gate_enforce` 验证条件，通过后 `mcp__jarvis-engine__advance_gate` 推进
+   - **Gate E 时**加载 `Skill("shipping-and-launch")`、`Skill("git-workflow-and-versioning")`、`Skill("finishing-a-development-branch")`
 
-3. 你是 Expo 开发编排者。职责：
+3. 判断需求是否适合流水线。✅ 适合：Expo 页面/组件、Expo Router 路由、状态管理、原生模块封装、EAS 构建配置、Bug 修复。
+
+4. 你是 Expo 开发编排者。职责：
    - 澄清需求——至少确认 1 个关键假设（Expo SDK 版本、目标平台）
    - 模糊时加载 `idea-refine`；生成 `docs/requirements/` 带 `REQ-XXX`
    - Gate A→B→C→C1→C2→D→E 全链路，不可绕过
    - 通过 Gate C 后按 `parallel_batches` 批量 spawn Expo Agent
    - 代码注释语言：中文项目用中文注释
 
-4. Plan Patch 机制：共享组件/路由/配置变更必须提交 plan patch。
+5. Plan Patch 机制：共享组件/路由/配置变更必须提交 plan patch。
 
 ---
 
@@ -32,14 +36,14 @@ argument-hint: [Expo 需求描述]
 
 | 层级 | subagent_type |
 |------|--------------|
-| 全栈实现 | `react-native-worker` |
-| UI/布局/动画 | `rn-ui-worker` |
-| 状态/数据/路由 | `rn-state-worker` |
-| 浏览器测试 | `browser-test-worker` |
-| E2E 测试 | `e2e-test-worker` |
-| 安全审计 | `security-auditor` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
+| 全栈实现 | `react-native-dev-expert` |
+| UI/布局/动画 | `react-native-ui-expert` |
+| 状态/数据/路由 | `react-native-state-expert` |
+| 浏览器测试 | `browser-test-expert` |
+| E2E 测试 | `e2e-test-expert` |
+| 安全审计 | `security-review-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索（辅助） | `code-explore-expert`、`docs-research-expert` |
 
 ## Gate C：批量并行 spawn
 
@@ -52,9 +56,9 @@ argument-hint: [Expo 需求描述]
 
 **典型 Batch 结构**：
 ```
-Batch 1: [rn-ui-worker, rn-state-worker]       ← UI + 状态/路由并行
-Batch 2: [browser-test-worker]                   ← Web 端浏览器交互测试
-Batch 3: [e2e-test-worker]                       ← 真机/模拟器 E2E
+Batch 1: [react-native-ui-expert, react-native-state-expert]       ← UI + 状态/路由并行
+Batch 2: [browser-test-expert]                   ← Web 端浏览器交互测试
+Batch 3: [e2e-test-expert]                       ← 真机/模拟器 E2E
 ```
 
 ## Gate C1 代码质量
@@ -69,9 +73,9 @@ Expo 专项：
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn react-native-worker 运行单元测试（Jest + React Native Testing Library）
-  → 步骤 2：Web 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
-  → 步骤 3：真机 E2E（spawn e2e-test-worker，Detox / Maestro）
+  → 步骤 1：spawn react-native-dev-expert 运行单元测试（Jest + React Native Testing Library）
+  → 步骤 2：Web 端浏览器测试（spawn browser-test-expert，加载 agent-browser）
+  → 步骤 3：真机 E2E（spawn e2e-test-expert，Detox / Maestro）
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```
 

@@ -1,197 +1,190 @@
 <!DOCTYPE html>
-<html lang=zh>
+<html lang="zh">
 <head>
-<meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
-<title>Jarvis Engine · 流水线</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Jarvis Engine · 流水线看板</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',bg:'#F5F3FF',surface:'#FFFFFF',text:'#1E1B4B',muted:'#6B7280',border:'#E5E7EB'},fontFamily:{sans:['Plus Jakarta Sans','system-ui','sans-serif']}}}}</script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 <style>
-:root{--bg:#F8F9FA;--card:#FFFFFF;--border:#E5E7EB;--text:#111827;--muted:#6B7280;--accent:#2563EB;--accent-light:#EFF6FF;--purple:#6366F1;--green:#10B981;--red:#EF4444;--warn:#F59E0B}
-*{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-.sidebar{width:250px;min-width:250px;background:#FAFBFC;border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
-.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
-.sidebar .logo h1{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:-0.3px}
-.sidebar .logo .ver{font-size:11px;color:var(--muted)}
-.sidebar nav{flex:1;padding:0 12px}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:0 8px 8px 0;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;margin:2px 0;transition:all .15s;border-left:3px solid transparent}
-.sidebar nav a:hover{background:var(--accent-light);color:var(--accent)}
-.sidebar nav a.active{background:var(--accent-light);color:var(--accent);font-weight:600;border-left:3px solid var(--accent)}
-.sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
-.sidebar .help-section h3{font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-.sidebar .help-section .tip{font-size:11px;color:var(--muted);line-height:1.6;margin:4px 0}
-.sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
-.sidebar .help-btn{display:block;width:100%;padding:10px;margin-top:12px;border-radius:8px;border:1px solid var(--accent);background:white;color:var(--accent);cursor:pointer;font-weight:500;font-size:13px;transition:all .15s}
-.sidebar .help-btn:hover{background:var(--accent);color:#fff}
-.main{flex:1;padding:32px 40px;overflow-y:auto}
-.main h2{font-size:24px;font-weight:700;margin-bottom:4px;color:var(--text)}
-.main .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
-
-/* Sessions strip */
-.sessions-strip{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
-.sessions-strip h3{font-size:13px;color:var(--muted);margin-right:4px}
-.sessions-strip .filter{display:flex;gap:4px}
-.sessions-strip .filter button{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background-color:white;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);transition:all .15s}
-.sessions-strip .filter button:hover{border-color:var(--accent);color:var(--accent)}
-.sessions-strip .filter button.sel{background-color:var(--accent);border-color:var(--accent);color:#fff}
-.sessions-strip .refresh-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--muted);transition:all .15s;flex-shrink:0}
-.sessions-strip .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
-.refreshing{animation:spin .6s linear}
-@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
-.session-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:white;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:6px}
-.session-chip:hover{border-color:var(--accent)}
-.session-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
-.session-chip.inactive{opacity:.5}
-.session-chip .s-gate{font-size:10px;color:var(--muted);background:rgba(0,0,0,.04);padding:1px 6px;border-radius:6px}
-.session-chip .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
-.session-chip .s-dot.online{background:var(--green)}
-.session-chip .s-dot.offline{background:var(--border)}
-.session-chip .s-dot.inactive-dot{background:var(--warn)}
-.session-chip .s-restore{font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:2px}
-.session-chip .s-restore:hover{color:var(--purple)}
-.no-sessions{padding:8px 0;color:var(--muted);font-size:12px}
-#sessionsList{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
-
-/* Stats */
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.stat{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);transition:all .2s;position:relative}
-.stat:hover{border-color:var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06)}
-.stat .num{font-size:32px;font-weight:700;color:var(--accent)}
-.stat .label{font-size:12px;color:var(--muted);margin-top:2px}
-.stat.accent .num{color:var(--purple)}
-.stat.green .num{color:var(--green)}
-.stat.yellow .num{color:var(--warn)}
-
-/* Progress */
-.progress-section{margin-bottom:32px}
-.progress-label{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--muted)}
-.progress-bar{height:10px;background:#E5E7EB;border-radius:10px;overflow:hidden;position:relative}
-.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:10px;transition:width .6s cubic-bezier(.4,0,.2,1)}
-
-/* Gates */
-.gates-section h3{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)}
-.gate{background:var(--card);border-radius:8px;padding:12px 16px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);cursor:pointer;transition:all .15s}
-.gate:hover{border-color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.04)}
-.gate.passed{opacity:.55;border-left:3px solid var(--green)}
-.gate.current{border-left:4px solid var(--accent);background:var(--accent-light)}
-.gate-left{display:flex;align-items:center;gap:10px}
-.gate-dot{width:10px;height:10px;border-radius:50%}
-.gate-dot.pass{background:var(--green)}
-.gate-dot.curr{background:var(--accent)}
-.gate-dot.wait{background:#D1D5DB}
-.gate-info .name{font-weight:600;font-size:14px;color:var(--text)}
-.gate-info .check{font-size:11px;color:var(--muted)}
-.gate-time{font-size:10px;color:var(--muted)}
-.gate-actions{display:flex;gap:8px;align-items:center}
-.btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
-.btn-advance{background:var(--accent);color:#fff}
-.btn-advance:hover{background:#1D4ED8}
-.btn-check{background:white;border:1px solid var(--accent);color:var(--accent)}
-.btn-check:hover{background:var(--accent-light)}
-
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;justify-content:center;align-items:center}
-.modal-overlay.show{display:flex}
-.modal{background:white;border-radius:12px;padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.08)}
-.modal h2{font-size:20px;margin-bottom:4px}
-.modal h3{font-size:13px;color:var(--muted);margin-bottom:20px}
-.modal .step{display:flex;gap:12px;margin:10px 0;padding:12px;background:var(--bg);border-radius:8px}
-.modal .step .num{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
-.modal .step .text{font-size:12px;line-height:1.5}
-.modal .step code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px;font-size:11px}
-.modal .close-btn{width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:20px}
-.modal .close-btn:hover{background:#1D4ED8}
-
-.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 20px;border-radius:8px;font-weight:500;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 4px 16px rgba(0,0,0,.1)}
-.toast.success{border-left:4px solid var(--green);color:var(--green)}
-.toast.error{border-left:4px solid var(--red);color:var(--red)}
-@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-
-footer{padding:24px 0;color:var(--muted);font-size:11px}
-footer a{color:var(--accent);text-decoration:none}
-
-@media(max-width:768px){body{flex-direction:column}.sidebar{width:100%;min-width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;padding:12px}.sidebar nav{display:flex;flex-direction:row}.sidebar .help-section{display:none}.main{padding:20px}.stats{grid-template-columns:repeat(2,1fr)}}
+  .step-line{position:absolute;left:11px;top:28px;bottom:4px;width:2px}
+  .toast-in{animation:slideIn .25s ease-out}
+  @keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+  .refreshing{animation:spin .6s linear}
+  .session-item:hover .session-actions{opacity:1}
+  .session-actions{opacity:0;transition:opacity .15s}
 </style>
 </head>
-<body>
+<body class="bg-[#F5F3FF] text-[#1E1B4B] font-sans flex h-screen overflow-hidden">
 
-<aside class=sidebar>
-  <div class=logo>
-    <h1>Jarvis Engine</h1>
-    <div class=ver id=verNum>v---</div>
+<!-- ===== 左侧边栏 ===== -->
+<aside class="w-64 min-w-[256px] bg-white border-r border-gray-200 flex flex-col h-full z-10 shadow-sm">
+  <!-- Logo -->
+  <div class="px-5 py-5 border-b border-gray-100">
+    <div class="flex items-center gap-3">
+      <div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+        <i data-lucide="zap" class="w-4 h-4 text-white"></i>
+      </div>
+      <div>
+        <h1 class="text-base font-bold text-[#1E1B4B] leading-tight">Jarvis Engine</h1>
+        <p class="text-[11px] text-gray-400" id="verNum">v---</p>
+      </div>
+    </div>
   </div>
-  <nav>
-    <a href=/dashboard class=active>▣ 流水线看板</a>
-    <a href=/agents>◆ 智能体配置</a>
+
+  <!-- 导航 -->
+  <nav class="px-3 py-4 flex flex-col gap-0.5">
+    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500">
+      <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
+      流水线看板
+    </a>
+    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-gray-500 hover:bg-gray-50 hover:text-gray-700 border-l-[3px] border-transparent transition-colors">
+      <i data-lucide="bot" class="w-4 h-4"></i>
+      智能体配置
+    </a>
   </nav>
-  <div class=help-section>
-    <h3>操作提示</h3>
-    <div class=tip>会话隔离 — 每窗口独立流水线</div>
-    <div class=tip>点击会话标签切换查看</div>
-    <div class=tip>Gate C2 含 API 契约验证</div>
-    <button class=help-btn onclick=showHelp()>▪ 完整指南</button>
+
+  <!-- 平台筛选 -->
+  <div class="px-4 py-2">
+    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">平台筛选</p>
+    <div class="flex gap-1" id="sessionPlatformTabs">
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-500 text-white transition-colors" onclick="setSessionPlatform('all')">全部</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('claude')">Claude</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('opencode')">OpenCode</button>
+      <button class="flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors" onclick="setSessionPlatform('codex')">Codex</button>
+    </div>
+  </div>
+
+  <!-- 会话列表 -->
+  <div class="flex-1 overflow-y-auto px-3 py-2">
+    <div class="flex items-center justify-between px-1 mb-2">
+      <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider">会话列表</p>
+      <button id="manualRefresh" onclick="manualRefresh()" class="w-6 h-6 flex items-center justify-center rounded-md hover:bg-gray-100 transition-colors text-gray-400" title="刷新状态">
+        <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+      </button>
+    </div>
+    <div id="sessionsList" class="flex flex-col gap-1">
+      <p class="text-xs text-gray-400 text-center py-8">等待连接...</p>
+    </div>
+  </div>
+
+  <!-- 底部信息 -->
+  <div class="px-4 py-3 border-t border-gray-100">
+    <div class="flex items-center justify-between text-[11px] text-gray-400">
+      <span id="sessionCount">0 个会话</span>
+      <span class="flex items-center gap-1"><span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> 运行中</span>
+    </div>
   </div>
 </aside>
 
-<main class=main>
-  <h2>流水线看板</h2>
-  <p class=subtitle id=pipelineProject>项目流水线状态 · 会话隔离 · 实时刷新</p>
+<!-- ===== 主内容区域 ===== -->
+<main class="flex-1 overflow-y-auto">
+  <div class="max-w-4xl mx-auto px-8 py-8">
 
-  <!-- Session selector strip -->
-  <div class=sessions-strip>
-    <h3>会话:</h3>
-    <div class=filter id=sessionPlatformTabs style=margin-right:8px>
-      <button class=sel onclick="setSessionPlatform('all')">全部</button>
-      <button onclick="setSessionPlatform('claude')">Claude</button>
-      <button onclick="setSessionPlatform('opencode')">OpenCode</button>
-      <button onclick="setSessionPlatform('codex')">Codex</button>
+    <!-- 页面标题 -->
+    <div class="mb-8">
+      <h2 class="text-2xl font-bold text-[#1E1B4B]">流水线看板</h2>
+      <p class="text-sm text-gray-500 mt-1" id="pipelineProject">会话隔离模式 · 实时刷新</p>
     </div>
-    <div id=sessionsList><span class=no-sessions>等待连接...</span></div>
-    <button class=refresh-btn id=manualRefresh onclick="manualRefresh()" title="刷新状态">
-      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
-        <path d="M13.65 2.35A7.96 7.96 0 008 0a8 8 0 100 16 7.96 7.96 0 005.66-2.35 1 1 0 00-1.42-1.42A5.97 5.97 0 018 14a6 6 0 110-12 5.97 5.97 0 014.24 1.76L10 6h6V0l-2.35 2.35z" fill="currentColor"/>
-      </svg>
-    </button>
-  </div>
 
-  <div class=stats>
-    <div class=stat><div class=num id=statProgress>0%</div><div class=label>完成进度</div></div>
-    <div class=stat accent><div class=num id=statGates>0/8</div><div class=label>已通过 Gate</div></div>
-    <div class=stat green><div class=num id=statCurrent>---</div><div class=label>当前阶段</div></div>
-    <div class=stat yellow><div class=num id=statArtifacts>0</div><div class=label>产物文件</div></div>
-  </div>
+    <!-- 统计卡片 -->
+    <div class="grid grid-cols-4 gap-4 mb-8">
+      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-indigo-500" id="statProgress">0%</div>
+        <div class="text-xs text-gray-500 mt-1">完成进度</div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-[#818CF8]" id="statGates">0/8</div>
+        <div class="text-xs text-gray-500 mt-1">已通过 Gate</div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-emerald-500" id="statCurrent">---</div>
+        <div class="text-xs text-gray-500 mt-1">当前阶段</div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm hover:shadow-md transition-shadow">
+        <div class="text-3xl font-bold text-amber-500" id="statArtifacts">0</div>
+        <div class="text-xs text-gray-500 mt-1">产物文件</div>
+      </div>
+    </div>
 
-  <div class=progress-section>
-    <div class=progress-label><span id=progressText>开始流水线</span><span id=progressGate>Gate A</span></div>
-    <div class=progress-bar><div class=fill id=progressFill style=width:0%></div></div>
-  </div>
+    <!-- 进度条 -->
+    <div class="bg-white rounded-xl p-5 border border-gray-100 shadow-sm mb-8">
+      <div class="flex justify-between items-center mb-2.5">
+        <span class="text-sm font-medium text-gray-600" id="progressText">开始流水线</span>
+        <span class="text-xs font-semibold text-indigo-500 bg-indigo-50 px-2.5 py-1 rounded-full" id="progressGate">Gate A</span>
+      </div>
+      <div class="h-2.5 bg-gray-100 rounded-full overflow-hidden">
+        <div class="h-full bg-gradient-to-r from-indigo-500 to-[#818CF8] rounded-full transition-all duration-700 ease-out" id="progressFill" style="width:0%"></div>
+      </div>
+    </div>
 
-  <div class=gates-section>
-    <h3>Gate 状态 <span id=gateSessionLabel style=font-weight:400;font-size:11px;color:var(--muted)></span></h3>
-    <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)>等待加载中...</div></div>
-  </div>
+    <!-- Gate 步骤条 -->
+    <div class="bg-white rounded-xl p-6 border border-gray-100 shadow-sm">
+      <h3 class="text-sm font-semibold text-gray-700 mb-1">Gate 状态</h3>
+      <p class="text-xs text-gray-400 mb-5" id="gateSessionLabel"></p>
+      <div id="gatesList" class="relative">
+        <div class="text-center py-12 text-gray-400 text-sm">等待加载中...</div>
+      </div>
+    </div>
 
-  <footer>Jarvis Engine · MCP :3456 · <a href=/health>健康检查</a> · 会话隔离模式</footer>
+    <!-- Footer -->
+    <footer class="mt-8 pt-6 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
+      <span>Jarvis Engine · MCP :3456</span>
+      <span>
+        <a href="/health" class="text-indigo-500 hover:text-indigo-600 transition-colors">健康检查</a>
+        <span class="mx-2">·</span>
+        <a href="/agents" class="text-indigo-500 hover:text-indigo-600 transition-colors">智能体配置</a>
+        <span class="mx-2">·</span>
+        会话隔离模式
+      </span>
+    </footer>
+  </div>
 </main>
 
-<div class=modal-overlay id=helpModal>
-  <div class=modal>
-    <h2>操作指南</h2>
-    <h3>Jarvis Engine 编排引擎使用步骤</h3>
-    <div class=step><div class=num>1</div><div class=text><b>启动引擎</b><br><code>jarvis engine start --dashboard</code></div></div>
-    <div class=step><div class=num>2</div><div class=text><b>连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰</div></div>
-    <div class=step><div class=num>3</div><div class=text><b>完成 Gate 产出</b><br>每个 Gate 完成对应文档/测试/报告</div></div>
-    <div class=step><div class=num>4</div><div class=text><b>点击 Gate 行</b><br>引擎验证条件是否满足</div></div>
-    <div class=step><div class=num>5</div><div class=text><b>点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div></div>
-    <div class=step><div class=num>6</div><div class=text><b>切换会话标签</b><br>顶部点击不同会话查看各自流水线状态</div></div>
-    <button class=close-btn onclick=closeHelp()>知道了</button>
+<!-- ===== 帮助弹窗 ===== -->
+<div class="fixed inset-0 bg-black/25 z-50 hidden items-center justify-center" id="helpModal">
+  <div class="bg-white rounded-2xl p-7 max-w-md w-[90%] max-h-[80vh] overflow-y-auto shadow-xl">
+    <h2 class="text-xl font-bold text-[#1E1B4B] mb-1">操作指南</h2>
+    <p class="text-sm text-gray-500 mb-5">Jarvis Engine 编排引擎使用步骤</p>
+    <div class="space-y-3">
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">1</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">启动引擎</b><br><code class="bg-gray-200/60 px-1.5 py-0.5 rounded text-[11px]">jarvis engine start --dashboard</code></div>
+      </div>
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">2</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰</div>
+      </div>
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">3</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">完成 Gate 产出</b><br>每个 Gate 完成对应文档/测试/报告</div>
+      </div>
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">4</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">点击 Gate 行</b><br>引擎验证条件是否满足</div>
+      </div>
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">5</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div>
+      </div>
+      <div class="flex gap-3 p-3 bg-[#F5F3FF] rounded-lg">
+        <div class="w-7 h-7 min-w-[28px] rounded-full bg-indigo-500 text-white flex items-center justify-center text-xs font-bold">6</div>
+        <div class="text-xs leading-relaxed"><b class="text-[#1E1B4B]">切换会话</b><br>左侧列表点击不同会话查看各自流水线状态</div>
+      </div>
+    </div>
+    <button class="w-full mt-5 py-2.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-lg text-sm font-semibold transition-colors" onclick="closeHelp()">知道了</button>
   </div>
 </div>
-<div id=toastContainer></div>
+
+<!-- Toast 容器 -->
+<div id="toastContainer" class="fixed bottom-6 right-6 z-[300] flex flex-col gap-2"></div>
 
 <script>
-const GATES=['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
-const PLATFORM_ICONS = {claude:'', opencode:'', codex:'', other:'', unknown:''};
-let selectedSession = null;
-let allSessions = [];
-let sessionPlatform = 'all';
+const GATES = ['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
+let selectedSession = null, allSessions = [], sessionPlatform = 'all';
 
 async function fetchAPI(path) {
   try { const r = await fetch(path); return await r.json(); }
@@ -204,29 +197,26 @@ async function manualRefresh() {
   try { await refresh(); } finally { btn.classList.remove('refreshing'); }
 }
 
-async function refresh(){
+async function refresh() {
   const h = await fetchAPI('/health');
-  if (h) document.getElementById('verNum').textContent='v'+h.version;
+  if (h) document.getElementById('verNum').textContent = 'v' + h.version;
 
-  // 1. Load sessions
+  // 加载会话
   const sd = await fetchAPI('/api/sessions');
   if (sd) {
     allSessions = sd.sessions || [];
     renderSessions();
-    // Auto-select first session if none selected
     if (!selectedSession && allSessions.length > 0) selectedSession = allSessions[0].id;
   }
 
-  // 2. Load pipeline for selected session (or all sessions merged)
+  // 加载流水线
   const pd = await fetchAPI('/api/pipeline');
   if (!pd) return;
 
-  // Find the selected session's pipeline data
   let sessionData = null;
   if (selectedSession && pd.sessions) {
     sessionData = pd.sessions.find(s => s.session_id === selectedSession);
   }
-  // Fallback to first session
   if (!sessionData && pd.sessions && pd.sessions.length > 0) {
     sessionData = pd.sessions[0];
     selectedSession = sessionData.session_id;
@@ -237,37 +227,85 @@ async function refresh(){
 
   if (!sessionData) {
     document.getElementById('gatesList').innerHTML =
-      '<div style=text-align:center;padding:40px;color:var(--muted)>等待会话连接...<br><small>在 Claude Code/OpenCode/Codex 中启动编排即可</small></div>';
+      '<div class="text-center py-12 text-gray-400"><p class="text-sm">等待会话连接...</p><p class="text-xs mt-1">在 Claude Code / OpenCode / Codex 中启动编排即可</p></div>';
     return;
   }
 
   const d = sessionData;
-  document.getElementById('gateSessionLabel').textContent = ' · 会话: ' + (selectedSession||'').slice(0,8)+'...';
+  document.getElementById('gateSessionLabel').textContent =
+    (d.pipeline_name || d.pipeline_type || '') + ' · 会话: ' + (selectedSession || '').slice(0, 12) + '...';
+
   const completed = d.completed.length;
-  const pct = Math.round(completed / GATES.length * 100);
-  document.getElementById('statProgress').textContent = pct+'%';
-  document.getElementById('statGates').textContent = completed+'/'+GATES.length;
+  const totalGates = d.gates.length;
+  const pct = totalGates > 0 ? Math.round(completed / totalGates * 100) : 0;
+
+  document.getElementById('statProgress').textContent = pct + '%';
+  document.getElementById('statGates').textContent = completed + '/' + totalGates;
   document.getElementById('statCurrent').textContent = d.current_gate;
-  document.getElementById('progressFill').style.width = pct+'%';
-  document.getElementById('progressText').textContent = pct+'% 完成';
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = pct + '% 完成';
   document.getElementById('progressGate').textContent = d.current_gate;
+
+  // 渲染步骤条
   let total = 0;
-  const html = d.gates.map(g => {
+  const html = d.gates.map((g, i) => {
     total += g.artifacts?.length || 0;
-    const icon = g.passed ? 'pass' : (g.gate === d.current_gate ? 'curr' : 'wait');
+    const isPassed = g.passed;
+    const isCurrent = g.gate === d.current_gate;
+    const isLast = i === d.gates.length - 1;
     const cp = g.checkpoints?.[0];
-    return `<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="check('${g.gate}')">
-      <div class=gate-left><div class="gate-dot ${icon}"></div><div class=gate-info><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
-      <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-advance" onclick="event.stopPropagation();advance('${g.gate}')">推进</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
+
+    const dotClass = isPassed
+      ? 'bg-emerald-500 border-emerald-500'
+      : isCurrent
+        ? 'bg-indigo-500 border-indigo-500 ring-4 ring-indigo-100'
+        : 'bg-gray-200 border-gray-300';
+
+    const cardClass = isCurrent
+      ? 'border-indigo-200 bg-indigo-50/50'
+      : isPassed
+        ? 'border-gray-100 opacity-70'
+        : 'border-gray-100';
+
+    return `
+    <div class="relative flex gap-4 ${isLast ? '' : 'pb-2'}">
+      <!-- 步骤指示器 -->
+      <div class="flex flex-col items-center">
+        <div class="w-6 h-6 rounded-full border-2 ${dotClass} flex items-center justify-center flex-shrink-0 z-10 relative transition-all">
+          ${isPassed ? '<i data-lucide="check" class="w-3 h-3 text-white"></i>' : isCurrent ? '<i data-lucide="loader" class="w-3 h-3 text-white animate-spin"></i>' : ''}
+        </div>
+        ${!isLast ? '<div class="step-line ' + (isPassed ? 'bg-emerald-400' : 'bg-gray-200') + '"></div>' : ''}
+      </div>
+      <!-- Gate 内容卡片 -->
+      <div class="flex-1 mb-3 bg-white rounded-lg border ${cardClass} p-4 transition-all hover:shadow-sm cursor-pointer" onclick="check('${g.gate}')">
+        <div class="flex items-center justify-between">
+          <div>
+            <span class="text-sm font-semibold ${isCurrent ? 'text-indigo-600' : isPassed ? 'text-gray-500' : 'text-gray-400'}">${g.gate}</span>
+            <p class="text-xs ${isCurrent ? 'text-gray-500' : 'text-gray-400'} mt-0.5">${g.requirement || ''}</p>
+          </div>
+          <div class="flex items-center gap-2">
+            ${cp ? `<span class="text-[10px] text-gray-400">${cp.passed_at?.slice(0, 16) || ''}</span>` : ''}
+            ${!isPassed && isCurrent ? `<button class="px-3 py-1.5 bg-indigo-500 hover:bg-indigo-600 text-white rounded-md text-xs font-medium transition-colors" onclick="event.stopPropagation();advance('${g.gate}')">推进</button>` : ''}
+          </div>
+        </div>
+      </div>
+    </div>`;
   }).join('');
+
   document.getElementById('gatesList').innerHTML = html;
   document.getElementById('statArtifacts').textContent = total;
+  // 重新渲染 Lucide 图标
+  lucide.createIcons();
 }
 
 function setSessionPlatform(p) {
   sessionPlatform = p;
-  document.querySelectorAll('#sessionPlatformTabs button').forEach(b=>b.classList.remove('sel'));
-  document.querySelector('#sessionPlatformTabs button[onclick*="'+p+'"]').classList.add('sel');
+  const btns = document.querySelectorAll('#sessionPlatformTabs button');
+  btns.forEach(b => {
+    b.className = b.textContent.trim().toLowerCase() === p || (p === 'all' && b.textContent.trim() === '全部')
+      ? 'flex-1 py-1.5 text-[11px] font-medium rounded-md bg-indigo-500 text-white transition-colors'
+      : 'flex-1 py-1.5 text-[11px] font-medium rounded-md text-gray-500 hover:bg-gray-100 transition-colors';
+  });
   renderSessions();
 }
 
@@ -275,38 +313,41 @@ function renderSessions() {
   const filtered = sessionPlatform === 'all'
     ? allSessions
     : allSessions.filter(s => s.platform === sessionPlatform);
+
   if (filtered.length === 0) {
-    document.getElementById('sessionsList').innerHTML = '<span class=no-sessions>等待会话连接...</span>';
+    document.getElementById('sessionsList').innerHTML = '<p class="text-xs text-gray-400 text-center py-8">暂无会话</p>';
+    document.getElementById('sessionCount').textContent = '0 个会话';
     return;
   }
+
+  document.getElementById('sessionCount').textContent = filtered.length + ' 个会话';
   document.getElementById('sessionsList').innerHTML = filtered.map(s => {
-    const active = s.id === selectedSession ? ' active' : '';
-    const inactive = s.status === 'inactive' ? ' inactive' : '';
-    let dotClass, dotTitle;
-    if (s.status === 'inactive') {
-      dotClass = 'inactive-dot';
-      dotTitle = 'inactive';
-    } else if ((Date.now() - s.heartbeat) < 120000) {
-      dotClass = 'online';
-      dotTitle = 'online';
-    } else {
-      dotClass = 'offline';
-      dotTitle = 'offline';
-    }
-    const shortId = (s.id||'').slice(0,10);
-    const restoreBtn = s.status === 'inactive'
-      ? `<span class=s-restore onclick="event.stopPropagation();resumeSession('${s.id}')">恢复</span>`
-      : '';
-    return `<div class="session-chip${active}${inactive}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
-      <span class="s-dot ${dotClass}" title="${dotTitle}"></span>
-      <span>${shortId}...</span>
-      <span class=s-gate>${s.gate||'?'}</span>
-      ${restoreBtn}
+    const isActive = s.id === selectedSession;
+    const isInactive = s.status === 'inactive';
+    const isOnline = !isInactive && (Date.now() - s.heartbeat) < 120000;
+
+    let statusColor, statusLabel;
+    if (isInactive) { statusColor = 'bg-amber-400'; statusLabel = 'inactive'; }
+    else if (isOnline) { statusColor = 'bg-emerald-500'; statusLabel = 'online'; }
+    else { statusColor = 'bg-gray-300'; statusLabel = 'offline'; }
+
+    const shortId = (s.id || '').slice(0, 10);
+    const platformIcon = s.platform === 'claude' ? 'bot' : s.platform === 'opencode' ? 'terminal' : s.platform === 'codex' ? 'code-2' : 'monitor';
+
+    return `
+    <div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-gray-50 border border-transparent'} ${isInactive ? 'opacity-50' : ''}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
+      <span class="w-2 h-2 rounded-full flex-shrink-0 ${statusColor}" title="${statusLabel}"></span>
+      <div class="flex-1 min-w-0">
+        <div class="text-xs font-medium text-[#1E1B4B] truncate">${shortId}...</div>
+        <div class="flex items-center gap-1.5 mt-0.5">
+          <span class="text-[10px] text-gray-400 bg-gray-100 px-1.5 py-px rounded">${s.gate || '?'}</span>
+          <span class="text-[10px] text-indigo-500 bg-indigo-50 px-1.5 py-px rounded font-medium">${s.pipeline_type || '?'}</span>
+        </div>
+      </div>
+      ${isInactive ? `<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-500 flex-shrink-0" title="恢复会话" onclick="event.stopPropagation();resumeSession('${s.id}')"></i>` : ''}
     </div>`;
   }).join('');
-  // 更新计数
-  document.getElementById('pipelineProject').textContent =
-    `会话隔离模式 · ${allSessions.length} 个会话 (${sessionPlatform==='all'?'全部':sessionPlatform}) · 实时刷新`;
+  lucide.createIcons();
 }
 
 function selectSession(sid) {
@@ -316,43 +357,46 @@ function selectSession(sid) {
 }
 
 async function resumeSession(sid) {
-  const d = await fetchAPI('/api/sessions/'+sid+'/resume');
+  const d = await fetchAPI('/api/sessions/' + sid + '/resume');
   if (!d || d.error) return;
   toast('会话已恢复', true);
   refresh();
 }
 
 async function check(gate) {
-  const sid = selectedSession ? '&session_id='+selectedSession : '';
-  const d = await fetchAPI('/api/gate/'+gate.replace(/ /g,'_')+'/enforce'+sid);
+  const sid = selectedSession ? '&session_id=' + selectedSession : '';
+  const d = await fetchAPI('/api/gate/' + gate.replace(/ /g, '_') + '/enforce' + sid);
   if (!d) return;
-  toast(d.allowed ? gate+' 条件满足' : gate+' 被阻止 — '+(d.blocked_reasons?.join(';')||d.action_required), d.allowed);
+  toast(d.allowed ? gate + ' 条件满足' : gate + ' 被阻止 — ' + (d.blocked_reasons?.join(';') || d.action_required), d.allowed);
 }
 
 async function advance(gate) {
   const resp = await fetch('/api/gate/advance', {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({gate, session_id: selectedSession})
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ gate, session_id: selectedSession })
   });
   const d = await resp.json();
   if (!d) return;
-  toast(d.allowed ? (d.message||'已推进到 '+d.current) : d.error, !d.allowed);
+  toast(d.allowed ? (d.message || '已推进到 ' + d.current) : d.error, !d.allowed);
   if (d.allowed) refresh();
 }
 
 function toast(msg, isSuccess) {
   const t = document.createElement('div');
-  t.className = 'toast ' + (isSuccess !== false ? 'success' : 'error');
+  t.className = 'toast-in px-4 py-3 rounded-lg text-sm font-medium shadow-lg ' +
+    (isSuccess !== false ? 'bg-emerald-500 text-white' : 'bg-red-500 text-white');
   t.textContent = msg;
   document.getElementById('toastContainer').appendChild(t);
-  setTimeout(()=>t.remove(),3200);
+  setTimeout(() => { t.style.opacity = '0'; t.style.transition = 'opacity .3s'; setTimeout(() => t.remove(), 300); }, 3200);
 }
 
-function showHelp(){document.getElementById('helpModal').classList.add('show')}
-function closeHelp(){document.getElementById('helpModal').classList.remove('show')}
-document.getElementById('helpModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeHelp()});
+function showHelp() { document.getElementById('helpModal').classList.remove('hidden'); document.getElementById('helpModal').classList.add('flex'); }
+function closeHelp() { document.getElementById('helpModal').classList.add('hidden'); document.getElementById('helpModal').classList.remove('flex'); }
+document.getElementById('helpModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeHelp(); });
 
-refresh(); setInterval(refresh, 5000);
+// 初始加载 + 5s 轮询
+refresh();
+setInterval(refresh, 5000);
 </script>
 </body>
 </html>
