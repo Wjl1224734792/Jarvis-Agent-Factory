@@ -1,14 +1,62 @@
 #!/usr/bin/env node
 /**
  * Gitee Release 批量同步脚本
- * 用法: GITEE_TOKEN=xxx node scripts/sync-gitee-releases.js [--dry-run]
+ *
+ * Token 配置方式（按优先级）：
+ *   1. 环境变量: GITEE_TOKEN=xxx node scripts/sync-gitee-releases.js
+ *   2. .env 文件: 在项目根目录或脚本同目录创建 .env，写入 GITEE_TOKEN=xxx
+ *   3. 命令行参数: node scripts/sync-gitee-releases.js --token=xxx
+ *
+ * 获取 Token: https://gitee.com/profile/personal_access_tokens
+ * 权限勾选: projects（读仓库信息）+ 不勾选任何写权限（Release 只需要 token 鉴权）
  */
 
-const token = process.env.GITEE_TOKEN;
+import { readFileSync, existsSync } from 'node:fs';
+import { resolve, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+
+// 尝试从 .env 文件加载
+function loadEnv() {
+  const candidates = [
+    resolve(__dirname, '.env'),
+    resolve(__dirname, '..', '.env'),
+    resolve(process.cwd(), '.env'),
+  ];
+  for (const p of candidates) {
+    if (existsSync(p)) {
+      const lines = readFileSync(p, 'utf-8').split('\n');
+      for (const line of lines) {
+        const trimmed = line.trim();
+        if (!trimmed || trimmed.startsWith('#')) continue;
+        const eq = trimmed.indexOf('=');
+        if (eq > 0) {
+          const key = trimmed.slice(0, eq).trim();
+          const val = trimmed.slice(eq + 1).trim().replace(/^["']|["']$/g, '');
+          if (!process.env[key]) process.env[key] = val;
+        }
+      }
+    }
+  }
+}
+loadEnv();
+
+// 命令行 --token=xxx
+const tokenArg = process.argv.find(a => a.startsWith('--token='));
+const token = tokenArg ? tokenArg.split('=')[1] : process.env.GITEE_TOKEN;
+
 if (!token) {
-  console.error('❌ 请设置 GITEE_TOKEN 环境变量');
-  console.error('   获取地址: https://gitee.com/profile/personal_access_tokens');
-  console.error('   export GITEE_TOKEN=your_token_here');
+  console.error('❌ 未找到 GITEE_TOKEN');
+  console.error('');
+  console.error('   三种配置方式（任选其一）：');
+  console.error('   1. 环境变量:  export GITEE_TOKEN=your_token    # Linux/macOS');
+  console.error('                 $env:GITEE_TOKEN="your_token"   # Windows PowerShell');
+  console.error('   2. .env 文件: 在项目根目录创建 .env 文件，写入:');
+  console.error('                 GITEE_TOKEN=your_token');
+  console.error('   3. 命令行参数: node scripts/sync-gitee-releases.js --token=your_token');
+  console.error('');
+  console.error('   Token 获取: https://gitee.com/profile/personal_access_tokens');
   process.exit(1);
 }
 
