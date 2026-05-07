@@ -1,5 +1,6 @@
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { resolve, join } from 'node:path';
+import { homedir } from 'node:os';
 
 /**
  * Check the health of installed Jarvis configurations.
@@ -52,10 +53,23 @@ export function doctor({ target, platforms, pkgRoot }) {
   }
 
   console.log('');
+  // Check engine status (sync — check PID file)
+  const pidFile = resolve(homedir(), '.jarvis', 'engine.pid');
+  let engineRunning = false;
+  if (existsSync(pidFile)) {
+    try { const pid = Number(readFileSync(pidFile, 'utf-8').trim()); process.kill(pid, 0); engineRunning = true; } catch {}
+  }
+  if (!engineRunning) {
+    console.log('\n  ⚠️  Engine not running. Gate enforcement is INACTIVE.');
+    console.log('  Start it: jarvis engine start [--dashboard]\n');
+    allOk = false;
+  }
+
   if (allOk) {
-    console.log('  ✅ All platforms OK\n');
+    console.log('  ✅ All platforms OK, engine running\n');
   } else {
-    console.log('  ⚠️  Some platforms need attention. Run `jarvis install <platform>` to fix.\n');
+    if (!engineRunning) console.log('  ⚠️  Start the engine to enable gate enforcement.\n');
+    else console.log('  ⚠️  Some platforms need attention. Run `jarvis add <platform>` to fix.\n');
   }
 }
 

@@ -25,7 +25,12 @@ export async function hookCommand(args) {
       const g = await api(`/api/gate/${encodeURIComponent(current)}/enforce`);
       if (g.allowed) { console.log(`✅ ${current} — OK`); process.exit(0); }
       else { console.log(`🚫 ${current} BLOCKED — ${g.required}`); process.exit(1); }
-    } catch (e) { console.error(`⚠ Engine unreachable: ${e.message}`); process.exit(0); }
+    } catch (e) {
+      // Engine not running — warn loudly so user knows enforcement is absent
+      console.error(`\n⚠️  Jarvis Engine is NOT running. Gate enforcement is INACTIVE.`);
+      console.error(`   Start it: jarvis engine start\n`);
+      process.exit(2); // Exit 2 = block (Claude Code treats exit 2 as feedback)
+    }
   }
 
   else if (sub === 'gate-advance') {
@@ -34,7 +39,11 @@ export async function hookCommand(args) {
       const g = await r.json();
       if (g.allowed) { console.log(`🚀 ${g.previous} → ${g.current}${g.next ? ` (next: ${g.next})` : ''}`); process.exit(0); }
       else { console.log(`🚫 BLOCKED — ${g.error}`); process.exit(1); }
-    } catch (e) { console.error(`⚠ Engine unreachable: ${e.message}`); process.exit(0); }
+    } catch (e) {
+      console.error(`\n⚠️  Jarvis Engine is NOT running. Cannot advance gate.`);
+      console.error(`   Start it: jarvis engine start\n`);
+      process.exit(2);
+    }
   }
 
   else if (sub === 'status') {
@@ -43,7 +52,10 @@ export async function hookCommand(args) {
       if (args.includes('--json')) console.log(JSON.stringify(p, null, 2));
       else console.log(p._display || `${p.current_gate}`);
       process.exit(0);
-    } catch (e) { console.error(`⚠ Engine unreachable: ${e.message}`); process.exit(0); }
+    } catch (e) {
+      console.log('Engine: not running. Start with: jarvis engine start');
+      process.exit(0);
+    }
   }
 
   else {
