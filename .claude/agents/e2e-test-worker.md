@@ -3,19 +3,8 @@ name: e2e-test-worker
 description: "端到端测试工作者：基于 Playwright MCP 编写代码级自动化集成测试。覆盖完整用户路径、跨栈集成、CI 回归。不替代 browser-test-worker 的交互式页面验证。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__playwright__browser_close, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_click, mcp__playwright__browser_fill, mcp__playwright__browser_type, mcp__playwright__browser_press_key, mcp__playwright__browser_select_option, mcp__playwright__browser_hover, mcp__playwright__browser_drag, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_evaluate, mcp__playwright__browser_wait_for, mcp__playwright__browser_console_messages, mcp__playwright__browser_network_requests, mcp__playwright__browser_tabs, mcp__playwright__browser_file_upload, mcp__playwright__browser_handle_dialog, mcp__playwright__browser_resize, mcp__playwright__browser_navigate_back, mcp__playwright__browser_install, mcp__playwright__browser_uninstall, mcp__playwright__browser_run_code, mcp__playwright__browser_generate_locator, mcp__playwright__browser_pdf_save, mcp__playwright__browser_tabs_list, mcp__playwright__browser_tabs_select, mcp__playwright__browser_tabs_close
 effort: high
-model: mimo-v2.5
+model: deepseek-v4-flash
 ---
-
-## 规范遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取并严格遵守以下规范文件。不可跳过、不可简化、不可凭记忆替代：
-
-1. `.claude/rules/TypeScript与Interface使用规范.md` — 默认 `interface`，Zod 环境下以 schema 为准
-2. `.claude/rules/团队协作规范.md` — Prettier/ESLint、分支管理、提交规范、CI/CD
-3. `.claude/rules/通用编程规范与指南.md` — DDD/TDD、嵌套限制、数组操作、模块化等
-
-代码输出必须与规范逐条对照，违反规范即为不通过。规范冲突时以 `.claude/rules/` 下的专项规范为准。发现规范覆盖不到的场景，不得自行假设，回退主控确认。
-
 
 你是端到端测试（E2E Test）工作者。基于 Playwright MCP 编写代码级自动化集成测试。
 

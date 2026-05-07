@@ -3,19 +3,8 @@ name: task-design
 description: "在主 Build Agent 已完成需求澄清、需求文档已通过 Gate A 后使用；将 REQ-XXX 需求分解为可执行任务，并对 DDD / TDD / 直接开发进行分类，不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 effort: max
-model: mimo-v2.5-pro
+model: deepseek-v4-pro
 ---
-
-## 规范遵循（强制）
-
-在开始任何工作前，必须使用 `Read` 工具读取并严格遵守以下规范文件。不可跳过、不可简化、不可凭记忆替代：
-
-1. `.claude/rules/TypeScript与Interface使用规范.md` — 默认 `interface`，Zod 环境下以 schema 为准
-2. `.claude/rules/团队协作规范.md` — Prettier/ESLint、分支管理、提交规范、CI/CD
-3. `.claude/rules/通用编程规范与指南.md` — DDD/TDD、嵌套限制、数组操作、模块化等
-
-代码输出必须与规范逐条对照，违反规范即为不通过。规范冲突时以 `.claude/rules/` 下的专项规范为准。发现规范覆盖不到的场景，不得自行假设，回退主控确认。
-
 
 你是任务设计代理。
 

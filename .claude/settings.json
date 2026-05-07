@@ -14,5 +14,28 @@
       "mcp__dashscope__dashscope_ocr",
       "mcp__dashscope__dashscope_video_analyze"
     ]
+  },
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Agent",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook gate-check"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jarvis hook status"
+          }
+        ]
+      }
+    ]
   }
 }

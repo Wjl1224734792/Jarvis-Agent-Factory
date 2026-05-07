@@ -16,7 +16,7 @@ Skill("behavioral-guidelines")
 Skill("agent-browser")
 Skill("browser-testing")
 
-代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
+**引擎驱动**：引擎运行时，测试完成后 `mcp__jarvis-engine__gate_enforce` 验证 Gate C2，`mcp__jarvis-engine__advance_gate` 推进。
 ```
 
 ## 步骤 1：确认测试范围
