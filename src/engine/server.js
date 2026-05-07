@@ -105,14 +105,19 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
       const completed = gates.filter(g => g.passed).length;
       return resp({ project: root, progress: `${completed}/${GATES.length}`, current: gates.find(g => !g.passed)?.gate || 'Complete' });
     });
-  server.tool('agent_config', 'Agent模型配置。', { agent_id: z.string().optional(), model: z.string().optional() },
-    async ({ agent_id, model }) => {
+  const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+  server.tool('agent_config', 'Agent模型+思考等级配置。', { agent_id: z.string().optional(), model: z.string().optional(), effort: z.string().optional() },
+    async ({ agent_id, model, effort }) => {
       if (agent_id && model) {
         if (!AVAILABLE_MODELS.includes(model)) return resp({ error: 'Unknown model.' });
-        setAgentModel(db, agent_id, model); return resp({ ok: true, agent_id, model });
+        setAgentModel(db, agent_id, model, effort || 'high');
+        return resp({ ok: true, agent_id, model, effort: effort || 'high' });
       }
       const cfg = getAgentConfig(db);
-      return resp({ agents: AGENT_LIST.map(a => ({ id: a.id, name: a.name, role: a.role, model: cfg[a.id] || a.defaultModel })), available_models: AVAILABLE_MODELS });
+      return resp({ agents: AGENT_LIST.map(a => {
+        const c = cfg[a.id];
+        return { id: a.id, name: a.name, role: a.role, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
+      }), available_models: AVAILABLE_MODELS, available_efforts: EFFORTS });
     });
 
   // ---- Transport + Web ----

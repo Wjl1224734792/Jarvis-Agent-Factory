@@ -41,18 +41,24 @@ export function setupWebRoutes(app, db, root, dashboard) {
     res.json({ sessions: getSessions(db).map(s => ({ id: s.id, role: s.role, platform: s.platform, leader: s.id === leader?.id })), leader: leader?.id });
   });
 
+  const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
+
   app.get('/api/agents', (_req, res) => {
     const cfg = getAgentConfig(db);
-    const list = AGENT_LIST.map(a => ({ ...a, model: cfg[a.id] || a.defaultModel, is_custom: !!cfg[a.id] }));
-    res.json({ agents: list, available_models: AVAILABLE_MODELS });
+    const list = AGENT_LIST.map(a => {
+      const c = cfg[a.id];
+      return { ...a, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
+    });
+    res.json({ agents: list, available_models: AVAILABLE_MODELS, available_efforts: EFFORTS });
   });
 
   app.post('/api/agents', (req, res) => {
-    const { agent_id, model } = req.body;
+    const { agent_id, model, effort } = req.body;
     if (!agent_id || !model) return res.status(400).json({ error: 'agent_id and model required' });
     if (!AVAILABLE_MODELS.includes(model)) return res.status(400).json({ error: `Unknown model` });
-    setAgentModel(db, agent_id, model);
-    res.json({ ok: true, agent_id, model });
+    if (effort && !EFFORTS.includes(effort)) return res.status(400).json({ error: `Unknown effort. Valid: ${EFFORTS.join(', ')}` });
+    setAgentModel(db, agent_id, model, effort || 'high');
+    res.json({ ok: true, agent_id, model, effort: effort || 'high' });
   });
 
   // ---- SSE ----
