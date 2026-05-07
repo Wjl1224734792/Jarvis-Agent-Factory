@@ -9,9 +9,30 @@ import { syncAgentFile } from '../engine/agent-fs.js';
 /** 按平台分组可用模型 */
 const PLATFORM_MODELS = getPlatformModels();
 
-export function setupWebRoutes(app, db, root, dashboard) {
+export function setupApiRoutes(app, db, root) {
   // Health
   app.get('/health', (_req, res) => res.json({ status: 'ok', version: readVersion() }));
+
+  // 引擎状态 + MCP 平台接入信息
+  app.get('/api/status', (_req, res) => {
+    markStaleSessions(db, 600_000);
+    const sessions = getSessions(db, 'active');
+    const connectedPlatforms = {};
+    for (const p of ['claude', 'opencode', 'codex']) {
+      const platformSessions = sessions.filter(s => s.platform === p);
+      connectedPlatforms[p] = {
+        connected: platformSessions.length > 0,
+        active_sessions: platformSessions.length,
+      };
+    }
+    res.json({
+      status: 'ok',
+      version: readVersion(),
+      connected_platforms: connectedPlatforms,
+      total_sessions: sessions.length,
+      platforms: getPlatforms(),
+    });
+  });
 
   // ---- REST API (hooks + dashboard) ----
   // 所有会话的合并流水线视图（Dashboard 用）
@@ -147,13 +168,6 @@ export function setupWebRoutes(app, db, root, dashboard) {
       }), count: sessions.length });
     for (const c of sseClients) c.write(`data: ${data}\n\n`);
   }, 8000);
-
-  // ---- Dashboard ----
-  if (dashboard) {
-    app.get('/', (_req, res) => res.redirect('/dashboard'));
-    app.get('/dashboard', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'views', 'pipeline.html'), 'utf-8')));
-    app.get('/agents', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'views', 'agents.html'), 'utf-8')));
-  }
 }
 
 function getDocsDir(root) { return resolve(root, 'docs'); }

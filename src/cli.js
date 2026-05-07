@@ -6,7 +6,7 @@ import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import { install } from './install.js';
 import { doctor } from './doctor.js';
-import { startEngine, stopEngine, engineStatus } from './engine/server.js';
+import { startEngine, stopEngine, engineStatus, startWeb } from './engine/server.js';
 import { hookCommand } from './hook.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -35,10 +35,11 @@ Usage:
   jarvis remove <p...> [path]    Remove platform(s) from project
   jarvis upgrade [path]          Upgrade to latest config version
   jarvis diff [path]             Show what files would change on upgrade
-  jarvis engine start [--dashboard] [--port=N]  Start MCP orchestration server
-  jarvis engine stop                              Stop engine
-  jarvis engine status                            Engine status
-  jarvis doctor [path]                            Verify installation
+  jarvis engine start [--port=N] Start MCP orchestration engine
+  jarvis engine stop             Stop engine
+  jarvis engine status           Engine status
+  jarvis web [--port=N]          Start web dashboard (requires engine)
+  jarvis doctor [path]           Verify installation
 
 Options:
   -g, --global    Target user global directory instead of project
@@ -57,6 +58,8 @@ Examples:
   jarvis add claude opencode      Add platforms to current directory
   jarvis add claude -g            Add Claude Code globally
   jarvis remove codex             Remove Codex from project
+  jarvis engine start             Start MCP orchestration engine
+  jarvis web                      Start web dashboard
   jarvis upgrade                  Upgrade all configs
   jarvis doctor                   Check current directory
 `;
@@ -221,15 +224,19 @@ export async function run() {
       const sub = positional[1];
       if (sub === 'start') {
         const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.PORT || '3456');
-        const dashboard = positional.includes('--dashboard') || positional.includes('-d');
-        await startEngine({ port, dashboard, projectRoot: positional.find(a => !a.startsWith('-') && a !== 'start' && a !== 'engine') || '.' });
+        await startEngine({ port, projectRoot: positional.find(a => !a.startsWith('-') && a !== 'start' && a !== 'engine') || '.' });
       } else if (sub === 'stop') {
         stopEngine();
       } else if (sub === 'status') {
         engineStatus();
       } else {
-        console.log('\nUsage: jarvis engine <start|stop|status> [--dashboard] [--port=<N>]\n');
+        console.log('\nUsage: jarvis engine <start|stop|status> [--port=<N>]\n');
       }
+      break;
+    }
+    case 'web': {
+      const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.WEB_PORT || '3457');
+      await startWeb({ port });
       break;
     }
     case 'hook': {

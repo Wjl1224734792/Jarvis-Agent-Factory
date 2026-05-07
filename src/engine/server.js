@@ -2,17 +2,30 @@ import express from 'express';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { z } from 'zod';
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, createReadStream } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
+import { createServer } from 'node:net';
+import { request as httpRequest } from 'node:http';
 import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
-import { setupWebRoutes } from '../web/routes.js';
+import { setupApiRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
+const DEFAULT_WEB_PORT = 3457;
 const SESSION_TIMEOUT = 600_000; // 10分钟超时，标记 inactive 而非删除
+
+/** 检测端口是否被占用 */
+function isPortInUse(port) {
+  return new Promise((resolve) => {
+    const s = createServer();
+    s.once('error', () => resolve(true));
+    s.once('listening', () => { s.close(); resolve(false); });
+    s.listen(port, '127.0.0.1');
+  });
+}
 
 /** 从 session 获取该会话的 Gate 序列（向后兼容：无 pipeline_type 默认 full） */
 function sessionGates(db, sid) {
@@ -20,7 +33,20 @@ function sessionGates(db, sid) {
   return getPipelineGates(p?.pipeline_type || DEFAULT_PIPELINE);
 }
 
-export async function startEngine({ port = DEFAULT_PORT, dashboard = false, projectRoot = '.' } = {}) {
+export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.' } = {}) {
+  // 防重复启动：端口已被占用 → 复用已有引擎
+  if (await isPortInUse(port)) {
+    console.log(`Jarvis Engine already running on port ${port} — reusing existing instance.`);
+    // 清理可能残留的旧 PID 文件
+    if (existsSync(PID_FILE)) {
+      const oldPid = Number(readFileSync(PID_FILE, 'utf-8').trim());
+      if (oldPid !== process.pid) {
+        try { writeFileSync(PID_FILE, String(process.pid)); } catch {}
+      }
+    }
+    return true;
+  }
+
   const root = resolve(projectRoot);
   const pidDir = resolve(homedir(), '.jarvis');
   if (!existsSync(pidDir)) mkdirSync(pidDir, { recursive: true });
@@ -279,14 +305,13 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   app.delete('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
   await server.connect(transport);
 
-  setupWebRoutes(app, db, root, dashboard);
+  setupApiRoutes(app, db, root);
 
   app.listen(port, () => {
     console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
-    if (dashboard) console.log(`   Web: http://localhost:${port}/dashboard`);
-    console.log(`   API: http://localhost:${port}/api/pipeline`);
     console.log(`   MCP: http://localhost:${port}/mcp`);
-    console.log(`   会话隔离模式 — 每窗口独立流水线`);
+    console.log(`   API: http://localhost:${port}/api/pipeline`);
+    console.log(`   Web: jarvis web (独立启动)`);
   });
 }
 
@@ -295,8 +320,97 @@ function resp(obj) { return { content: [{ type: 'text', text: JSON.stringify(obj
 export function stopEngine() {
   if (!existsSync(PID_FILE)) { console.log('No running engine found.'); return; }
   const pid = readFileSync(PID_FILE, 'utf-8').trim();
-  try { process.kill(Number(pid), 'SIGTERM'); try { require('node:fs').unlinkSync(PID_FILE); } catch {}; console.log(`Engine stopped (PID ${pid}).`); }
-  catch { console.log(`Engine not running (stale PID ${pid}).`); try { require('node:fs').unlinkSync(PID_FILE); } catch {} }
+  try { process.kill(Number(pid), 'SIGTERM'); try { unlinkSync(PID_FILE); } catch {}; console.log(`Engine stopped (PID ${pid}).`); }
+  catch { console.log(`Engine not running (stale PID ${pid}).`); try { unlinkSync(PID_FILE); } catch {} }
+}
+
+/** 启动独立 Web 面板（需先启动引擎） */
+export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_PORT } = {}) {
+  // 检查引擎是否在运行
+  if (!(await isPortInUse(enginePort))) {
+    console.log(`❌ Engine not running on port ${enginePort}.`);
+    console.log(`   Start it first: jarvis engine start`);
+    return false;
+  }
+
+  if (await isPortInUse(port)) {
+    console.log(`Web panel already running on port ${port} — open http://localhost:${port}/dashboard`);
+    return true;
+  }
+
+  const app = express();
+  app.use(express.json());
+
+  // 代理 /api/* 请求到引擎
+  app.all('/api/*', (req, res) => {
+    const opts = {
+      hostname: '127.0.0.1',
+      port: enginePort,
+      path: req.originalUrl || req.url,
+      method: req.method,
+      headers: {},
+    };
+    // 只转发必要头部
+    for (const [k, v] of Object.entries(req.headers)) {
+      if (['host', 'connection', 'keep-alive'].includes(k.toLowerCase())) continue;
+      opts.headers[k] = v;
+    }
+    opts.headers['content-type'] = req.headers['content-type'] || 'application/json';
+
+    const proxyReq = httpRequest(opts, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => {
+      if (!res.headersSent) res.status(502).json({ error: 'Engine unreachable' });
+    });
+    if (req.body && ['POST', 'PUT', 'PATCH'].includes(req.method)) {
+      proxyReq.write(JSON.stringify(req.body));
+    }
+    proxyReq.end();
+  });
+
+  // SSE 事件流代理（长连接透传）
+  app.get('/api/events', (req, res) => {
+    const opts = {
+      hostname: '127.0.0.1',
+      port: enginePort,
+      path: '/api/events',
+      method: 'GET',
+      headers: { accept: 'text/event-stream' },
+    };
+    const proxyReq = httpRequest(opts, (proxyRes) => {
+      res.writeHead(proxyRes.statusCode, proxyRes.headers);
+      proxyRes.pipe(res);
+    });
+    proxyReq.on('error', () => {
+      if (!res.headersSent) res.status(502).json({ error: 'Engine SSE unreachable' });
+    });
+    proxyReq.end();
+  });
+
+  // 健康检查透传
+  app.get('/health', async (_req, res) => {
+    try {
+      const resp = await fetch(`http://127.0.0.1:${enginePort}/health`);
+      const data = await resp.json();
+      res.json(data);
+    } catch { res.json({ status: 'ok', engine: 'unreachable' }); }
+  });
+
+  // 静态页面
+  const viewsDir = resolve(import.meta.dirname, '..', 'web', 'views');
+  app.get('/', (_req, res) => res.redirect('/dashboard'));
+  app.get('/dashboard', (_req, res) => res.type('html').send(readFileSync(resolve(viewsDir, 'pipeline.html'), 'utf-8')));
+  app.get('/agents', (_req, res) => res.type('html').send(readFileSync(resolve(viewsDir, 'agents.html'), 'utf-8')));
+
+  app.listen(port, () => {
+    console.log(`Jarvis Web Panel — http://localhost:${port}/dashboard`);
+    console.log(`   引擎: http://localhost:${enginePort}`);
+    console.log(`   智能体: http://localhost:${port}/agents`);
+  });
+
+  return true;
 }
 
 export function engineStatus() {

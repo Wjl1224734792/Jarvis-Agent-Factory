@@ -1,21 +1,22 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.21.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.21.4-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.21.0** — 轻量编排 `/jarvis-lite` · Gate 入口跳转 · Web UI Tailwind 重构 · 引擎平台扩展 · 三平台 MCP 配置
+> **v3.21.4** — Web 面板独立启动 · 防重复启动 · MCP 平台接入状态指示 · 引擎自动守护
 
 ## 快速开始
 
 ```bash
 npm i -g jarvis-agent-factory   # 安装 CLI（零原生依赖，node:sqlite 内置）
 jarvis init -y                   # 一键部署三平台配置 + MCP + 钩子
-jarvis engine start --dashboard  # 启动编排引擎 + Web 面板
-# → http://localhost:3456/dashboard
+jarvis engine start              # 启动编排引擎（MCP + API）
+jarvis web                       # 启动 Web 面板（按需）
+# → http://localhost:3457/dashboard
 ```
 
 ## 核心特性
@@ -26,7 +27,7 @@ jarvis engine start --dashboard  # 启动编排引擎 + Web 面板
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
-| **Web 面板** | Dashboard 看板 + 统计面板 + 会话列表 + 平台筛选 + Agent 模型配置 |
+| **Web 面板** | 独立启动 Dashboard + MCP 平台接入状态 + 会话列表 + 平台筛选 + Agent 模型配置 |
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md`/`.toml` 源文件 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
 | **三平台 Hook/Plugin** | Claude hooks + OpenCode 原生插件 + Codex hooks 全覆盖 |
@@ -37,19 +38,22 @@ jarvis engine start --dashboard  # 启动编排引擎 + Web 面板
 
 ```
 ┌─────────────────────────────────────────────────────────┐
-│                    Jarvis Engine (:3456)                 │
-│  ┌─────────┐  ┌──────────┐  ┌────────────────────────┐ │
-│  │ MCP API │  │ REST API │  │   Web Dashboard         │ │
-│  │ 8 tools │  │ /api/*   │  │   流水线 + Agent配置     │ │
-│  └────┬────┘  └────┬─────┘  └───────────┬────────────┘ │
-│       └────────────┼────────────────────┘              │
-│               ┌────┴────┐                               │
-│               │ SQLite  │  WAL · 会话隔离 · Hash追踪    │
-│               └─────────┘                               │
-└─────────────────────────────────────────────────────────┘
-         ▲                    ▲                    ▲
-    .mcp.json            opencode.json      .codex/config.toml
-    Claude Code          OpenCode           Codex
+│                    Jarvis Engine (:3456)                  │
+│  ┌─────────┐  ┌──────────┐  ┌────────────────────────┐  │
+│  │ MCP API │  │ REST API │  │   SQLite               │  │
+│  │ 8 tools │  │ /api/*   │  │   WAL · 会话隔离        │  │
+│  └────┬────┘  └────┬─────┘  └────────────────────────┘  │
+│       └────────────┼─────────────────────────────────────│
+└─────────────────────┼─────────────────────────────────────┘
+         ▲            │              ▲
+    .mcp.json   jarvis web     .codex/config.toml
+    Claude Code (:3457)        Codex
+                               
+    Web Panel (:3457) — 独立按需启动
+    ┌───────────────────────────────┐
+    │  流水线看板 + Agent模型配置    │
+    │  API 代理 → Engine (:3456)    │
+    └───────────────────────────────┘
 ```
 
 ## CLI 命令
@@ -63,8 +67,9 @@ jarvis upgrade [path]                     # 智能升级（只覆盖变更文件
 jarvis diff [path]                        # 预览待更新文件
 jarvis doctor [path]                      # 健康检查
 
-jarvis engine start [--dashboard]         # 启动编排引擎
+jarvis engine start [--port=N]            # 启动编排引擎（MCP + API）
 jarvis engine stop / status               # 停止 / 状态
+jarvis web [--port=N]                     # 启动 Web 面板（独立，需引擎运行）
 
 # 选项：-g 全局安装  -y 跳过确认  -v 版本  -h 帮助
 ```
@@ -76,6 +81,7 @@ jarvis engine stop / status               # 停止 / 状态
 ```bash
 # 在项目根目录创建 .env 文件
 PORT=3456              # 引擎端口（默认 3456）
+WEB_PORT=3457          # Web 面板端口（默认 3457）
 GITEE_TOKEN=xxx        # Gitee 个人访问令牌（sync-gitee-releases 需要）
 GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要）
 ```
@@ -99,10 +105,14 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 ## Web 面板
 
+使用 `jarvis web` 独立启动（需先运行 `jarvis engine start`），默认端口 3457。
+
 | 页面 | 路径 | 功能 |
 |------|------|------|
-| 流水线看板 | `/dashboard` | Gate 进度 · 会话列表（切换查看） · 统计面板 · Gate 推进 · 平台筛选 |
-| 智能体配置 | `/agents` | 149 Agent 搜索 · 按平台/分类筛选 · 模型/思考等级配置 · 文件同步 |
+| 流水线看板 | `/dashboard` | Gate 进度 · MCP 平台接入状态 · 会话列表 · Gate 推进 · 平台筛选 |
+| 智能体配置 | `/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
+
+侧边栏实时显示各平台（Claude Code / OpenCode / Codex）的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
 
 ## 三平台 MCP 配置
 

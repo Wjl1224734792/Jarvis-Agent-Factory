@@ -41,6 +41,10 @@
     </a>
   </nav>
   <div class="px-4 py-4 border-t border-gray-100 mt-auto">
+    <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2.5">MCP 接入状态</p>
+    <div class="flex flex-col gap-1.5 mb-3" id="mcpStatusSidebar">
+      <div class="flex items-center gap-2 text-[11px] text-gray-400"><span class="w-1.5 h-1.5 rounded-full bg-gray-300 inline-block flex-shrink-0"></span> 加载中...</div>
+    </div>
     <p class="text-[11px] font-semibold text-gray-400 uppercase tracking-wider mb-2">操作提示</p>
     <p class="text-[11px] text-gray-400 leading-relaxed">点击卡片配置模型与思考等级</p>
     <p class="text-[11px] text-gray-400 leading-relaxed">蓝色边框 = 已自定义配置</p>
@@ -285,6 +289,30 @@ function toast(msg,type){
 }
 
 document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget){document.getElementById('modal').classList.add('hidden');document.getElementById('modal').classList.remove('flex')}});
+
+// MCP 平台接入状态轮询
+async function loadMcpStatus(){
+  try{
+    const r=await fetch('/api/status');
+    const d=await r.json();
+    const platforms = d.connected_platforms || {};
+    const names = {claude:'Claude Code',opencode:'OpenCode',codex:'Codex'};
+    let html='';
+    for(const [key,label] of Object.entries(names)){
+      const p = platforms[key];
+      const connected = p&&p.connected;
+      const sessions = p?p.active_sessions:0;
+      html+=`<div class="flex items-center gap-2 text-[11px] ${connected?'text-emerald-600':'text-gray-400'}">
+        <span class="w-1.5 h-1.5 rounded-full ${connected?'bg-emerald-500':'bg-gray-300'} inline-block flex-shrink-0"></span>
+        ${label} ${connected?'· '+sessions+' 会话':''}
+      </div>`;
+    }
+    document.getElementById('mcpStatusSidebar').innerHTML=html;
+  }catch{}
+}
+setInterval(loadMcpStatus,5000);
+loadMcpStatus();
+
 load();
 lucide.createIcons();
 </script>
