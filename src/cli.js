@@ -220,7 +220,7 @@ export async function run() {
     case 'engine': {
       const sub = positional[1];
       if (sub === 'start') {
-        const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || '3456');
+        const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.PORT || '3456');
         const dashboard = positional.includes('--dashboard') || positional.includes('-d');
         await startEngine({ port, dashboard, projectRoot: positional.find(a => !a.startsWith('-') && a !== 'start' && a !== 'engine') || '.' });
       } else if (sub === 'stop') {

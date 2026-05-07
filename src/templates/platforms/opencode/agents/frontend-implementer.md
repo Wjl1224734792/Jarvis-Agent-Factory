@@ -62,28 +62,53 @@ Skill(skill="code-standards")
 
 ## 🟠 视觉验证闭环（涉及页面/组件变更时不可绕过）
 
-身为全栈实现者，你需要在实现涉及页面或组件的任务时，自行启动预览服务器并截图验证 UI 效果。
+身为全栈实现者，你需要在实现涉及页面或组件的任务时，自行启动预览服务器并通过 agent-browser 截图验证 UI 效果。
 
-### 启动预览
+### 启动预览与验证
 
-1. 确认 `.claude/launch.json` 已配置 dev server，若不存在则创建
-2. `mcp__Claude_Preview__preview_start({name: "<project-dev>"})` 启动服务器
-3. 等待 dev server 就绪后开始截图验证
+1. 通过 Bash 后台启动 dev server：
+   ```bash
+   npm run dev &
+   ```
+2. 用 agent-browser 打开页面：
+   ```bash
+   agent-browser open http://localhost:<port>
+   ```
+3. 获取页面快照（获取元素 ref）：
+   ```bash
+   agent-browser snapshot -i
+   ```
 
 ### 修改前/后对比
 
-- 修改前：`preview_screenshot` → 基线截图
-- 修改后：`preview_screenshot` → 对比截图
-- 关键元素：`preview_inspect` 检查样式属性
-- 结构确认：`preview_snapshot` 检查 DOM 结构
+- 修改前：`agent-browser screenshot baseline.png` → 基线截图
+- 修改后：`agent-browser screenshot after.png` → 对比截图
+- 关键文本：`agent-browser get text @e1` 确认内容
+- 结构确认：`agent-browser get html` 检查 DOM 结构（异常区域）
 
 ### 响应式验证
 
-每个页面至少在 `mobile` / `tablet` / `desktop` 三种视口下截图（使用 `preview_resize`）。
+每个页面至少在移动端/平板/桌面三种视口下截图：
+
+```bash
+agent-browser set viewport 375 812   # 移动端
+agent-browser screenshot mobile.png
+agent-browser set viewport 768 1024  # 平板
+agent-browser screenshot tablet.png
+agent-browser set viewport 1280 800  # 桌面
+agent-browser screenshot desktop.png
+```
 
 ### 截图证据
 
 实施文档中必须包含关键页面的截图路径和视口信息。发现视觉问题立即修复，不留给下游。
+
+### 错误处理
+
+若 dev server 报错：
+- 检查终端输出定位编译错误
+- 修复后重新启动
+- 若无法启动，报告给主 Build Agent，不继续 UI 实现
 
 若不涉及页面/组件变更（纯逻辑/状态/工具函数），此段可跳过。
 

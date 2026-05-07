@@ -4,80 +4,106 @@
 <meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>智能体配置 · Jarvis Engine</title>
 <style>
-:root{--pink:#FF7B9C;--purple:#B4A7FF;--mint:#7DE2D1;--yellow:#FFE17B;--bg:#FAF7F5;--card:#FFFFFF;--border:#F0E8E0;--text:#2D2B3D;--muted:#8B869B;--accent:#FF5C8A;--green:#4ECB71;--warn:#F0A000}
+:root{--bg:#F8F9FA;--card:#FFFFFF;--border:#E5E7EB;--text:#111827;--muted:#6B7280;--accent:#2563EB;--accent-light:#EFF6FF;--purple:#6366F1;--green:#10B981;--red:#EF4444;--warn:#F59E0B}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-.sidebar{width:250px;min-width:250px;background:linear-gradient(180deg,#FFF5F8 0%,#F8F5FF 50%,#F0FBFF 100%);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
-.sidebar .logo{padding:0 20px 20px;border-bottom:2px solid var(--pink);margin-bottom:16px}
-.sidebar .logo h1{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+/* Sidebar */
+.sidebar{width:250px;min-width:250px;background:#FAFBFC;border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
+.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.sidebar .logo h1{font-size:18px;font-weight:700;color:var(--accent)}
 .sidebar nav{flex:1;padding:0 12px}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;margin:2px 0;transition:all .2s}
-.sidebar nav a:hover{background:rgba(255,123,156,.08);color:var(--accent)}
-.sidebar nav a.active{background:linear-gradient(135deg,rgba(255,123,156,.12),rgba(180,167,255,.12));color:var(--accent);border-left:3px solid var(--accent)}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:9px 16px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;margin:1px 12px 1px 0;transition:all .12s;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--accent-light);color:var(--accent)}
+.sidebar nav a.active{background:var(--accent-light);color:var(--accent);font-weight:600;border-left-color:var(--accent)}
 .sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
-.sidebar .help-section h3{font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
-.sidebar .help-section .tip{font-size:11px;color:var(--muted);line-height:1.6;margin:4px 0}
+.sidebar .help-section h3{font-size:11px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.sidebar .help-section .tip{font-size:12px;color:var(--muted);line-height:1.6;margin:4px 0}
 .sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
+
+/* Main */
 .main{flex:1;padding:32px 40px;overflow-y:auto}
-.main h2{font-size:24px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.main h2{font-size:24px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .main .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
+
+/* Toolbar */
 .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:12px}
 .filter{display:flex;gap:6px;flex-wrap:wrap}
-.filter button{padding:5px 14px;border-radius:20px;border:2px solid var(--border);background:white;color:var(--muted);cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
-.filter button:hover,.filter button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.filter button{padding:5px 14px;border-radius:20px;border:1px solid var(--border);background:white;color:var(--muted);cursor:pointer;font-size:12px;font-weight:500;transition:all .12s}
+.filter button:hover{border-color:var(--accent);color:var(--accent)}
+.filter button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+
+/* Search */
 .search-box{display:flex;align-items:center;gap:8px}
-.search-box input{padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:white;color:var(--text);font-size:12px;width:180px;outline:none;transition:border-color .2s}
-.search-box input:focus{border-color:var(--accent)}
-.search-box .clear-btn{font-size:11px;color:var(--muted);cursor:pointer;display:none}
+.search-box input{padding:7px 12px;border-radius:8px;border:1px solid var(--border);background:white;color:var(--text);font-size:13px;width:200px;outline:none;transition:border-color .12s,box-shadow .12s}
+.search-box input:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
+.search-box input::placeholder{color:#9CA3AF}
+.search-box .clear-btn{font-size:12px;color:var(--muted);cursor:pointer;display:none;padding:2px 6px;user-select:none}
 .search-box .clear-btn.show{display:inline}
+
+/* Grid & Cards */
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:12px}
-.card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;cursor:pointer;transition:all .3s;position:relative}
-.card:hover{border-color:var(--accent);transform:translateY(-2px);box-shadow:0 4px 16px rgba(255,123,156,.08)}
-.card.custom{border-color:var(--purple);border-width:2px}
-.card .role{font-size:9px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px}
-.card .name{font-size:13px;font-weight:700;margin:3px 0;display:flex;align-items:center;gap:5px}
-.card .name .sync-dot{width:7px;height:7px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
-.card .model{font-size:10px;color:var(--accent);background:rgba(255,123,156,.08);padding:1px 8px;border-radius:8px;display:inline-block;margin-top:3px;font-weight:600;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
-.card .model.custom{color:var(--purple);background:rgba(180,167,255,.08)}
-.effort-badge{display:inline-block;padding:1px 6px;border-radius:6px;font-size:9px;font-weight:600;background:rgba(125,226,209,.15);color:var(--green);margin-left:3px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px;cursor:pointer;transition:all .2s;position:relative}
+.card:hover{transform:translateY(-1px);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.card.custom{border-color:var(--accent);border-width:2px}
+.card .role{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
+.card .name{font-size:13px;font-weight:600;margin:4px 0;display:flex;align-items:center;gap:5px;color:var(--text)}
+.card .name .sync-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;flex-shrink:0}
+.card .model{font-size:11px;color:var(--muted);background:#F3F4F6;padding:2px 8px;border-radius:6px;display:inline-block;margin-top:4px;font-weight:500;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card .model.custom{background:var(--accent-light);color:var(--accent)}
+.effort-badge{display:inline-block;padding:1px 6px;border-radius:4px;font-size:10px;font-weight:500;background:rgba(16,185,129,.1);color:var(--green);margin-left:4px}
+
+/* Pixel avatar */
 .avatar-8{display:grid;grid-template-columns:repeat(8,1fr);grid-template-rows:repeat(8,1fr);width:36px;height:36px;gap:1px;margin:6px auto}
 .avatar-8 span{width:100%;height:100%;border-radius:1px}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;justify-content:center;align-items:center}
+
+/* Modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
-.modal{background:white;border-radius:24px;padding:28px;min-width:340px;max-width:400px;box-shadow:0 20px 60px rgba(0,0,0,.1)}
-.modal h3{font-size:18px;margin-bottom:4px}
-.modal .sub{font-size:12px;color:var(--muted);margin-bottom:14px}
-.modal select{width:100%;padding:10px 14px;background:#f8f6f9;color:var(--text);border:2px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:14px;cursor:pointer}
+.modal{background:white;border-radius:12px;padding:24px;min-width:340px;max-width:400px;box-shadow:0 8px 30px rgba(0,0,0,.08)}
+.modal h3{font-size:18px;font-weight:600;margin-bottom:2px}
+.modal .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+.modal select{width:100%;padding:8px 12px;background:#F9FAFB;color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;cursor:pointer;outline:none;transition:border-color .12s,box-shadow .12s}
+.modal select:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
 .modal select:disabled{opacity:.5;cursor:not-allowed}
+.modal input[type=text]{width:100%;padding:8px 12px;background:#F9FAFB;color:var(--text);border:1px solid var(--border);border-radius:8px;font-size:14px;margin-bottom:12px;outline:none;transition:border-color .12s,box-shadow .12s}
+.modal input[type=text]:focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-light)}
 .modal .btns{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.modal .btn{padding:8px 20px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
-.modal .btn:disabled{opacity:.5;cursor:not-allowed;transform:none!important;box-shadow:none!important}
+.modal .btn{padding:8px 20px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .12s}
+.modal .btn:disabled{opacity:.5;cursor:not-allowed}
 .modal .btn.save{background:var(--accent);color:#fff}
-.modal .btn.save:hover:not(:disabled){box-shadow:0 4px 16px rgba(255,92,138,.25)}
-.modal .btn.reset{background:white;border:2px solid var(--border);color:var(--muted);margin-right:auto}
+.modal .btn.save:hover:not(:disabled){box-shadow:0 4px 12px rgba(37,99,235,.25)}
+.modal .btn.reset{background:white;border:1px solid var(--border);color:var(--muted);margin-right:auto}
 .modal .btn.reset:hover:not(:disabled){border-color:var(--accent);color:var(--accent)}
-.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:14px 20px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 20px;border-radius:10px;font-weight:500;animation:slideIn .25s ease-out;font-size:13px;background:white;box-shadow:0 4px 20px rgba(0,0,0,.1)}
 .toast.success{border-left:4px solid var(--green);color:var(--green)}
-.toast.warn{border-left:4px solid var(--warn);color:var(--warn)}
-.toast.error{border-left:4px solid var(--accent);color:var(--accent)}
-@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-footer{padding:24px 0;color:var(--muted);font-size:11px}
+.toast.warn{border-left:4px solid var(--warn);color:var(--warn);background:#FFFBEB}
+.toast.error{border-left:4px solid var(--red);color:var(--red)}
+@keyframes slideIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+/* Footer */
+footer{padding:24px 0;color:var(--muted);font-size:12px}
+footer a{color:var(--accent);text-decoration:none}
+
+/* Responsive */
 @media(max-width:768px){body{flex-direction:column}.sidebar{width:100%;min-width:100%;height:auto;position:static;padding:12px}.sidebar nav{display:flex;flex-direction:row}.sidebar .help-section{display:none}.main{padding:20px}.grid{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}}
 </style>
 </head>
 <body>
 
 <aside class=sidebar>
-  <div class=logo><h1>🧠 Jarvis Engine</h1></div>
+  <div class=logo><h1>Jarvis Engine</h1></div>
   <nav>
-    <a href=/dashboard>📊 流水线看板</a>
-    <a href=/agents class=active>🤖 智能体配置</a>
+    <a href=/dashboard>流水线看板</a>
+    <a href=/agents class=active>智能体配置</a>
   </nav>
   <div class=help-section>
     <h3>操作提示</h3>
     <div class=tip>点击卡片配置模型与思考等级</div>
-    <div class=tip>紫色边框 = 已自定义配置</div>
-    <div class=tip>🟢 绿点 = 已保存自定义</div>
+    <div class=tip>蓝色边框 = 已自定义配置</div>
+    <div class=tip>绿点标识已保存自定义</div>
     <div class=tip>搜索框快速定位 agent</div>
   </div>
 </aside>
@@ -89,9 +115,9 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   <div class=toolbar>
     <div class=filter id=platformTabs>
       <button class=sel onclick="setPlatform('all')">全部</button>
-      <button onclick="setPlatform('claude')">🔵 Claude</button>
-      <button onclick="setPlatform('opencode')">🟣 OpenCode</button>
-      <button onclick="setPlatform('codex')">🟢 Codex</button>
+      <button onclick="setPlatform('claude')">Claude</button>
+      <button onclick="setPlatform('opencode')">OpenCode</button>
+      <button onclick="setPlatform('codex')">Codex</button>
     </div>
   </div>
   <div class=toolbar style=margin-bottom:16px>
@@ -99,12 +125,12 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
       <button class=sel onclick="setCategory('全部')">全部</button>
     </div>
     <div class=search-box>
-      <input id=searchInput placeholder="🔍 搜索 agent 名称..." oninput="onSearch()">
-      <span class=clear-btn id=clearSearch onclick="clearSearch()">✕ 清除</span>
+      <input id=searchInput placeholder="搜索 agent 名称..." oninput="onSearch()">
+      <span class=clear-btn id=clearSearch onclick="clearSearch()">清除</span>
     </div>
   </div>
-  <div class=grid id=agentsGrid><div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">⏳ 加载中...</div></div>
-  <footer>Jarvis Engine · <a href=/dashboard style=color:var(--purple)>流水线</a> · 会话隔离模式</footer>
+  <div class=grid id=agentsGrid><div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">加载中...</div></div>
+  <footer>Jarvis Engine · <a href=/dashboard>流水线</a> · 会话隔离模式</footer>
 </main>
 
 <div class=modal-overlay id=modal>
@@ -112,11 +138,11 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
     <h3 id=modalName>---</h3>
     <div class=sub id=modalRole>---</div>
     <select id=modalSelect onchange="onModelChange()"></select>
-    <input id=modalCustom placeholder="或输入自定义模型名称..." style="display:none;width:100%;padding:10px 14px;background:#f8f6f9;color:var(--text);border:2px solid var(--border);border-radius:12px;font-size:14px;margin-bottom:14px" oninput="onCustomInput()">
+    <input id=modalCustom type=text placeholder="或输入自定义模型名称..." style="display:none" oninput="onCustomInput()">
     <select id=modalEffort></select>
     <div class=btns>
-      <button class="btn reset" id=resetBtn onclick=resetModel()>↩ 恢复默认</button>
-      <button class="btn save" id=saveBtn onclick=saveModel()>💾 保存</button>
+      <button class="btn reset" id=resetBtn onclick=resetModel()>恢复默认</button>
+      <button class="btn save" id=saveBtn onclick=saveModel()>保存</button>
     </div>
   </div>
 </div>
@@ -155,10 +181,9 @@ async function load(p){
   const qs = params.toString() ? '?'+params.toString() : '';
   const r=await fetch('/api/agents'+qs);
   d=await r.json();agents=d.agents;
-  // 动态生成分类标签（首次加载时）
   if(d.categories && document.getElementById('categoryTabs').children.length<=1){
     document.getElementById('categoryTabs').innerHTML = d.categories.map(c=>
-      `<button class="${c===category?'sel':''}" onclick="setCategory('${c}')">${c==='全部'?'🌐 全部':c}</button>`
+      `<button class="${c===category?'sel':''}" onclick="setCategory('${c}')">${c==='全部'?'全部':c}</button>`
     ).join('');
   }
   document.getElementById('agentsGrid').innerHTML=render();
@@ -193,7 +218,7 @@ function clearSearch(){
 }
 
 function render(){
-  if(agents.length===0) return '<div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">📭 未找到匹配的智能体</div>';
+  if(agents.length===0) return '<div style=text-align:center;padding:40px;color:var(--muted);grid-column:1/-1">未找到匹配的智能体</div>';
   return agents.map(a=>{
     const synced = a.is_custom ? '<span class=sync-dot title="已自定义"></span>' : '';
     return `<div class="card${a.is_custom?' custom':''}" onclick="openM('${a.id}')">
@@ -226,13 +251,13 @@ function openM(id){
   document.getElementById('modalSelect').innerHTML=
     pModels.map(m=>`<option value="${m}" ${m===cur.model?'selected':''}>${m}</option>`).join('')+
     (curInList?'':'<option value="'+cur.model+'" selected>'+cur.model+'</option>')+
-    '<option value="__custom__">✏️ 自定义输入...</option>';
+    '<option value="__custom__">自定义输入...</option>';
   document.getElementById('modalCustom').style.display='none';
   document.getElementById('modalCustom').value='';
   document.getElementById('modalEffort').innerHTML=(d.available_efforts||['low','medium','high','xhigh','max']).map(e=>'<option value="'+e+'" '+(e===(cur.effort||'high')?'selected':'')+'>'+e+'</option>').join('');
   document.getElementById('modal').classList.add('show');
   document.getElementById('saveBtn').disabled=false;
-  document.getElementById('saveBtn').textContent='💾 保存';
+  document.getElementById('saveBtn').textContent='保存';
 }
 
 function setSaveLoading(loading){
@@ -240,7 +265,7 @@ function setSaveLoading(loading){
   const btn=document.getElementById('saveBtn');
   const reset=document.getElementById('resetBtn');
   btn.disabled=loading;reset.disabled=loading;
-  btn.textContent=loading?'⏳ 保存中...':'💾 保存';
+  btn.textContent=loading?'保存中...':'保存';
 }
 
 async function saveModel(){
@@ -255,8 +280,8 @@ async function saveModel(){
     document.getElementById('modal').classList.remove('show');
     cur.model=m;cur.effort=e;cur.is_custom=true;
     document.getElementById('agentsGrid').innerHTML=render();
-    toast(r.file_synced?'✅ 已保存并同步到源文件 · '+cur.name+' → '+m+' @'+e:'⚠️ 已保存到数据库（源文件同步未成功）',r.file_synced?'success':'warn');
-  }catch(err){toast('❌ 保存失败: '+err.message,'error')}
+    toast(r.file_synced?'已保存并同步到源文件 · '+cur.name+' → '+m+' @'+e:'已保存到数据库（源文件同步未成功）',r.file_synced?'success':'warn');
+  }catch(err){toast('保存失败: '+err.message,'error')}
   finally{setSaveLoading(false)}
 }
 
@@ -269,8 +294,8 @@ async function resetModel(){
     document.getElementById('modal').classList.remove('show');
     cur.model=cur.defaultModel;cur.effort=cur.defaultEffort||'high';cur.is_custom=false;
     document.getElementById('agentsGrid').innerHTML=render();
-    toast(r.file_synced?'✅ 已恢复默认 · '+cur.name:'⚠️ 已恢复默认（文件同步未成功）','success');
-  }catch(err){toast('❌ 重置失败: '+err.message,'error')}
+    toast(r.file_synced?'已恢复默认 · '+cur.name:'已恢复默认（文件同步未成功）','success');
+  }catch(err){toast('重置失败: '+err.message,'error')}
   finally{setSaveLoading(false)}
 }
 

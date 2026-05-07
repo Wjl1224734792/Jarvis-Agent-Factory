@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay } from '../engine/gates.js';
 import { getPlatformModels, getCategories } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -16,12 +16,12 @@ export function setupWebRoutes(app, db, root, dashboard) {
   // ---- REST API (hooks + dashboard) ----
   // 所有会话的合并流水线视图（Dashboard 用）
   app.get('/api/pipeline', (_req, res) => {
-    const sessions = getSessions(db);
+    const sessions = getSessions(db, 'active');
     const sessionList = sessions.map(s => {
       const p = getPipeline(db, s.id);
       const gates = GATES.map(g => ({ gate: g, passed: getCheckpoints(db, g, s.id).length > 0, artifacts: findGateArtifacts(getDocsDir(root), g) }));
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
-      return { session_id: s.id, platform: s.platform, current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates, _display: formatGateDisplay(gates, current) };
+      return { session_id: s.id, platform: s.platform, status: s.status, current_gate: current, completed: gates.filter(g => g.passed).map(g => g.gate), gates, _display: formatGateDisplay(gates, current) };
     });
     res.json({ sessions: sessionList, active_count: sessions.length });
   });
@@ -51,11 +51,22 @@ export function setupWebRoutes(app, db, root, dashboard) {
   });
 
   app.get('/api/sessions', (_req, res) => {
+    markStaleSessions(db, 600_000);
     const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
-      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat };
+      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat, status: s.status };
     });
     res.json({ sessions, count: sessions.length });
+  });
+
+  // 手动恢复 inactive 会话
+  app.post('/api/sessions/:id/resume', (req, res) => {
+    const sid = req.params.id;
+    const s = getSessions(db).find(s => s.id === sid);
+    if (!s) return res.status(404).json({ error: 'Session not found' });
+    resumeSession(db, sid);
+    const p = getPipeline(db, sid);
+    res.json({ ok: true, session_id: sid, status: 'active', gate: p?.current_gate || '?' });
   });
 
   const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];
@@ -110,12 +121,13 @@ export function setupWebRoutes(app, db, root, dashboard) {
   setInterval(() => {
     if (sseClients.size === 0) return;
     const sessions = getSessions(db);
-    const data = JSON.stringify({ sessions: sessions.map(s => ({ id: s.id, platform: s.platform, role: s.role, gate: getPipeline(db, s.id)?.current_gate || '?' })), count: sessions.length });
+    const data = JSON.stringify({ sessions: sessions.map(s => ({ id: s.id, platform: s.platform, role: s.role, gate: getPipeline(db, s.id)?.current_gate || '?', status: s.status })), count: sessions.length });
     for (const c of sseClients) c.write(`data: ${data}\n\n`);
   }, 8000);
 
   // ---- Dashboard ----
   if (dashboard) {
+    app.get('/', (_req, res) => res.redirect('/dashboard'));
     app.get('/dashboard', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'views', 'pipeline.html'), 'utf-8')));
     app.get('/agents', (_req, res) => res.type('html').send(readFileSync(resolve(import.meta.dirname, 'views', 'agents.html'), 'utf-8')));
   }

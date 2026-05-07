@@ -66,36 +66,34 @@ Skill(skill="code-standards")
 
 ### 步骤 1：启动预览服务器
 
-确认项目 dev server 已配置在 `.claude/launch.json`。若不存在，先创建：
+在 Bash 后台启动 dev server：
 
-```json
-{
-  "version": "0.0.1",
-  "configurations": [
-    {
-      "name": "<project-name>-dev",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
-      "port": <port>
-    }
-  ]
-}
+```bash
+npm run dev &
 ```
 
-然后启动：`mcp__Claude_Preview__preview_start({name: "<project-name>-dev"})`。
+等待 dev server 就绪后，用 agent-browser 打开页面：
+
+```bash
+agent-browser open http://localhost:<port>
+agent-browser snapshot -i
+```
 
 ### 步骤 2：修改前截图（Baseline）
 
 在修改任何 UI 代码前，先截图当前页面状态作为基线：
-- `mcp__Claude_Preview__preview_screenshot({serverId: "<serverId>"})`
-- `mcp__Claude_Preview__preview_snapshot({serverId: "<serverId>"})` — 获取元素结构
+
+```bash
+agent-browser screenshot baseline.png
+agent-browser snapshot -i
+```
 
 ### 步骤 3：增量修改 + 即时截图验证
 
 每完成一个独立 UI 变更（一个组件/一个页面区块），立即：
 
-1. **截图查看效果**：`mcp__Claude_Preview__preview_screenshot({serverId: "<serverId>"})`
-2. **检查关键样式**：`mcp__Claude_Preview__preview_inspect({serverId: "<serverId>", selector: "<CSS选择器>", styles: ["color", "font-size", "padding", "margin", "width", "height", "display", "position"]})`
+1. **截图查看效果**：`agent-browser screenshot after.png`
+2. **检查关键元素**：`agent-browser get text @eN` 确认文本内容，`agent-browser get html` 检查 DOM 结构
 3. **对比预期**：与需求文档中的 UI 描述/设计稿对比，确认：
    - 颜色、字号、间距正确
    - 布局在不同视口下正常
@@ -106,10 +104,13 @@ Skill(skill="code-standards")
 
 每完成一个页面，必须在三种视口下截图验证：
 
-```
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "mobile"})   → 截图
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "tablet"})   → 截图
-mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})  → 截图
+```bash
+agent-browser set viewport 375 812
+agent-browser screenshot mobile.png
+agent-browser set viewport 768 1024
+agent-browser screenshot tablet.png
+agent-browser set viewport 1280 800
+agent-browser screenshot desktop.png
 ```
 
 ### 步骤 5：问题立即修复
@@ -122,8 +123,8 @@ mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})
 
 ### 预览错误处理
 
-若 `preview_start` 失败或 dev server 报错：
-- `mcp__Claude_Preview__preview_logs({serverId: "<serverId>", level: "error"})` 检查错误
+若 dev server 报错：
+- 检查终端输出定位编译错误
 - 修复构建错误后重新启动
 - 若无法启动，报告给主 Build Agent，不继续 UI 实现
 
@@ -176,7 +177,7 @@ mcp__Claude_Preview__preview_resize({serverId: "<serverId>", preset: "desktop"})
 - UI 组件已创建/修改
 - 样式符合需求和仓库 Tailwind 规范
 - **响应式多视口截图已附（mobile / tablet / desktop），视觉符合预期**
-- **关键样式属性已通过 preview_inspect 验证（颜色/字号/间距/布局）**
+- **关键样式属性已通过 agent-browser screenshot 对比确认（颜色/字号/间距/布局）**
 - 无无关重构
 
 ## 红线

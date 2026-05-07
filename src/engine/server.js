@@ -5,13 +5,13 @@ import { z } from 'zod';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { homedir } from 'node:os';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, cleanupStaleSessions, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel } from './db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, findGateArtifacts, formatGateDisplay } from './gates.js';
 import { setupWebRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
-const SESSION_TIMEOUT = 120_000;
+const SESSION_TIMEOUT = 600_000; // 10分钟超时，标记 inactive 而非删除
 
 export async function startEngine({ port = DEFAULT_PORT, dashboard = false, projectRoot = '.' } = {}) {
   const root = resolve(projectRoot);
@@ -25,23 +25,32 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
   const server = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb(root);
 
-  // 心跳保活
-  setInterval(() => { cleanupStaleSessions(db, SESSION_TIMEOUT); }, 30_000);
+  // 心跳保活 + 过期标记
+  setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 30_000);
 
   // ---- MCP Tools ----
-  server.tool('session_join', '注册会话。每个会话独立流水线状态。', { platform: z.enum(['claude','opencode','codex','other']).optional() },
-    async ({ platform }, extra) => {
+  server.tool('session_join', '注册/恢复会话。每个会话独立流水线状态。支持传入 resume_session_id 恢复旧会话。', { platform: z.enum(['claude','opencode','codex','other']).optional(), resume_session_id: z.string().optional() },
+    async ({ platform, resume_session_id }, extra) => {
       const sid = extra?.sessionId || `s${Date.now()}`;
+      // 恢复旧会话：迁移 pipeline/checkpoints 到新 sessionId
+      if (resume_session_id) {
+        const old = getSession(db, resume_session_id);
+        if (old) {
+          migrateSession(db, resume_session_id, sid);
+          removeSession(db, resume_session_id);
+        }
+      }
       const existing = getSession(db, sid);
       if (existing) {
         heartbeatSession(db, sid);
         const p = getPipeline(db, sid);
-        return resp({ session_id: sid, platform: existing.platform, gate: p?.current_gate || 'Gate A', project: p?.project || root });
+        return resp({ session_id: sid, platform: existing.platform, gate: p?.current_gate || 'Gate A', project: p?.project || root, resumed: false });
       }
       addSession(db, sid, platform || 'unknown', 'member');
-      // 为新 session 自动初始化独立 pipeline
-      initPipeline(db, sid, root);
-      return resp({ session_id: sid, platform: platform || 'unknown', gate: 'Gate A', project: root, message: '🆕 新会话已初始化，独立流水线已就绪。' });
+      // 为新 session 自动初始化独立 pipeline（仅当未从旧会话迁移时）
+      if (!getPipeline(db, sid)) initPipeline(db, sid, root);
+      const p = getPipeline(db, sid);
+      return resp({ session_id: sid, platform: platform || 'unknown', gate: p?.current_gate || 'Gate A', project: p?.project || root, message: '🆕 新会话已初始化，独立流水线已就绪。', resumed: !!resume_session_id });
     });
   server.tool('session_heartbeat', '心跳保活。', {}, async (_args, extra) => {
     const sid = extra?.sessionId;
@@ -49,10 +58,10 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
     heartbeatSession(db, sid); return resp({ ok: true });
   });
   server.tool('session_list', '列出所有活跃会话。', {}, async () => {
-    cleanupStaleSessions(db, SESSION_TIMEOUT);
-    const sessions = getSessions(db).map(s => {
+    markStaleSessions(db, SESSION_TIMEOUT);
+    const sessions = getSessions(db, 'active').map(s => {
       const p = getPipeline(db, s.id);
-      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat };
+      return { id: s.id, platform: s.platform, role: s.role, gate: p?.current_gate || '?', heartbeat: s.last_heartbeat, status: s.status };
     });
     return resp({ sessions, count: sessions.length });
   });

@@ -33,6 +33,7 @@ function initSchema(db) {
       id TEXT PRIMARY KEY,
       platform TEXT DEFAULT 'unknown',
       role TEXT NOT NULL DEFAULT 'member',
+      status TEXT DEFAULT 'active',
       created_at INTEGER NOT NULL,
       last_heartbeat INTEGER NOT NULL
     );
@@ -53,6 +54,8 @@ function initSchema(db) {
       db.prepare('INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, started_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('legacy', r.project, r.current_gate, r.started_at, r.updated_at);
     }
   } catch {}
+  // Migrate: add status column to sessions if missing
+  try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
 }
 
 // ---- Pipeline (per-session) ----
@@ -79,17 +82,19 @@ export function addCheckpoint(db, gate, advanceTo, sessionId) {
 }
 
 // ---- Sessions ----
-export function getSessions(db) {
+/** @param {'active'|'inactive'|undefined} statusFilter */
+export function getSessions(db, statusFilter) {
+  if (statusFilter) return db.prepare('SELECT * FROM sessions WHERE status=? ORDER BY created_at').all(statusFilter);
   return db.prepare('SELECT * FROM sessions ORDER BY created_at').all();
 }
 export function getSession(db, sid) {
   return db.prepare('SELECT * FROM sessions WHERE id=?').get(sid);
 }
 export function addSession(db, sid, platform, role) {
-  db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?)').run(sid, platform, role || 'member', Date.now(), Date.now());
+  db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, status, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?)').run(sid, platform, role || 'member', 'active', Date.now(), Date.now());
 }
 export function heartbeatSession(db, sid) {
-  db.prepare('UPDATE sessions SET last_heartbeat=? WHERE id=?').run(Date.now(), sid);
+  db.prepare("UPDATE sessions SET last_heartbeat=?, status='active' WHERE id=?").run(Date.now(), sid);
 }
 export function removeSession(db, sid) {
   db.prepare('DELETE FROM sessions WHERE id=?').run(sid);
@@ -97,11 +102,21 @@ export function removeSession(db, sid) {
 export function updateSessionRole(db, sid, role) {
   db.prepare('UPDATE sessions SET role=? WHERE id=?').run(role, sid);
 }
-export function cleanupStaleSessions(db, timeoutMs) {
+/** 将会话标记为 inactive 而非删除，保留 pipeline 数据供恢复 */
+export function markStaleSessions(db, timeoutMs) {
   const cutoff = Date.now() - timeoutMs;
-  const stale = db.prepare('SELECT id FROM sessions WHERE last_heartbeat < ?').all(cutoff);
-  for (const s of stale) db.prepare('DELETE FROM sessions WHERE id=?').run(s.id);
+  const stale = db.prepare("SELECT id FROM sessions WHERE last_heartbeat < ? AND status='active'").all(cutoff);
+  for (const s of stale) db.prepare("UPDATE sessions SET status='inactive' WHERE id=?").run(s.id);
   return stale.map(s => s.id);
+}
+/** 恢复 inactive 会话为 active */
+export function resumeSession(db, sid) {
+  db.prepare("UPDATE sessions SET status='active', last_heartbeat=? WHERE id=?").run(Date.now(), sid);
+}
+/** 迁移旧会话的 pipeline 和 checkpoints 到新 sessionId（用于 MCP 重连恢复） */
+export function migrateSession(db, oldSid, newSid) {
+  db.prepare('UPDATE pipeline SET session_id=? WHERE session_id=?').run(newSid, oldSid);
+  db.prepare('UPDATE checkpoints SET session_id=? WHERE session_id=?').run(newSid, oldSid);
 }
 export function getOldestSession(db) {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();

@@ -4,96 +4,108 @@
 <meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Jarvis Engine · 流水线</title>
 <style>
-:root{--pink:#FF7B9C;--purple:#B4A7FF;--mint:#7DE2D1;--yellow:#FFE17B;--bg:#FAF7F5;--card:#FFFFFF;--border:#F0E8E0;--text:#2D2B3D;--muted:#8B869B;--accent:#FF5C8A;--green:#4ECB71;--red:#FF5C5C;--warn:#F0A000}
+:root{--bg:#F8F9FA;--card:#FFFFFF;--border:#E5E7EB;--text:#111827;--muted:#6B7280;--accent:#2563EB;--accent-light:#EFF6FF;--purple:#6366F1;--green:#10B981;--red:#EF4444;--warn:#F59E0B}
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
-body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;animation:sakura1 12s linear infinite;opacity:.3;pointer-events:none;z-index:0}
-@keyframes sakura1{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(80px,25vh) rotate(90deg)}50%{transform:translate(160px,50vh) rotate(180deg)}75%{transform:translate(80px,75vh) rotate(270deg)}100%{transform:translate(0,100vh) rotate(360deg)}}
-.sidebar{width:250px;min-width:250px;background:linear-gradient(180deg,#FFF5F8 0%,#F8F5FF 50%,#F0FBFF 100%);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
-.sidebar .logo{padding:0 20px 20px;border-bottom:2px solid var(--pink);margin-bottom:16px}
-.sidebar .logo h1{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar{width:250px;min-width:250px;background:#FAFBFC;border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
+.sidebar .logo{padding:0 20px 20px;border-bottom:1px solid var(--border);margin-bottom:16px}
+.sidebar .logo h1{font-size:18px;font-weight:700;color:var(--accent);letter-spacing:-0.3px}
 .sidebar .logo .ver{font-size:11px;color:var(--muted)}
 .sidebar nav{flex:1;padding:0 12px}
-.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;margin:2px 0;transition:all .2s}
-.sidebar nav a:hover{background:rgba(255,123,156,.08);color:var(--accent)}
-.sidebar nav a.active{background:linear-gradient(135deg,rgba(255,123,156,.12),rgba(180,167,255,.12));color:var(--accent);border-left:3px solid var(--accent)}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:0 8px 8px 0;color:var(--muted);text-decoration:none;font-size:14px;font-weight:500;margin:2px 0;transition:all .15s;border-left:3px solid transparent}
+.sidebar nav a:hover{background:var(--accent-light);color:var(--accent)}
+.sidebar nav a.active{background:var(--accent-light);color:var(--accent);font-weight:600;border-left:3px solid var(--accent)}
 .sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
 .sidebar .help-section h3{font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
 .sidebar .help-section .tip{font-size:11px;color:var(--muted);line-height:1.6;margin:4px 0}
 .sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
-.sidebar .help-btn{display:block;width:100%;padding:10px;margin-top:12px;border-radius:12px;border:2px solid var(--accent);background:white;color:var(--accent);cursor:pointer;font-weight:600;font-size:13px;transition:all .2s}
+.sidebar .help-btn{display:block;width:100%;padding:10px;margin-top:12px;border-radius:8px;border:1px solid var(--accent);background:white;color:var(--accent);cursor:pointer;font-weight:500;font-size:13px;transition:all .15s}
 .sidebar .help-btn:hover{background:var(--accent);color:#fff}
 .main{flex:1;padding:32px 40px;overflow-y:auto}
-.main h2{font-size:24px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.main h2{font-size:24px;font-weight:700;margin-bottom:4px;color:var(--text)}
 .main .subtitle{font-size:13px;color:var(--muted);margin-bottom:20px}
 
 /* Sessions strip */
 .sessions-strip{display:flex;gap:10px;margin-bottom:24px;flex-wrap:wrap;align-items:center}
 .sessions-strip h3{font-size:13px;color:var(--muted);margin-right:4px}
-.session-chip{padding:6px 14px;border-radius:20px;border:2px solid var(--border);background:white;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s;display:flex;align-items:center;gap:6px}
+.sessions-strip .filter{display:flex;gap:4px}
+.sessions-strip .filter button{padding:4px 12px;border-radius:20px;border:1px solid var(--border);background-color:white;cursor:pointer;font-size:12px;font-weight:500;color:var(--muted);transition:all .15s}
+.sessions-strip .filter button:hover{border-color:var(--accent);color:var(--accent)}
+.sessions-strip .filter button.sel{background-color:var(--accent);border-color:var(--accent);color:#fff}
+.sessions-strip .refresh-btn{display:flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:6px;border:1px solid var(--border);background:white;cursor:pointer;color:var(--muted);transition:all .15s;flex-shrink:0}
+.sessions-strip .refresh-btn:hover{border-color:var(--accent);color:var(--accent)}
+.refreshing{animation:spin .6s linear}
+@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}
+.session-chip{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:white;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s;display:flex;align-items:center;gap:6px}
 .session-chip:hover{border-color:var(--accent)}
-.session-chip.active{border-color:var(--accent);background:rgba(255,123,156,.06);color:var(--accent)}
-.session-chip .s-platform{font-size:14px}
+.session-chip.active{border-color:var(--accent);background:var(--accent-light);color:var(--accent)}
+.session-chip.inactive{opacity:.5}
 .session-chip .s-gate{font-size:10px;color:var(--muted);background:rgba(0,0,0,.04);padding:1px 6px;border-radius:6px}
-.session-chip .s-online{width:7px;height:7px;border-radius:50%;background:var(--green);flex-shrink:0}
-.session-chip .s-offline{width:7px;height:7px;border-radius:50%;background:var(--border);flex-shrink:0}
+.session-chip .s-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.session-chip .s-dot.online{background:var(--green)}
+.session-chip .s-dot.offline{background:var(--border)}
+.session-chip .s-dot.inactive-dot{background:var(--warn)}
+.session-chip .s-restore{font-size:10px;color:var(--accent);cursor:pointer;text-decoration:underline;margin-left:2px}
+.session-chip .s-restore:hover{color:var(--purple)}
 .no-sessions{padding:8px 0;color:var(--muted);font-size:12px}
+#sessionsList{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
 
 /* Stats */
 .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
-.stat{background:var(--card);border-radius:16px;padding:22px;border:1px solid var(--border);transition:all .3s;position:relative}
-.stat:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(255,123,156,.1);transform:translateY(-2px)}
-.stat .num{font-size:34px;font-weight:800;color:var(--accent)}
+.stat{background:var(--card);border-radius:12px;padding:20px;border:1px solid var(--border);transition:all .2s;position:relative}
+.stat:hover{border-color:var(--border);box-shadow:0 2px 8px rgba(0,0,0,.06)}
+.stat .num{font-size:32px;font-weight:700;color:var(--accent)}
 .stat .label{font-size:12px;color:var(--muted);margin-top:2px}
 .stat.accent .num{color:var(--purple)}
 .stat.green .num{color:var(--green)}
-.stat.yellow .num{color:var(--yellow)}
+.stat.yellow .num{color:var(--warn)}
 
 /* Progress */
 .progress-section{margin-bottom:32px}
 .progress-label{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--muted)}
-.progress-bar{height:14px;background:var(--border);border-radius:14px;overflow:hidden;position:relative}
-.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--purple),var(--mint));border-radius:14px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+.progress-bar{height:10px;background:#E5E7EB;border-radius:10px;overflow:hidden;position:relative}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--purple));border-radius:10px;transition:width .6s cubic-bezier(.4,0,.2,1)}
 
 /* Gates */
-.gates-section h3{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--text)}
-.gate{background:var(--card);border-radius:14px;padding:14px 18px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);cursor:pointer;transition:all .2s}
-.gate:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(255,123,156,.08)}
+.gates-section h3{font-size:15px;font-weight:600;margin-bottom:12px;color:var(--text)}
+.gate{background:var(--card);border-radius:8px;padding:12px 16px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);cursor:pointer;transition:all .15s}
+.gate:hover{border-color:var(--accent);box-shadow:0 1px 4px rgba(0,0,0,.04)}
 .gate.passed{opacity:.55;border-left:3px solid var(--green)}
-.gate.current{border-left:4px solid var(--accent);background:linear-gradient(90deg,rgba(255,123,156,.04) 0%,white 30%)}
-.gate-left{display:flex;align-items:center;gap:12px}
-.gate-dot{width:12px;height:12px;border-radius:50%}
+.gate.current{border-left:4px solid var(--accent);background:var(--accent-light)}
+.gate-left{display:flex;align-items:center;gap:10px}
+.gate-dot{width:10px;height:10px;border-radius:50%}
 .gate-dot.pass{background:var(--green)}
-.gate-dot.curr{background:var(--accent);animation:pulse 2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(255,92,138,.4)}
-.gate-dot.wait{background:var(--border)}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,92,138,.4)}50%{box-shadow:0 0 0 10px rgba(255,92,138,0)}}
-.gate-info .name{font-weight:700;font-size:14px}
+.gate-dot.curr{background:var(--accent)}
+.gate-dot.wait{background:#D1D5DB}
+.gate-info .name{font-weight:600;font-size:14px;color:var(--text)}
 .gate-info .check{font-size:11px;color:var(--muted)}
 .gate-time{font-size:10px;color:var(--muted)}
-.gate-actions{display:flex;gap:8px}
-.btn{padding:7px 16px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.gate-actions{display:flex;gap:8px;align-items:center}
+.btn{padding:6px 14px;border-radius:6px;border:none;cursor:pointer;font-size:12px;font-weight:500;transition:all .15s}
 .btn-advance{background:var(--accent);color:#fff}
-.btn-advance:hover{box-shadow:0 4px 16px rgba(255,92,138,.25);transform:translateY(-1px)}
-.btn-check{background:white;border:2px solid var(--purple);color:var(--purple)}
-.btn-check:hover{background:rgba(180,167,255,.08)}
+.btn-advance:hover{background:#1D4ED8}
+.btn-check{background:white;border:1px solid var(--accent);color:var(--accent)}
+.btn-check:hover{background:var(--accent-light)}
 
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;justify-content:center;align-items:center}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.25);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
-.modal{background:white;border-radius:24px;padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.1)}
+.modal{background:white;border-radius:12px;padding:28px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 8px 30px rgba(0,0,0,.08)}
 .modal h2{font-size:20px;margin-bottom:4px}
 .modal h3{font-size:13px;color:var(--muted);margin-bottom:20px}
-.modal .step{display:flex;gap:12px;margin:10px 0;padding:12px;background:#f8f6f9;border-radius:12px}
-.modal .step .num{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.modal .step{display:flex;gap:12px;margin:10px 0;padding:12px;background:var(--bg);border-radius:8px}
+.modal .step .num{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
 .modal .step .text{font-size:12px;line-height:1.5}
 .modal .step code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px;font-size:11px}
-.modal .close-btn{width:100%;padding:12px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:20px}
+.modal .close-btn{width:100%;padding:12px;border-radius:8px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:600;cursor:pointer;margin-top:20px}
+.modal .close-btn:hover{background:#1D4ED8}
 
-.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:14px 24px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:12px 20px;border-radius:8px;font-weight:500;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 4px 16px rgba(0,0,0,.1)}
 .toast.success{border-left:4px solid var(--green);color:var(--green)}
 .toast.error{border-left:4px solid var(--red);color:var(--red)}
 @keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
 
 footer{padding:24px 0;color:var(--muted);font-size:11px}
+footer a{color:var(--accent);text-decoration:none}
 
 @media(max-width:768px){body{flex-direction:column}.sidebar{width:100%;min-width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;padding:12px}.sidebar nav{display:flex;flex-direction:row}.sidebar .help-section{display:none}.main{padding:20px}.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
@@ -102,19 +114,19 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
 
 <aside class=sidebar>
   <div class=logo>
-    <h1>🧠 Jarvis Engine</h1>
+    <h1>Jarvis Engine</h1>
     <div class=ver id=verNum>v---</div>
   </div>
   <nav>
-    <a href=/dashboard class=active>📊 流水线看板</a>
-    <a href=/agents>🤖 智能体配置</a>
+    <a href=/dashboard class=active>▣ 流水线看板</a>
+    <a href=/agents>◆ 智能体配置</a>
   </nav>
   <div class=help-section>
     <h3>操作提示</h3>
     <div class=tip>会话隔离 — 每窗口独立流水线</div>
     <div class=tip>点击会话标签切换查看</div>
     <div class=tip>Gate C2 含 API 契约验证</div>
-    <button class=help-btn onclick=showHelp()>📖 完整指南</button>
+    <button class=help-btn onclick=showHelp()>▪ 完整指南</button>
   </div>
 </aside>
 
@@ -124,14 +136,19 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
 
   <!-- Session selector strip -->
   <div class=sessions-strip>
-    <h3>📡 会话:</h3>
+    <h3>会话:</h3>
     <div class=filter id=sessionPlatformTabs style=margin-right:8px>
       <button class=sel onclick="setSessionPlatform('all')">全部</button>
-      <button onclick="setSessionPlatform('claude')">🔵 Claude</button>
-      <button onclick="setSessionPlatform('opencode')">🟣 OpenCode</button>
-      <button onclick="setSessionPlatform('codex')">🟢 Codex</button>
+      <button onclick="setSessionPlatform('claude')">Claude</button>
+      <button onclick="setSessionPlatform('opencode')">OpenCode</button>
+      <button onclick="setSessionPlatform('codex')">Codex</button>
     </div>
-    <div id=sessionsList><span class=no-sessions>⏳ 等待连接...</span></div>
+    <div id=sessionsList><span class=no-sessions>等待连接...</span></div>
+    <button class=refresh-btn id=manualRefresh onclick="manualRefresh()" title="刷新状态">
+      <svg width="14" height="14" viewBox="0 0 16 16" fill="none">
+        <path d="M13.65 2.35A7.96 7.96 0 008 0a8 8 0 100 16 7.96 7.96 0 005.66-2.35 1 1 0 00-1.42-1.42A5.97 5.97 0 018 14a6 6 0 110-12 5.97 5.97 0 014.24 1.76L10 6h6V0l-2.35 2.35z" fill="currentColor"/>
+      </svg>
+    </button>
   </div>
 
   <div class=stats>
@@ -147,16 +164,16 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
   </div>
 
   <div class=gates-section>
-    <h3>🚪 Gate 状态 <span id=gateSessionLabel style=font-weight:400;font-size:11px;color:var(--muted)></span></h3>
-    <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)">⏳ 加载中...</div></div>
+    <h3>Gate 状态 <span id=gateSessionLabel style=font-weight:400;font-size:11px;color:var(--muted)></span></h3>
+    <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)>等待加载中...</div></div>
   </div>
 
-  <footer>Jarvis Engine · MCP :3456 · <a href=/health style=color:var(--purple)>健康检查</a> · 会话隔离模式</footer>
+  <footer>Jarvis Engine · MCP :3456 · <a href=/health>健康检查</a> · 会话隔离模式</footer>
 </main>
 
 <div class=modal-overlay id=helpModal>
   <div class=modal>
-    <h2>📖 操作指南</h2>
+    <h2>操作指南</h2>
     <h3>Jarvis Engine 编排引擎使用步骤</h3>
     <div class=step><div class=num>1</div><div class=text><b>启动引擎</b><br><code>jarvis engine start --dashboard</code></div></div>
     <div class=step><div class=num>2</div><div class=text><b>连接会话</b><br>每个编辑窗口自动创建独立会话，互不干扰</div></div>
@@ -164,14 +181,14 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
     <div class=step><div class=num>4</div><div class=text><b>点击 Gate 行</b><br>引擎验证条件是否满足</div></div>
     <div class=step><div class=num>5</div><div class=text><b>点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div></div>
     <div class=step><div class=num>6</div><div class=text><b>切换会话标签</b><br>顶部点击不同会话查看各自流水线状态</div></div>
-    <button class=close-btn onclick=closeHelp()>知道啦 ✨</button>
+    <button class=close-btn onclick=closeHelp()>知道了</button>
   </div>
 </div>
 <div id=toastContainer></div>
 
 <script>
 const GATES=['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
-const PLATFORM_ICONS = {claude:'🔵', opencode:'🟣', codex:'🟢', other:'⚪', unknown:'⚪'};
+const PLATFORM_ICONS = {claude:'', opencode:'', codex:'', other:'', unknown:''};
 let selectedSession = null;
 let allSessions = [];
 let sessionPlatform = 'all';
@@ -179,6 +196,12 @@ let sessionPlatform = 'all';
 async function fetchAPI(path) {
   try { const r = await fetch(path); return await r.json(); }
   catch { return null; }
+}
+
+async function manualRefresh() {
+  const btn = document.getElementById('manualRefresh');
+  btn.classList.add('refreshing');
+  try { await refresh(); } finally { btn.classList.remove('refreshing'); }
 }
 
 async function refresh(){
@@ -214,7 +237,7 @@ async function refresh(){
 
   if (!sessionData) {
     document.getElementById('gatesList').innerHTML =
-      '<div style=text-align:center;padding:40px;color:var(--muted)">📡 等待会话连接...<br><small>在 Claude Code/OpenCode/Codex 中启动编排即可</small></div>';
+      '<div style=text-align:center;padding:40px;color:var(--muted)>等待会话连接...<br><small>在 Claude Code/OpenCode/Codex 中启动编排即可</small></div>';
     return;
   }
 
@@ -234,8 +257,8 @@ async function refresh(){
     const icon = g.passed ? 'pass' : (g.gate === d.current_gate ? 'curr' : 'wait');
     const cp = g.checkpoints?.[0];
     return `<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="check('${g.gate}')">
-      <div class=gate-left><div class="gate-dot ${icon}"></div><div><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
-      <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-advance" onclick="event.stopPropagation();advance('${g.gate}')">推进 →</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
+      <div class=gate-left><div class="gate-dot ${icon}"></div><div class=gate-info><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
+      <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-advance" onclick="event.stopPropagation();advance('${g.gate}')">推进</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
   }).join('');
   document.getElementById('gatesList').innerHTML = html;
   document.getElementById('statArtifacts').textContent = total;
@@ -253,19 +276,32 @@ function renderSessions() {
     ? allSessions
     : allSessions.filter(s => s.platform === sessionPlatform);
   if (filtered.length === 0) {
-    document.getElementById('sessionsList').innerHTML = '<span class=no-sessions>⏳ 等待会话连接...</span>';
+    document.getElementById('sessionsList').innerHTML = '<span class=no-sessions>等待会话连接...</span>';
     return;
   }
   document.getElementById('sessionsList').innerHTML = filtered.map(s => {
-    const icon = PLATFORM_ICONS[s.platform] || '⚪';
     const active = s.id === selectedSession ? ' active' : '';
-    const online = (Date.now() - s.heartbeat) < 120000 ? 's-online' : 's-offline';
+    const inactive = s.status === 'inactive' ? ' inactive' : '';
+    let dotClass, dotTitle;
+    if (s.status === 'inactive') {
+      dotClass = 'inactive-dot';
+      dotTitle = 'inactive';
+    } else if ((Date.now() - s.heartbeat) < 120000) {
+      dotClass = 'online';
+      dotTitle = 'online';
+    } else {
+      dotClass = 'offline';
+      dotTitle = 'offline';
+    }
     const shortId = (s.id||'').slice(0,10);
-    return `<div class="session-chip${active}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
-      <span class="${online}"></span>
-      <span class=s-platform>${icon}</span>
+    const restoreBtn = s.status === 'inactive'
+      ? `<span class=s-restore onclick="event.stopPropagation();resumeSession('${s.id}')">恢复</span>`
+      : '';
+    return `<div class="session-chip${active}${inactive}" onclick="selectSession('${s.id}')" title="${s.platform} · ${s.id}">
+      <span class="s-dot ${dotClass}" title="${dotTitle}"></span>
       <span>${shortId}...</span>
       <span class=s-gate>${s.gate||'?'}</span>
+      ${restoreBtn}
     </div>`;
   }).join('');
   // 更新计数
@@ -279,11 +315,18 @@ function selectSession(sid) {
   refresh();
 }
 
+async function resumeSession(sid) {
+  const d = await fetchAPI('/api/sessions/'+sid+'/resume');
+  if (!d || d.error) return;
+  toast('会话已恢复', true);
+  refresh();
+}
+
 async function check(gate) {
   const sid = selectedSession ? '&session_id='+selectedSession : '';
   const d = await fetchAPI('/api/gate/'+gate.replace(/ /g,'_')+'/enforce'+sid);
   if (!d) return;
-  toast(d.allowed ? `✅ ${gate} 条件满足！` : `🚫 ${gate} 被阻止 — ${d.blocked_reasons?.join(';')||d.action_required}`, d.allowed);
+  toast(d.allowed ? gate+' 条件满足' : gate+' 被阻止 — '+(d.blocked_reasons?.join(';')||d.action_required), d.allowed);
 }
 
 async function advance(gate) {
@@ -293,13 +336,13 @@ async function advance(gate) {
   });
   const d = await resp.json();
   if (!d) return;
-  toast(d.allowed ? `🚀 ${d.message||('已推进到 '+d.current)}` : d.error, !d.allowed);
+  toast(d.allowed ? (d.message||'已推进到 '+d.current) : d.error, !d.allowed);
   if (d.allowed) refresh();
 }
 
-function toast(msg, err) {
+function toast(msg, isSuccess) {
   const t = document.createElement('div');
-  t.className = 'toast ' + (err === false ? 'error' : 'success');
+  t.className = 'toast ' + (isSuccess !== false ? 'success' : 'error');
   t.textContent = msg;
   document.getElementById('toastContainer').appendChild(t);
   setTimeout(()=>t.remove(),3200);

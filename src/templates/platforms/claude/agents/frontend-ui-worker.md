@@ -59,6 +59,24 @@ Skill(skill="code-standards")
 
 ## 🔴 视觉预览闭环（不可绕过）
 
+> **⚠️ 工具可用性说明**：本章节基于 Claude Code **桌面版**编写（支持 `mcp__Claude_Preview__*` 工具）。
+> 如果你在 **Claude Code 终端/CLI** 中运行，Preview MCP 不可用。请改用 agent-browser CLI 进行截图验证：
+> ```
+> # 启动 dev server
+> npm run dev &
+> # 用 agent-browser 截图
+> agent-browser open http://localhost:<port>
+> agent-browser snapshot -i
+> agent-browser screenshot
+> # 响应式验证
+> agent-browser set viewport 375 812
+> agent-browser screenshot mobile.png
+> agent-browser set viewport 768 1024
+> agent-browser screenshot tablet.png
+> agent-browser set viewport 1280 800
+> agent-browser screenshot desktop.png
+> ```
+
 **每次 UI 变更必须经过截图验证，不可仅凭代码审查确认效果。**
 
 ### 步骤 1：启动预览服务器
