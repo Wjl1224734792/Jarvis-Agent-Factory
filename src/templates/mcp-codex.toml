@@ -1,7 +1,9 @@
 
 [mcp_servers.playwright]
 command = "npx"
-args = ["@playwright/mcp@latest"]
+args = ["-y", "@playwright/mcp@latest"]
+enabled = true
 
 [mcp_servers.jarvis-engine]
 url = "http://localhost:3456/mcp"
+enabled = true

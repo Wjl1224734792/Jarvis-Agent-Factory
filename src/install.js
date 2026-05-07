@@ -105,6 +105,12 @@ function installHooks(platform, target, isGlobal) {
   }
 }
 
+/**
+ * 按各平台 MCP 规范安装配置：
+ * - Claude: .mcp.json (type=stdio/http, key=mcpServers)
+ * - OpenCode: opencode.json + .opencode/opencode.json (type=local/remote, key=mcp)
+ * - Codex: .codex/config.toml (mcp_servers TOML table)
+ */
 function installMcp(platform, target, force) {
   const t = MCP_TEMPLATES[platform];
   if (!t) return;
@@ -112,59 +118,91 @@ function installMcp(platform, target, force) {
   const src = resolve(TEMPLATES_DIR, t.tmpl);
   if (!existsSync(src)) return;
 
-  const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
   const content = readFileSync(src, 'utf-8');
 
-  if (t.append) {
-    // Codex: append to existing config.toml
+  if (platform === 'codex') {
+    // Codex TOML: smart append — only add sections if not present
+    const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     const dir = dirname(dest);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
     if (!existsSync(dest)) {
-      copyFileSync(src, dest);
+      writeFileSync(dest, content);
       console.log(`  + ${t.file.padEnd(18)} → ${dest}`);
       return;
     }
 
     const existing = readFileSync(dest, 'utf-8');
-    if (existing.includes('[mcp_servers.jarvis-engine]')) {
-      console.log(`  ~ ${t.file.padEnd(18)} jarvis-engine already configured`);
+    let updated = existing;
+    let additions = 0;
+
+    if (!existing.includes('[mcp_servers.playwright]')) {
+      updated += '\n[mcp_servers.playwright]\ncommand = "npx"\nargs = ["-y", "@playwright/mcp@latest"]\nenabled = true\n';
+      additions++;
+    }
+    if (!existing.includes('[mcp_servers.jarvis-engine]')) {
+      updated += '\n[mcp_servers.jarvis-engine]\nurl = "http://localhost:3456/mcp"\nenabled = true\n';
+      additions++;
+    }
+
+    if (additions > 0) {
+      writeFileSync(dest, updated);
+      console.log(`  ~ ${t.file.padEnd(18)} added ${additions} MCP server(s)`);
     } else {
-      appendFileSync(dest, '\n[mcp_servers.jarvis-engine]\nurl = "http://localhost:3456/mcp"\n');
-      console.log(`  ~ ${t.file.padEnd(18)} appended jarvis-engine MCP`);
+      console.log(`  ~ ${t.file.padEnd(18)} already configured`);
     }
   } else if (platform === 'opencode') {
-    // OpenCode: write to BOTH root opencode.json AND .opencode/opencode.json
-    const dir = dirname(dest);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeIfChanged(dest, content, force, t.file);
+    // OpenCode JSON: write to BOTH root opencode.json AND .opencode/opencode.json
+    // OpenCode reads: 1) ~/.config/opencode/opencode.json (global) 2) opencode.json (project) 3) .opencode/ dir
+    const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
+    writeMcpJson(dest, content, force, t.file);
 
-    // Also write to .opencode/opencode.json (OpenCode alt location)
-    const altDest = target ? resolve(target, '.opencode', 'opencode.json') : resolve(globalTarget(platform), 'opencode.json');
-    const altDir = dirname(altDest);
-    if (!existsSync(altDir)) mkdirSync(altDir, { recursive: true });
-    writeIfChanged(altDest, content, force, '.opencode/opencode.json');
-  } else {
-    // Claude: write standalone config
-    if (existsSync(dest) && !force) {
-      console.log(`  ⏭  ${t.file.padEnd(18)} exists, skipped (use --yes to overwrite)`);
-      return;
+    // Also write to .opencode/opencode.json for project-level discovery
+    if (target) {
+      const altDest = resolve(target, '.opencode', 'opencode.json');
+      const altDir = dirname(altDest);
+      if (!existsSync(altDir)) mkdirSync(altDir, { recursive: true });
+      writeMcpJson(altDest, content, force, '.opencode/opencode.json');
     }
-    const dir = dirname(dest);
-    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    copyFileSync(src, dest);
-    console.log(`  + ${t.file.padEnd(18)} → ${dest}`);
+  } else {
+    // Claude JSON: .mcp.json at project root
+    const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
+    writeMcpJson(dest, content, force, t.file);
   }
 }
 
-/** Write to dest only if content differs (or force=true) */
-function writeIfChanged(dest, content, force, label) {
+/** Write JSON MCP config; skip if exists and !force */
+function writeMcpJson(dest, content, force, label) {
+  const dir = dirname(dest);
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+
   if (existsSync(dest) && !force) {
+    // Check if content is different
     const existing = readFileSync(dest, 'utf-8');
-    if (existing === content) { console.log(`  ~ ${label.padEnd(18)} already up to date`); return; }
+    try {
+      const eJson = JSON.parse(existing);
+      const nJson = JSON.parse(content);
+      const eKey = eJson.mcpServers ? 'mcpServers' : 'mcp';
+      const nKey = nJson.mcpServers ? 'mcpServers' : 'mcp';
+
+      // Check if jarvis-engine already exists in existing config
+      if (eJson[eKey] && eJson[eKey]['jarvis-engine']) {
+        console.log(`  ~ ${label.padEnd(22)} already configured`);
+        return;
+      }
+      // Merge: add jarvis-engine to existing
+      if (!eJson[eKey]) eJson[eKey] = {};
+      eJson[eKey]['jarvis-engine'] = nJson[nKey]['jarvis-engine'];
+      writeFileSync(dest, JSON.stringify(eJson, null, 2) + '\n');
+      console.log(`  ~ ${label.padEnd(22)} merged jarvis-engine`);
+      return;
+    } catch {
+      // Invalid JSON — overwrite
+    }
   }
+
   writeFileSync(dest, content);
-  console.log(`  + ${label.padEnd(18)} → ${dest}`);
+  console.log(`  + ${label.padEnd(22)} → ${dest}`);
 }
 
 /** 计算文件 SHA256 hash */
