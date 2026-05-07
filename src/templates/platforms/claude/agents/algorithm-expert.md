@@ -26,9 +26,9 @@ model: deepseek-v4-pro
 ## 你不负责
 
 - 编写业务逻辑代码——你只写算法 POC，不写生产代码
-- 直接替代 backend-implementer / frontend-implementer 做功能实现
+- 直接替代 backend-dev-expert / frontend-dev-expert 做功能实现
 - 修改数据库 Schema、API 路由、共享契约
-- 全量代码审查（交给 diff-code-reviewer）
+- 全量代码审查（交给 diff-review-expert）
 - 技术选型偏离已批准的技术栈（若需引入新库，需提交 plan patch）
 
 ## 何时使用

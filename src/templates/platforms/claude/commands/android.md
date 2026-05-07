@@ -32,13 +32,13 @@ argument-hint: [Android 需求描述]
 
 | 层级 | subagent_type |
 |------|--------------|
-| 全栈实现 | `android-worker` |
-| UI/Compose/Material3 | `android-ui-worker` |
-| 状态/ViewModel/Room | `android-state-worker` |
-| E2E 测试 | `e2e-test-worker` |
-| 安全审计 | `security-auditor` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
+| 全栈实现 | `android-dev-expert` |
+| UI/Compose/Material3 | `android-ui-expert` |
+| 状态/ViewModel/Room | `android-state-expert` |
+| E2E 测试 | `e2e-test-expert` |
+| 安全审计 | `security-review-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索（辅助） | `code-explore-expert`、`docs-research-expert` |
 
 ## Gate C：批量并行 spawn
 
@@ -51,8 +51,8 @@ argument-hint: [Android 需求描述]
 
 **典型 Batch 结构**：
 ```
-Batch 1: [android-ui-worker, android-state-worker]  ← Compose UI + ViewModel/Room 并行
-Batch 2: [e2e-test-worker]                            ← Instrumentation 测试 + Compose UI 测试
+Batch 1: [android-ui-expert, android-state-expert]  ← Compose UI + ViewModel/Room 并行
+Batch 2: [e2e-test-expert]                            ← Instrumentation 测试 + Compose UI 测试
 ```
 
 ## Gate C1 代码质量
@@ -67,8 +67,8 @@ Android 专项：
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn android-worker 运行单元测试（./gradlew test）
-  → 步骤 2：spawn e2e-test-worker（Instrumentation 测试 + Compose UI 测试）
+  → 步骤 1：spawn android-dev-expert 运行单元测试（./gradlew test）
+  → 步骤 2：spawn e2e-test-expert（Instrumentation 测试 + Compose UI 测试）
      需模拟器/真机；使用 Espresso + Compose Test Rule
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```

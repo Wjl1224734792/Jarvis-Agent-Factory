@@ -36,11 +36,11 @@ effort: max
 - **可用代理**: 全部 47 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
 - **典型 Batch 结构**:
   ```
-  Batch 1: [frontend-ui-worker, frontend-state-worker, backend-api-worker, backend-data-worker]
-  Batch 2: [frontend-implementer, backend-service-worker]
-  Batch 3: [frontend-test-worker, backend-test-worker, api-docs-worker]
-  Batch 4: [browser-test-worker]（如有前端变更）
-  Batch 5: [e2e-test-worker]（最后，需完整集成环境）
+  Batch 1: [frontend-ui-expert, frontend-state-expert, backend-api-expert, backend-data-expert]
+  Batch 2: [frontend-dev-expert, backend-logic-expert]
+  Batch 3: [frontend-test-expert, backend-test-expert, api-contract-expert]
+  Batch 4: [browser-test-expert]（如有前端变更）
+  Batch 5: [e2e-test-expert]（最后，需完整集成环境）
   ```
 
 ---
@@ -54,10 +54,15 @@ effort: max
 2. 模糊时加载 `Skill("idea-refine")` 结构化提问
 3. 写需求文档到 `docs/requirements/YYYY-MM-DD-<topic>.md`，每条需求标注 `REQ-XXX`
 
-``` [可并行]
-Gate A 通过后可并行启动：
-├── spawn repo-explorer（扫描代码库结构）
-└── spawn docs-researcher（查询外部文档/API 参考）
+Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
+```
+├── code-explore-expert × N（各自探索不同模块/目录）
+│   ├── code-explore-expert（前端 src/ 目录）
+│   ├── code-explore-expert（后端 src/ 目录）
+│   └── code-explore-expert（共享模块/配置）
+└── docs-research-expert × N（各自搜索不同技术栈文档）
+    ├── docs-research-expert（前端框架/库最新文档）
+    └── docs-research-expert（后端框架/库最新文档）
 ```
 
 **引擎验证**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "Gate B" })`
@@ -84,7 +89,7 @@ Gate A 通过后可并行启动：
 ``` [可并行]
 spawn frontend-architect（前端架构评审）
 spawn backend-architect（后端架构评审）
-spawn database-specialist（数据库架构评审）
+spawn database-architect（数据库架构评审）
 ```
 
 ---
@@ -134,19 +139,19 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 **Agent 类型速查**：
 | 领域 | subagent_type |
 |------|--------------|
-| 前端全栈 | `frontend-implementer` |
-| 前端 UI | `frontend-ui-worker` |
-| 前端状态 | `frontend-state-worker` |
-| 后端全栈 | `backend-implementer` |
-| 后端 API | `backend-api-worker` |
-| 后端业务 | `backend-service-worker` |
-| 后端数据 | `backend-data-worker` |
-| 移动端 | `android-worker` / `ios-worker` / `flutter-worker` / `taro-worker` / `react-native-worker` |
-| 测试 | `frontend-test-worker` / `backend-test-worker` / `e2e-test-worker` / `browser-test-worker` |
-| 审查 | `review-qa` / `security-auditor` / `performance-audit-reviewer` |
-| 架构 | `frontend-architect` / `backend-architect` / `database-specialist` |
-| 文档 | `api-docs-worker` |
-| 探索 | `repo-explorer` / `docs-researcher` |
+| 前端全栈 | `frontend-dev-expert` |
+| 前端 UI | `frontend-ui-expert` |
+| 前端状态 | `frontend-state-expert` |
+| 后端全栈 | `backend-dev-expert` |
+| 后端 API | `backend-api-expert` |
+| 后端业务 | `backend-logic-expert` |
+| 后端数据 | `backend-data-expert` |
+| 移动端 | `android-dev-expert` / `ios-dev-expert` / `flutter-dev-expert` / `taro-dev-expert` / `react-native-dev-expert` |
+| 测试 | `frontend-test-expert` / `backend-test-expert` / `e2e-test-expert` / `browser-test-expert` |
+| 审查 | `qa-review-expert` / `security-review-expert` / `perf-review-expert` |
+| 架构 | `frontend-architect` / `backend-architect` / `database-architect` |
+| 文档 | `api-contract-expert` |
+| 探索 | `code-explore-expert` / `docs-research-expert` |
 
 ### 步骤 4：等待整批完成
 - 检查 plan patch / contract change request
@@ -170,7 +175,13 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 └── Deps Audit（npm audit / yarn audit）
 ```
 
-全部通过后：`advance_gate({ gate: "Gate C1.5" })`
+**全部通过**：`advance_gate({ gate: "Gate C1.5" })`
+
+**任意项不通过**：
+1. 分析失败原因，修复对应源文件
+2. 重新运行**全部四项检查**（不可只跑失败的单项）
+3. 最多 3 轮修复，仍不通过 → 标记 `BLOCKED`，向用户报告阻塞原因和修复建议
+4. 通过后推进到 Gate C1.5
 
 ---
 
@@ -185,7 +196,12 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 - 关键样式属性已通过 `preview_inspect` 验证
 - 无可见布局问题
 
-**缺失证据** → 退回实现 Agent 补充。通过后：`advance_gate({ gate: "Gate C2" })`
+**通过**：`advance_gate({ gate: "Gate C2" })`
+
+**不通过**：
+1. **证据缺失** → 退回实现 Agent 补充截图/样式验证数据
+2. **布局问题**（溢出/重叠/错位）→ 诊断根因，修复源文件，重新截图验证
+3. 修复后重新过 Gate C1.5，最多 2 轮；仍不通过 → 标记 `BLOCKED`，附最新截图证据向用户报告
 
 ---
 
@@ -196,16 +212,25 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 **流程**：
 
 ``` [可并行 - 步骤 1]
-├── spawn backend-test-worker（单元+集成测试）
-├── spawn frontend-test-worker（单元+组件测试）
-├── spawn browser-test-worker（浏览器交互测试，如有前端变更）
-└── spawn api-docs-worker（API 契约一致性验证，如有后端变更）
+├── spawn backend-test-expert（单元+集成测试）
+├── spawn frontend-test-expert（单元+组件测试）
+├── spawn browser-test-expert（浏览器交互测试，如有前端变更）
+└── spawn api-contract-expert（API 契约一致性验证，如有后端变更）
 ```
 
-**步骤 2**：等待以上全部通过。失败 → 回退实现 agent 修复 → 重新运行。
+**步骤 2**：等待以上全部通过。
+
+**任一步骤 1 agent 测试失败**：
+1. 分析失败报告，定位需修复的实现 Agent + 源文件
+2. spawn 原实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环
+4. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
+5. 若失败与共享区域相关 → 先提交 plan patch 再修复
+
+步骤 1 全部通过后继续步骤 3。
 
 ``` [最后 - 步骤 3]
-└── spawn e2e-test-worker（端到端测试，需完整集成环境）
+└── spawn e2e-test-expert（端到端测试，需完整集成环境）
 ```
 
 **步骤 4**：汇总测试结果到 `docs/testing/YYYY-MM-DD-<topic>-test-summary.md`
@@ -218,13 +243,39 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 
 **目标**：代码审查通过，REQ 追踪矩阵完整
 
-``` [可并行]
-├── spawn review-qa（综合代码审查）
-├── spawn security-auditor（安全审计：威胁建模 + CVE + SAST）
-└── spawn performance-audit-reviewer（性能审查：bundle/查询/运行时）
+**步骤 1 — 领域审查（4 个专家并行）**：
+```
+├── spawn frontend-review-expert（前端代码审查：组件/样式/状态/性能/可访问性）
+├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
+├── spawn security-review-expert（安全审计：威胁建模/CVE/SAST/密钥检测）
+└── spawn perf-review-expert（性能审计：bundle/LCP/查询/运行时）
 ```
 
-通过后：`advance_gate({ gate: "Gate E" })`
+**步骤 2 — 综合签核（等待步骤 1 全部完成）**：
+```
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚4个领域报告）
+```
+
+**步骤 3 — 审查失败回退循环**：
+
+qa-review-expert 综合报告后，按严重度处理：
+
+| 严重度 | 处理方式 |
+|--------|---------|
+| **[BLOCKED]** | 立即停止——关键需求缺失、契约断裂、安全 Critical。按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**（步骤 1→2→3） |
+| **[FIX_REQUIRED]** | 按领域回退修复。修复后重新 spawn 对应的领域审查 expert + qa-review-expert |
+| **[WARNING]** | 记录到技术债务，不阻塞推进 |
+
+**修复回路规则**：
+1. 前端审查不通过 → spawn 原前端实现 Agent（根据变更文件选 `frontend-dev-expert` / `frontend-ui-expert` / `frontend-state-expert`）
+2. 后端审查不通过 → spawn 原后端实现 Agent（根据变更文件选 `backend-dev-expert` / `backend-api-expert` / `backend-logic-expert` / `backend-data-expert`）
+3. 安全审计不通过 → spawn 受影响模块的实现 Agent，传递安全报告；修复后重新 spawn `security-review-expert`
+4. 性能审计不通过 → spawn 受影响模块的实现 Agent，传递性能报告；修复后重新 spawn `perf-review-expert`
+5. QA 签核不通过 → 分析阻断项归属，回退对应阶段修复
+
+**最大重试**：Gate D 最多 2 轮完整审查-修复-重审循环。2 轮仍不通过 → 标记 `ABORT`，汇总所有审查报告和修复历史向用户报告不可恢复的阻塞。
+
+全部通过后：`advance_gate({ gate: "Gate E" })`
 
 ---
 
@@ -237,6 +288,11 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 - 回滚预案已就绪
 - 版本号已递增，changelog 已生成（`Skill("git-workflow-and-versioning")`）
 - 数据库迁移脚本已就绪（如有 Schema 变更）
+
+**上线检查不通过**：
+1. 逐项修复不通过的检查项
+2. 重新执行 `Skill("shipping-and-launch")` 上线检查清单
+3. 最多 2 轮修复；仍不通过 → 标记 `ABORT`，保留所有产物，向用户报告阻塞原因
 
 上线后：加载 `Skill("finishing-a-development-branch")` 归档
 

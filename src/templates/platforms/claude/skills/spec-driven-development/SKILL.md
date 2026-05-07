@@ -112,7 +112,7 @@ docs/requirements/YYYY-MM-DD-<topic>-requirements.md
 - **验收标准：** 可验证的、无歧义的条件
 - **关联模块：** 该 REQ 涉及的文件或模块
 
-编号贯穿全程——从 PRD → `task-design` 的 `TASK-XXX` → `planner` 的 Execution Packet → `review-qa` 的追踪矩阵，形成完整的可追溯链。
+编号贯穿全程——从 PRD → `task-design` 的 `TASK-XXX` → `planner` 的 Execution Packet → `qa-review-expert` 的追踪矩阵，形成完整的可追溯链。
 
 ### 步骤 4：规格自检
 

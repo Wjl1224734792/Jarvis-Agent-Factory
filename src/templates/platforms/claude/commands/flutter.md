@@ -32,14 +32,14 @@ argument-hint: [Flutter 需求描述]
 
 | 层级 | subagent_type |
 |------|--------------|
-| 全栈实现 | `flutter-worker` |
-| UI/Widget/主题 | `flutter-ui-worker` |
-| 状态/数据/路由 | `flutter-state-worker` |
-| 浏览器测试（Web） | `browser-test-worker` |
-| E2E 测试 | `e2e-test-worker` |
-| 安全审计 | `security-auditor` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
+| 全栈实现 | `flutter-dev-expert` |
+| UI/Widget/主题 | `flutter-ui-expert` |
+| 状态/数据/路由 | `flutter-state-expert` |
+| 浏览器测试（Web） | `browser-test-expert` |
+| E2E 测试 | `e2e-test-expert` |
+| 安全审计 | `security-review-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索（辅助） | `code-explore-expert`、`docs-research-expert` |
 
 ## Gate C：批量并行 spawn
 
@@ -52,9 +52,9 @@ argument-hint: [Flutter 需求描述]
 
 **典型 Batch 结构**：
 ```
-Batch 1: [flutter-ui-worker, flutter-state-worker]  ← Widget + Provider/BLoC 并行
-Batch 2: [browser-test-worker]                        ← Web 端浏览器交互测试
-Batch 3: [e2e-test-worker]                            ← 真机/模拟器 E2E
+Batch 1: [flutter-ui-expert, flutter-state-expert]  ← Widget + Provider/BLoC 并行
+Batch 2: [browser-test-expert]                        ← Web 端浏览器交互测试
+Batch 3: [e2e-test-expert]                            ← 真机/模拟器 E2E
 ```
 
 ## Gate C1 代码质量
@@ -69,9 +69,9 @@ Flutter 专项：
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn flutter-worker 运行单元/Widget 测试（flutter test）
-  → 步骤 2：Web 端浏览器测试（spawn browser-test-worker）
-  → 步骤 3：集成测试 + E2E（spawn e2e-test-worker，flutter integration_test）
+  → 步骤 1：spawn flutter-dev-expert 运行单元/Widget 测试（flutter test）
+  → 步骤 2：Web 端浏览器测试（spawn browser-test-expert）
+  → 步骤 3：集成测试 + E2E（spawn e2e-test-expert，flutter integration_test）
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```
 

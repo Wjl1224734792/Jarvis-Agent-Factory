@@ -34,12 +34,12 @@ const ICON_MAP = {
 // 按优先级排列：越具体的规则越靠前
 const CATEGORY_RULES = [
   { cat: '编排', keys: ['jarvis', 'orchestrat'] },
-  { cat: '测试', keys: ['test-worker', 'test_worker', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'performance-test', 'performance_test'] },
-  { cat: '审查', keys: ['review', 'audit', 'security', 'code-reviewer', 'qa', 'auditor'] },
-  { cat: '架构', keys: ['architect', 'algorithm', 'database-specialist', 'database_specialist'] },
-  { cat: '移动端', keys: ['android-worker', 'android-ui', 'android-state', 'ios-worker', 'ios-ui', 'ios-state', 'flutter-worker', 'flutter-ui', 'flutter-state', 'taro-worker', 'taro-ui', 'taro-state', 'react-native-worker', 'rn-worker', 'rn-ui', 'rn-state', 'android_worker', 'ios_worker', 'flutter_worker', 'taro_worker', 'react_native_worker'] },
-  { cat: '支撑', keys: ['docs', 'infra', 'repo-explorer', 'researcher', 'planner', 'task-design', 'remediation', 'explorer', 'design'] },
-  { cat: '实现', keys: ['implementer', 'worker', '-api-', '-service-', '-data-', '-state-', '-ui-', 'api_worker', 'service_worker', 'data_worker', 'state_worker', 'ui_worker'] },
+  { cat: '测试', keys: ['test-expert', 'test-expert', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'perf-test', 'performance-test', 'performance_test'] },
+  { cat: '审查', keys: ['review-expert', 'review', 'audit', 'security', 'qa'] },
+  { cat: '架构', keys: ['architect', 'algorithm-expert'] },
+  { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state'] },
+  { cat: '支撑', keys: ['docs-research', 'infra-deploy', 'code-explore-expert', 'api-contract', 'planner', 'task-design', 'remediation'] },
+  { cat: '实现', keys: ['-dev-expert', '-ui-expert', '-state-expert', '-api-expert', '-logic-expert', '-data-expert'] },
 ];
 
 export function getCategories() {

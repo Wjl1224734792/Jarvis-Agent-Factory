@@ -16,7 +16,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
    ### **阶段一：初审**（不可绕过）
    - 界定审查范围，每条 finding 必须有文件/行号、命令输出或文档依据
-   - 可并发调用 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`repo-explorer` 收集 findings
+   - 可并发调用 `project-review-expert`、`diff-review-expert`、`perf-review-expert`、`code-explore-expert` 收集 findings
    - **涉及前端页面/交互的 Bug**：加载 `Skill("agent-browser")` 和 `Skill("browser-testing")`，用 `agent-browser` CLI 复现 Bug（open→snapshot -i→复现步骤→screenshot 异常状态），复现证据作为 finding 附件
    - 所有只读 Agent 返回后再进入下一阶段
 
@@ -33,7 +33,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
    ### **阶段五：复审**（不可绕过）
    - 逐项关闭初审 findings，输出关闭矩阵，报告未关闭风险项
-   - 可调用 `post-change-reviewer` Agent
+   - 可调用 `change-review-expert` Agent
 
 3. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 

@@ -18,7 +18,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent
 3. 审查流程：
    - 明确审查对象（全仓 / 目录 / diff / PR / 特定风险）
    - 收集证据（文件读取、搜索、命令输出），每条 finding 必须有文件/行号、命令输出或文档依据
-   - 可并发调用 `project-audit-reviewer`、`diff-code-reviewer`、`performance-audit-reviewer`、`repo-explorer` 等只读 Agent
+   - 可并发调用 `project-review-expert`、`diff-review-expert`、`perf-review-expert`、`code-explore-expert` 等只读 Agent
 
 4. 代码注释语言：遵从 `behavioral-guidelines` 准则 5（注释语言约定）。
 

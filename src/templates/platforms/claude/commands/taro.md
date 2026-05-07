@@ -32,14 +32,14 @@ argument-hint: [Taro 需求描述]
 
 | 层级 | subagent_type |
 |------|--------------|
-| 全栈实现 | `taro-worker` |
-| UI/布局/多端样式 | `taro-ui-worker` |
-| 状态/数据/路由 | `taro-state-worker` |
-| 浏览器测试（H5） | `browser-test-worker` |
-| E2E 测试 | `e2e-test-worker` |
-| 安全审计 | `security-auditor` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
+| 全栈实现 | `taro-dev-expert` |
+| UI/布局/多端样式 | `taro-ui-expert` |
+| 状态/数据/路由 | `taro-state-expert` |
+| 浏览器测试（H5） | `browser-test-expert` |
+| E2E 测试 | `e2e-test-expert` |
+| 安全审计 | `security-review-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索（辅助） | `code-explore-expert`、`docs-research-expert` |
 
 ## Gate C：批量并行 spawn
 
@@ -52,18 +52,18 @@ argument-hint: [Taro 需求描述]
 
 **典型 Batch 结构**：
 ```
-Batch 1: [taro-ui-worker, taro-state-worker]   ← UI + 状态并行
-Batch 2: [browser-test-worker]                   ← H5 端浏览器测试
-Batch 3: [e2e-test-worker]                       ← 真机/模拟器 E2E
+Batch 1: [taro-ui-expert, taro-state-expert]   ← UI + 状态并行
+Batch 2: [browser-test-expert]                   ← H5 端浏览器测试
+Batch 3: [e2e-test-expert]                       ← 真机/模拟器 E2E
 ```
 
 ## Gate C2 测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn taro-worker 运行单元/组件测试
-  → 步骤 2：H5 端浏览器测试（spawn browser-test-worker，加载 agent-browser）
-  → 步骤 3：小程序端 E2E（spawn e2e-test-worker，微信开发者工具 CLI）
+  → 步骤 1：spawn taro-dev-expert 运行单元/组件测试
+  → 步骤 2：H5 端浏览器测试（spawn browser-test-expert，加载 agent-browser）
+  → 步骤 3：小程序端 E2E（spawn e2e-test-expert，微信开发者工具 CLI）
   → 全部通过，汇总 docs/testing/ → Gate C2 通过
 ```
 

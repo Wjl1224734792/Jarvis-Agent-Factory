@@ -36,26 +36,26 @@ argument-hint: [后端需求描述]
 | 层级 | subagent_type |
 |------|--------------|
 | 架构设计 | `backend-architect` |
-| 数据库专项 | `database-specialist` |
-| 全栈实现 | `backend-implementer` |
-| API/路由/中间件 | `backend-api-worker` |
-| 业务逻辑/领域 | `backend-service-worker` |
-| 数据层/Schema/迁移 | `backend-data-worker` |
-| 后端测试 | `backend-test-worker` |
-| 性能/负载测试 | `performance-test-worker` |
-| 安全审计 | `security-auditor` |
-| API 文档 | `api-docs-worker` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索 | `repo-explorer`、`docs-researcher` |
+| 数据库专项 | `database-architect` |
+| 全栈实现 | `backend-dev-expert` |
+| API/路由/中间件 | `backend-api-expert` |
+| 业务逻辑/领域 | `backend-logic-expert` |
+| 数据层/Schema/迁移 | `backend-data-expert` |
+| 后端测试 | `backend-test-expert` |
+| 性能/负载测试 | `perf-test-expert` |
+| 安全审计 | `security-review-expert` |
+| API 文档 | `api-contract-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索 | `code-explore-expert`、`docs-research-expert` |
 
 ### 典型 Batch 结构
 
 ```
-Batch 1: [backend-api-worker, backend-data-worker]     ← API + Schema 可并行
-Batch 2: [backend-service-worker]                       ← 依赖 Batch 1 契约
-Batch 3: [backend-test-worker, api-docs-worker]         ← 测试 + 文档可并行
-Batch 4: [performance-test-worker]                      ← 负载/压力测试
-Batch 5: [security-auditor]                             ← 安全审计
+Batch 1: [backend-api-expert, backend-data-expert]     ← API + Schema 可并行
+Batch 2: [backend-logic-expert]                       ← 依赖 Batch 1 契约
+Batch 3: [backend-test-expert, api-contract-expert]         ← 测试 + 文档可并行
+Batch 4: [perf-test-expert]                      ← 负载/压力测试
+Batch 5: [security-review-expert]                             ← 安全审计
 ```
 
 ---
@@ -70,12 +70,12 @@ Batch 5: [security-auditor]                             ← 安全审计
 
 | Gate | 可并行操作 |
 |------|-----------|
-| Gate A 通过后 | `repo-explorer` + `docs-researcher`（同时扫描代码和搜索文档） |
-| Gate B→C 之间 | `backend-architect` + `database-specialist`（如需架构评审，二者可并行） |
+| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索）+ `docs-research-expert` × N（多库并行搜索） |
+| Gate B→C 之间 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
 | Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |
-| Gate C2 | `backend-test-worker` + `api-docs-worker` 可并行；`performance-test-worker` 在后 |
-| Gate D | `review-qa` + `security-auditor` 可并行（无 performance auditor 重复） |
+| Gate C2 | `backend-test-expert` + `api-contract-expert` 可并行；`perf-test-expert` 在后 |
+| Gate D | `backend-review-expert` + `security-review-expert` + `perf-review-expert` 并行；完成后 `qa-review-expert` 综合签核 |
 
 ### Gate C：批量并行 spawn（同 jarvis 协议）
 
@@ -89,22 +89,53 @@ Batch 5: [security-auditor]                             ← 安全审计
 
 ```
 全部实现 Batch 完成
-  → [可并行] spawn backend-test-worker + api-docs-worker（模式 A：契约一致性验证）
-  → 全部通过后 spawn performance-test-worker（负载/压力/基准）
+  → [可并行] spawn backend-test-expert + api-contract-expert（模式 A：契约一致性验证）
+  → 全部通过后 spawn perf-test-expert（负载/压力/基准）
   → 汇总到 docs/testing/ → Gate C2 通过
 ```
 
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原后端实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环
+4. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
+
 ### API 契约一致性验证
 
-涉及 API 端点变更时必须执行 `api-docs-worker`（模式 A：轻量对比验证）。逐端点对比实现 vs 已有文档，标记漂移项。确保"文档不撒谎"。
+涉及 API 端点变更时必须执行 `api-contract-expert`（模式 A：轻量对比验证）。逐端点对比实现 vs 已有文档，标记漂移项。确保"文档不撒谎"。
+
+**契约漂移回退**：
+1. 漂移项 ≥ 1 → 分析根因（实现改了文档没改 / 文档正确实现有误）
+2. spawn 对应后端实现 Agent 对齐（修改实现或文档），修复后重新验证
+3. 最多 2 轮修复-重验循环
+
+### Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动：
+├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
+├── spawn security-review-expert（安全审计：OWASP/CVE/SAST/密钥检测）
+└── spawn perf-review-expert（性能审计：查询效率/运行时/资源使用）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. 后端审查不通过 → spawn 原后端实现 Agent（`backend-dev-expert` / `backend-api-expert` / `backend-logic-expert` / `backend-data-expert`）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`，汇总报告向用户报告
 
 ### Gate E：发布
 
-- spawn `security-auditor`（如 Gate D 未执行；OWASP/CVE/SAST/密钥检测）
+- spawn `security-review-expert`（如 Gate D 未执行；OWASP/CVE/SAST/密钥检测）
 - DB 迁移脚本必须已测试通过
 - 加载 `shipping-and-launch` 执行上线检查清单
 - 加载 `git-workflow-and-versioning` 更新版本与 changelog
 - 加载 `finishing-a-development-branch` 归档
+
+**上线检查不通过**：逐项修复 → 重新执行检查清单 → 最多 2 轮；仍不通过 → 标记 `ABORT`
 
 ### 故障恢复
 

@@ -23,8 +23,8 @@ description: "代码审查与质量——五轴审查框架、严重度分级、
 - 合并前的最后检查
 
 **不适用场景：**
-- 项目级架构审查（交给 `project-audit-reviewer`）
-- 性能专项审查（交给 `performance-audit-reviewer`）
+- 项目级架构审查（交给 `project-review-expert`）
+- 性能专项审查（交给 `perf-review-expert`）
 - 审查范围超过 1000 行变更（建议拆分审查）
 
 ---
