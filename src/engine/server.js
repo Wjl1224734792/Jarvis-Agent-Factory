@@ -364,7 +364,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
   app.use(express.json());
 
   // 代理 /api/* 请求到引擎
-  app.all('/api/*', (req, res) => {
+  app.all('/api/{*path}', (req, res) => {
     const opts = {
       hostname: '127.0.0.1',
       port: enginePort,
