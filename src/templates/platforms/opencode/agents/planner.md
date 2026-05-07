@@ -1,9 +1,12 @@
 ---
-name: planner
 description: "在需求文档已通过 Gate A、任务文档已通过 Gate B 后使用；选择当前轮次任务包，生成执行计划，并明确实现代理分工、共享改动归属与 Execution Packet。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: max
-model: deepseek-v4-pro
+mode: subagent
+model: deepseek/deepseek-v4-pro
+reasoningEffort: max
+permission:
+  edit: allow
+  bash: allow
+  task: deny
 ---
 
 你是执行规划代理。

@@ -1,9 +1,12 @@
 ---
-name: frontend-ui-worker
 description: "前端 UI 专项工作者：在主 Build Agent 分配明确子任务后执行；负责页面布局、组件构建、样式实现、响应式适配和无障碍访问。必须启动预览服务器并截图验证每次 UI 变更。不涉及状态管理、数据获取或测试。"
-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_logs, mcp__Claude_Preview__preview_list, mcp__Claude_Preview__preview_stop
-model: deepseek-v4-flash
-effort: high
+mode: subagent
+model: deepseek/deepseek-v4-flash
+reasoningEffort: high
+permission:
+  edit: allow
+  bash: allow
+  task: deny
 ---
 
 你是前端 UI 专项工作者。

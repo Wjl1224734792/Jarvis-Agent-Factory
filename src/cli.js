@@ -63,11 +63,11 @@ Examples:
 function showHelp() { console.log(HELP); }
 
 function parseArgs(raw) {
-  const opts = { yes: false, global: false };
+  const opts = { yes: false, global: false, globalExplicit: false };
   const positional = [];
   for (const a of raw) {
     if (a === '-y' || a === '--yes') opts.yes = true;
-    else if (a === '-g' || a === '--global') opts.global = true;
+    else if (a === '-g' || a === '--global') { opts.global = true; opts.globalExplicit = true; }
     else if (a === '-h' || a === '--help') { opts.help = true; return { opts, positional }; }
     else if (a === '-v' || a === '--version') { opts.version = true; return { opts, positional }; }
     else positional.push(a);
@@ -105,11 +105,12 @@ export async function run() {
   // jarvis (no args) ≡ jarvis init .
   if (!cmd) {
     const target = resolve('.');
-    const scope = opts.global ? '~ (global)' : target;
+    const isGlobal = await resolveScope(opts);
+    const scope = isGlobal ? '~ (全局)' : target;
     console.log(`\n🚀 Jarvis v${PKG_VERSION}\n`);
     console.log(`   Target: ${scope}\n`);
     for (const name of ALL_PLATFORMS) {
-      await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+      await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: isGlobal });
     }
     console.log(`\n✅ Done! \`jarvis doctor\` to verify.\n`);
     return;
@@ -118,12 +119,13 @@ export async function run() {
   switch (cmd) {
     case 'init': {
       const path = positional[1];
-      const target = resolveTarget(path, opts.global);
-      const scope = opts.global ? '~ (global)' : target;
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      const scope = isGlobal ? '~ (全局)' : target;
       console.log(`\n🚀 Jarvis v${PKG_VERSION}\n`);
       console.log(`   Target: ${scope}\n`);
       for (const name of ALL_PLATFORMS) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: isGlobal });
       }
       console.log(`\n✅ Done!\n`);
       break;
@@ -142,11 +144,12 @@ export async function run() {
         console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
         return;
       }
-      const target = resolveTarget(path, opts.global);
-      const scope = opts.global ? '~ (global)' : target;
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      const scope = isGlobal ? '~ (全局)' : target;
       console.log(`\n📦 Adding to ${scope}\n`);
       for (const name of platforms) {
-        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+        await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: isGlobal });
       }
       console.log(`\n✅ Done!\n`);
       break;
@@ -166,10 +169,11 @@ export async function run() {
         console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
         return;
       }
-      const target = resolveTarget(path, opts.global);
-      const scope = opts.global ? '~ (global)' : target;
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      const scope = isGlobal ? '~ (全局)' : target;
       for (const name of platforms) {
-        const dir = opts.global ? (GLOBAL_ROOTS[name]) : resolve(target, PLATFORMS[name].dir);
+        const dir = isGlobal ? (GLOBAL_ROOTS[name]) : resolve(target, PLATFORMS[name].dir);
         if (existsSync(dir)) {
           if (!opts.yes) {
             const ok = await confirm(`  Remove ${dir}? [y/N] `);
@@ -178,7 +182,7 @@ export async function run() {
           rmSync(dir, { recursive: true, force: true });
           console.log(`  - ${PLATFORMS[name].dir.padEnd(10)} removed`);
           // Also remove MCP config
-          removeMcp(name, target, opts.global);
+          removeMcp(name, target, isGlobal);
         } else {
           console.log(`  ⏭  ${PLATFORMS[name].dir.padEnd(10)} not found`);
         }
@@ -196,13 +200,14 @@ export async function run() {
         console.log(`   npm i -g ${PKG_NAME}@latest\n`);
       }
       const path = positional[1];
-      const target = resolveTarget(path, opts.global);
-      const scope = opts.global ? '~ (global)' : target;
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      const scope = isGlobal ? '~ (全局)' : target;
       console.log(`🔄 Upgrading → ${scope}\n`);
       for (const name of ALL_PLATFORMS) {
-        const dir = opts.global ? GLOBAL_ROOTS[name] : resolve(target, PLATFORMS[name].dir);
+        const dir = isGlobal ? GLOBAL_ROOTS[name] : resolve(target, PLATFORMS[name].dir);
         if (existsSync(dir)) {
-          await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: opts.global });
+          await install({ platform: name, target, pkgRoot: PKG_ROOT, platforms: PLATFORMS, force: opts.yes, global: isGlobal });
         } else {
           console.log(`  ⏭  ${PLATFORMS[name].dir} not installed, skipped`);
         }
@@ -233,8 +238,9 @@ export async function run() {
     case 'doctor':
     case 'check': {
       const path = positional[1];
-      const target = resolveTarget(path, opts.global);
-      doctor({ target, platforms: PLATFORMS, pkgRoot: PKG_ROOT, global: opts.global });
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      doctor({ target, platforms: PLATFORMS, pkgRoot: PKG_ROOT, global: isGlobal });
       break;
     }
 
@@ -269,4 +275,24 @@ function removeMcp(platform, target, isGlobal) {
 async function confirm(q) {
   const rl = createInterface({ input: process.stdin, output: process.stdout });
   return new Promise(res => { rl.question(q, a => { rl.close(); res(a.toLowerCase() === 'y' || a.toLowerCase() === 'yes'); }); });
+}
+
+async function question(q) {
+  const rl = createInterface({ input: process.stdin, output: process.stdout });
+  return new Promise(res => { rl.question(q, a => { rl.close(); res(a.trim()); }); });
+}
+
+/** 当用户未通过 -g 显式指定安装范围时，交互式选择全局 / 项目级别 */
+async function promptScope() {
+  console.log('\n📋 请选择安装范围:');
+  console.log('  [1] 项目级别 — 安装到当前项目目录（推荐）');
+  console.log('  [2] 全局级别 — 安装到用户目录，所有项目共享');
+  const answer = await question('  请输入 1 或 2（默认: 1）: ');
+  return answer === '2';
+}
+
+/** 解析安装范围：显式 -g 用全局，否则交互提示 */
+async function resolveScope(opts) {
+  if (opts.globalExplicit) return opts.global;
+  return promptScope();
 }
