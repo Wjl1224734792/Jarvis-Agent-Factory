@@ -135,8 +135,13 @@ export async function startEngine({ port = DEFAULT_PORT, dashboard = false, proj
 
   // ---- Transport + Web ----
   const transport = new StreamableHTTPServerTransport({ sessionIdGenerator: () => crypto.randomUUID() });
-  app.post('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
+  // SSE 握手：兼容 Claude Code (type=http) 和 OpenCode (type=remote) 两种客户端
+  // StreamableHTTPServerTransport 通过 handleRequest 内部判断 GET/POST 自动处理 SSE 升级
   app.get('/mcp/sse', async (req, res) => { await transport.handleRequest(req, res, undefined); });
+  app.get('/mcp', async (req, res) => { await transport.handleRequest(req, res, undefined); });
+  app.post('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
+  // 额外 SSE 端点（部分客户端直接在 URL 上发起 GET）
+  app.delete('/mcp', async (req, res) => { try { await transport.handleRequest(req, res, req.body); } catch (e) { res.status(500).json({ error: e.message }); } });
   await server.connect(transport);
 
   setupWebRoutes(app, db, root, dashboard);

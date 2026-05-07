@@ -13,9 +13,9 @@ const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
 const SKIP_FILES = new Set(['settings.json', 'settings.local.json', 'node_modules', '.git']);
 
 const MCP_TEMPLATES = {
-  claude:   { file: '.mcp.json',        tmpl: 'mcp-claude.json' },
-  opencode: { file: 'opencode.json',    tmpl: 'mcp-opencode.json' },
-  codex:    { file: '.codex/config.toml', tmpl: 'mcp-codex.toml', append: true },
+  claude:   { file: '.mcp.json',                  tmpl: 'mcp-claude.json' },
+  opencode: { file: '.opencode/opencode.json',     tmpl: 'mcp-opencode.json' },
+  codex:    { file: '.codex/config.toml',          tmpl: 'mcp-codex.toml', append: true },
 };
 
 // Global install roots
@@ -30,9 +30,9 @@ function globalTarget(platform) {
 }
 
 function mcpGlobalDest(platform) {
-  const info = MCP_TEMPLATES[platform];
   if (platform === 'codex') return resolve(homedir(), '.codex', 'config.toml');
-  return resolve(globalTarget(platform), info.file);
+  if (platform === 'opencode') return resolve(homedir(), '.config', 'opencode', 'opencode.json');
+  return resolve(globalTarget(platform), '.mcp.json');
 }
 
 export async function install({ platform, target, pkgRoot, platforms, force, global: isGlobal }) {
@@ -152,18 +152,9 @@ function installMcp(platform, target, force) {
       console.log(`  ~ ${t.file.padEnd(18)} already configured`);
     }
   } else if (platform === 'opencode') {
-    // OpenCode JSON: write to BOTH root opencode.json AND .opencode/opencode.json
-    // OpenCode reads: 1) ~/.config/opencode/opencode.json (global) 2) opencode.json (project) 3) .opencode/ dir
+    // OpenCode JSON: 只写 .opencode/opencode.json（不写根目录避免混乱）
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     writeMcpJson(dest, content, force, t.file);
-
-    // Also write to .opencode/opencode.json for project-level discovery
-    if (target) {
-      const altDest = resolve(target, '.opencode', 'opencode.json');
-      const altDir = dirname(altDest);
-      if (!existsSync(altDir)) mkdirSync(altDir, { recursive: true });
-      writeMcpJson(altDest, content, force, '.opencode/opencode.json');
-    }
   } else {
     // Claude JSON: .mcp.json at project root
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);

@@ -93,6 +93,11 @@ footer{padding:24px 0;color:var(--muted);font-size:11px}
       <button onclick="setPlatform('opencode')">🟣 OpenCode</button>
       <button onclick="setPlatform('codex')">🟢 Codex</button>
     </div>
+  </div>
+  <div class=toolbar style=margin-bottom:16px>
+    <div class=filter id=categoryTabs>
+      <button class=sel onclick="setCategory('全部')">全部</button>
+    </div>
     <div class=search-box>
       <input id=searchInput placeholder="🔍 搜索 agent 名称..." oninput="onSearch()">
       <span class=clear-btn id=clearSearch onclick="clearSearch()">✕ 清除</span>
@@ -139,22 +144,39 @@ const PIXEL={
 const COLORS={brain:'#B4A7FF',layout:'#7DE2D1',palette:'#FF7B9C',db:'#4ECB71',test:'#FFE17B',server:'#7DE2D1',route:'#FF7B9C',cog:'#8B869B',table:'#4ECB71',globe:'#7DE2D1',play:'#4ECB71',file:'#8B869B',map:'#B4A7FF',list:'#FFE17B',shield:'#FF7B9C',eye:'#B4A7FF'};
 function px(icon){const p=PIXEL[icon]||PIXEL.brain;const c=COLORS[icon]||COLORS.brain;return`<div class=avatar-8>${p.map(v=>`<span style="background:${v?c:'transparent'}"></span>`).join('')}</div>`}
 
-let agents=[],cur=null,platform='all',d=null,customModel='',saving=false,searchText='';
+let agents=[],cur=null,platform='all',category='全部',d=null,customModel='',saving=false,searchText='';
 
 async function load(p){
   if(p!==undefined)platform=p;
-  const qs='?platform='+(platform==='all'?'':platform)+(searchText?'&search='+encodeURIComponent(searchText):'');
+  const params = new URLSearchParams();
+  if(platform!=='all') params.set('platform',platform);
+  if(category!=='全部') params.set('category',category);
+  if(searchText) params.set('search',searchText);
+  const qs = params.toString() ? '?'+params.toString() : '';
   const r=await fetch('/api/agents'+qs);
   d=await r.json();agents=d.agents;
+  // 动态生成分类标签（首次加载时）
+  if(d.categories && document.getElementById('categoryTabs').children.length<=1){
+    document.getElementById('categoryTabs').innerHTML = d.categories.map(c=>
+      `<button class="${c===category?'sel':''}" onclick="setCategory('${c}')">${c==='全部'?'🌐 全部':c}</button>`
+    ).join('');
+  }
   document.getElementById('agentsGrid').innerHTML=render();
-  document.getElementById('agentCount').textContent=
-    (platform==='all'?'全部平台':'')+' '+agents.length+' 个智能体 · 共 '+d.total_count+' 个 · 独立模型配置';
+  const scope = (platform==='all'?'全部平台 ':'') + (category==='全部'?'':category+' ');
+  document.getElementById('agentCount').textContent=scope+agents.length+' 个智能体 · 共 '+d.total_count+' 个';
 }
 
 function setPlatform(p){
   platform=p;
   document.querySelectorAll('#platformTabs button').forEach(b=>b.classList.remove('sel'));
   document.querySelector('#platformTabs button[onclick*="'+p+'"]').classList.add('sel');
+  load();
+}
+
+function setCategory(c){
+  category=c;
+  document.querySelectorAll('#categoryTabs button').forEach(b=>b.classList.remove('sel'));
+  document.querySelector('#categoryTabs button[onclick*="'+c+'"]').classList.add('sel');
   load();
 }
 

@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay } from '../engine/gates.js';
-import { getPlatformModels } from '../engine/agent-registry.js';
+import { getPlatformModels, getCategories } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 /** 按平台分组可用模型 */
@@ -63,12 +63,14 @@ export function setupWebRoutes(app, db, root, dashboard) {
   app.get('/api/agents', (req, res) => {
     const cfg = getAgentConfig(db);
     const platform = req.query.platform;
+    const category = req.query.category;
     const search = (req.query.search || '').toLowerCase();
     let list = AGENT_LIST.map(a => {
       const c = cfg[a.id];
       return { ...a, model: c?.model || a.defaultModel, effort: c?.effort || a.defaultEffort || 'high', is_custom: !!c };
     });
     if (platform) list = list.filter(a => a.platform === platform);
+    if (category && category !== '全部') list = list.filter(a => a.category === category);
     if (search) list = list.filter(a => a.name.toLowerCase().includes(search) || a.id.toLowerCase().includes(search) || a.role.toLowerCase().includes(search));
     res.json({
       agents: list,
@@ -76,6 +78,7 @@ export function setupWebRoutes(app, db, root, dashboard) {
       available_efforts: EFFORTS,
       platforms: [...new Set(AGENT_LIST.map(a=>a.platform))],
       platform_models: PLATFORM_MODELS,
+      categories: getCategories(),
       total_count: AGENT_LIST.length,
     });
   });

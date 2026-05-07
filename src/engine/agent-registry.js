@@ -30,6 +30,33 @@ const ICON_MAP = {
   'state': 'database', 'ui': 'palette', 'jarvis': 'brain', 'orchestrator': 'brain',
 };
 
+/** 领域分类关键词映射 */
+// 按优先级排列：越具体的规则越靠前
+const CATEGORY_RULES = [
+  { cat: '编排', keys: ['jarvis', 'orchestrat'] },
+  { cat: '测试', keys: ['test-worker', 'test_worker', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'performance-test', 'performance_test'] },
+  { cat: '审查', keys: ['review', 'audit', 'security', 'code-reviewer', 'qa', 'auditor'] },
+  { cat: '架构', keys: ['architect', 'algorithm', 'database-specialist', 'database_specialist'] },
+  { cat: '移动端', keys: ['android-worker', 'android-ui', 'android-state', 'ios-worker', 'ios-ui', 'ios-state', 'flutter-worker', 'flutter-ui', 'flutter-state', 'taro-worker', 'taro-ui', 'taro-state', 'react-native-worker', 'rn-worker', 'rn-ui', 'rn-state', 'android_worker', 'ios_worker', 'flutter_worker', 'taro_worker', 'react_native_worker'] },
+  { cat: '支撑', keys: ['docs', 'infra', 'repo-explorer', 'researcher', 'planner', 'task-design', 'remediation', 'explorer', 'design'] },
+  { cat: '实现', keys: ['implementer', 'worker', '-api-', '-service-', '-data-', '-state-', '-ui-', 'api_worker', 'service_worker', 'data_worker', 'state_worker', 'ui_worker'] },
+];
+
+export function getCategories() {
+  return ['全部', '编排', '实现', '测试', '审查', '架构', '移动端', '支撑'];
+}
+
+/** 根据文件名+内容推断领域分类 */
+function inferCategory(fileName, content) {
+  const lower = ((fileName || '') + ' ' + (content || '')).toLowerCase();
+  for (const rule of CATEGORY_RULES) {
+    for (const key of rule.keys) {
+      if (lower.includes(key)) return rule.cat;
+    }
+  }
+  return '支撑'; // 兜底
+}
+
 /** 从 agent 文件名/内容推断图标 */
 function inferIcon(fileName, content) {
   const lower = (fileName + ' ' + (content || '')).toLowerCase();
@@ -113,12 +140,14 @@ function scanPlatform(platformKey, config) {
 
       const id = platformKey === 'claude' ? fileName : `${platformKey}-${fileName}`;
       const icon = inferIcon(fileName, description || content);
+      const category = inferCategory(fileName, description || content);
 
       agents.push({
         id,
         name,
         role,
         icon,
+        category,
         platform: platformKey,
         defaultModel: model || '',
         defaultEffort: effort || 'high',
