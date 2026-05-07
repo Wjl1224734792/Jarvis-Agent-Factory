@@ -1,13 +1,32 @@
+# 统一换行符为 LF，避免跨平台差异
 * text=auto eol=lf
-*.md text eol=lf
-*.toml text eol=lf
+
+# 源码文件
+*.js   text eol=lf
+*.ts   text eol=lf
+*.tsx  text eol=lf
 *.json text eol=lf
-*.yml text eol=lf
+*.md   text eol=lf
+*.toml text eol=lf
+*.yml  text eol=lf
 *.yaml text eol=lf
-*.sh text eol=lf
-*.py text eol=lf
-*.js text eol=lf
-*.ts text eol=lf
-*.tsx text eol=lf
-*.rs text eol=lf
-*.go text eol=lf
+*.css  text eol=lf
+*.html text eol=lf
+
+# 脚本
+*.sh  text eol=lf
+*.py  text eol=lf
+*.rs  text eol=lf
+*.go  text eol=lf
+
+# 二进制文件（保持原样，不转换换行符）
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.svg  binary
+*.eot  binary
+*.ttf  binary
+*.woff binary
+*.woff2 binary
