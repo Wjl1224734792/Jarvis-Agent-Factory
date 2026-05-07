@@ -4,162 +4,185 @@
 <meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1">
 <title>Jarvis Engine · 流水线</title>
 <style>
-:root{
-  --pink:#FFB7C5;--lav:#C9B1FF;--mint:#98FF98;--sky:#87CEEB;
-  --bg:#1a1a2e;--card:#16213e;--text:#e0d6ff;--muted:#9b8ec4;
-  --accent:#FF6B9D;--green:#5CDB95;--red:#FF6B6B;--yellow:#FFD93D;
-}
+:root{--pink:#FF7B9C;--purple:#B4A7FF;--mint:#7DE2D1;--yellow:#FFE17B;--bg:#FAF7F5;--card:#FFFFFF;--border:#F0E8E0;--text:#2D2B3D;--muted:#8B869B;--accent:#FF5C8A;--green:#4ECB71;--red:#FF5C5C}
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Segoe UI',system-ui,sans-serif;background:linear-gradient(135deg,#1a1a2e 0%,#16213e 50%,#0f3460 100%);color:var(--text);min-height:100vh;position:relative;overflow-x:hidden}
-body::before{content:'';position:fixed;inset:0;background:radial-gradient(circle at 20% 80%,rgba(255,183,197,.08) 0%,transparent 50%),radial-gradient(circle at 80% 20%,rgba(201,177,255,.08) 0%,transparent 50%),radial-gradient(circle at 50% 50%,rgba(135,206,235,.05) 0%,transparent 50%);pointer-events:none;z-index:0}
-.sparkle{position:fixed;pointer-events:none;z-index:0;animation:float 6s ease-in-out infinite;opacity:.6;font-size:20px}
-.sparkle:nth-child(1){top:10%;left:5%;animation-delay:0s}
-.sparkle:nth-child(2){top:30%;right:10%;animation-delay:2s}
-.sparkle:nth-child(3){top:60%;left:15%;animation-delay:4s}
-.sparkle:nth-child(4){bottom:20%;right:20%;animation-delay:1s}
-.sparkle:nth-child(5){top:50%;right:5%;animation-delay:3s}
-@keyframes float{0%,100%{transform:translateY(0) rotate(0deg)}50%{transform:translateY(-20px) rotate(10deg)}}
-nav{position:sticky;top:0;z-index:100;background:rgba(22,33,62,.95);backdrop-filter:blur(20px);border-bottom:2px solid var(--accent);padding:0 24px;display:flex;justify-content:space-between;align-items:center;height:56px}
-nav .logo{font-size:22px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--lav));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-nav .tabs{display:flex;gap:4px;height:100%}
-nav .tabs a{display:flex;align-items:center;gap:6px;padding:0 20px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;border-bottom:3px solid transparent;transition:all .2s}
-nav .tabs a:hover{color:var(--text);border-bottom-color:var(--lav)}
-nav .tabs a.active{color:var(--accent);border-bottom-color:var(--accent)}
-nav .help-btn{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;border:none;padding:6px 16px;border-radius:20px;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
-nav .help-btn:hover{transform:scale(1.05);box-shadow:0 0 20px rgba(255,107,157,.3)}
-main{max-width:1100px;margin:0 auto;padding:24px;position:relative;z-index:1}
-.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px}
-.stat{background:var(--card);border-radius:20px;padding:24px;text-align:center;border:2px solid transparent;transition:all .3s;position:relative;overflow:hidden}
-.stat:hover{border-color:var(--accent);transform:translateY(-4px);box-shadow:0 8px 30px rgba(255,107,157,.15)}
-.stat .num{font-size:36px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--lav));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.stat .label{font-size:13px;color:var(--muted);margin-top:4px}
-.stat .icon{position:absolute;top:-10px;right:-10px;font-size:40px;opacity:.1}
-.progress-bar{height:20px;background:var(--card);border-radius:20px;overflow:hidden;margin-bottom:32px;border:2px solid rgba(255,255,255,.05)}
-.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--lav),var(--accent));border-radius:20px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+body{font-family:'Segoe UI',system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow-x:hidden}
+/* Sakura floating petals */
+body::after{content:'🌸';position:fixed;top:-30px;left:10%;font-size:24px;animation:sakura1 12s linear infinite;opacity:.3;pointer-events:none;z-index:0}
+@keyframes sakura1{0%{transform:translate(0,0) rotate(0deg)}25%{transform:translate(80px,25vh) rotate(90deg)}50%{transform:translate(160px,50vh) rotate(180deg)}75%{transform:translate(80px,75vh) rotate(270deg)}100%{transform:translate(0,100vh) rotate(360deg)}}
+/* Sidebar */
+.sidebar{width:250px;min-width:250px;background:linear-gradient(180deg,#FFF5F8 0%,#F8F5FF 50%,#F0FBFF 100%);border-right:1px solid var(--border);padding:24px 0;display:flex;flex-direction:column;position:sticky;top:0;height:100vh;z-index:10;overflow-y:auto}
+.sidebar .logo{padding:0 20px 20px;border-bottom:2px solid var(--pink);margin-bottom:16px}
+.sidebar .logo h1{font-size:18px;font-weight:800;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sidebar .logo .ver{font-size:11px;color:var(--muted)}
+.sidebar nav{flex:1;padding:0 12px}
+.sidebar nav a{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:12px;color:var(--muted);text-decoration:none;font-size:14px;font-weight:600;margin:2px 0;transition:all .2s}
+.sidebar nav a:hover{background:rgba(255,123,156,.08);color:var(--accent)}
+.sidebar nav a.active{background:linear-gradient(135deg,rgba(255,123,156,.12),rgba(180,167,255,.12));color:var(--accent);border-left:3px solid var(--accent)}
+.sidebar nav a .badge{font-size:11px;background:var(--accent);color:#fff;padding:2px 8px;border-radius:10px;margin-left:auto}
+.sidebar .help-section{padding:16px 20px;border-top:1px solid var(--border);margin-top:auto}
+.sidebar .help-section h3{font-size:12px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px}
+.sidebar .help-section .tip{font-size:11px;color:var(--muted);line-height:1.6;margin:4px 0}
+.sidebar .help-section .tip::before{content:'▸ ';color:var(--accent)}
+.sidebar .help-btn{display:block;width:100%;padding:10px;margin-top:12px;border-radius:12px;border:2px solid var(--accent);background:white;color:var(--accent);cursor:pointer;font-weight:600;font-size:13px;transition:all .2s}
+.sidebar .help-btn:hover{background:var(--accent);color:#fff}
+
+/* Main content */
+.main{flex:1;padding:32px 40px;overflow-y:auto}
+.main h2{font-size:24px;font-weight:800;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--purple));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.main .subtitle{font-size:13px;color:var(--muted);margin-bottom:28px}
+
+/* Stats */
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:28px}
+.stat{background:var(--card);border-radius:16px;padding:22px;border:1px solid var(--border);transition:all .3s;position:relative}
+.stat:hover{border-color:var(--accent);box-shadow:0 4px 20px rgba(255,123,156,.1);transform:translateY(-2px)}
+.stat .num{font-size:34px;font-weight:800;color:var(--accent)}
+.stat .label{font-size:12px;color:var(--muted);margin-top:2px}
+.stat.accent .num{color:var(--purple)}
+.stat.green .num{color:var(--green)}
+.stat.yellow .num{color:var(--yellow)}
+
+/* Progress */
+.progress-section{margin-bottom:32px}
 .progress-label{display:flex;justify-content:space-between;margin-bottom:8px;font-size:13px;color:var(--muted)}
-.section-title{font-size:16px;font-weight:700;color:var(--lav);margin-bottom:16px;display:flex;align-items:center;gap:8px}
-.gate{background:var(--card);border-radius:16px;padding:16px 20px;margin:8px 0;display:flex;justify-content:space-between;align-items:center;transition:all .3s;border:2px solid transparent;cursor:pointer}
-.gate:hover{border-color:var(--lav);transform:translateX(4px)}
-.gate.passed{opacity:.65;border-color:rgba(92,219,149,.3)}
-.gate.current{border-color:var(--accent);border-width:3px;background:linear-gradient(135deg,var(--card),rgba(255,107,157,.08))}
-.gate-left{display:flex;align-items:center;gap:14px}
-.gate-badge{width:40px;height:40px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:18px;font-weight:800}
-.gate-badge.pass{background:rgba(92,219,149,.15);color:var(--green)}
-.gate-badge.curr{background:rgba(255,107,157,.15);color:var(--accent);animation:pulse 2s ease-in-out infinite}
-.gate-badge.wait{background:rgba(255,255,255,.05);color:var(--muted)}
-@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,107,157,.4)}50%{box-shadow:0 0 0 12px rgba(255,107,157,0)}}
-.gate-info .name{font-weight:700;font-size:15px}
-.gate-info .check{font-size:12px;color:var(--muted)}
-.gate-time{font-size:11px;color:var(--muted)}
+.progress-bar{height:14px;background:var(--border);border-radius:14px;overflow:hidden;position:relative}
+.progress-bar .fill{height:100%;background:linear-gradient(90deg,var(--pink),var(--purple),var(--mint));border-radius:14px;transition:width .8s cubic-bezier(.4,0,.2,1)}
+
+/* Gates */
+.gates-section h3{font-size:15px;font-weight:700;margin-bottom:12px;color:var(--text)}
+.gate{background:var(--card);border-radius:14px;padding:14px 18px;margin:6px 0;display:flex;justify-content:space-between;align-items:center;border:1px solid var(--border);cursor:pointer;transition:all .2s}
+.gate:hover{border-color:var(--accent);box-shadow:0 2px 12px rgba(255,123,156,.08)}
+.gate.passed{opacity:.55;border-left:3px solid var(--green)}
+.gate.current{border-left:4px solid var(--accent);background:linear-gradient(90deg,rgba(255,123,156,.04) 0%,white 30%)}
+.gate-left{display:flex;align-items:center;gap:12px}
+.gate-dot{width:12px;height:12px;border-radius:50%}
+.gate-dot.pass{background:var(--green)}
+.gate-dot.curr{background:var(--accent);animation:pulse 2s ease-in-out infinite;box-shadow:0 0 0 0 rgba(255,92,138,.4)}
+.gate-dot.wait{background:var(--border)}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(255,92,138,.4)}50%{box-shadow:0 0 0 10px rgba(255,92,138,0)}}
+.gate-info .name{font-weight:700;font-size:14px}
+.gate-info .check{font-size:11px;color:var(--muted)}
+.gate-time{font-size:10px;color:var(--muted)}
 .gate-actions{display:flex;gap:8px}
-.btn{padding:8px 18px;border-radius:20px;border:none;cursor:pointer;font-size:13px;font-weight:600;transition:all .2s}
-.btn:hover{transform:translateY(-1px)}
-.btn-primary{background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff}
-.btn-primary:hover{box-shadow:0 4px 20px rgba(255,107,157,.3)}
-.btn-outline{background:transparent;border:2px solid var(--lav);color:var(--lav)}
-.btn-outline:hover{background:rgba(201,177,255,.1)}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;justify-content:center;align-items:center}
+.btn{padding:7px 16px;border-radius:20px;border:none;cursor:pointer;font-size:12px;font-weight:600;transition:all .2s}
+.btn-advance{background:var(--accent);color:#fff}
+.btn-advance:hover{box-shadow:0 4px 16px rgba(255,92,138,.25);transform:translateY(-1px)}
+.btn-check{background:white;border:2px solid var(--purple);color:var(--purple)}
+.btn-check:hover{background:rgba(180,167,255,.08)}
+
+/* Help modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.3);z-index:200;justify-content:center;align-items:center}
 .modal-overlay.show{display:flex}
-.modal{background:var(--card);border:2px solid var(--lav);border-radius:24px;padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto}
-.modal h2{font-size:20px;margin-bottom:4px;background:linear-gradient(135deg,var(--accent),var(--lav));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.modal h3{font-size:14px;color:var(--muted);margin-bottom:20px}
-.modal .step{display:flex;gap:12px;margin:12px 0;padding:12px;background:rgba(255,255,255,.03);border-radius:12px}
-.modal .step .num{width:28px;height:28px;min-width:28px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:800}
-.modal .step .text{font-size:13px;line-height:1.6}
-.modal .step code{background:rgba(255,255,255,.1);padding:2px 8px;border-radius:6px;font-size:12px}
-.modal .close-btn{width:100%;padding:12px;border-radius:14px;border:none;background:linear-gradient(135deg,var(--accent),var(--pink));color:#fff;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px}
-.toast{position:fixed;top:20px;right:20px;z-index:300;padding:14px 24px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:14px}
-.toast.success{background:rgba(92,219,149,.2);border:1px solid var(--green);color:var(--green)}
-.toast.error{background:rgba(255,107,107,.2);border:1px solid var(--red);color:var(--red)}
-@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
-footer{text-align:center;padding:40px;color:var(--muted);font-size:12px;position:relative;z-index:1}
-footer a{color:var(--lav);text-decoration:none}
-@media(max-width:768px){.stats{grid-template-columns:repeat(2,1fr)}nav .tabs a span{display:none}}
+.modal{background:white;border-radius:24px;padding:32px;max-width:480px;width:90%;max-height:80vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.1)}
+.modal h2{font-size:20px;margin-bottom:4px}
+.modal h3{font-size:13px;color:var(--muted);margin-bottom:20px}
+.modal .step{display:flex;gap:12px;margin:10px 0;padding:12px;background:#f8f6f9;border-radius:12px}
+.modal .step .num{width:26px;height:26px;min-width:26px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+.modal .step .text{font-size:12px;line-height:1.5}
+.modal .step code{background:rgba(0,0,0,.06);padding:1px 6px;border-radius:4px;font-size:11px}
+.modal .close-btn{width:100%;padding:12px;border-radius:14px;border:none;background:var(--accent);color:#fff;font-size:14px;font-weight:700;cursor:pointer;margin-top:20px}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;right:24px;z-index:300;padding:14px 24px;border-radius:16px;font-weight:600;animation:slideIn .3s ease-out;font-size:13px;background:white;box-shadow:0 8px 30px rgba(0,0,0,.12)}
+.toast.success{border-left:4px solid var(--green);color:var(--green)}
+.toast.error{border-left:4px solid var(--red);color:var(--red)}
+@keyframes slideIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
+footer{padding:24px 0;color:var(--muted);font-size:11px}
+
+@media(max-width:768px){body{flex-direction:column}.sidebar{width:100%;min-width:100%;height:auto;position:static;flex-direction:row;overflow-x:auto;padding:12px}.sidebar nav{display:flex;flex-direction:row}.sidebar .help-section{display:none}.main{padding:20px}.stats{grid-template-columns:repeat(2,1fr)}}
 </style>
 </head>
 <body>
-<div class=sparkle>✨</div><div class=sparkle>⭐</div><div class=sparkle>💫</div><div class=sparkle>🌟</div><div class=sparkle>✨</div>
 
-<nav>
-  <div class=logo>🧠 Jarvis Engine</div>
-  <div class=tabs>
-    <a href=/dashboard class=active>📊 流水线</a>
-    <a href=/agents>🤖 智能体</a>
+<aside class=sidebar>
+  <div class=logo>
+    <h1>🧠 Jarvis Engine</h1>
+    <div class=ver id=verNum>v---</div>
   </div>
-  <button class=help-btn onclick=showHelp()>📖 使用说明</button>
-</nav>
+  <nav>
+    <a href=/dashboard class=active>📊 流水线看板</a>
+    <a href=/agents>🤖 智能体配置</a>
+  </nav>
+  <div class=help-section>
+    <h3>操作提示</h3>
+    <div class=tip>点击 Gate 行检查条件</div>
+    <div class=tip>点「推进」进入下一阶段</div>
+    <div class=tip>钩子自动检查 Agent spawn</div>
+    <button class=help-btn onclick=showHelp()>📖 完整指南</button>
+  </div>
+</aside>
 
-<main>
+<main class=main>
+  <h2>流水线看板</h2>
+  <p class=subtitle id=pipelineProject>项目流水线状态 · 实时刷新</p>
+
   <div class=stats>
-    <div class=stat><div class=icon>📊</div><div class=num id=statProgress>0%</div><div class=label>完成进度</div></div>
-    <div class=stat><div class=icon>🚪</div><div class=num id=statGates>0/8</div><div class=label>已通过 Gate</div></div>
-    <div class=stat><div class=icon>📍</div><div class=num id=statCurrent>---</div><div class=label>当前阶段</div></div>
-    <div class=stat><div class=icon>📦</div><div class=num id=statArtifacts>0</div><div class=label>产物文件</div></div>
+    <div class=stat><div class=num id=statProgress>0%</div><div class=label>完成进度</div></div>
+    <div class=stat accent><div class=num id=statGates>0/8</div><div class=label>已通过 Gate</div></div>
+    <div class=stat green><div class=num id=statCurrent>---</div><div class=label>当前阶段</div></div>
+    <div class=stat yellow><div class=num id=statArtifacts>0</div><div class=label>产物文件</div></div>
   </div>
 
-  <div class=progress-label><span id=progressText>0% 完成</span><span id=progressGate>Gate A</span></div>
-  <div class=progress-bar><div class=fill id=progressFill style=width:0%></div></div>
+  <div class=progress-section>
+    <div class=progress-label><span id=progressText>开始流水线</span><span id=progressGate>Gate A</span></div>
+    <div class=progress-bar><div class=fill id=progressFill style=width:0%></div></div>
+  </div>
 
-  <div class=section-title>🚪 流水线 Gate 状态</div>
-  <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)>⏳ 加载中...</div></div>
+  <div class=gates-section>
+    <h3>🚪 Gate 状态</h3>
+    <div id=gatesList><div style=text-align:center;padding:40px;color:var(--muted)">⏳ 加载中...</div></div>
+  </div>
+
+  <footer>Jarvis Engine · MCP :3456 · <a href=/health style=color:var(--purple)>健康检查</a></footer>
 </main>
 
 <div class=modal-overlay id=helpModal>
   <div class=modal>
-    <h2>📖 使用说明</h2>
-    <h3>Jarvis Engine 编排引擎操作指南</h3>
-    <div class=step><div class=num>1</div><div class=text><b>启动引擎</b><br>终端运行 <code>jarvis engine start --dashboard</code></div></div>
+    <h2>📖 操作指南</h2>
+    <h3>Jarvis Engine 编排引擎使用步骤</h3>
+    <div class=step><div class=num>1</div><div class=text><b>启动引擎</b><br><code>jarvis engine start --dashboard</code></div></div>
     <div class=step><div class=num>2</div><div class=text><b>初始化流水线</b><br>在平台里说 /jarvis 开始开发，引擎自动接管</div></div>
-    <div class=step><div class=num>3</div><div class=text><b>完成 Gate 工作</b><br>每个 Gate 完成后，点击 Gate 行检查条件</div></div>
-    <div class=step><div class=num>4</div><div class=text><b>推进 Gate</b><br>条件满足后点 <b>推进 →</b>。引擎 FSM 阻止非法跳过</div></div>
-    <div class=step><div class=num>5</div><div class=text><b>自动安全网</b><br>平台钩子在每次 Agent 执行后自动检查，不满足时报警</div></div>
-    <button class=close-btn onclick=closeHelp()>知道啦！✨</button>
+    <div class=step><div class=num>3</div><div class=text><b>完成 Gate 产出</b><br>每个 Gate 完成对应文档/测试/报告</div></div>
+    <div class=step><div class=num>4</div><div class=text><b>点击 Gate 行</b><br>引擎验证条件是否满足</div></div>
+    <div class=step><div class=num>5</div><div class=text><b>点「推进」</b><br>进入下一阶段。FSM 阻止非法跳过</div></div>
+    <div class=step><div class=num>6</div><div class=text><b>钩子自动检查</b><br>每次 Agent 执行后自动验证 Gate</div></div>
+    <button class=close-btn onclick=closeHelp()>知道啦 ✨</button>
   </div>
 </div>
-
 <div id=toastContainer></div>
-<footer>✨ Jarvis Engine v<span id=version>---</span> · <a href=/health>API</a> · MCP :3456</footer>
 
 <script>
 const GATES=['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
+const mcp=(name,args)=>fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args||{}}})}).then(r=>r.json()).then(m=>m.error?null:JSON.parse(m.result.content[0].text));
+
 async function refresh(){
-  try{
-    const hr=await fetch('/health');const h=await hr.json();
-    document.getElementById('version').textContent=h.version;
-    const mr=await fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'pipeline_status',arguments:{}}})});
-    if(!mr.ok)return;const m=await mr.json();if(m.error)return;const d=JSON.parse(m.result.content[0].text);
-    const completed=d.completed.length;const pct=Math.round(completed/GATES.length*100);
-    document.getElementById('statProgress').textContent=pct+'%';
-    document.getElementById('statGates').textContent=completed+'/'+GATES.length;
-    document.getElementById('statCurrent').textContent=d.current_gate;
-    document.getElementById('progressFill').style.width=pct+'%';
-    document.getElementById('progressText').textContent=pct+'% 完成';
-    document.getElementById('progressGate').textContent=d.current_gate;
-    let totalArtifacts=0;
-    const gatesHtml=d.gates.map(g=>{
-      totalArtifacts+=g.artifacts?.length||0;
-      const icon=g.passed?'pass':(g.gate===d.current_gate?'curr':'wait');
-      const emoji=g.passed?'✓':(g.gate===d.current_gate?'▶':'○');
-      const cp=g.checkpoints?.[0];
-      return`<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="checkGate('${g.gate}')">
-        <div class=gate-left><div class="gate-badge ${icon}">${emoji}</div><div><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
-        <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-primary" onclick="event.stopPropagation();advanceGate('${g.gate}')">🚀 推进 →</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
-    }).join('');
-    document.getElementById('gatesList').innerHTML=gatesHtml;
-    document.getElementById('statArtifacts').textContent=totalArtifacts;
-  }catch(e){}
+  const h=await fetch('/health').then(r=>r.json());
+  document.getElementById('verNum').textContent='v'+h.version;
+  const d=await mcp('pipeline_status');if(!d)return;
+  document.getElementById('pipelineProject').textContent=d.project||'项目流水线状态 · 实时刷新';
+  const completed=d.completed.length;const pct=Math.round(completed/GATES.length*100);
+  document.getElementById('statProgress').textContent=pct+'%';
+  document.getElementById('statGates').textContent=completed+'/'+GATES.length;
+  document.getElementById('statCurrent').textContent=d.current_gate;
+  document.getElementById('progressFill').style.width=pct+'%';
+  document.getElementById('progressText').textContent=pct+'% 完成';
+  document.getElementById('progressGate').textContent=d.current_gate;
+  let total=0;
+  const html=d.gates.map(g=>{
+    total+=g.artifacts?.length||0;
+    const icon=g.passed?'pass':(g.gate===d.current_gate?'curr':'wait');
+    const cp=g.checkpoints?.[0];
+    return`<div class="gate${g.passed?' passed':''}${g.gate===d.current_gate?' current':''}" onclick="check('${g.gate}')">
+      <div class=gate-left><div class="gate-dot ${icon}"></div><div><div class=name>${g.gate}</div><div class=check>${g.requirement||''}</div></div></div>
+      <div class=gate-actions>${!g.passed&&g.gate===d.current_gate?`<button class="btn btn-advance" onclick="event.stopPropagation();advance('${g.gate}')">推进 →</button>`:''}${cp?`<span class=gate-time>${cp.passed_at?.slice(0,16)||''}</span>`:''}</div></div>`;
+  }).join('');
+  document.getElementById('gatesList').innerHTML=html;
+  document.getElementById('statArtifacts').textContent=total;
 }
-async function checkGate(gate){
-  const mr=await fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'gate_enforce',arguments:{gate}}})});
-  const m=await mr.json();if(m.error)return;const d=JSON.parse(m.result.content[0].text);
-  toast(d.allowed?`✅ ${gate} 条件满足，可以推进！`:`🚫 ${gate} 被阻止 — ${d.blocked_reasons?.join('; ')||d.action_required}`,d.allowed);
-}
-async function advanceGate(gate){
-  const mr=await fetch('/mcp',{method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json, text/event-stream'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name:'advance_gate',arguments:{gate}}})});
-  const m=await mr.json();if(m.error)return;const d=JSON.parse(m.result.content[0].text);
-  toast(d.allowed?`🚀 ${d.message||('已推进到 '+d.current_gate)}`:d.error,!d.allowed);if(d.allowed)refresh();
-}
-function toast(msg,isErr){const t=document.createElement('div');t.className='toast '+(isErr?'error':'success');t.textContent=msg;document.getElementById('toastContainer').appendChild(t);setTimeout(()=>t.remove(),3000)}
+async function check(gate){const d=await mcp('gate_enforce',{gate});if(!d)return;toast(d.allowed?`✅ ${gate} 条件满足！`:`🚫 ${gate} 被阻止 — ${d.blocked_reasons?.join(';')||d.action_required}`,d.allowed)}
+async function advance(gate){const d=await mcp('advance_gate',{gate});if(!d)return;toast(d.allowed?`🚀 ${d.message||('已推进到 '+d.current_gate)}`:d.error,!d.allowed);if(d.allowed)refresh()}
+function toast(msg,err){const t=document.createElement('div');t.className='toast '+(err===false?'error':'success');t.textContent=msg;document.getElementById('toastContainer').appendChild(t);setTimeout(()=>t.remove(),3200)}
 function showHelp(){document.getElementById('helpModal').classList.add('show')}
 function closeHelp(){document.getElementById('helpModal').classList.remove('show')}
 document.getElementById('helpModal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeHelp()});
