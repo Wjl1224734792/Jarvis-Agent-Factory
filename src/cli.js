@@ -34,6 +34,7 @@ Usage:
   jarvis add <p...> [path]       Add platform(s) to project
   jarvis remove <p...> [path]    Remove platform(s) from project
   jarvis upgrade [path]          Upgrade to latest config version
+  jarvis diff [path]             Show what files would change on upgrade
   jarvis engine start [--dashboard] [--port=N]  Start MCP orchestration server
   jarvis engine stop                              Stop engine
   jarvis engine status                            Engine status
@@ -235,6 +236,17 @@ export async function run() {
       await hookCommand(positional.slice(1));
       break;
     }
+    case 'diff': {
+      const path = positional[1];
+      const isGlobal = await resolveScope(opts);
+      const target = resolveTarget(path, isGlobal);
+      console.log(`\n📋 检查变更预览 → ${isGlobal ? '~ (全局)' : target}\n`);
+      for (const name of ALL_PLATFORMS) {
+        await diffPlatform(name, target, isGlobal);
+      }
+      console.log(`\n💡 运行 \`jarvis upgrade\` 应用这些变更。\n`);
+      break;
+    }
     case 'doctor':
     case 'check': {
       const path = positional[1];
@@ -270,6 +282,45 @@ function removeMcp(platform, target, isGlobal) {
     rmSync(dest, { recursive: true, force: true });
     console.log(`  - ${f.padEnd(18)} removed`);
   }
+}
+
+async function diffPlatform(platform, target, isGlobal) {
+  const { join } = await import('node:path');
+  const { existsSync, readdirSync, statSync, readFileSync } = await import('node:fs');
+  const { createHash } = await import('node:crypto');
+  const srcRoot = resolve(PKG_ROOT, 'src', 'templates', 'platforms', platform);
+  const destRoot = isGlobal
+    ? (platform === 'opencode' ? resolve(homedir(), '.config', 'opencode') : resolve(homedir(), `.${platform}`))
+    : resolve(target, PLATFORMS[platform].dir);
+  if (!existsSync(srcRoot)) return;
+
+  const hashFile = join((isGlobal ? destRoot : target), '.jarvis', 'file-hashes.json');
+  const hashes = existsSync(hashFile) ? JSON.parse(readFileSync(hashFile, 'utf-8')) : {};
+  const hash = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
+
+  let changed = 0;
+  for (const bucket of ['agents', 'commands', 'skills']) {
+    const sd = join(srcRoot, bucket), dd = join(destRoot, bucket);
+    if (!existsSync(sd) || !existsSync(dd)) continue;
+    for (const entry of readdirSync(sd)) {
+      const sp = join(sd, entry), dp = join(dd, entry);
+      if (statSync(sp).isDirectory()) continue;
+      const rel = `${bucket}/${entry}`;
+      const newHash = hash(sp);
+      if (!existsSync(dp)) { if (changed < 20) console.log(`  + ${rel.padEnd(30)} (new)`); changed++; continue; }
+      const oldHash = hashes[`/${rel}`] || hashes[rel];
+      if (newHash !== oldHash) {
+        if (changed < 20) {
+          const destHash = hash(dp);
+          const status = (!oldHash || destHash === oldHash) ? 'update' : 'skip (modified by user)';
+          console.log(`  ~ ${rel.padEnd(30)} ${status}`);
+        }
+        changed++;
+      }
+    }
+  }
+  if (changed === 0) console.log(`  ✅ ${platform.padEnd(10)} up to date`);
+  else if (changed > 20) console.log(`  ... and ${changed - 20} more files`);
 }
 
 async function confirm(q) {

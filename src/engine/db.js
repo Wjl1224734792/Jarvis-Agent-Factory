@@ -15,25 +15,24 @@ export function openDb(root) {
 function initSchema(db) {
   db.exec(`
     CREATE TABLE IF NOT EXISTS pipeline (
-      id INTEGER PRIMARY KEY CHECK(id=1),
+      session_id TEXT PRIMARY KEY,
       project TEXT NOT NULL,
       current_gate TEXT NOT NULL DEFAULT 'Gate A',
-      mode TEXT NOT NULL DEFAULT 'strict',
       started_at TEXT NOT NULL,
       updated_at TEXT NOT NULL
     );
     CREATE TABLE IF NOT EXISTS checkpoints (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
+      session_id TEXT NOT NULL,
       gate TEXT NOT NULL,
       passed_at TEXT NOT NULL,
       advance_to TEXT,
-      session_id TEXT,
-      UNIQUE(gate)
+      UNIQUE(session_id, gate)
     );
     CREATE TABLE IF NOT EXISTS sessions (
       id TEXT PRIMARY KEY,
       platform TEXT DEFAULT 'unknown',
-      role TEXT NOT NULL DEFAULT 'observer',
+      role TEXT NOT NULL DEFAULT 'member',
       created_at INTEGER NOT NULL,
       last_heartbeat INTEGER NOT NULL
     );
@@ -43,34 +42,40 @@ function initSchema(db) {
       effort TEXT NOT NULL DEFAULT 'high',
       updated_at TEXT NOT NULL
     );
-    -- Init pipeline row if empty
-    INSERT OR IGNORE INTO pipeline (id, project, current_gate, mode, started_at, updated_at)
-    VALUES (1, '', 'Gate A', 'strict', datetime('now'), datetime('now'));
-    -- Migration: add effort column if missing (safe to fail)
+    -- Migration: rename old single-row pipeline table if exists
   `);
   try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch {}
-  db.exec(`
-  `);
+  // Migration from old single-row pipeline: add session_id if missing
+  try { db.exec("ALTER TABLE pipeline ADD COLUMN session_id TEXT"); } catch {}
+  try {
+    const old = db.prepare('SELECT id, project, current_gate, started_at, updated_at FROM pipeline WHERE session_id IS NULL').all();
+    for (const r of old) {
+      db.prepare('INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, started_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('legacy', r.project, r.current_gate, r.started_at, r.updated_at);
+    }
+  } catch {}
 }
 
-// ---- Pipeline ----
-export function getPipeline(db) {
-  return db.prepare('SELECT * FROM pipeline WHERE id=1').get();
+// ---- Pipeline (per-session) ----
+export function getPipeline(db, sessionId) {
+  return db.prepare('SELECT * FROM pipeline WHERE session_id=?').get(sessionId || 'legacy');
 }
-export function updatePipelineGate(db, gate) {
-  db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE id=1`).run(gate);
+export function updatePipelineGate(db, sessionId, gate) {
+  db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId || 'legacy');
 }
-export function initPipeline(db, project, sessionId) {
-  db.prepare(`UPDATE pipeline SET project=?, current_gate='Gate A', mode='strict', started_at=datetime('now'), updated_at=datetime('now') WHERE id=1`).run(project);
+export function initPipeline(db, sessionId, project) {
+  db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, started_at, updated_at) VALUES (?, ?, 'Gate A', datetime('now'), datetime('now'))`).run(sessionId, project);
+}
+export function getAllPipelines(db) {
+  return db.prepare('SELECT * FROM pipeline ORDER BY updated_at DESC').all();
 }
 
-// ---- Checkpoints ----
-export function getCheckpoints(db, gate) {
-  return gate ? db.prepare('SELECT * FROM checkpoints WHERE gate=?').all(gate)
-    : db.prepare('SELECT * FROM checkpoints ORDER BY passed_at').all();
+// ---- Checkpoints (per-session) ----
+export function getCheckpoints(db, gate, sessionId) {
+  if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId || 'legacy');
+  return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId || 'legacy');
 }
 export function addCheckpoint(db, gate, advanceTo, sessionId) {
-  db.prepare(`INSERT OR REPLACE INTO checkpoints (gate, passed_at, advance_to, session_id) VALUES (?, datetime('now'), ?, ?)`).run(gate, advanceTo, sessionId);
+  db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, datetime('now'), ?)`).run(sessionId, gate, advanceTo);
 }
 
 // ---- Sessions ----
@@ -81,7 +86,7 @@ export function getSession(db, sid) {
   return db.prepare('SELECT * FROM sessions WHERE id=?').get(sid);
 }
 export function addSession(db, sid, platform, role) {
-  db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?)').run(sid, platform, role, Date.now(), Date.now());
+  db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?)').run(sid, platform, role || 'member', Date.now(), Date.now());
 }
 export function heartbeatSession(db, sid) {
   db.prepare('UPDATE sessions SET last_heartbeat=? WHERE id=?').run(Date.now(), sid);
@@ -100,9 +105,6 @@ export function cleanupStaleSessions(db, timeoutMs) {
 }
 export function getOldestSession(db) {
   return db.prepare('SELECT * FROM sessions ORDER BY created_at ASC LIMIT 1').get();
-}
-export function getLeader(db) {
-  return db.prepare(`SELECT * FROM sessions WHERE role='leader' LIMIT 1`).get();
 }
 
 // ---- Agent Models ----

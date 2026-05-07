@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
 import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync, writeFileSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 
@@ -53,15 +54,17 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
   if (!destExists) mkdirSync(destRoot, { recursive: true });
 
-  let totalFiles = 0;
+  let totalFiles = 0, totalSkipped = 0;
+  const hashRoot = isGlobal ? globalTarget(platform) : destRoot;
   for (const bucket of INSTALL_BUCKETS) {
     const srcDir = join(srcRoot, bucket);
     const destDir = join(destRoot, bucket);
     if (!existsSync(srcDir)) continue;
-    const stats = mergeDir(srcDir, destDir);
+    const stats = mergeDir(srcDir, destDir, hashRoot);
     totalFiles += stats.files;
+    totalSkipped += stats.skipped;
     const tag = existsSync(destDir) && stats.files > 0 ? '~' : '+';
-    console.log(`  ${tag} ${(isGlobal ? '~/' + info.dir : info.dir) + '/' + bucket.padEnd(8)} → ${stats.files} files`);
+    console.log(`  ${tag} ${(isGlobal ? '~/' + info.dir : info.dir) + '/' + bucket.padEnd(8)} → ${stats.files} files${stats.skipped ? ` (${stats.skipped} unchanged skipped)` : ''}`);
   }
 
   // Install MCP config
@@ -110,6 +113,7 @@ function installMcp(platform, target, force) {
   if (!existsSync(src)) return;
 
   const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
+  const content = readFileSync(src, 'utf-8');
 
   if (t.append) {
     // Codex: append to existing config.toml
@@ -122,19 +126,26 @@ function installMcp(platform, target, force) {
       return;
     }
 
-    const content = readFileSync(src, 'utf-8');
     const existing = readFileSync(dest, 'utf-8');
-    if (existing.includes('[mcp_servers.playwright]') && existing.includes('[mcp_servers.jarvis]')) {
-      console.log(`  ~ ${t.file.padEnd(18)} playwright + jarvis already configured`);
-    } else if (existing.includes('[mcp_servers.playwright]')) {
-      appendFileSync(dest, '\n[mcp_servers.jarvis]\nurl = "http://localhost:3456/mcp"\n');
-      console.log(`  ~ ${t.file.padEnd(18)} appended jarvis engine section`);
+    if (existing.includes('[mcp_servers.jarvis-engine]')) {
+      console.log(`  ~ ${t.file.padEnd(18)} jarvis-engine already configured`);
     } else {
-      appendFileSync(dest, '\n' + content);
-      console.log(`  ~ ${t.file.padEnd(18)} appended playwright + jarvis MCP`);
+      appendFileSync(dest, '\n[mcp_servers.jarvis-engine]\nurl = "http://localhost:3456/mcp"\n');
+      console.log(`  ~ ${t.file.padEnd(18)} appended jarvis-engine MCP`);
     }
+  } else if (platform === 'opencode') {
+    // OpenCode: write to BOTH root opencode.json AND .opencode/opencode.json
+    const dir = dirname(dest);
+    if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+    writeIfChanged(dest, content, force, t.file);
+
+    // Also write to .opencode/opencode.json (OpenCode alt location)
+    const altDest = target ? resolve(target, '.opencode', 'opencode.json') : resolve(globalTarget(platform), 'opencode.json');
+    const altDir = dirname(altDest);
+    if (!existsSync(altDir)) mkdirSync(altDir, { recursive: true });
+    writeIfChanged(altDest, content, force, '.opencode/opencode.json');
   } else {
-    // Claude/OpenCode: write standalone config
+    // Claude: write standalone config
     if (existsSync(dest) && !force) {
       console.log(`  ⏭  ${t.file.padEnd(18)} exists, skipped (use --yes to overwrite)`);
       return;
@@ -146,17 +157,85 @@ function installMcp(platform, target, force) {
   }
 }
 
-function mergeDir(src, dest) {
-  let files = 0, dirs = 0;
+/** Write to dest only if content differs (or force=true) */
+function writeIfChanged(dest, content, force, label) {
+  if (existsSync(dest) && !force) {
+    const existing = readFileSync(dest, 'utf-8');
+    if (existing === content) { console.log(`  ~ ${label.padEnd(18)} already up to date`); return; }
+  }
+  writeFileSync(dest, content);
+  console.log(`  + ${label.padEnd(18)} → ${dest}`);
+}
+
+/** 计算文件 SHA256 hash */
+function fileHash(filePath) {
+  try { return createHash('sha256').update(readFileSync(filePath)).digest('hex'); }
+  catch { return null; }
+}
+
+/** 加载/保存文件 hash 记录 */
+function loadHashes(root) {
+  const f = join(root, '.jarvis', 'file-hashes.json');
+  try { return existsSync(f) ? JSON.parse(readFileSync(f, 'utf-8')) : {}; }
+  catch { return {}; }
+}
+function saveHashes(root, hashes) {
+  const dir = join(root, '.jarvis');
+  if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  writeFileSync(join(dir, 'file-hashes.json'), JSON.stringify(hashes, null, 2));
+}
+
+/**
+ * 智能合并目录：
+ * - 新文件 → 直接安装
+ * - 源文件 hash vs 记录 hash → 相同跳过，不同比较目标 hash
+ *   - 目标 hash == 旧源 hash → 用户未修改，安全覆盖
+ *   - 目标 hash != 旧源 hash → 用户已修改，跳过
+ */
+function mergeDir(src, dest, root) {
+  let files = 0, dirs = 0, skipped = 0;
   if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
+
+  const hashes = root ? loadHashes(root) : {};
+
   for (const entry of readdirSync(src)) {
     if (SKIP_FILES.has(entry)) continue;
     if (entry.startsWith('.') || entry === 'node_modules') continue;
     const sp = join(src, entry), dp = join(dest, entry);
-    if (statSync(sp).isDirectory()) { const d = mergeDir(sp, dp); files += d.files; dirs += d.dirs + 1; }
-    else { copyFileSync(sp, dp); files++; }
+    if (statSync(sp).isDirectory()) {
+      const d = mergeDir(sp, dp, root);
+      files += d.files; dirs += d.dirs + 1; skipped += d.skipped;
+    } else {
+      const relPath = dp.replace(dest, '').replace(/\\/g, '/');
+      const newHash = fileHash(sp);
+
+      if (!existsSync(dp)) {
+        // 新文件
+        copyFileSync(sp, dp);
+        hashes[relPath] = newHash;
+        files++;
+      } else {
+        const oldHash = hashes[relPath];
+        const destHash = fileHash(dp);
+
+        if (newHash === oldHash) {
+          // 源文件未变 → 跳过
+          skipped++;
+        } else if (!oldHash || destHash === oldHash) {
+          // 新安装或用户未修改 → 安全覆盖
+          copyFileSync(sp, dp);
+          hashes[relPath] = newHash;
+          files++;
+        } else {
+          // 用户已修改目标文件 → 保留
+          skipped++;
+        }
+      }
+    }
   }
-  return { files, dirs };
+
+  if (root) saveHashes(root, hashes);
+  return { files, dirs, skipped };
 }
 
 async function confirm(q) {
