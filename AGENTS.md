@@ -76,7 +76,7 @@ git commit -m "<type>: <简短描述>"
 git tag -a v<version> -m "v<version> - <概要>"
 ```
 
-### 3. 推送到双远程
+### 3. 推送到双远程 + 同步 Tag
 
 ```bash
 git push origin main && git push origin v<version>
@@ -88,7 +88,16 @@ git push github main && git push github v<version>
 | origin (Gitee) | `https://gitee.com/wujl1124/JarvisAgentFactory.git` |
 | github | `https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git` |
 
-### 4. 发布到 npm
+> ⚠️ **必须确保双远程 Tag 同步。** 若 GitHub 网络不通，稍后单独执行 `git push github v<version>` 补推。严禁只推一个远程就结束。
+
+### 4. 同步 Release
+
+GitHub/Gitee 会根据 Tag 自动生成 Release（若配置了 CI）。若无 CI，手动创建：
+
+- **Gitee**: https://gitee.com/wujl1124/JarvisAgentFactory/releases → 「新增发布」→ 选择 Tag → 填写更新日志
+- **GitHub**: https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases → 「Draft a new release」→ 选择 Tag → 填写更新日志
+
+### 5. 发布到 npm
 
 ```bash
 npm publish
@@ -96,12 +105,15 @@ npm publish
 
 > npm 发布需要有效的 `//registry.npmjs.org/:_authToken` 配置。
 
-### 5. 验证
+### 6. 验证（三项全部确认）
 
 ```bash
-npm view jarvis-agent-factory version   # 确认 npm 版本
-git ls-remote --tags origin | tail -5   # 确认 Gitee tag
-git ls-remote --tags github | tail -5   # 确认 GitHub tag
+npm view jarvis-agent-factory version                    # 确认 npm 版本
+git ls-remote --tags origin | grep "v<version>"          # 确认 Gitee tag
+git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
+```
+
+> 🔴 **验证标准：三个平台的版本号和 Tag SHA 必须一致。** 任一缺失立即补推。
 ```
 
 ## 技能体系
