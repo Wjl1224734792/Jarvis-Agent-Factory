@@ -13,7 +13,7 @@ const TEMPLATES_DIR = resolve(__dirname, '..', 'templates', 'platforms');
 /** 平台 → 目录名 + 文件扩展名 + 前端格式约定 */
 const PLATFORM_CONFIG = {
   claude:   { dir: 'claude',   subdirs: ['agents', 'commands'], ext: '.md',   type: 'md' },
-  opencode: { dir: 'opencode', subdirs: ['agents'],              ext: '.md',   type: 'md' },
+  opencode: { dir: 'opencode', subdirs: ['agents', 'plugins'],  ext: '.md',   type: 'md', pluginExt: '.ts' },
   codex:    { dir: 'codex',    subdirs: ['agents'],              ext: '.toml', type: 'toml' },
 };
 
@@ -107,6 +107,9 @@ function scanPlatform(platformKey, config) {
   for (const subdir of config.subdirs) {
     const dir = join(platformDir, subdir);
     if (!existsSync(dir)) continue;
+
+    // 跳过 plugins 目录（不是 agent 文件）
+    if (subdir === 'plugins') continue;
 
     for (const entry of readdirSync(dir)) {
       if (!entry.endsWith(config.ext)) continue;

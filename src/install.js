@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
@@ -9,7 +9,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 const TEMPLATES_DIR = resolve(__dirname, 'templates');
 
-const INSTALL_BUCKETS = ['agents', 'commands', 'skills'];
+const INSTALL_BUCKETS = ['agents', 'commands', 'skills', 'plugins'];
 const SKIP_FILES = new Set(['settings.json', 'settings.local.json', 'node_modules', '.git']);
 
 const MCP_TEMPLATES = {
@@ -96,14 +96,13 @@ function installHooks(platform, target, isGlobal) {
   }
 
   if (platform === 'opencode') {
-    // OpenCode: 原生 hooks 在 .opencode/hooks.json（不用 Claude 兼容模式）
-    const opencodeDir = resolve(target, '.opencode');
-    if (!existsSync(opencodeDir)) mkdirSync(opencodeDir, { recursive: true });
-    const hookFile = resolve(opencodeDir, 'hooks.json');
-    if (!existsSync(hookFile)) {
-      writeFileSync(hookFile, JSON.stringify({ hooks: hookJson }, null, 2));
-      console.log('  🔗 hooks → .opencode/hooks.json');
-    } else console.log('  ~ hooks already configured');
+    // OpenCode: 原生插件系统（.opencode/plugins/*.ts），由 mergeDir 自动安装
+    // 清理旧版 hooks.json（v3.16.1 之前的错误实现）
+    const oldHookFile = resolve(target, '.opencode', 'hooks.json');
+    if (existsSync(oldHookFile)) {
+      try { unlinkSync(oldHookFile); console.log('  🧹 cleaned old .opencode/hooks.json (replaced by plugins)'); } catch {}
+    }
+    console.log('  🔌 plugins → .opencode/plugins/ (原生事件钩子)');
   }
 
   if (platform === 'codex') {
