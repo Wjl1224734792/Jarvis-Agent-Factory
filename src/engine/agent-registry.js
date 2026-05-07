@@ -108,8 +108,8 @@ function scanPlatform(platformKey, config) {
     const dir = join(platformDir, subdir);
     if (!existsSync(dir)) continue;
 
-    // 跳过 plugins 目录（不是 agent 文件）
-    if (subdir === 'plugins') continue;
+    // 只扫描 agents 目录，跳过 commands / plugins 等
+    if (subdir !== 'agents') continue;
 
     for (const entry of readdirSync(dir)) {
       if (!entry.endsWith(config.ext)) continue;
