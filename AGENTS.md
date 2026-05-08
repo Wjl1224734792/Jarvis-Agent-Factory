@@ -113,19 +113,15 @@ git commit -m "<type>: <简短描述>"
 git tag -a v<version> -m "v<version> - <概要>"
 ```
 
-### 4. 推送到双远程 + 同步 Tag
+### 4. 推送到 GitHub + 同步 Tag
 
 ```bash
 git push origin main && git push origin v<version>
-git push github main && git push github v<version>
 ```
 
 | 远程 | 地址 |
 |------|------|
-| origin (Gitee) | `https://gitee.com/wujl1124/JarvisAgentFactory.git` |
-| github | `https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git` |
-
-> ⚠️ **必须确保双远程 Tag 同步。** 若 GitHub 网络不通，稍后单独执行 `git push github v<version>` 补推。严禁只推一个远程就结束。
+| origin (GitHub) | `https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git` |
 
 ### 5. GitHub Actions 自动发布
 
@@ -140,15 +136,14 @@ git push github main && git push github v<version>
 
 > 若 Release 失败，检查 GitHub Actions 日志。需要 `NPM_TOKEN` secret 配置在仓库 Settings → Secrets 中。
 
-### 6. 验证（三项全部确认）
+### 6. 验证（两项全部确认）
 
 ```bash
 npm view jarvis-agent-factory version                    # 确认 npm 版本
-git ls-remote --tags origin | grep "v<version>"          # 确认 Gitee tag
-git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
+git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ```
 
-> 🔴 **验证标准：三个平台的版本号和 Tag SHA 必须一致。** 任一缺失立即补推。
+> 🔴 **验证标准：npm 版本号与 GitHub Tag 必须一致。** 任一缺失立即补推。
 
 ## 技能体系
 

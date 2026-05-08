@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.25.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.25.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
@@ -210,7 +210,7 @@ test-doc-writer → test-executor → fix-retest
 1. 更新 `package.json` 版本号（语义化版本）
 2. **同步更新 AGENTS.md / README.md / docs/README.md**
 3. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
-4. 推送双远程（Gitee + GitHub）**含 Tag**
+4. 推送 GitHub **含 Tag**：`git push origin main && git push origin v<version>`
 5. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release → npm publish）
 6. 验证：`npm view jarvis-agent-factory version` 确认版本
 
