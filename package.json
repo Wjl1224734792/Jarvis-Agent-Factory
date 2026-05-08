@@ -18,14 +18,14 @@
   "homepage": "https://github.com/Wjl1224734792/Jarvis-Agent-Factory",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git"
+    "url": "git+https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git"
   },
   "license": "MIT",
   "author": "lin <wujl1124@163.com>",
   "type": "module",
   "bin": {
-    "jarvis": "./bin/jarvis.js",
-    "jaf": "./bin/jarvis.js"
+    "jarvis": "bin/jarvis.js",
+    "jaf": "bin/jarvis.js"
   },
   "files": [
     "bin/",
