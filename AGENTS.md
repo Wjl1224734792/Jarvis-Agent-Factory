@@ -157,7 +157,7 @@ git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
 | **基础** | `behavioral-guidelines` `context-engineering` `using-agent-skills` |
 | **需求** | `spec-driven-development` `idea-refine` |
 | **规划** | `planning-and-task-breakdown` |
-| **实现** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` |
+| **实现** | `source-driven-development` `incremental-implementation` `test-driven-development` `code-standards` `code-simplification` `frontend-design` |
 | **质量** | `code-quality-gate` `code-review-and-quality` `verification-before-completion` |
 | **调试** | `debugging-and-error-recovery` |
 | **浏览器** | `agent-browser` `browser-testing` |

@@ -1,13 +1,13 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.24.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.25.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.24.0** — Web Dashboard 会话管理（命名/归档/置顶/Hash路由）· 浏览器测试文档驱动工作流 · npm CLI 执行优化
+> **v3.25.0** — API 功能测试 Agent（api-test-expert）· CI/CD 工作流重构 · 文档同步约束强化
 
 ## 快速开始
 
