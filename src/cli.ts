@@ -10,7 +10,7 @@ import { startEngine, stopEngine, engineStatus, startWeb } from './engine/server
 import { hookCommand } from './hook.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PKG_ROOT = resolve(__dirname, '..');
+const PKG_ROOT = resolve(__dirname, '..', '..');
 const PKG = JSON.parse(readFileSync(resolve(PKG_ROOT, 'package.json'), 'utf-8'));
 const PKG_VERSION = PKG.version;
 const PKG_NAME = PKG.name;
