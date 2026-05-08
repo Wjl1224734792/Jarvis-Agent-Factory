@@ -16,6 +16,7 @@ secret.*
 *.tmp
 tmp/*
 docs/tmp/*
+!docs/tmp/.gitkeep
 .playwright-mcp/
 
 # ============================================================

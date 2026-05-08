@@ -2,7 +2,7 @@
 name: security-review-expert
 description: "安全审计专家：负责安全威胁建模、依赖扫描、SAST/DAST 分析、OWASP 标准审计和安全漏洞评估。不修改业务代码，只输出安全报告和修复建议。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 

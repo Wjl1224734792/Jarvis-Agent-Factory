@@ -2,7 +2,7 @@
 name: frontend-review-expert
 description: 前端代码审查专家：审查前端组件结构、样式实现、状态管理、性能优化与可访问性，输出前端审查报告。
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 

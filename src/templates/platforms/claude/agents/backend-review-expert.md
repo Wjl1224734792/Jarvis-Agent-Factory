@@ -2,7 +2,7 @@
 name: backend-review-expert
 description: 后端代码审查专家：审查后端 API 设计、业务逻辑、数据层、错误处理与性能，输出后端审查报告。
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 

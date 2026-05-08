@@ -2,7 +2,7 @@
 name: review-only
 description: "只审查模式：审查项目结构、代码 diff、性能风险、架构边界，只报告 findings 不修改任何文件。不可绕过审查步骤，不可凭记忆下结论，必须提供文件/行号/命令证据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 

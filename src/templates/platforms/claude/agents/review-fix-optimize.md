@@ -2,7 +2,7 @@
 name: review-fix-optimize
 description: "审查修复优化链路：先审查 → 再修复或优化 → 最后复审的完整闭环。流程步骤不可跳过，不可绕过，不可倒置。"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 

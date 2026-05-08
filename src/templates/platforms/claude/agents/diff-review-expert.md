@@ -2,7 +2,7 @@
 name: diff-review-expert
 description: "代码差异只读审查代理：审查 git diff、PR 或指定文件变更中的 bug、回归、安全、边界条件和缺失测试，不修改任何文件。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
-effort: max
+effort: high
 model: deepseek-v4-pro
 ---
 
