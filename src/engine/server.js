@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, heartbeatSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel, createPipelineRun, getPipelineRun, getActiveRun, getSessionRuns, updateRunGate, completeRun } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel, createPipelineRun, getPipelineRun, getActiveRun, getSessionRuns, updateRunGate, completeRun } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -17,7 +17,7 @@ import { setupApiRoutes } from '../web/routes.js';
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
 const DEFAULT_WEB_PORT = 3457;
-const SESSION_TIMEOUT = 1_800_000; // 30分钟超时，标记 inactive 而非删除
+const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → 标记 inactive（个人工具，不需要频繁过期）
 
 /** stdio 模式下 extra?.sessionId 为空，用此变量记录最近一次 session_join 的会话 ID */
 let _lastSessionId = null;
@@ -77,15 +77,8 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb();
 
-  // 心跳保活 + 过期标记
-  setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 30_000);
-  // 引擎内部自动心跳：每 5 分钟对所有 active 会话更新心跳，防止 stdio 模式下心跳丢失
-  setInterval(() => {
-    const activeSessions = getSessions(db, 'active');
-    for (const s of activeSessions) {
-      heartbeatSession(db, s.id);
-    }
-  }, 300_000);
+  // 过期标记：每 5 分钟检查一次（活动追踪在每次工具调用时自动完成）
+  setInterval(() => { markStaleSessions(db, SESSION_TIMEOUT); }, 300_000);
 
   // ---- MCP Tools (不变) ----
   registerMcpTools(mcpServer, db, root);
@@ -160,6 +153,13 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
 /** 注册所有 MCP 工具 */
 function registerMcpTools(server, db, root) {
+  /** 解析 sessionId 并自动记录活动——每次工具调用即视为心跳 */
+  const resolveSid = (extra) => {
+    const sid = extra?.sessionId || _lastSessionId;
+    if (sid) touchSession(db, sid);
+    return sid;
+  };
+
   server.tool('session_join',
     '注册/恢复会话。每个会话独立流水线状态。支持 resume_session_id 恢复旧会话，pipeline_type 指定流水线类型（full/frontend/backend）。',
     {
@@ -184,7 +184,7 @@ function registerMcpTools(server, db, root) {
       }
       const existing = getSession(db, sid);
       if (existing) {
-        heartbeatSession(db, sid);
+        touchSession(db, sid);
         const p = getPipeline(db, sid);
         // Session Model B: 无活跃 run 时自动创建
         const runId = getActiveRun(db, sid)?.id || createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
@@ -208,25 +208,15 @@ function registerMcpTools(server, db, root) {
       });
     });
 
-  server.tool('session_heartbeat', '心跳保活。', {},
+  server.tool('session_heartbeat', '心跳保活——活动追踪模式下仅标记当前会话活跃。', {},
     async (_args, extra) => {
-      const sid = extra?.sessionId;
-      // stdio 模式下 extra?.sessionId 可能为空，查找最近活跃会话
-      if (sid && getSession(db, sid)) {
-        heartbeatSession(db, sid);
-        return resp({ ok: true, session_id: sid });
-      }
-      // 回退：更新所有 active 会话的心跳
-      const activeSessions = getSessions(db, 'active');
-      for (const s of activeSessions) {
-        heartbeatSession(db, s.id);
-      }
-      return resp({ ok: true, heartbeat_count: activeSessions.length });
+      const sid = resolveSid(extra);
+      return resp({ ok: true, session_id: sid || 'unknown' });
     });
 
-  server.tool('session_list', '列出所有活跃会话。', {}, async () => {
+  server.tool('session_list', '列出所有会话（含活跃和休眠）。', {}, async () => {
     markStaleSessions(db, SESSION_TIMEOUT);
-    const sessions = getSessions(db, 'active').map(s => {
+    const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
       return {
         id: s.id, platform: s.platform, role: s.role,
@@ -249,7 +239,7 @@ function registerMcpTools(server, db, root) {
   server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
     { project_name: z.string().optional(), pipeline_type: z.string().optional() },
     async ({ project_name, pipeline_type }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const pt = pipeline_type || DEFAULT_PIPELINE;
       // Session Model B: 创建新 run，同步更新 pipeline 快照
@@ -265,7 +255,7 @@ function registerMcpTools(server, db, root) {
   server.tool('pipeline_status', '【会话隔离】当前会话流水线状态。',
     { run_id: z.string().optional() },
     async ({ run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const p = getPipeline(db, sid);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
@@ -298,7 +288,7 @@ function registerMcpTools(server, db, root) {
   server.tool('gate_enforce', '【会话隔离·硬约束】验证Gate条件。',
     { gate: z.string().optional(), run_id: z.string().optional() },
     async ({ gate, run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const gateList = sessionGates(db, sid);
@@ -318,7 +308,7 @@ function registerMcpTools(server, db, root) {
   server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。',
     { gate: z.string(), run_id: z.string().optional() },
     async ({ gate, run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const p = getPipeline(db, sid);
@@ -346,7 +336,7 @@ function registerMcpTools(server, db, root) {
     '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。',
     { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional() },
     async ({ gate, run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const p = getPipeline(db, sid);
@@ -367,7 +357,7 @@ function registerMcpTools(server, db, root) {
   server.tool('report_status', '【会话隔离】流水线完整报告。',
     { run_id: z.string().optional() },
     async ({ run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const gateList = sessionGates(db, sid);
@@ -395,7 +385,7 @@ function registerMcpTools(server, db, root) {
       run_id: z.string().optional(),
     },
     async ({ operation, run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const p = getPipeline(db, sid);
@@ -420,7 +410,7 @@ function registerMcpTools(server, db, root) {
     '【硬约束·流程指引】返回当前Gate的完整上下文：允许/禁止的操作、可生成的Agent类型、下一步行动指南。在不确定下一步做什么时调用。',
     { run_id: z.string().optional() },
     async ({ run_id }, extra) => {
-      const sid = extra?.sessionId || _lastSessionId;
+      const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
       const p = getPipeline(db, sid);

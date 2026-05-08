@@ -11,6 +11,11 @@ settings.json
 *.key
 credentials.*
 secret.*
+*.png
+*.jpg
+*.tmp
+tmp/*
+.playwright-mcp/
 
 # ============================================================
 # 平台本地配置（用户安装后生成，不作为仓库源文件）

@@ -7,6 +7,8 @@ import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateAr
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
+const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
+
 /** 按平台分组可用模型 */
 const PLATFORM_MODELS = getPlatformModels();
 
@@ -58,21 +60,27 @@ export function setupApiRoutes(app, db, root) {
 
   // 引擎状态 + MCP 平台接入信息
   app.get('/api/status', (c) => {
-    markStaleSessions(db, 1_800_000); // 30min 超时，与 server.js SESSION_TIMEOUT 一致
-    const sessions = getSessions(db, 'active');
+    markStaleSessions(db, SESSION_TIMEOUT);
+    const allSessions = getSessions(db);
+    const activeMap = {};
+    for (const s of allSessions) {
+      activeMap[s.platform] = (activeMap[s.platform] || 0) + (s.status === 'active' ? 1 : 0);
+    }
     const connectedPlatforms = {};
     for (const p of ['claude', 'opencode', 'codex']) {
-      const platformSessions = sessions.filter(s => s.platform === p);
+      const active = activeMap[p] || 0;
+      const total = allSessions.filter(s => s.platform === p).length;
       connectedPlatforms[p] = {
-        connected: platformSessions.length > 0,
-        active_sessions: platformSessions.length,
+        connected: active > 0,
+        active_sessions: active,
+        total_sessions: total,
       };
     }
     return c.json({
       status: 'ok',
       version: readVersion(),
       connected_platforms: connectedPlatforms,
-      total_sessions: sessions.length,
+      total_sessions: allSessions.length,
       platforms: getPlatforms(),
     });
   });
@@ -80,7 +88,7 @@ export function setupApiRoutes(app, db, root) {
   // ---- REST API (hooks + dashboard) ----
   // 所有会话的合并流水线视图（Dashboard 用）
   app.get('/api/pipeline', (c) => {
-    const sessions = getSessions(db, 'active');
+    const sessions = getSessions(db);
     const sessionList = sessions.map(s => {
       const p = getPipeline(db, s.id);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
@@ -155,7 +163,7 @@ export function setupApiRoutes(app, db, root) {
   });
 
   app.get('/api/sessions', (c) => {
-    markStaleSessions(db, 1_800_000); // 30min 超时，与 server.js SESSION_TIMEOUT 一致
+    markStaleSessions(db, SESSION_TIMEOUT);
     const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
       return {

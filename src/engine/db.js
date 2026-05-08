@@ -187,7 +187,8 @@ export function getSession(db, sid) {
 export function addSession(db, sid, platform, role) {
   db.prepare('INSERT OR REPLACE INTO sessions (id, platform, role, status, created_at, last_heartbeat) VALUES (?, ?, ?, ?, ?, ?)').run(sid, platform, role || 'member', 'active', Date.now(), Date.now());
 }
-export function heartbeatSession(db, sid) {
+/** 更新会话活动时间——每次 MCP 工具调用即视为心跳 */
+export function touchSession(db, sid) {
   db.prepare("UPDATE sessions SET last_heartbeat=?, status='active' WHERE id=?").run(Date.now(), sid);
 }
 export function removeSession(db, sid) {
