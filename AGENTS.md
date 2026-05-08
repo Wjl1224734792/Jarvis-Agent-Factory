@@ -173,7 +173,7 @@ git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
 `frontend-implementer` `frontend-ui-worker` `frontend-state-worker` `frontend-test-worker` `backend-implementer` `backend-api-worker` `backend-service-worker` `backend-data-worker` `backend-test-worker` `taro-worker` `taro-ui-worker` `taro-state-worker` `android-worker` `android-ui-worker` `android-state-worker` `ios-worker` `ios-ui-worker` `ios-state-worker` `react-native-worker` `rn-ui-worker` `rn-state-worker` `flutter-worker` `flutter-ui-worker` `flutter-state-worker`
 
 ### 测试类
-`browser-test-worker` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `fix-retest`
+`browser-test-worker` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `fix-retest` `api-test-expert`
 
 ### 规划评审类
 `task-design` `planner` `review-qa`

@@ -182,7 +182,7 @@ test-doc-writer → test-executor → fix-retest
 
 | | Claude Code | OpenCode | Codex |
 |---|:--:|:--:|:--:|
-| Agents | 52 | 58 | 48 |
+| Agents | 53 | 58 | 48 |
 | Commands | 16 | 0 | 0 |
 | Skills | 28 | 28 | 42 |
 | 钩子 | settings.json | 原生插件 (.ts) | hooks.json |
