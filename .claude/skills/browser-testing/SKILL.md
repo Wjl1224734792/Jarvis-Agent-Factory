@@ -112,15 +112,51 @@ agent-browser screenshot desktop.png
 
 ## 本地开发环境测试
 
-若测试目标为本地 dev server：
+### 工具可用性矩阵
+
+| 平台/环境 | Preview MCP | agent-browser CLI | Playwright MCP |
+|-----------|------------|-------------------|----------------|
+| Claude Code（桌面版） | ✅ 可用 | ✅ 可用 | ✅ 可用 |
+| Claude Code（终端/CLI） | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
+| OpenCode | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
+| Codex | ❌ 不可用 | ✅ 可用 | ✅ 可用 |
+
+> **重要**：`mcp__Claude_Preview__*` 工具仅在 Claude Code 桌面应用中可用。在 Claude Code 终端/CLI 环境中，必须使用 agent-browser CLI 工具进行浏览器操作和截图验证。
+
+### 方案 A：有 Preview MCP 时（Claude Code 桌面版）
 
 1. `mcp__Claude_Preview__preview_list` — 检查是否已有运行中的预览服务器
 2. 若未运行且 `.claude/launch.json` 已配置：
    ```
    mcp__Claude_Preview__preview_start({name: "<config-name>"})
    ```
-3. 获取本地 URL 后使用 `agent-browser open <url>` 进行测试
+3. 获取本地 URL 后使用 `agent-browser open <url>` 或 `preview_screenshot` 进行测试
 4. 测试完成后可保留服务器供后续使用
+
+### 方案 B：无 Preview MCP 时（Claude Code 终端 / OpenCode / Codex）
+
+1. 通过 Bash 启动 dev server（后台运行）：
+   ```bash
+   npm run dev &
+   ```
+2. 用 agent-browser 打开页面：
+   ```bash
+   agent-browser open http://localhost:<port>
+   ```
+3. 页面快照 + 截图验证：
+   ```bash
+   agent-browser snapshot -i
+   agent-browser screenshot
+   ```
+4. 响应式多视口测试：
+   ```bash
+   agent-browser set viewport 375 812   # 移动端
+   agent-browser screenshot mobile.png
+   agent-browser set viewport 768 1024  # 平板
+   agent-browser screenshot tablet.png
+   agent-browser set viewport 1280 800  # 桌面
+   agent-browser screenshot desktop.png
+   ```
 
 ## 报告模板
 

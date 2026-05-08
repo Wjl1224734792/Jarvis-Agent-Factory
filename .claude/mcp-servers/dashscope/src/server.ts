@@ -19,7 +19,7 @@ import {
 // 常量
 // ---------------------------------------------------------------------------
 const DASHSCOPE_BASE = "https://dashscope.aliyuncs.com/compatible-mode/v1";
-const MODEL_OMNI = "qwen3.5-omni-flash";
+const MODEL_OMNI = "qwen3.5-plus";
 const MODEL_OCR = "qwen-vl-ocr";
 
 const IMAGE_MIMES = new Set([

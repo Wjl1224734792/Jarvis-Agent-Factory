@@ -6,17 +6,42 @@ allowed-tools: Read, Write, Edit, Bash, Glob, Grep, Skill, Agent
 
 # 浏览器自动化测试闭环
 
-> 这是主动测试模式（编写用例 → 执行 → 修复）。若需修复已知 Bug 并用浏览器复现，请使用 `/bug-fix`。
+> 主动测试模式（编写用例 → 执行 → 修复）。若需修复已知 Bug 并用浏览器复现，请使用 `/bug-fix`。
+> **Claude Desktop 优先用 preview_* MCP，终端用 agent-browser CLI。禁止使用 Claude in Chrome 扩展。**
 
 立即执行以下步骤：
 
-## 步骤 0：加载技能
-```
-Skill("behavioral-guidelines")
-Skill("agent-browser")
-Skill("browser-testing")
+## 步骤 0：加载技能 + 注册引擎
 
-**引擎驱动**：引擎运行时，测试完成后 `mcp__jarvis-engine__gate_enforce` 验证 Gate C2，`mcp__jarvis-engine__advance_gate` 推进。
+加载 `behavioral-guidelines` `agent-browser` `browser-testing` 三个技能。
+
+**引擎会话注册**（硬约束——引擎确保测试操作不越权）：
+- `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "full" })`
+- 生成测试 Agent 前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_test" })`
+- 测试完成后 `mcp__jarvis-engine__gate_enforce` 验证结果，`mcp__jarvis-engine__advance_gate` 推进状态机
+
+## 步骤 0.5：判断测试工具
+
+### Claude Desktop（有 preview_* MCP 原生工具）
+preview_* 是 Claude Desktop 内置 MCP，**无需浏览器扩展**。全部操作走 preview_*：
+- `preview_start` → 启动开发服务器
+- `preview_snapshot` → 获取页面元素引用（含 UID）
+- `preview_click` / `preview_fill` → 交互操作
+- `preview_screenshot` → 截图留证
+- `preview_console_logs` → 检查 JS 错误
+- `preview_network` → 检查 API 请求状态
+- `preview_resize` → 响应式视口切换
+- `preview_inspect` → 验证 CSS 样式属性
+- `preview_eval` → JS 调试/页面状态查询
+- `preview_logs` → 服务器日志
+- `preview_stop` → 清理停止
+
+**agent-browser CLI 仅用于需要 Chrome 登录态（`--profile "Default"`）的场景。**
+
+### 终端（无 preview_* MCP）
+纯 agent-browser CLI 操作浏览器。先加载文档：
+```bash
+agent-browser skills get core
 ```
 
 ## 步骤 1：确认测试范围
@@ -32,47 +57,47 @@ Skill("browser-testing")
 
 ## 步骤 3：逐条执行测试（不可绕过）
 
-使用 `agent-browser` CLI 工具按优先级从高到低逐条执行。
-
-### 加载最新 CLI 文档
-```bash
-agent-browser skills get core
+### Claude Desktop 执行序列（preview_*）
+```
+1. preview_start({ name: "<server>" })                       # 启动开发服务器
+2. preview_resize({ preset: "mobile|tablet|desktop" })       # 设置视口
+3. preview_snapshot                                          # 获取元素 UID
+4. preview_click({ selector: "button.submit" })              # 点击
+   或 preview_fill({ selector: "#input", value: "text" })    # 填写
+5. preview_screenshot                                        # 截图留证
+6. preview_console_logs({ level: "error" })                  # 检查 JS 异常
+7. preview_network({ filter: "failed" })                     # 检查 API 失败
+8. preview_inspect({ selector: ".btn", styles:["color"] })   # 验证样式
 ```
 
-### 初始化浏览器
+### 终端执行序列（agent-browser CLI）
 ```bash
-agent-browser open <url>                    # 默认无头
-agent-browser --headed open <url>           # 有头模式调试
-agent-browser profile list                  # 查 Chrome profiles（可选）
-agent-browser --profile "Default" open <url> # 复用 Chrome 登录态（可选）
-```
-
-### 每条用例执行序列
-```bash
-1. agent-browser open "<URL>"                            # 导航
-2. agent-browser snapshot -i                             # 获取 @e1, @e2 元素引用
-3. agent-browser click @eN                               # 点击
-   或 agent-browser fill @eN "text"                       # 填写
-   或 agent-browser press "Enter"                         # 按键
-   或 agent-browser select @eN "option"                   # 下拉选择
-4. agent-browser screenshot tc-NNN-step.png               # 截图留证
-   或 agent-browser screenshot --annotate                 # 带标注截图
-5. 验证：
-   - agent-browser snapshot -i                           # 确认预期元素出现/消失
-   - agent-browser get text @eN                          # 确认文本内容
-   - agent-browser console                               # 检查 JS 错误
-   - agent-browser errors                                # 检查未捕获异常
-   - agent-browser network requests --filter api         # 检查 API 状态
+1. agent-browser open "<URL>"                                # 导航
+2. agent-browser snapshot -i                                 # 获取 @e1, @e2 元素引用
+3. agent-browser click @eN                                   # 点击
+   或 agent-browser fill @eN "text"                           # 填写
+   或 agent-browser press "Enter"                             # 按键
+4. agent-browser screenshot tc-NNN-step.png                   # 截图留证
+5. agent-browser console / agent-browser errors               # 检查异常
+6. agent-browser network requests --filter api                # 检查 API
 ```
 
 ### 执行规则
 - 每条用例关键交互后截图
-- 失败立即记录：`agent-browser screenshot` + `agent-browser console` + `agent-browser errors` + `agent-browser network requests`
+- 失败立即记录：截图 + 控制台日志 + 网络错误
 - 前置条件不满足则标记"跳过"，写明原因
-- 页面异常时 `agent-browser close` 清理后重试
-- 不用硬等待；用 `agent-browser wait "<selector>"` 轮询确认元素就绪
+- 不用硬等待；预览模式用 `preview_eval` 轮询，终端用 `agent-browser wait`
+- Claude Desktop 测试结束执行 `preview_stop` 清理
 
-### 响应式验证（按需）
+### 响应式验证（必须覆盖三种视口）
+**Claude Desktop：**
+```
+preview_resize({ preset: "mobile" })   → preview_screenshot
+preview_resize({ preset: "tablet" })   → preview_screenshot
+preview_resize({ preset: "desktop" })  → preview_screenshot
+```
+
+**终端：**
 ```bash
 agent-browser set viewport 375 812   && agent-browser screenshot mobile.png
 agent-browser set viewport 768 1024  && agent-browser screenshot tablet.png
@@ -105,8 +130,9 @@ agent-browser set viewport 1280 800  && agent-browser screenshot desktop.png
 **最多 2 轮修复-重测循环**，第 3 轮仍失败则标记为 BLOCKED 并上报。
 
 ## 红线
+- **禁止使用 Claude in Chrome 扩展**（`mcp__Claude_in_Chrome__*`），Claude Desktop 原生 `preview_*` 即用 preview_*
 - 不写用例直接操作浏览器（缺少可追溯的测试计划）
 - 测试失败不截图（缺少证据）
 - 跳过修复闭环（失败用例不驱动修复，测试失去意义）
 - 在浏览器中执行破坏性操作（删除数据、发起支付等）
-- 用硬等待（sleep/wait）替代 `agent-browser wait` 轮询确认页面状态
+- 用硬等待（sleep/wait）替代轮询确认页面状态

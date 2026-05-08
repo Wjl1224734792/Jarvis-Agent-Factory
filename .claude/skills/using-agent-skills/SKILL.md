@@ -72,8 +72,8 @@ Jarvis 按流程调度子 Agent
 ### 阶段 4：探索（按需）
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
-| `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | docs-researcher Agent |
-| `find-skills` | 搜索和安装开源 Agent 技能 | docs-researcher Agent |
+| `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | docs-research-expert Agent |
+| `find-skills` | 搜索和安装开源 Agent 技能 | docs-research-expert Agent |
 
 ### 阶段 5：实现
 | 技能 | 用途 | 加载者 |
@@ -90,8 +90,8 @@ Jarvis 按流程调度子 Agent
 ### 阶段 6：审查
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
-| `code-review-and-quality` | 五轴审查框架、严重度分级 | review-qa Agent |
-| `code-simplification` | 审查时评估简化机会 | review-qa Agent |
+| `code-review-and-quality` | 五轴审查框架、严重度分级 | qa-review-expert Agent |
+| `code-simplification` | 审查时评估简化机会 | qa-review-expert Agent |
 
 ### 阶段 7：发布上线
 | 技能 | 用途 | 加载者 |
@@ -111,8 +111,8 @@ Jarvis 按流程调度子 Agent
 | `debugging-and-error-recovery` | 系统化调试 | 任何 Agent（遇到 Bug 时） |
 | `documentation-and-adrs` | 架构决策记录 | Jarvis/planner |
 | `context-engineering` | 上下文不足时重置 | 任何 Agent |
-| `agent-browser` | 浏览器自动化 CLI 工具（80+ 命令） | browser-test-worker、browser-test/bug-fix 命令 |
-| `browser-testing` | 浏览器测试方法论（用例格式/执行流程/报告模板） | browser-test-worker（配合 agent-browser） |
+| `agent-browser` | 浏览器自动化 CLI 工具（80+ 命令） | browser-test-expert、browser-test/bug-fix 命令 |
+| `browser-testing` | 浏览器测试方法论（用例格式/执行流程/报告模板） | browser-test-expert（配合 agent-browser） |
 | `code-quality-gate` | Gate C1 四项检查（Lint/Type-check/Build/Deps Audit） | Jarvis（Gate C1 时） |
 | `mcp-builder` | MCP 服务器构建方法论 | 需要构建自定义 MCP 工具的 Agent |
 | `writing-skills` | 技能文件编写与验证 | 创建/编辑技能文件的 Agent |

@@ -11,98 +11,134 @@ argument-hint: [后端需求描述]
    - `Skill("behavioral-guidelines")`
    - `Skill("using-agent-skills")`
 
-   Gate C1 时：`Skill("code-quality-gate")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。
-   Gate E 时：`Skill("shipping-and-launch")`
-   **引擎驱动**：每个 Gate 通过后调用 mcp__jarvis-engine__gate_enforce 验证条件，mcp__jarvis-engine__advance_gate 推进硬状态机。 `Skill("git-workflow-and-versioning")` `Skill("finishing-a-development-branch")`
+2. 注册引擎会话：
+   - `mcp__jarvis-engine__session_join({ platform: "claude", pipeline_type: "backend" })`
 
-2. 判断当前需求是否适合流水线：
-   - ❌ **不适合**：纯信息提问、单 agent 可完成的简单修改、纯文档翻译
-   - ✅ **适合**：API 开发、数据库设计、服务实现、后端重构、性能优化、Bug 修复
+3. 判断是否适合流水线（同 jarvis 模式）：纯信息提问、单 agent 简单修改不适合；API 开发、数据库设计、服务实现、后端重构适合。
 
-3. 你是后端开发编排者。职责：
-   - 直接与用户对话澄清需求——至少确认 1 个关键假设
-   - 模糊时先加载 `idea-refine` 进行结构化提问
+4. 你是后端开发编排者。职责：
+   - 澄清需求，至少确认 1 个关键假设；模糊时加载 `idea-refine`
    - 生成需求文档（`docs/requirements/`），标注 `REQ-XXX`
-   - 通过 Gate A 后 spawn `task-design` Agent
-   - 通过 Gate B 后 spawn `planner` Agent
-   - 涉及新技术栈/数据库架构变更时，Gate B→C 间 spawn `backend-architect` + `database-specialist` 做架构评审
-   - 通过 Gate C 后按 `parallel_batches` 批量 spawn 后端实现 Agent
-   - 交付后通过 Gate D 调用 `review-qa` 做最终评审
+   - 按 Gate 序列推进，不可跳过
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释
-
-4. Gate 闸门（不可绕过）：
-   - **Gate A**：需求文档落盘、状态 confirmed、至少 1 轮提问
-   - **Gate B**：每个 TASK-XXX 映射至少 1 个 REQ-XXX
-   - **Gate C**：计划含 parallel_batches、共享区域唯一责任方
-   - **Gate C1**：Lint + Type-check + Build + Deps Audit 全部通过
-   - **Gate C2**：单元/集成测试全部通过、API 契约一致性验证通过、测试汇总已生成
-   - **Gate D**：实现文档 + diff + 验证证据 + Gate C1/C2 报告齐备
-   - **Gate E**：上线检查清单 + 回滚预案 + 监控告警 + DB 迁移就绪
-
-5. Plan Patch 机制：实现 Agent 若需变更共享契约/DB Schema/路由前缀/根配置，必须提交 plan patch，不得直接修改。
 
 ---
 
-## 后端 Agent 路由
+## 差异化配置
+
+| 配置项 | 值 |
+|--------|---|
+| **pipeline_type** | `backend` |
+| **Gate 序列** | A → B → C → C1 → C2 → D → E（**7 道闸门，跳过 C1.5 视觉验证**） |
+
+### 可用代理路由
 
 | 层级 | subagent_type |
 |------|--------------|
 | 架构设计 | `backend-architect` |
-| 数据库专项 | `database-specialist` |
-| 全栈实现 | `backend-implementer` |
-| API/路由/中间件 | `backend-api-worker` |
-| 业务逻辑/领域 | `backend-service-worker` |
-| 数据层/Schema/迁移 | `backend-data-worker` |
-| 后端测试 | `backend-test-worker` |
-| 性能/负载测试 | `performance-test-worker` |
-| 安全审计 | `security-auditor` |
-| API 文档 | `api-docs-worker` |
-| 基础设施/CI | `infra-worker` |
-| 只读探索（辅助） | `repo-explorer`、`docs-researcher` |
+| 数据库专项 | `database-architect` |
+| 全栈实现 | `backend-dev-expert` |
+| API/路由/中间件 | `backend-api-expert` |
+| 业务逻辑/领域 | `backend-logic-expert` |
+| 数据层/Schema/迁移 | `backend-data-expert` |
+| 后端测试 | `backend-test-expert` |
+| 性能/负载测试 | `perf-test-expert` |
+| 安全审计 | `security-review-expert` |
+| API 文档 | `api-contract-expert` |
+| 基础设施/CI | `infra-deploy-expert` |
+| 只读探索 | `code-explore-expert`、`docs-research-expert` |
 
-## Gate C：批量并行 spawn
+### 典型 Batch 结构
 
-致命错误：planner 返回后，你自己去写代码而没有 spawn 任何 Agent。
+```
+Batch 1: [backend-api-expert, backend-data-expert]     ← API + Schema 可并行
+Batch 2: [backend-logic-expert]                       ← 依赖 Batch 1 契约
+Batch 3: [backend-test-expert, api-contract-expert]         ← 测试 + 文档可并行
+Batch 4: [perf-test-expert]                      ← 负载/压力测试
+Batch 5: [security-review-expert]                             ← 安全审计
+```
 
-1. Read planner 产出的 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
+---
+
+## Gate 流程（公共编排框架）
+
+编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B 任务分解 → Gate C 执行规划 → Gate C 批量 spawn → Gate C1 代码质量 → Gate C2 测试 → Gate D 评审 → Gate E 发布。
+
+**关键差异**：跳过 Gate C1.5（视觉验证），后端无前端页面/组件变更需求。
+
+### 每 Gate 并行机会速查
+
+| Gate | 可并行操作 |
+|------|-----------|
+| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `docs-research-expert` × N（多库并行搜索） |
+| Gate B→C 之间 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
+| Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
+| Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |
+| Gate C2 | `backend-test-expert` + `api-contract-expert` 可并行；`perf-test-expert` 在后 |
+| Gate D | `backend-review-expert` + `security-review-expert` + `perf-review-expert` 并行；完成后 `qa-review-expert` 综合签核 |
+
+### Gate C：批量并行 spawn（同 jarvis 协议）
+
+1. Read planner 产出 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 2. 提取 `parallel_batches`
-3. 每个任务 → 一个 `Agent()` 调用，选择对应的 `subagent_type`
-4. 同 Batch 任务在同一条消息中批量发出
-5. 等待整批完成后检查 plan patch / contract change request
+3. **引擎验证**：spawn 前必须 `gate_check({ operation: "spawn_impl" })` — 若 Gate 不允许则停止，不可绕过
+4. 每个任务 → `Agent()` 调用，选择后端代理路由表中的 `subagent_type`
+5. **同 Batch 任务在同一条消息中批量发出**（不可逐个串行）
+6. 等待整批完成，检查 plan patch / contract change request
 
-**典型后端 Batch 结构**：
-```
-Batch 1: [backend-api-worker, backend-data-worker]     ← API + Schema 可并行
-Batch 2: [backend-service-worker]                       ← 依赖 Batch 1 契约
-Batch 3: [backend-test-worker, api-docs-worker]         ← 测试 + 文档可并行
-Batch 4: [performance-test-worker]                      ← 负载/压力测试
-Batch 5: [security-auditor]                             ← 安全审计
-```
-
-## Gate C2 测试
+### Gate C2：测试
 
 ```
 全部实现 Batch 完成
-  → 步骤 1：spawn backend-test-worker（单元+集成测试）
-  → 步骤 2：spawn api-docs-worker（模式 A：契约一致性验证，轻量对比不写文档）
-     涉及 API 端点变更时必须执行，逐端点对比实现 vs 已有文档
-  → 步骤 3：spawn performance-test-worker（负载/压力/基准测试）
-     如涉及 API 性能要求，不可跳过；使用 k6/Gatling/Locust
-  → 全部通过，汇总 docs/testing/ → Gate C2 通过
-  → 进入 Gate D 评审（spawn review-qa）
+  → [可并行] spawn backend-test-expert + api-contract-expert（模式 A：契约一致性验证，spawn 前 gate_check("spawn_test")）
+  → 全部通过后 spawn perf-test-expert（负载/压力/基准）
+  → 汇总到 docs/testing/ → Gate C2 通过
 ```
 
-## Gate E 发布
+**测试失败回退**：
+1. 任一 agent 测试失败 → 分析失败报告，定位需修复的实现 Agent
+2. spawn 原后端实现 Agent 执行修复（传递测试失败报告），修复后重新跑对应测试
+3. 最多 2 轮修复-重测循环
+4. 2 轮仍失败 → 标记 `BLOCKED`，汇总失败测试和修复历史向用户报告
 
-- spawn `security-auditor`（如未执行）
-- 加载 `shipping-and-launch` 执行上线检查清单
+### API 契约一致性验证
+
+涉及 API 端点变更时必须执行 `api-contract-expert`（模式 A：轻量对比验证）。逐端点对比实现 vs 已有文档，标记漂移项。确保"文档不撒谎"。
+
+**契约漂移回退**：
+1. 漂移项 ≥ 1 → 分析根因（实现改了文档没改 / 文档正确实现有误）
+2. spawn 对应后端实现 Agent 对齐（修改实现或文档），修复后重新验证
+3. 最多 2 轮修复-重验循环
+
+### Gate D：评审
+
+```
+[可并行] 3 个领域审查专家同时启动（spawn 前 gate_check("review")）：
+├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
+├── spawn security-review-expert（安全审计：OWASP/CVE/SAST/密钥检测）
+└── spawn perf-review-expert（性能审计：查询效率/运行时/资源使用）
+
+全部通过后：
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚领域报告）
+```
+
+**审查不通过回退**：
+1. [BLOCKED] → 立即停止，按领域 spawn 对应实现 Agent 修复，修复后**重新走完整 Gate D**
+2. [FIX_REQUIRED] → 按领域回退修复，修复后重 spawn 对应审查 expert + qa-review-expert
+3. 后端审查不通过 → spawn 原后端实现 Agent（`backend-dev-expert` / `backend-api-expert` / `backend-logic-expert` / `backend-data-expert`）
+4. 最多 2 轮审查-修复-重审循环；仍不通过 → 标记 `ABORT`，汇总报告向用户报告
+
+### Gate E：发布
+
+- spawn `security-review-expert`（如 Gate D 未执行；OWASP/CVE/SAST/密钥检测）
 - DB 迁移脚本必须已测试通过
+- 加载 `shipping-and-launch` 执行上线检查清单
 - 加载 `git-workflow-and-versioning` 更新版本与 changelog
-- 上线后监控 30 分钟无异常 → Gate E 通过
 - 加载 `finishing-a-development-branch` 归档
 
-## 故障恢复
+**上线检查不通过**：逐项修复 → 重新执行检查清单 → 最多 2 轮；仍不通过 → 标记 `ABORT`
+
+### 故障恢复
 
 同 jarvis 模式：Agent 失败重试（最多 3 次）、Batch 部分失败仅重试失败任务、Gate 失败回退修复、会话检查点支持中断恢复。
 
