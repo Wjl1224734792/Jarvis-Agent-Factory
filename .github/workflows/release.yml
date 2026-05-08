@@ -94,8 +94,7 @@ jobs:
 
           gh release create "$RELEASE_TAG" \
             --title "$RELEASE_TAG" \
-            --notes-file CHANGELOG.md \
-            --discussion-category "Announcements"
+            --notes-file CHANGELOG.md
 
       - name: Publish to npm
         env:
