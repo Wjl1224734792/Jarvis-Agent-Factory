@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -58,7 +58,7 @@ export function setupApiRoutes(app, db, root) {
 
   // 引擎状态 + MCP 平台接入信息
   app.get('/api/status', (c) => {
-    markStaleSessions(db, 600_000);
+    markStaleSessions(db, 1_800_000); // 30min 超时，与 server.js SESSION_TIMEOUT 一致
     const sessions = getSessions(db, 'active');
     const connectedPlatforms = {};
     for (const p of ['claude', 'opencode', 'codex']) {
@@ -109,7 +109,8 @@ export function setupApiRoutes(app, db, root) {
   app.get('/api/gate/:gate/enforce', (c) => {
     const gate = c.req.param('gate').replace(/_/g, ' ');
     const artifacts = findGateArtifacts(getDocsDir(root), gate);
-    const sid = c.req.query('session_id') || (getSessions(db)[0]?.id);
+    const sid = c.req.query('session_id');
+    if (!sid) return c.json({ error: 'session_id query parameter required' }, 400);
     const checkpoints = getCheckpoints(db, gate, sid);
     const allowed = artifacts.length > 0 || checkpoints.length > 0;
     return c.json({
@@ -124,7 +125,8 @@ export function setupApiRoutes(app, db, root) {
 
   app.post('/api/gate/advance', async (c) => {
     const body = await c.req.json();
-    const sid = body.session_id || (getSessions(db)[0]?.id);
+    const sid = body.session_id;
+    if (!sid) return c.json({ error: 'session_id required in request body' }, 400);
     const pstate = getPipeline(db, sid);
     const pt = pstate?.pipeline_type || DEFAULT_PIPELINE;
     const gateList = getPipelineGates(pt);
@@ -153,7 +155,7 @@ export function setupApiRoutes(app, db, root) {
   });
 
   app.get('/api/sessions', (c) => {
-    markStaleSessions(db, 600_000);
+    markStaleSessions(db, 1_800_000); // 30min 超时，与 server.js SESSION_TIMEOUT 一致
     const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
       return {
@@ -177,6 +179,14 @@ export function setupApiRoutes(app, db, root) {
     resumeSession(db, sid);
     const p = getPipeline(db, sid);
     return c.json({ ok: true, session_id: sid, status: 'active', gate: p?.current_gate || '?' });
+  });
+
+  // Session Model B: 查询 session 的所有 pipeline runs
+  app.get('/api/pipeline-runs', (c) => {
+    const sessionId = c.req.query('session_id');
+    if (!sessionId) return c.json({ error: 'session_id query parameter required' }, 400);
+    const runs = getSessionRuns(db, sessionId);
+    return c.json({ runs, count: runs.length, session_id: sessionId });
   });
 
   const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];

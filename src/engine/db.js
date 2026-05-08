@@ -1,11 +1,16 @@
 import { DatabaseSync } from 'node:sqlite';
-import { join } from 'node:path';
+import { resolve } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
+import { homedir } from 'node:os';
 
-export function openDb(root) {
-  const dir = join(root, '.jarvis');
+/**
+ * 打开引擎数据库，固定存储在 ~/.jarvis/engine.db
+ * @returns {DatabaseSync}
+ */
+export function openDb() {
+  const dir = resolve(homedir(), '.jarvis');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const db = new DatabaseSync(join(dir, 'engine.db'));
+  const db = new DatabaseSync(resolve(dir, 'engine.db'));
   db.exec('PRAGMA journal_mode=WAL');
   db.exec('PRAGMA busy_timeout=5000');
   initSchema(db);
@@ -44,6 +49,20 @@ function initSchema(db) {
       effort TEXT NOT NULL DEFAULT 'high',
       updated_at TEXT NOT NULL
     );
+  `);
+  // pipeline_runs: 每次 /jarvis 调用产生独立运行记录（Session Model B）
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS pipeline_runs (
+      id TEXT PRIMARY KEY,
+      session_id TEXT NOT NULL,
+      project TEXT NOT NULL,
+      pipeline_type TEXT NOT NULL DEFAULT 'full',
+      current_gate TEXT NOT NULL DEFAULT 'Gate A',
+      status TEXT NOT NULL DEFAULT 'active',
+      started_at TEXT NOT NULL,
+      completed_at TEXT
+    );
+    CREATE INDEX IF NOT EXISTS idx_pipeline_runs_session ON pipeline_runs(session_id, started_at DESC);
   `);
   try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch {}
 
@@ -113,14 +132,30 @@ function initSchema(db) {
 
   // ---- 旧列迁移（向后兼容） ----
   try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
+
+  // ---- 迁移旧 pipeline 数据为首条 pipeline_run ----
+  const existingRuns = db.prepare('SELECT COUNT(*) as cnt FROM pipeline_runs').get();
+  if (existingRuns.cnt === 0) {
+    const oldPipelines = db.prepare('SELECT * FROM pipeline').all();
+    for (const p of oldPipelines) {
+      if (!p.session_id) continue;
+      const runId = 'run_' + Date.now() + '_' + p.session_id.slice(-6);
+      db.prepare(`INSERT OR IGNORE INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at)
+        VALUES (?, ?, ?, ?, ?, 'active', ?)`).run(
+        runId, p.session_id, p.project || 'jarvis', p.pipeline_type || 'full', p.current_gate || 'Gate A', p.started_at || new Date().toISOString()
+      );
+    }
+  }
 }
 
 // ---- Pipeline (per-session) ----
 export function getPipeline(db, sessionId) {
-  return db.prepare('SELECT * FROM pipeline WHERE session_id=?').get(sessionId || 'legacy');
+  if (!sessionId) return null;
+  return db.prepare('SELECT * FROM pipeline WHERE session_id=?').get(sessionId);
 }
 export function updatePipelineGate(db, sessionId, gate) {
-  db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId || 'legacy');
+  if (!sessionId) throw new Error('session_id required');
+  db.prepare(`UPDATE pipeline SET current_gate=?, updated_at=datetime('now') WHERE session_id=?`).run(gate, sessionId);
 }
 /** @param {'full'|'frontend'|'backend'} pipelineType */
 export function initPipeline(db, sessionId, project, pipelineType = 'full') {
@@ -132,8 +167,9 @@ export function getAllPipelines(db) {
 
 // ---- Checkpoints (per-session) ----
 export function getCheckpoints(db, gate, sessionId) {
-  if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId || 'legacy');
-  return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId || 'legacy');
+  if (!sessionId) return [];
+  if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId);
+  return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId);
 }
 export function addCheckpoint(db, gate, advanceTo, sessionId) {
   db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, datetime('now'), ?)`).run(sessionId, gate, advanceTo);
@@ -189,4 +225,57 @@ export function getAgentConfig(db) {
 }
 export function setAgentModel(db, agentId, model, effort) {
   db.prepare(`INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, datetime('now'))`).run(agentId, model, effort || 'high');
+}
+
+// ---- Pipeline Runs（Session Model B）----
+
+/**
+ * 创建新的 pipeline run
+ * @param {DatabaseSync} db
+ * @param {string} sessionId
+ * @param {string} project
+ * @param {string} [pipelineType='full']
+ * @returns {string} runId
+ */
+export function createPipelineRun(db, sessionId, project, pipelineType = 'full') {
+  const id = 'run_' + Date.now();
+  db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at)
+    VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'))`).run(id, sessionId, project, pipelineType);
+  return id;
+}
+
+/** 获取指定 run */
+export function getPipelineRun(db, runId) {
+  return db.prepare('SELECT * FROM pipeline_runs WHERE id=?').get(runId);
+}
+
+/**
+ * 获取 session 的当前活跃 run（最新一条 status=active）
+ * @returns {object|undefined}
+ */
+export function getActiveRun(db, sessionId) {
+  return db.prepare("SELECT * FROM pipeline_runs WHERE session_id=? AND status='active' ORDER BY started_at DESC LIMIT 1").get(sessionId);
+}
+
+/**
+ * 获取 session 的所有 runs（按时间倒序）
+ * @returns {object[]}
+ */
+export function getSessionRuns(db, sessionId) {
+  return db.prepare('SELECT * FROM pipeline_runs WHERE session_id=? ORDER BY started_at DESC').all(sessionId);
+}
+
+/** 更新 run 的当前 Gate */
+export function updateRunGate(db, runId, gate) {
+  db.prepare("UPDATE pipeline_runs SET current_gate=? WHERE id=?").run(gate, runId);
+}
+
+/** 完成 run */
+export function completeRun(db, runId) {
+  db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
+}
+
+/** 中止 run */
+export function abortRun(db, runId) {
+  db.prepare("UPDATE pipeline_runs SET status='aborted', completed_at=datetime('now') WHERE id=?").run(runId);
 }

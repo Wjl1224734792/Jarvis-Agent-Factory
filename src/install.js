@@ -55,12 +55,11 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   if (!destExists) mkdirSync(destRoot, { recursive: true });
 
   let totalFiles = 0, totalSkipped = 0;
-  const hashRoot = isGlobal ? globalTarget(platform) : destRoot;
   for (const bucket of INSTALL_BUCKETS) {
     const srcDir = join(srcRoot, bucket);
     const destDir = join(destRoot, bucket);
     if (!existsSync(srcDir)) continue;
-    const stats = mergeDir(srcDir, destDir, hashRoot);
+    const stats = mergeDir(srcDir, destDir);
     totalFiles += stats.files;
     totalSkipped += stats.skipped;
     const tag = existsSync(destDir) && stats.files > 0 ? '~' : '+';
@@ -214,16 +213,16 @@ function fileHash(filePath) {
   catch { return null; }
 }
 
-/** 加载/保存文件 hash 记录 */
-function loadHashes(root) {
-  const f = join(root, '.jarvis', 'file-hashes.json');
+/** 加载/保存文件 hash 记录，统一存储在 ~/.jarvis/file-hashes.json */
+function loadHashes() {
+  const f = resolve(homedir(), '.jarvis', 'file-hashes.json');
   try { return existsSync(f) ? JSON.parse(readFileSync(f, 'utf-8')) : {}; }
   catch { return {}; }
 }
-function saveHashes(root, hashes) {
-  const dir = join(root, '.jarvis');
+function saveHashes(hashes) {
+  const dir = resolve(homedir(), '.jarvis');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(join(dir, 'file-hashes.json'), JSON.stringify(hashes, null, 2));
+  writeFileSync(resolve(dir, 'file-hashes.json'), JSON.stringify(hashes, null, 2));
 }
 
 /**
@@ -233,30 +232,29 @@ function saveHashes(root, hashes) {
  *   - 目标 hash == 旧源 hash → 用户未修改，安全覆盖
  *   - 目标 hash != 旧源 hash → 用户已修改，跳过
  */
-function mergeDir(src, dest, root) {
+function mergeDir(src, dest) {
   let files = 0, dirs = 0, skipped = 0;
   if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
 
-  const hashes = root ? loadHashes(root) : {};
+  const hashes = loadHashes();
 
   for (const entry of readdirSync(src)) {
     if (SKIP_FILES.has(entry)) continue;
     if (entry.startsWith('.') || entry === 'node_modules') continue;
     const sp = join(src, entry), dp = join(dest, entry);
     if (statSync(sp).isDirectory()) {
-      const d = mergeDir(sp, dp, root);
+      const d = mergeDir(sp, dp);
       files += d.files; dirs += d.dirs + 1; skipped += d.skipped;
     } else {
-      const relPath = dp.replace(dest, '').replace(/\\/g, '/');
       const newHash = fileHash(sp);
 
       if (!existsSync(dp)) {
         // 新文件
         copyFileSync(sp, dp);
-        hashes[relPath] = newHash;
+        hashes[dp] = newHash;
         files++;
       } else {
-        const oldHash = hashes[relPath];
+        const oldHash = hashes[dp];
         const destHash = fileHash(dp);
 
         if (newHash === oldHash) {
@@ -265,7 +263,7 @@ function mergeDir(src, dest, root) {
         } else if (!oldHash || destHash === oldHash) {
           // 新安装或用户未修改 → 安全覆盖
           copyFileSync(sp, dp);
-          hashes[relPath] = newHash;
+          hashes[dp] = newHash;
           files++;
         } else {
           // 用户已修改目标文件 → 保留
@@ -275,7 +273,7 @@ function mergeDir(src, dest, root) {
     }
   }
 
-  if (root) saveHashes(root, hashes);
+  saveHashes(hashes);
   return { files, dirs, skipped };
 }
 
