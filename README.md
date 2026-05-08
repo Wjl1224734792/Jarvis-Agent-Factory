@@ -211,7 +211,7 @@ test-doc-writer → test-executor → fix-retest
 2. **同步更新 AGENTS.md / README.md / docs/README.md**
 3. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
 4. 推送双远程（Gitee + GitHub）**含 Tag**
-5. GitHub Actions 自动执行 npm publish + GitHub Release
+5. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release → npm publish）
 6. 验证：`npm view jarvis-agent-factory version` 确认版本
 
 > 每次提交前自问：文档是否需要同步更新？

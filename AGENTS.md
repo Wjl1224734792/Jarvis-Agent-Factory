@@ -127,14 +127,18 @@ git push github main && git push github v<version>
 
 > ⚠️ **必须确保双远程 Tag 同步。** 若 GitHub 网络不通，稍后单独执行 `git push github v<version>` 补推。严禁只推一个远程就结束。
 
-### 5. GitHub Actions 自动发布 npm + Release
+### 5. GitHub Actions 自动发布
 
-推送 Tag 到 GitHub 后，CI 流水线（`.github/workflows/ci.yml`）自动执行：
-- `npm run lint && npm run typecheck && npm run test && npm run build`
-- 创建 GitHub Release（`gh release create`）
-- 发布到 npm（`npm publish`）—— 需要 `NPM_TOKEN` secret
+两个工作流分工明确：
 
-> 无需手动 `npm publish`。若 CI 失败，检查 GitHub Actions 日志。
+| 工作流 | 触发条件 | 职责 |
+|--------|---------|------|
+| `.github/workflows/ci.yml` | push/PR to main | Lint + Type-check + Test + Build |
+| `.github/workflows/release.yml` | Tag `v*` 推送 | 质量检查 → 生成 Changelog → 创建 GitHub Release → npm publish → 验证版本 |
+
+推送 Tag 到 GitHub 后，Release 工作流自动执行全流程，无需手动 `npm publish`。
+
+> 若 Release 失败，检查 GitHub Actions 日志。需要 `NPM_TOKEN` secret 配置在仓库 Settings → Secrets 中。
 
 ### 6. 验证（三项全部确认）
 

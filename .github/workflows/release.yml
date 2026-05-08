@@ -4,33 +4,113 @@ on:
   push:
     tags:
       - "v*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Tag to release (e.g. v3.24.0)'
+        required: true
 
 jobs:
+  check:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [22.x]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          registry-url: 'https://registry.npmjs.org'
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run test
+      - run: npm run build
+
   release:
+    needs: check
     runs-on: ubuntu-latest
     permissions:
       contents: write
+      id-token: write
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: Generate Release Notes
-        run: |
-          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
-          if [ -z "$PREV_TAG" ]; then
-            git log --oneline --no-merges > release-notes.txt
-          else
-            git log --oneline --no-merges ${PREV_TAG}..HEAD > release-notes.txt
-          fi
-          echo "" >> release-notes.txt
-          echo "---" >> release-notes.txt
-          echo "Full Changelog: https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/CHANGELOG.md" >> release-notes.txt
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
 
-      - name: Create Release
+      - run: npm ci
+      - run: npm run build
+
+      - name: Generate Changelog
+        run: |
+          RELEASE_TAG=${GITHUB_REF_NAME}
+          if [ -n "${{ inputs.tag }}" ]; then
+            RELEASE_TAG=${{ inputs.tag }}
+          fi
+
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD^ 2>/dev/null || echo "")
+
+          echo "## $RELEASE_TAG" > CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "**发布时间:** $(date -u '+%Y-%m-%d %H:%M UTC')" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo "### 变更记录" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+
+          if [ -z "$PREV_TAG" ]; then
+            echo "📦 初始版本发布" >> CHANGELOG.md
+          else
+            echo '```' >> CHANGELOG.md
+            git log --oneline --no-merges ${PREV_TAG}..HEAD >> CHANGELOG.md
+            echo '```' >> CHANGELOG.md
+          fi
+
+          echo "" >> CHANGELOG.md
+          echo "### 安装" >> CHANGELOG.md
+          echo "" >> CHANGELOG.md
+          echo '```bash' >> CHANGELOG.md
+          echo "npm i -g jarvis-agent-factory@latest" >> CHANGELOG.md
+          echo '```' >> CHANGELOG.md
+
+          echo "" >> CHANGELOG.md
+          echo "---" >> CHANGELOG.md
+          echo "Full Changelog: https://github.com/Wjl1224734792/Jarvis-Agent-Factory/blob/main/CHANGELOG.md" >> CHANGELOG.md
+
+      - name: Create GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create ${{ github.ref_name }} \
-            --title "${{ github.ref_name }}" \
-            --notes-file release-notes.txt
+          RELEASE_TAG=${GITHUB_REF_NAME}
+          if [ -n "${{ inputs.tag }}" ]; then
+            RELEASE_TAG=${{ inputs.tag }}
+            git fetch --tags
+          fi
+
+          gh release create "$RELEASE_TAG" \
+            --title "$RELEASE_TAG" \
+            --notes-file CHANGELOG.md \
+            --discussion-category "Announcements"
+
+      - name: Publish to npm
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish
+
+      - name: Verify Publish
+        run: |
+          echo "Waiting for npm registry to update..."
+          sleep 10
+          PUBLISHED_VERSION=$(npm view jarvis-agent-factory version 2>/dev/null || echo "unknown")
+          echo "npm published version: $PUBLISHED_VERSION"
+          echo "expected tag: ${GITHUB_REF_NAME#v}"
+          if [ "$PUBLISHED_VERSION" = "${GITHUB_REF_NAME#v}" ]; then
+            echo "Version verified!"
+          else
+            echo "Warning: Version mismatch or npm not yet updated"
+          fi
