@@ -15,7 +15,7 @@ const PKG = JSON.parse(readFileSync(resolve(PKG_ROOT, 'package.json'), 'utf-8'))
 const PKG_VERSION = PKG.version;
 const PKG_NAME = PKG.name;
 
-const PLATFORMS = {
+const PLATFORMS: Record<string, { dir: string; desc: string }> = {
   claude:   { dir: '.claude',  desc: 'Claude Code — 47 agents + 15 commands + 27 skills' },
   opencode: { dir: '.opencode', desc: 'OpenCode — 55 agents + 27 skills (agent switching)' },
   codex:    { dir: '.codex',   desc: 'Codex — 45 agents + 42 skills (skill-triggered)' },
@@ -66,9 +66,9 @@ Examples:
 
 function showHelp() { console.log(HELP); }
 
-function parseArgs(raw) {
-  const opts = { yes: false, global: false, globalExplicit: false };
-  const positional = [];
+function parseArgs(raw: string[]) {
+  const opts: Record<string, boolean> = { yes: false, global: false, globalExplicit: false };
+  const positional: string[] = [];
   for (const a of raw) {
     if (a === '-y' || a === '--yes') opts.yes = true;
     else if (a === '-g' || a === '--global') { opts.global = true; opts.globalExplicit = true; }
@@ -136,7 +136,7 @@ export async function run() {
     }
 
     case 'add': {
-      const platforms = [];
+      const platforms: string[] = [];
       let path = '.';
       for (let i = 1; i < positional.length; i++) {
         const p = positional[i];
@@ -161,7 +161,7 @@ export async function run() {
 
     case 'remove':
     case 'rm': {
-      const platforms = [];
+      const platforms: string[] = [];
       let path = '.';
       for (let i = 1; i < positional.length; i++) {
         const p = positional[i];

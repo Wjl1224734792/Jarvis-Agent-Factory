@@ -77,10 +77,10 @@ function inferRole(fileName, desc) {
 }
 
 /** 解析 .md frontmatter → { model, effort, reasoningEffort, description } */
-function parseMdFrontmatter(content) {
+function parseMdFrontmatter(content: string): Record<string, string> {
   const m = content.match(/^---\s*\n([\s\S]*?)\n---/);
   if (!m) return {};
-  const fm = {};
+  const fm: Record<string, string> = {};
   for (const line of m[1].split('\n')) {
     const kv = line.match(/^(\w[\w-]*)\s*:\s*(.+)$/);
     if (kv) fm[kv[1]] = kv[2].trim();
@@ -89,8 +89,8 @@ function parseMdFrontmatter(content) {
 }
 
 /** 解析 .toml frontmatter → { model, model_reasoning_effort, description, name } */
-function parseTomlFrontmatter(content) {
-  const fm = {};
+function parseTomlFrontmatter(content: string): Record<string, string> {
+  const fm: Record<string, string> = {};
   for (const line of content.split('\n')) {
     const kv = line.match(/^(\w+)\s*=\s*"([^"]*)"\s*$/);
     if (kv) fm[kv[1]] = kv[2];
@@ -99,10 +99,10 @@ function parseTomlFrontmatter(content) {
 }
 
 /** 扫描单个平台的所有 agent */
-function scanPlatform(platformKey, config) {
+function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string; pluginExt?: string }): { agents: AgentItem[]; fileMap: AgentFileMap } {
   const platformDir = resolve(TEMPLATES_DIR, config.dir);
-  const agents = [];
-  const fileMap = {};
+  const agents: AgentItem[] = [];
+  const fileMap: AgentFileMap = {};
 
   for (const subdir of config.subdirs) {
     const dir = join(platformDir, subdir);
@@ -158,7 +158,7 @@ function scanPlatform(platformKey, config) {
         subdir,
       });
 
-      fileMap[id] = { base: installBase, type: config.type };
+      fileMap[id] = { base: installBase, type: config.type as 'md' | 'toml' };
     }
   }
 
@@ -167,13 +167,18 @@ function scanPlatform(platformKey, config) {
 
 // ---- 导出 ----
 
-/** @type {Array<{id, name, role, icon, platform, defaultModel, defaultEffort, category?}>} */
-let _agentList = null;
-/** @type {Record<string, {base:string, type:'md'|'toml'}>} */
-let _agentFiles = null;
+type AgentItem = {
+  id: string; name: string; role: string; icon: string;
+  platform: string; defaultModel: string; defaultEffort: string;
+  category?: string; fileName?: string; subdir?: string;
+};
+type AgentFileMap = Record<string, { base: string; type: 'md' | 'toml' }>;
 
-/** @param {boolean} [force] -- 强制重新扫描模板目录 */
-export function getAgentList(force) {
+let _agentList: AgentItem[] | null = null;
+let _agentFiles: AgentFileMap | null = null;
+
+/** 强制重新扫描模板目录 */
+export function getAgentList(force?: boolean): AgentItem[] {
   if (force || !_agentList) {
     _agentList = [];
     _agentFiles = {};
@@ -186,14 +191,14 @@ export function getAgentList(force) {
   return _agentList;
 }
 
-/** @param {boolean} [force] -- 强制重新扫描 */
-export function getAgentFiles(force) {
+/** 强制重新扫描 */
+export function getAgentFiles(force?: boolean): AgentFileMap | null {
   if (force || !_agentFiles) getAgentList(force);
   return _agentFiles;
 }
 
 /** 按平台筛选 agent 列表，force 强制重新扫描 */
-export function getAgentsByPlatform(platform, force) {
+export function getAgentsByPlatform(platform: string, force?: boolean): AgentItem[] {
   return getAgentList(force).filter(a => a.platform === platform);
 }
 
@@ -203,9 +208,9 @@ export function getPlatforms() {
 }
 
 /** 按平台分组的可用模型，force 强制重新扫描 */
-export function getPlatformModels(force) {
+export function getPlatformModels(force?: boolean): Record<string, string[]> {
   const agents = getAgentList(force);
-  const models = {};
+  const models: Record<string, Set<string>> = {};
   for (const a of agents) {
     if (!models[a.platform]) models[a.platform] = new Set();
     if (a.defaultModel) models[a.platform].add(a.defaultModel);

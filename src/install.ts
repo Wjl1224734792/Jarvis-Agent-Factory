@@ -88,7 +88,7 @@ function installHooks(platform, target, isGlobal) {
     const claudeDir = resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
     const file = resolve(claudeDir, 'settings.json');
-    let existing = {};
+    let existing: Record<string, any> = {};
     if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
     if (!existing.hooks) { existing.hooks = hookJson; writeFileSync(file, JSON.stringify(existing, null, 2)); console.log('  🔗 hooks → .claude/settings.json'); }
     else console.log('  ~ hooks already configured');

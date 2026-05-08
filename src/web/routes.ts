@@ -12,11 +12,13 @@ const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 /** 按平台分组可用模型 */
 const PLATFORM_MODELS = getPlatformModels();
 
+type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSSE: (data: any) => Promise<void>; sleep: (ms: number) => Promise<void> };
+
 /** SSE 客户端集合：存储 { stream, db, root } 引用 */
-let sseClients = [];
-let sseDbRef = null;
-let sseRootRef = null;
-let _sseTimer = null;
+let sseClients: SSEClient[] = [];
+let sseDbRef: any = null;
+let sseRootRef: string | null = null;
+let _sseTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
  * 向所有 SSE 客户端广播最新会话数据
@@ -39,7 +41,7 @@ export function broadcastSSE() {
     }),
     count: sessions.length,
   });
-  const stale = [];
+  const stale: SSEClient[] = [];
   for (const client of sseClients) {
     try {
       client.writeSSE({ data }).catch(() => stale.push(client));
@@ -271,7 +273,7 @@ export function setupApiRoutes(app, db, root) {
   // ---- SSE 事件流 ----
   app.get('/api/events', (c) => {
     return streamSSE(c, async (stream) => {
-      const client = stream;
+      const client = stream as unknown as SSEClient;
       sseClients.push(client);
       // 发送初始连接确认
       await client.writeSSE({ data: JSON.stringify({ connected: true }) });

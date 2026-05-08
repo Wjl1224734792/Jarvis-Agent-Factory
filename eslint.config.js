@@ -1,7 +1,9 @@
 import js from '@eslint/js';
+import tseslint from 'typescript-eslint';
 
 export default [
   js.configs.recommended,
+  ...tseslint.configs.recommended,
   {
     rules: {
       'no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
@@ -10,6 +12,8 @@ export default [
       'no-empty': ['error', { allowEmptyCatch: true }],
       'prefer-const': 'warn',
       'no-var': 'error',
+      '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-explicit-any': 'off',
     },
     languageOptions: {
       ecmaVersion: 2024,
@@ -45,7 +49,7 @@ export default [
       'docs/',
       'src/templates/',
       '*.config.js',
-      'vitest.config.js',
+      '*.config.ts',
     ],
   },
 ];

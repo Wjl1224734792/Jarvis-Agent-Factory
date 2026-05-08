@@ -17,8 +17,9 @@ const TOML_DESC_MODEL_RE = /^model\s*=\s*"gpt-[^"]+"/m;
  * Write model and effort back to the agent's source file.
  * Returns true if file was updated.
  */
-export function syncAgentFile(root, agentId, model, effort) {
-  const AGENT_FILES = getAgentFiles();
+export function syncAgentFile(root: string, agentId: string, model: string, effort: string): boolean {
+  const AGENT_FILES = getAgentFiles(true);
+  if (!AGENT_FILES) return false;
   const mapping = AGENT_FILES[agentId];
   if (!mapping) return false;
 

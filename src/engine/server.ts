@@ -116,9 +116,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     const honoHandler = getRequestListener(app.fetch);
 
     const httpServer = createHttpServer(async (req, res) => {
-      if (req.url.startsWith('/mcp')) {
+      if (req.url?.startsWith('/mcp')) {
         let body;
-        if (['POST', 'DELETE'].includes(req.method)) {
+        if (['POST', 'DELETE'].includes(req.method!)) {
           body = await new Promise((resolve) => {
             let data = '';
             req.on('data', chunk => data += chunk);
@@ -540,7 +540,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
       reqHeaders['content-type'] = 'application/json';
     }
 
-    let body = undefined;
+    let body: string | undefined = undefined;
     if (['POST', 'PUT', 'PATCH'].includes(c.req.method)) {
       body = await c.req.raw.clone().text();
     }
