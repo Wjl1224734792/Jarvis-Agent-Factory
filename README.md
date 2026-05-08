@@ -1,13 +1,13 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.21.5-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
+[![Version](https://img.shields.io/badge/version-v3.24.0-green)](https://gitee.com/wujl1124/JarvisAgentFactory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.21.5** — MCP stdio 自动拉起引擎 · 零手动启动 · Web 面板独立按需 · 防重复启动
+> **v3.24.0** — Web Dashboard 会话管理（命名/归档/置顶/Hash路由）· 浏览器测试文档驱动工作流 · npm CLI 执行优化
 
 ## 快速开始
 
@@ -28,8 +28,10 @@ jarvis web                       # 启动 Web 面板（按需）
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
-| **Web 面板** | 独立启动 Dashboard + MCP 平台接入状态 + 会话列表 + 平台筛选 + Agent 模型配置 |
+| **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
+| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 平台筛选 |
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md`/`.toml` 源文件 |
+| **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
 | **三平台 Hook/Plugin** | Claude hooks + OpenCode 原生插件 + Codex hooks 全覆盖 |
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
@@ -53,7 +55,7 @@ jarvis web                       # 启动 Web 面板（按需）
                                
     Web Panel (:3457) — 独立按需启动
     ┌───────────────────────────────┐
-    │  流水线看板 + Agent模型配置    │
+    │  流水线看板 + 归档 + Agent配置  │
     │  API 代理 → Engine (:3456)    │
     └───────────────────────────────┘
 ```
@@ -109,12 +111,37 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 使用 `jarvis web` 独立启动（需先运行 `jarvis engine start`），默认端口 3457。
 
-| 页面 | 路径 | 功能 |
-|------|------|------|
-| 流水线看板 | `/dashboard` | Gate 进度 · MCP 平台接入状态 · 会话列表 · Gate 推进 · 平台筛选 |
-| 智能体配置 | `/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
+| 页面 | Hash 路由 | 功能 |
+|------|----------|------|
+| 流水线看板 | `#/dashboard` | 会话列表（任务名/指令标签/Gate状态）· MCP 平台接入状态 · 置顶/归档/删除 · 3-dot 操作菜单 |
+| 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
+| 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
 
 侧边栏实时显示各平台（Claude Code / OpenCode / Codex）的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
+
+### 会话管理操作
+
+| 操作 | 说明 |
+|------|------|
+| 设置名称 | MCP 工具 `session_set_name` → 替代会话 ID 显示 |
+| 置顶 | 将活跃运行置顶到会话列表最前（📌 图标） |
+| 归档 | 将运行记录移入归档面板，从看板隐藏 |
+| 删除 | 永久删除运行记录（需确认，不可恢复） |
+
+归档后的运行记录可在「归档记录」页面搜索、恢复或永久删除。
+
+## 浏览器测试工作流
+
+```
+test-doc-writer → test-executor → fix-retest
+   (编写用例)       (按文档执行)      (失败→修复→复测)
+```
+
+专为浏览器自动化测试设计的文档驱动闭环，集成在 Gate C2 阶段：
+
+1. **test-doc-writer** — 编写结构化测试用例文档（步骤、预期结果），不执行测试
+2. **test-executor** — 严格按照文档执行测试，产出通过/失败清单报告
+3. **fix-retest** — 分析失败用例，spawn 对应修复 Agent，最多 2 轮修复-重测
 
 ## 三平台 MCP 配置
 
@@ -155,7 +182,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 
 | | Claude Code | OpenCode | Codex |
 |---|:--:|:--:|:--:|
-| Agents | 49 | 55 | 45 |
+| Agents | 52 | 58 | 48 |
 | Commands | 16 | 0 | 0 |
 | Skills | 28 | 28 | 42 |
 | 钩子 | settings.json | 原生插件 (.ts) | hooks.json |
@@ -173,9 +200,21 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 操作前 Gate 检查 | `gate_check` MCP 工具 | 🔄 自动 |
 | 流程指引 | `pipeline_guide` MCP 工具 | 👆 按需 |
 | 平台信息 | `platform_info` MCP 工具 | 👆 按需 |
+| 会话命名 | `session_set_name` MCP 工具 | 👆 按需 |
 | 流水线状态 | Dashboard + SSE 实时推送 | 👆 按需 |
 | 会话隔离 | 每 session_id 独立 pipeline | 🔄 自动 |
 | 文件同步 | Web 配置 → `.md`/`.toml` | 👆 保存时触发 |
+
+## 发布流程
+
+1. 更新 `package.json` 版本号（语义化版本）
+2. **同步更新 AGENTS.md / README.md / docs/README.md**
+3. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
+4. 推送双远程（Gitee + GitHub）**含 Tag**
+5. GitHub Actions 自动执行 npm publish + GitHub Release
+6. 验证：`npm view jarvis-agent-factory version` 确认版本
+
+> 每次提交前自问：文档是否需要同步更新？
 
 ## License
 

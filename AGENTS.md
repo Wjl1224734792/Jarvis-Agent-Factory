@@ -4,6 +4,16 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 > 架构概览见 [CLAUDE.md](./CLAUDE.md) 和 [README.md](./README.md)
 
+## 🔴 文档同步约束（每次提交必须检查）
+
+**每次提交代码必须同步更新以下文档，确保文档与项目状态一致：**
+
+- **AGENTS.md**（本文件）— Agent 列表、技能列表、统计数字、关键约束
+- **README.md** — 版本号、特性列表、Web 面板页面、统计数据、CLI 命令
+- **docs/README.md** — 流水线产物目录结构
+
+> 提交前自问：我改了什么？AGENTS.md / README.md / docs/README.md 需要同步更新吗？
+
 ## 项目类型
 
 跨平台多智能体配置工程（非业务应用代码），三平台：`.claude/`（Claude Code）、`.opencode/`（OpenCode）、`.codex/`（Codex）。
@@ -20,8 +30,9 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 ## 工作模式
 
 | 模式 | Claude Code | OpenCode | Codex |
-|------|------------|----------|-------|
+|------|-----------|----------|-------|
 | 全栈编排 | `/jarvis` | 切换到 `jarvis` agent | 加载 `jarvis` skill |
+| 轻量编排 | `/jarvis-lite` | 切换到 `jarvis-lite` agent | 加载 `jarvis-lite` skill |
 | 前端生命周期 | `/frontend` | 切换到 `frontend` agent | 加载 `frontend` skill |
 | 后端生命周期 | `/backend` | 切换到 `backend` agent | 加载 `backend` skill |
 | 移动端开发 | `/taro` `/android` `/ios` `/expo` `/flutter` | 切换到对应 agent | 加载对应 skill |
@@ -31,6 +42,29 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 审查修复闭环 | `/review-fix` | 切换到 `review-fix-optimize` agent | 加载 `review-fix-optimize` skill |
 | 算法专家 | `/algorithm-expert` | 切换到 `algorithm-expert` agent | 加载 `algorithm-expert` skill |
 | 架构对话 | `/frontend-architect` `/backend-architect` | 切换到对应 agent | 加载对应 skill |
+
+## Web 面板
+
+| 页面 | Hash 路由 | 功能 |
+|------|----------|------|
+| 流水线看板 | `#/dashboard` | 会话列表 · 指令标签 · Gate 进度 · MCP 平台接入状态 · 置顶/归档/删除 |
+| 归档记录 | `#/archive` | 已归档运行记录 · 搜索过滤 · 恢复/永久删除 |
+| 智能体配置 | `#/agents` | Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
+
+会话命名：通过 MCP 工具 `session_set_name` 给运行记录设置任务名称，Web 面板优先显示任务名而非会话 ID。
+
+## 浏览器测试文档驱动工作流
+
+```
+测试文档编写者 → 测试执行者 → 修复复测者
+(test-doc-writer)  (test-executor)  (fix-retest)
+```
+
+1. **test-doc-writer** — 编写测试用例文档（结构化步骤、预期结果），不执行测试
+2. **test-executor** — 按照文档执行测试，输出通过/失败清单，不编写用例
+3. **fix-retest** — 分析失败用例，spawn 修复 Agent，最多 2 轮修复-重测循环
+
+此工作流已集成到 Gate C2 测试验证阶段。
 
 ## 浏览器自动化
 
@@ -55,11 +89,10 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 9. **垂直切片优先** — 任务按端到端功能拆分，非技术层级
 10. **Agent 失败重试** — 超时重试最多 2 次 / 3 次全失败标记 BLOCKED
 11. **修改完必须测试** — 每次代码变更后验证功能正常，引擎启动无误，CLI 命令可用
-12. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 Gitee + GitHub + npm
+12. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 Gitee + GitHub，GitHub Actions 自动发布 npm
+13. **提交必须同步文档** — 每次提交检查 AGENTS.md / README.md / docs/README.md 是否需要更新
 
 ## 🚀 发布流程（每次变更完成后必须执行）
-
-修改完成且测试通过后，按以下步骤发布新版本：
 
 ### 1. 更新版本号
 
@@ -68,7 +101,11 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 - **minor** (`x.Y.z`) — 新功能、新参数、向后兼容增强
 - **major** (`X.y.z`) — 破坏性变更、架构重写
 
-### 2. 提交并打 Tag
+### 2. 同步文档
+
+检查并更新 AGENTS.md / README.md / docs/README.md，确保版本号、特性列表、统计数据与代码一致。
+
+### 3. 提交并打 Tag
 
 ```bash
 git add <changed-files>
@@ -76,7 +113,7 @@ git commit -m "<type>: <简短描述>"
 git tag -a v<version> -m "v<version> - <概要>"
 ```
 
-### 3. 推送到双远程 + 同步 Tag
+### 4. 推送到双远程 + 同步 Tag
 
 ```bash
 git push origin main && git push origin v<version>
@@ -90,20 +127,14 @@ git push github main && git push github v<version>
 
 > ⚠️ **必须确保双远程 Tag 同步。** 若 GitHub 网络不通，稍后单独执行 `git push github v<version>` 补推。严禁只推一个远程就结束。
 
-### 4. 同步 Release
+### 5. GitHub Actions 自动发布 npm + Release
 
-GitHub/Gitee 会根据 Tag 自动生成 Release（若配置了 CI）。若无 CI，手动创建：
+推送 Tag 到 GitHub 后，CI 流水线（`.github/workflows/ci.yml`）自动执行：
+- `npm run lint && npm run typecheck && npm run test && npm run build`
+- 创建 GitHub Release（`gh release create`）
+- 发布到 npm（`npm publish`）—— 需要 `NPM_TOKEN` secret
 
-- **Gitee**: https://gitee.com/wujl1124/JarvisAgentFactory/releases → 「新增发布」→ 选择 Tag → 填写更新日志
-- **GitHub**: https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases → 「Draft a new release」→ 选择 Tag → 填写更新日志
-
-### 5. 发布到 npm
-
-```bash
-npm publish
-```
-
-> npm 发布需要有效的 `//registry.npmjs.org/:_authToken` 配置。
+> 无需手动 `npm publish`。若 CI 失败，检查 GitHub Actions 日志。
 
 ### 6. 验证（三项全部确认）
 
@@ -114,7 +145,6 @@ git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
 ```
 
 > 🔴 **验证标准：三个平台的版本号和 Tag SHA 必须一致。** 任一缺失立即补推。
-```
 
 ## 技能体系
 
@@ -139,7 +169,7 @@ git ls-remote --tags github | grep "v<version>"          # 确认 GitHub tag
 `frontend-implementer` `frontend-ui-worker` `frontend-state-worker` `frontend-test-worker` `backend-implementer` `backend-api-worker` `backend-service-worker` `backend-data-worker` `backend-test-worker` `taro-worker` `taro-ui-worker` `taro-state-worker` `android-worker` `android-ui-worker` `android-state-worker` `ios-worker` `ios-ui-worker` `ios-state-worker` `react-native-worker` `rn-ui-worker` `rn-state-worker` `flutter-worker` `flutter-ui-worker` `flutter-state-worker`
 
 ### 测试类
-`browser-test-worker` `e2e-test-worker` `performance-test-worker`
+`browser-test-worker` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `fix-retest`
 
 ### 规划评审类
 `task-design` `planner` `review-qa`
