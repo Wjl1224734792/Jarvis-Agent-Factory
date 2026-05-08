@@ -92,9 +92,14 @@ jobs:
             git fetch --tags
           fi
 
-          gh release create "$RELEASE_TAG" \
-            --title "$RELEASE_TAG" \
-            --notes-file CHANGELOG.md
+          if gh release view "$RELEASE_TAG" &>/dev/null; then
+            echo "Release exists, updating..."
+            gh release edit "$RELEASE_TAG" --title "$RELEASE_TAG" --notes-file CHANGELOG.md
+          else
+            gh release create "$RELEASE_TAG" \
+              --title "$RELEASE_TAG" \
+              --notes-file CHANGELOG.md
+          fi
 
       - name: Publish to npm
         env:
