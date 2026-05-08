@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig } from '../src/engine/db.js';
+import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName } from '../src/engine/db.js';
 
 describe('Sessions CRUD', () => {
   let db;
@@ -94,5 +94,71 @@ describe('Agent Config', () => {
     expect(cfg['test-agent']).toBeTruthy();
     expect(cfg['test-agent'].model).toBe('claude-sonnet-4-6');
     expect(cfg['test-agent'].effort).toBe('high');
+  });
+});
+
+describe('Pipeline Run Task Name', () => {
+  let db;
+  const testSid = 'test_taskname_' + Date.now();
+
+  beforeEach(() => {
+    db = openDb();
+    addSession(db, testSid, 'claude', 'member');
+  });
+
+  it('设置有效任务名返回 ok: true', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    const result = setRunTaskName(db, runId, '给web增加归档功能');
+    expect(result.ok).toBe(true);
+    expect(result.task_name).toBe('给web增加归档功能');
+    expect(result.error).toBeUndefined();
+
+    // 验证数据库持久化
+    const run = getPipelineRun(db, runId);
+    expect(run.task_name).toBe('给web增加归档功能');
+  });
+
+  it('空字符串清除任务名为 null', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    setRunTaskName(db, runId, '初始任务名');
+    const result = setRunTaskName(db, runId, '');
+    expect(result.ok).toBe(true);
+    expect(result.task_name).toBeNull();
+
+    const run = getPipelineRun(db, runId);
+    expect(run.task_name).toBeNull();
+  });
+
+  it('纯空白字符串视为清除', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    setRunTaskName(db, runId, '任务X');
+    const result = setRunTaskName(db, runId, '   ');
+    expect(result.ok).toBe(true);
+    expect(result.task_name).toBeNull();
+  });
+
+  it('不存在的 runId 返回错误', () => {
+    const result = setRunTaskName(db, 'run_nonexistent', 'test');
+    expect(result.ok).toBe(false);
+    expect(result.error).toContain('not found');
+    expect(result.task_name).toBeNull();
+  });
+
+  it('空 runId 返回错误', () => {
+    const result = setRunTaskName(db, '', 'test');
+    expect(result.ok).toBe(false);
+    expect(result.error).toBe('runId required');
+    expect(result.task_name).toBeNull();
+  });
+
+  it('更新已有任务名覆盖旧值', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    setRunTaskName(db, runId, '旧任务名');
+    const result = setRunTaskName(db, runId, '新任务名');
+    expect(result.ok).toBe(true);
+    expect(result.task_name).toBe('新任务名');
+
+    const run = getPipelineRun(db, runId);
+    expect(run.task_name).toBe('新任务名');
   });
 });

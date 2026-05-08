@@ -9,8 +9,8 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel, createPipelineRun, getPipelineRun, getActiveRun, getSessionRuns, updateRunGate, completeRun } from './db.js';
-import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, DEFAULT_PIPELINE } from './gates.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel, createPipelineRun, getPipelineRun, getActiveRun, getSessionRuns, updateRunGate, completeRun, setRunTaskName } from './db.js';
+import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
 
@@ -236,6 +236,20 @@ function registerMcpTools(server, db, root) {
       return resp({ ok: true, message: 'Session removed.' });
     });
 
+  server.tool('session_set_name',
+    '设置当前流水线运行的任务名称。空字符串清除名称。',
+    {
+      name: z.string().describe('任务名称（如"给web增加归档功能"），空字符串清除名称'),
+    },
+    async ({ name }, extra) => {
+      const sid = resolveSid(extra);
+      if (!sid) return resp({ ok: false, error: 'session_id required. Call session_join first.' });
+      const run = getActiveRun(db, sid);
+      if (!run) return resp({ ok: false, error: 'No active pipeline run found. Call pipeline_init first.' });
+      const result = setRunTaskName(db, run.id, name);
+      return resp(result);
+    });
+
   server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
     { project_name: z.string().optional(), pipeline_type: z.string().optional() },
     async ({ project_name, pipeline_type }, extra) => {
@@ -418,23 +432,14 @@ function registerMcpTools(server, db, root) {
       const cur = p?.current_gate || gateList[0];
       const ci = gateList.indexOf(cur);
       const ops = getGateOperations(cur);
-      const agentGuide = {
-        'Gate A':    { can_spawn: ['code-explore-expert', 'docs-research-expert'], note: '需求澄清阶段，只探索和写文档' },
-        'Gate B':    { can_spawn: ['task-design'], note: '任务分解阶段，spawn task-design 做垂直切片' },
-        'Gate C':    { can_spawn: ['planner', 'frontend-architect', 'backend-architect', 'database-architect'], note: '规划阶段，spawn planner 产出 parallel_batches；按需做架构评审' },
-        'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
-        'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
-        'Gate C2':   { can_spawn: ['frontend-test-expert', 'backend-test-expert', 'browser-test-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——先并行单元/组件测试，最后E2E' },
-        'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert'], note: '评审阶段——4个领域审查并行，最后qa-review-expert综合签核' },
-        'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert'], note: '发布阶段——安全审计+上线检查+版本管理+归档' },
-      };
+      const agentGuide = getGateAgentGuide(cur);
       return resp({
         session_id: sid, gate: cur, gate_index: ci + 1, total_gates: gateList.length,
         pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
         pipeline_name: getPipelineName(p?.pipeline_type || DEFAULT_PIPELINE),
         run_id: runId,
         allowed_operations: ops.allow, forbidden_operations: ops.deny,
-        agent_spawn: agentGuide[cur] || { can_spawn: [], note: '未知Gate' },
+        agent_spawn: agentGuide || { can_spawn: [], note: '未知Gate' },
         gate_requirement: GATE_CHECKS[cur]?.check || '',
         next_gate: gateList[ci + 1] || 'Complete',
         previous_gate: ci > 0 ? gateList[ci - 1] : null,
@@ -581,6 +586,8 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     c.html(readFileSync(resolve(viewsDir, 'pipeline.html'), 'utf-8')));
   app.get('/agents', (c) =>
     c.html(readFileSync(resolve(viewsDir, 'agents.html'), 'utf-8')));
+  app.get('/archive', (c) =>
+    c.html(readFileSync(resolve(viewsDir, 'archive.html'), 'utf-8')));
 
   serve({ fetch: app.fetch, port, hostname: BIND_HOST });
 

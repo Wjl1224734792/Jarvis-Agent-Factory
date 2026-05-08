@@ -2,7 +2,7 @@ import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { readdirSync, existsSync } from 'node:fs';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
 import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -30,6 +30,7 @@ export function broadcastSSE() {
   const data = JSON.stringify({
     sessions: sessions.map(s => {
       const p = getPipeline(sseDbRef, s.id);
+      const run = getActiveRun(sseDbRef, s.id);
       return {
         id: s.id,
         platform: s.platform,
@@ -37,6 +38,9 @@ export function broadcastSSE() {
         gate: p?.current_gate || '?',
         pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
         status: s.status,
+        task_name: run?.task_name || null,
+        run_id: run?.id || null,
+        pinned: run?.pinned || 0,
       };
     }),
     count: sessions.length,
@@ -168,6 +172,7 @@ export function setupApiRoutes(app, db, root) {
     markStaleSessions(db, SESSION_TIMEOUT);
     const sessions = getSessions(db).map(s => {
       const p = getPipeline(db, s.id);
+      const run = getActiveRun(db, s.id);
       return {
         id: s.id,
         platform: s.platform,
@@ -176,6 +181,9 @@ export function setupApiRoutes(app, db, root) {
         pipeline_type: p?.pipeline_type || DEFAULT_PIPELINE,
         heartbeat: s.last_heartbeat,
         status: s.status,
+        task_name: run?.task_name || null,
+        run_id: run?.id || null,
+        pinned: run?.pinned || 0,
       };
     });
     return c.json({ sessions, count: sessions.length });
@@ -197,6 +205,66 @@ export function setupApiRoutes(app, db, root) {
     if (!sessionId) return c.json({ error: 'session_id query parameter required' }, 400);
     const runs = getSessionRuns(db, sessionId);
     return c.json({ runs, count: runs.length, session_id: sessionId });
+  });
+
+  // Session Model B: 设置/清除 pipeline run 的任务名
+  app.patch('/api/pipeline-runs/:id/name', async (c) => {
+    const runId = c.req.param('id');
+    const body = await c.req.json();
+    const taskName = typeof body.task_name === 'string' ? body.task_name : '';
+    const result = setRunTaskName(db, runId, taskName);
+    if (!result.ok) return c.json(result, 404);
+    return c.json(result);
+  });
+
+  // ---- Run 归档 API ----
+
+  /** 归档 run */
+  app.post('/api/pipeline-runs/:id/archive', (c) => {
+    const runId = c.req.param('id');
+    const result = archiveRun(db, runId);
+    if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    return c.json({ ok: true });
+  });
+
+  /** 取消归档 run */
+  app.post('/api/pipeline-runs/:id/unarchive', (c) => {
+    const runId = c.req.param('id');
+    const result = unarchiveRun(db, runId);
+    if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    return c.json({ ok: true });
+  });
+
+  // ---- Run 置顶 API ----
+
+  /** 置顶 run */
+  app.post('/api/pipeline-runs/:id/pin', (c) => {
+    const runId = c.req.param('id');
+    const result = pinRun(db, runId);
+    if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    return c.json({ ok: true });
+  });
+
+  /** 取消置顶 run */
+  app.post('/api/pipeline-runs/:id/unpin', (c) => {
+    const runId = c.req.param('id');
+    const result = unpinRun(db, runId);
+    if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    return c.json({ ok: true });
+  });
+
+  /** 获取所有已归档 run */
+  app.get('/api/pipeline-runs/archived', (c) => {
+    const runs = getArchivedRuns(db);
+    return c.json({ runs, count: runs.length });
+  });
+
+  /** 硬删除 run */
+  app.delete('/api/pipeline-runs/:id', (c) => {
+    const runId = c.req.param('id');
+    const result = deleteRun(db, runId);
+    if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    return c.json({ ok: true });
   });
 
   const EFFORTS = ['low', 'medium', 'high', 'xhigh', 'max'];

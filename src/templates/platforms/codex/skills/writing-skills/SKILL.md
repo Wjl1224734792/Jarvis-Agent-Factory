@@ -316,8 +316,8 @@ digraph when_flowchart {
 
 **为你的搭档可视化：** 使用此目录中的 `render-graphs.js` 将技能的流程图渲染为 SVG：
 ```bash
-./render-graphs.js ../some-skill           # 每个图表分别渲染
-./render-graphs.js ../some-skill --combine # 所有图表合并为一个 SVG
+node render-graphs.js ../some-skill           # 每个图表分别渲染
+node render-graphs.js ../some-skill --combine # 所有图表合并为一个 SVG
 ```
 
 ## 代码示例

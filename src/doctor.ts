@@ -55,6 +55,14 @@ export function doctor({ target, platforms, pkgRoot, ..._rest }: {
   }
 
   console.log('');
+  // Terminal compatibility tips (Windows)
+  if (process.platform === 'win32') {
+    console.log('  💡 终端兼容性提示:');
+    console.log('     - 如 PowerShell 中 jarvis 命令不工作，使用 `jarvis.cmd` 或 `npx jarvis`');
+    console.log('     - PowerShell 执行策略检查: Get-ExecutionPolicy');
+    console.log('     - 若为 Restricted，npm 全局 bin 目录中的 .cmd 包装器仍然可用\n');
+  }
+
   // Check engine status (sync — check PID file)
   const pidFile = resolve(homedir(), '.jarvis', 'engine.pid');
   let engineRunning = false;

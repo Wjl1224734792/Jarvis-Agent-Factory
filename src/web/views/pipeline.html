@@ -40,12 +40,16 @@
   </div>
 
   <!-- 导航 -->
-  <nav class="px-3 py-4 flex flex-col gap-0.5">
-    <a href="/dashboard" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500 transition-colors">
+  <nav class="px-3 py-4 flex flex-col gap-0.5" id="sidebarNav">
+    <a href="#/dashboard" class="nav-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium bg-indigo-50 text-indigo-600 border-l-[3px] border-indigo-500 transition-colors" data-hash="#/dashboard">
       <i data-lucide="layout-dashboard" class="w-4 h-4"></i>
       流水线看板
     </a>
-    <a href="/agents" class="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border-l-[3px] border-transparent transition-colors">
+    <a href="#/archive" class="nav-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border-l-[3px] border-transparent transition-colors" data-hash="#/archive">
+      <i data-lucide="archive" class="w-4 h-4"></i>
+      归档记录
+    </a>
+    <a href="#/agents" class="nav-link flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium text-slate-500 hover:bg-indigo-50 hover:text-indigo-600 border-l-[3px] border-transparent transition-colors" data-hash="#/agents" onclick="window.location.href='/agents';return false;">
       <i data-lucide="bot" class="w-4 h-4"></i>
       智能体配置
     </a>
@@ -90,6 +94,8 @@
 
 <!-- ===== 主内容区域 ===== -->
 <main class="flex-1 overflow-y-auto bg-slate-50">
+  <!-- ===== Dashboard Panel ===== -->
+  <div id="panel-dashboard" class="page-panel">
   <div class="max-w-5xl mx-auto px-8 py-8">
 
     <!-- 页面标题 -->
@@ -194,7 +200,6 @@
       </span>
     </footer>
   </div>
-</main>
 
 <!-- ===== 帮助弹窗 ===== -->
 <div class="fixed inset-0 bg-black/30 z-50 hidden items-center justify-center backdrop-blur-sm" id="helpModal" onclick="if(event.target===this)closeHelp()">
@@ -238,6 +243,50 @@
 <!-- Toast 容器 -->
 <div id="toastContainer" class="fixed bottom-6 right-6 z-[300] flex flex-col gap-2"></div>
 
+  </div><!-- /panel-dashboard -->
+
+  <!-- ===== Archive Panel ===== -->
+  <div id="panel-archive" class="page-panel hidden">
+    <div class="max-w-5xl mx-auto px-8 py-8">
+
+      <!-- 归档页面标题 -->
+      <div class="flex items-center justify-between mb-8">
+        <div class="flex items-center gap-3">
+          <h2 class="text-2xl font-bold text-slate-800">归档记录</h2>
+          <span class="px-2.5 py-0.5 text-[11px] font-medium bg-amber-100 text-amber-700 rounded-full">已归档运行</span>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="relative">
+            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2"></i>
+            <input type="text" id="archiveSearchInput" placeholder="按任务名称过滤..." oninput="applyArchiveFilter()" class="w-56 pl-9 pr-4 py-2 text-sm border border-slate-200 rounded-lg bg-white focus:outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 transition-all font-sans placeholder-slate-400">
+          </div>
+          <span class="text-xs text-slate-400 font-mono" id="archiveCount">0 条记录</span>
+        </div>
+      </div>
+
+      <!-- 归档列表 -->
+      <div id="archiveList" class="space-y-4">
+        <div class="text-center py-16 text-slate-400">
+          <i data-lucide="archive" class="w-12 h-12 mx-auto mb-4 text-slate-300"></i>
+          <p class="text-sm font-medium">加载中...</p>
+        </div>
+      </div>
+
+      <!-- Footer -->
+      <footer class="mt-8 pt-6 border-t border-slate-200 text-xs text-slate-400 flex items-center justify-between">
+        <span class="font-mono">归档记录 · 只读查看</span>
+        <span>
+          <a href="#/dashboard" class="text-indigo-500 hover:text-indigo-600 transition-colors font-medium">返回看板</a>
+          <span class="mx-2 text-slate-300">&middot;</span>
+          <span>会话隔离模式</span>
+        </span>
+      </footer>
+
+    </div>
+  </div><!-- /panel-archive -->
+
+</main>
+
 <script>
 const GATES = ['Gate A','Gate B','Gate C','Gate C1','Gate C1.5','Gate C2','Gate D','Gate E'];
 
@@ -259,6 +308,22 @@ const PIPELINE_NAMES = {
   'frontend': '前端流水线',
   'backend': '后端流水线',
   'lite': '轻量流水线',
+};
+
+/** 指令标签：pipeline_type → { label, class } */
+const COMMAND_LABELS = {
+  'full':     { label: '/jarvis',       cls: 'indigo' },
+  'frontend': { label: '/jarvis-fe',    cls: 'blue' },
+  'backend':  { label: '/jarvis-be',    cls: 'green' },
+  'lite':     { label: '/jarvis-lite',  cls: 'amber' },
+};
+
+/** 指令标签颜色 → Tailwind 类名映射 */
+const COMMAND_COLORS = {
+  indigo:  'bg-indigo-100 text-indigo-700',
+  blue:    'bg-blue-100 text-blue-700',
+  green:   'bg-emerald-100 text-emerald-700',
+  amber:   'bg-amber-100 text-amber-700',
 };
 
 let selectedSession = null, allSessions = [], sessionPlatform = 'all';
@@ -409,10 +474,15 @@ function setSessionPlatform(p) {
   renderSessions();
 }
 
+/** HTML 实体转义，防止 XSS */
+function escHtml(str) {
+  return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
 function renderSessions() {
-  const filtered = sessionPlatform === 'all'
+  var filtered = sessionPlatform === 'all'
     ? allSessions
-    : allSessions.filter(s => s.platform === sessionPlatform);
+    : allSessions.filter(function(s) { return s.platform === sessionPlatform; });
 
   if (filtered.length === 0) {
     document.getElementById('sessionsList').innerHTML = '<p class="text-xs text-slate-400 text-center py-8 font-mono">暂无会话</p>';
@@ -420,32 +490,71 @@ function renderSessions() {
     return;
   }
 
-  document.getElementById('sessionCount').textContent = filtered.length + ' 个会话';
-  document.getElementById('sessionsList').innerHTML = filtered.map(s => {
-    const isActive = s.id === selectedSession;
-    const isInactive = s.status === 'inactive';
-    const isOnline = !isInactive && (Date.now() - s.heartbeat) < 7200000; // 2小时（与后端 SESSION_TIMEOUT 一致）
+  // 置顶排序：pinned=1 的会话排在前面
+  var sorted = filtered.slice().sort(function(a, b) {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    return 0;
+  });
 
-    let statusColor, statusLabel;
+  document.getElementById('sessionCount').textContent = sorted.length + ' 个会话';
+  document.getElementById('sessionsList').innerHTML = sorted.map(function(s) {
+    var isActive = s.id === selectedSession;
+    var isInactive = s.status === 'inactive';
+    var isOnline = !isInactive && (Date.now() - s.heartbeat) < 7200000; // 2小时（与后端 SESSION_TIMEOUT 一致）
+    var isPinned = !!s.pinned;
+
+    var statusColor, statusLabel;
     if (isInactive) { statusColor = 'bg-amber-500'; statusLabel = '休眠'; }
     else if (isOnline) { statusColor = 'bg-emerald-500 live-dot'; statusLabel = '在线'; }
     else { statusColor = 'bg-slate-500'; statusLabel = '离线'; }
 
-    const shortId = (s.id || '').slice(0, 12);
-    const ptName = PIPELINE_NAMES[s.pipeline_type] || s.pipeline_type || '?';
+    var ptName = PIPELINE_NAMES[s.pipeline_type] || s.pipeline_type || '?';
+    var cmd = COMMAND_LABELS[s.pipeline_type] || { label: s.pipeline_type || '?', cls: 'indigo' };
+    var cmdColor = COMMAND_COLORS[cmd.cls] || COMMAND_COLORS.indigo;
 
-    return `
-    <div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ${isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50 border border-transparent'}" onclick="selectSession('${s.id}')" title="${s.platform} · 完整 ID: ${s.id}">
-      <span class="w-2 h-2 rounded-full flex-shrink-0 ${statusColor}" title="${statusLabel}"></span>
-      <div class="flex-1 min-w-0">
-        <div class="text-xs font-mono text-slate-700 truncate">${shortId}...</div>
-        <div class="flex items-center gap-1.5 mt-0.5">
-          <span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-px rounded font-mono">${s.gate || '?'}</span>
-          <span class="text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-px rounded font-medium">${ptName}</span>
-        </div>
-      </div>
-      ${isInactive ? `<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-400 flex-shrink-0 hover:text-indigo-300" title="恢复会话" onclick="event.stopPropagation();resumeSession('${s.id}')"></i>` : ''}
-    </div>`;
+    // 标题：优先 task_name，否则回退到"流水线中文名 + 时间戳"
+    var timeStr = s.heartbeat
+      ? new Date(s.heartbeat).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      : '';
+    var fallbackTitle = ptName + (timeStr ? ' ' + timeStr : '');
+    var displayTitle = escHtml(s.task_name || fallbackTitle);
+    var titleTooltip = escHtml(s.task_name
+      ? (s.task_name + ' · ' + s.platform + ' · ID: ' + s.id)
+      : (fallbackTitle + ' · ' + s.platform + ' · ID: ' + s.id));
+
+    var hasActiveRun = !!s.run_id;
+    var pinIcon = isPinned ? '<span class="text-amber-500 flex-shrink-0" title="已置顶">&#x1F4CC;</span>' : '';
+    var pinnedBorder = isPinned ? ' border-t-2 border-t-amber-400' : '';
+    var pinActionLabel = isPinned ? '取消置顶' : '置顶';
+
+    return (
+      '<div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ' +
+      (isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50 border border-transparent') +
+      pinnedBorder +
+      '" onclick="selectSession(\'' + s.id + '\')" title="' + titleTooltip + '">' +
+      '<div class="flex-1 min-w-0 flex items-center gap-2">' +
+      pinIcon +
+      '<span class="text-xs text-slate-700 truncate font-medium shrink min-w-0" title="' + displayTitle + '">' + displayTitle + '</span>' +
+      '<span class="text-[10px] ' + cmdColor + ' px-1.5 py-px rounded font-mono flex-shrink-0 whitespace-nowrap">' + cmd.label + '</span>' +
+      '<span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-px rounded font-mono flex-shrink-0">' + (s.gate || '?') + '</span>' +
+      '</div>' +
+      '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + statusColor + '" title="' + statusLabel + '"></span>' +
+      (isInactive ? '<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-400 flex-shrink-0 hover:text-indigo-300" title="恢复会话" onclick="event.stopPropagation();resumeSession(\'' + s.id + '\')"></i>' : '') +
+      (hasActiveRun ? (
+        '<div class="relative flex-shrink-0">' +
+        '<button class="session-actions w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors" onclick="event.stopPropagation();toggleRunMenu(event, \'' + s.run_id + '\')" title="运行操作">' +
+        '<i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>' +
+        '</button>' +
+        '<div id="run-menu-' + s.run_id + '" class="hidden absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[112px]" onclick="event.stopPropagation()">' +
+        '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();togglePin(\'' + s.run_id + '\', ' + isPinned + ')">' + pinActionLabel + '</button>' +
+        '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();archiveRunFromMenu(\'' + s.run_id + '\')">归档</button>' +
+        '<button class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors" onclick="event.stopPropagation();deleteRunFromMenu(\'' + s.run_id + '\')">删除</button>' +
+        '</div>' +
+        '</div>'
+      ) : '') +
+      '</div>'
+    );
   }).join('');
   lucide.createIcons();
 }
@@ -463,6 +572,71 @@ async function resumeSession(sid) {
   toast('会话已恢复 — ' + d.gate, true);
   refresh();
 }
+
+/**
+ * 切换 Run 操作菜单的显示/隐藏
+ * @param {Event} event
+ * @param {string} runId
+ */
+function toggleRunMenu(event, runId) {
+  event.stopPropagation();
+  // 关闭其他所有菜单
+  document.querySelectorAll('[id^="run-menu-"]').forEach(function(menu) {
+    if (menu.id !== 'run-menu-' + runId) menu.classList.add('hidden');
+  });
+  var menu = document.getElementById('run-menu-' + runId);
+  if (menu) menu.classList.toggle('hidden');
+}
+
+/**
+ * 归档 run
+ * @param {string} runId
+ */
+async function archiveRunFromMenu(runId) {
+  if (!runId) return;
+  try {
+    var resp = await fetch('/api/pipeline-runs/' + encodeURIComponent(runId) + '/archive', { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      toast('已归档运行记录', true);
+      refresh();
+    } else {
+      toast('归档失败: ' + (data.error || '未知错误'), false);
+    }
+  } catch (_) {
+    toast('归档请求失败，请检查网络连接', false);
+  }
+}
+
+/**
+ * 删除 run（需用户确认）
+ * @param {string} runId
+ */
+async function deleteRunFromMenu(runId) {
+  if (!runId) return;
+  if (!confirm('确认永久删除该运行记录？此操作不可恢复。')) return;
+  try {
+    var resp = await fetch('/api/pipeline-runs/' + encodeURIComponent(runId), { method: 'DELETE' });
+    var data = await resp.json();
+    if (data.ok) {
+      toast('已删除运行记录', true);
+      refresh();
+    } else {
+      toast('删除失败: ' + (data.error || '未知错误'), false);
+    }
+  } catch (_) {
+    toast('删除请求失败，请检查网络连接', false);
+  }
+}
+
+// 点击页面其他区域关闭所有下拉菜单
+document.addEventListener('click', function(event) {
+  if (!event.target.closest('[id^="run-menu-"]') && !event.target.closest('button[onclick*="toggleRunMenu"]')) {
+    document.querySelectorAll('[id^="run-menu-"]').forEach(function(menu) {
+      menu.classList.add('hidden');
+    });
+  }
+});
 
 async function checkGate(gate) {
   if (!selectedSession) { toast('请先选择一个会话', false); return; }
@@ -629,9 +803,268 @@ async function loadMcpStatus(){
   }catch{}
 }
 
+// ===== Hash 路由 =====
+
+/**
+ * 处理 hash 路由切换
+ * 根据 window.location.hash 显示/隐藏对应面板
+ */
+function handleRoute() {
+  const hash = window.location.hash || '#/dashboard';
+
+  // 隐藏所有 page panel
+  document.querySelectorAll('.page-panel').forEach(function(p) { p.classList.add('hidden'); });
+
+  if (hash === '#/archive') {
+    showArchivePanel();
+  } else if (hash === '#/agents') {
+    window.location.href = '/agents';
+    return;
+  } else {
+    showDashboardPanel();
+  }
+
+  updateNavActive(hash);
+}
+
+/** 显示流水线看板面板 */
+function showDashboardPanel() {
+  var panel = document.getElementById('panel-dashboard');
+  if (panel) panel.classList.remove('hidden');
+}
+
+/** 显示归档面板并加载数据 */
+function showArchivePanel() {
+  var panel = document.getElementById('panel-archive');
+  if (panel) panel.classList.remove('hidden');
+  loadArchivedRuns();
+}
+
+/**
+ * 更新侧边栏导航高亮状态
+ * @param {string} hash - 当前 hash 值
+ */
+function updateNavActive(hash) {
+  document.querySelectorAll('#sidebarNav .nav-link').forEach(function(link) {
+    var linkHash = link.getAttribute('data-hash') || '';
+    var isActive = linkHash === hash;
+    if (isActive) {
+      link.classList.add('bg-indigo-50', 'text-indigo-600', 'border-l-[3px]', 'border-indigo-500');
+      link.classList.remove('text-slate-500', 'border-transparent');
+    } else {
+      link.classList.remove('bg-indigo-50', 'text-indigo-600', 'border-l-[3px]', 'border-indigo-500');
+      link.classList.add('text-slate-500', 'border-transparent');
+    }
+  });
+}
+
+// 监听浏览器前进/后退
+window.onhashchange = handleRoute;
+
+// ===== 归档面板 =====
+
+var archiveSearchTerm = '';
+var allArchivedRuns = [];
+
+/** 加载归档列表到面板 */
+async function loadArchivedRuns() {
+  try {
+    var resp = await fetch('/api/pipeline-runs/archived');
+    if (!resp.ok) {
+      showArchiveError('加载失败（HTTP ' + resp.status + '）');
+      return;
+    }
+    var data = await resp.json();
+    allArchivedRuns = data.runs || [];
+    renderArchiveList();
+  } catch (_) {
+    showArchiveError('网络错误，无法加载归档记录');
+  }
+}
+
+/** 显示归档错误 */
+function showArchiveError(msg) {
+  document.getElementById('archiveList').innerHTML =
+    '<div class="text-center py-16 text-slate-400">' +
+    '<i data-lucide="alert-circle" class="w-12 h-12 mx-auto mb-4 text-red-300"></i>' +
+    '<p class="text-sm font-medium text-red-400">' + msg + '</p>' +
+    '<button onclick="loadArchivedRuns()" class="mt-3 text-xs text-indigo-500 hover:text-indigo-600 font-medium">重新加载</button>' +
+    '</div>';
+  lucide.createIcons();
+}
+
+/** 应用搜索过滤 */
+function applyArchiveFilter() {
+  archiveSearchTerm = (document.getElementById('archiveSearchInput').value || '').toLowerCase().trim();
+  renderArchiveList();
+}
+
+/** 渲染归档列表 */
+function renderArchiveList() {
+  var filtered = allArchivedRuns;
+  if (archiveSearchTerm) {
+    filtered = allArchivedRuns.filter(function(r) {
+      return (r.task_name || '').toLowerCase().includes(archiveSearchTerm) ||
+             (r.session_id || '').toLowerCase().includes(archiveSearchTerm);
+    });
+  }
+
+  document.getElementById('archiveCount').textContent = filtered.length + ' 条记录';
+
+  if (filtered.length === 0) {
+    document.getElementById('archiveList').innerHTML =
+      '<div class="text-center py-16 text-slate-400">' +
+      '<i data-lucide="archive" class="w-12 h-12 mx-auto mb-4 text-slate-300"></i>' +
+      '<p class="text-sm font-medium">' + (archiveSearchTerm ? '未找到匹配的归档记录' : '暂无归档记录') + '</p>' +
+      (archiveSearchTerm ? '<p class="text-xs mt-1 text-slate-400">尝试其他搜索词</p>' : '<p class="text-xs mt-1 text-slate-400">从流水线看板归档运行记录后，将在此处显示</p>') +
+      '</div>';
+    lucide.createIcons();
+    return;
+  }
+
+  // 按 session_id 分组
+  var groups = {};
+  for (var i = 0; i < filtered.length; i++) {
+    var r = filtered[i];
+    var sid = r.session_id || 'unknown';
+    if (!groups[sid]) groups[sid] = [];
+    groups[sid].push(r);
+  }
+
+  var html = '';
+  for (var sid in groups) {
+    var runs = groups[sid];
+    var shortSid = sid.length > 18 ? sid.slice(0, 18) + '...' : sid;
+    html += '<div class="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">';
+    html += '<div class="px-6 py-3 bg-slate-50 border-b border-slate-100 flex items-center gap-2.5">';
+    html += '<i data-lucide="folder" class="w-4 h-4 text-slate-400"></i>';
+    html += '<span class="text-xs font-medium text-slate-600 font-mono" title="' + escHtml(sid) + '">' + shortSid + '</span>';
+    html += '<span class="text-[10px] text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">' + runs.length + ' 条</span>';
+    html += '</div>';
+    html += '<div class="divide-y divide-slate-100">';
+    for (var j = 0; j < runs.length; j++) {
+      var run = runs[j];
+      var cmd = COMMAND_LABELS[run.pipeline_type] || { label: run.pipeline_type || '?', cls: 'indigo' };
+      var cmdColor = COMMAND_COLORS[cmd.cls] || COMMAND_COLORS.indigo;
+      var ptName = PIPELINE_NAMES[run.pipeline_type] || run.pipeline_type || '未知';
+      var taskDisplay = escHtml(run.task_name || '（未命名）');
+      var taskClass = run.task_name ? 'text-slate-700 font-medium' : 'text-slate-400 italic';
+      var dateText = '---';
+      if (run.started_at) {
+        try {
+          var d = new Date(run.started_at.replace(' ', 'T'));
+          dateText = d.toLocaleString('zh-CN', { month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' });
+        } catch (_) { dateText = run.started_at.replace(/[<>&"']/g, ''); }
+      }
+      var shortRunId = (run.id || '').slice(0, 14) + '...';
+      var statusBadge = getArchivedStatusBadge(run.status);
+      var statusLabel = getArchivedStatusLabel(run.status);
+
+      html += '<div class="flex items-center gap-4 px-6 py-3 hover:bg-slate-50/50 transition-colors">';
+      html += '<div class="flex-1 min-w-0 flex items-center gap-3">';
+      html += '<span class="text-xs ' + taskClass + ' truncate" title="' + escHtml(run.task_name || '') + '">' + taskDisplay + '</span>';
+      html += '<span class="text-[10px] ' + cmdColor + ' px-1.5 py-px rounded font-mono flex-shrink-0">' + cmd.label + '</span>';
+      html += '<span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-px rounded font-mono flex-shrink-0">' + ptName + '</span>';
+      html += '</div>';
+      html += '<span class="text-[10px] text-slate-400 font-mono flex-shrink-0" title="Run ID: ' + escHtml(run.id) + '">' + shortRunId + '</span>';
+      html += '<span class="text-[10px] text-slate-400 flex-shrink-0 font-mono">' + dateText + '</span>';
+      html += '<span class="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ' + statusBadge + '">' + statusLabel + '</span>';
+      html += '<div class="flex items-center gap-1.5 flex-shrink-0">';
+      html += '<button onclick="restoreFromArchive(\'' + run.id + '\')" class="text-[10px] text-indigo-500 hover:text-indigo-700 bg-indigo-50 hover:bg-indigo-100 px-2 py-1 rounded transition-colors font-medium" title="恢复到流水线看板">恢复</button>';
+      html += '<button onclick="deleteFromArchive(\'' + run.id + '\')" class="text-[10px] text-red-400 hover:text-red-600 bg-red-50 hover:bg-red-100 px-2 py-1 rounded transition-colors font-medium" title="永久删除">删除</button>';
+      html += '</div>';
+      html += '</div>';
+    }
+    html += '</div>';
+    html += '</div>';
+  }
+
+  document.getElementById('archiveList').innerHTML = html;
+  lucide.createIcons();
+}
+
+/** 归档状态 → Badge 样式 */
+function getArchivedStatusBadge(status) {
+  var map = {
+    active: 'bg-emerald-50 text-emerald-700',
+    completed: 'bg-slate-100 text-slate-600',
+    aborted: 'bg-red-50 text-red-700',
+  };
+  return map[status] || 'bg-slate-100 text-slate-500';
+}
+
+/** 归档状态 → 中文标签 */
+function getArchivedStatusLabel(status) {
+  var map = { active: '运行中', completed: '已完成', aborted: '已终止' };
+  return map[status] || status || '未知';
+}
+
+/** 恢复归档 run */
+async function restoreFromArchive(runId) {
+  try {
+    var resp = await fetch('/api/pipeline-runs/' + encodeURIComponent(runId) + '/unarchive', { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      toast('已恢复到流水线看板', true);
+      loadArchivedRuns();
+    } else {
+      toast('恢复失败: ' + (data.error || '未知错误'), false);
+    }
+  } catch (_) {
+    toast('恢复请求失败，请检查网络连接', false);
+  }
+}
+
+/** 删除归档 run */
+function deleteFromArchive(runId) {
+  if (!confirm('确认永久删除该归档记录？此操作不可恢复。')) return;
+  fetch('/api/pipeline-runs/' + encodeURIComponent(runId), { method: 'DELETE' })
+    .then(function(resp) { return resp.json(); })
+    .then(function(data) {
+      if (data.ok) {
+        toast('已删除归档记录', true);
+        loadArchivedRuns();
+      } else {
+        toast('删除失败: ' + (data.error || '未知错误'), false);
+      }
+    })
+    .catch(function() {
+      toast('删除请求失败，请检查网络连接', false);
+    });
+}
+
+// ===== Run 置顶功能 =====
+
+/**
+ * 置顶/取消置顶 run
+ * @param {string} runId
+ * @param {boolean} pinned - 当前是否已置顶
+ */
+async function togglePin(runId, pinned) {
+  if (!runId) return;
+  var action = pinned ? 'unpin' : 'pin';
+  try {
+    var resp = await fetch('/api/pipeline-runs/' + encodeURIComponent(runId) + '/' + action, { method: 'POST' });
+    var data = await resp.json();
+    if (data.ok) {
+      toast(pinned ? '已取消置顶' : '已置顶', true);
+      refresh();
+    } else {
+      toast((pinned ? '取消置顶' : '置顶') + '失败: ' + (data.error || '未知错误'), false);
+    }
+  } catch (_) {
+    toast('请求失败，请检查网络连接', false);
+  }
+}
+
 // 初始加载 + 轮询
+// 仅看板面板需要定时刷新
 refresh();
-setInterval(refresh, 5000);
+setInterval(function() {
+  if (!document.getElementById('panel-archive').classList.contains('hidden')) return;
+  refresh();
+}, 5000);
+handleRoute();
 loadMcpStatus();
 setInterval(loadMcpStatus, 5000);
 lucide.createIcons();

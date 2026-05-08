@@ -1,11 +1,11 @@
-#!/usr/bin/env node
-
+// 此脚本通过 node 命令调用，不直接执行（避免 shebang 在某些终端策略下被拦截）
+// 用法: node render-graphs.js <skill-directory> [--combine]
 /**
  * Render graphviz diagrams from a skill's SKILL.md to SVG files.
  *
  * Usage:
- *   ./render-graphs.js <skill-directory>           # Render each diagram separately
- *   ./render-graphs.js <skill-directory> --combine # Combine all into one diagram
+ *   node render-graphs.js <skill-directory>           # Render each diagram separately
+ *   node render-graphs.js <skill-directory> --combine # Combine all into one diagram
  *
  * Extracts all ```dot blocks from SKILL.md and renders to SVG.
  * Useful for helping your human partner visualize the process flows.
@@ -93,8 +93,8 @@ function main() {
     console.error('  --combine    Combine all diagrams into one SVG');
     console.error('');
     console.error('Example:');
-    console.error('  ./render-graphs.js ../subagent-driven-development');
-    console.error('  ./render-graphs.js ../subagent-driven-development --combine');
+    console.error('  node render-graphs.js ../subagent-driven-development');
+    console.error('  node render-graphs.js ../subagent-driven-development --combine');
     process.exit(1);
   }
 

@@ -133,6 +133,15 @@ function initSchema(db) {
   // ---- 旧列迁移（向后兼容） ----
   try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
 
+  // ---- 会话任务名迁移 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN task_name TEXT"); } catch {}
+
+  // ---- Run 归档迁移 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN archived INTEGER DEFAULT 0"); } catch {}
+
+  // ---- Run 置顶迁移 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch {}
+
   // ---- 迁移旧 pipeline 数据为首条 pipeline_run ----
   const existingRuns = db.prepare('SELECT COUNT(*) as cnt FROM pipeline_runs').get();
   if (existingRuns.cnt === 0) {
@@ -255,7 +264,7 @@ export function getPipelineRun(db, runId) {
  * @returns {object|undefined}
  */
 export function getActiveRun(db, sessionId) {
-  return db.prepare("SELECT * FROM pipeline_runs WHERE session_id=? AND status='active' ORDER BY started_at DESC LIMIT 1").get(sessionId);
+  return db.prepare("SELECT * FROM pipeline_runs WHERE session_id=? AND status='active' AND archived=0 ORDER BY started_at DESC LIMIT 1").get(sessionId);
 }
 
 /**
@@ -279,4 +288,96 @@ export function completeRun(db, runId) {
 /** 中止 run */
 export function abortRun(db, runId) {
   db.prepare("UPDATE pipeline_runs SET status='aborted', completed_at=datetime('now') WHERE id=?").run(runId);
+}
+
+/**
+ * 设置/清除 pipeline run 的会话任务名
+ * name 为空或纯空白时，task_name 设为 null（清除）
+ * runId 不存在时返回错误信息
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} name
+ * @returns {{ ok: boolean; task_name: string | null; error?: string }}
+ */
+export function setRunTaskName(db, runId, name) {
+  if (!runId) return { ok: false, task_name: null, error: 'runId required' };
+  const trimmed = name?.trim() || null;
+  if (trimmed) {
+    const result = db.prepare('UPDATE pipeline_runs SET task_name=? WHERE id=?').run(trimmed, runId);
+    if (result.changes === 0) return { ok: false, task_name: null, error: `Run not found: ${runId}` };
+    return { ok: true, task_name: trimmed };
+  }
+  // 空白名称 → 清除
+  const result = db.prepare('UPDATE pipeline_runs SET task_name=NULL WHERE id=?').run(runId);
+  if (result.changes === 0) return { ok: false, task_name: null, error: `Run not found: ${runId}` };
+  return { ok: true, task_name: null };
+}
+
+/**
+ * 归档 run（设置 archived=1）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
+export function archiveRun(db, runId) {
+  if (!runId) return { ok: false };
+  const result = db.prepare('UPDATE pipeline_runs SET archived=1 WHERE id=?').run(runId);
+  return { ok: result.changes > 0 };
+}
+
+/**
+ * 取消归档 run（设置 archived=0）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
+export function unarchiveRun(db, runId) {
+  if (!runId) return { ok: false };
+  const result = db.prepare('UPDATE pipeline_runs SET archived=0 WHERE id=?').run(runId);
+  return { ok: result.changes > 0 };
+}
+
+/**
+ * 获取所有已归档的 run
+ * @param {DatabaseSync} db
+ * @returns {object[]}
+ */
+export function getArchivedRuns(db) {
+  return db.prepare("SELECT * FROM pipeline_runs WHERE archived=1 ORDER BY session_id, started_at DESC").all();
+}
+
+/**
+ * 硬删除 run
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
+export function deleteRun(db, runId) {
+  if (!runId) return { ok: false };
+  const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
+  return { ok: result.changes > 0 };
+}
+
+/**
+ * 置顶 run（设置 pinned=1）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
+export function pinRun(db, runId) {
+  if (!runId) return { ok: false };
+  const result = db.prepare('UPDATE pipeline_runs SET pinned=1 WHERE id=?').run(runId);
+  return { ok: result.changes > 0 };
+}
+
+/**
+ * 取消置顶 run（设置 pinned=0）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
+export function unpinRun(db, runId) {
+  if (!runId) return { ok: false };
+  const result = db.prepare('UPDATE pipeline_runs SET pinned=0 WHERE id=?').run(runId);
+  return { ok: result.changes > 0 };
 }

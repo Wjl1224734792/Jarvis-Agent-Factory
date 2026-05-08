@@ -205,3 +205,67 @@ agent-browser screenshot desktop.png
 - 伪造测试结果
 - 执行破坏性操作（删除数据、发起支付等）
 - 用硬等待（sleep/wait）替代 `agent-browser wait` 轮询确认页面状态
+
+## 职责分工
+
+### 测试文档编写 vs 测试执行
+- **test-doc-writer Agent**：负责在测试执行前根据需求文档和前端变更编写结构化测试用例文档，输出到 `docs/testing/YYYY-MM-DD-<topic>-test-cases.md`
+- **browser-test Worker Agent**（browser-test-expert / browser-test-worker）：负责读取已有测试文档中的用例并逐条执行，输出测试报告到 `docs/testing/YYYY-MM-DD-<topic>-browser-test-report.md`
+- **职责边界**：测试执行 Agent 不得自行编写或修改测试用例文档，测试文档编写 Agent 不得执行浏览器测试。测试用例必须在测试执行前由 test-doc-writer 编写完成。
+
+## 测试报告模板
+
+执行完成后按以下模板输出测试报告（输出到 `docs/testing/YYYY-MM-DD-<topic>-browser-test-report.md`）：
+
+### 汇总
+
+| 指标 | 数值 |
+|------|------|
+| 总计 | N |
+| 通过 | N ✅ |
+| 失败 | N ❌ |
+| 阻塞 | N ⚠️ |
+
+### 详细结果
+
+#### TC-XXX: 用例标题 — ✅/❌
+- **预期:** ...
+- **实际:** ...
+- **截图证据:** <路径>
+- **可能原因:** （仅失败时）
+- **关联代码:** <文件:行号>（仅失败时）
+
+### 失败用例清单
+- [ ] TC-XXX: 简短描述
+
+## 失败用例交接格式
+
+测试失败后，向修复 Agent 传递以下信息：
+
+```json
+{
+  "failedCases": [
+    {
+      "id": "TC-XXX",
+      "title": "用例标题",
+      "expected": "预期结果",
+      "actual": "实际结果",
+      "screenshot": "截图路径",
+      "possibleCause": "可能原因分析",
+      "relatedCode": "关联代码位置"
+    }
+  ]
+}
+```
+
+或 markdown 格式：
+
+```markdown
+## 失败用例交接
+### TC-XXX: 用例标题
+- **预期:** ...
+- **实际:** ...
+- **截图证据:** <路径>
+- **可能原因:** <分析>
+- **关联代码:** <文件:行号>
+```

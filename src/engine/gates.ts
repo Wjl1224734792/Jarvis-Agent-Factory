@@ -55,7 +55,7 @@ export const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate C':'pl
 export const GATE_CHECKS = {
   'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},'Gate B':{check:'每个TASK-XXX映射至少1个REQ-XXX'},
   'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
-  'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},
+  'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'测试文档用例覆盖完整，单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},
   'Gate D':{check:'领域审查+安全审计+性能审计通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
 };
 
@@ -92,6 +92,28 @@ export const GATE_OPERATIONS = {
 /** 获取当前 Gate 允许的操作列表 */
 export function getGateOperations(gate) {
   return GATE_OPERATIONS[gate] || { allow: [], deny: [] };
+}
+
+/**
+ * 每个 Gate 可生成的 Agent 类型及流程指引。
+ * 由 pipeline_guide MCP 工具消费，作为编排者 spawn Agent 的参考。
+ *
+ * 操作类型说明见 GATE_OPERATIONS，此处聚焦 Agent 级的可生成范围。
+ */
+export const GATE_AGENT_GUIDE = {
+  'Gate A':    { can_spawn: ['code-explore-expert', 'docs-research-expert'], note: '需求澄清阶段，只探索和写文档' },
+  'Gate B':    { can_spawn: ['task-design'], note: '任务分解阶段，spawn task-design 做垂直切片' },
+  'Gate C':    { can_spawn: ['planner', 'frontend-architect', 'backend-architect', 'database-architect'], note: '规划阶段，spawn planner 产出 parallel_batches；按需做架构评审' },
+  'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
+  'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
+  'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'test-executor', 'fix-retest', 'browser-test-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——步骤1(并行):spawn test-doc-writer(编写测试用例文档)+frontend-test-expert+backend-test-expert → 步骤2:spawn test-executor(按文档执行测试,输出报告) → 步骤3(有失败时):spawn fix-retest(定位根因→spawn实现Agent修复→重跑,≤2轮) → 步骤4:spawn e2e-test-expert(端到端测试) → 步骤5:汇总测试结果至docs/testing/' },
+  'Gate D':    { can_spawn: ['frontend-review-expert', 'backend-review-expert', 'security-review-expert', 'perf-review-expert', 'qa-review-expert'], note: '评审阶段——4个领域审查并行，最后qa-review-expert综合签核' },
+  'Gate E':    { can_spawn: ['security-review-expert', 'infra-deploy-expert'], note: '发布阶段——安全审计+上线检查+版本管理+归档' },
+};
+
+/** 获取当前 Gate 可生成的 Agent 指引 */
+export function getGateAgentGuide(gate) {
+  return GATE_AGENT_GUIDE[gate] || { can_spawn: [], note: '未知Gate' };
 }
 
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */
