@@ -44,21 +44,75 @@ function initSchema(db) {
       effort TEXT NOT NULL DEFAULT 'high',
       updated_at TEXT NOT NULL
     );
-    -- Migration: rename old single-row pipeline table if exists
   `);
   try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch {}
-  // Migration from old single-row pipeline: add session_id if missing
-  try { db.exec("ALTER TABLE pipeline ADD COLUMN session_id TEXT"); } catch {}
-  try {
-    const old = db.prepare('SELECT id, project, current_gate, started_at, updated_at FROM pipeline WHERE session_id IS NULL').all();
-    for (const r of old) {
-      db.prepare('INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, started_at, updated_at) VALUES (?, ?, ?, ?, ?)').run('legacy', r.project, r.current_gate, r.started_at, r.updated_at);
+
+  // ---- 迁移：修复旧 pipeline 表 CHECK(id=1) 约束 ----
+  const pipeSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='pipeline'").get();
+  if (pipeSchema && /CHECK\s*\(\s*id\s*=\s*1\s*\)/i.test(pipeSchema.sql)) {
+    // 旧单行表有 CHECK(id=1) 约束，需重建
+    db.exec('BEGIN');
+    try {
+      // 备份旧数据（旧表可能有 id, project, current_gate, mode, started_at, updated_at, session_id, pipeline_type）
+      const oldRows = db.prepare('SELECT * FROM pipeline').all();
+      db.exec('DROP TABLE IF EXISTS pipeline');
+      db.exec(`
+        CREATE TABLE pipeline (
+          session_id TEXT PRIMARY KEY,
+          project TEXT NOT NULL,
+          current_gate TEXT NOT NULL DEFAULT 'Gate A',
+          pipeline_type TEXT NOT NULL DEFAULT 'full',
+          started_at TEXT NOT NULL,
+          updated_at TEXT NOT NULL
+        )
+      `);
+      for (const r of oldRows) {
+        const sid = r.session_id || 'legacy';
+        const pt = r.pipeline_type || 'full';
+        db.prepare(`INSERT OR REPLACE INTO pipeline (session_id, project, current_gate, pipeline_type, started_at, updated_at)
+          VALUES (?, ?, ?, ?, ?, ?)`).run(sid, r.project || 'jarvis', r.current_gate || 'Gate A', pt, r.started_at || new Date().toISOString(), r.updated_at || new Date().toISOString());
+      }
+      db.exec('COMMIT');
+      console.log('  ✓  pipeline 表已从旧 CHECK(id=1) 模式迁移为多会话模式');
+    } catch (e) {
+      db.exec('ROLLBACK');
+      console.error('  ✗  pipeline 迁移失败:', e.message);
     }
-  } catch {}
-  // Migrate: add status column to sessions if missing
+  }
+
+  // ---- 迁移：修复旧 checkpoints 表 UNIQUE(gate) → UNIQUE(session_id, gate) ----
+  const cpSchema = db.prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name='checkpoints'").get();
+  if (cpSchema && !/session_id.*gate/i.test(cpSchema.sql)) {
+    // 旧表只有 UNIQUE(gate)，缺少 session_id 列或多列唯一约束
+    db.exec('BEGIN');
+    try {
+      const oldRows = db.prepare('SELECT * FROM checkpoints').all();
+      db.exec('DROP TABLE IF EXISTS checkpoints');
+      db.exec(`
+        CREATE TABLE checkpoints (
+          id INTEGER PRIMARY KEY AUTOINCREMENT,
+          session_id TEXT NOT NULL,
+          gate TEXT NOT NULL,
+          passed_at TEXT NOT NULL,
+          advance_to TEXT,
+          UNIQUE(session_id, gate)
+        )
+      `);
+      for (const r of oldRows) {
+        const sid = r.session_id || 'legacy';
+        db.prepare('INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, ?, ?)')
+          .run(sid, r.gate, r.passed_at || new Date().toISOString(), r.advance_to || null);
+      }
+      db.exec('COMMIT');
+      console.log('  ✓  checkpoints 表已迁移为 session_id+gate 联合唯一约束');
+    } catch (e) {
+      db.exec('ROLLBACK');
+      console.error('  ✗  checkpoints 迁移失败:', e.message);
+    }
+  }
+
+  // ---- 旧列迁移（向后兼容） ----
   try { db.exec("ALTER TABLE sessions ADD COLUMN status TEXT DEFAULT 'active'"); } catch {}
-  // Migrate: add pipeline_type column to pipeline if missing
-  try { db.exec("ALTER TABLE pipeline ADD COLUMN pipeline_type TEXT DEFAULT 'full'"); } catch {}
 }
 
 // ---- Pipeline (per-session) ----
