@@ -1,13 +1,13 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.25.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.26.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.25.0** — API 功能测试 Agent（api-test-expert）· CI/CD 工作流重构 · 文档同步约束强化
+> **v3.26.0** — 会话列表卡片化布局 · 键盘可访问性增强 · 开发环境 MCP 配置
 
 ## 快速开始
 
@@ -70,6 +70,10 @@ jarvis remove <platform> [path]           # 移除平台
 jarvis upgrade [path]                     # 智能升级（只覆盖变更文件）
 jarvis diff [path]                        # 预览待更新文件
 jarvis doctor [path]                      # 健康检查
+
+jarvis hook gate-check [--session <id>]   # 检查当前 Gate 状态（阻断时 exit 1）
+jarvis hook gate-advance [--session <id>]  # 推进到下一 Gate
+jarvis hook status [--json]               # 流水线会话状态总览
 
 jarvis engine start [--port=N]            # 手动启动编排引擎（stdio 模式下 Claude Code 自动拉起）
 jarvis engine stop / status               # 停止 / 状态
@@ -151,6 +155,24 @@ test-doc-writer → test-executor → fix-retest
 | **OpenCode** | `opencode.json` | `type: local` → 自动拉起 `jarvis engine start --stdio` |
 | **Codex** | `.codex/config.toml` | `url = "localhost:3456/mcp"` → 需引擎已运行 |
 
+### 开发环境 MCP
+
+本项目开发时使用 `.mcp.dev.json`，引擎从本地工作区启动（无需全局安装）：
+
+```json
+{
+  "mcpServers": {
+    "jarvis-engine": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["bin/jarvis.js", "engine", "start", "--stdio"]
+    }
+  }
+}
+```
+
+切换到开发模式：`cp .mcp.dev.json .mcp.json`（恢复则 `jarvis init -y`）。
+
 ## 生命周期流水线
 
 ```
@@ -182,9 +204,9 @@ test-doc-writer → test-executor → fix-retest
 
 | | Claude Code | OpenCode | Codex |
 |---|:--:|:--:|:--:|
-| Agents | 53 | 58 | 48 |
+| Agents | 88 | 55 | 45 |
 | Commands | 16 | 0 | 0 |
-| Skills | 28 | 28 | 42 |
+| Skills | 29 | 27 | 42 |
 | 钩子 | settings.json | 原生插件 (.ts) | hooks.json |
 | MCP | `.mcp.json` | `opencode.json` | `.codex/config.toml` |
 

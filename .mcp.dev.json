@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "playwright": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "@playwright/mcp@latest"]
+    },
+    "jarvis-engine": {
+      "type": "stdio",
+      "command": "node",
+      "args": ["bin/jarvis.js", "engine", "start", "--stdio"]
+    }
+  }
+}

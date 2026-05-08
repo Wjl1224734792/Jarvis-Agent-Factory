@@ -4,6 +4,23 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.26.0] - 2026-05-08
+
+### Added
+- **会话列表卡片化布局**：侧边栏会话项从单行水平排列改为 2 行垂直紧凑布局（标题+状态在上，指令+Gate+操作在下）
+- **⋮ 菜单始终可见**：每个会话项右侧始终显示更多操作按钮，无活跃运行记录时置灰禁用
+- **键盘可访问性增强**：会话列表项支持 Tab 键聚焦和 Enter/Space 键选择，恢复按钮和 ⋮ 按钮均为标准 `<button>` 元素
+- **开发环境 MCP 配置**：新增 `.mcp.dev.json`，支持从本地工作区启动引擎
+
+### Changed
+- 选中态使用 indigo 左侧边框 + bg-indigo-50 背景，悬停态使用 hover:bg-slate-50
+- ⋮ 按钮从 hover 显示改为始终可见，移除 `.session-actions` CSS 规则
+
+### Fixed
+- 恢复会话按钮由 `<i>` 改为 `<button>` 元素，支持键盘和屏幕阅读器
+- 禁用态 ⋮ 按钮对比度提升至 text-slate-400
+- 所有交互按钮添加 focus-visible 聚焦指示器
+
 ## [2.0.0] - 2026-05-06
 
 ### Added

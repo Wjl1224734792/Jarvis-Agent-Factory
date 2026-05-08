@@ -16,8 +16,6 @@
   @keyframes spin { from{transform:rotate(0deg);} to{transform:rotate(360deg);} }
   @keyframes pulse-dot { 0%,100%{opacity:1;} 50%{opacity:.5;} }
   .refreshing { animation:spin .6s linear; }
-  .session-item:hover .session-actions { opacity:1; }
-  .session-actions { opacity:0; transition:opacity .15s; }
   .live-dot { animation:pulse-dot 2s ease-in-out infinite; }
   .console-line { border-left: 2px solid #6366F1; padding-left: 10px; }
 </style>
@@ -529,21 +527,23 @@ function renderSessions() {
     var pinActionLabel = isPinned ? '取消置顶' : '置顶';
 
     return (
-      '<div class="session-item group flex items-center gap-2.5 px-3 py-2.5 rounded-lg cursor-pointer transition-all ' +
-      (isActive ? 'bg-indigo-50 border border-indigo-200' : 'hover:bg-slate-50 border border-transparent') +
+      '<div class="session-item group flex flex-col gap-1 px-3 py-2 rounded-lg cursor-pointer transition-all ' +
+      (isActive ? 'bg-indigo-50 border-l-[3px] border-indigo-500' : 'hover:bg-slate-50 border-l-[3px] border-transparent') +
       pinnedBorder +
-      '" onclick="selectSession(\'' + s.id + '\')" title="' + titleTooltip + '">' +
-      '<div class="flex-1 min-w-0 flex items-center gap-2">' +
+      '" role="button" tabindex="0" aria-current="' + (isActive ? 'true' : 'false') + '" onclick="selectSession(\'' + s.id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectSession(\'' + s.id + '\');}" title="' + titleTooltip + '">' +
+      '<div class="flex items-center gap-2 min-w-0">' +
       pinIcon +
-      '<span class="text-xs text-slate-700 truncate font-medium shrink min-w-0" title="' + displayTitle + '">' + displayTitle + '</span>' +
+      '<span class="text-xs text-slate-700 truncate font-semibold flex-1 min-w-0" title="' + displayTitle + '">' + displayTitle + '</span>' +
+      '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + statusColor + '" title="' + statusLabel + '"></span>' +
+      '</div>' +
+      '<div class="flex items-center gap-1.5">' +
       '<span class="text-[10px] ' + cmdColor + ' px-1.5 py-px rounded font-mono flex-shrink-0 whitespace-nowrap">' + cmd.label + '</span>' +
       '<span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-px rounded font-mono flex-shrink-0">' + (s.gate || '?') + '</span>' +
-      '</div>' +
-      '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + statusColor + '" title="' + statusLabel + '"></span>' +
-      (isInactive ? '<i data-lucide="rotate-ccw" class="session-actions w-3.5 h-3.5 text-indigo-400 flex-shrink-0 hover:text-indigo-300" title="恢复会话" onclick="event.stopPropagation();resumeSession(\'' + s.id + '\')"></i>' : '') +
+      (isInactive ? '<button class="w-3.5 h-3.5 flex items-center justify-center bg-transparent border-0 p-0 cursor-pointer text-indigo-400 hover:text-indigo-300 flex-shrink-0 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-label="恢复会话" title="恢复会话" onclick="event.stopPropagation();resumeSession(\'' + s.id + '\')"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>' : '') +
+      '<div class="flex-1"></div>' +
       (hasActiveRun ? (
         '<div class="relative flex-shrink-0">' +
-        '<button class="session-actions w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors" onclick="event.stopPropagation();toggleRunMenu(event, \'' + s.run_id + '\')" title="运行操作">' +
+        '<button class="w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-label="运行操作" aria-haspopup="menu" aria-expanded="false" onclick="event.stopPropagation();toggleRunMenu(event, \'' + s.run_id + '\')" title="运行操作">' +
         '<i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>' +
         '</button>' +
         '<div id="run-menu-' + s.run_id + '" class="hidden absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[112px]" onclick="event.stopPropagation()">' +
@@ -552,7 +552,12 @@ function renderSessions() {
         '<button class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors" onclick="event.stopPropagation();deleteRunFromMenu(\'' + s.run_id + '\')">删除</button>' +
         '</div>' +
         '</div>'
-      ) : '') +
+      ) : (
+        '<button class="w-5 h-5 flex items-center justify-center rounded text-slate-400 cursor-not-allowed flex-shrink-0 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-disabled="true" onclick="event.stopPropagation()" title="暂无运行记录">' +
+        '<i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>' +
+        '</button>'
+      )) +
+      '</div>' +
       '</div>'
     );
   }).join('');
