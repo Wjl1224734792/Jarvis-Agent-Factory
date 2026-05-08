@@ -167,12 +167,12 @@ function scanPlatform(platformKey, config) {
 
 // ---- 导出 ----
 
-/** @type {Array<{id, name, role, icon, platform, defaultModel, defaultEffort}>} */
+/** @type {Array<{id, name, role, icon, platform, defaultModel, defaultEffort, category?}>} */
 let _agentList = null;
 /** @type {Record<string, {base:string, type:'md'|'toml'}>} */
 let _agentFiles = null;
 
-/** @param {boolean} [force] — 强制重新扫描模板目录 */
+/** @param {boolean} [force] -- 强制重新扫描模板目录 */
 export function getAgentList(force) {
   if (force || !_agentList) {
     _agentList = [];
@@ -186,7 +186,7 @@ export function getAgentList(force) {
   return _agentList;
 }
 
-/** @param {boolean} [force] — 强制重新扫描 */
+/** @param {boolean} [force] -- 强制重新扫描 */
 export function getAgentFiles(force) {
   if (force || !_agentFiles) getAgentList(force);
   return _agentFiles;

@@ -519,6 +519,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
         headers: { accept: 'text/event-stream' },
       });
       if (!resp.ok) return c.json({ error: 'Engine SSE unreachable' }, 502);
+      /** @type {Record<string, string>} */
       const respHeaders = {};
       resp.headers.forEach((v, k) => respHeaders[k] = v);
       return new Response(resp.body, { status: resp.status, headers: respHeaders });
@@ -529,6 +530,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 
   // 代理 /api/* 请求到引擎（通配符路由放在最后）
   app.all('/api/*', async (c) => {
+    /** @type {Record<string, string>} */
     const reqHeaders = {};
     for (const [k, v] of c.req.raw.headers.entries()) {
       if (['host', 'connection', 'keep-alive'].includes(k.toLowerCase())) continue;
@@ -552,6 +554,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
         headers: reqHeaders,
         body,
       });
+      /** @type {Record<string, string>} */
       const respHeaders = {};
       resp.headers.forEach((v, k) => respHeaders[k] = v);
       return new Response(resp.body, { status: resp.status, headers: respHeaders });

@@ -5,7 +5,7 @@ import { homedir } from 'node:os';
 /**
  * Check the health of installed Jarvis configurations.
  */
-export function doctor({ target, platforms, pkgRoot }) {
+export function doctor({ target, platforms, pkgRoot, ..._rest }) {
   console.log(`\n🔍 Jarvis Doctor — checking ${target}\n`);
 
   // Read source package version

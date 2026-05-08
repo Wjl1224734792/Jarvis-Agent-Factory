@@ -15,10 +15,10 @@
     "pipeline",
     "agenti"
   ],
-  "homepage": "https://gitee.com/wujl1124/JarvisAgentFactory",
+  "homepage": "https://github.com/Wjl1224734792/Jarvis-Agent-Factory",
   "repository": {
     "type": "git",
-    "url": "https://gitee.com/wujl1124/JarvisAgentFactory.git"
+    "url": "https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git"
   },
   "license": "MIT",
   "author": "lin <wujl1124@163.com>",
@@ -34,9 +34,24 @@
   "engines": {
     "node": ">=22.5"
   },
+  "scripts": {
+    "lint": "eslint src/ tests/",
+    "lint:fix": "eslint --fix src/ tests/",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --project jsconfig.json",
+    "check": "npm run lint && npm run typecheck && npm run test"
+  },
   "dependencies": {
+    "@hono/node-server": "^1.13.0",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "hono": "^4.12.17",
-    "@hono/node-server": "^1.13.0"
+    "hono": "^4.12.17"
+  },
+  "devDependencies": {
+    "@eslint/js": "^10.0.1",
+    "@types/node": "^25.6.2",
+    "eslint": "^10.3.0",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

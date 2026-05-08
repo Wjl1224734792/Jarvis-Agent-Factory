@@ -177,7 +177,7 @@ export function addCheckpoint(db, gate, advanceTo, sessionId) {
 
 // ---- Sessions ----
 /** @param {'active'|'inactive'|undefined} statusFilter */
-export function getSessions(db, statusFilter) {
+export function getSessions(db, statusFilter = undefined) {
   if (statusFilter) return db.prepare('SELECT * FROM sessions WHERE status=? ORDER BY created_at').all(statusFilter);
   return db.prepare('SELECT * FROM sessions ORDER BY created_at').all();
 }
