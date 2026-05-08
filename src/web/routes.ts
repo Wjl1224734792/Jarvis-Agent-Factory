@@ -1,23 +1,19 @@
 import { readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
-import { readdirSync, existsSync } from 'node:fs';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAllPipelines, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
-import { GATES, GATE_CHECKS, GATE_DIRS, AGENT_LIST, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
+import { GATE_CHECKS, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 
-/** 按平台分组可用模型 */
-const PLATFORM_MODELS = getPlatformModels();
 
-type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSSE: (data: any) => Promise<void>; sleep: (ms: number) => Promise<void> };
+type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSSE: (_data: any) => Promise<void>; sleep: (_ms: number) => Promise<void> };
 
 /** SSE 客户端集合：存储 { stream, db, root } 引用 */
 let sseClients: SSEClient[] = [];
 let sseDbRef: any = null;
-let sseRootRef: string | null = null;
 let _sseTimer: ReturnType<typeof setInterval> | null = null;
 
 /**
@@ -57,9 +53,8 @@ export function broadcastSSE() {
 }
 
 export function setupApiRoutes(app, db, root) {
-  // 保存 SSE 引用
+  // 保存 SSE db 引用
   sseDbRef = db;
-  sseRootRef = root;
 
   // Health
   app.get('/health', (c) => c.json({ status: 'ok', version: readVersion() }));

@@ -175,7 +175,6 @@ export async function run() {
       }
       const isGlobal = await resolveScope(opts);
       const target = resolveTarget(path, isGlobal);
-      const scope = isGlobal ? '~ (全局)' : target;
       for (const name of platforms) {
         const dir = isGlobal ? (GLOBAL_ROOTS[name]) : resolve(target, PLATFORMS[name].dir);
         if (existsSync(dir)) {

@@ -1,6 +1,6 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
-import { getAgentList, getPlatformModels } from './agent-registry.js';
+import { getAgentList } from './agent-registry.js';
 
 /**
  * 流水线定义表 — 不同工作流可注册不同的 Gate 序列。

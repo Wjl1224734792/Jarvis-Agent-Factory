@@ -3,7 +3,7 @@
  * 替代硬编码的 AGENT_LIST 和 AGENT_FILES。
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
-import { resolve, join, basename, extname } from 'node:path';
+import { resolve, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
 
@@ -116,7 +116,6 @@ function scanPlatform(platformKey: string, config: { dir: string; subdirs: strin
       const filePath = join(dir, entry);
       const content = readFileSync(filePath, 'utf-8');
       const fileName = basename(entry, config.ext);
-      const relativePath = `.${platformDir.slice(TEMPLATES_DIR.length + config.dir.length)}/${subdir}/${entry}`;
       // 实际安装路径
       const installBase = platformKey === 'claude'
         ? `.claude/${subdir}/${entry}`

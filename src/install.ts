@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url';
 import { resolve, join, dirname } from 'node:path';
-import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, appendFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
@@ -47,21 +47,19 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
   const destExists = existsSync(destRoot);
   if (destExists && !force) {
-    const scope = isGlobal ? 'global' : platform;
     const ok = await confirm(`  📁 ${info.dir}/ exists, merge agents/skills/commands? [y/N] `);
     if (!ok) { console.log(`  ⏭  Skipped ${platform}`); return; }
   }
 
   if (!destExists) mkdirSync(destRoot, { recursive: true });
 
-  let totalFiles = 0, totalSkipped = 0;
+  let totalFiles = 0;
   for (const bucket of INSTALL_BUCKETS) {
     const srcDir = join(srcRoot, bucket);
     const destDir = join(destRoot, bucket);
     if (!existsSync(srcDir)) continue;
     const stats = mergeDir(srcDir, destDir);
     totalFiles += stats.files;
-    totalSkipped += stats.skipped;
     const tag = existsSync(destDir) && stats.files > 0 ? '~' : '+';
     console.log(`  ${tag} ${(isGlobal ? '~/' + info.dir : info.dir) + '/' + bucket.padEnd(8)} → ${stats.files} files${stats.skipped ? ` (${stats.skipped} unchanged skipped)` : ''}`);
   }
@@ -77,7 +75,7 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
 }
 
-function installHooks(platform, target, isGlobal) {
+function installHooks(platform, target, _isGlobal) {
   const hookJson = {
     PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],

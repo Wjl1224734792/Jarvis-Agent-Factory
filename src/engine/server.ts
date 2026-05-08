@@ -9,8 +9,8 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, resumeSession, migrateSession, getAllPipelines, getAgentConfig, setAgentModel, createPipelineRun, getPipelineRun, getActiveRun, getSessionRuns, updateRunGate, completeRun, setRunTaskName } from './db.js';
-import { GATE_CHECKS, GATE_DIRS, AGENT_LIST, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, setRunTaskName } from './db.js';
+import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
 
@@ -586,8 +586,6 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     c.html(readFileSync(resolve(viewsDir, 'pipeline.html'), 'utf-8')));
   app.get('/agents', (c) =>
     c.html(readFileSync(resolve(viewsDir, 'agents.html'), 'utf-8')));
-  app.get('/archive', (c) =>
-    c.html(readFileSync(resolve(viewsDir, 'archive.html'), 'utf-8')));
 
   serve({ fetch: app.fetch, port, hostname: BIND_HOST });
 
