@@ -37,7 +37,6 @@ docs/tmp/*
 # 依赖与构建产物
 # ============================================================
 node_modules/
-package-lock.json
 *.tgz
 dist/
 build/
