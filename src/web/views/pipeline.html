@@ -8,6 +8,7 @@
 <script>tailwind.config={theme:{extend:{colors:{primary:'#6366F1',primary2:'#818CF8',cta:'#10B981',surface:'#FFFFFF',text:'#1E1B4B',muted:'#64748B'},fontFamily:{sans:['Inter','system-ui','sans-serif'],mono:['JetBrains Mono','Fira Code','monospace']}}}}</script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
 <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <style>
   * { scrollbar-width: thin; scrollbar-color: #CBD5E1 transparent; }
   .step-line { position:absolute; left:11px; top:28px; bottom:4px; width:2px; }
@@ -101,6 +102,16 @@
       <div class="flex items-center gap-3 mb-2">
         <h2 class="text-2xl font-bold text-slate-800">流水线看板</h2>
         <span class="px-2.5 py-0.5 text-[11px] font-medium bg-indigo-100 text-indigo-700 rounded-full">Gate 实时监控</span>
+        <!-- 恢复按钮（仅选中休眠会话时显示） -->
+        <div id="resumeBtnContainer" class="hidden ml-3">
+          <button id="resumeSessionBtn" onclick="resumeSelectedSession()"
+            class="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium rounded-lg
+                   bg-indigo-50 text-indigo-600 hover:bg-indigo-100 border border-indigo-200
+                   transition-colors">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+            恢复会话
+          </button>
+        </div>
       </div>
       <p class="text-sm text-slate-500" id="pipelineProject">会话隔离模式 · 实时刷新 · 每 5 秒自动轮询</p>
     </div>
@@ -310,10 +321,10 @@ const PIPELINE_NAMES = {
 
 /** 指令标签：pipeline_type → { label, class } */
 const COMMAND_LABELS = {
-  'full':     { label: '/jarvis',       cls: 'indigo' },
-  'frontend': { label: '/jarvis-fe',    cls: 'blue' },
-  'backend':  { label: '/jarvis-be',    cls: 'green' },
-  'lite':     { label: '/jarvis-lite',  cls: 'amber' },
+  'full':     { label: 'jarvis',       cls: 'indigo' },
+  'frontend': { label: 'jarvis-fe',    cls: 'blue' },
+  'backend':  { label: 'jarvis-be',    cls: 'green' },
+  'lite':     { label: 'jarvis-lite',  cls: 'amber' },
 };
 
 /** 指令标签颜色 → Tailwind 类名映射 */
@@ -323,6 +334,9 @@ const COMMAND_COLORS = {
   green:   'bg-emerald-100 text-emerald-700',
   amber:   'bg-amber-100 text-amber-700',
 };
+
+/** Gate → docs 子目录映射（与后端 gates.ts GATE_DIRS 保持同步） */
+const GATE_DIRS_MAP = { 'Gate A':'requirements','Gate B':'tasks','Gate C':'plans','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
 
 let selectedSession = null, allSessions = [], sessionPlatform = 'all';
 
@@ -365,6 +379,9 @@ async function refresh() {
     sessionData = pd.sessions[0];
     selectedSession = sessionData.session_id;
   }
+
+  // 更新恢复按钮可见性
+  updateResumeBtnVisibility();
 
   // 加载选中会话的历史 Runs
   fetchPipelineRuns(selectedSession);
@@ -423,7 +440,12 @@ async function refresh() {
         : 'border-slate-200';
 
     const artifactsHtml = g.artifacts && g.artifacts.length > 0
-      ? `<div class="flex flex-wrap gap-1 mt-2">${g.artifacts.map(a => `<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono" title="${a}">${a.split('/').pop()}</span>`).join('')}</div>`
+      ? `<div class="flex flex-wrap gap-1 mt-2">${g.artifacts.map(a => {
+        var gateDir = GATE_DIRS_MAP[g.gate] || '';
+        var artFullPath = gateDir ? gateDir + '/' + a : a;
+        var artFileName = a.split('/').pop();
+        return '<span class="text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded font-mono cursor-pointer hover:bg-indigo-100 hover:text-indigo-600 transition-colors" title="点击查看: ' + escHtml(artFullPath) + '" onclick="event.stopPropagation();openDocDrawer(\'' + artFullPath + '\', \'' + artFileName + '\')">' + escHtml(artFileName) + '</span>';
+      }).join('')}</div>`
       : '';
 
     return `
@@ -488,10 +510,16 @@ function renderSessions() {
     return;
   }
 
-  // 置顶排序：pinned=1 的会话排在前面
+  // 排序：置顶优先 + run 创建时间倒序
   var sorted = filtered.slice().sort(function(a, b) {
+    // 第一优先：置顶
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
+    // 第二优先：run 创建时间倒序（最新在前）
+    var aTime = a.latest_run_started_at || '';
+    var bTime = b.latest_run_started_at || '';
+    if (aTime > bTime) return -1;
+    if (aTime < bTime) return 1;
     return 0;
   });
 
@@ -515,7 +543,8 @@ function renderSessions() {
     var timeStr = s.heartbeat
       ? new Date(s.heartbeat).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
       : '';
-    var fallbackTitle = ptName + (timeStr ? ' ' + timeStr : '');
+    var platformName = { 'claude': 'Claude', 'opencode': 'OpenCode', 'codex': 'Codex' }[s.platform] || s.platform || '';
+    var fallbackTitle = (platformName ? platformName + ' · ' : '') + ptName + (timeStr ? ' · ' + timeStr : '');
     var displayTitle = escHtml(s.task_name || fallbackTitle);
     var titleTooltip = escHtml(s.task_name
       ? (s.task_name + ' · ' + s.platform + ' · ID: ' + s.id)
@@ -533,30 +562,31 @@ function renderSessions() {
       '" role="button" tabindex="0" aria-current="' + (isActive ? 'true' : 'false') + '" onclick="selectSession(\'' + s.id + '\')" onkeydown="if(event.key===\'Enter\'||event.key===\' \'){event.preventDefault();selectSession(\'' + s.id + '\');}" title="' + titleTooltip + '">' +
       '<div class="flex items-center gap-2 min-w-0">' +
       pinIcon +
-      '<span class="text-xs text-slate-700 truncate font-semibold flex-1 min-w-0" title="' + displayTitle + '">' + displayTitle + '</span>' +
       '<span class="w-2 h-2 rounded-full flex-shrink-0 ' + statusColor + '" title="' + statusLabel + '"></span>' +
+      '<span class="text-xs text-slate-700 truncate font-semibold flex-1 min-w-0" title="' + displayTitle + '">' + displayTitle + '</span>' +
       '</div>' +
       '<div class="flex items-center gap-1.5">' +
       '<span class="text-[10px] ' + cmdColor + ' px-1.5 py-px rounded font-mono flex-shrink-0 whitespace-nowrap">' + cmd.label + '</span>' +
       '<span class="text-[10px] text-slate-500 bg-slate-100 px-1.5 py-px rounded font-mono flex-shrink-0">' + (s.gate || '?') + '</span>' +
-      (isInactive ? '<button class="w-3.5 h-3.5 flex items-center justify-center bg-transparent border-0 p-0 cursor-pointer text-indigo-400 hover:text-indigo-300 flex-shrink-0 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-label="恢复会话" title="恢复会话" onclick="event.stopPropagation();resumeSession(\'' + s.id + '\')"><i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i></button>' : '') +
       '<div class="flex-1"></div>' +
-      (hasActiveRun ? (
-        '<div class="relative flex-shrink-0">' +
-        '<button class="w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-label="运行操作" aria-haspopup="menu" aria-expanded="false" onclick="event.stopPropagation();toggleRunMenu(event, \'' + s.run_id + '\')" title="运行操作">' +
+      ('<div class="relative flex-shrink-0">' +
+        '<button class="w-5 h-5 flex items-center justify-center rounded hover:bg-slate-200 text-slate-400 hover:text-slate-600 transition-colors focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-label="更多操作" aria-haspopup="menu" aria-expanded="false" onclick="event.stopPropagation();toggleRunMenu(event, \'' + (s.run_id || s.id) + '\')" title="更多操作">' +
         '<i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>' +
         '</button>' +
-        '<div id="run-menu-' + s.run_id + '" class="hidden absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[112px]" onclick="event.stopPropagation()">' +
-        '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();togglePin(\'' + s.run_id + '\', ' + isPinned + ')">' + pinActionLabel + '</button>' +
-        '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();archiveRunFromMenu(\'' + s.run_id + '\')">归档</button>' +
-        '<button class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors" onclick="event.stopPropagation();deleteRunFromMenu(\'' + s.run_id + '\')">删除</button>' +
+        '<div id="run-menu-' + (s.run_id || s.id) + '" class="hidden absolute right-0 top-full mt-1 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 min-w-[112px]" onclick="event.stopPropagation()">' +
+        (hasActiveRun ? (
+          '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();togglePin(\'' + s.run_id + '\', ' + isPinned + ')">' + pinActionLabel + '</button>'
+        ) : (
+          '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-300 cursor-not-allowed" disabled title="需要活跃运行记录">' + pinActionLabel + '</button>'
+        )) +
+        (hasActiveRun ? (
+          '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-600 hover:bg-slate-50 transition-colors" onclick="event.stopPropagation();archiveRunFromMenu(\'' + s.run_id + '\')">归档</button>'
+        ) : (
+          '<button class="w-full text-left px-3 py-1.5 text-xs text-slate-300 cursor-not-allowed" disabled title="需要活跃运行记录">归档</button>'
+        )) +
+        '<button class="w-full text-left px-3 py-1.5 text-xs text-red-500 hover:bg-red-50 transition-colors" onclick="event.stopPropagation();deleteRunFromMenu(\'' + (s.run_id || s.id) + '\')">删除</button>' +
         '</div>' +
-        '</div>'
-      ) : (
-        '<button class="w-5 h-5 flex items-center justify-center rounded text-slate-400 cursor-not-allowed flex-shrink-0 focus-visible:ring-2 focus-visible:ring-indigo-400 focus-visible:outline-none" aria-disabled="true" onclick="event.stopPropagation()" title="暂无运行记录">' +
-        '<i data-lucide="more-vertical" class="w-3.5 h-3.5"></i>' +
-        '</button>'
-      )) +
+        '</div>') +
       '</div>' +
       '</div>'
     );
@@ -566,16 +596,34 @@ function renderSessions() {
 
 function selectSession(sid) {
   selectedSession = sid;
+  updateResumeBtnVisibility();
   renderSessions();
   refresh();
 }
 
-async function resumeSession(sid) {
-  const r = await fetch('/api/sessions/' + sid + '/resume', { method: 'POST' });
-  const d = await r.json();
-  if (!d || d.error) { toast('恢复失败: ' + (d?.error || '未知错误'), false); return; }
-  toast('会话已恢复 — ' + d.gate, true);
-  refresh();
+/**
+ * 更新恢复按钮的显示/隐藏状态
+ * 仅当选中会话存在且状态为 inactive 时显示
+ */
+function updateResumeBtnVisibility() {
+  var container = document.getElementById('resumeBtnContainer');
+  if (!container) return;
+  var session = allSessions.find(function(s) { return s.id === selectedSession; });
+  container.classList.toggle('hidden', !session || session.status !== 'inactive');
+}
+
+/** 恢复当前选中的休眠会话 */
+function resumeSelectedSession() {
+  if (!selectedSession) return;
+  var session = allSessions.find(function(s) { return s.id === selectedSession; });
+  if (!session || session.status !== 'inactive') return;
+  fetch('/api/sessions/' + encodeURIComponent(selectedSession) + '/resume', { method: 'POST' })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.ok) { refresh(); toast('会话已恢复', true); }
+      else { toast('恢复失败: ' + (d.error || '未知错误'), false); }
+    })
+    .catch(function(e) { toast('网络错误: ' + e.message, false); });
 }
 
 /**
@@ -699,6 +747,60 @@ function toggleRunsPanel() {
     icon.style.transform = 'rotate(0deg)';
     label.textContent = '展开';
   }
+}
+
+/**
+ * 打开文档抽屉，通过 API 加载 Markdown 文件并用 marked.js 渲染
+ * @param {string} filepath - docs/ 下的相对文件路径
+ * @param {string} filename - 显示用的文件名
+ */
+function openDocDrawer(filepath, filename) {
+  var overlay = document.getElementById('docDrawerOverlay');
+  var drawer = document.getElementById('docDrawer');
+  var title = document.getElementById('docDrawerTitle');
+  var content = document.getElementById('docDrawerContent');
+
+  // 设置标题
+  if (title) title.textContent = filename || '文档预览';
+  if (content) content.innerHTML = '<p class="text-sm text-slate-400 text-center py-12">加载中...</p>';
+
+  // 显示
+  if (overlay) overlay.classList.remove('hidden');
+  if (drawer) drawer.classList.remove('translate-x-full');
+
+  // 获取文件内容
+  fetch('/api/docs/' + encodeURIComponent(filepath))
+    .then(function(r) {
+      if (!r.ok) throw new Error('文件加载失败 (' + r.status + ')');
+      return r.text();
+    })
+    .then(function(md) {
+      if (content) {
+        try {
+          if (typeof marked !== 'undefined' && marked.parse) {
+            content.innerHTML = marked.parse(md);
+          } else {
+            content.innerHTML = '<pre class="text-sm text-slate-700 whitespace-pre-wrap font-mono">' + escHtml(md) + '</pre>';
+          }
+        } catch(e) {
+          content.innerHTML = '<pre class="text-sm text-slate-700 whitespace-pre-wrap font-mono">' + escHtml(md) + '</pre>';
+        }
+      }
+      lucide.createIcons();
+    })
+    .catch(function(err) {
+      if (content) content.innerHTML = '<div class="text-center py-12"><p class="text-sm text-red-500">' + escHtml(err.message) + '</p></div>';
+    });
+}
+
+/**
+ * 关闭文档抽屉
+ */
+function closeDocDrawer() {
+  var overlay = document.getElementById('docDrawerOverlay');
+  var drawer = document.getElementById('docDrawer');
+  if (overlay) overlay.classList.add('hidden');
+  if (drawer) drawer.classList.add('translate-x-full');
 }
 
 /**
@@ -1074,5 +1176,25 @@ loadMcpStatus();
 setInterval(loadMcpStatus, 5000);
 lucide.createIcons();
 </script>
+
+<!-- ===== 文档抽屉 ===== -->
+<div id="docDrawerOverlay" class="fixed inset-0 bg-black/30 z-40 hidden transition-opacity duration-300" onclick="closeDocDrawer()"></div>
+<div id="docDrawer" class="fixed top-0 right-0 h-full w-[55%] max-w-[700px] bg-white shadow-2xl z-50 transform translate-x-full transition-transform duration-300 ease-in-out flex flex-col">
+  <!-- 抽屉头部 -->
+  <div class="flex items-center justify-between px-6 py-4 border-b border-slate-200 flex-shrink-0">
+    <div class="flex items-center gap-3 min-w-0">
+      <i data-lucide="file-text" class="w-5 h-5 text-indigo-500 flex-shrink-0"></i>
+      <h3 id="docDrawerTitle" class="text-sm font-semibold text-slate-800 truncate">文档预览</h3>
+    </div>
+    <button onclick="closeDocDrawer()" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors" aria-label="关闭抽屉">
+      <i data-lucide="x" class="w-5 h-5"></i>
+    </button>
+  </div>
+  <!-- 抽屉内容 -->
+  <div id="docDrawerContent" class="flex-1 overflow-y-auto px-6 py-5">
+    <p class="text-sm text-slate-400 text-center py-12">加载中...</p>
+  </div>
+</div>
+
 </body>
 </html>

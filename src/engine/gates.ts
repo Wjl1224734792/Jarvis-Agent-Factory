@@ -134,6 +134,36 @@ export function findGateArtifacts(docsDir, gate) {
   return readdirSync(dir).filter(f => f.endsWith('.md')).slice(0, 5);
 }
 
+/**
+ * 按会话过滤 Gate 产物文档
+ * 通过检查点记录中的日期匹配文件名前缀，只返回该会话产生的文档
+ * @param docsDir 文档根目录
+ * @param gate Gate 名称
+ * @param sessionId 会话 ID
+ * @param db 数据库实例
+ * @returns 匹配的文档文件名列表（最多 5 个）
+ */
+export function findSessionGateArtifacts(docsDir, gate, sessionId, db) {
+  const subdir = GATE_DIRS[gate];
+  if (!subdir) return [];
+
+  const checkpoints = db.prepare(
+    'SELECT passed_at FROM checkpoints WHERE session_id = ? AND gate = ?'
+  ).all(sessionId, gate);
+
+  const dir = join(docsDir, subdir);
+  if (!existsSync(dir)) return [];
+
+  const files = readdirSync(dir).filter(f => f.endsWith('.md'));
+
+  if (checkpoints.length > 0) {
+    const dates = new Set(checkpoints.map(c => c.passed_at.slice(0, 10)));
+    return files.filter(f => dates.has(f.slice(0, 10))).slice(0, 5);
+  }
+
+  return [];
+}
+
 export function formatGateDisplay(gates, current) {
   return gates.map(g => `${g.passed ? '✅' : g.gate === current ? '🔵' : '⏳'} ${g.gate}${g.passed && g.checkpoints?.length ? ` (${g.checkpoints[0].passed_at?.slice(0,10)})` : ''}`).join(' → ');
 }

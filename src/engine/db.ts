@@ -185,10 +185,35 @@ export function addCheckpoint(db, gate, advanceTo, sessionId) {
 }
 
 // ---- Sessions ----
-/** @param {'active'|'inactive'|undefined} statusFilter */
+/**
+ * 获取所有会话，按最近 run 创建时间倒序排列
+ * - 有 run 的会话按 latest_run_started_at DESC
+ * - 无 run 的会话排在末尾
+ * @param {'active'|'inactive'|undefined} statusFilter
+ * @returns {Array<{id: string; platform: string; role: string; status: string; created_at: number; last_heartbeat: number; latest_run_started_at: string|null}>}
+ */
 export function getSessions(db, statusFilter = undefined) {
-  if (statusFilter) return db.prepare('SELECT * FROM sessions WHERE status=? ORDER BY created_at').all(statusFilter);
-  return db.prepare('SELECT * FROM sessions ORDER BY created_at').all();
+  const orderClause = `
+    ORDER BY
+      CASE WHEN latest_run_started_at IS NULL THEN 1 ELSE 0 END,
+      latest_run_started_at DESC,
+      s.created_at DESC
+  `;
+  if (statusFilter) {
+    return db.prepare(`
+      SELECT s.*,
+        (SELECT MAX(pr.started_at) FROM pipeline_runs pr WHERE pr.session_id = s.id) AS latest_run_started_at
+      FROM sessions s
+      WHERE status=?
+      ${orderClause}
+    `).all(statusFilter);
+  }
+  return db.prepare(`
+    SELECT s.*,
+      (SELECT MAX(pr.started_at) FROM pipeline_runs pr WHERE pr.session_id = s.id) AS latest_run_started_at
+    FROM sessions s
+    ${orderClause}
+  `).all();
 }
 export function getSession(db, sid) {
   return db.prepare('SELECT * FROM sessions WHERE id=?').get(sid);

@@ -259,6 +259,14 @@ function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
+      // 自动设置任务名称（若用户未显式传入）
+      const effectiveProject = project_name || root;
+      const projectShortName = effectiveProject.split(/[\\/]/).filter(Boolean).pop() || effectiveProject;
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      const defaultTaskName = `${projectShortName} 流水线任务 · ${mm}-${dd}`;
+      setRunTaskName(db, runId, defaultTaskName);
       return resp({
         ok: true, session_id: sid, run_id: runId, pipeline_type: pt,
         message: 'New pipeline run created. Next: Gate A',

@@ -1,8 +1,8 @@
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
-import { GATE_CHECKS, AVAILABLE_MODELS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
+import { GATE_CHECKS, AVAILABLE_MODELS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
@@ -97,7 +97,7 @@ export function setupApiRoutes(app, db, root) {
       const gates = gateList.map(g => ({
         gate: g,
         passed: getCheckpoints(db, g, s.id).length > 0,
-        artifacts: findGateArtifacts(getDocsDir(root), g),
+        artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db),
       }));
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
       return {
@@ -117,8 +117,8 @@ export function setupApiRoutes(app, db, root) {
 
   app.get('/api/gate/:gate/enforce', (c) => {
     const gate = c.req.param('gate').replace(/_/g, ' ');
-    const artifacts = findGateArtifacts(getDocsDir(root), gate);
     const sid = c.req.query('session_id');
+    const artifacts = sid ? findSessionGateArtifacts(getDocsDir(root), gate, sid, db) : [];
     if (!sid) return c.json({ error: 'session_id query parameter required' }, 400);
     const checkpoints = getCheckpoints(db, gate, sid);
     const allowed = artifacts.length > 0 || checkpoints.length > 0;
@@ -146,7 +146,7 @@ export function setupApiRoutes(app, db, root) {
       return c.json({ allowed: false, error: 'Pipeline complete' });
     }
     const targetGate = gateList[targetIdx];
-    const artifacts = findGateArtifacts(getDocsDir(root), currentGate);
+    const artifacts = findSessionGateArtifacts(getDocsDir(root), currentGate, sid, db);
     const checkpoints = getCheckpoints(db, currentGate, sid);
     if (artifacts.length === 0 && checkpoints.length === 0) {
       return c.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
@@ -179,6 +179,7 @@ export function setupApiRoutes(app, db, root) {
         task_name: run?.task_name || null,
         run_id: run?.id || null,
         pinned: run?.pinned || 0,
+        latest_run_started_at: s.latest_run_started_at || null,
       };
     });
     return c.json({ sessions, count: sessions.length });
@@ -331,6 +332,36 @@ export function setupApiRoutes(app, db, root) {
       };
     }
     return c.json({ platforms: summary, supported: platforms, total_agents: getAgentList(true).length });
+  });
+
+  // ---- Docs 读取 ----
+  app.get('/api/docs/:filepath{.*}', (c) => {
+    const filepath = decodeURIComponent(c.req.param('filepath'));
+
+    // 拒绝空路径
+    if (!filepath || filepath === '/') {
+      return c.json({ error: 'File path required' }, 400);
+    }
+
+    // 路径遍历防护（优先级高于文件扩展名检查）
+    const docsDir = resolve(root, 'docs');
+    const resolvedPath = resolve(docsDir, filepath);
+    if (!resolvedPath.startsWith(docsDir)) {
+      return c.json({ error: 'Path traversal not allowed' }, 400);
+    }
+
+    // 拒绝非 .md 文件
+    if (!filepath.endsWith('.md')) {
+      return c.json({ error: 'Only .md files allowed' }, 400);
+    }
+
+    // 文件存在性检查
+    if (!existsSync(resolvedPath)) {
+      return c.json({ error: 'File not found' }, 404);
+    }
+
+    const content = readFileSync(resolvedPath, 'utf-8');
+    return c.text(content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
   });
 
   // ---- SSE 事件流 ----

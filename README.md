@@ -1,13 +1,13 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.26.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.27.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
 
-> **v3.26.0** — 会话列表卡片化布局 · 键盘可访问性增强 · 开发环境 MCP 配置
+> **v3.27.0** — 会话排序与门禁文档追踪 · ⋮ 菜单全覆盖 · 文档抽屉 · Agent 自动命名
 
 ## 快速开始
 

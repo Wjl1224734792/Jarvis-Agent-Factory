@@ -4,6 +4,26 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.27.0] - 2026-05-09
+
+### Added
+- **会话排序**：按最新 Run 创建时间倒序排列，无 Run 会话排在末尾
+- **门禁文档按会话过滤**：Gate 卡片仅展示当前会话的产物文档
+- **文档抽屉**：点击文档文件名右侧滑出抽屉，Markdown 实时渲染
+- **文档读取 API**：`GET /api/docs/:filepath` 安全读取 docs 目录文件
+- **Agent 自动命名**：`pipeline_init` 自动设置任务名称
+- **⋮ 菜单全覆盖**：所有会话均可点击更多菜单，删除始终红色可用
+- **恢复按钮迁移**：从侧边栏移至看板顶部操作栏
+
+### Changed
+- 状态指示点从标题右侧移到左侧
+- 指令标签去掉 "/" 前缀，适配多平台
+- 会话名称回退格式优化（平台名 · 类型 · 时间）
+
+### Fixed
+- 会话列表排序缺失问题（新增 run 时间排序）
+- 门禁文档全局污染问题（按 session 过滤）
+
 ## [3.26.0] - 2026-05-08
 
 ### Added
