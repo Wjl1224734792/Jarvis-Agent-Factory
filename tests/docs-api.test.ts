@@ -1,16 +1,31 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { Hono } from 'hono';
+import { mkdirSync, writeFileSync, rmSync } from 'fs';
+import { resolve } from 'path';
 import { setupApiRoutes } from '../src/web/routes.js';
+
+const TEST_DIR = resolve(process.cwd(), 'docs', '__test__');
+const TEST_FILE = resolve(TEST_DIR, 'test-doc.md');
+const TEST_CONTENT = '# 测试文档\n\n这是一份测试 Markdown 文件。';
 
 describe('Docs API - GET /api/docs/:filepath', () => {
   const app = new Hono();
   setupApiRoutes(app, null, process.cwd());
 
+  beforeAll(() => {
+    mkdirSync(TEST_DIR, { recursive: true });
+    writeFileSync(TEST_FILE, TEST_CONTENT, 'utf-8');
+  });
+
+  afterAll(() => {
+    rmSync(TEST_DIR, { recursive: true, force: true });
+  });
+
   it('正常读取 Markdown 文件返回 200 + 文本内容', async () => {
-    const res = await app.request('/api/docs/requirements/2026-05-08-session-list-v2-improvements.md');
+    const res = await app.request('/api/docs/__test__/test-doc.md');
     expect(res.status).toBe(200);
     const text = await res.text();
-    expect(text.length).toBeGreaterThan(0);
+    expect(text).toBe(TEST_CONTENT);
   });
 
   it('路径遍历攻击返回 400', async () => {
