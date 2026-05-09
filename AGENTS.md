@@ -108,6 +108,8 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 
 ### 3. 提交并打 Tag
 
+**每次代码变更完成后必须打 Tag，不可攒批。**
+
 ```bash
 git add <changed-files>
 git commit -m "<type>: <简短描述>"

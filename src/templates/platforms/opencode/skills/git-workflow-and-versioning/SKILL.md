@@ -125,6 +125,8 @@ feat/x       ●●      ●●       功能分支
 
 ## 标签与版本管理
 
+**每次代码变更完成后必须打 Tag，不可攒批。** 变更即打标，确保每个版本可追溯。
+
 ```
 MAJOR.MINOR.PATCH
 MAJOR：不兼容 API 变更    MINOR：向后兼容新功能    PATCH：Bug 修复
