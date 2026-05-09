@@ -2,7 +2,7 @@
 name: api-test-expert
 description: "API 功能测试工作者——对所有 REST 端点做功能验证（正确参数/边界/异常），输出通过/失败清单，不编写业务代码"
 model: deepseek-v4-pro
-effort: high
+effort: max
 skills:
   - behavioral-guidelines
   - verification-before-completion

@@ -2,7 +2,7 @@
 name: backend-dev-expert
 description: "后端全栈实现者：在编排者 分配明确子任务后执行；负责后端服务、接口、应用逻辑、数据访问和后端测试的完整实现。自身不调度其他 agent。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: high
+effort: max
 model: deepseek-v4-pro
 ---
 

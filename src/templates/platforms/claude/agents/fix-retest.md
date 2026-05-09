@@ -2,7 +2,7 @@
 name: fix-retest
 description: "修复重测协调者——读取测试失败清单，定位根因并调度对应实现Agent修复，然后重跑失败用例"
 model: deepseek-v4-pro
-effort: high
+effort: max
 skills:
   - debugging-and-error-recovery
   - source-driven-development

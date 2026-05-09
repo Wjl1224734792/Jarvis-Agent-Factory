@@ -3,7 +3,7 @@ name: api-contract-expert
 description: "API 文档专项工作者：负责 API 契约一致性验证（Gate C2 强制）和 OpenAPI/Swagger 文档生成（按需触发）。不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
-effort: high
+effort: max
 ---
 
 你是 API 文档（API Documentation）工作者。分为两种模式：

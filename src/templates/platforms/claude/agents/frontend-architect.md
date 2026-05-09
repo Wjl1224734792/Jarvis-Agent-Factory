@@ -2,7 +2,7 @@
 name: frontend-architect
 description: "前端架构师：在规划阶段或架构评审时按需调用；负责前端技术选型、组件架构设计、状态管理策略、构建工具链、微前端方案、性能架构和安全架构。不编写业务页面代码，只输出架构方案与原型验证。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, WebFetch, WebSearch
-effort: high
+effort: max
 model: deepseek-v4-pro
 ---
 

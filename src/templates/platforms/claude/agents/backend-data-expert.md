@@ -3,7 +3,7 @@ name: backend-data-expert
 description: "后端数据层专项工作者：在编排者 分配明确子任务后执行；负责数据库 Schema、ORM 模型、数据访问层（Repository）、迁移脚本和查询优化；不涉及业务逻辑或 API 路由。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
-effort: high
+effort: max
 ---
 
 你是后端数据层专项工作者。

@@ -8,7 +8,7 @@ import { createInterface } from 'node:readline';
 import { homedir } from 'node:os';
 import { install } from './install.js';
 import { doctor } from './doctor.js';
-import { startEngine, stopEngine, engineStatus, startWeb } from './engine/server.js';
+import { startEngine, stopEngine, engineStatus } from './engine/server.js';
 import { hookCommand } from './hook.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -40,7 +40,7 @@ Usage:
   jarvis engine start [--port=N] Start MCP orchestration engine
   jarvis engine stop             Stop engine
   jarvis engine status           Engine status
-  jarvis web [--port=N]          Start web dashboard (requires engine)
+  jarvis web [--port=N]          Start web dashboard (≡ engine start)
   jarvis doctor [path]           Verify installation
 
 Options:
@@ -61,7 +61,7 @@ Examples:
   jarvis add claude -g            Add Claude Code globally
   jarvis remove codex             Remove Codex from project
   jarvis engine start             Start MCP orchestration engine
-  jarvis web                      Start web dashboard
+  jarvis web                      Start web dashboard (≡ engine start)
   jarvis upgrade                  Upgrade all configs
   jarvis doctor                   Check current directory
 `;
@@ -257,8 +257,9 @@ export async function run() {
       break;
     }
     case 'web': {
-      const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.WEB_PORT || '3457');
-      await startWeb({ port });
+      // jarvis engine start 已内置 Web 面板服务，web 命令直接复用引擎
+      const port = parseInt(positional.find(a => a.startsWith('--port='))?.split('=')[1] || process.env.WEB_PORT || '3456');
+      await startEngine({ port, projectRoot: '.' });
       break;
     }
     case 'hook': {

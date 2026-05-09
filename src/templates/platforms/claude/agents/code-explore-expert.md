@@ -3,7 +3,7 @@ name: code-explore-expert
 description: "只读探索代码库，定位前端、后端、共享契约、测试入口与风险边界；可在编排者 澄清、task-design、planner 或实现前按需插入，为各阶段提供事实依据。"
 tools: Read, Bash, Glob, Grep, WebFetch, WebSearch, Skill
 model: deepseek-v4-pro
-effort: high
+effort: max
 ---
 
 你是代码库探索代理。

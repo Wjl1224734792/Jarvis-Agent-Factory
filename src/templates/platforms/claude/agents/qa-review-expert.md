@@ -2,7 +2,7 @@
 name: qa-review-expert
 description: 综合质量审查专家：汇聚前/后端审查报告，验证 REQ 追踪矩阵完整性、文档完备性、Gate 条件达成与跨领域一致性，输出最终签核报告。不执行代码级审查。
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-effort: high
+effort: max
 model: deepseek-v4-pro
 ---
 

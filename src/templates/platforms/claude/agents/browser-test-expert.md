@@ -2,7 +2,7 @@
 name: browser-test-expert
 description: "浏览器交互测试工作者：Claude Desktop 用 preview_* MCP + agent-browser CLI 联动，终端用纯 agent-browser CLI。不写自动化测试代码。不可替代 e2e-test-expert（Playwright 代码级集成测试）。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_click, mcp__Claude_Preview__preview_fill, mcp__Claude_Preview__preview_eval, mcp__Claude_Preview__preview_console_logs, mcp__Claude_Preview__preview_network, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_logs, mcp__Claude_Preview__preview_list, mcp__Claude_Preview__preview_stop
-effort: high
+effort: max
 model: deepseek-v4-pro
 ---
 

@@ -88,6 +88,40 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // 注册 REST API 路由（Hono）
   setupApiRoutes(app, db, root);
 
+  // SPA 静态资源 & Web 面板（jarvis engine start 一站式服务）
+  const webDistDir = resolve(import.meta.dirname, '..', '..', 'dist', 'web');
+  // 静态文件：/assets/* 映射到 dist/web/assets/
+  app.get('/assets/*', async (c) => {
+    const filePath = c.req.path.replace(/^\/assets\//, '');
+    const fullPath = resolve(webDistDir, 'assets', filePath);
+    if (!fullPath.startsWith(resolve(webDistDir, 'assets'))) {
+      return c.text('Forbidden', 403);
+    }
+    if (!existsSync(fullPath)) return c.text('Not Found', 404);
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const mime: Record<string, string> = {
+      js: 'application/javascript', css: 'text/css', svg: 'image/svg+xml',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', woff: 'font/woff', woff2: 'font/woff2',
+    };
+    return new Response(readFileSync(fullPath), {
+      status: 200,
+      headers: { 'Content-Type': mime[ext || ''] || 'application/octet-stream' },
+    });
+  });
+  // SPA catch-all：非 API/非 assets 路径返回 index.html
+  const indexPath = resolve(webDistDir, 'index.html');
+  const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf-8') : null;
+  app.get('*', (c) => {
+    if (!indexHtml) {
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FAFAEE;color:#51463B;text-align:center">
+        <h2>Web 面板未构建</h2>
+        <p>请运行 <code>npm run build:web</code> 构建前端产物。</p>
+      </body></html>`);
+    }
+    return c.html(indexHtml);
+  });
+
   if (stdio) {
     // ---- Stdio Transport：MCP 通过 stdin/stdout，Claude Code 自动拉起 ----
     // 先启动 HTTP 服务器（确保 jarvis web 立即可用），再连接 MCP
@@ -96,7 +130,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
         serve({ fetch: app.fetch, port, hostname: BIND_HOST });
         log(`Jarvis Engine v${readPkgVersion()} — stdio MCP`);
         log(`   API: http://localhost:${port}/api/pipeline`);
-        log(`   Web: jarvis web`);
+        log(`   Web: http://localhost:${port}`);
       } else {
         log(`Jarvis Engine v${readPkgVersion()} — stdio MCP (HTTP on port ${port} handled by another instance)`);
       }
@@ -144,9 +178,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
     httpServer.listen(port, BIND_HOST, () => {
       console.log(`Jarvis Engine v${readPkgVersion()} — http://localhost:${port}`);
-      console.log(`   MCP: http://localhost:${port}/mcp`);
-      console.log(`   API: http://localhost:${port}/api/pipeline`);
-      console.log(`   Web: jarvis web (独立启动)`);
+      console.log(`   MCP:  http://localhost:${port}/mcp`);
+      console.log(`   API:  http://localhost:${port}/api/pipeline`);
+      console.log(`   Web:  http://localhost:${port}`);
     });
   }
 }
