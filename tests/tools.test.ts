@@ -13,11 +13,28 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 // ── Mock 安装 ──────────────────────────────────────────────
 // vitest 会提升 vi.mock 到文件顶部
 
-const { mockToolFn, mockExecSync, mockExecFileSync } = vi.hoisted(() => ({
-  mockToolFn: vi.fn((config: any) => config),
-  mockExecSync: vi.fn<(..._args: any[]) => string>(),
-  mockExecFileSync: vi.fn<(..._args: any[]) => string>(),
-}));
+const { mockToolFn, mockExecSync, mockExecFileSync } = vi.hoisted(() => {
+  // 构建 tool.schema.* 链式调用 mock
+  const chainable = {
+    describe: (_desc: string) => chainable,
+    optional: () => chainable,
+    default: (_val: unknown) => chainable,
+  };
+  const schemaMock = {
+    string: () => chainable,
+    number: () => chainable,
+    boolean: () => chainable,
+    array: (_of?: unknown) => chainable,
+    object: (_shape?: unknown) => chainable,
+  };
+  const toolFn = vi.fn((config: Record<string, unknown>) => config);
+  Object.assign(toolFn, { schema: schemaMock });
+  return {
+    mockToolFn: toolFn,
+    mockExecSync: vi.fn<(..._args: any[]) => string>(),
+    mockExecFileSync: vi.fn<(..._args: any[]) => string>(),
+  };
+});
 
 vi.mock('@opencode-ai/plugin', () => ({
   tool: mockToolFn,

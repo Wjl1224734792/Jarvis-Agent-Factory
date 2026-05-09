@@ -89,6 +89,16 @@ function checkLatest() {
   } catch { return null; }
 }
 
+function semverGt(a: string, b: string): boolean {
+  const pa = a.split('.').map(Number);
+  const pb = b.split('.').map(Number);
+  for (let i = 0; i < 3; i++) {
+    if (pa[i] > pb[i]) return true;
+    if (pa[i] < pb[i]) return false;
+  }
+  return false;
+}
+
 function resolveTarget(path, isGlobal) {
   return isGlobal ? resolve('.') : resolve(path || '.');
 }
@@ -100,7 +110,7 @@ export async function run() {
   if (opts.version) {
     console.log(`${PKG_NAME} v${PKG_VERSION}`);
     const latest = checkLatest();
-    if (latest && latest !== PKG_VERSION) {
+    if (latest && semverGt(latest, PKG_VERSION)) {
       console.log(`\n  Update available: v${latest} → npm i -g ${PKG_NAME}@latest`);
     }
     return;
@@ -210,7 +220,7 @@ export async function run() {
     case 'update': {
       // Check CLI self-upgrade
       const latest = checkLatest();
-      if (latest && latest !== PKG_VERSION) {
+      if (latest && semverGt(latest, PKG_VERSION)) {
         console.log(`\n⬆️  CLI: v${PKG_VERSION} → v${latest}`);
         console.log(`   npm i -g ${PKG_NAME}@latest\n`);
       }
