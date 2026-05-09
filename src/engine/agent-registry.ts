@@ -295,31 +295,10 @@ function scanAgentDir(
  * @param override - 覆写列表（如全局/项目配置）
  * @returns 合并后的新数组
  */
-function mergeAgents(base: readonly AgentItem[], override: readonly AgentItem[], templates?: Map<string, AgentItem>): AgentItem[] {
-  const baseById = new Map(base.map(a => [a.id, a]));
-  const result: AgentItem[] = [];
-  for (const b of base) {
-    const ov = baseById.has(b.id) ? override.find(o => o.id === b.id) : undefined;
-    if (ov) {
-      // 与原始模板比较（非前一层 merge 结果），仅当 model/effort 不同时才标记为 override
-      const tpl = templates?.get(b.id);
-      const ref = tpl || b;
-      const sameModel = (ov.defaultModel || '') === (ref.defaultModel || '');
-      const sameEffort = (ov.defaultEffort || 'high') === (ref.defaultEffort || 'high');
-      if (sameModel && sameEffort) {
-        result.push({ ...b, source: b.source }); // 保留模板来源
-      } else {
-        result.push(ov); // 真正的自定义配置
-      }
-    } else {
-      result.push(b); // 无覆盖，保留模板
-    }
-  }
-  // 新增的不在 base 中的 override（项目独有的 agent）
-  for (const ov of override) {
-    if (!baseById.has(ov.id)) result.push(ov);
-  }
-  return result;
+function mergeAgents(base: readonly AgentItem[], override: readonly AgentItem[]): AgentItem[] {
+  const overrideIds = new Set(override.map(a => a.id));
+  const kept = base.filter(a => !overrideIds.has(a.id));
+  return [...kept, ...override];
 }
 
 /** 强制重新扫描模板目录 */
@@ -345,7 +324,6 @@ export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[]
 
     // 二层：全局用户配置（按平台分离路径）
     if (projectRoot) {
-      const templateRef = new Map(_agentList.map(a => [a.id, a]));
       const GLOBAL_AGENT_DIRS: Record<string, string> = {
         claude:   resolve(homedir(), '.claude', 'agents'),
         opencode: resolve(homedir(), '.config', 'opencode', 'agents'),
@@ -356,7 +334,7 @@ export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[]
         if (!globalDir) continue;
         const globalAgents = scanAgentDir(globalDir, platformKey, config, 'global');
         if (globalAgents.length > 0) {
-          _agentList = mergeAgents(_agentList, globalAgents, templateRef);
+          _agentList = mergeAgents(_agentList, globalAgents);
         }
       }
 
@@ -371,7 +349,7 @@ export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[]
         if (!projectDir) continue;
         const projectAgents = scanAgentDir(projectDir, platformKey, config, 'project');
         if (projectAgents.length > 0) {
-          _agentList = mergeAgents(_agentList, projectAgents, templateRef);
+          _agentList = mergeAgents(_agentList, projectAgents);
         }
       }
     }

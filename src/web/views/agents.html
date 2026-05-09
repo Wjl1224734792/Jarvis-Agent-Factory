@@ -447,10 +447,21 @@ function openM(id) {
     return `<option value="${e}" ${e === (cur.effort || 'high') ? 'selected' : ''}>${e} — ${ei.label}${ei.desc ? ' · ' + ei.desc : ''}</option>`;
   }).join('');
 
+  const isReadonly = cur.source === 'template';
+  document.getElementById('modalSelect').disabled = isReadonly;
+  document.getElementById('modalEffort').disabled = isReadonly;
+  document.getElementById('resetBtn').classList.toggle('hidden', isReadonly);
+  if (isReadonly) {
+    document.getElementById('saveBtn').textContent = '模板默认不可编辑';
+    document.getElementById('saveBtn').className = 'px-4 py-2 text-xs font-medium rounded-lg bg-slate-100 text-slate-400 cursor-not-allowed';
+  } else {
+    document.getElementById('saveBtn').textContent = '保存配置';
+    document.getElementById('saveBtn').className = 'px-4 py-2 text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg shadow-sm transition-colors';
+  }
+
   document.getElementById('modal').classList.remove('hidden');
   document.getElementById('modal').classList.add('flex');
-  document.getElementById('saveBtn').disabled = false;
-  document.getElementById('saveBtn').textContent = '保存配置';
+  document.getElementById('saveBtn').disabled = isReadonly;
   lucide.createIcons();
 }
 
@@ -470,6 +481,7 @@ function setSaveLoading(loading) {
 
 async function saveModel() {
   if (saving) return;
+  if (cur && cur.source === 'template') { toast('模板默认智能体不可编辑', 'warn'); return; }
   setSaveLoading(true);
   try {
     const sel = document.getElementById('modalSelect').value;
@@ -497,6 +509,7 @@ async function saveModel() {
 
 async function resetModel() {
   if (saving) return;
+  if (cur && cur.source === 'template') { toast('模板默认智能体不可编辑', 'warn'); return; }
   setSaveLoading(true);
   try {
     const resp = await fetch('/api/agents', {
