@@ -1,8 +1,10 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.27.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.27.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
+[![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
+<br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
 <br>**简体中文** | [English](./README_EN.md)
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
@@ -147,7 +149,9 @@ test-doc-writer → test-executor → fix-retest
 2. **test-executor** — 严格按照文档执行测试，产出通过/失败清单报告
 3. **fix-retest** — 分析失败用例，spawn 对应修复 Agent，最多 2 轮修复-重测
 
-## 三平台 MCP 配置
+## MCP 配置指南
+
+### 贾维斯引擎（必选）
 
 | 平台 | 配置文件 | Transport | 说明 |
 |------|---------|-----------|------|
@@ -155,9 +159,44 @@ test-doc-writer → test-executor → fix-retest
 | **OpenCode** | `opencode.json` | `type: local` → 自动拉起 `jarvis engine start --stdio` |
 | **Codex** | `.codex/config.toml` | `url = "localhost:3456/mcp"` → 需引擎已运行 |
 
+### Visual Primitives MCP（推荐，纯文本模型必备）
+
+[![npm](https://img.shields.io/npm/v/visual-primitives-mcp)](https://www.npmjs.com/package/visual-primitives-mcp)
+[![GitHub](https://img.shields.io/badge/GitHub-Wjl1224734792%2Fvisual--primitives--mcp-black)](https://github.com/Wjl1224734792/visual-primitives-mcp)
+
+基于 DeepSeek《Thinking with Visual Primitives》论文的视觉理解 MCP，将截图/图片转为精确的文字描述和坐标定位。**使用纯文本模型（如 DeepSeek）作为主力的用户强烈推荐**——它为纯文本模型提供了"眼睛"。
+
+```json
+{
+  "mcpServers": {
+    "visual-primitives": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["visual-primitives-mcp"],
+      "env": {
+        "VISION_API_BASE_URL": "https://dashscope.aliyuncs.com/compatible-mode/v1",
+        "VISION_API_KEY": "<你的百炼 API Key>",
+        "VISION_MODEL_NAME": "qwen3.5-plus",
+        "VISION_MODEL_OCR": "qwen3-vl-ocr"
+      }
+    }
+  }
+}
+```
+
+| 环境变量 | 说明 | 推荐值 |
+|---------|------|--------|
+| `VISION_MODEL_NAME` | 默认模型（describe/locate/video 共用） | `qwen3.5-plus` |
+| `VISION_MODEL_DESCRIBE` | 场景描述专用模型（可选，不配则用默认） | `qwen3.5-plus` |
+| `VISION_MODEL_LOCATE` | 坐标定位专用模型（可选） | `qwen3.5-plus` |
+| `VISION_MODEL_VIDEO` | 视频分析专用模型（可选） | `qwen3.5-plus` |
+| `VISION_MODEL_OCR` | OCR 文字识别专用模型 | `qwen3-vl-ocr` |
+
+> **纯文本模型为什么需要它？** DeepSeek V4 等纯文本模型无法"看"图片。Visual Primitives MCP 将截图转为自然语言描述 + 坐标数据，让纯文本模型也能理解 UI 布局、定位元素、读取截图内容。
+
 ### 开发环境 MCP
 
-本项目开发时使用 `.mcp.dev.json`，引擎从本地工作区启动（无需全局安装）：
+开发 Jarvis 本身时，将引擎 MCP 指向本地工作区（无需全局安装）：
 
 ```json
 {
@@ -170,8 +209,6 @@ test-doc-writer → test-executor → fix-retest
   }
 }
 ```
-
-切换到开发模式：`cp .mcp.dev.json .mcp.json`（恢复则 `jarvis init -y`）。
 
 ## 生命周期流水线
 
