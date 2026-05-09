@@ -1,6 +1,6 @@
 {
   "name": "jarvis-agent-factory",
-  "version": "3.28.2",
+  "version": "3.29.0",
   "description": "Jarvis Agent Factory CLI — 跨平台多智能体 AI 编程助手配置安装器 | Multi-agent AI coding assistant config installer for Claude Code / OpenCode / Codex",
   "keywords": [
     "jarvis",
@@ -40,7 +40,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
-    "build": "tsc && node -e \"import{cpSync,readFileSync,writeFileSync}from'fs';import{resolve}from'path';cpSync('src/web/views','dist/src/web/views',{recursive:true});cpSync('src/templates','dist/src/templates',{recursive:true});const v=JSON.parse(readFileSync('package.json','utf8')).version;['pipeline','agents'].forEach(f=>{const p=resolve('dist/src/web/views',f+'.html');let c=readFileSync(p,'utf8');c=c.replace(/__JARVIS_VERSION__/g,'v'+v);writeFileSync(p,c)})\"",
+    "build": "tsc && node -e \"import{cpSync,readFileSync,writeFileSync,rmSync}from'fs';import{resolve}from'path';cpSync('src/web/views','dist/src/web/views',{recursive:true});cpSync('src/templates','dist/src/templates',{recursive:true});try{rmSync('dist/src/templates/platforms/opencode/node_modules',{recursive:true,force:true})}catch{};const v=JSON.parse(readFileSync('package.json','utf8')).version;['pipeline','agents'].forEach(f=>{const p=resolve('dist/src/web/views',f+'.html');let c=readFileSync(p,'utf8');c=c.replace(/__JARVIS_VERSION__/g,'v'+v);writeFileSync(p,c)})\"",
     "dev": "tsx src/cli.ts",
     "jarvis": "node dist/src/cli.js",
     "jarvis:dev": "tsx src/cli.ts",

@@ -21,7 +21,7 @@ permission:
 
 > 这两个技能是所有后续决策和执行的基础，缺一不可。
 
-**引擎驱动**：引擎运行时 MCP 工具自动可用。每个 Gate 通过后：`mcp__jarvis-engine__gate_enforce` 验证条件 → `mcp__jarvis-engine__advance_gate` 推进硬状态机。
+**引擎驱动**：引擎运行时 MCP 工具自动可用。每个 Gate 通过后：`jarvis-gate-check` 验证条件 → `jarvis-gate-advance` 推进硬状态机。
 
 ## 主线流程（唯一入口）
 

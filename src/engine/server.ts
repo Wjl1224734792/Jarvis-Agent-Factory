@@ -151,6 +151,83 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   }
 }
 
+/**
+ * 平台特性映射：根据 PLATFORM_CONFIG.subdirs 推导，排除 'agents' 后即为平台独有特性。
+ * - opencode 支持 plugins（插件市场）
+ * - claude 支持 commands（自定义命令）
+ * - codex 无额外特性
+ */
+const PLATFORM_FEATURES: Record<string, string[]> = {
+  claude: ['commands'],
+  opencode: ['plugins'],
+  codex: [],
+};
+
+/** 平台信息——单平台查询 */
+interface PlatformInfoSingle {
+  platform: string;
+  agent_count: number;
+  available_models: string[];
+  features: string[];
+  agents: Array<{
+    id: string; name: string; role: string; category?: string;
+    defaultModel: string; defaultEffort: string;
+  }>;
+}
+
+/** 平台信息——汇总查询 */
+interface PlatformInfoSummary {
+  platforms: Record<string, { agent_count: number; available_models: string[]; features: string[] }>;
+  total_agents: number;
+}
+
+/** 平台信息——错误响应 */
+interface PlatformInfoError {
+  error: string;
+}
+
+type PlatformInfoResult = PlatformInfoError | PlatformInfoSingle | PlatformInfoSummary;
+
+/**
+ * 解析平台信息：汇总或单平台查询。
+ * 提取为独立函数以便于测试，不依赖 MCP 工具框架。
+ *
+ * @param platform - 可选平台名称（claude/opencode/codex），不传则返回全部平台汇总
+ * @returns 平台信息对象（不含 MCP content 包装层）
+ */
+export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
+  const platforms = getPlatforms();
+  const models = getPlatformModels(true);
+
+  if (platform) {
+    if (!platforms.includes(platform)) {
+      return { error: `Unknown platform: ${platform}. Available: ${platforms.join(', ')}` };
+    }
+    const agents = getAgentsByPlatform(platform, true);
+    return {
+      platform,
+      agent_count: agents.length,
+      available_models: models[platform] || [],
+      features: PLATFORM_FEATURES[platform] || [],
+      agents: agents.map(a => ({
+        id: a.id, name: a.name, role: a.role, category: a.category,
+        defaultModel: a.defaultModel, defaultEffort: a.defaultEffort,
+      })),
+    };
+  }
+
+  const summary: Record<string, { agent_count: number; available_models: string[]; features: string[] }> = {};
+  for (const p of platforms) {
+    const agents = getAgentsByPlatform(p, true);
+    summary[p] = {
+      agent_count: agents.length,
+      available_models: models[p] || [],
+      features: PLATFORM_FEATURES[p] || [],
+    };
+  }
+  return { platforms: summary, total_agents: getAgentList(true).length };
+}
+
 /** 注册所有 MCP 工具 */
 function registerMcpTools(server, db, root) {
   /** 解析 sessionId 并自动记录活动——每次工具调用即视为心跳 */
@@ -499,30 +576,11 @@ function registerMcpTools(server, db, root) {
     });
 
   server.tool('platform_info',
-    '获取平台信息：支持哪些平台（claude/opencode/codex）、各平台 Agent 数量、可用模型列表。用于引擎扩展和平台适配。',
+    '获取平台信息：支持哪些平台（claude/opencode/codex）、各平台 Agent 数量、可用模型列表、平台特性（features）。Claude 支持 commands 特性，OpenCode 支持 plugins 特性，Codex 无额外特性。用于引擎扩展和平台适配。',
     { platform: z.string().optional().describe('指定平台名称（claude/opencode/codex），不传则返回全部平台信息') },
     async ({ platform }) => {
-      const platforms = getPlatforms();
-      const models = getPlatformModels(true);
-      if (platform) {
-        if (!platforms.includes(platform)) return resp({ error: `Unknown platform: ${platform}. Available: ${platforms.join(', ')}` });
-        const agents = getAgentsByPlatform(platform, true);
-        return resp({
-          platform,
-          agent_count: agents.length,
-          available_models: models[platform] || [],
-          agents: agents.map(a => ({
-            id: a.id, name: a.name, role: a.role, category: a.category,
-            defaultModel: a.defaultModel, defaultEffort: a.defaultEffort,
-          })),
-        });
-      }
-      const summary = {};
-      for (const p of platforms) {
-        const agents = getAgentsByPlatform(p, true);
-        summary[p] = { agent_count: agents.length, available_models: models[p] || [] };
-      }
-      return resp({ platforms: summary, total_agents: getAgentList(true).length });
+      const result = resolvePlatformInfo(platform);
+      return resp(result);
     });
 }
 
