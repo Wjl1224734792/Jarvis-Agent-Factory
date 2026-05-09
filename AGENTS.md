@@ -45,11 +45,11 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 ## Web 面板
 
-| 页面 | Hash 路由 | 功能 |
-|------|----------|------|
-| 流水线看板 | `#/dashboard` | 会话列表 · 指令标签 · Gate 进度 · MCP 平台接入状态 · 置顶/归档/删除 |
-| 归档记录 | `#/archive` | 已归档运行记录 · 搜索过滤 · 恢复/永久删除 |
-| 智能体配置 | `#/agents` | Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
+| 页面 | 路由 | 功能 |
+|------|------|------|
+| 流水线看板 | `/` | 会话列表 · 统计卡片 · Gate 进度 · 历史 Runs · 文档抽屉 · MCP 状态 |
+| 智能体配置 | `/agents` | 卡片网格 · 平台/来源/分类筛选 · 模型/思考等级弹窗 · 文件同步 |
+| 归档记录 | `/archive` | 按会话分组 · 搜索过滤 · 恢复/永久删除 |
 
 会话命名：通过 MCP 工具 `session_set_name` 给运行记录设置任务名称，Web 面板优先显示任务名而非会话 ID。
 
@@ -90,7 +90,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 10. **垂直切片优先** — 任务按端到端功能拆分，非技术层级
 11. **Agent 失败重试** — 超时重试最多 2 次 / 3 次全失败标记 BLOCKED
 12. **修改完必须测试** — 每次代码变更后验证功能正常，引擎启动无误，CLI 命令可用
-13. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 Gitee + GitHub，GitHub Actions 自动发布 npm
+13. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 GitHub，GitHub Actions 自动发布 npm
 14. **提交必须同步文档** — 每次提交必须维护 AGENTS.md 与 README.md 保持与项目状态同步，版本号、统计数据、特性列表必须一致
 15. **临时文件统一存放** — 所有流水线过程产物（截图、快照、导出的验证数据等）统一放入 `docs/tmp/` 目录，禁止散落在项目根目录。`docs/tmp/` 已配置 `.gitignore` 排除。
 
@@ -122,15 +122,11 @@ git commit -m "<type>: <简短描述>"
 git tag -a v<version> -m "v<version> - <概要>"
 ```
 
-### 4. 推送到 GitHub + 同步 Tag
+### 4. 推送到 GitHub
 
 ```bash
 git push origin main && git push origin v<version>
 ```
-
-| 远程 | 地址 |
-|------|------|
-| origin (GitHub) | `https://github.com/Wjl1224734792/Jarvis-Agent-Factory.git` |
 
 ### 5. GitHub Actions 自动发布
 
@@ -152,7 +148,7 @@ npm view jarvis-agent-factory version                    # 确认 npm 版本
 git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ```
 
-> 🔴 **验证标准：npm 版本号与 GitHub Tag 必须一致。** 任一缺失立即补推。
+> 验证标准：npm 版本号与 GitHub Tag 必须一致。任一缺失立即补推。
 
 ## 技能体系
 

@@ -1,0 +1,352 @@
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+  Card, Row, Col, Progress, Tag, Drawer, Modal,
+  Button, Empty, Spin, Timeline, Statistic, message,
+} from 'antd';
+import {
+  CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
+  ThunderboltOutlined, QuestionCircleOutlined,
+  HistoryOutlined, LoadingOutlined,
+} from '@ant-design/icons';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
+import type { PipelineSession, PipelineRun } from '../api';
+import { api } from '../api';
+import { useSessionId } from '../components/Layout';
+
+const GATE_COLORS: Record<string, string> = {
+  A: '#225555', B: '#225555', C: '#225555',
+  C1: '#9CD3D3', 'C1.5': '#CBC4AF', C2: '#DA8787',
+  D: '#225555', E: '#225555',
+};
+
+const GATE_LABELS: Record<string, string> = {
+  A: '需求澄清', B: '任务分解', C: '执行规划',
+  C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
+  D: '评审', E: '发布上线',
+};
+
+const GATE_ICONS: Record<string, React.ReactNode> = {
+  A: <FileTextOutlined />, B: <ThunderboltOutlined />, C: <ThunderboltOutlined />,
+  C1: <CheckCircleOutlined />, 'C1.5': <CheckCircleOutlined />, C2: <CheckCircleOutlined />,
+  D: <CheckCircleOutlined />, E: <CheckCircleOutlined />,
+};
+
+const RUN_STATUS: Record<string, { label: string; color: string }> = {
+  active: { label: '进行中', color: '#225555' },
+  completed: { label: '已完成', color: '#9CD3D3' },
+  failed: { label: '失败', color: '#DA8787' },
+  archived: { label: '已归档', color: '#CBC4AF' },
+};
+
+function formatTime(ts: string | null | undefined): string {
+  if (!ts) return '-';
+  return new Date(ts).toLocaleString('zh-CN', {
+    month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
+  });
+}
+
+export default function Dashboard() {
+  const sessionId = useSessionId();
+  const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
+  const [runs, setRuns] = useState<PipelineRun[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [docDrawer, setDocDrawer] = useState<{ open: boolean; content: string; title: string }>({
+    open: false, content: '', title: '',
+  });
+  const [helpOpen, setHelpOpen] = useState(false);
+
+  const loadData = useCallback(async () => {
+    if (!sessionId) return;
+    setLoading(true);
+    try {
+      const [sessions, pipelineRuns] = await Promise.all([
+        api.pipeline(),
+        api.pipelineRuns(sessionId),
+      ]);
+      const ps = sessions.find(s => s.session_id === sessionId) || null;
+      setPipeline(ps);
+      setRuns(pipelineRuns);
+    } catch {
+      // 忽略加载错误
+    } finally {
+      setLoading(false);
+    }
+  }, [sessionId]);
+
+  useEffect(() => {
+    loadData();
+    const timer = setInterval(loadData, 8000);
+    return () => clearInterval(timer);
+  }, [loadData]);
+
+  const openDoc = async (filepath: string) => {
+    try {
+      const content = await api.docContent(filepath);
+      setDocDrawer({ open: true, content, title: filepath });
+    } catch {
+      message.error('文档加载失败');
+    }
+  };
+
+  if (!sessionId) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: '#51463B', opacity: 0.4 }}>
+        <ThunderboltOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+        <div style={{ fontSize: 14 }}>选择一个会话查看流水线状态</div>
+      </div>
+    );
+  }
+
+  if (loading && !pipeline) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80 }}>
+        <Spin indicator={<LoadingOutlined style={{ color: '#225555' }} />} />
+      </div>
+    );
+  }
+
+  if (!pipeline) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80 }}>
+        <Empty description="暂无流水线数据" />
+      </div>
+    );
+  }
+
+  const gates = pipeline.gates || [];
+  const completedGates = gates.filter(g => g.passed).length;
+  const totalGates = gates.length;
+  const progressPct = totalGates > 0 ? Math.round((completedGates / totalGates) * 100) : 0;
+  const currentGate = pipeline.current_gate || '?';
+  const currentGateInfo = gates.find(g => g.gate === currentGate);
+  const totalArtifacts = gates.reduce((sum, g) => sum + (g.artifacts?.length || 0), 0);
+  const totalDuration = gates.reduce((sum, g) => sum + (g.duration_seconds || 0), 0);
+  const durationDisplay = totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-';
+
+  return (
+    <div>
+      {/* 标题栏 */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
+        <div>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#51463B' }}>
+            {pipeline.pipeline_name || pipeline.pipeline_type} · {currentGate}
+          </span>
+          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#22555520', color: '#225555', border: 'none' }}>
+            {pipeline.platform}
+          </Tag>
+        </div>
+        <Button
+          icon={<QuestionCircleOutlined />}
+          onClick={() => setHelpOpen(true)}
+          style={{ borderRadius: 18, color: '#225555' }}
+        >
+          操作指南
+        </Button>
+      </div>
+
+      {/* 统计卡片 */}
+      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
+        <Col xs={24} sm={12} md={4} lg={4}>
+          <Card size="small" style={{ borderRadius: 18 }}>
+            <Statistic title="完成进度" value={progressPct} suffix="%" valueStyle={{ color: '#225555', fontSize: 24 }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={5} lg={5}>
+          <Card size="small" style={{ borderRadius: 18 }}>
+            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} valueStyle={{ color: '#225555', fontSize: 24 }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={5} lg={5}>
+          <Card size="small" style={{ borderRadius: 18 }}>
+            <Statistic title="当前阶段" value={currentGate} valueStyle={{ color: '#225555', fontSize: 24 }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={5} lg={5}>
+          <Card size="small" style={{ borderRadius: 18 }}>
+            <Statistic title="产物文件" value={totalArtifacts} suffix="个" valueStyle={{ color: '#225555', fontSize: 24 }} />
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} md={5} lg={5}>
+          <Card size="small" style={{ borderRadius: 18 }}>
+            <Statistic title="总耗时" value={durationDisplay} valueStyle={{ color: '#225555', fontSize: 24 }} />
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Gate 进度条 + Gate 步骤列表 */}
+      <Row gutter={[12, 12]}>
+        <Col xs={24} lg={14}>
+          <Card
+            title={<span style={{ fontWeight: 600, color: '#51463B' }}>Gate 进度</span>}
+            size="small"
+            style={{ borderRadius: 18, marginBottom: 12 }}
+          >
+            <Progress
+              percent={progressPct}
+              strokeColor="#225555"
+              trailColor="#CBC4AF"
+              style={{ marginBottom: 16 }}
+            />
+            <Timeline
+              items={gates.map(g => {
+                const color = GATE_COLORS[g.gate] || '#225555';
+                const passed = g.passed;
+                const isCurrent = g.gate === currentGate;
+                return {
+                  color: passed ? '#9CD3D3' : isCurrent ? '#225555' : '#CBC4AF',
+                  dot: passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />,
+                  children: (
+                    <div
+                      onClick={() => {
+                        if (g.artifacts?.length) {
+                          g.artifacts.forEach(a => {
+                            if (a.endsWith('.md')) openDoc(a);
+                          });
+                        }
+                      }}
+                      style={{
+                        padding: '8px 12px',
+                        borderRadius: 12,
+                        backgroundColor: isCurrent ? '#22555510' : 'transparent',
+                        border: isCurrent ? '2px solid #225555' : '1px solid #CBC4AF',
+                        cursor: g.artifacts?.length ? 'pointer' : 'default',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span style={{ color, fontWeight: 700, fontSize: 13 }}>Gate {g.gate}</span>
+                        <span style={{ color: '#51463B', fontSize: 12 }}>
+                          {GATE_LABELS[g.gate] || g.gate}
+                        </span>
+                        {passed && <Tag color="#9CD3D3" style={{ borderRadius: 8 }}>已通过</Tag>}
+                        {isCurrent && <Tag color="#225555" style={{ borderRadius: 8 }}>进行中</Tag>}
+                      </div>
+                      {g.entered_at && (
+                        <div style={{ fontSize: 10, color: '#51463B', opacity: 0.5, marginTop: 4 }}>
+                          进入: {formatTime(g.entered_at)}
+                          {g.duration_display && ` · 耗时: ${g.duration_display}`}
+                        </div>
+                      )}
+                      {g.artifacts && g.artifacts.length > 0 && (
+                        <div style={{ marginTop: 4 }}>
+                          {g.artifacts.map((a, i) => (
+                            <Tag
+                              key={i}
+                              style={{ borderRadius: 8, fontSize: 10, cursor: 'pointer' }}
+                              color="#225555"
+                              onClick={(e) => { e.stopPropagation(); openDoc(a); }}
+                            >
+                              {a}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
+            />
+          </Card>
+        </Col>
+        <Col xs={24} lg={10}>
+          {/* 历史 Runs */}
+          <Card
+            title={
+              <span style={{ fontWeight: 600, color: '#51463B' }}>
+                <HistoryOutlined style={{ marginRight: 6 }} />历史 Runs · {runs.length}
+              </span>
+            }
+            size="small"
+            style={{ borderRadius: 18, marginBottom: 12 }}
+          >
+            {runs.length === 0 ? (
+              <Empty description="暂无历史记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            ) : (
+              <div style={{ maxHeight: 400, overflow: 'auto' }}>
+                {runs.map(r => {
+                  const st = RUN_STATUS[r.status] || { label: r.status, color: '#CBC4AF' };
+                  return (
+                    <div
+                      key={r.id}
+                      style={{
+                        padding: '8px 12px', borderRadius: 12, marginBottom: 4,
+                        border: '1px solid #CBC4AF', fontSize: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, color: '#51463B' }}>
+                          {r.task_name || '未命名'}
+                        </span>
+                        <Tag style={{ borderRadius: 8, fontSize: 10, backgroundColor: st.color + '20', color: st.color, border: 'none' }}>
+                          {st.label}
+                        </Tag>
+                      </div>
+                      <div style={{ color: '#51463B', opacity: 0.5, fontSize: 10, marginTop: 2 }}>
+                        {r.pipeline_type} · Gate {r.current_gate} · {formatTime(r.started_at)}
+                        {r.total_duration_display && ` · ${r.total_duration_display}`}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </Col>
+      </Row>
+
+      {/* 文档抽屉 */}
+      <Drawer
+        title={<span style={{ fontWeight: 600, color: '#51463B', fontSize: 14 }}>{docDrawer.title}</span>}
+        open={docDrawer.open}
+        onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
+        width={560}
+        styles={{ body: { background: '#FAFAEE' } }}
+      >
+        <div className="markdown-body">
+          <ReactMarkdown remarkPlugins={[remarkGfm]}>
+            {docDrawer.content}
+          </ReactMarkdown>
+        </div>
+      </Drawer>
+
+      {/* 帮助弹窗 */}
+      <Modal
+        title={<span style={{ fontWeight: 600, color: '#51463B' }}>操作指南</span>}
+        open={helpOpen}
+        onCancel={() => setHelpOpen(false)}
+        footer={null}
+        width={420}
+      >
+        <Timeline
+          items={[
+            { color: '#225555', children: <strong>启动任务</strong> },
+            { color: '#225555', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
+            { color: '#225555', children: <strong>等待 Gate 通过</strong> },
+            { color: '#225555', children: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
+            { color: '#225555', children: <strong>查看最终结果</strong> },
+          ]}
+        />
+        <div style={{ marginTop: 12, fontSize: 12, color: '#51463B', opacity: 0.6 }}>
+          命令对照：
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#225555">/jarvis</Tag> 全流程 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#DA8787">/jarvis-fe</Tag> 前端 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#9CD3D3">/jarvis-be</Tag> 后端 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#CBC4AF">/jarvis-lite</Tag> 轻量
+        </div>
+      </Modal>
+    </div>
+  );
+}
+
+function formatDurationDisplay(seconds: number): string {
+  if (seconds < 60) return `${seconds}秒`;
+  const m = Math.floor(seconds / 60);
+  const s = seconds % 60;
+  if (m < 60) return s > 0 ? `${m}分${s}秒` : `${m}分`;
+  const h = Math.floor(m / 60);
+  const rm = m % 60;
+  let r = `${h}小时`;
+  if (rm > 0) r += `${rm}分`;
+  if (s > 0) r += `${s}秒`;
+  return r;
+}

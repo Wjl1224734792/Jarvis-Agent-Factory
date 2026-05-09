@@ -13,7 +13,6 @@ import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updat
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
-import { getHtml, preloadCache } from '../web/reverse-proxy.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
@@ -676,22 +675,50 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     }
   });
 
-  // 静态页面 — 优先从 GitHub Release CDN 拉取，失败回退本地文件
-  const viewsDir = resolve(import.meta.dirname, '..', 'web', 'views');
-  app.get('/', (c) => c.redirect('/dashboard'));
-  app.get('/dashboard', async (c) => c.html(await getHtml(viewsDir, 'pipeline')));
-  app.get('/agents', async (c) => c.html(await getHtml(viewsDir, 'agents')));
-  app.get('/archive', async (c) => c.html(await getHtml(viewsDir, 'archive')));
+  // SPA 静态资源服务：dist/web/ 目录
+  const webDistDir = resolve(import.meta.dirname, '..', '..', 'dist', 'web');
 
-  // 后台预加载缓存
-  preloadCache(viewsDir, ['pipeline', 'agents', 'archive']);
+  // 静态文件：/assets/* 映射到 dist/web/assets/
+  app.get('/assets/*', async (c) => {
+    const filePath = c.req.path.replace(/^\/assets\//, '');
+    const fullPath = resolve(webDistDir, 'assets', filePath);
+    // 路径遍历防护
+    if (!fullPath.startsWith(resolve(webDistDir, 'assets'))) {
+      return c.text('Forbidden', 403);
+    }
+    if (!existsSync(fullPath)) return c.text('Not Found', 404);
+    const ext = filePath.split('.').pop()?.toLowerCase();
+    const mime: Record<string, string> = {
+      js: 'application/javascript', css: 'text/css', svg: 'image/svg+xml',
+      png: 'image/png', jpg: 'image/jpeg', jpeg: 'image/jpeg',
+      gif: 'image/gif', woff: 'font/woff', woff2: 'font/woff2',
+    };
+    return new Response(readFileSync(fullPath), {
+      status: 200,
+      headers: { 'Content-Type': mime[ext || ''] || 'application/octet-stream' },
+    });
+  });
+
+  // SPA catch-all：非 API/非 assets 路径返回 index.html
+  const indexPath = resolve(webDistDir, 'index.html');
+  const indexHtml = existsSync(indexPath)
+    ? readFileSync(indexPath, 'utf-8')
+    : null;
+
+  app.get('*', (c) => {
+    if (!indexHtml) {
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FAFAEE;color:#51463B;text-align:center">
+        <h2>Web 面板未构建</h2>
+        <p>请运行 <code>cd web && npm run build</code> 构建前端产物。</p>
+      </body></html>`);
+    }
+    return c.html(indexHtml);
+  });
 
   serve({ fetch: app.fetch, port, hostname: BIND_HOST });
 
-  console.log(`Jarvis Web Panel — http://localhost:${port}/dashboard`);
+  console.log(`Jarvis Web Panel — http://localhost:${port}`);
   console.log(`   引擎: http://localhost:${enginePort}`);
-  console.log(`   智能体: http://localhost:${port}/agents`);
-  console.log(`   归档: http://localhost:${port}/archive`);
 
   return true;
 }

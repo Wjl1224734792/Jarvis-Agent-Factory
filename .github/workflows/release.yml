@@ -27,6 +27,7 @@ jobs:
       - run: npm run typecheck
       - run: npm run test
       - run: npm run build
+      - run: npm run build:web
 
   release:
     needs: check
@@ -46,6 +47,7 @@ jobs:
 
       - run: npm ci
       - run: npm run build
+      - run: npm run build:web
 
       - name: Generate Changelog
         run: |
@@ -101,7 +103,7 @@ jobs:
               --notes-file CHANGELOG.md
           fi
 
-      - name: Upload Web Views to Release
+      - name: Upload Web Assets to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -109,10 +111,12 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             RELEASE_TAG=${{ inputs.tag }}
           fi
-          for f in dist/src/web/views/*.html; do
+          for f in dist/web/assets/*; do
             echo "Uploading $f..."
             gh release upload "$RELEASE_TAG" "$f" --clobber
           done
+          echo "Uploading index.html..."
+          gh release upload "$RELEASE_TAG" "dist/web/index.html" --clobber
 
       - name: Publish to npm
         env:
