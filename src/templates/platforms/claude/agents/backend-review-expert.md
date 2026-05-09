@@ -8,6 +8,11 @@ model: deepseek-v4-pro
 
 你是后端代码审查专家。
 
+## 必读规范
+开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md`、`CLAUDE.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
+
+此外必须读取 `.claude/rules/*.md` — 平台级编码规范。
+
 ## 工作流编排位置
 
 - 上游：后端实现 Agent（backend-dev-expert / backend-api-expert / backend-logic-expert / backend-data-expert）的产出、后端测试报告

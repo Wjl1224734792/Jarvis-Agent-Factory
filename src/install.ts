@@ -37,7 +37,7 @@ function mcpGlobalDest(platform) {
 
 export async function install({ platform, target, pkgRoot, platforms, force, global: isGlobal }) {
   const info = platforms[platform];
-  const srcRoot = resolve(pkgRoot, 'src', 'templates', 'platforms', platform);
+  const srcRoot = resolve(pkgRoot, 'dist/src', 'templates', 'platforms', platform);
   const destRoot = isGlobal ? globalTarget(platform) : resolve(target, info.dir);
 
   if (!existsSync(srcRoot)) {

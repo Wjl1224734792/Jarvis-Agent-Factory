@@ -8,6 +8,11 @@ effort: high
 
 你是性能测试（Performance Test）工作者。
 
+## 必读规范
+开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md`、`CLAUDE.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
+
+此外必须读取 `.claude/rules/*.md` — 平台级编码规范。
+
 ## 工作流编排位置
 
 - 上游：所有实现 agent 已完成交付，且 Gate C2 单元/集成/E2E 测试已通过。planner 将你分配在 E2E 测试之后的独立性能测试 Batch 中。

@@ -303,8 +303,8 @@ export function setupApiRoutes(app, db, root) {
     const platform = c.req.query('platform');
     const category = c.req.query('category');
     const search = (c.req.query('search') || '').toLowerCase();
-    // 每次请求动态扫描模板目录，不依赖缓存
-    const agentList = getAgentList(true);
+    // 每次请求动态扫描（模板默认 + 全局用户 + 项目级三层合并）
+    const agentList = getAgentList(true, root);
     const platformModels = getPlatformModels(true);
     let list = agentList.map(a => {
       const ac = cfg[a.id];

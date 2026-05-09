@@ -19,6 +19,42 @@
   .refreshing { animation:spin .6s linear; }
   .live-dot { animation:pulse-dot 2s ease-in-out infinite; }
   .console-line { border-left: 2px solid #6366F1; padding-left: 10px; }
+
+  /* ===== 文档抽屉 Markdown 渲染样式 ===== */
+  /* Tailwind preflight 会重置所有元素默认样式，必须显式定义 */
+  #docDrawerContent h1 { font-size: 1.5rem; font-weight: 700; color: #1e293b; margin: 1.5rem 0 0.75rem; line-height: 1.3; padding-bottom: 0.375rem; border-bottom: 1px solid #e2e8f0; }
+  #docDrawerContent h2 { font-size: 1.25rem; font-weight: 600; color: #1e293b; margin: 1.25rem 0 0.625rem; line-height: 1.35; padding-bottom: 0.25rem; border-bottom: 1px solid #f1f5f9; }
+  #docDrawerContent h3 { font-size: 1.1rem; font-weight: 600; color: #334155; margin: 1rem 0 0.5rem; line-height: 1.4; }
+  #docDrawerContent h4,
+  #docDrawerContent h5,
+  #docDrawerContent h6 { font-size: 1rem; font-weight: 600; color: #475569; margin: 0.75rem 0 0.5rem; line-height: 1.45; }
+  #docDrawerContent p { margin: 0.5rem 0; line-height: 1.75; color: #334155; font-size: 0.875rem; }
+  #docDrawerContent ul,
+  #docDrawerContent ol { margin: 0.5rem 0; padding-left: 1.5rem; }
+  #docDrawerContent li { margin: 0.25rem 0; line-height: 1.65; font-size: 0.875rem; color: #334155; }
+  #docDrawerContent ul > li { list-style-type: disc; }
+  #docDrawerContent ol > li { list-style-type: decimal; }
+  #docDrawerContent ul ul > li { list-style-type: circle; }
+  #docDrawerContent ul ul ul > li { list-style-type: square; }
+  #docDrawerContent code { background: #f1f5f9; padding: 0.125rem 0.375rem; border-radius: 0.25rem; font-size: 0.85em; font-family: 'JetBrains Mono', 'Fira Code', monospace; color: #e11d48; }
+  #docDrawerContent pre { background: #1e293b; color: #e2e8f0; padding: 1rem 1.25rem; border-radius: 0.5rem; overflow-x: auto; margin: 0.75rem 0; line-height: 1.6; }
+  #docDrawerContent pre code { background: none; padding: 0; border-radius: 0; color: inherit; font-size: 0.8125rem; line-height: 1.6; }
+  #docDrawerContent blockquote { border-left: 3px solid #818cf8; padding: 0.5rem 1rem; margin: 0.75rem 0; background: #eef2ff; border-radius: 0 0.375rem 0.375rem 0; color: #4338ca; }
+  #docDrawerContent blockquote p { color: inherit; }
+  #docDrawerContent a { color: #4f46e5; text-decoration: underline; }
+  #docDrawerContent a:hover { color: #3730a3; }
+  #docDrawerContent hr { border: none; border-top: 1px solid #e2e8f0; margin: 1.5rem 0; }
+  #docDrawerContent strong { font-weight: 600; color: #1e293b; }
+  #docDrawerContent em { font-style: italic; }
+  #docDrawerContent table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.8125rem; }
+  #docDrawerContent th,
+  #docDrawerContent td { border: 1px solid #e2e8f0; padding: 0.5rem 0.75rem; text-align: left; }
+  #docDrawerContent th { background: #f8fafc; font-weight: 600; color: #475569; }
+  #docDrawerContent img { max-width: 100%; border-radius: 0.375rem; }
+  #docDrawerContent del { text-decoration: line-through; color: #94a3b8; }
+  #docDrawerContent details { margin: 0.5rem 0; }
+  #docDrawerContent summary { cursor: pointer; font-weight: 600; color: #475569; }
+  #docDrawerContent input[type="checkbox"] { margin-right: 0.375rem; vertical-align: middle; }
 </style>
 </head>
 <body class="bg-slate-50 text-slate-800 font-sans flex h-screen overflow-hidden">
@@ -835,12 +871,16 @@ function openDocDrawer(filepath, filename) {
     .then(function(md) {
       if (content) {
         try {
-          if (typeof marked !== 'undefined' && marked.parse) {
-            content.innerHTML = marked.parse(md);
-          } else {
+          if (typeof marked === 'undefined') {
+            console.warn('[Jarvis] marked 库未加载，以纯文本模式显示文档');
             content.innerHTML = '<pre class="text-sm text-slate-700 whitespace-pre-wrap font-mono">' + escHtml(md) + '</pre>';
+          } else {
+            // marked v5+ 使用 marked.parse()，v4 及更早使用 marked()
+            var html = (typeof marked.parse === 'function') ? marked.parse(md) : marked(md);
+            content.innerHTML = html || '<p class="text-sm text-slate-400 text-center py-8">空文档</p>';
           }
         } catch(e) {
+          console.error('[Jarvis] Markdown 渲染失败:', e);
           content.innerHTML = '<pre class="text-sm text-slate-700 whitespace-pre-wrap font-mono">' + escHtml(md) + '</pre>';
         }
       }

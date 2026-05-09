@@ -10,6 +10,7 @@ developer_instructions = """
 
 ## 必读规范
 开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。
+此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
 
 流程、闸门、Execution Packet、并发批次和并发策略以 `.codex/skills/using-agent-skills/` 中的定义为准；通用行为准则以 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。
 

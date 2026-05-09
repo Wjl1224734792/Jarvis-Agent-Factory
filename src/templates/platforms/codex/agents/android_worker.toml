@@ -29,3 +29,5 @@ developer_instructions = """
 - 主线程网络/IO 操作
 - 硬编码字符串（必须 stringResource）
 - UI 层直接操作数据库
+此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
+"""

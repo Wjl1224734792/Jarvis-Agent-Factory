@@ -32,3 +32,5 @@ developer_instructions = """
 - 不忽略平台差异
 - render 中不创建新对象或函数
 - 不绕过 Expo 直接使用裸 RN 原生代码
+此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
+"""

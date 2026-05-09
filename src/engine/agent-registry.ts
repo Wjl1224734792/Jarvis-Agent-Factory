@@ -6,9 +6,35 @@ import { readdirSync, readFileSync, existsSync } from 'node:fs';
 import { resolve, join, basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { dirname } from 'node:path';
+import { homedir } from 'node:os';
 
-const __dirname = dirname(fileURLToPath(import.meta.url));
-const TEMPLATES_DIR = resolve(__dirname, '..', 'templates', 'platforms');
+/** 获取当前文件所在目录（跨 dev / 编译后兼容） */
+function getDirname(): string {
+  return dirname(fileURLToPath(import.meta.url));
+}
+
+/**
+ * 解析模板目录路径。
+ * 优先使用编译后的 dist/src/templates/platforms，
+ * 不存在时回退到源码目录 src/templates/platforms。
+ *
+ * @param existsCheck - 可选的存在性检查函数（便于测试注入）
+ * @returns 模板平台目录的绝对路径
+ */
+export function resolveTemplatesDir(existsCheck?: (_p: string) => boolean): string {
+  const check = existsCheck ?? ((p: string) => existsSync(p));
+  const __dirname = getDirname();
+
+  // 优先：编译后 dist 路径（dist/src/templates/platforms）
+  const distPath = resolve(__dirname, '..', 'templates', 'platforms');
+  if (check(distPath)) return distPath;
+
+  // 回退：从当前模块位置向上回溯到项目根，再定位源码目录
+  const projectRoot = resolve(__dirname, '..', '..', '..');
+  const srcPath = resolve(projectRoot, 'src', 'templates', 'platforms');
+
+  return srcPath;
+}
 
 /** 平台 → 目录名 + 文件扩展名 + 前端格式约定 */
 const PLATFORM_CONFIG = {
@@ -99,67 +125,32 @@ function parseTomlFrontmatter(content: string): Record<string, string> {
 }
 
 /** 扫描单个平台的所有 agent */
-function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string; pluginExt?: string }): { agents: AgentItem[]; fileMap: AgentFileMap } {
-  const platformDir = resolve(TEMPLATES_DIR, config.dir);
-  const agents: AgentItem[] = [];
+function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string; pluginExt?: string }, templatesDir: string): { agents: AgentItem[]; fileMap: AgentFileMap } {
+  const platformDir = resolve(templatesDir, config.dir);
   const fileMap: AgentFileMap = {};
 
-  for (const subdir of config.subdirs) {
-    const dir = join(platformDir, subdir);
-    if (!existsSync(dir)) continue;
+  const agents = config.subdirs.flatMap(subdir => {
+    if (subdir !== 'agents') return [];
+    const targetDir = join(platformDir, subdir);
+    if (!existsSync(targetDir)) return [];
 
-    // 只扫描 agents 目录，跳过 commands / plugins 等
-    if (subdir !== 'agents') continue;
-
-    for (const entry of readdirSync(dir)) {
-      if (!entry.endsWith(config.ext)) continue;
-      const filePath = join(dir, entry);
-      const content = readFileSync(filePath, 'utf-8');
-      const fileName = basename(entry, config.ext);
-      // 实际安装路径
-      const installBase = platformKey === 'claude'
-        ? `.claude/${subdir}/${entry}`
-        : platformKey === 'opencode'
-          ? `.opencode/${subdir}/${entry}`
-          : `.codex/${subdir}/${entry}`;
-
-      let model, effort, name, role, description;
-      if (config.type === 'md') {
-        const fm = parseMdFrontmatter(content);
-        model = fm.model || '';
-        effort = fm.effort || fm.reasoningEffort || '';
-        name = fm.name || fileName;
-        description = fm.description || '';
-        role = inferRole(fileName, description);
-      } else {
-        const fm = parseTomlFrontmatter(content);
-        model = fm.model || '';
-        effort = fm.model_reasoning_effort || '';
-        name = fm.name || fileName;
-        description = fm.description || '';
-        role = inferRole(fileName, description);
-      }
-
-      const id = platformKey === 'claude' ? fileName : `${platformKey}-${fileName}`;
-      const icon = inferIcon(fileName, description || content);
-      const category = inferCategory(fileName, description || content);
-
-      agents.push({
-        id,
-        name,
-        role,
-        icon,
-        category,
-        platform: platformKey,
-        defaultModel: model || '',
-        defaultEffort: effort || 'high',
-        fileName: entry,
-        subdir,
+    return readdirSync(targetDir)
+      .filter(entry => entry.endsWith(config.ext))
+      .map(entry => {
+        const filePath = join(targetDir, entry);
+        const baseName = basename(entry, config.ext);
+        // 复用 parseAgentFile 解析文件
+        const agent = parseAgentFile(filePath, baseName, platformKey, { ext: config.ext, type: config.type });
+        // 模板特有的安装路径和子目录信息
+        const installBase = platformKey === 'claude'
+          ? `.claude/${subdir}/${entry}`
+          : platformKey === 'opencode'
+            ? `.opencode/${subdir}/${entry}`
+            : `.codex/${subdir}/${entry}`;
+        fileMap[agent.id] = { base: installBase, type: config.type as 'md' | 'toml' };
+        return { ...agent, subdir };
       });
-
-      fileMap[id] = { base: installBase, type: config.type as 'md' | 'toml' };
-    }
-  }
+  });
 
   return { agents, fileMap };
 }
@@ -175,16 +166,138 @@ type AgentFileMap = Record<string, { base: string; type: 'md' | 'toml' }>;
 
 let _agentList: AgentItem[] | null = null;
 let _agentFiles: AgentFileMap | null = null;
+/** 缓存记录的最后一次 projectRoot，用于检测变化时刷新 */
+let _lastProjectRoot: string | undefined = undefined;
+
+/**
+ * 解析单个智能体文件为 AgentItem
+ * @param filePath - 智能体文件的绝对路径
+ * @param fileName - 无扩展名的文件名
+ * @param platformKey - 平台标识（claude/opencode/codex）
+ * @param config - 平台配置（ext, type）
+ * @returns AgentItem 或 null
+ */
+function parseAgentFile(
+  filePath: string,
+  fileName: string,
+  platformKey: string,
+  config: { ext: string; type: string },
+): AgentItem {
+  const content = readFileSync(filePath, 'utf-8');
+
+  let model: string, effort: string, name: string, description: string;
+  if (config.type === 'md') {
+    const fm = parseMdFrontmatter(content);
+    model = fm.model || '';
+    effort = fm.effort || fm.reasoningEffort || '';
+    name = fm.name || fileName;
+    description = fm.description || '';
+  } else {
+    const fm = parseTomlFrontmatter(content);
+    model = fm.model || '';
+    effort = fm.model_reasoning_effort || '';
+    name = fm.name || fileName;
+    description = fm.description || '';
+  }
+
+  const role = inferRole(fileName, description);
+  const id = platformKey === 'claude' ? fileName : `${platformKey}-${fileName}`;
+  const icon = inferIcon(fileName, description || content);
+  const category = inferCategory(fileName, description || content);
+
+  return {
+    id,
+    name,
+    role,
+    icon,
+    category,
+    platform: platformKey,
+    defaultModel: model || '',
+    defaultEffort: effort || 'high',
+    fileName: entryName(fileName, config.ext),
+    subdir: 'agents',
+  };
+}
+
+/** 拼接文件名 */
+function entryName(baseName: string, ext: string): string {
+  return `${baseName}${ext}`;
+}
+
+/**
+ * 扫描单个目录下的智能体文件
+ * @param dirPath - 要扫描的目录路径
+ * @param platformKey - 平台标识
+ * @param config - 平台配置
+ * @returns AgentItem 数组
+ */
+function scanAgentDir(
+  dirPath: string,
+  platformKey: string,
+  config: { ext: string; type: string },
+): AgentItem[] {
+  if (!existsSync(dirPath)) return [];
+  const entries = readdirSync(dirPath);
+  return entries
+    .filter((entry: string) => entry.endsWith(config.ext))
+    .map((entry: string) => {
+      const filePath = join(dirPath, entry);
+      const baseName = basename(entry, config.ext);
+      return parseAgentFile(filePath, baseName, platformKey, config);
+    });
+}
+
+/**
+ * 合并两个智能体列表，第二个列表中的项按 id 覆写第一个
+ * @param base - 基础列表（如模板默认）
+ * @param override - 覆写列表（如全局/项目配置）
+ * @returns 合并后的新数组
+ */
+function mergeAgents(base: readonly AgentItem[], override: readonly AgentItem[]): AgentItem[] {
+  const overrideIds = new Set(override.map(a => a.id));
+  const kept = base.filter(a => !overrideIds.has(a.id));
+  return [...kept, ...override];
+}
 
 /** 强制重新扫描模板目录 */
-export function getAgentList(force?: boolean): AgentItem[] {
-  if (force || !_agentList) {
+export function getAgentList(_force?: boolean): AgentItem[];
+/**
+ * 获取合并后的智能体列表（三层配置：模板默认 → 全局用户 → 项目级）
+ * @param force - 是否强制刷新缓存
+ * @param projectRoot - 项目根目录（传入后启用全局/项目级配置合并）
+ * @returns 合并后的智能体列表
+ */
+export function getAgentList(_force: boolean, _projectRoot: string): AgentItem[];
+export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[] {
+  if (force || !_agentList || (projectRoot !== _lastProjectRoot)) {
+    _lastProjectRoot = projectRoot;
+    const templatesDir = resolveTemplatesDir();
     _agentList = [];
     _agentFiles = {};
     for (const [key, config] of Object.entries(PLATFORM_CONFIG)) {
-      const { agents, fileMap } = scanPlatform(key, config);
+      const { agents, fileMap } = scanPlatform(key, config, templatesDir);
       _agentList.push(...agents);
       Object.assign(_agentFiles, fileMap);
+    }
+
+    // 二层：全局用户配置 ~/.jarvis/agents/{platform}/
+    if (projectRoot) {
+      const globalBase = resolve(homedir(), '.jarvis', 'agents');
+      for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
+        const globalDir = join(globalBase, config.dir);
+        const globalAgents = scanAgentDir(globalDir, platformKey, config);
+        if (globalAgents.length > 0) {
+          _agentList = mergeAgents(_agentList, globalAgents);
+        }
+      }
+
+      // 三层：项目级配置 {projectRoot}/.claude/agents/（仅 Claude 平台）
+      const projectAgentsDir = resolve(projectRoot, '.claude', 'agents');
+      const claudeConfig = PLATFORM_CONFIG.claude;
+      const projectAgents = scanAgentDir(projectAgentsDir, 'claude', { ext: claudeConfig.ext, type: claudeConfig.type });
+      if (projectAgents.length > 0) {
+        _agentList = mergeAgents(_agentList, projectAgents);
+      }
     }
   }
   return _agentList;

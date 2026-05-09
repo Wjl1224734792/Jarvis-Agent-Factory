@@ -1,3 +1,5 @@
+// 必须作为第一个 import：在 node:sqlite 被加载前拦截 ExperimentalWarning
+import './suppress-warnings.js';
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 import { readFileSync, existsSync, rmSync } from 'node:fs';
@@ -144,9 +146,14 @@ export async function run() {
         else if (!p.startsWith('-')) path = p;
       }
       if (platforms.length === 0) {
-        console.error('\n❌  No valid platform specified.\n');
-        console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
-        return;
+        if (positional.length === 1) {
+          // 无平台参数时默认安装全部平台（与 init 行为一致）
+          platforms.push(...ALL_PLATFORMS);
+        } else {
+          console.error('\n❌  No valid platform specified.\n');
+          console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
+          return;
+        }
       }
       const isGlobal = await resolveScope(opts);
       const target = resolveTarget(path, isGlobal);
@@ -169,9 +176,14 @@ export async function run() {
         else if (!p.startsWith('-')) path = p;
       }
       if (platforms.length === 0) {
-        console.error('\n❌  No valid platform specified.\n');
-        console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
-        return;
+        if (positional.length === 1) {
+          // 无平台参数时默认移除全部平台（与 init 行为一致）
+          platforms.push(...ALL_PLATFORMS);
+        } else {
+          console.error('\n❌  No valid platform specified.\n');
+          console.log(`Valid platforms: ${ALL_PLATFORMS.join(', ')}\n`);
+          return;
+        }
       }
       const isGlobal = await resolveScope(opts);
       const target = resolveTarget(path, isGlobal);
@@ -295,7 +307,7 @@ async function diffPlatform(platform, target, isGlobal) {
   const { join } = await import('node:path');
   const { existsSync, readdirSync, statSync, readFileSync } = await import('node:fs');
   const { createHash } = await import('node:crypto');
-  const srcRoot = resolve(PKG_ROOT, 'src', 'templates', 'platforms', platform);
+  const srcRoot = resolve(PKG_ROOT, 'dist/src', 'templates', 'platforms', platform);
   const destRoot = isGlobal
     ? (platform === 'opencode' ? resolve(homedir(), '.config', 'opencode') : resolve(homedir(), `.${platform}`))
     : resolve(target, PLATFORMS[platform].dir);
