@@ -249,7 +249,7 @@ function px(icon) {
 }
 
 // ---- 状态 ----
-let agents = [], cur = null, platform = 'all', category = '全部', source = 'all', d = null, customModel = '', saving = false, searchText = '';
+let agents = [], cur = null, platform = 'all', category = '全部', source = 'all', d = null, customModel = '', saving = false, searchText = '', projectName = 'project';
 
 async function load(p) {
   if (p !== undefined) platform = p;
@@ -280,9 +280,10 @@ async function load(p) {
     const sc = d.source_counts;
     document.querySelectorAll('#sourceTabs button').forEach(b => {
       const t = b.textContent.trim();
+      projectName = d.project_name || 'project';
       if (t.includes('模板')) b.textContent = `模板默认 (${sc.template || 0})`;
       else if (t.includes('全局')) b.textContent = `全局配置 (${sc.global || 0})`;
-      else if (t.includes('项目')) b.textContent = `项目配置 (${sc.project || 0})`;
+      else if (t.includes('项目') || t === projectName) b.textContent = `${projectName} (${sc.project || 0})`;
     });
   }
 
@@ -291,7 +292,7 @@ async function load(p) {
   const scopeParts = [];
   if (platform !== 'all') scopeParts.push(PLATFORM_NAMES[platform] || platform);
   if (category !== '全部') scopeParts.push(category);
-  if (source !== 'all') scopeParts.push({template:'模板默认',global:'全局配置',project:'项目配置'}[source] || source);
+  if (source !== 'all') scopeParts.push({template:'模板默认',global:'全局配置',project: (d.project_name || '项目配置')}[source] || source);
   scopeParts.push(agents.length + ' 个智能体');
   scopeParts.push('共 ' + d.total_count + ' 个');
   document.getElementById('agentCount').textContent = scopeParts.join(' · ');
@@ -303,7 +304,7 @@ function setPlatform(p) {
   platform = p;
   document.querySelectorAll('#platformTabs button').forEach(b => {
     const txt = b.textContent.trim().toLowerCase();
-    const isActive = txt === p || (p === 'all' && txt.includes('全部'));
+    const isActive = txt.includes(p) || (p === 'all' && txt.includes('全部'));
     b.className = isActive
       ? 'px-3.5 py-1.5 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
       : 'px-3.5 py-1.5 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';
@@ -325,7 +326,7 @@ function setSource(s) {
   source = s;
   document.querySelectorAll('#sourceTabs button').forEach(b => {
     const t = b.textContent.trim().replace(/\s*\(\d+\)\s*/, '');
-    const isActive = t === (s === 'all' ? '全部来源' : s === 'template' ? '模板默认' : s === 'global' ? '全局配置' : '项目配置');
+    const isActive = t === (s === 'all' ? '全部来源' : s === 'template' ? '模板默认' : s === 'global' ? '全局配置' : projectName);
     b.className = isActive
       ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
       : 'px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';

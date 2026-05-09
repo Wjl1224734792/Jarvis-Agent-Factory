@@ -323,6 +323,8 @@ export function setupApiRoutes(app, db, root) {
     // 统计各来源数量
     const sourceCounts = { template: 0, global: 0, project: 0 };
     for (const a of agentList) { const s = a.source || 'template'; sourceCounts[s]++; }
+    // 项目名称（从项目根目录提取）
+    const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
     return c.json({
       agents: list,
       available_models: [...AVAILABLE_MODELS],
@@ -332,6 +334,7 @@ export function setupApiRoutes(app, db, root) {
       categories: getCategories(),
       total_count: agentList.length,
       source_counts: sourceCounts,
+      project_name: projectName,
     });
   });
 
