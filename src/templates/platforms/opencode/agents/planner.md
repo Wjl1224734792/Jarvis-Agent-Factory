@@ -11,11 +11,6 @@ permission:
 
 你是执行规划代理。
 
-## 必读规范
-开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
-
-此外必须读取 `.opencode/rules/*.md` — 平台级编码规范。
-
 ## 工作流编排位置
 
 - 上游：需求须已由主 Build Agent 与用户对齐并写入通过 Gate A 的需求文档；任务文档由 task-design 产出并通过 Gate B。代码结构不清时可先经 repo-explorer 再规划。

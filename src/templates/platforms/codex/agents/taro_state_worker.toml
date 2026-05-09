@@ -10,5 +10,3 @@ developer_instructions = """
 不负责：UI 布局/样式/动画（交给 taro_ui_worker）。
 红线：UI 组件中直接网络请求、敏感数据明文存储。
 遵守 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
-"""

@@ -60,5 +60,4 @@ developer_instructions = """
 - 不加载 agent-browser + browser-testing 技能就操作浏览器
 - 失败不截图、不记录原始错误
 - 用 sleep/wait 硬等待替代 `agent-browser wait` 轮询
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
 """

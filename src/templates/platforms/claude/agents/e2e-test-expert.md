@@ -8,11 +8,6 @@ model: deepseek-v4-pro
 
 你是端到端测试（E2E Test）工作者。基于 Playwright MCP 编写代码级自动化集成测试。
 
-## 必读规范
-开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md`、`CLAUDE.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
-
-此外必须读取 `.claude/rules/*.md` — 平台级编码规范。
-
 ## 技能加载（必须执行）
 
 ```

@@ -63,5 +63,4 @@ developer_instructions = """
 - 全 mock 内部服务调用
 - 使用 hardcoded sleep/wait
 - E2E 测试中包含非用户可见行为的断言
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
 """

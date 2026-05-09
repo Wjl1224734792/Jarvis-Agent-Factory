@@ -30,5 +30,3 @@ developer_instructions = """
 - build 方法中异步操作
 - 不理解原生通道随意修改 Platform Channel
 - 忽略平台差异导致单端可用
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
-"""

@@ -10,5 +10,3 @@ developer_instructions = """
 不负责：Provider/BLoC/Hive/网络（交给 flutter_state_worker）。
 红线：build 中异步操作、忽略平台差异、UI 层直接操作数据库或网络。
 遵守 `.codex/skills/behavioral-guidelines/` 为准；编程规范以 `.codex/skills/code-standards/` 为准。
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
-"""

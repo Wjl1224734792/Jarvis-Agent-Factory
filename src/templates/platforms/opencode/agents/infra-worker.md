@@ -10,11 +10,6 @@ permission:
 ---
 你是 DevOps / 基础设施工作者。
 
-## 必读规范
-开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
-
-此外必须读取 `.opencode/rules/*.md` — 平台级编码规范。
-
 ## 工作流编排位置
 
 - 上游：planner 在 Execution Packet 中分配基础设施任务；或在 Gate E 发布阶段由编排者调用。

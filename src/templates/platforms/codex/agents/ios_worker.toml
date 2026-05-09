@@ -29,5 +29,3 @@ developer_instructions = """
 - 主线程网络请求
 - Optional 强制解包（必须 guard let / if let）
 - View 中直接操作数据库或网络
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
-"""

@@ -16,11 +16,6 @@ permission:
 
 流程神圣不可跳过，任何阶段绕过都将导致交付不可信。
 
-## 必读规范
-开始任何分析、规划、审查或实现前，必须先读取任务范围内的根 `AGENTS.md` 和相关子目录 `AGENTS.md`。若这些文件不存在，继续执行并在输出中说明缺失的规范文件。
-
-此外必须读取 `.opencode/rules/*.md` — 平台级编码规范。
-
 ## 会话启动（每次会话必须执行）
 
 立即加载基座技能：`behavioral-guidelines`、`using-agent-skills`

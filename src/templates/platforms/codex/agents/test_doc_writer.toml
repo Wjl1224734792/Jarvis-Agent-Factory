@@ -60,5 +60,4 @@ developer_instructions = """
 ## 工作流位置
 - 上游：需求文档完成 + 前端代码变更后（Gate C2 之前）
 - 下游：browser_test_worker 读取用例文档并逐条执行
-此外必须读取 `.codex/rules/*.md` — 平台级编码规范。
 """
