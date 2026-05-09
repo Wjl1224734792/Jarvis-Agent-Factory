@@ -1,6 +1,6 @@
 ---
 name: algorithm-expert
-description: "算法专家：在规划阶段或实现阶段按需调用；负责算法选型、复杂度分析、数据结构设计、计算密集型模块的性能优化策略。不编写业务逻辑代码，只输出算法方案与验证原型。"
+description: "算法专家：在规划阶段或 Gate B1 架构评审时由编排者 spawn（当涉及复杂算法/计算密集型模块时）；负责算法选型、复杂度分析、数据结构设计、计算密集型模块的性能优化策略。不编写业务逻辑代码，只输出算法方案与验证原型。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, WebFetch, WebSearch
 effort: max
 model: deepseek-v4-pro

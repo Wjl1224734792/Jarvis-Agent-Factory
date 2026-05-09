@@ -1,6 +1,6 @@
 ---
 name: database-architect
-description: "数据库专项专家：负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。不编写业务逻辑代码。"
+description: "数据库专项专家：在 Gate B1 架构评审阶段由编排者 spawn（当有 Schema 变更时）；负责数据库架构设计、查询优化、索引策略、分库分表方案、数据迁移编排和性能调优。不编写业务逻辑代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-pro
 effort: max

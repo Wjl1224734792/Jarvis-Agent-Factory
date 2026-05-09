@@ -13,22 +13,22 @@ export const PIPELINE_DEFS = {
   /** 全流程编排（默认）：需求→任务→计划→实现→质量→测试→评审→发布 */
   full: {
     name: '全流程',
-    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 前端开发流程：同全流程但仅使用前端代理 */
   frontend: {
     name: '前端开发',
-    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 后端开发流程：跳过了 C1.5（视觉验证） */
   backend: {
     name: '后端开发',
-    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 轻量编排水：支持 Gate 入口跳转，按任务类型智能跳过无关闸门 */
   lite: {
     name: '轻量编排',
-    gates: ['Gate A', 'Gate B', 'Gate C', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
     allow_jump: true,
   },
 };
@@ -50,11 +50,13 @@ export function getPipelineName(type) {
   return def ? def.name : (type || DEFAULT_PIPELINE);
 }
 
-export const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate C':'plans','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
+export const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate B1':'architecture','Gate C':'plans','Gate C-impl':'implementation','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
 
 export const GATE_CHECKS = {
   'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},'Gate B':{check:'每个TASK-XXX映射至少1个REQ-XXX'},
-  'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
+  'Gate B1':{check:'架构评审通过，架构方案文档已产出（涉及前端/后端/数据库/算法的领域均有评审文档）'},
+  'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C-impl':{check:'所有Batch实现完成，实现Agent已返回结果'},
+  'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
   'Gate C1.5':{check:'页面/组件视觉验证截图证据已附'},'Gate C2':{check:'测试文档用例覆盖完整，单元/集成/E2E/浏览器测试全部通过，API契约验证通过'},
   'Gate D':{check:'领域审查+安全审计+性能审计通过，REQ追踪矩阵完整'},'Gate E':{check:'安全审计+上线检查清单+回滚预案就绪'},
 };
@@ -81,7 +83,9 @@ export const GATE_CHECKS = {
 export const GATE_OPERATIONS = {
   'Gate A':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   'Gate B':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate B1':   { allow: ['read','write_doc','sweep_arch'],                deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   'Gate C':    { allow: ['read','write_doc','sweep_arch','write_code','spawn_impl'], deny: ['spawn_test','build','deploy'] },
+  'Gate C-impl': { allow: ['read','write_code','spawn_impl'],             deny: ['spawn_test','build','deploy'] },
   'Gate C1':   { allow: ['read','lint','build','fix'],                   deny: ['spawn_impl','spawn_test','deploy','write_code'] },
   'Gate C1.5': { allow: ['read','preview','fix'],                        deny: ['spawn_impl','spawn_test','build','deploy','write_code'] },
   'Gate C2':   { allow: ['read','spawn_test','fix'],                     deny: ['spawn_impl','deploy','write_code'] },
@@ -103,7 +107,9 @@ export function getGateOperations(gate) {
 export const GATE_AGENT_GUIDE = {
   'Gate A':    { can_spawn: ['code-explore-expert', 'docs-research-expert'], note: '需求澄清阶段，只探索和写文档' },
   'Gate B':    { can_spawn: ['task-design'], note: '任务分解阶段，spawn task-design 做垂直切片' },
-  'Gate C':    { can_spawn: ['planner', 'frontend-architect', 'backend-architect', 'database-architect'], note: '规划阶段，spawn planner 产出 parallel_batches；按需做架构评审' },
+  'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert'], note: '架构评审——按变更范围选择对应架构师，产出架构方案文档' },
+  'Gate C':    { can_spawn: ['planner'], note: '执行规划——spawn planner 产出 parallel_batches 和执行计划' },
+  'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert'], note: '批量实现——按parallel_batches并行spawn实现Agent' },
   'Gate C1':   { can_spawn: [], note: '代码质量门——Lint/Type-check/Build/Deps Audit。失败则修复后重跑' },
   'Gate C1.5': { can_spawn: [], note: '视觉验证门——截图+样式检查。失败则退回实现Agent补充证据' },
   'Gate C2':   { can_spawn: ['test-doc-writer', 'frontend-test-expert', 'backend-test-expert', 'api-test-expert', 'test-executor', 'fix-retest', 'browser-test-expert', 'api-contract-expert', 'perf-test-expert', 'e2e-test-expert'], note: '测试阶段——步骤1(并行):spawn test-doc-writer(编写测试用例文档)+frontend-test-expert+backend-test-expert+api-test-expert(API功能测试) → 步骤2:spawn test-executor(按文档执行测试,输出报告) → 步骤3(有失败时):spawn fix-retest(定位根因→spawn实现Agent修复→重跑,≤2轮) → 步骤4:spawn e2e-test-expert(端到端测试) → 步骤5:汇总测试结果至docs/testing/' },
@@ -115,6 +121,33 @@ export const GATE_AGENT_GUIDE = {
 export function getGateAgentGuide(gate) {
   return GATE_AGENT_GUIDE[gate] || { can_spawn: [], note: '未知Gate' };
 }
+
+/** 每个 Gate 的最大重试循环次数 */
+export const MAX_RETRY = {
+  'Gate A': Infinity,
+  'Gate B': 2,
+  'Gate B1': 2,
+  'Gate C': 2,
+  'Gate C-impl': 3,
+  'Gate C1': 3,
+  'Gate C1.5': 2,
+  'Gate C2': 2,
+  'Gate D': 2,
+  'Gate E': 2,
+};
+
+/** 各个 Gate 的入口条件检查 */
+export const GATE_ENTRY_CONDITIONS = {
+  'Gate B': 'Gate A 需求文档已产出',
+  'Gate B1': 'Gate B 任务文档已产出',
+  'Gate C': 'Gate B1 架构评审通过（或确认无需架构评审）',
+  'Gate C-impl': 'Gate C 执行计划已产出',
+  'Gate C1': 'Gate C-impl 实现代码已提交',
+  'Gate C1.5': 'Gate C1 质量检查通过',
+  'Gate C2': 'Gate C1+C1.5 通过',
+  'Gate D': 'Gate C2 测试通过',
+  'Gate E': 'Gate D 审查通过',
+};
 
 /** 动态扫描模板目录生成的完整 Agent 列表（替代硬编码） */
 export const AGENT_LIST = getAgentList();

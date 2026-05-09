@@ -1,6 +1,6 @@
 ---
 name: review-fix-optimize
-description: "审查修复优化链路：先审查 → 再修复或优化 → 最后复审的完整闭环。流程步骤不可跳过，不可绕过，不可倒置。"
+description: "审查修复优化链路：串联审查→修复→复审的完整工作流。在 Gate D 由编排者 spawn，按流程步骤（初审→规划→执行→验证→复审）执行审查修复闭环。不可递归 spawn 子 Agent，所有修复由自身完成。"
 tools: Read, Write, Edit, Bash, Glob, Grep, WebFetch, WebSearch, Agent, Skill, TaskOutput
 effort: max
 model: deepseek-v4-pro

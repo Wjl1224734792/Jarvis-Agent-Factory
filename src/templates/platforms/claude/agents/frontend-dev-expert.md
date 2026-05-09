@@ -1,6 +1,6 @@
 ---
 name: frontend-dev-expert
-description: "前端全栈实现者：在编排者 分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。必须启动预览服务器并截图验证 UI 变更。自身不调度其他 agent。"
+description: "前端全栈实现者：在 Gate C-impl 由编排者 spawn 分配明确子任务后执行；负责前端页面、组件、交互、状态、前端请求接入和前端测试的完整实现。负责协调 UI+State 专项 Agent 的工作成果，聚焦集成与编排。自身不调度其他 agent。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill, mcp__Claude_Preview__preview_start, mcp__Claude_Preview__preview_screenshot, mcp__Claude_Preview__preview_snapshot, mcp__Claude_Preview__preview_inspect, mcp__Claude_Preview__preview_resize, mcp__Claude_Preview__preview_logs, mcp__Claude_Preview__preview_stop
 effort: max
 model: deepseek-v4-pro

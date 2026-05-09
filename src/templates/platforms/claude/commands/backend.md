@@ -29,7 +29,7 @@ argument-hint: [后端需求描述]
 | 配置项 | 值 |
 |--------|---|
 | **pipeline_type** | `backend` |
-| **Gate 序列** | A → B → C → C1 → C2 → D → E（**7 道闸门，跳过 C1.5 视觉验证**） |
+| **Gate 序列** | A → B → B1 → C → C-impl → C1 → C2 → D → E（**9 道闸门，跳过 C1.5 视觉验证**） |
 
 ### 可用代理路由
 
@@ -62,7 +62,7 @@ Batch 5: [security-review-expert]                             ← 安全审计
 
 ## Gate 流程（公共编排框架）
 
-编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B 任务分解 → Gate C 执行规划 → Gate C 批量 spawn → Gate C1 代码质量 → Gate C2 测试 → Gate D 评审 → Gate E 发布。
+编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B 任务分解 → Gate B1 架构评审（条件性）→ Gate C 执行规划 → Gate C-impl 批量实现 → Gate C1 代码质量 → Gate C2 测试 → Gate D 评审 → Gate E 发布。
 
 **关键差异**：跳过 Gate C1.5（视觉验证），后端无前端页面/组件变更需求。
 

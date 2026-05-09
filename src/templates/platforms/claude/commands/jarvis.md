@@ -27,7 +27,7 @@ effort: high
    - 与用户澄清需求，至少确认 1 个关键假设；模糊时加载 `idea-refine`
    - 生成需求文档（`docs/requirements/`），标注 `REQ-XXX`
    - 按 Gate 序列推进，不可跳过
-   - 在 Gate C 按 `parallel_batches` 批量 spawn 实现 Agent
+   - 在 Gate C-impl 按 `parallel_batches` 批量 spawn 实现 Agent
    - 代码注释语言：中文项目用中文注释，英文项目用英文注释
 
 ---
@@ -35,7 +35,7 @@ effort: high
 ## 流水线配置
 
 - **pipeline_type**: `full`
-- **Gate 序列**: A → B → C → C1 → C1.5 → C2 → D → E（8 道闸门）
+- **Gate 序列**: A → B → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（10 道闸门）
 - **可用代理**: 全部 47 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
 - **典型 Batch 结构**:
   ```
@@ -83,11 +83,11 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 2. 产出：`docs/tasks/YYYY-MM-DD-<topic>-tasks.md`
 3. 验证：所有 TASK 有 REQ 映射、无水平切片、粒度合理
 
-**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate C" })`
+**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B1" })`
 
 ---
 
-## Gate B→C 之间：架构评审（条件性）
+## Gate B1：架构评审（条件性）
 
 若计划涉及新技术栈、微服务拆分、数据库架构变更或前端架构模式变更，在 planner 产出前先评审：
 
@@ -113,11 +113,11 @@ planner 执行期间可并行准备：
 └── 预加载代码库上下文（为后续实现 Agent 准备）
 ```
 
-**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate C1" })`
+**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate C-impl" })`
 
 ---
 
-## Gate C 执行：批量并行 spawn 实现 Agent
+## Gate C-impl：批量并行实现
 
 **致命错误**：planner 返回后，你自己去写代码而没有 spawn 任何 Agent。
 

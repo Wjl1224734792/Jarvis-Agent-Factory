@@ -1,6 +1,6 @@
 ---
 name: fix-retest
-description: "修复重测协调者——读取测试失败清单，定位根因并调度对应实现Agent修复，然后重跑失败用例"
+description: "修复重测协调者——在 Gate C2 由编排者 spawn；读取测试失败清单，调度对应实现 Agent 修复（编排者预先指定的 Agent 类型），然后重跑失败用例。不自行定位根因（根因定位由编排者或测试 Agent 完成）。"
 model: deepseek-v4-pro
 effort: max
 skills:

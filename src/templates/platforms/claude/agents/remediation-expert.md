@@ -1,6 +1,6 @@
 ---
 name: remediation-expert
-description: "通用修复与优化执行代理：在没有更合适领域 worker 时执行小范围修复、配置同步、文档同步、脚本修正或跨层胶水改动。"
+description: "通用修复与优化执行代理：在 Gate C1/C2/D 由编排者 spawn，在没有更合适领域 worker 时执行小范围修复、配置同步、文档同步、脚本修正或跨层胶水改动。不调度其他 agent，所有修改由自身完成。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
 model: deepseek-v4-flash
 effort: max

@@ -23,8 +23,8 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 ## 生命周期流水线
 
 ```
-想法细化 → 需求澄清 → 任务分解 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 发布
-  Gate 0     Gate A     Gate B     Gate C     Gate C     Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
+想法细化 → 需求澄清 → 任务分解 → 架构评审 → 执行规划 → 并行实现 → 代码质量 → 视觉验证 → 测试 → 评审 → 发布
+  Gate 0     Gate A     Gate B     Gate B1    Gate C     Gate C-impl Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
 ```
 
 ## 工作模式
@@ -42,6 +42,13 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 | 审查修复闭环 | `/review-fix` | 切换到 `review-fix-optimize` agent | 加载 `review-fix-optimize` skill |
 | 算法专家 | `/algorithm-expert` | 切换到 `algorithm-expert` agent | 加载 `algorithm-expert` skill |
 | 架构对话 | `/frontend-architect` `/backend-architect` | 切换到对应 agent | 加载对应 skill |
+
+### Gate 说明
+
+| Gate | 类型 | 说明 |
+|------|------|------|
+| Gate B1（架构评审） | 条件性 | 涉及前端/后端/数据库/算法变更时强制执行；由编排者自动 spawn 对应架构 Agent |
+| Gate C-impl（并行实现） | 必选 | Gate C 规划完成后，由编排者 spawn 实现类 Agent 并行执行编码任务 |
 
 ## Web 面板
 
@@ -82,7 +89,9 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 2. **修改技能前先读 writing-skills** — 技能文件需遵循 TDD 规范
 3. **三平台技能同步** — `.claude/skills/`、`.codex/skills/`、`.opencode/skills/` 同名目录内容须一致
 4. **子智能体不可递归** — 子智能体不得再 spawn 其他子智能体
-5. **闸门不可绕过** — Gate A→B→C→C1→C1.5→C2→D→E 顺序不可跳跃
+5. **闸门不可绕过** — Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃
+    - Gate B1（架构评审）为条件性 Gate：涉及前端/后端/数据库/算法变更时强制执行
+    - Gate C1.5（视觉验证）为条件性 Gate：纯后端/逻辑/算法任务可跳过
 6. **同 Batch 并行** — 无依赖任务必须在同一消息中批量发起
 7. **敏感信息不入库** — `.gitignore` 已排除 `settings.local.json`、`.env*`、`*.token`、`*.pem` 等
 8. **维护 .gitignore** — 每次新增文件类型（临时文件、截图、日志、数据库文件等）必须同步更新 `.gitignore`，防止误提交。提交前检查 `git status` 无异常文件
@@ -93,6 +102,11 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 13. **修改完必须发布** — 测试通过后按下方「发布流程」推送到 GitHub，GitHub Actions 自动发布 npm
 14. **提交必须同步文档** — 每次提交必须维护 AGENTS.md 与 README.md 保持与项目状态同步，版本号、统计数据、特性列表必须一致
 15. **临时文件统一存放** — 所有流水线过程产物（截图、快照、导出的验证数据等）统一放入 `docs/tmp/` 目录，禁止散落在项目根目录。`docs/tmp/` 已配置 `.gitignore` 排除。
+16. **Command（指令）与 Agent（智能体）边界清晰**：
+    - Command（`/jarvis`, `/frontend`, `/backend-architect` 等）是用户交互入口，用于讨论方案或启动流程
+    - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
+    - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
+    - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
 
 ## 🚀 发布流程（每次变更完成后必须执行）
 
