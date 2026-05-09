@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, setRunTaskName } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -343,14 +343,27 @@ function registerMcpTools(server, db, root) {
       const artifacts = findGateArtifacts(join(root, 'docs'), cur);
       const cps = getCheckpoints(db, cur, sid);
       if (artifacts.length === 0 && cps.length === 0) return resp({ allowed: false, error: `${cur} conditions NOT met.` });
-      addCheckpoint(db, cur, gate, sid);
+      // TASK-001: 计算当前 Gate 耗时（进入时间 → 现在）
+      let durationSeconds: number | null = null;
+      if (runId) {
+        const enteredRow = db.prepare("SELECT strftime('%s', gate_entered_at) AS entered_epoch FROM pipeline_runs WHERE id=?").get(runId);
+        if (enteredRow?.entered_epoch) {
+          const enteredEpoch = Number(enteredRow.entered_epoch);
+          durationSeconds = Math.floor(Date.now() / 1000) - enteredEpoch;
+        }
+      }
+      addCheckpoint(db, cur, gate, sid, durationSeconds ?? undefined);
       updatePipelineGate(db, sid, gate);
-      // Session Model B: 同步更新 pipeline_runs 中的 current_gate
-      if (runId) updateRunGate(db, runId, gate);
+      // Session Model B: 同步更新 pipeline_runs 中的 current_gate 和新 Gate 进入时间
+      if (runId) {
+        updateRunGate(db, runId, gate);
+        updateRunGateEnteredAt(db, runId, new Date().toISOString());
+      }
       return resp({
         allowed: true, session_id: sid, run_id: runId, previous_gate: cur, current_gate: gate,
         next: gateList[ti + 1] || 'Complete',
         message: gateList[ti + 1] ? `Next: ${gateList[ti + 1]}` : 'Complete!',
+        duration_seconds: durationSeconds ?? null,
       });
     });
 
@@ -369,7 +382,11 @@ function registerMcpTools(server, db, root) {
       const ti = gateList.indexOf(gate);
       if (ti === -1) return resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });
       updatePipelineGate(db, sid, gate);
-      if (runId) updateRunGate(db, runId, gate);
+      // TASK-001: 写入目标 Gate 的进入时间
+      if (runId) {
+        updateRunGate(db, runId, gate);
+        updateRunGateEnteredAt(db, runId, new Date().toISOString());
+      }
       return resp({
         allowed: true, session_id: sid, run_id: runId, pipeline_type: pt, entry_gate: gate,
         message: `已跳转至 ${gate}，跳过了 ${gateList.slice(0, ti).join(', ')}。剩余: ${gateList.slice(ti).join(' → ')}`,

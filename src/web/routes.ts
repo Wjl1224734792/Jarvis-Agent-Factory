@@ -94,11 +94,40 @@ export function setupApiRoutes(app, db, root) {
       const p = getPipeline(db, s.id);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const gateList = getPipelineGates(pt);
-      const gates = gateList.map(g => ({
-        gate: g,
-        passed: getCheckpoints(db, g, s.id).length > 0,
-        artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db),
-      }));
+      const run = getActiveRun(db, s.id);
+      // 根据 pipeline 状态的 current_gate 确定当前 Gate 在序列中的位置
+      const currentGate = p?.current_gate;
+      let currentIdx = currentGate != null ? gateList.indexOf(currentGate) : -1;
+      if (currentIdx < 0) currentIdx = gateList.length; // 无当前 Gate（已完成等），全部视为已过 Gate
+      const gates = gateList.map((g, idx) => {
+        const cpList = getCheckpoints(db, g, s.id);
+        const cp = cpList.length > 0 ? cpList[0] : null;
+        // 按 Gate 在序列中的位置分情形计算 entered_at
+        let enteredAt;
+        if (idx === 0) {
+          // Gate A（首个 Gate）：使用 run.started_at
+          enteredAt = run?.started_at || null;
+        } else if (idx > 0 && idx < currentIdx) {
+          // 已通过的后续 Gate：使用前一个 Gate 的 checkpoint.passed_at 作为近似进入时间
+          const prevCpList = getCheckpoints(db, gateList[idx - 1], s.id);
+          const prevCp = prevCpList.length > 0 ? prevCpList[0] : null;
+          enteredAt = prevCp?.passed_at || null;
+        } else if (idx === currentIdx) {
+          // 当前 Gate：使用 run.gate_entered_at
+          enteredAt = run?.gate_entered_at || null;
+        } else {
+          // 未到达的 Gate：null
+          enteredAt = null;
+        }
+        return {
+          gate: g,
+          passed: cp !== null,
+          artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db),
+          entered_at: enteredAt,
+          duration_seconds: cp?.duration_seconds ?? null,
+          duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
+        };
+      });
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
       return {
         session_id: s.id,
@@ -200,7 +229,11 @@ export function setupApiRoutes(app, db, root) {
     const sessionId = c.req.query('session_id');
     if (!sessionId) return c.json({ error: 'session_id query parameter required' }, 400);
     const runs = getSessionRuns(db, sessionId);
-    return c.json({ runs, count: runs.length, session_id: sessionId });
+    const runsWithDuration = runs.map(r => ({
+      ...r,
+      total_duration_display: r.total_duration_seconds != null ? formatDuration(r.total_duration_seconds) : null,
+    }));
+    return c.json({ runs: runsWithDuration, count: runsWithDuration.length, session_id: sessionId });
   });
 
   // Session Model B: 设置/清除 pipeline run 的任务名
@@ -386,6 +419,31 @@ export function setupApiRoutes(app, db, root) {
 }
 
 function getDocsDir(root) { return resolve(root, 'docs'); }
+
+/**
+ * 将秒数格式化为人类可读的中文持续时间字符串
+ * @param {number|null|undefined} seconds
+ * @returns {string|null}
+ * @example formatDuration(3661) => "1小时1分1秒"
+ * @example formatDuration(30) => "30秒"
+ * @example formatDuration(null) => null
+ */
+function formatDuration(seconds) {
+  if (seconds == null || seconds < 0) return null;
+  const s = Math.floor(seconds);
+  if (s < 60) return `${s}秒`;
+  const minutes = Math.floor(s / 60);
+  const secs = s % 60;
+  if (minutes < 60) {
+    return secs > 0 ? `${minutes}分${secs}秒` : `${minutes}分`;
+  }
+  const hours = Math.floor(minutes / 60);
+  const mins = minutes % 60;
+  let result = `${hours}小时`;
+  if (mins > 0) result += `${mins}分`;
+  if (secs > 0) result += `${secs}秒`;
+  return result;
+}
 
 /** 从 package.json 读取版本号 */
 function readVersion() {

@@ -142,6 +142,48 @@ function initSchema(db) {
   // ---- Run 置顶迁移 ----
   try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch {}
 
+  // ----  TASK-001: Gate 进入时间记录 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN gate_entered_at TEXT"); } catch {}
+
+  // ----  TASK-001: Checkpoint 耗时字段 ----
+  try { db.exec("ALTER TABLE checkpoints ADD COLUMN duration_seconds INTEGER"); } catch {}
+
+  // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
+  // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
+  const backfillResult = db.prepare(`
+    WITH ordered AS (
+      SELECT id, session_id, passed_at,
+        LAG(passed_at) OVER (PARTITION BY session_id ORDER BY passed_at) AS prev_passed_at
+      FROM checkpoints
+      WHERE duration_seconds IS NULL
+    )
+    UPDATE checkpoints SET duration_seconds = (
+      strftime('%s', ordered.passed_at) - strftime('%s', ordered.prev_passed_at)
+    )
+    FROM ordered
+    WHERE checkpoints.id = ordered.id AND ordered.prev_passed_at IS NOT NULL
+  `).run();
+  if (backfillResult.changes > 0) {
+    console.log(`  ✓  已回填 ${backfillResult.changes} 条 checkpoint 的 Gate 耗时`);
+  }
+
+  // ----  TASK-002: 任务总耗时列 ----
+  try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN total_duration_seconds INTEGER"); } catch {}
+
+  // ----  TASK-002: 回填已完成/已中止 run 的 total_duration_seconds ----
+  const backfillDurationResult = db.prepare(`
+    UPDATE pipeline_runs SET total_duration_seconds = CAST(
+      (julianday(completed_at) - julianday(started_at)) * 86400 AS INTEGER
+    )
+    WHERE status IN ('completed', 'aborted')
+      AND completed_at IS NOT NULL
+      AND started_at IS NOT NULL
+      AND total_duration_seconds IS NULL
+  `).run();
+  if (backfillDurationResult.changes > 0) {
+    console.log(`  ✓  已回填 ${backfillDurationResult.changes} 条 run 的总耗时`);
+  }
+
   // ---- 迁移旧 pipeline 数据为首条 pipeline_run ----
   const existingRuns = db.prepare('SELECT COUNT(*) as cnt FROM pipeline_runs').get();
   if (existingRuns.cnt === 0) {
@@ -180,8 +222,20 @@ export function getCheckpoints(db, gate, sessionId) {
   if (gate) return db.prepare('SELECT * FROM checkpoints WHERE gate=? AND session_id=?').all(gate, sessionId);
   return db.prepare('SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at').all(sessionId);
 }
-export function addCheckpoint(db, gate, advanceTo, sessionId) {
-  db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, datetime('now'), ?)`).run(sessionId, gate, advanceTo);
+/**
+ * 记录 checkpoint，可选传入 Gate 耗时（秒）
+ * @param {DatabaseSync} db
+ * @param {string} gate
+ * @param {string} advanceTo
+ * @param {string} sessionId
+ * @param {number} [durationSeconds] Gate 耗时（秒），不传则为 NULL
+ */
+export function addCheckpoint(db, gate, advanceTo, sessionId, durationSeconds: number | undefined = undefined) {
+  if (durationSeconds !== undefined) {
+    db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to, duration_seconds) VALUES (?, ?, datetime('now'), ?, ?)`).run(sessionId, gate, advanceTo, durationSeconds);
+  } else {
+    db.prepare(`INSERT OR REPLACE INTO checkpoints (session_id, gate, passed_at, advance_to) VALUES (?, ?, datetime('now'), ?)`).run(sessionId, gate, advanceTo);
+  }
 }
 
 // ---- Sessions ----
@@ -274,8 +328,8 @@ export function setAgentModel(db, agentId, model, effort) {
  */
 export function createPipelineRun(db, sessionId, project, pipelineType = 'full') {
   const id = 'run_' + Date.now();
-  db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at)
-    VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'))`).run(id, sessionId, project, pipelineType);
+  db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, gate_entered_at)
+    VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'), datetime('now'))`).run(id, sessionId, project, pipelineType);
   return id;
 }
 
@@ -305,14 +359,38 @@ export function updateRunGate(db, runId, gate) {
   db.prepare("UPDATE pipeline_runs SET current_gate=? WHERE id=?").run(gate, runId);
 }
 
-/** 完成 run */
-export function completeRun(db, runId) {
-  db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
+/**
+ * 更新 run 的 Gate 进入时间
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} isoTime 进入时间的 ISO 字符串
+ */
+export function updateRunGateEnteredAt(db, runId, isoTime) {
+  db.prepare('UPDATE pipeline_runs SET gate_entered_at=? WHERE id=?').run(isoTime, runId);
 }
 
-/** 中止 run */
+/** 完成 run，同时计算总耗时 */
+export function completeRun(db, runId) {
+  db.prepare("UPDATE pipeline_runs SET status='completed', completed_at=datetime('now') WHERE id=?").run(runId);
+  // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
+  db.prepare(`
+    UPDATE pipeline_runs SET total_duration_seconds = CAST(
+      (julianday(completed_at) - julianday(started_at)) * 86400 AS INTEGER
+    )
+    WHERE id = ? AND started_at IS NOT NULL AND completed_at IS NOT NULL
+  `).run(runId);
+}
+
+/** 中止 run，同时计算总耗时 */
 export function abortRun(db, runId) {
   db.prepare("UPDATE pipeline_runs SET status='aborted', completed_at=datetime('now') WHERE id=?").run(runId);
+  // 追加计算 total_duration_seconds；started_at/completed_at 缺失时不报错
+  db.prepare(`
+    UPDATE pipeline_runs SET total_duration_seconds = CAST(
+      (julianday(completed_at) - julianday(started_at)) * 86400 AS INTEGER
+    )
+    WHERE id = ? AND started_at IS NOT NULL AND completed_at IS NOT NULL
+  `).run(runId);
 }
 
 /**

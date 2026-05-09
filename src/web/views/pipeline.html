@@ -117,7 +117,7 @@
     </div>
 
     <!-- 统计卡片 -->
-    <div class="grid grid-cols-4 gap-4 mb-8">
+    <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
       <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
         <div class="flex items-center justify-between mb-1">
           <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">完成进度</span>
@@ -145,6 +145,14 @@
           <i data-lucide="file-text" class="w-4 h-4 text-amber-400"></i>
         </div>
         <div class="text-3xl font-bold text-amber-600 font-mono" id="statArtifacts">0</div>
+      </div>
+      <div class="bg-white rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+        <div class="flex items-center justify-between mb-1">
+          <span class="text-[11px] text-slate-400 uppercase tracking-wide font-medium">任务耗时</span>
+          <i data-lucide="clock" class="w-4 h-4 text-rose-400"></i>
+        </div>
+        <div class="text-xl font-bold text-rose-600 font-mono" id="statDuration">--</div>
+        <div class="text-[10px] text-slate-500 mt-1.5 font-mono" id="statDurationDetail">等待运行...</div>
       </div>
     </div>
 
@@ -448,6 +456,23 @@ async function refresh() {
       }).join('')}</div>`
       : '';
 
+    // 时间信息：已通过 / 进行中 / 未开始
+    var timeHtml = '';
+    if (isPassed) {
+      timeHtml =
+        '<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-mono space-y-0.5">' +
+        '<div>开始: ' + formatDateTime(g.entered_at) + '</div>' +
+        '<div>通过: ' + formatDateTime(cp ? cp.passed_at : null) + '</div>' +
+        '<div>耗时: ' + escHtml(g.duration_display || '--') + '</div>' +
+        '</div>';
+    } else if (isCurrent) {
+      timeHtml =
+        '<div class="mt-2 pt-2 border-t border-slate-100 text-[10px] text-slate-500 font-mono space-y-0.5">' +
+        '<div>开始: ' + formatDateTime(g.entered_at) + '</div>' +
+        '<div class="text-indigo-500 font-medium">进行中</div>' +
+        '</div>';
+    }
+
     return `
     <div class="relative flex gap-4 ${isLast ? '' : 'pb-1'}">
       <!-- 步骤指示器 -->
@@ -468,7 +493,7 @@ async function refresh() {
             </div>
             <p class="text-[11px] ${isCurrent ? 'text-slate-500' : 'text-slate-400'} mt-1.5 leading-relaxed">${info.desc || g.requirement || '等待 Gate 条件定义'}</p>
             ${artifactsHtml}
-            ${cp ? `<p class="text-[10px] text-slate-400 mt-1.5 font-mono">通过于 ${new Date(cp.passed_at).toLocaleString('zh-CN')}</p>` : ''}
+            ${timeHtml}
           </div>
           <!-- Gate 推进由 Agent 通过 MCP 工具自动完成，Web 面板只读展示 -->
         </div>
@@ -497,6 +522,39 @@ function setSessionPlatform(p) {
 /** HTML 实体转义，防止 XSS */
 function escHtml(str) {
   return String(str).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+}
+
+/**
+ * 格式化 ISO 或空格分隔的日期字符串为 YYYY-MM-DD HH:mm:ss 本地时间
+ * @param {string|null} isoStr
+ * @returns {string}
+ */
+function formatDateTime(isoStr) {
+  if (!isoStr) return '--';
+  try {
+    var d = new Date(isoStr.replace(' ', 'T'));
+    if (isNaN(d.getTime())) return '--';
+    var pad = function(n) { return String(n).padStart(2, '0'); };
+    return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + ' ' +
+           pad(d.getHours()) + ':' + pad(d.getMinutes()) + ':' + pad(d.getSeconds());
+  } catch (_) {
+    return '--';
+  }
+}
+
+/**
+ * 将秒数格式化为中文耗时时长字符串
+ * @param {number} totalSeconds
+ * @returns {string}
+ */
+function formatDuration(totalSeconds) {
+  if (totalSeconds == null || totalSeconds < 0) return '--';
+  var hours = Math.floor(totalSeconds / 3600);
+  var minutes = Math.floor((totalSeconds % 3600) / 60);
+  var seconds = totalSeconds % 60;
+  if (hours > 0) return hours + '小时' + minutes + '分' + seconds + '秒';
+  if (minutes > 0) return minutes + '分' + seconds + '秒';
+  return seconds + '秒';
 }
 
 function renderSessions() {
@@ -811,6 +869,7 @@ async function fetchPipelineRuns(sessionId) {
   if (!sessionId) {
     document.getElementById('runsList').innerHTML = '<p class="text-xs text-slate-400 text-center py-8 font-mono">请选择左侧会话查看运行记录</p>';
     document.getElementById('runsCount').textContent = '0 次运行';
+    updateDurationCard([]);
     return;
   }
   try {
@@ -818,19 +877,23 @@ async function fetchPipelineRuns(sessionId) {
     if (!resp.ok) {
       document.getElementById('runsList').innerHTML = '<p class="text-xs text-red-400 text-center py-8 font-mono">加载失败（HTTP ' + resp.status + '），请稍后重试</p>';
       document.getElementById('runsCount').textContent = '---';
+      updateDurationCard([]);
       return;
     }
     const data = await resp.json();
     if (!data || !Array.isArray(data.runs)) {
       document.getElementById('runsList').innerHTML = '<p class="text-xs text-red-400 text-center py-8 font-mono">数据格式异常，请刷新页面重试</p>';
       document.getElementById('runsCount').textContent = '---';
+      updateDurationCard([]);
       return;
     }
     renderRunsHistory(data);
+    updateDurationCard(data.runs);
   } catch (_) {
     // 网络错误或 JSON 解析失败
     document.getElementById('runsList').innerHTML = '<p class="text-xs text-red-400 text-center py-8 font-mono">网络错误，无法加载运行记录</p>';
     document.getElementById('runsCount').textContent = '---';
+    updateDurationCard([]);
   }
 }
 
@@ -871,6 +934,14 @@ function renderRunsHistory(runsData) {
       }
     }
 
+    // 耗时展示：已完成/中止显示 total_duration_display，运行中不额外显示
+    var durationText = '--';
+    if (isActive) {
+      durationText = '运行中';
+    } else {
+      durationText = run.total_duration_display || '--';
+    }
+
     return (
       '<div class="flex items-center gap-4 px-6 py-3 hover:bg-slate-50/50 transition-colors ' +
       (isActive ? 'bg-indigo-50/30 border-l-[3px] border-indigo-500' : 'border-l-[3px] border-transparent') + '">' +
@@ -880,13 +951,49 @@ function renderRunsHistory(runsData) {
       '</div>' +
       '<span class="text-[10px] font-medium bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded flex-shrink-0">' + ptName + '</span>' +
       '<span class="text-[11px] text-slate-500 flex-shrink-0 font-mono">' + (run.current_gate || '---') + '</span>' +
-      '<span class="text-[10px] text-slate-400 flex-shrink-0 ml-auto font-mono">' + dateText + '</span>' +
+      '<span class="text-[10px] text-slate-400 flex-shrink-0 font-mono">' + dateText + '</span>' +
+      '<span class="text-[10px] text-slate-500 flex-shrink-0 font-mono">' + durationText + '</span>' +
       '<span class="text-[10px] font-medium px-2 py-0.5 rounded-full flex-shrink-0 ' + st.badgeClass + '">' + st.label + '</span>' +
       '</div>'
     );
   }).join('');
 
   lucide.createIcons();
+}
+
+/**
+ * 更新任务耗时统计卡片
+ * @param {Array} runs - 当前会话的 runs 列表
+ */
+function updateDurationCard(runs) {
+  var cardEl = document.getElementById('statDuration');
+  var detailEl = document.getElementById('statDurationDetail');
+  if (!cardEl || !detailEl) return;
+
+  // 无 runs 或空列表：降级展示
+  if (!runs || runs.length === 0) {
+    cardEl.textContent = '--';
+    detailEl.textContent = '等待运行...';
+    return;
+  }
+
+  // 取最新 run（runs 已按时间倒序）
+  var run = runs[0];
+  var startStr = run.started_at ? formatDateTime(run.started_at.replace(' ', 'T')) : '--';
+
+  if (run.status === 'active') {
+    // 降级：started_at 缺失（异常数据）
+    if (!run.started_at) return;
+    // 进行中：实时计算已用时长
+    var elapsed = Math.floor((Date.now() - new Date(run.started_at.replace(' ', 'T')).getTime()) / 1000);
+    cardEl.textContent = formatDuration(elapsed >= 0 ? elapsed : 0);
+    detailEl.textContent = '开始: ' + startStr + ' · 进行中';
+  } else {
+    // 已完成 / 已中止：使用后端返回的格式化耗时
+    cardEl.textContent = run.total_duration_display || '--';
+    var completedStr = run.completed_at ? formatDateTime(run.completed_at.replace(' ', 'T')) : '--';
+    detailEl.textContent = '开始: ' + startStr + ' · 完成: ' + completedStr;
+  }
 }
 
 // MCP 平台接入状态轮询
