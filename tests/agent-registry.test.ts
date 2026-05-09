@@ -119,18 +119,20 @@ describe('getCategories', () => {
 describe('getAgentList 三层配置读取与合并', () => {
   /**
    * 夹具目录结构：
-   * MOCK_HOME/.jarvis/agents/claude/
+   * MOCK_HOME/.claude/agents/
    *   - test-global-only.md          → id=test-global-only（全局独有）
    *   - backend-logic-expert.md      → id=backend-logic-expert（覆写模板）
-   *   - opencode-test-global.md      → id=opencode-test-global（OpenCode 全局独有）
+   *
+   * MOCK_HOME/.config/opencode/agents/
+   *   - test-global.md               → id=opencode-test-global（OpenCode 全局独有）
    *
    * MOCK_PROJECT/.claude/agents/
    *   - test-project-only.md         → id=test-project-only（项目独有）
    *   - backend-logic-expert.md      → id=backend-logic-expert（覆写全局+模板）
    */
   beforeAll(() => {
-    // 全局配置：~/.jarvis/agents/claude/
-    const globalClaudeDir = join(MOCK_HOME, '.jarvis', 'agents', 'claude');
+    // 全局配置：~/.claude/agents/
+    const globalClaudeDir = join(MOCK_HOME, '.claude', 'agents');
     mkdirSync(globalClaudeDir, { recursive: true });
 
     // 全局独有智能体
@@ -150,8 +152,8 @@ effort: medium
 ---
 `);
 
-    // 全局配置：~/.jarvis/agents/opencode/
-    const globalOpenCodeDir = join(MOCK_HOME, '.jarvis', 'agents', 'opencode');
+    // 全局配置：~/.config/opencode/agents/
+    const globalOpenCodeDir = join(MOCK_HOME, '.config', 'opencode', 'agents');
     mkdirSync(globalOpenCodeDir, { recursive: true });
     writeFileSync(join(globalOpenCodeDir, 'test-global.md'), `---
 name: opencode-test-global

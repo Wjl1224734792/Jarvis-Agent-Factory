@@ -13,6 +13,7 @@ import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updat
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
+import { getHtml, preloadCache } from '../web/reverse-proxy.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
 const DEFAULT_PORT = 3456;
@@ -263,8 +264,16 @@ function registerMcpTools(server, db, root) {
       if (existing) {
         touchSession(db, sid);
         const p = getPipeline(db, sid);
-        // Session Model B: 无活跃 run 时自动创建
-        const runId = getActiveRun(db, sid)?.id || createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+        // Session Model B: 无活跃 run 时自动创建并设置默认任务名
+        let runId = getActiveRun(db, sid)?.id;
+        if (!runId) {
+          runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+          const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
+          const now = new Date();
+          const mm = String(now.getMonth() + 1).padStart(2, '0');
+          const dd = String(now.getDate()).padStart(2, '0');
+          setRunTaskName(db, runId, `${proj} · ${mm}-${dd}`);
+        }
         return resp({
           session_id: sid, platform: existing.platform,
           gate: p?.current_gate || 'Gate A',
@@ -276,6 +285,11 @@ function registerMcpTools(server, db, root) {
       if (!getPipeline(db, sid)) initPipeline(db, sid, root, pt);
       const p = getPipeline(db, sid);
       const runId = createPipelineRun(db, sid, p?.project || root, p?.pipeline_type || pt);
+      const proj = (p?.project || root || '').split(/[\\/]/).filter(Boolean).pop() || 'project';
+      const now = new Date();
+      const mm = String(now.getMonth() + 1).padStart(2, '0');
+      const dd = String(now.getDate()).padStart(2, '0');
+      setRunTaskName(db, runId, `${proj} · ${mm}-${dd}`);
       return resp({
         session_id: sid, platform: platform || 'unknown',
         gate: p?.current_gate || 'Gate A',
@@ -662,19 +676,22 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     }
   });
 
-  // 静态页面
+  // 静态页面 — 优先从 GitHub Release CDN 拉取，失败回退本地文件
   const viewsDir = resolve(import.meta.dirname, '..', 'web', 'views');
   app.get('/', (c) => c.redirect('/dashboard'));
-  app.get('/dashboard', (c) =>
-    c.html(readFileSync(resolve(viewsDir, 'pipeline.html'), 'utf-8')));
-  app.get('/agents', (c) =>
-    c.html(readFileSync(resolve(viewsDir, 'agents.html'), 'utf-8')));
+  app.get('/dashboard', async (c) => c.html(await getHtml(viewsDir, 'pipeline')));
+  app.get('/agents', async (c) => c.html(await getHtml(viewsDir, 'agents')));
+  app.get('/archive', async (c) => c.html(await getHtml(viewsDir, 'archive')));
+
+  // 后台预加载缓存
+  preloadCache(viewsDir, ['pipeline', 'agents', 'archive']);
 
   serve({ fetch: app.fetch, port, hostname: BIND_HOST });
 
   console.log(`Jarvis Web Panel — http://localhost:${port}/dashboard`);
   console.log(`   引擎: http://localhost:${enginePort}`);
   console.log(`   智能体: http://localhost:${port}/agents`);
+  console.log(`   归档: http://localhost:${port}/archive`);
 
   return true;
 }

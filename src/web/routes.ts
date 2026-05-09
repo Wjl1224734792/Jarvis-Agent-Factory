@@ -302,6 +302,7 @@ export function setupApiRoutes(app, db, root) {
     const cfg = getAgentConfig(db);
     const platform = c.req.query('platform');
     const category = c.req.query('category');
+    const source = c.req.query('source'); // template | global | project
     const search = (c.req.query('search') || '').toLowerCase();
     // 每次请求动态扫描（模板默认 + 全局用户 + 项目级三层合并）
     const agentList = getAgentList(true, root);
@@ -317,7 +318,11 @@ export function setupApiRoutes(app, db, root) {
     });
     if (platform) list = list.filter(a => a.platform === platform);
     if (category && category !== '全部') list = list.filter(a => a.category === category);
+    if (source) list = list.filter(a => (a.source || 'template') === source);
     if (search) list = list.filter(a => a.name.toLowerCase().includes(search) || a.id.toLowerCase().includes(search) || a.role.toLowerCase().includes(search));
+    // 统计各来源数量
+    const sourceCounts = { template: 0, global: 0, project: 0 };
+    for (const a of agentList) { const s = a.source || 'template'; sourceCounts[s]++; }
     return c.json({
       agents: list,
       available_models: [...AVAILABLE_MODELS],
@@ -326,6 +331,7 @@ export function setupApiRoutes(app, db, root) {
       platform_models: platformModels,
       categories: getCategories(),
       total_count: agentList.length,
+      source_counts: sourceCounts,
     });
   });
 

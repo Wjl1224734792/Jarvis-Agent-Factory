@@ -111,6 +111,14 @@
       </div>
     </div>
 
+    <!-- 来源筛选（模板/全局/项目） -->
+    <div class="flex gap-1.5 flex-wrap mb-3" id="sourceTabs">
+      <button class="px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm" onclick="setSource('all')">全部来源</button>
+      <button class="px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setSource('template')">模板默认</button>
+      <button class="px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setSource('global')">全局配置</button>
+      <button class="px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors" onclick="setSource('project')">项目配置</button>
+    </div>
+
     <!-- 分类筛选 -->
     <div class="flex gap-1.5 flex-wrap mb-6" id="categoryTabs">
       <button class="px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm" onclick="setCategory('全部')">全部</button>
@@ -241,13 +249,14 @@ function px(icon) {
 }
 
 // ---- 状态 ----
-let agents = [], cur = null, platform = 'all', category = '全部', d = null, customModel = '', saving = false, searchText = '';
+let agents = [], cur = null, platform = 'all', category = '全部', source = 'all', d = null, customModel = '', saving = false, searchText = '';
 
 async function load(p) {
   if (p !== undefined) platform = p;
   const params = new URLSearchParams();
   if (platform !== 'all') params.set('platform', platform);
   if (category !== '全部') params.set('category', category);
+  if (source !== 'all') params.set('source', source);
   if (searchText) params.set('search', searchText);
   const qs = params.toString() ? '?' + params.toString() : '';
   const r = await fetch('/api/agents' + qs);
@@ -266,11 +275,23 @@ async function load(p) {
     }).join('');
   }
 
+  // 更新来源统计到标签
+  if (d.source_counts) {
+    const sc = d.source_counts;
+    document.querySelectorAll('#sourceTabs button').forEach(b => {
+      const t = b.textContent.trim();
+      if (t.includes('模板')) b.textContent = `模板默认 (${sc.template || 0})`;
+      else if (t.includes('全局')) b.textContent = `全局配置 (${sc.global || 0})`;
+      else if (t.includes('项目')) b.textContent = `项目配置 (${sc.project || 0})`;
+    });
+  }
+
   document.getElementById('agentsGrid').innerHTML = render();
 
   const scopeParts = [];
   if (platform !== 'all') scopeParts.push(PLATFORM_NAMES[platform] || platform);
   if (category !== '全部') scopeParts.push(category);
+  if (source !== 'all') scopeParts.push({template:'模板默认',global:'全局配置',project:'项目配置'}[source] || source);
   scopeParts.push(agents.length + ' 个智能体');
   scopeParts.push('共 ' + d.total_count + ' 个');
   document.getElementById('agentCount').textContent = scopeParts.join(' · ');
@@ -294,6 +315,18 @@ function setCategory(c) {
   category = c;
   document.querySelectorAll('#categoryTabs button').forEach(b => {
     b.className = b.textContent.trim() === c
+      ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
+      : 'px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';
+  });
+  load();
+}
+
+function setSource(s) {
+  source = s;
+  document.querySelectorAll('#sourceTabs button').forEach(b => {
+    const t = b.textContent.trim().replace(/\s*\(\d+\)\s*/, '');
+    const isActive = t === (s === 'all' ? '全部来源' : s === 'template' ? '模板默认' : s === 'global' ? '全局配置' : '项目配置');
+    b.className = isActive
       ? 'px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 text-white transition-colors shadow-sm'
       : 'px-3 py-1 text-xs font-medium rounded-lg text-slate-500 hover:bg-slate-200 transition-colors';
   });
@@ -337,10 +370,24 @@ function render() {
     const effortInfo = EFFORT_NAMES[a.effort] || { label: a.effort || 'high' };
     const platformName = PLATFORM_NAMES[a.platform] || a.platform || '';
 
-    // 自定义标记
+    // 来源/自定义标记
     const borderClass = a.is_custom
       ? 'ring-2 ring-indigo-400 border-indigo-400 shadow-md shadow-indigo-100'
-      : 'border-slate-200 hover:border-slate-300';
+      : a.source === 'global'
+        ? 'ring-1 ring-emerald-300 border-emerald-300'
+        : a.source === 'project'
+          ? 'ring-1 ring-amber-300 border-amber-300'
+          : 'border-slate-200 hover:border-slate-300';
+
+    const sourceBadge = a.source === 'global'
+      ? '<span class="inline-flex items-center gap-0.5 text-[10px] text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded-full font-medium">全局</span>'
+      : a.source === 'project'
+        ? '<span class="inline-flex items-center gap-0.5 text-[10px] text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded-full font-medium">项目</span>'
+        : '';
+
+    const pluginBadge = a.subdir === 'plugins'
+      ? '<span class="inline-flex items-center gap-0.5 text-[10px] text-purple-600 bg-purple-50 px-1.5 py-0.5 rounded-full font-medium">插件</span>'
+      : '';
 
     const customBadge = a.is_custom
       ? '<span class="inline-flex items-center gap-0.5 text-[10px] text-indigo-600 bg-indigo-50 px-1.5 py-0.5 rounded-full font-medium"><span class="w-1.5 h-1.5 rounded-full bg-indigo-500"></span>已配置</span>'
@@ -350,7 +397,7 @@ function render() {
       ${px(a.icon)}
       <div class="flex items-center gap-1.5 justify-center mt-1 flex-wrap">
         <span class="text-[10px] text-slate-400 uppercase tracking-wide font-medium">${platformName}</span>
-        ${customBadge}
+        ${sourceBadge}${pluginBadge}${customBadge}
       </div>
       <div class="text-sm font-semibold text-slate-800 mt-1.5 text-center truncate" title="${a.name}">${a.name}</div>
       <div class="flex items-center justify-center gap-1 mt-1">

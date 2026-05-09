@@ -124,32 +124,68 @@ function parseTomlFrontmatter(content: string): Record<string, string> {
   return fm;
 }
 
-/** 扫描单个平台的所有 agent */
+/** 扫描单个平台的所有 agent（模板目录） */
 function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string; pluginExt?: string }, templatesDir: string): { agents: AgentItem[]; fileMap: AgentFileMap } {
   const platformDir = resolve(templatesDir, config.dir);
   const fileMap: AgentFileMap = {};
 
   const agents = config.subdirs.flatMap(subdir => {
-    if (subdir !== 'agents') return [];
-    const targetDir = join(platformDir, subdir);
-    if (!existsSync(targetDir)) return [];
+    // 扫描 agents 子目录
+    if (subdir === 'agents') {
+      const targetDir = join(platformDir, subdir);
+      if (!existsSync(targetDir)) return [];
 
-    return readdirSync(targetDir)
-      .filter(entry => entry.endsWith(config.ext))
-      .map(entry => {
-        const filePath = join(targetDir, entry);
-        const baseName = basename(entry, config.ext);
-        // 复用 parseAgentFile 解析文件
-        const agent = parseAgentFile(filePath, baseName, platformKey, { ext: config.ext, type: config.type });
-        // 模板特有的安装路径和子目录信息
-        const installBase = platformKey === 'claude'
-          ? `.claude/${subdir}/${entry}`
-          : platformKey === 'opencode'
-            ? `.opencode/${subdir}/${entry}`
-            : `.codex/${subdir}/${entry}`;
-        fileMap[agent.id] = { base: installBase, type: config.type as 'md' | 'toml' };
-        return { ...agent, subdir };
-      });
+      return readdirSync(targetDir)
+        .filter(entry => entry.endsWith(config.ext))
+        .map(entry => {
+          const filePath = join(targetDir, entry);
+          const baseName = basename(entry, config.ext);
+          const agent = parseAgentFile(filePath, baseName, platformKey, { ext: config.ext, type: config.type });
+          const installBase = platformKey === 'claude'
+            ? `.claude/${subdir}/${entry}`
+            : platformKey === 'opencode'
+              ? `.opencode/${subdir}/${entry}`
+              : `.codex/${subdir}/${entry}`;
+          fileMap[agent.id] = { base: installBase, type: config.type as 'md' | 'toml' };
+          return { ...agent, subdir, source: 'template' as const };
+        });
+    }
+
+    // 扫描 plugins 子目录（OpenCode 平台特有）
+    if (subdir === 'plugins' && config.pluginExt) {
+      const targetDir = join(platformDir, subdir);
+      if (!existsSync(targetDir)) return [];
+
+      return readdirSync(targetDir)
+        .filter(entry => entry.endsWith(config.pluginExt!))
+        .map(entry => {
+          const baseName = basename(entry, config.pluginExt!);
+          const id = `${platformKey}-plugin-${baseName}`;
+          const pluginContent = readFileSync(join(targetDir, entry), 'utf-8');
+          // 从插件代码中提取中文描述作为 role
+          const descMatch = pluginContent.match(/description:\s*"([^"]+)"/);
+          const role = descMatch ? descMatch[1].slice(0, 30) : 'OpenCode 原生插件';
+          const icon = inferIcon(baseName, pluginContent);
+          const agent: AgentItem = {
+            id,
+            name: baseName,
+            role,
+            icon,
+            platform: platformKey,
+            defaultModel: '',
+            defaultEffort: 'high',
+            category: '支撑',
+            fileName: entry,
+            subdir: 'plugins',
+            source: 'template',
+          };
+          const installPath = `.opencode/plugins/${entry}`;
+          fileMap[id] = { base: installPath, type: 'md' };
+          return agent;
+        });
+    }
+
+    return [];
   });
 
   return { agents, fileMap };
@@ -161,6 +197,8 @@ type AgentItem = {
   id: string; name: string; role: string; icon: string;
   platform: string; defaultModel: string; defaultEffort: string;
   category?: string; fileName?: string; subdir?: string;
+  /** 配置来源：template（模板默认）/ global（全局用户） / project（项目级） */
+  source?: 'template' | 'global' | 'project';
 };
 type AgentFileMap = Record<string, { base: string; type: 'md' | 'toml' }>;
 
@@ -216,6 +254,7 @@ function parseAgentFile(
     defaultEffort: effort || 'high',
     fileName: entryName(fileName, config.ext),
     subdir: 'agents',
+    source: 'template',
   };
 }
 
@@ -229,12 +268,14 @@ function entryName(baseName: string, ext: string): string {
  * @param dirPath - 要扫描的目录路径
  * @param platformKey - 平台标识
  * @param config - 平台配置
+ * @param source - 配置来源标记
  * @returns AgentItem 数组
  */
 function scanAgentDir(
   dirPath: string,
   platformKey: string,
   config: { ext: string; type: string },
+  source: 'global' | 'project',
 ): AgentItem[] {
   if (!existsSync(dirPath)) return [];
   const entries = readdirSync(dirPath);
@@ -243,7 +284,8 @@ function scanAgentDir(
     .map((entry: string) => {
       const filePath = join(dirPath, entry);
       const baseName = basename(entry, config.ext);
-      return parseAgentFile(filePath, baseName, platformKey, config);
+      const agent = parseAgentFile(filePath, baseName, platformKey, config);
+      return { ...agent, source };
     });
 }
 
@@ -280,23 +322,35 @@ export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[]
       Object.assign(_agentFiles, fileMap);
     }
 
-    // 二层：全局用户配置 ~/.jarvis/agents/{platform}/
+    // 二层：全局用户配置（按平台分离路径）
     if (projectRoot) {
-      const globalBase = resolve(homedir(), '.jarvis', 'agents');
+      const GLOBAL_AGENT_DIRS: Record<string, string> = {
+        claude:   resolve(homedir(), '.claude', 'agents'),
+        opencode: resolve(homedir(), '.config', 'opencode', 'agents'),
+        codex:    resolve(homedir(), '.codex', 'agents'),
+      };
       for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
-        const globalDir = join(globalBase, config.dir);
-        const globalAgents = scanAgentDir(globalDir, platformKey, config);
+        const globalDir = GLOBAL_AGENT_DIRS[platformKey];
+        if (!globalDir) continue;
+        const globalAgents = scanAgentDir(globalDir, platformKey, config, 'global');
         if (globalAgents.length > 0) {
           _agentList = mergeAgents(_agentList, globalAgents);
         }
       }
 
-      // 三层：项目级配置 {projectRoot}/.claude/agents/（仅 Claude 平台）
-      const projectAgentsDir = resolve(projectRoot, '.claude', 'agents');
-      const claudeConfig = PLATFORM_CONFIG.claude;
-      const projectAgents = scanAgentDir(projectAgentsDir, 'claude', { ext: claudeConfig.ext, type: claudeConfig.type });
-      if (projectAgents.length > 0) {
-        _agentList = mergeAgents(_agentList, projectAgents);
+      // 三层：项目级配置（按平台分离路径）
+      const PROJECT_AGENT_DIRS: Record<string, string> = {
+        claude:   resolve(projectRoot, '.claude', 'agents'),
+        opencode: resolve(projectRoot, '.opencode', 'agents'),
+        codex:    resolve(projectRoot, '.codex', 'agents'),
+      };
+      for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
+        const projectDir = PROJECT_AGENT_DIRS[platformKey];
+        if (!projectDir) continue;
+        const projectAgents = scanAgentDir(projectDir, platformKey, config, 'project');
+        if (projectAgents.length > 0) {
+          _agentList = mergeAgents(_agentList, projectAgents);
+        }
       }
     }
   }
