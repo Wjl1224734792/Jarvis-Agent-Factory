@@ -115,6 +115,7 @@ feat/x       ●●      ●●       功能分支
 - 描述 ≤ 72 字符，祈使语气（"增加"非"增加了"）
 - 一个 commit 一件事
 - 关联需求 ID：`REQ-XXX` / `Closes #123`
+- **禁止**添加 `Co-Authored-By`、`Signed-off-by` 等机器生成签名尾注
 
 ### 好 vs 坏
 

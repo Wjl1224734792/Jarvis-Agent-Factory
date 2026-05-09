@@ -114,7 +114,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 
 ### 3. 提交并打 Tag
 
-**每次代码变更完成后必须打 Tag，不可攒批。**
+**每次代码变更完成后必须打 Tag，不可攒批。提交信息禁止添加 `Co-Authored-By` 等机器签名尾注。**
 
 ```bash
 git add <changed-files>
