@@ -21,6 +21,91 @@ const EFFORT_LABELS: Record<string, string> = {
   low: '低', medium: '中', high: '高', xhigh: '很高', max: '最大',
 };
 
+/**
+ * 流程分类匹配 — 根据 agent ID 判断所属流程
+ * @param id - 智能体 ID
+ * @param type - 流程分类值
+ */
+function matchPipelineType(id: string, type: string): boolean {
+  const idLower = id.toLowerCase();
+  const idStartsWith = (prefix: string) => idLower.startsWith(prefix);
+  const idIncludes = (seg: string) => idLower.includes(seg);
+
+  switch (type) {
+    case '全流程':
+      return (
+        idStartsWith('frontend-') || idStartsWith('backend-') ||
+        idStartsWith('android-') || idStartsWith('ios-') ||
+        idStartsWith('flutter-') || idIncludes('expo') ||
+        idStartsWith('taro-') || idStartsWith('react-native-') ||
+        ['code-explore', 'docs-research', 'infra-deploy', 'api-contract',
+          'qa-review', 'security-review', 'perf-review', 'perf-test',
+          'diff-review', 'project-review', 'change-review', 'remediation',
+          'fix-retest', 'test-doc-writer', 'test-executor'].some(n => idLower === n || idStartsWith(n))
+      );
+    case '前端':
+      return idStartsWith('frontend-');
+    case '后端':
+      return idStartsWith('backend-');
+    case '轻量':
+      return idStartsWith('jarvis-lite');
+    case '架构':
+      return idIncludes('architect') || idLower === 'algorithm-expert';
+    case '测试':
+      return (
+        idIncludes('-test-') ||
+        ['browser-test', 'e2e-test', 'api-test', 'perf-test',
+          'test-doc', 'test-executor'].some(n => idLower === n || idStartsWith(n))
+      );
+    case '审查':
+      return (
+        idIncludes('-review-') ||
+        ['review', 'change-review', 'diff-review', 'project-review',
+          'qa-review', 'security-review', 'perf-review'].some(n => idLower === n || idStartsWith(n))
+      );
+    default:
+      return true;
+  }
+}
+
+/**
+ * 功能分类匹配 — 根据 agent ID 判断功能角色
+ * @param id - 智能体 ID
+ * @param role - 功能分类值
+ */
+function matchFunctionRole(id: string, role: string): boolean {
+  const idLower = id.toLowerCase();
+  const idIncludes = (seg: string) => idLower.includes(seg);
+  const idStartsWith = (prefix: string) => idLower.startsWith(prefix);
+
+  switch (role) {
+    case '编排者':
+      return ['jarvis', 'frontend', 'backend', 'android', 'ios',
+        'flutter', 'expo', 'taro', 'jarvis-lite'].includes(idLower);
+    case '实现者':
+      return idIncludes('-dev-') || idIncludes('-ui-') || idIncludes('-state-') ||
+        idIncludes('-api-') || idIncludes('-data-') || idIncludes('-logic-');
+    case '审查者':
+      return (
+        idIncludes('-review-') ||
+        ['review', 'qa-review', 'security-review', 'perf-review',
+          'diff-review', 'project-review', 'change-review'].some(n => idLower === n || idStartsWith(n))
+      );
+    case '测试者':
+      return (
+        idIncludes('-test-') ||
+        ['test', 'browser-test', 'e2e-test', 'api-test', 'perf-test',
+          'test-doc', 'test-executor', 'fix-retest'].some(n => idLower === n || idStartsWith(n))
+      );
+    case '架构师':
+      return idIncludes('architect') || idLower === 'algorithm-expert';
+    case '专家':
+      return idIncludes('expert');
+    default:
+      return true;
+  }
+}
+
 function PixelAvatar({ icon, size = 48 }: { icon: string; size?: number }) {
   const grid = icon || '0000000000000000000000000000000000000000000000000000000000000000';
   const cellSize = size / 8;
@@ -48,6 +133,8 @@ export default function Agents() {
   const [loading, setLoading] = useState(true);
   const [platform, setPlatform] = useState('all');
   const [category, setCategory] = useState('全部');
+  const [pipelineType, setPipelineType] = useState('all');
+  const [functionRole, setFunctionRole] = useState('all');
   const [search, setSearch] = useState('');
   const [editAgent, setEditAgent] = useState<AgentItem | null>(null);
   const [editModel, setEditModel] = useState('');
@@ -97,8 +184,16 @@ export default function Agents() {
     }
   };
 
-  const agents = data?.agents || [];
+  const allAgents = data?.agents || [];
   const isTemplate = editAgent?.source === 'template';
+
+  // 客户端三级筛选：平台（服务端）→ 流程分类 → 功能分类
+  const filteredByPipeline = pipelineType === 'all'
+    ? allAgents
+    : allAgents.filter(a => matchPipelineType(a.id, pipelineType));
+  const agents = functionRole === 'all'
+    ? filteredByPipeline
+    : filteredByPipeline.filter(a => matchFunctionRole(a.id, functionRole));
 
   return (
     <div>
@@ -172,6 +267,46 @@ export default function Agents() {
               onChange={e => setSearch(e.target.value)}
               style={{ width: 200, borderRadius: 12 }}
             />
+          </Col>
+        </Row>
+        <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
+          <Col>
+            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+              流程:
+            </span>
+          </Col>
+          <Col>
+            {['all', '全流程', '前端', '后端', '轻量', '架构', '测试', '审查'].map(t => (
+              <Button
+                key={t}
+                size="small"
+                type={pipelineType === t ? 'primary' : 'default'}
+                onClick={() => setPipelineType(t)}
+                style={{ borderRadius: 12, fontWeight: 600, fontSize: 10, marginRight: 4 }}
+              >
+                {t === 'all' ? '全部' : t}
+              </Button>
+            ))}
+          </Col>
+        </Row>
+        <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
+          <Col>
+            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+              功能:
+            </span>
+          </Col>
+          <Col>
+            {['all', '编排者', '实现者', '审查者', '测试者', '架构师', '专家'].map(r => (
+              <Button
+                key={r}
+                size="small"
+                type={functionRole === r ? 'primary' : 'default'}
+                onClick={() => setFunctionRole(r)}
+                style={{ borderRadius: 12, fontWeight: 600, fontSize: 10, marginRight: 4 }}
+              >
+                {r === 'all' ? '全部' : r}
+              </Button>
+            ))}
           </Col>
         </Row>
       </Card>

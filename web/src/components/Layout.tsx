@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Layout, Menu, Button, Tag, Tooltip, Dropdown, message } from 'antd';
+import { Layout, Button, Tag, Tooltip, Dropdown, message } from 'antd';
 import {
   ThunderboltOutlined,
   DashboardOutlined,
@@ -232,7 +232,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     ? sessions
     : sessions.filter(s => s.platform === sessionPlatform);
 
-  const sortedSessions = [...filteredSessions].sort((a, b) => {
+  const sortedSessions = filteredSessions.toSorted((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
     const aHb = a.heartbeat || 0;
@@ -311,6 +311,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           onCollapse={setCollapsed}
           trigger={null}
           width={260}
+          collapsedWidth={0}
           style={{
             background: '#FFF9F0',
             borderRight: '3px solid #2C2C2C',
@@ -361,7 +362,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       key={s.id}
                       s={s}
                       active={s.id === selectedSession}
-                      onSelect={setSelectedSession}
+                      onSelect={(id) => { setSelectedSession(id); navigate('/'); }}
                       onResume={handleResume}
                       onPin={handlePin}
                       onArchive={handleArchive}

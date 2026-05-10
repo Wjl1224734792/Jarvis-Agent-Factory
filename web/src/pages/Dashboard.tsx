@@ -19,6 +19,20 @@ function shortGate(gate: string): string {
   return gate.startsWith('Gate ') ? gate.slice(5) : gate;
 }
 
+/** Gate 名称到文档子目录的映射 */
+const GATE_DIRS: Record<string, string> = {
+  'Gate A': 'requirements',
+  'Gate B': 'tasks',
+  'Gate B1': 'architecture',
+  'Gate C': 'plans',
+  'Gate C-impl': 'implementation',
+  'Gate C1': 'implementation',
+  'Gate C1.5': 'implementation',
+  'Gate C2': 'testing',
+  'Gate D': 'review',
+  'Gate E': 'shipping',
+};
+
 const GATE_COLORS: Record<string, string> = {
   A: '#52C41A', B: '#52C41A', C: '#52C41A',
   C1: '#51CF66', 'C1.5': '#2C2C2C', C2: '#FA5252',
@@ -99,9 +113,16 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, [loadData]);
 
-  const openDoc = async (filepath: string) => {
+  const openDoc = async (filepath: string, gate?: string) => {
     try {
-      const content = await api.docContent(filepath);
+      const subdir = gate ? GATE_DIRS[gate] : null;
+      if (gate && !subdir) {
+        console.warn(`[Dashboard] 未知 Gate "${gate}"，无法确定文档子目录`);
+        message.warning(`未知 Gate: ${gate}`);
+        return;
+      }
+      const fullPath = subdir ? `${subdir}/${filepath}` : filepath;
+      const content = await api.docContent(fullPath);
       setDocDrawer({ open: true, content, title: filepath });
     } catch {
       message.error('文档加载失败');
@@ -223,7 +244,7 @@ export default function Dashboard() {
                       onClick={() => {
                         if (g.artifacts?.length) {
                           const firstMd = g.artifacts.find(a => a.endsWith('.md'));
-                          if (firstMd) openDoc(firstMd);
+                          if (firstMd) openDoc(firstMd, g.gate);
                         }
                       }}
                       style={{
@@ -260,7 +281,7 @@ export default function Dashboard() {
                               key={i}
                               style={{ borderRadius: 8, fontSize: 10, cursor: 'pointer' }}
                               color="#52C41A"
-                              onClick={(e) => { e.stopPropagation(); openDoc(a); }}
+                              onClick={(e) => { e.stopPropagation(); openDoc(a, g.gate); }}
                             >
                               {a}
                             </Tag>
