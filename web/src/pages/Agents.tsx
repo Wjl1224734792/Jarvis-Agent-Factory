@@ -11,10 +11,10 @@ import type { AgentItem, AgentsData } from '../api';
 import { api } from '../api';
 import { matchPipelineType } from './matchPipelineType';
 
-const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
-  claude: { label: 'Claude', color: '#52C41A' },
-  opencode: { label: 'OpenCode', color: '#FA5252' },
-  codex: { label: 'Codex', color: '#51CF66' },
+const PLATFORM_INFO: Record<string, { label: string; color: string; bg: string }> = {
+  claude: { label: 'Claude', color: 'var(--ant-color-success)', bg: 'var(--ant-color-success-bg)' },
+  opencode: { label: 'OpenCode', color: 'var(--ant-color-error)', bg: 'var(--ant-color-error-bg)' },
+  codex: { label: 'Codex', color: 'var(--ant-color-success)', bg: 'var(--ant-color-success-bg)' },
 };
 
 
@@ -68,13 +68,13 @@ function PixelAvatar({ icon, size = 48 }: { icon: string; size?: number }) {
     for (let col = 0; col < 8; col++) {
       const ch = grid[row * 8 + col] || '0';
       if (ch !== '0') {
-        cells.push({ x: col, y: row, c: ch === '1' ? '#52C41A' : ch === '2' ? '#51CF66' : ch === '3' ? '#FA5252' : '#2C2C2C' });
+        cells.push({ x: col, y: row, c: ch === '1' ? 'var(--ant-color-success)' : ch === '2' ? 'var(--ant-color-success)' : ch === '3' ? 'var(--ant-color-error)' : 'var(--ant-color-text)' });
       }
     }
   }
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ borderRadius: 4, flexShrink: 0 }}>
-      <rect width={size} height={size} fill="#FFF9F0" rx={4} />
+      <rect width={size} height={size} fill="var(--ant-color-bg-container)" rx={4} />
       {cells.map((c, i) => (
         <rect key={i} x={c.x * cellSize} y={c.y * cellSize} width={cellSize} height={cellSize} fill={c.c} />
       ))}
@@ -161,16 +161,16 @@ export default function Agents() {
       {/* 页面标题 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#2C2C2C' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ant-color-text)' }}>
             <RobotOutlined style={{ marginRight: 6 }} />智能体配置
           </span>
           {data && (
-            <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#52C41A20', color: '#52C41A', border: 'none' }}>
+            <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
               {agents.length} / {data.total_count}
             </Tag>
           )}
           {data && (
-            <span style={{ fontSize: 12, color: '#2C2C2C', opacity: 0.5, marginLeft: 8 }}>
+            <span style={{ fontSize: 12, color: 'var(--ant-color-text)', opacity: 0.5, marginLeft: 8 }}>
               {PLATFORM_INFO[platform]?.label || '全部平台'} · {category} · {agents.length} 个
             </span>
           )}
@@ -181,7 +181,7 @@ export default function Agents() {
       <Card size="small" style={{ borderRadius: 18, marginBottom: 12 }}>
         <Row gutter={[8, 8]} align="middle">
           <Col>
-            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               平台:
             </span>
           </Col>
@@ -201,7 +201,7 @@ export default function Agents() {
         </Row>
         <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
           <Col>
-            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               分类:
             </span>
           </Col>
@@ -222,7 +222,7 @@ export default function Agents() {
             <Input
               size="small"
               placeholder="搜索名称/ID/角色..."
-              prefix={<SearchOutlined style={{ color: '#2C2C2C' }} />}
+              prefix={<SearchOutlined style={{ color: 'var(--ant-color-text)' }} />}
               allowClear
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -232,7 +232,7 @@ export default function Agents() {
         </Row>
         <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
           <Col>
-            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               流程:
             </span>
           </Col>
@@ -252,7 +252,7 @@ export default function Agents() {
         </Row>
         <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
           <Col>
-            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               功能:
             </span>
           </Col>
@@ -275,7 +275,7 @@ export default function Agents() {
       {/* 卡片网格 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
-          <Spin indicator={<LoadingOutlined style={{ color: '#52C41A' }} />} />
+          <Spin indicator={<LoadingOutlined style={{ color: 'var(--ant-color-primary)' }} />} />
         </div>
       ) : agents.length === 0 ? (
         <Empty description="没有匹配的智能体" />
@@ -293,34 +293,34 @@ export default function Agents() {
               onClick={() => openEdit(agent)}
               style={{
                 borderRadius: 18,
-                border: agent.is_custom ? '2px solid #2C2C2C' : '1px solid #2C2C2C',
+                border: agent.is_custom ? '2px solid var(--ant-color-border-secondary)' : '1px solid var(--ant-color-border-secondary)',
                 cursor: 'pointer',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <PixelAvatar icon={agent.icon} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#2C2C2C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: 'var(--ant-color-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {agent.name}
                   </div>
-                  <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5 }}>
+                  <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5 }}>
                     {agent.role}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: (PLATFORM_INFO[agent.platform]?.color || '#52C41A') + '20', color: PLATFORM_INFO[agent.platform]?.color || '#52C41A', border: 'none' }}>
+                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: PLATFORM_INFO[agent.platform]?.bg || 'var(--ant-color-primary-bg)', color: PLATFORM_INFO[agent.platform]?.color || 'var(--ant-color-primary)', border: 'none' }}>
                   {PLATFORM_INFO[agent.platform]?.label || agent.platform}
                 </Tag>
-                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: '#FFF9F0', color: '#2C2C2C', border: '1px solid #52C41A' }}>
+                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: 'var(--ant-color-bg-container)', color: 'var(--ant-color-text)', border: '1px solid var(--ant-color-success)' }}>
                   {agent.category || agent.source || '模板默认'}
                 </Tag>
               </div>
-              <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginTop: 4 }}>
                 {agent.model || agent.defaultModel} · {EFFORT_LABELS[agent.effort || agent.defaultEffort] || agent.effort}
               </div>
               {agent.is_custom && (
-                <Tag style={{ marginTop: 4, borderRadius: 8, fontSize: 9, backgroundColor: '#2C2C2C20', color: '#2C2C2C', border: 'none' }}>
+                <Tag style={{ marginTop: 4, borderRadius: 8, fontSize: 9, backgroundColor: 'var(--ant-color-fill)', color: 'var(--ant-color-text)', border: 'none' }}>
                   已配置
                 </Tag>
               )}
@@ -332,7 +332,7 @@ export default function Agents() {
       {/* 编辑弹窗 */}
       <Modal
         title={
-          <span style={{ fontWeight: 600, color: '#2C2C2C' }}>
+          <span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>
             <SettingOutlined style={{ marginRight: 6 }} />
             {editAgent?.name || '配置智能体'}
           </span>
@@ -345,7 +345,7 @@ export default function Agents() {
         cancelText="取消"
         okButtonProps={{
           disabled: isTemplate,
-          style: { borderRadius: 18, backgroundColor: isTemplate ? '#2C2C2C' : '#52C41A' },
+          style: { borderRadius: 18 },
         }}
         cancelButtonProps={{ style: { borderRadius: 18 } }}
         width={400}
@@ -355,8 +355,8 @@ export default function Agents() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <PixelAvatar icon={editAgent.icon} size={48} />
               <div>
-                <div style={{ fontWeight: 700, color: '#2C2C2C' }}>{editAgent.name}</div>
-                <div style={{ fontSize: 12, color: '#2C2C2C', opacity: 0.5 }}>{editAgent.role}</div>
+                <div style={{ fontWeight: 700, color: 'var(--ant-color-text)' }}>{editAgent.name}</div>
+                <div style={{ fontSize: 12, color: 'var(--ant-color-text)', opacity: 0.5 }}>{editAgent.role}</div>
                 <Tag style={{ borderRadius: 8, fontSize: 9, marginTop: 2 }}>
                   {editAgent.category || editAgent.source || '模板默认'}
                 </Tag>
@@ -366,15 +366,15 @@ export default function Agents() {
             {isTemplate && (
               <div style={{
                 padding: '8px 12px', borderRadius: 12, marginBottom: 12,
-                backgroundColor: '#2C2C2C20', color: '#2C2C2C', fontSize: 12,
-                border: '1px solid #2C2C2C',
+                backgroundColor: 'var(--ant-color-fill)', color: 'var(--ant-color-text)', fontSize: 12,
+                border: '1px solid var(--ant-color-border-secondary)',
               }}>
                 模板默认智能体不可编辑
               </div>
             )}
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2C', marginBottom: 4 }}>模型</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ant-color-text)', marginBottom: 4 }}>模型</div>
               <Select
                 value={editModel}
                 onChange={setEditModel}
@@ -383,14 +383,14 @@ export default function Agents() {
                 options={(data?.available_models || []).map(m => ({ label: m, value: m }))}
               />
               {editAgent.defaultModel !== editModel && (
-                <div style={{ fontSize: 10, color: '#2C2C2C', marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: 'var(--ant-color-text)', marginTop: 2 }}>
                   默认: {editAgent.defaultModel}
                 </div>
               )}
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2C', marginBottom: 4 }}>思考等级</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: 'var(--ant-color-text)', marginBottom: 4 }}>思考等级</div>
               <Select
                 value={editEffort}
                 onChange={setEditEffort}
@@ -399,7 +399,7 @@ export default function Agents() {
                 options={(data?.available_efforts || []).map(e => ({ label: `${EFFORT_LABELS[e] || e} (${e})`, value: e }))}
               />
               {editAgent.defaultEffort !== editEffort && (
-                <div style={{ fontSize: 10, color: '#2C2C2C', marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: 'var(--ant-color-text)', marginTop: 2 }}>
                   默认: {EFFORT_LABELS[editAgent.defaultEffort] || editAgent.defaultEffort}
                 </div>
               )}
@@ -412,7 +412,7 @@ export default function Agents() {
                   setEditModel(editAgent.defaultModel);
                   setEditEffort(editAgent.defaultEffort || 'high');
                 }}
-                style={{ borderRadius: 12, color: '#FA5252' }}
+                style={{ borderRadius: 12, color: 'var(--ant-color-error)' }}
               >
                 恢复默认
               </Button>

@@ -162,12 +162,12 @@ export const AVAILABLE_MODELS = [
 ];
 
 /**
- * 扫描 Gate 产物文档（返回文件名，不含路径前缀）。
+ * 扫描 Gate 产物文档（返回相对 docs/ 的完整路径）。
  * 优先从日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，
  * 空时回退到旧扁平结构 docs/{subdir}/。
  * @param {string} docsDir 文档根目录
  * @param {string} gate Gate 名称
- * @returns {string[]} .md 文件名列表（最多 5 个）
+ * @returns {string[]} 相对路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
  */
 export function findGateArtifacts(docsDir, gate) {
   const subdir = GATE_DIRS[gate]; if (!subdir) return [];
@@ -180,7 +180,10 @@ export function findGateArtifacts(docsDir, gate) {
     for (const dd of dateDirs) {
       const dir = join(docsDir, dd.name, subdir);
       if (existsSync(dir)) {
-        files.push(...readdirSync(dir).filter(f => f.endsWith('.md')));
+        const mdFiles = readdirSync(dir).filter(f => f.endsWith('.md'));
+        for (const f of mdFiles) {
+          files.push(`${dd.name}/${subdir}/${f}`);
+        }
         if (files.length >= 5) break;
       }
     }
@@ -190,7 +193,8 @@ export function findGateArtifacts(docsDir, gate) {
   // 向后兼容：旧扁平结构 docs/{subdir}/
   const flatDir = join(docsDir, subdir);
   if (!existsSync(flatDir)) return [];
-  return readdirSync(flatDir).filter(f => f.endsWith('.md')).slice(0, 5);
+  const flatFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
+  return flatFiles.map(f => `${subdir}/${f}`).slice(0, 5);
 }
 
 /**

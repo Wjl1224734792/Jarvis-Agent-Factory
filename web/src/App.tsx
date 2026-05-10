@@ -10,7 +10,7 @@ const Archive = lazy(() => import('./pages/Archive'));
 
 function Loading() {
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: '#9CD3D3' }}>
+    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'var(--ant-color-text-secondary)' }}>
       <span>加载中...</span>
     </div>
   );
@@ -24,6 +24,7 @@ export default function App() {
           <Suspense fallback={<Loading />}>
             <Routes>
               <Route path="/" element={<Dashboard />} />
+              <Route path="/dashboard" element={<Dashboard />} />
               <Route path="/agents" element={<Agents />} />
               <Route path="/archive" element={<Archive />} />
             </Routes>

@@ -57,9 +57,9 @@ export const SessionContext = createContext<string | null>(null);
 export function useSessionId() { return useContext(SessionContext); }
 
 const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
-  claude: { label: 'Claude', color: '#2C2C2C' },
-  opencode: { label: 'OpenCode', color: '#FA5252' },
-  codex: { label: 'Codex', color: '#4DABF7' },
+  claude: { label: 'Claude', color: 'var(--ant-color-text)' },
+  opencode: { label: 'OpenCode', color: 'var(--ant-color-error)' },
+  codex: { label: 'Codex', color: 'var(--ant-color-info)' },
 };
 
 const PIPELINE_NAMES: Record<string, string> = {
@@ -69,11 +69,11 @@ const PIPELINE_NAMES: Record<string, string> = {
   lite: '轻量',
 };
 
-const CMD_LABELS: Record<string, { label: string; color: string }> = {
-  full: { label: 'jarvis', color: '#52C41A' },
-  frontend: { label: 'frontend', color: '#FA5252' },
-  backend: { label: 'backend', color: '#4DABF7' },
-  lite: { label: 'jarvis-lite', color: '#FFD93D' },
+const CMD_LABELS: Record<string, { label: string; color: string; bg: string }> = {
+  full: { label: 'jarvis', color: 'var(--ant-color-success)', bg: 'var(--ant-color-success-bg)' },
+  frontend: { label: 'frontend', color: 'var(--ant-color-error)', bg: 'var(--ant-color-error-bg)' },
+  backend: { label: 'backend', color: 'var(--ant-color-info)', bg: 'var(--ant-color-info-bg)' },
+  lite: { label: 'jarvis-lite', color: 'var(--ant-color-warning)', bg: 'var(--ant-color-warning-bg)' },
 };
 
 const NAV_ITEMS = [
@@ -135,28 +135,28 @@ const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onRes
         cursor: 'pointer',
         borderRadius: 12,
         marginBottom: 2,
-        backgroundColor: active ? '#E8F5E9' : 'transparent',
-        borderLeft: active ? '3px solid #52C41A' : '3px solid transparent',
-        borderTop: isPinned ? '2px solid #FFD93D' : '2px solid transparent',
+        backgroundColor: active ? 'var(--ant-color-success-bg)' : 'transparent',
+        borderLeft: active ? '1px solid var(--ant-color-success)' : '1px solid transparent',
+        borderTop: isPinned ? '2px solid var(--ant-color-warning)' : '2px solid transparent',
         transition: 'all 0.15s',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, minWidth: 0 }}>
-        {isPinned && <span style={{ color: '#FFD93D', fontSize: 10 }}>📌</span>}
+        {isPinned && <span style={{ color: 'var(--ant-color-warning)', fontSize: 10 }}>📌</span>}
         <span
           style={{
             width: 8, height: 8, borderRadius: '50%', flexShrink: 0,
-            backgroundColor: isInactive ? '#CBC4AF' : '#52C41A',
+            backgroundColor: isInactive ? 'var(--ant-color-text-disabled)' : 'var(--ant-color-success)',
           }}
         />
         <span style={{
-          fontSize: 12, fontWeight: 600, color: '#2C2C2C',
+          fontSize: 12, fontWeight: 600, color: 'var(--ant-color-text)',
           overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
         }}>
           {displayTitle}
         </span>
         {timeStr && (
-          <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.4, flexShrink: 0 }}>
+          <span style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.4, flexShrink: 0 }}>
             {timeStr}
           </span>
         )}
@@ -165,22 +165,22 @@ const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onRes
             type="text" size="small"
             icon={<CaretRightOutlined />}
             onClick={(e) => { e.stopPropagation(); onResume(s.id); }}
-            style={{ color: '#52C41A', flexShrink: 0 }}
+            style={{ color: 'var(--ant-color-success)', flexShrink: 0 }}
           />
         )}
         <Dropdown menu={{ items: menuItems }} trigger={['click']} placement="bottomRight">
           <Button
             type="text" size="small"
             onClick={(e) => e.stopPropagation()}
-            style={{ color: '#2C2C2C', flexShrink: 0, padding: '0 4px' }}
+            style={{ color: 'var(--ant-color-text)', flexShrink: 0, padding: '0 4px' }}
           >···</Button>
         </Dropdown>
       </div>
       <div style={{ display: 'flex', gap: 4, marginTop: 4, flexWrap: 'wrap' }}>
-        <Tag style={{ fontSize: 10, margin: 0, borderRadius: 8, backgroundColor: cmd.color + '20', color: cmd.color, border: 'none' }}>
+        <Tag style={{ fontSize: 10, margin: 0, borderRadius: 8, backgroundColor: cmd.bg, color: cmd.color, border: 'none' }}>
           {cmd.label}
         </Tag>
-        <Tag style={{ fontSize: 10, margin: 0, borderRadius: 8, backgroundColor: '#FFF9F0', color: '#2C2C2C', border: '1px solid #2C2C2C' }}>
+        <Tag style={{ fontSize: 10, margin: 0, borderRadius: 8, backgroundColor: 'var(--ant-color-bg-container)', color: 'var(--ant-color-text)', border: '1px solid var(--ant-color-border-secondary)' }}>
           {s.gate || '?'}
         </Tag>
       </div>
@@ -338,8 +338,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Header style={{
-        background: '#FFF9F0',
-        borderBottom: '3px solid #2C2C2C',
+        background: 'var(--ant-color-bg-container)',
+        borderBottom: '1px solid var(--ant-color-border-secondary)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -351,13 +351,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             type="text"
             icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
             onClick={() => setCollapsed(!collapsed)}
-            style={{ color: '#2C2C2C' }}
+            style={{ color: 'var(--ant-color-text)' }}
           />
-          <ThunderboltOutlined style={{ fontSize: 20, color: '#52C41A' }} />
-          <span style={{ fontSize: 16, fontWeight: 700, color: '#2C2C2C', letterSpacing: -0.5 }}>
+          <ThunderboltOutlined style={{ fontSize: 20, color: 'var(--ant-color-primary)' }} />
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ant-color-text)', letterSpacing: -0.5 }}>
             Jarvis Engine
           </span>
-          <Tag style={{ borderRadius: 12, backgroundColor: '#52C41A20', color: '#52C41A', border: 'none', fontSize: 11 }}>
+          <Tag style={{ borderRadius: 12, backgroundColor: 'var(--ant-color-success-bg)', color: 'var(--ant-color-success)', border: 'none', fontSize: 11 }}>
             v{version}
           </Tag>
         </div>
@@ -371,21 +371,21 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               style={{
                 fontWeight: 600,
                 fontSize: 13,
-                color: location.pathname === item.key ? undefined : '#2C2C2C',
+                color: location.pathname === item.key ? undefined : 'var(--ant-color-text)',
               }}
             >
               {item.label}
             </Button>
           ))}
-          <div style={{ width: 1, height: 20, backgroundColor: '#2C2C2C', margin: '0 6px' }} />
+          <div style={{ width: 1, height: 20, backgroundColor: 'var(--ant-color-border-secondary)', margin: '0 6px' }} />
           <Button
             type="text"
             icon={<ReloadOutlined />}
             onClick={() => window.location.reload()}
-            style={{ color: '#2C2C2C' }}
+            style={{ color: 'var(--ant-color-text)' }}
           />
           <Tooltip title="MCP :3456 · 会话隔离模式">
-            <Tag style={{ borderRadius: 12, backgroundColor: '#52C41A20', color: '#2C2C2C', border: '1px solid #2C2C2C' }}>
+            <Tag style={{ borderRadius: 12, backgroundColor: 'var(--ant-color-success-bg)', color: 'var(--ant-color-text)', border: '1px solid var(--ant-color-border-secondary)' }}>
               {activeCount} 活跃
             </Tag>
           </Tooltip>
@@ -400,16 +400,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           width={260}
           collapsedWidth={0}
           style={{
-            background: '#FFF9F0',
-            borderRight: '3px solid #2C2C2C',
+            background: 'var(--ant-color-bg-container)',
+            borderRight: '1px solid var(--ant-color-border-secondary)',
             overflow: 'hidden',
           }}
         >
           <div style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
             {/* 平台筛选 */}
             {!collapsed && (
-              <div style={{ padding: '12px 12px 8px', borderBottom: '3px solid #2C2C2C' }}>
-                <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginBottom: 6, fontWeight: 600, letterSpacing: 1 }}>
+              <div style={{ padding: '12px 12px 8px', borderBottom: '1px solid var(--ant-color-border-secondary)' }}>
+                <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginBottom: 6, fontWeight: 600, letterSpacing: 1 }}>
                   平台筛选
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
@@ -436,11 +436,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             {/* 会话列表 */}
             {!collapsed && (
               <div style={{ flex: 1, overflow: 'auto', padding: '8px' }}>
-                <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginBottom: 6, fontWeight: 600, letterSpacing: 1, padding: '0 4px' }}>
+                <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginBottom: 6, fontWeight: 600, letterSpacing: 1, padding: '0 4px' }}>
                   会话列表 · {sortedSessions.length}
                 </div>
                 {sortedSessions.length === 0 ? (
-                  <div style={{ textAlign: 'center', padding: 16, color: '#2C2C2C', opacity: 0.4, fontSize: 12 }}>
+                  <div style={{ textAlign: 'center', padding: 16, color: 'var(--ant-color-text)', opacity: 0.4, fontSize: 12 }}>
                     等待会话连接...
                   </div>
                 ) : (
@@ -462,18 +462,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
             {/* MCP 状态 */}
             {!collapsed && (
-              <div style={{ padding: '8px 12px', borderTop: '3px solid #2C2C2C' }}>
-                <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginBottom: 4, fontWeight: 600, letterSpacing: 1 }}>
+              <div style={{ padding: '8px 12px', borderTop: '1px solid var(--ant-color-border-secondary)' }}>
+                <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginBottom: 4, fontWeight: 600, letterSpacing: 1 }}>
                   MCP 接入状态
                 </div>
                 {['claude', 'opencode', 'codex'].map(p => {
                   const info = mcpStatus[p];
                   const connected = info?.connected;
                   return (
-                    <div key={p} style={{ fontSize: 11, color: connected ? '#2C2C2C' : '#2C2C2C', opacity: connected ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div key={p} style={{ fontSize: 11, color: 'var(--ant-color-text)', opacity: connected ? 1 : 0.4, display: 'flex', alignItems: 'center', gap: 6 }}>
                       <span style={{
                         width: 6, height: 6, borderRadius: '50%', display: 'inline-block',
-                        backgroundColor: connected ? '#52C41A' : '#CBC4AF',
+                        backgroundColor: connected ? 'var(--ant-color-success)' : 'var(--ant-color-text-disabled)',
                       }} />
                       {PLATFORM_INFO[p]?.label || p}
                       {connected && <span style={{ fontWeight: 600 }}>{info.active_sessions}</span>}
@@ -485,7 +485,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           </div>
         </Sider>
         <Content style={{
-          background: '#FFF9F0',
+          background: 'var(--ant-color-bg-container)',
           padding: 24,
           overflow: 'auto',
         }}>
