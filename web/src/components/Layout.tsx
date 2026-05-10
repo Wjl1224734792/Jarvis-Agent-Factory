@@ -10,12 +10,10 @@ import {
   MenuUnfoldOutlined,
   ReloadOutlined,
   CaretRightOutlined,
-  SunOutlined,
-  MoonOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 import { api, Session } from '../api';
-import { ThemeContext } from '../theme-context';
+
 
 const { Header, Sider, Content } = Layout;
 
@@ -157,7 +155,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mcpStatus, setMcpStatus] = useState<Record<string, { connected: boolean; active_sessions: number }>>({});
   const navigate = useNavigate();
   const location = useLocation();
-  const { themeMode, setThemeMode } = useContext(ThemeContext);
+
 
   /** 修复 SSE onmessage 中 selectedSession 的 stale closure 问题 */
   const selectedSessionRef = useRef(selectedSession);
@@ -293,12 +291,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Button>
           ))}
           <div style={{ width: 1, height: 20, backgroundColor: '#2C2C2C', margin: '0 6px' }} />
-          <Button
-            type="text"
-            icon={themeMode === 'dark' ? <SunOutlined /> : <MoonOutlined />}
-            onClick={() => setThemeMode(themeMode === 'dark' ? 'light' : 'dark')}
-            style={{ color: '#2C2C2C' }}
-          />
           <Button
             type="text"
             icon={<ReloadOutlined />}
