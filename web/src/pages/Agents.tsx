@@ -11,16 +11,11 @@ import type { AgentItem, AgentsData } from '../api';
 import { api } from '../api';
 
 const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
-  claude: { label: 'Claude', color: '#225555' },
-  opencode: { label: 'OpenCode', color: '#DA8787' },
-  codex: { label: 'Codex', color: '#9CD3D3' },
+  claude: { label: 'Claude', color: '#52C41A' },
+  opencode: { label: 'OpenCode', color: '#FA5252' },
+  codex: { label: 'Codex', color: '#51CF66' },
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  template: '模板默认',
-  global: '全局配置',
-  project: '项目配置',
-};
 
 const EFFORT_LABELS: Record<string, string> = {
   low: '低', medium: '中', high: '高', xhigh: '很高', max: '最大',
@@ -34,13 +29,13 @@ function PixelAvatar({ icon, size = 48 }: { icon: string; size?: number }) {
     for (let col = 0; col < 8; col++) {
       const ch = grid[row * 8 + col] || '0';
       if (ch !== '0') {
-        cells.push({ x: col, y: row, c: ch === '1' ? '#225555' : ch === '2' ? '#9CD3D3' : ch === '3' ? '#DA8787' : '#CBC4AF' });
+        cells.push({ x: col, y: row, c: ch === '1' ? '#52C41A' : ch === '2' ? '#51CF66' : ch === '3' ? '#FA5252' : '#2C2C2C' });
       }
     }
   }
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`} style={{ borderRadius: 4, flexShrink: 0 }}>
-      <rect width={size} height={size} fill="#FAFAEE" rx={4} />
+      <rect width={size} height={size} fill="#FFF9F0" rx={4} />
       {cells.map((c, i) => (
         <rect key={i} x={c.x * cellSize} y={c.y * cellSize} width={cellSize} height={cellSize} fill={c.c} />
       ))}
@@ -52,7 +47,6 @@ export default function Agents() {
   const [data, setData] = useState<AgentsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [platform, setPlatform] = useState('all');
-  const [source, setSource] = useState('all');
   const [category, setCategory] = useState('全部');
   const [search, setSearch] = useState('');
   const [editAgent, setEditAgent] = useState<AgentItem | null>(null);
@@ -75,11 +69,10 @@ export default function Agents() {
   useEffect(() => {
     const params: Record<string, string> = {};
     if (platform !== 'all') params.platform = platform;
-    if (source !== 'all') params.source = source;
     if (category !== '全部') params.category = category;
     if (search) params.search = search;
     loadAgents(params);
-  }, [platform, source, category, search, loadAgents]);
+  }, [platform, category, search, loadAgents]);
 
   const openEdit = (agent: AgentItem) => {
     setEditAgent(agent);
@@ -112,16 +105,16 @@ export default function Agents() {
       {/* 页面标题 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#51463B' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#2C2C2C' }}>
             <RobotOutlined style={{ marginRight: 6 }} />智能体配置
           </span>
           {data && (
-            <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#22555520', color: '#225555', border: 'none' }}>
+            <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#52C41A20', color: '#52C41A', border: 'none' }}>
               {agents.length} / {data.total_count}
             </Tag>
           )}
           {data && (
-            <span style={{ fontSize: 12, color: '#51463B', opacity: 0.5, marginLeft: 8 }}>
+            <span style={{ fontSize: 12, color: '#2C2C2C', opacity: 0.5, marginLeft: 8 }}>
               {PLATFORM_INFO[platform]?.label || '全部平台'} · {category} · {agents.length} 个
             </span>
           )}
@@ -132,7 +125,7 @@ export default function Agents() {
       <Card size="small" style={{ borderRadius: 18, marginBottom: 12 }}>
         <Row gutter={[8, 8]} align="middle">
           <Col>
-            <span style={{ fontSize: 10, color: '#51463B', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               平台:
             </span>
           </Col>
@@ -152,32 +145,7 @@ export default function Agents() {
         </Row>
         <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
           <Col>
-            <span style={{ fontSize: 10, color: '#51463B', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
-              来源:
-            </span>
-          </Col>
-          <Col>
-            {['all', 'template', 'global', 'project'].map(s => (
-              <Button
-                key={s}
-                size="small"
-                type={source === s ? 'primary' : 'default'}
-                onClick={() => setSource(s)}
-                style={{ borderRadius: 12, fontWeight: 600, fontSize: 10, marginRight: 4 }}
-              >
-                {s === 'all' ? '全部' : SOURCE_LABELS[s] || s}
-                {s !== 'all' && data?.source_counts && (
-                  <Tag style={{ marginLeft: 4, fontSize: 9, borderRadius: 8, lineHeight: '14px', padding: '0 4px' }}>
-                    {data.source_counts[s] || 0}
-                  </Tag>
-                )}
-              </Button>
-            ))}
-          </Col>
-        </Row>
-        <Row gutter={[8, 8]} align="middle" style={{ marginTop: 8 }}>
-          <Col>
-            <span style={{ fontSize: 10, color: '#51463B', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
+            <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, fontWeight: 600, marginRight: 4 }}>
               分类:
             </span>
           </Col>
@@ -198,7 +166,7 @@ export default function Agents() {
             <Input
               size="small"
               placeholder="搜索名称/ID/角色..."
-              prefix={<SearchOutlined style={{ color: '#CBC4AF' }} />}
+              prefix={<SearchOutlined style={{ color: '#2C2C2C' }} />}
               allowClear
               value={search}
               onChange={e => setSearch(e.target.value)}
@@ -211,7 +179,7 @@ export default function Agents() {
       {/* 卡片网格 */}
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
-          <Spin indicator={<LoadingOutlined style={{ color: '#225555' }} />} />
+          <Spin indicator={<LoadingOutlined style={{ color: '#52C41A' }} />} />
         </div>
       ) : agents.length === 0 ? (
         <Empty description="没有匹配的智能体" />
@@ -229,34 +197,34 @@ export default function Agents() {
               onClick={() => openEdit(agent)}
               style={{
                 borderRadius: 18,
-                border: agent.is_custom ? '2px solid #CBC4AF' : '1px solid #CBC4AF',
+                border: agent.is_custom ? '2px solid #2C2C2C' : '1px solid #2C2C2C',
                 cursor: 'pointer',
               }}
             >
               <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
                 <PixelAvatar icon={agent.icon} size={40} />
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 700, fontSize: 13, color: '#51463B', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontWeight: 700, fontSize: 13, color: '#2C2C2C', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                     {agent.name}
                   </div>
-                  <div style={{ fontSize: 10, color: '#51463B', opacity: 0.5 }}>
+                  <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5 }}>
                     {agent.role}
                   </div>
                 </div>
               </div>
               <div style={{ display: 'flex', gap: 4, marginTop: 8, flexWrap: 'wrap' }}>
-                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: (PLATFORM_INFO[agent.platform]?.color || '#225555') + '20', color: PLATFORM_INFO[agent.platform]?.color || '#225555', border: 'none' }}>
+                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: (PLATFORM_INFO[agent.platform]?.color || '#52C41A') + '20', color: PLATFORM_INFO[agent.platform]?.color || '#52C41A', border: 'none' }}>
                   {PLATFORM_INFO[agent.platform]?.label || agent.platform}
                 </Tag>
-                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: '#FAFAEE', color: '#51463B', border: '1px solid #225555' }}>
-                  {SOURCE_LABELS[agent.source || 'template'] || agent.source}
+                <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: '#FFF9F0', color: '#2C2C2C', border: '1px solid #52C41A' }}>
+                  {agent.category || agent.source || '模板默认'}
                 </Tag>
               </div>
-              <div style={{ fontSize: 10, color: '#51463B', opacity: 0.5, marginTop: 4 }}>
+              <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginTop: 4 }}>
                 {agent.model || agent.defaultModel} · {EFFORT_LABELS[agent.effort || agent.defaultEffort] || agent.effort}
               </div>
               {agent.is_custom && (
-                <Tag style={{ marginTop: 4, borderRadius: 8, fontSize: 9, backgroundColor: '#CBC4AF20', color: '#CBC4AF', border: 'none' }}>
+                <Tag style={{ marginTop: 4, borderRadius: 8, fontSize: 9, backgroundColor: '#2C2C2C20', color: '#2C2C2C', border: 'none' }}>
                   已配置
                 </Tag>
               )}
@@ -268,7 +236,7 @@ export default function Agents() {
       {/* 编辑弹窗 */}
       <Modal
         title={
-          <span style={{ fontWeight: 600, color: '#51463B' }}>
+          <span style={{ fontWeight: 600, color: '#2C2C2C' }}>
             <SettingOutlined style={{ marginRight: 6 }} />
             {editAgent?.name || '配置智能体'}
           </span>
@@ -281,7 +249,7 @@ export default function Agents() {
         cancelText="取消"
         okButtonProps={{
           disabled: isTemplate,
-          style: { borderRadius: 18, backgroundColor: isTemplate ? '#CBC4AF' : '#225555' },
+          style: { borderRadius: 18, backgroundColor: isTemplate ? '#2C2C2C' : '#52C41A' },
         }}
         cancelButtonProps={{ style: { borderRadius: 18 } }}
         width={400}
@@ -291,10 +259,10 @@ export default function Agents() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 }}>
               <PixelAvatar icon={editAgent.icon} size={48} />
               <div>
-                <div style={{ fontWeight: 700, color: '#51463B' }}>{editAgent.name}</div>
-                <div style={{ fontSize: 12, color: '#51463B', opacity: 0.5 }}>{editAgent.role}</div>
+                <div style={{ fontWeight: 700, color: '#2C2C2C' }}>{editAgent.name}</div>
+                <div style={{ fontSize: 12, color: '#2C2C2C', opacity: 0.5 }}>{editAgent.role}</div>
                 <Tag style={{ borderRadius: 8, fontSize: 9, marginTop: 2 }}>
-                  {SOURCE_LABELS[editAgent.source || 'template'] || editAgent.source}
+                  {editAgent.category || editAgent.source || '模板默认'}
                 </Tag>
               </div>
             </div>
@@ -302,15 +270,15 @@ export default function Agents() {
             {isTemplate && (
               <div style={{
                 padding: '8px 12px', borderRadius: 12, marginBottom: 12,
-                backgroundColor: '#CBC4AF20', color: '#51463B', fontSize: 12,
-                border: '1px solid #CBC4AF',
+                backgroundColor: '#2C2C2C20', color: '#2C2C2C', fontSize: 12,
+                border: '1px solid #2C2C2C',
               }}>
                 模板默认智能体不可编辑
               </div>
             )}
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#51463B', marginBottom: 4 }}>模型</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2C', marginBottom: 4 }}>模型</div>
               <Select
                 value={editModel}
                 onChange={setEditModel}
@@ -319,14 +287,14 @@ export default function Agents() {
                 options={(data?.available_models || []).map(m => ({ label: m, value: m }))}
               />
               {editAgent.defaultModel !== editModel && (
-                <div style={{ fontSize: 10, color: '#CBC4AF', marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: '#2C2C2C', marginTop: 2 }}>
                   默认: {editAgent.defaultModel}
                 </div>
               )}
             </div>
 
             <div style={{ marginBottom: 12 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#51463B', marginBottom: 4 }}>思考等级</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#2C2C2C', marginBottom: 4 }}>思考等级</div>
               <Select
                 value={editEffort}
                 onChange={setEditEffort}
@@ -335,7 +303,7 @@ export default function Agents() {
                 options={(data?.available_efforts || []).map(e => ({ label: `${EFFORT_LABELS[e] || e} (${e})`, value: e }))}
               />
               {editAgent.defaultEffort !== editEffort && (
-                <div style={{ fontSize: 10, color: '#CBC4AF', marginTop: 2 }}>
+                <div style={{ fontSize: 10, color: '#2C2C2C', marginTop: 2 }}>
                   默认: {EFFORT_LABELS[editAgent.defaultEffort] || editAgent.defaultEffort}
                 </div>
               )}
@@ -348,7 +316,7 @@ export default function Agents() {
                   setEditModel(editAgent.defaultModel);
                   setEditEffort(editAgent.defaultEffort || 'high');
                 }}
-                style={{ borderRadius: 12, color: '#DA8787' }}
+                style={{ borderRadius: 12, color: '#FA5252' }}
               >
                 恢复默认
               </Button>

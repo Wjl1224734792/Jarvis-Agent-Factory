@@ -10,17 +10,17 @@ import type { PipelineRun } from '../api';
 import { api } from '../api';
 
 const CMD_LABELS: Record<string, { label: string; color: string }> = {
-  full: { label: '/jarvis', color: '#225555' },
-  frontend: { label: '/jarvis-fe', color: '#DA8787' },
-  backend: { label: '/jarvis-be', color: '#9CD3D3' },
-  lite: { label: '/jarvis-lite', color: '#CBC4AF' },
+  full: { label: 'jarvis', color: '#52C41A' },
+  frontend: { label: 'frontend', color: '#FA5252' },
+  backend: { label: 'backend', color: '#51CF66' },
+  lite: { label: 'jarvis-lite', color: '#2C2C2C' },
 };
 
 const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  active: { label: '进行中', color: '#225555' },
-  completed: { label: '已完成', color: '#9CD3D3' },
-  failed: { label: '失败', color: '#DA8787' },
-  archived: { label: '已归档', color: '#CBC4AF' },
+  active: { label: '进行中', color: '#52C41A' },
+  completed: { label: '已完成', color: '#51CF66' },
+  failed: { label: '失败', color: '#FA5252' },
+  archived: { label: '已归档', color: '#2C2C2C' },
 };
 
 function formatTime(ts: string | null | undefined): string {
@@ -105,13 +105,13 @@ export default function Archive() {
   return (
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <span style={{ fontSize: 18, fontWeight: 700, color: '#51463B' }}>
+        <span style={{ fontSize: 18, fontWeight: 700, color: '#2C2C2C' }}>
           <FolderOpenOutlined style={{ marginRight: 6 }} />归档记录
         </span>
         <Input
           size="small"
           placeholder="搜索任务名称或 Session ID..."
-          prefix={<SearchOutlined style={{ color: '#CBC4AF' }} />}
+          prefix={<SearchOutlined style={{ color: '#2C2C2C' }} />}
           allowClear
           value={search}
           onChange={e => setSearch(e.target.value)}
@@ -120,14 +120,14 @@ export default function Archive() {
       </div>
 
       {search && (
-        <div style={{ fontSize: 12, color: '#51463B', opacity: 0.5, marginBottom: 8 }}>
+        <div style={{ fontSize: 12, color: '#2C2C2C', opacity: 0.5, marginBottom: 8 }}>
           搜索 "{search}" — 匹配 {filtered.length} 条
         </div>
       )}
 
       {loading ? (
         <div style={{ textAlign: 'center', padding: 60 }}>
-          <Spin indicator={<LoadingOutlined style={{ color: '#225555' }} />} />
+          <Spin indicator={<LoadingOutlined style={{ color: '#52C41A' }} />} />
         </div>
       ) : filtered.length === 0 ? (
         <Empty description={search ? '未找到匹配的归档记录' : '暂无归档记录'} />
@@ -137,7 +137,7 @@ export default function Archive() {
             key={sid}
             size="small"
             title={
-              <span style={{ fontWeight: 600, color: '#51463B', fontSize: 13 }}>
+              <span style={{ fontWeight: 600, color: '#2C2C2C', fontSize: 13 }}>
                 {shortId(sid)} · {items.length} 条记录
               </span>
             }
@@ -152,24 +152,24 @@ export default function Archive() {
                   style={{
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '8px 12px', borderRadius: 12, marginBottom: 4,
-                    border: '1px solid #CBC4AF', fontSize: 12,
+                    border: '1px solid #2C2C2C', fontSize: 12,
                   }}
                 >
                   <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ fontWeight: 600, color: '#51463B' }}>
+                    <div style={{ fontWeight: 600, color: '#2C2C2C' }}>
                       {r.task_name || <span style={{ fontStyle: 'italic', opacity: 0.4 }}>未命名</span>}
                     </div>
                     <div style={{ display: 'flex', gap: 4, marginTop: 2, flexWrap: 'wrap' }}>
                       <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: cmd.color + '20', color: cmd.color, border: 'none' }}>
                         {cmd.label}
                       </Tag>
-                      <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: '#FAFAEE', color: '#51463B', border: '1px solid #225555' }}>
+                      <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: '#FFF9F0', color: '#2C2C2C', border: '1px solid #52C41A' }}>
                         {r.pipeline_type}
                       </Tag>
                       <Tag style={{ fontSize: 9, borderRadius: 8, backgroundColor: st.color + '20', color: st.color, border: 'none' }}>
                         {st.label}
                       </Tag>
-                      <span style={{ fontSize: 10, color: '#51463B', opacity: 0.4 }}>
+                      <span style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.4 }}>
                         {shortId(r.id)} · {formatTime(r.started_at)}
                         {r.total_duration_display && ` · ${r.total_duration_display}`}
                       </span>
@@ -180,7 +180,7 @@ export default function Archive() {
                       size="small"
                       icon={<UndoOutlined />}
                       onClick={() => handleRestore(r.id)}
-                      style={{ borderRadius: 12, color: '#225555' }}
+                      style={{ borderRadius: 12, color: '#52C41A' }}
                     >
                       恢复
                     </Button>
@@ -188,7 +188,7 @@ export default function Archive() {
                       size="small"
                       icon={<DeleteOutlined />}
                       onClick={() => handleDelete(r.id)}
-                      style={{ borderRadius: 12, color: '#DA8787' }}
+                      style={{ borderRadius: 12, color: '#FA5252' }}
                       danger
                     >
                       删除

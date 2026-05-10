@@ -68,8 +68,46 @@ const CATEGORY_RULES = [
   { cat: '实现', keys: ['-dev-expert', '-ui-expert', '-state-expert', '-api-expert', '-logic-expert', '-data-expert'] },
 ];
 
-export function getCategories() {
-  return ['全部', '编排', '实现', '测试', '审查', '架构', '移动端', '支撑'];
+/** 从数据库查询已激活项目列表（distinct project，archived=0 且路径存在） */
+export function getActiveProjects(db: unknown): string[] {
+  try {
+    const rows = (db as any).prepare(
+      "SELECT DISTINCT project FROM pipeline_runs WHERE archived=0 AND project LIKE '%:%'",
+    ).all() as { project: string }[];
+    // 过滤出实际存在的目录路径
+    return rows
+      .map(r => r.project)
+      .filter(p => existsSync(p))
+      .sort();
+  } catch {
+    return [];
+  }
+}
+
+/** 扫描所有已激活项目的智能体目录 */
+export function scanAllProjectAgents(db: unknown): AgentItem[] {
+  const projects = getActiveProjects(db);
+  const allAgents: AgentItem[] = [];
+  for (const projectPath of projects) {
+    const projectName = basename(projectPath);
+    const projectDirs: Record<string, string> = {
+      claude:   resolve(projectPath, '.claude', 'agents'),
+      opencode: resolve(projectPath, '.opencode', 'agents'),
+      codex:    resolve(projectPath, '.codex', 'agents'),
+    };
+    for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
+      const dir = projectDirs[platformKey];
+      if (!dir) continue;
+      const agents = scanAgentDir(dir, platformKey, config, 'project', projectName);
+      allAgents.push(...agents);
+    }
+  }
+  return allAgents;
+}
+
+export function getCategories(db?: unknown) {
+  const projects = db ? getActiveProjects(db).map(p => basename(p)) : [];
+  return ['全部', '模板默认', '全局配置', ...projects];
 }
 
 /** 根据文件名+内容推断领域分类 */
@@ -147,7 +185,7 @@ function scanPlatform(platformKey: string, config: { dir: string; subdirs: strin
               ? `.opencode/${subdir}/${entry}`
               : `.codex/${subdir}/${entry}`;
           fileMap[agent.id] = { base: installBase, type: config.type as 'md' | 'toml' };
-          return { ...agent, subdir, source: 'template' as const };
+          return { ...agent, subdir, source: 'template' as const, category: '模板默认' };
         });
     }
 
@@ -174,7 +212,7 @@ function scanPlatform(platformKey: string, config: { dir: string; subdirs: strin
             platform: platformKey,
             defaultModel: '',
             defaultEffort: 'high',
-            category: '支撑',
+            category: '模板默认',
             fileName: entry,
             subdir: 'plugins',
             source: 'template',
@@ -276,6 +314,7 @@ function scanAgentDir(
   platformKey: string,
   config: { ext: string; type: string },
   source: 'global' | 'project',
+  projectName?: string,
 ): AgentItem[] {
   if (!existsSync(dirPath)) return [];
   const entries = readdirSync(dirPath);
@@ -285,7 +324,11 @@ function scanAgentDir(
       const filePath = join(dirPath, entry);
       const baseName = basename(entry, config.ext);
       const agent = parseAgentFile(filePath, baseName, platformKey, config);
-      return { ...agent, source };
+      // 按来源归属设置分类
+      const category = source === 'global' ? '全局配置'
+        : source === 'project' ? (projectName || '项目配置')
+        : '模板默认';
+      return { ...agent, source, category };
     });
 }
 

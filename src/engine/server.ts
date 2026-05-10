@@ -89,7 +89,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   setupApiRoutes(app, db, root);
 
   // SPA 静态资源 & Web 面板（jarvis engine start 一站式服务）
-  const webDistDir = resolve(import.meta.dirname, '..', '..', 'dist', 'web');
+  const webDistDir = resolve(root, 'dist', 'web');
   // 静态文件：/assets/* 映射到 dist/web/assets/
   app.get('/assets/*', async (c) => {
     const filePath = c.req.path.replace(/^\/assets\//, '');
@@ -114,9 +114,9 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf-8') : null;
   app.get('*', (c) => {
     if (!indexHtml) {
-      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FAFAEE;color:#51463B;text-align:center">
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FFF9F0;color:#2C2C2C;text-align:center">
         <h2>Web 面板未构建</h2>
-        <p>请运行 <code>npm run build:web</code> 构建前端产物。</p>
+        <p>请运行 <code>npm run build:web</code> 构建前端产物，或从 GitHub Release 下载预构建包。</p>
       </body></html>`);
     }
     return c.html(indexHtml);
@@ -451,12 +451,15 @@ function registerMcpTools(server, db, root) {
           });
     });
 
-  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。',
-    { gate: z.string(), run_id: z.string().optional() },
-    async ({ gate, run_id }, extra) => {
+  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。推进到 Gate A 时可传入 task_name 自动设置会话标题。',
+    { gate: z.string(), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，推进到 Gate A 时自动设置会话标题') },
+    async ({ gate, run_id, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
+      if (task_name && gate === 'Gate A' && runId) {
+        setRunTaskName(db, runId, task_name);
+      }
       const p = getPipeline(db, sid);
       const gateList = sessionGates(db, sid);
       const cur = p?.current_gate || gateList[0];
@@ -492,12 +495,15 @@ function registerMcpTools(server, db, root) {
     });
 
   server.tool('gate_jump',
-    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。',
-    { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional() },
-    async ({ gate, run_id }, extra) => {
+    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。跳转到 Gate A 时可传入 task_name 自动设置会话标题。',
+    { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，跳转到 Gate A 时自动设置会话标题') },
+    async ({ gate, run_id, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
+      if (task_name && gate === 'Gate A' && runId) {
+        setRunTaskName(db, runId, task_name);
+      }
       const p = getPipeline(db, sid);
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const def = PIPELINE_DEFS[pt];
@@ -632,7 +638,7 @@ function registerMcpTools(server, db, root) {
 }
 
 /** 启动独立 Web 面板（需先启动引擎） */
-export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_PORT } = {}) {
+export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_PORT, projectRoot = '.' } = {}) {
   // 检查引擎是否在运行
   if (!(await isPortInUse(enginePort))) {
     console.log(`❌ Engine not running on port ${enginePort}.`);
@@ -645,6 +651,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     return true;
   }
 
+  const root = resolve(projectRoot);
   const app = new Hono();
 
   // SSE 事件流代理（必须在 /api/* 之前注册，避免被通配符拦截）
@@ -710,7 +717,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
   });
 
   // SPA 静态资源服务：dist/web/ 目录
-  const webDistDir = resolve(import.meta.dirname, '..', '..', 'dist', 'web');
+  const webDistDir = resolve(root, 'dist', 'web');
 
   // 静态文件：/assets/* 映射到 dist/web/assets/
   app.get('/assets/*', async (c) => {
@@ -741,7 +748,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 
   app.get('*', (c) => {
     if (!indexHtml) {
-      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FAFAEE;color:#51463B;text-align:center">
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FFF9F0;color:#2C2C2C;text-align:center">
         <h2>Web 面板未构建</h2>
         <p>请运行 <code>cd web && npm run build</code> 构建前端产物。</p>
       </body></html>`);

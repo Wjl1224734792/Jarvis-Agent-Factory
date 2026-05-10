@@ -1,7 +1,7 @@
 import React, { Suspense, lazy } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { ConfigProvider, App as AntApp } from 'antd';
-import useCartoonTheme from './theme';
+import useIllustrationTheme from './theme';
 import AppLayout from './components/Layout';
 
 const Dashboard = lazy(() => import('./pages/Dashboard'));
@@ -17,7 +17,7 @@ function Loading() {
 }
 
 export default function App() {
-  const configProps = useCartoonTheme();
+  const configProps = useIllustrationTheme();
 
   return (
     <ConfigProvider {...configProps}>

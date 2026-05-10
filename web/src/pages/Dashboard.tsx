@@ -14,29 +14,34 @@ import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
 import { useSessionId } from '../components/Layout';
 
+// API 返回的 gate 值含 "Gate " 前缀，如 "Gate A"、"Gate C1.5"
+function shortGate(gate: string): string {
+  return gate.startsWith('Gate ') ? gate.slice(5) : gate;
+}
+
 const GATE_COLORS: Record<string, string> = {
-  A: '#225555', B: '#225555', C: '#225555',
-  C1: '#9CD3D3', 'C1.5': '#CBC4AF', C2: '#DA8787',
-  D: '#225555', E: '#225555',
+  A: '#52C41A', B: '#52C41A', C: '#52C41A',
+  C1: '#51CF66', 'C1.5': '#2C2C2C', C2: '#FA5252',
+  D: '#52C41A', E: '#52C41A',
 };
 
 const GATE_LABELS: Record<string, string> = {
-  A: '需求澄清', B: '任务分解', C: '执行规划',
-  C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
+  A: '需求澄清', B: '任务分解', B1: '架构评审', C: '执行规划',
+  'C-impl': '并行实现', C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
   D: '评审', E: '发布上线',
 };
 
 const GATE_ICONS: Record<string, React.ReactNode> = {
   A: <FileTextOutlined />, B: <ThunderboltOutlined />, C: <ThunderboltOutlined />,
-  C1: <CheckCircleOutlined />, 'C1.5': <CheckCircleOutlined />, C2: <CheckCircleOutlined />,
+  'C-impl': <ThunderboltOutlined />, C1: <CheckCircleOutlined />, 'C1.5': <CheckCircleOutlined />, C2: <CheckCircleOutlined />,
   D: <CheckCircleOutlined />, E: <CheckCircleOutlined />,
 };
 
 const RUN_STATUS: Record<string, { label: string; color: string }> = {
-  active: { label: '进行中', color: '#225555' },
-  completed: { label: '已完成', color: '#9CD3D3' },
-  failed: { label: '失败', color: '#DA8787' },
-  archived: { label: '已归档', color: '#CBC4AF' },
+  active: { label: '进行中', color: '#52C41A' },
+  completed: { label: '已完成', color: '#51CF66' },
+  failed: { label: '失败', color: '#FA5252' },
+  archived: { label: '已归档', color: '#2C2C2C' },
 };
 
 function formatTime(ts: string | null | undefined): string {
@@ -91,7 +96,7 @@ export default function Dashboard() {
 
   if (!sessionId) {
     return (
-      <div style={{ textAlign: 'center', padding: 80, color: '#51463B', opacity: 0.4 }}>
+      <div style={{ textAlign: 'center', padding: 80, color: '#2C2C2C', opacity: 0.4 }}>
         <ThunderboltOutlined style={{ fontSize: 48, marginBottom: 16 }} />
         <div style={{ fontSize: 14 }}>选择一个会话查看流水线状态</div>
       </div>
@@ -101,7 +106,7 @@ export default function Dashboard() {
   if (loading && !pipeline) {
     return (
       <div style={{ textAlign: 'center', padding: 80 }}>
-        <Spin indicator={<LoadingOutlined style={{ color: '#225555' }} />} />
+        <Spin indicator={<LoadingOutlined style={{ color: '#52C41A' }} />} />
       </div>
     );
   }
@@ -129,17 +134,17 @@ export default function Dashboard() {
       {/* 标题栏 */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
         <div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: '#51463B' }}>
+          <span style={{ fontSize: 18, fontWeight: 700, color: '#2C2C2C' }}>
             {pipeline.pipeline_name || pipeline.pipeline_type} · {currentGate}
           </span>
-          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#22555520', color: '#225555', border: 'none' }}>
+          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: '#52C41A20', color: '#52C41A', border: 'none' }}>
             {pipeline.platform}
           </Tag>
         </div>
         <Button
           icon={<QuestionCircleOutlined />}
           onClick={() => setHelpOpen(true)}
-          style={{ borderRadius: 18, color: '#225555' }}
+          style={{ borderRadius: 18, color: '#52C41A' }}
         >
           操作指南
         </Button>
@@ -149,27 +154,27 @@ export default function Dashboard() {
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={4} lg={4}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="完成进度" value={progressPct} suffix="%" valueStyle={{ color: '#225555', fontSize: 24 }} />
+            <Statistic title="完成进度" value={progressPct} suffix="%" valueStyle={{ color: '#52C41A', fontSize: 24 }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} valueStyle={{ color: '#225555', fontSize: 24 }} />
+            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="当前阶段" value={currentGate} valueStyle={{ color: '#225555', fontSize: 24 }} />
+            <Statistic title="当前阶段" value={currentGate} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="产物文件" value={totalArtifacts} suffix="个" valueStyle={{ color: '#225555', fontSize: 24 }} />
+            <Statistic title="产物文件" value={totalArtifacts} suffix="个" valueStyle={{ color: '#52C41A', fontSize: 24 }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="总耗时" value={durationDisplay} valueStyle={{ color: '#225555', fontSize: 24 }} />
+            <Statistic title="总耗时" value={durationDisplay} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
           </Card>
         </Col>
       </Row>
@@ -178,23 +183,24 @@ export default function Dashboard() {
       <Row gutter={[12, 12]}>
         <Col xs={24} lg={14}>
           <Card
-            title={<span style={{ fontWeight: 600, color: '#51463B' }}>Gate 进度</span>}
+            title={<span style={{ fontWeight: 600, color: '#2C2C2C' }}>Gate 进度</span>}
             size="small"
             style={{ borderRadius: 18, marginBottom: 12 }}
           >
             <Progress
               percent={progressPct}
-              strokeColor="#225555"
-              trailColor="#CBC4AF"
+              strokeColor="#52C41A"
+              trailColor="#2C2C2C"
               style={{ marginBottom: 16 }}
             />
             <Timeline
               items={gates.map(g => {
-                const color = GATE_COLORS[g.gate] || '#225555';
+                const sg = shortGate(g.gate);
+                const color = GATE_COLORS[sg] || '#52C41A';
                 const passed = g.passed;
                 const isCurrent = g.gate === currentGate;
                 return {
-                  color: passed ? '#9CD3D3' : isCurrent ? '#225555' : '#CBC4AF',
+                  color: passed ? '#51CF66' : isCurrent ? '#52C41A' : '#2C2C2C',
                   dot: passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />,
                   children: (
                     <div
@@ -208,21 +214,21 @@ export default function Dashboard() {
                       style={{
                         padding: '8px 12px',
                         borderRadius: 12,
-                        backgroundColor: isCurrent ? '#22555510' : 'transparent',
-                        border: isCurrent ? '2px solid #225555' : '1px solid #CBC4AF',
+                        backgroundColor: isCurrent ? '#52C41A10' : 'transparent',
+                        border: isCurrent ? '2px solid #52C41A' : '1px solid #2C2C2C',
                         cursor: g.artifacts?.length ? 'pointer' : 'default',
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color, fontWeight: 700, fontSize: 13 }}>Gate {g.gate}</span>
-                        <span style={{ color: '#51463B', fontSize: 12 }}>
-                          {GATE_LABELS[g.gate] || g.gate}
+                        <span style={{ color, fontWeight: 700, fontSize: 13 }}>{g.gate}</span>
+                        <span style={{ color: '#2C2C2C', fontSize: 12 }}>
+                          {GATE_LABELS[sg] || sg}
                         </span>
-                        {passed && <Tag color="#9CD3D3" style={{ borderRadius: 8 }}>已通过</Tag>}
-                        {isCurrent && <Tag color="#225555" style={{ borderRadius: 8 }}>进行中</Tag>}
+                        {passed && <Tag color="#51CF66" style={{ borderRadius: 8 }}>已通过</Tag>}
+                        {isCurrent && <Tag color="#52C41A" style={{ borderRadius: 8 }}>进行中</Tag>}
                       </div>
                       {g.entered_at && (
-                        <div style={{ fontSize: 10, color: '#51463B', opacity: 0.5, marginTop: 4 }}>
+                        <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginTop: 4 }}>
                           进入: {formatTime(g.entered_at)}
                           {g.duration_display && ` · 耗时: ${g.duration_display}`}
                         </div>
@@ -233,7 +239,7 @@ export default function Dashboard() {
                             <Tag
                               key={i}
                               style={{ borderRadius: 8, fontSize: 10, cursor: 'pointer' }}
-                              color="#225555"
+                              color="#52C41A"
                               onClick={(e) => { e.stopPropagation(); openDoc(a); }}
                             >
                               {a}
@@ -252,7 +258,7 @@ export default function Dashboard() {
           {/* 历史 Runs */}
           <Card
             title={
-              <span style={{ fontWeight: 600, color: '#51463B' }}>
+              <span style={{ fontWeight: 600, color: '#2C2C2C' }}>
                 <HistoryOutlined style={{ marginRight: 6 }} />历史 Runs · {runs.length}
               </span>
             }
@@ -264,25 +270,25 @@ export default function Dashboard() {
             ) : (
               <div style={{ maxHeight: 400, overflow: 'auto' }}>
                 {runs.map(r => {
-                  const st = RUN_STATUS[r.status] || { label: r.status, color: '#CBC4AF' };
+                  const st = RUN_STATUS[r.status] || { label: r.status, color: '#2C2C2C' };
                   return (
                     <div
                       key={r.id}
                       style={{
                         padding: '8px 12px', borderRadius: 12, marginBottom: 4,
-                        border: '1px solid #CBC4AF', fontSize: 12,
+                        border: '1px solid #2C2C2C', fontSize: 12,
                       }}
                     >
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 600, color: '#51463B' }}>
+                        <span style={{ fontWeight: 600, color: '#2C2C2C' }}>
                           {r.task_name || '未命名'}
                         </span>
                         <Tag style={{ borderRadius: 8, fontSize: 10, backgroundColor: st.color + '20', color: st.color, border: 'none' }}>
                           {st.label}
                         </Tag>
                       </div>
-                      <div style={{ color: '#51463B', opacity: 0.5, fontSize: 10, marginTop: 2 }}>
-                        {r.pipeline_type} · Gate {r.current_gate} · {formatTime(r.started_at)}
+                      <div style={{ color: '#2C2C2C', opacity: 0.5, fontSize: 10, marginTop: 2 }}>
+                        {r.pipeline_type} · {r.current_gate} · {formatTime(r.started_at)}
                         {r.total_duration_display && ` · ${r.total_duration_display}`}
                       </div>
                     </div>
@@ -296,11 +302,11 @@ export default function Dashboard() {
 
       {/* 文档抽屉 */}
       <Drawer
-        title={<span style={{ fontWeight: 600, color: '#51463B', fontSize: 14 }}>{docDrawer.title}</span>}
+        title={<span style={{ fontWeight: 600, color: '#2C2C2C', fontSize: 14 }}>{docDrawer.title}</span>}
         open={docDrawer.open}
         onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
         width={560}
-        styles={{ body: { background: '#FAFAEE' } }}
+        styles={{ body: { background: '#FFF9F0' } }}
       >
         <div className="markdown-body">
           <ReactMarkdown remarkPlugins={[remarkGfm]}>
@@ -311,7 +317,7 @@ export default function Dashboard() {
 
       {/* 帮助弹窗 */}
       <Modal
-        title={<span style={{ fontWeight: 600, color: '#51463B' }}>操作指南</span>}
+        title={<span style={{ fontWeight: 600, color: '#2C2C2C' }}>操作指南</span>}
         open={helpOpen}
         onCancel={() => setHelpOpen(false)}
         footer={null}
@@ -319,19 +325,19 @@ export default function Dashboard() {
       >
         <Timeline
           items={[
-            { color: '#225555', children: <strong>启动任务</strong> },
-            { color: '#225555', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
-            { color: '#225555', children: <strong>等待 Gate 通过</strong> },
-            { color: '#225555', children: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
-            { color: '#225555', children: <strong>查看最终结果</strong> },
+            { color: '#52C41A', children: <strong>启动任务</strong> },
+            { color: '#52C41A', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
+            { color: '#52C41A', children: <strong>等待 Gate 通过</strong> },
+            { color: '#52C41A', children: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
+            { color: '#52C41A', children: <strong>查看最终结果</strong> },
           ]}
         />
-        <div style={{ marginTop: 12, fontSize: 12, color: '#51463B', opacity: 0.6 }}>
+        <div style={{ marginTop: 12, fontSize: 12, color: '#2C2C2C', opacity: 0.6 }}>
           命令对照：
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#225555">/jarvis</Tag> 全流程 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#DA8787">/jarvis-fe</Tag> 前端 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#9CD3D3">/jarvis-be</Tag> 后端 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#CBC4AF">/jarvis-lite</Tag> 轻量
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#52C41A">/jarvis</Tag> 全流程 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#FA5252">/frontend</Tag> 前端 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#51CF66">/backend</Tag> 后端 ·
+          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="#2C2C2C">/jarvis-lite</Tag> 轻量
         </div>
       </Modal>
     </div>

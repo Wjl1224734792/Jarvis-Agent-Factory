@@ -3,7 +3,7 @@ import { resolve } from 'node:path';
 import { streamSSE } from 'hono/streaming';
 import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
-import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms } from '../engine/agent-registry.js';
+import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
@@ -304,10 +304,17 @@ export function setupApiRoutes(app, db, root) {
     const category = c.req.query('category');
     const source = c.req.query('source'); // template | global | project
     const search = (c.req.query('search') || '').toLowerCase();
-    // 每次请求动态扫描（模板默认 + 全局用户 + 项目级三层合并）
+    // 模板默认 + 全局用户配置
     const agentList = getAgentList(true, root);
+    // 所有已激活项目的项目级智能体
+    const projectAgents = scanAllProjectAgents(db);
+    // 合并：模板+全局 去重后合并项目级
+    const projectIds = new Set(projectAgents.map(a => a.id));
+    const baseList = agentList.filter(a => !projectIds.has(a.id));
+    const allAgents = [...baseList, ...projectAgents];
+
     const platformModels = getPlatformModels(true);
-    let list = agentList.map(a => {
+    let list = allAgents.map(a => {
       const ac = cfg[a.id];
       return {
         ...a,
@@ -321,18 +328,21 @@ export function setupApiRoutes(app, db, root) {
     if (source) list = list.filter(a => (a.source || 'template') === source);
     if (search) list = list.filter(a => a.name.toLowerCase().includes(search) || a.id.toLowerCase().includes(search) || a.role.toLowerCase().includes(search));
     // 统计各来源数量
-    const sourceCounts = { template: 0, global: 0, project: 0 };
-    for (const a of agentList) { const s = a.source || 'template'; sourceCounts[s]++; }
+    const sourceCounts: Record<string, number> = { '模板默认': 0, '全局配置': 0 };
+    for (const a of allAgents) {
+      const cat = a.category || '模板默认';
+      sourceCounts[cat] = (sourceCounts[cat] || 0) + 1;
+    }
     // 项目名称（从项目根目录提取）
     const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
     return c.json({
       agents: list,
       available_models: [...AVAILABLE_MODELS],
       available_efforts: EFFORTS,
-      platforms: [...new Set(agentList.map(a => a.platform))],
+      platforms: [...new Set(allAgents.map(a => a.platform))],
       platform_models: platformModels,
-      categories: getCategories(),
-      total_count: agentList.length,
+      categories: getCategories(db),
+      total_count: allAgents.length,
       source_counts: sourceCounts,
       project_name: projectName,
     });
