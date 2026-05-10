@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Row, Col, Progress, Tag, Drawer, Modal,
   Button, Empty, Spin, Timeline, Statistic, message,
@@ -8,11 +8,10 @@ import {
   ThunderboltOutlined, QuestionCircleOutlined,
   HistoryOutlined, LoadingOutlined,
 } from '@ant-design/icons';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
 import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
 import { useSessionId } from '../components/Layout';
+import ErrorBoundary from '../components/ErrorBoundary';
 
 // API 返回的 gate 值含 "Gate " 前缀，如 "Gate A"、"Gate C1.5"
 function shortGate(gate: string): string {
@@ -65,6 +64,74 @@ const GATE_ICONS: Record<string, React.ReactNode> = {
   D: <CheckCircleOutlined />, E: <CheckCircleOutlined />,
 };
 
+/** GitHub 风味 Markdown CSS，内联注入以避免外部样式依赖 */
+const MARKDOWN_CSS = `
+.markdown-body { font-size: 14px; line-height: 1.7; color: #2C2C2C; }
+.markdown-body h1, .markdown-body h2, .markdown-body h3 { color: #2C2C2C; font-weight: 700; border-bottom: 2px solid #52C41A20; padding-bottom: 6px; }
+.markdown-body h1 { font-size: 1.6em; }
+.markdown-body h2 { font-size: 1.35em; }
+.markdown-body h3 { font-size: 1.15em; }
+.markdown-body table { border-collapse: collapse; width: 100%; }
+.markdown-body th, .markdown-body td { border: 1px solid #2C2C2C; padding: 8px 12px; text-align: left; }
+.markdown-body th { background: #52C41A20; font-weight: 700; }
+.markdown-body tr:nth-child(even) { background: #FFF9F0; }
+.markdown-body blockquote { border-left: 4px solid #52C41A; padding-left: 16px; color: #2C2C2C; margin: 12px 0; background: #52C41A08; padding: 8px 16px; border-radius: 0 8px 8px 0; }
+.markdown-body code { background: #52C41A10; padding: 2px 6px; border-radius: 4px; font-size: 0.9em; color: #2C2C2C; font-family: 'Consolas', 'Monaco', monospace; }
+.markdown-body pre { background: #F5F5F5; border: 1px solid #2C2C2C; border-radius: 8px; padding: 16px; overflow-x: auto; }
+.markdown-body pre code { background: transparent; padding: 0; border-radius: 0; }
+.markdown-body ul, .markdown-body ol { padding-left: 24px; }
+.markdown-body hr { border: none; border-top: 2px solid #2C2C2C; margin: 24px 0; }
+.markdown-body a { color: #52C41A; font-weight: 600; }
+.markdown-body img { max-width: 100%; border-radius: 8px; border: 1px solid #2C2C2C; }
+`;
+
+/** react-markdown + remark-gfm + 语法高亮 懒加载组件，减少初始 chunk 体积 */
+const LazyMarkdown = React.lazy(async () => {
+  const [md, gfm, syntaxModule, styleModule] = await Promise.all([
+    import('react-markdown'),
+    import('remark-gfm'),
+    import('react-syntax-highlighter'),
+    import('react-syntax-highlighter/dist/esm/styles/prism'),
+  ]);
+  const { Prism: SyntaxHighlighter } = syntaxModule;
+  const { oneLight } = styleModule;
+
+  const MarkdownComponent = md.default || md;
+
+  return {
+    default: ({ content }: { content: string }) => (
+      <MarkdownComponent
+        remarkPlugins={[gfm.default]}
+        urlTransform={(url: string) => {
+          // 仅允许 http/https/mailto 和相对路径，阻断 javascript:/data: 等危险协议
+          if (/^(https?:\/\/|mailto:|\/|#|\.)/.test(url)) return url;
+          return '';
+        }}
+        components={{
+          code({ className, children, ...props }) {
+            const match = /language-(\w+)/.exec(className || '');
+            const codeStr = String(children).replace(/\n$/, '');
+            if (match) {
+              return (
+                <SyntaxHighlighter
+                  style={oneLight}
+                  language={match[1]}
+                  PreTag="div"
+                >
+                  {codeStr}
+                </SyntaxHighlighter>
+              );
+            }
+            return <code className={className} {...props}>{children}</code>;
+          },
+        }}
+      >
+        {content}
+      </MarkdownComponent>
+    ),
+  };
+});
+
 const RUN_STATUS: Record<string, { label: string; color: string }> = {
   active: { label: '进行中', color: '#52C41A' },
   completed: { label: '已完成', color: '#51CF66' },
@@ -113,6 +180,17 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, [loadData]);
 
+  // 一次性注入 Markdown CSS 到 document.head，避免每次抽屉打开重复注入
+  useEffect(() => {
+    const id = 'markdown-custom-style';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.textContent = MARKDOWN_CSS;
+      document.head.appendChild(style);
+    }
+  }, []);
+
   const openDoc = async (filepath: string, gate?: string) => {
     try {
       const subdir = gate ? GATE_DIRS[gate] : null;
@@ -121,13 +199,35 @@ export default function Dashboard() {
         message.warning(`未知 Gate: ${gate}`);
         return;
       }
-      const fullPath = subdir ? `${subdir}/${filepath}` : filepath;
+      // 前端路径消毒：移除 ../ 序列，防止路径遍历
+      const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
+      const fullPath = subdir ? `${subdir}/${sanitized}` : sanitized;
       const content = await api.docContent(fullPath);
       setDocDrawer({ open: true, content, title: filepath });
     } catch {
       message.error('文档加载失败');
     }
   };
+
+  // useMemo 必须在条件返回之前调用（React Hooks 规则）
+  const { gates, completedGates, totalGates, progressPct, currentGate,
+          currentGateInfo, totalArtifacts, totalDuration } = useMemo(() => {
+    const gates = pipeline?.gates || [];
+    const completedGates = gates.filter(g => g.passed).length;
+    const totalGates = gates.length;
+    const progressPct = totalGates > 0 ? Math.round((completedGates / totalGates) * 100) : 0;
+    const currentGate = pipeline?.current_gate || '?';
+    const currentGateInfo = gates.find(g => g.gate === currentGate);
+    const totalArtifacts = gates.reduce((sum, g) => sum + (g.artifacts?.length || 0), 0);
+    const totalDuration = gates.reduce((sum, g) => sum + (g.duration_seconds || 0), 0);
+    return { gates, completedGates, totalGates, progressPct, currentGate,
+             currentGateInfo, totalArtifacts, totalDuration };
+  }, [pipeline?.gates, pipeline?.current_gate]);
+
+  const durationDisplay = useMemo(
+    () => totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-',
+    [totalDuration]
+  );
 
   if (!sessionId) {
     return (
@@ -153,16 +253,6 @@ export default function Dashboard() {
       </div>
     );
   }
-
-  const gates = pipeline.gates || [];
-  const completedGates = gates.filter(g => g.passed).length;
-  const totalGates = gates.length;
-  const progressPct = totalGates > 0 ? Math.round((completedGates / totalGates) * 100) : 0;
-  const currentGate = pipeline.current_gate || '?';
-  const currentGateInfo = gates.find(g => g.gate === currentGate);
-  const totalArtifacts = gates.reduce((sum, g) => sum + (g.artifacts?.length || 0), 0);
-  const totalDuration = gates.reduce((sum, g) => sum + (g.duration_seconds || 0), 0);
-  const durationDisplay = totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-';
 
   return (
     <div>
@@ -347,12 +437,15 @@ export default function Dashboard() {
         open={docDrawer.open}
         onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
         size={560}
+        resizable
         styles={{ body: { background: '#FFF9F0' } }}
       >
         <div className="markdown-body">
-          <ReactMarkdown remarkPlugins={[remarkGfm]}>
-            {docDrawer.content}
-          </ReactMarkdown>
+          <ErrorBoundary>
+            <React.Suspense fallback={<Spin />}>
+              <LazyMarkdown content={docDrawer.content} />
+            </React.Suspense>
+          </ErrorBoundary>
         </div>
       </Drawer>
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Card, Row, Col, Tag, Input, Button, Modal, Select,
   Spin, Empty, message,
@@ -9,6 +9,7 @@ import {
 } from '@ant-design/icons';
 import type { AgentItem, AgentsData } from '../api';
 import { api } from '../api';
+import { matchPipelineType } from './matchPipelineType';
 
 const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
   claude: { label: 'Claude', color: '#52C41A' },
@@ -20,53 +21,6 @@ const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
 const EFFORT_LABELS: Record<string, string> = {
   low: '低', medium: '中', high: '高', xhigh: '很高', max: '最大',
 };
-
-/**
- * 流程分类匹配 — 根据 agent ID 判断所属流程
- * @param id - 智能体 ID
- * @param type - 流程分类值
- */
-function matchPipelineType(id: string, type: string): boolean {
-  const idLower = id.toLowerCase();
-  const idStartsWith = (prefix: string) => idLower.startsWith(prefix);
-  const idIncludes = (seg: string) => idLower.includes(seg);
-
-  switch (type) {
-    case '全流程':
-      return (
-        idStartsWith('frontend-') || idStartsWith('backend-') ||
-        idStartsWith('android-') || idStartsWith('ios-') ||
-        idStartsWith('flutter-') || idIncludes('expo') ||
-        idStartsWith('taro-') || idStartsWith('react-native-') ||
-        ['code-explore', 'docs-research', 'infra-deploy', 'api-contract',
-          'qa-review', 'security-review', 'perf-review', 'perf-test',
-          'diff-review', 'project-review', 'change-review', 'remediation',
-          'fix-retest', 'test-doc-writer', 'test-executor'].some(n => idLower === n || idStartsWith(n))
-      );
-    case '前端':
-      return idStartsWith('frontend-');
-    case '后端':
-      return idStartsWith('backend-');
-    case '轻量':
-      return idStartsWith('jarvis-lite');
-    case '架构':
-      return idIncludes('architect') || idLower === 'algorithm-expert';
-    case '测试':
-      return (
-        idIncludes('-test-') ||
-        ['browser-test', 'e2e-test', 'api-test', 'perf-test',
-          'test-doc', 'test-executor'].some(n => idLower === n || idStartsWith(n))
-      );
-    case '审查':
-      return (
-        idIncludes('-review-') ||
-        ['review', 'change-review', 'diff-review', 'project-review',
-          'qa-review', 'security-review', 'perf-review'].some(n => idLower === n || idStartsWith(n))
-      );
-    default:
-      return true;
-  }
-}
 
 /**
  * 功能分类匹配 — 根据 agent ID 判断功能角色
@@ -188,12 +142,19 @@ export default function Agents() {
   const isTemplate = editAgent?.source === 'template';
 
   // 客户端三级筛选：平台（服务端）→ 流程分类 → 功能分类
-  const filteredByPipeline = pipelineType === 'all'
-    ? allAgents
-    : allAgents.filter(a => matchPipelineType(a.id, pipelineType));
-  const agents = functionRole === 'all'
-    ? filteredByPipeline
-    : filteredByPipeline.filter(a => matchFunctionRole(a.id, functionRole));
+  const filteredByPipeline = useMemo(
+    () => pipelineType === 'all'
+      ? allAgents
+      : allAgents.filter(a => matchPipelineType(a.id, pipelineType)),
+    [pipelineType, allAgents]
+  );
+
+  const agents = useMemo(
+    () => functionRole === 'all'
+      ? filteredByPipeline
+      : filteredByPipeline.filter(a => matchFunctionRole(a.id, functionRole)),
+    [functionRole, filteredByPipeline]
+  );
 
   return (
     <div>
@@ -276,7 +237,7 @@ export default function Agents() {
             </span>
           </Col>
           <Col>
-            {['all', '全流程', '前端', '后端', '轻量', '架构', '测试', '审查'].map(t => (
+            {['all', '全流程', '前端', '后端', '移动端', '轻量', '架构', '测试', '审查'].map(t => (
               <Button
                 key={t}
                 size="small"

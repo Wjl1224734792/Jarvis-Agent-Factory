@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useRef, createContext, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef, createContext, useContext } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Layout, Button, Tag, Tooltip, Dropdown, message } from 'antd';
 import {
@@ -40,6 +40,12 @@ const CMD_LABELS: Record<string, { label: string; color: string }> = {
   lite: { label: 'jarvis-lite', color: '#FFD93D' },
 };
 
+const NAV_ITEMS = [
+  { key: '/', icon: <DashboardOutlined />, label: '流水线看板' },
+  { key: '/agents', icon: <RobotOutlined />, label: '智能体配置' },
+  { key: '/archive', icon: <FolderOpenOutlined />, label: '归档记录' },
+];
+
 function formatTime(ts: number): string {
   return new Date(ts).toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
 }
@@ -54,7 +60,7 @@ interface SessionItemProps {
   onDelete: (runId: string) => void;
 }
 
-function SessionItem({ s, active, onSelect, onResume, onPin, onArchive, onDelete }: SessionItemProps) {
+const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onResume, onPin, onArchive, onDelete }: SessionItemProps) {
   const isInactive = s.status === 'inactive';
   const isPinned = !!s.pinned;
   const ptName = PIPELINE_NAMES[s.pipeline_type] || s.pipeline_type || '?';
@@ -144,7 +150,7 @@ function SessionItem({ s, active, onSelect, onResume, onPin, onArchive, onDelete
       </div>
     </div>
   );
-}
+});
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [collapsed, setCollapsed] = useState(false);
@@ -228,25 +234,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     if (r.ok) message.success('会话已恢复');
   }, []);
 
-  const filteredSessions = sessionPlatform === 'all'
-    ? sessions
-    : sessions.filter(s => s.platform === sessionPlatform);
+  const handleSessionSelect = useCallback((id: string) => {
+    setSelectedSession(id);
+    navigate('/');
+  }, [navigate]);
 
-  const sortedSessions = filteredSessions.toSorted((a, b) => {
-    if (a.pinned && !b.pinned) return -1;
-    if (!a.pinned && b.pinned) return 1;
-    const aHb = a.heartbeat || 0;
-    const bHb = b.heartbeat || 0;
-    return bHb - aHb;
-  });
-
-  const activeCount = sessions.filter(s => s.status === 'active').length;
-
-  const NAV_ITEMS = [
-    { key: '/', icon: <DashboardOutlined />, label: '流水线看板' },
-    { key: '/agents', icon: <RobotOutlined />, label: '智能体配置' },
-    { key: '/archive', icon: <FolderOpenOutlined />, label: '归档记录' },
-  ];
+  const { sortedSessions, activeCount } = useMemo(() => {
+    const filtered = sessionPlatform === 'all'
+      ? sessions
+      : sessions.filter(s => s.platform === sessionPlatform);
+    const sorted = filtered.toSorted((a, b) => {
+      if (a.pinned && !b.pinned) return -1;
+      if (!a.pinned && b.pinned) return 1;
+      const aHb = a.heartbeat || 0;
+      const bHb = b.heartbeat || 0;
+      return bHb - aHb;
+    });
+    const active = sessions.filter(s => s.status === 'active').length;
+    return { sortedSessions: sorted, activeCount: active };
+  }, [sessions, sessionPlatform]);
 
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
@@ -362,7 +368,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                       key={s.id}
                       s={s}
                       active={s.id === selectedSession}
-                      onSelect={(id) => { setSelectedSession(id); navigate('/'); }}
+                      onSelect={handleSessionSelect}
                       onResume={handleResume}
                       onPin={handlePin}
                       onArchive={handleArchive}
