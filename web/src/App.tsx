@@ -1,7 +1,7 @@
-import React, { Suspense, lazy, useState, useCallback, useMemo } from 'react';
+import React, { Suspense, lazy, useState, useCallback } from 'react';
 import { Routes, Route } from 'react-router-dom';
-import { ConfigProvider, App as AntApp, theme } from 'antd';
-import useGlassTheme from './theme';
+import { ConfigProvider, App as AntApp } from 'antd';
+import useAppTheme from './theme';
 import { ThemeContext } from './theme-context';
 import type { ThemeMode } from './theme-context';
 import AppLayout from './components/Layout';
@@ -32,13 +32,7 @@ function Loading() {
 
 export default function App() {
   const [themeMode, setThemeModeState] = useState<ThemeMode>(getInitialTheme);
-  /** 玻璃主题配置（仅亮色使用） */
-  const glassConfig = useGlassTheme();
-  /** 暗色模式：纯 antd darkAlgorithm，无组件级玻璃样式 */
-  const darkConfig = useMemo<{ theme: { algorithm: typeof theme.darkAlgorithm } }>(
-    () => ({ theme: { algorithm: theme.darkAlgorithm } }),
-    [],
-  );
+  const configProps = useAppTheme(themeMode);
 
   /** 切换主题并持久化到 localStorage */
   const setThemeMode = useCallback((mode: ThemeMode) => {
@@ -50,7 +44,7 @@ export default function App() {
 
   return (
     <ThemeContext.Provider value={{ themeMode, setThemeMode }}>
-      <ConfigProvider {...(themeMode === 'dark' ? darkConfig : glassConfig)}>
+      <ConfigProvider {...configProps}>
         <AntApp>
           <AppLayout>
             <Suspense fallback={<Loading />}>
