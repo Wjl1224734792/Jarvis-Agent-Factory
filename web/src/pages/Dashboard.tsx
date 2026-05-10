@@ -168,27 +168,27 @@ export default function Dashboard() {
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
         <Col xs={24} sm={12} md={4} lg={4}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="完成进度" value={progressPct} suffix="%" valueStyle={{ color: '#52C41A', fontSize: 24 }} />
+            <Statistic title="完成进度" value={progressPct} suffix="%" styles={{ content: { color: '#52C41A', fontSize: 24 } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
+            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} styles={{ content: { color: '#52C41A', fontSize: 24 } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="当前阶段" value={currentGate} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
+            <Statistic title="当前阶段" value={currentGate} styles={{ content: { color: '#52C41A', fontSize: 24 } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="产物文件" value={totalArtifacts} suffix="个" valueStyle={{ color: '#52C41A', fontSize: 24 }} />
+            <Statistic title="产物文件" value={totalArtifacts} suffix="个" styles={{ content: { color: '#52C41A', fontSize: 24 } }} />
           </Card>
         </Col>
         <Col xs={24} sm={12} md={5} lg={5}>
           <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="总耗时" value={durationDisplay} valueStyle={{ color: '#52C41A', fontSize: 24 }} />
+            <Statistic title="总耗时" value={durationDisplay} styles={{ content: { color: '#52C41A', fontSize: 24 } }} />
           </Card>
         </Col>
       </Row>
@@ -204,7 +204,7 @@ export default function Dashboard() {
             <Progress
               percent={progressPct}
               strokeColor="#52C41A"
-              trailColor="#2C2C2C"
+              railColor="#2C2C2C"
               style={{ marginBottom: 16 }}
             />
             <Timeline
@@ -215,10 +215,10 @@ export default function Dashboard() {
                 const isCurrent = g.gate === currentGate;
                 return {
                   color: passed ? '#51CF66' : isCurrent ? '#52C41A' : '#2C2C2C',
-                  dot: <span style={{ fontSize: 18, lineHeight: 1 }}>
+                  icon: <span style={{ fontSize: 18, lineHeight: 1 }}>
                     {passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />}
                   </span>,
-                  children: (
+                  content: (
                     <div
                       onClick={() => {
                         if (g.artifacts?.length) {
@@ -325,7 +325,7 @@ export default function Dashboard() {
         title={<span style={{ fontWeight: 600, color: '#2C2C2C', fontSize: 14 }}>{docDrawer.title}</span>}
         open={docDrawer.open}
         onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
-        width={560}
+        size={560}
         styles={{ body: { background: '#FFF9F0' } }}
       >
         <div className="markdown-body">
@@ -345,11 +345,11 @@ export default function Dashboard() {
       >
         <Timeline
           items={[
-            { color: '#52C41A', children: <strong>启动任务</strong> },
-            { color: '#52C41A', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
-            { color: '#52C41A', children: <strong>等待 Gate 通过</strong> },
-            { color: '#52C41A', children: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
-            { color: '#52C41A', children: <strong>查看最终结果</strong> },
+            { color: '#52C41A', content: <strong>启动任务</strong> },
+            { color: '#52C41A', content: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
+            { color: '#52C41A', content: <strong>等待 Gate 通过</strong> },
+            { color: '#52C41A', content: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
+            { color: '#52C41A', content: <strong>查看最终结果</strong> },
           ]}
         />
         <div style={{ marginTop: 12, fontSize: 12, color: '#2C2C2C', opacity: 0.6 }}>
