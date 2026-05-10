@@ -191,9 +191,21 @@ export function setupApiRoutes(app, db, root) {
       try {
         const gateSubdir = GATE_DIRS[currentGate];
         if (gateSubdir) {
-          const artifactDir = join(getDocsDir(root), gateSubdir);
-          if (existsSync(artifactDir)) {
-            const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
+          const dateDir = run.started_at?.slice(0, 10) || null;
+          // 优先扫描日期目录 docs/{dateDir}/{gateSubdir}/
+          if (dateDir) {
+            const dateArtifactDir = join(getDocsDir(root), dateDir, gateSubdir);
+            if (existsSync(dateArtifactDir)) {
+              const mdFiles = readdirSync(dateArtifactDir).filter(f => f.endsWith('.md'));
+              for (const f of mdFiles) {
+                insertArtifact(db, run.id, currentGate, `${dateDir}/${gateSubdir}/${f}`);
+              }
+            }
+          }
+          // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
+          const flatDir = join(getDocsDir(root), gateSubdir);
+          if (existsSync(flatDir)) {
+            const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
             for (const f of mdFiles) {
               insertArtifact(db, run.id, currentGate, `${gateSubdir}/${f}`);
             }

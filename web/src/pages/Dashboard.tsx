@@ -18,20 +18,6 @@ function shortGate(gate: string): string {
   return gate.startsWith('Gate ') ? gate.slice(5) : gate;
 }
 
-/** Gate 名称到文档子目录的映射 */
-const GATE_DIRS: Record<string, string> = {
-  'Gate A': 'requirements',
-  'Gate B': 'tasks',
-  'Gate B1': 'architecture',
-  'Gate C': 'plans',
-  'Gate C-impl': 'implementation',
-  'Gate C1': 'implementation',
-  'Gate C1.5': 'implementation',
-  'Gate C2': 'testing',
-  'Gate D': 'review',
-  'Gate E': 'shipping',
-};
-
 const GATE_COLORS: Record<string, string> = {
   A: '#52C41A', B: '#52C41A', C: '#52C41A',
   C1: '#51CF66', 'C1.5': '#2C2C2C', C2: '#FA5252',
@@ -191,18 +177,12 @@ export default function Dashboard() {
     }
   }, []);
 
-  const openDoc = async (filepath: string, gate?: string) => {
+  const openDoc = async (filepath: string, _gate?: string) => {
     try {
-      const subdir = gate ? GATE_DIRS[gate] : null;
-      if (gate && !subdir) {
-        console.warn(`[Dashboard] 未知 Gate "${gate}"，无法确定文档子目录`);
-        message.warning(`未知 Gate: ${gate}`);
-        return;
-      }
       // 前端路径消毒：移除 ../ 序列，防止路径遍历
       const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
-      const fullPath = subdir ? `${subdir}/${sanitized}` : sanitized;
-      const content = await api.docContent(fullPath);
+      // artifacts 表已存储完整相对路径（如 "2026-05-10/requirements/topic.md"），直接使用
+      const content = await api.docContent(sanitized);
       setDocDrawer({ open: true, content, title: filepath });
     } catch {
       message.error('文档加载失败');

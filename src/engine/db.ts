@@ -507,7 +507,7 @@ export function unpinRun(db, runId) {
  * @param {DatabaseSync} db
  * @param {string} runId
  * @param {string} gate
- * @param {string} filepath 相对于 docs/ 的路径，如 "requirements/REQ-001.md"
+ * @param {string} filepath 相对于 docs/ 的路径，如 "2026-05-10/requirements/REQ-001.md"
  * @returns {{ ok: boolean }}
  */
 export function insertArtifact(db, runId, gate, filepath) {

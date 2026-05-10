@@ -161,11 +161,36 @@ export const AVAILABLE_MODELS = [
   ])
 ];
 
+/**
+ * 扫描 Gate 产物文档（返回文件名，不含路径前缀）。
+ * 优先从日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/ 扫描，
+ * 空时回退到旧扁平结构 docs/{subdir}/。
+ * @param {string} docsDir 文档根目录
+ * @param {string} gate Gate 名称
+ * @returns {string[]} .md 文件名列表（最多 5 个）
+ */
 export function findGateArtifacts(docsDir, gate) {
   const subdir = GATE_DIRS[gate]; if (!subdir) return [];
-  const dir = join(docsDir, subdir);
-  if (!existsSync(dir)) return [];
-  return readdirSync(dir).filter(f => f.endsWith('.md')).slice(0, 5);
+
+  // 新结构：迭代所有日期目录
+  if (existsSync(docsDir)) {
+    const dateDirs = readdirSync(docsDir, { withFileTypes: true })
+      .filter(d => d.isDirectory() && /^\d{4}-\d{2}-\d{2}$/.test(d.name));
+    const files: string[] = [];
+    for (const dd of dateDirs) {
+      const dir = join(docsDir, dd.name, subdir);
+      if (existsSync(dir)) {
+        files.push(...readdirSync(dir).filter(f => f.endsWith('.md')));
+        if (files.length >= 5) break;
+      }
+    }
+    if (files.length > 0) return files.slice(0, 5);
+  }
+
+  // 向后兼容：旧扁平结构 docs/{subdir}/
+  const flatDir = join(docsDir, subdir);
+  if (!existsSync(flatDir)) return [];
+  return readdirSync(flatDir).filter(f => f.endsWith('.md')).slice(0, 5);
 }
 
 /**
@@ -177,7 +202,7 @@ export function findGateArtifacts(docsDir, gate) {
  * @param sessionId 会话 ID
  * @param db 数据库实例
  * @param runId 可选 run ID；传入时优先从 artifacts 表精确查询
- * @returns 匹配的文档文件名列表（最多 5 个）
+ * @returns 相对于 docsDir 的文档路径列表（如 "2026-05-10/requirements/REQ-001.md"），最多 5 个
  */
 export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   const subdir = GATE_DIRS[gate];
@@ -187,10 +212,8 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   if (runId && db) {
     const rows = getArtifactsByRunAndGate(db, runId, gate);
     if (rows.length > 0) {
-      return rows.map(r => {
-        const parts = r.filepath.split('/');
-        return parts[parts.length - 1];
-      }).slice(0, 5);
+      // filepath 已含完整相对路径（如 "2026-05-10/requirements/REQ-001.md"），直接返回
+      return rows.map(r => r.filepath).slice(0, 5);
     }
   }
 
@@ -199,14 +222,33 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
     'SELECT passed_at FROM checkpoints WHERE session_id = ? AND gate = ?'
   ).all(sessionId, gate);
 
-  const dir = join(docsDir, subdir);
-  if (!existsSync(dir)) return [];
-
-  const files = readdirSync(dir).filter(f => f.endsWith('.md'));
-
   if (checkpoints.length > 0) {
     const dates = new Set(checkpoints.map(c => c.passed_at.slice(0, 10)));
-    return files.filter(f => dates.has(f.slice(0, 10))).slice(0, 5);
+
+    // 新结构：匹配日期目录 docs/<YYYY>-<MM>-<DD>/{subdir}/
+    if (existsSync(docsDir)) {
+      const dateDirs = readdirSync(docsDir, { withFileTypes: true })
+        .filter(d => d.isDirectory() && dates.has(d.name));
+      const files: string[] = [];
+      for (const dd of dateDirs) {
+        const dir = join(docsDir, dd.name, subdir);
+        if (existsSync(dir)) {
+          const mdFiles = readdirSync(dir).filter(f => f.endsWith('.md'));
+          for (const f of mdFiles) {
+            files.push(`${dd.name}/${subdir}/${f}`);
+          }
+        }
+      }
+      if (files.length > 0) return files.slice(0, 5);
+    }
+
+    // 向后兼容：旧扁平结构 docs/{subdir}/，文件名含日期前缀
+    const flatDir = join(docsDir, subdir);
+    if (existsSync(flatDir)) {
+      return readdirSync(flatDir)
+        .filter(f => f.endsWith('.md') && dates.has(f.slice(0, 10)))
+        .slice(0, 5);
+    }
   }
 
   return [];

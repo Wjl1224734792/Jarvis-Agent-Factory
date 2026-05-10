@@ -483,9 +483,25 @@ function registerMcpTools(server, db, root) {
         try {
           const gateSubdir = GATE_DIRS[cur];
           if (gateSubdir) {
-            const artifactDir = join(root, 'docs', gateSubdir);
-            if (existsSync(artifactDir)) {
-              const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
+            // 从当前 run 的 started_at 提取日期目录名 YYYY-MM-DD
+            const run = db.prepare('SELECT started_at FROM pipeline_runs WHERE id=?').get(runId);
+            const dateDir = run?.started_at?.slice(0, 10) || null;
+
+            // 优先扫描日期目录 docs/{dateDir}/{gateSubdir}/
+            if (dateDir) {
+              const artifactDir = join(root, 'docs', dateDir, gateSubdir);
+              if (existsSync(artifactDir)) {
+                const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
+                for (const f of mdFiles) {
+                  insertArtifact(db, runId, cur, `${dateDir}/${gateSubdir}/${f}`);
+                }
+              }
+            }
+
+            // 向后兼容：同时扫描旧扁平结构 docs/{gateSubdir}/
+            const flatDir = join(root, 'docs', gateSubdir);
+            if (existsSync(flatDir)) {
+              const mdFiles = readdirSync(flatDir).filter(f => f.endsWith('.md'));
               for (const f of mdFiles) {
                 insertArtifact(db, runId, cur, `${gateSubdir}/${f}`);
               }

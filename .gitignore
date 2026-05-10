@@ -87,15 +87,10 @@ docs/*
 !docs/**/.gitkeep
 !docs/DIR_STRUCTURE.md
 
-# 结构化文档产物（按 Gate 分类，需要版本控制）
-!docs/requirements/
-!docs/tasks/
-!docs/architecture/
-!docs/plans/
-!docs/implementation/
-!docs/testing/
-!docs/review/
-!docs/shipping/
+# 结构化文档产物（按日期目录分组，需要版本控制）
+!docs/20*/
+!docs/20*/**/
+# 流程序列独立目录
 !docs/flows/
 
 # ============================================================
