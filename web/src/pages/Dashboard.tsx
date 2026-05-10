@@ -437,6 +437,7 @@ export default function Dashboard() {
         open={docDrawer.open}
         onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
         size={560}
+        maxSize={900}
         resizable
         styles={{ body: { background: '#FFF9F0' } }}
       >

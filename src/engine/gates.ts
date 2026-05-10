@@ -1,6 +1,7 @@
 import { join } from 'node:path';
 import { existsSync, readdirSync } from 'node:fs';
 import { getAgentList } from './agent-registry.js';
+import { getArtifactsByRunAndGate } from './db.js';
 
 /**
  * 流水线定义表 — 不同工作流可注册不同的 Gate 序列。
@@ -168,18 +169,32 @@ export function findGateArtifacts(docsDir, gate) {
 }
 
 /**
- * 按会话过滤 Gate 产物文档
- * 通过检查点记录中的日期匹配文件名前缀，只返回该会话产生的文档
+ * 按会话过滤 Gate 产物文档。
+ * 优先查 artifacts 表（精确匹配，避免跨 run 污染），
+ * 空时回退日期匹配（兼容旧数据）。
  * @param docsDir 文档根目录
  * @param gate Gate 名称
  * @param sessionId 会话 ID
  * @param db 数据库实例
+ * @param runId 可选 run ID；传入时优先从 artifacts 表精确查询
  * @returns 匹配的文档文件名列表（最多 5 个）
  */
-export function findSessionGateArtifacts(docsDir, gate, sessionId, db) {
+export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
   const subdir = GATE_DIRS[gate];
   if (!subdir) return [];
 
+  // 优先：按 run_id + gate 精确查询 artifacts 表
+  if (runId && db) {
+    const rows = getArtifactsByRunAndGate(db, runId, gate);
+    if (rows.length > 0) {
+      return rows.map(r => {
+        const parts = r.filepath.split('/');
+        return parts[parts.length - 1];
+      }).slice(0, 5);
+    }
+  }
+
+  // 回退：日期匹配（兼容旧数据、无 runId 的调用）
   const checkpoints = db.prepare(
     'SELECT passed_at FROM checkpoints WHERE session_id = ? AND gate = ?'
   ).all(sessionId, gate);

@@ -107,6 +107,8 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
     - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
     - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
+17. **OpenCode/Codex 不同步约束** — 不做 OpenCode/Codex 平台的同步修改或优化，除非用户明确说明要开始维护对应平台
+18. **产物目录规范** — 临时产物统一放入 `docs/tmp/`，智能体正式产出按 Gate 存入 `docs/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`
 
 ## 🚀 发布流程（每次变更完成后必须执行）
 

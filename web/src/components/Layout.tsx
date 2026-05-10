@@ -14,6 +14,42 @@ import {
 import type { MenuProps } from 'antd';
 import { api, Session } from '../api';
 
+// ============================================================
+// 乐观更新纯函数 — 可独立测试
+// ============================================================
+
+/** 乐观置顶：切换会话 pinned 状态并返回新数组 */
+export function applyPinOptimistic(sessions: Session[], runId: string, pinned: boolean): Session[] {
+  return sessions.map(s =>
+    s.run_id === runId ? { ...s, pinned: pinned ? 0 : 1 } : s,
+  );
+}
+
+/** 乐观归档：按 run_id 移除会话并返回新数组 */
+export function applyArchiveOptimistic(sessions: Session[], runId: string): Session[] {
+  return sessions.filter(s => s.run_id !== runId);
+}
+
+/** 乐观删除：优先按 run_id 移除，fallback 按 id 移除 */
+export function applyDeleteOptimistic(sessions: Session[], runIdOrId: string): Session[] {
+  return sessions.filter(s => s.run_id !== runIdOrId && s.id !== runIdOrId);
+}
+
+/** 回滚到操作前快照（浅拷贝防御） */
+export function applyRollback(snapshot: Session[]): Session[] {
+  return [...snapshot];
+}
+
+/** 会话排序：置顶项在前，同置顶状态按 heartbeat 降序 */
+export function sortSessions(sessions: Session[]): Session[] {
+  return sessions.toSorted((a, b) => {
+    if (a.pinned && !b.pinned) return -1;
+    if (!a.pinned && b.pinned) return 1;
+    const aHb = a.heartbeat || 0;
+    const bHb = b.heartbeat || 0;
+    return bHb - aHb;
+  });
+}
 
 const { Header, Sider, Content } = Layout;
 
@@ -215,18 +251,69 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }, []);
 
   const handlePin = useCallback(async (runId: string, pinned: boolean) => {
-    const r = pinned ? await api.unpinRun(runId) : await api.pinRun(runId);
-    if (r.ok) message.success(pinned ? '已取消置顶' : '已置顶');
+    let snapshot: Session[] = [];
+
+    setSessions(prev => {
+      snapshot = prev;
+      return applyPinOptimistic(prev, runId, pinned);
+    });
+
+    try {
+      const r = await (pinned ? api.unpinRun(runId) : api.pinRun(runId));
+      if (r.ok) {
+        message.success(pinned ? '已取消置顶' : '已置顶');
+      } else {
+        setSessions(applyRollback(snapshot));
+        message.error('操作失败');
+      }
+    } catch {
+      setSessions(applyRollback(snapshot));
+      message.error('操作失败');
+    }
   }, []);
 
   const handleArchive = useCallback(async (runId: string) => {
-    const r = await api.archiveRun(runId);
-    if (r.ok) message.success('已归档');
+    let snapshot: Session[] = [];
+
+    setSessions(prev => {
+      snapshot = prev;
+      return applyArchiveOptimistic(prev, runId);
+    });
+
+    try {
+      const r = await api.archiveRun(runId);
+      if (r.ok) {
+        message.success('已归档');
+      } else {
+        setSessions(applyRollback(snapshot));
+        message.error('操作失败');
+      }
+    } catch {
+      setSessions(applyRollback(snapshot));
+      message.error('操作失败');
+    }
   }, []);
 
   const handleDelete = useCallback(async (runId: string) => {
-    const r = await api.deleteRun(runId);
-    if (r.ok) message.success('已删除');
+    let snapshot: Session[] = [];
+
+    setSessions(prev => {
+      snapshot = prev;
+      return applyDeleteOptimistic(prev, runId);
+    });
+
+    try {
+      const r = await api.deleteRun(runId);
+      if (r.ok) {
+        message.success('已删除');
+      } else {
+        setSessions(applyRollback(snapshot));
+        message.error('操作失败');
+      }
+    } catch {
+      setSessions(applyRollback(snapshot));
+      message.error('操作失败');
+    }
   }, []);
 
   const handleResume = useCallback(async (sessionId: string) => {
@@ -243,13 +330,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     const filtered = sessionPlatform === 'all'
       ? sessions
       : sessions.filter(s => s.platform === sessionPlatform);
-    const sorted = filtered.toSorted((a, b) => {
-      if (a.pinned && !b.pinned) return -1;
-      if (!a.pinned && b.pinned) return 1;
-      const aHb = a.heartbeat || 0;
-      const bHb = b.heartbeat || 0;
-      return bHb - aHb;
-    });
+    const sorted = sortSessions(filtered);
     const active = sessions.filter(s => s.status === 'active').length;
     return { sortedSessions: sorted, activeCount: active };
   }, [sessions, sessionPlatform]);

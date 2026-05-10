@@ -1,8 +1,8 @@
-import { existsSync, readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { existsSync, readFileSync, readdirSync } from 'node:fs';
+import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun } from '../engine/db.js';
-import { GATE_CHECKS, AVAILABLE_MODELS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact } from '../engine/db.js';
+import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
 
@@ -124,7 +124,7 @@ export function setupApiRoutes(app, db, root) {
         return {
           gate: g,
           passed: cp !== null,
-          artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db),
+          artifacts: findSessionGateArtifacts(getDocsDir(root), g, s.id, db, run?.id),
           entered_at: enteredAt,
           duration_seconds: cp?.duration_seconds ?? null,
           duration_display: cp?.duration_seconds != null ? formatDuration(cp.duration_seconds) : null,
@@ -149,7 +149,8 @@ export function setupApiRoutes(app, db, root) {
   app.get('/api/gate/:gate/enforce', (c) => {
     const gate = c.req.param('gate').replace(/_/g, ' ');
     const sid = c.req.query('session_id');
-    const artifacts = sid ? findSessionGateArtifacts(getDocsDir(root), gate, sid, db) : [];
+    const run = getActiveRun(db, sid);
+    const artifacts = sid ? findSessionGateArtifacts(getDocsDir(root), gate, sid, db, run?.id) : [];
     if (!sid) return c.json({ error: 'session_id query parameter required' }, 400);
     const checkpoints = getCheckpoints(db, gate, sid);
     const allowed = artifacts.length > 0 || checkpoints.length > 0;
@@ -177,13 +178,31 @@ export function setupApiRoutes(app, db, root) {
       return c.json({ allowed: false, error: 'Pipeline complete' });
     }
     const targetGate = gateList[targetIdx];
-    const artifacts = findSessionGateArtifacts(getDocsDir(root), currentGate, sid, db);
+    const run = getActiveRun(db, sid);
+    const artifacts = findSessionGateArtifacts(getDocsDir(root), currentGate, sid, db, run?.id);
     const checkpoints = getCheckpoints(db, currentGate, sid);
     if (artifacts.length === 0 && checkpoints.length === 0) {
       return c.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
     }
     addCheckpoint(db, currentGate, targetGate, sid);
     updatePipelineGate(db, sid, targetGate);
+    // 扫描当前 Gate 产物目录，写入 artifacts 表（失败不阻塞推进）
+    if (run) {
+      try {
+        const gateSubdir = GATE_DIRS[currentGate];
+        if (gateSubdir) {
+          const artifactDir = join(getDocsDir(root), gateSubdir);
+          if (existsSync(artifactDir)) {
+            const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
+            for (const f of mdFiles) {
+              insertArtifact(db, run.id, currentGate, `${gateSubdir}/${f}`);
+            }
+          }
+        }
+      } catch (e) {
+        console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, e.message);
+      }
+    }
     return c.json({
       allowed: true,
       session_id: sid,

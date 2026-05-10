@@ -87,6 +87,17 @@ docs/*
 !docs/**/.gitkeep
 !docs/DIR_STRUCTURE.md
 
+# 结构化文档产物（按 Gate 分类，需要版本控制）
+!docs/requirements/
+!docs/tasks/
+!docs/architecture/
+!docs/plans/
+!docs/implementation/
+!docs/testing/
+!docs/review/
+!docs/shipping/
+!docs/flows/
+
 # ============================================================
 # Git 操作残留
 # ============================================================

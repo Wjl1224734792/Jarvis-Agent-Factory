@@ -4,12 +4,12 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, copyFileSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, copyFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -478,6 +478,23 @@ function registerMcpTools(server, db, root) {
       const artifacts = findGateArtifacts(join(root, 'docs'), cur);
       const cps = getCheckpoints(db, cur, sid);
       if (artifacts.length === 0 && cps.length === 0) return resp({ allowed: false, error: `${cur} conditions NOT met.` });
+      // 扫描当前 Gate 产物目录，写入 artifacts 表（失败不阻塞推进）
+      if (runId) {
+        try {
+          const gateSubdir = GATE_DIRS[cur];
+          if (gateSubdir) {
+            const artifactDir = join(root, 'docs', gateSubdir);
+            if (existsSync(artifactDir)) {
+              const mdFiles = readdirSync(artifactDir).filter(f => f.endsWith('.md'));
+              for (const f of mdFiles) {
+                insertArtifact(db, runId, cur, `${gateSubdir}/${f}`);
+              }
+            }
+          }
+        } catch (e) {
+          console.warn(`[artifact-scan] 扫描 ${cur} 产物失败:`, e.message);
+        }
+      }
       // TASK-001: 计算当前 Gate 耗时（进入时间 → 现在）
       let durationSeconds: number | null = null;
       if (runId) {

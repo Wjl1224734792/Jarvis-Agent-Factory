@@ -39,6 +39,45 @@ jarvis web                       # 启动 Web 面板（按需）
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
 | **零原生依赖** | Node 22.5+ 内置 `node:sqlite`，安装秒级完成 |
 
+## 平台维护状态
+
+| 平台 | 维护状态 | 说明 |
+|------|---------|------|
+| **Claude Code** | 维护中 | 主力平台，所有功能、Agent、技能持续迭代 |
+| **OpenCode** | 暂不维护 | 配置模板保留，后续按需启动维护 |
+| **Codex** | 暂不维护 | 配置模板保留，后续按需启动维护 |
+
+> 当前仅对 Claude Code 平台进行主动维护和功能迭代。OpenCode 和 Codex 的平台配置文件（`.opencode/`、`.codex/`）仍保留在仓库中，待后续按需恢复维护。
+
+## 产物目录规范
+
+流水线各阶段智能产出物按 Gate 存入对应子目录，临时文件统一管理：
+
+```
+docs/
+├── tmp/                    # 临时产物（截图、快照、导出的验证数据等，已 .gitignore 排除）
+├── requirements/           # Gate A — 需求文档
+├── tasks/                  # Gate B — 任务分解文档
+├── architecture/           # Gate B1 — 架构评审产出
+├── plans/                  # Gate C — 执行计划文档
+├── implementation/         # Gate C-impl — 实现文档
+├── testing/                # Gate C2 — 测试文档与报告
+├── review/                 # Gate D — 评审报告
+└── shipping/               # Gate E — 发布记录
+```
+
+| 目录 | 对应 Gate | 说明 |
+|------|----------|------|
+| `docs/tmp/` | 全部 | 过程临时产物，不入版本库 |
+| `docs/requirements/` | Gate A | 需求澄清文档 |
+| `docs/tasks/` | Gate B | 任务分解文档 |
+| `docs/architecture/` | Gate B1 | 架构评审报告 |
+| `docs/plans/` | Gate C | 执行计划 |
+| `docs/implementation/` | Gate C-impl | 实现说明文档 |
+| `docs/testing/` | Gate C2 | 测试用例与报告 |
+| `docs/review/` | Gate D | 代码评审报告 |
+| `docs/shipping/` | Gate E | 发布记录与版本日志 |
+
 ## 架构
 
 ```
@@ -273,6 +312,31 @@ test-doc-writer → test-executor → fix-retest
 6. 验证：`npm view jarvis-agent-factory version` 确认版本
 
 > 每次提交前自问：文档是否需要同步更新？
+
+## 命令流程图
+
+每个 Claude Code 命令的完整 Mermaid 流程图，展示 Gate 序列、Agent spawn 关系和并行/串行逻辑：
+
+| 分类 | 命令 | 流程图 | Gate 序列 |
+|------|------|--------|----------|
+| **核心编排** | `/jarvis` | [jarvis.md](docs/flows/jarvis.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (10门) |
+| | `/jarvis-lite` | [jarvis-lite.md](docs/flows/jarvis-lite.md) | 按任务类型智能映射入口 |
+| **前端** | `/frontend` | [frontend.md](docs/flows/frontend.md) | A→B→B1→C→C-impl→C1→C1.5→C2→D→E (C1.5强制) |
+| **后端** | `/backend` | [backend.md](docs/flows/backend.md) | A→B→B1→C→C-impl→C1→C2→D→E (跳过C1.5) |
+| **移动端** | `/android` | [android.md](docs/flows/android.md) | A→B→C→C1→C2→D→E (7门) |
+| | `/ios` | [ios.md](docs/flows/ios.md) | A→B→C→C1→C2→D→E (7门) |
+| **跨端** | `/flutter` | [flutter.md](docs/flows/flutter.md) | A→B→C→C1→C2→D→E (7门) |
+| | `/expo` | [expo.md](docs/flows/expo.md) | A→B→C→C1→C2→D→E (7门) |
+| | `/taro` | [taro.md](docs/flows/taro.md) | A→B→C→C1→C2→D→E (7门) |
+| **测试/修复** | `/browser-test` | [browser-test.md](docs/flows/browser-test.md) | 用例编写→执行→修复重测闭环 |
+| | `/bug-fix` | [bug-fix.md](docs/flows/bug-fix.md) | 复现→根因→修复→验证 7步闭环 |
+| **审查** | `/review` | [review.md](docs/flows/review.md) | 只读审查，不修改文件 |
+| | `/review-fix` | [review-fix.md](docs/flows/review-fix.md) | 初审→规划→执行→验证→复审 |
+| **架构/专家** | `/frontend-architect` | [frontend-architect.md](docs/flows/frontend-architect.md) | 问题收集→spawn架构师→呈现输出 |
+| | `/backend-architect` | [backend-architect.md](docs/flows/backend-architect.md) | 问题收集→spawn架构师→呈现输出 |
+| | `/algorithm-expert` | [algorithm-expert.md](docs/flows/algorithm-expert.md) | 问题收集→spawn算法专家→呈现输出 |
+
+> 所有流程图使用 `flowchart TD` 统一风格。读取 `docs/flows/` 目录下的 `.md` 文件可在支持 Mermaid 的 Markdown 渲染器中查看。
 
 ## License
 

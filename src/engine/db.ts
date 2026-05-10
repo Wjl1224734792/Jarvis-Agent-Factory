@@ -64,6 +64,19 @@ function initSchema(db) {
     );
     CREATE INDEX IF NOT EXISTS idx_pipeline_runs_session ON pipeline_runs(session_id, started_at DESC);
   `);
+
+  // artifacts: pipeline run 产物记录
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS artifacts (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id TEXT NOT NULL,
+      gate TEXT NOT NULL,
+      filepath TEXT NOT NULL,
+      created_at TEXT DEFAULT (datetime('now')),
+      UNIQUE(run_id, gate, filepath)
+    );
+  `);
+
   try { db.exec("ALTER TABLE agent_models ADD COLUMN effort TEXT NOT NULL DEFAULT 'high'"); } catch {}
 
   // ---- 迁移：修复旧 pipeline 表 CHECK(id=1) 约束 ----
@@ -457,6 +470,8 @@ export function getArchivedRuns(db) {
  */
 export function deleteRun(db, runId) {
   if (!runId) return { ok: false };
+  // 级联删除关联的 artifacts 记录
+  db.prepare('DELETE FROM artifacts WHERE run_id=?').run(runId);
   const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
 }
@@ -483,4 +498,40 @@ export function unpinRun(db, runId) {
   if (!runId) return { ok: false };
   const result = db.prepare('UPDATE pipeline_runs SET pinned=0 WHERE id=?').run(runId);
   return { ok: result.changes > 0 };
+}
+
+// ---- Artifacts ----
+
+/**
+ * 插入一条产物记录（幂等：同一 run_id+gate+filepath 静默忽略）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} gate
+ * @param {string} filepath 相对于 docs/ 的路径，如 "requirements/REQ-001.md"
+ * @returns {{ ok: boolean }}
+ */
+export function insertArtifact(db, runId, gate, filepath) {
+  const result = db.prepare('INSERT OR IGNORE INTO artifacts (run_id, gate, filepath) VALUES (?, ?, ?)').run(runId, gate, filepath);
+  return { ok: result.changes > 0 };
+}
+
+/**
+ * 获取某 run 的所有产物
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
+ */
+export function getArtifactsByRun(db, runId) {
+  return db.prepare('SELECT * FROM artifacts WHERE run_id=? ORDER BY created_at').all(runId);
+}
+
+/**
+ * 按 run + gate 获取产物（精确查询，无跨 run 污染）
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} gate
+ * @returns {Array<{id: number; run_id: string; gate: string; filepath: string; created_at: string}>}
+ */
+export function getArtifactsByRunAndGate(db, runId, gate) {
+  return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
 }
