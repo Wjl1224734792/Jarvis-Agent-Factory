@@ -37,6 +37,8 @@ export function broadcastSSE() {
         task_name: run?.task_name || null,
         run_id: run?.id || null,
         pinned: run?.pinned || 0,
+        heartbeat: s.last_heartbeat || null,
+        latest_run_started_at: s.latest_run_started_at || null,
       };
     }),
     count: sessions.length,

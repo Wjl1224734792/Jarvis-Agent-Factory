@@ -277,8 +277,9 @@ function registerMcpTools(server, db, root) {
       platform: z.enum(['claude', 'opencode', 'codex', 'other']).optional(),
       resume_session_id: z.string().optional(),
       pipeline_type: z.string().optional(),
+      task_name: z.string().optional(),
     },
-    async ({ platform, resume_session_id, pipeline_type }, extra) => {
+    async ({ platform, resume_session_id, pipeline_type, task_name }, extra) => {
       const sid = extra?.sessionId || `s${Date.now()}`;
       _lastSessionId = sid; // stdio 模式回退：记录最近会话
       const pt = pipeline_type || DEFAULT_PIPELINE;
@@ -305,7 +306,10 @@ function registerMcpTools(server, db, root) {
           const now = new Date();
           const mm = String(now.getMonth() + 1).padStart(2, '0');
           const dd = String(now.getDate()).padStart(2, '0');
-          setRunTaskName(db, runId, `${proj} · ${mm}-${dd}`);
+          setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+        } else if (task_name) {
+          // 已有活跃 run，但传入 task_name 则更新
+          setRunTaskName(db, runId!, task_name);
         }
         return resp({
           session_id: sid, platform: existing.platform,
@@ -322,7 +326,7 @@ function registerMcpTools(server, db, root) {
       const now = new Date();
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
-      setRunTaskName(db, runId, `${proj} · ${mm}-${dd}`);
+      setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
       return resp({
         session_id: sid, platform: platform || 'unknown',
         gate: p?.current_gate || 'Gate A',

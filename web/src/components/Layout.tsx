@@ -235,9 +235,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const sortedSessions = [...filteredSessions].sort((a, b) => {
     if (a.pinned && !b.pinned) return -1;
     if (!a.pinned && b.pinned) return 1;
-    const aTime = a.latest_run_started_at || '';
-    const bTime = b.latest_run_started_at || '';
-    return bTime.localeCompare(aTime);
+    const aHb = a.heartbeat || 0;
+    const bHb = b.heartbeat || 0;
+    return bHb - aHb;
   });
 
   const activeCount = sessions.filter(s => s.status === 'active').length;
