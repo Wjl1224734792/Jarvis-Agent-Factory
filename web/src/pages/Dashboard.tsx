@@ -31,6 +31,20 @@ const GATE_LABELS: Record<string, string> = {
   D: '评审', E: '发布上线',
 };
 
+/** 每个 Gate 的功能说明（来自后端 GATE_CHECKS） */
+const GATE_DESCRIPTIONS: Record<string, string> = {
+  'Gate A': '至少1个需求文档，含REQ-XXX编号',
+  'Gate B': '每个TASK-XXX映射至少1个REQ-XXX',
+  'Gate B1': '架构评审通过（涉及架构变更时）',
+  'Gate C': '计划文档含parallel_batches+Execution Packet',
+  'Gate C-impl': '所有Batch实现完成，实现Agent已返回结果',
+  'Gate C1': 'Lint+Type-check+Build+Deps Audit全部通过',
+  'Gate C1.5': '页面/组件视觉验证截图证据已附',
+  'Gate C2': '测试全部通过，API契约验证通过',
+  'Gate D': '领域审查+安全审计+性能审计通过',
+  'Gate E': '安全审计+上线检查清单+回滚预案就绪',
+};
+
 const GATE_ICONS: Record<string, React.ReactNode> = {
   A: <FileTextOutlined />, B: <ThunderboltOutlined />, C: <ThunderboltOutlined />,
   'C-impl': <ThunderboltOutlined />, C1: <CheckCircleOutlined />, 'C1.5': <CheckCircleOutlined />, C2: <CheckCircleOutlined />,
@@ -201,14 +215,15 @@ export default function Dashboard() {
                 const isCurrent = g.gate === currentGate;
                 return {
                   color: passed ? '#51CF66' : isCurrent ? '#52C41A' : '#2C2C2C',
-                  dot: passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />,
+                  dot: <span style={{ fontSize: 18, lineHeight: 1 }}>
+                    {passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />}
+                  </span>,
                   children: (
                     <div
                       onClick={() => {
                         if (g.artifacts?.length) {
-                          g.artifacts.forEach(a => {
-                            if (a.endsWith('.md')) openDoc(a);
-                          });
+                          const firstMd = g.artifacts.find(a => a.endsWith('.md'));
+                          if (firstMd) openDoc(firstMd);
                         }
                       }}
                       style={{
@@ -220,13 +235,18 @@ export default function Dashboard() {
                       }}
                     >
                       <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color, fontWeight: 700, fontSize: 13 }}>{g.gate}</span>
+                        <span style={{ color, fontWeight: 700, fontSize: 15 }}>{g.gate}</span>
                         <span style={{ color: '#2C2C2C', fontSize: 12 }}>
                           {GATE_LABELS[sg] || sg}
                         </span>
                         {passed && <Tag color="#51CF66" style={{ borderRadius: 8 }}>已通过</Tag>}
                         {isCurrent && <Tag color="#52C41A" style={{ borderRadius: 8 }}>进行中</Tag>}
                       </div>
+                      {GATE_DESCRIPTIONS[g.gate] && (
+                        <div style={{ fontSize: 11, color: '#2C2C2C', opacity: 0.5, marginTop: 2 }}>
+                          {GATE_DESCRIPTIONS[g.gate]}
+                        </div>
+                      )}
                       {g.entered_at && (
                         <div style={{ fontSize: 10, color: '#2C2C2C', opacity: 0.5, marginTop: 4 }}>
                           进入: {formatTime(g.entered_at)}

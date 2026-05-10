@@ -2,181 +2,141 @@ import { useMemo } from 'react';
 import { theme } from 'antd';
 import type { ConfigProviderProps } from 'antd';
 import { createStyles } from 'antd-style';
+import clsx from 'clsx';
 
-const useStyles = createStyles(({ css, token }) => {
-  const illustrationBorder = {
-    border: `${token.lineWidth}px solid ${token.colorBorder}`,
+/**
+ * 玻璃风格样式定义
+ * 使用 antd-style v4 的 cssVar 获取 CSS 变量，实现亮暗主题自适应
+ */
+const useStyles = createStyles(({ css, cssVar }) => {
+  const glassBorder = {
+    boxShadow: [
+      `${cssVar.boxShadowSecondary}`,
+      `inset 0 0 5px 2px rgba(255, 255, 255, 0.3)`,
+      `inset 0 5px 2px rgba(255, 255, 255, 0.2)`,
+    ].join(','),
   };
 
-  const illustrationBox = {
-    ...illustrationBorder,
-    boxShadow: `4px 4px 0 ${token.colorBorder}`,
+  const glassBox = {
+    ...glassBorder,
+    background: `color-mix(in srgb, ${cssVar.colorBgContainer} 15%, transparent)`,
+    backdropFilter: 'blur(12px)',
   };
 
   return {
-    illustrationBorder,
-    illustrationBox,
-    buttonRoot: css({
-      ...illustrationBox,
-      fontWeight: 600,
-      textTransform: 'uppercase',
-      letterSpacing: '0.5px',
+    glassBorder,
+    glassBox,
+    notBackdropFilter: css({ backdropFilter: 'none' }),
+    app: css({ textShadow: '0 1px rgba(0,0,0,0.1)' }),
+    cardRoot: css({
+      ...glassBox,
+      backgroundColor: `color-mix(in srgb, ${cssVar.colorBgContainer} 40%, transparent)`,
     }),
-    modalContainer: css({
-      ...illustrationBox,
+    modalContainer: css({ ...glassBox, backdropFilter: 'none' }),
+    buttonRoot: css({ ...glassBorder }),
+    buttonRootDefaultColor: css({
+      background: 'transparent',
+      color: cssVar.colorText,
+      '&:hover': {
+        background: 'rgba(255,255,255,0.2)',
+        color: `color-mix(in srgb, ${cssVar.colorText} 90%, transparent)`,
+      },
+      '&:active': {
+        background: 'rgba(255,255,255,0.1)',
+        color: `color-mix(in srgb, ${cssVar.colorText} 80%, transparent)`,
+      },
     }),
-    tooltipRoot: css({
-      padding: token.padding,
+    dropdownRoot: css({
+      ...glassBox,
+      borderRadius: cssVar.borderRadiusLG,
+      ul: { background: 'transparent' },
     }),
-    popupBox: css({
-      ...illustrationBox,
-      borderRadius: token.borderRadiusLG,
-      backgroundColor: token.colorBgContainer,
-    }),
-    progressRail: css({
-      border: `${token.lineWidth}px solid ${token.colorBorder}`,
-      boxShadow: `2px 2px 0 ${token.colorBorder}`,
-    }),
-    progressTrack: css({
-      border: 'none',
-    }),
-    inputNumberActions: css({
-      width: 12,
+    switchRoot: css({ ...glassBorder, border: 'none' }),
+    segmentedRoot: css({
+      ...glassBorder,
+      background: 'transparent',
+      backdropFilter: 'none',
+      '& .ant-segmented-thumb': { ...glassBox },
+      '& .ant-segmented-item-selected': { ...glassBox },
     }),
   };
 });
 
-const useIllustrationTheme = () => {
+/**
+ * 生成玻璃风格的 ConfigProvider 配置
+ * @param styles - useStyles 返回的样式对象
+ * @returns 亮色/暗色共用的 component classNames 配置
+ */
+function buildComponentConfig(styles: ReturnType<typeof useStyles>['styles']): ConfigProviderProps {
+  return {
+    button: {
+      classNames: {
+        root: clsx(styles.buttonRoot, styles.buttonRootDefaultColor),
+      },
+    },
+    card: {
+      classNames: {
+        root: styles.cardRoot,
+      },
+    },
+    modal: {
+      classNames: {
+        container: styles.modalContainer,
+      },
+    },
+    dropdown: {
+      classNames: {
+        root: styles.dropdownRoot,
+      },
+    },
+    select: {
+      classNames: {
+        popup: {
+          root: styles.dropdownRoot,
+        },
+      },
+    },
+    switch: {
+      classNames: {
+        root: styles.switchRoot,
+      },
+    },
+    segmented: {
+      classNames: {
+        root: styles.segmentedRoot,
+      },
+    },
+  };
+}
+
+const tokenConfig = {
+  borderRadius: 12,
+  borderRadiusLG: 12,
+  borderRadiusSM: 12,
+  borderRadiusXS: 12,
+  motionDurationSlow: '0.2s',
+  motionDurationMid: '0.1s',
+  motionDurationFast: '0.05s',
+};
+
+/**
+ * 玻璃主题 hook
+ * @param isDark - 是否为暗色模式
+ * @returns ConfigProviderProps 供 ConfigProvider 消费
+ */
+export default function useGlassTheme(isDark: boolean): ConfigProviderProps {
   const { styles } = useStyles();
+
+  const componentConfig = useMemo(() => buildComponentConfig(styles), [styles]);
 
   return useMemo<ConfigProviderProps>(
     () => ({
       theme: {
-        algorithm: theme.defaultAlgorithm,
-        token: {
-          colorText: '#2C2C2C',
-          colorPrimary: '#52C41A',
-          colorSuccess: '#51CF66',
-          colorWarning: '#FFD93D',
-          colorError: '#FA5252',
-          colorInfo: '#4DABF7',
-          colorBorder: '#2C2C2C',
-          colorBorderSecondary: '#2C2C2C',
-          lineWidth: 3,
-          lineWidthBold: 3,
-          borderRadius: 12,
-          borderRadiusLG: 16,
-          borderRadiusSM: 8,
-          controlHeight: 40,
-          controlHeightSM: 34,
-          controlHeightLG: 48,
-          fontSize: 15,
-          fontWeightStrong: 600,
-          colorBgBase: '#FFF9F0',
-          colorBgContainer: '#FFFFFF',
-        },
-        components: {
-          Button: {
-            primaryShadow: 'none',
-            dangerShadow: 'none',
-            defaultShadow: 'none',
-            fontWeight: 600,
-          },
-          Modal: {
-            boxShadow: 'none',
-          },
-          Card: {
-            boxShadow: '4px 4px 0 #2C2C2C',
-            colorBgContainer: '#FFF0F6',
-          },
-          Tooltip: {
-            colorBorder: '#2C2C2C',
-            colorBgSpotlight: 'rgba(100, 100, 100, 0.95)',
-            borderRadius: 8,
-          },
-          Select: {
-            optionSelectedBg: 'transparent',
-          },
-          Slider: {
-            dotBorderColor: '#237804',
-            dotActiveBorderColor: '#237804',
-            colorPrimaryBorder: '#237804',
-            colorPrimaryBorderHover: '#237804',
-          },
-        },
+        algorithm: isDark ? theme.darkAlgorithm : theme.defaultAlgorithm,
+        token: tokenConfig,
       },
-      button: {
-        classNames: {
-          root: styles.buttonRoot,
-        },
-      },
-      modal: {
-        classNames: {
-          container: styles.modalContainer,
-        },
-      },
-      alert: {
-        className: styles.illustrationBorder,
-      },
-      colorPicker: {
-        arrow: false,
-        classNames: {
-          root: styles.illustrationBox,
-        },
-      },
-      popover: {
-        classNames: {
-          container: styles.illustrationBox,
-        },
-      },
-      tooltip: {
-        arrow: false,
-        classNames: {
-          root: styles.tooltipRoot,
-          container: styles.illustrationBox,
-        },
-      },
-      dropdown: {
-        classNames: {
-          root: styles.popupBox,
-        },
-      },
-      select: {
-        classNames: {
-          root: styles.illustrationBox,
-          popup: {
-            root: styles.popupBox,
-          },
-        },
-      },
-      input: {
-        classNames: {
-          root: styles.illustrationBox,
-        },
-      },
-      inputNumber: {
-        classNames: {
-          root: styles.illustrationBox,
-          actions: styles.inputNumberActions,
-        },
-      },
-      progress: {
-        classNames: {
-          rail: styles.progressRail,
-          track: styles.progressTrack,
-        },
-        styles: {
-          rail: {
-            height: 16,
-          },
-          track: {
-            height: 10,
-          },
-        },
-      },
+      ...componentConfig,
     }),
-    [],
+    [isDark, componentConfig],
   );
-};
-
-export default useIllustrationTheme;
+}

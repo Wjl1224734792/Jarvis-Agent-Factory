@@ -107,7 +107,7 @@ export function scanAllProjectAgents(db: unknown): AgentItem[] {
 
 export function getCategories(db?: unknown) {
   const projects = db ? getActiveProjects(db).map(p => basename(p)) : [];
-  return ['全部', '模板默认', '全局配置', ...projects];
+  return ['全部', '全局配置', ...projects];
 }
 
 /** 根据文件名+内容推断领域分类 */

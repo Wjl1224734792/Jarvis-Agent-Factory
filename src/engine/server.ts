@@ -375,22 +375,26 @@ function registerMcpTools(server, db, root) {
     });
 
   server.tool('pipeline_init', '【会话隔离】初始化当前会话流水线。',
-    { project_name: z.string().optional(), pipeline_type: z.string().optional() },
-    async ({ project_name, pipeline_type }, extra) => {
+    { project_name: z.string().optional(), pipeline_type: z.string().optional(), task_name: z.string().optional().describe('任务名称，用于Web面板标题显示') },
+    async ({ project_name, pipeline_type, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const pt = pipeline_type || DEFAULT_PIPELINE;
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
-      // 自动设置任务名称（若用户未显式传入）
-      const effectiveProject = project_name || root;
-      const projectShortName = effectiveProject.split(/[\\/]/).filter(Boolean).pop() || effectiveProject;
-      const now = new Date();
-      const mm = String(now.getMonth() + 1).padStart(2, '0');
-      const dd = String(now.getDate()).padStart(2, '0');
-      const defaultTaskName = `${projectShortName} 流水线任务 · ${mm}-${dd}`;
-      setRunTaskName(db, runId, defaultTaskName);
+      // 自动设置任务名称（若用户已传入则使用传入值）
+      if (task_name) {
+        setRunTaskName(db, runId, task_name);
+      } else {
+        const effectiveProject = project_name || root;
+        const projectShortName = effectiveProject.split(/[\\/]/).filter(Boolean).pop() || effectiveProject;
+        const now = new Date();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        const dd = String(now.getDate()).padStart(2, '0');
+        const defaultTaskName = `${projectShortName} 流水线任务 · ${mm}-${dd}`;
+        setRunTaskName(db, runId, defaultTaskName);
+      }
       return resp({
         ok: true, session_id: sid, run_id: runId, pipeline_type: pt,
         message: 'New pipeline run created. Next: Gate A',
@@ -451,13 +455,13 @@ function registerMcpTools(server, db, root) {
           });
     });
 
-  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。推进到 Gate A 时可传入 task_name 自动设置会话标题。',
-    { gate: z.string(), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，推进到 Gate A 时自动设置会话标题') },
+  server.tool('advance_gate', '【会话隔离·硬约束】推进Gate。推进任意 Gate 时可传入 task_name 设置会话标题。',
+    { gate: z.string(), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，设置Web面板显示的会话标题') },
     async ({ gate, run_id, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
-      if (task_name && gate === 'Gate A' && runId) {
+      if (task_name && runId) {
         setRunTaskName(db, runId, task_name);
       }
       const p = getPipeline(db, sid);
@@ -495,13 +499,13 @@ function registerMcpTools(server, db, root) {
     });
 
   server.tool('gate_jump',
-    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。跳转到 Gate A 时可传入 task_name 自动设置会话标题。',
-    { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，跳转到 Gate A 时自动设置会话标题') },
+    '【lite模式·入口跳转】跳过无关Gate直接进入目标Gate。仅当pipeline_type为lite时可用。跳转时可传入 task_name 设置会话标题。',
+    { gate: z.string().describe('目标Gate，如 Gate C / Gate D / Gate E'), run_id: z.string().optional(), task_name: z.string().optional().describe('任务名称，设置Web面板显示的会话标题') },
     async ({ gate, run_id, task_name }, extra) => {
       const sid = resolveSid(extra);
       if (!sid) return resp({ error: 'session_id required. Call session_join first.' });
       const runId = run_id || getActiveRun(db, sid)?.id;
-      if (task_name && gate === 'Gate A' && runId) {
+      if (task_name && runId) {
         setRunTaskName(db, runId, task_name);
       }
       const p = getPipeline(db, sid);

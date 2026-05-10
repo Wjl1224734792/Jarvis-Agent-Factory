@@ -106,11 +106,11 @@ describe('getAgentFiles', () => {
 });
 
 describe('getCategories', () => {
-  it('返回来源归属分类列表（无db时不含项目名）', () => {
+  it('返回来源归属分类列表（无db时不含项目名、不含模板默认）', () => {
     const cats = getCategories();
     expect(cats).toContain('全部');
-    expect(cats).toContain('模板默认');
     expect(cats).toContain('全局配置');
+    expect(cats).not.toContain('模板默认');
   });
 });
 

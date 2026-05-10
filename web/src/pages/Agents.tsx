@@ -150,7 +150,7 @@ export default function Agents() {
             </span>
           </Col>
           <Col>
-            {['全部', ...(data?.categories || [])].map(c => (
+            {['全部', ...(data?.categories || []).filter(c => c !== '全部' && c !== '模板默认')].map(c => (
               <Button
                 key={c}
                 size="small"
