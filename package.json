@@ -41,7 +41,7 @@
     "test:watch": "vitest",
     "typecheck": "tsc --noEmit",
     "build": "tsc && node -e \"import{cpSync}from'fs';cpSync('package.json','dist/package.json');cpSync('src/templates','dist/src/templates',{recursive:true})\"",
-    "build:web": "cd web && npm ci && npm run build",
+    "build:web": "cd web && set NODE_ENV=development && npm ci && npm run build",
     "dev": "tsx src/cli.ts",
     "jarvis": "node dist/src/cli.js",
     "jarvis:dev": "tsx src/cli.ts",
