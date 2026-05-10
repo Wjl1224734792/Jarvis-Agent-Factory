@@ -46,7 +46,7 @@ argument-hint: [后端需求描述]
 | 安全审计 | `security-review-expert` |
 | API 文档 | `api-contract-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
-| 只读探索 | `code-explore-expert`、`docs-research-expert` |
+| 只读探索 | `code-explore-expert`、`external-resource-expert` |
 
 ### 典型 Batch 结构
 
@@ -70,7 +70,7 @@ Batch 5: [security-review-expert]                             ← 安全审计
 
 | Gate | 可并行操作 |
 |------|-----------|
-| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `docs-research-expert` × N（多库并行搜索） |
+| Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `external-resource-expert` × N（多库并行搜索） |
 | Gate B→C 之间 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
 | Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |

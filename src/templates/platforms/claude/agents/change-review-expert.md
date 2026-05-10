@@ -24,7 +24,7 @@ model: deepseek-v4-pro
 ## 你不负责
 
 - 修复代码
-- 替 remediation-planner 重写计划
+- 替 remediation-expert 重写计划
 - 用模糊措辞掩盖缺失验证
 
 ## 何时不使用

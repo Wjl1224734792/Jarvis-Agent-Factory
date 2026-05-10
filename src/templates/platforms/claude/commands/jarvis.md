@@ -64,9 +64,9 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 │   ├── code-explore-expert（前端 src/ 目录）
 │   ├── code-explore-expert（后端 src/ 目录）
 │   └── code-explore-expert（共享模块/配置）
-└── docs-research-expert × N（各自搜索不同技术栈文档）
-    ├── docs-research-expert（前端框架/库最新文档）
-    └── docs-research-expert（后端框架/库最新文档）
+└── external-resource-expert × N（各自搜索不同技术栈文档）
+    ├── external-resource-expert（前端框架/库最新文档）
+    └── external-resource-expert（后端框架/库最新文档）
 ```
 
 **引擎验证**：`mcp__jarvis-engine__gate_enforce()` → `mcp__jarvis-engine__advance_gate({ gate: "Gate B" })`
@@ -158,7 +158,7 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 | 审查 | `qa-review-expert` / `security-review-expert` / `perf-review-expert` |
 | 架构 | `frontend-architect` / `backend-architect` / `database-architect` |
 | 文档 | `api-contract-expert` |
-| 探索 | `code-explore-expert` / `docs-research-expert` |
+| 探索 | `code-explore-expert` / `external-resource-expert` |
 
 ### 步骤 4：等待整批完成
 - 检查 plan patch / contract change request

@@ -91,8 +91,10 @@ describe('GATE_AGENT_GUIDE', () => {
     expect(guide.can_spawn).toContain('algorithm-expert');
   });
 
-  it('Gate C（规划）仅 spawn planner', () => {
-    expect(GATE_AGENT_GUIDE['Gate C'].can_spawn).toEqual(['planner']);
+  it('Gate C（规划）spawn planner + skill-assignment-expert', () => {
+    const guide = GATE_AGENT_GUIDE['Gate C'];
+    expect(guide.can_spawn).toContain('planner');
+    expect(guide.can_spawn).toContain('skill-assignment-expert');
   });
 
   it('Gate C-impl 可 spawn 实现 Agent', () => {

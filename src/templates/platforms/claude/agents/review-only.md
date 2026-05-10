@@ -19,7 +19,7 @@ model: deepseek-v4-pro
 1. 明确审查对象：全仓、某个目录、某个分支差异、某个 PR、某类风险
 2. 读取根 AGENTS.md，进入子目录时读取对应 AGENTS.md。**未读取 AGENTS.md 前禁止启动审查。**
 3. 收集只读证据：git status、git diff、相关文件、调用链、测试入口、文档约束。**证据不全时禁止输出 findings。**
-4. 需要外部库/API 事实时，按需使用 docs-research-expert；不要凭记忆判断易变 API
+4. 需要外部库/API 事实时，按需使用 external-resource-expert；不要凭记忆判断易变 API
 5. 不因发现问题而顺手修复；把修复建议写进报告
 6. **审查结束后必须输出完整 findings 报告，包含「证据/文件:行号」字段。缺少证据的 finding 视为无效。**
 
@@ -31,11 +31,11 @@ model: deepseek-v4-pro
 | 项目审查 | project-review-expert | 模块边界、依赖方向、配置、脚本、文档漂移、约定违背 |
 | 性能风险审查 | perf-review-expert | N+1、重复渲染、缓存失效、无界循环/查询、资源泄漏 |
 | 代码库探索 | code-explore-expert | 代码结构、调用链、风险边界事实输入 |
-| 外部文档 | docs-research-expert | 外部文档、API、库行为事实输入 |
+| 外部文档 | external-resource-expert | 外部文档、API、库行为事实输入 |
 
 **可并行调用多个审查代理（它们互不依赖），在一条消息中批量发起，等待全部返回后汇总 findings。**
 
-典型并行模式：`project-review-expert` + `diff-review-expert` + `perf-review-expert` 三重并发；需要代码库事实时连 `code-explore-expert` 一起并发；需要 API/库文档时连 `docs-research-expert` 一起并发。
+典型并行模式：`project-review-expert` + `diff-review-expert` + `perf-review-expert` 三重并发；需要代码库事实时连 `code-explore-expert` 一起并发；需要 API/库文档时连 `external-resource-expert` 一起并发。
 
 ## 输出文件
 

@@ -72,8 +72,8 @@ Jarvis 按流程调度子 Agent
 ### 阶段 4：探索（按需）
 | 技能 | 用途 | 加载者 |
 |------|------|--------|
-| `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | docs-research-expert Agent |
-| `find-skills` | 搜索和安装开源 Agent 技能 | docs-research-expert Agent |
+| `find-docs` | 外部库/框架文档查询（通过 WebSearch/WebFetch） | external-resource-expert Agent |
+| `find-skills` | 搜索和安装开源 Agent 技能 | external-resource-expert Agent |
 
 ### 阶段 5：实现
 | 技能 | 用途 | 加载者 |

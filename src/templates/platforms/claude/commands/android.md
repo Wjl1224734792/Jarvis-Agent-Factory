@@ -42,7 +42,7 @@ argument-hint: [Android 需求描述]
 | E2E 测试 | `e2e-test-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
-| 只读探索（辅助） | `code-explore-expert`、`docs-research-expert` |
+| 只读探索（辅助） | `code-explore-expert`、`external-resource-expert` |
 
 ## Gate C：批量并行 spawn
 

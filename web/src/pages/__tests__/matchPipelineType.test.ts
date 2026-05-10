@@ -13,14 +13,6 @@ describe('matchPipelineType', () => {
       expect(matchPipelineType('remediation-expert', '轻量')).toBe(true);
     });
 
-    it('应匹配 remediation-planner', () => {
-      expect(matchPipelineType('remediation-planner', '轻量')).toBe(true);
-    });
-
-    it('应匹配 fix-retest', () => {
-      expect(matchPipelineType('fix-retest', '轻量')).toBe(true);
-    });
-
     it('不应匹配非轻量智能体', () => {
       expect(matchPipelineType('frontend-dev', '轻量')).toBe(false);
       expect(matchPipelineType('backend-api', '轻量')).toBe(false);
@@ -101,6 +93,14 @@ describe('matchPipelineType', () => {
       expect(matchPipelineType('code-explore', '全流程')).toBe(true);
       expect(matchPipelineType('infra-deploy', '全流程')).toBe(true);
     });
+
+    it('应匹配 browser-use-expert', () => {
+      expect(matchPipelineType('browser-use-expert', '全流程')).toBe(true);
+    });
+
+    it('不应匹配已移除的 docs-research-expert', () => {
+      expect(matchPipelineType('docs-research-expert', '全流程')).toBe(false);
+    });
   });
 
   // === 分类不重复验证 ===
@@ -118,7 +118,7 @@ describe('matchPipelineType', () => {
     });
 
     it('轻量智能体不应同时出现在全流程中', () => {
-      const liteIds = ['jarvis-lite', 'remediation-expert', 'remediation-planner', 'fix-retest'];
+      const liteIds = ['jarvis-lite', 'remediation-expert'];
       for (const id of liteIds) {
         expect(matchPipelineType(id, '轻量')).toBe(true);
         expect(matchPipelineType(id, '全流程')).toBe(false);

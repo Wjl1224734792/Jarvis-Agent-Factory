@@ -114,7 +114,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   const indexHtml = existsSync(indexPath) ? readFileSync(indexPath, 'utf-8') : null;
   app.get('*', (c) => {
     if (!indexHtml) {
-      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FFF9F0;color:#2C2C2C;text-align:center">
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
         <p>请运行 <code>npm run build:web</code> 构建前端产物，或从 GitHub Release 下载预构建包。</p>
       </body></html>`);
@@ -789,7 +789,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 
   app.get('*', (c) => {
     if (!indexHtml) {
-      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#FFF9F0;color:#2C2C2C;text-align:center">
+      return c.html(`<!DOCTYPE html><html><body style="font-family:sans-serif;padding:40px;background:#fff;color:#1a1a1a;text-align:center">
         <h2>Web 面板未构建</h2>
         <p>请运行 <code>cd web && npm run build</code> 构建前端产物。</p>
       </body></html>`);

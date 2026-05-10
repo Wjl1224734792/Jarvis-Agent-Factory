@@ -211,7 +211,7 @@ Skill(skill="behavioral-guidelines")
 3. 当前轮次目标
 4. 当前轮次范围
 5. 完成标准
-6. 是否需要先查阅 code-explore-expert / docs-research-expert
+6. 是否需要先查阅 code-explore-expert / external-resource-expert
 7. 执行代理分工
 8. 共享区域改动归属
 9. 并行 / 串行策略（标注并行组：[task-A, task-B 并行]，串行链：task-C → task-D）

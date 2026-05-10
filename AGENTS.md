@@ -64,12 +64,12 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 ```
 测试文档编写者 → 测试执行者 → 修复复测者
-(test-doc-writer)  (test-executor)  (fix-retest)
+(test-doc-writer)  (test-executor)  (remediation-expert)
 ```
 
 1. **test-doc-writer** — 编写测试用例文档（结构化步骤、预期结果），不执行测试
 2. **test-executor** — 按照文档执行测试，输出通过/失败清单，不编写用例
-3. **fix-retest** — 分析失败用例，spawn 修复 Agent，最多 2 轮修复-重测循环
+3. **remediation-expert** — 规划修复任务、执行修复、重跑用例验证，最多 2 轮修复-重测循环
 
 此工作流已集成到 Gate C2 测试验证阶段。
 
@@ -109,6 +109,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
 17. **OpenCode/Codex 不同步约束** — 不做 OpenCode/Codex 平台的同步修改或优化，除非用户明确说明要开始维护对应平台
 18. **产物目录规范** — 临时产物统一放入 `docs/tmp/`，智能体正式产出按 Gate 存入 `docs/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`
+19. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
 
 ## 🚀 发布流程（每次变更完成后必须执行）
 
@@ -183,25 +184,48 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 | **探索** | `find-docs` `find-skills` |
 | **工具** | `mcp-builder` |
 
+## 文档驱动体系
+
+每个子智能体完成任务后必须产出相应文档：
+
+### 实现类 Agent（-dev-expert / -api-expert / -logic-expert / -data-expert / -ui-expert / -state-expert / 平台全栈）
+- 产出 `<TASK-ID>-completion.md` 自查报告：完成标准逐项核查、未覆盖边缘情况、已知技术债务
+- 存放路径：`docs/<YYYY>-<MM>-<DD>/implementation/`
+
+### 关键流程 Agent（planner / task-design / skill-assignment-expert / external-resource-expert）
+- 产出对应阶段的正式文档即为完成文档（无需额外自查报告）
+
+### 审查类 Agent
+- 产出审查报告（含 findings + 严重度分级）即为完成文档
+- 存放路径：`docs/<YYYY>-<MM>-<DD>/review/`
+
+### 测试类 Agent
+- 产出测试报告（通过/失败清单 + 覆盖率）即为完成文档
+- 存放路径：`docs/<YYYY>-<MM>-<DD>/testing/`
+
+### 特殊 Agent
+- docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
+- browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
+
 ## 智能体体系
 
 ### 实现类
 `frontend-implementer` `frontend-ui-worker` `frontend-state-worker` `frontend-test-worker` `backend-implementer` `backend-api-worker` `backend-service-worker` `backend-data-worker` `backend-test-worker` `taro-worker` `taro-ui-worker` `taro-state-worker` `android-worker` `android-ui-worker` `android-state-worker` `ios-worker` `ios-ui-worker` `ios-state-worker` `react-native-worker` `rn-ui-worker` `rn-state-worker` `flutter-worker` `flutter-ui-worker` `flutter-state-worker`
 
 ### 测试类
-`browser-test-worker` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `fix-retest` `api-test-expert`
+`browser-test-worker` `browser-use-expert` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `api-test-expert` `remediation-expert`
 
 ### 规划评审类
-`task-design` `planner` `review-qa`
+`task-design` `planner` `review-qa` `skill-assignment-expert`
 
 ### 审查类
-`diff-code-reviewer` `project-audit-reviewer` `performance-audit-reviewer` `security-auditor` `post-change-reviewer` `remediation-planner` `remediation-worker`
+`diff-code-reviewer` `project-audit-reviewer` `performance-audit-reviewer` `security-auditor` `post-change-reviewer`
 
 ### 架构/专家类
 `algorithm-expert` `frontend-architect` `backend-architect` `database-specialist`
 
 ### 探索/支撑类
-`repo-explorer` `docs-researcher` `api-docs-worker` `infra-worker`
+`repo-explorer` `external-resource-expert` `api-docs-worker` `docs-engineer` `infra-worker`
 
 ### 编排主控类（OpenCode Primary）
 `jarvis` `frontend` `backend` `android` `ios` `flutter` `expo` `taro` `review-only` `review-fix-optimize`

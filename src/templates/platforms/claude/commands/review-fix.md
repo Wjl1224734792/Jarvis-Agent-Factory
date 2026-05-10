@@ -27,7 +27,7 @@ allowed-tools: Read, Glob, Grep, Bash, WebFetch, WebSearch, Agent, Edit, Write
 
    ### **阶段二：修复/优化规划**（不可绕过）
    - 将 findings 转为可执行修复计划，标注修复顺序、责任方、共享区域唯一责任方
-   - 可调用 `remediation-planner` Agent 辅助规划
+   - 可调用 `remediation-expert` Agent 辅助规划
 
    ### **阶段三：执行**（不可绕过）
    - 按计划顺序或并发执行；共享区域必须唯一责任方，不得多个 Agent 同时修改

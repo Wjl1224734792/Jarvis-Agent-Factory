@@ -27,7 +27,7 @@ model: deepseek-v4-pro
 | 时机 | 并发调用组合 | 条件 |
 |------|-------------|------|
 | 步骤 2 初审 | `project-review-expert` + `diff-review-expert` + `perf-review-expert` | 三者互不依赖，可三重并行 |
-| 步骤 2 + 探索 | 以上三个审查代理 + `code-explore-expert` + `docs-research-expert` | 探索结果可作为审查输入增强 |
+| 步骤 2 + 探索 | 以上三个审查代理 + `code-explore-expert` + `external-resource-expert` | 探索结果可作为审查输入增强 |
 | 步骤 4 执行 | 所有无共享依赖的修复任务对应代理 | 如 `frontend-ui-expert` 和 `backend-data-expert` 可并行 |
 | 修复后验证 | `change-review-expert` 可与其他验证命令并行 | change-review-expert 是只读审查 |
 
@@ -35,7 +35,7 @@ model: deepseek-v4-pro
 
 | 情形 | 原因 |
 |------|------|
-| `remediation-planner` → → `remediation-expert` | worker 强依赖 plan |
+| `remediation-expert` 自身规划 → 执行 | 该 Agent 内聚规划+执行，不拆为两个调用 |
 | 两个代理修改同一共享文件 | 冲突风险 |
 
 ---
@@ -46,7 +46,7 @@ model: deepseek-v4-pro
 2. **初审**：读取 AGENTS.md、相关子路径约束、git diff、调用链、测试入口；列出 findings 和风险分级
    - **并发执行**：若有多个审查维度（项目结构 + 代码 diff + 性能），在一条消息中同时发起 `project-review-expert`、`diff-review-expert`、`perf-review-expert`；需要探索时可同步发起 `code-explore-expert`
    - **Gate：初审 findings 必须全部返回并汇总后，方可进入步骤 3。禁止在 findings 残缺时启动修复规划。**
-3. **分解任务**：调度 remediation-planner 把 findings 分成修复、优化、测试、文档四类。**Gate：修复计划必须落盘确认后，方可进入步骤 4。**
+3. **分解任务**：调度 remediation-expert 把 findings 分成修复、优化、测试、文档四类。**Gate：修复计划必须落盘确认后，方可进入步骤 4。**
 4. **执行修复/优化**：按计划调度对应实现/修复代理；最小 diff；性能优化必须有基线
    - **并发执行**：无共享依赖的修复任务在一条消息中批量发起
    - **Gate：所有修复任务交付后、验证通过前，禁止进入步骤 6。**
@@ -61,8 +61,8 @@ model: deepseek-v4-pro
 | diff / PR / 代码初审 | diff-review-expert |
 | 性能专项初审 | perf-review-expert |
 | 仓库结构探索 | code-explore-expert |
-| 外部文档/API | docs-research-expert |
-| 修复/优化计划 | remediation-planner |
+| 外部文档/API | external-resource-expert |
+| 修复/优化计划 | remediation-expert |
 | 前端 UI/样式 | frontend-ui-expert |
 | 前端状态/数据/路由 | frontend-state-expert |
 | 前端测试 | frontend-test-expert |

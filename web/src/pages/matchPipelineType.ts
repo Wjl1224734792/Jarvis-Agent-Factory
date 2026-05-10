@@ -12,11 +12,11 @@ export function matchPipelineType(id: string, type: string): boolean {
     case '全流程':
       return (
         idStartsWith('frontend-') || idStartsWith('backend-') ||
-        ['infra-deploy', 'api-contract',
+        ['infra-deploy', 'api-contract', 'browser-use-expert',
           'qa-review', 'security-review', 'perf-review', 'perf-test',
           'diff-review', 'project-review', 'change-review',
           'test-doc-writer', 'test-executor'].some(n => idStartsWith(n)) ||
-        ['code-explore', 'docs-research', 'remediation'].includes(idLower)
+        ['code-explore', 'remediation'].includes(idLower)
       );
     case '前端':
       return idStartsWith('frontend-');
@@ -25,7 +25,7 @@ export function matchPipelineType(id: string, type: string): boolean {
     case '轻量':
       return (
         idStartsWith('jarvis-lite') ||
-        ['remediation-expert', 'remediation-planner', 'fix-retest']
+        ['remediation-expert']
           .some(n => idLower === n || idStartsWith(n))
       );
     case '移动端':

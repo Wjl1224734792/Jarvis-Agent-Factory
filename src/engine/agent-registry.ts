@@ -63,8 +63,9 @@ const CATEGORY_RULES = [
   { cat: '测试', keys: ['test-expert', 'test-expert', 'e2e-test', 'e2e_test', 'browser-test', 'browser_test', 'perf-test', 'performance-test', 'performance_test'] },
   { cat: '审查', keys: ['review-expert', 'review', 'audit', 'security', 'qa'] },
   { cat: '架构', keys: ['architect', 'algorithm-expert'] },
+  { cat: '浏览器', keys: ['browser-use', 'browser-test'] },
   { cat: '移动端', keys: ['android-dev-expert', 'android-ui', 'android-state', 'ios-dev-expert', 'ios-ui', 'ios-state', 'flutter-dev-expert', 'flutter-ui', 'flutter-state', 'taro-dev-expert', 'taro-ui', 'taro-state', 'react-native-dev-expert', 'react-native-ui', 'react-native-state'] },
-  { cat: '支撑', keys: ['docs-research', 'infra-deploy', 'code-explore-expert', 'api-contract', 'planner', 'task-design', 'remediation'] },
+  { cat: '支撑', keys: ['external-resource', 'infra-deploy', 'code-explore-expert', 'api-contract', 'planner', 'task-design', 'remediation', 'skill-assignment', 'docs-engineer'] },
   { cat: '实现', keys: ['-dev-expert', '-ui-expert', '-state-expert', '-api-expert', '-logic-expert', '-data-expert'] },
 ];
 

@@ -49,10 +49,14 @@ function matchFunctionRole(id: string, role: string): boolean {
       return (
         idIncludes('-test-') ||
         ['test', 'browser-test', 'e2e-test', 'api-test', 'perf-test',
-          'test-doc', 'test-executor', 'fix-retest'].some(n => idLower === n || idStartsWith(n))
+          'test-doc', 'test-executor'].some(n => idLower === n || idStartsWith(n))
       );
     case '架构师':
       return idIncludes('architect') || idLower === 'algorithm-expert';
+    case '浏览器':
+      return idLower.includes('browser-use');
+    case '支撑':
+      return idLower === 'external-resource-expert' || idLower === 'skill-assignment-expert';
     case '专家':
       return idIncludes('expert');
     default:
@@ -257,7 +261,7 @@ export default function Agents() {
             </span>
           </Col>
           <Col>
-            {['all', '编排者', '实现者', '审查者', '测试者', '架构师', '专家'].map(r => (
+            {['all', '编排者', '实现者', '审查者', '测试者', '架构师', '浏览器', '支撑', '专家'].map(r => (
               <Button
                 key={r}
                 size="small"

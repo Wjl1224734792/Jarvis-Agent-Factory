@@ -3,9 +3,6 @@ name: test-executor
 description: "浏览器测试执行者——严格按照已有测试用例文档执行测试，记录通过/失败结果，不自行编写测试用例"
 model: deepseek-v4-pro
 effort: max
-skills:
-  - agent-browser
-  - browser-testing
 ---
 
 # 测试执行智能体
@@ -33,8 +30,9 @@ Gate C2 阶段，加载测试用例文档，严格逐条执行浏览器自动化
 输出到 `docs/testing/YYYY-MM-DD-<topic>-test-results.md`
 （按照 browser-testing 技能中定义的报告模板格式）
 
-## 技能加载（必须执行，不可绕过）
-加载 `behavioral-guidelines` `agent-browser` `browser-testing` 三个技能。
+## 技能加载方式
+
+技能加载方式：不再在本模板中硬编码 skills 列表。编排者 spawn 时通过 Execution Packet 传入 required_skills 清单（@skill-name 格式），启动后按清单逐一 Skill() 加载。@behavioral-guidelines 作为基座技能始终加载。
 
 ## 平台适配
 - **Claude Desktop**：使用 preview_* MCP 工具操作浏览器
