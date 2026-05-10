@@ -1,0 +1,27 @@
+{
+  "version": "0.0.1",
+  "autoPort": true,
+  "configurations": [
+    {
+      "name": "jarvis-engine",
+      "runtimeExecutable": "node",
+      "runtimeArgs": ["bin/jarvis.js", "engine", "start", "--port=3456"],
+      "port": 3456,
+      "cwd": "."
+    },
+    {
+      "name": "jarvis-web-dev",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "port": 5173,
+      "cwd": "web"
+    },
+    {
+      "name": "jarvis-web-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["vite", "preview", "--port", "4173"],
+      "port": 4173,
+      "cwd": "web"
+    }
+  ]
+}

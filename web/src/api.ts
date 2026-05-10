@@ -43,6 +43,60 @@ export interface AgentItem {
   model?: string; effort?: string; is_custom?: boolean;
 }
 
+// ============================================================
+// Agent 状态 / 用量 / 事件类型（TASK-004）
+// ============================================================
+
+export interface AgentStatusResponse {
+  run_id: string;
+  active: string[];
+  completed: string[];
+  failed: string[];
+}
+
+export interface AgentUsageEntry {
+  model: string;
+  calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cache_creation_input_tokens: number;
+  total_cache_read_input_tokens: number;
+}
+
+export interface AgentUsageTotals {
+  calls: number;
+  total_input_tokens: number;
+  total_output_tokens: number;
+  total_cache_creation_input_tokens: number;
+  total_cache_read_input_tokens: number;
+}
+
+export interface AgentUsageResponse {
+  run_id: string;
+  agents: Record<string, AgentUsageEntry>;
+  totals: AgentUsageTotals;
+}
+
+export interface AgentEvent {
+  id: number;
+  run_id: string;
+  session_id: string;
+  agent_id: string;
+  event_type: 'start' | 'end' | 'error';
+  model: string | null;
+  status: 'success' | 'error' | null;
+  input_tokens: number;
+  output_tokens: number;
+  cache_creation_input_tokens: number;
+  cache_read_input_tokens: number;
+  total_tokens: number;
+  error_message: string | null;
+  started_at: string;
+  ended_at: string | null;
+  duration_ms: number | null;
+  created_at: string;
+}
+
 export interface AgentsData {
   agents: AgentItem[];
   available_models: string[];
@@ -127,4 +181,13 @@ export const api = {
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },
+
+  agentStatus: (runId?: string): Promise<AgentStatusResponse> =>
+    fetchJSON(`/api/agent-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
+
+  agentUsage: (runId?: string): Promise<AgentUsageResponse> =>
+    fetchJSON(`/api/agent-usage${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
+
+  agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
+    fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),
 };

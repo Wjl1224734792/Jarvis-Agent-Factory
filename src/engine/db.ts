@@ -155,6 +155,31 @@ function initSchema(db) {
   // ---- Run 置顶迁移 ----
   try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN pinned INTEGER DEFAULT 0"); } catch {}
 
+  // ---- TASK-001: Agent 事件追踪表 ----
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS agent_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      run_id TEXT NOT NULL,
+      session_id TEXT NOT NULL,
+      agent_id TEXT NOT NULL,
+      event_type TEXT NOT NULL CHECK(event_type IN ('start', 'end', 'error')),
+      model TEXT,
+      status TEXT CHECK(status IN ('success', 'error') OR status IS NULL),
+      input_tokens INTEGER DEFAULT 0,
+      output_tokens INTEGER DEFAULT 0,
+      cache_creation_input_tokens INTEGER DEFAULT 0,
+      cache_read_input_tokens INTEGER DEFAULT 0,
+      total_tokens INTEGER GENERATED ALWAYS AS (input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens) VIRTUAL,
+      error_message TEXT,
+      started_at TEXT,
+      ended_at TEXT,
+      duration_ms INTEGER,
+      created_at TEXT DEFAULT (datetime('now'))
+    );
+    CREATE INDEX IF NOT EXISTS idx_agent_events_run ON agent_events(run_id, agent_id, event_type);
+    CREATE INDEX IF NOT EXISTS idx_agent_events_lookup ON agent_events(run_id, agent_id, event_type, started_at);
+  `);
+
   // ----  TASK-001: Gate 进入时间记录 ----
   try { db.exec("ALTER TABLE pipeline_runs ADD COLUMN gate_entered_at TEXT"); } catch {}
 
@@ -470,10 +495,19 @@ export function getArchivedRuns(db) {
  */
 export function deleteRun(db, runId) {
   if (!runId) return { ok: false };
-  // 级联删除关联的 artifacts 记录
-  db.prepare('DELETE FROM artifacts WHERE run_id=?').run(runId);
-  const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
-  return { ok: result.changes > 0 };
+  try {
+    db.exec('BEGIN');
+    // 级联删除关联的 artifacts 记录
+    db.prepare('DELETE FROM artifacts WHERE run_id=?').run(runId);
+    // 级联删除关联的 agent_events 记录
+    db.prepare('DELETE FROM agent_events WHERE run_id=?').run(runId);
+    const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
+    db.exec('COMMIT');
+    return { ok: result.changes > 0 };
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch {}
+    throw e;
+  }
 }
 
 /**
@@ -534,4 +568,189 @@ export function getArtifactsByRun(db, runId) {
  */
 export function getArtifactsByRunAndGate(db, runId, gate) {
   return db.prepare('SELECT * FROM artifacts WHERE run_id=? AND gate=? ORDER BY created_at').all(runId, gate);
+}
+
+// ---- Agent Events（TASK-001：Token 使用追踪）----
+
+/**
+ * 写入 Agent 事件记录。
+ * start 事件：直接写入，tokens=0。
+ * end/error 事件：查找同 agent_id + run_id 最近的 start 事件，计算 duration_ms 并写入。
+ *
+ * @param {DatabaseSync} db
+ * @param {{
+ *   run_id: string;
+ *   session_id: string;
+ *   agent_id: string;
+ *   event_type: 'start' | 'end' | 'error';
+ *   model?: string;
+ *   status?: 'success' | 'error' | null;
+ *   input_tokens?: number;
+ *   output_tokens?: number;
+ *   cache_creation_input_tokens?: number;
+ *   cache_read_input_tokens?: number;
+ *   error_message?: string;
+ * }} params
+ * @returns {{ id: number; total_tokens: number }}
+ */
+export function insertAgentEvent(db, params) {
+  const {
+    run_id, session_id, agent_id, event_type, model,
+    status: statusParam, input_tokens = 0, output_tokens = 0,
+    cache_creation_input_tokens = 0, cache_read_input_tokens = 0,
+    error_message,
+  } = params;
+
+  const now = new Date().toISOString();
+  let started_at = now;
+  let duration_ms: number | null = null;
+
+  // end/error 事件：查找最近的 start 事件计算 duration
+  if (event_type === 'end' || event_type === 'error') {
+    const startRow = db.prepare(`
+      SELECT started_at FROM agent_events
+      WHERE run_id=? AND agent_id=? AND event_type='start'
+      ORDER BY id DESC LIMIT 1
+    `).get(run_id, agent_id);
+
+    if (startRow?.started_at) {
+      started_at = startRow.started_at;
+      const startEpoch = new Date(startRow.started_at).getTime();
+      const endEpoch = new Date(now).getTime();
+      duration_ms = Math.max(0, endEpoch - startEpoch);
+    }
+  }
+
+  const finalStatus = statusParam ?? (
+    event_type === 'end' ? 'success' : event_type === 'error' ? 'error' : null
+  );
+
+  const result = db.prepare(`
+    INSERT INTO agent_events (run_id, session_id, agent_id, event_type, model, status,
+      input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
+      error_message, started_at, ended_at, duration_ms)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `).run(run_id, session_id, agent_id, event_type, model || null, finalStatus,
+    input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
+    error_message || null, started_at, event_type !== 'start' ? now : null, duration_ms);
+
+  return { id: Number(result.lastInsertRowid), total_tokens: input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens };
+}
+
+/**
+ * 查询指定 run 的 Agent 事件列表，可选按 agent_id 过滤。
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} [agentId] 可选过滤
+ * @returns {object[]}
+ */
+export function getAgentEvents(db, runId, agentId?: string) {
+  if (agentId) {
+    return db.prepare(
+      'SELECT * FROM agent_events WHERE run_id=? AND agent_id=? ORDER BY id'
+    ).all(runId, agentId);
+  }
+  return db.prepare(
+    'SELECT * FROM agent_events WHERE run_id=? ORDER BY id'
+  ).all(runId);
+}
+
+/**
+ * 获取指定 run 的 Agent Token 使用统计，按 agent_id + model 分组。
+ * 只统计 end 事件的 token 使用量。
+ *
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{
+ *   run_id: string;
+ *   agents: Record<string, { model: string; calls: number;
+ *     total_input_tokens: number; total_output_tokens: number;
+ *     total_cache_creation_input_tokens: number; total_cache_read_input_tokens: number }>;
+ *   totals: { calls: number; total_input_tokens: number; total_output_tokens: number;
+ *     total_cache_creation_input_tokens: number; total_cache_read_input_tokens: number }
+ * }}
+ */
+export function getAgentUsage(db, runId) {
+  const rows = db.prepare(`
+    SELECT agent_id, model,
+      COUNT(*) as calls,
+      COALESCE(SUM(input_tokens), 0) as total_input_tokens,
+      COALESCE(SUM(output_tokens), 0) as total_output_tokens,
+      COALESCE(SUM(cache_creation_input_tokens), 0) as total_cache_creation_input_tokens,
+      COALESCE(SUM(cache_read_input_tokens), 0) as total_cache_read_input_tokens
+    FROM agent_events
+    WHERE run_id=? AND event_type='end'
+    GROUP BY agent_id, model
+    ORDER BY agent_id
+  `).all(runId);
+
+  const agents = {};
+  let totalCalls = 0;
+  let totalInput = 0;
+  let totalOutput = 0;
+  let totalCacheCreate = 0;
+  let totalCacheRead = 0;
+
+  for (const r of rows) {
+    agents[r.agent_id] = {
+      model: r.model,
+      calls: r.calls,
+      total_input_tokens: r.total_input_tokens,
+      total_output_tokens: r.total_output_tokens,
+      total_cache_creation_input_tokens: r.total_cache_creation_input_tokens,
+      total_cache_read_input_tokens: r.total_cache_read_input_tokens,
+    };
+    totalCalls += r.calls;
+    totalInput += r.total_input_tokens;
+    totalOutput += r.total_output_tokens;
+    totalCacheCreate += r.total_cache_creation_input_tokens;
+    totalCacheRead += r.total_cache_read_input_tokens;
+  }
+
+  return {
+    run_id: runId,
+    agents,
+    totals: {
+      calls: totalCalls,
+      total_input_tokens: totalInput,
+      total_output_tokens: totalOutput,
+      total_cache_creation_input_tokens: totalCacheCreate,
+      total_cache_read_input_tokens: totalCacheRead,
+    },
+  };
+}
+
+/**
+ * 获取指定 run 的 Agent 状态分类（active/completed/failed）。
+ * 通过窗口函数按 agent_id 分组，取每个 agent 的最新事件类型判断状态。
+ *
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ run_id: string; active: string[]; completed: string[]; failed: string[] }}
+ */
+export function getAgentStatus(db, runId) {
+  // 获取每个 agent 在该 run 中的最新事件类型
+  const rows = db.prepare(`
+    SELECT agent_id, event_type
+    FROM agent_events
+    WHERE run_id=? AND id IN (
+      SELECT MAX(id) FROM agent_events WHERE run_id=? GROUP BY agent_id
+    )
+  `).all(runId, runId);
+
+  const active: string[] = [];
+  const completed: string[] = [];
+  const failed: string[] = [];
+
+  for (const r of rows) {
+    if (r.event_type === 'start') {
+      active.push(r.agent_id);
+    } else if (r.event_type === 'end') {
+      completed.push(r.agent_id);
+    } else if (r.event_type === 'error') {
+      failed.push(r.agent_id);
+    }
+  }
+
+  return { run_id: runId, active, completed, failed };
 }

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-  Card, Row, Col, Progress, Tag, Drawer, Modal,
+  Alert, Card, Row, Col, Progress, Tag, Drawer, Modal,
   Button, Empty, Spin, Timeline, Statistic, message,
 } from 'antd';
 import {
@@ -12,6 +12,9 @@ import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
 import { useSessionId } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
+import G6FlowChart from '../components/G6FlowChart';
+import TokenDashboard from '../components/TokenDashboard';
+import { useAgentData } from '../hooks/useAgentData';
 
 // API 返回的 gate 值含 "Gate " 前缀，如 "Gate A"、"Gate C1.5"
 function shortGate(gate: string): string {
@@ -144,6 +147,15 @@ export default function Dashboard() {
   });
   const [helpOpen, setHelpOpen] = useState(false);
 
+  // 从 pipeline 中提取 runId，用于 agent 数据轮询
+  const runId = useMemo(() => {
+    if (!pipeline) return null;
+    // pipeline 的 session_id 即 runId（TASK-002 契约）
+    return sessionId;
+  }, [pipeline, sessionId]);
+
+  const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
+
   const loadData = useCallback(async () => {
     if (!sessionId) return;
     setLoading(true);
@@ -256,6 +268,22 @@ export default function Dashboard() {
           操作指南
         </Button>
       </div>
+
+      {/* G6 流程可视化 */}
+      <div style={{ marginBottom: 16 }}>
+        <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
+          <G6FlowChart
+            runId={runId}
+            agentStatus={agentStatus}
+            pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
+          />
+        </ErrorBoundary>
+      </div>
+
+      {/* Token 消耗统计 */}
+      <ErrorBoundary fallback={<Alert type="error" message="Token 仪表盘 加载失败" showIcon style={{ borderRadius: 12 }} />}>
+        <TokenDashboard runId={runId} agentUsage={agentUsage} loading={agentLoading} />
+      </ErrorBoundary>
 
       {/* 统计卡片 */}
       <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>

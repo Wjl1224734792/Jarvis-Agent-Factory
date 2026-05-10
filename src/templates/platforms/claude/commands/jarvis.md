@@ -158,6 +158,7 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 | 审查 | `qa-review-expert` / `security-review-expert` / `perf-review-expert` |
 | 架构 | `frontend-architect` / `backend-architect` / `database-architect` |
 | 文档 | `api-contract-expert` |
+| 修复 | `remediation-expert` |
 | 探索 | `code-explore-expert` / `external-resource-expert` |
 
 ### 步骤 4：等待整批完成

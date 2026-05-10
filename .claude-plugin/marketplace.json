@@ -1,0 +1,11 @@
+{
+  "plugins": [
+    {
+      "name": "jarvis-visualization",
+      "version": "1.0.0",
+      "description": "Jarvis Agent 实时可视化与 Token 追踪",
+      "source": "project",
+      "path": ".claude/plugins/jarvis-visualization/plugin.json"
+    }
+  ]
+}

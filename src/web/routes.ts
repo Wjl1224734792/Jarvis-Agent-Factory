@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -12,7 +12,7 @@ const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSSE: (_data: any) => Promise<void>; sleep: (_ms: number) => Promise<void> };
 
 /** SSE 客户端集合：存储 { stream, db, root } 引用 */
-let sseClients: SSEClient[] = [];
+export let sseClients: SSEClient[] = [];
 let sseDbRef: any = null;
 let _sseTimer: ReturnType<typeof setInterval> | null = null;
 
@@ -27,6 +27,15 @@ export function broadcastSSE() {
     sessions: sessions.map(s => {
       const p = getPipeline(sseDbRef, s.id);
       const run = getActiveRun(sseDbRef, s.id);
+      // 获取 Agent 状态精简数据（仅 active + 最近 5 个 completed/failed）
+      const status = run?.id ? getAgentStatus(sseDbRef, run.id) : null;
+      const agent_status = status ? {
+        active: status.active,
+        recent_completed: [
+          ...status.completed.map(id => ({ agent_id: id, status: 'success' })),
+          ...status.failed.map(id => ({ agent_id: id, status: 'error' })),
+        ].slice(-5),
+      } : null;
       return {
         id: s.id,
         platform: s.platform,
@@ -39,6 +48,7 @@ export function broadcastSSE() {
         pinned: run?.pinned || 0,
         heartbeat: s.last_heartbeat || null,
         latest_run_started_at: s.latest_run_started_at || null,
+        agent_status,
       };
     }),
     count: sessions.length,
@@ -447,6 +457,90 @@ export function setupApiRoutes(app, db, root) {
 
     const content = readFileSync(resolvedPath, 'utf-8');
     return c.text(content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
+  });
+
+  // ---- Agent 数据查询 API（TASK-002）----
+
+  /** 获取 Agent Token 使用统计 */
+  app.get('/api/agent-usage', (c) => {
+    const runId = c.req.query('run_id');
+    const sessionId = c.req.query('session_id');
+    let resolvedRunId = runId;
+    if (!resolvedRunId) {
+      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
+      const run = getActiveRun(db, sessionId);
+      if (!run) return c.json({ error: 'No active run found for session' }, 404);
+      resolvedRunId = run.id;
+    }
+    const usage = getAgentUsage(db, resolvedRunId);
+    return c.json(usage);
+  });
+
+  /** 获取 Agent 状态分类（active/completed/failed） */
+  app.get('/api/agent-status', (c) => {
+    const runId = c.req.query('run_id');
+    const sessionId = c.req.query('session_id');
+    let resolvedRunId = runId;
+    if (!resolvedRunId) {
+      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
+      const run = getActiveRun(db, sessionId);
+      if (!run) return c.json({ error: 'No active run found for session' }, 404);
+      resolvedRunId = run.id;
+    }
+    const status = getAgentStatus(db, resolvedRunId);
+    return c.json(status);
+  });
+
+  /** 获取 Agent 事件列表 */
+  app.get('/api/agent-events', (c) => {
+    const runId = c.req.query('run_id');
+    if (!runId) return c.json({ error: 'run_id query parameter required' }, 400);
+    const agentId = c.req.query('agent_id');
+    const events = getAgentEvents(db, runId, agentId || undefined);
+    return c.json({ events });
+  });
+
+  /** 写入 Agent 事件 */
+  app.post('/api/agent-event', async (c) => {
+    const body = await c.req.json();
+    const { event, agent_id, run_id, session_id, model,
+      input_tokens, output_tokens, cache_creation_input_tokens,
+      cache_read_input_tokens, status, error_message } = body;
+
+    if (!event || !agent_id) {
+      return c.json({ error: 'event and agent_id required' }, 400);
+    }
+    if (!['start', 'end', 'error'].includes(event)) {
+      return c.json({ error: `Invalid event_type: ${event}. Must be one of: start, end, error` }, 400);
+    }
+    if (!run_id || !session_id) {
+      return c.json({ error: 'run_id and session_id required' }, 400);
+    }
+
+    // 归属验证：确保 run_id 属于当前 session
+    const runCheck = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(run_id);
+    if (!runCheck) {
+      return c.json({ error: `Run not found: ${run_id}` }, 404);
+    }
+    if (runCheck.session_id !== session_id) {
+      return c.json({ error: `Run ${run_id} does not belong to session ${session_id}` }, 403);
+    }
+
+    const result = insertAgentEvent(db, {
+      run_id,
+      session_id,
+      agent_id,
+      event_type: event,
+      model: model || undefined,
+      status: status || undefined,
+      input_tokens: input_tokens || 0,
+      output_tokens: output_tokens || 0,
+      cache_creation_input_tokens: cache_creation_input_tokens || 0,
+      cache_read_input_tokens: cache_read_input_tokens || 0,
+      error_message: error_message || undefined,
+    });
+
+    return c.json({ ok: true, id: result.id, total_tokens: result.total_tokens });
   });
 
   // ---- SSE 事件流 ----

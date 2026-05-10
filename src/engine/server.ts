@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, getAgentUsage, getAgentStatus } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -260,6 +260,24 @@ export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
     };
   }
   return { platforms: summary, total_agents: getAgentList(true).length };
+}
+
+/** 模型价格表（美元/百万 token），用于 Agent Token 成本估算 */
+const MODEL_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
+  'claude-sonnet-4-6': { input: 3.00, output: 15.00, cacheWrite: 3.75, cacheRead: 0.30 },
+  'claude-opus-4-7': { input: 15.00, output: 75.00, cacheWrite: 18.75, cacheRead: 1.50 },
+  'claude-haiku-4-5': { input: 1.00, output: 5.00, cacheWrite: 1.25, cacheRead: 0.10 },
+};
+
+/**
+ * 计算单次 Agent 调用的估算成本（美元）。
+ * 未在 MODEL_PRICES 中注册的模型返回 null。
+ */
+function estimateCost(model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens) {
+  const prices = MODEL_PRICES[model];
+  if (!prices) return null;
+  return (inputTokens * prices.input + outputTokens * prices.output
+    + cacheWriteTokens * prices.cacheWrite + cacheReadTokens * prices.cacheRead) / 1_000_000;
 }
 
 /** 注册所有 MCP 工具 */
@@ -676,6 +694,115 @@ function registerMcpTools(server, db, root) {
       const result = resolvePlatformInfo(platform);
       return resp(result);
     });
+
+    // ---- TASK-001: Agent 事件追踪 MCP 工具 ----
+
+    server.tool('agent_event',
+      '记录 Agent 执行事件（start/end/error），用于 Token 追踪与成本估算。start 事件标记 Agent 开始执行，end 事件同时写入 token 用量并自动计算 duration_ms，error 事件记录错误信息。',
+      {
+        event: z.enum(['start', 'end', 'error']).describe('事件类型'),
+        agent_id: z.string().min(1).max(128).regex(/^[a-z0-9-]+$/, 'agent_id 必须为小写字母、数字、连字符组成').describe('Agent 唯一标识'),
+        run_id: z.string().optional().describe('流水线 run ID，不传则使用当前活跃 run'),
+        session_id: z.string().optional().describe('会话 ID，不传则使用当前 MCP 会话'),
+        model: z.string().optional().describe('实际使用的模型 ID'),
+        input_tokens: z.number().int().min(0).optional().describe('输入 token 数'),
+        output_tokens: z.number().int().min(0).optional().describe('输出 token 数'),
+        cache_creation_input_tokens: z.number().int().min(0).optional().describe('缓存写入 token 数'),
+        cache_read_input_tokens: z.number().int().min(0).optional().describe('缓存读取 token 数'),
+        status: z.enum(['success', 'error']).optional().describe('执行状态（end 时默认 success，error 时强制 error）'),
+        error_message: z.string().optional().describe('错误信息（event=error 时推荐传入）'),
+      },
+      async ({ event, agent_id, run_id, session_id, model, input_tokens, output_tokens,
+        cache_creation_input_tokens, cache_read_input_tokens, status, error_message }, extra) => {
+        // 解析 session_id：优先参数传入，其次 MCP 会话
+        const finalSid = session_id || extra?.sessionId || _lastSessionId;
+        if (!finalSid) {
+          return resp({ ok: false, error: 'session_id required. Call session_join first.' });
+        }
+
+        // 解析 run_id：优先参数传入，其次当前活跃 run
+        const finalRunId = run_id || getActiveRun(db, finalSid)?.id;
+        if (!finalRunId) {
+          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
+        }
+
+        // 归属验证：若 run_id 属于其他 session，拒绝写入
+        const run = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(finalRunId);
+        if (!run) {
+          return resp({ ok: false, error: `Run not found: ${finalRunId}` });
+        }
+        if (run.session_id !== finalSid) {
+          return resp({ ok: false, error: `Run ${finalRunId} 不属于当前 session ${finalSid}` });
+        }
+
+        const result = insertAgentEvent(db, {
+          run_id: finalRunId, session_id: finalSid, agent_id,
+          event_type: event, model,
+          input_tokens: input_tokens ?? 0,
+          output_tokens: output_tokens ?? 0,
+          cache_creation_input_tokens: cache_creation_input_tokens ?? 0,
+          cache_read_input_tokens: cache_read_input_tokens ?? 0,
+          status: event === 'error' ? 'error' : (status ?? undefined),
+          error_message,
+        });
+
+        // 计算成本（仅 end 事件且 model 在 MODEL_PRICES 中）
+        let estimated_cost_usd: number | null = null;
+        if (event === 'end' && model) {
+          estimated_cost_usd = estimateCost(model,
+            input_tokens ?? 0, output_tokens ?? 0,
+            cache_creation_input_tokens ?? 0, cache_read_input_tokens ?? 0);
+        }
+
+        return resp({
+          ok: true, id: result.id, total_tokens: result.total_tokens,
+          estimated_cost_usd,
+        });
+      });
+
+    server.tool('agent_usage',
+      '查询指定 run 的 Agent Token 使用统计，按 agent_id+model 分组，含成本估算。DeepSeek 等非 Claude 模型 cost 为 null。',
+      {
+        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
+      },
+      async ({ run_id }, extra) => {
+        const sid = extra?.sessionId || _lastSessionId;
+        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
+        if (!finalRunId) {
+          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
+        }
+
+        const usage = getAgentUsage(db, finalRunId);
+
+        // 为每个 agent 组附加成本估算
+        const enrichedAgents = {};
+        for (const [agentId, group] of Object.entries(usage.agents)) {
+          const g = group as { model: string; calls: number; total_input_tokens: number;
+            total_output_tokens: number; total_cache_creation_input_tokens: number;
+            total_cache_read_input_tokens: number };
+          const cost = estimateCost(g.model, g.total_input_tokens, g.total_output_tokens,
+            g.total_cache_creation_input_tokens, g.total_cache_read_input_tokens);
+          enrichedAgents[agentId] = { ...g, estimated_cost_usd: cost };
+        }
+
+        return resp({ ...usage, agents: enrichedAgents });
+      });
+
+    server.tool('agent_status',
+      '查询指定 run 的 Agent 状态分类（active/completed/failed），快速了解当前各 Agent 执行进度。',
+      {
+        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
+      },
+      async ({ run_id }, extra) => {
+        const sid = extra?.sessionId || _lastSessionId;
+        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
+        if (!finalRunId) {
+          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
+        }
+
+        const status = getAgentStatus(db, finalRunId);
+        return resp(status);
+      });
 }
 
 /** 启动独立 Web 面板（需先启动引擎） */
