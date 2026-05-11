@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Alert, Card, Row, Col, Progress, Tag, Modal,
+  Alert, Card, Progress, Tag, Modal,
   Button, Empty, Spin, Timeline, Statistic, message,
 } from 'antd';
 import {
@@ -31,14 +31,17 @@ const GATE_COLORS: Record<string, string> = {
 };
 
 const GATE_LABELS: Record<string, string> = {
-  A: '需求澄清', B: '任务分解', B1: '架构评审', C: '执行规划',
+  A: '需求澄清', 'B-DDD': '领域分析', 'B-BDD': '行为驱动', 'B-TDD': '测试任务',
+  B1: '架构评审', C: '执行规划',
   'C-impl': '并行实现', C1: '代码质量', 'C1.5': '视觉验证', C2: '测试验证',
   D: '评审', E: '发布上线',
 };
 
 const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate A': '至少1个需求文档，含REQ-XXX编号',
-  'Gate B': '每个TASK-XXX映射至少1个REQ-XXX',
+  'Gate B-DDD': 'DDD领域分析：聚合/实体/值对象/领域服务',
+  'Gate B-BDD': 'BDD行为场景：Gherkin Given/When/Then',
+  'Gate B-TDD': 'TDD任务包：Red→Green→Refactor',
   'Gate B1': '架构评审通过（涉及架构变更时）',
   'Gate C': '计划文档含parallel_batches+Execution Packet',
   'Gate C-impl': '所有Batch实现完成，实现Agent已返回结果',
@@ -326,7 +329,10 @@ export default function Dashboard() {
       </div>
 
       {/* ── 统计卡片（含 Token 数据）── */}
-      <Row gutter={[6, 6]} style={{ marginBottom: 10, flexShrink: 0 }}>
+      <div style={{
+        display: 'flex', flexWrap: 'wrap', gap: 6,
+        marginBottom: 10, flexShrink: 0,
+      }}>
         {[
           { title: 'Token 消耗', value: formatTokens(tokenStats.total), suffix: '', color: tokenStats.total > 0 ? 'var(--ant-color-primary)' : 'var(--ant-color-text)' },
           { title: '预估成本', value: tokenStats.cost > 0 ? `$${tokenStats.cost.toFixed(3)}` : '-', suffix: '', color: 'var(--ant-color-primary)' },
@@ -336,14 +342,14 @@ export default function Dashboard() {
           { title: '产物文件', value: totalArtifacts, suffix: '个', color: 'var(--ant-color-primary)' },
           { title: '总耗时', value: durationDisplay, suffix: '', color: 'var(--ant-color-primary)' },
         ].map((stat, i) => (
-          <Col xs={8} sm={6} md={4} lg={Math.floor(24 / 7)} key={i} style={{ flex: 1 }}>
-            <Card size="small" style={{ borderRadius: 14 }}>
-              <Statistic title={stat.title} value={stat.value} suffix={stat.suffix}
-                styles={{ content: { color: stat.color, fontSize: 20 } }} />
-            </Card>
-          </Col>
+          <Card key={i} size="small" style={{
+            flex: '1 1 0', minWidth: 120, borderRadius: 14,
+          }}>
+            <Statistic title={stat.title} value={stat.value} suffix={stat.suffix}
+              styles={{ content: { color: stat.color, fontSize: 20 } }} />
+          </Card>
         ))}
-      </Row>
+      </div>
 
       {/* ── 内容区：中间 + 右侧栏 ── */}
       <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden', minHeight: 0 }}>
@@ -426,10 +432,10 @@ export default function Dashboard() {
                 const isCurrent = g.gate === currentGate;
                 return {
                   color: passed ? 'var(--ant-color-success)' : isCurrent ? 'var(--ant-color-primary)' : 'var(--ant-color-text)',
-                  dot: passed ? <CheckCircleOutlined style={{ fontSize: 14 }} /> :
+                  icon: passed ? <CheckCircleOutlined style={{ fontSize: 14 }} /> :
                        isCurrent ? <LoadingOutlined style={{ fontSize: 14 }} /> :
                        <ClockCircleOutlined style={{ fontSize: 14 }} />,
-                  children: (
+                  content: (
                     <div
                       onClick={() => {
                         const firstMd = (g.artifacts || []).find((a: string) => a.endsWith('.md'));
@@ -516,10 +522,10 @@ export default function Dashboard() {
       {/* 帮助弹窗 */}
       <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={400}>
         <Timeline items={[
-          { color: 'var(--ant-color-primary)', children: <strong>启动任务</strong> },
-          { color: 'var(--ant-color-primary)', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
-          { color: 'var(--ant-color-primary)', children: <strong>等待 Gate 通过</strong> },
-          { color: 'var(--ant-color-primary)', children: '每个 Gate 完成后自动推进，点击文件标签可查看产物文档' },
+          { color: 'var(--ant-color-primary)', content: <strong>启动任务</strong> },
+          { color: 'var(--ant-color-primary)', content: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
+          { color: 'var(--ant-color-primary)', content: <strong>等待 Gate 通过</strong> },
+          { color: 'var(--ant-color-primary)', content: '每个 Gate 完成后自动推进，点击文件标签可查看产物文档' },
         ]} />
       </Modal>
     </div>

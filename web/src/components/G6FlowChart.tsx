@@ -8,20 +8,35 @@ import type { AgentStatusResponse, AgentUsageResponse } from '../api';
 // ============================================================
 
 const GATE_SEQUENCE = [
-  'Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl',
+  'Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD',
+  'Gate B1', 'Gate C', 'Gate C-impl',
   'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E',
 ] as const;
 
 const GATE_LABELS: Record<string, string> = {
-  'Gate A': '需求澄清', 'Gate B': '任务分解', 'Gate B1': '架构评审',
+  'Gate A': '需求澄清', 'Gate B-DDD': '领域分析', 'Gate B-BDD': '行为驱动', 'Gate B-TDD': '测试任务',
+  'Gate B1': '架构评审',
   'Gate C': '执行规划', 'Gate C-impl': '并行实现', 'Gate C1': '代码质量',
   'Gate C1.5': '视觉验证', 'Gate C2': '测试验证', 'Gate D': '审查签核', 'Gate E': '发布上线',
 };
 
 const GATE_EDGES: [string, string][] = [
-  ['Gate A', 'Gate B'], ['Gate B', 'Gate B1'], ['Gate B1', 'Gate C'],
-  ['Gate C', 'Gate C-impl'], ['Gate C-impl', 'Gate C1'], ['Gate C1', 'Gate C1.5'],
-  ['Gate C1.5', 'Gate C2'], ['Gate C2', 'Gate D'], ['Gate D', 'Gate E'],
+  ['Gate A', 'Gate B-DDD'],
+  ['Gate B-DDD', 'Gate B-BDD'],
+  ['Gate B-BDD', 'Gate B-TDD'],
+  ['Gate B-TDD', 'Gate B1'],
+  ['Gate B1', 'Gate C'],
+  ['Gate C', 'Gate C-impl'],
+  ['Gate C-impl', 'Gate C1'],
+  ['Gate C1', 'Gate C1.5'],
+  ['Gate C1.5', 'Gate C2'],
+  ['Gate C2', 'Gate D'],
+  ['Gate D', 'Gate E'],
+];
+
+/** 条件跳过边：B-DDD 可直接跳到 B-TDD（当 B-BDD 被跳过时） */
+const GATE_SKIP_EDGES: [string, string][] = [
+  ['Gate B-DDD', 'Gate B-TDD'],
 ];
 
 // ============================================================
@@ -178,7 +193,16 @@ export default function G6FlowChart({ runId, agentStatus, agentUsage, pipelineGa
     }
 
     const allNodes = [...gateNodes, ...agentNodes];
-    const allEdges = [...GATE_EDGES.map(([s, t]) => ({ id: `${s}->${t}`, source: s, target: t })), ...agentEdges];
+    const allEdges = [
+      ...GATE_EDGES.map(([s, t]) => ({ id: `${s}->${t}`, source: s, target: t })),
+      ...GATE_SKIP_EDGES.map(([s, t]) => ({
+        id: `${s}->${t}-skip`,
+        source: s,
+        target: t,
+        style: { lineDash: [6, 4], stroke: token.colorTextQuaternary, lineWidth: 1 },
+      })),
+      ...agentEdges,
+    ];
 
     graph.setData({ nodes: allNodes, edges: allEdges });
     graph.render();
@@ -279,4 +303,4 @@ export default function G6FlowChart({ runId, agentStatus, agentUsage, pipelineGa
   );
 }
 
-export { GATE_SEQUENCE, GATE_LABELS };
+export { GATE_SEQUENCE, GATE_LABELS, GATE_SKIP_EDGES };

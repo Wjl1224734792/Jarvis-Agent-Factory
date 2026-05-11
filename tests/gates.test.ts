@@ -2,16 +2,21 @@ import { describe, it, expect } from 'vitest';
 import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE } from '../src/engine/gates.js';
 
 describe('getPipelineGates', () => {
-  it('返回 full 类型的 10 个 Gate（含 B1 和 C-impl）', () => {
-    expect(getPipelineGates('full')).toHaveLength(10);
+  it('返回 full 类型的 12 个 Gate（含 B-DDD/B-BDD/B-TDD/B1/C-impl）', () => {
+    expect(getPipelineGates('full')).toHaveLength(12);
+    expect(getPipelineGates('full')).toContain('Gate B-DDD');
+    expect(getPipelineGates('full')).toContain('Gate B-BDD');
+    expect(getPipelineGates('full')).toContain('Gate B-TDD');
     expect(getPipelineGates('full')).toContain('Gate B1');
     expect(getPipelineGates('full')).toContain('Gate C-impl');
   });
 
-  it('返回 backend 类型的 9 个 Gate（跳过 C1.5）', () => {
+  it('返回 backend 类型的 11 个 Gate（跳过 C1.5）', () => {
     const gates = getPipelineGates('backend');
-    expect(gates).toHaveLength(9);
+    expect(gates).toHaveLength(11);
     expect(gates).not.toContain('Gate C1.5');
+    expect(gates).toContain('Gate B-DDD');
+    expect(gates).toContain('Gate B-TDD');
     expect(gates).toContain('Gate B1');
     expect(gates).toContain('Gate C-impl');
   });
@@ -22,7 +27,7 @@ describe('getPipelineGates', () => {
 
   it('lite 模式允许 jump', () => {
     expect(PIPELINE_DEFS.lite.allow_jump).toBe(true);
-    expect(getPipelineGates('lite')).toHaveLength(10);
+    expect(getPipelineGates('lite')).toHaveLength(12);
   });
 });
 
@@ -45,6 +50,15 @@ describe('getGateOperations', () => {
     expect(ops.allow).toContain('read');
     expect(ops.allow).toContain('write_doc');
     expect(ops.deny).toContain('write_code');
+  });
+
+  it('Gate B-DDD 允许 read + write_doc + spawn_impl，禁止 write_code', () => {
+    const ops = getGateOperations('Gate B-DDD');
+    expect(ops.allow).toContain('read');
+    expect(ops.allow).toContain('write_doc');
+    expect(ops.allow).toContain('spawn_impl');
+    expect(ops.deny).toContain('write_code');
+    expect(ops.deny).toContain('build');
   });
 
   it('Gate B1 允许 read + write_doc + sweep_arch，禁止 spawn_impl', () => {
@@ -77,12 +91,29 @@ describe('GATE_OPERATIONS', () => {
     }
   });
 
-  it('共 10 个 Gate 有操作定义', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(10);
+  it('共 12 个 Gate 有操作定义', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(12);
   });
 });
 
 describe('GATE_AGENT_GUIDE', () => {
+  it('Gate B-DDD 可 spawn task-design（DDD模式）', () => {
+    const guide = GATE_AGENT_GUIDE['Gate B-DDD'];
+    expect(guide.can_spawn).toContain('task-design');
+    expect(guide.note).toContain('DDD');
+  });
+
+  it('Gate B-BDD 可 spawn task-design（BDD模式）', () => {
+    const guide = GATE_AGENT_GUIDE['Gate B-BDD'];
+    expect(guide.can_spawn).toContain('task-design');
+    expect(guide.note).toContain('BDD');
+  });
+
+  it('Gate B-TDD 可 spawn task-design（TDD模式）', () => {
+    const guide = GATE_AGENT_GUIDE['Gate B-TDD'];
+    expect(guide.can_spawn).toContain('task-design');
+    expect(guide.note).toContain('TDD');
+  });
   it('Gate B1 可 spawn 4 个架构 Agent', () => {
     const guide = GATE_AGENT_GUIDE['Gate B1'];
     expect(guide.can_spawn).toContain('frontend-architect');
@@ -125,7 +156,9 @@ describe('MAX_RETRY', () => {
   });
 
   it('大多数 Gate 最多 2 次重试', () => {
-    expect(MAX_RETRY['Gate B']).toBe(2);
+    expect(MAX_RETRY['Gate B-DDD']).toBe(2);
+    expect(MAX_RETRY['Gate B-BDD']).toBe(2);
+    expect(MAX_RETRY['Gate B-TDD']).toBe(2);
     expect(MAX_RETRY['Gate B1']).toBe(2);
     expect(MAX_RETRY['Gate C2']).toBe(2);
     expect(MAX_RETRY['Gate D']).toBe(2);
@@ -133,12 +166,20 @@ describe('MAX_RETRY', () => {
 });
 
 describe('GATE_ENTRY_CONDITIONS', () => {
-  it('Gate B 入口条件包含需求文档', () => {
-    expect(GATE_ENTRY_CONDITIONS['Gate B']).toContain('需求文档');
+  it('Gate B-DDD 入口条件包含需求文档', () => {
+    expect(GATE_ENTRY_CONDITIONS['Gate B-DDD']).toContain('需求文档');
   });
 
-  it('Gate B1 入口条件包含任务文档', () => {
-    expect(GATE_ENTRY_CONDITIONS['Gate B1']).toContain('任务文档');
+  it('Gate B-BDD 入口条件包含领域分析', () => {
+    expect(GATE_ENTRY_CONDITIONS['Gate B-BDD']).toContain('领域分析');
+  });
+
+  it('Gate B-TDD 入口条件包含场景文档', () => {
+    expect(GATE_ENTRY_CONDITIONS['Gate B-TDD']).toContain('场景文档');
+  });
+
+  it('Gate B1 入口条件包含 TDD任务包', () => {
+    expect(GATE_ENTRY_CONDITIONS['Gate B1']).toContain('TDD任务包');
   });
 
   it('Gate C-impl 入口条件包含计划文档', () => {

@@ -14,22 +14,22 @@ export const PIPELINE_DEFS = {
   /** 全流程编排（默认）：需求→任务→计划→实现→质量→测试→评审→发布 */
   full: {
     name: '全流程',
-    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 前端开发流程：同全流程但仅使用前端代理 */
   frontend: {
     name: '前端开发',
-    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 后端开发流程：跳过了 C1.5（视觉验证） */
   backend: {
     name: '后端开发',
-    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C2', 'Gate D', 'Gate E'],
   },
   /** 轻量编排水：支持 Gate 入口跳转，按任务类型智能跳过无关闸门 */
   lite: {
     name: '轻量编排',
-    gates: ['Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
+    gates: ['Gate A', 'Gate B-DDD', 'Gate B-BDD', 'Gate B-TDD', 'Gate B1', 'Gate C', 'Gate C-impl', 'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E'],
     allow_jump: true,
   },
 };
@@ -51,10 +51,13 @@ export function getPipelineName(type) {
   return def ? def.name : (type || DEFAULT_PIPELINE);
 }
 
-export const GATE_DIRS = { 'Gate A':'requirements','Gate B':'tasks','Gate B1':'architecture','Gate C':'plans','Gate C-impl':'implementation','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
+export const GATE_DIRS = { 'Gate A':'requirements','Gate B-DDD':'tasks','Gate B-BDD':'tasks','Gate B-TDD':'tasks','Gate B1':'architecture','Gate C':'plans','Gate C-impl':'implementation','Gate C1':'implementation','Gate C1.5':'implementation','Gate C2':'testing','Gate D':'review','Gate E':'shipping' };
 
 export const GATE_CHECKS = {
-  'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},'Gate B':{check:'每个TASK-XXX映射至少1个REQ-XXX'},
+  'Gate A':{check:'至少1个需求文档，含REQ-XXX编号'},
+  'Gate B-DDD':{check:'DDD领域分析文档已产出，含聚合/实体/值对象/领域服务/聚合行为清单及路由建议'},
+  'Gate B-BDD':{check:'BDD场景文档已产出（或编排者确认无高业务价值聚合行为需BDD验收而跳过）'},
+  'Gate B-TDD':{check:'TDD任务包已产出，每个TASK-XXX映射至少1个REQ-XXX，DDD/TDD分类完整'},
   'Gate B1':{check:'架构评审通过，架构方案文档已产出（涉及前端/后端/数据库/算法的领域均有评审文档）'},
   'Gate C':{check:'计划文档含parallel_batches+Execution Packet'},'Gate C-impl':{check:'所有Batch实现完成，实现Agent已返回结果'},
   'Gate C1':{check:'Lint+Type-check+Build+Deps Audit全部通过'},
@@ -82,9 +85,11 @@ export const GATE_CHECKS = {
  *   fix        — 修复（质量/测试/审查反馈驱动）
  */
 export const GATE_OPERATIONS = {
-  'Gate A':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  'Gate B':    { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
-  'Gate B1':   { allow: ['read','write_doc','sweep_arch'],                deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate A':      { allow: ['read','write_doc'],                            deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
+  'Gate B-DDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'Gate B-BDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'Gate B-TDD':  { allow: ['read','write_doc','spawn_impl'],               deny: ['write_code','spawn_test','build','deploy'] },
+  'Gate B1':     { allow: ['read','write_doc','sweep_arch'],               deny: ['write_code','spawn_impl','spawn_test','build','deploy'] },
   'Gate C':    { allow: ['read','write_doc','sweep_arch','write_code','spawn_impl'], deny: ['spawn_test','build','deploy'] },
   'Gate C-impl': { allow: ['read','write_code','spawn_impl'],             deny: ['spawn_test','build','deploy'] },
   'Gate C1':   { allow: ['read','lint','build','fix'],                   deny: ['spawn_impl','spawn_test','deploy','write_code'] },
@@ -107,7 +112,9 @@ export function getGateOperations(gate) {
  */
 export const GATE_AGENT_GUIDE = {
   'Gate A':    { can_spawn: ['code-explore-expert', 'external-resource-expert'], note: '需求澄清阶段，只探索和写文档' },
-  'Gate B':    { can_spawn: ['task-design'], note: '任务分解阶段，spawn task-design 做垂直切片' },
+  'Gate B-DDD': { can_spawn: ['task-design'], note: '领域驱动分析——spawn task-design (DDD模式) 产出聚合/实体/值对象/领域服务列表及路由建议' },
+  'Gate B-BDD': { can_spawn: ['task-design'], note: '行为驱动——spawn task-design (BDD模式) 为高业务价值聚合行为编写Gherkin场景；纯技术逻辑时编排者可跳过此Gate' },
+  'Gate B-TDD': { can_spawn: ['task-design'], note: '测试驱动任务——spawn task-design (TDD模式) 产出TDD任务包，每个TASK映射REQ+场景' },
   'Gate B1':   { can_spawn: ['frontend-architect', 'backend-architect', 'database-architect', 'algorithm-expert'], note: '架构评审——按变更范围选择对应架构师，产出架构方案文档' },
   'Gate C':    { can_spawn: ['planner', 'skill-assignment-expert'], note: '执行规划——spawn planner 产出 parallel_batches 和执行计划；spawn skill-assignment-expert 为子 Agent 分配技能清单' },
   'Gate C-impl': { can_spawn: ['frontend-dev-expert', 'frontend-ui-expert', 'frontend-state-expert', 'backend-dev-expert', 'backend-api-expert', 'backend-logic-expert', 'backend-data-expert', 'remediation-expert'], note: '批量实现——按parallel_batches并行spawn实现Agent；修复回退时spawn remediation-expert' },
@@ -126,7 +133,9 @@ export function getGateAgentGuide(gate) {
 /** 每个 Gate 的最大重试循环次数 */
 export const MAX_RETRY = {
   'Gate A': Infinity,
-  'Gate B': 2,
+  'Gate B-DDD': 2,
+  'Gate B-BDD': 2,
+  'Gate B-TDD': 2,
   'Gate B1': 2,
   'Gate C': 2,
   'Gate C-impl': 3,
@@ -139,8 +148,10 @@ export const MAX_RETRY = {
 
 /** 各个 Gate 的入口条件检查 */
 export const GATE_ENTRY_CONDITIONS = {
-  'Gate B': 'Gate A 需求文档已产出',
-  'Gate B1': 'Gate B 任务文档已产出',
+  'Gate B-DDD': 'Gate A 需求文档已产出',
+  'Gate B-BDD': 'Gate B-DDD 领域分析已产出（含聚合行为路由建议）',
+  'Gate B-TDD': 'Gate B-BDD 场景文档已产出（或编排者确认跳过）',
+  'Gate B1': 'Gate B-TDD TDD任务包已产出',
   'Gate C': 'Gate B1 架构评审通过（或确认无需架构评审）',
   'Gate C-impl': 'Gate C 执行计划已产出',
   'Gate C1': 'Gate C-impl 实现代码已提交',

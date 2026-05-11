@@ -35,7 +35,7 @@ effort: high
 ## 流水线配置
 
 - **pipeline_type**: `full`
-- **Gate 序列**: A → B → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（10 道闸门）
+- **Gate 序列**: A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（13 道闸门）
 - **可用代理**: 全部 47 个 agent（前端/后端/移动端/测试/审查/架构/专家/文档/基础设施）
 - **典型 Batch 结构**:
   ```
@@ -73,15 +73,38 @@ Gate A 通过后可并行探索（按项目复杂程度决定并发数）：
 
 ---
 
-## Gate B：任务分解
+## Gate B：任务分解（DDD → BDD → TDD 三级递进）
 
-**目标**：每个 TASK-XXX 映射至少 1 个 REQ-XXX，DDD/TDD 分类完整
+### Gate B-DDD：领域驱动分析
+
+**目标**：DDD 领域分析文档，含聚合/实体/值对象/领域服务列表+路由建议
 
 **流程**：
-1. `spawn task-design` Agent，传入需求文档路径
-   **引擎验证**：spawn 前 `gate_check({ operation: "write_doc" })` 确认 Gate B 允许任务分解
+1. `spawn task-design` Agent（DDD 模式），传入需求文档路径
+2. 产出：`docs/tasks/YYYY-MM-DD-<topic>-ddd.md`
+3. 验证：所有聚合行为有路由建议（→BDD 或 →TDD）
+
+**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B-BDD" })`
+
+### Gate B-BDD：行为驱动（条件性）
+
+**触发条件**：DDD 产出中存在"高业务价值/复杂规则/需验收"的聚合行为。若无此类行为（全部纯技术逻辑），编排者可跳过此 Gate。
+
+**流程**：
+1. `spawn task-design` Agent（BDD 模式），传入 DDD 文档 + 高价值聚合行为列表
+2. 产出：`docs/tasks/YYYY-MM-DD-<topic>-bdd.md`
+3. 验证：每个聚合行为至少 1 个 Happy Path + 1 个异常场景
+
+**引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B-TDD" })`
+
+### Gate B-TDD：测试驱动任务分解
+
+**目标**：TDD 任务包，每个 TASK 映射 REQ + BDD 场景
+
+**流程**：
+1. `spawn task-design` Agent（TDD 模式），传入 BDD 场景 或 纯技术需求
 2. 产出：`docs/tasks/YYYY-MM-DD-<topic>-tasks.md`
-3. 验证：所有 TASK 有 REQ 映射、无水平切片、粒度合理
+3. 验证：所有 TASK 有 REQ 映射、DDD/TDD 分类完整、无水平切片
 
 **引擎验证**：`gate_enforce` → `advance_gate({ gate: "Gate B1" })`
 
@@ -153,6 +176,7 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 | 后端 API | `backend-api-expert` |
 | 后端业务 | `backend-logic-expert` |
 | 后端数据 | `backend-data-expert` |
+| 任务分解 | `task-design`（DDD模式/BDD模式/TDD模式） |
 | 移动端 | `android-dev-expert` / `ios-dev-expert` / `flutter-dev-expert` / `taro-dev-expert` / `react-native-dev-expert` |
 | 测试 | `frontend-test-expert` / `backend-test-expert` / `e2e-test-expert` / `browser-test-expert` |
 | 审查 | `qa-review-expert` / `security-review-expert` / `perf-review-expert` |

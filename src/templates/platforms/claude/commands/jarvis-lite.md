@@ -44,7 +44,7 @@ argument-hint: [任务描述]
 
 ```
 Gate A（轻量需求澄清，3 轮对话内确认）
-  ↓ 跳过 Gate B（不做任务分解）
+  ↓ 跳过 Gate B-DDD/B-BDD/B-TDD（不做任务分解）
 Gate C（直接实现，至多 2 个 Agent 并行）
   ↓
 Gate C1（代码质量：Lint + Build）
@@ -95,7 +95,7 @@ Gate E:
 
 | 维度 | `/jarvis` | `/jarvis-lite` |
 |------|----------|----------------|
-| Gate 序列 | A→B→B1→C→C-impl→C1→C1.5→C2→D→E 全部 | 按任务类型跳过无关 Gate |
+| Gate 序列 | A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C1.5→C2→D→E 全部 | 按任务类型跳过无关 Gate（lite 跳过 B-DDD/B-BDD/B-TDD，直接从 A 或 C 起步） |
 | 需求文档 | 必须 | 从 Gate A 起步时可选；其他入口跳过 |
 | 任务分解 | 必须 spawn task-design | 跳过 |
 | 架构评审 | 条件性必须 | 仅新技术栈时触发 |
