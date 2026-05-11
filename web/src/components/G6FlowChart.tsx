@@ -1,10 +1,10 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { theme, Tag } from 'antd';
+import { theme } from 'antd';
 import { Graph } from '@antv/g6';
 import type { AgentStatusResponse } from '../api';
 
 // ============================================================
-// Gate 节点定义
+// Gate 定义
 // ============================================================
 
 const GATE_SEQUENCE = [
@@ -35,7 +35,7 @@ interface G6FlowChartProps {
 }
 
 // ============================================================
-// G6FlowChart 组件
+// 组件
 // ============================================================
 
 export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6FlowChartProps) {
@@ -44,7 +44,9 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
   const graphRef = useRef<Graph | null>(null);
   const destroyedRef = useRef(false);
   const [containerWidth, setContainerWidth] = useState(0);
+  const prevAgentIds = useRef<Set<string>>(new Set());
 
+  // Gate 状态
   const gateStatusMap = useMemo(() => {
     const map = new Map<string, boolean>();
     if (pipelineGates) pipelineGates.forEach(g => map.set(g.gate, g.passed));
@@ -52,9 +54,7 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
   }, [pipelineGates]);
 
   const currentGate = useMemo(() => {
-    for (const gateId of GATE_SEQUENCE) {
-      if (gateStatusMap.get(gateId) !== true) return gateId;
-    }
+    for (const g of GATE_SEQUENCE) { if (gateStatusMap.get(g) !== true) return g; }
     return null;
   }, [gateStatusMap]);
 
@@ -64,29 +64,31 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     return 'future';
   }, [gateStatusMap, currentGate]);
 
+  // Agent 数据
   const hasAgentData = useMemo(() => {
     if (!agentStatus) return false;
     return agentStatus.active.length > 0 || agentStatus.completed.length > 0 || agentStatus.failed.length > 0;
   }, [agentStatus]);
 
-  const agentSets = useMemo(() => {
-    if (!agentStatus) return { active: new Set<string>(), completed: new Set<string>(), failed: new Set<string>() };
-    return {
-      active: new Set(agentStatus.active),
-      completed: new Set(agentStatus.completed),
-      failed: new Set(agentStatus.failed),
-    };
+  // 合并所有 agent 信息
+  const allAgents = useMemo(() => {
+    if (!agentStatus) return [];
+    const result: { id: string; status: 'active' | 'completed' | 'failed' }[] = [];
+    agentStatus.active.forEach(id => result.push({ id, status: 'active' as const }));
+    agentStatus.completed.forEach(id => result.push({ id, status: 'completed' as const }));
+    agentStatus.failed.forEach(id => result.push({ id, status: 'failed' as const }));
+    return result;
   }, [agentStatus]);
 
-  const currentGateAgents = useMemo(() => {
-    if (!hasAgentData) return [];
-    const all = [
-      ...Array.from(agentSets.active).map((a: string) => ({ name: a, status: 'active' as const })),
-      ...Array.from(agentSets.completed).map((a: string) => ({ name: a, status: 'completed' as const })),
-      ...Array.from(agentSets.failed).map((a: string) => ({ name: a, status: 'failed' as const })),
-    ];
-    return all.slice(0, 10);
-  }, [hasAgentData, agentSets]);
+  // 检测新 agent（用于动画触发）
+  const newAgentIds = useMemo(() => {
+    const currentIds = new Set(allAgents.map(a => a.id));
+    const prev = prevAgentIds.current;
+    const newIds = new Set<string>();
+    currentIds.forEach(id => { if (!prev.has(id)) newIds.add(id); });
+    prevAgentIds.current = currentIds;
+    return newIds;
+  }, [allAgents]);
 
   // ResizeObserver
   useEffect(() => {
@@ -94,9 +96,8 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     let debounceTimer: ReturnType<typeof setTimeout>;
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
-        const w = entry.contentRect.width;
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(() => setContainerWidth(w), 300);
+        debounceTimer = setTimeout(() => setContainerWidth(entry.contentRect.width), 300);
       }
     });
     observer.observe(containerRef.current);
@@ -104,22 +105,22 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     return () => { observer.disconnect(); clearTimeout(debounceTimer); };
   }, []);
 
-  // 初始化 G6 Graph
+  // ============================================================
+  // 初始化 / 重建 G6 Graph
+  // ============================================================
   useEffect(() => {
     if (!containerRef.current || !runId) return;
     const w = containerWidth || containerRef.current.clientWidth;
     if (w === 0) return;
 
-    const height = Math.min(w * 0.22, 260);
+    const h = Math.min(w * 0.28, 280);
     const graph = new Graph({
-      container: containerRef.current,
-      width: w, height,
-      autoFit: 'view',
-      padding: 15,
-      layout: { type: 'dagre', rankdir: 'LR', nodesep: 24, ranksep: 50 },
+      container: containerRef.current, width: w, height: h,
+      autoFit: 'view', padding: 15,
+      layout: { type: 'dagre', rankdir: 'LR', nodesep: 20, ranksep: 55 },
       node: {
         type: 'circle',
-        style: { size: 48, labelText: '', labelFontSize: 9, labelFontWeight: 600,
+        style: { size: 44, labelText: '', labelFontSize: 8, labelFontWeight: 600,
           labelPlacement: 'bottom', labelOffsetY: 4, strokeWidth: 2.5 },
       },
       edge: {
@@ -132,13 +133,52 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
       ],
     });
 
-    const nodes = GATE_SEQUENCE.map(gateId => ({
+    // 主 Gate 节点
+    const gateNodes = GATE_SEQUENCE.map(gateId => ({
       id: gateId,
       style: { labelText: GATE_LABELS[gateId]?.charAt(0) || gateId.slice(-2) },
     }));
-    const edges = GATE_EDGES.map(([s, t]) => ({ id: `${s}->${t}`, source: s, target: t }));
 
-    graph.setData({ nodes, edges });
+    // 子 Agent 节点（如果当前有数据）
+    const agentNodes: any[] = [];
+    const agentEdges: any[] = [];
+    if (currentGate && allAgents.length > 0) {
+      allAgents.forEach((a, i) => {
+        const agentNodeId = `agent-${a.id}`;
+        const isNew = newAgentIds.has(a.id);
+        agentNodes.push({
+          id: agentNodeId,
+          style: {
+            size: 24,
+            labelText: a.id.length > 12 ? a.id.substring(0, 11) + '…' : a.id,
+            labelFontSize: 7,
+            labelPlacement: 'bottom',
+            labelOffsetY: 2,
+            fill: a.status === 'active' ? token.colorPrimaryBg : a.status === 'completed' ? token.colorSuccessBg : token.colorErrorBg,
+            stroke: a.status === 'active' ? token.colorPrimary : a.status === 'completed' ? token.colorSuccess : token.colorError,
+            strokeWidth: 2,
+            // 新 agent 节点用虚线表示"刚加入"
+            lineDash: isNew ? [4, 2] : undefined,
+          },
+        });
+        agentEdges.push({
+          id: `${currentGate}->agent-${a.id}`,
+          source: currentGate,
+          target: agentNodeId,
+          style: {
+            lineWidth: 1.5,
+            stroke: a.status === 'active' ? token.colorPrimary : token.colorTextQuaternary,
+            lineDash: a.status === 'active' ? [3, 2] : undefined,
+            endArrow: false,
+          },
+        });
+      });
+    }
+
+    const allNodes = [...gateNodes, ...agentNodes];
+    const allEdges = [...GATE_EDGES.map(([s, t]) => ({ id: `${s}->${t}`, source: s, target: t })), ...agentEdges];
+
+    graph.setData({ nodes: allNodes, edges: allEdges });
     graph.render();
     graphRef.current = graph;
     destroyedRef.current = false;
@@ -148,9 +188,11 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
       try { graph.destroy(); } catch { /* destroyed */ }
       graphRef.current = null;
     };
-  }, [runId, containerWidth]);
+  }, [runId, containerWidth, allAgents, currentGate]);
 
-  // 更新节点样式
+  // ============================================================
+  // 更新 Gate 节点样式
+  // ============================================================
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph || destroyedRef.current) return;
@@ -167,48 +209,18 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
         id: gateId,
         style: {
           fill, stroke, lineDash: lDash,
-          labelText: `${GATE_LABELS[gateId]?.charAt(0) || gateId.slice(-2)}\n${GATE_LABELS[gateId]}`,
+          labelText: `${GATE_LABELS[gateId]?.charAt(0)}\n${GATE_LABELS[gateId]}`,
           labelFill: state === 'future' ? token.colorTextSecondary : token.colorText,
         },
       };
     });
     graph.updateNodeData(nodeUpdates);
-
-    const edgeUpdates = GATE_EDGES.map(([s, t]) => {
-      const sp = getGateState(s) === 'passed';
-      return { id: `${s}->${t}`, style: { stroke: sp ? token.colorSuccess : token.colorBorderSecondary,
-        lineDash: sp ? undefined : [6, 3], lineWidth: sp ? 2.5 : 1.5 } };
-    });
-    graph.updateEdgeData(edgeUpdates);
     graph.render();
   }, [gateStatusMap, currentGate, getGateState]);
 
-  // Agent 标注
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current || !hasAgentData) return;
-
-    const badgeUpdates = GATE_SEQUENCE.map(gateId => {
-      const state = getGateState(gateId);
-      const activeCount = agentSets.active.size;
-      return {
-        id: gateId,
-        style: {
-          badges: (state === 'current' && activeCount > 0)
-            ? [{ text: String(activeCount), placement: 'right-top' as const, fill: token.colorPrimary, fontSize: 10 }]
-            : state === 'passed'
-            ? [{ text: '✓', placement: 'right-top' as const, fill: token.colorSuccess, fontSize: 10 }]
-            : [],
-        },
-      };
-    });
-    graph.updateNodeData(badgeUpdates);
-    graph.render();
-  }, [agentStatus, hasAgentData, getGateState, agentSets]);
-
   if (!runId) {
     return (
-      <div style={{ height: 120, display: 'flex', alignItems: 'center', justifyContent: 'center',
+      <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
         color: token.colorTextSecondary, fontSize: 13, borderRadius: 12,
         background: token.colorFillQuaternary }}>
         无运行中的任务
@@ -217,31 +229,19 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
   }
 
   return (
-    <div style={{ borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer, overflow: 'hidden' }}>
-      {/* G6 Canvas */}
+    <div style={{ borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`,
+      background: token.colorBgContainer, overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', background: token.colorFillQuaternary }} />
-
-      {/* Agent 状态条 — 有数据时显示 */}
-      {hasAgentData && (
-        <div style={{ display: 'flex', gap: 6, padding: '8px 12px', flexWrap: 'wrap', alignItems: 'center',
-          borderTop: `1px solid ${token.colorBorderSecondary}` }}>
-          <span style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600, flexShrink: 0 }}>
-            🔄 Agent 状态
-          </span>
-          {currentGateAgents.map(a => (
-            <Tag key={a.name} style={{ borderRadius: 10, fontSize: 10, margin: 0 }}
-              color={a.status === 'active' ? 'processing' : a.status === 'completed' ? 'success' : 'error'}>
-              {a.status === 'active' ? '●' : a.status === 'completed' ? '✓' : '✗'} {a.name}
-            </Tag>
-          ))}
-        </div>
-      )}
-
       {/* 脉冲动画 */}
       <style>{`
+        @keyframes g6-agent-in {
+          0% { transform: scale(0); opacity: 0; }
+          60% { transform: scale(1.3); opacity: 1; }
+          100% { transform: scale(1); opacity: 1; }
+        }
         @keyframes g6-pulse {
-          0%, 100% { opacity: 1; transform: scale(1); }
-          50% { opacity: 0.3; transform: scale(1.15); }
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
     </div>
