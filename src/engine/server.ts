@@ -9,7 +9,7 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, getAgentUsage, getAgentStatus } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, getAgentUsage, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
@@ -548,6 +548,14 @@ function registerMcpTools(server, db, root) {
         updateRunGate(db, runId, gate);
         updateRunGateEnteredAt(db, runId, new Date().toISOString());
       }
+      // 推进到流水线最后一个 Gate 时，自动标记该 Gate 通过并完成 run
+      const isLastGate = ti === gateList.length - 1;
+      if (isLastGate) {
+        addCheckpoint(db, gate, 'Complete', sid, undefined);
+        if (runId) {
+          completeRun(db, runId);
+        }
+      }
       return resp({
         allowed: true, session_id: sid, run_id: runId, previous_gate: cur, current_gate: gate,
         next: gateList[ti + 1] || 'Complete',
@@ -738,6 +746,7 @@ function registerMcpTools(server, db, root) {
           return resp({ ok: false, error: `Run ${finalRunId} 不属于当前 session ${finalSid}` });
         }
 
+        const pipeline = getPipeline(db, finalSid);
         const result = insertAgentEvent(db, {
           run_id: finalRunId, session_id: finalSid, agent_id,
           event_type: event, model,
@@ -747,6 +756,7 @@ function registerMcpTools(server, db, root) {
           cache_read_input_tokens: cache_read_input_tokens ?? 0,
           status: event === 'error' ? 'error' : (status ?? undefined),
           error_message,
+          current_gate: pipeline?.current_gate || undefined,
         });
 
         // 计算成本（仅 end 事件且 model 在 MODEL_PRICES 中）
@@ -804,6 +814,22 @@ function registerMcpTools(server, db, root) {
         }
 
         const status = getAgentStatus(db, finalRunId);
+        return resp(status);
+      });
+
+    server.tool('agent_gate_status',
+      '查询指定 run 的 Agent 状态按 Gate 分组，用于前端 G6 每 Gate 独立 Agent 交互图。',
+      {
+        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
+      },
+      async ({ run_id }, extra) => {
+        const sid = extra?.sessionId || _lastSessionId;
+        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
+        if (!finalRunId) {
+          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
+        }
+
+        const status = getAgentGateStatus(db, finalRunId);
         return resp(status);
       });
 }

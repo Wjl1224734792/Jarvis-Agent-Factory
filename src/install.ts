@@ -78,18 +78,18 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 function installHooks(platform, target, _isGlobal) {
   const hookJson = {
     PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
-    SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
-    SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
+    SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
+    SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
 
   if (platform === 'claude') {
-    // Claude Code: hooks in .claude/settings.json
+    // Claude Code: hooks 配置在 .claude/settings.json，脚本在 .claude/hooks/scripts/
     const claudeDir = resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
 
-    // 安装 agent-event hook 脚本
-    const scriptsDir = resolve(claudeDir, 'plugins', 'jarvis-visualization', 'hooks', 'scripts');
+    // 安装 agent-event hook 脚本到简化路径
+    const scriptsDir = resolve(claudeDir, 'hooks', 'scripts');
     if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
     for (const script of ['agent-event.sh', 'agent-event.ps1']) {
       const src = resolve(TEMPLATES_DIR, 'scripts', script);

@@ -188,6 +188,9 @@ function initSchema(db) {
   // ----  TASK-001: Checkpoint 耗时字段 ----
   try { db.exec("ALTER TABLE checkpoints ADD COLUMN duration_seconds INTEGER"); } catch {}
 
+  // ----  Per-Gate Agent Graph: agent_events 记录当前 Gate ----
+  try { db.exec("ALTER TABLE agent_events ADD COLUMN current_gate TEXT"); } catch {}
+
   // ----  TASK-001: 回填已有 checkpoints 的 duration_seconds ----
   // 使用窗口函数 LAG 取同一 session 内上一条 checkpoint 的 passed_at 作为近似进入时间
   const backfillResult = db.prepare(`
@@ -600,7 +603,7 @@ export function insertAgentEvent(db, params) {
     run_id, session_id, agent_id, event_type, model,
     status: statusParam, input_tokens = 0, output_tokens = 0,
     cache_creation_input_tokens = 0, cache_read_input_tokens = 0,
-    error_message,
+    error_message, current_gate,
   } = params;
 
   const now = new Date().toISOString();
@@ -630,11 +633,12 @@ export function insertAgentEvent(db, params) {
   const result = db.prepare(`
     INSERT INTO agent_events (run_id, session_id, agent_id, event_type, model, status,
       input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
-      error_message, started_at, ended_at, duration_ms)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      error_message, started_at, ended_at, duration_ms, current_gate)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(run_id, session_id, agent_id, event_type, model || null, finalStatus,
     input_tokens, output_tokens, cache_creation_input_tokens, cache_read_input_tokens,
-    error_message || null, started_at, event_type !== 'start' ? now : null, duration_ms);
+    error_message || null, started_at, event_type !== 'start' ? now : null, duration_ms,
+    current_gate || null);
 
   return { id: Number(result.lastInsertRowid), total_tokens: input_tokens + output_tokens + cache_creation_input_tokens + cache_read_input_tokens };
 }
@@ -755,4 +759,54 @@ export function getAgentStatus(db, runId) {
   }
 
   return { run_id: runId, active, completed, failed };
+}
+
+/**
+ * 获取指定 run 的 Agent 状态按 Gate 分组，用于前端 G6 每 Gate 独立图。
+ * 每个 agent 取其最新事件所在 Gate 作为归属 Gate。
+ *
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{
+ *   run_id: string;
+ *   current_gate: string;
+ *   gates: Record<string, { active: string[]; completed: string[]; failed: string[]; agents: Array<{ agent_id: string; status: string; model?: string }> }>
+ * }}
+ */
+export function getAgentGateStatus(db, runId) {
+  // 获取每个 agent 的最新事件（含 current_gate）
+  const rows = db.prepare(`
+    SELECT ae.agent_id, ae.event_type, ae.current_gate, ae.model
+    FROM agent_events ae
+    WHERE ae.run_id=? AND ae.id IN (
+      SELECT MAX(id) FROM agent_events WHERE run_id=? GROUP BY agent_id
+    )
+    ORDER BY ae.agent_id
+  `).all(runId, runId);
+
+  const gates: Record<string, { active: string[]; completed: string[]; failed: string[]; agents: Array<{ agent_id: string; status: string; model?: string }> }> = {};
+
+  for (const r of rows) {
+    const gate = r.current_gate || 'Unknown';
+    if (!gates[gate]) {
+      gates[gate] = { active: [], completed: [], failed: [], agents: [] };
+    }
+
+    let status = 'active';
+    if (r.event_type === 'end') status = 'completed';
+    else if (r.event_type === 'error') status = 'failed';
+
+    gates[gate][status].push(r.agent_id);
+    gates[gate].agents.push({
+      agent_id: r.agent_id,
+      status,
+      model: r.model || undefined,
+    });
+  }
+
+  // 获取当前 run 的 current_gate
+  const run = db.prepare('SELECT current_gate FROM pipeline_runs WHERE id=?').get(runId);
+  const currentGate = run?.current_gate || '?';
+
+  return { run_id: runId, current_gate: currentGate, gates };
 }

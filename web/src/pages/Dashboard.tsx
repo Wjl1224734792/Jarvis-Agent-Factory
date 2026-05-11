@@ -14,7 +14,9 @@ import { api } from '../api';
 import { useSessionId } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
 import G6FlowChart from '../components/G6FlowChart';
+import G6AgentGraph from '../components/G6AgentGraph';
 import { useAgentData } from '../hooks/useAgentData';
+import type { AgentGateStatusResponse } from '../api';
 
 // ============================================================
 // 常量
@@ -183,6 +185,22 @@ export default function Dashboard() {
 
   const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
   const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
+  const [gateStatus, setGateStatus] = useState<AgentGateStatusResponse | null>(null);
+
+  // 按 Gate 分组的 Agent 状态轮询
+  useEffect(() => {
+    if (!runId) return;
+    let cancelled = false;
+    const fetch = async () => {
+      try {
+        const gs = await api.agentGateStatus(runId);
+        if (!cancelled) setGateStatus(gs);
+      } catch { /* ignore */ }
+    };
+    fetch();
+    const timer = setInterval(fetch, 5000);
+    return () => { cancelled = true; clearInterval(timer); };
+  }, [runId]);
 
   const loadData = useCallback(async () => {
     if (!sessionId) return;
@@ -379,14 +397,27 @@ export default function Dashboard() {
             </div>
           ) : (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                <G6FlowChart
-                  runId={runId}
-                  agentStatus={agentStatus}
-                  agentUsage={agentUsage}
-                  pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
-                />
-              </ErrorBoundary>
+              {/* 紧凑流水线进度条 */}
+              <div style={{ flexShrink: 0, height: 72, marginBottom: 6 }}>
+                <ErrorBoundary fallback={<Alert type="error" message="流水线进度加载失败" showIcon style={{ borderRadius: 12 }} />}>
+                  <G6FlowChart
+                    runId={runId}
+                    agentStatus={agentStatus}
+                    agentUsage={agentUsage}
+                    pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
+                  />
+                </ErrorBoundary>
+              </div>
+              {/* 当前 Gate 的 Agent 交互图 */}
+              <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--ant-color-border-secondary)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
+                <ErrorBoundary fallback={<Alert type="error" message="Agent 交互图加载失败" showIcon style={{ borderRadius: 12 }} />}>
+                  <G6AgentGraph
+                    currentGate={currentGate}
+                    gateStatus={gateStatus}
+                    style={{ width: '100%', height: '100%' }}
+                  />
+                </ErrorBoundary>
+              </div>
             </div>
           )}
         </div>

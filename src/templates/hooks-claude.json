@@ -16,7 +16,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh",
+            "command": ".claude/hooks/scripts/agent-event.sh",
             "env": {
               "HOOK_EVENT_TYPE": "start"
             }
@@ -29,7 +29,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": ".claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh",
+            "command": ".claude/hooks/scripts/agent-event.sh",
             "env": {
               "HOOK_EVENT_TYPE": "stop"
             }
