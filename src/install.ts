@@ -82,8 +82,6 @@ function installHooks(platform, target, isGlobal) {
       { matcher: 'Write', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
       { matcher: 'Edit', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
     ],
-    SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
-    SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
 
@@ -91,17 +89,6 @@ function installHooks(platform, target, isGlobal) {
     // Claude Code: hooks 配置在 .claude/settings.json，脚本在 .claude/hooks/scripts/
     const claudeDir = isGlobal ? GLOBAL_ROOTS.claude : resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
-
-    // 安装 agent-event hook 脚本到简化路径
-    const scriptsDir = resolve(claudeDir, 'hooks', 'scripts');
-    if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
-    for (const script of ['agent-event.sh', 'agent-event.ps1']) {
-      const src = resolve(TEMPLATES_DIR, 'scripts', script);
-      const dst = resolve(scriptsDir, script);
-      if (existsSync(src) && !existsSync(dst)) {
-        try { copyFileSync(src, dst); } catch {}
-      }
-    }
 
     const file = resolve(claudeDir, 'settings.json');
     let existing: Record<string, any> = {};
@@ -121,14 +108,12 @@ function installHooks(platform, target, isGlobal) {
   }
 
   if (platform === 'codex') {
-    // Codex: hooks in .codex/hooks.json
+    // Codex: hooks in .codex/hooks.json（纯生成文件，始终覆盖最新版本）
     const codexDir = isGlobal ? GLOBAL_ROOTS.codex : resolve(target, '.codex');
     if (!existsSync(codexDir)) mkdirSync(codexDir, { recursive: true });
     const hookFile = resolve(codexDir, 'hooks.json');
-    if (!existsSync(hookFile)) {
-      writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
-      console.log('  🔗 hooks → .codex/hooks.json');
-    } else console.log('  ~ hooks already configured');
+    writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
+    console.log('  🔗 hooks → .codex/hooks.json');
   }
 }
 
