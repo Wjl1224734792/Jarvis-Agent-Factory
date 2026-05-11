@@ -106,7 +106,10 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     };
     return new Response(readFileSync(fullPath), {
       status: 200,
-      headers: { 'Content-Type': mime[ext || ''] || 'application/octet-stream' },
+      headers: {
+        'Content-Type': mime[ext || ''] || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
     });
   });
   // SPA catch-all：非 API/非 assets 路径返回 index.html
@@ -119,7 +122,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
         <p>请运行 <code>npm run build:web</code> 构建前端产物，或从 GitHub Release 下载预构建包。</p>
       </body></html>`);
     }
-    return c.html(indexHtml);
+    return c.html(indexHtml, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' });
   });
 
   if (stdio) {
@@ -904,7 +907,10 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
     };
     return new Response(readFileSync(fullPath), {
       status: 200,
-      headers: { 'Content-Type': mime[ext || ''] || 'application/octet-stream' },
+      headers: {
+        'Content-Type': mime[ext || ''] || 'application/octet-stream',
+        'Cache-Control': 'public, max-age=31536000, immutable',
+      },
     });
   });
 
@@ -921,7 +927,7 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
         <p>请运行 <code>cd web && npm run build</code> 构建前端产物。</p>
       </body></html>`);
     }
-    return c.html(indexHtml);
+    return c.html(indexHtml, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' });
   });
 
   serve({ fetch: app.fetch, port, hostname: BIND_HOST });
