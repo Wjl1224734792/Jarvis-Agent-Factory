@@ -399,7 +399,7 @@ export default function Dashboard() {
           ) : (
             <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {/* 紧凑流水线进度条 */}
-              <div style={{ flexShrink: 0, height: 72, marginBottom: 6 }}>
+              <div style={{ flexShrink: 0, height: 120, marginBottom: 6 }}>
                 <ErrorBoundary fallback={<Alert type="error" message="流水线进度加载失败" showIcon style={{ borderRadius: 12 }} />}>
                   <X6FlowChart
                     runId={runId}
