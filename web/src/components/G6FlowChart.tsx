@@ -1,19 +1,17 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { theme, Tooltip as AntTooltip } from 'antd';
+import { theme, Tag, Tooltip as AntTooltip } from 'antd';
 import { Graph } from '@antv/g6';
 import type { AgentStatusResponse } from '../api';
 
 // ============================================================
-// Gate 节点定义 — 10 个 Gate，dagre 布局从上到下
+// Gate 节点定义 — 10 个 Gate
 // ============================================================
 
-/** Gate 序列定义 */
 const GATE_SEQUENCE = [
   'Gate A', 'Gate B', 'Gate B1', 'Gate C', 'Gate C-impl',
   'Gate C1', 'Gate C1.5', 'Gate C2', 'Gate D', 'Gate E',
 ] as const;
 
-/** Gate ID → 中文标签 */
 const GATE_LABELS: Record<string, string> = {
   'Gate A': '需求澄清',
   'Gate B': '任务分解',
@@ -27,7 +25,6 @@ const GATE_LABELS: Record<string, string> = {
   'Gate E': '发布上线',
 };
 
-/** Gate 功能说明（Tooltip 展示） */
 const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate A': '至少1个需求文档，含REQ-XXX编号',
   'Gate B': '每个TASK-XXX映射至少1个REQ-XXX',
@@ -41,7 +38,6 @@ const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate E': '安全审计+上线检查清单+回滚预案就绪',
 };
 
-/** 边：从上游 Gate 指向下游 Gate */
 const GATE_EDGES: [string, string][] = [
   ['Gate A', 'Gate B'],
   ['Gate B', 'Gate B1'],
@@ -55,43 +51,38 @@ const GATE_EDGES: [string, string][] = [
 ];
 
 // ============================================================
-// 类型定义
+// 类型
 // ============================================================
 
 interface G6FlowChartProps {
-  /** 当前运行 ID，为 null 时不渲染 */
   runId: string | null;
-  /** Agent 状态数据（来自 useAgentData hook） */
   agentStatus: AgentStatusResponse | null;
-  /** Pipeline 的 Gate 状态，从 Dashboard 传入 */
   pipelineGates?: { gate: string; passed: boolean }[];
 }
 
 // ============================================================
-// 响应式高度
+// 响应式
 // ============================================================
 
 function getResponsiveHeight(width: number): number {
-  if (width >= 992) return 400;
-  if (width >= 768) return 300;
-  return 250;
+  if (width >= 992) return 380;
+  if (width >= 768) return 280;
+  return 220;
 }
 
 // ============================================================
 // G6FlowChart 组件
 // ============================================================
 
-/**
- * 10-Gate 实时流程可视化组件。
- * 使用 @antv/g6 v5 的 Graph API + DagreLayout，渲染从上到下的 DAG 图。
- */
 export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6FlowChartProps) {
+  const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
-  const { token } = theme.useToken();
+  const destroyedRef = useRef(false);
   const [containerWidth, setContainerWidth] = useState(0);
+  const [expandedGate, setExpandedGate] = useState<string | null>(null);
 
-  // 构建 gate 状态映射：gateId → passed
+  // Gate 状态映射
   const gateStatusMap = useMemo(() => {
     const map = new Map<string, boolean>();
     if (pipelineGates) {
@@ -100,8 +91,30 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     return map;
   }, [pipelineGates]);
 
-  // 构建 agent 分类映射
-  const agentMap = useMemo(() => {
+  // 当前 Gate（第一个未通过的）
+  const currentGate = useMemo(() => {
+    for (const gateId of GATE_SEQUENCE) {
+      if (gateStatusMap.get(gateId) !== true) return gateId;
+    }
+    return null;
+  }, [gateStatusMap]);
+
+  const getGateState = useCallback((gateId: string): 'passed' | 'current' | 'future' => {
+    if (gateStatusMap.get(gateId) === true) return 'passed';
+    if (gateId === currentGate) return 'current';
+    return 'future';
+  }, [gateStatusMap, currentGate]);
+
+  // Agent 状态：是否有实际数据
+  const hasAgentData = useMemo(() => {
+    if (!agentStatus) return false;
+    return agentStatus.active.length > 0 ||
+           agentStatus.completed.length > 0 ||
+           agentStatus.failed.length > 0;
+  }, [agentStatus]);
+
+  // Agent 分类集合
+  const agentSets = useMemo(() => {
     if (!agentStatus) return { active: new Set<string>(), completed: new Set<string>(), failed: new Set<string>() };
     return {
       active: new Set(agentStatus.active),
@@ -110,26 +123,26 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     };
   }, [agentStatus]);
 
-  // 确定"当前"gate —— 第一个未通过的 gate
-  const currentGate = useMemo(() => {
-    for (const gateId of GATE_SEQUENCE) {
-      if (gateStatusMap.get(gateId) !== true) return gateId;
-    }
-    return null; // 全部通过
-  }, [gateStatusMap]);
+  // 当前 Gate 的活跃 agent 列表
+  const currentGateAgents = useMemo(() => {
+    if (!hasAgentData) return [];
+    const all = [
+      ...Array.from(agentSets.active).map((a: string) => ({ name: a, status: 'active' as const })),
+      ...Array.from(agentSets.completed).map((a: string) => ({ name: a, status: 'completed' as const })),
+      ...Array.from(agentSets.failed).map((a: string) => ({ name: a, status: 'failed' as const })),
+    ];
+    return all.slice(0, 8);
+  }, [hasAgentData, agentSets]);
 
-  // 计算每个 gate 的状态
-  const getGateState = useCallback((gateId: string): 'passed' | 'current' | 'future' => {
-    if (gateStatusMap.get(gateId) === true) return 'passed';
-    if (gateId === currentGate) return 'current';
-    return 'future';
-  }, [gateStatusMap, currentGate]);
+  // 切换展开/折叠
+  const toggleExpand = useCallback((gateId: string) => {
+    setExpandedGate(prev => prev === gateId ? null : gateId);
+  }, []);
 
-  // resize 防抖：300ms
+  // ResizeObserver — 依赖 expandedGate 以便展开时重新绑定
   useEffect(() => {
     if (!containerRef.current) return;
     let debounceTimer: ReturnType<typeof setTimeout>;
-
     const observer = new ResizeObserver(entries => {
       for (const entry of entries) {
         const w = entry.contentRect.width;
@@ -137,44 +150,48 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
         debounceTimer = setTimeout(() => setContainerWidth(w), 300);
       }
     });
-
     observer.observe(containerRef.current);
-    // 初始测量
+    // 立即设置初始宽度
     setContainerWidth(containerRef.current.clientWidth);
-
     return () => {
       observer.disconnect();
       clearTimeout(debounceTimer);
     };
-  }, []);
+  }, [expandedGate]);
 
-  // 初始化 G6 Graph
+  // ============================================================
+  // 初始化 G6 Graph（仅展开时）
+  // ============================================================
   useEffect(() => {
-    if (!containerRef.current || !runId || containerWidth === 0) return;
+    if (!containerRef.current || !runId || !expandedGate) return;
+    // 若 ResizeObserver 尚未触发，直接读取容器宽度
+    const w = containerWidth || containerRef.current.clientWidth;
+    if (w === 0) return;
 
-    const height = getResponsiveHeight(containerWidth);
+    const height = getResponsiveHeight(w);
     const graph = new Graph({
       container: containerRef.current,
-      width: containerWidth,
+      width: w,
       height,
       autoFit: 'view',
       padding: 20,
       layout: {
         type: 'dagre',
-        rankdir: 'TB',
-        nodesep: 40,
-        ranksep: 30,
+        rankdir: 'LR',
+        nodesep: 30,
+        ranksep: 60,
       },
       node: {
-        type: 'rect',
+        type: 'circle',
         style: {
-          size: [140, 52],
-          radius: 8,
+          size: 56,
           labelText: '',
-          labelFontSize: 11,
+          labelFontSize: 10,
           labelFontWeight: 600,
-          labelPlacement: 'center',
-          labelLineHeight: 16,
+          labelPlacement: 'bottom',
+          labelOffsetY: 6,
+          labelLineHeight: 14,
+          strokeWidth: 2,
         },
       },
       edge: {
@@ -192,13 +209,15 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
       ],
     });
 
-    // 构建节点 + 边数据
-    const nodes = GATE_SEQUENCE.map(gateId => ({
-      id: gateId,
-      style: {
-        labelText: `${gateId}\n${GATE_LABELS[gateId] || gateId}`,
-      },
-    }));
+    const nodes = GATE_SEQUENCE.map(gateId => {
+      const abbreviated = GATE_LABELS[gateId]?.charAt(0) || gateId.slice(-2);
+      return {
+        id: gateId,
+        style: {
+          labelText: abbreviated,
+        },
+      };
+    });
 
     const edges = GATE_EDGES.map(([source, target]) => ({
       id: `${source}->${target}`,
@@ -209,59 +228,59 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     graph.setData({ nodes, edges });
     graph.render();
     graphRef.current = graph;
+    destroyedRef.current = false;
 
     return () => {
-      graph.destroy();
+      destroyedRef.current = true;
+      try { graph.destroy(); } catch { /* 已销毁则忽略 */ }
       graphRef.current = null;
     };
-  }, [runId, containerWidth]);
+  }, [runId, containerWidth, expandedGate]);
 
-  // 更新节点样式（状态变化时）
+  // ============================================================
+  // 更新节点样式（Gate 状态变化）
+  // ============================================================
   useEffect(() => {
     const graph = graphRef.current;
-    if (!graph) return;
+    if (!graph || destroyedRef.current) return;
 
     const nodeUpdates = GATE_SEQUENCE.map(gateId => {
       const state = getGateState(gateId);
       let fillColor: string;
       let strokeColor: string;
-      let strokeDash: number | undefined;
-      let labelFill: string;
+      let lineDash: number[] | undefined;
 
       switch (state) {
         case 'passed':
           fillColor = token.colorSuccessBg;
           strokeColor = token.colorSuccess;
-          labelFill = token.colorSuccess;
           break;
         case 'current':
           fillColor = token.colorPrimaryBg;
           strokeColor = token.colorPrimary;
-          labelFill = token.colorPrimary;
           break;
         default:
           fillColor = token.colorFillQuaternary;
           strokeColor = token.colorBorderSecondary;
-          strokeDash = 4;
-          labelFill = token.colorTextSecondary;
+          lineDash = [4, 3];
           break;
       }
 
+      const abbreviated = GATE_LABELS[gateId]?.charAt(0) || gateId.slice(-2);
       return {
         id: gateId,
         style: {
           fill: fillColor,
           stroke: strokeColor,
-          lineDash: strokeDash,
-          labelText: `${gateId}\n${GATE_LABELS[gateId] || gateId}`,
-          labelFill,
+          lineDash,
+          labelText: `${abbreviated}\n${GATE_LABELS[gateId]}`,
+          labelFill: state === 'future' ? token.colorTextSecondary : token.colorText,
         },
       };
     });
 
     graph.updateNodeData(nodeUpdates);
 
-    // 更新边样式
     const edgeUpdates = GATE_EDGES.map(([source, target]) => {
       const sourcePassed = getGateState(source) === 'passed';
       return {
@@ -273,34 +292,36 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
         },
       };
     });
-
     graph.updateEdgeData(edgeUpdates);
     graph.render();
-  }, [gateStatusMap, currentGate, getGateState, token]);
+  }, [gateStatusMap, currentGate, getGateState, expandedGate]);
 
-  // 更新 Agent 子状态标注
+  // ============================================================
+  // Agent 子状态标注（仅在有数据时显示）
+  // ============================================================
   useEffect(() => {
     const graph = graphRef.current;
-    if (!graph || !agentStatus) return;
+    if (!graph || destroyedRef.current || !hasAgentData) return;
 
     const badgeUpdates = GATE_SEQUENCE.map(gateId => {
       const state = getGateState(gateId);
+      const activeCount = agentSets.active.size;
       let badgeText = '';
       let badgeFill = '';
 
-      if (state === 'passed') {
-        badgeText = 'done';
-        badgeFill = token.colorSuccess;
-      } else if (state === 'current' && agentStatus.active.length > 0) {
-        badgeText = `${agentStatus.active.length} active`;
+      if (state === 'current' && activeCount > 0) {
+        badgeText = activeCount.toString();
         badgeFill = token.colorPrimary;
+      } else if (state === 'passed') {
+        badgeText = '✓';
+        badgeFill = token.colorSuccess;
       }
 
       return {
         id: gateId,
         style: {
           badges: badgeText
-            ? [{ text: badgeText, placement: 'right-top' as const, fill: badgeFill }]
+            ? [{ text: badgeText, placement: 'right-top' as const, fill: badgeFill, fontSize: 10 }]
             : [],
         },
       };
@@ -308,58 +329,164 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
 
     graph.updateNodeData(badgeUpdates);
     graph.render();
-  }, [agentStatus, getGateState, token]);
+  }, [agentStatus, hasAgentData, getGateState, agentSets]);
 
-  // 点击节点交互
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph) return;
-
-    const handleClick = (e: { targetType?: string; target?: { id?: string } }) => {
-      if (e.targetType === 'node') {
-        const nodeId = e.target?.id;
-        if (nodeId && GATE_LABELS[nodeId]) {
-          // 点击节点的处理逻辑（扩展点，当前无额外操作）
-        }
-      }
-    };
-
-    graph.on('node:click', handleClick as never);
-    return () => {
-      graph.off('node:click', handleClick as never);
-    };
-  }, []);
-
+  // ============================================================
+  // 空状态（无 runId）
+  // ============================================================
   if (!runId) {
     return (
       <div style={{
-        height: 200,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        color: token.colorTextSecondary,
-        fontSize: 13,
+        height: 60, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        color: token.colorTextSecondary, fontSize: 13,
+        borderRadius: 12, background: token.colorFillQuaternary,
       }}>
         无运行中的任务
       </div>
     );
   }
 
+  // ============================================================
+  // Gate 颜色辅助
+  // ============================================================
+  const gateColorMap = useMemo(() => {
+    const map: Record<string, { bg: string; border: string; text: string }> = {};
+    GATE_SEQUENCE.forEach(gateId => {
+      const state = getGateState(gateId);
+      switch (state) {
+        case 'passed':
+          map[gateId] = { bg: token.colorSuccessBg, border: token.colorSuccess, text: token.colorSuccess };
+          break;
+        case 'current':
+          map[gateId] = { bg: token.colorPrimaryBg, border: token.colorPrimary, text: token.colorPrimary };
+          break;
+        default:
+          map[gateId] = { bg: token.colorFillQuaternary, border: token.colorBorderSecondary, text: token.colorTextSecondary };
+          break;
+      }
+    });
+    return map;
+  }, [token, getGateState]);
+
   return (
-    <AntTooltip
-      title={currentGate ? `${currentGate}: ${GATE_DESCRIPTIONS[currentGate]}` : '所有 Gate 已通过'}
-    >
+    <div style={{ borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`, background: token.colorBgContainer }}>
+      {/* ── 折叠状态：Gate 横向指示条 ── */}
       <div
-        ref={containerRef}
         style={{
-          width: '100%',
-          borderRadius: 12,
-          overflow: 'hidden',
-          background: token.colorBgContainer,
-          border: `1px solid ${token.colorBorderSecondary}`,
+          display: 'flex', alignItems: 'center', gap: 4, padding: '10px 14px',
+          overflowX: 'auto', cursor: 'default', minHeight: 52,
         }}
-      />
-    </AntTooltip>
+      >
+        {GATE_SEQUENCE.map((gateId, idx) => {
+          const colors = gateColorMap[gateId];
+          const isExpanded = expandedGate === gateId;
+          const abbreviated = GATE_LABELS[gateId] || gateId;
+
+          return (
+            <React.Fragment key={gateId}>
+              <AntTooltip title={`${gateId}: ${GATE_LABELS[gateId]}`}>
+                <div
+                  onClick={() => toggleExpand(gateId)}
+                  style={{
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    width: 40, height: 40, borderRadius: '50%',
+                    background: colors.bg, border: `2px solid ${isExpanded ? token.colorPrimary : colors.border}`,
+                    color: colors.text, fontSize: 12, fontWeight: 700,
+                    cursor: 'pointer', flexShrink: 0, transition: 'all 0.2s',
+                    boxShadow: isExpanded ? `0 0 0 2px ${token.colorPrimaryBg}` : undefined,
+                    position: 'relative',
+                  }}
+                >
+                  {abbreviated.charAt(0)}
+                  {/* 当前 Gate 脉冲动画 */}
+                  {getGateState(gateId) === 'current' && (
+                    <span style={{
+                      position: 'absolute', inset: -3, borderRadius: '50%',
+                      border: `2px solid ${token.colorPrimary}`,
+                      animation: 'g6-pulse 2s ease-in-out infinite',
+                    }} />
+                  )}
+                </div>
+              </AntTooltip>
+              {idx < GATE_SEQUENCE.length - 1 && (
+                <div style={{
+                  flex: '0 0 16px', height: 2,
+                  background: getGateState(gateId) === 'passed' ? token.colorSuccess : token.colorBorderSecondary,
+                  borderRadius: 1,
+                }} />
+              )}
+            </React.Fragment>
+          );
+        })}
+      </div>
+
+      {/* ── 展开状态：G6 Canvas ── */}
+      {expandedGate && (
+        <div style={{ padding: '0 8px 8px' }}>
+          {/* Agent 状态条 */}
+          {hasAgentData && (
+            <div style={{ display: 'flex', gap: 6, marginBottom: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <span style={{ fontSize: 11, color: token.colorTextSecondary, fontWeight: 600 }}>Agent 状态：</span>
+              {currentGateAgents.map(a => (
+                <Tag
+                  key={a.name}
+                  style={{ borderRadius: 10, fontSize: 10, margin: 0 }}
+                  color={
+                    a.status === 'active' ? 'processing' :
+                    a.status === 'completed' ? 'success' :
+                    'error'
+                  }
+                >
+                  {a.status === 'active' ? '● ' : a.status === 'completed' ? '✓ ' : '✗ '}
+                  {a.name}
+                </Tag>
+              ))}
+              {currentGateAgents.length === 0 && (
+                <span style={{ fontSize: 11, color: token.colorTextQuaternary }}>暂无活跃 Agent</span>
+              )}
+            </div>
+          )}
+
+          <div style={{ position: 'relative' }}>
+            <AntTooltip title={expandedGate ? `${expandedGate}: ${GATE_DESCRIPTIONS[expandedGate]}` : ''}>
+              <span style={{ position: 'absolute', top: 4, right: 8, fontSize: 10, color: token.colorTextQuaternary, zIndex: 1 }}>
+                {expandedGate} {GATE_LABELS[expandedGate]}
+              </span>
+            </AntTooltip>
+            <div
+              ref={containerRef}
+              style={{
+                width: '100%',
+                borderRadius: 10,
+                overflow: 'hidden',
+                background: token.colorFillQuaternary,
+                border: `1px solid ${token.colorBorderSecondary}`,
+              }}
+            />
+          </div>
+
+          <div style={{ textAlign: 'center', marginTop: 6 }}>
+            <span
+              onClick={() => setExpandedGate(null)}
+              style={{
+                fontSize: 11, color: token.colorTextSecondary, cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
+              ▲ 收起流程图
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 脉冲动画 keyframes */}
+      <style>{`
+        @keyframes g6-pulse {
+          0%, 100% { opacity: 1; transform: scale(1); }
+          50% { opacity: 0.3; transform: scale(1.15); }
+        }
+      `}</style>
+    </div>
   );
 }
 

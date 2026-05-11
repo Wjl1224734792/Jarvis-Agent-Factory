@@ -180,13 +180,28 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, [loadData]);
 
-  // 一次性注入 Markdown CSS 到 document.head，避免每次抽屉打开重复注入
+  // 一次性注入 Markdown CSS + Drawer resize 手柄样式
   useEffect(() => {
     const id = 'markdown-custom-style';
     if (!document.getElementById(id)) {
       const style = document.createElement('style');
       style.id = id;
-      style.textContent = MARKDOWN_CSS;
+      style.textContent = MARKDOWN_CSS + `
+        /* antd Drawer 左侧 resize 手柄：更宽的可拖拽区域 */
+        .ant-drawer .ant-drawer-resize-handle {
+          width: 6px !important;
+          cursor: col-resize !important;
+          background: transparent !important;
+          transition: background 0.2s;
+        }
+        .ant-drawer .ant-drawer-resize-handle:hover {
+          background: var(--ant-color-primary-bg) !important;
+        }
+        .ant-drawer .ant-drawer-resize-handle:active {
+          background: var(--ant-color-primary) !important;
+          opacity: 0.3;
+        }
+      `;
       document.head.appendChild(style);
     }
   }, []);
@@ -441,15 +456,17 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      {/* 文档抽屉 */}
+      {/* 文档抽屉 — 支持左侧拖拽改变宽度 */}
       <Drawer
         title={<span style={{ fontWeight: 600, color: 'var(--ant-color-text)', fontSize: 14 }}>{docDrawer.title}</span>}
         open={docDrawer.open}
         onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
         size={560}
-        maxSize={900}
+        maxSize={960}
         resizable
-        styles={{ body: { background: 'var(--ant-color-bg-container)' } }}
+        styles={{
+          body: { background: 'var(--ant-color-bg-container)' },
+        }}
       >
         <div className="markdown-body">
           <ErrorBoundary>
