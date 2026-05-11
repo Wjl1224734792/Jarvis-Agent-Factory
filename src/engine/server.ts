@@ -998,14 +998,13 @@ function resp(obj) {
   return { content: [{ type: 'text', text: JSON.stringify(obj) }] };
 }
 
-/** 从 package.json 读取版本号 */
-/** 获取 web 面板 dist 目录：优先包安装目录，回退项目本地目录 */
+/** 获取 web 面板 dist 目录：JARVIS_DEV=1 → 项目本地；否则 → 包安装目录 */
 function getWebDistDir(root: string) {
+  if (process.env.JARVIS_DEV === '1' || process.env.JARVIS_DEV === 'true') {
+    return resolve(root, 'dist', 'web');
+  }
   // import.meta.dirname = <pkg>/dist/src/engine/ → ../../ = <pkg>/dist/
-  const distRoot = resolve(import.meta.dirname, '..', '..');
-  const pkgWebDir = resolve(distRoot, 'web');
-  if (existsSync(resolve(pkgWebDir, 'index.html'))) return pkgWebDir;
-  return resolve(root, 'dist', 'web');
+  return resolve(import.meta.dirname, '..', '..', 'web');
 }
 
 function readPkgVersion() {
