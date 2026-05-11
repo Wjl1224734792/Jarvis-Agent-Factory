@@ -1,6 +1,0 @@
-{
-  "name": "jarvis-visualization",
-  "version": "1.0.0",
-  "description": "Jarvis Agent 实时可视化与 Token 追踪 — 通过 SubagentStart/SubagentEnd hooks 自动记录 Agent 生命周期事件到引擎数据库",
-  "hooks": "./hooks/hooks.json"
-}
