@@ -29,7 +29,7 @@ argument-hint: [后端需求描述]
 | 配置项 | 值 |
 |--------|---|
 | **pipeline_type** | `backend` |
-| **Gate 序列** | A → B → B1 → C → C-impl → C1 → C2 → D → E（**9 道闸门，跳过 C1.5 视觉验证**） |
+| **Gate 序列** | A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C2 → D → E（12 道闸门，跳过 C1.5 视觉验证） |
 
 ### 可用代理路由
 
@@ -37,12 +37,15 @@ argument-hint: [后端需求描述]
 |------|--------------|
 | 架构设计 | `backend-architect` |
 | 数据库专项 | `database-architect` |
+| 任务分解 | `task-design` |
 | 全栈实现 | `backend-dev-expert` |
 | API/路由/中间件 | `backend-api-expert` |
 | 业务逻辑/领域 | `backend-logic-expert` |
 | 数据层/Schema/迁移 | `backend-data-expert` |
 | 后端测试 | `backend-test-expert` |
 | 性能/负载测试 | `perf-test-expert` |
+| 后端审查 | `backend-review-expert` |
+| 质量签核 | `qa-review-expert` |
 | 安全审计 | `security-review-expert` |
 | API 文档 | `api-contract-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
@@ -51,18 +54,21 @@ argument-hint: [后端需求描述]
 ### 典型 Batch 结构
 
 ```
-Batch 1: [backend-api-expert, backend-data-expert]     ← API + Schema 可并行
-Batch 2: [backend-logic-expert]                       ← 依赖 Batch 1 契约
-Batch 3: [backend-test-expert, api-contract-expert]         ← 测试 + 文档可并行
-Batch 4: [perf-test-expert]                      ← 负载/压力测试
-Batch 5: [security-review-expert]                             ← 安全审计
+Gate B-DDD: [task-design]（DDD 领域分析——聚合/实体/值对象/领域服务）
+Gate B-BDD: [task-design]（BDD 行为场景——Gherkin Given/When/Then）
+Gate B-TDD: [task-design]（TDD 任务包——Red→Green→Refactor）
+Gate C-impl:
+  Batch 1: [backend-api-expert, backend-data-expert]     ← API + Schema 可并行
+  Batch 2: [backend-logic-expert]                       ← 依赖 Batch 1 契约
+  Batch 3: [backend-test-expert, api-contract-expert]   ← 测试 + 文档可并行
+  Batch 4: [perf-test-expert]                           ← 负载/压力测试
 ```
 
 ---
 
 ## Gate 流程（公共编排框架）
 
-编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B 任务分解 → Gate B1 架构评审（条件性）→ Gate C 执行规划 → Gate C-impl 批量实现 → Gate C1 代码质量 → Gate C2 测试 → Gate D 评审 → Gate E 发布。
+编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B-DDD 领域分析 → Gate B-BDD 行为驱动 → Gate B-TDD 测试任务 → Gate B1 架构评审（条件性）→ Gate C 执行规划 → Gate C-impl 批量实现 → Gate C1 代码质量 → Gate C2 测试 → Gate D 评审 → Gate E 发布。
 
 **关键差异**：跳过 Gate C1.5（视觉验证），后端无前端页面/组件变更需求。
 
@@ -71,7 +77,8 @@ Batch 5: [security-review-expert]                             ← 安全审计
 | Gate | 可并行操作 |
 |------|-----------|
 | Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `external-resource-expert` × N（多库并行搜索） |
-| Gate B→C 之间 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
+| Gate B：DDD→BDD→TDD | `task-design` 按顺序 spawn（DDD→BDD→TDD），不可并行但可连续 |
+| Gate B1 | `backend-architect` + `database-architect`（如需架构评审，二者可并行） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
 | Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |
 | Gate C2 | `backend-test-expert` + `api-contract-expert` 可并行；`perf-test-expert` 在后 |

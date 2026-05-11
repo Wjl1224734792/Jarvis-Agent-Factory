@@ -29,7 +29,7 @@ argument-hint: [前端需求描述]
 | 配置项 | 值 |
 |--------|---|
 | **pipeline_type** | `frontend` |
-| **Gate 序列** | A → B → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（10 道闸门） |
+| **Gate 序列** | A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C1.5 → C2 → D → E（12 道闸门） |
 | **强制 Gate C1.5** | 所有前端任务必须过视觉验证（页面/组件截图 + 响应式多视口） |
 
 ### 可用代理路由
@@ -37,12 +37,15 @@ argument-hint: [前端需求描述]
 | 层级 | subagent_type |
 |------|--------------|
 | 架构设计 | `frontend-architect` |
+| 任务分解 | `task-design` |
 | 全栈实现 | `frontend-dev-expert` |
 | UI/布局/样式 | `frontend-ui-expert` |
 | 状态/数据/路由 | `frontend-state-expert` |
 | 前端测试 | `frontend-test-expert` |
 | 浏览器测试 | `browser-test-expert` |
 | E2E 测试 | `e2e-test-expert` |
+| 前端审查 | `frontend-review-expert` |
+| 质量签核 | `qa-review-expert` |
 | 性能审计 | `perf-review-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施 | `infra-deploy-expert` |
@@ -51,24 +54,32 @@ argument-hint: [前端需求描述]
 ### 典型 Batch 结构
 
 ```
-Batch 1: [frontend-ui-expert, frontend-state-expert]   ← UI + 状态可并行
-Batch 2: [frontend-test-expert]                          ← 单元/组件测试
-Batch 3: [browser-test-expert]                           ← 浏览器交互测试
-Batch 4: [e2e-test-expert]                               ← 端到端测试（最后）
+Gate B-DDD: [task-design]（DDD 领域分析——聚合/实体/值对象/领域服务）
+Gate B-BDD: [task-design]（BDD 行为场景——Gherkin Given/When/Then）
+Gate B-TDD: [task-design]（TDD 任务包——Red→Green→Refactor）
+Gate C-impl:
+  Batch 1: [frontend-ui-expert, frontend-state-expert]   ← UI + 状态可并行
+  Batch 2: [frontend-dev-expert]                          ← 集成组装
+  Batch 3: [frontend-test-expert]                          ← 单元/组件测试
+  Batch 4: [browser-test-expert]                           ← 浏览器交互测试
+  Batch 5: [e2e-test-expert]                               ← 端到端测试（最后）
 ```
 
 ---
 
 ## Gate 流程（公共编排框架）
 
-编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B 任务分解 → Gate B1 架构评审（条件性）→ Gate C 执行规划 → Gate C-impl 批量实现 → Gate C1 代码质量 → Gate C1.5 视觉验证（强制）→ Gate C2 测试 → Gate D 评审 → Gate E 发布。
+编排框架与 `jarvis` 模式一致：Gate A 需求澄清 → Gate B-DDD 领域分析 → Gate B-BDD 行为驱动 → Gate B-TDD 测试任务 → Gate B1 架构评审（条件性）→ Gate C 执行规划 → Gate C-impl 批量实现 → Gate C1 代码质量 → Gate C1.5 视觉验证（强制）→ Gate C2 测试 → Gate D 评审 → Gate E 发布。
+
+**关键差异**：Gate C1.5（视觉验证）强制不可跳过——所有前端变更必须提供截图证据。
 
 ### 每 Gate 并行机会速查
 
 | Gate | 可并行操作 |
 |------|-----------|
 | Gate A 通过后 | `code-explore-expert` × N（多目录并行探索，spawn 前 `gate_check("read")`）+ `external-resource-expert` × N（多库并行搜索） |
-| Gate B→C 之间 | `frontend-architect`（如需架构评审，可与 task-design 产出并行准备） |
+| Gate B：DDD→BDD→TDD | `task-design` 按顺序 spawn（DDD→BDD→TDD），不可并行但可连续 |
+| Gate B1 | `frontend-architect`（架构评审，条件性触发） |
 | Gate C 实现 Batch | 按 `parallel_batches` 执行，同 Batch 内并行 |
 | Gate C1 | Lint + Type-check + Build + Deps Audit 四项可并行启动 |
 | Gate C2 | `frontend-test-expert` + `browser-test-expert` 可并行；`e2e-test-expert` 必须最后 |

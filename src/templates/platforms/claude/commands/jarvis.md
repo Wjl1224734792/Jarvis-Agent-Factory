@@ -276,18 +276,27 @@ Read 打开 `docs/plans/YYYY-MM-DD-<topic>-plan.md`
 
 **目标**：代码审查通过，REQ 追踪矩阵完整
 
-**步骤 1 — 领域审查（4 个专家并行）**：
+**步骤 1 — 领域审查（5 个专家并行，其中 algorithm-expert 条件性触发）**：
 **引擎验证**：spawn 前 `gate_check({ operation: "review" })` 确认 Gate D 允许审查
 ```
 ├── spawn frontend-review-expert（前端代码审查：组件/样式/状态/性能/可访问性）
 ├── spawn backend-review-expert（后端代码审查：API/业务逻辑/数据层/安全）
 ├── spawn security-review-expert（安全审计：威胁建模/CVE/SAST/密钥检测）
-└── spawn perf-review-expert（性能审计：bundle/LCP/查询/运行时）
+├── spawn perf-review-expert（性能审计：bundle/LCP/查询/运行时）
+└── spawn algorithm-expert（算法审查：条件性——仅当变更涉及复杂算法/计算密集型模块时触发）
 ```
+
+**algorithm-expert 触发条件**（满足任一即触发）：
+- 涉及自定义排序/搜索/匹配算法
+- 涉及加密/哈希/签名等密码学操作
+- 涉及图计算/动态规划/回溯等复杂逻辑
+- 涉及 ML 推理/特征工程/模型优化
+- 涉及大数据量处理（N > 10^5）的性能敏感代码
+- 编排者判断代码复杂度高、需算法专项审查
 
 **步骤 2 — 综合签核（等待步骤 1 全部完成）**：
 ```
-└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚4个领域报告）
+└── spawn qa-review-expert（综合签核：REQ追踪/文档/Gate条件，汇聚5个领域报告）
 ```
 
 **步骤 3 — 审查失败回退循环**：
@@ -305,7 +314,8 @@ qa-review-expert 综合报告后，按严重度处理：
 2. 后端审查不通过 → spawn 原后端实现 Agent（根据变更文件选 `backend-dev-expert` / `backend-api-expert` / `backend-logic-expert` / `backend-data-expert`）
 3. 安全审计不通过 → spawn 受影响模块的实现 Agent，传递安全报告；修复后重新 spawn `security-review-expert`
 4. 性能审计不通过 → spawn 受影响模块的实现 Agent，传递性能报告；修复后重新 spawn `perf-review-expert`
-5. QA 签核不通过 → 分析阻断项归属，回退对应阶段修复
+5. 算法审查不通过 → spawn 原实现 Agent，传递算法报告；修复后重新 spawn `algorithm-expert`
+6. QA 签核不通过 → 分析阻断项归属，回退对应阶段修复
 
 **最大重试**：Gate D 最多 2 轮完整审查-修复-重审循环。2 轮仍不通过 → 标记 `ABORT`，汇总所有审查报告和修复历史向用户报告不可恢复的阻塞。
 

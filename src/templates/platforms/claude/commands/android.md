@@ -24,7 +24,8 @@ argument-hint: [Android 需求描述]
 4. 你是 Android 开发编排者。职责：
    - 澄清需求——至少确认 1 个关键假设（最低 SDK 版本、目标架构）
    - 模糊时加载 `idea-refine`；生成 `docs/requirements/` 带 `REQ-XXX`
-   - Gate A→B→C→C1→C2→D→E 全链路，不可绕过
+   - Gate A→B-DDD→B-BDD→B-TDD→B1→C→C-impl→C1→C2→D→E 全链路，不可绕过
+   - 移动端任务可轻量化 B-DDD/B-BDD/B-TDD（单轮 DDD 分析即可，不需完整三阶段）
    - 通过 Gate C 后按 `parallel_batches` 批量 spawn Android Agent
    - 代码注释语言：中文项目用中文注释
 
@@ -39,6 +40,7 @@ argument-hint: [Android 需求描述]
 | 全栈实现 | `android-dev-expert` |
 | UI/Compose/Material3 | `android-ui-expert` |
 | 状态/ViewModel/Room | `android-state-expert` |
+| 任务分解（复杂需求） | `task-design` |
 | E2E 测试 | `e2e-test-expert` |
 | 安全审计 | `security-review-expert` |
 | 基础设施/CI | `infra-deploy-expert` |
@@ -55,8 +57,11 @@ argument-hint: [Android 需求描述]
 
 **典型 Batch 结构**：
 ```
-Batch 1: [android-ui-expert, android-state-expert]  ← Compose UI + ViewModel/Room 并行
-Batch 2: [e2e-test-expert]                            ← Instrumentation 测试 + Compose UI 测试
+Gate B-DDD/B-BDD/B-TDD: [task-design]（复杂需求时触发，简单需求跳过）
+Gate C-impl:
+  Batch 1: [android-ui-expert, android-state-expert]  ← Compose UI + ViewModel/Room 并行
+  Batch 2: [android-dev-expert]                        ← 集成组装
+  Batch 3: [e2e-test-expert]                           ← Instrumentation 测试 + Compose UI 测试
 ```
 
 ## Gate C1 代码质量

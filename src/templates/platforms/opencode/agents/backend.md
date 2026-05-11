@@ -23,14 +23,14 @@ permission:
 - 生成子代理前调用 `mcp__jarvis-engine__gate_check({ operation: "spawn_impl" })` 等验证
 - 每个 Gate 完成后调用 `mcp__jarvis-engine__gate_enforce` → `mcp__jarvis-engine__advance_gate`
 
-## 流水线配置（10 道闸门，跳 C1.5 视觉验证）
+## 流水线配置（12 道闸门，跳 C1.5 视觉验证）
 
-**Gate 序列**: A → B → B1 → C → C-impl → C1 → C2 → D → E
+**Gate 序列**: A → B-DDD → B-BDD → B-TDD → B1 → C → C-impl → C1 → C2 → D → E
 
 ## 代理分类与路由
 
 ### 规划与评审
-| `task-design` | 需求→任务分解 | `planner` | 任务→执行计划 | `qa-review-expert` | 综合签核 |
+| `task-design` | DDD/BDD/TDD 分解 | `planner` | 任务→执行计划 | `qa-review-expert` | 综合签核 |
 ### 探索
 | `code-explore-expert` | `docs-research-expert` |
 ### 后端实现（使用 subagent_type）
@@ -44,6 +44,7 @@ permission:
 | `backend-architect` | 后端架构 | `database-architect` | 数据库架构 |
 | `backend-review-expert` | 后端审查 | `security-review-expert` | 安全审计 |
 | `perf-review-expert` | 性能审计 | `infra-deploy-expert` | CI/CD |
+| `algorithm-expert` | 算法审查（条件性） |
 
 ## 🚪 闸门流程
 
@@ -52,9 +53,14 @@ permission:
 写入 `docs/requirements/YYYY-MM-DD-<topic>.md`，标注 `REQ-XXX`。
 通过后并行探索：`code-explore-expert` + `docs-research-expert`
 
-### Gate B：任务分解
-spawn `task-design`（`gate_check({ operation: "write_doc" })`）。
-每个 TASK-XXX 映射至少 1 个 REQ-XXX。
+### Gate B-DDD：领域分析
+spawn `task-design` DDD 领域分析——聚合/实体/值对象/领域服务/仓储接口。
+
+### Gate B-BDD：行为驱动
+spawn `task-design` BDD 行为场景——Gherkin Given/When/Then（条件性，无高业务价值聚合行为可跳过）。
+
+### Gate B-TDD：测试任务
+spawn `task-design` TDD 任务包——每个 TASK-XXX 映射至少 1 个 REQ-XXX。
 
 ### Gate B1：架构评审（条件性）
 涉及新技术栈/DB 架构变更时并行 spawn：`backend-architect` + `database-architect`（`gate_check({ operation: "sweep_arch" })`）。
@@ -86,7 +92,7 @@ Batch 4: [e2e-test-expert]                             ← 端到端
 
 ### Gate D：评审
 `gate_check({ operation: "review" })` →
-并行：`backend-review-expert` + `security-review-expert` + `perf-review-expert` →
+并行：`backend-review-expert` + `security-review-expert` + `perf-review-expert` + [`algorithm-expert`]（条件性：涉及复杂算法/密码学/大数据量处理时触发）→
 最后：`qa-review-expert`
 
 ### Gate E：发布上线
@@ -98,6 +104,7 @@ DB 迁移脚本就绪（如有 Schema 变更）→ 上线后 `Skill("finishing-a
 
 | 任务 | subagent_type |
 |------|--------------|
+| 任务分解 | `task-design` |
 | 全栈后端 | `backend-dev-expert` |
 | 仅路由/控制器 | `backend-api-expert` |
 | 仅业务逻辑 | `backend-logic-expert` |
@@ -110,6 +117,8 @@ DB 迁移脚本就绪（如有 Schema 变更）→ 上线后 `Skill("finishing-a
 | 架构设计 | `backend-architect` |
 | 数据库专项 | `database-architect` |
 | 安全审计 | `security-review-expert` |
+| 性能审查 | `perf-review-expert` |
+| 算法审查 | `algorithm-expert` |
 | 部署/CI | `infra-deploy-expert` |
 
 ## 故障恢复
