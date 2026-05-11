@@ -46,7 +46,8 @@
     "jarvis": "node dist/src/cli.js",
     "jarvis:dev": "tsx src/cli.ts",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "install:browser-use": "pip install --user browser-use"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",

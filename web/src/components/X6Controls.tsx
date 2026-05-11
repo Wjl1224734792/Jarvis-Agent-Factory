@@ -1,5 +1,5 @@
 import React from 'react';
-import { theme } from 'antd';
+import { theme, Tooltip } from 'antd';
 
 // ============================================================
 // 共享 X6 控制组件：缩放按钮组 + Agent 类型图例面板
@@ -33,11 +33,11 @@ interface X6ControlsProps {
 export const DEFAULT_AGENT_TYPES: AgentTypeInfo[] = [
   { icon: '🎨', label: '前端', color: 'var(--ant-color-primary)' },
   { icon: '🔧', label: '后端', color: 'var(--ant-color-success)' },
-  { icon: '🧪', label: '测试', color: '#722ED1' },
+  { icon: '🧪', label: '测试', color: 'var(--ant-purple-7)' },
   { icon: '🔍', label: '审查', color: 'var(--ant-color-warning)' },
   { icon: '🛡️', label: '安全', color: 'var(--ant-color-error)' },
-  { icon: '🏗️', label: '架构', color: '#13C2C2' },
-  { icon: '📱', label: '移动端', color: '#389E0D' },
+  { icon: '🏗️', label: '架构', color: 'var(--ant-cyan-7)' },
+  { icon: '📱', label: '移动端', color: 'var(--ant-green-7)' },
   { icon: '🤖', label: '其他', color: 'var(--ant-color-text-quaternary)' },
 ];
 
@@ -93,30 +93,32 @@ export default function X6Controls({
           }}
         >
           {agentTypes.map(({ icon, label, color }) => (
-            <span
-              key={label}
-              style={{
-                fontSize: 11,
-                color: token.colorTextSecondary,
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: 3,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {/* 类型颜色指示圆点 */}
+            <Tooltip key={label} title={`${icon} ${label}`}>
               <span
                 style={{
-                  display: 'inline-block',
-                  width: 8,
-                  height: 8,
-                  borderRadius: '50%',
-                  backgroundColor: color,
-                  flexShrink: 0,
+                  fontSize: 11,
+                  color: token.colorTextSecondary,
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: 3,
+                  whiteSpace: 'nowrap',
+                  pointerEvents: 'auto',
                 }}
-              />
-              {icon} {label}
-            </span>
+              >
+                {/* 类型颜色指示圆点 */}
+                <span
+                  style={{
+                    display: 'inline-block',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: color,
+                    flexShrink: 0,
+                  }}
+                />
+                {icon} {label}
+              </span>
+            </Tooltip>
           ))}
         </div>
       )}
@@ -134,15 +136,39 @@ export default function X6Controls({
           ...style,
         }}
       >
-        <button type="button" onClick={onZoomIn} title="放大" aria-label="放大画布" style={btnStyle}>
-          +
-        </button>
-        <button type="button" onClick={onZoomOut} title="缩小" aria-label="缩小画布" style={btnStyle}>
-          −
-        </button>
-        <button type="button" onClick={onZoomToFit} title="适应画布" aria-label="适应画布" style={btnStyle}>
-          ⊡
-        </button>
+        <Tooltip title="放大 (Ctrl+滚轮)">
+          <button
+            type="button"
+            onClick={onZoomIn}
+            aria-label="放大画布"
+            aria-keyshortcuts="Control+Equal"
+            style={btnStyle}
+          >
+            +
+          </button>
+        </Tooltip>
+        <Tooltip title="缩小 (Ctrl+滚轮)">
+          <button
+            type="button"
+            onClick={onZoomOut}
+            aria-label="缩小画布"
+            aria-keyshortcuts="Control+Minus"
+            style={btnStyle}
+          >
+            −
+          </button>
+        </Tooltip>
+        <Tooltip title="适应画布 (Ctrl+0)">
+          <button
+            type="button"
+            onClick={onZoomToFit}
+            aria-label="适应画布"
+            aria-keyshortcuts="Control+Digit0"
+            style={btnStyle}
+          >
+            ⊡
+          </button>
+        </Tooltip>
       </div>
     </>
   );

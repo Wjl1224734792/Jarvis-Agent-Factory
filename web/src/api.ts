@@ -88,6 +88,15 @@ export interface AgentGateStatusResponse {
   }>;
 }
 
+/** 指令项（TASK-013 / TASK-014） */
+export interface CommandItem {
+  name: string;
+  description: string;
+  argumentHint: string;
+  pipelineType: string;
+  category: string;
+}
+
 export interface AgentEvent {
   id: number;
   run_id: string;
@@ -204,4 +213,7 @@ export const api = {
 
   agentGateStatus: (runId?: string): Promise<AgentGateStatusResponse> =>
     fetchJSON(`/api/agent-gate-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
+
+  commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
+    fetchJSON('/api/commands'),
 };

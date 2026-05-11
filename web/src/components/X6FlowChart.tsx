@@ -4,6 +4,7 @@ import { Selection } from '@antv/x6-plugin-selection';
 import { Snapline } from '@antv/x6-plugin-snapline';
 import dagre from 'dagre';
 import { theme } from 'antd';
+import type { GlobalToken } from 'antd';
 import { NODE_SIZES, ANIMATION_DEFAULTS } from '../constants/x6-theme';
 import type { AgentStatusResponse, AgentUsageResponse } from '../api';
 import { useX6Animation } from '../hooks/useX6Animation';
@@ -20,6 +21,30 @@ function escapeHtml(unsafe: string): string {
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&#039;');
+}
+
+/**
+ * 根据 Gate 状态返回颜色方案
+ * @param state - 'passed' | 'current' | 'future'
+ * @param token - antd 主题 token
+ * @returns fill/stroke/labelFill 色值
+ */
+export function getGateColorScheme(
+  state: 'passed' | 'current' | 'future',
+  token: GlobalToken,
+): { fill: string; stroke: string; labelFill: string } {
+  switch (state) {
+    case 'passed':
+      return { fill: token.colorSuccessBg, stroke: token.colorSuccess, labelFill: token.colorSuccess };
+    case 'current':
+      return { fill: token.colorPrimaryBg, stroke: token.colorPrimary, labelFill: token.colorPrimary };
+    default:
+      return {
+        fill: token.colorBgElevated || token.colorBgContainer,
+        stroke: token.colorBorderSecondary,
+        labelFill: token.colorTextSecondary,
+      };
+  }
 }
 
 // ============================================================
@@ -281,24 +306,16 @@ export default function X6FlowChart({
       const state = getGateState(gateId);
       const isSelected = (selectedGate || currentGate) === gateId;
 
-      let fill: string; let stroke: string; let labelFill: string;
-      switch (state) {
-        case 'passed':
-          fill = token.colorSuccessBg;
-          stroke = token.colorSuccess;
-          labelFill = token.colorSuccess;
-          break;
-        case 'current':
-          fill = token.colorPrimaryBg;
-          stroke = token.colorPrimary;
-          labelFill = token.colorPrimary;
-          break;
-        default:
-          fill = token.colorBgElevated || token.colorBgContainer;
-          stroke = token.colorBorderSecondary;
-          labelFill = token.colorTextSecondary;
-          break;
-      }
+      const { fill, stroke, labelFill } = getGateColorScheme(state, token);
+
+      // 状态图标
+      const statusIcon = state === 'passed' ? '✅'
+        : state === 'current' ? '🔵'
+        : '⏳';
+
+      const gateShortName = gateId.replace('Gate ', '');
+      const gateLabelText = `${statusIcon} Gate ${escapeHtml(gateShortName)}`;
+      const chineseLabelText = GATE_LABELS[gateId] || '';
 
       const node = graph.addNode({
         id: gateId,
@@ -307,6 +324,11 @@ export default function X6FlowChart({
         width: mainNodeSize,
         height: mainNodeHeight,
         shape: 'rect',
+        markup: [
+          { tagName: 'rect', selector: 'body' },
+          { tagName: 'text', selector: 'gateLabel' },
+          { tagName: 'text', selector: 'chineseLabel' },
+        ],
         attrs: {
           body: {
             fill,
@@ -317,13 +339,22 @@ export default function X6FlowChart({
             ry: 12,
             filter: isSelected ? `drop-shadow(0 0 8px ${stroke})` : state === 'current' ? `drop-shadow(0 0 6px ${stroke})` : undefined,
           },
-          label: {
-            text: `${GATE_ICONS[gateId] || ''} ${GATE_LABELS[gateId] || gateId}`,
+          gateLabel: {
+            text: gateLabelText,
             fill: labelFill,
             fontSize: mainFontSize,
             fontWeight: isSelected ? 700 : state === 'current' ? 600 : 400,
             textAnchor: 'middle',
-            textVerticalAnchor: 'middle',
+            refX: mainNodeSize / 2,
+            refY: 14,
+          },
+          chineseLabel: {
+            text: chineseLabelText,
+            fill: token.colorTextQuaternary,
+            fontSize: 8,
+            textAnchor: 'middle',
+            refX: mainNodeSize / 2,
+            refY: 28,
           },
         },
         data: { gateId, state, isGate: true },
@@ -534,8 +565,21 @@ export default function X6FlowChart({
         html += `<div style="font-weight:700;margin-bottom:4px">🤖 ${agentId}</div>`;
         html += `<div style="font-size:11px">${statusLabel}</div>`;
         if (usage) {
-          const total = (usage.total_input_tokens || 0) + (usage.total_output_tokens || 0);
-          html += `<div style="margin-top:4px;font-size:10px;color:${token.colorTextTertiary}">调用: <b>${escapeHtml(String(usage.calls))}</b>次 · Token: <b>${total.toLocaleString()}</b></div>`;
+          const totalInput = usage.total_input_tokens || 0;
+          const totalOutput = usage.total_output_tokens || 0;
+          const totalCache = (usage.total_cache_creation_input_tokens || 0) + (usage.total_cache_read_input_tokens || 0);
+          const totalAll = totalInput + totalOutput;
+          html += `<div style="margin-top:4px;font-size:10px;color:${token.colorTextTertiary}">`;
+          html += `模型: <b>${escapeHtml(usage.model)}</b><br/>`;
+          html += `调用: <b>${escapeHtml(String(usage.calls))}</b>次`;
+          if (totalAll > 0) html += ` · Token: <b>${totalAll.toLocaleString()}</b>`;
+          html += `</div>`;
+          if (totalInput > 0 || totalOutput > 0 || totalCache > 0) {
+            html += `<div style="font-size:9px;color:${token.colorTextQuaternary};margin-top:2px">`;
+            html += `输入 ${totalInput.toLocaleString()} · 输出 ${totalOutput.toLocaleString()}`;
+            if (totalCache > 0) html += ` · 缓存 ${totalCache.toLocaleString()}`;
+            html += `</div>`;
+          }
         }
       } else if (data.isGate) {
         const gateId = data.gateId as string;

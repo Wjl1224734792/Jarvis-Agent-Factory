@@ -32,25 +32,61 @@ interface Props {
   style?: React.CSSProperties;
 }
 
-const ORCHESTRATOR = 'orchestrator';
+export const ORCHESTRATOR = 'orchestrator';
+
+/**
+ * TASK-002 节点尺寸常量（与 NODE_SIZES.orchestrator/subagent 不同，
+ * 因需求明确指定 100x50 / 64x40 且 NODE_SIZES 不可修改）
+ */
+const ORCH_W = 100;
+const ORCH_H = 50;
+const ORCH_FONT_SIZE = 13;
+const SUB_W = 64;
+const SUB_H = 40;
+const SUB_FONT_SIZE = 9;
+const SUB_RX = 8;
+
+/** 最小画布尺寸 */
+const MIN_CANVAS_W = 600;
+const MIN_CANVAS_H = 500;
+
+/**
+ * 格式化 Token 数量为人类可读字符串
+ * @param tokens - Token 数量
+ */
+export function formatTokens(tokens: number | undefined | null): string {
+  if (tokens == null) return '--';
+  if (tokens >= 1000) return `${(tokens / 1000).toFixed(1)}K`;
+  return String(tokens);
+}
+
+/**
+ * 格式化耗时（毫秒）为人类可读字符串
+ * @param ms - 毫秒数
+ */
+export function formatDuration(ms: number | undefined | null): string {
+  if (ms == null) return '--';
+  if (ms >= 60000) return `${(ms / 60000).toFixed(1)}min`;
+  if (ms >= 1000) return `${(ms / 1000).toFixed(1)}s`;
+  return `${ms}ms`;
+}
 
 /**
  * 根据 agent ID 匹配 AGENT_TYPE_COLORS 获取类型专属色
  * 按键长度降序确保更具体的类型优先匹配
  * 匹配不到则使用 status 对应的 antd token 默认色
  */
-function getAgentColors(agentId: string, status: string, token: GlobalToken): { fill: string; stroke: string } {
+export function getAgentColors(agentId: string, status: string, token: GlobalToken): { fill: string; stroke: string } {
   const lowerId = agentId.toLowerCase();
-  // AGENT_TYPE_COLORS 已按键长度降序排列，直接遍历即可
   const entries = Object.entries(AGENT_TYPE_COLORS);
   for (const [typeKey, colors] of entries) {
     if (lowerId.includes(typeKey)) return colors;
   }
-  // 匹配不到类型，使用 status 默认色（基于 antd token）
   switch (status) {
     case 'active':    return { fill: token.colorPrimaryBg, stroke: token.colorPrimary };
     case 'completed': return { fill: token.colorSuccessBg, stroke: token.colorSuccess };
     case 'failed':    return { fill: token.colorErrorBg, stroke: token.colorError };
+    case 'pending':   return { fill: token.colorFillQuaternary, stroke: token.colorBorderSecondary };
     default:          return { fill: token.colorPrimaryBg, stroke: token.colorPrimary };
   }
 }
@@ -87,14 +123,13 @@ function agentIcon(agentId: string): string {
 
 /** 环形布局 — Gate A（需求澄清）、Gate C1/C1.5/C2（质量验证）
  *  半径根据节点数量动态计算，确保 0-30 个 Agent 无重叠 */
-function circularLayout(nodes: string[], cx: number, cy: number, radius?: number) {
+export function circularLayout(nodes: string[], cx: number, cy: number, radius?: number) {
   const positions: Record<string, { x: number; y: number }> = {};
   const n = nodes.length;
   if (n === 0) {
     positions[ORCHESTRATOR] = { x: cx, y: cy };
     return positions;
   }
-  // 动态半径：Agent 越多半径越大，最小 130
   const r = radius ?? Math.max(130, nodes.length * 18);
   positions[ORCHESTRATOR] = { x: cx, y: cy };
   for (let i = 0; i < n; i++) {
@@ -168,10 +203,17 @@ function dagreLayout(
   return positions;
 }
 
-/** 力导向布局（简单弹簧模型）— Gate C-impl
- *  通过排斥力（节点之间）和引力（编排者→节点）迭代收敛
- *  编排者固定在中心 */
-function forceLayout(nodes: string[], cx: number, cy: number) {
+/**
+ * 力导向布局（简单弹簧模型）— Gate C-impl
+ * 通过排斥力（节点之间）和引力（编排者→节点）迭代收敛。
+ * 编排者固定在中心。收敛失败时回退到环形布局。
+ *
+ * @param nodes - Agent ID 数组
+ * @param cx - 画布中心 x
+ * @param cy - 画布中心 y
+ * @returns 位置映射
+ */
+export function forceLayout(nodes: string[], cx: number, cy: number) {
   const positions: Record<string, { x: number; y: number }> = {};
   if (nodes.length === 0) {
     positions[ORCHESTRATOR] = { x: cx, y: cy };
@@ -179,10 +221,12 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  const kRepel = 5000;     // 排斥力系数（所有节点对之间）
-  const kAttract = 0.01;   // 引力系数（编排者→子节点）
+  const kRepel = 5000;
+  const kAttract = 0.01;
   const maxIter = 80;
   const damping = 0.9;
+  /** 收敛阈值：节点间最小距离（px） */
+  const MIN_SPACING = 30;
 
   const n = nodes.length;
   const vel: { x: number; y: number }[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
@@ -199,7 +243,6 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
 
   // 迭代力模拟
   for (let iter = 0; iter < maxIter; iter++) {
-    // 每轮迭代的合力累积（重置为零）
     const forces: { x: number; y: number }[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
 
     // 节点间排斥力（Coulomb 定律）
@@ -209,7 +252,6 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
         const dy = positions[nodes[i]].y - positions[nodes[j]].y;
         const distSq = dx * dx + dy * dy;
         const dist = Math.sqrt(distSq) || 1;
-        // 排斥力：F = kRepel / d^2，方向是远离对方
         const force = kRepel / distSq;
         const fx = (dx / dist) * force;
         const fy = (dy / dist) * force;
@@ -224,7 +266,6 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
     for (let i = 0; i < n; i++) {
       const dx = cx - positions[nodes[i]].x;
       const dy = cy - positions[nodes[i]].y;
-      // 引力：F = kAttract * d
       forces[i].x += kAttract * dx;
       forces[i].y += kAttract * dy;
     }
@@ -236,6 +277,22 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
       positions[nodes[i]].x += vel[i].x;
       positions[nodes[i]].y += vel[i].y;
     }
+  }
+
+  // 收敛检查：节点最小间距 >= MIN_SPACING
+  let minDist = Infinity;
+  for (let i = 0; i < n; i++) {
+    for (let j = i + 1; j < n; j++) {
+      const dx = positions[nodes[i]].x - positions[nodes[j]].x;
+      const dy = positions[nodes[i]].y - positions[nodes[j]].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist < minDist) minDist = dist;
+    }
+  }
+
+  // 收敛失败时回退到环形布局
+  if (n > 1 && minDist < MIN_SPACING) {
+    return circularLayout(nodes, cx, cy);
   }
 
   return positions;
@@ -251,7 +308,6 @@ function starLayout(nodes: string[], cx: number, cy: number) {
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  // 两层：内层半径 120，外层半径 210
   const halfN = Math.ceil(n / 2);
   for (let i = 0; i < n; i++) {
     const isInner = i < halfN;
@@ -281,7 +337,7 @@ function linearLayout(nodes: string[], cx: number, cy: number) {
 }
 
 /** 根据 Gate 类型选择布局 */
-function getLayoutForGate(gate: string, agents: string[], cx: number, cy: number) {
+export function getLayoutForGate(gate: string, agents: string[], cx: number, cy: number) {
   const short = gate.replace('Gate ', '');
   switch (short) {
     case 'A':
@@ -339,7 +395,7 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
   const destroyedRef = useRef(false);
   /** 记录曾渲染过的节点 ID，用于判断新节点触发入场动画 */
   const prevAgentIdsRef = useRef<Set<string>>(new Set());
-  const [size, setSize] = useState({ w: 600, h: 400 });
+  const [size, setSize] = useState({ w: MIN_CANVAS_W, h: MIN_CANVAS_H });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
   // 当前 Gate 下的 Agent 列表
@@ -350,14 +406,16 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
 
   const agentIds = useMemo(() => agents.map(a => a.agent_id), [agents]);
 
-  // ResizeObserver
+  // ResizeObserver — 回调内取 max(实际, MIN_CANVAS) 确保最小画布
   useEffect(() => {
     const el = containerRef.current;
     if (!el) return;
     const ro = new ResizeObserver(entries => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        if (width > 0 && height > 0) setSize({ w: width, h: height });
+        if (width > 0 && height > 0) {
+          setSize({ w: Math.max(width, MIN_CANVAS_W), h: Math.max(height, MIN_CANVAS_H) });
+        }
       }
     });
     ro.observe(el);
@@ -386,7 +444,7 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
 
     return () => {
       destroyedRef.current = true;
-      try { graph.dispose(); } catch {}
+      try { graph.dispose(); } catch { /* ignore */ }
       graphRef.current = null;
     };
   }, []);
@@ -409,101 +467,171 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
     const dur = ANIMATION_DEFAULTS.entranceDuration;
     const cssTransition = `opacity ${dur}ms ease-out`;
 
+    // ---- 编排者节点（中央）----
     const orchPos = positions[ORCHESTRATOR];
     if (orchPos) {
+      // 发光 filter：仅当 token.colorPrimary 为 hex 时使用，否则回退到中性阴影
+      const primaryColor = token.colorPrimary;
+      const glowFilter = primaryColor.startsWith('#')
+        ? `drop-shadow(0 0 14px ${primaryColor}40)`
+        : 'drop-shadow(0 0 10px rgba(0,0,0,0.15))';
+
+      const gateTitle = GATE_TITLES[selectedGate] || selectedGate;
+
       graph.addNode({
         id: ORCHESTRATOR,
-        x: orchPos.x - NODE_SIZES.orchestrator.w / 2,
-        y: orchPos.y - NODE_SIZES.orchestrator.h / 2,
-        width: NODE_SIZES.orchestrator.w,
-        height: NODE_SIZES.orchestrator.h,
+        x: orchPos.x - ORCH_W / 2,
+        y: orchPos.y - ORCH_H / 2,
+        width: ORCH_W,
+        height: ORCH_H,
         shape: 'rect',
         markup: [
           { tagName: 'rect', selector: 'body' },
           { tagName: 'rect', selector: 'innerBorder' },
           { tagName: 'text', selector: 'label' },
+          { tagName: 'text', selector: 'gateLabel' },
         ],
         attrs: {
           body: {
-            fill: token.colorWarningBg,
-            stroke: token.colorWarning,
+            fill: token.colorPrimaryBg,
+            stroke: token.colorPrimary,
             strokeWidth: 4,
-            rx: 40, ry: 40,
-            filter: 'drop-shadow(0 0 12px rgba(250,140,22,0.35))',
+            rx: ORCH_H / 2,
+            ry: ORCH_H / 2,
+            filter: glowFilter,
             style: `${cssTransition}; transform-origin: center; transform-box: fill-box;`,
           },
           innerBorder: {
             fill: 'none',
-            stroke: token.colorWarningBorder,
+            stroke: token.colorPrimaryBorder || token.colorPrimary,
             strokeWidth: 1.5,
-            rx: 35, ry: 35,
+            rx: ORCH_H / 2 - 5,
+            ry: ORCH_H / 2 - 5,
             refX: 5,
             refY: 5,
-            refWidth: 70,
-            refHeight: 70,
+            refWidth: ORCH_W - 10,
+            refHeight: ORCH_H - 10,
           },
           label: {
-            text: '🧠\n编排者',
-            fill: token.colorWarningActive ?? token.colorWarningText,
-            fontSize: NODE_SIZES.orchestrator.fontSize,
+            text: '🧠 编排者',
+            fill: token.colorPrimaryActive ?? token.colorPrimaryText ?? token.colorPrimary,
+            fontSize: ORCH_FONT_SIZE,
             fontWeight: 'bold',
             textAnchor: 'middle',
             textVerticalAnchor: 'middle',
+            refY: -3,
+          },
+          gateLabel: {
+            text: gateTitle,
+            fill: token.colorTextSecondary,
+            fontSize: 9,
+            textAnchor: 'middle',
+            textVerticalAnchor: 'top',
+            refY: ORCH_H / 2 + 3,
           },
         },
         data: { type: 'orchestrator', status: 'active' },
       });
     }
 
-    // 子 Agent 节点 — 按类型着色，类型无匹配时回退到 status 默认色
+    // ---- 子 Agent 节点 ----
     for (const agent of agents) {
       const pos = positions[agent.agent_id];
       if (!pos) continue;
+
       const colors = getAgentColors(agent.agent_id, agent.status, token);
       const icon = agentIcon(agent.agent_id);
-      const name = agent.agent_id.length > 17 ? agent.agent_id.substring(0, 16) + '…' : agent.agent_id;
-      const nodeSize = NODE_SIZES.subagent.w;
+
+      // Agent ID 截断至 15 字符
+      const name = agent.agent_id.length > 15
+        ? `${agent.agent_id.substring(0, 14)}…`
+        : agent.agent_id;
+
       const isActive = agent.status === 'active';
-      // CSS 变量颜色无法拼接透明度后缀，回退到中性阴影
-      const activeFilter = isActive
-        ? (colors.stroke.startsWith('#')
-            ? `drop-shadow(0 0 6px ${colors.stroke}40)`
-            : 'drop-shadow(0 0 6px rgba(0,0,0,0.12))')
+      const isCompleted = agent.status === 'completed';
+      const isFailed = agent.status === 'failed';
+      const isPending = agent.status === 'pending';
+
+      // 呼吸动画 filter
+      const activeFilter = isActive && colors.stroke.startsWith('#')
+        ? `drop-shadow(0 0 6px ${colors.stroke}40)`
         : undefined;
+
+      // 状态图标
+      const statusIcon = isActive ? '🟢'
+        : isCompleted ? '✅'
+        : isFailed ? '❌'
+        : '⏳';
+
+      // Token 与耗时（从 agent 数据中可选读取）
+      const agentData = agent as Record<string, unknown>;
+      const tokenDisplay = formatTokens(agentData.total_tokens as number | undefined);
+      const durationDisplay = formatDuration(agentData.duration_ms as number | undefined);
+
+      // 信息行：状态图标 + Token + 耗时
+      const infoText = `${statusIcon} T:${tokenDisplay} D:${durationDisplay}`;
+
+      // pending 状态使用虚线边框
+      const strokeDash = isPending ? '4,3' : undefined;
 
       graph.addNode({
         id: agent.agent_id,
-        x: pos.x - nodeSize / 2,
-        y: pos.y - nodeSize / 2,
-        width: nodeSize,
-        height: nodeSize,
-        shape: 'ellipse',
+        x: pos.x - SUB_W / 2,
+        y: pos.y - SUB_H / 2,
+        width: SUB_W,
+        height: SUB_H,
+        shape: 'rect',
+        markup: [
+          { tagName: 'rect', selector: 'body' },
+          { tagName: 'text', selector: 'nameLabel' },
+          { tagName: 'text', selector: 'infoLabel' },
+        ],
         attrs: {
           body: {
             fill: colors.fill,
             stroke: colors.stroke,
             strokeWidth: isActive ? 3 : 2,
-            rx: nodeSize / 2, ry: nodeSize / 2,
+            rx: SUB_RX,
+            ry: SUB_RX,
+            strokeDasharray: strokeDash,
             filter: activeFilter,
             style: `${cssTransition}; transform-origin: center; transform-box: fill-box;`,
           },
-          label: {
+          nameLabel: {
             text: `${icon} ${name}`,
             fill: token.colorText,
-            fontSize: 11,
+            fontSize: SUB_FONT_SIZE,
             textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            refY: nodeSize / 2 + 5,
+            fontWeight: 600,
+            refX: SUB_W / 2,
+            refY: 7,
+          },
+          infoLabel: {
+            text: infoText,
+            fill: token.colorTextSecondary,
+            fontSize: 8,
+            textAnchor: 'middle',
+            refX: SUB_W / 2,
+            refY: 22,
           },
         },
         data: { type: 'subagent', status: agent.status, model: agent.model },
       });
 
-      // 连线：编排者 → 子 Agent
-      const edgeStroke = agent.status === 'active' ? token.colorPrimary
-        : agent.status === 'completed' ? token.colorSuccess
-        : agent.status === 'failed' ? token.colorError
+      // ---- 连线：编排者 → 子 Agent ----
+      const edgeStroke = isActive ? token.colorPrimary
+        : isCompleted ? token.colorSuccess
+        : isFailed ? token.colorError
+        : isPending ? token.colorBorderSecondary
         : token.colorBorderSecondary;
+
+      // Token 数量映射线宽：1-3px
+      const tokenCount = agentData.total_tokens as number | undefined;
+      const edgeWidth = tokenCount != null
+        ? Math.max(1, Math.min(3, 1 + (tokenCount / 5000) * 2))
+        : 2;
+
+      const edgeDash = (isActive || isPending) ? '4,3' : undefined;
 
       graph.addEdge({
         id: `${ORCHESTRATOR}->${agent.agent_id}`,
@@ -512,8 +640,8 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
         attrs: {
           line: {
             stroke: edgeStroke,
-            strokeWidth: 2.5,
-            strokeDasharray: agent.status === 'active' ? '4,3' : undefined,
+            strokeWidth: edgeWidth,
+            strokeDasharray: edgeDash,
             targetMarker: { name: 'block', width: 7, height: 5 },
           },
         },
@@ -521,7 +649,7 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       });
     }
 
-    // 新节点入场动画：初始不可见/缩小，下一帧通过 CSS transition 过渡到正常
+    // ---- 入场动画 ----
     const prevIds = prevAgentIdsRef.current;
     const newIds: string[] = [];
     if (!prevIds.has(ORCHESTRATOR)) {
@@ -550,7 +678,6 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
         newIds.push(agent.agent_id);
       }
     }
-    // 延迟一帧后恢复 opacity → 1, scale → 1，CSS transition 接管过渡
     if (newIds.length > 0) {
       requestAnimationFrame(() => {
         if (destroyedRef.current) return;
@@ -563,35 +690,12 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
         }
       });
     }
-    // 更新已见节点 ID 集合
     prevAgentIdsRef.current = new Set([ORCHESTRATOR, ...agentIds]);
-
-    // 无 Agent 时显示提示
-    if (agents.length === 0) {
-      graph.addNode({
-        id: 'placeholder',
-        x: cx - 90,
-        y: cy - 20,
-        width: 180,
-        height: 40,
-        shape: 'rect',
-        attrs: {
-          body: { fill: 'transparent', stroke: 'none' },
-          label: {
-            text: '等待子 Agent 启动...',
-            fill: token.colorTextQuaternary,
-            fontSize: 14,
-            textAnchor: 'middle',
-            textVerticalAnchor: 'middle',
-          },
-        },
-      });
-    }
 
     graph.zoomToFit({ padding: { top: 20, right: 20, bottom: 20, left: 20 }, maxScale: 3.0, minScale: 0.3 });
   }, [agents, selectedGate, size]);
 
-  // 统一的 RAF 动画循环：呼吸动画 + 页面可见性自动暂停/恢复
+  // 统一的 RAF 动画循环
   useX6Animation(graphRef.current, {
     breath: {
       enabled: true,
@@ -624,13 +728,58 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       if (data.type === 'subagent') {
         const agent = agents.find(a => a.agent_id === cell.id);
         const safeId = escapeHtml(cell.id as string);
-        const safeModel = escapeHtml(data.model as string ?? '');
+        const safeModel = escapeHtml((data.model as string) ?? '');
+        const agentData = agent ? (agent as Record<string, unknown>) : null;
         const statusLabel = data.status === 'active' ? '🟢 运行中'
-          : data.status === 'completed' ? '✅ 已完成' : '❌ 失败';
+          : data.status === 'completed' ? '✅ 已完成'
+          : data.status === 'failed' ? '❌ 失败'
+          : data.status === 'pending' ? '⏳ 等待中'
+          : '⏳ 等待中';
+
+        // 组装 tooltip HTML（所有动态数据均经过 escapeHtml 防护）
         let html = `<div style="font-weight:700;margin-bottom:4px">${agentIcon(cell.id as string)} ${safeId}</div>`;
-        html += `<div style="font-size:11px">${statusLabel}</div>`;
-        if (data.model) html += `<div style="font-size:10px;color:${token.colorTextQuaternary}">模型: ${safeModel}</div>`;
-        if (agent?.status === 'active') html += `<div style="font-size:10px;color:${token.colorSuccess};margin-top:2px">● 正在执行任务...</div>`;
+        html += `<div style="font-size:11px;margin-bottom:2px">${statusLabel}</div>`;
+
+        // 模型信息
+        if (data.model || safeModel) {
+          html += `<div style="font-size:10px;color:${token.colorTextQuaternary}">模型: ${safeModel || '--'}</div>`;
+        }
+
+        // Token 用量详情（输入/输出/缓存）
+        const inputTokens = agentData?.input_tokens as number | undefined;
+        const outputTokens = agentData?.output_tokens as number | undefined;
+        const totalTokens = agentData?.total_tokens as number | undefined;
+        if (totalTokens != null || inputTokens != null || outputTokens != null) {
+          html += `<div style="font-size:10px;color:${token.colorTextTertiary};margin-top:2px">`;
+          const total = totalTokens ?? (inputTokens ?? 0) + (outputTokens ?? 0);
+          html += `Token: <b>${formatTokens(total)}</b>`;
+          if (inputTokens != null || outputTokens != null) {
+            html += ` (入 ${formatTokens(inputTokens)} / 出 ${formatTokens(outputTokens)})`;
+          }
+          html += `</div>`;
+        }
+
+        // 耗时
+        const durationMs = agentData?.duration_ms as number | undefined;
+        const durationDisplay = agentData?.duration_display as string | undefined;
+        if (durationMs != null || durationDisplay != null) {
+          html += `<div style="font-size:10px;color:${token.colorTextTertiary}">耗时: ${escapeHtml(durationDisplay ?? formatDuration(durationMs))}</div>`;
+        }
+
+        // 开始时间
+        const startedAt = agentData?.started_at as string | undefined;
+        if (startedAt) {
+          html += `<div style="font-size:10px;color:${token.colorTextQuaternary}">开始: ${escapeHtml(startedAt)}</div>`;
+        }
+
+        // 错误信息（仅失败状态显示）
+        const errorMsg = agentData?.error_message as string | undefined;
+        if (data.status === 'failed' && errorMsg) {
+          html += `<div style="font-size:10px;color:${token.colorError};margin-top:2px;max-width:220px;word-break:break-all">错误: ${escapeHtml(errorMsg)}</div>`;
+        } else if (data.status === 'active') {
+          html += `<div style="font-size:10px;color:${token.colorSuccess};margin-top:2px">● 正在执行任务...</div>`;
+        }
+
         tooltip.innerHTML = html;
         applyTooltipPosition(pos);
         tooltip.style.opacity = '1';
@@ -648,16 +797,15 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       }
     };
 
-    /** 设置 tooltip 位置，含视口边界检测与智能翻转 */
     const applyTooltipPosition = (pos: { x: number; y: number }) => {
-      const tooltipW = 240; // maxWidth
+      const tooltipW = 240;
       let left = pos.x + 14;
       let top = pos.y - 10;
       if (left + tooltipW > window.innerWidth - 10) {
-        left = pos.x - tooltipW - 14; // 翻转到左侧
+        left = pos.x - tooltipW - 14;
       }
-      if (top + 180 > window.innerHeight - 10) {
-        top = pos.y - 180 - 10; // 翻转到上方
+      if (top + 240 > window.innerHeight - 10) {
+        top = pos.y - 240 - 10;
       }
       left = Math.max(4, left);
       top = Math.max(4, top);
@@ -673,10 +821,9 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
     graph.on('node:mouseenter', show);
     graph.on('node:mouseleave', hide);
 
-    // 移动端长按触发 tooltip
     const touchTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
     graph.on('node:touchstart', ({ cell, e }: { cell: any; e: any }) => {
-      const timer = setTimeout(() => show({ cell, e }), 500); // 500ms 长按
+      const timer = setTimeout(() => show({ cell, e }), 500);
       touchTimers.set(cell.id, timer);
     });
     graph.on('node:touchend', ({ cell }: { cell: any }) => {
@@ -690,7 +837,6 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       graph.off('node:mouseleave', hide);
       graph.off('node:touchstart');
       graph.off('node:touchend');
-      // 清理未触发的长按定时器
       for (const timer of touchTimers.values()) clearTimeout(timer);
       touchTimers.clear();
     };
@@ -707,7 +853,7 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
           pointerEvents: 'none',
         }}>
           <div style={{ textAlign: 'center', color: token.colorTextQuaternary }}>
-            <div style={{ fontSize: 48, marginBottom: 12 }}>🤖</div>
+            <div style={{ fontSize: 48, marginBottom: 12 }}>{'🤖'}</div>
             <div style={{ fontSize: 16, fontWeight: 600, color: token.colorTextSecondary }}>
               {selectedGate}
             </div>
