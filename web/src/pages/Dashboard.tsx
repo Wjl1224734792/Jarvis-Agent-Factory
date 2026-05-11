@@ -355,11 +355,11 @@ export default function Dashboard() {
       <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden', minHeight: 0 }}>
 
         {/* ============ 中间区域 ============ */}
-        <div style={{ flex: 1, overflow: 'auto', paddingRight: 8, minWidth: 0 }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', paddingRight: 8, minWidth: 0 }}>
 
           {/* MD 预览模式 */}
           {mdPreview.open ? (
-            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minHeight: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
                 <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
                   <FileSearchOutlined style={{ marginRight: 6 }} />{mdPreview.title}
@@ -378,20 +378,16 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <>
-              {/* G6 流程可视化 */}
-              <div style={{ marginBottom: 12 }}>
-                <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                  <G6FlowChart
-                    runId={runId}
-                    agentStatus={agentStatus}
-                    agentUsage={agentUsage}
-                    pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
-                  />
-                </ErrorBoundary>
-              </div>
-
-            </>
+            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+              <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
+                <G6FlowChart
+                  runId={runId}
+                  agentStatus={agentStatus}
+                  agentUsage={agentUsage}
+                  pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
+                />
+              </ErrorBoundary>
+            </div>
           )}
         </div>
 
