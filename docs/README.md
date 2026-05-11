@@ -6,7 +6,10 @@
 |------|----------|------|
 | `requirements/` | Gate A | 需求文档 `REQ-XXX` |
 | `tasks/` | Gate B | 任务分解文档 `TASK-XXX` |
+| `architecture/` | Gate B1 | 架构评审报告 |
 | `plans/` | Gate C | 执行计划、并行批次、Execution Packets |
 | `implementation/` | Gate C→C1 | 各 agent 实现文档 |
 | `testing/` | Gate C2 | 测试用例、测试报告、覆盖率 |
 | `review/` | Gate D | 审查 findings、复审报告、追踪矩阵 |
+| `shipping/` | Gate E | 发布记录、版本日志 |
+| `tmp/` | 全部 | 过程临时产物（截图、快照等），不入版本库 |

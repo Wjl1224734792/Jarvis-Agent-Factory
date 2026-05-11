@@ -138,7 +138,7 @@ jobs:
               --notes-file CHANGELOG.md
           fi
 
-      - name: Upload Web Assets to Release
+      - name: Upload Web Panel to Release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -146,9 +146,8 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             RELEASE_TAG=${{ inputs.tag }}
           fi
-          # 打包成单个 zip 避免 511 次 API 调用触发 GitHub 502
-          zip -j dist/web-assets.zip dist/web/index.html dist/web/assets/*
-          gh release upload "$RELEASE_TAG" dist/web-assets.zip --clobber
+          # 单 HTML 文件（vite-plugin-singlefile 内联所有 JS/CSS）
+          gh release upload "$RELEASE_TAG" dist/web/index.html --clobber
 
       - name: Publish to npm
         env:

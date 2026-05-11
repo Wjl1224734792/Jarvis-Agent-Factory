@@ -28,7 +28,7 @@ const ALL_PLATFORMS = Object.keys(PLATFORMS);
 const HELP = `🧠 Jarvis Agent Factory v${PKG_VERSION}
 
   Bootstrap multi-agent AI coding assistant configs
-  for Claude Code, OpenCode, and Codex.
+  for Claude Code (主力维护). OpenCode/Codex 配置保留但已冻结不更新.
 
 Usage:
   jarvis [path]                  ≡ jarvis init [path]
@@ -51,15 +51,14 @@ Options:
 
 Platforms:
   claude     ${PLATFORMS.claude.desc}
-  opencode   ${PLATFORMS.opencode.desc}
-  codex      ${PLATFORMS.codex.desc}
+  opencode   ${PLATFORMS.opencode.desc} (⛔ 已冻结)
+  codex      ${PLATFORMS.codex.desc} (⛔ 已冻结)
 
 Examples:
   jarvis                          Bootstrap current directory
   jarvis init my-app              Bootstrap new project
-  jarvis add claude opencode      Add platforms to current directory
+  jarvis add claude               Add Claude Code to current directory
   jarvis add claude -g            Add Claude Code globally
-  jarvis remove codex             Remove Codex from project
   jarvis engine start             Start MCP orchestration engine
   jarvis web                      Start web dashboard (≡ engine start)
   jarvis upgrade                  Upgrade all configs

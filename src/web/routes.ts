@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -488,6 +488,21 @@ export function setupApiRoutes(app, db, root) {
       resolvedRunId = run.id;
     }
     const status = getAgentStatus(db, resolvedRunId);
+    return c.json(status);
+  });
+
+  /** 获取 Agent 按 Gate 分组状态（供前端 X6 每 Gate 独立图使用） */
+  app.get('/api/agent-gate-status', (c) => {
+    const runId = c.req.query('run_id');
+    const sessionId = c.req.query('session_id');
+    let resolvedRunId = runId;
+    if (!resolvedRunId) {
+      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
+      const run = getActiveRun(db, sessionId);
+      if (!run) return c.json({ error: 'No active run found for session' }, 404);
+      resolvedRunId = run.id;
+    }
+    const status = getAgentGateStatus(db, resolvedRunId);
     return c.json(status);
   });
 

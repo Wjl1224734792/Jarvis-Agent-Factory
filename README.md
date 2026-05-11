@@ -1,15 +1,15 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.36.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.39.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
 <br>**简体中文** | [English](./README_EN.md)
 
-跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，支持 **Claude Code / OpenCode / Codex** 三平台。
+跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**主力支持 Claude Code**，OpenCode / Codex 配置保留但暂不维护。
 
-> **v3.27.0** — 会话排序与门禁文档追踪 · ⋮ 菜单全覆盖 · 文档抽屉 · Agent 自动命名
+> **v3.39.0** — Write/Edit Gate 硬约束 · X6 可视化升级 · 单 HTML 远程面板 · 每 Gate 独立 Agent 图
 
 ## 快速开始
 
@@ -18,24 +18,35 @@ npm i -g jarvis-agent-factory   # 安装 CLI（零原生依赖，node:sqlite 内
 jarvis init -y                   # 一键部署三平台配置 + MCP + 钩子
 # → Claude Code 重启后引擎自动拉起，无需手动启动
 jarvis web                       # 启动 Web 面板（按需）
-# → http://localhost:3457/dashboard
+# → http://localhost:3456/dashboard
 ```
+
+### 远程面板（无需本地安装）
+
+每次 Release 附带一个独立 HTML 文件，可直接下载打开使用，无需安装 npm 包：
+
+1. 打开 [GitHub Releases](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+2. 下载最新版的 `index.html`（单文件，约 3.4MB，内联所有 JS/CSS）
+3. 双击打开 → 自动连接到 `localhost:3456` 引擎
+
+> 确保本地 `jarvis engine start` 已运行，面板 HTML 通过网络请求与本机引擎通信。
 
 ## 核心特性
 
 | 特性 | 说明 |
 |------|------|
 | **MCP 编排引擎** | FSM 硬约束 Gate A→B→C→C1→C1.5→C2→D→E，跳过/回退被拒绝 |
-| **零手动启动** | MCP stdio 自动拉起引擎，Claude Code / OpenCode 开箱即用 |
+| **零手动启动** | MCP stdio 自动拉起引擎，Claude Code 开箱即用 |
 | **轻量编排** | `/jarvis-lite` 按任务类型智能映射 Gate 入口，跳过无关闸门 |
 | **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
-| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 平台筛选 |
-| **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md`/`.toml` 源文件 |
+| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · X6 可视化 Agent 图 |
+| **远程面板** | 单 HTML 文件下载即可打开，无需本地 web 构建 |
+| **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md` 源文件 |
 | **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |
 | **智能安装** | Hash 对比只覆盖变更文件，用户自定义自动保留 |
-| **三平台 Hook/Plugin** | Claude hooks + OpenCode 原生插件 + Codex hooks 全覆盖 |
+| **Hook/Plugin** | Claude Code hooks + MCP 全覆盖 |
 | **平台扩展** | `platform_info` MCP 工具 + `/api/platforms` REST 端点 |
 | **零原生依赖** | Node 22.5+ 内置 `node:sqlite`，安装秒级完成 |
 
@@ -43,11 +54,11 @@ jarvis web                       # 启动 Web 面板（按需）
 
 | 平台 | 维护状态 | 说明 |
 |------|---------|------|
-| **Claude Code** | 维护中 | 主力平台，所有功能、Agent、技能持续迭代 |
-| **OpenCode** | 暂不维护 | 配置模板保留，后续按需启动维护 |
-| **Codex** | 暂不维护 | 配置模板保留，后续按需启动维护 |
+| **Claude Code** | ✅ 维护中 | 主力平台，所有功能、Agent、技能持续迭代 |
+| **OpenCode** | ⛔ 已停止 | 配置文件保留但不再维护更新，**不推荐使用** |
+| **Codex** | ⛔ 已停止 | 配置文件保留但不再维护更新，**不推荐使用** |
 
-> 当前仅对 Claude Code 平台进行主动维护和功能迭代。OpenCode 和 Codex 的平台配置文件（`.opencode/`、`.codex/`）仍保留在仓库中，待后续按需恢复维护。
+> **重要**：当前仅 Claude Code 平台可用。OpenCode 和 Codex 的 CLI 命令和配置文件仍保留在仓库中但不做任何更新，使用可能导致功能异常或配置不完整。
 
 ## 产物目录规范
 
@@ -257,7 +268,9 @@ test-doc-writer → test-executor → fix-retest
 
 ## 平台入口速查
 
-| 领域 | Claude Code | OpenCode | Codex |
+> **仅 Claude Code 可用**。OpenCode / Codex 列仅供参考历史配置，实际不可用。
+
+| 领域 | Claude Code（✅ 可用） | OpenCode（⛔ 不可用） | Codex（⛔ 不可用） |
 |------|-----------|----------|-------|
 | 全栈 | `/jarvis` | `--agent jarvis` | `jarvis` skill |
 | 前端 | `/frontend` | `--agent frontend` | `frontend` skill |
@@ -304,12 +317,15 @@ test-doc-writer → test-executor → fix-retest
 
 ## 发布流程
 
-1. 更新 `package.json` 版本号（语义化版本）
-2. **同步更新 AGENTS.md / README.md / docs/README.md**
-3. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
-4. 推送 GitHub **含 Tag**：`git push origin main && git push origin v<version>`
-5. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release → npm publish）
-6. 验证：`npm view jarvis-agent-factory version` 确认版本
+**开发 → 测试 → 推送 main → 打 Tag → GitHub Actions 自动发布**
+
+1. 本地开发 + 测试通过：`npm run check && npm run build && cd web && npm run build`
+2. 更新 `package.json` 版本号（语义化版本）
+3. **同步更新 AGENTS.md / README.md / docs/README.md**
+4. 提交 + 打 Tag：`git tag -a v<version> -m "v<version> - <概要>"`
+5. 推送 GitHub **含 Tag**：`git push origin main && git push origin v<version>`
+6. GitHub Actions：Release 工作流自动执行（质量检查 → Changelog → GitHub Release + 单 HTML 面板 → npm publish）
+7. 验证：`npm view jarvis-agent-factory version` 确认版本
 
 > 每次提交前自问：文档是否需要同步更新？
 

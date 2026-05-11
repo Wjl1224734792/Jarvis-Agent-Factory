@@ -77,7 +77,11 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
 function installHooks(platform, target, _isGlobal) {
   const hookJson = {
-    PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
+    PostToolUse: [
+      { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] },
+      { matcher: 'Write', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
+      { matcher: 'Edit', hooks: [{ type: 'command', command: 'jarvis hook gate-check --operation write_code' }] },
+    ],
     SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
     SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],

@@ -29,7 +29,9 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 ## 工作模式
 
-| 模式 | Claude Code | OpenCode | Codex |
+> **仅 Claude Code 平台可用**。OpenCode / Codex 列仅供参考，实际不可用。
+
+| 模式 | Claude Code（✅） | OpenCode（⛔） | Codex（⛔） |
 |------|-----------|----------|-------|
 | 全栈编排 | `/jarvis` | 切换到 `jarvis` agent | 加载 `jarvis` skill |
 | 轻量编排 | `/jarvis-lite` | 切换到 `jarvis-lite` agent | 加载 `jarvis-lite` skill |
@@ -54,11 +56,13 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 | 页面 | 路由 | 功能 |
 |------|------|------|
-| 流水线看板 | `/` | 会话列表 · 统计卡片 · Gate 进度 · 历史 Runs · 文档抽屉 · MCP 状态 |
-| 智能体配置 | `/agents` | 卡片网格 · 平台/来源/分类筛选 · 模型/思考等级弹窗 · 文件同步 |
-| 归档记录 | `/archive` | 按会话分组 · 搜索过滤 · 恢复/永久删除 |
+| 流水线看板 | `#/dashboard` | 会话列表 · 统计卡片 · Gate 进度 · X6 流程可视化 · Agent 交互图 · SSE 实时推送 |
+| 智能体配置 | `#/agents` | 卡片网格 · 平台/来源/分类筛选 · 模型/思考等级弹窗 · 文件同步 |
+| 归档记录 | `#/archive` | 按会话分组 · 搜索过滤 · 恢复/永久删除 |
 
 会话命名：通过 MCP 工具 `session_set_name` 给运行记录设置任务名称，Web 面板优先显示任务名而非会话 ID。
+
+远程面板：每次 GitHub Release 附带单 HTML 文件（`index.html`），下载即可打开使用，无需本地构建 web。
 
 ## 浏览器测试文档驱动工作流
 
@@ -87,7 +91,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 
 1. **禁止凭记忆编码** — 修改前必须读取相关源码、测试、契约
 2. **修改技能前先读 writing-skills** — 技能文件需遵循 TDD 规范
-3. **三平台技能同步** — `.claude/skills/`、`.codex/skills/`、`.opencode/skills/` 同名目录内容须一致
+3. **技能修改仅限 Claude Code** — `.claude/skills/` 为主力维护，`.codex/skills/` 和 `.opencode/skills/` 已冻结不更新
 4. **子智能体不可递归** — 子智能体不得再 spawn 其他子智能体
 5. **闸门不可绕过** — Gate A→B→B1→C→C-impl→C1→C1.5→C2→D→E 顺序不可跳跃
     - Gate B1（架构评审）为条件性 Gate：涉及前端/后端/数据库/算法变更时强制执行
@@ -107,7 +111,7 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
     - Agent（`frontend-architect`, `algorithm-expert` 等）由编排者在对应 Gate spawn 执行
     - `/frontend-architect`, `/backend-architect`, `/algorithm-expert` 仅用于方案讨论，不进入流水线
     - 流水线中的架构 Agent 由编排者在 Gate B1 自动 spawn
-17. **OpenCode/Codex 不同步约束** — 不做 OpenCode/Codex 平台的同步修改或优化，除非用户明确说明要开始维护对应平台
+17. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步，配置文件仅保留作为历史参考。CLI 中 `jarvis add opencode/codex` 仍可执行但生成的文件已过时。
 18. **产物目录规范** — 临时产物统一放入 `docs/tmp/`，智能体正式产出按 Gate 存入 `docs/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`
 19. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
 
@@ -207,25 +211,25 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 - docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
 - browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
 
-## 智能体体系
+## 智能体体系（57 个 Agent）
 
-### 实现类
-`frontend-implementer` `frontend-ui-worker` `frontend-state-worker` `frontend-test-worker` `backend-implementer` `backend-api-worker` `backend-service-worker` `backend-data-worker` `backend-test-worker` `taro-worker` `taro-ui-worker` `taro-state-worker` `android-worker` `android-ui-worker` `android-state-worker` `ios-worker` `ios-ui-worker` `ios-state-worker` `react-native-worker` `rn-ui-worker` `rn-state-worker` `flutter-worker` `flutter-ui-worker` `flutter-state-worker`
+### 实现类（21）
+`frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
-### 测试类
-`browser-test-worker` `browser-use-expert` `e2e-test-worker` `performance-test-worker` `test-doc-writer` `test-executor` `api-test-expert` `remediation-expert`
+### 测试类（10）
+`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
 
-### 规划评审类
-`task-design` `planner` `review-qa` `skill-assignment-expert`
+### 规划/任务（3）
+`task-design` `planner` `skill-assignment-expert`
 
-### 审查类
-`diff-code-reviewer` `project-audit-reviewer` `performance-audit-reviewer` `security-auditor` `post-change-reviewer`
+### 审查类（10）
+`frontend-review-expert` `backend-review-expert` `diff-review-expert` `project-review-expert` `perf-review-expert` `security-review-expert` `qa-review-expert` `change-review-expert` `review-only` `review-fix-optimize`
 
-### 架构/专家类
-`algorithm-expert` `frontend-architect` `backend-architect` `database-specialist`
+### 架构/专家（4）
+`algorithm-expert` `frontend-architect` `backend-architect` `database-architect`
 
-### 探索/支撑类
-`repo-explorer` `external-resource-expert` `api-docs-worker` `docs-engineer` `infra-worker`
+### 探索/支撑（8）
+`code-explore-expert` `docs-research-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `remediation-planner`
 
-### 编排主控类（OpenCode Primary）
-`jarvis` `frontend` `backend` `android` `ios` `flutter` `expo` `taro` `review-only` `review-fix-optimize`
+### Claude Code 命令入口（10）
+`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert`

@@ -13,8 +13,8 @@ import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
 import { useSessionId } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
-import G6FlowChart from '../components/G6FlowChart';
-import G6AgentGraph from '../components/G6AgentGraph';
+import X6FlowChart from '../components/X6FlowChart';
+import X6AgentGraph from '../components/X6AgentGraph';
 import { useAgentData } from '../hooks/useAgentData';
 import type { AgentGateStatusResponse } from '../api';
 
@@ -186,6 +186,7 @@ export default function Dashboard() {
   const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
   const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
   const [gateStatus, setGateStatus] = useState<AgentGateStatusResponse | null>(null);
+  const [selectedGate, setSelectedGate] = useState<string | null>(null);
 
   // 按 Gate 分组的 Agent 状态轮询
   useEffect(() => {
@@ -400,19 +401,21 @@ export default function Dashboard() {
               {/* 紧凑流水线进度条 */}
               <div style={{ flexShrink: 0, height: 72, marginBottom: 6 }}>
                 <ErrorBoundary fallback={<Alert type="error" message="流水线进度加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                  <G6FlowChart
+                  <X6FlowChart
                     runId={runId}
                     agentStatus={agentStatus}
                     agentUsage={agentUsage}
                     pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
+                    selectedGate={selectedGate}
+                    onGateSelect={setSelectedGate}
                   />
                 </ErrorBoundary>
               </div>
-              {/* 当前 Gate 的 Agent 交互图 */}
+              {/* 选中 Gate 的 Agent 交互图 */}
               <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--ant-color-border-secondary)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
                 <ErrorBoundary fallback={<Alert type="error" message="Agent 交互图加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                  <G6AgentGraph
-                    currentGate={currentGate}
+                  <X6AgentGraph
+                    selectedGate={selectedGate || currentGate}
                     gateStatus={gateStatus}
                     style={{ width: '100%', height: '100%' }}
                   />

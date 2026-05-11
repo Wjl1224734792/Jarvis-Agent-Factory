@@ -2,7 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { render } from '@testing-library/react';
 import { ConfigProvider } from 'antd';
 import TokenDashboard from '../TokenDashboard';
-import G6FlowChart from '../G6FlowChart';
+import X6FlowChart from '../X6FlowChart';
 import type { AgentUsageResponse } from '../../api';
 
 /**
@@ -81,14 +81,14 @@ describe('TokenDashboard', () => {
 });
 
 // ============================================================
-// G6FlowChart smoke test
+// X6FlowChart smoke test
 // Canvas API 在 jsdom 中不可用，仅验证 runId=null 时空状态不抛异常
 // ============================================================
-describe('G6FlowChart', () => {
+describe('X6FlowChart', () => {
   it('runId 为 null 时渲染空状态（不依赖 Canvas）', () => {
     const { container } = render(
       <ConfigProvider>
-        <G6FlowChart runId={null} agentStatus={null} />
+        <X6FlowChart runId={null} agentStatus={null} selectedGate={null} onGateSelect={() => {}} />
       </ConfigProvider>,
     );
     expect(container.textContent).toContain('无运行中的任务');
