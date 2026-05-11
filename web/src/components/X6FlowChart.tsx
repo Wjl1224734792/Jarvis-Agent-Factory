@@ -4,7 +4,23 @@ import { Selection } from '@antv/x6-plugin-selection';
 import { Snapline } from '@antv/x6-plugin-snapline';
 import dagre from 'dagre';
 import { theme } from 'antd';
+import { NODE_SIZES, ANIMATION_DEFAULTS } from '../constants/x6-theme';
 import type { AgentStatusResponse, AgentUsageResponse } from '../api';
+import { useX6Animation } from '../hooks/useX6Animation';
+import X6Controls from './X6Controls';
+
+/**
+ * HTML 实体编码，防止 XSS 注入
+ * 所有来自后端的数据在拼入 HTML 字符串前必须调用此函数
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // ============================================================
 // Gate 定义
@@ -85,18 +101,16 @@ function computeLayout(
   edges: [string, string][],
   agentNodes: string[],
   agentEdges: [string, string][],
-  nodeWidth: number,
-  nodeHeight: number,
 ) {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'LR', nodesep: 45, ranksep: 90, marginx: 20, marginy: 20 });
+  g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 120, marginx: 20, marginy: 20 });
 
   for (const id of gateNodes) {
-    g.setNode(id, { width: nodeWidth, height: nodeHeight });
+    g.setNode(id, { width: NODE_SIZES.gate.w, height: NODE_SIZES.gate.w });
   }
   for (const id of agentNodes) {
-    g.setNode(id, { width: nodeWidth * 0.55, height: nodeHeight * 0.55 });
+    g.setNode(id, { width: NODE_SIZES.agent.w, height: NODE_SIZES.agent.w });
   }
   for (const [s, t] of edges) {
     g.setEdge(s, t);
@@ -128,9 +142,9 @@ export default function X6FlowChart({
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
-  const animRef = useRef<number>(0);
   const destroyedRef = useRef(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Gate 状态
   const gateStatusMap = useMemo(() => {
@@ -210,8 +224,8 @@ export default function X6FlowChart({
         enabled: true,
         zoomAtMousePosition: true,
         modifiers: 'ctrl',
-        minScale: 0.5,
-        maxScale: 2,
+        minScale: 0.3,
+        maxScale: 3.0,
       },
     });
 
@@ -222,7 +236,6 @@ export default function X6FlowChart({
 
     return () => {
       destroyedRef.current = true;
-      if (animRef.current) cancelAnimationFrame(animRef.current);
       try { graph.dispose(); } catch {}
       graphRef.current = null;
     };
@@ -233,9 +246,9 @@ export default function X6FlowChart({
     const graph = graphRef.current;
     if (!graph || destroyedRef.current) return;
 
-    const mainNodeSize = 52;
-    const mainFontSize = 10;
-    const agentNodeSize = 28;
+    const mainNodeSize = NODE_SIZES.gate.w;
+    const mainFontSize = NODE_SIZES.gate.fontSize;
+    const agentNodeSize = NODE_SIZES.agent.w;
 
     // 准备 agent 节点数据
     const agentNodeIds: string[] = [];
@@ -258,7 +271,6 @@ export default function X6FlowChart({
     ];
     const positions = computeLayout(
       [...GATE_SEQUENCE], edgeList, agentNodeIds, agentEdgeList,
-      mainNodeSize, mainNodeSize,
     );
 
     // 清除旧内容
@@ -357,9 +369,9 @@ export default function X6FlowChart({
             ry: agentNodeSize / 2,
           },
           label: {
-            text: agentName.length > 12 ? agentName.substring(0, 11) + '…' : agentName,
+            text: agentName.length > 16 ? agentName.substring(0, 15) + '…' : agentName,
             fill: token.colorTextSecondary,
-            fontSize: 8,
+            fontSize: NODE_SIZES.agent.fontSize,
             textAnchor: 'middle',
             textVerticalAnchor: 'top',
             refY: agentNodeSize / 2 + 4,
@@ -447,71 +459,55 @@ export default function X6FlowChart({
     }
 
     // 适配视图
-    graph.centerContent();
+    graph.zoomToFit({ padding: { top: 20, right: 20, bottom: 20, left: 20 }, maxScale: 3.0, minScale: 0.3 });
+
+    // 节点入场动画：使用 X6 setAttrs API 实现透明+缩小过渡到正常状态（与 AgentGraph 一致）
+    const entranceD = ANIMATION_DEFAULTS.entranceDuration;
+    const entranceE = ANIMATION_DEFAULTS.entranceEasing;
+    const cssTransition = `opacity ${entranceD}ms ${entranceE}, transform ${entranceD}ms ${entranceE}`;
+    const initialStyle = `opacity: 0; transform: scale(0.3); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
+    const finalStyle = `opacity: 1; transform: scale(1); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
+    const nodes = graph.getNodes();
+    for (const node of nodes) {
+      if (node.isNode()) {
+        node.setAttrs({ body: { opacity: 0, style: initialStyle } });
+      }
+    }
+    if (nodes.length > 0) {
+      requestAnimationFrame(() => {
+        for (const node of nodes) {
+          if (node.isNode()) {
+            node.setAttrs({ body: { opacity: 1, style: finalStyle } });
+          }
+        }
+      });
+    }
   }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped, containerSize]);
 
-  // 边流动虚线动画
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current) return;
-
-    let dashOffset = 0;
-    const animate = () => {
-      if (destroyedRef.current) return;
-      dashOffset = (dashOffset - 0.5) % 16;
-      try {
-        const allEdges = graph.getEdges();
-        for (const edge of allEdges) {
-          const data = edge.getData();
-          if (data?.isGateEdge || data?.isSkipEdge || data?.isAgentEdge) {
-            const lineAttrs = edge.getAttrByPath('line');
-            if ((lineAttrs as any)?.strokeDasharray) {
-              edge.setAttrByPath('line/strokeDashoffset', dashOffset);
-            }
-          }
-        }
-      } catch {}
-      animRef.current = requestAnimationFrame(animate);
-    };
-    animRef.current = requestAnimationFrame(animate);
-
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  // 统一动画：呼吸 + 虚线流动（useX6Animation）
+  useX6Animation(graphRef.current, {
+    breath: {
+      enabled: true,
+      amplitude: ANIMATION_DEFAULTS.breathAmplitude,
+      frequency: ANIMATION_DEFAULTS.breathFrequency,
+      nodeFilter: (node) => {
+        const data = node.getData();
+        return data?.isGate || data?.isAgent;
+      },
+    },
+    dashFlow: {
+      enabled: true,
+      speed: ANIMATION_DEFAULTS.dashFlowSpeed,
+      edgeFilter: (edge) => {
+        const data = edge.getData();
+        return !!(data?.isGateEdge || data?.isSkipEdge || data?.isAgentEdge);
+      },
+    },
+    transitions: {
+      entranceDuration: ANIMATION_DEFAULTS.entranceDuration,
+      exitDuration: ANIMATION_DEFAULTS.exitDuration,
+    },
   }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped]);
-
-  // 活跃节点呼吸动画
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current) return;
-
-    let phase = 0;
-    const breathe = () => {
-      if (destroyedRef.current) return;
-      phase = (phase + 0.04) % (Math.PI * 2);
-      try {
-        const activeAgents = allAgents.filter(a => a.status === 'active');
-        for (const a of activeAgents) {
-          const node = graph.getCellById(`agent-${a.id}`);
-          if (node && node.isNode()) {
-            const scale = 1 + Math.sin(phase * 3) * 0.08;
-            node.scale(scale, scale);
-          }
-        }
-        // 当前 Gate 呼吸
-        const curGate = selectedGate || currentGate;
-        if (curGate) {
-          const gateNode = graph.getCellById(curGate);
-          if (gateNode && gateNode.isNode()) {
-            const gateScale = 1 + Math.sin(phase * 1.5) * 0.03;
-            gateNode.scale(gateScale, gateScale);
-          }
-        }
-      } catch {}
-      animRef.current = requestAnimationFrame(breathe);
-    };
-
-    const id = requestAnimationFrame(breathe);
-    return () => { cancelAnimationFrame(id); };
-  }, [allAgents, selectedGate, currentGate]);
 
   // Tooltip 事件
   useEffect(() => {
@@ -525,49 +521,74 @@ export default function X6FlowChart({
       const data = cell.getData();
       if (!data) return;
 
+      // 取消之前的隐藏定时器，防止 stale 隐藏覆盖新的显示
+      if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+
       const pos = args.e ? { x: args.e.clientX, y: args.e.clientY } : { x: 0, y: 0 };
 
+      let html = '';
+
       if (data.isAgent) {
-        const agentId = data.agentId as string;
-        const agent = allAgents.find(x => x.id === agentId);
-        const usage = agentUsage?.agents?.[agentId];
+        const agentId = escapeHtml(data.agentId as string);
+        const agent = allAgents.find(x => x.id === data.agentId as string);
+        const usage = agentUsage?.agents?.[data.agentId as string];
         const statusLabel = agent?.status === 'active' ? '🟢 运行中'
           : agent?.status === 'completed' ? '✅ 已完成' : '❌ 失败';
-        let html = `<div style="font-weight:700;margin-bottom:4px">🤖 ${agentId}</div>`;
+        html += `<div style="font-weight:700;margin-bottom:4px">🤖 ${agentId}</div>`;
         html += `<div style="font-size:11px">${statusLabel}</div>`;
         if (usage) {
           const total = (usage.total_input_tokens || 0) + (usage.total_output_tokens || 0);
-          html += `<div style="margin-top:4px;font-size:10px;color:#666">调用: <b>${usage.calls}</b>次 · Token: <b>${total.toLocaleString()}</b></div>`;
+          html += `<div style="margin-top:4px;font-size:10px;color:${token.colorTextTertiary}">调用: <b>${escapeHtml(String(usage.calls))}</b>次 · Token: <b>${total.toLocaleString()}</b></div>`;
         }
-        tooltip.innerHTML = html;
-        tooltip.style.display = 'block';
-        tooltip.style.left = `${pos.x + 14}px`;
-        tooltip.style.top = `${pos.y - 10}px`;
-        return;
-      }
-
-      if (data.isGate) {
+      } else if (data.isGate) {
         const gateId = data.gateId as string;
         const state = getGateState(gateId);
         const stateLabel = state === 'passed' ? '✅ 已通过' : state === 'current' ? '🔵 进行中' : '⏳ 等待中';
         const desc = GATE_DESCRIPTIONS[gateId] || '';
         const gateInfo = pipelineGates?.find(g => g.gate === gateId);
 
-        let html = `<div style="font-weight:700;margin-bottom:4px">${GATE_ICONS[gateId] || ''} ${gateId}</div>`;
+        html += `<div style="font-weight:700;margin-bottom:4px">${GATE_ICONS[gateId] || ''} ${escapeHtml(gateId)}</div>`;
         html += `<div style="font-size:10px">${GATE_LABELS[gateId] || ''}</div>`;
         html += `<div style="font-size:10px;margin-top:2px">${stateLabel}</div>`;
-        if (desc) html += `<div style="font-size:10px;color:#666;margin-top:2px;max-width:200px">${desc}</div>`;
-        if (gateInfo?.duration_display) html += `<div style="font-size:10px;color:#666;margin-top:2px">⏱ 耗时: ${gateInfo.duration_display}</div>`;
-        html += `<div style="font-size:9px;color:#999;margin-top:4px">点击查看该 Gate 的 Agent 详情</div>`;
-
-        tooltip.innerHTML = html;
-        tooltip.style.display = 'block';
-        tooltip.style.left = `${pos.x + 14}px`;
-        tooltip.style.top = `${pos.y - 10}px`;
+        if (desc) html += `<div style="font-size:10px;color:${token.colorTextTertiary};margin-top:2px;max-width:200px">${escapeHtml(desc)}</div>`;
+        if (gateInfo?.duration_display) html += `<div style="font-size:10px;color:${token.colorTextTertiary};margin-top:2px">⏱ 耗时: ${escapeHtml(gateInfo.duration_display)}</div>`;
+        html += `<div style="font-size:9px;color:${token.colorTextQuaternary};margin-top:4px">点击查看该 Gate 的 Agent 详情</div>`;
+      } else {
+        return;
       }
+
+      // 视口边界检测 + 智能翻转，防止 tooltip 溢出屏幕
+      const tooltipW = 260; // maxWidth
+      const tooltipH = 150; // 预估高度
+      let left = pos.x + 14;
+      let top = pos.y - 10;
+      if (left + tooltipW > window.innerWidth - 10) {
+        left = pos.x - tooltipW - 14; // 翻转到左侧
+      }
+      if (top + tooltipH > window.innerHeight - 10) {
+        top = pos.y - tooltipH - 10; // 翻转到上方
+      }
+      left = Math.max(4, left);
+      top = Math.max(4, top);
+
+      tooltip.innerHTML = html;
+      tooltip.style.display = 'block';
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+      requestAnimationFrame(() => {
+        tooltip.style.opacity = '1';
+      });
     };
 
-    const hideTooltip = () => { tooltip.style.display = 'none'; };
+    const hideTooltip = () => {
+      tooltip.style.opacity = '0';
+      hideTimerRef.current = setTimeout(() => {
+        if (tooltip.style.opacity === '0') {
+          tooltip.style.display = 'none';
+        }
+        hideTimerRef.current = null;
+      }, 150);
+    };
 
     graph.on('node:mouseenter', showTooltip);
     graph.on('node:mouseleave', hideTooltip);
@@ -575,6 +596,10 @@ export default function X6FlowChart({
     return () => {
       graph.off('node:mouseenter', showTooltip);
       graph.off('node:mouseleave', hideTooltip);
+      if (hideTimerRef.current) {
+        clearTimeout(hideTimerRef.current);
+        hideTimerRef.current = null;
+      }
     };
   }, [agentUsage, allAgents, getGateState, pipelineGates, selectedGate, currentGate]);
 
@@ -604,7 +629,7 @@ export default function X6FlowChart({
 
       {/* Tooltip */}
       <div ref={tooltipRef} style={{
-        display: 'none', position: 'fixed', zIndex: 9999,
+        display: 'none', position: 'fixed', zIndex: 10000,
         background: token.colorBgElevated || token.colorBgContainer,
         border: `1.5px solid ${token.colorPrimaryBorder || token.colorBorder}`,
         borderRadius: 10, padding: '8px 12px', fontSize: 11,
@@ -612,6 +637,7 @@ export default function X6FlowChart({
         boxShadow: token.boxShadowSecondary || '0 4px 16px rgba(0,0,0,0.12)',
         pointerEvents: 'none', maxWidth: 260, lineHeight: 1.6,
         backdropFilter: 'blur(8px)',
+        opacity: 0, transition: 'opacity 150ms ease, transform 150ms ease',
       }} />
 
       {/* 图例 */}
@@ -629,6 +655,14 @@ export default function X6FlowChart({
         <span><span style={{ color: token.colorTextSecondary }}>○</span> 等待中</span>
         <span style={{ cursor: 'pointer', pointerEvents: 'auto' }}>🖱 点击 Gate 查看 Agent</span>
       </div>
+
+      {/* 共享缩放控制组件 */}
+      <X6Controls
+        onZoomIn={() => graphRef.current?.zoom(0.2)}
+        onZoomOut={() => graphRef.current?.zoom(-0.2)}
+        onZoomToFit={() => graphRef.current?.zoomToFit({ padding: 20, maxScale: 3, minScale: 0.3 })}
+        showLegend={false}
+      />
     </div>
   );
 }

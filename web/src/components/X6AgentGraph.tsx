@@ -2,7 +2,24 @@ import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { Graph } from '@antv/x6';
 import dagre from 'dagre';
 import { theme } from 'antd';
+import type { GlobalToken } from 'antd';
 import type { AgentGateStatusResponse } from '../api';
+import { NODE_SIZES, ANIMATION_DEFAULTS, AGENT_TYPE_COLORS } from '../constants/x6-theme';
+import { useX6Animation } from '../hooks/useX6Animation';
+import X6Controls, { DEFAULT_AGENT_TYPES } from './X6Controls';
+
+/**
+ * HTML 实体编码，防止 XSS 注入
+ * 所有来自后端的数据在拼入 HTML 字符串前必须调用此函数
+ */
+function escapeHtml(unsafe: string): string {
+  return unsafe
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 // ============================================================
 // 每个 Gate 独立的 Agent 交互图（X6 版本）
@@ -17,12 +34,26 @@ interface Props {
 
 const ORCHESTRATOR = 'orchestrator';
 
-// Agent 状态颜色
-const STATUS_COLORS: Record<string, { fill: string; stroke: string }> = {
-  active:    { fill: '#F6FFED', stroke: '#52C41A' },
-  completed: { fill: '#E6F7FF', stroke: '#1677FF' },
-  failed:    { fill: '#FFF2F0', stroke: '#FF4D4F' },
-};
+/**
+ * 根据 agent ID 匹配 AGENT_TYPE_COLORS 获取类型专属色
+ * 按键长度降序确保更具体的类型优先匹配
+ * 匹配不到则使用 status 对应的 antd token 默认色
+ */
+function getAgentColors(agentId: string, status: string, token: GlobalToken): { fill: string; stroke: string } {
+  const lowerId = agentId.toLowerCase();
+  // AGENT_TYPE_COLORS 已按键长度降序排列，直接遍历即可
+  const entries = Object.entries(AGENT_TYPE_COLORS);
+  for (const [typeKey, colors] of entries) {
+    if (lowerId.includes(typeKey)) return colors;
+  }
+  // 匹配不到类型，使用 status 默认色（基于 antd token）
+  switch (status) {
+    case 'active':    return { fill: token.colorPrimaryBg, stroke: token.colorPrimary };
+    case 'completed': return { fill: token.colorSuccessBg, stroke: token.colorSuccess };
+    case 'failed':    return { fill: token.colorErrorBg, stroke: token.colorError };
+    default:          return { fill: token.colorPrimaryBg, stroke: token.colorPrimary };
+  }
+}
 
 // Agent emoji 图标
 function agentIcon(agentId: string): string {
@@ -54,20 +85,23 @@ function agentIcon(agentId: string): string {
 
 // === 布局函数 ===
 
-/** 环形布局 — Gate A（需求澄清）、Gate C1/C1.5/C2（质量验证） */
-function circularLayout(nodes: string[], cx: number, cy: number, radius: number) {
+/** 环形布局 — Gate A（需求澄清）、Gate C1/C1.5/C2（质量验证）
+ *  半径根据节点数量动态计算，确保 0-30 个 Agent 无重叠 */
+function circularLayout(nodes: string[], cx: number, cy: number, radius?: number) {
   const positions: Record<string, { x: number; y: number }> = {};
   const n = nodes.length;
   if (n === 0) {
     positions[ORCHESTRATOR] = { x: cx, y: cy };
     return positions;
   }
+  // 动态半径：Agent 越多半径越大，最小 130
+  const r = radius ?? Math.max(130, nodes.length * 18);
   positions[ORCHESTRATOR] = { x: cx, y: cy };
   for (let i = 0; i < n; i++) {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2;
     positions[nodes[i]] = {
-      x: cx + radius * Math.cos(angle),
-      y: cy + radius * Math.sin(angle),
+      x: cx + r * Math.cos(angle),
+      y: cy + r * Math.sin(angle),
     };
   }
   return positions;
@@ -87,7 +121,7 @@ function gridLayout(nodes: string[], cx: number, cy: number) {
     return positions;
   }
   const cols = Math.ceil(Math.sqrt(n));
-  const cellW = 100, cellH = 80;
+  const cellW = 120, cellH = 100;
   const gridW = (cols - 1) * cellW;
   const gridH = (Math.ceil(n / cols) - 1) * cellH;
   for (let i = 0; i < n; i++) {
@@ -106,7 +140,7 @@ function gridLayout(nodes: string[], cx: number, cy: number) {
 function dagreLayout(
   nodes: string[], cx: number, cy: number,
   rankdir: 'TB' | 'LR' = 'TB',
-  nodesep = 50, ranksep = 90,
+  nodesep = 60, ranksep = 110,
 ) {
   const positions: Record<string, { x: number; y: number }> = {};
   const allNodes = [ORCHESTRATOR, ...nodes];
@@ -119,9 +153,9 @@ function dagreLayout(
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir, nodesep, ranksep, marginx: 20, marginy: 20 });
 
-  g.setNode(ORCHESTRATOR, { width: 64, height: 64 });
+  g.setNode(ORCHESTRATOR, { width: NODE_SIZES.orchestrator.w, height: NODE_SIZES.orchestrator.h });
   for (const id of nodes) {
-    g.setNode(id, { width: 48, height: 48 });
+    g.setNode(id, { width: NODE_SIZES.subagent.w, height: NODE_SIZES.subagent.h });
     g.setEdge(ORCHESTRATOR, id);
   }
 
@@ -134,29 +168,76 @@ function dagreLayout(
   return positions;
 }
 
-/** 力导向模拟简化版 — Gate C-impl */
+/** 力导向布局（简单弹簧模型）— Gate C-impl
+ *  通过排斥力（节点之间）和引力（编排者→节点）迭代收敛
+ *  编排者固定在中心 */
 function forceLayout(nodes: string[], cx: number, cy: number) {
   const positions: Record<string, { x: number; y: number }> = {};
-  const allNodes = [ORCHESTRATOR, ...nodes];
   if (nodes.length === 0) {
     positions[ORCHESTRATOR] = { x: cx, y: cy };
     return positions;
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  // 简单圆形扩散 + 随机偏移模拟力导向效果
-  const radius = 140;
+  const kRepel = 5000;     // 排斥力系数（所有节点对之间）
+  const kAttract = 0.01;   // 引力系数（编排者→子节点）
+  const maxIter = 80;
+  const damping = 0.9;
+
   const n = nodes.length;
+  const vel: { x: number; y: number }[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
+
+  // 初始位置：圆形排列
+  const initRadius = Math.max(140, n * 18);
   for (let i = 0; i < n; i++) {
     const angle = (2 * Math.PI * i) / n - Math.PI / 2;
-    // 添加伪随机偏移
-    const offsetR = radius + ((i * 37 + 13) % 41) - 20;
-    const offsetA = angle + ((i * 23 + 7) % 21 - 10) * (Math.PI / 180);
     positions[nodes[i]] = {
-      x: cx + offsetR * Math.cos(offsetA),
-      y: cy + offsetR * Math.sin(offsetA),
+      x: cx + initRadius * Math.cos(angle),
+      y: cy + initRadius * Math.sin(angle),
     };
   }
+
+  // 迭代力模拟
+  for (let iter = 0; iter < maxIter; iter++) {
+    // 每轮迭代的合力累积（重置为零）
+    const forces: { x: number; y: number }[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
+
+    // 节点间排斥力（Coulomb 定律）
+    for (let i = 0; i < n; i++) {
+      for (let j = i + 1; j < n; j++) {
+        const dx = positions[nodes[i]].x - positions[nodes[j]].x;
+        const dy = positions[nodes[i]].y - positions[nodes[j]].y;
+        const distSq = dx * dx + dy * dy;
+        const dist = Math.sqrt(distSq) || 1;
+        // 排斥力：F = kRepel / d^2，方向是远离对方
+        const force = kRepel / distSq;
+        const fx = (dx / dist) * force;
+        const fy = (dy / dist) * force;
+        forces[i].x += fx;
+        forces[i].y += fy;
+        forces[j].x -= fx;
+        forces[j].y -= fy;
+      }
+    }
+
+    // 编排者引力（Hooke 定律）
+    for (let i = 0; i < n; i++) {
+      const dx = cx - positions[nodes[i]].x;
+      const dy = cy - positions[nodes[i]].y;
+      // 引力：F = kAttract * d
+      forces[i].x += kAttract * dx;
+      forces[i].y += kAttract * dy;
+    }
+
+    // 更新速度与位置（阻尼衰减）
+    for (let i = 0; i < n; i++) {
+      vel[i].x = (vel[i].x + forces[i].x) * damping;
+      vel[i].y = (vel[i].y + forces[i].y) * damping;
+      positions[nodes[i]].x += vel[i].x;
+      positions[nodes[i]].y += vel[i].y;
+    }
+  }
+
   return positions;
 }
 
@@ -170,11 +251,11 @@ function starLayout(nodes: string[], cx: number, cy: number) {
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  // 两层：内层半径 90，外层半径 170
+  // 两层：内层半径 120，外层半径 210
   const halfN = Math.ceil(n / 2);
   for (let i = 0; i < n; i++) {
     const isInner = i < halfN;
-    const r = isInner ? 90 : 170;
+    const r = isInner ? 120 : 210;
     const idx = isInner ? i : i - halfN;
     const total = isInner ? halfN : n - halfN;
     const angle = (2 * Math.PI * idx) / total - Math.PI / 2;
@@ -191,7 +272,7 @@ function linearLayout(nodes: string[], cx: number, cy: number) {
   const positions: Record<string, { x: number; y: number }> = {};
   const allNodes = [ORCHESTRATOR, ...nodes];
   const n = allNodes.length;
-  const stepX = 110;
+  const stepX = 130;
   const startX = cx - ((n - 1) * stepX) / 2;
   for (let i = 0; i < n; i++) {
     positions[allNodes[i]] = { x: startX + i * stepX, y: cy };
@@ -204,7 +285,7 @@ function getLayoutForGate(gate: string, agents: string[], cx: number, cy: number
   const short = gate.replace('Gate ', '');
   switch (short) {
     case 'A':
-      return circularLayout(agents, cx, cy, 130);
+      return circularLayout(agents, cx, cy);
     case 'B-DDD':
     case 'B-BDD':
     case 'B-TDD':
@@ -218,13 +299,13 @@ function getLayoutForGate(gate: string, agents: string[], cx: number, cy: number
     case 'C1':
     case 'C1.5':
     case 'C2':
-      return circularLayout(agents, cx, cy, 120);
+      return circularLayout(agents, cx, cy);
     case 'D':
       return starLayout(agents, cx, cy);
     case 'E':
       return linearLayout(agents, cx, cy);
     default:
-      return circularLayout(agents, cx, cy, 130);
+      return circularLayout(agents, cx, cy);
   }
 }
 
@@ -255,8 +336,9 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
   const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
-  const animRef = useRef<number>(0);
   const destroyedRef = useRef(false);
+  /** 记录曾渲染过的节点 ID，用于判断新节点触发入场动画 */
+  const prevAgentIdsRef = useRef<Set<string>>(new Set());
   const [size, setSize] = useState({ w: 600, h: 400 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -297,14 +379,13 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       background: { color: 'transparent' },
       interacting: { nodeMovable: false, edgeMovable: false },
       autoResize: false,
-      mousewheel: { enabled: true, modifiers: 'ctrl', minScale: 0.5, maxScale: 2 },
+      mousewheel: { enabled: true, modifiers: 'ctrl', minScale: 0.3, maxScale: 3.0 },
     });
 
     graphRef.current = graph;
 
     return () => {
       destroyedRef.current = true;
-      if (animRef.current) cancelAnimationFrame(animRef.current);
       try { graph.dispose(); } catch {}
       graphRef.current = null;
     };
@@ -325,27 +406,46 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
     // 清除旧内容
     graph.clearCells();
 
+    const dur = ANIMATION_DEFAULTS.entranceDuration;
+    const cssTransition = `opacity ${dur}ms ease-out`;
+
     const orchPos = positions[ORCHESTRATOR];
     if (orchPos) {
       graph.addNode({
         id: ORCHESTRATOR,
-        x: orchPos.x - 32,
-        y: orchPos.y - 32,
-        width: 64,
-        height: 64,
-        shape: 'ellipse',
+        x: orchPos.x - NODE_SIZES.orchestrator.w / 2,
+        y: orchPos.y - NODE_SIZES.orchestrator.h / 2,
+        width: NODE_SIZES.orchestrator.w,
+        height: NODE_SIZES.orchestrator.h,
+        shape: 'rect',
+        markup: [
+          { tagName: 'rect', selector: 'body' },
+          { tagName: 'rect', selector: 'innerBorder' },
+          { tagName: 'text', selector: 'label' },
+        ],
         attrs: {
           body: {
-            fill: '#FFF7E6',
-            stroke: '#FA8C16',
-            strokeWidth: 3,
-            rx: 32, ry: 32,
-            filter: 'drop-shadow(0 2px 8px rgba(250,140,22,0.3))',
+            fill: token.colorWarningBg,
+            stroke: token.colorWarning,
+            strokeWidth: 4,
+            rx: 40, ry: 40,
+            filter: 'drop-shadow(0 0 12px rgba(250,140,22,0.35))',
+            style: `${cssTransition}; transform-origin: center; transform-box: fill-box;`,
+          },
+          innerBorder: {
+            fill: 'none',
+            stroke: token.colorWarningBorder,
+            strokeWidth: 1.5,
+            rx: 35, ry: 35,
+            refX: 5,
+            refY: 5,
+            refWidth: 70,
+            refHeight: 70,
           },
           label: {
             text: '🧠\n编排者',
-            fill: '#AD6800',
-            fontSize: 12,
+            fill: token.colorWarningActive ?? token.colorWarningText,
+            fontSize: NODE_SIZES.orchestrator.fontSize,
             fontWeight: 'bold',
             textAnchor: 'middle',
             textVerticalAnchor: 'middle',
@@ -355,14 +455,21 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       });
     }
 
-    // 子 Agent 节点
+    // 子 Agent 节点 — 按类型着色，类型无匹配时回退到 status 默认色
     for (const agent of agents) {
       const pos = positions[agent.agent_id];
       if (!pos) continue;
-      const colors = STATUS_COLORS[agent.status] || STATUS_COLORS.active;
+      const colors = getAgentColors(agent.agent_id, agent.status, token);
       const icon = agentIcon(agent.agent_id);
-      const name = agent.agent_id.length > 14 ? agent.agent_id.substring(0, 13) + '…' : agent.agent_id;
-      const nodeSize = 44;
+      const name = agent.agent_id.length > 17 ? agent.agent_id.substring(0, 16) + '…' : agent.agent_id;
+      const nodeSize = NODE_SIZES.subagent.w;
+      const isActive = agent.status === 'active';
+      // CSS 变量颜色无法拼接透明度后缀，回退到中性阴影
+      const activeFilter = isActive
+        ? (colors.stroke.startsWith('#')
+            ? `drop-shadow(0 0 6px ${colors.stroke}40)`
+            : 'drop-shadow(0 0 6px rgba(0,0,0,0.12))')
+        : undefined;
 
       graph.addNode({
         id: agent.agent_id,
@@ -375,13 +482,14 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
           body: {
             fill: colors.fill,
             stroke: colors.stroke,
-            strokeWidth: agent.status === 'active' ? 3 : 2,
+            strokeWidth: isActive ? 3 : 2,
             rx: nodeSize / 2, ry: nodeSize / 2,
-            filter: agent.status === 'active' ? 'drop-shadow(0 0 6px rgba(82,196,26,0.4))' : undefined,
+            filter: activeFilter,
+            style: `${cssTransition}; transform-origin: center; transform-box: fill-box;`,
           },
           label: {
             text: `${icon} ${name}`,
-            fill: '#262626',
+            fill: token.colorText,
             fontSize: 11,
             textAnchor: 'middle',
             textVerticalAnchor: 'top',
@@ -404,7 +512,7 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
         attrs: {
           line: {
             stroke: edgeStroke,
-            strokeWidth: 1.8,
+            strokeWidth: 2.5,
             strokeDasharray: agent.status === 'active' ? '4,3' : undefined,
             targetMarker: { name: 'block', width: 7, height: 5 },
           },
@@ -412,6 +520,51 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
         data: { status: agent.status },
       });
     }
+
+    // 新节点入场动画：初始不可见/缩小，下一帧通过 CSS transition 过渡到正常
+    const prevIds = prevAgentIdsRef.current;
+    const newIds: string[] = [];
+    if (!prevIds.has(ORCHESTRATOR)) {
+      const orchNode = graph.getCellById(ORCHESTRATOR);
+      if (orchNode && orchNode.isNode()) {
+        orchNode.setAttrs({
+          body: {
+            opacity: 0,
+            style: `opacity: 0; transform: scale(0.3); transform-origin: center; transform-box: fill-box; ${cssTransition};`,
+          },
+        });
+      }
+      newIds.push(ORCHESTRATOR);
+    }
+    for (const agent of agents) {
+      if (!prevIds.has(agent.agent_id)) {
+        const node = graph.getCellById(agent.agent_id);
+        if (node && node.isNode()) {
+          node.setAttrs({
+            body: {
+              opacity: 0,
+              style: `opacity: 0; transform: scale(0.3); transform-origin: center; transform-box: fill-box; ${cssTransition};`,
+            },
+          });
+        }
+        newIds.push(agent.agent_id);
+      }
+    }
+    // 延迟一帧后恢复 opacity → 1, scale → 1，CSS transition 接管过渡
+    if (newIds.length > 0) {
+      requestAnimationFrame(() => {
+        if (destroyedRef.current) return;
+        const finalStyle = `opacity: 1; transform: scale(1); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
+        for (const id of newIds) {
+          const node = graph.getCellById(id);
+          if (node && node.isNode()) {
+            node.setAttrs({ body: { opacity: 1, style: finalStyle } });
+          }
+        }
+      });
+    }
+    // 更新已见节点 ID 集合
+    prevAgentIdsRef.current = new Set([ORCHESTRATOR, ...agentIds]);
 
     // 无 Agent 时显示提示
     if (agents.length === 0) {
@@ -435,38 +588,24 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       });
     }
 
-    graph.centerContent();
+    graph.zoomToFit({ padding: { top: 20, right: 20, bottom: 20, left: 20 }, maxScale: 3.0, minScale: 0.3 });
   }, [agents, selectedGate, size]);
 
-  // 活跃节点呼吸动画
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current) return;
-
-    let phase = 0;
-    const breathe = () => {
-      if (destroyedRef.current) return;
-      phase = (phase + 0.04) % (Math.PI * 2);
-      try {
-        const activeAgents = agents.filter(a => a.status === 'active');
-        for (const a of activeAgents) {
-          const node = graph.getCellById(a.agent_id);
-          if (node && node.isNode()) {
-            const s = 1 + Math.sin(phase * 3) * 0.06;
-            node.scale(s, s);
-          }
-        }
-        // 编排者呼吸
-        const orch = graph.getCellById(ORCHESTRATOR);
-        if (orch && orch.isNode()) {
-          const s = 1 + Math.sin(phase * 1.5) * 0.04;
-          orch.scale(s, s);
-        }
-      } catch {}
-      animRef.current = requestAnimationFrame(breathe);
-    };
-    animRef.current = requestAnimationFrame(breathe);
-    return () => { if (animRef.current) cancelAnimationFrame(animRef.current); };
+  // 统一的 RAF 动画循环：呼吸动画 + 页面可见性自动暂停/恢复
+  useX6Animation(graphRef.current, {
+    breath: {
+      enabled: true,
+      amplitude: ANIMATION_DEFAULTS.breathAmplitude,
+      frequency: ANIMATION_DEFAULTS.breathFrequency,
+      nodeFilter: (node) => {
+        const data = node.getData();
+        return data?.type === 'subagent' || data?.type === 'orchestrator';
+      },
+    },
+    transitions: {
+      entranceDuration: ANIMATION_DEFAULTS.entranceDuration,
+      exitDuration: ANIMATION_DEFAULTS.exitDuration,
+    },
   }, [agents]);
 
   // Tooltip
@@ -484,35 +623,76 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
 
       if (data.type === 'subagent') {
         const agent = agents.find(a => a.agent_id === cell.id);
+        const safeId = escapeHtml(cell.id as string);
+        const safeModel = escapeHtml(data.model as string ?? '');
         const statusLabel = data.status === 'active' ? '🟢 运行中'
           : data.status === 'completed' ? '✅ 已完成' : '❌ 失败';
-        let html = `<div style="font-weight:700;margin-bottom:4px">${agentIcon(cell.id as string)} ${cell.id}</div>`;
+        let html = `<div style="font-weight:700;margin-bottom:4px">${agentIcon(cell.id as string)} ${safeId}</div>`;
         html += `<div style="font-size:11px">${statusLabel}</div>`;
-        if (data.model) html += `<div style="font-size:10px;color:#999">模型: ${data.model}</div>`;
-        if (agent?.status === 'active') html += `<div style="font-size:10px;color:#52C41A;margin-top:2px">● 正在执行任务...</div>`;
+        if (data.model) html += `<div style="font-size:10px;color:${token.colorTextQuaternary}">模型: ${safeModel}</div>`;
+        if (agent?.status === 'active') html += `<div style="font-size:10px;color:${token.colorSuccess};margin-top:2px">● 正在执行任务...</div>`;
         tooltip.innerHTML = html;
-        tooltip.style.display = 'block';
-        tooltip.style.left = `${pos.x + 14}px`;
-        tooltip.style.top = `${pos.y - 10}px`;
+        applyTooltipPosition(pos);
+        tooltip.style.opacity = '1';
+        tooltip.style.pointerEvents = 'none';
       }
 
       if (data.type === 'orchestrator') {
         const html = `<div style="font-weight:700">🧠 编排者</div>`
-          + `<div style="font-size:11px;color:#666">Jarvis 主控 Agent</div>`
-          + `<div style="font-size:10px;color:#999;margin-top:2px">调度所有子 Agent 执行任务</div>`;
+          + `<div style="font-size:11px;color:${token.colorTextTertiary}">Jarvis 主控 Agent</div>`
+          + `<div style="font-size:10px;color:${token.colorTextQuaternary};margin-top:2px">调度所有子 Agent 执行任务</div>`;
         tooltip.innerHTML = html;
-        tooltip.style.display = 'block';
-        tooltip.style.left = `${pos.x + 14}px`;
-        tooltip.style.top = `${pos.y - 10}px`;
+        applyTooltipPosition(pos);
+        tooltip.style.opacity = '1';
+        tooltip.style.pointerEvents = 'none';
       }
     };
 
-    const hide = () => { tooltip.style.display = 'none'; };
+    /** 设置 tooltip 位置，含视口边界检测与智能翻转 */
+    const applyTooltipPosition = (pos: { x: number; y: number }) => {
+      const tooltipW = 240; // maxWidth
+      let left = pos.x + 14;
+      let top = pos.y - 10;
+      if (left + tooltipW > window.innerWidth - 10) {
+        left = pos.x - tooltipW - 14; // 翻转到左侧
+      }
+      if (top + 180 > window.innerHeight - 10) {
+        top = pos.y - 180 - 10; // 翻转到上方
+      }
+      left = Math.max(4, left);
+      top = Math.max(4, top);
+      tooltip.style.left = `${left}px`;
+      tooltip.style.top = `${top}px`;
+    };
+
+    const hide = () => {
+      tooltip.style.opacity = '0';
+      tooltip.style.pointerEvents = 'none';
+    };
+
     graph.on('node:mouseenter', show);
     graph.on('node:mouseleave', hide);
+
+    // 移动端长按触发 tooltip
+    const touchTimers: Map<string, ReturnType<typeof setTimeout>> = new Map();
+    graph.on('node:touchstart', ({ cell, e }: { cell: any; e: any }) => {
+      const timer = setTimeout(() => show({ cell, e }), 500); // 500ms 长按
+      touchTimers.set(cell.id, timer);
+    });
+    graph.on('node:touchend', ({ cell }: { cell: any }) => {
+      const timer = touchTimers.get(cell.id);
+      if (timer) { clearTimeout(timer); touchTimers.delete(cell.id); }
+      hide();
+    });
+
     return () => {
       graph.off('node:mouseenter', show);
       graph.off('node:mouseleave', hide);
+      graph.off('node:touchstart');
+      graph.off('node:touchend');
+      // 清理未触发的长按定时器
+      for (const timer of touchTimers.values()) clearTimeout(timer);
+      touchTimers.clear();
     };
   }, [agents]);
 
@@ -578,14 +758,24 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
 
       {/* Tooltip */}
       <div ref={tooltipRef} style={{
-        display: 'none', position: 'fixed', zIndex: 9999,
+        opacity: 0, position: 'fixed', zIndex: 10000,
         background: token.colorBgElevated || token.colorBgContainer,
         border: `1.5px solid ${token.colorPrimaryBorder || token.colorBorder}`,
         borderRadius: 10, padding: '8px 12px', fontSize: 11,
         color: token.colorText,
         boxShadow: token.boxShadowSecondary || '0 4px 16px rgba(0,0,0,0.12)',
         pointerEvents: 'none', maxWidth: 240, lineHeight: 1.6,
+        transition: 'opacity 150ms ease, transform 150ms ease',
       }} />
+
+      {/* 共享缩放控制组件 + Agent 类型图例 */}
+      <X6Controls
+        onZoomIn={() => graphRef.current?.zoom(0.2)}
+        onZoomOut={() => graphRef.current?.zoom(-0.2)}
+        onZoomToFit={() => graphRef.current?.zoomToFit({ padding: 20, maxScale: 3, minScale: 0.3 })}
+        agentTypes={DEFAULT_AGENT_TYPES}
+        showLegend={true}
+      />
     </div>
   );
 }

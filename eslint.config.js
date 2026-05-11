@@ -38,6 +38,22 @@ export default [
         TextDecoder: 'readonly',
         AbortController: 'readonly',
         AbortSignal: 'readonly',
+        // 浏览器 DOM API（前端代码 + jsdom 测试）
+        document: 'readonly',
+        window: 'readonly',
+        requestAnimationFrame: 'readonly',
+        cancelAnimationFrame: 'readonly',
+        HTMLElement: 'readonly',
+        HTMLDivElement: 'readonly',
+        MouseEvent: 'readonly',
+        SVGElement: 'readonly',
+        MutationObserver: 'readonly',
+        ResizeObserver: 'readonly',
+        // React JSX（tsx 文件隐式使用）
+        React: 'readonly',
+        // frame 回调类型
+        FrameRequestCallback: 'readonly',
+        EventListenerOrEventListenerObject: 'readonly',
       },
     },
   },
