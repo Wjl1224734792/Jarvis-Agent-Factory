@@ -75,7 +75,7 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
 }
 
-function installHooks(platform, target, _isGlobal) {
+function installHooks(platform, target, isGlobal) {
   const hookJson = {
     PostToolUse: [
       { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] },
@@ -89,7 +89,7 @@ function installHooks(platform, target, _isGlobal) {
 
   if (platform === 'claude') {
     // Claude Code: hooks 配置在 .claude/settings.json，脚本在 .claude/hooks/scripts/
-    const claudeDir = resolve(target, '.claude');
+    const claudeDir = isGlobal ? GLOBAL_ROOTS.claude : resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
 
     // 安装 agent-event hook 脚本到简化路径
@@ -122,7 +122,7 @@ function installHooks(platform, target, _isGlobal) {
 
   if (platform === 'codex') {
     // Codex: hooks in .codex/hooks.json
-    const codexDir = resolve(target, '.codex');
+    const codexDir = isGlobal ? GLOBAL_ROOTS.codex : resolve(target, '.codex');
     if (!existsSync(codexDir)) mkdirSync(codexDir, { recursive: true });
     const hookFile = resolve(codexDir, 'hooks.json');
     if (!existsSync(hookFile)) {
