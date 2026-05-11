@@ -114,6 +114,11 @@ Claude Code 额外搭配 Preview MCP 做本地预览验证。
 17. **OpenCode/Codex 已冻结** — 不对 OpenCode/Codex 平台做任何修改或同步，配置文件仅保留作为历史参考。CLI 中 `jarvis add opencode/codex` 仍可执行但生成的文件已过时。
 18. **产物目录规范** — 临时产物统一放入 `docs/tmp/`，智能体正式产出按 Gate 存入 `docs/{requirements|tasks|architecture|plans|implementation|testing|review|shipping}/`
 19. **多模态回退** — 当模型需要多模态能力（图片理解/截图分析）但模型本身不支持时，使用 `visual-primitives-mcp` 提供的视觉工具（`visual_describe`/`visual_locate`/`visual_ocr`/`visual_video_analyze`）代替模型原生视觉能力
+20. **Web 面板路径解析——dev/main 隔离**：
+    - **main 分支发布** → npm 全局包 → `dist/web/index.html` 位于包安装目录。引擎通过 `import.meta.dirname` 推导包目录加载它，不依赖 CWD
+    - **dev 分支开发** → 本地项目 → `dist/web/index.html` 位于项目根目录。`getWebDistDir()` 在包目录找不到时回退到 `resolve(root, 'dist', 'web')`
+    - **禁止**：直接硬编码 `resolve(root, 'dist', 'web')` 或 `path.join(process.cwd(), 'dist/web')`。必须通过 `getWebDistDir()` 处理双场景
+    - **验证方式**：全局安装后，在任意目录运行 `jarvis engine start` 访问 `localhost:3456` 应显示面板；dev 环境 `node bin/jarvis.js engine start` 同样可用
 
 ## 🚀 发布流程（每次变更完成后必须执行）
 
