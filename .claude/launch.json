@@ -7,7 +7,8 @@
       "runtimeExecutable": "node",
       "runtimeArgs": ["bin/jarvis.js", "engine", "start", "--port=3456"],
       "port": 3456,
-      "cwd": "."
+      "cwd": ".",
+      "env": { "JARVIS_DEV": "1" }
     },
     {
       "name": "jarvis-web-dev",
