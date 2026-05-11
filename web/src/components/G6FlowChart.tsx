@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { theme } from 'antd';
 import { Graph } from '@antv/g6';
-import type { AgentStatusResponse } from '../api';
+import type { AgentStatusResponse, AgentUsageResponse } from '../api';
 
 // ============================================================
 // Gate 定义
@@ -31,6 +31,7 @@ const GATE_EDGES: [string, string][] = [
 interface G6FlowChartProps {
   runId: string | null;
   agentStatus: AgentStatusResponse | null;
+  agentUsage?: AgentUsageResponse | null;
   pipelineGates?: { gate: string; passed: boolean }[];
 }
 
@@ -38,12 +39,13 @@ interface G6FlowChartProps {
 // 组件
 // ============================================================
 
-export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6FlowChartProps) {
+export default function G6FlowChart({ runId, agentStatus, agentUsage, pipelineGates }: G6FlowChartProps) {
   const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const graphRef = useRef<Graph | null>(null);
   const destroyedRef = useRef(false);
   const [containerWidth, setContainerWidth] = useState(0);
+  const tooltipRef = useRef<HTMLDivElement>(null);
   const prevAgentIds = useRef<Set<string>>(new Set());
 
   // Gate 状态
@@ -218,6 +220,34 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
     graph.render();
   }, [gateStatusMap, currentGate, getGateState]);
 
+  // 子 Agent 节点悬浮 tooltip（显示 token 信息）
+  useEffect(() => {
+    const graph = graphRef.current;
+    const tooltip = tooltipRef.current;
+    if (!graph || !tooltip) return;
+
+    const showTooltip = (e: any) => {
+      const nodeId = e.target?.id || '';
+      if (!nodeId.startsWith('agent-')) return;
+      const agentId = nodeId.replace('agent-', '');
+      const usage = agentUsage?.agents?.[agentId];
+      if (!usage) { tooltip.style.display = 'none'; return; }
+      const total = (usage.total_input_tokens || 0) + (usage.total_output_tokens || 0);
+      tooltip.innerHTML = `<b>${agentId}</b><br/>调用: ${usage.calls}次<br/>Token: ${total.toLocaleString()}<br/>输入: ${(usage.total_input_tokens||0).toLocaleString()} · 输出: ${(usage.total_output_tokens||0).toLocaleString()}`;
+      tooltip.style.display = 'block';
+      tooltip.style.left = (e.canvas?.x || e.clientX || 0) + 12 + 'px';
+      tooltip.style.top = (e.canvas?.y || e.clientY || 0) - 10 + 'px';
+    };
+    const hideTooltip = () => { tooltip.style.display = 'none'; };
+
+    graph.on('node:pointerenter', showTooltip as never);
+    graph.on('node:pointerleave', hideTooltip as never);
+    return () => {
+      graph.off('node:pointerenter', showTooltip as never);
+      graph.off('node:pointerleave', hideTooltip as never);
+    };
+  }, [agentUsage]);
+
   if (!runId) {
     return (
       <div style={{ height: 100, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -229,20 +259,21 @@ export default function G6FlowChart({ runId, agentStatus, pipelineGates }: G6Flo
   }
 
   return (
-    <div style={{ borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`,
+    <div style={{ position: 'relative', borderRadius: 12, border: `1px solid ${token.colorBorderSecondary}`,
       background: token.colorBgContainer, overflow: 'hidden' }}>
       <div ref={containerRef} style={{ width: '100%', background: token.colorFillQuaternary }} />
-      {/* 脉冲动画 */}
+      {/* 悬浮 tooltip */}
+      <div ref={tooltipRef} style={{
+        display: 'none', position: 'absolute', zIndex: 999,
+        background: token.colorBgElevated || token.colorBgContainer,
+        border: `1px solid ${token.colorBorder}`,
+        borderRadius: 8, padding: '6px 10px', fontSize: 11,
+        color: token.colorText, boxShadow: token.boxShadowSecondary || '0 2px 8px rgba(0,0,0,0.12)',
+        pointerEvents: 'none', maxWidth: 220, lineHeight: 1.5,
+      }} />
+      {/* 动画 */}
       <style>{`
-        @keyframes g6-agent-in {
-          0% { transform: scale(0); opacity: 0; }
-          60% { transform: scale(1.3); opacity: 1; }
-          100% { transform: scale(1); opacity: 1; }
-        }
-        @keyframes g6-pulse {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
+        @keyframes g6-pulse { 0%,100% { opacity:1 } 50% { opacity:0.4 } }
       `}</style>
     </div>
   );

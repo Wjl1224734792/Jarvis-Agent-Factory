@@ -379,6 +379,7 @@ export default function Dashboard() {
                   <G6FlowChart
                     runId={runId}
                     agentStatus={agentStatus}
+                    agentUsage={agentUsage}
                     pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
                   />
                 </ErrorBoundary>
