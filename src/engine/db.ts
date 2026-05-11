@@ -5,12 +5,14 @@ import { homedir } from 'node:os';
 
 /**
  * 打开引擎数据库，固定存储在 ~/.jarvis/engine.db
+ * @param {string} [dbPath] 可选自定义路径（测试用）
  * @returns {DatabaseSync}
  */
-export function openDb() {
-  const dir = resolve(homedir(), '.jarvis');
+export function openDb(dbPath?: string) {
+  const targetPath = dbPath || resolve(homedir(), '.jarvis', 'engine.db');
+  const dir = resolve(targetPath, '..');
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  const db = new DatabaseSync(resolve(dir, 'engine.db'));
+  const db = new DatabaseSync(targetPath);
   db.exec('PRAGMA journal_mode=WAL');
   db.exec('PRAGMA busy_timeout=5000');
   initSchema(db);

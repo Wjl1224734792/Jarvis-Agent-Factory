@@ -11,10 +11,19 @@
  *   7. deleteRun 级联删除关联 agent_events
  */
 import { describe, it, expect, beforeEach } from 'vitest';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import {
   openDb, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus,
   addSession, createPipelineRun, deleteRun, getPipelineRun,
 } from '../src/engine/db.js';
+
+/** 为每个测试文件创建独立数据库，避免 CI 并行锁定 */
+function testDbPath() {
+  const fname = `jarvis-test-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`;
+  return resolve(tmpdir(), fname);
+}
+const TEST_DB = testDbPath();
 
 /** 每个测试使用唯一会话和 Run ID 避免交叉污染 */
 function makeSid() { return `sid_ae_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
@@ -41,7 +50,7 @@ describe('Agent Events', () => {
   let runId;
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     sid = makeSid();
     runId = makeRunId();
     addSession(db, sid, 'claude', 'member');

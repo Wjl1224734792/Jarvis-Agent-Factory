@@ -9,12 +9,17 @@
  *   5. SSE broadcast 数据包含 agent_status 字段
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { Hono } from 'hono';
 import { setupApiRoutes, broadcastSSE, sseClients } from '../src/web/routes.js';
 import {
   openDb, addSession, createPipelineRun, insertAgentEvent,
   getAgentEvents,
 } from '../src/engine/db.js';
+
+/** 每个测试文件独立数据库 */
+const TEST_DB = resolve(tmpdir(), `jarvis-test-api-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
 
 /** 每个测试使用唯一会话和 Run ID 避免交叉污染 */
 function makeSid() {
@@ -31,7 +36,7 @@ describe('Agent API Endpoints', () => {
   let runId;
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     sid = makeSid();
     runId = makeRunId();
     addSession(db, sid, 'claude', 'member');

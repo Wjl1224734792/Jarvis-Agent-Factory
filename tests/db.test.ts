@@ -1,12 +1,17 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { tmpdir } from 'node:os';
+import { resolve } from 'node:path';
 import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName, updateRunGateEnteredAt, completeRun, abortRun } from '../src/engine/db.js';
+
+/** 每个测试文件独立数据库，避免 CI 并行锁定 */
+const TEST_DB = resolve(tmpdir(), `jarvis-test-db-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
 
 describe('Sessions CRUD', () => {
   let db;
   const testSid = 'test_session_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
   });
 
   it('addSession 创建会话', () => {
@@ -42,7 +47,7 @@ describe('Pipeline CRUD', () => {
   const testSid = 'test_pipeline_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     addSession(db, testSid, 'claude', 'member');
   });
 
@@ -65,7 +70,7 @@ describe('Checkpoints', () => {
   const testSid = 'test_cp_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     addSession(db, testSid, 'claude', 'member');
   });
 
@@ -85,7 +90,7 @@ describe('Agent Config', () => {
   let db;
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
   });
 
   it('setAgentModel + getAgentConfig', () => {
@@ -102,7 +107,7 @@ describe('Pipeline Run Task Name', () => {
   const testSid = 'test_taskname_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     addSession(db, testSid, 'claude', 'member');
   });
 
@@ -171,7 +176,7 @@ describe('TASK-001 Gate Duration Stats', () => {
   const testSid = 'test_duration_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     addSession(db, testSid, 'claude', 'member');
   });
 
@@ -198,7 +203,7 @@ describe('TASK-001 Gate Duration Stats', () => {
   // AC3: 迁移脚本重复执行不报错（try/catch 包裹）
   it('迁移脚本重复执行不报错', () => {
     // 再次 openDb 会触发 initSchema → 再次尝试 ALTER TABLE
-    const db2 = openDb();
+    const db2 = openDb(TEST_DB);
     const cols = tableColumns.call({ db: db2 }, 'pipeline_runs');
     expect(cols.find(c => c.name === 'gate_entered_at')).toBeTruthy();
   });
@@ -216,7 +221,7 @@ describe('TASK-001 Gate Duration Stats', () => {
       VALUES (?, 'Gate B', ?, 'Gate C')`).run(testSid, past.toISOString());
 
     // 重新 openDb 触发迁移回填
-    const db2 = openDb();
+    const db2 = openDb(TEST_DB);
     const cps = db2.prepare(
       'SELECT * FROM checkpoints WHERE session_id=? ORDER BY passed_at'
     ).all(testSid);
@@ -274,7 +279,7 @@ describe('TASK-002 Total Duration Calculation', () => {
   const testSid = 'test_total_duration_' + Date.now();
 
   beforeEach(() => {
-    db = openDb();
+    db = openDb(TEST_DB);
     addSession(db, testSid, 'claude', 'member');
   });
 
@@ -292,7 +297,7 @@ describe('TASK-002 Total Duration Calculation', () => {
 
   // AC2: 迁移脚本重复执行不报错（try/catch 包裹）
   it('迁移脚本重复执行不报错', () => {
-    const db2 = openDb();
+    const db2 = openDb(TEST_DB);
     const cols = tableColumns.call({ db: db2 }, 'pipeline_runs');
     expect(cols.find(c => c.name === 'total_duration_seconds')).toBeTruthy();
   });
@@ -310,7 +315,7 @@ describe('TASK-002 Total Duration Calculation', () => {
     );
 
     // 重新 openDb 触发迁移回填
-    const db2 = openDb();
+    const db2 = openDb(TEST_DB);
     const run = db2.prepare('SELECT * FROM pipeline_runs WHERE id=?').get(bid);
     if (!run) throw new Error('Expected backfill run not found');
     // julianday 存在毫秒级精度差异，使用容差范围
@@ -329,7 +334,7 @@ describe('TASK-002 Total Duration Calculation', () => {
       bid, testSid, fiveMinutesAgo.toISOString(), now.toISOString()
     );
 
-    const db2 = openDb();
+    const db2 = openDb(TEST_DB);
     const run = db2.prepare('SELECT * FROM pipeline_runs WHERE id=?').get(bid);
     if (!run) throw new Error('Expected backfill run not found');
     // julianday 存在毫秒级精度差异，使用容差范围
