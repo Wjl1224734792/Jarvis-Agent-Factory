@@ -486,8 +486,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </Sider>
         <Content style={{
           background: 'var(--ant-color-bg-container)',
-          padding: 24,
-          overflow: 'auto',
+          padding: '12px 16px',
+          overflow: 'hidden',
+          height: 'calc(100vh - 52px)',
         }}>
           <SessionContext.Provider value={selectedSession}>
             {children}

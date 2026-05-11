@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Alert, Card, Row, Col, Progress, Tag, Drawer, Modal,
+  Alert, Card, Row, Col, Progress, Tag, Modal,
   Button, Empty, Spin, Timeline, Statistic, message,
 } from 'antd';
 import {
   CheckCircleOutlined, ClockCircleOutlined, FileTextOutlined,
   ThunderboltOutlined, QuestionCircleOutlined,
-  HistoryOutlined, LoadingOutlined,
+  HistoryOutlined, LoadingOutlined, FileSearchOutlined,
+  CloseOutlined,
 } from '@ant-design/icons';
 import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
@@ -16,12 +17,14 @@ import G6FlowChart from '../components/G6FlowChart';
 import TokenDashboard from '../components/TokenDashboard';
 import { useAgentData } from '../hooks/useAgentData';
 
-// API 返回的 gate 值含 "Gate " 前缀，如 "Gate A"、"Gate C1.5"
+// ============================================================
+// 常量
+// ============================================================
+
 function shortGate(gate: string): string {
   return gate.startsWith('Gate ') ? gate.slice(5) : gate;
 }
 
-/** Gate 颜色使用 antd CSS 变量，支持 light/dark 自动切换 */
 const GATE_COLORS: Record<string, string> = {
   A: 'var(--ant-color-primary)', B: 'var(--ant-color-primary)', C: 'var(--ant-color-primary)',
   C1: 'var(--ant-color-success)', 'C1.5': 'var(--ant-color-text)', C2: 'var(--ant-color-error)',
@@ -34,7 +37,6 @@ const GATE_LABELS: Record<string, string> = {
   D: '评审', E: '发布上线',
 };
 
-/** 每个 Gate 的功能说明（来自后端 GATE_CHECKS） */
 const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate A': '至少1个需求文档，含REQ-XXX编号',
   'Gate B': '每个TASK-XXX映射至少1个REQ-XXX',
@@ -48,13 +50,13 @@ const GATE_DESCRIPTIONS: Record<string, string> = {
   'Gate E': '安全审计+上线检查清单+回滚预案就绪',
 };
 
-const GATE_ICONS: Record<string, React.ReactNode> = {
-  A: <FileTextOutlined />, B: <ThunderboltOutlined />, C: <ThunderboltOutlined />,
-  'C-impl': <ThunderboltOutlined />, C1: <CheckCircleOutlined />, 'C1.5': <CheckCircleOutlined />, C2: <CheckCircleOutlined />,
-  D: <CheckCircleOutlined />, E: <CheckCircleOutlined />,
+const RUN_STATUS: Record<string, { label: string; color: string; bgColor: string }> = {
+  active: { label: '进行中', color: 'var(--ant-color-primary)', bgColor: 'var(--ant-color-primary-bg)' },
+  completed: { label: '已完成', color: 'var(--ant-color-success)', bgColor: 'var(--ant-color-success-bg)' },
+  failed: { label: '失败', color: 'var(--ant-color-error)', bgColor: 'var(--ant-color-error-bg)' },
+  archived: { label: '已归档', color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' },
 };
 
-/** GitHub 风味 Markdown CSS，使用 antd CSS 变量适配 light/dark 主题 */
 const MARKDOWN_CSS = `
 .markdown-body { font-size: 14px; line-height: 1.7; color: var(--ant-color-text); }
 .markdown-body h1, .markdown-body h2, .markdown-body h3 { color: var(--ant-color-text); font-weight: 700; border-bottom: 2px solid var(--ant-color-primary-bg); padding-bottom: 6px; }
@@ -75,7 +77,10 @@ const MARKDOWN_CSS = `
 .markdown-body img { max-width: 100%; border-radius: 8px; border: 1px solid var(--ant-color-border); }
 `;
 
-/** react-markdown + remark-gfm + 语法高亮 懒加载组件，减少初始 chunk 体积 */
+// ============================================================
+// 懒加载 Markdown
+// ============================================================
+
 const LazyMarkdown = React.lazy(async () => {
   const [md, gfm, syntaxModule, styleModule] = await Promise.all([
     import('react-markdown'),
@@ -85,7 +90,6 @@ const LazyMarkdown = React.lazy(async () => {
   ]);
   const { Prism: SyntaxHighlighter } = syntaxModule;
   const { oneLight } = styleModule;
-
   const MarkdownComponent = md.default || md;
 
   return {
@@ -93,24 +97,15 @@ const LazyMarkdown = React.lazy(async () => {
       <MarkdownComponent
         remarkPlugins={[gfm.default]}
         urlTransform={(url: string) => {
-          // 仅允许 http/https/mailto 和相对路径，阻断 javascript:/data: 等危险协议
           if (/^(https?:\/\/|mailto:|\/|#|\.)/.test(url)) return url;
           return '';
         }}
         components={{
-          code({ className, children, ...props }) {
+          code({ className, children, ...props }: any) {
             const match = /language-(\w+)/.exec(className || '');
             const codeStr = String(children).replace(/\n$/, '');
             if (match) {
-              return (
-                <SyntaxHighlighter
-                  style={oneLight}
-                  language={match[1]}
-                  PreTag="div"
-                >
-                  {codeStr}
-                </SyntaxHighlighter>
-              );
+              return <SyntaxHighlighter style={oneLight} language={match[1]} PreTag="div">{codeStr}</SyntaxHighlighter>;
             }
             return <code className={className} {...props}>{children}</code>;
           },
@@ -122,388 +117,15 @@ const LazyMarkdown = React.lazy(async () => {
   };
 });
 
-/** 运行状态使用 antd CSS 变量，语义化映射 */
-const RUN_STATUS: Record<string, { label: string; color: string; bgColor: string }> = {
-  active: { label: '进行中', color: 'var(--ant-color-primary)', bgColor: 'var(--ant-color-primary-bg)' },
-  completed: { label: '已完成', color: 'var(--ant-color-success)', bgColor: 'var(--ant-color-success-bg)' },
-  failed: { label: '失败', color: 'var(--ant-color-error)', bgColor: 'var(--ant-color-error-bg)' },
-  archived: { label: '已归档', color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' },
-};
+// ============================================================
+// 工具函数
+// ============================================================
 
 function formatTime(ts: string | null | undefined): string {
   if (!ts) return '-';
   return new Date(ts).toLocaleString('zh-CN', {
     month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit',
   });
-}
-
-export default function Dashboard() {
-  const sessionId = useSessionId();
-  const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
-  const [runs, setRuns] = useState<PipelineRun[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [docDrawer, setDocDrawer] = useState<{ open: boolean; content: string; title: string }>({
-    open: false, content: '', title: '',
-  });
-  const [helpOpen, setHelpOpen] = useState(false);
-
-  // 从 pipeline 中提取 runId，用于 agent 数据轮询
-  const runId = useMemo(() => {
-    if (!pipeline) return null;
-    // pipeline 的 session_id 即 runId（TASK-002 契约）
-    return sessionId;
-  }, [pipeline, sessionId]);
-
-  const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
-
-  const loadData = useCallback(async () => {
-    if (!sessionId) return;
-    setLoading(true);
-    try {
-      const [sessions, pipelineRuns] = await Promise.all([
-        api.pipeline(),
-        api.pipelineRuns(sessionId),
-      ]);
-      const ps = sessions.find(s => s.session_id === sessionId) || null;
-      setPipeline(ps);
-      setRuns(pipelineRuns);
-    } catch {
-      // 忽略加载错误
-    } finally {
-      setLoading(false);
-    }
-  }, [sessionId]);
-
-  useEffect(() => {
-    loadData();
-    const timer = setInterval(loadData, 8000);
-    return () => clearInterval(timer);
-  }, [loadData]);
-
-  // 一次性注入 Markdown CSS + Drawer resize 手柄样式
-  useEffect(() => {
-    const id = 'markdown-custom-style';
-    if (!document.getElementById(id)) {
-      const style = document.createElement('style');
-      style.id = id;
-      style.textContent = MARKDOWN_CSS + `
-        /* antd Drawer 左侧 resize 手柄：更宽的可拖拽区域 */
-        .ant-drawer .ant-drawer-resize-handle {
-          width: 6px !important;
-          cursor: col-resize !important;
-          background: transparent !important;
-          transition: background 0.2s;
-        }
-        .ant-drawer .ant-drawer-resize-handle:hover {
-          background: var(--ant-color-primary-bg) !important;
-        }
-        .ant-drawer .ant-drawer-resize-handle:active {
-          background: var(--ant-color-primary) !important;
-          opacity: 0.3;
-        }
-      `;
-      document.head.appendChild(style);
-    }
-  }, []);
-
-  const openDoc = async (filepath: string, _gate?: string) => {
-    try {
-      // 前端路径消毒：移除 ../ 序列，防止路径遍历
-      const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
-      // artifacts 表已存储完整相对路径（如 "2026-05-10/requirements/topic.md"），直接使用
-      const content = await api.docContent(sanitized);
-      setDocDrawer({ open: true, content, title: filepath });
-    } catch {
-      message.error('文档加载失败');
-    }
-  };
-
-  // useMemo 必须在条件返回之前调用（React Hooks 规则）
-  const { gates, completedGates, totalGates, progressPct, currentGate,
-          currentGateInfo, totalArtifacts, totalDuration } = useMemo(() => {
-    const gates = pipeline?.gates || [];
-    const completedGates = gates.filter(g => g.passed).length;
-    const totalGates = gates.length;
-    const progressPct = totalGates > 0 ? Math.round((completedGates / totalGates) * 100) : 0;
-    const currentGate = pipeline?.current_gate || '?';
-    const currentGateInfo = gates.find(g => g.gate === currentGate);
-    const totalArtifacts = gates.reduce((sum, g) => sum + (g.artifacts?.length || 0), 0);
-    const totalDuration = gates.reduce((sum, g) => sum + (g.duration_seconds || 0), 0);
-    return { gates, completedGates, totalGates, progressPct, currentGate,
-             currentGateInfo, totalArtifacts, totalDuration };
-  }, [pipeline?.gates, pipeline?.current_gate]);
-
-  const durationDisplay = useMemo(
-    () => totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-',
-    [totalDuration]
-  );
-
-  if (!sessionId) {
-    return (
-      <div style={{ textAlign: 'center', padding: 80, color: 'var(--ant-color-text)', opacity: 0.4 }}>
-        <ThunderboltOutlined style={{ fontSize: 48, marginBottom: 16 }} />
-        <div style={{ fontSize: 14 }}>选择一个会话查看流水线状态</div>
-      </div>
-    );
-  }
-
-  if (loading && !pipeline) {
-    return (
-      <div style={{ textAlign: 'center', padding: 80 }}>
-        <Spin indicator={<LoadingOutlined style={{ color: 'var(--ant-color-primary)' }} />} />
-      </div>
-    );
-  }
-
-  if (!pipeline) {
-    return (
-      <div style={{ textAlign: 'center', padding: 80 }}>
-        <Empty description="暂无流水线数据" />
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {/* 标题栏 */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
-        <div>
-          <span style={{ fontSize: 18, fontWeight: 700, color: 'var(--ant-color-text)' }}>
-            {pipeline.pipeline_name || pipeline.pipeline_type} · {currentGate}
-          </span>
-          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
-            {pipeline.platform}
-          </Tag>
-        </div>
-        <Button
-          icon={<QuestionCircleOutlined />}
-          onClick={() => setHelpOpen(true)}
-          style={{ borderRadius: 18, color: 'var(--ant-color-primary)' }}
-        >
-          操作指南
-        </Button>
-      </div>
-
-      {/* G6 流程可视化 */}
-      <div style={{ marginBottom: 16 }}>
-        <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
-          <G6FlowChart
-            runId={runId}
-            agentStatus={agentStatus}
-            pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
-          />
-        </ErrorBoundary>
-      </div>
-
-      {/* Token 消耗统计 */}
-      <ErrorBoundary fallback={<Alert type="error" message="Token 仪表盘 加载失败" showIcon style={{ borderRadius: 12 }} />}>
-        <TokenDashboard runId={runId} agentUsage={agentUsage} loading={agentLoading} />
-      </ErrorBoundary>
-
-      {/* 统计卡片 */}
-      <Row gutter={[12, 12]} style={{ marginBottom: 16 }}>
-        <Col xs={24} sm={12} md={4} lg={4}>
-          <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="完成进度" value={progressPct} suffix="%" styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 24 } }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={5} lg={5}>
-          <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="已通过 Gate" value={`${completedGates}/${totalGates}`} styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 24 } }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={5} lg={5}>
-          <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="当前阶段" value={currentGate} styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 24 } }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={5} lg={5}>
-          <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="产物文件" value={totalArtifacts} suffix="个" styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 24 } }} />
-          </Card>
-        </Col>
-        <Col xs={24} sm={12} md={5} lg={5}>
-          <Card size="small" style={{ borderRadius: 18 }}>
-            <Statistic title="总耗时" value={durationDisplay} styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 24 } }} />
-          </Card>
-        </Col>
-      </Row>
-
-      {/* Gate 进度条 + Gate 步骤列表 */}
-      <Row gutter={[12, 12]}>
-        <Col xs={24} lg={14}>
-          <Card
-            title={<span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>Gate 进度</span>}
-            size="small"
-            style={{ borderRadius: 18, marginBottom: 12 }}
-          >
-            <Progress
-              percent={progressPct}
-              strokeColor="var(--ant-color-primary)"
-              railColor="var(--ant-color-fill-tertiary)"
-              style={{ marginBottom: 16 }}
-            />
-            <Timeline
-              items={gates.map(g => {
-                const sg = shortGate(g.gate);
-                const color = GATE_COLORS[sg] || 'var(--ant-color-primary)';
-                const passed = g.passed;
-                const isCurrent = g.gate === currentGate;
-                return {
-                  color: passed ? 'var(--ant-color-success)' : isCurrent ? 'var(--ant-color-primary)' : 'var(--ant-color-text)',
-                  icon: <span style={{ fontSize: 18, lineHeight: 1 }}>
-                    {passed ? <CheckCircleOutlined /> : isCurrent ? <LoadingOutlined /> : <ClockCircleOutlined />}
-                  </span>,
-                  content: (
-                    <div
-                      onClick={() => {
-                        if (g.artifacts?.length) {
-                          const firstMd = g.artifacts.find(a => a.endsWith('.md'));
-                          if (firstMd) openDoc(firstMd, g.gate);
-                        }
-                      }}
-                      style={{
-                        padding: '8px 12px',
-                        borderRadius: 12,
-                        backgroundColor: isCurrent ? 'var(--ant-color-primary-bg)' : 'transparent',
-                        border: isCurrent ? '2px solid var(--ant-color-primary)' : '1px solid var(--ant-color-border)',
-                        cursor: g.artifacts?.length ? 'pointer' : 'default',
-                      }}
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <span style={{ color, fontWeight: 700, fontSize: 15 }}>{g.gate}</span>
-                        <span style={{ color: 'var(--ant-color-text)', fontSize: 12 }}>
-                          {GATE_LABELS[sg] || sg}
-                        </span>
-                        {passed && <Tag color="var(--ant-color-success)" style={{ borderRadius: 8 }}>已通过</Tag>}
-                        {isCurrent && <Tag color="var(--ant-color-primary)" style={{ borderRadius: 8 }}>进行中</Tag>}
-                      </div>
-                      {GATE_DESCRIPTIONS[g.gate] && (
-                        <div style={{ fontSize: 11, color: 'var(--ant-color-text)', opacity: 0.5, marginTop: 2 }}>
-                          {GATE_DESCRIPTIONS[g.gate]}
-                        </div>
-                      )}
-                      {g.entered_at && (
-                        <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginTop: 4 }}>
-                          进入: {formatTime(g.entered_at)}
-                          {g.duration_display && ` · 耗时: ${g.duration_display}`}
-                        </div>
-                      )}
-                      {g.artifacts && g.artifacts.length > 0 && (
-                        <div style={{ marginTop: 4 }}>
-                          {g.artifacts.map((a, i) => (
-                            <Tag
-                              key={i}
-                              style={{ borderRadius: 8, fontSize: 10, cursor: 'pointer' }}
-                              color="var(--ant-color-primary)"
-                              onClick={(e) => { e.stopPropagation(); openDoc(a, g.gate); }}
-                            >
-                              {a}
-                            </Tag>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ),
-                };
-              })}
-            />
-          </Card>
-        </Col>
-        <Col xs={24} lg={10}>
-          {/* 历史 Runs */}
-          <Card
-            title={
-              <span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>
-                <HistoryOutlined style={{ marginRight: 6 }} />历史 Runs · {runs.length}
-              </span>
-            }
-            size="small"
-            style={{ borderRadius: 18, marginBottom: 12 }}
-          >
-            {runs.length === 0 ? (
-              <Empty description="暂无历史记录" image={Empty.PRESENTED_IMAGE_SIMPLE} />
-            ) : (
-              <div style={{ maxHeight: 400, overflow: 'auto' }}>
-                {runs.map(r => {
-                  const st = RUN_STATUS[r.status] || { label: r.status, color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' };
-                  return (
-                    <div
-                      key={r.id}
-                      style={{
-                        padding: '8px 12px', borderRadius: 12, marginBottom: 4,
-                        border: '1px solid var(--ant-color-border)', fontSize: 12,
-                      }}
-                    >
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>
-                          {r.task_name || '未命名'}
-                        </span>
-                        <Tag style={{ borderRadius: 8, fontSize: 10, backgroundColor: st.bgColor, color: st.color, border: 'none' }}>
-                          {st.label}
-                        </Tag>
-                      </div>
-                      <div style={{ color: 'var(--ant-color-text)', opacity: 0.5, fontSize: 10, marginTop: 2 }}>
-                        {r.pipeline_type} · {r.current_gate} · {formatTime(r.started_at)}
-                        {r.total_duration_display && ` · ${r.total_duration_display}`}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        </Col>
-      </Row>
-
-      {/* 文档抽屉 — 支持左侧拖拽改变宽度 */}
-      <Drawer
-        title={<span style={{ fontWeight: 600, color: 'var(--ant-color-text)', fontSize: 14 }}>{docDrawer.title}</span>}
-        open={docDrawer.open}
-        onClose={() => setDocDrawer({ open: false, content: '', title: '' })}
-        size={560}
-        maxSize={960}
-        resizable
-        styles={{
-          body: { background: 'var(--ant-color-bg-container)' },
-        }}
-      >
-        <div className="markdown-body">
-          <ErrorBoundary>
-            <React.Suspense fallback={<Spin />}>
-              <LazyMarkdown content={docDrawer.content} />
-            </React.Suspense>
-          </ErrorBoundary>
-        </div>
-      </Drawer>
-
-      {/* 帮助弹窗 */}
-      <Modal
-        title={<span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>操作指南</span>}
-        open={helpOpen}
-        onCancel={() => setHelpOpen(false)}
-        footer={null}
-        width={420}
-      >
-        <Timeline
-          items={[
-            { color: 'var(--ant-color-primary)', content: <strong>启动任务</strong> },
-            { color: 'var(--ant-color-primary)', content: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
-            { color: 'var(--ant-color-primary)', content: <strong>等待 Gate 通过</strong> },
-            { color: 'var(--ant-color-primary)', content: '每个 Gate 完成后自动推进，可点击产物文件查看输出' },
-            { color: 'var(--ant-color-primary)', content: <strong>查看最终结果</strong> },
-          ]}
-        />
-        <div style={{ marginTop: 12, fontSize: 12, color: 'var(--ant-color-text)', opacity: 0.6 }}>
-          命令对照：
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="var(--ant-color-primary)">/jarvis</Tag> 全流程 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="var(--ant-color-error)">/frontend</Tag> 前端 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="var(--ant-color-success)">/backend</Tag> 后端 ·
-          <Tag style={{ borderRadius: 8, marginLeft: 4 }} color="var(--ant-color-text)">/jarvis-lite</Tag> 轻量
-        </div>
-      </Modal>
-    </div>
-  );
 }
 
 function formatDurationDisplay(seconds: number): string {
@@ -517,4 +139,349 @@ function formatDurationDisplay(seconds: number): string {
   if (rm > 0) r += `${rm}分`;
   if (s > 0) r += `${s}秒`;
   return r;
+}
+
+// ============================================================
+// Dashboard 组件
+// ============================================================
+
+export default function Dashboard() {
+  const sessionId = useSessionId();
+  const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
+  const [runs, setRuns] = useState<PipelineRun[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [helpOpen, setHelpOpen] = useState(false);
+  const [mdPreview, setMdPreview] = useState<{ open: boolean; content: string; title: string }>({
+    open: false, content: '', title: '',
+  });
+
+  // 右侧栏宽度（可拖拽调整）
+  const [rightPanelWidth, setRightPanelWidth] = useState(340);
+  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const draggingRef = useRef(false);
+
+  const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
+  const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
+
+  const loadData = useCallback(async () => {
+    if (!sessionId) return;
+    setLoading(true);
+    try {
+      const [sessions, pipelineRuns] = await Promise.all([
+        api.pipeline(),
+        api.pipelineRuns(sessionId),
+      ]);
+      setPipeline(sessions.find(s => s.session_id === sessionId) || null);
+      setRuns(pipelineRuns);
+    } catch { /* ignore */ } finally { setLoading(false); }
+  }, [sessionId]);
+
+  useEffect(() => {
+    loadData();
+    const timer = setInterval(loadData, 8000);
+    return () => clearInterval(timer);
+  }, [loadData]);
+
+  useEffect(() => {
+    const id = 'markdown-custom-style';
+    if (!document.getElementById(id)) {
+      const style = document.createElement('style');
+      style.id = id;
+      style.textContent = MARKDOWN_CSS;
+      document.head.appendChild(style);
+    }
+  }, []);
+
+  // 中间区域 MD 预览打开
+  const openMdPreview = async (filepath: string) => {
+    try {
+      const sanitized = filepath.replace(/\.\.\/|\.\.\\/g, '');
+      const content = await api.docContent(sanitized);
+      setMdPreview({ open: true, content, title: filepath });
+    } catch { message.error('文档加载失败'); }
+  };
+
+  // 右侧栏拖拽调整宽度
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    draggingRef.current = true;
+    const startX = e.clientX;
+    const startWidth = rightPanelWidth;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!draggingRef.current) return;
+      const delta = startX - ev.clientX;
+      const newWidth = Math.max(240, Math.min(600, startWidth + delta));
+      setRightPanelWidth(newWidth);
+    };
+    const onUp = () => {
+      draggingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [rightPanelWidth]);
+
+  // ============================================================
+  // 数据派生
+  // ============================================================
+
+  const { gates, completedGates, totalGates, progressPct, currentGate, totalArtifacts, totalDuration } = useMemo(() => {
+    const g = pipeline?.gates || [];
+    const completed = g.filter(x => x.passed).length;
+    const total = g.length;
+    const pct = total > 0 ? Math.round((completed / total) * 100) : 0;
+    const cur = pipeline?.current_gate || '?';
+    const artifacts = g.reduce((s, x) => s + (x.artifacts?.length || 0), 0);
+    const dur = g.reduce((s, x) => s + (x.duration_seconds || 0), 0);
+    return { gates: g, completedGates: completed, totalGates: total, progressPct: pct,
+             currentGate: cur, totalArtifacts: artifacts, totalDuration: dur };
+  }, [pipeline?.gates, pipeline?.current_gate]);
+
+  const durationDisplay = useMemo(() => totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-', [totalDuration]);
+
+  // ============================================================
+  // 空状态
+  // ============================================================
+
+  if (!sessionId) {
+    return (
+      <div style={{ textAlign: 'center', padding: 80, color: 'var(--ant-color-text)', opacity: 0.4 }}>
+        <ThunderboltOutlined style={{ fontSize: 48, marginBottom: 16 }} />
+        <div style={{ fontSize: 14 }}>选择一个会话查看流水线状态</div>
+      </div>
+    );
+  }
+
+  if (loading && !pipeline) {
+    return <div style={{ textAlign: 'center', padding: 80 }}><Spin indicator={<LoadingOutlined style={{ color: 'var(--ant-color-primary)' }} />} /></div>;
+  }
+
+  if (!pipeline) {
+    return <div style={{ textAlign: 'center', padding: 80 }}><Empty description="暂无流水线数据" /></div>;
+  }
+
+  // ============================================================
+  // 渲染
+  // ============================================================
+
+  return (
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {/* ── 标题栏 ── */}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, flexShrink: 0 }}>
+        <div>
+          <span style={{ fontSize: 16, fontWeight: 700, color: 'var(--ant-color-text)' }}>
+            {pipeline.pipeline_name || pipeline.pipeline_type} · {currentGate}
+          </span>
+          <Tag style={{ marginLeft: 8, borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
+            {pipeline.platform}
+          </Tag>
+        </div>
+        <Button icon={<QuestionCircleOutlined />} onClick={() => setHelpOpen(true)}
+          style={{ borderRadius: 18, color: 'var(--ant-color-primary)' }}>
+          操作指南
+        </Button>
+      </div>
+
+      {/* ── 统计卡片 ── */}
+      <Row gutter={[8, 8]} style={{ marginBottom: 12, flexShrink: 0 }}>
+        {[
+          { title: '完成进度', value: progressPct, suffix: '%' },
+          { title: '已通过 Gate', value: `${completedGates}/${totalGates}`, suffix: '' },
+          { title: '当前阶段', value: currentGate, suffix: '' },
+          { title: '产物文件', value: totalArtifacts, suffix: '个' },
+          { title: '总耗时', value: durationDisplay, suffix: '' },
+        ].map((stat, i) => (
+          <Col xs={12} sm={8} md={4} lg={4} xl={Math.floor(24 / 5)} key={i}>
+            <Card size="small" style={{ borderRadius: 14 }}>
+              <Statistic title={stat.title} value={stat.value} suffix={stat.suffix}
+                styles={{ content: { color: 'var(--ant-color-primary)', fontSize: 20 } }} />
+            </Card>
+          </Col>
+        ))}
+      </Row>
+
+      {/* ── 内容区：中间 + 右侧栏 ── */}
+      <div style={{ flex: 1, display: 'flex', gap: 0, overflow: 'hidden', minHeight: 0 }}>
+
+        {/* ============ 中间区域 ============ */}
+        <div style={{ flex: 1, overflow: 'auto', paddingRight: 8, minWidth: 0 }}>
+
+          {/* MD 预览模式 */}
+          {mdPreview.open ? (
+            <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
+              <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+                <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
+                  <FileSearchOutlined style={{ marginRight: 6 }} />{mdPreview.title}
+                </span>
+                <Button type="text" size="small" icon={<CloseOutlined />}
+                  onClick={() => setMdPreview({ open: false, content: '', title: '' })} />
+              </div>
+              <div className="markdown-body" style={{ flex: 1, overflow: 'auto', padding: '12px 16px',
+                borderRadius: 12, border: '1px solid var(--ant-color-border-secondary)',
+                background: 'var(--ant-color-bg-container)' }}>
+                <ErrorBoundary>
+                  <React.Suspense fallback={<Spin />}>
+                    <LazyMarkdown content={mdPreview.content} />
+                  </React.Suspense>
+                </ErrorBoundary>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* G6 流程可视化 */}
+              <div style={{ marginBottom: 12 }}>
+                <ErrorBoundary fallback={<Alert type="error" message="G6 流程可视化 加载失败" showIcon style={{ borderRadius: 12 }} />}>
+                  <G6FlowChart
+                    runId={runId}
+                    agentStatus={agentStatus}
+                    pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
+                  />
+                </ErrorBoundary>
+              </div>
+
+              {/* Token 消耗统计 */}
+              <ErrorBoundary fallback={<Alert type="error" message="Token 仪表盘 加载失败" showIcon style={{ borderRadius: 12 }} />}>
+                <TokenDashboard runId={runId} agentUsage={agentUsage} loading={agentLoading} />
+              </ErrorBoundary>
+            </>
+          )}
+        </div>
+
+        {/* ============ 拖拽分割线 ============ */}
+        <div
+          onMouseDown={handleResizeStart}
+          style={{
+            width: 6, cursor: 'col-resize', flexShrink: 0,
+            background: 'transparent', transition: 'background 0.15s',
+            borderLeft: '1px solid var(--ant-color-border-secondary)',
+          }}
+          onMouseEnter={e => { (e.target as HTMLElement).style.background = 'var(--ant-color-primary-bg)'; }}
+          onMouseLeave={e => { (e.target as HTMLElement).style.background = 'transparent'; }}
+        />
+
+        {/* ============ 右侧栏：Gate 步骤 + 历史 Runs ============ */}
+        <div ref={rightPanelRef} style={{
+          width: rightPanelWidth, flexShrink: 0, overflow: 'auto',
+          paddingLeft: 8,
+        }}>
+          {/* Gate 进度条 */}
+          <Card
+            title={<span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>Gate 进度</span>}
+            size="small"
+            style={{ borderRadius: 14, marginBottom: 8 }}
+          >
+            <Progress
+              percent={progressPct}
+              strokeColor="var(--ant-color-primary)"
+              railColor="var(--ant-color-fill-tertiary)"
+              size="small"
+              style={{ marginBottom: 10 }}
+            />
+            <Timeline
+              items={gates.map(g => {
+                const sg = shortGate(g.gate);
+                const passed = g.passed;
+                const isCurrent = g.gate === currentGate;
+                return {
+                  color: passed ? 'var(--ant-color-success)' : isCurrent ? 'var(--ant-color-primary)' : 'var(--ant-color-text)',
+                  dot: passed ? <CheckCircleOutlined style={{ fontSize: 14 }} /> :
+                       isCurrent ? <LoadingOutlined style={{ fontSize: 14 }} /> :
+                       <ClockCircleOutlined style={{ fontSize: 14 }} />,
+                  children: (
+                    <div
+                      onClick={() => {
+                        const firstMd = (g.artifacts || []).find((a: string) => a.endsWith('.md'));
+                        if (firstMd) openMdPreview(firstMd);
+                      }}
+                      style={{
+                        padding: '6px 10px', borderRadius: 10,
+                        backgroundColor: isCurrent ? 'var(--ant-color-primary-bg)' : 'transparent',
+                        border: isCurrent ? '2px solid var(--ant-color-primary)' : '1px solid var(--ant-color-border)',
+                        cursor: (g.artifacts || []).some((a: string) => a.endsWith('.md')) ? 'pointer' : 'default',
+                        fontSize: 12,
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                        <span style={{ fontWeight: 700, fontSize: 13, color: GATE_COLORS[sg] || 'var(--ant-color-primary)' }}>{g.gate}</span>
+                        <span style={{ color: 'var(--ant-color-text)', fontSize: 11 }}>{GATE_LABELS[sg] || sg}</span>
+                        {passed && <Tag color="var(--ant-color-success)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>✓</Tag>}
+                        {isCurrent && <Tag color="var(--ant-color-primary)" style={{ borderRadius: 6, fontSize: 10, margin: 0, lineHeight: '16px' }}>进行中</Tag>}
+                      </div>
+                      {GATE_DESCRIPTIONS[g.gate] && (
+                        <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.45, marginTop: 2 }}>
+                          {GATE_DESCRIPTIONS[g.gate]}
+                        </div>
+                      )}
+                      {g.entered_at && (
+                        <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.4, marginTop: 2 }}>
+                          进入: {formatTime(g.entered_at)}{g.duration_display ? ` · 耗时: ${g.duration_display}` : ''}
+                        </div>
+                      )}
+                      {(g.artifacts || []).length > 0 && (
+                        <div style={{ marginTop: 4, display: 'flex', gap: 4, flexWrap: 'wrap' }}>
+                          {(g.artifacts || []).map((a: string, i: number) => (
+                            <Tag key={i} style={{ borderRadius: 6, fontSize: 10, cursor: 'pointer', margin: 0 }}
+                              color="var(--ant-color-primary)"
+                              onClick={(e: React.MouseEvent) => { e.stopPropagation(); openMdPreview(a); }}>
+                              {a.split('/').pop()}
+                            </Tag>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  ),
+                };
+              })}
+            />
+          </Card>
+
+          {/* 历史 Runs */}
+          <Card
+            title={<span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
+              <HistoryOutlined style={{ marginRight: 4 }} />历史 Runs · {runs.length}
+            </span>}
+            size="small"
+            style={{ borderRadius: 14 }}
+          >
+            {runs.length === 0 ? (
+              <Empty description="暂无" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+            ) : (
+              <div style={{ maxHeight: 300, overflow: 'auto' }}>
+                {runs.map(r => {
+                  const st = RUN_STATUS[r.status] || { label: r.status, color: 'var(--ant-color-text)', bgColor: 'var(--ant-color-fill-quaternary)' };
+                  return (
+                    <div key={r.id} style={{
+                      padding: '6px 10px', borderRadius: 10, marginBottom: 4,
+                      border: '1px solid var(--ant-color-border)', fontSize: 11,
+                    }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, color: 'var(--ant-color-text)' }}>{r.task_name || '未命名'}</span>
+                        <Tag style={{ borderRadius: 6, fontSize: 10, margin: 0, backgroundColor: st.bgColor, color: st.color, border: 'none' }}>{st.label}</Tag>
+                      </div>
+                      <div style={{ color: 'var(--ant-color-text)', opacity: 0.45, fontSize: 10, marginTop: 2 }}>
+                        {r.pipeline_type} · {r.current_gate} · {formatTime(r.started_at)}
+                        {r.total_duration_display ? ` · ${r.total_duration_display}` : ''}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </Card>
+        </div>
+      </div>
+
+      {/* 帮助弹窗 */}
+      <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={400}>
+        <Timeline items={[
+          { color: 'var(--ant-color-primary)', children: <strong>启动任务</strong> },
+          { color: 'var(--ant-color-primary)', children: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
+          { color: 'var(--ant-color-primary)', children: <strong>等待 Gate 通过</strong> },
+          { color: 'var(--ant-color-primary)', children: '每个 Gate 完成后自动推进，点击文件标签可查看产物文档' },
+        ]} />
+      </Modal>
+    </div>
+  );
 }
