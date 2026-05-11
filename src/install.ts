@@ -75,7 +75,15 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
   console.log(`  ✅ ${platform.padEnd(10)} ${status} → ${label} (${totalFiles} files total)`);
 }
 
-function installHooks(platform, target, _isGlobal) {
+function installHooks(platform, target, isGlobal) {
+  // ============================================================
+  // 单一 hooks 配置源：settings.json
+  // 不再使用 plugin 系统 —— hooks 覆盖全部需求：
+  //   PostToolUse(Agent)        → gate-check
+  //   PostToolUse(Write/Edit)   → gate-check --operation write_code
+  //   SubagentStart/Stop        → agent-event 上报
+  //   Stop                      → status
+  // ============================================================
   const hookJson = {
     PostToolUse: [
       { matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] },
@@ -88,26 +96,42 @@ function installHooks(platform, target, _isGlobal) {
   };
 
   if (platform === 'claude') {
-    // Claude Code: hooks 配置在 .claude/settings.json，脚本在 .claude/hooks/scripts/
-    const claudeDir = resolve(target, '.claude');
+    const claudeDir = isGlobal ? GLOBAL_ROOTS.claude : resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
 
-    // 安装 agent-event hook 脚本到简化路径
+    // 安装 agent-event 脚本
     const scriptsDir = resolve(claudeDir, 'hooks', 'scripts');
     if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
     for (const script of ['agent-event.sh', 'agent-event.ps1']) {
       const src = resolve(TEMPLATES_DIR, 'scripts', script);
-      const dst = resolve(scriptsDir, script);
-      if (existsSync(src) && !existsSync(dst)) {
-        try { copyFileSync(src, dst); } catch {}
+      if (existsSync(src)) {
+        const dst = resolve(scriptsDir, script);
+        if (!existsSync(dst) || fileHash(src) !== fileHash(dst)) {
+          copyFileSync(src, dst);
+        }
       }
     }
 
     const file = resolve(claudeDir, 'settings.json');
     let existing: Record<string, any> = {};
     if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
-    if (!existing.hooks) { existing.hooks = hookJson; writeFileSync(file, JSON.stringify(existing, null, 2)); console.log('  🔗 hooks → .claude/settings.json'); }
-    else console.log('  ~ hooks already configured');
+    if (!existing.hooks) {
+      existing.hooks = hookJson;
+      writeFileSync(file, JSON.stringify(existing, null, 2));
+      console.log('  🔗 hooks → .claude/settings.json');
+    } else {
+      // 已有 hooks：合并缺失项（保留用户自定义，补充系统必需的）
+      let merged = false;
+      for (const [key, val] of Object.entries(hookJson)) {
+        if (!existing.hooks[key]) { existing.hooks[key] = val; merged = true; }
+      }
+      if (merged) {
+        writeFileSync(file, JSON.stringify(existing, null, 2));
+        console.log('  🔗 hooks → .claude/settings.json (merged new keys)');
+      } else {
+        console.log('  ~ hooks already configured');
+      }
+    }
   }
 
   if (platform === 'opencode') {
@@ -121,14 +145,11 @@ function installHooks(platform, target, _isGlobal) {
   }
 
   if (platform === 'codex') {
-    // Codex: hooks in .codex/hooks.json
-    const codexDir = resolve(target, '.codex');
+    const codexDir = isGlobal ? GLOBAL_ROOTS.codex : resolve(target, '.codex');
     if (!existsSync(codexDir)) mkdirSync(codexDir, { recursive: true });
     const hookFile = resolve(codexDir, 'hooks.json');
-    if (!existsSync(hookFile)) {
-      writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
-      console.log('  🔗 hooks → .codex/hooks.json');
-    } else console.log('  ~ hooks already configured');
+    writeFileSync(hookFile, JSON.stringify({ hooks: { PostToolUse: hookJson.PostToolUse } }, null, 2));
+    console.log('  🔗 hooks → .codex/hooks.json');
   }
 }
 
