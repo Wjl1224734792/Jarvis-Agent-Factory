@@ -11,6 +11,32 @@
         ]
       }
     ],
+    "SubagentStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh",
+            "env": {
+              "HOOK_EVENT_TYPE": "start"
+            }
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh",
+            "env": {
+              "HOOK_EVENT_TYPE": "stop"
+            }
+          }
+        ]
+      }
+    ],
     "Stop": [
       {
         "hooks": [

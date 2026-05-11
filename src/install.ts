@@ -78,6 +78,8 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 function installHooks(platform, target, _isGlobal) {
   const hookJson = {
     PostToolUse: [{ matcher: 'Agent', hooks: [{ type: 'command', command: 'jarvis hook gate-check' }] }],
+    SubagentStart: [{ hooks: [{ type: 'command', command: '.claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'start' } }] }],
+    SubagentStop: [{ hooks: [{ type: 'command', command: '.claude/plugins/jarvis-visualization/hooks/scripts/agent-event.sh', env: { HOOK_EVENT_TYPE: 'stop' } }] }],
     Stop: [{ hooks: [{ type: 'command', command: 'jarvis hook status' }] }],
   };
 
@@ -85,6 +87,18 @@ function installHooks(platform, target, _isGlobal) {
     // Claude Code: hooks in .claude/settings.json
     const claudeDir = resolve(target, '.claude');
     if (!existsSync(claudeDir)) mkdirSync(claudeDir, { recursive: true });
+
+    // 安装 agent-event hook 脚本
+    const scriptsDir = resolve(claudeDir, 'plugins', 'jarvis-visualization', 'hooks', 'scripts');
+    if (!existsSync(scriptsDir)) mkdirSync(scriptsDir, { recursive: true });
+    for (const script of ['agent-event.sh', 'agent-event.ps1']) {
+      const src = resolve(TEMPLATES_DIR, 'scripts', script);
+      const dst = resolve(scriptsDir, script);
+      if (existsSync(src) && !existsSync(dst)) {
+        try { copyFileSync(src, dst); } catch {}
+      }
+    }
+
     const file = resolve(claudeDir, 'settings.json');
     let existing: Record<string, any> = {};
     if (existsSync(file)) { try { existing = JSON.parse(readFileSync(file, 'utf-8')); } catch {} }
