@@ -146,12 +146,9 @@ jobs:
           if [ -n "${{ inputs.tag }}" ]; then
             RELEASE_TAG=${{ inputs.tag }}
           fi
-          for f in dist/web/assets/*; do
-            echo "Uploading $f..."
-            gh release upload "$RELEASE_TAG" "$f" --clobber
-          done
-          echo "Uploading index.html..."
-          gh release upload "$RELEASE_TAG" "dist/web/index.html" --clobber
+          # 打包成单个 zip 避免 511 次 API 调用触发 GitHub 502
+          zip -j dist/web-assets.zip dist/web/index.html dist/web/assets/*
+          gh release upload "$RELEASE_TAG" dist/web-assets.zip --clobber
 
       - name: Publish to npm
         env:
