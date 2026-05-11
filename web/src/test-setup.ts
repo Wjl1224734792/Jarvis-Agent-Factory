@@ -1,5 +1,14 @@
 import '@testing-library/jest-dom';
 
+// ResizeObserver polyfill for jsdom
+if (typeof ResizeObserver === 'undefined') {
+  globalThis.ResizeObserver = class ResizeObserver {
+    observe() {}
+    unobserve() {}
+    disconnect() {}
+  } as unknown as typeof ResizeObserver;
+}
+
 /**
  * React 19.2.6 does not export `act` from the main package CJS bundle,
  * but @testing-library/react and testing-library/user-event rely on

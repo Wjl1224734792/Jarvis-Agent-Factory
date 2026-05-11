@@ -5,10 +5,11 @@ import type { GlobalToken } from 'antd';
  * 定义各类型图节点的宽高与字体大小
  */
 export const NODE_SIZES = {
-  gate:        { w: 80, h: 80, fontSize: 12 },
-  agent:       { w: 40, h: 40, fontSize: 10 },
-  orchestrator:{ w: 80, h: 80, fontSize: 14 },
-  subagent:    { w: 56, h: 56, fontSize: 11 },
+  gate:          { w: 80, h: 80, fontSize: 12 },
+  flowChartGate: { w: 80, h: 40, fontSize: 11 },
+  agent:         { w: 40, h: 40, fontSize: 10 },
+  orchestrator:  { w: 80, h: 80, fontSize: 14 },
+  subagent:      { w: 56, h: 56, fontSize: 11 },
 } as const;
 
 /**

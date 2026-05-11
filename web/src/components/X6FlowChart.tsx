@@ -89,33 +89,30 @@ interface Props {
   agentUsage?: AgentUsageResponse | null;
   pipelineGates?: { gate: string; passed: boolean; duration_display?: string | null }[];
   selectedGate: string | null;
-  onGateSelect: (gateId: string) => void;
+  onGateSelect: (_gateId: string) => void;
 }
 
 // ============================================================
 // dagre 布局计算
 // ============================================================
 
-function computeLayout(
+export function computeLayout(
   gateNodes: string[],
   edges: [string, string][],
   agentNodes: string[],
-  agentEdges: [string, string][],
+  _agentEdges: [string, string][],
 ) {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
   g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 120, marginx: 20, marginy: 20 });
 
   for (const id of gateNodes) {
-    g.setNode(id, { width: NODE_SIZES.gate.w, height: NODE_SIZES.gate.w });
+    g.setNode(id, { width: NODE_SIZES.flowChartGate.w, height: NODE_SIZES.flowChartGate.h });
   }
   for (const id of agentNodes) {
     g.setNode(id, { width: NODE_SIZES.agent.w, height: NODE_SIZES.agent.w });
   }
   for (const [s, t] of edges) {
-    g.setEdge(s, t);
-  }
-  for (const [s, t] of agentEdges) {
     g.setEdge(s, t);
   }
 
@@ -246,8 +243,9 @@ export default function X6FlowChart({
     const graph = graphRef.current;
     if (!graph || destroyedRef.current) return;
 
-    const mainNodeSize = NODE_SIZES.gate.w;
-    const mainFontSize = NODE_SIZES.gate.fontSize;
+    const mainNodeSize = NODE_SIZES.flowChartGate.w;
+    const mainNodeHeight = NODE_SIZES.flowChartGate.h;
+    const mainFontSize = NODE_SIZES.flowChartGate.fontSize;
     const agentNodeSize = NODE_SIZES.agent.w;
 
     // 准备 agent 节点数据
@@ -305,18 +303,18 @@ export default function X6FlowChart({
       const node = graph.addNode({
         id: gateId,
         x: pos.x - mainNodeSize / 2,
-        y: pos.y - mainNodeSize / 2,
+        y: pos.y - mainNodeHeight / 2,
         width: mainNodeSize,
-        height: mainNodeSize,
-        shape: 'ellipse',
+        height: mainNodeHeight,
+        shape: 'rect',
         attrs: {
           body: {
             fill,
             stroke,
             strokeWidth: isSelected ? 3.5 : state === 'current' ? 3 : 2.2,
             strokeDasharray: state === 'future' ? '4,3' : undefined,
-            rx: mainNodeSize / 2,
-            ry: mainNodeSize / 2,
+            rx: 12,
+            ry: 12,
             filter: isSelected ? `drop-shadow(0 0 8px ${stroke})` : state === 'current' ? `drop-shadow(0 0 6px ${stroke})` : undefined,
           },
           label: {
@@ -325,8 +323,7 @@ export default function X6FlowChart({
             fontSize: mainFontSize,
             fontWeight: isSelected ? 700 : state === 'current' ? 600 : 400,
             textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            refY: mainNodeSize / 2 + 6,
+            textVerticalAnchor: 'middle',
           },
         },
         data: { gateId, state, isGate: true },
@@ -623,7 +620,7 @@ export default function X6FlowChart({
       background: token.colorBgContainer, overflow: 'hidden',
     }}>
       <div ref={containerRef} style={{
-        width: '100%', height: '100%',
+        width: '100%', height: '100%', minHeight: 240,
         background: token.colorFillQuaternary,
       }} />
 
@@ -667,4 +664,4 @@ export default function X6FlowChart({
   );
 }
 
-export { GATE_SEQUENCE, GATE_LABELS, GATE_SKIP_EDGES, GATE_DESCRIPTIONS };
+export { GATE_SEQUENCE, GATE_LABELS, GATE_EDGES, GATE_SKIP_EDGES, GATE_DESCRIPTIONS };
