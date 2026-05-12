@@ -370,7 +370,7 @@ export function setAgentModel(db, agentId, model, effort) {
  * @returns {string} runId
  */
 export function createPipelineRun(db, sessionId, project, pipelineType = 'full') {
-  const id = 'run_' + Date.now();
+  const id = 'run_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
   db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, gate_entered_at)
     VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'), datetime('now'))`).run(id, sessionId, project, pipelineType);
   return id;
