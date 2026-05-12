@@ -8,8 +8,6 @@ const { mockAgentsByPlatform, mockGetPlatforms, mockGetPlatformModels, mockGetAg
   mockGetAgentList: vi.fn(),
   mockPlatformFeatures: {
     claude: ['commands'],
-    opencode: ['plugins'],
-    codex: [],
   },
 }));
 
@@ -33,64 +31,56 @@ function mockAgent(id: string, platform: string, model: string) {
   };
 }
 
-describe('resolvePlatformInfo', () => {
+describe('resolvePlatformInfo（TASK-009：仅 claude 平台）', () => {
   beforeEach(() => {
     vi.clearAllMocks();
 
-    // 默认 mock 数据：三平台 + 各平台 agent
-    mockGetPlatforms.mockReturnValue(['claude', 'opencode', 'codex']);
+    // 默认 mock 数据：仅 claude 平台
+    mockGetPlatforms.mockReturnValue(['claude']);
     mockGetPlatformModels.mockReturnValue({
-      claude: ['claude-sonnet-4-6', 'deepseek-v4-pro'],
-      opencode: ['deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash'],
-      codex: ['deepseek-v4-pro'],
+      claude: ['deepseek-v4-pro', 'deepseek-v4-flash'],
     });
     mockAgentsByPlatform.mockImplementation((platform: string) => {
-      const map: Record<string, ReturnType<typeof mockAgent>[]> = {
-        claude: [mockAgent('backend-logic-expert', 'claude', 'claude-sonnet-4-6')],
-        opencode: [mockAgent('opencode-frontend-dev-expert', 'opencode', 'deepseek/deepseek-v4-pro')],
-        codex: [mockAgent('codex-algorithm-expert', 'codex', 'deepseek-v4-pro')],
-      };
-      return map[platform] || [];
+      if (platform === 'claude') {
+        return [
+          mockAgent('backend-logic-expert', 'claude', 'deepseek-v4-pro'),
+          mockAgent('frontend-dev-expert', 'claude', 'deepseek-v4-pro'),
+        ];
+      }
+      return [];
     });
     mockGetAgentList.mockReturnValue([
-      mockAgent('backend-logic-expert', 'claude', 'claude-sonnet-4-6'),
-      mockAgent('opencode-frontend-dev-expert', 'opencode', 'deepseek/deepseek-v4-pro'),
-      mockAgent('codex-algorithm-expert', 'codex', 'deepseek-v4-pro'),
+      mockAgent('backend-logic-expert', 'claude', 'deepseek-v4-pro'),
+      mockAgent('frontend-dev-expert', 'claude', 'deepseek-v4-pro'),
     ]);
   });
 
-  // ---- 场景 1: 不传参数，返回三平台完整信息 ----
+  // ---- 场景 1: 不传参数，返回仅 claude 平台信息 ----
   describe('不传参数时', () => {
-    it('返回三平台完整信息：agent_count + available_models + features', () => {
+    it('返回仅 claude 平台的汇总信息', () => {
       const result = resolvePlatformInfo() as { platforms: Record<string, { agent_count: number; available_models: string[]; features: string[] }>; total_agents: number };
 
       // total_agents
-      expect(result.total_agents).toBe(3);
+      expect(result.total_agents).toBe(2);
 
-      // 三平台 summary
-      expect(result.platforms).toHaveProperty('claude');
-      expect(result.platforms).toHaveProperty('opencode');
-      expect(result.platforms).toHaveProperty('codex');
+      // 仅 claude 平台
+      expect(Object.keys(result.platforms)).toEqual(['claude']);
 
       // claude
-      expect(result.platforms.claude.agent_count).toBe(1);
-      expect(result.platforms.claude.available_models).toEqual(['claude-sonnet-4-6', 'deepseek-v4-pro']);
+      expect(result.platforms.claude.agent_count).toBe(2);
+      expect(result.platforms.claude.available_models).toEqual(['deepseek-v4-pro', 'deepseek-v4-flash']);
       expect(result.platforms.claude.features).toEqual(['commands']);
+    });
 
-      // opencode
-      expect(result.platforms.opencode.agent_count).toBe(1);
-      expect(result.platforms.opencode.available_models).toEqual(['deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash']);
-      expect(result.platforms.opencode.features).toEqual(['plugins']);
-
-      // codex
-      expect(result.platforms.codex.agent_count).toBe(1);
-      expect(result.platforms.codex.available_models).toEqual(['deepseek-v4-pro']);
-      expect(result.platforms.codex.features).toEqual([]);
+    it('不包含已删除的 opencode/codex 平台', () => {
+      const result = resolvePlatformInfo() as { platforms: Record<string, any>; total_agents: number };
+      expect(result.platforms).not.toHaveProperty('opencode');
+      expect(result.platforms).not.toHaveProperty('codex');
     });
 
     it('各平台 agent_count 必须为数字且 >= 0', () => {
       const result = resolvePlatformInfo() as { platforms: Record<string, { agent_count: number }>; total_agents: number };
-      for (const p of ['claude', 'opencode', 'codex']) {
+      for (const p of ['claude']) {
         expect(result.platforms[p]).toBeDefined();
         expect(typeof result.platforms[p].agent_count).toBe('number');
         expect(result.platforms[p].agent_count).toBeGreaterThanOrEqual(0);
@@ -99,41 +89,13 @@ describe('resolvePlatformInfo', () => {
 
     it('total_agents 等于各平台 agent_count 之和', () => {
       const result = resolvePlatformInfo() as { platforms: Record<string, { agent_count: number }>; total_agents: number };
-      const sum = ['claude', 'opencode', 'codex']
-        .reduce((acc, p) => acc + (result.platforms[p]?.agent_count || 0), 0);
+      const sum = Object.values(result.platforms)
+        .reduce((acc, p) => acc + (p?.agent_count || 0), 0);
       expect(result.total_agents).toBe(sum);
     });
   });
 
-  // ---- 场景 2: 指定平台 opencode ----
-  describe('指定 platform=opencode 时', () => {
-    it('返回 features: ["plugins"]', () => {
-      const result = resolvePlatformInfo('opencode') as { platform: string; features: string[]; error?: string };
-      expect(result).not.toHaveProperty('error');
-      expect(result.platform).toBe('opencode');
-      expect(result.features).toEqual(['plugins']);
-    });
-
-    it('返回 opencode 的 agent_count 和 available_models', () => {
-      const result = resolvePlatformInfo('opencode') as { agent_count: number; available_models: string[]; error?: string };
-      expect(result.agent_count).toBe(1);
-      expect(result.available_models).toEqual(['deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash']);
-    });
-
-    it('返回 agents 列表含必要字段', () => {
-      const result = resolvePlatformInfo('opencode') as { agents: Array<{ id: string; name: string; role: string; category: string; defaultModel: string; defaultEffort: string }>; error?: string };
-      expect(result.agents).toHaveLength(1);
-      const agent = result.agents[0];
-      expect(agent).toHaveProperty('id');
-      expect(agent).toHaveProperty('name');
-      expect(agent).toHaveProperty('role');
-      expect(agent).toHaveProperty('category');
-      expect(agent).toHaveProperty('defaultModel');
-      expect(agent).toHaveProperty('defaultEffort');
-    });
-  });
-
-  // ---- 场景 3: 指定平台 claude ----
+  // ---- 场景 2: 指定 platform=claude ----
   describe('指定 platform=claude 时', () => {
     it('返回 features: ["commands"]', () => {
       const result = resolvePlatformInfo('claude') as { platform: string; features: string[]; error?: string };
@@ -144,18 +106,42 @@ describe('resolvePlatformInfo', () => {
 
     it('返回 claude 的 agent_count 和 available_models', () => {
       const result = resolvePlatformInfo('claude') as { agent_count: number; available_models: string[]; error?: string };
-      expect(result.agent_count).toBe(1);
-      expect(result.available_models).toEqual(['claude-sonnet-4-6', 'deepseek-v4-pro']);
+      expect(result.agent_count).toBe(2);
+      expect(result.available_models).toEqual(['deepseek-v4-pro', 'deepseek-v4-flash']);
+    });
+
+    it('返回 agents 列表含必要字段', () => {
+      const result = resolvePlatformInfo('claude') as { agents: Array<{ id: string; name: string; role: string; category: string; defaultModel: string; defaultEffort: string }>; error?: string };
+      expect(result.agents).toHaveLength(2);
+      const agent = result.agents[0];
+      expect(agent).toHaveProperty('id');
+      expect(agent).toHaveProperty('name');
+      expect(agent).toHaveProperty('role');
+      expect(agent).toHaveProperty('category');
+      expect(agent).toHaveProperty('defaultModel');
+      expect(agent).toHaveProperty('defaultEffort');
     });
   });
 
-  // ---- 场景 4: 指定平台 codex ----
-  describe('指定 platform=codex 时', () => {
-    it('返回 features: []（无平台特性）', () => {
-      const result = resolvePlatformInfo('codex') as { platform: string; features: string[]; error?: string };
-      expect(result).not.toHaveProperty('error');
-      expect(result.platform).toBe('codex');
-      expect(result.features).toEqual([]);
+  // ---- 场景 3: 指定已删除的 opencode 平台应返回错误 ----
+  describe('指定 platform=opencode 时（已删除平台）', () => {
+    it('返回错误信息，含可用平台列表', () => {
+      const result = resolvePlatformInfo('opencode') as { error: string };
+      expect(result).toHaveProperty('error');
+      expect(result.error).toContain('Unknown platform');
+      expect(result.error).toContain('opencode');
+      expect(result.error).toContain('claude');
+    });
+  });
+
+  // ---- 场景 4: 指定已删除的 codex 平台应返回错误 ----
+  describe('指定 platform=codex 时（已删除平台）', () => {
+    it('返回错误信息，含可用平台列表', () => {
+      const result = resolvePlatformInfo('codex') as { error: string };
+      expect(result).toHaveProperty('error');
+      expect(result.error).toContain('Unknown platform');
+      expect(result.error).toContain('codex');
+      expect(result.error).toContain('claude');
     });
   });
 
@@ -167,8 +153,6 @@ describe('resolvePlatformInfo', () => {
       expect(result.error).toContain('Unknown platform');
       expect(result.error).toContain('unknown_platform');
       expect(result.error).toContain('claude');
-      expect(result.error).toContain('opencode');
-      expect(result.error).toContain('codex');
     });
 
     it('未知平台不触发 agent 查询', () => {
@@ -176,5 +160,4 @@ describe('resolvePlatformInfo', () => {
       expect(mockAgentsByPlatform).not.toHaveBeenCalled();
     });
   });
-
 });

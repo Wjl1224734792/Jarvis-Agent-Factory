@@ -1,5 +1,5 @@
 /**
- * Agent Registry — 动态扫描三平台模板目录，生成完整 Agent 列表与文件映射。
+ * Agent Registry — 动态扫描模板目录，生成完整 Agent 列表与文件映射（TASK-009：仅 claude 平台）。
  * 替代硬编码的 AGENT_LIST 和 AGENT_FILES。
  */
 import { readdirSync, readFileSync, existsSync } from 'node:fs';
@@ -36,11 +36,9 @@ export function resolveTemplatesDir(existsCheck?: (_p: string) => boolean): stri
   return srcPath;
 }
 
-/** 平台 → 目录名 + 文件扩展名 + 前端格式约定 */
+/** 平台 → 目录名 + 文件扩展名 + 前端格式约定（TASK-009：仅保留 claude） */
 const PLATFORM_CONFIG = {
-  claude:   { dir: 'claude',   subdirs: ['agents', 'commands'], ext: '.md',   type: 'md' },
-  opencode: { dir: 'opencode', subdirs: ['agents', 'plugins'],  ext: '.md',   type: 'md', pluginExt: '.ts' },
-  codex:    { dir: 'codex',    subdirs: ['agents'],              ext: '.toml', type: 'toml' },
+  claude: { dir: 'claude', subdirs: ['agents', 'commands'], ext: '.md', type: 'md' },
 };
 
 /** 图标色板（按 agent 角色关键词匹配） */
@@ -85,23 +83,16 @@ export function getActiveProjects(db: unknown): string[] {
   }
 }
 
-/** 扫描所有已激活项目的智能体目录 */
+/** 扫描所有已激活项目的智能体目录（TASK-009：仅 claude 平台） */
 export function scanAllProjectAgents(db: unknown): AgentItem[] {
   const projects = getActiveProjects(db);
   const allAgents: AgentItem[] = [];
   for (const projectPath of projects) {
     const projectName = basename(projectPath);
-    const projectDirs: Record<string, string> = {
-      claude:   resolve(projectPath, '.claude', 'agents'),
-      opencode: resolve(projectPath, '.opencode', 'agents'),
-      codex:    resolve(projectPath, '.codex', 'agents'),
-    };
-    for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
-      const dir = projectDirs[platformKey];
-      if (!dir) continue;
-      const agents = scanAgentDir(dir, platformKey, config, 'project', projectName);
-      allAgents.push(...agents);
-    }
+    const dir = resolve(projectPath, '.claude', 'agents');
+    const config = PLATFORM_CONFIG.claude;
+    const agents = scanAgentDir(dir, 'claude', config, 'project', projectName);
+    allAgents.push(...agents);
   }
   return allAgents;
 }
@@ -153,18 +144,8 @@ function parseMdFrontmatter(content: string): Record<string, string> {
   return fm;
 }
 
-/** 解析 .toml frontmatter → { model, model_reasoning_effort, description, name } */
-function parseTomlFrontmatter(content: string): Record<string, string> {
-  const fm: Record<string, string> = {};
-  for (const line of content.split('\n')) {
-    const kv = line.match(/^(\w+)\s*=\s*"([^"]*)"\s*$/);
-    if (kv) fm[kv[1]] = kv[2];
-  }
-  return fm;
-}
-
-/** 扫描单个平台的所有 agent（模板目录） */
-function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string; pluginExt?: string }, templatesDir: string): { agents: AgentItem[]; fileMap: AgentFileMap } {
+/** 扫描单个平台的所有 agent（模板目录）（TASK-009：仅 claude，移除 plugins 扫描） */
+function scanPlatform(platformKey: string, config: { dir: string; subdirs: string[]; ext: string; type: string }, templatesDir: string): { agents: AgentItem[]; fileMap: AgentFileMap } {
   const platformDir = resolve(templatesDir, config.dir);
   const fileMap: AgentFileMap = {};
 
@@ -180,47 +161,9 @@ function scanPlatform(platformKey: string, config: { dir: string; subdirs: strin
           const filePath = join(targetDir, entry);
           const baseName = basename(entry, config.ext);
           const agent = parseAgentFile(filePath, baseName, platformKey, { ext: config.ext, type: config.type });
-          const installBase = platformKey === 'claude'
-            ? `.claude/${subdir}/${entry}`
-            : platformKey === 'opencode'
-              ? `.opencode/${subdir}/${entry}`
-              : `.codex/${subdir}/${entry}`;
-          fileMap[agent.id] = { base: installBase, type: config.type as 'md' | 'toml' };
+          const installBase = `.claude/${subdir}/${entry}`;
+          fileMap[agent.id] = { base: installBase, type: config.type as 'md' };
           return { ...agent, subdir, source: 'template' as const, category: '模板默认' };
-        });
-    }
-
-    // 扫描 plugins 子目录（OpenCode 平台特有）
-    if (subdir === 'plugins' && config.pluginExt) {
-      const targetDir = join(platformDir, subdir);
-      if (!existsSync(targetDir)) return [];
-
-      return readdirSync(targetDir)
-        .filter(entry => entry.endsWith(config.pluginExt!))
-        .map(entry => {
-          const baseName = basename(entry, config.pluginExt!);
-          const id = `${platformKey}-plugin-${baseName}`;
-          const pluginContent = readFileSync(join(targetDir, entry), 'utf-8');
-          // 从插件代码中提取中文描述作为 role
-          const descMatch = pluginContent.match(/description:\s*"([^"]+)"/);
-          const role = descMatch ? descMatch[1].slice(0, 30) : 'OpenCode 原生插件';
-          const icon = inferIcon(baseName, pluginContent);
-          const agent: AgentItem = {
-            id,
-            name: baseName,
-            role,
-            icon,
-            platform: platformKey,
-            defaultModel: '',
-            defaultEffort: 'high',
-            category: '模板默认',
-            fileName: entry,
-            subdir: 'plugins',
-            source: 'template',
-          };
-          const installPath = `.opencode/plugins/${entry}`;
-          fileMap[id] = { base: installPath, type: 'md' };
-          return agent;
         });
     }
 
@@ -239,7 +182,7 @@ type AgentItem = {
   /** 配置来源：template（模板默认）/ global（全局用户） / project（项目级） */
   source?: 'template' | 'global' | 'project';
 };
-type AgentFileMap = Record<string, { base: string; type: 'md' | 'toml' }>;
+type AgentFileMap = Record<string, { base: string; type: 'md' }>;
 
 let _agentList: AgentItem[] | null = null;
 let _agentFiles: AgentFileMap | null = null;
@@ -250,7 +193,7 @@ let _lastProjectRoot: string | undefined = undefined;
  * 解析单个智能体文件为 AgentItem
  * @param filePath - 智能体文件的绝对路径
  * @param fileName - 无扩展名的文件名
- * @param platformKey - 平台标识（claude/opencode/codex）
+ * @param platformKey - 平台标识（claude）
  * @param config - 平台配置（ext, type）
  * @returns AgentItem 或 null
  */
@@ -262,23 +205,15 @@ function parseAgentFile(
 ): AgentItem {
   const content = readFileSync(filePath, 'utf-8');
 
-  let model: string, effort: string, name: string, description: string;
-  if (config.type === 'md') {
-    const fm = parseMdFrontmatter(content);
-    model = fm.model || '';
-    effort = fm.effort || fm.reasoningEffort || '';
-    name = fm.name || fileName;
-    description = fm.description || '';
-  } else {
-    const fm = parseTomlFrontmatter(content);
-    model = fm.model || '';
-    effort = fm.model_reasoning_effort || '';
-    name = fm.name || fileName;
-    description = fm.description || '';
-  }
+  // TASK-009: 仅 claude 平台使用 .md 格式
+  const fm = parseMdFrontmatter(content);
+  const model = fm.model || '';
+  const effort = fm.effort || fm.reasoningEffort || '';
+  const name = fm.name || fileName;
+  const description = fm.description || '';
 
   const role = inferRole(fileName, description);
-  const id = platformKey === 'claude' ? fileName : `${platformKey}-${fileName}`;
+  const id = fileName;
   const icon = inferIcon(fileName, description || content);
   const category = inferCategory(fileName, description || content);
 
@@ -366,35 +301,20 @@ export function getAgentList(force?: boolean, projectRoot?: string): AgentItem[]
       Object.assign(_agentFiles, fileMap);
     }
 
-    // 二层：全局用户配置（按平台分离路径）
+    // 二层：全局用户配置（TASK-009：仅 claude 平台）
     if (projectRoot) {
-      const GLOBAL_AGENT_DIRS: Record<string, string> = {
-        claude:   resolve(homedir(), '.claude', 'agents'),
-        opencode: resolve(homedir(), '.config', 'opencode', 'agents'),
-        codex:    resolve(homedir(), '.codex', 'agents'),
-      };
-      for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
-        const globalDir = GLOBAL_AGENT_DIRS[platformKey];
-        if (!globalDir) continue;
-        const globalAgents = scanAgentDir(globalDir, platformKey, config, 'global');
-        if (globalAgents.length > 0) {
-          _agentList = mergeAgents(_agentList, globalAgents);
-        }
+      const globalDir = resolve(homedir(), '.claude', 'agents');
+      const config = PLATFORM_CONFIG.claude;
+      const globalAgents = scanAgentDir(globalDir, 'claude', config, 'global');
+      if (globalAgents.length > 0) {
+        _agentList = mergeAgents(_agentList, globalAgents);
       }
 
-      // 三层：项目级配置（按平台分离路径）
-      const PROJECT_AGENT_DIRS: Record<string, string> = {
-        claude:   resolve(projectRoot, '.claude', 'agents'),
-        opencode: resolve(projectRoot, '.opencode', 'agents'),
-        codex:    resolve(projectRoot, '.codex', 'agents'),
-      };
-      for (const [platformKey, config] of Object.entries(PLATFORM_CONFIG)) {
-        const projectDir = PROJECT_AGENT_DIRS[platformKey];
-        if (!projectDir) continue;
-        const projectAgents = scanAgentDir(projectDir, platformKey, config, 'project');
-        if (projectAgents.length > 0) {
-          _agentList = mergeAgents(_agentList, projectAgents);
-        }
+      // 三层：项目级配置（TASK-009：仅 claude 平台）
+      const projectDir = resolve(projectRoot, '.claude', 'agents');
+      const projectAgents = scanAgentDir(projectDir, 'claude', config, 'project');
+      if (projectAgents.length > 0) {
+        _agentList = mergeAgents(_agentList, projectAgents);
       }
     }
   }
@@ -412,11 +332,9 @@ export function getAgentsByPlatform(platform: string, force?: boolean): AgentIte
   return getAgentList(force).filter(a => a.platform === platform);
 }
 
-/** 平台特性：claude 支持 commands，opencode 支持 plugins，codex 无额外特性 */
+/** 平台特性：claude 支持 commands（TASK-009：仅保留 claude） */
 export const PLATFORM_FEATURES: Record<string, string[]> = {
   claude: ['commands'],
-  opencode: ['plugins'],
-  codex: [],
 };
 
 /** 获取所有平台名称 */
@@ -432,11 +350,9 @@ export function getPlatformModels(force?: boolean): Record<string, string[]> {
     if (!models[a.platform]) models[a.platform] = new Set();
     if (a.defaultModel) models[a.platform].add(a.defaultModel);
   }
-  // 补充常见模型
+  // 补充常见模型（TASK-009：仅 claude）
   const extras = {
     claude: ['deepseek-v4-pro', 'deepseek-v4-flash'],
-    opencode: ['deepseek/deepseek-v4-pro', 'deepseek/deepseek-v4-flash'],
-    codex: ['gpt-5.5', 'gpt-5.4', 'gpt-5.3-codex'],
   };
   for (const [p, list] of Object.entries(extras)) {
     if (!models[p]) models[p] = new Set();

@@ -1,10 +1,12 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentEvents, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentEvents, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt, getPipelineRun } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
+import { getPubSub, emitEvent, incrementBroadcastCount } from '../engine/pubsub.js';
+import type { PubSubEventType } from '../engine/pubsub.js';
 
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → inactive
 
@@ -15,14 +17,113 @@ type SSEClient = { stream: any; db: any; root: string; aborted: boolean; writeSS
 export let sseClients: SSEClient[] = [];
 let sseDbRef: any = null;
 let _sseTimer: ReturnType<typeof setInterval> | null = null;
+// TASK-002: 事件驱动广播去抖状态
+let _debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let _debounceStart = 0;
+const DEBOUNCE_DELAY = 500;
+const MAX_WAIT = 2000;
+
+/**
+ * 停止 SSE 广播（清理定时器和去抖状态，测试隔离用）
+ */
+export function stopSSEBroadcast(): void {
+  if (_sseTimer) { clearInterval(_sseTimer); _sseTimer = null; }
+  if (_debounceTimer) { clearTimeout(_debounceTimer); _debounceTimer = null; }
+  _debounceStart = 0;
+}
+
+/**
+ * 去抖广播处理器：500ms 去抖，maxWait=2000ms 上限
+ * 被 PubSub 事件触发，聚合多次事件为一次广播
+ */
+function _debouncedBroadcast(): void {
+  const now = Date.now();
+
+  if (!_debounceStart) {
+    _debounceStart = now;
+  }
+
+  if (_debounceTimer) {
+    clearTimeout(_debounceTimer);
+    _debounceTimer = null;
+  }
+
+  const elapsed = now - _debounceStart;
+  const safeDelay = Math.min(DEBOUNCE_DELAY, MAX_WAIT - elapsed);
+
+  if (safeDelay <= 0) {
+    // maxWait 已达，立即广播
+    _debounceStart = 0;
+    broadcastSSE();
+    return;
+  }
+
+  _debounceTimer = setTimeout(() => {
+    _debounceStart = 0;
+    _debounceTimer = null;
+    broadcastSSE();
+  }, safeDelay);
+}
+
+/**
+ * 初始化 PubSub 事件监听（去抖广播）
+ * 四种事件类型均触发去抖广播
+ */
+function _initPubSubListeners(): void {
+  const ee = getPubSub();
+  const eventTypes: PubSubEventType[] = [
+    'session:changed', 'run:changed', 'gate:advanced', 'agent:event',
+  ];
+  for (const type of eventTypes) {
+    // 先移除再注册，避免重复监听
+    ee.off(type, _debouncedBroadcast);
+    ee.on(type, _debouncedBroadcast);
+  }
+}
 
 /**
  * 向所有 SSE 客户端广播最新会话数据
- * 由外部 setInterval 调用
+ * 由外部 setInterval 或 PubSub 事件驱动调用
  */
 export function broadcastSSE() {
+  incrementBroadcastCount();
   if (sseClients.length === 0) return;
   const sessions = getSessions(sseDbRef);
+  // TASK-002: 计算连接平台状态（仅 claude）
+  const activeMap: Record<string, number> = {};
+  for (const s of sessions) {
+    activeMap[s.platform] = (activeMap[s.platform] || 0) + (s.status === 'active' ? 1 : 0);
+  }
+  const connectedPlatforms: Record<string, any> = {};
+  for (const p of ['claude']) {
+    const active = activeMap[p] || 0;
+    const total = sessions.filter(s => s.platform === p).length;
+    connectedPlatforms[p] = {
+      connected: active > 0,
+      active_sessions: active,
+      total_sessions: total,
+    };
+  }
+
+  // TASK-002: 查找最新活跃 session 用于 pipeline 上下文
+  let latestSession: any = null;
+  let latestTime = 0;
+  for (const s of sessions) {
+    const t = s.latest_run_started_at ? new Date(s.latest_run_started_at).getTime() : 0;
+    if (t >= latestTime) {
+      latestTime = t;
+      latestSession = s;
+    }
+  }
+  const pipeline = latestSession ? (getPipeline(sseDbRef, latestSession.id) ?? null) : null;
+  const pipelineRuns = latestSession
+    ? getSessionRuns(sseDbRef, latestSession.id).map(r => ({
+        ...r,
+        total_duration_display:
+          r.total_duration_seconds != null ? formatDuration(r.total_duration_seconds) : null,
+      }))
+    : [];
+
   const data = JSON.stringify({
     sessions: sessions.map(s => {
       const p = getPipeline(sseDbRef, s.id);
@@ -52,6 +153,9 @@ export function broadcastSSE() {
       };
     }),
     count: sessions.length,
+    connected_platforms: connectedPlatforms,
+    pipeline,
+    pipeline_runs: pipelineRuns,
   });
   const stale: SSEClient[] = [];
   for (const client of sseClients) {
@@ -68,6 +172,9 @@ export function setupApiRoutes(app, db, root) {
   // 保存 SSE db 引用
   sseDbRef = db;
 
+  // TASK-002: 初始化 PubSub 事件监听（去抖广播）
+  _initPubSubListeners();
+
   // Health
   app.get('/health', (c) => c.json({ status: 'ok', version: readVersion() }));
 
@@ -80,7 +187,7 @@ export function setupApiRoutes(app, db, root) {
       activeMap[s.platform] = (activeMap[s.platform] || 0) + (s.status === 'active' ? 1 : 0);
     }
     const connectedPlatforms = {};
-    for (const p of ['claude', 'opencode', 'codex']) {
+    for (const p of ['claude']) {
       const active = activeMap[p] || 0;
       const total = allSessions.filter(s => s.platform === p).length;
       connectedPlatforms[p] = {
@@ -239,6 +346,8 @@ export function setupApiRoutes(app, db, root) {
         console.warn(`[artifact-scan] 扫描 ${currentGate} 产物失败:`, e.message);
       }
     }
+    // TASK-005: 发布 Gate 推进事件
+    emitEvent('gate:advanced', { sessionId: sid, runId: run?.id, gate: targetGate, previousGate: currentGate });
     return c.json({
       allowed: true,
       session_id: sid,
@@ -277,6 +386,8 @@ export function setupApiRoutes(app, db, root) {
     const s = getSessions(db).find(s => s.id === sid);
     if (!s) return c.json({ error: 'Session not found' }, 404);
     resumeSession(db, sid);
+    // TASK-005: 发布 session 变更事件
+    emitEvent('session:changed', { sessionId: sid, action: 'resume' });
     const p = getPipeline(db, sid);
     return c.json({ ok: true, session_id: sid, status: 'active', gate: p?.current_gate || '?' });
   });
@@ -298,8 +409,11 @@ export function setupApiRoutes(app, db, root) {
     const runId = c.req.param('id');
     const body = await c.req.json();
     const taskName = typeof body.task_name === 'string' ? body.task_name : '';
+    const run = getPipelineRun(db, runId);
     const result = setRunTaskName(db, runId, taskName);
     if (!result.ok) return c.json(result, 404);
+    // TASK-005: 发布 run 变更事件
+    emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'rename' });
     return c.json(result);
   });
 
@@ -308,16 +422,22 @@ export function setupApiRoutes(app, db, root) {
   /** 归档 run */
   app.post('/api/pipeline-runs/:id/archive', (c) => {
     const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
     const result = archiveRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    // TASK-005: 发布 run 变更事件
+    emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'archive' });
     return c.json({ ok: true });
   });
 
   /** 取消归档 run */
   app.post('/api/pipeline-runs/:id/unarchive', (c) => {
     const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
     const result = unarchiveRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    // TASK-005: 发布 run 变更事件
+    emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'unarchive' });
     return c.json({ ok: true });
   });
 
@@ -326,16 +446,22 @@ export function setupApiRoutes(app, db, root) {
   /** 置顶 run */
   app.post('/api/pipeline-runs/:id/pin', (c) => {
     const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
     const result = pinRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    // TASK-005: 发布 run 变更事件
+    emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'pin' });
     return c.json({ ok: true });
   });
 
   /** 取消置顶 run */
   app.post('/api/pipeline-runs/:id/unpin', (c) => {
     const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
     const result = unpinRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    // TASK-005: 发布 run 变更事件
+    emitEvent('run:changed', { runId, sessionId: run?.session_id, action: 'unpin' });
     return c.json({ ok: true });
   });
 
@@ -348,8 +474,13 @@ export function setupApiRoutes(app, db, root) {
   /** 硬删除 run（若该 session 无其他 run 则同时删除 session） */
   app.delete('/api/pipeline-runs/:id', (c) => {
     const runId = c.req.param('id');
+    const run = getPipelineRun(db, runId);
     const result = deleteRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    // TASK-005: 发布 run 删除事件（在 deleteRun 前捕获 sessionId）
+    if (run?.session_id) {
+      emitEvent('run:changed', { runId, sessionId: run.session_id, action: 'delete' });
+    }
     broadcastSSE();  // 立即广播，避免等 8 秒 SSE 周期
     return c.json({ ok: true });
   });
@@ -359,6 +490,8 @@ export function setupApiRoutes(app, db, root) {
     const sessionId = c.req.param('id');
     const result = deleteSession(db, sessionId);
     if (!result.ok) return c.json({ ok: false, error: 'Session not found' }, 404);
+    // TASK-005: 发布 session 变更事件
+    emitEvent('session:changed', { sessionId, action: 'delete' });
     broadcastSSE();  // 立即广播更新
     return c.json({ ok: true });
   });
@@ -610,6 +743,9 @@ export function setupApiRoutes(app, db, root) {
       error_message: error_message || undefined,
     });
 
+    // TASK-005: 发布 Agent 事件（仅非重复，重复路径已提前 return）
+    emitEvent('agent:event', { runId: run_id, sessionId: session_id, agentId: agent_id, eventType: event });
+
     return c.json({ ok: true, id: result.id, total_tokens: result.total_tokens });
   });
 
@@ -676,7 +812,7 @@ function readVersion() {
  * @returns 解析后的键值对
  */
 function parseFrontmatter(content: string): Record<string, string> {
-  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  const match = content.match(/^---\s*\n([\s\S]*?)\n---/);
   if (!match) return {};
   const yaml = match[1];
   const result: Record<string, string> = {};

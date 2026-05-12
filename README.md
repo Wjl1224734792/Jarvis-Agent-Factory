@@ -7,7 +7,7 @@
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
 <br>**简体中文** | [English](./README_EN.md)
 
-跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**主力支持 Claude Code**，OpenCode / Codex 配置保留但暂不维护。
+AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**仅支持 Claude Code**。
 
 > **v3.43.0** — Dashboard 简化：文档阅读器替代 X6 画布 · Agent 事件去重 · Gate 耗时修复 · 多平台适配初始化
 
@@ -15,7 +15,7 @@
 
 ```bash
 npm i -g jarvis-agent-factory   # 安装 CLI（零原生依赖，node:sqlite 内置）
-jarvis init -y                   # 一键部署三平台配置 + MCP + 钩子
+jarvis init -y                   # 一键部署配置 + MCP + 钩子
 # → Claude Code 重启后引擎自动拉起，无需手动启动
 jarvis web                       # 启动 Web 面板（按需）
 # → http://localhost:3456/dashboard
@@ -54,11 +54,7 @@ jarvis web                       # 启动 Web 面板（按需）
 
 | 平台 | 维护状态 | 说明 |
 |------|---------|------|
-| **Claude Code** | ✅ 维护中 | 主力平台，所有功能、Agent、技能持续迭代 |
-| **OpenCode** | ⛔ 已停止 | 配置文件保留但不再维护更新，**不推荐使用** |
-| **Codex** | ⛔ 已停止 | 配置文件保留但不再维护更新，**不推荐使用** |
-
-> **重要**：当前仅 Claude Code 平台可用。OpenCode 和 Codex 的 CLI 命令和配置文件仍保留在仓库中但不做任何更新，使用可能导致功能异常或配置不完整。
+| **Claude Code** | ✅ 维护中 | 唯一支持平台，所有功能、Agent、技能持续迭代 |
 
 ## 产物目录规范
 
@@ -100,16 +96,10 @@ docs/
 │  └────┬────┘  └────┬─────┘  └────────────────────────┘  │
 │       └────────────┼─────────────────────────────────────│
 └─────────────────────┼─────────────────────────────────────┘
-         ▲            │              ▲
-    .mcp.json   jarvis web     .codex/config.toml
- Claude Code (:3457)          Codex
+         ▲            │
+    .mcp.json   jarvis web
+ Claude Code
  (stdio 自动拉起引擎)                               
-                               
-    Web Panel (:3457) — 独立按需启动
-    ┌───────────────────────────────┐
-    │  流水线看板 + 归档 + Agent配置  │
-    │  API 代理 → Engine (:3456)    │
-    └───────────────────────────────┘
 ```
 
 ## CLI 命令
@@ -117,8 +107,8 @@ docs/
 ```bash
 jarvis [path]                             # 引导安装（交互式选择全局/项目）
 jarvis init [path] -y                     # 初始化项目
-jarvis add <claude|opencode|codex>        # 添加平台
-jarvis remove <platform> [path]           # 移除平台
+jarvis add claude                         # 添加平台
+jarvis remove claude [path]               # 移除平台
 jarvis upgrade [path]                     # 智能升级（只覆盖变更文件）
 jarvis diff [path]                        # 预览待更新文件
 jarvis doctor [path]                      # 健康检查
@@ -172,7 +162,7 @@ GITHUB_TOKEN=xxx       # GitHub 个人访问令牌（sync-github-releases 需要
 | 归档记录 | `#/archive` | 已归档运行记录 · 按任务名搜索过滤 · 恢复到看板 · 永久删除 |
 | 智能体配置 | `#/agents` | MCP 接入指示 · Agent 搜索/筛选 · 模型/思考等级配置 · 文件同步 |
 
-侧边栏实时显示各平台（Claude Code / OpenCode / Codex）的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
+侧边栏实时显示 Claude Code 的 MCP 连接状态：绿点 = 已接入，灰点 = 未接入。
 
 ### 会话管理操作
 
@@ -205,8 +195,6 @@ test-doc-writer → test-executor → fix-retest
 | 平台 | 配置文件 | Transport | 说明 |
 |------|---------|-----------|------|
 | **Claude Code** | `.mcp.json` | `type: stdio` → 自动拉起 `jarvis engine start --stdio` |
-| **OpenCode** | `opencode.json` | `type: local` → 自动拉起 `jarvis engine start --stdio` |
-| **Codex** | `.codex/config.toml` | `url = "localhost:3456/mcp"` → 需引擎已运行 |
 
 ### Visual Primitives MCP（推荐，纯文本模型必备）
 
@@ -266,37 +254,35 @@ test-doc-writer → test-executor → fix-retest
   Gate 0     Gate A     Gate B     Gate C     Gate C     Gate C1   Gate C1.5  Gate C2  Gate D  Gate E
 ```
 
-## 平台入口速查
+## 平台入口速查（Claude Code）
 
-> **仅 Claude Code 可用**。OpenCode / Codex 列仅供参考历史配置，实际不可用。
-
-| 领域 | Claude Code（✅ 可用） | OpenCode（⛔ 不可用） | Codex（⛔ 不可用） |
-|------|-----------|----------|-------|
-| 全栈 | `/jarvis` | `--agent jarvis` | `jarvis` skill |
-| 前端 | `/frontend` | `--agent frontend` | `frontend` skill |
-| 后端 | `/backend` | `--agent backend` | `backend` skill |
-| Android | `/android` | `--agent android` | `android` skill |
-| iOS | `/ios` | `--agent ios` | `ios` skill |
-| Flutter | `/flutter` | `--agent flutter` | `flutter` skill |
-| Expo | `/expo` | `--agent expo` | `expo` skill |
-| Taro | `/taro` | `--agent taro` | `taro` skill |
-| 审查 | `/review` | `--agent review-only` | `review-only` skill |
-| 修复闭环 | `/review-fix` | `--agent review-fix-optimize` | `review-fix-optimize` skill |
-| 浏览器测试 | `/browser-test` | spawn browser-test-worker | `browser-test` skill |
-| Bug 修复 | `/bug-fix` | spawn via orchestrator | `bug-fix` skill |
-| 算法专家 | `/algorithm-expert` | `--agent algorithm-expert` | `algorithm-expert` skill |
-| 前端架构 | `/frontend-architect` | `--agent frontend-architect` | `frontend-architect` skill |
-| 后端架构 | `/backend-architect` | `--agent backend-architect` | `backend-architect` skill |
+| 领域 | Claude Code |
+|------|------------|
+| 全栈 | `/jarvis` |
+| 前端 | `/frontend` |
+| 后端 | `/backend` |
+| Android | `/android` |
+| iOS | `/ios` |
+| Flutter | `/flutter` |
+| Expo | `/expo` |
+| Taro | `/taro` |
+| 审查 | `/review` |
+| 修复闭环 | `/review-fix` |
+| 浏览器测试 | `/browser-test` |
+| Bug 修复 | `/bug-fix` |
+| 算法专家 | `/algorithm-expert` |
+| 前端架构 | `/frontend-architect` |
+| 后端架构 | `/backend-architect` |
 
 ## 统计
 
-| | Claude Code | OpenCode | Codex |
-|---|:--:|:--:|:--:|
-| Agents | 88 | 55 | 45 |
-| Commands | 16 | 0 | 0 |
-| Skills | 29 | 27 | 42 |
-| 钩子 | settings.json | 原生插件 (.ts) | hooks.json |
-| MCP | `.mcp.json` | `opencode.json` | `.codex/config.toml` |
+| | Claude Code |
+|---|:--:|
+| Agents | 88 |
+| Commands | 16 |
+| Skills | 29 |
+| 钩子 | settings.json |
+| MCP | `.mcp.json` |
 
 ## 引擎能力矩阵
 
