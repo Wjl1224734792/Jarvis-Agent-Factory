@@ -46,7 +46,8 @@
     "jarvis": "node dist/src/cli.js",
     "jarvis:dev": "tsx src/cli.ts",
     "check": "npm run lint && npm run typecheck && npm run test",
-    "prepare": "husky"
+    "prepare": "husky",
+    "install:browser-use": "pip install --user browser-use"
   },
   "dependencies": {
     "@hono/node-server": "^1.13.0",
@@ -60,7 +61,6 @@
     "@typescript-eslint/parser": "^8.59.2",
     "eslint": "^10.3.0",
     "husky": "^9.1.7",
-    "jsdom": "^29.1.1",
     "lint-staged": "^17.0.2",
     "tsx": "^4.19.0",
     "typescript": "^6.0.3",

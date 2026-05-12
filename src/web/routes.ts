@@ -484,6 +484,39 @@ export function setupApiRoutes(app, db, root) {
     return c.text(content, 200, { 'Content-Type': 'text/plain; charset=utf-8' });
   });
 
+  // ---- Commands API（TASK-013）----
+  app.get('/api/commands', (c) => {
+    const commandsDir = resolve(root, '.claude', 'commands');
+    let files;
+    try {
+      files = readdirSync(commandsDir).filter(f => f.endsWith('.md'));
+    } catch (e) {
+      console.warn(`[commands] 读取 ${commandsDir} 失败:`, e.message);
+      return c.json({ commands: [], total: 0 });
+    }
+
+    const results: { name: string; description: string; argumentHint: string; pipelineType: string; category: string }[] = [];
+    for (const file of files) {
+      try {
+        const content = readFileSync(join(commandsDir, file), 'utf-8');
+        const fm = parseFrontmatter(content);
+        const name = file.slice(0, -3);
+        results.push({
+          name,
+          description: fm.description || '',
+          argumentHint: fm['argument-hint'] || '',
+          pipelineType: inferPipelineType(content),
+          category: inferCategory(name),
+        });
+      } catch (e) {
+        console.warn(`[commands] 跳过 ${file}:`, e.message);
+      }
+    }
+
+    results.sort((a, b) => a.name.localeCompare(b.name));
+    return c.json({ commands: results, total: results.length });
+  });
+
   // ---- Agent 数据查询 API（TASK-002）----
 
   /** 获取 Agent 状态分类（active/completed/failed） */
@@ -635,4 +668,52 @@ function readVersion() {
   } catch {
     return '?.?.?';
   }
+}
+
+/**
+ * 解析 YAML frontmatter（简单 key: value 格式）
+ * @param content 文件原始内容
+ * @returns 解析后的键值对
+ */
+function parseFrontmatter(content: string): Record<string, string> {
+  const match = content.match(/^---\n([\s\S]*?)\n---/);
+  if (!match) return {};
+  const yaml = match[1];
+  const result: Record<string, string> = {};
+  for (const line of yaml.split('\n')) {
+    const sep = line.indexOf(':');
+    if (sep > 0) {
+      const key = line.slice(0, sep).trim();
+      const value = line.slice(sep + 1).trim().replace(/^['"]|['"]$/g, '');
+      result[key] = value;
+    }
+  }
+  return result;
+}
+
+/**
+ * 根据指令内容推断 pipeline 类型
+ * @param content 指令文件完整内容
+ * @returns pipeline 类型
+ */
+function inferPipelineType(content: string): string {
+  const lower = content.toLowerCase();
+  if (lower.includes('frontend')) return 'frontend';
+  if (lower.includes('backend')) return 'backend';
+  if (lower.includes('jarvis-lite') || lower.includes('lite')) return 'lite';
+  return 'full';
+}
+
+/**
+ * 根据指令文件名推断分类
+ * @param name 指令文件名（不含扩展名）
+ * @returns 分类标签
+ */
+function inferCategory(name: string): string {
+  if (/test|explore|bug/.test(name)) return 'testing';
+  if (/review/.test(name)) return 'review';
+  if (/architect/.test(name)) return 'architecture';
+  if (/^task-/.test(name)) return 'task';
+  if (/android|ios|flutter|expo|taro/.test(name)) return 'platform';
+  return 'development';
 }
