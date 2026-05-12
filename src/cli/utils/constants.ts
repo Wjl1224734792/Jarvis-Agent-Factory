@@ -1,0 +1,82 @@
+import { fileURLToPath } from 'node:url';
+import { dirname, resolve } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { homedir } from 'node:os';
+
+/**
+ * CLI 模块位于 src/cli/utils/，相对于 PKG_ROOT 需要向上 3 级
+ */
+const __dirname = dirname(fileURLToPath(import.meta.url));
+export const PKG_ROOT = resolve(__dirname, '..', '..', '..');
+
+const PKG = JSON.parse(readFileSync(resolve(PKG_ROOT, 'package.json'), 'utf-8'));
+export const PKG_VERSION: string = PKG.version;
+export const PKG_NAME: string = PKG.name;
+
+/**
+ * 支持的平台定义
+ * key: 命令行中使用的平台简称
+ * dir: 项目内安装的目标子目录名
+ * desc: 平台描述
+ */
+export const PLATFORMS: Record<string, { dir: string; desc: string }> = {
+  claude:   { dir: '.claude',  desc: 'Claude Code — 47 agents + 15 commands + 27 skills' },
+  opencode: { dir: '.opencode', desc: 'OpenCode — 55 agents + 27 skills (agent switching)' },
+  codex:    { dir: '.codex',   desc: 'Codex — 45 agents + 42 skills (skill-triggered)' },
+};
+
+export const ALL_PLATFORMS = Object.keys(PLATFORMS);
+
+/**
+ * 帮助文本：每次 CLI 运行时动态生成，包含当前版本号
+ */
+export function getHelpText(): string {
+  return `🧠 Jarvis Agent Factory v${PKG_VERSION}
+
+  Bootstrap multi-agent AI coding assistant configs
+  for Claude Code (主力维护). OpenCode/Codex 配置保留但已冻结不更新.
+
+Usage:
+  jarvis [path]                  ≡ jarvis init [path]
+  jarvis init [path]             Bootstrap project with all platforms + MCP
+  jarvis add <p...> [path]       Add platform(s) to project
+  jarvis remove <p...> [path]    Remove platform(s) from project
+  jarvis upgrade [path]          Upgrade to latest config version
+  jarvis diff [path]             Show what files would change on upgrade
+  jarvis engine start [--port=N] Start MCP orchestration engine
+  jarvis engine stop             Stop engine
+  jarvis engine status           Engine status
+  jarvis web [--port=N]          Start web dashboard (≡ engine start)
+  jarvis doctor [path]           Verify installation
+
+Options:
+  -g, --global    Target user global directory instead of project
+  -y, --yes       Skip confirmation prompts
+  -h, --help      Show this help
+  -v, --version   Show version
+
+Platforms:
+  claude     ${PLATFORMS.claude.desc}
+  opencode   ${PLATFORMS.opencode.desc} (⛔ 已冻结)
+  codex      ${PLATFORMS.codex.desc} (⛔ 已冻结)
+
+Examples:
+  jarvis                          Bootstrap current directory
+  jarvis init my-app              Bootstrap new project
+  jarvis add claude               Add Claude Code to current directory
+  jarvis add claude -g            Add Claude Code globally
+  jarvis engine start             Start MCP orchestration engine
+  jarvis web                      Start web dashboard (≡ engine start)
+  jarvis upgrade                  Upgrade all configs
+  jarvis doctor                   Check current directory
+`;
+}
+
+/**
+ * 全局安装根目录映射
+ */
+export const GLOBAL_ROOTS: Record<string, string> = {
+  claude:   resolve(homedir(), '.claude'),
+  opencode: resolve(homedir(), '.config', 'opencode'),
+  codex:    resolve(homedir(), '.codex'),
+};

@@ -4,9 +4,9 @@
 [![Version](https://img.shields.io/badge/version-v2.1.5-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 <br>[简体中文](./README.md) | **English**
 
-A cross-platform multi-agent AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on Claude Code, OpenCode, and Codex with a unified workflow specification and shared skill system.
+An AI coding assistant configuration set defining a complete **idea-to-delivery software development pipeline**. Runs on **Claude Code only** with a unified workflow specification and shared skill system.
 
-> **v2.1.5** — Claude Code 47 agents + 15 commands / OpenCode 55 agents (agent-switching only) / Codex 45 agents + 42 skills (skill-triggered)
+> **v3.43.0** — Dashboard simplification · Agent event dedup · Gate timing fix · Multi-platform cleanup
 
 ## Core Concepts
 
@@ -76,39 +76,6 @@ claude
 | **`/frontend-architect`** | Frontend architecture & tech selection |
 | **`/backend-architect`** | Backend architecture & distributed design |
 
-### OpenCode
-
-```bash
-opencode --agent frontend       # Switch to frontend orchestrator
-opencode --agent backend        # Switch to backend orchestrator
-opencode --agent jarvis         # Switch to full-stack orchestrator
-```
-
-55 agents + 0 commands, **agent-switching only**: switch to a primary agent to enter its complete domain lifecycle (Gate A→B→C→C1→C1.5→C2→D→E).
-
-| Primary Agent | Domain |
-|---------------|--------|
-| `jarvis` | Full-stack orchestration |
-| `frontend` `backend` | Frontend / Backend |
-| `taro` `android` `ios` `expo` `flutter` | Mobile platforms |
-| `review-only` | Read-only review |
-| `review-fix-optimize` | Review→Fix→Re-review loop |
-
-### Codex
-
-```bash
-cp -r path/to/.codex/ your-project/
-```
-
-45 agents + 42 skills, **skill-triggered mode**: load a skill to enter its workflow.
-
-| Skill | Purpose |
-|-------|---------|
-| `jarvis` `frontend` `backend` `android` `ios` `flutter` `expo` `taro` | Domain lifecycles |
-| `algorithm-expert` `backend-architect` `frontend-architect` | Expert conversations |
-| `browser-test` `bug-fix` | Test loops |
-| `review-only` `review-fix-optimize` | Review modes |
-
 ## Browser Automation
 
 Unified **agent-browser** CLI (Vercel Labs, 29K+ GitHub stars, 80+ commands), replacing Claude in Chrome MCP and browser-use.
@@ -138,11 +105,9 @@ npm i -g agent-browser && agent-browser install
 | **Testing & Docs** | `browser-test-worker`, `e2e-test-worker`, `performance-test-worker`, `api-docs-worker` |
 | **Infrastructure** | `infra-worker` |
 
-> **10 Primary agents** (OpenCode): switch via `opencode --agent <name>`. Claude Code uses equivalent `/commands`, Codex uses skills.
-
 ## Skill System
 
-**27 shared skills** (cross-platform) + Codex 15 additional primary workflow skills (42 total):
+**29 shared skills** (Claude Code):
 
 | Category | Skills |
 |----------|--------|
@@ -165,16 +130,8 @@ npm i -g agent-browser && agent-browser install
 .claude/                         # Claude Code
   settings.json                  #   Permissions & settings
   commands/                      #   15 slash commands
-  agents/                        #   47 agent definitions
-  skills/                        #   27 methodology skills
-
-.opencode/                       # OpenCode
-  agents/                        #   55 agents (10 primary + 45 sub-agents)
-  skills/                        #   27 skills (no commands directory)
-
-.codex/                          # Codex
-  agents/                        #   45 sub-agents
-  skills/                        #   42 skills (13 primary workflows + 15 shared + review-only/fix-optimize)
+  agents/                        #   88 agent definitions
+  skills/                        #   29 methodology skills
 ```
 
 ## Design Principles

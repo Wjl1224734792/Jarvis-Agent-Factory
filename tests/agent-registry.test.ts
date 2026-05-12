@@ -82,12 +82,11 @@ describe('getAgentList', () => {
     expect(second.length).toBe(first.length);
   });
 
-  it('覆盖 claude、opencode、codex 三个平台', () => {
+  it('仅覆盖 claude 平台（TASK-009：opencode/codex 已删除）', () => {
     const agents = getAgentList();
     const platforms = new Set(agents.map(a => a.platform));
     expect(platforms).toContain('claude');
-    expect(platforms).toContain('opencode');
-    expect(platforms).toContain('codex');
+    expect(platforms.size).toBe(1);
   });
 });
 
@@ -100,7 +99,7 @@ describe('getAgentFiles', () => {
     for (const info of Object.values(files!)) {
       expect(info).toHaveProperty('base');
       expect(info).toHaveProperty('type');
-      expect(['md', 'toml']).toContain(info.type);
+      expect(info.type).toBe('md');
     }
   });
 });
@@ -152,16 +151,7 @@ effort: medium
 ---
 `);
 
-    // 全局配置：~/.config/opencode/agents/
-    const globalOpenCodeDir = join(MOCK_HOME, '.config', 'opencode', 'agents');
-    mkdirSync(globalOpenCodeDir, { recursive: true });
-    writeFileSync(join(globalOpenCodeDir, 'test-global.md'), `---
-name: opencode-test-global
-description: "全局 OpenCode 测试智能体"
-model: deepseek/deepseek-v4-pro
-effort: high
----
-`);
+    // TASK-009: opencode 全局配置目录不再被扫描
 
     // 项目配置：{projectRoot}/.claude/agents/
     const projectAgentsDir = join(MOCK_PROJECT, '.claude', 'agents');
@@ -201,7 +191,7 @@ effort: max
 
     // 全局独有智能体出现
     expect(ids.has('test-global-only')).toBe(true);
-    expect(ids.has('opencode-test-global')).toBe(true);
+    // TASK-009: opencode 平台已删除，不再有 opencode 全局智能体
 
     // 项目独有智能体出现
     expect(ids.has('test-project-only')).toBe(true);

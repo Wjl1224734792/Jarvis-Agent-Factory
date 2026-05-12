@@ -11,7 +11,7 @@ import {
 } from '@ant-design/icons';
 import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
-import { useSessionId } from '../components/Layout';
+import { useSessionId, usePipelineData } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
 
 // ============================================================
@@ -148,6 +148,8 @@ function formatDurationDisplay(seconds: number): string {
 
 export default function Dashboard() {
   const sessionId = useSessionId();
+  // TASK-006: 消费 SSE 推送的流水线数据，替代轮询
+  const { pipeline: ssePipeline, runs: sseRuns } = usePipelineData();
   const [pipeline, setPipeline] = useState<PipelineSession | null>(null);
   const [runs, setRuns] = useState<PipelineRun[]>([]);
   const [loading, setLoading] = useState(false);
@@ -177,9 +179,15 @@ export default function Dashboard() {
 
   useEffect(() => {
     loadData();
-    const timer = setInterval(loadData, 8000);
-    return () => clearInterval(timer);
   }, [loadData]);
+
+  // TASK-006: SSE 推送数据与当前会话匹配时，直接更新（替代 8s 轮询）
+  useEffect(() => {
+    if (ssePipeline?.session_id === sessionId) {
+      setPipeline(ssePipeline);
+      setRuns(sseRuns);
+    }
+  }, [ssePipeline, sseRuns, sessionId]);
 
   useEffect(() => {
     const id = 'markdown-custom-style';
@@ -527,20 +535,24 @@ export default function Dashboard() {
       </div>
 
       {/* 帮助弹窗 */}
-      <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={420}>
+      <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={440}>
         <Timeline items={[
           { color: 'var(--ant-color-primary)', content: <strong>启动流水线</strong> },
-          { color: 'var(--ant-color-primary)', content: '在 Claude Code 中输入 /jarvis 命令启动流水线，引擎自动追踪 Gate 进度' },
+          { color: 'var(--ant-color-primary)', content: '在 Claude Code 中输入 /jarvis 命令启动全流程编排，引擎自动追踪 Gate 进度' },
+          { color: 'var(--ant-color-primary)', content: <strong>切换会话</strong> },
+          { color: 'var(--ant-color-primary)', content: '顶部侧边栏列出所有活跃会话及当前 Gate、进度百分比，点击可切换查看不同会话' },
           { color: 'var(--ant-color-primary)', content: <strong>查看统计总览</strong> },
-          { color: 'var(--ant-color-primary)', content: '顶部统计卡片显示完成进度、已通过 Gate 数、产物文件数和总耗时' },
+          { color: 'var(--ant-color-primary)', content: '统计卡片显示完成进度、已通过 Gate 数、产物文件数和总耗时' },
           { color: 'var(--ant-color-primary)', content: <strong>预览产物文档</strong> },
-          { color: 'var(--ant-color-primary)', content: '中间区域展示当前 Gate 的产物文档卡片列表，点击卡片打开 Markdown 预览' },
+          { color: 'var(--ant-color-primary)', content: '中间区域展示当前 Gate 的产物文档卡片列表，点击卡片打开 Markdown 阅读器预览' },
           { color: 'var(--ant-color-primary)', content: <strong>追踪 Gate 步骤</strong> },
-          { color: 'var(--ant-color-primary)', content: '右侧栏 Gate 进度 Timeline 展示各 Gate 状态，点击可预览对应文档产物' },
+          { color: 'var(--ant-color-primary)', content: '右侧栏 Gate Timeline 展示各 Gate 状态与耗时，点击可预览对应文档产物' },
           { color: 'var(--ant-color-primary)', content: <strong>调整右侧栏宽度</strong> },
           { color: 'var(--ant-color-primary)', content: '拖拽中间与右侧栏之间的分割线可调整右侧栏宽度，适配不同屏幕' },
           { color: 'var(--ant-color-primary)', content: <strong>查看历史记录</strong> },
           { color: 'var(--ant-color-primary)', content: '右侧栏底部显示当前会话的历史运行记录，快速回溯过往' },
+          { color: 'var(--ant-color-primary)', content: <strong>实时状态推送（SSE）</strong> },
+          { color: 'var(--ant-color-primary)', content: '页面通过 SSE 接收后端实时推送：MCP 状态变更、Gate 状态更新、流水线进度变化均即时刷新，无需手动操作' },
         ]} />
       </Modal>
     </div>

@@ -13,7 +13,7 @@ import {
   CaretRightOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
-import { api, Session } from '../api';
+import { api, Session, PipelineSession, PipelineRun } from '../api';
 
 // ============================================================
 // 乐观更新纯函数 — 可独立测试
@@ -57,10 +57,16 @@ const { Header, Sider, Content } = Layout;
 export const SessionContext = createContext<string | null>(null);
 export function useSessionId() { return useContext(SessionContext); }
 
+// TASK-006: SSE 推送的流水线数据上下文，供子组件消费替代轮询
+export const PipelineDataContext = createContext<{ pipeline: PipelineSession | null; runs: PipelineRun[] }>({
+  pipeline: null,
+  runs: [],
+});
+export function usePipelineData() { return useContext(PipelineDataContext); }
+
+/** 平台信息（TASK-009：仅保留 claude） */
 const PLATFORM_INFO: Record<string, { label: string; color: string }> = {
   claude: { label: 'Claude', color: 'var(--ant-color-text)' },
-  opencode: { label: 'OpenCode', color: 'var(--ant-color-error)' },
-  codex: { label: 'Codex', color: 'var(--ant-color-info)' },
 };
 
 const PIPELINE_NAMES: Record<string, string> = {
@@ -197,6 +203,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [selectedSession, setSelectedSession] = useState<string | null>(null);
   const [sessionPlatform, setSessionPlatform] = useState('all');
   const [mcpStatus, setMcpStatus] = useState<Record<string, { connected: boolean; active_sessions: number }>>({});
+  // TASK-006: SSE 推送的流水线数据，供 Dashboard 实时消费
+  const [pipelineData, setPipelineData] = useState<{ pipeline: PipelineSession | null; runs: PipelineRun[] }>({
+    pipeline: null,
+    runs: [],
+  });
   const navigate = useNavigate();
   const location = useLocation();
 
@@ -227,6 +238,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               setSelectedSession((active || d.sessions[0]).id);
             }
           }
+          // TASK-006: 从 SSE 获取 MCP 接入状态，替代 api.status 轮询
+          if (d.connected_platforms) setMcpStatus(d.connected_platforms);
+          // TASK-006: 从 SSE 获取流水线数据，供 Dashboard 消费
+          if (d.pipeline !== undefined) {
+            setPipelineData({ pipeline: d.pipeline, runs: d.pipeline_runs || [] });
+          }
         } catch {}
       };
       evtSource.onerror = () => {
@@ -236,19 +253,9 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
     connect();
 
-    const statusTimer = setInterval(() => {
-      api.status().then(d => {
-        if (d?.connected_platforms) setMcpStatus(d.connected_platforms);
-      }).catch(() => {});
-    }, 8000);
-    api.status().then(d => {
-      if (d?.connected_platforms) setMcpStatus(d.connected_platforms);
-    }).catch(() => {});
-
     return () => {
       evtSource?.close();
       clearTimeout(reconnectTimer);
-      clearInterval(statusTimer);
     };
   }, []);
 
@@ -418,7 +425,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   平台筛选
                 </div>
                 <div style={{ display: 'flex', gap: 4 }}>
-                  {['all', 'claude', 'opencode', 'codex'].map(p => (
+                  {['all', 'claude'].map(p => (
                     <Button
                       key={p}
                       size="small"
@@ -471,7 +478,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.5, marginBottom: 4, fontWeight: 600, letterSpacing: 1 }}>
                   MCP 接入状态
                 </div>
-                {['claude', 'opencode', 'codex'].map(p => {
+                {['claude'].map(p => {
                   const info = mcpStatus[p];
                   const connected = info?.connected;
                   return (
@@ -495,9 +502,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           overflow: 'hidden',
           height: 'calc(100vh - 52px)',
         }}>
-          <SessionContext.Provider value={selectedSession}>
-            {children}
-          </SessionContext.Provider>
+          <PipelineDataContext.Provider value={pipelineData}>
+            <SessionContext.Provider value={selectedSession}>
+              {children}
+            </SessionContext.Provider>
+          </PipelineDataContext.Provider>
         </Content>
       </Layout>
     </Layout>

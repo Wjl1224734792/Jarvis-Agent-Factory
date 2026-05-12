@@ -16,9 +16,10 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 ## 项目类型
 
-跨平台多智能体配置工程（非业务应用代码），三平台：`.claude/`（Claude Code）、`.opencode/`（OpenCode）、`.codex/`（Codex）。
+多智能体配置工程（非业务应用代码），专注 **Claude Code** 平台。
 
-模板源文件位于 `src/templates/platforms/`，通过 CLI `jarvis` 命令安装到目标项目。
+模板源文件位于 `src/templates/platforms/claude/`，通过 CLI `jarvis` 命令安装到目标项目。
+`.opencode/` 和 `.codex/` 模板已冻结，仅保留作为历史参考，不维护不更新。
 
 ## 生命周期流水线
 
@@ -216,13 +217,13 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 - docs-engineer：产出 `.jarvis/docs-sync-report.md`（可选）
 - browser-use-expert：产出探索报告到 `docs/<YYYY>-<MM>-<DD>/browser-use/report.md`
 
-## 智能体体系（57 个 Agent）
+## 智能体体系（54 个 Agent，仅 Claude Code 平台）
 
 ### 实现类（22）
 `frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
-### 测试类（10）
-`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor` `fix-retest`
+### 测试类（9）
+`frontend-test-expert` `backend-test-expert` `browser-test-expert` `browser-use-expert` `e2e-test-expert` `perf-test-expert` `api-test-expert` `test-doc-writer` `test-executor`
 
 ### 规划/任务（3）
 `task-design` `planner` `skill-assignment-expert`
@@ -233,8 +234,8 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 ### 架构/专家（4）
 `algorithm-expert` `frontend-architect` `backend-architect` `database-architect`
 
-### 探索/支撑（8）
-`code-explore-expert` `docs-research-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert` `remediation-planner`
+### 探索/支撑（6）
+`code-explore-expert` `external-resource-expert` `api-contract-expert` `docs-engineer` `infra-deploy-expert` `remediation-expert`
 
-### Claude Code 命令入口（10）
-`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert`
+### Claude Code 命令入口（20）
+`/jarvis` `/jarvis-lite` `/frontend` `/backend` `/android` `/ios` `/flutter` `/expo` `/taro` `/review` `/review-fix` `/browser-test` `/bug-fix` `/frontend-architect` `/backend-architect` `/algorithm-expert` `/task-bdd` `/task-ddd` `/task-tdd` `/browser-explore`

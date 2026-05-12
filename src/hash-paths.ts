@@ -2,7 +2,7 @@ import { resolve } from 'node:path';
 import { homedir } from 'node:os';
 
 /**
- * 获取 hash 文件的存储路径，保持 install.ts 与 cli.ts 一致。
+ * 获取 hash 文件的存储路径，保持 install.ts 与 cli/ 模块一致。
  *
  * - 全局模式：`~/.jarvis/file-hashes.json`
  * - 项目模式：`<target>/.jarvis/file-hashes.json`

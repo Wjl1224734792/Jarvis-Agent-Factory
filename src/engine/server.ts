@@ -4,7 +4,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StreamableHTTPServerTransport } from '@modelcontextprotocol/sdk/server/streamableHttp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, copyFileSync, readdirSync } from 'node:fs';
+import { readFileSync, existsSync, copyFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
@@ -13,8 +13,57 @@ import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updat
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
 import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
+import { writePidFile, removePidFile, readPidFile, isEngineRunning, startGuardian, stopGuardian } from './guardian.js';
+import { emitEvent } from './pubsub.js';
 
-const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
+// ── TASK-003: 全局错误处理 + 请求日志 ─────────────────────
+
+/** 敏感信息脱敏：替换 API 密钥（sk-前缀）、Bearer Token 等 */
+export function sanitizeErrorMessage(msg: string): string {
+  if (!msg) return '';
+  return msg
+    .replace(/(sk-[A-Za-z0-9_-]{10,})/g, 'sk-***')
+    .replace(/(Bearer\s+)[A-Za-z0-9-._~+/=]{4,}/gi, (_, prefix) => `${prefix}***`);
+}
+
+/** 解析错误响应：统一格式 { error: string, code: number } */
+export function resolveErrorResponse(err: Error) {
+  // 4xx vs 5xx 分类：检查错误是否携带 4xx 状态码
+  const status =
+    typeof (err as any).status === 'number' &&
+    (err as any).status >= 400 &&
+    (err as any).status < 500
+      ? (err as any).status
+      : 500;
+  const message = sanitizeErrorMessage(err.message || 'Internal Server Error');
+  // 生产环境：5xx 屏蔽具体错误信息，所有错误屏蔽堆栈
+  const isProd = process.env.NODE_ENV === 'production';
+  const body: Record<string, any> = {
+    error: status >= 500 && isProd ? 'Internal Server Error' : message,
+    code: status,
+  };
+  if (!isProd && err.stack) {
+    body.stack = err.stack;
+  }
+  return { status, body };
+}
+
+/** 请求日志中间件工厂：记录 [时间戳] [METHOD] /path - status duration_ms */
+export function createLoggerMiddleware() {
+  return async (c: any, next: any) => {
+    const start = Date.now();
+    await next();
+    const duration = Date.now() - start;
+    const status = c.res?.status ?? 0;
+    const marker = status >= 400 ? ' !!!' : '';
+    console.log(
+      `[${new Date().toISOString()}] [${c.req.method}] ${c.req.path} - ${status} ${duration}ms${marker}`,
+    );
+  };
+}
+
+// ── 引擎核心 ──────────────────────────────────────────────
+
 const DEFAULT_PORT = 3456;
 const DEFAULT_WEB_PORT = 3457;
 const SESSION_TIMEOUT = 7_200_000; // 2小时无活动 → 标记 inactive（个人工具，不需要频繁过期）
@@ -46,19 +95,16 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   // 非 stdio 模式：端口已被占用 → 复用已有引擎
   if (!stdio && await isPortInUse(port)) {
     console.log(`Jarvis Engine already running on port ${port} — reusing existing instance.`);
-    if (existsSync(PID_FILE)) {
-      const oldPid = Number(readFileSync(PID_FILE, 'utf-8').trim());
-      if (oldPid !== process.pid) {
-        try { writeFileSync(PID_FILE, String(process.pid)); } catch {}
-      }
+    // TASK-004: 使用 JSON 格式 PID 文件，PID 变更时更新
+    if (!isEngineRunning() || (readPidFile()?.pid !== process.pid)) {
+      writePidFile(process.pid);
     }
     return true;
   }
 
   const root = resolve(projectRoot);
-  const pidDir = resolve(homedir(), '.jarvis');
-  if (!existsSync(pidDir)) mkdirSync(pidDir, { recursive: true });
-  writeFileSync(PID_FILE, String(process.pid));
+  // TASK-004: 使用 JSON 格式 PID 文件
+  writePidFile(process.pid);
 
   // 旧数据库迁移：从 <projectRoot>/.jarvis/ 移动到 ~/.jarvis/
   const oldDbPath = resolve(root, '.jarvis', 'engine.db');
@@ -74,6 +120,16 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   }
 
   const app = new Hono();
+
+  // TASK-003: 请求日志中间件（最外层）
+  app.use('*', createLoggerMiddleware());
+
+  // TASK-003: 全局 onError（在路由之前注册，确保所有异常被正确捕获）
+  app.onError((err, c) => {
+    const { status, body } = resolveErrorResponse(err);
+    return c.json(body, status as any);
+  });
+
   const mcpServer = new McpServer({ name: 'jarvis-engine', version: readPkgVersion() });
   const db = openDb();
 
@@ -87,6 +143,15 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
 
   // 注册 REST API 路由（Hono）
   setupApiRoutes(app, db, root);
+
+  // TASK-004: 优雅退出端点（Windows PID kill 可能不支持，用 HTTP shutdown 兜底）
+  app.post('/api/shutdown', async (c) => {
+    stopGuardian();
+    removePidFile();
+    // 延迟退出，确保响应已发送
+    setTimeout(() => process.exit(0), 100);
+    return c.json({ ok: true, message: 'Shutting down...' });
+  });
 
   // SPA 静态资源 & Web 面板（jarvis engine start 一站式服务）
   const webDistDir = getWebDistDir(root);
@@ -124,6 +189,21 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     }
     return c.html(indexHtml, 200, { 'Cache-Control': 'no-store, no-cache, must-revalidate' });
   });
+
+  // TASK-004: 优雅退出信号处理（SIGINT/SIGTERM）
+  const gracefulShutdown = () => {
+    stopGuardian();
+    removePidFile();
+    process.exit(0);
+  };
+  process.on('SIGINT', gracefulShutdown);
+  process.on('SIGTERM', gracefulShutdown);
+
+  // TASK-004: 启动守护进程 — 崩溃自动重启
+  const restartHandler = () => {
+    writePidFile(process.pid);
+  };
+  startGuardian(port, restartHandler);
 
   if (stdio) {
     // ---- Stdio Transport：MCP 通过 stdin/stdout，Claude Code 自动拉起 ----
@@ -188,7 +268,7 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   }
 }
 
-/** 平台信息——单平台查询 */
+/** 平台信息——单平台查询（TASK-009：仅 claude） */
 interface PlatformInfoSingle {
   platform: string;
   agent_count: number;
@@ -217,7 +297,7 @@ type PlatformInfoResult = PlatformInfoError | PlatformInfoSingle | PlatformInfoS
  * 解析平台信息：汇总或单平台查询。
  * 提取为独立函数以便于测试，不依赖 MCP 工具框架。
  *
- * @param platform - 可选平台名称（claude/opencode/codex），不传则返回全部平台汇总
+ * @param platform - 可选平台名称（claude），不传则返回全部平台汇总
  * @returns 平台信息对象（不含 MCP content 包装层）
  */
 export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
@@ -254,7 +334,7 @@ export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
 }
 
 /** 注册所有 MCP 工具 */
-function registerMcpTools(server, db, root) {
+export function registerMcpTools(server, db, root) {
   /** 解析 sessionId 并自动记录活动——每次工具调用即视为心跳 */
   const resolveSid = (extra) => {
     const sid = extra?.sessionId || _lastSessionId;
@@ -265,7 +345,7 @@ function registerMcpTools(server, db, root) {
   server.tool('session_join',
     '注册/恢复会话。每个会话独立流水线状态。支持 resume_session_id 恢复旧会话，pipeline_type 指定流水线类型（full/frontend/backend）。',
     {
-      platform: z.enum(['claude', 'opencode', 'codex', 'other']).optional(),
+      platform: z.enum(['claude', 'other']).optional(),
       resume_session_id: z.string().optional(),
       pipeline_type: z.string().optional(),
       task_name: z.string().optional(),
@@ -298,6 +378,9 @@ function registerMcpTools(server, db, root) {
           const mm = String(now.getMonth() + 1).padStart(2, '0');
           const dd = String(now.getDate()).padStart(2, '0');
           setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+          // TASK-005: 发布恢复会话 + 新 run 事件
+          emitEvent('session:changed', { sessionId: sid, action: 'join' });
+          emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
         } else if (task_name) {
           // 已有活跃 run，但传入 task_name 则更新
           setRunTaskName(db, runId!, task_name);
@@ -318,6 +401,9 @@ function registerMcpTools(server, db, root) {
       const mm = String(now.getMonth() + 1).padStart(2, '0');
       const dd = String(now.getDate()).padStart(2, '0');
       setRunTaskName(db, runId, task_name || `${proj} · ${mm}-${dd}`);
+      // TASK-005: 发布新会话 + 新 run 事件
+      emitEvent('session:changed', { sessionId: sid, action: 'join' });
+      emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       return resp({
         session_id: sid, platform: platform || 'unknown',
         gate: p?.current_gate || 'Gate A',
@@ -352,6 +438,8 @@ function registerMcpTools(server, db, root) {
       const sid = extra?.sessionId;
       if (!sid || !getSession(db, sid)) return resp({ ok: true });
       removeSession(db, sid);
+      // TASK-005: 发布 session 离开事件
+      emitEvent('session:changed', { sessionId: sid, action: 'leave' });
       return resp({ ok: true, message: 'Session removed.' });
     });
 
@@ -366,6 +454,8 @@ function registerMcpTools(server, db, root) {
       const run = getActiveRun(db, sid);
       if (!run) return resp({ ok: false, error: 'No active pipeline run found. Call pipeline_init first.' });
       const result = setRunTaskName(db, run.id, name);
+      // TASK-005: 发布 run 重命名事件
+      emitEvent('run:changed', { runId: run.id, sessionId: sid, action: 'rename' });
       return resp(result);
     });
 
@@ -378,6 +468,8 @@ function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
+      // TASK-005: 发布新 run 创建事件
+      emitEvent('run:changed', { runId, sessionId: sid, action: 'create' });
       // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
       updateRunGateEnteredAt(db, runId, new Date().toISOString());
       // 自动设置任务名称（若用户已传入则使用传入值）
@@ -528,6 +620,11 @@ function registerMcpTools(server, db, root) {
           completeRun(db, runId);
         }
       }
+      // TASK-005: 发布 Gate 推进事件
+      emitEvent('gate:advanced', { sessionId: sid, runId, gate, previousGate: cur });
+      if (isLastGate && runId) {
+        emitEvent('run:changed', { runId, sessionId: sid, action: 'complete' });
+      }
       return resp({
         allowed: true, session_id: sid, run_id: runId, previous_gate: cur, current_gate: gate,
         next: gateList[ti + 1] || 'Complete',
@@ -553,12 +650,15 @@ function registerMcpTools(server, db, root) {
       const gateList = sessionGates(db, sid);
       const ti = gateList.indexOf(gate);
       if (ti === -1) return resp({ allowed: false, error: `未知 Gate: ${gate}。有效: ${gateList.join(', ')}` });
+      const previousGate = p?.current_gate;
       updatePipelineGate(db, sid, gate);
       // TASK-001: 写入目标 Gate 的进入时间
       if (runId) {
         updateRunGate(db, runId, gate);
         updateRunGateEnteredAt(db, runId, new Date().toISOString());
       }
+      // TASK-005: 发布 Gate 跳转事件
+      emitEvent('gate:advanced', { sessionId: sid, runId, gate, previousGate });
       return resp({
         allowed: true, session_id: sid, run_id: runId, pipeline_type: pt, entry_gate: gate,
         message: `已跳转至 ${gate}，跳过了 ${gateList.slice(0, ti).join(', ')}。剩余: ${gateList.slice(ti).join(' → ')}`,
@@ -671,8 +771,8 @@ function registerMcpTools(server, db, root) {
     });
 
   server.tool('platform_info',
-    '获取平台信息：支持哪些平台（claude/opencode/codex）、各平台 Agent 数量、可用模型列表、平台特性（features）。Claude 支持 commands 特性，OpenCode 支持 plugins 特性，Codex 无额外特性。用于引擎扩展和平台适配。',
-    { platform: z.string().optional().describe('指定平台名称（claude/opencode/codex），不传则返回全部平台信息') },
+    '获取平台信息：当前仅支持 claude 平台，返回 Agent 数量、可用模型列表、平台特性（commands）。用于引擎扩展和平台适配。',
+    { platform: z.string().optional().describe('指定平台名称（claude），不传则返回全部平台信息') },
     async ({ platform }) => {
       const result = resolvePlatformInfo(platform);
       return resp(result);
@@ -743,6 +843,9 @@ function registerMcpTools(server, db, root) {
           error_message,
           current_gate: pipeline?.current_gate || undefined,
         });
+
+        // TASK-005: 发布 Agent 事件（仅非重复，重复路径已提前 return）
+        emitEvent('agent:event', { runId: finalRunId, sessionId: finalSid, agentId: agent_id, eventType: event });
 
         return resp({
           ok: true, id: result.id, total_tokens: result.total_tokens,
@@ -914,31 +1017,33 @@ export async function startWeb({ port = DEFAULT_WEB_PORT, enginePort = DEFAULT_P
 
 /** 停止引擎 */
 export function stopEngine() {
-  if (!existsSync(PID_FILE)) { console.log('No running engine found.'); return; }
-  const pid = readFileSync(PID_FILE, 'utf-8').trim();
+  const data = readPidFile();
+  if (!data) { console.log('No running engine found.'); return; }
   try {
-    process.kill(Number(pid), 'SIGTERM');
-    try { unlinkSync(PID_FILE); } catch {}
-    console.log(`Engine stopped (PID ${pid}).`);
+    process.kill(data.pid, 'SIGTERM');
+    removePidFile();
+    console.log(`Engine stopped (PID ${data.pid}).`);
   } catch {
-    console.log(`Engine not running (stale PID ${pid}).`);
-    try { unlinkSync(PID_FILE); } catch {}
+    console.log(`Engine not running (stale PID ${data.pid}).`);
+    removePidFile();
   }
 }
 
 /** 查询引擎状态 */
 export function engineStatus() {
-  if (!existsSync(PID_FILE)) { console.log('Engine: not running'); return false; }
-  const pid = readFileSync(PID_FILE, 'utf-8').trim();
-  try {
-    process.kill(Number(pid), 0);
-    console.log(`Engine: running (PID ${pid})`);
+  const data = readPidFile();
+  if (!data) { console.log('Engine: not running'); return false; }
+  if (isEngineRunning()) {
+    const uptime = Math.floor((Date.now() - data.startedAt) / 1000);
+    const h = Math.floor(uptime / 3600);
+    const m = Math.floor((uptime % 3600) / 60);
+    const s = uptime % 60;
+    const uptimeStr = h > 0 ? `${h}h ${m}m ${s}s` : m > 0 ? `${m}m ${s}s` : `${s}s`;
+    console.log(`Engine: running (PID ${data.pid}, uptime ${uptimeStr}, restarts ${data.restartCount})`);
     return true;
-  } catch {
-    console.log(`Engine: not running (stale PID ${pid})`);
-    try { unlinkSync(PID_FILE); } catch {}
-    return false;
   }
+  console.log(`Engine: not running (stale PID ${data.pid})`);
+  return false;
 }
 
 /** MCP 工具响应 */

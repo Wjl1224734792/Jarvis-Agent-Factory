@@ -5,6 +5,7 @@ import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
 import { getHashFilePath } from './hash-paths.js';
+import { readMcpConfig, writeMcpConfig } from './shared/mcp-config.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -207,9 +208,38 @@ function installMcp(platform, target, force) {
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
     writeMcpJson(dest, content, force, t.file);
   } else {
-    // Claude JSON: .mcp.json at project root
+    // Claude JSON: .mcp.json at project root — 使用共享模块
     const dest = target ? resolve(target, t.file) : mcpGlobalDest(platform);
-    writeMcpJson(dest, content, force, t.file);
+    const projectRoot = dirname(dest);
+    if (!existsSync(projectRoot)) mkdirSync(projectRoot, { recursive: true });
+
+    const nJson = JSON.parse(content);
+    const nKey = nJson.mcpServers ? 'mcpServers' : 'mcp';
+    const existingConfig = readMcpConfig(projectRoot);
+
+    if (existingConfig && !force) {
+      const eKey = existingConfig.mcpServers ? 'mcpServers' : 'mcp';
+
+      // 检查 jarvis-engine 是否已存在
+      const existingServers = eKey === 'mcpServers'
+        ? existingConfig.mcpServers
+        : (existingConfig as any)[eKey];
+      if (existingServers && existingServers['jarvis-engine']) {
+        console.log(`  ~ ${t.file.padEnd(22)} already configured`);
+        return;
+      }
+
+      // 合并：添加 jarvis-engine 到现有配置
+      const merged: Record<string, any> = { ...(existingConfig as any) };
+      if (!merged[eKey]) merged[eKey] = {};
+      merged[eKey]['jarvis-engine'] = nJson[nKey]['jarvis-engine'];
+      writeMcpConfig(projectRoot, merged as any);
+      console.log(`  ~ ${t.file.padEnd(22)} merged jarvis-engine`);
+    } else {
+      // 新安装、force 覆盖、或原有文件 JSON 无效
+      writeMcpConfig(projectRoot, nJson);
+      console.log(`  + ${t.file.padEnd(22)} → ${dest}`);
+    }
   }
 }
 
