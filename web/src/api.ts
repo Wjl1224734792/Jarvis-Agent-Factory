@@ -167,6 +167,9 @@ export const api = {
   deleteRun: (runId: string) =>
     fetchJSON(`/api/pipeline-runs/${encodeURIComponent(runId)}`, { method: 'DELETE' }),
 
+  deleteSession: (sessionId: string) =>
+    fetchJSON(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }),
+
   pinRun: (runId: string) =>
     fetchJSON(`/api/pipeline-runs/${encodeURIComponent(runId)}/pin`, { method: 'POST' }),
 

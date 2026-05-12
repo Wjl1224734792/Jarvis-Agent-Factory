@@ -498,15 +498,64 @@ export function getArchivedRuns(db) {
  * @param {string} runId
  * @returns {{ ok: boolean }}
  */
+/**
+ * 硬删除 run，若该 session 再无其他 run 则同时删除 session
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @returns {{ ok: boolean }}
+ */
 export function deleteRun(db, runId) {
   if (!runId) return { ok: false };
   try {
+    // 先查出该 run 所属的 session_id
+    const run = db.prepare('SELECT session_id FROM pipeline_runs WHERE id=?').get(runId);
+    const sessionId = run?.session_id;
+
     db.exec('BEGIN');
     // 级联删除关联的 artifacts 记录
     db.prepare('DELETE FROM artifacts WHERE run_id=?').run(runId);
     // 级联删除关联的 agent_events 记录
     db.prepare('DELETE FROM agent_events WHERE run_id=?').run(runId);
     const result = db.prepare('DELETE FROM pipeline_runs WHERE id=?').run(runId);
+
+    // 如果这是该 session 的最后一条 run，级联删除 session
+    if (sessionId && result.changes > 0) {
+      const remaining = db.prepare('SELECT COUNT(*) as cnt FROM pipeline_runs WHERE session_id=?').get(sessionId);
+      if (remaining.cnt === 0) {
+        db.prepare('DELETE FROM checkpoints WHERE session_id=?').run(sessionId);
+        db.prepare('DELETE FROM pipeline WHERE session_id=?').run(sessionId);
+        db.prepare('DELETE FROM sessions WHERE id=?').run(sessionId);
+      }
+    }
+
+    db.exec('COMMIT');
+    return { ok: result.changes > 0 };
+  } catch (e) {
+    try { db.exec('ROLLBACK'); } catch {}
+    throw e;
+  }
+}
+
+/**
+ * 直接删除 session 及其所有关联数据（级联删除 runs、artifacts、agent_events、checkpoints、pipeline）
+ * @param {DatabaseSync} db
+ * @param {string} sessionId
+ * @returns {{ ok: boolean }}
+ */
+export function deleteSession(db, sessionId) {
+  if (!sessionId) return { ok: false };
+  try {
+    db.exec('BEGIN');
+    // 先查出所有关联的 run
+    const runs = db.prepare('SELECT id FROM pipeline_runs WHERE session_id=?').all(sessionId);
+    for (const r of runs) {
+      db.prepare('DELETE FROM artifacts WHERE run_id=?').run(r.id);
+      db.prepare('DELETE FROM agent_events WHERE run_id=?').run(r.id);
+    }
+    db.prepare('DELETE FROM pipeline_runs WHERE session_id=?').run(sessionId);
+    db.prepare('DELETE FROM checkpoints WHERE session_id=?').run(sessionId);
+    db.prepare('DELETE FROM pipeline WHERE session_id=?').run(sessionId);
+    const result = db.prepare('DELETE FROM sessions WHERE id=?').run(sessionId);
     db.exec('COMMIT');
     return { ok: result.changes > 0 };
   } catch (e) {

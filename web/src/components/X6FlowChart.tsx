@@ -1,13 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
-import { Graph } from '@antv/x6';
-import { Selection } from '@antv/x6-plugin-selection';
-import { Snapline } from '@antv/x6-plugin-snapline';
-import dagre from 'dagre';
 import { theme } from 'antd';
-import { NODE_SIZES, ANIMATION_DEFAULTS } from '../constants/x6-theme';
+import { NODE_SIZES } from '../constants/x6-theme';
 import type { AgentStatusResponse, AgentUsageResponse } from '../api';
-import { useX6Animation } from '../hooks/useX6Animation';
-import X6Controls from './X6Controls';
 
 /**
  * HTML 实体编码，防止 XSS 注入
@@ -72,11 +66,12 @@ const GATE_SKIP_EDGES: [string, string][] = [
   ['Gate B-DDD', 'Gate B-TDD'],
 ];
 
-// Gate emoji 图标
+/** Gate emoji 图标 */
 const GATE_ICONS: Record<string, string> = {
-  'Gate A': '📋', 'Gate B-DDD': '🏗️', 'Gate B-BDD': '📝', 'Gate B-TDD': '🧪',
-  'Gate B1': '🏛️', 'Gate C': '📐', 'Gate C-impl': '⚡',
-  'Gate C1': '✅', 'Gate C1.5': '👁️', 'Gate C2': '🔬', 'Gate D': '🔍', 'Gate E': '🚀',
+  'Gate A': '\u{1F4CB}', 'Gate B-DDD': '\u{1F3D7}️', 'Gate B-BDD': '\u{1F4DD}',
+  'Gate B-TDD': '\u{1F9EA}', 'Gate B1': '\u{1F3DB}️', 'Gate C': '\u{1F4D0}',
+  'Gate C-impl': '⚡', 'Gate C1': '✅', 'Gate C1.5': '\u{1F441}️',
+  'Gate C2': '\u{1F52C}', 'Gate D': '\u{1F50D}', 'Gate E': '\u{1F680}',
 };
 
 // ============================================================
@@ -92,44 +87,15 @@ interface Props {
   onGateSelect: (gateId: string) => void;
 }
 
-// ============================================================
-// dagre 布局计算
-// ============================================================
-
-function computeLayout(
-  gateNodes: string[],
-  edges: [string, string][],
-  agentNodes: string[],
-  agentEdges: [string, string][],
-) {
-  const g = new dagre.graphlib.Graph();
-  g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 120, marginx: 20, marginy: 20 });
-
-  for (const id of gateNodes) {
-    g.setNode(id, { width: NODE_SIZES.gate.w, height: NODE_SIZES.gate.w });
-  }
-  for (const id of agentNodes) {
-    g.setNode(id, { width: NODE_SIZES.agent.w, height: NODE_SIZES.agent.w });
-  }
-  for (const [s, t] of edges) {
-    g.setEdge(s, t);
-  }
-  for (const [s, t] of agentEdges) {
-    g.setEdge(s, t);
-  }
-
-  dagre.layout(g);
-
-  const positions: Record<string, { x: number; y: number }> = {};
-  for (const id of [...gateNodes, ...agentNodes]) {
-    const node = g.node(id);
-    if (node) {
-      positions[id] = { x: node.x, y: node.y };
-    }
-  }
-  return positions;
+interface TooltipState {
+  visible: boolean;
+  x: number;
+  y: number;
+  gateId: string | null;
 }
+
+/** 计算 contentHeight 后附加的边距 */
+const SVG_PADDING_BOTTOM = 60;
 
 // ============================================================
 // 组件
@@ -140,13 +106,9 @@ export default function X6FlowChart({
 }: Props) {
   const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);
-  const graphRef = useRef<Graph | null>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
-  const destroyedRef = useRef(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
+  const [tooltip, setTooltip] = useState<TooltipState>({ visible: false, x: 0, y: 0, gateId: null });
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  /** 记录已渲染过的节点 ID，数据轮询时跳过入场动画 */
-  const renderedNodeIdsRef = useRef<Set<string>>(new Set());
 
   // Gate 状态
   const gateStatusMap = useMemo(() => {
@@ -166,7 +128,7 @@ export default function X6FlowChart({
     return 'future';
   }, [gateStatusMap, currentGate]);
 
-  // Agent 数据
+  // Agent 数据（仅用于 tooltip 统计，不渲染 Agent 子节点）
   const allAgents = useMemo(() => {
     if (!agentStatus) return [];
     const result: { id: string; status: 'active' | 'completed' | 'failed' }[] = [];
@@ -183,6 +145,33 @@ export default function X6FlowChart({
     const tddGate = pipelineGates.find(g => g.gate === 'Gate B-TDD');
     return tddGate?.passed === true || currentGate === 'Gate B-TDD';
   }, [pipelineGates, currentGate]);
+
+  // 注入 CSS 动画关键帧（一次性，通过 DOM ID 去重）
+  useEffect(() => {
+    const styleId = 'x6-flowchart-animations';
+    if (document.getElementById(styleId)) return;
+    const style = document.createElement('style');
+    style.id = styleId;
+    style.textContent = `
+      @keyframes flowPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.06); }
+      }
+      @keyframes flowDashMove {
+        to { stroke-dashoffset: -24; }
+      }
+      @keyframes flowFadeInScale {
+        from { opacity: 0; transform: scale(0.3); }
+        to { opacity: 1; transform: scale(1); }
+      }
+    `;
+    document.head.appendChild(style);
+    return () => {
+      // 仅在组件卸载且无其他实例时移除（用 ref 计数判断）
+      const el = document.getElementById(styleId);
+      if (el) el.remove();
+    };
+  }, []);
 
   // ResizeObserver
   useEffect(() => {
@@ -207,428 +196,84 @@ export default function X6FlowChart({
     return () => { observer.disconnect(); clearTimeout(debounceTimer); };
   }, []);
 
-  // 初始化 X6 Graph
-  useEffect(() => {
-    if (!containerRef.current || !runId) return;
+  // Tooltip 事件处理
+  const showTooltip = useCallback((gateId: string, e: React.MouseEvent) => {
+    if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
+    setTooltip({ visible: true, x: e.clientX, y: e.clientY, gateId });
+  }, []);
+
+  const hideTooltip = useCallback(() => {
+    hideTimerRef.current = setTimeout(() => {
+      setTooltip(prev => ({ ...prev, visible: false }));
+      hideTimerRef.current = null;
+    }, 150);
+  }, []);
+
+  // ============================================================
+  // 布局计算
+  // ============================================================
+
+  const layoutData = useMemo(() => {
     const { w, h } = containerSize;
-    if (w === 0 || h === 0) return;
+    if (w === 0 || h === 0) return null;
 
-    destroyedRef.current = false;
+    const nodeR = NODE_SIZES.gate.w / 2; // 40
+    const gateCount = GATE_SEQUENCE.length; // 12
 
-    const graph = new Graph({
-      container: containerRef.current,
-      width: w,
-      height: h,
-      background: { color: 'transparent' },
-      interacting: { nodeMovable: false, edgeMovable: false },
-      autoResize: false,
-      mousewheel: {
-        enabled: true,
-        zoomAtMousePosition: true,
-        modifiers: 'ctrl',
-        minScale: 0.3,
-        maxScale: 3.0,
-      },
+    // 等距垂直排列：节点中心从上到下均匀分布
+    const topMargin = nodeR + 10;
+    const bottomMargin = nodeR + SVG_PADDING_BOTTOM;
+    const availableH = 1200; // 固定内容高度，缩放适配容器
+    const spacing = (availableH - topMargin - bottomMargin) / (gateCount - 1);
+
+    // 构建 gateId -> 索引映射
+    const gateIndexMap = new Map<string, number>();
+    GATE_SEQUENCE.forEach((g, i) => gateIndexMap.set(g, i));
+
+    // 计算每个 Gate 的中心坐标（在内容坐标系中）
+    const gatePositions = new Map<string, { cx: number; cy: number }>();
+    GATE_SEQUENCE.forEach((gateId, i) => {
+      gatePositions.set(gateId, { cx: availableH, cy: topMargin + i * spacing });
     });
 
-    graph.use(new Selection({ enabled: true, multiple: false, rubberband: false }));
-    graph.use(new Snapline({ enabled: true }));
+    const contentW = availableH; // 等宽正方形内容区
+    const contentH = availableH;
 
-    graphRef.current = graph;
-
-    return () => {
-      destroyedRef.current = true;
-      try { graph.dispose(); } catch {}
-      graphRef.current = null;
-    };
-  }, [runId]);
-
-  // 容器尺寸变化时 resize 画布（不重建 graph）
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current) return;
-    const { w, h } = containerSize;
-    if (w > 0 && h > 0) {
-      graph.resize(w, h);
-    }
+    return { nodeR, gateCount, spacing, gateIndexMap, gatePositions, contentW, contentH };
   }, [containerSize]);
 
-  // 渲染图数据
-  useEffect(() => {
-    const graph = graphRef.current;
-    if (!graph || destroyedRef.current) return;
+  // 计算 Bezier 路径
+  const buildEdgePath = useCallback(
+    (fromGate: string, toGate: string, isSkip: boolean): string | null => {
+      if (!layoutData) return null;
+      const { gatePositions, nodeR } = layoutData;
+      const from = gatePositions.get(fromGate);
+      const to = gatePositions.get(toGate);
+      if (!from || !to) return null;
 
-    const mainNodeSize = NODE_SIZES.gate.w;
-    const mainFontSize = NODE_SIZES.gate.fontSize;
-    const agentNodeSize = NODE_SIZES.agent.w;
+      const startX = from.cx;
+      const startY = from.cy + nodeR;
+      const endX = to.cx;
+      const endY = to.cy - nodeR;
 
-    // 准备 agent 节点数据
-    const agentNodeIds: string[] = [];
-    const agentEdgeList: [string, string][] = [];
-    const selGate = selectedGate || currentGate;
-
-    if (selGate && allAgents.length > 0) {
-      for (const a of allAgents) {
-        const agentId = `agent-${a.id}`;
-        agentNodeIds.push(agentId);
-        agentEdgeList.push([selGate, agentId]);
-      }
-    }
-
-    // 计算布局
-    const edgeList: [string, string][] = [
-      ...GATE_EDGES,
-      ...(bddSkipped ? GATE_SKIP_EDGES : []),
-      ...agentEdgeList,
-    ];
-    const positions = computeLayout(
-      [...GATE_SEQUENCE], edgeList, agentNodeIds, agentEdgeList,
-    );
-
-    // 清除旧内容
-    graph.clearCells();
-
-    // 添加 Gate 节点
-    for (const gateId of GATE_SEQUENCE) {
-      const pos = positions[gateId];
-      if (!pos) continue;
-      const state = getGateState(gateId);
-      const isSelected = (selectedGate || currentGate) === gateId;
-
-      let fill: string; let stroke: string; let labelFill: string;
-      switch (state) {
-        case 'passed':
-          fill = token.colorSuccessBg;
-          stroke = token.colorSuccess;
-          labelFill = token.colorSuccess;
-          break;
-        case 'current':
-          fill = token.colorPrimaryBg;
-          stroke = token.colorPrimary;
-          labelFill = token.colorPrimary;
-          break;
-        default:
-          fill = token.colorBgElevated || token.colorBgContainer;
-          stroke = token.colorBorderSecondary;
-          labelFill = token.colorTextSecondary;
-          break;
+      if (isSkip) {
+        // 跳过边：从右侧绕过中间节点
+        const offsetX = 120;
+        const midY = (startY + endY) / 2;
+        return `M ${startX} ${startY} C ${startX + offsetX} ${startY + 30}, ${endX + offsetX} ${endY - 30}, ${endX} ${endY}`;
       }
 
-      const node = graph.addNode({
-        id: gateId,
-        x: pos.x - mainNodeSize / 2,
-        y: pos.y - mainNodeSize / 2,
-        width: mainNodeSize,
-        height: mainNodeSize,
-        shape: 'ellipse',
-        attrs: {
-          body: {
-            fill,
-            stroke,
-            strokeWidth: isSelected ? 3.5 : state === 'current' ? 3 : 2.2,
-            strokeDasharray: state === 'future' ? '4,3' : undefined,
-            rx: mainNodeSize / 2,
-            ry: mainNodeSize / 2,
-            filter: isSelected ? `drop-shadow(0 0 8px ${stroke})` : state === 'current' ? `drop-shadow(0 0 6px ${stroke})` : undefined,
-          },
-          label: {
-            text: `${GATE_ICONS[gateId] || ''} ${GATE_LABELS[gateId] || gateId}`,
-            fill: labelFill,
-            fontSize: mainFontSize,
-            fontWeight: isSelected ? 700 : state === 'current' ? 600 : 400,
-            textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            refY: mainNodeSize / 2 + 6,
-          },
-        },
-        data: { gateId, state, isGate: true },
-      });
-
-      // 点击事件
-      node.on('cell:click', () => {
-        onGateSelect(gateId);
-      });
-    }
-
-    // 添加 Agent 子节点
-    for (const agentId of agentNodeIds) {
-      const pos = positions[agentId];
-      if (!pos) continue;
-      const agentName = agentId.replace('agent-', '');
-      const a = allAgents.find(x => x.id === agentName);
-      const status = a?.status || 'active';
-
-      const agentFill = status === 'active' ? token.colorPrimaryBg
-        : status === 'completed' ? token.colorSuccessBg
-        : token.colorErrorBg;
-      const agentStroke = status === 'active' ? token.colorPrimary
-        : status === 'completed' ? token.colorSuccess
-        : token.colorError;
-
-      graph.addNode({
-        id: agentId,
-        x: pos.x - agentNodeSize / 2,
-        y: pos.y - agentNodeSize / 2,
-        width: agentNodeSize,
-        height: agentNodeSize,
-        shape: 'ellipse',
-        attrs: {
-          body: {
-            fill: agentFill,
-            stroke: agentStroke,
-            strokeWidth: 2,
-            rx: agentNodeSize / 2,
-            ry: agentNodeSize / 2,
-          },
-          label: {
-            text: agentName.length > 16 ? agentName.substring(0, 15) + '…' : agentName,
-            fill: token.colorTextSecondary,
-            fontSize: NODE_SIZES.agent.fontSize,
-            textAnchor: 'middle',
-            textVerticalAnchor: 'top',
-            refY: agentNodeSize / 2 + 4,
-          },
-        },
-        data: { agentId: agentName, status, isAgent: true },
-      });
-    }
-
-    // 添加 Gate 边
-    for (const [s, t] of GATE_EDGES) {
-      const sState = getGateState(s);
-      const tState = getGateState(t);
-
-      let edgeStroke: string; let edgeWidth: number; let edgeDash: string | undefined;
-      if (sState === 'passed' && tState === 'passed') {
-        edgeStroke = token.colorSuccess; edgeWidth = 2.5;
-      } else if (sState === 'current' || tState === 'current') {
-        edgeStroke = token.colorPrimary; edgeWidth = 3;
-      } else if (sState === 'passed' && tState === 'future') {
-        edgeStroke = token.colorPrimary; edgeWidth = 2.5; edgeDash = '6,3';
-      } else {
-        edgeStroke = token.colorBorderSecondary; edgeWidth = 1.8; edgeDash = '4,3';
-      }
-
-      graph.addEdge({
-        id: `${s}->${t}`,
-        source: { cell: s },
-        target: { cell: t },
-        attrs: {
-          line: {
-            stroke: edgeStroke,
-            strokeWidth: edgeWidth,
-            strokeDasharray: edgeDash,
-            targetMarker: { name: 'block', width: 8, height: 6 },
-          },
-        },
-        data: { isGateEdge: true },
-      });
-    }
-
-    // 条件跳过边
-    if (bddSkipped) {
-      for (const [s, t] of GATE_SKIP_EDGES) {
-        graph.addEdge({
-          id: `${s}->${t}-skip`,
-          source: { cell: s },
-          target: { cell: t },
-          attrs: {
-            line: {
-              stroke: token.colorWarning,
-              strokeWidth: 2,
-              strokeDasharray: '8,4',
-              targetMarker: { name: 'block', width: 8, height: 6 },
-            },
-          },
-          data: { isSkipEdge: true },
-        });
-      }
-    }
-
-    // 添加 Agent 边
-    for (const [s, t] of agentEdgeList) {
-      const agentName = t.replace('agent-', '');
-      const a = allAgents.find(x => x.id === agentName);
-      const status = a?.status || 'active';
-      const edgeStroke = status === 'active' ? token.colorPrimary
-        : status === 'completed' ? token.colorSuccess
-        : token.colorError;
-
-      graph.addEdge({
-        id: `${s}->${t}`,
-        source: { cell: s },
-        target: { cell: t },
-        attrs: {
-          line: {
-            stroke: edgeStroke,
-            strokeWidth: 1.5,
-            strokeDasharray: status === 'active' ? '3,2' : undefined,
-            targetMarker: { name: 'block', width: 6, height: 4 },
-          },
-        },
-        data: { isAgentEdge: true, status },
-      });
-    }
-
-    // 适配视图
-    graph.zoomToFit({ padding: { top: 20, right: 20, bottom: 20, left: 20 }, maxScale: 3.0, minScale: 0.3 });
-
-    // 节点入场动画：仅对新出现的节点 ID 播放，数据轮询不重播
-    const entranceD = ANIMATION_DEFAULTS.entranceDuration;
-    const entranceE = ANIMATION_DEFAULTS.entranceEasing;
-    const cssTransition = `opacity ${entranceD}ms ${entranceE}, transform ${entranceD}ms ${entranceE}`;
-    const initialStyle = `opacity: 0; transform: scale(0.3); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
-    const finalStyle = `opacity: 1; transform: scale(1); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
-    const nodes = graph.getNodes();
-    const currentIds = new Set(nodes.map(n => n.id));
-    // 仅选中 renderedNodeIdsRef 中未出现过的节点执行入场动画
-    const newNodes = nodes.filter(n => !renderedNodeIdsRef.current.has(n.id));
-
-    for (const node of newNodes) {
-      if (node.isNode()) {
-        node.setAttrs({ body: { opacity: 0, style: initialStyle } });
-      }
-    }
-    if (newNodes.length > 0) {
-      requestAnimationFrame(() => {
-        for (const node of newNodes) {
-          if (node.isNode()) {
-            node.setAttrs({ body: { opacity: 1, style: finalStyle } });
-          }
-        }
-      });
-    }
-
-    // 更新已渲染节点 ID 集合
-    renderedNodeIdsRef.current = currentIds;
-  }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped]);
-
-  // 统一动画：呼吸 + 虚线流动（useX6Animation）
-  useX6Animation(graphRef.current, {
-    breath: {
-      enabled: true,
-      amplitude: ANIMATION_DEFAULTS.breathAmplitude,
-      frequency: ANIMATION_DEFAULTS.breathFrequency,
-      nodeFilter: (node) => {
-        const data = node.getData();
-        if (data?.isGate) {
-          return getGateState(data.gateId as string) === 'current';
-        }
-        if (data?.isAgent) {
-          return (data.status as string) === 'active';
-        }
-        return false;
-      },
+      // 正常边：垂直贝塞尔曲线
+      const cyDelta = (endY - startY) / 3;
+      return `M ${startX} ${startY} C ${startX} ${startY + cyDelta}, ${endX} ${endY - cyDelta}, ${endX} ${endY}`;
     },
-    dashFlow: {
-      enabled: true,
-      speed: ANIMATION_DEFAULTS.dashFlowSpeed,
-      edgeFilter: (edge) => {
-        const data = edge.getData();
-        return !!(data?.isGateEdge || data?.isSkipEdge || data?.isAgentEdge);
-      },
-    },
-    transitions: {
-      entranceDuration: ANIMATION_DEFAULTS.entranceDuration,
-      exitDuration: ANIMATION_DEFAULTS.exitDuration,
-    },
-  });
+    [layoutData],
+  );
 
-  // Tooltip 事件
-  useEffect(() => {
-    const graph = graphRef.current;
-    const tooltip = tooltipRef.current;
-    if (!graph || !tooltip) return;
-
-    const showTooltip = (args: any) => {
-      const cell = args.cell;
-      if (!cell) { tooltip.style.display = 'none'; return; }
-      const data = cell.getData();
-      if (!data) return;
-
-      // 取消之前的隐藏定时器，防止 stale 隐藏覆盖新的显示
-      if (hideTimerRef.current) { clearTimeout(hideTimerRef.current); hideTimerRef.current = null; }
-
-      const pos = args.e ? { x: args.e.clientX, y: args.e.clientY } : { x: 0, y: 0 };
-
-      let html = '';
-
-      if (data.isAgent) {
-        const agentId = escapeHtml(data.agentId as string);
-        const agent = allAgents.find(x => x.id === data.agentId as string);
-        const usage = agentUsage?.agents?.[data.agentId as string];
-        const statusLabel = agent?.status === 'active' ? '🟢 运行中'
-          : agent?.status === 'completed' ? '✅ 已完成' : '❌ 失败';
-        html += `<div style="font-weight:700;margin-bottom:4px">🤖 ${agentId}</div>`;
-        html += `<div style="font-size:11px">${statusLabel}</div>`;
-        if (usage) {
-          const total = (usage.total_input_tokens || 0) + (usage.total_output_tokens || 0);
-          html += `<div style="margin-top:4px;font-size:10px;color:${token.colorTextTertiary}">调用: <b>${escapeHtml(String(usage.calls))}</b>次 · Token: <b>${total.toLocaleString()}</b></div>`;
-        }
-      } else if (data.isGate) {
-        const gateId = data.gateId as string;
-        const state = getGateState(gateId);
-        const stateLabel = state === 'passed' ? '✅ 已通过' : state === 'current' ? '🔵 进行中' : '⏳ 等待中';
-        const desc = GATE_DESCRIPTIONS[gateId] || '';
-        const gateInfo = pipelineGates?.find(g => g.gate === gateId);
-
-        html += `<div style="font-weight:700;margin-bottom:4px">${GATE_ICONS[gateId] || ''} ${escapeHtml(gateId)}</div>`;
-        html += `<div style="font-size:10px">${GATE_LABELS[gateId] || ''}</div>`;
-        html += `<div style="font-size:10px;margin-top:2px">${stateLabel}</div>`;
-        if (desc) html += `<div style="font-size:10px;color:${token.colorTextTertiary};margin-top:2px;max-width:200px">${escapeHtml(desc)}</div>`;
-        if (gateInfo?.duration_display) html += `<div style="font-size:10px;color:${token.colorTextTertiary};margin-top:2px">⏱ 耗时: ${escapeHtml(gateInfo.duration_display)}</div>`;
-        html += `<div style="font-size:9px;color:${token.colorTextQuaternary};margin-top:4px">点击查看该 Gate 的 Agent 详情</div>`;
-      } else {
-        return;
-      }
-
-      // 视口边界检测 + 智能翻转，防止 tooltip 溢出屏幕
-      const tooltipW = 260; // maxWidth
-      const tooltipH = 150; // 预估高度
-      let left = pos.x + 14;
-      let top = pos.y - 10;
-      if (left + tooltipW > window.innerWidth - 10) {
-        left = pos.x - tooltipW - 14; // 翻转到左侧
-      }
-      if (top + tooltipH > window.innerHeight - 10) {
-        top = pos.y - tooltipH - 10; // 翻转到上方
-      }
-      left = Math.max(4, left);
-      top = Math.max(4, top);
-
-      tooltip.innerHTML = html;
-      tooltip.style.display = 'block';
-      tooltip.style.left = `${left}px`;
-      tooltip.style.top = `${top}px`;
-      requestAnimationFrame(() => {
-        tooltip.style.opacity = '1';
-      });
-    };
-
-    const hideTooltip = () => {
-      tooltip.style.opacity = '0';
-      hideTimerRef.current = setTimeout(() => {
-        if (tooltip.style.opacity === '0') {
-          tooltip.style.display = 'none';
-        }
-        hideTimerRef.current = null;
-      }, 150);
-    };
-
-    graph.on('node:mouseenter', showTooltip);
-    graph.on('node:mouseleave', hideTooltip);
-
-    return () => {
-      graph.off('node:mouseenter', showTooltip);
-      graph.off('node:mouseleave', hideTooltip);
-      if (hideTimerRef.current) {
-        clearTimeout(hideTimerRef.current);
-        hideTimerRef.current = null;
-      }
-    };
-  }, [agentUsage, allAgents, getGateState, pipelineGates, selectedGate, currentGate]);
-
+  // ============================================================
   // 空状态
+  // ============================================================
+
   if (!runId) {
     return (
       <div style={{
@@ -641,29 +286,219 @@ export default function X6FlowChart({
     );
   }
 
+  // ============================================================
+  // 渲染
+  // ============================================================
+
+  const activeGate = selectedGate || currentGate;
+  const filteredEdges = GATE_EDGES.filter(([s, t]) => {
+    if (bddSkipped && s === 'Gate B-DDD' && t === 'Gate B-BDD') return false;
+    if (bddSkipped && s === 'Gate B-BDD' && t === 'Gate B-TDD') return false;
+    return true;
+  });
+
   return (
     <div style={{
       position: 'relative', width: '100%', height: '100%',
       borderRadius: 12, border: `1.5px solid ${token.colorBorderSecondary}`,
       background: token.colorBgContainer, overflow: 'hidden',
     }}>
+      {/* SVG 画布 */}
       <div ref={containerRef} style={{
         width: '100%', height: '100%',
         background: token.colorFillQuaternary,
-      }} />
+      }}>
+        {layoutData && (
+          <svg
+            width="100%"
+            height="100%"
+            viewBox={`0 0 ${layoutData.contentW} ${layoutData.contentH}`}
+            preserveAspectRatio="xMidYMid meet"
+            style={{ display: 'block' }}
+          >
+            {/* SVG 滤镜：发光效果 */}
+            <defs>
+              <filter id="gateGlow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur in="SourceGraphic" stdDeviation="4" result="blur" />
+                <feMerge>
+                  <feMergeNode in="blur" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+            </defs>
+
+            {/* Gate 连接边 */}
+            {filteredEdges.map(([s, t]) => {
+              const pathD = buildEdgePath(s, t, false);
+              if (!pathD) return null;
+              const sState = getGateState(s);
+              const tState = getGateState(t);
+              let stroke: string; let strokeW: number; let dash: string | undefined;
+              if (sState === 'passed' && tState === 'passed') {
+                stroke = token.colorSuccess; strokeW = 2.5;
+              } else if (sState === 'current' || tState === 'current') {
+                stroke = token.colorPrimary; strokeW = 3;
+              } else if (sState === 'passed' && tState === 'future') {
+                stroke = token.colorPrimary; strokeW = 2.5; dash = '6,3';
+              } else {
+                stroke = token.colorBorderSecondary; strokeW = 1.8; dash = '4,3';
+              }
+              return (
+                <path
+                  key={`${s}->${t}`}
+                  d={pathD}
+                  fill="none"
+                  stroke={stroke}
+                  strokeWidth={strokeW}
+                  strokeDasharray={dash}
+                  strokeLinecap="round"
+                />
+              );
+            })}
+
+            {/* BDD 跳过边 */}
+            {bddSkipped && GATE_SKIP_EDGES.map(([s, t]) => {
+              const pathD = buildEdgePath(s, t, true);
+              if (!pathD) return null;
+              return (
+                <path
+                  key={`${s}->${t}-skip`}
+                  d={pathD}
+                  fill="none"
+                  stroke={token.colorWarning}
+                  strokeWidth={2}
+                  strokeDasharray="8,4"
+                  strokeLinecap="round"
+                />
+              );
+            })}
+
+            {/* Gate 节点 */}
+            {GATE_SEQUENCE.map(gateId => {
+              const pos = layoutData.gatePositions.get(gateId);
+              if (!pos) return null;
+              const state = getGateState(gateId);
+              const isSelected = activeGate === gateId;
+              const nodeR = layoutData.nodeR;
+
+              let fill: string; let stroke: string; let labelFill: string;
+              switch (state) {
+                case 'passed':
+                  fill = token.colorSuccessBg;
+                  stroke = token.colorSuccess;
+                  labelFill = token.colorSuccess;
+                  break;
+                case 'current':
+                  fill = token.colorPrimaryBg;
+                  stroke = token.colorPrimary;
+                  labelFill = token.colorPrimary;
+                  break;
+                default:
+                  fill = token.colorBgElevated || token.colorBgContainer;
+                  stroke = token.colorBorderSecondary;
+                  labelFill = token.colorTextSecondary;
+                  break;
+              }
+
+              const strokeW = isSelected ? 3.5 : state === 'current' ? 3 : 2.2;
+              const animation = state === 'current' ? 'flowPulse 2s ease-in-out infinite' : undefined;
+              const useGlow = isSelected || state === 'current';
+
+              return (
+                <g
+                  key={gateId}
+                  onClick={(e) => { e.stopPropagation(); onGateSelect(gateId); }}
+                  onMouseEnter={(e) => showTooltip(gateId, e)}
+                  onMouseLeave={hideTooltip}
+                  style={{ cursor: 'pointer' }}
+                >
+                  <ellipse
+                    cx={pos.cx}
+                    cy={pos.cy}
+                    rx={nodeR}
+                    ry={nodeR}
+                    fill={fill}
+                    stroke={stroke}
+                    strokeWidth={strokeW}
+                    strokeDasharray={state === 'future' ? '4,3' : undefined}
+                    filter={useGlow ? 'url(#gateGlow)' : undefined}
+                    style={{
+                      transformOrigin: `${pos.cx}px ${pos.cy}px`,
+                      transformBox: 'fill-box',
+                      animation,
+                    }}
+                  />
+                  <text
+                    x={pos.cx}
+                    y={pos.cy + nodeR + 16}
+                    textAnchor="middle"
+                    fill={labelFill}
+                    fontSize={NODE_SIZES.gate.fontSize}
+                    fontWeight={isSelected ? 700 : state === 'current' ? 600 : 400}
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    {GATE_ICONS[gateId] || ''} {GATE_LABELS[gateId] || gateId}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        )}
+      </div>
 
       {/* Tooltip */}
-      <div ref={tooltipRef} style={{
-        display: 'none', position: 'fixed', zIndex: 10000,
-        background: token.colorBgElevated || token.colorBgContainer,
-        border: `1.5px solid ${token.colorPrimaryBorder || token.colorBorder}`,
-        borderRadius: 10, padding: '8px 12px', fontSize: 11,
-        color: token.colorText,
-        boxShadow: token.boxShadowSecondary || '0 4px 16px rgba(0,0,0,0.12)',
-        pointerEvents: 'none', maxWidth: 260, lineHeight: 1.6,
-        backdropFilter: 'blur(8px)',
-        opacity: 0, transition: 'opacity 150ms ease, transform 150ms ease',
-      }} />
+      <div
+        style={{
+          display: tooltip.visible ? 'block' : 'none',
+          position: 'fixed',
+          zIndex: 10000,
+          background: token.colorBgElevated || token.colorBgContainer,
+          border: `1.5px solid ${token.colorPrimaryBorder || token.colorBorder}`,
+          borderRadius: 10,
+          padding: '8px 12px',
+          fontSize: 11,
+          color: token.colorText,
+          boxShadow: token.boxShadowSecondary || '0 4px 16px rgba(0,0,0,0.12)',
+          pointerEvents: 'none',
+          maxWidth: 260,
+          lineHeight: 1.6,
+          backdropFilter: 'blur(8px)',
+          opacity: tooltip.visible ? 1 : 0,
+          transition: 'opacity 150ms ease',
+          left: Math.min(tooltip.x + 14, (typeof window !== 'undefined' ? window.innerWidth : 1200) - 270),
+          top: Math.max(4, tooltip.y - 10),
+        }}
+      >
+        {tooltip.gateId && (() => {
+          const gateId = tooltip.gateId;
+          const state = getGateState(gateId);
+          const stateLabel = state === 'passed' ? '✅ 已通过' : state === 'current' ? '\u{1F535} 进行中' : '⏳ 等待中';
+          const desc = GATE_DESCRIPTIONS[gateId] || '';
+          const gateInfo = pipelineGates?.find(g => g.gate === gateId);
+          return (
+            <>
+              <div style={{ fontWeight: 700, marginBottom: 4 }}>
+                {GATE_ICONS[gateId] || ''} {escapeHtml(gateId)}
+              </div>
+              <div style={{ fontSize: 10 }}>{GATE_LABELS[gateId] || ''}</div>
+              <div style={{ fontSize: 10, marginTop: 2 }}>{stateLabel}</div>
+              {desc && (
+                <div style={{ fontSize: 10, color: token.colorTextTertiary, marginTop: 2, maxWidth: 200 }}>
+                  {escapeHtml(desc)}
+                </div>
+              )}
+              {gateInfo?.duration_display && (
+                <div style={{ fontSize: 10, color: token.colorTextTertiary, marginTop: 2 }}>
+                  ⏱ 耗时: {escapeHtml(gateInfo.duration_display)}
+                </div>
+              )}
+              <div style={{ fontSize: 9, color: token.colorTextQuaternary, marginTop: 4 }}>
+                点击查看该 Gate 的 Agent 详情
+              </div>
+            </>
+          );
+        })()}
+      </div>
 
       {/* 图例 */}
       <div style={{
@@ -678,16 +513,8 @@ export default function X6FlowChart({
         <span><span style={{ color: token.colorSuccess, fontWeight: 700 }}>●</span> 已通过</span>
         <span><span style={{ color: token.colorPrimary, fontWeight: 700 }}>●</span> 进行中</span>
         <span><span style={{ color: token.colorTextSecondary }}>○</span> 等待中</span>
-        <span style={{ cursor: 'pointer', pointerEvents: 'auto' }}>🖱 点击 Gate 查看 Agent</span>
+        <span style={{ cursor: 'pointer', pointerEvents: 'auto' }}>{'\u{1F5B1}'} 点击 Gate 查看 Agent</span>
       </div>
-
-      {/* 共享缩放控制组件 */}
-      <X6Controls
-        onZoomIn={() => graphRef.current?.zoom(0.2)}
-        onZoomOut={() => graphRef.current?.zoom(-0.2)}
-        onZoomToFit={() => graphRef.current?.zoomToFit({ padding: 20, maxScale: 3, minScale: 0.3 })}
-        showLegend={false}
-      />
     </div>
   );
 }

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -331,11 +331,21 @@ export function setupApiRoutes(app, db, root) {
     return c.json({ runs, count: runs.length });
   });
 
-  /** 硬删除 run */
+  /** 硬删除 run（若该 session 无其他 run 则同时删除 session） */
   app.delete('/api/pipeline-runs/:id', (c) => {
     const runId = c.req.param('id');
     const result = deleteRun(db, runId);
     if (!result.ok) return c.json({ ok: false, error: `Run not found: ${runId}` }, 404);
+    broadcastSSE();  // 立即广播，避免等 8 秒 SSE 周期
+    return c.json({ ok: true });
+  });
+
+  /** 硬删除 session 及其所有关联数据（级联） */
+  app.delete('/api/sessions/:id', (c) => {
+    const sessionId = c.req.param('id');
+    const result = deleteSession(db, sessionId);
+    if (!result.ok) return c.json({ ok: false, error: 'Session not found' }, 404);
+    broadcastSSE();  // 立即广播更新
     return c.json({ ok: true });
   });
 

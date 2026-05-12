@@ -498,6 +498,7 @@ export default function Dashboard() {
                   <X6AgentGraph
                     selectedGate={selectedGate || currentGate}
                     gateStatus={gateStatus}
+                    agentUsage={agentUsage}
                     style={{ width: '100%', height: '100%' }}
                   />
                 </ErrorBoundary>
