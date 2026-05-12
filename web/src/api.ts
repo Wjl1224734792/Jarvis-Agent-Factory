@@ -188,7 +188,8 @@ export const api = {
   platforms: () => fetchJSON('/api/platforms'),
 
   docContent: async (filepath: string): Promise<string> => {
-    const r = await fetch(BASE + `/api/docs/${encodeURIComponent(filepath)}`);
+    const safePath = (filepath ?? '').split('/').map(encodeURIComponent).join('/');
+    const r = await fetch(BASE + `/api/docs/${safePath}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },

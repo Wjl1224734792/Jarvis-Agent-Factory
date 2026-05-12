@@ -145,6 +145,8 @@ export default function X6FlowChart({
   const destroyedRef = useRef(false);
   const [containerSize, setContainerSize] = useState({ w: 0, h: 0 });
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  /** 记录已渲染过的节点 ID，数据轮询时跳过入场动画 */
+  const renderedNodeIdsRef = useRef<Set<string>>(new Set());
 
   // Gate 状态
   const gateStatusMap = useMemo(() => {
@@ -461,27 +463,34 @@ export default function X6FlowChart({
     // 适配视图
     graph.zoomToFit({ padding: { top: 20, right: 20, bottom: 20, left: 20 }, maxScale: 3.0, minScale: 0.3 });
 
-    // 节点入场动画：使用 X6 setAttrs API 实现透明+缩小过渡到正常状态（与 AgentGraph 一致）
+    // 节点入场动画：仅对新出现的节点 ID 播放，数据轮询不重播
     const entranceD = ANIMATION_DEFAULTS.entranceDuration;
     const entranceE = ANIMATION_DEFAULTS.entranceEasing;
     const cssTransition = `opacity ${entranceD}ms ${entranceE}, transform ${entranceD}ms ${entranceE}`;
     const initialStyle = `opacity: 0; transform: scale(0.3); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
     const finalStyle = `opacity: 1; transform: scale(1); transform-origin: center; transform-box: fill-box; ${cssTransition};`;
     const nodes = graph.getNodes();
-    for (const node of nodes) {
+    const currentIds = new Set(nodes.map(n => n.id));
+    // 仅选中 renderedNodeIdsRef 中未出现过的节点执行入场动画
+    const newNodes = nodes.filter(n => !renderedNodeIdsRef.current.has(n.id));
+
+    for (const node of newNodes) {
       if (node.isNode()) {
         node.setAttrs({ body: { opacity: 0, style: initialStyle } });
       }
     }
-    if (nodes.length > 0) {
+    if (newNodes.length > 0) {
       requestAnimationFrame(() => {
-        for (const node of nodes) {
+        for (const node of newNodes) {
           if (node.isNode()) {
             node.setAttrs({ body: { opacity: 1, style: finalStyle } });
           }
         }
       });
     }
+
+    // 更新已渲染节点 ID 集合
+    renderedNodeIdsRef.current = currentIds;
   }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped, containerSize]);
 
   // 统一动画：呼吸 + 虚线流动（useX6Animation）
@@ -492,7 +501,13 @@ export default function X6FlowChart({
       frequency: ANIMATION_DEFAULTS.breathFrequency,
       nodeFilter: (node) => {
         const data = node.getData();
-        return data?.isGate || data?.isAgent;
+        if (data?.isGate) {
+          return getGateState(data.gateId as string) === 'current';
+        }
+        if (data?.isAgent) {
+          return (data.status as string) === 'active';
+        }
+        return false;
       },
     },
     dashFlow: {
@@ -507,7 +522,7 @@ export default function X6FlowChart({
       entranceDuration: ANIMATION_DEFAULTS.entranceDuration,
       exitDuration: ANIMATION_DEFAULTS.exitDuration,
     },
-  }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped]);
+  });
 
   // Tooltip 事件
   useEffect(() => {

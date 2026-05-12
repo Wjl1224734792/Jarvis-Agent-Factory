@@ -1,5 +1,47 @@
-import { describe, it, expect } from 'vitest';
-import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE } from '../src/engine/gates.js';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { join } from 'node:path';
+import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE, findSessionGateArtifacts } from '../src/engine/gates.js';
+
+// ---- Mock setup for findSessionGateArtifacts filesystem + db ----
+const { mockFs, mockArtifacts } = vi.hoisted(() => {
+  const existsMap = new Map<string, boolean>();
+  const entriesMap = new Map<string, Array<{ name: string; isDir: boolean } | string>>();
+  const artifactsByRun = vi.fn(() => []);
+
+  return {
+    mockFs: {
+      setExists: (path: string, val: boolean) => existsMap.set(path, val),
+      setEntries: (
+        path: string,
+        entries: Array<{ name: string; isDir: boolean } | string>,
+      ) => entriesMap.set(path, entries),
+      reset: () => { existsMap.clear(); entriesMap.clear(); },
+      existsMap,
+      entriesMap,
+    },
+    mockArtifacts: artifactsByRun,
+  };
+});
+
+vi.mock('node:fs', () => ({
+  existsSync: (p: string) => mockFs.existsMap.get(p) ?? false,
+  readdirSync: (p: string, opts?: { withFileTypes?: boolean }) => {
+    const list = mockFs.entriesMap.get(p) || [];
+    return opts?.withFileTypes
+      ? list.map((e) => {
+          if (typeof e === 'string') {
+            return { name: e, isDirectory: () => false, isFile: () => true, isSymbolicLink: () => false };
+          }
+          return { name: e.name, isDirectory: () => e.isDir, isFile: () => !e.isDir, isSymbolicLink: () => false };
+        })
+      : list.map((e) => (typeof e === 'string' ? e : e.name));
+  },
+}));
+
+vi.mock('../src/engine/db.js', () => ({
+  getArtifactsByRunAndGate: mockArtifacts,
+}));
+// ---- End mock setup ----
 
 describe('getPipelineGates', () => {
   it('返回 full 类型的 12 个 Gate（含 B-DDD/B-BDD/B-TDD/B1/C-impl）', () => {
@@ -184,5 +226,109 @@ describe('GATE_ENTRY_CONDITIONS', () => {
 
   it('Gate C-impl 入口条件包含计划文档', () => {
     expect(GATE_ENTRY_CONDITIONS['Gate C-impl']).toContain('计划');
+  });
+});
+
+// ==================================================================
+// findSessionGateArtifacts — 产物扫描（TDD：Red → Green → Refactor）
+// ==================================================================
+describe('findSessionGateArtifacts', () => {
+  const DOCS = '/test/docs';
+  const SID = 'test-session-gate-artifacts';
+
+  /** 创建带 checkpoints 的 mock db */
+  function mockDb(checkpoints: Array<{ passed_at: string }> | null) {
+    return {
+      prepare: vi.fn(() => ({ all: vi.fn(() => checkpoints ?? []) })),
+    };
+  }
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFs.reset();
+    mockFs.setExists(DOCS, true);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  // --- Green 阶段：findSessionGateArtifacts 测试，全部通过 ---
+
+  it('1. 日期目录扫描返回 dateDir/subdir/filename.md 格式（含 subdir 前缀）', () => {
+    // Gate A → subdir = 'requirements'，checkpoint 日期 2026-05-10
+    mockFs.setEntries(DOCS, [{ name: '2026-05-10', isDir: true }]);
+    mockFs.setExists(join(DOCS, '2026-05-10', 'requirements'), true);
+    mockFs.setEntries(join(DOCS, '2026-05-10', 'requirements'), ['REQ-001.md', 'REQ-002.md']);
+
+    const db = mockDb([{ passed_at: '2026-05-10T12:00:00Z' }]);
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+
+    expect(result).toEqual([
+      '2026-05-10/requirements/REQ-001.md',
+      '2026-05-10/requirements/REQ-002.md',
+    ]);
+  });
+
+  it('2. 扁平目录回退返回 subdir/filename.md 格式（非裸 filename）', () => {
+    // checkpoint 日期 2026-05-10，但 dateDirs 中无匹配 → 回退到扁平目录
+    // BUG 验证：当前实现返回裸 filename，修复后应返回 subdir/filename.md
+    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配
+    mockFs.setExists(join(DOCS, 'requirements'), true);
+    mockFs.setEntries(join(DOCS, 'requirements'), [
+      '2026-05-10-REQ-003.md',
+      '2026-05-10-REQ-004.md',
+    ]);
+
+    const db = mockDb([{ passed_at: '2026-05-10T12:00:00Z' }]);
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+
+    // 期望：subdir/filename.md（与 findGateArtifacts 扁平回退一致）
+    expect(result).toEqual([
+      'requirements/2026-05-10-REQ-003.md',
+      'requirements/2026-05-10-REQ-004.md',
+    ]);
+  });
+
+  it('3. 有 checkpoint 的 Gate 通过日期匹配扫描', () => {
+    // Gate C → subdir = 'plans'，checkpoint 日期 2026-05-11
+    mockFs.setEntries(DOCS, [
+      { name: '2026-05-09', isDir: true },
+      { name: '2026-05-11', isDir: true },
+    ]);
+    mockFs.setExists(join(DOCS, '2026-05-11', 'plans'), true);
+    mockFs.setEntries(join(DOCS, '2026-05-11', 'plans'), ['plan-001.md']);
+
+    const db = mockDb([{ passed_at: '2026-05-11T08:00:00Z' }]);
+    const result = findSessionGateArtifacts(DOCS, 'Gate C', SID, db);
+
+    expect(result).toEqual(['2026-05-11/plans/plan-001.md']);
+  });
+
+  it('4. 无 checkpoint 的 Gate 使用当前日期扫描', () => {
+    // 当前 Gate 尚未通过，无 checkpoint → 使用今天日期扫描
+    mockFs.setEntries(DOCS, [{ name: '2026-05-12', isDir: true }]);
+    mockFs.setExists(join(DOCS, '2026-05-12', 'requirements'), true);
+    mockFs.setEntries(join(DOCS, '2026-05-12', 'requirements'), ['REQ-005.md']);
+
+    const db = mockDb([]); // 无 checkpoints
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date('2026-05-12T10:00:00Z'));
+
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+    // 当前实现：checkpoints 为空 → 返回 []（BUG）
+    // 修复后：使用当前日期扫描 → 返回今天日期的文件
+    expect(result).toEqual(['2026-05-12/requirements/REQ-005.md']);
+  });
+
+  it('5. 日期目录和扁平目录都不存在时返回空数组', () => {
+    // 有 checkpoint 但无匹配的日期目录，扁平目录也不存在
+    mockFs.setEntries(DOCS, [{ name: '2026-05-09', isDir: true }]); // 不匹配 2026-05-13
+    // flatDir 不存在（mock 默认返回 false）
+
+    const db = mockDb([{ passed_at: '2026-05-13T12:00:00Z' }]);
+    const result = findSessionGateArtifacts(DOCS, 'Gate A', SID, db);
+
+    expect(result).toEqual([]);
   });
 });

@@ -54,20 +54,33 @@ export interface AnimationConfig {
   transitions?: TransitionConfig;
 }
 
+/** 内部使用的 resolve 后动画参数 */
+interface ResolvedConfig {
+  breathEnabled: boolean;
+  breathAmplitude: number;
+  breathFrequency: number;
+  breathFilter: (_node: Node) => boolean;
+  dashEnabled: boolean;
+  dashSpeed: number;
+  dashFilter: (_edge: Edge) => boolean;
+}
+
 /**
  * 统一的 RAF 动画循环 hook
  *
  * 使用单一 requestAnimationFrame 调度呼吸动画和虚线流动动画。
  * 页面不可见时自动暂停，恢复可见时继续。
  *
+ * 动画配置（filter、频率、幅度等）通过 useRef 持有最新引用，
+ * RAF 循环仅在 graph 实例变化时才重建。数据轮询（如 5s 刷新）
+ * 不会触发 RAF 销毁重建，确保动画相位和虚线偏移连续无跳帧。
+ *
  * @param graph - X6 Graph 实例（null 时不启动动画）
- * @param config - 动画配置
- * @param deps - 额外依赖数组，变化时重建动画循环
+ * @param config - 动画配置（filter 函数引用通过 ref 保持最新，无需放入调用方 useMemo/useCallback）
  */
 export function useX6Animation(
   graph: Graph | null,
   config: AnimationConfig,
-  deps?: any[],
 ): void {
   const rafRef = useRef<number>(0);
   const destroyedRef = useRef(false);
@@ -76,16 +89,9 @@ export function useX6Animation(
   const phaseRef = useRef(0);
   /** 虚线流动偏移，跨 effect 生命周期保持以支持数据轮询 */
   const dashOffsetRef = useRef(0);
-
-  // 在顶层计算所有配置值，确保依赖数组和回调内使用相同变量
-  const breathEnabled = config.breath?.enabled ?? false;
-  const breathAmplitude = config.breath?.amplitude ?? ANIMATION_DEFAULTS.breathAmplitude;
-  const breathFrequency = config.breath?.frequency ?? ANIMATION_DEFAULTS.breathFrequency;
-  const breathFilter = config.breath?.nodeFilter ?? (() => false);
-
-  const dashEnabled = config.dashFlow?.enabled ?? false;
-  const dashSpeed = config.dashFlow?.speed ?? ANIMATION_DEFAULTS.dashFlowSpeed;
-  const dashFilter = config.dashFlow?.edgeFilter ?? (() => false);
+  /** Resolve 后的动画运行参数，每次渲染同步更新，tick 通过 ref 读取最新值 */
+  const resolvedRef = useRef<ResolvedConfig>(resolveConfig(config));
+  resolvedRef.current = resolveConfig(config);
 
   useEffect(() => {
     if (!graph) return;
@@ -93,32 +99,33 @@ export function useX6Animation(
     destroyedRef.current = false;
     pausedRef.current = false;
 
-    /** 单帧 tick */
+    /** 单帧 tick：所有配置通过 resolvedRef.current 读取，避免闭包过期 */
     const tick = () => {
       if (destroyedRef.current) return;
 
       // 暂停时不更新动画状态，但仍保持循环以继续检查暂停状态
       if (!pausedRef.current) {
+        const cfg = resolvedRef.current;
         phaseRef.current = (phaseRef.current + 0.016) % (Math.PI * 2);
-        dashOffsetRef.current = (dashOffsetRef.current - dashSpeed) % 256;
+        dashOffsetRef.current = (dashOffsetRef.current - cfg.dashSpeed) % 256;
 
         try {
           // 呼吸动画：对匹配的节点应用 scale
-          if (breathEnabled) {
-            for (const id of getNodeIds(graph, breathFilter)) {
+          if (cfg.breathEnabled) {
+            for (const id of getNodeIds(graph, cfg.breathFilter)) {
               const node = graph.getCellById(id);
               if (node && node.isNode()) {
-                const s = 1 + Math.sin(phaseRef.current * breathFrequency) * breathAmplitude;
+                const s = 1 + Math.sin(phaseRef.current * cfg.breathFrequency) * cfg.breathAmplitude;
                 node.scale(s, s);
               }
             }
           }
 
           // 虚线流动：修改匹配边的 strokeDashoffset
-          if (dashEnabled) {
+          if (cfg.dashEnabled) {
             const edges = graph.getEdges();
             for (const edge of edges) {
-              if (!dashFilter(edge)) continue;
+              if (!cfg.dashFilter(edge)) continue;
 
               const lineAttrs = edge.getAttrByPath('line') as Record<string, unknown> | null;
               if (lineAttrs && typeof lineAttrs.strokeDasharray === 'string' && lineAttrs.strokeDasharray) {
@@ -156,15 +163,20 @@ export function useX6Animation(
       }
       document.removeEventListener('visibilitychange', onVisibilityChange);
     };
-  }, [
-    graph,
-    breathEnabled,
-    breathFrequency,
-    breathAmplitude,
-    dashEnabled,
-    dashSpeed,
-    ...(deps ?? []),
-  ]);
+  }, [graph]);
+}
+
+/** 将 AnimationConfig 解析为带默认值的 ResolvedConfig */
+function resolveConfig(config: AnimationConfig): ResolvedConfig {
+  return {
+    breathEnabled: config.breath?.enabled ?? false,
+    breathAmplitude: config.breath?.amplitude ?? ANIMATION_DEFAULTS.breathAmplitude,
+    breathFrequency: config.breath?.frequency ?? ANIMATION_DEFAULTS.breathFrequency,
+    breathFilter: config.breath?.nodeFilter ?? (() => false),
+    dashEnabled: config.dashFlow?.enabled ?? false,
+    dashSpeed: config.dashFlow?.speed ?? ANIMATION_DEFAULTS.dashFlowSpeed,
+    dashFilter: config.dashFlow?.edgeFilter ?? (() => false),
+  };
 }
 
 /** 从 graph 中收集匹配 nodeFilter 的节点 ID */

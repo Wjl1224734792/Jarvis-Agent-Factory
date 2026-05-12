@@ -179,10 +179,10 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  const kRepel = 5000;     // 排斥力系数（所有节点对之间）
-  const kAttract = 0.01;   // 引力系数（编排者→子节点）
-  const maxIter = 80;
-  const damping = 0.9;
+  const kRepel = 800;      // 排斥力系数（所有节点对之间），降低使节点更紧凑
+  const kAttract = 0.05;   // 引力系数（编排者→子节点），提高增强向心力
+  const maxIter = 100;     // 增加迭代次数确保收敛
+  const damping = 0.85;    // 降低阻尼提高收敛速度
 
   const n = nodes.length;
   const vel: { x: number; y: number }[] = Array.from({ length: n }, () => ({ x: 0, y: 0 }));
@@ -235,6 +235,18 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
       vel[i].y = (vel[i].y + forces[i].y) * damping;
       positions[nodes[i]].x += vel[i].x;
       positions[nodes[i]].y += vel[i].y;
+    }
+  }
+
+  // 半径约束：节点距中心超过 300px 时回弹到 250px，确保紧凑围绕
+  for (let i = 0; i < n; i++) {
+    const dx = positions[nodes[i]].x - cx;
+    const dy = positions[nodes[i]].y - cy;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist > 300) {
+      const angle = Math.atan2(dy, dx);
+      positions[nodes[i]].x = cx + 250 * Math.cos(angle);
+      positions[nodes[i]].y = cy + 250 * Math.sin(angle);
     }
   }
 
@@ -339,6 +351,12 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
   const destroyedRef = useRef(false);
   /** 记录曾渲染过的节点 ID，用于判断新节点触发入场动画 */
   const prevAgentIdsRef = useRef<Set<string>>(new Set());
+  /** 记录上次渲染参数，容器尺寸变化 < 10% 时跳过图重建 */
+  const prevRenderRef = useRef<{ size: { w: number; h: number }; selectedGate: string; agentIds: string[] }>({
+    size: { w: 0, h: 0 },
+    selectedGate: '',
+    agentIds: [],
+  });
   const [size, setSize] = useState({ w: 600, h: 400 });
   const tooltipRef = useRef<HTMLDivElement>(null);
 
@@ -395,6 +413,20 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
   useEffect(() => {
     const graph = graphRef.current;
     if (!graph || destroyedRef.current) return;
+
+    // 容器尺寸变化阈值守卫：变化 < 10% 且 agent/gate 未变时跳过重建
+    const prev = prevRenderRef.current;
+    const agentsChanged = prev.selectedGate !== selectedGate
+      || prev.agentIds.length !== agentIds.length
+      || prev.agentIds.some((id, i) => id !== agentIds[i]);
+    const sizeChanged = prev.size.w > 0 && prev.size.h > 0 && (
+      Math.abs(size.w - prev.size.w) >= prev.size.w * 0.1
+      || Math.abs(size.h - prev.size.h) >= prev.size.h * 0.1
+    );
+
+    if (!agentsChanged && !sizeChanged) return;
+
+    prevRenderRef.current = { size, selectedGate, agentIds };
 
     const { w, h } = size;
     const cx = w / 2;
@@ -592,6 +624,8 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
   }, [agents, selectedGate, size]);
 
   // 统一的 RAF 动画循环：呼吸动画 + 页面可见性自动暂停/恢复
+  // 编排者仅保留静态发光效果（drop-shadow），不参与呼吸动画
+  // 子 Agent 仅 active 状态呼吸，completed/failed 静止
   useX6Animation(graphRef.current, {
     breath: {
       enabled: true,
@@ -599,14 +633,14 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       frequency: ANIMATION_DEFAULTS.breathFrequency,
       nodeFilter: (node) => {
         const data = node.getData();
-        return data?.type === 'subagent' || data?.type === 'orchestrator';
+        return data?.type === 'subagent' && data?.status === 'active';
       },
     },
     transitions: {
       entranceDuration: ANIMATION_DEFAULTS.entranceDuration,
       exitDuration: ANIMATION_DEFAULTS.exitDuration,
     },
-  }, [agents]);
+  });
 
   // Tooltip
   useEffect(() => {

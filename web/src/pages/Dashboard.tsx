@@ -183,6 +183,11 @@ export default function Dashboard() {
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 
+  // FlowChart 高度（可拖拽调整）
+  const [flowChartHeight, setFlowChartHeight] = useState(150);
+  const splitterContainerRef = useRef<HTMLDivElement>(null);
+  const splitterDraggingRef = useRef(false);
+
   const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
   const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
   const [gateStatus, setGateStatus] = useState<AgentGateStatusResponse | null>(null);
@@ -262,6 +267,34 @@ export default function Dashboard() {
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onUp);
   }, [rightPanelWidth]);
+
+  // FlowChart 高度拖拽调整（水平分割线）
+  const handleFlowChartResize = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    splitterDraggingRef.current = true;
+    const startY = e.clientY;
+    const startHeight = flowChartHeight;
+
+    const onMove = (ev: MouseEvent) => {
+      if (!splitterDraggingRef.current) return;
+      const container = splitterContainerRef.current;
+      if (!container) return;
+      const containerHeight = container.getBoundingClientRect().height;
+      const delta = ev.clientY - startY;
+      const newHeight = startHeight + delta;
+      // FlowChart 最小 80px，AgentGraph 最小 150px（分割线 6px）
+      const maxHeight = containerHeight - 6 - 150;
+      const clamped = Math.max(80, Math.min(maxHeight, newHeight));
+      setFlowChartHeight(clamped);
+    };
+    const onUp = () => {
+      splitterDraggingRef.current = false;
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onUp);
+  }, [flowChartHeight]);
 
   // ============================================================
   // 数据派生
@@ -397,9 +430,9 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
+            <div ref={splitterContainerRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
               {/* 紧凑流水线进度条 */}
-              <div style={{ flexShrink: 0, height: 120, marginBottom: 6 }}>
+              <div style={{ flexShrink: 0, height: flowChartHeight }}>
                 <ErrorBoundary fallback={<Alert type="error" message="流水线进度加载失败" showIcon style={{ borderRadius: 12 }} />}>
                   <X6FlowChart
                     runId={runId}
@@ -410,6 +443,54 @@ export default function Dashboard() {
                     onGateSelect={setSelectedGate}
                   />
                 </ErrorBoundary>
+              </div>
+              {/* 水平拖拽分割线 */}
+              <div
+                role="separator"
+                aria-orientation="horizontal"
+                aria-valuenow={flowChartHeight}
+                aria-valuemin={80}
+                aria-valuemax={splitterContainerRef.current ? splitterContainerRef.current.getBoundingClientRect().height - 156 : 800}
+                tabIndex={0}
+                onMouseDown={handleFlowChartResize}
+                onKeyDown={(e) => {
+                  const container = splitterContainerRef.current;
+                  const containerHeight = container ? container.getBoundingClientRect().height : 800;
+                  if (e.key === 'ArrowUp') setFlowChartHeight(h => Math.min(containerHeight - 156, h + 20));
+                  if (e.key === 'ArrowDown') setFlowChartHeight(h => Math.max(80, h - 20));
+                }}
+                style={{
+                  height: 6, flexShrink: 0, cursor: 'row-resize',
+                  background: 'transparent', transition: 'background 0.15s',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  position: 'relative',
+                  userSelect: 'none',
+                }}
+                onMouseEnter={e => {
+                  (e.target as HTMLElement).style.background = 'var(--ant-color-primary-bg)';
+                  const line = (e.target as HTMLElement).querySelector('.splitter-line') as HTMLElement;
+                  if (line) line.style.opacity = '1';
+                }}
+                onMouseLeave={e => {
+                  (e.target as HTMLElement).style.background = 'transparent';
+                  const line = (e.target as HTMLElement).querySelector('.splitter-line') as HTMLElement;
+                  if (line) line.style.opacity = '0';
+                }}
+              >
+                {/* hover 时显示的 2px colorPrimary 横线 */}
+                <div className="splitter-line" style={{
+                  position: 'absolute', top: '50%', left: 0, right: 0,
+                  height: 2, background: 'var(--ant-color-primary)',
+                  transform: 'translateY(-50%)',
+                  opacity: 0, transition: 'opacity 0.15s',
+                }} />
+                {/* 拖拽手柄图标 */}
+                <span style={{
+                  fontSize: 12, color: 'var(--ant-color-primary)',
+                  lineHeight: '6px', position: 'relative', zIndex: 1,
+                  background: 'var(--ant-color-bg-container)',
+                  padding: '0 4px', borderRadius: 4,
+                }}>&#x2261;</span>
               </div>
               {/* 选中 Gate 的 Agent 交互图 */}
               <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--ant-color-border-secondary)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
@@ -427,7 +508,14 @@ export default function Dashboard() {
 
         {/* ============ 拖拽分割线 ============ */}
         <div
+          role="separator"
+          aria-orientation="vertical"
+          tabIndex={0}
           onMouseDown={handleResizeStart}
+          onKeyDown={(e) => {
+            if (e.key === 'ArrowLeft') setRightPanelWidth(w => Math.min(600, w + 20));
+            if (e.key === 'ArrowRight') setRightPanelWidth(w => Math.max(240, w - 20));
+          }}
           style={{
             width: 6, cursor: 'col-resize', flexShrink: 0,
             background: 'transparent', transition: 'background 0.15s',

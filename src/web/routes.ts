@@ -452,6 +452,7 @@ export function setupApiRoutes(app, db, root) {
 
     // 文件存在性检查
     if (!existsSync(resolvedPath)) {
+      console.warn(`[docs-api] 404: ${resolvedPath} (filepath: ${filepath})`);
       return c.json({ error: 'File not found' }, 404);
     }
 

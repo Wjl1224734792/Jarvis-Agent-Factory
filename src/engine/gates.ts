@@ -262,7 +262,20 @@ export function findSessionGateArtifacts(docsDir, gate, sessionId, db, runId?) {
     if (existsSync(flatDir)) {
       return readdirSync(flatDir)
         .filter(f => f.endsWith('.md') && dates.has(f.slice(0, 10)))
+        .map(f => `${subdir}/${f}`)
         .slice(0, 5);
+    }
+  }
+
+  // 无 checkpoint 时，使用当前日期扫描（当前 Gate 实时可见，无需等到 Gate 通过）
+  if (checkpoints.length === 0) {
+    const today = new Date().toISOString().slice(0, 10);
+    const todayDir = join(docsDir, today, subdir);
+    if (existsSync(todayDir)) {
+      const mdFiles = readdirSync(todayDir).filter(f => f.endsWith('.md'));
+      if (mdFiles.length > 0) {
+        return mdFiles.map(f => `${today}/${subdir}/${f}`).slice(0, 5);
+      }
     }
   }
 

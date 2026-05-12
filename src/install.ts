@@ -4,6 +4,7 @@ import { existsSync, mkdirSync, readdirSync, statSync, copyFileSync, readFileSyn
 import { createHash } from 'node:crypto';
 import { homedir } from 'node:os';
 import { createInterface } from 'node:readline';
+import { getHashFilePath } from './hash-paths.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -53,12 +54,14 @@ export async function install({ platform, target, pkgRoot, platforms, force, glo
 
   if (!destExists) mkdirSync(destRoot, { recursive: true });
 
+  const hashFilePath = getHashFilePath(target, isGlobal);
+
   let totalFiles = 0;
   for (const bucket of INSTALL_BUCKETS) {
     const srcDir = join(srcRoot, bucket);
     const destDir = join(destRoot, bucket);
     if (!existsSync(srcDir)) continue;
-    const stats = mergeDir(srcDir, destDir);
+    const stats = mergeDir(srcDir, destDir, hashFilePath);
     totalFiles += stats.files;
     const tag = existsSync(destDir) && stats.files > 0 ? '~' : '+';
     console.log(`  ${tag} ${(isGlobal ? '~/' + info.dir : info.dir) + '/' + bucket.padEnd(8)} → ${stats.files} files${stats.skipped ? ` (${stats.skipped} unchanged skipped)` : ''}`);
@@ -250,16 +253,24 @@ function fileHash(filePath) {
   catch { return null; }
 }
 
-/** 加载/保存文件 hash 记录，统一存储在 ~/.jarvis/file-hashes.json */
-function loadHashes() {
-  const f = resolve(homedir(), '.jarvis', 'file-hashes.json');
-  try { return existsSync(f) ? JSON.parse(readFileSync(f, 'utf-8')) : {}; }
+/**
+ * 加载文件 hash 记录。
+ * @param hashFilePath hash 文件绝对路径（由 getHashFilePath 生成）
+ */
+function loadHashes(hashFilePath) {
+  try { return existsSync(hashFilePath) ? JSON.parse(readFileSync(hashFilePath, 'utf-8')) : {}; }
   catch { return {}; }
 }
-function saveHashes(hashes) {
-  const dir = resolve(homedir(), '.jarvis');
+
+/**
+ * 保存文件 hash 记录。
+ * @param hashes 键值对（键为文件绝对路径，值为 SHA256 hash）
+ * @param hashFilePath hash 文件绝对路径
+ */
+function saveHashes(hashes, hashFilePath) {
+  const dir = dirname(hashFilePath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-  writeFileSync(resolve(dir, 'file-hashes.json'), JSON.stringify(hashes, null, 2));
+  writeFileSync(hashFilePath, JSON.stringify(hashes, null, 2));
 }
 
 /**
@@ -268,19 +279,23 @@ function saveHashes(hashes) {
  * - 源文件 hash vs 记录 hash → 相同跳过，不同比较目标 hash
  *   - 目标 hash == 旧源 hash → 用户未修改，安全覆盖
  *   - 目标 hash != 旧源 hash → 用户已修改，跳过
+ *
+ * @param src 源目录（模板文件）
+ * @param dest 目标目录（安装位置）
+ * @param hashFilePath hash 文件绝对路径
  */
-function mergeDir(src, dest) {
+function mergeDir(src, dest, hashFilePath) {
   let files = 0, dirs = 0, skipped = 0;
   if (!existsSync(dest)) mkdirSync(dest, { recursive: true });
 
-  const hashes = loadHashes();
+  const hashes = loadHashes(hashFilePath);
 
   for (const entry of readdirSync(src)) {
     if (SKIP_FILES.has(entry)) continue;
     if (entry.startsWith('.') || entry === 'node_modules') continue;
     const sp = join(src, entry), dp = join(dest, entry);
     if (statSync(sp).isDirectory()) {
-      const d = mergeDir(sp, dp);
+      const d = mergeDir(sp, dp, hashFilePath);
       files += d.files; dirs += d.dirs + 1; skipped += d.skipped;
     } else {
       const newHash = fileHash(sp);
@@ -310,7 +325,7 @@ function mergeDir(src, dest) {
     }
   }
 
-  saveHashes(hashes);
+  saveHashes(hashes, hashFilePath);
   return { files, dirs, skipped };
 }
 
