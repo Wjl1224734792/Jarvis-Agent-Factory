@@ -104,7 +104,7 @@ function computeLayout(
 ) {
   const g = new dagre.graphlib.Graph();
   g.setDefaultEdgeLabel(() => ({}));
-  g.setGraph({ rankdir: 'LR', nodesep: 60, ranksep: 120, marginx: 20, marginy: 20 });
+  g.setGraph({ rankdir: 'TB', nodesep: 60, ranksep: 120, marginx: 20, marginy: 20 });
 
   for (const id of gateNodes) {
     g.setNode(id, { width: NODE_SIZES.gate.w, height: NODE_SIZES.gate.w });
@@ -241,7 +241,17 @@ export default function X6FlowChart({
       try { graph.dispose(); } catch {}
       graphRef.current = null;
     };
-  }, [runId, containerSize.w, containerSize.h]);
+  }, [runId]);
+
+  // 容器尺寸变化时 resize 画布（不重建 graph）
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || destroyedRef.current) return;
+    const { w, h } = containerSize;
+    if (w > 0 && h > 0) {
+      graph.resize(w, h);
+    }
+  }, [containerSize]);
 
   // 渲染图数据
   useEffect(() => {
@@ -491,7 +501,7 @@ export default function X6FlowChart({
 
     // 更新已渲染节点 ID 集合
     renderedNodeIdsRef.current = currentIds;
-  }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped, containerSize]);
+  }, [gateStatusMap, currentGate, selectedGate, allAgents, bddSkipped]);
 
   // 统一动画：呼吸 + 虚线流动（useX6Animation）
   useX6Animation(graphRef.current, {

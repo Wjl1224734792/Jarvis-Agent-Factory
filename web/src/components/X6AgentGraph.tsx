@@ -179,7 +179,7 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
   }
   positions[ORCHESTRATOR] = { x: cx, y: cy };
 
-  const kRepel = 800;      // 排斥力系数（所有节点对之间），降低使节点更紧凑
+  const kRepel = 600;      // 排斥力系数（所有节点对之间），降低使节点更紧凑
   const kAttract = 0.05;   // 引力系数（编排者→子节点），提高增强向心力
   const maxIter = 100;     // 增加迭代次数确保收敛
   const damping = 0.85;    // 降低阻尼提高收敛速度
@@ -238,15 +238,15 @@ function forceLayout(nodes: string[], cx: number, cy: number) {
     }
   }
 
-  // 半径约束：节点距中心超过 300px 时回弹到 250px，确保紧凑围绕
+  // 半径约束：节点距中心超过 250px 时回弹到 200px，确保紧凑围绕
   for (let i = 0; i < n; i++) {
     const dx = positions[nodes[i]].x - cx;
     const dy = positions[nodes[i]].y - cy;
     const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist > 300) {
+    if (dist > 250) {
       const angle = Math.atan2(dy, dx);
-      positions[nodes[i]].x = cx + 250 * Math.cos(angle);
-      positions[nodes[i]].y = cy + 250 * Math.sin(angle);
+      positions[nodes[i]].x = cx + 200 * Math.cos(angle);
+      positions[nodes[i]].y = cy + 200 * Math.sin(angle);
     }
   }
 
@@ -408,6 +408,15 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       graphRef.current = null;
     };
   }, []);
+
+  // 容器尺寸变化时 resize 画布
+  useEffect(() => {
+    const graph = graphRef.current;
+    if (!graph || destroyedRef.current) return;
+    if (size.w > 0 && size.h > 0) {
+      graph.resize(size.w, size.h);
+    }
+  }, [size]);
 
   // 渲染图
   useEffect(() => {
@@ -730,11 +739,13 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
     };
   }, [agents]);
 
-  // 空状态
-  if (agents.length === 0) {
-    return (
-      <div style={{ position: 'relative', ...style }}>
-        <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+  return (
+    <div style={{ position: 'relative', ...style }}>
+      {/* Graph 容器——始终渲染，确保 X6 Graph 不被卸载 */}
+      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+
+      {/* 空状态 overlay */}
+      {agents.length === 0 && (
         <div style={{
           position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -753,42 +764,40 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
             </div>
           </div>
         </div>
-      </div>
-    );
-  }
-
-  return (
-    <div style={{ position: 'relative', ...style }}>
-      <div ref={containerRef} style={{ width: '100%', height: '100%' }} />
+      )}
 
       {/* Gate 标题 */}
-      <div style={{
-        position: 'absolute', top: 8, left: 12, zIndex: 10, pointerEvents: 'none',
-        fontSize: 13, fontWeight: 600, color: token.colorText,
-        background: token.colorBgContainer, padding: '2px 10px',
-        borderRadius: 6, opacity: 0.85,
-      }}>
-        {GATE_TITLES[selectedGate] || selectedGate}
-      </div>
+      {agents.length > 0 && (
+        <div style={{
+          position: 'absolute', top: 8, left: 12, zIndex: 10, pointerEvents: 'none',
+          fontSize: 13, fontWeight: 600, color: token.colorText,
+          background: token.colorBgContainer, padding: '2px 10px',
+          borderRadius: 6, opacity: 0.85,
+        }}>
+          {GATE_TITLES[selectedGate] || selectedGate}
+        </div>
+      )}
 
       {/* Agent 计数标签栏 */}
-      <div style={{
-        position: 'absolute', bottom: 8, left: 8, right: 8,
-        display: 'flex', gap: 6, zIndex: 10, pointerEvents: 'none',
-      }}>
-        {[
-          { label: '活跃', count: agents.filter(a => a.status === 'active').length, icon: '🟢', color: token.colorPrimary, bg: token.colorPrimaryBg },
-          { label: '已完成', count: agents.filter(a => a.status === 'completed').length, icon: '✅', color: token.colorSuccess, bg: token.colorSuccessBg },
-          { label: '失败', count: agents.filter(a => a.status === 'failed').length, icon: '❌', color: token.colorError, bg: token.colorErrorBg },
-        ].filter(b => b.count > 0).map(b => (
-          <span key={b.label} style={{
-            fontSize: 11, background: b.bg, color: b.color,
-            padding: '2px 8px', borderRadius: 4, fontWeight: 600,
-          }}>
-            {b.icon} {b.count} {b.label}
-          </span>
-        ))}
-      </div>
+      {agents.length > 0 && (
+        <div style={{
+          position: 'absolute', bottom: 8, left: 8, right: 8,
+          display: 'flex', gap: 6, zIndex: 10, pointerEvents: 'none',
+        }}>
+          {[
+            { label: '活跃', count: agents.filter(a => a.status === 'active').length, icon: '🟢', color: token.colorPrimary, bg: token.colorPrimaryBg },
+            { label: '已完成', count: agents.filter(a => a.status === 'completed').length, icon: '✅', color: token.colorSuccess, bg: token.colorSuccessBg },
+            { label: '失败', count: agents.filter(a => a.status === 'failed').length, icon: '❌', color: token.colorError, bg: token.colorErrorBg },
+          ].filter(b => b.count > 0).map(b => (
+            <span key={b.label} style={{
+              fontSize: 11, background: b.bg, color: b.color,
+              padding: '2px 8px', borderRadius: 4, fontWeight: 600,
+            }}>
+              {b.icon} {b.count} {b.label}
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* Tooltip */}
       <div ref={tooltipRef} style={{
@@ -803,13 +812,15 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props)
       }} />
 
       {/* 共享缩放控制组件 + Agent 类型图例 */}
-      <X6Controls
-        onZoomIn={() => graphRef.current?.zoom(0.2)}
-        onZoomOut={() => graphRef.current?.zoom(-0.2)}
-        onZoomToFit={() => graphRef.current?.zoomToFit({ padding: 20, maxScale: 3, minScale: 0.3 })}
-        agentTypes={DEFAULT_AGENT_TYPES}
-        showLegend={true}
-      />
+      {agents.length > 0 && (
+        <X6Controls
+          onZoomIn={() => graphRef.current?.zoom(0.2)}
+          onZoomOut={() => graphRef.current?.zoom(-0.2)}
+          onZoomToFit={() => graphRef.current?.zoomToFit({ padding: 20, maxScale: 3, minScale: 0.3 })}
+          agentTypes={DEFAULT_AGENT_TYPES}
+          showLegend={true}
+        />
+      )}
     </div>
   );
 }
