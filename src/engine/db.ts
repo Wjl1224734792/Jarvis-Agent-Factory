@@ -2,6 +2,7 @@ import { DatabaseSync } from 'node:sqlite';
 import { resolve } from 'node:path';
 import { existsSync, mkdirSync } from 'node:fs';
 import { homedir } from 'node:os';
+import { randomBytes } from 'node:crypto';
 
 /**
  * 打开引擎数据库，固定存储在 ~/.jarvis/engine.db
@@ -370,7 +371,7 @@ export function setAgentModel(db, agentId, model, effort) {
  * @returns {string} runId
  */
 export function createPipelineRun(db, sessionId, project, pipelineType = 'full') {
-  const id = 'run_' + Date.now();
+  const id = 'run_' + Date.now() + '_' + randomBytes(3).toString('base64url');
   db.prepare(`INSERT INTO pipeline_runs (id, session_id, project, pipeline_type, current_gate, status, started_at, gate_entered_at)
     VALUES (?, ?, ?, ?, 'Gate A', 'active', datetime('now'), datetime('now'))`).run(id, sessionId, project, pipelineType);
   return id;

@@ -47,6 +47,15 @@ export interface AgentItem {
 // Agent 状态 / 用量 / 事件类型（TASK-004）
 // ============================================================
 
+/** 指令项 */
+export interface CommandItem {
+  name: string;
+  description: string;
+  argumentHint: string;
+  pipelineType: string;
+  category: string;
+}
+
 export interface AgentStatusResponse {
   run_id: string;
   active: string[];
@@ -168,5 +177,8 @@ export const api = {
 
   agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
     fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),
+
+  commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
+    fetchJSON('/api/commands'),
 
 };
