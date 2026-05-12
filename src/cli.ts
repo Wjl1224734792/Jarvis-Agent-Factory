@@ -10,6 +10,7 @@ import { install } from './install.js';
 import { doctor } from './doctor.js';
 import { startEngine, stopEngine, engineStatus } from './engine/server.js';
 import { hookCommand } from './hook.js';
+import { getHashFilePath } from './hash-paths.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PKG_ROOT = resolve(__dirname, '..', '..');
@@ -323,7 +324,7 @@ async function diffPlatform(platform, target, isGlobal) {
     : resolve(target, PLATFORMS[platform].dir);
   if (!existsSync(srcRoot)) return;
 
-  const hashFile = join((isGlobal ? destRoot : target), '.jarvis', 'file-hashes.json');
+  const hashFile = getHashFilePath(target, isGlobal);
   const hashes = existsSync(hashFile) ? JSON.parse(readFileSync(hashFile, 'utf-8')) : {};
   const hash = (f) => createHash('sha256').update(readFileSync(f)).digest('hex');
 
@@ -337,7 +338,7 @@ async function diffPlatform(platform, target, isGlobal) {
       const rel = `${bucket}/${entry}`;
       const newHash = hash(sp);
       if (!existsSync(dp)) { if (changed < 20) console.log(`  + ${rel.padEnd(30)} (new)`); changed++; continue; }
-      const oldHash = hashes[`/${rel}`] || hashes[rel];
+      const oldHash = hashes[dp];
       if (newHash !== oldHash) {
         if (changed < 20) {
           const destHash = hash(dp);

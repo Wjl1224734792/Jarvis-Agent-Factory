@@ -412,6 +412,13 @@ export function getAgentsByPlatform(platform: string, force?: boolean): AgentIte
   return getAgentList(force).filter(a => a.platform === platform);
 }
 
+/** 平台特性：claude 支持 commands，opencode 支持 plugins，codex 无额外特性 */
+export const PLATFORM_FEATURES: Record<string, string[]> = {
+  claude: ['commands'],
+  opencode: ['plugins'],
+  codex: [],
+};
+
 /** 获取所有平台名称 */
 export function getPlatforms() {
   return Object.keys(PLATFORM_CONFIG);

@@ -59,6 +59,8 @@ export default function Archive() {
       if (r.ok) {
         message.success('已恢复');
         setRuns(prev => prev.filter(r => r.id !== runId));
+      } else {
+        message.error(r.error || '恢复失败');
       }
     } catch {
       message.error('恢复失败');
@@ -78,6 +80,8 @@ export default function Archive() {
           if (r.ok) {
             message.success('已删除');
             setRuns(prev => prev.filter(r => r.id !== runId));
+          } else {
+            message.error(r.error || '删除失败');
           }
         } catch {
           message.error('删除失败');

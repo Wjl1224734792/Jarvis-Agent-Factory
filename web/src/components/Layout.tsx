@@ -95,7 +95,7 @@ interface SessionItemProps {
   onResume: (id: string) => void;
   onPin: (runId: string, pinned: boolean) => void;
   onArchive: (runId: string) => void;
-  onDelete: (runId: string) => void;
+  onDelete: (runId: string | null, sessionId: string) => void;
 }
 
 const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onResume, onPin, onArchive, onDelete }: SessionItemProps) {
@@ -125,7 +125,7 @@ const SessionItem = React.memo(function SessionItem({ s, active, onSelect, onRes
       key: 'delete',
       label: '删除',
       danger: true,
-      onClick: () => onDelete(s.run_id || s.id),
+      onClick: () => onDelete(s.run_id, s.id),
     },
   ];
 
@@ -296,16 +296,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const handleDelete = useCallback(async (runId: string) => {
+  const handleDelete = useCallback(async (runId: string | null, sessionId: string) => {
     let snapshot: Session[] = [];
 
     setSessions(prev => {
       snapshot = prev;
-      return applyDeleteOptimistic(prev, runId);
+      // 乐观删除：有 run_id 时按 run_id 移除，否则按 session id 移除
+      return applyDeleteOptimistic(prev, runId || sessionId);
     });
 
     try {
-      const r = await api.deleteRun(runId);
+      const r = runId
+        ? await api.deleteRun(runId)        // 有活跃 run 时删除 run
+        : await api.deleteSession(sessionId); // 无活跃 run 时直接删除 session
       if (r.ok) {
         message.success('已删除');
       } else {

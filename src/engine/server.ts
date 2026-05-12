@@ -9,9 +9,9 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, getAgentUsage, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
-import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
-import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
+import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
+import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
@@ -188,18 +188,6 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
   }
 }
 
-/**
- * 平台特性映射：根据 PLATFORM_CONFIG.subdirs 推导，排除 'agents' 后即为平台独有特性。
- * - opencode 支持 plugins（插件市场）
- * - claude 支持 commands（自定义命令）
- * - codex 无额外特性
- */
-const PLATFORM_FEATURES: Record<string, string[]> = {
-  claude: ['commands'],
-  opencode: ['plugins'],
-  codex: [],
-};
-
 /** 平台信息——单平台查询 */
 interface PlatformInfoSingle {
   platform: string;
@@ -263,24 +251,6 @@ export function resolvePlatformInfo(platform?: string): PlatformInfoResult {
     };
   }
   return { platforms: summary, total_agents: getAgentList(true).length };
-}
-
-/** 模型价格表（美元/百万 token），用于 Agent Token 成本估算 */
-const MODEL_PRICES: Record<string, { input: number; output: number; cacheWrite: number; cacheRead: number }> = {
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00, cacheWrite: 3.75, cacheRead: 0.30 },
-  'claude-opus-4-7': { input: 15.00, output: 75.00, cacheWrite: 18.75, cacheRead: 1.50 },
-  'claude-haiku-4-5': { input: 1.00, output: 5.00, cacheWrite: 1.25, cacheRead: 0.10 },
-};
-
-/**
- * 计算单次 Agent 调用的估算成本（美元）。
- * 未在 MODEL_PRICES 中注册的模型返回 null。
- */
-function estimateCost(model, inputTokens, outputTokens, cacheWriteTokens, cacheReadTokens) {
-  const prices = MODEL_PRICES[model];
-  if (!prices) return null;
-  return (inputTokens * prices.input + outputTokens * prices.output
-    + cacheWriteTokens * prices.cacheWrite + cacheReadTokens * prices.cacheRead) / 1_000_000;
 }
 
 /** 注册所有 MCP 工具 */
@@ -408,6 +378,8 @@ function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
+      // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
+      updateRunGateEnteredAt(db, runId, new Date().toISOString());
       // 自动设置任务名称（若用户已传入则使用传入值）
       if (task_name) {
         setRunTaskName(db, runId, task_name);
@@ -436,16 +408,16 @@ function registerMcpTools(server, db, root) {
       const pt = p?.pipeline_type || DEFAULT_PIPELINE;
       const gateList = getPipelineGates(pt);
       const docs = join(root, 'docs');
+      const runId = run_id || getActiveRun(db, sid)?.id;
       const gates = gateList.map(g => {
         const cp = getCheckpoints(db, g, sid);
         return {
           gate: g, passed: cp.length > 0, checkpoints: cp,
-          artifacts: findGateArtifacts(docs, g),
+          artifacts: findSessionGateArtifacts(docs, g, sid, db, runId),
           requirement: GATE_CHECKS[g]?.check || '',
         };
       });
       const current = gates.find(g => !g.passed)?.gate || 'Complete';
-      const runId = run_id || getActiveRun(db, sid)?.id;
       return resp({
         session_id: sid, project: root, pipeline_type: pt,
         pipeline_name: getPipelineName(pt),
@@ -468,7 +440,7 @@ function registerMcpTools(server, db, root) {
       const runId = run_id || getActiveRun(db, sid)?.id;
       const gateList = sessionGates(db, sid);
       const target = gate || getPipeline(db, sid)?.current_gate || gateList[0];
-      const artifacts = findGateArtifacts(join(root, 'docs'), target);
+      const artifacts = findSessionGateArtifacts(join(root, 'docs'), target, sid, db, runId);
       const checkpoints = getCheckpoints(db, target, sid);
       const allowed = artifacts.length > 0 || checkpoints.length > 0;
       return resp(allowed
@@ -496,7 +468,7 @@ function registerMcpTools(server, db, root) {
       if (ti === -1) return resp({ allowed: false, error: `Unknown gate: ${gate}. Valid gates for this pipeline: ${gateList.join(', ')}` });
       if (ti <= ci) return resp({ allowed: false, error: `FSM blocked: Cannot move backward. Current: ${cur}` });
       if (ti > ci + 1) return resp({ allowed: false, error: `FSM blocked: Cannot skip gates. Next: ${gateList[ci + 1]}` });
-      const artifacts = findGateArtifacts(join(root, 'docs'), cur);
+      const artifacts = findSessionGateArtifacts(join(root, 'docs'), cur, sid, db, runId);
       const cps = getCheckpoints(db, cur, sid);
       if (artifacts.length === 0 && cps.length === 0) return resp({ allowed: false, error: `${cur} conditions NOT met.` });
       // 扫描当前 Gate 产物目录，写入 artifacts 表（失败不阻塞推进）
@@ -602,7 +574,7 @@ function registerMcpTools(server, db, root) {
       const gateList = sessionGates(db, sid);
       const gates = gateList.map(g => ({
         gate: g, passed: getCheckpoints(db, g, sid).length > 0,
-        artifacts: findGateArtifacts(join(root, 'docs'), g),
+        artifacts: findSessionGateArtifacts(join(root, 'docs'), g, sid, db, runId),
       }));
       const completed = gates.filter(g => g.passed).length;
       return resp({
@@ -747,6 +719,19 @@ function registerMcpTools(server, db, root) {
         }
 
         const pipeline = getPipeline(db, finalSid);
+
+        // 去重检查：同一 (run_id, agent_id) 的重复 start/end/error 事件忽略
+        const dupCheck = checkAgentEventDuplicate(db, finalRunId, agent_id, event);
+        if (dupCheck.duplicate) {
+          return resp({
+            ok: true, id: dupCheck.id, total_tokens: dupCheck.total_tokens,
+            duplicate: true,
+            message: event === 'start'
+              ? 'start event already recorded for this agent'
+              : 'end/error event already recorded for this agent',
+          });
+        }
+
         const result = insertAgentEvent(db, {
           run_id: finalRunId, session_id: finalSid, agent_id,
           event_type: event, model,
@@ -759,46 +744,9 @@ function registerMcpTools(server, db, root) {
           current_gate: pipeline?.current_gate || undefined,
         });
 
-        // 计算成本（仅 end 事件且 model 在 MODEL_PRICES 中）
-        let estimated_cost_usd: number | null = null;
-        if (event === 'end' && model) {
-          estimated_cost_usd = estimateCost(model,
-            input_tokens ?? 0, output_tokens ?? 0,
-            cache_creation_input_tokens ?? 0, cache_read_input_tokens ?? 0);
-        }
-
         return resp({
           ok: true, id: result.id, total_tokens: result.total_tokens,
-          estimated_cost_usd,
         });
-      });
-
-    server.tool('agent_usage',
-      '查询指定 run 的 Agent Token 使用统计，按 agent_id+model 分组，含成本估算。DeepSeek 等非 Claude 模型 cost 为 null。',
-      {
-        run_id: z.string().optional().describe('流水线 run ID，不传则查询当前活跃 run'),
-      },
-      async ({ run_id }, extra) => {
-        const sid = extra?.sessionId || _lastSessionId;
-        const finalRunId = run_id || (sid ? getActiveRun(db, sid)?.id : null);
-        if (!finalRunId) {
-          return resp({ ok: false, error: 'No active pipeline run found. Pass run_id or call pipeline_init first.' });
-        }
-
-        const usage = getAgentUsage(db, finalRunId);
-
-        // 为每个 agent 组附加成本估算
-        const enrichedAgents = {};
-        for (const [agentId, group] of Object.entries(usage.agents)) {
-          const g = group as { model: string; calls: number; total_input_tokens: number;
-            total_output_tokens: number; total_cache_creation_input_tokens: number;
-            total_cache_read_input_tokens: number };
-          const cost = estimateCost(g.model, g.total_input_tokens, g.total_output_tokens,
-            g.total_cache_creation_input_tokens, g.total_cache_read_input_tokens);
-          enrichedAgents[agentId] = { ...g, estimated_cost_usd: cost };
-        }
-
-        return resp({ ...usage, agents: enrichedAgents });
       });
 
     server.tool('agent_status',

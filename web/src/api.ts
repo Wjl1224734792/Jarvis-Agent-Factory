@@ -54,49 +54,6 @@ export interface AgentStatusResponse {
   failed: string[];
 }
 
-export interface AgentUsageEntry {
-  model: string;
-  calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cache_creation_input_tokens: number;
-  total_cache_read_input_tokens: number;
-}
-
-export interface AgentUsageTotals {
-  calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cache_creation_input_tokens: number;
-  total_cache_read_input_tokens: number;
-}
-
-export interface AgentUsageResponse {
-  run_id: string;
-  agents: Record<string, AgentUsageEntry>;
-  totals: AgentUsageTotals;
-}
-
-export interface AgentGateStatusResponse {
-  run_id: string;
-  current_gate: string;
-  gates: Record<string, {
-    active: string[];
-    completed: string[];
-    failed: string[];
-    agents: Array<{ agent_id: string; status: string; model?: string }>;
-  }>;
-}
-
-/** 指令项（TASK-013 / TASK-014） */
-export interface CommandItem {
-  name: string;
-  description: string;
-  argumentHint: string;
-  pipelineType: string;
-  category: string;
-}
-
 export interface AgentEvent {
   id: number;
   run_id: string;
@@ -176,6 +133,9 @@ export const api = {
   deleteRun: (runId: string) =>
     fetchJSON(`/api/pipeline-runs/${encodeURIComponent(runId)}`, { method: 'DELETE' }),
 
+  deleteSession: (sessionId: string) =>
+    fetchJSON(`/api/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' }),
+
   pinRun: (runId: string) =>
     fetchJSON(`/api/pipeline-runs/${encodeURIComponent(runId)}/pin`, { method: 'POST' }),
 
@@ -197,7 +157,8 @@ export const api = {
   platforms: () => fetchJSON('/api/platforms'),
 
   docContent: async (filepath: string): Promise<string> => {
-    const r = await fetch(BASE + `/api/docs/${encodeURIComponent(filepath)}`);
+    const safePath = (filepath ?? '').split('/').map(encodeURIComponent).join('/');
+    const r = await fetch(BASE + `/api/docs/${safePath}`);
     if (!r.ok) throw new Error(`HTTP ${r.status}`);
     return r.text();
   },
@@ -205,15 +166,7 @@ export const api = {
   agentStatus: (runId?: string): Promise<AgentStatusResponse> =>
     fetchJSON(`/api/agent-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
 
-  agentUsage: (runId?: string): Promise<AgentUsageResponse> =>
-    fetchJSON(`/api/agent-usage${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
-
   agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
     fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),
 
-  agentGateStatus: (runId?: string): Promise<AgentGateStatusResponse> =>
-    fetchJSON(`/api/agent-gate-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
-
-  commands: (): Promise<{ commands: CommandItem[]; total: number }> =>
-    fetchJSON('/api/commands'),
 };

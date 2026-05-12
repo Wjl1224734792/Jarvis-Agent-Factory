@@ -1,7 +1,7 @@
 # Jarvis Agent Factory · 贾维斯智能体工厂
 
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-v3.39.1-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
+[![Version](https://img.shields.io/badge/version-v3.43.0-green)](https://github.com/Wjl1224734792/Jarvis-Agent-Factory/releases)
 [![npm](https://img.shields.io/npm/v/jarvis-agent-factory)](https://www.npmjs.com/package/jarvis-agent-factory)
 [![Visual Primitives MCP](https://img.shields.io/badge/DeepSeek-Visual%20Primitives%20MCP-purple)](https://github.com/Wjl1224734792/visual-primitives-mcp)
 <br>💡 **纯文本模型（如 DeepSeek）主力用户** → 搭配 [Visual Primitives MCP](https://github.com/Wjl1224734792/visual-primitives-mcp) 获得视觉理解能力
@@ -9,7 +9,7 @@
 
 跨平台多智能体 AI 编程助手配置集 + MCP 编排引擎。从想法到交付的完整软件开发流水线，<br>**主力支持 Claude Code**，OpenCode / Codex 配置保留但暂不维护。
 
-> **v3.39.1** — 插件合并到hooks · 全局hooks路径修复 · 死模板清理 · Write/Edit硬约束
+> **v3.43.0** — Dashboard 简化：文档阅读器替代 X6 画布 · Agent 事件去重 · Gate 耗时修复 · 多平台适配初始化
 
 ## 快速开始
 
@@ -41,7 +41,7 @@ jarvis web                       # 启动 Web 面板（按需）
 | **多流水线类型** | full / frontend / backend / lite 四种模式，按需选择 |
 | **会话隔离** | 每个编辑窗口独立流水线状态，互不干扰 |
 | **会话管理** | 会话命名（MCP session_set_name）· 归档/删除 · 置顶 · 指令标签（/jarvis 等） |
-| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · X6 可视化 Agent 图 |
+| **Web 面板** | Hash 路由（#/dashboard #/archive #/agents）· SSE 实时推送 · 产物文档阅读器 · Gate Timeline · Agent 配置页 |
 | **远程面板** | 单 HTML 文件下载即可打开，无需本地 web 构建 |
 | **Agent 配置** | Web 面板修改模型/思考等级 → 自动同步回 `.md` 源文件 |
 | **浏览器测试** | 文档驱动工作流：test-doc-writer → test-executor → fix-retest 闭环 |

@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
-import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName, updateRunGateEnteredAt, completeRun, abortRun } from '../src/engine/db.js';
+import { openDb, getSessions, addSession, touchSession, getSession, removeSession, initPipeline, getPipeline, getCheckpoints, addCheckpoint, setAgentModel, getAgentConfig, createPipelineRun, getPipelineRun, setRunTaskName, updateRunGateEnteredAt, completeRun, abortRun, archiveRun, unarchiveRun, deleteRun, getArchivedRuns, insertArtifact, insertAgentEvent, getAgentEvents, getArtifactsByRun } from '../src/engine/db.js';
 
 /** 每个测试文件独立数据库，避免 CI 并行锁定 */
 const TEST_DB = resolve(tmpdir(), `jarvis-test-db-${Date.now()}-${Math.random().toString(36).slice(2, 8)}.db`);
@@ -241,6 +241,18 @@ describe('TASK-001 Gate Duration Stats', () => {
     expect(run.gate_entered_at).toBe(run.started_at);
   });
 
+  // TASK-003: createPipelineRun 的 gate_entered_at 是有效的 ISO 时间戳
+  it('createPipelineRun 的 gate_entered_at 是有效 ISO 时间戳', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project-iso');
+    const run = getPipelineRun(db, runId);
+    expect(run.gate_entered_at).toBeTruthy();
+    // 验证可解析为有效日期
+    const parsed = new Date(run.gate_entered_at);
+    expect(parsed.getTime()).not.toBeNaN();
+    // 验证包含 T 或空格分隔符（ISO 8601 / SQL datetime 格式）
+    expect(run.gate_entered_at).toMatch(/^\d{4}-\d{2}-\d{2}/);
+  });
+
   // AC6 前半: addCheckpoint 传入 durationSeconds 时写入
   it('addCheckpoint 传入 durationSeconds 时写入 duration_seconds', () => {
     addCheckpoint(db, 'Gate A', 'Gate B', testSid, 120);
@@ -377,4 +389,225 @@ describe('TASK-002 Total Duration Calculation', () => {
 
   // AC7: TASK-001 的 10 个验收标准全部保持通过
   // （TASK-001 测试位于上方 describe block，运行全量测试即验证）
+});
+
+// ================================================================
+// TASK-005: 归档操作验证——archiveRun / unarchiveRun / deleteRun
+// ================================================================
+describe('TASK-005 Archive & Delete Operations', () => {
+  let db;
+  const testSid = 'test_archive_' + Date.now();
+
+  beforeEach(() => {
+    db = openDb(TEST_DB);
+    addSession(db, testSid, 'claude', 'member');
+  });
+
+  // ---- archiveRun ----
+
+  it('archiveRun 设置 archived=1', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    const result = archiveRun(db, runId);
+    expect(result.ok).toBe(true);
+
+    const run = getPipelineRun(db, runId);
+    expect(run.archived).toBe(1);
+  });
+
+  it('archiveRun 对不存在的 runId 返回 ok: false', () => {
+    const result = archiveRun(db, 'run_nonexistent');
+    expect(result.ok).toBe(false);
+  });
+
+  it('archiveRun 对空 runId 返回 ok: false', () => {
+    const result = archiveRun(db, '');
+    expect(result.ok).toBe(false);
+  });
+
+  // ---- unarchiveRun ----
+
+  it('unarchiveRun 设置 archived=0', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    archiveRun(db, runId);
+    const result = unarchiveRun(db, runId);
+    expect(result.ok).toBe(true);
+
+    const run = getPipelineRun(db, runId);
+    expect(run.archived).toBe(0);
+  });
+
+  it('unarchiveRun 对不存在的 runId 返回 ok: false', () => {
+    const result = unarchiveRun(db, 'run_nonexistent');
+    expect(result.ok).toBe(false);
+  });
+
+  // ---- getArchivedRuns ----
+
+  it('getArchivedRuns 仅返回 archived=1 的 run', () => {
+    const archivedId = createPipelineRun(db, testSid, 'test-project');
+    const activeId = createPipelineRun(db, testSid, 'test-project');
+
+    archiveRun(db, archivedId);
+
+    const archived = getArchivedRuns(db);
+    const archivedIds = archived.map(r => r.id);
+
+    expect(archivedIds).toContain(archivedId);
+    expect(archivedIds).not.toContain(activeId);
+  });
+
+  it('getArchivedRuns 不包含未归档的 run', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    // run 默认 archived=0，不应出现在归档列表中
+    const archived = getArchivedRuns(db);
+    const archivedIds = archived.map(r => r.id);
+    expect(archivedIds).not.toContain(runId);
+  });
+
+  // ---- deleteRun: 级联删除 ----
+
+  it('deleteRun 删除 run 及关联的 artifacts', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    insertArtifact(db, runId, 'Gate A', '2026-05-12/requirements/test.md');
+    insertArtifact(db, runId, 'Gate B', '2026-05-12/tasks/test.md');
+
+    // 删除前确认 artifacts 存在
+    let arts = getArtifactsByRun(db, runId);
+    expect(arts).toHaveLength(2);
+
+    const result = deleteRun(db, runId);
+    expect(result.ok).toBe(true);
+
+    // 删除后 run 不再存在
+    expect(getPipelineRun(db, runId)).toBeUndefined();
+
+    // 删除后 artifacts 级联清除
+    arts = getArtifactsByRun(db, runId);
+    expect(arts).toHaveLength(0);
+  });
+
+  it('deleteRun 删除 run 及关联的 agent_events', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    // 插入 start + end 事件
+    insertAgentEvent(db, {
+      run_id: runId,
+      session_id: testSid,
+      agent_id: 'test-agent',
+      event_type: 'start',
+    });
+    insertAgentEvent(db, {
+      run_id: runId,
+      session_id: testSid,
+      agent_id: 'test-agent',
+      event_type: 'end',
+      input_tokens: 100,
+      output_tokens: 50,
+    });
+
+    // 删除前确认 events 存在
+    let events = getAgentEvents(db, runId);
+    expect(events).toHaveLength(2);
+
+    const result = deleteRun(db, runId);
+    expect(result.ok).toBe(true);
+
+    // 删除后 events 级联清除
+    events = getAgentEvents(db, runId);
+    expect(events).toHaveLength(0);
+  });
+
+  it('deleteRun: session 有其他 run 时不删除 session', async () => {
+    const runId1 = createPipelineRun(db, testSid, 'test-project');
+    // 等待 2ms 避免 Date.now() 碰撞导致重复 run_id
+    await new Promise(r => setTimeout(r, 2));
+    const runId2 = createPipelineRun(db, testSid, 'test-project');
+
+    deleteRun(db, runId1);
+
+    // run 1 已删除
+    expect(getPipelineRun(db, runId1)).toBeUndefined();
+    // run 2 仍存在
+    expect(getPipelineRun(db, runId2)).toBeTruthy();
+    // session 仍存在（因 run 2 还在）
+    expect(getSession(db, testSid)).toBeTruthy();
+  });
+
+  it('deleteRun: session 最后一个 run 被删除时级联删除 session', () => {
+    const uniqueSid = 'test_cascade_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6);
+    addSession(db, uniqueSid, 'claude', 'member');
+    const runId = createPipelineRun(db, uniqueSid, 'test-project');
+    // 添加 pipeline 和 checkpoint 模拟完整会话
+    addCheckpoint(db, 'Gate A', 'Gate B', uniqueSid);
+    initPipeline(db, uniqueSid, 'test-project');
+
+    const result = deleteRun(db, runId);
+    expect(result.ok).toBe(true);
+
+    // run 已删除
+    expect(getPipelineRun(db, runId)).toBeUndefined();
+    // session 被级联删除
+    expect(getSession(db, uniqueSid)).toBeUndefined();
+    // pipeline 被级联删除
+    expect(getPipeline(db, uniqueSid)).toBeUndefined();
+    // checkpoints 被级联删除
+    expect(getCheckpoints(db, 'Gate A', uniqueSid)).toHaveLength(0);
+  });
+
+  it('deleteRun 对不存在的 runId 返回 ok: false', () => {
+    const result = deleteRun(db, 'run_nonexistent');
+    expect(result.ok).toBe(false);
+  });
+
+  it('deleteRun 对空 runId 返回 ok: false', () => {
+    const result = deleteRun(db, '');
+    expect(result.ok).toBe(false);
+  });
+
+  // ---- 归档-恢复-删除 完整生命周期 ----
+
+  it('归档后恢复再删除的完整生命周期', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    insertArtifact(db, runId, 'Gate A', 'test.md');
+
+    // 1) 归档
+    const archiveResult = archiveRun(db, runId);
+    expect(archiveResult.ok).toBe(true);
+    expect(getPipelineRun(db, runId).archived).toBe(1);
+    // 归档后在 archived 列表可见
+    expect(getArchivedRuns(db).map(r => r.id)).toContain(runId);
+
+    // 2) 恢复
+    const unarchiveResult = unarchiveRun(db, runId);
+    expect(unarchiveResult.ok).toBe(true);
+    expect(getPipelineRun(db, runId).archived).toBe(0);
+    // 恢复后不在 archived 列表
+    expect(getArchivedRuns(db).map(r => r.id)).not.toContain(runId);
+
+    // 3) 重新归档再永久删除
+    archiveRun(db, runId);
+    const deleteResult = deleteRun(db, runId);
+    expect(deleteResult.ok).toBe(true);
+    expect(getPipelineRun(db, runId)).toBeUndefined();
+    // artifacts 级联删除
+    expect(getArtifactsByRun(db, runId)).toHaveLength(0);
+  });
+
+  // ---- 幂等性 ----
+
+  it('对已归档的 run 再次归档不报错', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    expect(archiveRun(db, runId).ok).toBe(true);
+    // 二次归档：archived 已为 1，但 SQLite changes 仍为 1（WHERE 匹配到行）
+    const secondArchive = archiveRun(db, runId);
+    expect(secondArchive.ok).toBe(true);
+    expect(getPipelineRun(db, runId).archived).toBe(1);
+  });
+
+  it('对未归档的 run 取消归档不报错', () => {
+    const runId = createPipelineRun(db, testSid, 'test-project');
+    // archived 已是 0，但 SQLite changes 仍为 1（WHERE 匹配到行）
+    const result = unarchiveRun(db, runId);
+    expect(result.ok).toBe(true);
+    expect(getPipelineRun(db, runId).archived).toBe(0);
+  });
 });
