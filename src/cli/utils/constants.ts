@@ -1,13 +1,33 @@
 import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 
 /**
- * CLI 模块位于 src/cli/utils/，相对于 PKG_ROOT 需要向上 3 级
+ * 向上查找 package.json 确定真正的 PKG_ROOT。
+ * 兼容从源码运行（tsx）和从编译产物运行（dist）两种场景。
  */
 const __dirname = dirname(fileURLToPath(import.meta.url));
-export const PKG_ROOT = resolve(__dirname, '..', '..', '..');
+
+function findPkgRoot(startDir: string): string {
+  let dir = startDir;
+  for (let i = 0; i < 10; i++) {
+    try {
+      const pkg = JSON.parse(readFileSync(resolve(dir, 'package.json'), 'utf-8'));
+      // 真正的项目根有 .git/ 目录；dist/ 下的 package.json 副本没有
+      if (pkg.name === 'jarvis-agent-factory' && existsSync(resolve(dir, '.git'))) {
+        return dir;
+      }
+    } catch { /* continue */ }
+    const parent = resolve(dir, '..');
+    if (parent === dir) break;
+    dir = parent;
+  }
+  // 回退：从 __dirname 向上 4 级（dist 场景下的绝对路径兜底）
+  return resolve(__dirname, '..', '..', '..', '..');
+}
+
+export const PKG_ROOT = findPkgRoot(__dirname);
 
 const PKG = JSON.parse(readFileSync(resolve(PKG_ROOT, 'package.json'), 'utf-8'));
 export const PKG_VERSION: string = PKG.version;
