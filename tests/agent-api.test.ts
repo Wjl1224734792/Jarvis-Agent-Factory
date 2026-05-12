@@ -2,11 +2,10 @@
  * TASK-002: Agent 数据查询 REST API — TDD 单元测试
  *
  * 测试范围:
- *   1. GET /api/agent-usage → 返回正确的 JSON 结构
- *   2. GET /api/agent-status → 正确分类 active/completed/failed
- *   3. GET /api/agent-events → 返回事件列表，可选 agent_id 过滤
- *   4. POST /api/agent-event → 写入事件，返回 id
- *   5. SSE broadcast 数据包含 agent_status 字段
+ *   1. GET /api/agent-status → 正确分类 active/completed/failed
+ *   2. GET /api/agent-events → 返回事件列表，可选 agent_id 过滤
+ *   3. POST /api/agent-event → 写入事件，返回 id
+ *   4. SSE broadcast 数据包含 agent_status 字段
  */
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { tmpdir } from 'node:os';
@@ -77,44 +76,9 @@ describe('Agent API Endpoints', () => {
   });
 
   // ──────────────────────────────────────────────────────────────
-  // Test 1: GET /api/agent-usage
+  // Test 1: GET /api/agent-status
   // ──────────────────────────────────────────────────────────────
-  it('1 | GET /api/agent-usage 返回正确 JSON 结构（含 agents + totals）', async () => {
-    const res = await app.request(`/api/agent-usage?run_id=${runId}`);
-    expect(res.status).toBe(200);
-    const body = await res.json();
-
-    // 顶层字段
-    expect(body).toHaveProperty('run_id');
-    expect(body).toHaveProperty('agents');
-    expect(body).toHaveProperty('totals');
-
-    // agents 按 agent_id 索引
-    expect(body.agents['agent-a']).toBeTruthy();
-    expect(body.agents['agent-a'].model).toBe('claude-sonnet-4-6');
-    expect(body.agents['agent-a'].calls).toBe(1);
-    expect(body.agents['agent-a'].total_input_tokens).toBe(500);
-    expect(body.agents['agent-a'].total_output_tokens).toBe(200);
-    expect(body.agents['agent-a']).toHaveProperty('total_cache_creation_input_tokens');
-    expect(body.agents['agent-a']).toHaveProperty('total_cache_read_input_tokens');
-
-    // totals
-    expect(body.totals.calls).toBe(1); // 只有 agent-a 的 end 事件被统计
-    expect(body.totals.total_input_tokens).toBe(500);
-    expect(body.totals.total_output_tokens).toBe(200);
-
-    // 不存在的 run_id 返回空（不报错）
-    const res2 = await app.request('/api/agent-usage?run_id=nonexistent');
-    expect(res2.status).toBe(200);
-    const body2 = await res2.json();
-    expect(body2.agents).toEqual({});
-    expect(body2.totals.calls).toBe(0);
-  });
-
-  // ──────────────────────────────────────────────────────────────
-  // Test 2: GET /api/agent-status
-  // ──────────────────────────────────────────────────────────────
-  it('2 | GET /api/agent-status 正确分类 active/completed/failed', async () => {
+  it('1 | GET /api/agent-status 正确分类 active/completed/failed', async () => {
     const res = await app.request(`/api/agent-status?run_id=${runId}`);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -141,7 +105,7 @@ describe('Agent API Endpoints', () => {
   // ──────────────────────────────────────────────────────────────
   // Test 3: GET /api/agent-events
   // ──────────────────────────────────────────────────────────────
-  it('3 | GET /api/agent-events 返回事件列表，支持 agent_id 过滤', async () => {
+  it('2 | GET /api/agent-events 返回事件列表，支持 agent_id 过滤', async () => {
     const res = await app.request(`/api/agent-events?run_id=${runId}&agent_id=agent-a`);
     expect(res.status).toBe(200);
     const body = await res.json();
@@ -169,7 +133,7 @@ describe('Agent API Endpoints', () => {
   // ──────────────────────────────────────────────────────────────
   // Test 4: POST /api/agent-event
   // ──────────────────────────────────────────────────────────────
-  it('4 | POST /api/agent-event 写入事件，返回 id', async () => {
+  it('3 | POST /api/agent-event 写入事件，返回 id', async () => {
     const realRunId = createPipelineRun(db, sid, 'test-project');
     const res = await app.request('/api/agent-event', {
       method: 'POST',
@@ -206,7 +170,7 @@ describe('Agent API Endpoints', () => {
   // ──────────────────────────────────────────────────────────────
   // Test 5: SSE agent_status
   // ──────────────────────────────────────────────────────────────
-  it('5 | SSE 广播数据包含 agent_status 字段', () => {
+  it('4 | SSE 广播数据包含 agent_status 字段', () => {
     // 创建 pipeline_run 让 getActiveRun 能找到
     const testRunId = createPipelineRun(db, sid, 'test-project');
     // 为这个 run 插入事件

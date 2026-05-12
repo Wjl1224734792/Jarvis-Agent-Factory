@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useMemo } from 'react';
 import { theme } from 'antd';
 import type { GlobalToken } from 'antd';
-import type { AgentGateStatusResponse, AgentUsageResponse } from '../api';
+import type { AgentGateStatusResponse } from '../api';
 import { NODE_SIZES, ANIMATION_DEFAULTS, AGENT_TYPE_COLORS } from '../constants/x6-theme';
 
 /**
@@ -17,13 +17,6 @@ function escapeHtml(unsafe: string): string {
     .replace(/'/g, '&#039;');
 }
 
-/** 格式化 Token 数量 */
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}k`;
-  return String(n);
-}
-
 // ============================================================
 // 每个 Gate 独立的 Agent 交互图（纯 SVG 版本）
 // ============================================================
@@ -32,8 +25,6 @@ interface Props {
   selectedGate: string;
   gateStatus: AgentGateStatusResponse | null;
   style?: React.CSSProperties;
-  /** Token 用量数据，用于在已完成 Agent 节点下方显示 Token 信息 */
-  agentUsage?: AgentUsageResponse | null;
 }
 
 const ORCHESTRATOR = 'orchestrator';
@@ -233,7 +224,7 @@ const DEFAULT_AGENT_TYPES: { icon: string; label: string; color: string }[] = [
 // 组件
 // ============================================================
 
-export default function X6AgentGraph({ selectedGate, gateStatus, style, agentUsage }: Props) {
+export default function X6AgentGraph({ selectedGate, gateStatus, style }: Props) {
   const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);
   const [size, setSize] = useState({ w: 600, h: 400 });
@@ -472,20 +463,6 @@ export default function X6AgentGraph({ selectedGate, gateStatus, style, agentUsa
                     {icon} {name}
                   </text>
 
-                  {/* Token 用量显示（仅已完成 Agent） */}
-                  {isCompleted && agentUsage?.agents?.[agent.agent_id] && (
-                    <text
-                      x={pos.x}
-                      y={pos.y + agentNodeR + 16}
-                      textAnchor="middle"
-                      fill={token.colorTextTertiary}
-                      fontSize={9}
-                      style={{ pointerEvents: 'none' }}
-                    >
-                      {'\u{1F4E5}'}{formatTokens(agentUsage.agents[agent.agent_id].total_input_tokens)}
-                      {' \u{1F4E4}'}{formatTokens(agentUsage.agents[agent.agent_id].total_output_tokens)}
-                    </text>
-                  )}
                 </g>
               );
             })}

@@ -145,24 +145,10 @@ function formatDurationDisplay(seconds: number): string {
   return r;
 }
 
-/** Token 数量格式化为人类可读 */
-function formatTokens(n: number): string {
-  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
-  return String(n);
-}
-
 /** 简化 Agent 名称显示 */
 function shortAgentName(name: string): string {
   return name.length > 14 ? name.substring(0, 13) + '…' : name;
 }
-
-// 模型单价（USD/1M tokens）
-const MODEL_PRICES: Record<string, { input: number; output: number }> = {
-  'claude-opus-4-7':   { input: 15.00, output: 75.00 },
-  'claude-sonnet-4-6': { input: 3.00,  output: 15.00 },
-  'claude-haiku-4-5':  { input: 1.00,  output: 5.00 },
-};
 
 // ============================================================
 // Dashboard 组件
@@ -189,7 +175,7 @@ export default function Dashboard() {
   const splitterDraggingRef = useRef(false);
 
   const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
-  const { agentStatus, agentUsage, loading: agentLoading } = useAgentData(runId);
+  const { agentStatus, loading: agentLoading } = useAgentData(runId);
   const [gateStatus, setGateStatus] = useState<AgentGateStatusResponse | null>(null);
   const [selectedGate, setSelectedGate] = useState<string | null>(null);
 
@@ -314,29 +300,6 @@ export default function Dashboard() {
 
   const durationDisplay = useMemo(() => totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-', [totalDuration]);
 
-  // Token 统计（来自 agentUsage）
-  const tokenStats = useMemo(() => {
-    if (!agentUsage?.totals) return { total: 0, cost: 0, calls: 0, topAgent: '' };
-    const t = agentUsage.totals;
-    const total = (t.total_input_tokens || 0) + (t.total_output_tokens || 0) + (t.total_cache_creation_input_tokens || 0) + (t.total_cache_read_input_tokens || 0);
-    // 成本估算
-    let cost = 0;
-    Object.values(agentUsage.agents || {}).forEach((a: any) => {
-      const prices = MODEL_PRICES[a.model];
-      if (prices) {
-        cost += (a.total_input_tokens / 1_000_000) * prices.input + (a.total_output_tokens / 1_000_000) * prices.output;
-      }
-    });
-    // Top agent
-    let topAgent = '';
-    let topTokens = 0;
-    Object.entries(agentUsage.agents || {}).forEach(([id, a]: [string, any]) => {
-      const at = (a.total_input_tokens || 0) + (a.total_output_tokens || 0);
-      if (at > topTokens) { topTokens = at; topAgent = id; }
-    });
-    return { total, cost, calls: t.calls, topAgent };
-  }, [agentUsage]);
-
   // ============================================================
   // 空状态
   // ============================================================
@@ -380,15 +343,12 @@ export default function Dashboard() {
         </Button>
       </div>
 
-      {/* ── 统计卡片（含 Token 数据）── */}
+      {/* ── 统计卡片 ── */}
       <div style={{
         display: 'flex', flexWrap: 'wrap', gap: 6,
         marginBottom: 10, flexShrink: 0,
       }}>
         {[
-          { title: 'Token 消耗', value: formatTokens(tokenStats.total), suffix: '', color: tokenStats.total > 0 ? 'var(--ant-color-primary)' : 'var(--ant-color-text)' },
-          { title: '预估成本', value: tokenStats.cost > 0 ? `$${tokenStats.cost.toFixed(3)}` : '-', suffix: '', color: 'var(--ant-color-primary)' },
-          { title: 'Agent 调用', value: tokenStats.calls, suffix: '次', color: 'var(--ant-color-primary)' },
           { title: '完成进度', value: progressPct, suffix: '%', color: 'var(--ant-color-primary)' },
           { title: '已通过 Gate', value: `${completedGates}/${totalGates}`, suffix: '', color: 'var(--ant-color-primary)' },
           { title: '产物文件', value: totalArtifacts, suffix: '个', color: 'var(--ant-color-primary)' },
@@ -437,7 +397,6 @@ export default function Dashboard() {
                   <X6FlowChart
                     runId={runId}
                     agentStatus={agentStatus}
-                    agentUsage={agentUsage}
                     pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
                     selectedGate={selectedGate}
                     onGateSelect={setSelectedGate}
@@ -498,7 +457,6 @@ export default function Dashboard() {
                   <X6AgentGraph
                     selectedGate={selectedGate || currentGate}
                     gateStatus={gateStatus}
-                    agentUsage={agentUsage}
                     style={{ width: '100%', height: '100%' }}
                   />
                 </ErrorBoundary>

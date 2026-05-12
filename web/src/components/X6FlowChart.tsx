@@ -1,7 +1,7 @@
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import { theme } from 'antd';
 import { NODE_SIZES } from '../constants/x6-theme';
-import type { AgentStatusResponse, AgentUsageResponse } from '../api';
+import type { AgentStatusResponse } from '../api';
 
 /**
  * HTML 实体编码，防止 XSS 注入
@@ -81,7 +81,6 @@ const GATE_ICONS: Record<string, string> = {
 interface Props {
   runId: string | null;
   agentStatus: AgentStatusResponse | null;
-  agentUsage?: AgentUsageResponse | null;
   pipelineGates?: { gate: string; passed: boolean; duration_display?: string | null }[];
   selectedGate: string | null;
   onGateSelect: (gateId: string) => void;
@@ -102,7 +101,7 @@ const SVG_PADDING_BOTTOM = 60;
 // ============================================================
 
 export default function X6FlowChart({
-  runId, agentStatus, agentUsage, pipelineGates, selectedGate, onGateSelect,
+  runId, agentStatus, pipelineGates, selectedGate, onGateSelect,
 }: Props) {
   const { token } = theme.useToken();
   const containerRef = useRef<HTMLDivElement>(null);

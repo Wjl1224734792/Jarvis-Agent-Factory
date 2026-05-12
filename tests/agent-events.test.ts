@@ -5,16 +5,14 @@
  *   1. insertAgentEvent start → event_type='start', tokens=0
  *   2. insertAgentEvent end → 自动计算 duration_ms，tokens 正确存储
  *   3. insertAgentEvent error → status='error', error_message 写入
- *   4. getAgentUsage → 按 agent_id+model 分组统计、DeepSeek cost=null
- *   5. getAgentStatus → active/completed/failed 分类
- *   6. 成本估算 — Claude 有 cost，DeepSeek cost=null
- *   7. deleteRun 级联删除关联 agent_events
+ *   4. getAgentStatus → active/completed/failed 分类
+ *   5. deleteRun 级联删除关联 agent_events
  */
 import { describe, it, expect, beforeEach } from 'vitest';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import {
-  openDb, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus,
+  openDb, insertAgentEvent, getAgentEvents, getAgentStatus,
   addSession, createPipelineRun, deleteRun, getPipelineRun,
 } from '../src/engine/db.js';
 
@@ -28,21 +26,6 @@ const TEST_DB = testDbPath();
 /** 每个测试使用唯一会话和 Run ID 避免交叉污染 */
 function makeSid() { return `sid_ae_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
 function makeRunId() { return `run_ae_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`; }
-
-// MODEL_PRICES 副本（用于测试成本校验，与 server.ts 同步）
-const MODEL_PRICES = {
-  'claude-sonnet-4-6': { input: 3.00, output: 15.00, cacheWrite: 3.75, cacheRead: 0.30 },
-  'claude-opus-4-7': { input: 15.00, output: 75.00, cacheWrite: 18.75, cacheRead: 1.50 },
-  'claude-haiku-4-5': { input: 1.00, output: 5.00, cacheWrite: 1.25, cacheRead: 0.10 },
-};
-
-/** 成本计算公式：每百万 token 价格 × token 数量 */
-function calcCost(model, inputTokens, outputTokens, cacheWrite, cacheRead) {
-  const prices = MODEL_PRICES[model];
-  if (!prices) return null;
-  return (inputTokens * prices.input + outputTokens * prices.output
-    + cacheWrite * prices.cacheWrite + cacheRead * prices.cacheRead) / 1_000_000;
-}
 
 describe('Agent Events', () => {
   let db;
@@ -169,50 +152,9 @@ describe('Agent Events', () => {
   });
 
   // ──────────────────────────────────────────────────────────────
-  // Test 4: usage 分组统计
+  // Test 4: status 分类
   // ──────────────────────────────────────────────────────────────
-  it('4 | getAgentUsage → 按 agent_id+model 分组统计正确', () => {
-    // agent-a: claude-sonnet-4-6
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-a', event_type: 'start', model: 'claude-sonnet-4-6' });
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-a', event_type: 'end', model: 'claude-sonnet-4-6', input_tokens: 500, output_tokens: 200 });
-
-    // agent-b: deepseek-v4-pro
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-b', event_type: 'start', model: 'deepseek-v4-pro' });
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-b', event_type: 'end', model: 'deepseek-v4-pro', input_tokens: 300, output_tokens: 100 });
-
-    // agent-c: 同 agent 两个不同 model
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-c', event_type: 'start', model: 'claude-haiku-4-5' });
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'agent-c', event_type: 'end', model: 'claude-haiku-4-5', input_tokens: 200, output_tokens: 50 });
-
-    const usage = getAgentUsage(db, runId);
-    expect(usage.run_id).toBe(runId);
-
-    // 验证分组存在
-    const agents = usage.agents;
-    expect(agents).toHaveProperty('agent-a');
-    expect(agents).toHaveProperty('agent-b');
-    expect(agents).toHaveProperty('agent-c');
-
-    // agent-a 统计
-    expect(agents['agent-a'].calls).toBe(1); // 只统计 end 事件
-    expect(agents['agent-a'].total_input_tokens).toBe(500);
-    expect(agents['agent-a'].total_output_tokens).toBe(200);
-
-    // agent-b 统计
-    expect(agents['agent-b'].calls).toBe(1);
-    expect(agents['agent-b'].total_input_tokens).toBe(300);
-    expect(agents['agent-b'].total_output_tokens).toBe(100);
-
-    // 全局合计
-    expect(usage.totals.total_input_tokens).toBe(1000);
-    expect(usage.totals.total_output_tokens).toBe(350);
-    expect(usage.totals.calls).toBe(3);
-  });
-
-  // ──────────────────────────────────────────────────────────────
-  // Test 5: status 分类
-  // ──────────────────────────────────────────────────────────────
-  it('5 | getAgentStatus → active/completed/failed 分类正确', () => {
+  it('4 | getAgentStatus → active/completed/failed 分类正确', () => {
     // active: 只有 start，没有 end/error
     insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'active-agent', event_type: 'start' });
     // completed: start + end
@@ -234,40 +176,9 @@ describe('Agent Events', () => {
   });
 
   // ──────────────────────────────────────────────────────────────
-  // Test 6: 成本估算
+  // Test 5: deleteRun 级联
   // ──────────────────────────────────────────────────────────────
-  it('6 | 成本估算 — Claude 模型有 cost，DeepSeek 模型 cost=null', () => {
-    // Claude Sonnet: 1M input + 100K output
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'claude-agent', event_type: 'start', model: 'claude-sonnet-4-6' });
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'claude-agent', event_type: 'end', model: 'claude-sonnet-4-6', input_tokens: 1_000_000, output_tokens: 100_000 });
-
-    // DeepSeek
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'ds-agent', event_type: 'start', model: 'deepseek-v4-pro' });
-    insertAgentEvent(db, { run_id: runId, session_id: sid, agent_id: 'ds-agent', event_type: 'end', model: 'deepseek-v4-pro', input_tokens: 1_000_000, output_tokens: 100_000 });
-
-    // 在 DB 查询结果上手动计算成本以验证计算公式正确
-    const usage = getAgentUsage(db, runId);
-
-    // Claude: input=3.00/M, output=15.00/M → (1M*3 + 100K*15)/1M = 3 + 1.5 = 4.5 USD
-    const claudeGroup = usage.agents['claude-agent'];
-    expect(claudeGroup.total_input_tokens).toBe(1_000_000);
-    expect(claudeGroup.total_output_tokens).toBe(100_000);
-
-    const claudeCost = calcCost('claude-sonnet-4-6',
-      claudeGroup.total_input_tokens, claudeGroup.total_output_tokens, 0, 0);
-    expect(claudeCost).toBeCloseTo(4.5, 0.001);
-
-    // DeepSeek: 不在 MODEL_PRICES 中
-    const dsGroup = usage.agents['ds-agent'];
-    const dsCost = calcCost('deepseek-v4-pro',
-      dsGroup.total_input_tokens, dsGroup.total_output_tokens, 0, 0);
-    expect(dsCost).toBeNull();
-  });
-
-  // ──────────────────────────────────────────────────────────────
-  // Test 7: deleteRun 级联
-  // ──────────────────────────────────────────────────────────────
-  it('7 | deleteRun 级联删除关联 agent_events', () => {
+  it('5 | deleteRun 级联删除关联 agent_events', () => {
     const realRunId = createPipelineRun(db, sid, 'test-project');
     insertAgentEvent(db, { run_id: realRunId, session_id: sid, agent_id: 'test-agent-7', event_type: 'start' });
     expect(getAgentEvents(db, realRunId)).toHaveLength(1);

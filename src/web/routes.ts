@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentUsage, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -471,21 +471,6 @@ export function setupApiRoutes(app, db, root) {
   });
 
   // ---- Agent 数据查询 API（TASK-002）----
-
-  /** 获取 Agent Token 使用统计 */
-  app.get('/api/agent-usage', (c) => {
-    const runId = c.req.query('run_id');
-    const sessionId = c.req.query('session_id');
-    let resolvedRunId = runId;
-    if (!resolvedRunId) {
-      if (!sessionId) return c.json({ error: 'run_id or session_id required' }, 400);
-      const run = getActiveRun(db, sessionId);
-      if (!run) return c.json({ error: 'No active run found for session' }, 404);
-      resolvedRunId = run.id;
-    }
-    const usage = getAgentUsage(db, resolvedRunId);
-    return c.json(usage);
-  });
 
   /** 获取 Agent 状态分类（active/completed/failed） */
   app.get('/api/agent-status', (c) => {

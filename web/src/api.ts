@@ -54,29 +54,6 @@ export interface AgentStatusResponse {
   failed: string[];
 }
 
-export interface AgentUsageEntry {
-  model: string;
-  calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cache_creation_input_tokens: number;
-  total_cache_read_input_tokens: number;
-}
-
-export interface AgentUsageTotals {
-  calls: number;
-  total_input_tokens: number;
-  total_output_tokens: number;
-  total_cache_creation_input_tokens: number;
-  total_cache_read_input_tokens: number;
-}
-
-export interface AgentUsageResponse {
-  run_id: string;
-  agents: Record<string, AgentUsageEntry>;
-  totals: AgentUsageTotals;
-}
-
 export interface AgentGateStatusResponse {
   run_id: string;
   current_gate: string;
@@ -199,9 +176,6 @@ export const api = {
 
   agentStatus: (runId?: string): Promise<AgentStatusResponse> =>
     fetchJSON(`/api/agent-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
-
-  agentUsage: (runId?: string): Promise<AgentUsageResponse> =>
-    fetchJSON(`/api/agent-usage${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
 
   agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
     fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),

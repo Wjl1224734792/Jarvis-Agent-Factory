@@ -1,18 +1,16 @@
 import { useState, useEffect, useRef } from 'react';
-import { api, type AgentStatusResponse, type AgentUsageResponse } from '../api';
+import { api, type AgentStatusResponse } from '../api';
 
-/** 统一的 agent 数据轮询 hook，同时拉取 status 和 usage 两个端点 */
+/** agent 状态轮询 hook */
 export function useAgentData(
   runId: string | null,
   intervalMs = 8000,
 ): {
   agentStatus: AgentStatusResponse | null;
-  agentUsage: AgentUsageResponse | null;
   loading: boolean;
   error: Error | null;
 } {
   const [agentStatus, setAgentStatus] = useState<AgentStatusResponse | null>(null);
-  const [agentUsage, setAgentUsage] = useState<AgentUsageResponse | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -26,13 +24,9 @@ export function useAgentData(
     const fetch = async () => {
       setLoading(true);
       try {
-        const [status, usage] = await Promise.all([
-          api.agentStatus(runId),
-          api.agentUsage(runId),
-        ]);
+        const status = await api.agentStatus(runId);
         if (!cancelled) {
           setAgentStatus(status);
-          setAgentUsage(usage);
           setError(null);
         }
       } catch (e) {
@@ -54,7 +48,7 @@ export function useAgentData(
     };
   }, [runId, intervalMs]);
 
-  return { agentStatus, agentUsage, loading, error };
+  return { agentStatus, loading, error };
 }
 
-export type { AgentStatusResponse, AgentUsageResponse };
+export type { AgentStatusResponse };
