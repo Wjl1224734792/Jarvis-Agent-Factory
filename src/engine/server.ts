@@ -9,9 +9,9 @@ import { resolve, join } from 'node:path';
 import { homedir } from 'node:os';
 import { createServer } from 'node:net';
 import { createServer as createHttpServer } from 'node:http';
-import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
+import { openDb, getPipeline, initPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getSession, addSession, touchSession, removeSession, markStaleSessions, migrateSession, getAgentConfig, setAgentModel, createPipelineRun, getActiveRun, updateRunGate, updateRunGateEnteredAt, setRunTaskName, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentStatus, getAgentGateStatus, completeRun } from './db.js';
 import { GATE_CHECKS, GATE_DIRS, PIPELINE_DEFS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, getGateOperations, getGateAgentGuide, DEFAULT_PIPELINE } from './gates.js';
-import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList } from './agent-registry.js';
+import { getAgentsByPlatform, getPlatforms, getPlatformModels, getAgentList, PLATFORM_FEATURES } from './agent-registry.js';
 import { setupApiRoutes } from '../web/routes.js';
 
 const PID_FILE = resolve(homedir(), '.jarvis', 'engine.pid');
@@ -187,18 +187,6 @@ export async function startEngine({ port = DEFAULT_PORT, projectRoot = '.', stdi
     });
   }
 }
-
-/**
- * 平台特性映射：根据 PLATFORM_CONFIG.subdirs 推导，排除 'agents' 后即为平台独有特性。
- * - opencode 支持 plugins（插件市场）
- * - claude 支持 commands（自定义命令）
- * - codex 无额外特性
- */
-const PLATFORM_FEATURES: Record<string, string[]> = {
-  claude: ['commands'],
-  opencode: ['plugins'],
-  codex: [],
-};
 
 /** 平台信息——单平台查询 */
 interface PlatformInfoSingle {
@@ -390,6 +378,8 @@ function registerMcpTools(server, db, root) {
       // Session Model B: 创建新 run，同步更新 pipeline 快照
       const runId = createPipelineRun(db, sid, project_name || root, pt);
       initPipeline(db, sid, project_name || root, pt);
+      // TASK-003: 确保 Gate A 的进入时间以 JS ISO 格式写入
+      updateRunGateEnteredAt(db, runId, new Date().toISOString());
       // 自动设置任务名称（若用户已传入则使用传入值）
       if (task_name) {
         setRunTaskName(db, runId, task_name);
@@ -729,6 +719,19 @@ function registerMcpTools(server, db, root) {
         }
 
         const pipeline = getPipeline(db, finalSid);
+
+        // 去重检查：同一 (run_id, agent_id) 的重复 start/end/error 事件忽略
+        const dupCheck = checkAgentEventDuplicate(db, finalRunId, agent_id, event);
+        if (dupCheck.duplicate) {
+          return resp({
+            ok: true, id: dupCheck.id, total_tokens: dupCheck.total_tokens,
+            duplicate: true,
+            message: event === 'start'
+              ? 'start event already recorded for this agent'
+              : 'end/error event already recorded for this agent',
+          });
+        }
+
         const result = insertAgentEvent(db, {
           run_id: finalRunId, session_id: finalSid, agent_id,
           event_type: event, model,

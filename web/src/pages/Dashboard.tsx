@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import {
-  Alert, Card, Progress, Tag, Modal,
+  Card, Progress, Tag, Modal,
   Button, Empty, Spin, Timeline, Statistic, message,
 } from 'antd';
 import {
@@ -13,10 +13,6 @@ import type { PipelineSession, PipelineRun } from '../api';
 import { api } from '../api';
 import { useSessionId } from '../components/Layout';
 import ErrorBoundary from '../components/ErrorBoundary';
-import X6FlowChart from '../components/X6FlowChart';
-import X6AgentGraph from '../components/X6AgentGraph';
-import { useAgentData } from '../hooks/useAgentData';
-import type { AgentGateStatusResponse } from '../api';
 
 // ============================================================
 // 常量
@@ -145,10 +141,6 @@ function formatDurationDisplay(seconds: number): string {
   return r;
 }
 
-/** 简化 Agent 名称显示 */
-function shortAgentName(name: string): string {
-  return name.length > 14 ? name.substring(0, 13) + '…' : name;
-}
 
 // ============================================================
 // Dashboard 组件
@@ -169,30 +161,6 @@ export default function Dashboard() {
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const draggingRef = useRef(false);
 
-  // FlowChart 高度（可拖拽调整）
-  const [flowChartHeight, setFlowChartHeight] = useState(150);
-  const splitterContainerRef = useRef<HTMLDivElement>(null);
-  const splitterDraggingRef = useRef(false);
-
-  const runId = useMemo(() => (pipeline ? sessionId : null), [pipeline, sessionId]);
-  const { agentStatus, loading: agentLoading } = useAgentData(runId);
-  const [gateStatus, setGateStatus] = useState<AgentGateStatusResponse | null>(null);
-  const [selectedGate, setSelectedGate] = useState<string | null>(null);
-
-  // 按 Gate 分组的 Agent 状态轮询
-  useEffect(() => {
-    if (!runId) return;
-    let cancelled = false;
-    const fetch = async () => {
-      try {
-        const gs = await api.agentGateStatus(runId);
-        if (!cancelled) setGateStatus(gs);
-      } catch { /* ignore */ }
-    };
-    fetch();
-    const timer = setInterval(fetch, 5000);
-    return () => { cancelled = true; clearInterval(timer); };
-  }, [runId]);
 
   const loadData = useCallback(async () => {
     if (!sessionId) return;
@@ -254,39 +222,11 @@ export default function Dashboard() {
     document.addEventListener('mouseup', onUp);
   }, [rightPanelWidth]);
 
-  // FlowChart 高度拖拽调整（水平分割线）
-  const handleFlowChartResize = useCallback((e: React.MouseEvent) => {
-    e.preventDefault();
-    splitterDraggingRef.current = true;
-    const startY = e.clientY;
-    const startHeight = flowChartHeight;
-
-    const onMove = (ev: MouseEvent) => {
-      if (!splitterDraggingRef.current) return;
-      const container = splitterContainerRef.current;
-      if (!container) return;
-      const containerHeight = container.getBoundingClientRect().height;
-      const delta = ev.clientY - startY;
-      const newHeight = startHeight + delta;
-      // FlowChart 最小 80px，AgentGraph 最小 150px（分割线 6px）
-      const maxHeight = containerHeight - 6 - 150;
-      const clamped = Math.max(80, Math.min(maxHeight, newHeight));
-      setFlowChartHeight(clamped);
-    };
-    const onUp = () => {
-      splitterDraggingRef.current = false;
-      document.removeEventListener('mousemove', onMove);
-      document.removeEventListener('mouseup', onUp);
-    };
-    document.addEventListener('mousemove', onMove);
-    document.addEventListener('mouseup', onUp);
-  }, [flowChartHeight]);
-
   // ============================================================
   // 数据派生
   // ============================================================
 
-  const { gates, completedGates, totalGates, progressPct, currentGate, totalArtifacts, totalDuration } = useMemo(() => {
+  const { gates, completedGates, totalGates, progressPct, currentGate, totalArtifacts, totalDuration, currentGateArtifacts } = useMemo(() => {
     const g = pipeline?.gates || [];
     const completed = g.filter(x => x.passed).length;
     const total = g.length;
@@ -294,8 +234,9 @@ export default function Dashboard() {
     const cur = pipeline?.current_gate || '?';
     const artifacts = g.reduce((s, x) => s + (x.artifacts?.length || 0), 0);
     const dur = g.reduce((s, x) => s + (x.duration_seconds || 0), 0);
+    const curArtifacts = g.find(x => x.gate === cur)?.artifacts || [];
     return { gates: g, completedGates: completed, totalGates: total, progressPct: pct,
-             currentGate: cur, totalArtifacts: artifacts, totalDuration: dur };
+             currentGate: cur, totalArtifacts: artifacts, totalDuration: dur, currentGateArtifacts: curArtifacts };
   }, [pipeline?.gates, pipeline?.current_gate]);
 
   const durationDisplay = useMemo(() => totalDuration > 0 ? formatDurationDisplay(totalDuration) : '-', [totalDuration]);
@@ -390,77 +331,66 @@ export default function Dashboard() {
               </div>
             </div>
           ) : (
-            <div ref={splitterContainerRef} style={{ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column' }}>
-              {/* 紧凑流水线进度条 */}
-              <div style={{ flexShrink: 0, height: flowChartHeight }}>
-                <ErrorBoundary fallback={<Alert type="error" message="流水线进度加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                  <X6FlowChart
-                    runId={runId}
-                    agentStatus={agentStatus}
-                    pipelineGates={gates.map(g => ({ gate: g.gate, passed: g.passed }))}
-                    selectedGate={selectedGate}
-                    onGateSelect={setSelectedGate}
-                  />
-                </ErrorBoundary>
-              </div>
-              {/* 水平拖拽分割线 */}
-              <div
-                role="separator"
-                aria-orientation="horizontal"
-                aria-valuenow={flowChartHeight}
-                aria-valuemin={80}
-                aria-valuemax={splitterContainerRef.current ? splitterContainerRef.current.getBoundingClientRect().height - 156 : 800}
-                tabIndex={0}
-                onMouseDown={handleFlowChartResize}
-                onKeyDown={(e) => {
-                  const container = splitterContainerRef.current;
-                  const containerHeight = container ? container.getBoundingClientRect().height : 800;
-                  if (e.key === 'ArrowUp') setFlowChartHeight(h => Math.min(containerHeight - 156, h + 20));
-                  if (e.key === 'ArrowDown') setFlowChartHeight(h => Math.max(80, h - 20));
-                }}
-                style={{
-                  height: 6, flexShrink: 0, cursor: 'row-resize',
-                  background: 'transparent', transition: 'background 0.15s',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  position: 'relative',
-                  userSelect: 'none',
-                }}
-                onMouseEnter={e => {
-                  (e.target as HTMLElement).style.background = 'var(--ant-color-primary-bg)';
-                  const line = (e.target as HTMLElement).querySelector('.splitter-line') as HTMLElement;
-                  if (line) line.style.opacity = '1';
-                }}
-                onMouseLeave={e => {
-                  (e.target as HTMLElement).style.background = 'transparent';
-                  const line = (e.target as HTMLElement).querySelector('.splitter-line') as HTMLElement;
-                  if (line) line.style.opacity = '0';
-                }}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'auto', minHeight: 0 }}>
+              <Card
+                title={
+                  <span style={{ fontWeight: 600, fontSize: 13, color: 'var(--ant-color-text)' }}>
+                    <FileTextOutlined style={{ marginRight: 6 }} />
+                    产物文档 · {currentGate}
+                  </span>
+                }
+                extra={
+                  currentGateArtifacts.length > 0 ? (
+                    <Tag style={{ borderRadius: 12, backgroundColor: 'var(--ant-color-primary-bg)', color: 'var(--ant-color-primary)', border: 'none' }}>
+                      {currentGateArtifacts.length} 个文件
+                    </Tag>
+                  ) : null
+                }
+                size="small"
+                style={{ borderRadius: 14, flex: 1 }}
+                styles={{ body: { flex: 1, overflow: 'auto' } }}
               >
-                {/* hover 时显示的 2px colorPrimary 横线 */}
-                <div className="splitter-line" style={{
-                  position: 'absolute', top: '50%', left: 0, right: 0,
-                  height: 2, background: 'var(--ant-color-primary)',
-                  transform: 'translateY(-50%)',
-                  opacity: 0, transition: 'opacity 0.15s',
-                }} />
-                {/* 拖拽手柄图标 */}
-                <span style={{
-                  fontSize: 12, color: 'var(--ant-color-primary)',
-                  lineHeight: '6px', position: 'relative', zIndex: 1,
-                  background: 'var(--ant-color-bg-container)',
-                  padding: '0 4px', borderRadius: 4,
-                }}>&#x2261;</span>
-              </div>
-              {/* 选中 Gate 的 Agent 交互图 */}
-              <div style={{ flex: 1, minHeight: 0, border: '1px solid var(--ant-color-border-secondary)', borderRadius: 12, overflow: 'hidden', position: 'relative' }}>
-                <ErrorBoundary fallback={<Alert type="error" message="Agent 交互图加载失败" showIcon style={{ borderRadius: 12 }} />}>
-                  <X6AgentGraph
-                    selectedGate={selectedGate || currentGate}
-                    gateStatus={gateStatus}
-                    style={{ width: '100%', height: '100%' }}
-                  />
-                </ErrorBoundary>
-              </div>
+                {currentGateArtifacts.length === 0 ? (
+                  <Empty description="暂无文档，等待 Gate 通过后自动生成" image={Empty.PRESENTED_IMAGE_SIMPLE} />
+                ) : (
+                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                    {currentGateArtifacts.map((artifact: string) => (
+                      <Card
+                        key={artifact}
+                        role="button"
+                        tabIndex={0}
+                        hoverable
+                        size="small"
+                        onClick={() => openMdPreview(artifact)}
+                        onKeyDown={(e: React.KeyboardEvent) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openMdPreview(artifact);
+                          }
+                        }}
+                        style={{
+                          cursor: 'pointer', borderRadius: 10,
+                          minWidth: 160, flex: '0 0 auto',
+                          border: '1px solid var(--ant-color-border)',
+                        }}
+                        styles={{ body: { padding: '10px 14px' } }}
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <FileTextOutlined style={{ color: 'var(--ant-color-primary)', fontSize: 16, flexShrink: 0 }} />
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: 12, color: 'var(--ant-color-text)' }}>
+                              {artifact.split('/').pop()}
+                            </div>
+                            <div style={{ fontSize: 10, color: 'var(--ant-color-text)', opacity: 0.45 }}>
+                              点击查看
+                            </div>
+                          </div>
+                        </div>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </Card>
             </div>
           )}
         </div>
@@ -597,12 +527,20 @@ export default function Dashboard() {
       </div>
 
       {/* 帮助弹窗 */}
-      <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={400}>
+      <Modal title="操作指南" open={helpOpen} onCancel={() => setHelpOpen(false)} footer={null} width={420}>
         <Timeline items={[
-          { color: 'var(--ant-color-primary)', content: <strong>启动任务</strong> },
-          { color: 'var(--ant-color-primary)', content: '在 Claude Code / OpenCode / Codex 中输入 /jarvis 命令' },
-          { color: 'var(--ant-color-primary)', content: <strong>等待 Gate 通过</strong> },
-          { color: 'var(--ant-color-primary)', content: '每个 Gate 完成后自动推进，点击文件标签可查看产物文档' },
+          { color: 'var(--ant-color-primary)', content: <strong>启动流水线</strong> },
+          { color: 'var(--ant-color-primary)', content: '在 Claude Code 中输入 /jarvis 命令启动流水线，引擎自动追踪 Gate 进度' },
+          { color: 'var(--ant-color-primary)', content: <strong>查看统计总览</strong> },
+          { color: 'var(--ant-color-primary)', content: '顶部统计卡片显示完成进度、已通过 Gate 数、产物文件数和总耗时' },
+          { color: 'var(--ant-color-primary)', content: <strong>预览产物文档</strong> },
+          { color: 'var(--ant-color-primary)', content: '中间区域展示当前 Gate 的产物文档卡片列表，点击卡片打开 Markdown 预览' },
+          { color: 'var(--ant-color-primary)', content: <strong>追踪 Gate 步骤</strong> },
+          { color: 'var(--ant-color-primary)', content: '右侧栏 Gate 进度 Timeline 展示各 Gate 状态，点击可预览对应文档产物' },
+          { color: 'var(--ant-color-primary)', content: <strong>调整右侧栏宽度</strong> },
+          { color: 'var(--ant-color-primary)', content: '拖拽中间与右侧栏之间的分割线可调整右侧栏宽度，适配不同屏幕' },
+          { color: 'var(--ant-color-primary)', content: <strong>查看历史记录</strong> },
+          { color: 'var(--ant-color-primary)', content: '右侧栏底部显示当前会话的历史运行记录，快速回溯过往' },
         ]} />
       </Modal>
     </div>

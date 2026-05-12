@@ -54,17 +54,6 @@ export interface AgentStatusResponse {
   failed: string[];
 }
 
-export interface AgentGateStatusResponse {
-  run_id: string;
-  current_gate: string;
-  gates: Record<string, {
-    active: string[];
-    completed: string[];
-    failed: string[];
-    agents: Array<{ agent_id: string; status: string; model?: string }>;
-  }>;
-}
-
 export interface AgentEvent {
   id: number;
   run_id: string;
@@ -180,6 +169,4 @@ export const api = {
   agentEvents: (runId: string, agentId: string): Promise<{ events: AgentEvent[] }> =>
     fetchJSON(`/api/agent-events?run_id=${encodeURIComponent(runId)}&agent_id=${encodeURIComponent(agentId)}`),
 
-  agentGateStatus: (runId?: string): Promise<AgentGateStatusResponse> =>
-    fetchJSON(`/api/agent-gate-status${runId ? `?run_id=${encodeURIComponent(runId)}` : ''}`),
 };

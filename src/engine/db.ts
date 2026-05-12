@@ -693,6 +693,41 @@ export function insertAgentEvent(db, params) {
 }
 
 /**
+ * 检查 Agent 事件是否重复，用于去重。
+ * - start: 若该 (run_id, agent_id) 的最新事件是 start（无对应 end/error），则视为重复
+ * - end/error: 若该 (run_id, agent_id) 已有 end 或 error 事件，则视为重复
+ * @param {DatabaseSync} db
+ * @param {string} runId
+ * @param {string} agentId
+ * @param {'start'|'end'|'error'} eventType
+ * @returns {{ duplicate: boolean; id?: number; total_tokens?: number }}
+ */
+export function checkAgentEventDuplicate(db, runId, agentId, eventType) {
+  if (eventType === 'start') {
+    const latest = db.prepare(
+      `SELECT id, event_type FROM agent_events
+       WHERE run_id=? AND agent_id=?
+       ORDER BY id DESC LIMIT 1`
+    ).get(runId, agentId);
+    if (latest && latest.event_type === 'start') {
+      return { duplicate: true, id: latest.id, total_tokens: 0 };
+    }
+    return { duplicate: false };
+  }
+
+  // end 或 error：检查是否已有 end/error 事件
+  const existing = db.prepare(
+    `SELECT id, total_tokens FROM agent_events
+     WHERE run_id=? AND agent_id=? AND event_type IN ('end', 'error')
+     ORDER BY id DESC LIMIT 1`
+  ).get(runId, agentId);
+  if (existing) {
+    return { duplicate: true, id: existing.id, total_tokens: existing.total_tokens };
+  }
+  return { duplicate: false };
+}
+
+/**
  * 查询指定 run 的 Agent 事件列表，可选按 agent_id 过滤。
  * @param {DatabaseSync} db
  * @param {string} runId

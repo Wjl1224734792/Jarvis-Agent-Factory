@@ -56,7 +56,7 @@ Jarvis Agent Factory 项目级上下文入口。**所有智能体启动时必须
 
 | 页面 | 路由 | 功能 |
 |------|------|------|
-| 流水线看板 | `#/dashboard` | 会话列表 · 统计卡片 · Gate 进度 · X6 流程可视化 · Agent 交互图 · SSE 实时推送 |
+| 流水线看板 | `#/dashboard` | 会话列表 · 统计卡片 · Gate 进度 · 产物文档卡片列表 + Markdown 预览 · Gate Timeline · SSE 实时推送 |
 | 智能体配置 | `#/agents` | 卡片网格 · 平台/来源/分类筛选 · 模型/思考等级弹窗 · 文件同步 |
 | 归档记录 | `#/archive` | 按会话分组 · 搜索过滤 · 恢复/永久删除 |
 
@@ -218,7 +218,7 @@ git ls-remote --tags origin | grep "v<version>"          # 确认 GitHub tag
 
 ## 智能体体系（57 个 Agent）
 
-### 实现类（21）
+### 实现类（22）
 `frontend-dev-expert` `frontend-ui-expert` `frontend-state-expert` `backend-dev-expert` `backend-api-expert` `backend-logic-expert` `backend-data-expert` `taro-dev-expert` `taro-ui-expert` `taro-state-expert` `android-dev-expert` `android-ui-expert` `android-state-expert` `ios-dev-expert` `ios-ui-expert` `ios-state-expert` `react-native-dev-expert` `react-native-ui-expert` `react-native-state-expert` `flutter-dev-expert` `flutter-ui-expert` `flutter-state-expert`
 
 ### 测试类（10）

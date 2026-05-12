@@ -12,7 +12,8 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { tmpdir } from 'node:os';
 import { resolve } from 'node:path';
 import {
-  openDb, insertAgentEvent, getAgentEvents, getAgentStatus,
+  openDb, insertAgentEvent, checkAgentEventDuplicate,
+  getAgentEvents, getAgentStatus,
   addSession, createPipelineRun, deleteRun, getPipelineRun,
 } from '../src/engine/db.js';
 
@@ -209,5 +210,88 @@ describe('Agent Events', () => {
     const endEvent = events.find(e => e.event_type === 'end');
     // 100 + 200 + 50 + 30 = 380
     expect(endEvent.total_tokens).toBe(380);
+  });
+
+  // ──────────────────────────────────────────────────────────────
+  // TASK-002: 去重测试
+  // ──────────────────────────────────────────────────────────────
+  it('6 | 去重：重复 start 事件被检测为 duplicate', () => {
+    const r1 = insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'dedup-start-agent',
+      event_type: 'start',
+    });
+    expect(r1.id).toBeGreaterThan(0);
+
+    const dup = checkAgentEventDuplicate(db, runId, 'dedup-start-agent', 'start');
+    expect(dup.duplicate).toBe(true);
+    expect(dup.id).toBe(r1.id);
+    expect(dup.total_tokens).toBe(0);
+  });
+
+  it('7 | 去重：start→end 后 start 允许新的 start（Agent 重启场景）', () => {
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'restart-agent',
+      event_type: 'start',
+    });
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'restart-agent',
+      event_type: 'end', input_tokens: 100, output_tokens: 50,
+    });
+
+    // end 之后新的 start 应该允许
+    const dup = checkAgentEventDuplicate(db, runId, 'restart-agent', 'start');
+    expect(dup.duplicate).toBe(false);
+  });
+
+  it('8 | 去重：重复 end 事件被检测为 duplicate', () => {
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'dedup-end-agent',
+      event_type: 'start',
+    });
+    const r2 = insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'dedup-end-agent',
+      event_type: 'end', input_tokens: 200, output_tokens: 100,
+    });
+
+    const dup = checkAgentEventDuplicate(db, runId, 'dedup-end-agent', 'end');
+    expect(dup.duplicate).toBe(true);
+    expect(dup.id).toBe(r2.id);
+    expect(dup.total_tokens).toBe(300);
+  });
+
+  it('9 | 去重：重复 error 事件被检测为 duplicate', () => {
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'dedup-err-agent',
+      event_type: 'start',
+    });
+    const r3 = insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'dedup-err-agent',
+      event_type: 'error', error_message: 'timeout',
+    });
+
+    const dup = checkAgentEventDuplicate(db, runId, 'dedup-err-agent', 'error');
+    expect(dup.duplicate).toBe(true);
+    expect(dup.id).toBe(r3.id);
+    expect(dup.total_tokens).toBe(0);
+  });
+
+  it('10 | 去重：新 agent 首次 start 不重复', () => {
+    const dup = checkAgentEventDuplicate(db, runId, 'fresh-agent', 'start');
+    expect(dup.duplicate).toBe(false);
+  });
+
+  it('11 | 去重：start→error 后 start 允许新的 start', () => {
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'err-restart-agent',
+      event_type: 'start',
+    });
+    insertAgentEvent(db, {
+      run_id: runId, session_id: sid, agent_id: 'err-restart-agent',
+      event_type: 'error', error_message: 'crash',
+    });
+
+    // error 之后新的 start 应该允许
+    const dup = checkAgentEventDuplicate(db, runId, 'err-restart-agent', 'start');
+    expect(dup.duplicate).toBe(false);
   });
 });

@@ -1,11 +1,16 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 // Mock agent-registry 模块的函数，使用 vi.hoisted 避免 hoisting 时未初始化
-const { mockAgentsByPlatform, mockGetPlatforms, mockGetPlatformModels, mockGetAgentList } = vi.hoisted(() => ({
+const { mockAgentsByPlatform, mockGetPlatforms, mockGetPlatformModels, mockGetAgentList, mockPlatformFeatures } = vi.hoisted(() => ({
   mockAgentsByPlatform: vi.fn(),
   mockGetPlatforms: vi.fn(),
   mockGetPlatformModels: vi.fn(),
   mockGetAgentList: vi.fn(),
+  mockPlatformFeatures: {
+    claude: ['commands'],
+    opencode: ['plugins'],
+    codex: [],
+  },
 }));
 
 vi.mock('../src/engine/agent-registry.js', () => ({
@@ -13,6 +18,7 @@ vi.mock('../src/engine/agent-registry.js', () => ({
   getPlatformModels: mockGetPlatformModels,
   getAgentsByPlatform: mockAgentsByPlatform,
   getAgentList: mockGetAgentList,
+  PLATFORM_FEATURES: mockPlatformFeatures,
 }));
 
 // resolvePlatformInfo 导入在 mock 之后，确保使用 mock 版本
@@ -170,4 +176,5 @@ describe('resolvePlatformInfo', () => {
       expect(mockAgentsByPlatform).not.toHaveBeenCalled();
     });
   });
+
 });

@@ -4,6 +4,30 @@ All notable changes to the Jarvis Agent Factory project.
 
 Note: This project follows [Semantic Versioning](https://semver.org/).
 
+## [3.43.0] - 2026-05-12
+
+### Removed
+- **X6 画布组件**：移除 FlowChart + AgentGraph SVG 画布，中间区域改为纯文档阅读器
+- **Token 统计**：删除 TokenDashboard 组件、成本估算函数、agentUsage API
+- **死代码清理**：移除 useAgentData hook、x6-theme 常量、及相关测试文件
+
+### Added
+- **产物文档列表**：Dashboard 中间区域展示当前 Gate 的文档卡片列表
+- **Agent 事件去重**：`agent_event` MCP 工具防止 Hook 重复触发导致重复统计
+- **Gate 耗时修复**：`pipeline_init` 和 REST API 推进时正确初始化 Gate 进入时间
+- **归档操作测试**：16 个新测试覆盖归档/恢复/删除全生命周期
+- **多平台适配**：`PLATFORM_FEATURES` 正式化，支持 claude/opencode/codex 特性查询
+
+### Changed
+- Dashboard 中间区域从双画布分屏改为文档阅读器 + Markdown 预览
+- 操作指南弹窗内容更新，反映新布局
+- CLAUDE.md/AGENTS.md/README.md 同步更新至 3.43.0
+
+### Fixed
+- **会话文档隔离**：MCP 工具改用 `findSessionGateArtifacts` 按 session 过滤
+- **跨会话文档泄露**：pipeline_status/gate_enforce/advance_gate/report_status 全线修复
+- 归档列表删除/恢复操作添加错误处理分支
+
 ## [3.27.0] - 2026-05-09
 
 ### Added

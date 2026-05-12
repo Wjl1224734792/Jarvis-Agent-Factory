@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
 import { resolve, join } from 'node:path';
 import { streamSSE } from 'hono/streaming';
-import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, getAgentEvents, getAgentStatus, getAgentGateStatus } from '../engine/db.js';
+import { getPipeline, getCheckpoints, addCheckpoint, updatePipelineGate, getSessions, getAgentConfig, setAgentModel, resumeSession, markStaleSessions, getSessionRuns, setRunTaskName, getActiveRun, archiveRun, unarchiveRun, getArchivedRuns, deleteRun, deleteSession, pinRun, unpinRun, insertArtifact, insertAgentEvent, checkAgentEventDuplicate, getAgentEvents, getAgentStatus, getAgentGateStatus, updateRunGate, updateRunGateEnteredAt } from '../engine/db.js';
 import { GATE_CHECKS, AVAILABLE_MODELS, GATE_DIRS, findSessionGateArtifacts, formatGateDisplay, getPipelineGates, getPipelineName, DEFAULT_PIPELINE } from '../engine/gates.js';
 import { getAgentList, getPlatformModels, getCategories, getAgentsByPlatform, getPlatforms, scanAllProjectAgents } from '../engine/agent-registry.js';
 import { syncAgentFile } from '../engine/agent-fs.js';
@@ -194,8 +194,22 @@ export function setupApiRoutes(app, db, root) {
     if (artifacts.length === 0 && checkpoints.length === 0) {
       return c.json({ allowed: false, error: `Gate ${currentGate} conditions NOT met` });
     }
-    addCheckpoint(db, currentGate, targetGate, sid);
+    // TASK-003: 计算当前 Gate 耗时（进入时间 → 现在），与 MCP advance_gate 保持一致
+    let durationSeconds: number | null = null;
+    if (run) {
+      const enteredRow = db.prepare("SELECT strftime('%s', gate_entered_at) AS entered_epoch FROM pipeline_runs WHERE id=?").get(run.id);
+      if (enteredRow?.entered_epoch) {
+        const enteredEpoch = Number(enteredRow.entered_epoch);
+        durationSeconds = Math.floor(Date.now() / 1000) - enteredEpoch;
+      }
+    }
+    addCheckpoint(db, currentGate, targetGate, sid, durationSeconds ?? undefined);
     updatePipelineGate(db, sid, targetGate);
+    // TASK-003: 同步更新 pipeline_runs 中的 current_gate 和新 Gate 进入时间
+    if (run) {
+      updateRunGate(db, run.id, targetGate);
+      updateRunGateEnteredAt(db, run.id, new Date().toISOString());
+    }
     // 扫描当前 Gate 产物目录，写入 artifacts 表（失败不阻塞推进）
     if (run) {
       try {
@@ -535,6 +549,18 @@ export function setupApiRoutes(app, db, root) {
     }
     if (runCheck.session_id !== session_id) {
       return c.json({ error: `Run ${run_id} does not belong to session ${session_id}` }, 403);
+    }
+
+    // 去重检查：同一 (run_id, agent_id) 的重复 start/end/error 事件忽略
+    const dupCheck = checkAgentEventDuplicate(db, run_id, agent_id, event);
+    if (dupCheck.duplicate) {
+      return c.json({
+        ok: true, id: dupCheck.id, total_tokens: dupCheck.total_tokens,
+        duplicate: true,
+        message: event === 'start'
+          ? 'start event already recorded for this agent'
+          : 'end/error event already recorded for this agent',
+      });
     }
 
     const result = insertAgentEvent(db, {
