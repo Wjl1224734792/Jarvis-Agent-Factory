@@ -744,8 +744,8 @@ export function registerMcpTools(server, db, root) {
     { agent_id: z.string().optional(), model: z.string().optional(), effort: z.string().optional() },
     async ({ agent_id, model, effort }) => {
       if (agent_id && model) {
-        setAgentModel(db, agent_id, model, effort || 'high');
-        return resp({ ok: true, agent_id, model, effort: effort || 'high' });
+        setAgentModel(db, agent_id, model, effort);
+        return resp({ ok: true, agent_id, model, effort: effort });
       }
       const cfg = getAgentConfig(db);
       const agents = getAgentList(true);
@@ -755,7 +755,7 @@ export function registerMcpTools(server, db, root) {
           return {
             id: a.id, name: a.name, role: a.role, platform: a.platform,
             model: c?.model || a.defaultModel,
-            effort: c?.effort || a.defaultEffort || 'high',
+            effort: c?.effort || a.defaultEffort,
             is_custom: !!c,
           };
         }),

@@ -225,7 +225,7 @@ function parseAgentFile(
     category,
     platform: platformKey,
     defaultModel: model || '',
-    defaultEffort: effort || 'high',
+    defaultEffort: effort || '',
     fileName: entryName(fileName, config.ext),
     subdir: 'agents',
     source: 'template',

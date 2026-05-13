@@ -164,7 +164,7 @@ export async function hookCommand(args) {
         const r = await fetch(`${ENGINE_URL}/api/agents`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ agent_id: agentId, model, effort: effort || 'high' }),
+          body: JSON.stringify({ agent_id: agentId, model, effort: effort }),
         });
         if (!r.ok) {
           console.log(`❌ 设置失败: HTTP ${r.status} ${r.statusText}`);
@@ -202,7 +202,7 @@ export async function hookCommand(args) {
         console.log(`可用模型: ${(data.available_models || []).join(', ')}`);
         console.log(`可用思考等级: ${(data.available_efforts || EFFORTS).join(', ')}`);
         for (const a of agents) {
-          console.log(`  ${a.id.padEnd(24)} ${(a.model || '?').padEnd(20)} ${a.effort || 'high'}`);
+          console.log(`  ${a.id.padEnd(24)} ${(a.model || '?').padEnd(20)} ${a.effort || ''}`);
         }
       }
       process.exit(0);

@@ -122,7 +122,7 @@ export default function Agents() {
   const openEdit = (agent: AgentItem) => {
     setEditAgent(agent);
     setEditModel(agent.model || agent.defaultModel);
-    setEditEffort(agent.effort || agent.defaultEffort || 'high');
+    setEditEffort(agent.effort || agent.defaultEffort);
   };
 
   const handleSave = async () => {
@@ -431,7 +431,7 @@ export default function Agents() {
                 size="small"
                 onClick={() => {
                   setEditModel(editAgent.defaultModel);
-                  setEditEffort(editAgent.defaultEffort || 'high');
+                  setEditEffort(editAgent.defaultEffort);
                 }}
                 style={{ borderRadius: 12, color: 'var(--ant-color-error)' }}
               >

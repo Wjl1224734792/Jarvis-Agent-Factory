@@ -365,7 +365,7 @@ export function getAgentConfig(db) {
   return cfg;
 }
 export function setAgentModel(db, agentId, model, effort) {
-  db.prepare(`INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, datetime('now'))`).run(agentId, model, effort || 'high');
+  db.prepare(`INSERT OR REPLACE INTO agent_models (agent_id, model, effort, updated_at) VALUES (?, ?, ?, datetime('now'))`).run(agentId, model, effort);
 }
 
 // ---- Pipeline Runs（Session Model B）----

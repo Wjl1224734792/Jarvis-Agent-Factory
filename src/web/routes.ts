@@ -511,7 +511,7 @@ export function setupApiRoutes(app, db, root) {
       return {
         ...a,
         model: ac?.model || a.defaultModel,
-        effort: ac?.effort || a.defaultEffort || 'high',
+        effort: ac?.effort || a.defaultEffort,
         is_custom: !!ac,
       };
     });
@@ -529,7 +529,13 @@ export function setupApiRoutes(app, db, root) {
     const projectName = ((root || '').split(/[\\/]/).filter(Boolean).pop() || 'unknown');
     return c.json({
       agents: list,
-      available_models: [...AVAILABLE_MODELS],
+      available_models: [
+        ...new Set([
+          ...allAgents.map(a => a.defaultModel).filter(Boolean),
+          ...Object.values(cfg).map(c => c.model).filter(Boolean),
+          ...AVAILABLE_MODELS,
+        ]),
+      ],
       available_efforts: EFFORTS,
       platforms: [...new Set(allAgents.map(a => a.platform))],
       platform_models: platformModels,
@@ -557,9 +563,9 @@ export function setupApiRoutes(app, db, root) {
       }
     }
 
-    setAgentModel(db, agent_id, model, effort || 'high');
-    const fileSynced = syncAgentFile(root, agent_id, model, effort || 'high');
-    return c.json({ ok: true, agent_id, model, effort: effort || 'high', file_synced: fileSynced });
+    setAgentModel(db, agent_id, model, effort);
+    const fileSynced = syncAgentFile(root, agent_id, model, effort);
+    return c.json({ ok: true, agent_id, model, effort: effort, file_synced: fileSynced });
   });
 
   // ---- 平台信息 ----
