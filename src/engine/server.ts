@@ -355,8 +355,12 @@ export function registerMcpTools(server, db, root) {
       _lastSessionId = sid; // stdio 模式回退：记录最近会话
       const pt = pipeline_type || DEFAULT_PIPELINE;
       // 白名单校验 pipeline_type，防止存储型 XSS
-      if (!['full', 'frontend', 'backend', 'lite'].includes(pt)) {
-        return resp({ error: `Invalid pipeline_type: ${pt}. Valid: full, frontend, backend, lite` });
+      const VALID_PIPELINE_TYPES = [
+        'full', 'frontend', 'backend', 'lite',
+        'refactor', 'hotfix', 'migrate', 'evaluate', 'debug',
+      ];
+      if (!VALID_PIPELINE_TYPES.includes(pt)) {
+        return resp({ error: `Invalid pipeline_type: ${pt}. Valid: ${VALID_PIPELINE_TYPES.join(', ')}` });
       }
       if (resume_session_id) {
         const old = getSession(db, resume_session_id);

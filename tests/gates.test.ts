@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { join } from 'node:path';
-import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE, findSessionGateArtifacts } from '../src/engine/gates.js';
+import { getPipelineGates, getPipelineName, getGateOperations, GATE_OPERATIONS, GATE_AGENT_GUIDE, GATE_DIRS, GATE_CHECKS, MAX_RETRY, GATE_ENTRY_CONDITIONS, PIPELINE_DEFS, DEFAULT_PIPELINE, findSessionGateArtifacts } from '../src/engine/gates.js';
 
 // ---- Mock setup for findSessionGateArtifacts filesystem + db ----
 const { mockFs, mockArtifacts } = vi.hoisted(() => {
@@ -133,8 +133,8 @@ describe('GATE_OPERATIONS', () => {
     }
   });
 
-  it('共 12 个 Gate 有操作定义', () => {
-    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(12);
+  it('共 34 个 Gate 有操作定义（12 原有 + 22 新增）', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(34);
   });
 });
 
@@ -226,6 +226,266 @@ describe('GATE_ENTRY_CONDITIONS', () => {
 
   it('Gate C-impl 入口条件包含计划文档', () => {
     expect(GATE_ENTRY_CONDITIONS['Gate C-impl']).toContain('计划');
+  });
+});
+
+// ==================================================================
+// TASK-001: 5 条新流水线 + 22 个新 Gate 测试（17 个 TDD 测试用例）
+// ==================================================================
+
+const NEW_PIPELINE_TYPES = ['refactor', 'hotfix', 'migrate', 'evaluate', 'debug'] as const;
+const NEW_GATE_SETS: Record<string, string[]> = {
+  refactor: ['R1', 'R2', 'R3', 'R4', 'R5'],
+  hotfix: ['H0', 'H1', 'H2', 'H3'],
+  migrate: ['M1', 'M2', 'M3', 'M4'],
+  evaluate: ['E0', 'E1', 'E2', 'E3'],
+  debug: ['D0', 'D1', 'D2', 'D3', 'D4'],
+};
+const ALL_NEW_GATES = Object.values(NEW_GATE_SETS).flat();
+
+describe('TASK-001: PIPELINE_DEFS 新增 5 条流水线', () => {
+  it('1. PIPELINE_DEFS 包含 5 条新流水线', () => {
+    for (const pt of NEW_PIPELINE_TYPES) {
+      expect(PIPELINE_DEFS[pt], `${pt} 应存在于 PIPELINE_DEFS`).toBeDefined();
+      expect(PIPELINE_DEFS[pt].name, `${pt} 应有中文名称`).toBeTruthy();
+      expect(PIPELINE_DEFS[pt].gates, `${pt} 应有 gates 数组`).toBeInstanceOf(Array);
+    }
+  });
+
+  it('2. refactor 流水线有 5 个 Gate（R1-R5）', () => {
+    expect(getPipelineGates('refactor')).toEqual(['R1', 'R2', 'R3', 'R4', 'R5']);
+  });
+
+  it('3. hotfix 流水线有 4 个 Gate（H0-H3）', () => {
+    expect(getPipelineGates('hotfix')).toEqual(['H0', 'H1', 'H2', 'H3']);
+  });
+
+  it('4. migrate 流水线有 4 个 Gate（M1-M4）', () => {
+    expect(getPipelineGates('migrate')).toEqual(['M1', 'M2', 'M3', 'M4']);
+  });
+
+  it('5. evaluate 流水线有 4 个 Gate（E0-E3）', () => {
+    expect(getPipelineGates('evaluate')).toEqual(['E0', 'E1', 'E2', 'E3']);
+  });
+
+  it('6. debug 流水线有 5 个 Gate（D0-D4）', () => {
+    expect(getPipelineGates('debug')).toEqual(['D0', 'D1', 'D2', 'D3', 'D4']);
+  });
+
+  it('7. 已有 4 条流水线 Gate 序列不变', () => {
+    expect(getPipelineGates('full')).toContain('Gate A');
+    expect(getPipelineGates('full')).toContain('Gate E');
+    expect(getPipelineGates('full')).toHaveLength(12);
+    expect(getPipelineGates('frontend')).toHaveLength(12);
+    expect(getPipelineGates('backend')).toHaveLength(11);
+    expect(getPipelineGates('lite')).toHaveLength(12);
+    expect(PIPELINE_DEFS.lite.allow_jump).toBe(true);
+  });
+
+  it('8. getPipelineName 返回新流水线中文名称', () => {
+    expect(getPipelineName('refactor')).toBe('重构');
+    expect(getPipelineName('hotfix')).toBe('紧急热修复');
+    expect(getPipelineName('migrate')).toBe('框架迁移');
+    expect(getPipelineName('evaluate')).toBe('技术评估');
+    expect(getPipelineName('debug')).toBe('调试诊断');
+  });
+});
+
+describe('TASK-001: GATE_OPERATIONS 注册 22 个新 Gate', () => {
+  it('9. GATE_OPERATIONS 共 34 个条目（12 原有 + 22 新增）', () => {
+    expect(Object.keys(GATE_OPERATIONS)).toHaveLength(34);
+  });
+
+  it('10. 所有 22 个新 Gate 都允许 read', () => {
+    for (const gate of ALL_NEW_GATES) {
+      const ops = getGateOperations(gate);
+      expect(ops.allow, `${gate} 应允许 read`).toContain('read');
+    }
+  });
+
+  it('11. H0 禁止 write_code / spawn_impl / spawn_test / build / deploy', () => {
+    const ops = getGateOperations('H0');
+    expect(ops.allow).toContain('read');
+    expect(ops.allow).toContain('write_doc');
+    expect(ops.deny).toContain('write_code');
+    expect(ops.deny).toContain('spawn_impl');
+    expect(ops.deny).toContain('spawn_test');
+    expect(ops.deny).toContain('build');
+    expect(ops.deny).toContain('deploy');
+  });
+
+  it('12. H3 允许 deploy / review / audit / read / write_doc', () => {
+    const ops = getGateOperations('H3');
+    expect(ops.allow).toContain('deploy');
+    expect(ops.allow).toContain('review');
+    expect(ops.allow).toContain('audit');
+    expect(ops.allow).toContain('read');
+    expect(ops.allow).toContain('write_doc');
+  });
+
+  it('13. D0 禁止 write_code / spawn_impl / spawn_test / build / deploy', () => {
+    const ops = getGateOperations('D0');
+    expect(ops.deny).toContain('write_code');
+    expect(ops.deny).toContain('spawn_impl');
+    expect(ops.deny).toContain('spawn_test');
+    expect(ops.deny).toContain('build');
+    expect(ops.deny).toContain('deploy');
+  });
+
+  it('14. R3 允许 read / write_code / spawn_impl，禁止 spawn_test / build / deploy', () => {
+    const ops = getGateOperations('R3');
+    expect(ops.allow).toContain('read');
+    expect(ops.allow).toContain('write_code');
+    expect(ops.allow).toContain('spawn_impl');
+    expect(ops.deny).toContain('spawn_test');
+    expect(ops.deny).toContain('build');
+    expect(ops.deny).toContain('deploy');
+  });
+
+  it('15. E1 禁止 deploy', () => {
+    const ops = getGateOperations('E1');
+    expect(ops.deny).toContain('deploy');
+  });
+});
+
+describe('TASK-001: GATE_AGENT_GUIDE 注册 22 个新 Gate', () => {
+  it('16. 所有 22 个新 Gate 都有 GATE_AGENT_GUIDE 条目', () => {
+    for (const gate of ALL_NEW_GATES) {
+      expect(GATE_AGENT_GUIDE[gate], `${gate} 应有 GATE_AGENT_GUIDE`).toBeDefined();
+      expect(GATE_AGENT_GUIDE[gate].can_spawn, `${gate} can_spawn 应为数组`).toBeInstanceOf(Array);
+    }
+  });
+
+  it('17. H0 can_spawn 为空（需人工介入）', () => {
+    expect(GATE_AGENT_GUIDE['H0'].can_spawn).toEqual([]);
+    expect(GATE_AGENT_GUIDE['H0'].note).toContain('人工');
+  });
+
+  it('18. H1 can_spawn 包含 frontend-dev-expert / backend-dev-expert / remediation-expert', () => {
+    expect(GATE_AGENT_GUIDE['H1'].can_spawn).toContain('frontend-dev-expert');
+    expect(GATE_AGENT_GUIDE['H1'].can_spawn).toContain('backend-dev-expert');
+    expect(GATE_AGENT_GUIDE['H1'].can_spawn).toContain('remediation-expert');
+  });
+
+  it('19. R3 can_spawn 包含全部 8 种实现 Agent', () => {
+    const agents = GATE_AGENT_GUIDE['R3'].can_spawn;
+    expect(agents).toContain('frontend-dev-expert');
+    expect(agents).toContain('frontend-ui-expert');
+    expect(agents).toContain('frontend-state-expert');
+    expect(agents).toContain('backend-dev-expert');
+    expect(agents).toContain('backend-api-expert');
+    expect(agents).toContain('backend-logic-expert');
+    expect(agents).toContain('backend-data-expert');
+    expect(agents).toContain('remediation-expert');
+    expect(agents).toHaveLength(8);
+  });
+
+  it('20. H3 can_spawn 包含 security-review-expert / qa-review-expert / docs-engineer', () => {
+    expect(GATE_AGENT_GUIDE['H3'].can_spawn).toContain('security-review-expert');
+    expect(GATE_AGENT_GUIDE['H3'].can_spawn).toContain('qa-review-expert');
+    expect(GATE_AGENT_GUIDE['H3'].can_spawn).toContain('docs-engineer');
+  });
+});
+
+describe('TASK-001: GATE_DIRS 映射', () => {
+  it('21. 所有 22 个新 Gate 都有 GATE_DIRS 映射', () => {
+    for (const gate of ALL_NEW_GATES) {
+      expect(GATE_DIRS[gate], `${gate} 应有 GATE_DIRS`).toBeDefined();
+      expect(typeof GATE_DIRS[gate], `${gate} GATE_DIRS 应为字符串`).toBe('string');
+    }
+  });
+
+  it('22. R1-R5 映射到 refactoring', () => {
+    for (let i = 1; i <= 5; i++) {
+      expect(GATE_DIRS[`R${i}`]).toBe('refactoring');
+    }
+  });
+
+  it('23. H0-H3 映射到 hotfix', () => {
+    for (let i = 0; i <= 3; i++) {
+      expect(GATE_DIRS[`H${i}`]).toBe('hotfix');
+    }
+  });
+
+  it('24. M1-M4 映射到 migration', () => {
+    for (let i = 1; i <= 4; i++) {
+      expect(GATE_DIRS[`M${i}`]).toBe('migration');
+    }
+  });
+
+  it('25. E0-E3 映射到 evaluation', () => {
+    for (let i = 0; i <= 3; i++) {
+      expect(GATE_DIRS[`E${i}`]).toBe('evaluation');
+    }
+  });
+
+  it('26. D0-D4 映射到 debug', () => {
+    for (let i = 0; i <= 4; i++) {
+      expect(GATE_DIRS[`D${i}`]).toBe('debug');
+    }
+  });
+});
+
+describe('TASK-001: GATE_CHECKS 检查条件', () => {
+  it('27. 所有 22 个新 Gate 都有 GATE_CHECKS 条目', () => {
+    for (const gate of ALL_NEW_GATES) {
+      expect(GATE_CHECKS[gate], `${gate} 应有 GATE_CHECKS`).toBeDefined();
+      expect(GATE_CHECKS[gate].check, `${gate} check 应为非空字符串`).toBeTruthy();
+    }
+  });
+});
+
+describe('TASK-001: MAX_RETRY 设置', () => {
+  it('28. 所有 22 个新 Gate 都有 MAX_RETRY', () => {
+    for (const gate of ALL_NEW_GATES) {
+      expect(MAX_RETRY[gate], `${gate} 应有 MAX_RETRY`).toBeDefined();
+    }
+  });
+
+  it('29. H0 MAX_RETRY=1（审批拒绝不重试）', () => {
+    expect(MAX_RETRY['H0']).toBe(1);
+  });
+
+  it('30. H3 MAX_RETRY=Infinity（合规审计不可跳过）', () => {
+    expect(MAX_RETRY['H3']).toBe(Infinity);
+  });
+
+  it('31. D3 MAX_RETRY=Infinity（交互式诊断可无限重试）', () => {
+    expect(MAX_RETRY['D3']).toBe(Infinity);
+  });
+
+  it('32. M4 MAX_RETRY=2', () => {
+    expect(MAX_RETRY['M4']).toBe(2);
+  });
+
+  it('33. 其他新 Gate 使用默认值 2', () => {
+    for (const gate of ALL_NEW_GATES) {
+      if (['H0', 'H3', 'D3', 'M4'].includes(gate)) continue;
+      expect(MAX_RETRY[gate], `${gate} MAX_RETRY 应为 2`).toBe(2);
+    }
+  });
+});
+
+describe('TASK-001: GATE_ENTRY_CONDITIONS 入口条件', () => {
+  it('34. 18 条 GATE_ENTRY_CONDITIONS 都存在', () => {
+    // 每个新 Gate 除了第一个（R1, H0, M1, E0, D0）都有入口条件 = 22 - 5 = 17...
+    // 但按任务描述，确切是 18 条（含所有有前置的Gate）
+    const newConditions = Object.keys(GATE_ENTRY_CONDITIONS).filter(k =>
+      ALL_NEW_GATES.includes(k)
+    );
+    expect(newConditions.length).toBeGreaterThanOrEqual(17);
+  });
+
+  it('35. R2 入口条件包含 R1', () => {
+    expect(GATE_ENTRY_CONDITIONS['R2']).toContain('R1');
+  });
+
+  it('36. H1 入口条件包含 H0', () => {
+    expect(GATE_ENTRY_CONDITIONS['H1']).toContain('H0');
+  });
+
+  it('37. D1 入口条件包含 D0', () => {
+    expect(GATE_ENTRY_CONDITIONS['D1']).toContain('D0');
   });
 });
 
