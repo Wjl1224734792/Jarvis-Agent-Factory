@@ -2,7 +2,7 @@
 name: react-native-dev-expert
 description: "Expo 跨端移动开发工作者：负责 Expo（React Native）iOS/Android 双端页面、组件、原生模块。基于 Expo SDK + Expo Router。不涉及后端。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 effort: max
 ---
 

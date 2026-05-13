@@ -2,7 +2,7 @@
 name: perf-test-expert
 description: "性能测试专项工作者：负责负载测试、压力测试、基准测试和性能瓶颈定位。使用 k6/Gatling/Locust/JMeter 等工具执行实际压测，产出性能报告。不编写业务代码。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 effort: max
 ---
 

@@ -2,7 +2,7 @@
 name: react-native-state-expert
 description: "Expo 状态与数据专项工作者：负责 Zustand/Redux 状态管理、expo-secure-store 安全存储、数据获取、Expo Router 路由。不涉及 UI 样式或布局。"
 tools: Read, Write, Edit, Bash, Glob, Grep, Skill
-model: deepseek-v4-flash
+model: deepseek-v4-pro
 effort: max
 ---
 
